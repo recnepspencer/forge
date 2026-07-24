@@ -15,6 +15,10 @@ struct SeparateCommit;
 struct UncontactedProvider(Arc<AtomicUsize>);
 
 impl domain::WorthQueryGraphParticipationProvider<RemoteGraph> for UncontactedProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,

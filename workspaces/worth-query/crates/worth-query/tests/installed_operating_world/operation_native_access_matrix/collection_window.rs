@@ -145,7 +145,13 @@ fn unsupported_grouping_denies_instead_of_degrading_to_an_offset_window() {
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -223,7 +229,13 @@ pub(super) fn settled_with_native_field(
     let request = request.build().unwrap();
     let order_key = request.resolve_native_key(&order).unwrap().into_key();
     let settled = bound
-        .execute((), workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

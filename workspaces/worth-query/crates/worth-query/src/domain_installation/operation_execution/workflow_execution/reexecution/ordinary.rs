@@ -8,12 +8,13 @@ use super::{
     WorthQueryWorkflowCompletionDenial, WorthQueryWorkflowOperation, WorthQueryWorkflowRunCounters,
     WorthQueryWorkflowStartDenial,
 };
+use crate::domain_installation::WorthQueryAdmittedWorkflowOperation;
 use crate::domain_installation::WorthQueryAftermathExecutionDenial;
-use crate::domain_installation::WorthQueryBoundDomainOperation;
 
 #[derive(Debug)]
 pub enum WorthQueryWorkflowReexecutionStop {
     IntentDoesNotMatchInstalledGraph,
+    ResourceAdmission(super::WorthQueryExecutionResourceAdmissionDenial),
     Start(WorthQueryWorkflowStartDenial),
     Advance(WorthQueryWorkflowAdvanceDenial),
     ConditionalDeferred {
@@ -38,6 +39,7 @@ impl WorthQueryWorkflowReexecutionStop {
             Self::Completion(denial) => denial.executed_effects(),
             Self::Aftermath(denial) => denial.partial_effects(),
             Self::IntentDoesNotMatchInstalledGraph
+            | Self::ResourceAdmission(_)
             | Self::Start(_)
             | Self::OperationConditionalDeferred { .. } => &[],
         }
@@ -54,7 +56,7 @@ pub type WorthQueryWorkflowReexecutionOutcome<D, O, F, L> = TransitionOutcome<
 >;
 
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane>
-    WorthQueryBoundDomainOperation<D, O, F, L>
+    WorthQueryAdmittedWorkflowOperation<D, O, F, L>
 where
     O: WorthQueryExecutableDomainOperation<D, F, Execution = WorthQueryWorkflowOperation>,
 {

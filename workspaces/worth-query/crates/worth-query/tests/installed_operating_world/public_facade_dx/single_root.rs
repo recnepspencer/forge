@@ -45,19 +45,43 @@ fn one_root_binds_real_construct_boolean_transform_and_cross_domain_operations()
     );
 
     let construct_counters = construct
-        .execute(Default::default(), &mut workspace)
+        .admit_execution_resources(
+            Default::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .counters();
     let boolean_counters = boolean
-        .execute(Default::default(), &mut workspace)
+        .admit_execution_resources(
+            Default::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .counters();
     let transform_counters = transform
-        .execute(Default::default(), &mut workspace)
+        .admit_execution_resources(
+            Default::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .counters();
     let route_counters = route
-        .execute(Default::default(), &mut workspace)
+        .admit_execution_resources(
+            Default::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .counters();
     for counters in [

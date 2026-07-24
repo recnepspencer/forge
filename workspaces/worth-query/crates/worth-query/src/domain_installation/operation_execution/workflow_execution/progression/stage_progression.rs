@@ -103,6 +103,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             WorthQueryWorkflowAdvanceDenialKind::StageExecutor { .. }
                 | WorthQueryWorkflowAdvanceDenialKind::UndeclaredFailureClass(_)
                 | WorthQueryWorkflowAdvanceDenialKind::PredecessorAuthorityMissing(_)
+                | WorthQueryWorkflowAdvanceDenialKind::ResourceAdmissionMissing
                 | WorthQueryWorkflowAdvanceDenialKind::ConditionalExecution(_)
         );
         for receipt in self.receipts.iter_mut().rev() {
@@ -151,6 +152,16 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
         let counters_before = self.counters;
         let stage = self.admit_stage(stage_identity, &input, runtime_admission)?;
+        let resources = self.resources.shared_stage(stage_identity).ok_or_else(|| {
+            WorthQueryWorkflowAdvanceDenial::new(
+                WorthQueryWorkflowAdvanceDenialKind::ResourceAdmissionMissing,
+                self.counters,
+            )
+        })?;
+        let resource_evidence = super::WorthQueryExecutionResourceAttemptEvidence::capture(
+            &resources,
+            &self.provider_session,
+        );
         let semantic_input = input.semantic_value();
         let graph_snapshot = workspace.snapshot_identity();
         let conditional =
@@ -164,10 +175,19 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             &self.bound,
             &self.identity,
             &stage,
+            &resources,
+            &resource_evidence,
             &graph_snapshot,
             &mut self.counters,
         )?;
-        let executed = self.execute_admitted_stage(&stage, input, &graph_receipts, workspace)?;
+        let executed = self.execute_admitted_stage(
+            &stage,
+            &resources,
+            &resource_evidence,
+            input,
+            &graph_receipts,
+            workspace,
+        )?;
         let evidence = self.validate_stage_evidence(
             &stage,
             WorthQueryWorkflowStageValidationInput {
@@ -178,6 +198,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 execution_snapshot: workspace.snapshot_identity(),
                 effect_workflow_binding: executed.effect_workflow_binding,
                 counters_before,
+                resource_evidence,
             },
         )?;
         self.retain_admitted_stage(&stage, executed.predecessor_receipt_identities, evidence);
@@ -212,6 +233,8 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     fn execute_admitted_stage(
         &mut self,
         stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+        resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+        resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
         input: WorthQueryWorkflowValue,
         graph_receipts: &[WorthQueryBoundGraphExecutionReceipt],
         workspace: &mut WorthQueryWorkspace,
@@ -229,6 +252,8 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             stage,
             &predecessor_receipts,
             graph_receipts,
+            resources,
+            resource_evidence,
             effect_workflow_binding.clone(),
         );
         let material = self
@@ -284,6 +309,8 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
         predecessor_receipts: &'a [&'a WorthQueryWorkflowStageReceipt],
         graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
+        resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+        resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,
         effect_workflow_binding: crate::workflow::WorkflowContextBinding,
     ) -> WorthQueryWorkflowStageExecutionContext<'a> {
         WorthQueryWorkflowStageExecutionContext::new(
@@ -300,6 +327,9 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 installed_read: self.executor.installed_read.as_ref(),
                 operation_graph_reads: self.bound.definition().semantics().graph_reads.roles(),
                 graph_receipts,
+                resources,
+                resource_evidence,
+                provider_session: &self.provider_session,
                 query_authority: self
                     .bound
                     .definition()

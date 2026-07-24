@@ -8,9 +8,19 @@ use super::installed_operation_fixture::{
 fn fresh_runs_ignore_operational_artifact_identity_but_compare_canonical_meaning() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-reexecution").unwrap();
     let original = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("produce"), &mut workspace)
         .unwrap();
     let reexecuted = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("produce"), &mut workspace)
         .unwrap();
     let original_semantics = original.semantics();
@@ -47,6 +57,11 @@ fn fresh_runs_ignore_operational_artifact_identity_but_compare_canonical_meaning
 fn certification_replay_reexecutes_from_intent_without_retaining_an_operational_handle() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-cert-replay").unwrap();
     let original = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("produce"), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
@@ -54,6 +69,7 @@ fn certification_replay_reexecutes_from_intent_without_retaining_an_operational_
         &original,
         bind_artifact_workflow(&workspace),
         move_intent("produce"),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();

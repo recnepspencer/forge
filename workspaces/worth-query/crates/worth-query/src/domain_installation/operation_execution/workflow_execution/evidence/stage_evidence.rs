@@ -242,6 +242,7 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
     pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
+    pub(super) execution_resources: super::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 #[derive(Debug)]
@@ -263,6 +264,9 @@ impl WorthQueryWorkflowStageReceipt {
     }
     pub fn binding_identity(&self) -> &str {
         &self.binding_identity
+    }
+    pub fn execution_resources(&self) -> &super::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
     }
     pub fn stage_identity(&self) -> &str {
         &self.stage_identity

@@ -38,6 +38,11 @@ fn workflow_effect_uses_real_mutation_authority_and_retains_its_receipt() {
         domain::WorthQueryBoundCommitPosture::Atomic
     );
     let run = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -77,6 +82,11 @@ fn failure_after_effect_retains_the_query_executed_partial_outcome() {
         .unwrap()
         .family(MutationFamily)
         .bind(&installed_domain, WorkflowMutation)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap();
@@ -143,6 +153,11 @@ fn workflow_stage_cannot_skip_its_declared_primary_read() {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -204,6 +219,11 @@ fn failing_stage_denial(name: &str, input: &str) -> domain::WorthQueryWorkflowAd
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()

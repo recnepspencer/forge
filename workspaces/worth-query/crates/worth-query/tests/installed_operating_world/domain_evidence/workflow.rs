@@ -12,7 +12,14 @@ fn workflow_run_ledger_denies_a_locally_valid_counter_regression_atomically() {
         evidence_workflow_workspace("domain-evidence-ledger-regression").unwrap();
     probe.set(EvidenceWorkflowMode::LedgerRegression);
 
-    let denial = match bind(&workspace).reexecute(evidence_workflow_intent(), &mut workspace) {
+    let denial = match bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(evidence_workflow_intent(), &mut workspace)
+    {
         TransitionOutcome::Denied(domain::WorthQueryWorkflowReexecutionStop::Advance(denial)) => {
             denial
         }
@@ -39,10 +46,20 @@ fn replay_compares_mandatory_core_and_ignores_policy_omitted_sidecars() {
     let (mut workspace, probe) =
         evidence_workflow_workspace("domain-evidence-replay-sidecars").unwrap();
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(evidence_workflow_intent(), &mut workspace)
         .unwrap();
     probe.set(EvidenceWorkflowMode::OmitSidecars);
     let candidate = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(evidence_workflow_intent(), &mut workspace)
         .unwrap();
 
@@ -88,6 +105,7 @@ fn replay_compares_mandatory_core_and_ignores_policy_omitted_sidecars() {
         &original,
         bind(&workspace),
         evidence_workflow_intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();
@@ -103,6 +121,11 @@ fn certification_replay_cannot_waive_exact_mandatory_core_drift() {
     let (mut workspace, probe) =
         evidence_workflow_workspace("domain-evidence-replay-core-drift").unwrap();
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(evidence_workflow_intent(), &mut workspace)
         .unwrap();
     probe.set(EvidenceWorkflowMode::ReplayCoreDrift);
@@ -112,6 +135,7 @@ fn certification_replay_cannot_waive_exact_mandatory_core_drift() {
         &original,
         bind(&workspace),
         evidence_workflow_intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();

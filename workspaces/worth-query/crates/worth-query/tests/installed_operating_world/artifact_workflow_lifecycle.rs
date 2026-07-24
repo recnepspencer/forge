@@ -9,6 +9,11 @@ use worth_query::facade::domain;
 fn moved_artifact_borrows_once_and_disposes_exactly_once() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-move").unwrap();
     let trace = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("produce"), &mut workspace)
         .unwrap();
 
@@ -35,6 +40,11 @@ fn moved_artifact_borrows_once_and_disposes_exactly_once() {
 fn distinct_retained_leases_borrow_and_release_the_same_owner_generation_safely() {
     let (mut workspace, probe) = artifact_lease_workspace("artifact-leases").unwrap();
     let trace = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(lease_intent(), &mut workspace)
         .unwrap();
 
@@ -63,6 +73,11 @@ fn distinct_retained_leases_borrow_and_release_the_same_owner_generation_safely(
 fn replacement_disposes_the_prior_owner_and_eventually_the_successor_once_each() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-replacement").unwrap();
     bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("replace"), &mut workspace)
         .unwrap();
 
@@ -75,8 +90,13 @@ fn replacement_disposes_the_prior_owner_and_eventually_the_successor_once_each()
 #[test]
 fn explicit_cancellation_returns_a_cancelled_receipt_and_disposes_once() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-cancel").unwrap();
-    let outcome =
-        bind_artifact_workflow(&workspace).reexecute(move_intent("cancel"), &mut workspace);
+    let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(move_intent("cancel"), &mut workspace);
 
     assert!(matches!(
         outcome,
@@ -91,6 +111,11 @@ fn explicit_cancellation_returns_a_cancelled_receipt_and_disposes_once() {
 fn declared_failure_after_registration_releases_the_owned_resource() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-failure-cleanup").unwrap();
     let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("fail-after-production"), &mut workspace);
 
     assert!(matches!(
@@ -106,6 +131,11 @@ fn declared_failure_after_registration_releases_the_owned_resource() {
 fn declared_failure_after_transfer_releases_the_owned_resource() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-transfer-failure").unwrap();
     let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("fail-after-transfer"), &mut workspace);
 
     assert!(matches!(
@@ -122,10 +152,16 @@ fn declared_failure_after_transfer_releases_the_owned_resource() {
 fn declared_failure_after_lease_transfer_releases_lease_and_owner_exactly_once() {
     let (mut workspace, probe) =
         artifact_lease_workspace("artifact-lease-transfer-failure").unwrap();
-    let outcome = bind_artifact_workflow(&workspace).reexecute(
-        lease_intent_with_mode("fail-after-lease-transfer"),
-        &mut workspace,
-    );
+    let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(
+            lease_intent_with_mode("fail-after-lease-transfer"),
+            &mut workspace,
+        );
 
     assert!(matches!(
         outcome,
@@ -146,6 +182,11 @@ fn declared_failure_after_lease_transfer_releases_lease_and_owner_exactly_once()
 fn escaped_transferred_handle_is_revoked_and_disposed_by_the_run_registry() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-transfer-escape").unwrap();
     let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("escape-after-transfer"), &mut workspace);
 
     assert!(matches!(
@@ -183,7 +224,13 @@ fn preparation_producer_and_consumer_panics_each_dispose_exactly_once() {
         let (mut workspace, probe) =
             artifact_move_workspace(&format!("artifact-unwind-{mode}")).unwrap();
         let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let _ = bind_artifact_workflow(&workspace).reexecute(move_intent(mode), &mut workspace);
+            let _ = bind_artifact_workflow(&workspace)
+                .admit_workflow_resources(
+                    crate::suite::installed_operation_fixture::execution_resource_request(),
+                    &workspace,
+                )
+                .unwrap()
+                .reexecute(move_intent(mode), &mut workspace);
         }));
 
         assert!(unwind.is_err(), "{mode} did not unwind");

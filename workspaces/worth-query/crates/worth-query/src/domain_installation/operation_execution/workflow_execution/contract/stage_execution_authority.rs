@@ -7,6 +7,9 @@ pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
     pub(crate) operation_graph_reads:
         &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
     pub(crate) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
+    pub(crate) resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    pub(crate) resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,
+    pub(crate) provider_session: &'a super::WorthQueryExecutionProviderSession,
     pub(crate) query_authority: crate::identity_authority::QueryCanonicalAuthority,
     pub(crate) identity_evolution_basis_identity: String,
     pub(crate) domain_authority:

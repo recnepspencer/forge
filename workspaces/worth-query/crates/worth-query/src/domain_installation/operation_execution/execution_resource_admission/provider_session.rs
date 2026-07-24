@@ -6,23 +6,20 @@ static NEXT_PROVIDER_SESSION: AtomicU64 = AtomicU64::new(1);
 #[derive(Debug)]
 pub struct WorthQueryExecutionProviderSession {
     identity: Arc<str>,
-    admission_identity: Arc<str>,
-    strategy: Arc<str>,
+    attempt_identity: Arc<str>,
 }
 
 impl WorthQueryExecutionProviderSession {
-    pub(crate) fn mint(plan: &super::WorthQueryAdmittedExecutionResourcePlan) -> Self {
+    pub(crate) fn mint(attempt_identity: &str) -> Self {
         let ordinal = NEXT_PROVIDER_SESSION.fetch_add(1, Ordering::Relaxed);
         let identity = Arc::<str>::from(crate::identity::hash_parts(&[
             "worth_query_execution_provider_session_v1".into(),
-            format!("admission:{}", plan.identity()),
-            format!("strategy:{}", plan.strategy().as_str()),
+            format!("attempt:{attempt_identity}"),
             format!("ordinal:{ordinal}"),
         ]));
         Self {
             identity,
-            admission_identity: Arc::from(plan.identity()),
-            strategy: Arc::from(plan.strategy().as_str()),
+            attempt_identity: Arc::from(attempt_identity),
         }
     }
 
@@ -30,11 +27,7 @@ impl WorthQueryExecutionProviderSession {
         &self.identity
     }
 
-    pub fn admission_identity(&self) -> &str {
-        &self.admission_identity
-    }
-
-    pub fn strategy(&self) -> &str {
-        &self.strategy
+    pub fn attempt_identity(&self) -> &str {
+        &self.attempt_identity
     }
 }

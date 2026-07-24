@@ -38,6 +38,7 @@ pub struct WorthQueryBoundExecutionReceipt {
     pub(super) result_state: WorthQueryOperationResultState,
     pub(super) output_identity: String,
     pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
+    pub(super) execution_resources: super::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 impl WorthQueryBoundExecutionReceipt {
@@ -55,6 +56,9 @@ impl WorthQueryBoundExecutionReceipt {
     }
     pub fn domain_evidence(&self) -> Option<&super::WorthQueryAdmittedDomainEvidence> {
         self.domain_evidence.as_ref()
+    }
+    pub fn execution_resources(&self) -> &super::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
     }
 }
 

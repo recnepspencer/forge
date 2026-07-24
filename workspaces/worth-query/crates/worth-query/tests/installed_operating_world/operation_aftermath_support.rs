@@ -12,6 +12,11 @@ pub(super) fn assert_posture_denial(
 ) {
     let mut workspace = aftermath_workspace("aftermath-posture", contract).unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     match original.admit_aftermath(bind_candidate(&workspace)) {

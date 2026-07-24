@@ -37,7 +37,13 @@ fn settled_and_live_refresh_preserve_one_capability_closure_and_impact() {
     let bound = bind_direct(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(
         executed.conditional_provenance()[0].class(),
@@ -149,7 +155,13 @@ pub(super) fn authority_correct_overlap_impact_counters() -> (
     let bound = bind_direct(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -285,7 +297,13 @@ fn owner_refresh_contacts_only_the_receipt_conditional_when_a_sibling_shares_its
     let bound = bind_direct(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

@@ -13,6 +13,8 @@ pub(super) struct GraphProjectionAdmission<'a, D, O, F, L: BasisOperationLane> {
     pub(super) kind: WorthQueryGraphProviderCallKind,
     pub(super) expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) scope_identity: &'a str,
+    pub(super) resource_evidence:
+        &'a crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 pub(super) fn admit_graph_projection_material<D, O, F, L: BasisOperationLane>(
@@ -92,6 +94,7 @@ pub(super) fn graph_call_evidence_identity<D, O, F, L: BasisOperationLane>(
             )
         ),
         format!("scope:{}", admission.scope_identity),
+        format!("resources:{}", admission.resource_evidence.identity()),
         format!(
             "projection:{}",
             projection

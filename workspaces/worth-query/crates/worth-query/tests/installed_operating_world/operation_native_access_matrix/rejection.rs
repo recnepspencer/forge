@@ -203,7 +203,13 @@ fn execute_owner(
     worth_query::facade::foundation::ObservationLaneWitness,
 > {
     bound
-        .execute((), workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

@@ -34,8 +34,14 @@ fn failed_conditional_compute_retains_exact_lower_runtime_work() {
         .bind(&installed, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Failed(denial) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Failed(denial) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("the installed conditional compute failure must remain a checked failure")
     };

@@ -17,6 +17,7 @@ pub(super) struct WorthQueryWorkflowStageValidationInput {
     pub(super) execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) effect_workflow_binding: crate::workflow::WorkflowContextBinding,
     pub(super) counters_before: WorthQueryWorkflowRunCounters,
+    pub(super) resource_evidence: super::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 impl WorthQueryWorkflowStageValidationInput {
@@ -95,6 +96,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             conditional: input.conditional,
             lineage: input.material.lineage,
             domain_evidence,
+            resource_evidence: input.resource_evidence,
         })
     }
 

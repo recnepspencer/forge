@@ -2,13 +2,16 @@ use crate::basis_lifecycle::BasisOperationLane;
 use crate::domain_installation::{
     WorthQueryBoundCollection, WorthQueryBoundCollectionWindow, WorthQueryBoundExecutionDenial,
     WorthQueryBoundExecutionOutcome, WorthQueryConsumedDomainProjection,
-    WorthQueryDeferredDomainOperation, WorthQueryExecutedDomainOperation,
-    WorthQueryProgressionDenial, WorthQueryPublicationDenial, WorthQueryPublishedDomainOperation,
-    WorthQuerySettledDomainProjection,
+    WorthQueryDeferredDomainOperation, WorthQueryExecutableDomainOperation,
+    WorthQueryExecutedDomainOperation, WorthQueryProgressionDenial, WorthQueryPublicationDenial,
+    WorthQueryPublishedDomainOperation, WorthQuerySettledDomainProjection,
 };
 use worth_proof::TransitionOutcome;
 
-pub enum WorthQueryExecutionTransition<D, O, F, L: BasisOperationLane, Output> {
+pub enum WorthQueryExecutionTransition<D, O, F, L: BasisOperationLane, Output>
+where
+    O: WorthQueryExecutableDomainOperation<D, F>,
+{
     Executed(WorthQueryExecutedDomainOperation<D, O, F, L, Output>),
     Deferred(WorthQueryDeferredDomainOperation<D, O, F, L>),
     Denied(WorthQueryBoundExecutionDenial),
@@ -19,7 +22,10 @@ pub enum WorthQueryExecutionTransition<D, O, F, L: BasisOperationLane, Output> {
 
 pub fn execution<D, O, F, L: BasisOperationLane, Output>(
     outcome: WorthQueryBoundExecutionOutcome<D, O, F, L, Output>,
-) -> WorthQueryExecutionTransition<D, O, F, L, Output> {
+) -> WorthQueryExecutionTransition<D, O, F, L, Output>
+where
+    O: WorthQueryExecutableDomainOperation<D, F>,
+{
     match outcome {
         TransitionOutcome::Success(value) => WorthQueryExecutionTransition::Executed(value),
         TransitionOutcome::Deferred(value) => WorthQueryExecutionTransition::Deferred(value),

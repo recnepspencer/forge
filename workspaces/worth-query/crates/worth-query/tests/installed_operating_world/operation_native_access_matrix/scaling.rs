@@ -112,7 +112,13 @@ fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: boo
         })
         .collect::<Vec<_>>();
     let settled = bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

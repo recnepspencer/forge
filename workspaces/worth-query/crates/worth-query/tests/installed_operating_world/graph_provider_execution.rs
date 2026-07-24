@@ -38,7 +38,15 @@ fn projection_receipt_without_query_material_denies_before_executor_contact() {
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
-    let denial = match bound.execute((), &mut workspace) {
+    let denial = match bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("receipt-only projection did not produce an exact denial"),
     };
@@ -100,7 +108,15 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
             .family(ReadFamily)
             .bind(&installed, FederatedRead)
             .unwrap();
-        let denial = match bound.execute((), &mut workspace) {
+        let denial = match bound
+            .admit_execution_resources(
+                (),
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace,
+            )
+            .unwrap()
+            .execute(&mut workspace)
+        {
             TransitionOutcome::Denied(denial) => denial,
             _ => panic!("{name} sabotage did not produce an exact denial"),
         };
@@ -151,7 +167,15 @@ fn read_only_participation_does_not_widen_the_mutating_commit_set() {
         bound.commit_posture(),
         domain::WorthQueryBoundCommitPosture::Atomic
     );
-    bound.execute((), &mut workspace).unwrap();
+    bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+        .unwrap();
     assert_eq!(
         *log.lock().unwrap(),
         ["project", "observe", "commit", "touch"]
@@ -187,7 +211,15 @@ fn graph_projection_must_match_the_exact_execution_snapshot() {
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
-    let denial = match bound.execute((), &mut workspace) {
+    let denial = match bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("stale graph projection did not produce an exact denial"),
     };

@@ -26,7 +26,13 @@ fn ordinary_consumer_enters_through_the_curated_installed_facade() {
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -73,7 +79,13 @@ fn bound_operations_drive_native_live_invalidation_collection_and_disposal() {
         .unwrap()
         .into_key();
     let snapshot = subject
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -99,7 +111,13 @@ fn bound_operations_drive_native_live_invalidation_collection_and_disposal() {
         .select_derived_native_field_name("f15")
         .unwrap();
     let collection_projection = collection_bound
-        .execute((), &mut collection_workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &collection_workspace,
+        )
+        .unwrap()
+        .execute(&mut collection_workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -124,7 +142,13 @@ fn bound_operations_drive_native_live_invalidation_collection_and_disposal() {
         .select_derived_native_field_name("f15")
         .unwrap();
     let live_projection = live_bound
-        .execute((), &mut collection_workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &collection_workspace,
+        )
+        .unwrap()
+        .execute(&mut collection_workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -213,7 +237,13 @@ fn conditional_authoring_and_signal_execution_stay_inside_the_query_facade() {
             .unwrap();
         let consumer = bound.consumer_projection_contract().unwrap();
         let executed = bound
-            .execute(ReadExecutionInput::default(), &mut workspace)
+            .admit_execution_resources(
+                ReadExecutionInput::default(),
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace,
+            )
+            .unwrap()
+            .execute(&mut workspace)
             .unwrap();
 
         assert_eq!(executed.conditional_provenance().len(), 1, "{identity}");
@@ -264,7 +294,14 @@ fn assert_threshold_family_executes_through_facade(
         .unwrap();
     let installed::transition::WorthQueryExecutionTransition::Deferred(baseline) =
         installed::transition::execution(
-            baseline.execute(ReadExecutionInput::default(), &mut workspace),
+            baseline
+                .admit_execution_resources(
+                    ReadExecutionInput::default(),
+                    crate::suite::installed_operation_fixture::execution_resource_request(),
+                    &workspace,
+                )
+                .unwrap()
+                .execute(&mut workspace),
         )
     else {
         panic!("the typed threshold must establish its baseline before it can compare a delta")
@@ -296,7 +333,14 @@ fn assert_threshold_family_executes_through_facade(
         .unwrap();
     let installed::transition::WorthQueryExecutionTransition::Deferred(executed) =
         installed::transition::execution(
-            bound.execute(ReadExecutionInput::default(), &mut workspace),
+            bound
+                .admit_execution_resources(
+                    ReadExecutionInput::default(),
+                    crate::suite::installed_operation_fixture::execution_resource_request(),
+                    &workspace,
+                )
+                .unwrap()
+                .execute(&mut workspace),
         )
     else {
         panic!("the threshold compute should report its unchanged output as reverted-clean")
@@ -329,6 +373,11 @@ fn workflow_lineage_aftermath_support_and_inspection_stay_inside_the_facade() {
     assert!(!closure.dependencies().is_empty());
 
     let reexecuted = super::operation_lineage::bind(&lineage)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &lineage,
+        )
+        .unwrap()
         .reexecute(super::operation_lineage::intent(), &mut lineage)
         .unwrap();
     assert_ne!(trace.identity(), reexecuted.identity());
@@ -355,6 +404,11 @@ fn workflow_lineage_aftermath_support_and_inspection_stay_inside_the_facade() {
     )
     .unwrap();
     let original = super::operation_aftermath_support::bind_original(&aftermath)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &aftermath,
+        )
+        .unwrap()
         .reexecute(
             super::operation_aftermath_support::intent("apply"),
             &mut aftermath,
@@ -365,7 +419,12 @@ fn workflow_lineage_aftermath_support_and_inspection_stay_inside_the_facade() {
         installed::recovery::WorthQueryAftermathAdmission::Compensation(capability) => capability,
         _ => panic!("declared compensation did not admit through the installed facade"),
     };
-    let executed = capability.execute_workflow(&mut aftermath).unwrap();
+    let executed = capability
+        .execute_workflow(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &mut aftermath,
+        )
+        .unwrap();
     assert_eq!(
         executed.relation().kind(),
         installed::recovery::WorthQueryAftermathKind::Compensation

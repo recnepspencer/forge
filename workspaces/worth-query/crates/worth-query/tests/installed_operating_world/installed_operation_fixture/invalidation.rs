@@ -107,7 +107,13 @@ fn settle_native_lane(
     }
     let request = builder.build().unwrap();
     bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

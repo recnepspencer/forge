@@ -121,8 +121,14 @@ fn domain_predicate_deferral_is_not_reported_as_temporal_or_on_demand() {
         .bind(&installed, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(stopped) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(stopped) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("the installed predicate should defer")
     };
@@ -185,7 +191,14 @@ fn execute_first(
         .bind(installed, ReadVertex)
         .unwrap();
     assert!(matches!(
-        bound.execute(ReadExecutionInput::default(), workspace),
+        bound
+            .admit_execution_resources(
+                ReadExecutionInput::default(),
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &*workspace
+            )
+            .unwrap()
+            .execute(workspace),
         TransitionOutcome::Success(_)
     ));
 }
@@ -205,8 +218,14 @@ fn execute_second(
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
-    let TransitionOutcome::Deferred(stopped) =
-        bound.execute(ReadExecutionInput::default(), workspace)
+    let TransitionOutcome::Deferred(stopped) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
     else {
         panic!("equivalent second compute should stop without a semantic change")
     };

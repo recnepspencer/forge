@@ -38,7 +38,13 @@ fn wrong_owner_receipt_mutates_nothing_and_the_exact_receipt_can_retry() {
     let bound = bind_direct(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

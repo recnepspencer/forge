@@ -22,6 +22,10 @@ struct OtherCommit;
 struct Provider(Arc<AtomicUsize>);
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for Provider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
@@ -207,7 +211,15 @@ fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
         ["remote-a", "remote-b"]
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
-    let executed = bound.execute((), &mut workspace).unwrap();
+    let executed = bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+        .unwrap();
     assert_eq!(executed.graph_receipts().len(), 2);
     assert!(executed
         .graph_receipts()

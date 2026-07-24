@@ -2,6 +2,7 @@
 pub enum WorthQueryExecutionResourceAdmissionDenialKind {
     RuntimeAuthority(crate::domain_installation::WorthQueryDomainHandleDenialKind),
     InputContract,
+    DirectExecutionContract,
     ResourceContract,
     ExecutorSupportMissing,
     DifferentProviderRequired,

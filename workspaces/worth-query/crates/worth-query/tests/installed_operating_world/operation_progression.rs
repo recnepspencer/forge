@@ -47,7 +47,13 @@ fn public_bound_execution_projection_and_settlement_remain_one_chain() {
     let consumer = bound.consumer_projection_contract().unwrap();
 
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(executed.receipt().binding_identity(), binding_identity);
     assert_eq!(executed.counters().executor_contacts, 1);
@@ -83,7 +89,13 @@ fn non_publishing_execution_is_a_terminal_typed_outcome() {
         .bind(&installed_domain, CountVertices)
         .unwrap();
     let executed = bound
-        .execute(CountVerticesInput { minimum: Some(0) }, &mut workspace)
+        .admit_execution_resources(
+            CountVerticesInput { minimum: Some(0) },
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(*executed.output(), 1);
     assert_eq!(executed.receipt().output_identity(), "u64:1");
@@ -101,7 +113,15 @@ fn installed_parameter_contract_denies_before_graph_or_executor_work() {
         .family(ReadFamily)
         .bind(&installed_domain, CountVertices)
         .unwrap();
-    let denial = match bound.execute(CountVerticesInput { minimum: None }, &mut workspace) {
+    let denial = match bound
+        .admit_execution_resources(
+            CountVerticesInput { minimum: None },
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("missing required operation parameter did not produce an exact denial"),
     };
@@ -124,7 +144,15 @@ fn declared_primary_read_cannot_be_skipped_by_a_terminal_executor() {
         .family(ReadFamily)
         .bind(&installed_domain, CountVertices)
         .unwrap();
-    let denial = match bound.execute(CountVerticesInput { minimum: Some(0) }, &mut workspace) {
+    let denial = match bound
+        .admit_execution_resources(
+            CountVerticesInput { minimum: Some(0) },
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Failed(denial) => denial,
         _ => panic!("skipped primary read did not produce an execution failure"),
     };
@@ -148,7 +176,15 @@ fn foreign_workspace_denies_before_graph_or_executor_work() {
         .bind(&installed_domain, ReadVertex)
         .unwrap();
     let mut foreign = workspace("installed-execution-foreign", false).unwrap();
-    let denial = match bound.execute(ReadExecutionInput::default(), &mut foreign) {
+    let denial = match bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &foreign,
+        )
+        .unwrap()
+        .execute(&mut foreign)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("foreign runtime did not produce an exact denial"),
     };
@@ -181,7 +217,13 @@ fn equivalent_but_distinct_bound_contract_cannot_splice_the_chain() {
     assert_eq!(first.binding_identity(), second.binding_identity());
     let foreign_contract = second.consumer_projection_contract().unwrap();
     let published = first
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap();
@@ -213,14 +255,17 @@ fn result_state_and_warning_postures_survive_through_settlement() {
         let warning =
             domain::WorthQueryOperationExecutionWarning::Advisory(format!("posture-{index}"));
         let settled = bound
-            .execute(
+            .admit_execution_resources(
                 ReadExecutionInput {
                     state,
                     warning: Some(warning.clone()),
                     failure: None,
                 },
-                &mut workspace,
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace,
             )
+            .unwrap()
+            .execute(&mut workspace)
             .unwrap()
             .publish()
             .unwrap()
@@ -270,13 +315,18 @@ fn operation_failure(
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
-    match bound.execute(
-        ReadExecutionInput {
-            failure: Some(class),
-            ..Default::default()
-        },
-        &mut workspace,
-    ) {
+    match bound
+        .admit_execution_resources(
+            ReadExecutionInput {
+                failure: Some(class),
+                ..Default::default()
+            },
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Failed(denial) => denial,
         _ => panic!("deliberately failing executor did not produce an execution failure"),
     }
@@ -319,7 +369,13 @@ fn same_shaped_read_from_a_foreign_runtime_cannot_publish() {
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap()
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(executed.counters().executor_contacts, 1);
     assert!(matches!(

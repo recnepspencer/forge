@@ -27,6 +27,11 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -74,6 +79,11 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
 fn certification_replay_preserves_the_compiled_workflow_closure() {
     let mut workspace = workflow_workspace("dependency-impact-replay").unwrap();
     let original = bind_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let original_closure = original.semantic_aspect_dependency_closure().unwrap();
@@ -83,6 +93,7 @@ fn certification_replay_preserves_the_compiled_workflow_closure() {
         &original,
         bind_workflow(&workspace),
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();
@@ -223,15 +234,27 @@ pub(super) fn changed_projection(
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let first = bind_direct(&workspace, &installed)
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(
         first.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::ComputedChanged
     );
     drop(first);
-    let TransitionOutcome::Deferred(unchanged) =
-        bind_direct(&workspace, &installed).execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(unchanged) = bind_direct(&workspace, &installed)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("unchanged dependency did not defer before the owner delivery")
     };
@@ -258,7 +281,13 @@ pub(super) fn changed_projection(
     let bound = bind_direct(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(
         executed.conditional_provenance()[0].class(),
@@ -279,7 +308,13 @@ fn settle_plain_direct(workspace: &mut runtime::WorthQueryWorkspace) -> SettledD
     let bound = bind_direct(workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

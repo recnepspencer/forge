@@ -19,6 +19,10 @@ struct ReplayedCallProvider {
 }
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for ReplayedCallProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
@@ -52,6 +56,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for ReplayedCallProvider
 struct CurrentCallProvider;
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for CurrentCallProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
@@ -81,6 +89,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for CurrentCallProvider 
 }
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for CrossCallProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
@@ -165,7 +177,15 @@ fn graph_receipt_from_another_exact_call_cannot_be_reused() {
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
-    let denial = match bound.execute((), &mut workspace) {
+    let denial = match bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("cross-call graph receipt did not produce an exact denial"),
     };
@@ -202,7 +222,13 @@ fn graph_receipt_cannot_be_replayed_across_bound_capabilities() {
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap()
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     let second = workspace
         .observe_operating_world()
@@ -210,7 +236,15 @@ fn graph_receipt_cannot_be_replayed_across_bound_capabilities() {
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
         .unwrap();
-    let denial = match second.execute((), &mut workspace) {
+    let denial = match second
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("replayed graph receipt did not produce an exact denial"),
     };

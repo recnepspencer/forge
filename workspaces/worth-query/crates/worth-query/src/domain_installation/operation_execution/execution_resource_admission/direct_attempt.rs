@@ -90,6 +90,24 @@ where
                 counters,
             ));
         }
+        counters.execution_contract_checks += 1;
+        let semantics = self.definition().semantics();
+        if !direct_graph_evidence_can_realize(semantics)
+            || !matches!(
+                semantics.invariants,
+                crate::domain_installation::WorthQueryOperationInvariantContract::NotRequired
+            )
+            || !matches!(
+                semantics.lineage,
+                crate::domain_installation::WorthQueryOperationLineageContract::NotRequired
+            )
+        {
+            return TransitionOutcome::Denied(WorthQueryExecutionResourceAdmissionDenial::new(
+                Kind::DirectExecutionContract,
+                "direct execution lacks an admitted evidence route for the declared effects, invariants, or lineage",
+                counters,
+            ));
+        }
         let Some(executor) = self.executor() else {
             return TransitionOutcome::Failed(WorthQueryExecutionResourceAdmissionDenial::new(
                 Kind::ExecutorSupportMissing,
@@ -126,7 +144,7 @@ where
             Some(self.authority_proof().payload().identity()),
             basis,
         );
-        let provider_session = WorthQueryExecutionProviderSession::mint(&resources);
+        let provider_session = WorthQueryExecutionProviderSession::mint(resources.identity());
         resources.record_provider_session_mint();
         TransitionOutcome::Success(WorthQueryAdmittedDirectOperation {
             bound: self,
@@ -135,6 +153,29 @@ where
             provider_session,
             phase_proof,
         })
+    }
+}
+
+fn direct_graph_evidence_can_realize(
+    semantics: &worth_query_installation::facade::WorthQueryDomainOperationSemanticClosure,
+) -> bool {
+    use crate::domain_installation::{
+        WorthQueryOperationEffectContract as Effects,
+        WorthQueryOperationEffectFamily as EffectFamily,
+        WorthQueryOperationTouchContract as Touches,
+    };
+
+    match (&semantics.touches, &semantics.effects) {
+        (Touches::NotRequired, Effects::NotRequired) => true,
+        (Touches::Declared { graph_roles, .. }, Effects::Declared { effect_families }) => {
+            !graph_roles.is_empty()
+                && !effect_families.is_empty()
+                && effect_families
+                    .iter()
+                    .all(|family| *family == EffectFamily::Mutation)
+        }
+        (Touches::Declared { graph_roles, .. }, Effects::NotRequired) => !graph_roles.is_empty(),
+        (Touches::NotRequired, Effects::Declared { .. }) => false,
     }
 }
 

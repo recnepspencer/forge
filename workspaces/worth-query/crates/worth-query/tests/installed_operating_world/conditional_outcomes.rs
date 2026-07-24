@@ -37,7 +37,13 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
         .bind(&installed, ReadVertex)
         .unwrap();
     let first = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     assert_eq!(first.counters().conditional_compute_contacts, 1);
     assert_eq!(first.counters().conditional_semantic_changes, 1);
@@ -49,8 +55,14 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
-    let TransitionOutcome::Deferred(second) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(second) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("unchanged semantic dependency versions must defer Query work")
     };
@@ -98,7 +110,13 @@ fn unchanged_dependency_opens_live_continuity_without_new_semantic_output() {
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -155,8 +173,14 @@ fn unrequested_on_demand_node_defers_without_compute_or_query_work() {
         .bind(&installed, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("an unrequested on-demand node must remain deferred")
     };
@@ -209,8 +233,14 @@ fn temporal_wake_defers_without_compute_or_query_work() {
         .bind(&installed, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("an unready temporal wake must remain deferred")
     };
@@ -284,8 +314,14 @@ fn execute_changed(
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
-    let TransitionOutcome::Success(executed) =
-        bound.execute(ReadExecutionInput::default(), workspace)
+    let TransitionOutcome::Success(executed) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
     else {
         panic!("changed conditional dependency must compute")
     };
@@ -302,8 +338,14 @@ fn execute_unchanged(
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
     else {
         panic!("unchanged conditional dependency must stop before compute")
     };

@@ -33,7 +33,13 @@ fn changed_signal_decision_reenters_before_the_ordinary_executor() {
     let consumer = bound.consumer_projection_contract().unwrap();
 
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     assert_eq!(executed.conditional_provenance().len(), 1);
@@ -131,7 +137,13 @@ fn compute_receives_the_exact_bound_query_context() {
     );
 
     bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     let actual = captured.lock().unwrap().take().unwrap();
@@ -179,6 +191,11 @@ fn workflow_stage_retains_the_same_signal_decision_in_its_receipt() {
         .unwrap()
         .family(ReadFamily)
         .bind(&domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap();
@@ -242,8 +259,14 @@ fn suppressed_decision_runs_no_query_graph_or_domain_work() {
         .bind(&domain, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("suppressed Signal decision must remain a typed Query deferral")
     };
@@ -286,8 +309,14 @@ fn reverted_clean_retains_compute_cost_but_mints_no_query_consequence() {
         .bind(&domain, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("reverted-clean Signal decision must not invent Query output")
     };

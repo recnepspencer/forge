@@ -64,9 +64,10 @@ macro_rules! aftermath_execution_methods {
         {
             pub fn execute_workflow(
                 self,
+                resources: worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest,
                 workspace: &mut WorthQueryWorkspace,
             ) -> WorthQueryWorkflowAftermathOutcome<D, OO, OF, OL, CO, CF, CL> {
-                execute_workflow(self.admitted, workspace)
+                execute_workflow(self.admitted, resources, workspace)
             }
         }
     };
@@ -77,6 +78,7 @@ aftermath_execution_methods!(WorthQueryCompensationCapability);
 
 fn execute_workflow<D: 'static, OO, OF, OL, CO, CF: 'static, CL>(
     admitted: WorthQueryAdmittedAftermath<D, OO, OF, OL, CO, CF, CL>,
+    resources: worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest,
     workspace: &mut WorthQueryWorkspace,
 ) -> WorthQueryWorkflowAftermathOutcome<D, OO, OF, OL, CO, CF, CL>
 where
@@ -109,6 +111,34 @@ where
         original_evidence,
         ..
     } = admitted;
+    let candidate = match candidate.admit_workflow_resources(resources, workspace) {
+        TransitionOutcome::Success(candidate) => candidate,
+        TransitionOutcome::Denied(stop) => {
+            return TransitionOutcome::Denied(WorthQueryWorkflowReexecutionStop::ResourceAdmission(
+                stop,
+            ))
+        }
+        TransitionOutcome::Deferred(stop) => {
+            return TransitionOutcome::Deferred(
+                WorthQueryWorkflowReexecutionStop::ResourceAdmission(stop),
+            )
+        }
+        TransitionOutcome::Stale(stop) => {
+            return TransitionOutcome::Stale(WorthQueryWorkflowReexecutionStop::ResourceAdmission(
+                stop,
+            ))
+        }
+        TransitionOutcome::RebindRequired(stop) => {
+            return TransitionOutcome::RebindRequired(
+                WorthQueryWorkflowReexecutionStop::ResourceAdmission(stop),
+            )
+        }
+        TransitionOutcome::Failed(stop) => {
+            return TransitionOutcome::Failed(WorthQueryWorkflowReexecutionStop::ResourceAdmission(
+                stop,
+            ))
+        }
+    };
     match candidate.reexecute(intent, workspace) {
         TransitionOutcome::Success(trace) => {
             let candidate_effects = trace

@@ -16,7 +16,14 @@ fn installed_dag_mints_one_query_owned_trace_and_publication() {
         .bind(&installed_domain, WorkflowRead)
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
-    let run = bound.start_workflow(&mut workspace).unwrap();
+    let run = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .start_workflow(&mut workspace)
+        .unwrap();
     let run = run
         .advance(
             "start",
@@ -130,6 +137,11 @@ fn incomplete_completion_denial_retains_exact_run_work_without_deeper_execution(
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -163,6 +175,11 @@ fn skipping_a_predecessor_denies_before_stage_executor_contact() {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap();
     let denial = match run.advance(
@@ -192,6 +209,11 @@ fn duplicate_stage_advancement_denies_without_a_second_executor_contact() {
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
@@ -227,6 +249,11 @@ fn copied_stage_label_is_only_a_candidate_and_cannot_invent_progression() {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap();
     let copied_label = "not-an-installed-stage".to_string();
@@ -256,6 +283,11 @@ fn foreign_runtime_denies_stage_progression_before_executor_contact() {
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &owner,
+        )
         .unwrap()
         .start_workflow(&mut owner)
         .unwrap();
@@ -296,6 +328,11 @@ fn complete_trace(name: &str, order: [&str; 2]) -> String {
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()

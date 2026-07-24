@@ -74,6 +74,10 @@ fn conditional_model_graph_definition_with_identity(
 impl domain::WorthQueryGraphParticipationProvider<ConditionalModelGraph>
     for ConditionalModelGraphProvider
 {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,

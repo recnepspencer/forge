@@ -1,6 +1,7 @@
 use crate::basis_lifecycle::BasisOperationLane;
 use crate::domain_installation::{
-    WorthQueryBoundCommitPosture, WorthQueryBoundDomainOperation, WorthQueryGraphProviderCallKind,
+    WorthQueryBoundCommitPosture, WorthQueryBoundDomainOperation,
+    WorthQueryExecutionResourceAttemptEvidence, WorthQueryGraphProviderCallKind,
     WorthQueryOperationGraphAccess, WorthQueryOperationGraphParticipation,
     WorthQueryOperationTouchContract,
 };
@@ -34,15 +35,26 @@ pub(super) struct BoundGraphInvocationRequest<'a, D, O, F, L: BasisOperationLane
     pub(super) kind: WorthQueryGraphProviderCallKind,
     pub(super) scope_identity: &'a str,
     pub(super) expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
+    pub(super) resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    pub(super) resource_evidence: &'a WorthQueryExecutionResourceAttemptEvidence,
 }
 
 pub(super) fn invoke_bound_graphs<D, O, F, L: BasisOperationLane>(
     bound: &WorthQueryBoundDomainOperation<D, O, F, L>,
+    resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &WorthQueryExecutionResourceAttemptEvidence,
     expected_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
     counters: &mut WorthQueryOperationExecutionCounters,
 ) -> Result<Vec<WorthQueryBoundGraphExecutionReceipt>, WorthQueryBoundExecutionDenial> {
     let plan = plan_bound_graph_invocations(bound);
-    BoundGraphInvocation::new(bound, expected_snapshot, counters).execute(plan)
+    BoundGraphInvocation::new(
+        bound,
+        resources,
+        resource_evidence,
+        expected_snapshot,
+        counters,
+    )
+    .execute(plan)
 }
 
 fn plan_bound_graph_invocations<D, O, F, L: BasisOperationLane>(
@@ -95,6 +107,8 @@ fn plan_bound_graph_invocations<D, O, F, L: BasisOperationLane>(
 
 struct BoundGraphInvocation<'a, D, O, F, L: BasisOperationLane> {
     bound: &'a WorthQueryBoundDomainOperation<D, O, F, L>,
+    resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &'a WorthQueryExecutionResourceAttemptEvidence,
     expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
     scope_identity: String,
     counters: &'a mut WorthQueryOperationExecutionCounters,
@@ -104,11 +118,15 @@ struct BoundGraphInvocation<'a, D, O, F, L: BasisOperationLane> {
 impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
     fn new(
         bound: &'a WorthQueryBoundDomainOperation<D, O, F, L>,
+        resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+        resource_evidence: &'a WorthQueryExecutionResourceAttemptEvidence,
         expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
         counters: &'a mut WorthQueryOperationExecutionCounters,
     ) -> Self {
         Self {
             bound,
+            resources,
+            resource_evidence,
             expected_snapshot,
             scope_identity: format!("direct-capability:{}", bound.capability_identity()),
             counters,
@@ -157,6 +175,8 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
             kind,
             scope_identity: &self.scope_identity,
             expected_snapshot: self.expected_snapshot,
+            resources: self.resources,
+            resource_evidence: self.resource_evidence,
         };
         let receipt = contact_graph(request, self.counters)
             .map_err(|denial| denial.with_graph_receipts(self.receipts.clone()))?;
@@ -248,6 +268,7 @@ pub(super) fn contact_graph<D, O, F, L: BasisOperationLane>(
         kind: request.kind,
         expected_snapshot: request.expected_snapshot,
         scope_identity: request.scope_identity,
+        resource_evidence: request.resource_evidence,
     };
     admit_graph_projection_material(&projection_admission, projection.as_deref(), *counters)?;
     let evidence_identity =
@@ -273,20 +294,24 @@ fn graph_provider_call<D, O, F, L: BasisOperationLane>(
         .lower_runtime_binding_digest()
         .unwrap_or_else(|| request.bound.basis().capability_digest());
     crate::domain_installation::WorthQueryGraphProviderCall::new(
-        request.scope_identity.into(),
-        request.kind,
-        request.bound.definition().canonical_identity().into(),
-        request.bound.binding_identity().into(),
-        request.participation.role.clone(),
-        request
-            .bound
-            .definition()
-            .semantics()
-            .canonical_query
-            .query()
-            .digest()
-            .as_str()
-            .into(),
-        expected_basis.into(),
+        crate::domain_installation::graph_participation::WorthQueryGraphProviderCallParts {
+            scope_identity: request.scope_identity.into(),
+            kind: request.kind,
+            operation_identity: request.bound.definition().canonical_identity().into(),
+            binding_identity: request.bound.binding_identity().into(),
+            graph_role: request.participation.role.clone(),
+            canonical_query_digest: request
+                .bound
+                .definition()
+                .semantics()
+                .canonical_query
+                .query()
+                .digest()
+                .as_str()
+                .into(),
+            basis_identity: expected_basis.into(),
+            execution_resources: request.resource_evidence.clone(),
+            resource_envelope: request.resources.shared_envelope(),
+        },
     )
 }

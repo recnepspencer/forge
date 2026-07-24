@@ -35,7 +35,13 @@ fn rebuilt_conditional_lookup_retains_the_exact_installed_authority() {
         .unwrap();
     before_rebuild.same_installation_with(&bound).unwrap();
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     assert_eq!(executed.conditional_provenance().len(), 1);

@@ -22,6 +22,11 @@ fn artifact_package_requires_explicit_runtime_version_support() {
 fn foreign_provider_is_denied_and_its_resource_is_disposed_exactly_once() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-provider-denial").unwrap();
     let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("reject-provider"), &mut workspace);
 
     assert!(matches!(
@@ -41,6 +46,11 @@ fn foreign_provider_is_denied_and_its_resource_is_disposed_exactly_once() {
 fn retained_production_admission_denies_in_a_later_run_before_provider_projection() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-retained-admission").unwrap();
     let retained = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("retain-admission"), &mut workspace);
     assert!(matches!(
         retained,
@@ -48,6 +58,11 @@ fn retained_production_admission_denies_in_a_later_run_before_provider_projectio
     ));
 
     let rejected = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("reuse-retained-admission"), &mut workspace);
     assert!(matches!(
         rejected,
@@ -72,6 +87,11 @@ fn stale_installation_generation_denies_artifact_transfer_before_consumer_access
         .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
@@ -107,6 +127,11 @@ fn foreign_runtime_denies_artifact_progression_before_consumer_access() {
         .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &owner,
+        )
         .unwrap()
         .start_workflow(&mut owner)
         .unwrap()
@@ -155,6 +180,11 @@ fn undeclared_predecessor_denies_before_artifact_transfer_or_consumer_access() {
         .unwrap()
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()

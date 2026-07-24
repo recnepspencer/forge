@@ -18,6 +18,9 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
     operation_graph_reads:
         &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
     graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
+    resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &'a super::WorthQueryExecutionProviderSession,
     query_authority: crate::identity_authority::QueryCanonicalAuthority,
     pub(super) identity_evolution_basis_identity: String,
     pub(super) domain_authority:
@@ -81,6 +84,9 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             installed_read: authority.installed_read,
             operation_graph_reads: authority.operation_graph_reads,
             graph_receipts: authority.graph_receipts,
+            resources: authority.resources,
+            resource_evidence: authority.resource_evidence,
+            provider_session: authority.provider_session,
             query_authority: authority.query_authority,
             identity_evolution_basis_identity: authority.identity_evolution_basis_identity,
             domain_authority: authority.domain_authority,
@@ -115,6 +121,15 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     }
     pub fn run_identity(&self) -> &str {
         self.run_identity
+    }
+    pub fn resources(&self) -> &super::WorthQueryAdmittedExecutionResourcePlan {
+        self.resources
+    }
+    pub fn resource_evidence(&self) -> &super::WorthQueryExecutionResourceAttemptEvidence {
+        self.resource_evidence
+    }
+    pub fn provider_session(&self) -> &super::WorthQueryExecutionProviderSession {
+        self.provider_session
     }
     pub fn stage(&self) -> &worth_query_installation::facade::WorthQueryPortableWorkflowStage {
         self.stage

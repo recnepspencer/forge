@@ -99,6 +99,11 @@ fn installed_graph(name: &str, reversed: bool) -> Vec<String> {
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .installed_graph()

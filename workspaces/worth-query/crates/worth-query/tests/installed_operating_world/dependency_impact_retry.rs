@@ -288,7 +288,13 @@ fn promote_live(workspace: &mut runtime::WorthQueryWorkspace) -> LiveDirect {
     let bound = bind_direct(workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

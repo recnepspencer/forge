@@ -19,7 +19,13 @@ fn installed_projection_key_borrows_the_exact_foundational_value_in_constant_wor
     let (request, key) = native_id_request(bound.consumer_projection_contract().unwrap());
 
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -63,7 +69,13 @@ fn key_from_an_equivalent_distinct_capability_is_denied_before_indexing() {
         native_id_request(foreign.consumer_projection_contract().unwrap());
 
     let settled = owner
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -96,7 +108,13 @@ fn out_of_bounds_row_is_distinct_and_does_no_fact_access() {
         .unwrap();
     let (request, key) = native_id_request(bound.consumer_projection_contract().unwrap());
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -134,7 +152,13 @@ fn access_key_requires_the_bound_native_layout() {
     let owner_consumer = owner.consumer_projection_contract().unwrap();
     let declaration = read::project_facts().entity_identities();
     let settled = owner
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -163,6 +187,11 @@ fn workflow_publication_uses_the_same_bound_native_access_contract() {
         .unwrap();
     let (request, key) = native_id_request(bound.consumer_projection_contract().unwrap());
     let trace = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(

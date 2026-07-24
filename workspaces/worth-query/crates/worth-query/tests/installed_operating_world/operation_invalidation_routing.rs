@@ -248,7 +248,13 @@ fn settle_installed_ordering(
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute((), workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

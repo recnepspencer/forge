@@ -233,7 +233,13 @@ fn settle(workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace) -> 
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -263,7 +269,13 @@ fn settle_native(
     let request = builder.build().unwrap();
     let key = request.resolve_native_key(&selection).unwrap().into_key();
     let settled = bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

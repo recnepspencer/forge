@@ -31,6 +31,7 @@ pub(super) struct WorthQueryAdmittedWorkflowStageEvidence {
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(super) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
     pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
+    pub(super) resource_evidence: super::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
@@ -92,6 +93,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
                     .map(super::WorthQueryAdmittedDomainEvidence::identity)
                     .unwrap_or("not-required")
                     .into(),
+            ),
+            (
+                "receipt.execution_resources",
+                evidence.resource_evidence.identity().into(),
             ),
             (
                 "receipt.conditional",
@@ -169,6 +174,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             conditional: evidence.conditional,
             lineage: evidence.lineage,
             domain_evidence: evidence.domain_evidence,
+            execution_resources: evidence.resource_evidence,
         });
         self.receipt_index
             .insert(stage_identity.into(), receipt_index);

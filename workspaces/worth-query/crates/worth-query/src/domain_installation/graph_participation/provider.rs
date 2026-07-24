@@ -27,6 +27,23 @@ pub struct WorthQueryGraphProviderCall {
     graph_role: String,
     canonical_query_digest: String,
     basis_identity: String,
+    execution_resources: crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
+}
+
+pub(crate) struct WorthQueryGraphProviderCallParts {
+    pub(crate) scope_identity: String,
+    pub(crate) kind: WorthQueryGraphProviderCallKind,
+    pub(crate) operation_identity: String,
+    pub(crate) binding_identity: String,
+    pub(crate) graph_role: String,
+    pub(crate) canonical_query_digest: String,
+    pub(crate) basis_identity: String,
+    pub(crate) execution_resources:
+        crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    pub(crate) resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -88,15 +105,18 @@ impl WorthQueryGraphCommitCall {
 }
 
 impl WorthQueryGraphProviderCall {
-    pub(crate) fn new(
-        scope_identity: String,
-        kind: WorthQueryGraphProviderCallKind,
-        operation_identity: String,
-        binding_identity: String,
-        graph_role: String,
-        canonical_query_digest: String,
-        basis_identity: String,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthQueryGraphProviderCallParts) -> Self {
+        let WorthQueryGraphProviderCallParts {
+            scope_identity,
+            kind,
+            operation_identity,
+            binding_identity,
+            graph_role,
+            canonical_query_digest,
+            basis_identity,
+            execution_resources,
+            resource_envelope,
+        } = parts;
         Self {
             call_identity: crate::identity::hash_parts(&[
                 "worth_query_graph_provider_call_v1".into(),
@@ -107,6 +127,7 @@ impl WorthQueryGraphProviderCall {
                 format!("basis:{basis_identity}"),
                 format!("kind:{}", kind.as_str()),
                 format!("scope:{scope_identity}"),
+                format!("resources:{}", execution_resources.identity()),
             ]),
             kind,
             scope_identity,
@@ -115,6 +136,8 @@ impl WorthQueryGraphProviderCall {
             graph_role,
             canonical_query_digest,
             basis_identity,
+            execution_resources,
+            resource_envelope,
         }
     }
 
@@ -144,6 +167,18 @@ impl WorthQueryGraphProviderCall {
 
     pub fn basis_identity(&self) -> &str {
         &self.basis_identity
+    }
+
+    pub fn execution_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
+    }
+
+    pub fn resource_envelope(
+        &self,
+    ) -> &worth_query_installation::facade::WorthQueryExecutionResourceEnvelope {
+        &self.resource_envelope
     }
 
     pub fn completed(&self, provider_receipt: impl Into<String>) -> WorthQueryGraphProviderReceipt {

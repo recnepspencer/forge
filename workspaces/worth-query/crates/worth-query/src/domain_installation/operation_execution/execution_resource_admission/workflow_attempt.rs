@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::basis_lifecycle::BasisOperationLane;
 use crate::domain_installation::operation_authority_chain::{
@@ -12,7 +12,7 @@ use super::{
     lower_execution_resource_plan, WorthQueryAdmittedWorkflowResourcePlan,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenial,
-    WorthQueryExecutionResourceAdmissionDenialKind as Kind,
+    WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
     WorthQueryExecutionResourceSupportSnapshot,
 };
 
@@ -102,13 +102,13 @@ where
             Ok(plan) => plan,
             Err(denial) => return admission_denial_outcome(denial),
         };
-        let stages = match lower_stages(&self, &request, &support, counters) {
+        let stages = match lower_stages(&self, &request, &executor.resource_support, counters) {
             Ok(stages) => stages,
             Err(denial) => return admission_denial_outcome(denial),
         };
-        let provider_session = WorthQueryExecutionProviderSession::mint(&operation);
         operation.record_provider_session_mint();
         let resources = WorthQueryAdmittedWorkflowResourcePlan::new(operation, stages);
+        let provider_session = WorthQueryExecutionProviderSession::mint(resources.identity());
         let mut basis = operation_phase_basis(self.authority_proof()).clone();
         basis.resource_admission_identity = Some(resources.identity().to_owned());
         let phase_proof = mint_operation_phase_proof(
@@ -128,7 +128,7 @@ where
 fn lower_stages<D, O, F, L: BasisOperationLane>(
     bound: &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
     request: &WorthQueryExecutionResourceRequest,
-    support: &WorthQueryExecutionResourceSupportSnapshot,
+    executor_support: &WorthQueryExecutionResourceSupport,
     counters: WorthQueryExecutionResourceAdmissionCounters,
 ) -> Result<
     BTreeMap<String, super::WorthQueryAdmittedExecutionResourcePlan>,
@@ -150,16 +150,45 @@ fn lower_stages<D, O, F, L: BasisOperationLane>(
         .stages()
         .iter()
         .map(|stage| {
+            let support = stage_support_snapshot(bound, stage, executor_support);
             lower_execution_resource_plan(
                 &format!("{}:{}", bound.binding_identity(), stage.identity()),
                 &stage.semantics().resources,
                 request,
-                support.clone(),
+                support,
                 counters,
             )
             .map(|plan| (stage.identity().to_owned(), plan))
         })
         .collect()
+}
+
+fn stage_support_snapshot<D, O, F, L: BasisOperationLane>(
+    bound: &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
+    stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    executor_support: &WorthQueryExecutionResourceSupport,
+) -> WorthQueryExecutionResourceSupportSnapshot {
+    let roles = stage
+        .semantics()
+        .graph_read_roles
+        .iter()
+        .chain(&stage.semantics().touch_roles)
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    WorthQueryExecutionResourceSupportSnapshot::new(
+        executor_support.clone(),
+        bound
+            .graph_participations()
+            .iter()
+            .filter(|participation| roles.contains(participation.role.as_str()))
+            .map(|participation| {
+                (
+                    participation.role.clone(),
+                    participation.record.resource_support.clone(),
+                )
+            })
+            .collect(),
+    )
 }
 
 fn runtime_denial<T>(

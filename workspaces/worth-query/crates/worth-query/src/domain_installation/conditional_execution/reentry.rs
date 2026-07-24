@@ -119,19 +119,24 @@ impl WorthQueryConditionalProvenance {
     }
 }
 
-pub struct WorthQueryDeferredDomainOperation<D, O, F, L: BasisOperationLane> {
-    pub(crate) bound: super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+pub struct WorthQueryDeferredDomainOperation<D, O, F, L: BasisOperationLane>
+where
+    O: super::super::WorthQueryExecutableDomainOperation<D, F>,
+{
+    pub(crate) admitted: super::super::WorthQueryAdmittedDirectOperation<D, O, F, L>,
     pub(crate) conditional: Vec<WorthQueryConditionalProvenance>,
     pub(crate) counters: super::super::WorthQueryOperationExecutionCounters,
 }
 
 impl<D, O, F, L: BasisOperationLane> std::fmt::Debug
     for WorthQueryDeferredDomainOperation<D, O, F, L>
+where
+    O: super::super::WorthQueryExecutableDomainOperation<D, F>,
 {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("WorthQueryDeferredDomainOperation")
-            .field("binding_identity", &self.bound.binding_identity())
+            .field("binding_identity", &self.admitted.bound.binding_identity())
             .field("conditional", &self.conditional)
             .field("counters", &self.counters)
             .finish()
@@ -144,7 +149,7 @@ pub struct WorthQueryDeferredWorkflowStage<D, O, F, L: BasisOperationLane> {
 }
 
 pub struct WorthQueryDeferredWorkflowStart<D, O, F, L: BasisOperationLane> {
-    pub(crate) bound: super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    pub(crate) admitted: super::super::WorthQueryAdmittedWorkflowOperation<D, O, F, L>,
     pub(crate) conditional: Vec<WorthQueryConditionalProvenance>,
     pub(crate) counters: super::super::WorthQueryWorkflowRunCounters,
     pub(crate) run_identity: String,
@@ -207,12 +212,15 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryDeferredWorkflowStage<D, O, F, L>
     }
 }
 
-impl<D, O, F, L: BasisOperationLane> WorthQueryDeferredDomainOperation<D, O, F, L> {
+impl<D, O, F, L: BasisOperationLane> WorthQueryDeferredDomainOperation<D, O, F, L>
+where
+    O: super::super::WorthQueryExecutableDomainOperation<D, F>,
+{
     pub fn conditional_provenance(&self) -> &[WorthQueryConditionalProvenance] {
         &self.conditional
     }
     pub fn binding_identity(&self) -> &str {
-        self.bound.binding_identity()
+        self.admitted.bound.binding_identity()
     }
     pub fn counters(&self) -> super::super::WorthQueryOperationExecutionCounters {
         self.counters

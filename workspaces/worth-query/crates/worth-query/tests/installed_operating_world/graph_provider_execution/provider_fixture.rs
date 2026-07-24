@@ -61,6 +61,10 @@ impl SelectiveProvider {
 }
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
@@ -113,6 +117,10 @@ impl domain::WorthQueryGraphCommitProvider<SharedCommit> for SelectiveProvider {
 pub(super) struct ReceiptOnlyProvider;
 
 impl domain::WorthQueryGraphParticipationProvider<RemoteA> for ReceiptOnlyProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn observe(
         &self,
         call: &domain::WorthQueryGraphProviderCall,

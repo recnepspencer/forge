@@ -18,7 +18,17 @@ pub(super) fn admitted_receipt(
         .family(EvidenceFamily)
         .bind(&installed, EvidenceRead)
         .unwrap();
-    bound.execute((), &mut workspace).unwrap().receipt().clone()
+    bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+        .unwrap()
+        .receipt()
+        .clone()
 }
 
 pub(super) fn denied_execution(
@@ -38,7 +48,15 @@ pub(super) fn denied_execution(
         .family(EvidenceFamily)
         .bind(&installed, EvidenceRead)
         .unwrap();
-    match bound.execute((), &mut workspace) {
+    match bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Denied(denial) => denial,
         _ => panic!("dishonest domain evidence did not produce an admission denial"),
     }
@@ -67,7 +85,13 @@ pub(super) fn settled_honest_execution(
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

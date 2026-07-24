@@ -14,6 +14,8 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
     bound: &WorthQueryBoundDomainOperation<D, O, F, L>,
     run_identity: &str,
     stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
     expected_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
     counters: &mut WorthQueryWorkflowRunCounters,
 ) -> Result<Vec<WorthQueryBoundGraphExecutionReceipt>, WorthQueryWorkflowAdvanceDenial> {
@@ -52,6 +54,8 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
                 participation,
                 kind,
                 &scope_identity,
+                resources,
+                resource_evidence,
                 expected_snapshot,
                 *counters,
             )
@@ -116,6 +120,8 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
             participation,
             WorthQueryGraphProviderCallKind::TouchEffect,
             &scope_identity,
+            resources,
+            resource_evidence,
             expected_snapshot,
             *counters,
         )
@@ -130,6 +136,8 @@ fn contact<D, O, F, L: BasisOperationLane>(
     participation: &super::super::WorthQueryBoundGraphParticipation,
     kind: WorthQueryGraphProviderCallKind,
     scope_identity: &str,
+    resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
     expected_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
     counters: WorthQueryWorkflowRunCounters,
 ) -> Result<WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowAdvanceDenial> {
@@ -140,6 +148,8 @@ fn contact<D, O, F, L: BasisOperationLane>(
             kind,
             scope_identity,
             expected_snapshot,
+            resources,
+            resource_evidence,
         },
         &mut Default::default(),
     )

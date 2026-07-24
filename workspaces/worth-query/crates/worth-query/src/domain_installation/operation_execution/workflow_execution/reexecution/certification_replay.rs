@@ -99,6 +99,7 @@ pub enum WorthQueryCertificationReplayAdmissionDenial {
 #[derive(Debug)]
 pub enum WorthQueryCertificationReplayStop {
     Admission(WorthQueryCertificationReplayAdmissionDenial),
+    ResourceAdmission(super::WorthQueryExecutionResourceAdmissionDenial),
     Execution(WorthQueryWorkflowReexecutionStop),
     SemanticDivergence(WorthQueryReplayDivergence),
 }
@@ -174,6 +175,7 @@ pub fn replay_installed_workflow<
     original: &WorthQueryCompletedWorkflowTrace<D, O, F, LO>,
     bound: WorthQueryBoundDomainOperation<D, O, F, LR>,
     intent: WorthQueryNormalizedWorkflowIntent,
+    resources: worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest,
     workspace: &mut WorthQueryWorkspace,
 ) -> WorthQueryCertificationReplayOutcome<D, O, F, LR>
 where
@@ -209,6 +211,7 @@ where
         original,
         bound,
         intent,
+        resources,
         workspace,
         WorthQueryReplayBasisRelationship::ExactAdmittedBasis,
         counters,
@@ -225,6 +228,7 @@ pub(super) fn execute_admitted_replay<
     original: &WorthQueryCompletedWorkflowTrace<D, O, F, LO>,
     bound: WorthQueryBoundDomainOperation<D, O, F, LR>,
     intent: WorthQueryNormalizedWorkflowIntent,
+    resources: worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest,
     workspace: &mut WorthQueryWorkspace,
     basis_relationship: WorthQueryReplayBasisRelationship,
     mut counters: WorthQueryCertificationReplayCounters,
@@ -249,7 +253,35 @@ where
     else {
         return denied(WorthQueryCertificationReplayAdmissionDenial::ReplayComparatorUnavailable);
     };
-    let replay_trace = match bound.reexecute(intent.clone(), workspace) {
+    let admitted = match bound.admit_workflow_resources(resources, workspace) {
+        TransitionOutcome::Success(admitted) => admitted,
+        TransitionOutcome::Denied(stop) => {
+            return TransitionOutcome::Denied(WorthQueryCertificationReplayStop::ResourceAdmission(
+                stop,
+            ))
+        }
+        TransitionOutcome::Deferred(stop) => {
+            return TransitionOutcome::Deferred(
+                WorthQueryCertificationReplayStop::ResourceAdmission(stop),
+            )
+        }
+        TransitionOutcome::Stale(stop) => {
+            return TransitionOutcome::Stale(WorthQueryCertificationReplayStop::ResourceAdmission(
+                stop,
+            ))
+        }
+        TransitionOutcome::RebindRequired(stop) => {
+            return TransitionOutcome::RebindRequired(
+                WorthQueryCertificationReplayStop::ResourceAdmission(stop),
+            )
+        }
+        TransitionOutcome::Failed(stop) => {
+            return TransitionOutcome::Failed(WorthQueryCertificationReplayStop::ResourceAdmission(
+                stop,
+            ))
+        }
+    };
+    let replay_trace = match admitted.reexecute(intent.clone(), workspace) {
         TransitionOutcome::Success(trace) => trace,
         TransitionOutcome::Denied(stop) => return TransitionOutcome::Denied(execution(stop)),
         TransitionOutcome::Deferred(WorthQueryWorkflowReexecutionStop::ConditionalDeferred {

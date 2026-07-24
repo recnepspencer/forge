@@ -189,7 +189,14 @@ fn suppressed_condition_omits_its_consequence_but_preserves_a_direct_projection_
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     assert!(matches!(
-        bind_direct(&workspace, &installed).execute(ReadExecutionInput::default(), &mut workspace),
+        bind_direct(&workspace, &installed)
+            .admit_execution_resources(
+                ReadExecutionInput::default(),
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace
+            )
+            .unwrap()
+            .execute(&mut workspace),
         TransitionOutcome::Deferred(_)
     ));
     let TransitionOutcome::Success(_first_delivery) = workspace
@@ -277,7 +284,13 @@ pub(super) fn settle(
     let bound = bind_direct(workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

@@ -53,7 +53,13 @@ fn installed_native_access_preserves_every_foundational_family_and_absence_postu
         })
         .collect::<Vec<_>>();
     let settled = bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

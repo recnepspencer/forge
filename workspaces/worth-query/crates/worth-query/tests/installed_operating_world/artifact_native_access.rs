@@ -14,9 +14,19 @@ const ROWS: usize = 32;
 fn bulk_and_scalar_lanes_preserve_semantics_basis_and_distinct_physical_work() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-native-parity").unwrap();
     bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("native-bulk"), &mut workspace)
         .unwrap();
     bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("native-scalar"), &mut workspace)
         .unwrap();
     let observations = successes(&probe, 2);
@@ -91,9 +101,19 @@ fn field_slice_and_short_chunks_expose_all_rows_without_continuation_skips() {
 fn projection_chunk_width_controls_actual_allocated_capacity() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-native-memory").unwrap();
     bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("native-projection-small"), &mut workspace)
         .unwrap();
     bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent("native-projection-wide"), &mut workspace)
         .unwrap();
     let observations = successes(&probe, 2);
@@ -229,6 +249,11 @@ fn native_provider_panic_unwinds_and_disposes_the_managed_artifact_once() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-native-provider-panic").unwrap();
     let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let _ = bind_artifact_workflow(&workspace)
+            .admit_workflow_resources(
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace,
+            )
+            .unwrap()
             .reexecute(move_intent("native-provider-panic"), &mut workspace);
     }));
 
@@ -242,6 +267,11 @@ fn native_provider_panic_unwinds_and_disposes_the_managed_artifact_once() {
 fn run_success(mode: &str) -> (ArtifactProbe, ArtifactNativeSuccess) {
     let (mut workspace, probe) = artifact_move_workspace(&format!("artifact-{mode}")).unwrap();
     bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(move_intent(mode), &mut workspace)
         .unwrap();
     let mut observations = successes(&probe, 1);
@@ -253,7 +283,13 @@ fn run_success(mode: &str) -> (ArtifactProbe, ArtifactNativeSuccess) {
 
 fn run_denial(mode: &str) -> (ArtifactProbe, ArtifactNativeDenial) {
     let (mut workspace, probe) = artifact_move_workspace(&format!("artifact-{mode}")).unwrap();
-    let outcome = bind_artifact_workflow(&workspace).reexecute(move_intent(mode), &mut workspace);
+    let outcome = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(move_intent(mode), &mut workspace);
     assert!(matches!(
         outcome,
         TransitionOutcome::Denied(_) | TransitionOutcome::Failed(_)
