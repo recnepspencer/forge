@@ -1,11 +1,10 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use super::handle::WorthQueryArtifactHandleCore;
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactDisposition,
-    WorthQueryArtifactProductionAdmission, WorthQueryMoveOnlyArtifactHandle,
-    WorthQueryPreparedArtifactResource, WorthQueryRuntimeArtifactBinding,
-    WorthQueryRuntimeArtifactOwner,
+    WorthQueryArtifactHandleCore, WorthQueryArtifactProductionAdmission,
+    WorthQueryMoveOnlyArtifactHandle, WorthQueryPreparedArtifactResource,
+    WorthQueryRuntimeArtifactBinding, WorthQueryRuntimeArtifactOwner,
 };
 
 static NEXT_ARTIFACT_OCCURRENCE: AtomicU64 = AtomicU64::new(1);
@@ -94,7 +93,7 @@ fn validate_production(
             "artifact production evidence is incomplete",
         ));
     }
-    if prepared.semantic_projection.bytes().is_empty() {
+    if prepared.semantic_projection().bytes().is_empty() {
         return Err(production_denial(
             WorthQueryArtifactDenialKind::EmptySemanticProjection,
             contract,

@@ -6,14 +6,9 @@ use worth_relational::facade::runtime::{
 };
 
 use super::backend::WorthQueryInMemoryTestBackend;
+use super::domain_package_installation::{domain_package_installer, TestDomainInstaller};
 use super::error::{WorthQueryTestBackendError, WorthQueryTestBackendErrorKind};
 use super::schema::WorthQueryTestBackendSchema;
-
-type TestDomainInstaller = Box<
-    dyn FnOnce(
-        &mut crate::domain_installation::WorthQueryPendingDomainInstallations,
-    ) -> Result<(), WorthQueryTestBackendError>,
->;
 
 type TestRuntimeInstaller = Box<dyn FnOnce(WorthQueryRuntimeBuilder) -> WorthQueryRuntimeBuilder>;
 
@@ -142,30 +137,24 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
     }
 
     pub fn domain_package<D: crate::application::WorthQueryDomainEntryMarker + 'static>(
-        mut self,
+        self,
         package: crate::domain_installation::WorthQueryDomainPackage<D>,
     ) -> Self {
-        self.domain_installers.push(Box::new(move |installations| {
-            let validated = package.validate().map_err(|error| {
-                WorthQueryTestBackendError::new(
-                    WorthQueryTestBackendErrorKind::DomainInstallationFailed,
-                    format!("failed to validate in-memory test domain: {error}"),
-                )
-            })?;
-            let admitted =
-                crate::domain_installation::admit_domain_package(validated).map_err(|error| {
-                    WorthQueryTestBackendError::new(
-                        WorthQueryTestBackendErrorKind::DomainInstallationFailed,
-                        format!("failed to admit in-memory test domain: {error}"),
-                    )
-                })?;
-            installations.install(admitted).map_err(|error| {
-                WorthQueryTestBackendError::new(
-                    WorthQueryTestBackendErrorKind::DomainInstallationFailed,
-                    format!("failed to compile in-memory test domain: {error}"),
-                )
-            })
-        }));
+        self.domain_package_with_artifact_support(
+            package,
+            crate::domain_installation::WorthQueryArtifactInstallationSupport::default(),
+        )
+    }
+
+    pub fn domain_package_with_artifact_support<
+        D: crate::application::WorthQueryDomainEntryMarker + 'static,
+    >(
+        mut self,
+        package: crate::domain_installation::WorthQueryDomainPackage<D>,
+        artifact_support: crate::domain_installation::WorthQueryArtifactInstallationSupport,
+    ) -> Self {
+        self.domain_installers
+            .push(domain_package_installer(package, artifact_support));
         self
     }
 

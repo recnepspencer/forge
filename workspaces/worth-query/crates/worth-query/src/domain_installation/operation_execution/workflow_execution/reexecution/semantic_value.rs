@@ -53,6 +53,31 @@ impl WorthQueryWorkflowValue {
 }
 
 impl WorthQueryWorkflowSemanticValue {
+    pub(crate) fn semantic_replay_eq(&self, candidate: &Self) -> bool {
+        match (self, candidate) {
+            (Self::NotRequired, Self::NotRequired) => true,
+            (Self::Bool(left), Self::Bool(right)) => left == right,
+            (Self::I64(left), Self::I64(right)) => left == right,
+            (Self::U64(left), Self::U64(right)) => left == right,
+            (Self::Text(left), Self::Text(right)) => left == right,
+            (Self::EntityIdentity(left), Self::EntityIdentity(right)) => left == right,
+            (
+                Self::Projection {
+                    canonical_query_identity: left_identity,
+                    rows: left_rows,
+                },
+                Self::Projection {
+                    canonical_query_identity: right_identity,
+                    rows: right_rows,
+                },
+            ) => left_identity == right_identity && left_rows == right_rows,
+            (Self::InstalledArtifact(left), Self::InstalledArtifact(right)) => {
+                left.semantic_replay_eq(right)
+            }
+            _ => false,
+        }
+    }
+
     pub(crate) fn set_artifact_disposition(
         &mut self,
         disposition: crate::domain_installation::WorthQueryArtifactDisposition,

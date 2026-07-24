@@ -29,6 +29,7 @@ impl WorthQueryArtifactDisposition {
 pub struct WorthQueryDisposedArtifact {
     owner_identity: String,
     occurrence_identity: String,
+    disposition: WorthQueryArtifactDisposition,
     provider_disposed: bool,
 }
 
@@ -36,11 +37,13 @@ impl WorthQueryDisposedArtifact {
     pub(super) fn new(
         owner_identity: String,
         occurrence_identity: String,
+        disposition: WorthQueryArtifactDisposition,
         provider_disposed: bool,
     ) -> Self {
         Self {
             owner_identity,
             occurrence_identity,
+            disposition,
             provider_disposed,
         }
     }
@@ -51,6 +54,10 @@ impl WorthQueryDisposedArtifact {
 
     pub fn occurrence_identity(&self) -> &str {
         &self.occurrence_identity
+    }
+
+    pub const fn disposition(&self) -> WorthQueryArtifactDisposition {
+        self.disposition
     }
 
     pub const fn provider_disposed(&self) -> bool {

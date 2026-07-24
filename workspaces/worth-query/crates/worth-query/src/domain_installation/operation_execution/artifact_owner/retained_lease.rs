@@ -7,7 +7,7 @@ use super::{
 
 pub struct WorthQueryRetainedArtifactLease {
     pub(super) owner: Arc<WorthQueryRuntimeArtifactOwner>,
-    pub(super) lifecycle_generation: u64,
+    pub(super) lease_generation: u64,
     pub(super) lease_role: String,
     pub(super) active: bool,
 }
@@ -18,10 +18,10 @@ impl WorthQueryRetainedArtifactLease {
         generation: u64,
         lease_role: impl Into<String>,
     ) -> Result<Self, WorthQueryArtifactDenial> {
-        let lifecycle_generation = owner.admit_lease(generation)?;
+        let lease_generation = owner.admit_lease(generation)?;
         Ok(Self {
             owner: Arc::clone(owner),
-            lifecycle_generation,
+            lease_generation,
             lease_role: lease_role.into(),
             active: true,
         })
@@ -43,10 +43,20 @@ impl WorthQueryRetainedArtifactLease {
         &self.owner.binding().occurrence_identity
     }
 
-    pub fn release(mut self) -> bool {
+    pub fn release(
+        mut self,
+    ) -> Result<super::WorthQueryDisposedArtifact, WorthQueryArtifactDenial> {
         self.active = false;
-        self.owner
-            .release_lease(WorthQueryArtifactDisposition::Released)
+        let provider_disposed = self.owner.release_lease(
+            self.lease_generation,
+            WorthQueryArtifactDisposition::Released,
+        )?;
+        Ok(super::WorthQueryDisposedArtifact::new(
+            self.owner.binding().owner_identity.clone(),
+            self.owner.binding().occurrence_identity.clone(),
+            WorthQueryArtifactDisposition::Released,
+            provider_disposed,
+        ))
     }
 }
 
@@ -54,7 +64,11 @@ impl Drop for WorthQueryRetainedArtifactLease {
     fn drop(&mut self) {
         if self.active {
             self.owner
-                .release_lease(WorthQueryArtifactDisposition::Released);
+                .release_lease(
+                    self.lease_generation,
+                    WorthQueryArtifactDisposition::Released,
+                )
+                .expect("retained artifact lease releases exactly one active generation");
         }
     }
 }

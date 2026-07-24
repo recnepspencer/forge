@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::{
-    WorthQueryArtifactDenial, WorthQueryArtifactDisposition, WorthQueryArtifactSemanticProjection,
-    WorthQueryRuntimeArtifactOwner,
+    WorthQueryArtifactDenial, WorthQueryArtifactDisposition, WorthQueryArtifactHandleGuard,
+    WorthQueryArtifactSemanticProjection, WorthQueryRuntimeArtifactOwner,
 };
 
 pub struct WorthQueryBorrowedArtifactView<'a> {
@@ -14,10 +14,10 @@ pub struct WorthQueryBorrowedArtifactView<'a> {
 impl<'a> WorthQueryBorrowedArtifactView<'a> {
     pub(super) fn admit(
         owner: &'a Arc<WorthQueryRuntimeArtifactOwner>,
-        generation: u64,
+        guard: WorthQueryArtifactHandleGuard,
         purpose: impl Into<String>,
     ) -> Result<Self, WorthQueryArtifactDenial> {
-        let borrow_generation = owner.admit_borrow(generation)?;
+        let borrow_generation = owner.admit_borrow(guard)?;
         Ok(Self {
             owner,
             borrow_generation,
@@ -44,6 +44,8 @@ impl<'a> WorthQueryBorrowedArtifactView<'a> {
 
 impl Drop for WorthQueryBorrowedArtifactView<'_> {
     fn drop(&mut self) {
-        self.owner.release_borrow();
+        self.owner
+            .release_borrow(self.borrow_generation)
+            .expect("borrowed artifact view releases exactly one active generation");
     }
 }

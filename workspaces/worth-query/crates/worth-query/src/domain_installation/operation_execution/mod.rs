@@ -30,6 +30,8 @@ mod registry;
 mod workflow_artifact_production;
 #[path = "workflow_execution/progression/artifact_progression.rs"]
 mod workflow_artifact_progression;
+#[path = "workflow_execution/contract/artifact_replacement.rs"]
+mod workflow_artifact_replacement;
 #[path = "workflow_execution/progression/conditional_counters.rs"]
 mod workflow_conditional_counters;
 #[path = "workflow_execution/progression/conditional_stage_evaluation.rs"]

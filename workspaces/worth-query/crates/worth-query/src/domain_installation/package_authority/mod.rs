@@ -1,5 +1,6 @@
 mod admission;
 mod admission_profile;
+mod artifact_installation_support;
 mod identity;
 mod package;
 mod package_definitions;
@@ -8,10 +9,14 @@ mod validation;
 
 use super::WorthQueryInstalledDomainAuthorityWitness;
 
-pub(crate) use admission::{admit_domain_package, WorthQueryAdmittedDomainPackage};
+#[cfg(test)]
+pub(crate) use admission::admit_domain_package;
+pub(crate) use admission::admit_domain_package_with_artifact_support;
+pub(crate) use admission::WorthQueryAdmittedDomainPackage;
 pub use admission::{
     WorthQueryDomainPackageAdmissionDenial, WorthQueryDomainPackageAdmissionDenialKind,
 };
+pub use artifact_installation_support::WorthQueryArtifactInstallationSupport;
 pub use identity::{
     WorthQueryDomainIdentityComponentError, WorthQueryDomainIdentityDeclaration,
     WorthQueryDomainIdentityName, WorthQueryDomainIdentityNamespace,
@@ -64,6 +69,37 @@ pub use package_definitions::{
     WorthQuerySupportRequirement, WorthQueryTemporalCondition, WorthQueryTemporalWake,
     WorthQueryThresholdBoundary, WorthQueryTruthPartitionRole, WorthQueryTypedFamilyIdentity,
     WorthQueryWorkflowCostRole, WorthQueryWorkflowStageSemantics, WorthQueryWorkflowValueContract,
+};
+pub use package_definitions::{
+    WorthQueryArtifactBorrowPosture, WorthQueryArtifactCarriageContract,
+    WorthQueryArtifactClassification, WorthQueryArtifactCloneBoundary,
+    WorthQueryArtifactCloneMechanism, WorthQueryArtifactClonePosture,
+    WorthQueryArtifactComparatorFamily, WorthQueryArtifactComparisonAuthority,
+    WorthQueryArtifactCompatibilityContract, WorthQueryArtifactCompatibilityWindow,
+    WorthQueryArtifactContentIdentityContract, WorthQueryArtifactContractIdentity,
+    WorthQueryArtifactContractReference, WorthQueryArtifactContractValidationDenial,
+    WorthQueryArtifactContractValidationDenialKind, WorthQueryArtifactDeletionPosture,
+    WorthQueryArtifactDeterminismPosture, WorthQueryArtifactDowngradePosture,
+    WorthQueryArtifactEvidenceContract, WorthQueryArtifactFamily, WorthQueryArtifactFamilyIdentity,
+    WorthQueryArtifactGovernanceContract, WorthQueryArtifactLegalHoldPosture,
+    WorthQueryArtifactLifecycleContract, WorthQueryArtifactMovePosture,
+    WorthQueryArtifactOccurrenceContract, WorthQueryArtifactOccurrenceIdentityPolicy,
+    WorthQueryArtifactOwnershipContract, WorthQueryArtifactProtocolVersion,
+    WorthQueryArtifactProviderTransferPosture, WorthQueryArtifactRedactionPosture,
+    WorthQueryArtifactReproducibilityClass, WorthQueryArtifactReproducibilityContract,
+    WorthQueryArtifactRetirementRule, WorthQueryArtifactSchemaVersion,
+    WorthQueryArtifactSerializationPosture, WorthQueryArtifactSubstitutionPurpose,
+    WorthQueryArtifactVersionSupport, WorthQueryCandidateOptimalityPosture,
+    WorthQueryCandidateSearchContract, WorthQueryCandidateSearchEvidenceFamilies,
+    WorthQueryCandidateSearchPosture, WorthQueryConvergenceContract,
+    WorthQueryConvergenceIncumbentPosture, WorthQueryConvergenceOscillationPosture,
+    WorthQueryImmutableSourceOccurrenceContract, WorthQueryInstallationSupportStatus,
+    WorthQueryInstalledArtifactContractAuthority, WorthQueryPortableArtifactContract,
+    WorthQueryPortableArtifactContractBuilder, WorthQuerySourceOutputCorrespondence,
+    WorthQueryStructuralCounterContract, WorthQueryTransformationDisposition,
+    WorthQueryTransformationErrorPosture, WorthQueryTransformationEvidenceContract,
+    WorthQueryTransformationIdentity, WorthQueryTransformationLossPosture,
+    WorthQueryTransformationOutcomeContract,
 };
 pub(crate) use package_definitions::{
     WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainOperationGraphParticipationRecord,

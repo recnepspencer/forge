@@ -1,5 +1,7 @@
-use super::handle::WorthQueryArtifactHandleCore;
-use super::{WorthQueryArtifactDisposition, WorthQueryArtifactSemanticProjection};
+use super::{
+    WorthQueryArtifactDisposition, WorthQueryArtifactHandleCore,
+    WorthQueryArtifactSemanticProjection,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryArtifactTraceMeaning {
@@ -47,6 +49,12 @@ impl WorthQueryArtifactTraceMeaning {
 
     pub(crate) fn set_disposition(&mut self, disposition: WorthQueryArtifactDisposition) {
         self.disposition = disposition;
+    }
+
+    pub(crate) fn semantic_replay_eq(&self, candidate: &Self) -> bool {
+        self.contract_identity == candidate.contract_identity
+            && self.semantic_projection == candidate.semantic_projection
+            && self.disposition == candidate.disposition
     }
 }
 

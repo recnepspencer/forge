@@ -1,6 +1,6 @@
-use super::handle::WorthQueryArtifactHandleCore;
 use super::{
-    WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactTransferAdmission,
+    WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactHandleCore,
+    WorthQueryArtifactProductionAdmission, WorthQueryArtifactTransferAdmission,
 };
 
 impl WorthQueryArtifactHandleCore {
@@ -42,6 +42,67 @@ impl WorthQueryArtifactHandleCore {
             return Err(self.denial(
                 WorthQueryArtifactDenialKind::ProducerRoleNotInstalled,
                 "output stage is not admitted by the installed artifact contract",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(super) fn validate_replacement_binding(
+        &self,
+        admission: &WorthQueryArtifactProductionAdmission,
+    ) -> Result<(), WorthQueryArtifactDenial> {
+        let binding = self.owner.binding();
+        if binding.domain_authority.runtime_authority()
+            != admission.domain_authority.runtime_authority()
+        {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::ForeignRuntime,
+                "replacement admission belongs to a different Query runtime",
+            ));
+        }
+        if !binding
+            .domain_authority
+            .is_current_installation_generation()
+            || binding.domain_authority.installation_generation()
+                != admission.domain_authority.installation_generation()
+        {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::StaleInstallationGeneration,
+                "replacement admission belongs to a different installation generation",
+            ));
+        }
+        if binding.operation_identity != admission.operation_identity
+            || binding.binding_identity != admission.binding_identity
+        {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::OperationMismatch,
+                "replacement admission belongs to a different operation binding",
+            ));
+        }
+        if binding.run_identity != admission.run_identity {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::RunMismatch,
+                "replacement admission belongs to a different workflow run",
+            ));
+        }
+        if binding.basis_identity != admission.basis_identity {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::BasisMismatch,
+                "replacement admission belongs to a different admitted basis",
+            ));
+        }
+        if self.holder_stage != admission.stage_identity {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::StageMismatch,
+                "replacement admission does not belong to the current holder stage",
+            ));
+        }
+        if binding.contract.contract().identity() != admission.contract.contract().identity()
+            || binding.contract.owner() != admission.contract.owner()
+        {
+            return Err(self.denial(
+                WorthQueryArtifactDenialKind::ArtifactContractMismatch,
+                "replacement admission names a different installed artifact contract",
             ));
         }
         Ok(())

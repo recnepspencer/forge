@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod artifact_contract_package_tests;
 mod collection_delivery;
 mod collection_window;
 mod compatibility;

@@ -1,3 +1,6 @@
+mod artifact_workflow_authority;
+mod artifact_workflow_lifecycle;
+mod artifact_workflow_replay;
 mod conditional_attempt_identity;
 mod conditional_execution;
 mod conditional_failure_accounting;

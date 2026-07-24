@@ -19,6 +19,7 @@ pub(super) fn admit_portable_package(
     required_configuration: &[WorthQueryConfigSectionFamily],
     operating_requirements: &[WorthQueryDomainOperatingRequirement],
     facade: &WorthQueryApplicationFacade,
+    artifact_support: &super::WorthQueryArtifactInstallationSupport,
 ) -> Result<WorthQueryAdmittedPortableDomainPackage, WorthQueryDomainPackageAdmissionDenial> {
     let support_matrix = facade.support_matrix();
     let mut profile = WorthQueryInstallationAdmissionProfile::new(
@@ -57,6 +58,7 @@ pub(super) fn admit_portable_package(
         };
         profile = profile.operating_requirement(requirement.as_str(), status);
     }
+    profile = artifact_support.apply(profile);
     profile.admit(package).map_err(map_admission_denial)
 }
 
