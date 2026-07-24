@@ -19,6 +19,11 @@ impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, Workflo
         worth_signal::facade::adapters::FrontierRouteEvidenceReceipt,
         domain::WorthQueryWorkflowParallelAdmissionFailure,
     > {
+        assert_eq!(call.execution_resources().strategy(), "fixture-bounded");
+        assert_eq!(
+            call.resource_envelope().cancellation_safe_point().as_str(),
+            "fixture-chunk-boundary"
+        );
         let frontier = call.frontier();
         if frontier
             .iter()

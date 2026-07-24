@@ -64,6 +64,8 @@ mod workflow_parallel_progression;
 mod workflow_parallel_provider;
 #[path = "workflow_execution/providers/parallel_admission_registry.rs"]
 mod workflow_parallel_registry;
+#[path = "workflow_execution/progression/predecessor_admission.rs"]
+mod workflow_predecessor_admission;
 #[path = "workflow_execution/contract/predecessor_receipt.rs"]
 mod workflow_predecessor_receipt;
 #[path = "workflow_execution/progression/stage_progression.rs"]

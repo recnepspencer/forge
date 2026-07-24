@@ -13,7 +13,7 @@ use super::installed_operation_fixture::{
 };
 
 mod providers;
-use providers::CapturingCompute;
+use providers::{domain_condition_node, CapturingCompute, CountedCompute, StaticCondition};
 
 #[test]
 fn changed_signal_decision_reenters_before_the_ordinary_executor() {
@@ -330,74 +330,4 @@ fn reverted_clean_retains_compute_cost_but_mints_no_query_consequence() {
     assert_eq!(deferred.counters().conditional_semantic_changes, 0);
     assert_eq!(deferred.counters().graph_provider_contacts, 0);
     assert_eq!(deferred.counters().executor_contacts, 0);
-}
-
-struct StaticCondition(worth_signal::facade::InstalledSignalConditionDecision);
-
-impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for StaticCondition {
-    type SemanticContract = worth_signal::facade::InstalledSignalConditionDecision;
-
-    fn semantic_contract(&self) -> Self::SemanticContract {
-        self.0
-    }
-}
-
-impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for StaticCondition {
-    fn resolve(
-        &self,
-        _declaration: &domain::WorthQueryPortableConditionalNodeDeclaration,
-        _context: worth_runtime_bridge::facade::BridgeConditionalResolverContext,
-    ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
-        Ok(self.0)
-    }
-}
-
-struct CountedCompute {
-    contacts: Arc<AtomicUsize>,
-    version: u64,
-}
-
-impl CountedCompute {
-    fn new(contacts: Arc<AtomicUsize>, version: u64) -> Self {
-        Self { contacts, version }
-    }
-}
-
-impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
-    for CountedCompute
-{
-    type SemanticContract = u64;
-
-    fn semantic_contract(&self) -> Self::SemanticContract {
-        self.version
-    }
-
-    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
-        crate::suite::installed_operation_fixture::execution_resource_support()
-    }
-
-    fn compute(
-        &self,
-        _context: &domain::WorthQueryConditionalComputeContext,
-    ) -> Result<worth_signal::facade::NodeEvaluationResult, String> {
-        self.contacts.fetch_add(1, Ordering::SeqCst);
-        Ok(worth_signal::facade::NodeEvaluationResult::from_version(
-            worth_signal::facade::AspectVersion::from_updates([(
-                worth_signal::facade::Aspect::new(0),
-                self.version,
-            )]),
-        ))
-    }
-}
-
-fn domain_condition_node(identity: &str) -> domain::WorthQueryPortableConditionalNodeDeclaration {
-    conditional_node_result(
-        identity,
-        dependency(domain::WorthQuerySemanticLocality::SourceRecord),
-        domain::WorthQueryConditionalEvaluationCondition::domain_specific::<GeometryCondition>([])
-            .unwrap(),
-        domain::WorthQueryConditionalTrigger::DependencyChange,
-        domain::WorthQueryMaintenancePosture::LazyUntilObserved,
-    )
-    .unwrap()
 }

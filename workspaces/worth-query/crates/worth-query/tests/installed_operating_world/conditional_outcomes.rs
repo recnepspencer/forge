@@ -4,6 +4,7 @@ use std::sync::Arc;
 use worth_proof::TransitionOutcome;
 use worth_query::facade::{domain, read};
 
+mod installation_denials;
 mod provider_fixtures;
 
 use super::conditional_node_contract::{conditional_node_result, dependency, node, ManualRefresh};
@@ -353,53 +354,4 @@ fn execute_unchanged(
         deferred.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::DependencyUnchanged
     );
-}
-
-#[test]
-fn detached_bridge_compute_provider_is_rejected_instead_of_replaced() {
-    let node = node(
-        "detached-compute",
-        domain::WorthQueryComparatorRequirement::ExactCanonicalValue,
-        domain::WorthQuerySemanticLocality::SourceRecord,
-    );
-    let mut installation = conditional_installation(&node);
-    let detached_contacts = Arc::new(AtomicUsize::new(0));
-    installation.providers = worth_runtime_bridge::facade::BridgeConditionalProviderSet::new()
-        .compute(DetachedCompute(Arc::clone(&detached_contacts)));
-    let query_contacts = Arc::new(AtomicUsize::new(0));
-
-    let result = conditional_workspace_with(
-        "detached-compute",
-        node,
-        installation,
-        CountedCompute(Arc::clone(&query_contacts)),
-    );
-
-    let Err(error) = result else {
-        panic!("a detached Bridge compute provider must reject runtime construction")
-    };
-    assert!(error.message().contains("ExtraComputeProvider"));
-    assert_eq!(detached_contacts.load(Ordering::SeqCst), 0);
-    assert_eq!(query_contacts.load(Ordering::SeqCst), 0);
-}
-
-#[test]
-fn two_declarations_cannot_implicitly_share_one_signal_node() {
-    let first = node(
-        "first-owner",
-        domain::WorthQueryComparatorRequirement::ExactCanonicalValue,
-        domain::WorthQuerySemanticLocality::SourceRecord,
-    );
-    let second = node(
-        "second-owner",
-        domain::WorthQueryComparatorRequirement::ExactCanonicalValue,
-        domain::WorthQuerySemanticLocality::SourceRecord,
-    );
-
-    let result = shared_signal_node_workspace("shared-signal-node", first, second);
-
-    let Err(error) = result else {
-        panic!("implicit Signal-node sharing must reject runtime construction")
-    };
-    assert!(error.message().contains("SignalNodeAlreadyBound"));
 }

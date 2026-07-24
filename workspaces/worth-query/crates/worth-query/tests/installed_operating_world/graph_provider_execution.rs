@@ -13,6 +13,7 @@ use super::installed_operation_fixture::{
 mod call_affinity;
 mod contract_admission;
 mod provider_fixture;
+mod resource_admission;
 use provider_fixture::*;
 #[test]
 fn projection_receipt_without_query_material_denies_before_executor_contact() {

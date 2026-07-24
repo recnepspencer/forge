@@ -1,6 +1,7 @@
 use worth_query::facade::{domain, installed};
 
 mod attempt_evidence;
+mod provider_surfaces;
 mod rejection_order;
 mod strategy_lattice;
 

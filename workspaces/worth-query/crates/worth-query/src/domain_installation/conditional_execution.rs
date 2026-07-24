@@ -1,9 +1,11 @@
+mod compute_bridge;
 mod delivery;
 mod evaluation;
 mod installation;
 mod reentry;
 mod registry;
 
+pub(crate) use compute_bridge::QueryComputeProvider;
 pub use delivery::{
     WorthQueryConditionalAuthoritativeChangeDeliveryRequest, WorthQueryConditionalDeliveryDenial,
 };
