@@ -95,8 +95,8 @@
     }
   },
   "closing": {
-    "captured_at": "2026-07-24T03:16:13.6520023+00:00",
-    "git_commit": "7771cc53c99f0dc1484751f49dd3edd39ff98048",
+    "captured_at": "2026-07-24T03:42:25.4208479+00:00",
+    "git_commit": "b997d23fd73943c6347376e94ede6a4ba6b486fb",
     "platform": "Microsoft Windows NT 10.0.26200.0",
     "cargo": "cargo 1.94.0 (85eff7c80 2026-01-15)",
     "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
@@ -114,15 +114,15 @@
         "workspaces/worth-ui",
         "scripts/ci"
       ],
-      "digest": "c82ea6c15c3ce8f88af52da87d06b060175bebcdf69a5bb178e225d18b1f6114",
+      "digest": "5f92ce242320b573e04b87f16aa2a82d960608b06243ede7fdf7177484a01b75",
       "file_count": 20990
     },
-    "source_transition_digest": "18cce0bfe1e265870baf006fd29afc76f9371433320129b3dcb661ecfbf0ea69",
+    "source_transition_digest": "a6021dbcda872d15d4056a1344d9ec31259dd14f2877c321f0258f14fd44954c",
     "environment": {
       "operating_system": "Microsoft Windows 11 Home",
       "processor": "AMD Ryzen 7 9700X 8-Core Processor",
       "physical_memory_bytes": 66145669120,
-      "worktree_state": "dirty milestone 3.9.2 phases 1 through 7 closure working tree",
+      "worktree_state": "clean post-integration ui working tree at b997d23f before evidence stabilization",
       "isolated_target_root": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724"
     },
     "measurements": {
@@ -134,8 +134,8 @@
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [0.39, 0.391, 0.398],
-        "median_seconds": 0.391,
+        "samples_seconds": [0.476, 0.385, 0.401],
+        "median_seconds": 0.401,
         "comparison": "within_10_percent"
       },
       "warm_fast_lane": {
@@ -146,8 +146,8 @@
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [8.398, 8.106, 8.036],
-        "median_seconds": 8.106,
+        "samples_seconds": [8.397, 8.858, 8.485],
+        "median_seconds": 8.485,
         "comparison": "within_10_percent"
       },
       "warm_application_contracts": {
@@ -158,20 +158,20 @@
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [15.868, 17.496, 16.021],
-        "median_seconds": 16.021,
+        "samples_seconds": [15.147, 15.14, 15.405],
+        "median_seconds": 15.147,
         "comparison": "reviewed_budget_amendment"
       },
       "cold_compile_contracts": {
         "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
         "classification": "cold",
         "target_directories": [
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-compile-target-1",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-compile-target-2",
-          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-compile-target-3"
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-postcheckout-target-1",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-postcheckout-target-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\cold-postcheckout-target-3"
         ],
-        "samples_seconds": [63.707, 66.954, 64.527],
-        "median_seconds": 64.527,
+        "samples_seconds": [67.629, 61.323, 68.371],
+        "median_seconds": 67.629,
         "comparison": "within_10_percent"
       },
       "warm_compile_contracts": {
@@ -182,20 +182,20 @@
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target",
           "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui-3.9.2-timing-closeout-20260724\\warm-target"
         ],
-        "samples_seconds": [1.953, 1.832, 1.582],
-        "median_seconds": 1.832,
+        "samples_seconds": [1.598, 1.432, 1.766],
+        "median_seconds": 1.598,
         "comparison": "within_10_percent"
       }
     },
     "reviewed_budget_amendments": {
-      "warm_application_contracts": "Milestones 3.9 through 3.9.2 deliberately consolidate 53 real end-to-end filesystem, watcher, Query Consumer Kit, live-resource, egui, replacement, denial, multi-removal, and churn contracts into one compiled target. The 16.021-second median is accepted for that materially stronger proof surface and remains separate from the 8.106-second ordinary fast lane."
+      "warm_application_contracts": "Milestones 3.9 through 3.9.2 deliberately consolidate 53 real end-to-end filesystem, watcher, Query Consumer Kit, live-resource, egui, replacement, denial, multi-removal, and churn contracts into one compiled target. The 15.147-second median is accepted for that materially stronger proof surface and remains separate from the 8.485-second ordinary fast lane."
     }
   },
   "protocol_notes": [
     "Every warm measurement used one shared target directory per run set and discarded one successful warmup before recording three samples.",
     "Every cold compile-contract sample used a distinct target directory that did not exist before the command started.",
     "CARGO_INCREMENTAL was disabled and RUSTC_WRAPPER was cleared for every measured command.",
-    "The opening run used a detached worktree at the declared git commit; the closing run used the exact dirty working-tree bytes bound by source_snapshot.",
+    "The opening run used a detached worktree at the declared git commit; the closing run used the exact clean post-integration working-tree bytes bound by source_snapshot.",
     "Target directories were isolated outside workspaces/worth-ui/target and are retained for audit."
   ]
 }
