@@ -1,4 +1,7 @@
-use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
+use worth_query::facade::consumer_kit::{
+    in_memory_test_runtime, WorthQueryControlledTestWorkspace,
+    WorthQueryInMemoryTestRuntimeBuilder, WorthQueryTestBackendSchema,
+};
 use worth_query::facade::{domain, foundation, runtime};
 
 use super::workflow_parallel_providers::SerialParallelProvider;
@@ -49,6 +52,18 @@ pub fn artifact_workspace_without_support(
     artifact_workspace(name, ArtifactWorkflowKind::Move, false)
 }
 
+pub fn artifact_controlled_workspace(
+    name: &str,
+) -> Result<
+    (WorthQueryControlledTestWorkspace, ArtifactProbe),
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    let probe = ArtifactProbe::default();
+    let workspace = artifact_runtime_builder(ArtifactWorkflowKind::Move, true, &probe)
+        .controlled_workspace(name)?;
+    Ok((workspace, probe))
+}
+
 pub fn bind_artifact_workflow(
     workspace: &runtime::WorthQueryWorkspace,
 ) -> domain::WorthQueryBoundDomainOperation<
@@ -76,9 +91,13 @@ pub fn move_intent(mode: &str) -> domain::WorthQueryNormalizedWorkflowIntent {
 }
 
 pub fn lease_intent() -> domain::WorthQueryNormalizedWorkflowIntent {
+    lease_intent_with_mode("produce")
+}
+
+pub fn lease_intent_with_mode(mode: &str) -> domain::WorthQueryNormalizedWorkflowIntent {
     use domain::{WorthQueryWorkflowIntentStage as Stage, WorthQueryWorkflowIntentValue as Value};
     domain::WorthQueryNormalizedWorkflowIntent::new(vec![
-        Stage::new("produce", Value::Text("produce".into())),
+        Stage::new("produce", Value::Text(mode.into())),
         Stage::new(
             "observe-a",
             Value::predecessor_artifact_lease("produce", "observer-a"),
@@ -100,6 +119,16 @@ fn artifact_workspace(
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
 > {
     let probe = ArtifactProbe::default();
+    let workspace =
+        artifact_runtime_builder(kind, admit_artifact_support, &probe).workspace(name)?;
+    Ok((workspace, probe))
+}
+
+fn artifact_runtime_builder(
+    kind: ArtifactWorkflowKind,
+    admit_artifact_support: bool,
+    probe: &ArtifactProbe,
+) -> WorthQueryInMemoryTestRuntimeBuilder {
     let contract = candidate_contract();
     let package = artifact_package(workflow_definition(&contract, kind), contract);
     let schema = WorthQueryTestBackendSchema::single_collection("Vertex")
@@ -119,7 +148,7 @@ fn artifact_workspace(
         ReadFamily,
         ArtifactWorkflowExecutor::new(probe.clone()),
     );
-    let builder = match kind {
+    match kind {
         ArtifactWorkflowKind::Move => builder,
         ArtifactWorkflowKind::Lease => builder.workflow_parallel_admission_provider(
             GeometryDomain,
@@ -127,9 +156,7 @@ fn artifact_workspace(
             ReadFamily,
             SerialParallelProvider,
         ),
-    };
-    let workspace = builder.workspace(name)?;
-    Ok((workspace, probe))
+    }
 }
 
 fn artifact_package(

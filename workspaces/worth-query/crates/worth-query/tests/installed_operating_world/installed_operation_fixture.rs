@@ -29,8 +29,9 @@ pub use aftermath::{
     AftermathFamily, AftermathOriginal, ProvisionalWorkflow,
 };
 pub use artifact_workflow::{
-    artifact_lease_workspace, artifact_move_workspace, artifact_workspace_without_support,
-    bind_artifact_workflow, lease_intent, move_intent,
+    artifact_controlled_workspace, artifact_lease_workspace, artifact_move_workspace,
+    artifact_workspace_without_support, bind_artifact_workflow, lease_intent,
+    lease_intent_with_mode, move_intent,
 };
 pub use conditional_workflow::{
     conditional_workflow_workspace, reverted_conditional_lineage_workflow_workspace,

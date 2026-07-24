@@ -5,17 +5,20 @@ use super::{
     WorthQueryWorkflowValue,
 };
 
+pub(crate) struct WorthQueryWorkflowStageRuntimeAdmission {
+    _private: (),
+}
+
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
     pub(super) fn admit_stage(
         &mut self,
         stage_identity: &str,
         input: &WorthQueryWorkflowValue,
-        workspace: &crate::runtime::WorthQueryWorkspace,
+        _runtime_admission: WorthQueryWorkflowStageRuntimeAdmission,
     ) -> Result<
         worth_query_installation::facade::WorthQueryPortableWorkflowStage,
         WorthQueryWorkflowAdvanceDenial,
     > {
-        self.validate_stage_runtime_authority(workspace)?;
         let stage = self.pending_stage(stage_identity)?;
         self.validate_stage_predecessors(&stage)?;
         if !input.satisfies(&stage.semantics().input) {
@@ -77,10 +80,10 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         handle.validate_input(&admission)
     }
 
-    fn validate_stage_runtime_authority(
+    pub(super) fn admit_stage_runtime_authority(
         &mut self,
         workspace: &crate::runtime::WorthQueryWorkspace,
-    ) -> Result<(), WorthQueryWorkflowAdvanceDenial> {
+    ) -> Result<WorthQueryWorkflowStageRuntimeAdmission, WorthQueryWorkflowAdvanceDenial> {
         self.counters.runtime_authority_checks += 1;
         let witness =
             crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness::from_authority(
@@ -92,7 +95,8 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 self.stage_admission_denial(WorthQueryWorkflowAdvanceDenialKind::RuntimeAuthority(
                     denial.kind(),
                 ))
-            })
+            })?;
+        Ok(WorthQueryWorkflowStageRuntimeAdmission { _private: () })
     }
 
     fn pending_stage(

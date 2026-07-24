@@ -1,3 +1,4 @@
+mod authority_match;
 mod authority_validation;
 mod borrow;
 mod counters;
@@ -36,13 +37,16 @@ pub use trace_meaning::WorthQueryArtifactTraceMeaning;
 pub use transfer::WorthQueryArtifactTransferAdmission;
 pub use transferred_handle::WorthQueryTransferredArtifactHandle;
 
+use authority_match::{artifact_authority_denial_detail, WorthQueryArtifactAuthorityMatch};
 use handle_core::{WorthQueryArtifactHandleCore, WorthQueryArtifactHandleGuard};
 pub(crate) use installed_binding::{
     compile_workflow_artifact_contracts, WorthQueryInstalledWorkflowArtifactContracts,
 };
 use lifecycle::WorthQueryRuntimeArtifactLifecycle;
 pub(crate) use owner::{WorthQueryRuntimeArtifactBinding, WorthQueryRuntimeArtifactOwner};
-pub(crate) use production_authority::WorthQueryArtifactProductionAuthority;
+pub(crate) use production_authority::{
+    WorthQueryArtifactProductionAuthority, WorthQueryArtifactProductionAuthorityParts,
+};
 pub(crate) use provider_resource::{
     WorthQueryErasedArtifactProviderResource, WorthQueryGuardedArtifactResource,
     WorthQueryPreparedArtifactResource,

@@ -19,6 +19,11 @@ struct ArtifactProbeInner {
     replacements: AtomicUsize,
     cancellations: AtomicUsize,
     denials: Mutex<Vec<domain::WorthQueryArtifactDenialKind>>,
+    lifecycle_snapshots: Mutex<Vec<domain::WorthQueryArtifactOwnerSnapshot>>,
+    consumer_mode: Mutex<Option<String>>,
+    retained_admission: Mutex<Option<domain::WorthQueryArtifactProductionAdmission>>,
+    escaped_handle: Mutex<Option<domain::WorthQueryTransferredArtifactHandle>>,
+    escaped_lease: Mutex<Option<domain::WorthQueryRetainedArtifactLease>>,
 }
 
 impl ArtifactProbe {
@@ -52,6 +57,30 @@ impl ArtifactProbe {
             .lock()
             .expect("artifact denial probe lock remains available")
             .clone()
+    }
+
+    pub fn lifecycle_snapshots(&self) -> Vec<domain::WorthQueryArtifactOwnerSnapshot> {
+        self.inner
+            .lifecycle_snapshots
+            .lock()
+            .expect("artifact lifecycle snapshot probe lock remains available")
+            .clone()
+    }
+
+    pub fn take_escaped_handle(&self) -> Option<domain::WorthQueryTransferredArtifactHandle> {
+        self.inner
+            .escaped_handle
+            .lock()
+            .expect("escaped artifact handle probe lock remains available")
+            .take()
+    }
+
+    pub fn take_escaped_lease(&self) -> Option<domain::WorthQueryRetainedArtifactLease> {
+        self.inner
+            .escaped_lease
+            .lock()
+            .expect("escaped artifact lease probe lock remains available")
+            .take()
     }
 
     pub(super) fn candidate(&self, projection: &[u8]) -> CandidateArtifactResource {
@@ -98,6 +127,67 @@ impl ArtifactProbe {
             .lock()
             .expect("artifact denial probe lock remains available")
             .push(kind);
+    }
+
+    pub(super) fn observe_lifecycle(&self, snapshot: domain::WorthQueryArtifactOwnerSnapshot) {
+        self.inner
+            .lifecycle_snapshots
+            .lock()
+            .expect("artifact lifecycle snapshot probe lock remains available")
+            .push(snapshot);
+    }
+
+    pub(super) fn arm_consumer(&self, mode: String) {
+        *self
+            .inner
+            .consumer_mode
+            .lock()
+            .expect("artifact consumer mode probe lock remains available") = Some(mode);
+    }
+
+    pub(super) fn take_consumer_mode(&self) -> Option<String> {
+        self.inner
+            .consumer_mode
+            .lock()
+            .expect("artifact consumer mode probe lock remains available")
+            .take()
+    }
+
+    pub(super) fn retain_admission(
+        &self,
+        admission: domain::WorthQueryArtifactProductionAdmission,
+    ) {
+        *self
+            .inner
+            .retained_admission
+            .lock()
+            .expect("retained artifact admission probe lock remains available") = Some(admission);
+    }
+
+    pub(super) fn take_retained_admission(
+        &self,
+    ) -> Option<domain::WorthQueryArtifactProductionAdmission> {
+        self.inner
+            .retained_admission
+            .lock()
+            .expect("retained artifact admission probe lock remains available")
+            .take()
+    }
+
+    pub(super) fn escape_handle(&self, handle: domain::WorthQueryTransferredArtifactHandle) {
+        *self
+            .inner
+            .escaped_handle
+            .lock()
+            .expect("escaped artifact handle probe lock remains available") = Some(handle);
+    }
+
+    pub(super) fn escape_lease(&self, lease: domain::WorthQueryRetainedArtifactLease) {
+        *self
+            .inner
+            .escaped_lease
+            .lock()
+            .expect("escaped artifact lease probe lock remains available") = Some(lease);
     }
 }
 

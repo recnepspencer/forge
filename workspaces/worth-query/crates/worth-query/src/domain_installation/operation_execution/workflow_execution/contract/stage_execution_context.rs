@@ -1,8 +1,8 @@
 use super::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowEffectEvidence,
     WorthQueryWorkflowPredecessorReceipt, WorthQueryWorkflowStageEffectDenial,
-    WorthQueryWorkflowStageExecutorFailure, WorthQueryWorkflowStageReceipt,
-    WorthQueryWorkflowStageWorkspace,
+    WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionScope,
+    WorthQueryWorkflowStageExecutorFailure, WorthQueryWorkflowStageWorkspace,
 };
 
 pub struct WorthQueryWorkflowStageExecutionContext<'a> {
@@ -30,24 +30,6 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
         Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
 }
 
-pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
-    pub(crate) effect_workflow_binding: crate::workflow::WorkflowContextBinding,
-    pub(crate) basis: crate::basis_lifecycle::BasisFamily,
-    pub(crate) installed_read: Option<&'a crate::ordinary::read::WorthQueryReadDeclaration>,
-    pub(crate) operation_graph_reads:
-        &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
-    pub(crate) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
-    pub(crate) query_authority: crate::identity_authority::QueryCanonicalAuthority,
-    pub(crate) identity_evolution_basis_identity: String,
-    pub(crate) domain_authority:
-        std::sync::Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
-    pub(crate) output_artifact_contract: Option<
-        std::sync::Arc<
-            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
-        >,
-    >,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryWorkflowStageLineageDenial {
     RuntimeMutationEvidenceRequired,
@@ -58,31 +40,30 @@ pub enum WorthQueryWorkflowStageLineageDenial {
 
 impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     pub(crate) fn new(
-        operation_identity: &'a str,
-        binding_identity: &'a str,
-        run_identity: &'a str,
-        stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
-        predecessor_receipts: &'a [&'a WorthQueryWorkflowStageReceipt],
+        scope: WorthQueryWorkflowStageExecutionScope<'a>,
         authority: WorthQueryWorkflowStageExecutionAuthority<'a>,
     ) -> Self {
         let artifact_production_authority =
             authority.output_artifact_contract.as_ref().map(|contract| {
                 crate::domain_installation::WorthQueryArtifactProductionAuthority::mint(
-                    std::sync::Arc::clone(contract),
-                    std::sync::Arc::clone(&authority.domain_authority),
-                    operation_identity.to_owned(),
-                    binding_identity.to_owned(),
-                    run_identity.to_owned(),
-                    stage.identity().to_owned(),
-                    authority.identity_evolution_basis_identity.clone(),
+                    crate::domain_installation::WorthQueryArtifactProductionAuthorityParts {
+                        contract: std::sync::Arc::clone(contract),
+                        domain_authority: std::sync::Arc::clone(&authority.domain_authority),
+                        operation_identity: scope.operation_identity.to_owned(),
+                        binding_identity: scope.binding_identity.to_owned(),
+                        run_identity: scope.run_identity.to_owned(),
+                        stage_identity: scope.stage.identity().to_owned(),
+                        basis_identity: authority.identity_evolution_basis_identity.clone(),
+                    },
                 )
             });
         Self {
-            operation_identity,
-            binding_identity,
-            run_identity,
-            stage,
-            predecessor_receipts: predecessor_receipts
+            operation_identity: scope.operation_identity,
+            binding_identity: scope.binding_identity,
+            run_identity: scope.run_identity,
+            stage: scope.stage,
+            predecessor_receipts: scope
+                .predecessor_receipts
                 .iter()
                 .map(|receipt| WorthQueryWorkflowPredecessorReceipt::new(receipt))
                 .collect(),

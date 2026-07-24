@@ -14,6 +14,10 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         predecessor_stage: &str,
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
+        let runtime_admission = match self.admit_stage_runtime_authority(workspace) {
+            Ok(admission) => admission,
+            Err(denial) => return self.outcome_from_denial(denial),
+        };
         let admission = match self.artifact_transfer_admission(stage_identity, predecessor_stage) {
             Ok(admission) => admission,
             Err(denial) => return self.outcome_from_denial(denial),
@@ -25,7 +29,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             Err(denial) => return self.outcome_from_denial(denial),
         };
         match input {
-            Ok(input) => self.advance(stage_identity, input, workspace),
+            Ok(input) => self.advance_with_runtime_admission(
+                stage_identity,
+                input,
+                workspace,
+                runtime_admission,
+            ),
             Err(denial) => {
                 let stop = self.artifact_carriage_denial(denial);
                 self.outcome_from_denial(stop)
@@ -40,6 +49,10 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         lease_role: impl Into<String>,
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
+        let runtime_admission = match self.admit_stage_runtime_authority(workspace) {
+            Ok(admission) => admission,
+            Err(denial) => return self.outcome_from_denial(denial),
+        };
         let admission = match self.artifact_transfer_admission(stage_identity, predecessor_stage) {
             Ok(admission) => admission,
             Err(denial) => return self.outcome_from_denial(denial),
@@ -56,7 +69,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             }
         }
         match input {
-            Ok(input) => self.advance(stage_identity, input, workspace),
+            Ok(input) => self.advance_with_runtime_admission(
+                stage_identity,
+                input,
+                workspace,
+                runtime_admission,
+            ),
             Err(denial) => {
                 let stop = self.artifact_carriage_denial(denial);
                 self.outcome_from_denial(stop)
@@ -153,11 +171,10 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         let output = self.receipts[index].take_output();
         output
             .into_move_only_artifact()
-            .map(|handle| {
+            .inspect(|_| {
                 self.receipts[index].set_artifact_disposition(
                     crate::domain_installation::WorthQueryArtifactDisposition::Transferred,
                 );
-                handle
             })
             .map_err(|output| {
                 self.receipts[index].restore_output(output);

@@ -40,7 +40,8 @@ pub use operation_aftermath::*;
 pub(crate) use operation_authority_chain::WorthQueryOperationAuthorityBasis;
 pub use operation_execution::*;
 pub(crate) use operation_execution::{
-    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactRegistry,
+    WorthQueryArtifactProductionAuthority, WorthQueryArtifactProductionAuthorityParts,
+    WorthQueryWorkflowArtifactRegistry,
 };
 pub use operation_lineage::*;
 pub use package_authority::*;

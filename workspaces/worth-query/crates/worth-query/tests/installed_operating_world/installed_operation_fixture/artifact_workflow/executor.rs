@@ -26,7 +26,44 @@ impl ArtifactWorkflowExecutor {
             domain::WorthQueryWorkflowValue::Text(mode) => mode,
             _ => return Err(failure("producer expected a text scenario")),
         };
-        let admission = production_admission(context)?;
+        let admission = self.production_admission_for_mode(&mode, context)?;
+        let handle = self.register_producer_resource(&mode, admission, workspace)?;
+        self.finish_producer(mode, handle, context, workspace)
+    }
+
+    fn production_admission_for_mode(
+        &self,
+        mode: &str,
+        context: &domain::WorthQueryWorkflowStageExecutionContext<'_>,
+    ) -> Result<
+        domain::WorthQueryArtifactProductionAdmission,
+        domain::WorthQueryWorkflowStageExecutorFailure,
+    > {
+        let admission = if mode == "reuse-retained-admission" {
+            self.probe
+                .take_retained_admission()
+                .ok_or_else(|| failure("no retained artifact admission was available"))?
+        } else {
+            production_admission(context)?
+        };
+        if mode == "retain-admission" {
+            self.probe.retain_admission(admission);
+            return Err(failure(
+                "artifact production admission retained for sabotage",
+            ));
+        }
+        Ok(admission)
+    }
+
+    fn register_producer_resource(
+        &self,
+        mode: &str,
+        admission: domain::WorthQueryArtifactProductionAdmission,
+        workspace: &mut domain::WorthQueryWorkflowStageWorkspace<'_>,
+    ) -> Result<
+        domain::WorthQueryMoveOnlyArtifactHandle,
+        domain::WorthQueryWorkflowStageExecutorFailure,
+    > {
         if mode == "panic-during-projection" {
             let _ = workspace.register_artifact(admission, self.probe.panic_during_projection());
             unreachable!("provider projection panic must unwind registration");
@@ -38,9 +75,36 @@ impl ArtifactWorkflowExecutor {
             self.probe.observe_denial(denial.kind());
             return Err(failure("foreign provider rejected"));
         }
-        let handle = workspace
+        if mode == "reuse-retained-admission" {
+            let denial = workspace
+                .register_artifact(admission, self.probe.candidate(b"retained-admission"))
+                .expect_err("retained admission from another run must be rejected");
+            self.probe.observe_denial(denial.kind());
+            return Err(failure("retained artifact admission rejected"));
+        }
+        workspace
             .register_artifact(admission, self.probe.candidate(b"canonical-candidates"))
-            .map_err(artifact_failure)?;
+            .map_err(artifact_failure)
+    }
+
+    fn finish_producer(
+        &self,
+        mode: String,
+        handle: domain::WorthQueryMoveOnlyArtifactHandle,
+        context: &domain::WorthQueryWorkflowStageExecutionContext<'_>,
+        workspace: &mut domain::WorthQueryWorkflowStageWorkspace<'_>,
+    ) -> Result<
+        domain::WorthQueryWorkflowStageMaterial,
+        domain::WorthQueryWorkflowStageExecutorFailure,
+    > {
+        if mode == "panic-during-replacement" {
+            let _ = workspace.replace_artifact(
+                handle,
+                production_admission(context)?,
+                self.probe.panic_during_projection(),
+            );
+            unreachable!("replacement projection panic must unwind replacement");
+        }
         if mode == "cancel" {
             let disposed = handle.cancel();
             if disposed.disposition() == domain::WorthQueryArtifactDisposition::Cancelled
@@ -56,26 +120,47 @@ impl ArtifactWorkflowExecutor {
         if mode == "fail-after-production" {
             return Err(failure("declared failure after artifact production"));
         }
-        let handle = if mode == "replace" {
-            let replacement = workspace
-                .replace_artifact(
-                    handle,
-                    production_admission(context)?,
-                    self.probe.candidate(b"canonical-candidates"),
-                )
-                .map_err(|stop| artifact_failure(stop.into_parts().0))?;
-            if replacement.prior().disposition() == domain::WorthQueryArtifactDisposition::Replaced
-                && replacement.prior().provider_disposed()
-            {
-                self.probe.observe_replacement();
-            }
-            replacement.into_replacement()
-        } else {
-            handle
-        };
+        if mode == "retain-observer-lease" {
+            let lease = handle
+                .retain("foreign-runtime-observer")
+                .map_err(artifact_failure)?;
+            self.probe.escape_lease(lease);
+        }
+        if consumer_sabotage_mode(&mode) {
+            self.probe.arm_consumer(mode.clone());
+        }
+        let handle = self.replace_if_requested(&mode, handle, context, workspace)?;
         Ok(domain::WorthQueryWorkflowStageMaterial::new(
             domain::WorthQueryWorkflowValue::installed_artifact(handle),
         ))
+    }
+
+    fn replace_if_requested(
+        &self,
+        mode: &str,
+        handle: domain::WorthQueryMoveOnlyArtifactHandle,
+        context: &domain::WorthQueryWorkflowStageExecutionContext<'_>,
+        workspace: &mut domain::WorthQueryWorkflowStageWorkspace<'_>,
+    ) -> Result<
+        domain::WorthQueryMoveOnlyArtifactHandle,
+        domain::WorthQueryWorkflowStageExecutorFailure,
+    > {
+        if mode != "replace" {
+            return Ok(handle);
+        }
+        let replacement = workspace
+            .replace_artifact(
+                handle,
+                production_admission(context)?,
+                self.probe.candidate(b"canonical-candidates"),
+            )
+            .map_err(|stop| artifact_failure(stop.into_parts().0))?;
+        if replacement.prior().disposition() == domain::WorthQueryArtifactDisposition::Replaced
+            && replacement.prior().provider_disposed()
+        {
+            self.probe.observe_replacement();
+        }
+        Ok(replacement.into_replacement())
     }
 
     fn execute_consumer(
@@ -89,15 +174,34 @@ impl ArtifactWorkflowExecutor {
         let transferred = input
             .into_transferred_artifact()
             .map_err(|_| failure("consumer expected a transferred artifact"))?;
+        self.probe.observe_lifecycle(transferred.owner_snapshot());
         let view = transferred
             .borrow(format!("{}-projection", context.stage().identity()))
             .map_err(artifact_failure)?;
+        self.probe.observe_lifecycle(transferred.owner_snapshot());
         if view.semantic_projection().bytes() != b"canonical-candidates" {
             return Err(failure("consumer observed a non-canonical projection"));
         }
         self.probe.observe_borrow();
         drop(view);
-        drop(transferred);
+        self.probe.observe_lifecycle(transferred.owner_snapshot());
+        match self.probe.take_consumer_mode().as_deref() {
+            Some("fail-after-transfer") => {
+                return Err(failure("declared failure after artifact transfer"));
+            }
+            Some("fail-after-lease-transfer") => {
+                return Err(failure("declared failure after artifact lease transfer"));
+            }
+            Some("panic-after-transfer") => {
+                panic!("declared artifact transfer panic");
+            }
+            Some("escape-after-transfer") => {
+                self.probe.escape_handle(transferred);
+                return Err(failure("transferred artifact escaped the stage executor"));
+            }
+            Some(mode) => return Err(failure(format!("unknown artifact consumer mode: {mode}"))),
+            None => {}
+        }
         Ok(
             domain::WorthQueryWorkflowStageMaterial::new(domain::WorthQueryWorkflowValue::Text(
                 context.stage().identity().to_owned(),
@@ -173,5 +277,15 @@ fn failure(detail: impl Into<String>) -> domain::WorthQueryWorkflowStageExecutor
     domain::WorthQueryWorkflowStageExecutorFailure::new(
         domain::WorthQueryOperationFailureClass::Dependency,
         detail,
+    )
+}
+
+fn consumer_sabotage_mode(mode: &str) -> bool {
+    matches!(
+        mode,
+        "fail-after-transfer"
+            | "panic-after-transfer"
+            | "escape-after-transfer"
+            | "fail-after-lease-transfer"
     )
 }

@@ -88,6 +88,8 @@ mod workflow_stage_admission;
 mod workflow_stage_denial;
 #[path = "workflow_execution/progression/stage_evidence_validation.rs"]
 mod workflow_stage_evidence_validation;
+#[path = "workflow_execution/contract/stage_execution_authority.rs"]
+mod workflow_stage_execution_authority;
 #[path = "workflow_execution/contract/stage_execution_context.rs"]
 mod workflow_stage_execution_context;
 #[path = "workflow_execution/evidence/stage_receipt.rs"]
@@ -101,7 +103,8 @@ mod workflow_trace;
 
 pub use artifact_owner::*;
 pub(crate) use artifact_owner::{
-    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactRegistry,
+    WorthQueryArtifactProductionAuthority, WorthQueryArtifactProductionAuthorityParts,
+    WorthQueryWorkflowArtifactRegistry,
 };
 pub use consumption_progression::*;
 pub use operation_input::*;
@@ -185,7 +188,11 @@ pub use workflow_retry::*;
 pub use workflow_run::*;
 pub use workflow_semantic_trace::*;
 pub use workflow_semantic_value::*;
+pub(crate) use workflow_stage_admission::WorthQueryWorkflowStageRuntimeAdmission;
 pub use workflow_stage_denial::*;
+pub(crate) use workflow_stage_execution_authority::{
+    WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionScope,
+};
 pub use workflow_stage_execution_context::*;
 pub use workflow_stage_workspace::*;
 pub use workflow_start_evidence::*;

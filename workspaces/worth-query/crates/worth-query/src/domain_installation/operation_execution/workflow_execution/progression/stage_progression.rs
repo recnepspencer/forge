@@ -7,7 +7,9 @@ use super::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowAdvanceDenial,
     WorthQueryWorkflowAdvanceDenialKind, WorthQueryWorkflowRun,
     WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionContext,
-    WorthQueryWorkflowStageMaterialParts, WorthQueryWorkflowStageReceipt, WorthQueryWorkflowValue,
+    WorthQueryWorkflowStageExecutionScope, WorthQueryWorkflowStageMaterialParts,
+    WorthQueryWorkflowStageReceipt, WorthQueryWorkflowStageRuntimeAdmission,
+    WorthQueryWorkflowValue,
 };
 use worth_proof::TransitionOutcome;
 
@@ -43,7 +45,26 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         input: WorthQueryWorkflowValue,
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
-        match self.advance_once(stage_identity, input, workspace) {
+        let runtime_admission = match self.admit_stage_runtime_authority(workspace) {
+            Ok(admission) => admission,
+            Err(denial) => return self.outcome_from_denial(denial),
+        };
+        self.advance_with_runtime_admission(stage_identity, input, workspace, runtime_admission)
+    }
+
+    pub(super) fn advance_with_runtime_admission(
+        mut self,
+        stage_identity: &str,
+        input: WorthQueryWorkflowValue,
+        workspace: &mut WorthQueryWorkspace,
+        runtime_admission: WorthQueryWorkflowStageRuntimeAdmission,
+    ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
+        match self.advance_once_with_runtime_admission(
+            stage_identity,
+            input,
+            workspace,
+            runtime_admission,
+        ) {
             Ok(WorthQueryWorkflowAdvanceStep::Advanced) => TransitionOutcome::Success(self),
             Ok(WorthQueryWorkflowAdvanceStep::Deferred(conditional)) => {
                 TransitionOutcome::Deferred(
@@ -61,12 +82,16 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         mut self,
         denial: WorthQueryWorkflowAdvanceDenial,
     ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
-        let stale = matches!(
-            denial.kind(),
+        let stale = match denial.kind() {
             WorthQueryWorkflowAdvanceDenialKind::RuntimeAuthority(
-                crate::domain_installation::WorthQueryDomainHandleDenialKind::StaleInstallationGeneration
-            )
-        );
+                crate::domain_installation::WorthQueryDomainHandleDenialKind::StaleInstallationGeneration,
+            ) => true,
+            WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(artifact) => {
+                artifact.kind()
+                    == crate::domain_installation::WorthQueryArtifactDenialKind::StaleInstallationGeneration
+            }
+            _ => false,
+        };
         let rebind = matches!(
             denial.kind(),
             WorthQueryWorkflowAdvanceDenialKind::RuntimeAuthority(
@@ -108,8 +133,24 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         input: WorthQueryWorkflowValue,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
+        let runtime_admission = self.admit_stage_runtime_authority(workspace)?;
+        self.advance_once_with_runtime_admission(
+            stage_identity,
+            input,
+            workspace,
+            runtime_admission,
+        )
+    }
+
+    fn advance_once_with_runtime_admission(
+        &mut self,
+        stage_identity: &str,
+        input: WorthQueryWorkflowValue,
+        workspace: &mut WorthQueryWorkspace,
+        runtime_admission: WorthQueryWorkflowStageRuntimeAdmission,
+    ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
         let counters_before = self.counters;
-        let stage = self.admit_stage(stage_identity, &input, workspace)?;
+        let stage = self.admit_stage(stage_identity, &input, runtime_admission)?;
         let semantic_input = input.semantic_value();
         let graph_snapshot = workspace.snapshot_identity();
         let conditional =
@@ -246,11 +287,13 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         effect_workflow_binding: crate::workflow::WorkflowContextBinding,
     ) -> WorthQueryWorkflowStageExecutionContext<'a> {
         WorthQueryWorkflowStageExecutionContext::new(
-            self.bound.definition().canonical_identity(),
-            self.bound.binding_identity(),
-            &self.identity,
-            stage,
-            predecessor_receipts,
+            WorthQueryWorkflowStageExecutionScope {
+                operation_identity: self.bound.definition().canonical_identity(),
+                binding_identity: self.bound.binding_identity(),
+                run_identity: &self.identity,
+                stage,
+                predecessor_receipts,
+            },
             WorthQueryWorkflowStageExecutionAuthority {
                 effect_workflow_binding,
                 basis: self.bound.basis().normalized().family(),
