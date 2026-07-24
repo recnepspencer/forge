@@ -69,6 +69,7 @@ pub(crate) fn with_borrowed_field<T>(
             field_slice_contacts: 1,
             rows_exposed: values.len(),
             values_exposed: values.len(),
+            source_bytes: values.physical_bytes(),
             ..WorthQueryArtifactNativeAccessCounters::default()
         };
         Ok((

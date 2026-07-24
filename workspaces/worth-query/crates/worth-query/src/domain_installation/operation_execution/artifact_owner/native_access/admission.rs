@@ -192,16 +192,8 @@ impl WorthQueryArtifactNativeAccessAdmission<'_> {
         self.native_contract
     }
 
-    pub(crate) fn session(&self) -> &WorthQueryArtifactProviderAccessSession {
-        &self.session
-    }
-
     pub(crate) fn requested_fields(&self) -> &[AspectKey] {
         &self.requested_fields
-    }
-
-    pub(crate) const fn counters(&self) -> WorthQueryArtifactNativeAccessCounters {
-        self.counters
     }
 
     pub(crate) fn counters_mut(&mut self) -> &mut WorthQueryArtifactNativeAccessCounters {

@@ -50,7 +50,7 @@ impl WorthQueryArtifactProjectionSink {
         if self.pending_row.len() != self.fields.len() {
             return Err(WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
         }
-        self.values.extend(self.pending_row.drain(..));
+        self.values.append(&mut self.pending_row);
         Ok(())
     }
 
@@ -88,7 +88,7 @@ impl WorthQueryArtifactProjectionSink {
     fn satisfies_alignment(&self, required: WorthQueryArtifactNativeAlignment) -> bool {
         let bytes = required.bytes();
         bytes <= std::mem::align_of::<AspectValue>()
-            && (self.values.as_ptr() as usize) % bytes == 0
-            && (self.pending_row.as_ptr() as usize) % bytes == 0
+            && (self.values.as_ptr() as usize).is_multiple_of(bytes)
+            && (self.pending_row.as_ptr() as usize).is_multiple_of(bytes)
     }
 }

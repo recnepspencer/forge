@@ -5,6 +5,9 @@ use std::sync::{
 
 use worth_query::facade::domain;
 
+use super::native_observation::ArtifactNativeObservation;
+use super::native_provider::{CandidateNativeRows, NativeProviderMode};
+
 #[derive(Clone, Default)]
 pub struct ArtifactProbe {
     inner: Arc<ArtifactProbeInner>,
@@ -23,6 +26,7 @@ struct ArtifactProbeInner {
     native_field_slices: AtomicUsize,
     native_projections: AtomicUsize,
     native_scalars: AtomicUsize,
+    native_observations: Mutex<Vec<ArtifactNativeObservation>>,
     denials: Mutex<Vec<domain::WorthQueryArtifactDenialKind>>,
     lifecycle_snapshots: Mutex<Vec<domain::WorthQueryArtifactOwnerSnapshot>>,
     consumer_mode: Mutex<Option<String>>,
@@ -76,6 +80,16 @@ impl ArtifactProbe {
         self.inner.native_scalars.load(Ordering::SeqCst)
     }
 
+    pub fn take_native_observations(&self) -> Vec<ArtifactNativeObservation> {
+        std::mem::take(
+            &mut *self
+                .inner
+                .native_observations
+                .lock()
+                .expect("native artifact observation probe lock remains available"),
+        )
+    }
+
     pub fn denials(&self) -> Vec<domain::WorthQueryArtifactDenialKind> {
         self.inner
             .denials
@@ -109,11 +123,27 @@ impl ArtifactProbe {
     }
 
     pub(super) fn candidate(&self, projection: &[u8]) -> CandidateArtifactResource {
+        self.candidate_with_mode(projection, NativeProviderMode::Standard)
+    }
+
+    pub(super) fn native_candidate(
+        &self,
+        projection: &[u8],
+        scenario: &str,
+    ) -> CandidateArtifactResource {
+        self.candidate_with_mode(projection, NativeProviderMode::for_scenario(scenario))
+    }
+
+    fn candidate_with_mode(
+        &self,
+        projection: &[u8],
+        mode: NativeProviderMode,
+    ) -> CandidateArtifactResource {
         self.inner.allocations.fetch_add(1, Ordering::SeqCst);
         CandidateArtifactResource {
             probe: self.clone(),
-            projection: projection.to_vec(),
-            retained_bytes: projection.len() * 16,
+            projection: projection.to_vec().into_boxed_slice(),
+            native: CandidateNativeRows::new(self.clone(), mode),
         }
     }
 
@@ -166,6 +196,14 @@ impl ArtifactProbe {
 
     pub(super) fn observe_native_scalar(&self) {
         self.inner.native_scalars.fetch_add(1, Ordering::SeqCst);
+    }
+
+    pub(super) fn observe_native_access(&self, observation: ArtifactNativeObservation) {
+        self.inner
+            .native_observations
+            .lock()
+            .expect("native artifact observation probe lock remains available")
+            .push(observation);
     }
 
     pub(super) fn observe_denial(&self, kind: domain::WorthQueryArtifactDenialKind) {
@@ -240,8 +278,8 @@ impl ArtifactProbe {
 
 pub(super) struct CandidateArtifactResource {
     probe: ArtifactProbe,
-    projection: Vec<u8>,
-    retained_bytes: usize,
+    projection: Box<[u8]>,
+    native: CandidateNativeRows,
 }
 
 impl domain::WorthQueryArtifactProviderResource for CandidateArtifactResource {
@@ -252,11 +290,19 @@ impl domain::WorthQueryArtifactProviderResource for CandidateArtifactResource {
             .inner
             .projection_calls
             .fetch_add(1, Ordering::SeqCst);
-        self.projection.clone()
+        self.projection.to_vec()
     }
 
     fn retained_bytes(&self) -> usize {
-        self.retained_bytes
+        self.projection
+            .len()
+            .saturating_add(self.native.retained_bytes())
+    }
+
+    fn native_access_provider(
+        &self,
+    ) -> Option<&dyn domain::WorthQueryArtifactNativeAccessProvider> {
+        Some(&self.native)
     }
 
     fn dispose(self) {

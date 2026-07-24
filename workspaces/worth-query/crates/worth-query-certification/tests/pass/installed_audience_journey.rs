@@ -1,4 +1,9 @@
 use worth_query_host::facade::{
+    domain::{
+        WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
+        WorthQueryArtifactNativeAccessDenial, WorthQueryTransferredArtifactHandle,
+        WorthQueryWorkflowStageWorkspace,
+    },
     installed::{
         self,
         collection::{WorthQueryCollectionCursor, WorthQueryCollectionPatch},
@@ -26,6 +31,20 @@ fn inspect_opaque_collection_artifacts(
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {
     let _ = counters;
+}
+
+fn consume_native_artifact<'a>(
+    workspace: &'a WorthQueryWorkflowStageWorkspace<'a>,
+    artifact: &'a WorthQueryTransferredArtifactHandle,
+    request: WorthQueryArtifactChunkRequest,
+) -> Result<(usize, WorthQueryArtifactNativeAccessCounters), WorthQueryArtifactNativeAccessDenial> {
+    let mut cursor = workspace.artifact_reader(artifact)?.chunks(request)?;
+    let mut rows = 0;
+    while cursor
+        .next(|batch| rows += batch.row_count())?
+        .is_some()
+    {}
+    Ok((rows, cursor.evidence().counters()))
 }
 
 fn main() {}

@@ -197,6 +197,7 @@ impl WorthQueryArtifactScalarFallbackSession<'_> {
         let field = field.clone();
         let value = self.admission.with_provider(|provider, session| {
             let value = provider.scalar(session, row, &field)?;
+            let source_bytes = value.physical_bytes();
             let Some(contract) = layout
                 .fields()
                 .iter()
@@ -207,14 +208,16 @@ impl WorthQueryArtifactScalarFallbackSession<'_> {
             if !value.matches_shape(contract.aspect().shape()) {
                 return Err(super::WorthQueryArtifactProviderAccessDenial::ShapeMismatch);
             }
-            Ok(consume(WorthQueryArtifactNativeValueView::from_provider(
-                value,
-            )))
+            Ok((
+                consume(WorthQueryArtifactNativeValueView::from_provider(value)),
+                source_bytes,
+            ))
         })?;
         self.calls += 1;
         self.admission.counters_mut().scalar_calls += 1;
         self.admission.counters_mut().values_exposed += 1;
-        Ok(value)
+        self.admission.counters_mut().source_bytes += value.1;
+        Ok(value.0)
     }
 
     pub fn evidence(&self) -> super::WorthQueryArtifactNativeAccessEvidence {

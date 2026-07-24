@@ -28,8 +28,4 @@ impl<'a> WorthQueryArtifactNativeValueView<'a> {
             _ => None,
         }
     }
-
-    pub(crate) fn matches_shape(self, shape: &worth_foundational::facade::AspectShape) -> bool {
-        self.value.matches_shape(shape)
-    }
 }

@@ -1,5 +1,6 @@
 use worth_query::facade::domain;
 
+use super::native_consumer::execute_native_consumer;
 use super::provider::ArtifactProbe;
 use crate::suite::installed_operation_fixture::{GeometryDomain, ReadFamily, WorkflowRead};
 
@@ -82,8 +83,13 @@ impl ArtifactWorkflowExecutor {
             self.probe.observe_denial(denial.kind());
             return Err(failure("retained artifact admission rejected"));
         }
+        let resource = if mode.starts_with("native-") {
+            self.probe.native_candidate(b"canonical-candidates", mode)
+        } else {
+            self.probe.candidate(b"canonical-candidates")
+        };
         workspace
-            .register_artifact(admission, self.probe.candidate(b"canonical-candidates"))
+            .register_artifact(admission, resource)
             .map_err(artifact_failure)
     }
 
@@ -167,6 +173,7 @@ impl ArtifactWorkflowExecutor {
         &self,
         input: domain::WorthQueryWorkflowValue,
         context: &domain::WorthQueryWorkflowStageExecutionContext<'_>,
+        workspace: &mut domain::WorthQueryWorkflowStageWorkspace<'_>,
     ) -> Result<
         domain::WorthQueryWorkflowStageMaterial,
         domain::WorthQueryWorkflowStageExecutorFailure,
@@ -175,6 +182,13 @@ impl ArtifactWorkflowExecutor {
             .into_transferred_artifact()
             .map_err(|_| failure("consumer expected a transferred artifact"))?;
         self.probe.observe_lifecycle(transferred.owner_snapshot());
+        let consumer_mode = self.probe.take_consumer_mode();
+        if let Some(mode) = consumer_mode
+            .as_deref()
+            .filter(|mode| mode.starts_with("native-"))
+        {
+            return execute_native_consumer(mode, transferred, workspace, &self.probe);
+        }
         let view = transferred
             .borrow(format!("{}-projection", context.stage().identity()))
             .map_err(artifact_failure)?;
@@ -185,7 +199,7 @@ impl ArtifactWorkflowExecutor {
         self.probe.observe_borrow();
         drop(view);
         self.probe.observe_lifecycle(transferred.owner_snapshot());
-        match self.probe.take_consumer_mode().as_deref() {
+        match consumer_mode.as_deref() {
             Some("fail-after-transfer") => {
                 return Err(failure("declared failure after artifact transfer"));
             }
@@ -234,7 +248,9 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowRead,
     > {
         match context.stage().identity() {
             "produce" => self.execute_producer(input, context, workspace),
-            "consume" | "observe-a" | "observe-b" => self.execute_consumer(input, context),
+            "consume" | "observe-a" | "observe-b" => {
+                self.execute_consumer(input, context, workspace)
+            }
             _ => Err(failure("unknown artifact workflow stage")),
         }
     }
@@ -281,11 +297,12 @@ fn failure(detail: impl Into<String>) -> domain::WorthQueryWorkflowStageExecutor
 }
 
 fn consumer_sabotage_mode(mode: &str) -> bool {
-    matches!(
-        mode,
-        "fail-after-transfer"
-            | "panic-after-transfer"
-            | "escape-after-transfer"
-            | "fail-after-lease-transfer"
-    )
+    mode.starts_with("native-")
+        || matches!(
+            mode,
+            "fail-after-transfer"
+                | "panic-after-transfer"
+                | "escape-after-transfer"
+                | "fail-after-lease-transfer"
+        )
 }

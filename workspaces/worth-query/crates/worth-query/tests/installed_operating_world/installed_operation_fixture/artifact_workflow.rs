@@ -15,12 +15,20 @@ mod contract;
 mod definitions;
 #[path = "artifact_workflow/executor.rs"]
 mod executor;
+#[path = "artifact_workflow/native_consumer.rs"]
+mod native_consumer;
+#[path = "artifact_workflow/native_observation.rs"]
+mod native_observation;
 #[path = "artifact_workflow/native_provider.rs"]
 mod native_provider;
 #[path = "artifact_workflow/provider.rs"]
 mod provider;
 
 pub use definitions::ArtifactWorkflowKind;
+pub use native_observation::{
+    ArtifactNativeDenial, ArtifactNativeLane, ArtifactNativeObservation, ArtifactNativeSuccess,
+    ArtifactNativeValues,
+};
 pub use provider::ArtifactProbe;
 
 use contract::{artifact_support, candidate_contract};

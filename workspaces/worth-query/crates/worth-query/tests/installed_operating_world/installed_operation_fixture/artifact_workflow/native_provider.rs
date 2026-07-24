@@ -2,12 +2,11 @@ use worth_foundational::facade::{AspectKey, AspectValue, CanonicalF64};
 use worth_query::facade::domain;
 
 use super::contract::{
-    candidate_content, candidate_id, candidate_layout, candidate_score, candidate_target,
-    candidate_token, misaligned_candidate_layout,
+    candidate_id, candidate_layout, candidate_score, misaligned_candidate_layout,
 };
 use super::provider::ArtifactProbe;
 
-const CANDIDATE_ROWS: usize = 32;
+pub(super) const CANDIDATE_ROWS: usize = 32;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum NativeProviderMode {
@@ -35,30 +34,35 @@ impl NativeProviderMode {
 pub(super) struct CandidateNativeRows {
     probe: ArtifactProbe,
     mode: NativeProviderMode,
-    ids: Vec<u64>,
-    scores: Vec<CanonicalF64>,
-    tokens: Vec<u64>,
-    targets: Vec<u64>,
-    contents: Vec<u64>,
+    ids: Box<[u64]>,
+    scores: Box<[CanonicalF64]>,
+    tokens: Box<[u64]>,
+    targets: Box<[u64]>,
+    contents: Box<[u64]>,
 }
 
 impl CandidateNativeRows {
     pub(super) fn new(probe: ArtifactProbe, mode: NativeProviderMode) -> Self {
         let ids = (0..CANDIDATE_ROWS)
             .map(|row| 1_000 + row as u64)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
         let scores = (0..CANDIDATE_ROWS)
             .map(|row| CanonicalF64::from_f64(0.25 + row as f64 * 0.5))
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
         let tokens = (0..CANDIDATE_ROWS)
             .map(|row| 0xA500 + row as u64)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
         let targets = (0..CANDIDATE_ROWS)
             .map(|row| 0xB600 + row as u64 * 3)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
         let contents = (0..CANDIDATE_ROWS)
             .map(|row| 0xC700 + row as u64 * 5)
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
         Self {
             probe,
             mode,
@@ -68,6 +72,14 @@ impl CandidateNativeRows {
             targets,
             contents,
         }
+    }
+
+    pub(super) fn retained_bytes(&self) -> usize {
+        std::mem::size_of_val(self.ids.as_ref())
+            + std::mem::size_of_val(self.scores.as_ref())
+            + std::mem::size_of_val(self.tokens.as_ref())
+            + std::mem::size_of_val(self.targets.as_ref())
+            + std::mem::size_of_val(self.contents.as_ref())
     }
 
     fn admit_session(
@@ -99,19 +111,6 @@ impl CandidateNativeRows {
         };
         let width = available.min(max_rows).min(mode_limit);
         Ok(start_row..start_row + width)
-    }
-
-    fn source_bytes(&self, rows: usize, fields: &[AspectKey]) -> usize {
-        fields.iter().fold(0, |bytes, field| {
-            let width = if field == &candidate_id() {
-                std::mem::size_of::<u64>()
-            } else if field == &candidate_score() {
-                std::mem::size_of::<CanonicalF64>()
-            } else {
-                0
-            };
-            bytes.saturating_add(rows.saturating_mul(width))
-        })
     }
 
     fn projection_signature(&self, row: usize) -> u64 {
@@ -171,7 +170,6 @@ impl domain::WorthQueryArtifactNativeAccessProvider for CandidateNativeRows {
         Ok(domain::WorthQueryArtifactProviderBorrowedBatch::new(
             start_row,
             range.len(),
-            self.source_bytes(range.len(), fields),
             columns,
         ))
     }
@@ -252,8 +250,4 @@ impl domain::WorthQueryArtifactNativeAccessProvider for CandidateNativeRows {
         }
         .ok_or(domain::WorthQueryArtifactProviderAccessDenial::BoundsExceeded)
     }
-}
-
-pub(super) fn provider_native_source_fields() -> [AspectKey; 3] {
-    [candidate_token(), candidate_target(), candidate_content()]
 }

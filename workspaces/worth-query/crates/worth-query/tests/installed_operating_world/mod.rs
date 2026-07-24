@@ -1,3 +1,4 @@
+mod artifact_native_access;
 mod artifact_workflow_authority;
 mod artifact_workflow_lifecycle;
 mod artifact_workflow_replay;

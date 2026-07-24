@@ -70,6 +70,36 @@ impl<'a> WorthQueryArtifactProviderFieldSlice<'a> {
         self.len() == 0
     }
 
+    pub(crate) fn physical_bytes(self) -> usize {
+        match self {
+            Self::Null(_) => 0,
+            Self::Bool(values) => std::mem::size_of_val(values),
+            Self::Int8(values) => std::mem::size_of_val(values),
+            Self::Int16(values) => std::mem::size_of_val(values),
+            Self::Int32(values) => std::mem::size_of_val(values),
+            Self::Int64(values) => std::mem::size_of_val(values),
+            Self::UInt8(values) => std::mem::size_of_val(values),
+            Self::UInt16(values) => std::mem::size_of_val(values),
+            Self::UInt32(values) => std::mem::size_of_val(values),
+            Self::UInt64(values) => std::mem::size_of_val(values),
+            Self::Float32(values) => std::mem::size_of_val(values),
+            Self::Float64(values) => std::mem::size_of_val(values),
+            Self::Decimal(values) => std::mem::size_of_val(values),
+            Self::BigInt(values) => std::mem::size_of_val(values),
+            Self::Rational(values) => std::mem::size_of_val(values),
+            Self::String(values) => std::mem::size_of_val(values),
+            Self::Bytes(values) => std::mem::size_of_val(values),
+            Self::Uuid(values) => std::mem::size_of_val(values),
+            Self::Date(values) => std::mem::size_of_val(values),
+            Self::Time(values) => std::mem::size_of_val(values),
+            Self::Timestamp(values) => std::mem::size_of_val(values),
+            Self::TimestampTz(values) => std::mem::size_of_val(values),
+            Self::EntityRef(values) => std::mem::size_of_val(values),
+            Self::ContentRef(values) => std::mem::size_of_val(values),
+            Self::Struct(values) => std::mem::size_of_val(values),
+        }
+    }
+
     pub(crate) fn value(self, row: usize) -> Option<WorthQueryArtifactProviderValueView<'a>> {
         Some(match self {
             Self::Null(len) if row < len => WorthQueryArtifactProviderValueView::Null,

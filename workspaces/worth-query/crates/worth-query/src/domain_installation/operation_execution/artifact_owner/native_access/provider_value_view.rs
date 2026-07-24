@@ -34,6 +34,36 @@ pub enum WorthQueryArtifactProviderValueView<'a> {
 }
 
 impl WorthQueryArtifactProviderValueView<'_> {
+    pub(crate) fn physical_bytes(self) -> usize {
+        match self {
+            Self::Null => 0,
+            Self::Bool(value) => std::mem::size_of_val(value),
+            Self::Int8(value) => std::mem::size_of_val(value),
+            Self::Int16(value) => std::mem::size_of_val(value),
+            Self::Int32(value) => std::mem::size_of_val(value),
+            Self::Int64(value) => std::mem::size_of_val(value),
+            Self::UInt8(value) => std::mem::size_of_val(value),
+            Self::UInt16(value) => std::mem::size_of_val(value),
+            Self::UInt32(value) => std::mem::size_of_val(value),
+            Self::UInt64(value) => std::mem::size_of_val(value),
+            Self::Float32(value) => std::mem::size_of_val(value),
+            Self::Float64(value) => std::mem::size_of_val(value),
+            Self::Decimal(value) => std::mem::size_of_val(value),
+            Self::BigInt(value) => std::mem::size_of_val(value),
+            Self::Rational(value) => std::mem::size_of_val(value),
+            Self::String(value) => std::mem::size_of_val(value),
+            Self::Bytes(value) => std::mem::size_of_val(value),
+            Self::Uuid(value) => std::mem::size_of_val(value),
+            Self::Date(value) => std::mem::size_of_val(value),
+            Self::Time(value) => std::mem::size_of_val(value),
+            Self::Timestamp(value) => std::mem::size_of_val(value),
+            Self::TimestampTz(value) => std::mem::size_of_val(value),
+            Self::EntityRef(value) => std::mem::size_of_val(value),
+            Self::ContentRef(value) => std::mem::size_of_val(value),
+            Self::Struct(value) => std::mem::size_of_val(value),
+        }
+    }
+
     pub(crate) fn matches_shape(self, shape: &AspectShape) -> bool {
         use ScalarAspectType as Scalar;
 

@@ -20,7 +20,6 @@ pub enum WorthQueryArtifactProviderAccessDenial {
 pub struct WorthQueryArtifactProviderBorrowedBatch<'a> {
     start_row: usize,
     row_count: usize,
-    source_bytes: usize,
     columns: Vec<(AspectKey, WorthQueryArtifactProviderFieldSlice<'a>)>,
 }
 
@@ -28,13 +27,11 @@ impl<'a> WorthQueryArtifactProviderBorrowedBatch<'a> {
     pub fn new(
         start_row: usize,
         row_count: usize,
-        source_bytes: usize,
         columns: impl IntoIterator<Item = (AspectKey, WorthQueryArtifactProviderFieldSlice<'a>)>,
     ) -> Self {
         Self {
             start_row,
             row_count,
-            source_bytes,
             columns: columns.into_iter().collect(),
         }
     }
@@ -47,8 +44,11 @@ impl<'a> WorthQueryArtifactProviderBorrowedBatch<'a> {
         self.row_count
     }
 
-    pub(crate) const fn source_bytes(&self) -> usize {
-        self.source_bytes
+    pub(crate) fn source_bytes(&self) -> usize {
+        self.columns
+            .iter()
+            .map(|(_, values)| values.physical_bytes())
+            .sum()
     }
 
     pub(crate) fn into_columns(self) -> Vec<(AspectKey, WorthQueryArtifactProviderFieldSlice<'a>)> {
