@@ -1,3 +1,5 @@
+#[path = "artifact_owner/mod.rs"]
+mod artifact_owner;
 #[path = "graph_execution/provider_execution.rs"]
 mod bound_graph_execution;
 #[path = "workflow_execution/reexecution/certification_replay.rs"]
@@ -24,6 +26,10 @@ mod projection_sharing;
 mod provider;
 #[path = "direct_execution/executor_registry.rs"]
 mod registry;
+#[path = "workflow_execution/contract/artifact_production.rs"]
+mod workflow_artifact_production;
+#[path = "workflow_execution/progression/artifact_progression.rs"]
+mod workflow_artifact_progression;
 #[path = "workflow_execution/progression/conditional_counters.rs"]
 mod workflow_conditional_counters;
 #[path = "workflow_execution/progression/conditional_stage_evaluation.rs"]
@@ -91,6 +97,7 @@ mod workflow_start_evidence;
 #[path = "workflow_execution/evidence/trace.rs"]
 mod workflow_trace;
 
+pub use artifact_owner::*;
 pub use consumption_progression::*;
 pub use operation_input::*;
 pub use operation_output::*;

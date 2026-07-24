@@ -46,6 +46,8 @@ pub(super) fn domain_operation_index(
                     workflow_graph:
                         crate::domain_installation::WorthQueryInstalledWorkflowGraph::compile(
                             authority.definition(),
+                            &artifact.domain_owner,
+                            portable_index,
                         )
                         .map(Arc::new),
                     authority: Arc::new(authority),

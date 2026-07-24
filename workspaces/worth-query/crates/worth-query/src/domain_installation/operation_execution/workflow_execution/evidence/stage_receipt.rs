@@ -19,6 +19,7 @@ use super::{
 pub(super) struct WorthQueryAdmittedWorkflowStageEvidence {
     pub(super) input: super::WorthQueryWorkflowSemanticValue,
     pub(super) output: WorthQueryWorkflowValue,
+    pub(super) output_semantics: super::WorthQueryWorkflowSemanticValue,
     pub(super) result_state: Option<crate::domain_installation::WorthQueryOperationResultState>,
     pub(super) warnings: Vec<WorthQueryWorkflowStageWarning>,
     pub(super) graph_receipts: Vec<WorthQueryBoundGraphExecutionReceipt>,
@@ -57,7 +58,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
                 "receipt.input",
                 workflow_semantic_value_material(&evidence.input),
             ),
-            ("receipt.output", evidence.output.semantic_part()),
+            (
+                "receipt.output",
+                workflow_semantic_value_material(&evidence.output_semantics),
+            ),
             (
                 "receipt.result_state",
                 operation_result_state_material(evidence.result_state).into(),
@@ -139,6 +143,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             predecessor_receipt_identities,
             input: evidence.input,
             output: evidence.output,
+            output_semantics: evidence.output_semantics,
             result_state: evidence.result_state,
             warnings: evidence.warnings,
             graph_receipts: evidence.graph_receipts,

@@ -23,6 +23,20 @@ impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
         self.installed_read_executions
     }
 
+    pub fn register_artifact<R: crate::domain_installation::WorthQueryArtifactProviderResource>(
+        &mut self,
+        admission: crate::domain_installation::WorthQueryArtifactProductionAdmission,
+        resource: R,
+    ) -> Result<
+        crate::domain_installation::WorthQueryMoveOnlyArtifactHandle,
+        crate::domain_installation::WorthQueryArtifactDenial,
+    > {
+        crate::domain_installation::WorthQueryMoveOnlyArtifactHandle::register(
+            admission,
+            crate::domain_installation::WorthQueryPreparedArtifactResource::prepare(resource),
+        )
+    }
+
     pub(crate) fn into_executed_effects(self) -> Vec<WorthQueryWorkflowEffectEvidence> {
         self.executed_effects
     }

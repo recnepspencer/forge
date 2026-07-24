@@ -35,7 +35,11 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 &self,
             ));
         }
-        let mut trace = mint_completed_trace(self);
+        let mut run = self;
+        for receipt in run.receipts.iter_mut().rev() {
+            receipt.retire_artifact_output();
+        }
+        let mut trace = mint_completed_trace(run);
         match crate::domain_installation::dependency_impact::compile_workflow_semantic_aspect_dependencies(&trace) {
             Ok(dependency_closure) => trace.dependency_closure = Some(dependency_closure),
             Err(denial) => {
@@ -140,7 +144,12 @@ fn stage_semantic_part(receipt: &WorthQueryWorkflowStageReceipt) -> String {
             "stage.result_state",
             operation_result_state_material(receipt.result_state).into(),
         ),
-        ("stage.output", receipt.output.semantic_part()),
+        (
+            "stage.output",
+            crate::domain_installation::operation_identity_basis::workflow_semantic_value_material(
+                &receipt.output_semantics,
+            ),
+        ),
         (
             "stage.warnings",
             canonical_indexed_operation_material(

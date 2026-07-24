@@ -342,7 +342,9 @@ fn intent_matches_original_trace(
         original_stage_index
             .get(intent_stage.stage_identity())
             .is_some_and(|original_stage| {
-                intent_stage.input().runtime_value().semantic_value() == *original_stage.input()
+                intent_stage
+                    .input()
+                    .semantically_matches(original_stage.input())
             })
     })
 }

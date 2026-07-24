@@ -120,6 +120,7 @@ pub(crate) fn workflow_semantic_value_material(value: &WorthQueryWorkflowSemanti
                 ),
             ])
         }
+        WorthQueryWorkflowSemanticValue::InstalledArtifact(meaning) => meaning.canonical_part(),
     }
 }
 

@@ -13,6 +13,8 @@ pub enum WorthQueryWorkflowValue {
     EntityIdentity(String),
     CurrentEntityIdentity(crate::memory_workspace::WorthQueryEntityIdentity),
     Projection(Box<crate::ordinary::read::WorthQueryReadCompletion>),
+    InstalledArtifact(crate::domain_installation::WorthQueryMoveOnlyArtifactHandle),
+    TransferredArtifact(crate::domain_installation::WorthQueryTransferredArtifactHandle),
 }
 
 impl WorthQueryWorkflowValue {
@@ -21,10 +23,12 @@ impl WorthQueryWorkflowValue {
         contract: &worth_query_installation::facade::WorthQueryWorkflowValueContract,
     ) -> bool {
         use worth_query_installation::facade::WorthQueryWorkflowValueContract as Contract;
-        if matches!(contract, Contract::InstalledArtifact(_)) {
-            // Phase 1 installs semantic meaning only. Phase 2 introduces the
-            // runtime-affine managed handle that can satisfy this edge.
-            return false;
+        if let Contract::InstalledArtifact(reference) = contract {
+            return match self {
+                Self::InstalledArtifact(handle) => handle.contract_matches(reference),
+                Self::TransferredArtifact(handle) => handle.contract_matches(reference),
+                _ => false,
+            };
         }
         matches!(
             (self, contract),
@@ -39,22 +43,31 @@ impl WorthQueryWorkflowValue {
         )
     }
 
-    pub(crate) fn semantic_part(&self) -> String {
+    pub fn installed_artifact(
+        handle: crate::domain_installation::WorthQueryMoveOnlyArtifactHandle,
+    ) -> Self {
+        Self::InstalledArtifact(handle)
+    }
+
+    pub fn into_transferred_artifact(
+        self,
+    ) -> Result<
+        crate::domain_installation::WorthQueryTransferredArtifactHandle,
+        WorthQueryWorkflowValue,
+    > {
         match self {
-            Self::NotRequired => "not-required".into(),
-            Self::Bool(value) => format!("bool:{value}"),
-            Self::I64(value) => format!("i64:{value}"),
-            Self::U64(value) => format!("u64:{value}"),
-            Self::Text(value) => format!("text:{value}"),
-            Self::EntityIdentity(value) => format!("entity:{value}"),
-            Self::CurrentEntityIdentity(value) => {
-                format!("current-entity:{}", value.evidence_identity().as_str())
-            }
-            Self::Projection(completion) => format!(
-                "projection:{}:{}",
-                completion.result().receipt().canonical_query_digest(),
-                completion.result().receipt().result_digest(),
-            ),
+            Self::TransferredArtifact(handle) => Ok(handle),
+            value => Err(value),
+        }
+    }
+
+    pub(crate) fn into_move_only_artifact(
+        self,
+    ) -> Result<crate::domain_installation::WorthQueryMoveOnlyArtifactHandle, WorthQueryWorkflowValue>
+    {
+        match self {
+            Self::InstalledArtifact(handle) => Ok(handle),
+            value => Err(value),
         }
     }
 }

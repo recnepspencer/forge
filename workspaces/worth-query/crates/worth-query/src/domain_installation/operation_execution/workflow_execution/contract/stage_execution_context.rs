@@ -6,9 +6,10 @@ use super::{
 };
 
 pub struct WorthQueryWorkflowStageExecutionContext<'a> {
-    operation_identity: &'a str,
-    run_identity: &'a str,
-    stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    pub(super) operation_identity: &'a str,
+    pub(super) binding_identity: &'a str,
+    pub(super) run_identity: &'a str,
+    pub(super) stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
     predecessor_receipts: Vec<WorthQueryWorkflowPredecessorReceipt<'a>>,
     effect_workflow_binding: crate::workflow::WorkflowContextBinding,
     basis: crate::basis_lifecycle::BasisFamily,
@@ -17,7 +18,14 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
         &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
     graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
     query_authority: crate::identity_authority::QueryCanonicalAuthority,
-    identity_evolution_basis_identity: String,
+    pub(super) identity_evolution_basis_identity: String,
+    pub(super) domain_authority:
+        std::sync::Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
+    pub(super) output_artifact_contract: Option<
+        std::sync::Arc<
+            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
+        >,
+    >,
 }
 
 pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
@@ -29,6 +37,13 @@ pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
     pub(crate) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
     pub(crate) query_authority: crate::identity_authority::QueryCanonicalAuthority,
     pub(crate) identity_evolution_basis_identity: String,
+    pub(crate) domain_authority:
+        std::sync::Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
+    pub(crate) output_artifact_contract: Option<
+        std::sync::Arc<
+            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
+        >,
+    >,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,6 +57,7 @@ pub enum WorthQueryWorkflowStageLineageDenial {
 impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     pub(crate) fn new(
         operation_identity: &'a str,
+        binding_identity: &'a str,
         run_identity: &'a str,
         stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
         predecessor_receipts: &'a [&'a WorthQueryWorkflowStageReceipt],
@@ -49,6 +65,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     ) -> Self {
         Self {
             operation_identity,
+            binding_identity,
             run_identity,
             stage,
             predecessor_receipts: predecessor_receipts
@@ -62,11 +79,16 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             graph_receipts: authority.graph_receipts,
             query_authority: authority.query_authority,
             identity_evolution_basis_identity: authority.identity_evolution_basis_identity,
+            domain_authority: authority.domain_authority,
+            output_artifact_contract: authority.output_artifact_contract,
         }
     }
 
     pub fn operation_identity(&self) -> &str {
         self.operation_identity
+    }
+    pub fn binding_identity(&self) -> &str {
+        self.binding_identity
     }
     pub fn run_identity(&self) -> &str {
         self.run_identity

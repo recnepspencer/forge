@@ -224,7 +224,7 @@ fn stage_semantics(
         stage_identity: receipt.stage_identity().to_owned(),
         predecessor_stage_identities: receipt.predecessor_stage_identities().to_vec(),
         input: receipt.input().clone(),
-        output: receipt.output().semantic_value(),
+        output: receipt.output_semantics().clone(),
         result_state: receipt.result_state(),
         warnings: receipt.warnings().to_vec(),
         effects: receipt

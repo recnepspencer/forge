@@ -12,6 +12,7 @@ use super::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryStageAttemptPreparationDenial {
     StageRetryNotDeclaredIdempotent,
+    ManagedArtifactRequiresWorkflowReexecution,
 }
 
 pub struct WorthQueryWorkflowStageAttempt<D, O, F, L: BasisOperationLane> {
@@ -56,6 +57,11 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         if !self.executor.idempotent_stage_retry() {
             return Err(WorthQueryStageAttemptPreparationDenial::StageRetryNotDeclaredIdempotent);
         }
+        if input.runtime_value().is_none() {
+            return Err(
+                WorthQueryStageAttemptPreparationDenial::ManagedArtifactRequiresWorkflowReexecution,
+            );
+        }
         Ok(WorthQueryWorkflowStageAttempt::new(
             self,
             stage_identity.into(),
@@ -97,10 +103,13 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane>
         mut self,
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryWorkflowStageAttemptOutcome<D, O, F, L> {
-        match self
-            .run
-            .advance_once(&self.stage_identity, self.input.runtime_value(), workspace)
-        {
+        match self.run.advance_once(
+            &self.stage_identity,
+            self.input
+                .runtime_value()
+                .expect("stage-attempt preparation rejected managed artifact intent"),
+            workspace,
+        ) {
             Ok(WorthQueryWorkflowAdvanceStep::Advanced) => {
                 WorthQueryWorkflowStageAttemptOutcome::Success(self.run)
             }

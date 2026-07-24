@@ -13,6 +13,7 @@ pub enum WorthQueryWorkflowAdvanceDenialKind {
     RequiredCapability(String),
     RequiredDomain(String),
     InputContract,
+    ArtifactCarriage(crate::domain_installation::WorthQueryArtifactDenial),
     GraphProvider(String),
     StageExecutor {
         class: worth_query_installation::facade::WorthQueryOperationFailureClass,

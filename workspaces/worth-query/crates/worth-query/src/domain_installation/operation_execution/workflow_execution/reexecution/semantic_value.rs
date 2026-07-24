@@ -17,6 +17,7 @@ pub enum WorthQueryWorkflowSemanticValue {
         canonical_query_identity: String,
         rows: Vec<crate::memory_workspace::WorthQueryEntity>,
     },
+    InstalledArtifact(crate::domain_installation::WorthQueryArtifactTraceMeaning),
 }
 
 impl WorthQueryWorkflowValue {
@@ -41,6 +42,23 @@ impl WorthQueryWorkflowValue {
                     .to_owned(),
                 rows: completion.result().rows().to_vec(),
             },
+            Self::InstalledArtifact(handle) => {
+                WorthQueryWorkflowSemanticValue::InstalledArtifact(handle.trace_meaning())
+            }
+            Self::TransferredArtifact(handle) => {
+                WorthQueryWorkflowSemanticValue::InstalledArtifact(handle.trace_meaning())
+            }
+        }
+    }
+}
+
+impl WorthQueryWorkflowSemanticValue {
+    pub(crate) fn set_artifact_disposition(
+        &mut self,
+        disposition: crate::domain_installation::WorthQueryArtifactDisposition,
+    ) {
+        if let Self::InstalledArtifact(meaning) = self {
+            meaning.set_disposition(disposition);
         }
     }
 }

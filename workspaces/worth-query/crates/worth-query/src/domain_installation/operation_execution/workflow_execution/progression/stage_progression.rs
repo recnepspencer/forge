@@ -58,7 +58,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     }
 
     pub(super) fn outcome_from_denial(
-        self,
+        mut self,
         denial: WorthQueryWorkflowAdvanceDenial,
     ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
         let stale = matches!(
@@ -80,6 +80,9 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 | WorthQueryWorkflowAdvanceDenialKind::PredecessorAuthorityMissing(_)
                 | WorthQueryWorkflowAdvanceDenialKind::ConditionalExecution(_)
         );
+        for receipt in self.receipts.iter_mut().rev() {
+            receipt.cancel_artifact_output();
+        }
         let completed_effects = self
             .receipts
             .iter()
@@ -244,6 +247,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     ) -> WorthQueryWorkflowStageExecutionContext<'a> {
         WorthQueryWorkflowStageExecutionContext::new(
             self.bound.definition().canonical_identity(),
+            self.bound.binding_identity(),
             &self.identity,
             stage,
             predecessor_receipts,
@@ -265,6 +269,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                     .basis()
                     .capability_digest()
                     .to_owned(),
+                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
+                output_artifact_contract: self
+                    .graph
+                    .artifact_contracts(stage.identity())
+                    .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::output)
+                    .map(std::sync::Arc::clone),
             },
         )
     }

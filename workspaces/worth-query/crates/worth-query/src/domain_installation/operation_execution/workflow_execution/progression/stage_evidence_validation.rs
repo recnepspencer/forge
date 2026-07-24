@@ -45,11 +45,13 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         self.validate_effects(stage, &mut input)?;
         let invariant_outcomes = self.validate_invariants(stage, &input)?;
         self.validate_result_contracts(stage, &input)?;
+        let output_semantics = input.material.output.semantic_value();
         let stage_counters = self.counters.delta_since(input.counters_before);
         self.validate_cost_contract(stage, stage_counters, &input)?;
         Ok(WorthQueryAdmittedWorkflowStageEvidence {
             input: input.semantic_input,
             output: input.material.output,
+            output_semantics,
             result_state: input.material.result_state,
             warnings: input.material.warnings,
             graph_receipts: input.graph_receipts,
@@ -218,6 +220,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 WorthQueryWorkflowAdvanceDenialKind::OutputContract,
             ));
         }
+        if let Err(denial) = self.validate_artifact_output(stage, &input.material.output) {
+            return Err(input.denial(
+                self.counters,
+                WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(denial),
+            ));
+        }
         self.counters.terminal_contract_checks += 1;
         let state = input.material.result_state;
         if stage.is_terminal() != state.is_some()
@@ -229,6 +237,50 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             ));
         }
         Ok(())
+    }
+
+    fn validate_artifact_output(
+        &self,
+        stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+        output: &super::WorthQueryWorkflowValue,
+    ) -> Result<(), crate::domain_installation::WorthQueryArtifactDenial> {
+        let worth_query_installation::facade::WorthQueryWorkflowValueContract::InstalledArtifact(_) =
+            &stage.semantics().output
+        else {
+            return Ok(());
+        };
+        let super::WorthQueryWorkflowValue::InstalledArtifact(handle) = output else {
+            return Err(crate::domain_installation::WorthQueryArtifactDenial::new(
+                crate::domain_installation::WorthQueryArtifactDenialKind::StageMismatch,
+                None,
+                "artifact workflow output must be an owned managed handle",
+            ));
+        };
+        let expected_contract = self
+            .graph
+            .artifact_contracts(stage.identity())
+            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::output)
+            .cloned()
+            .ok_or_else(|| {
+                crate::domain_installation::WorthQueryArtifactDenial::new(
+                    crate::domain_installation::WorthQueryArtifactDenialKind::ArtifactContractNotInstalled,
+                    None,
+                    "workflow stage has no installed artifact output authority",
+                )
+            })?;
+        let admission = crate::domain_installation::WorthQueryArtifactTransferAdmission::mint(
+            super::WorthQueryArtifactTransferAdmissionParts {
+                expected_contract,
+                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
+                operation_identity: self.bound.definition().canonical_identity().to_owned(),
+                binding_identity: self.bound.binding_identity().to_owned(),
+                run_identity: self.identity.clone(),
+                predecessor_stage: stage.identity().to_owned(),
+                consumer_stage: stage.identity().to_owned(),
+                basis_identity: self.bound.basis().capability_digest().to_owned(),
+            },
+        );
+        handle.validate_output(&admission)
     }
 
     fn validate_cost_contract(

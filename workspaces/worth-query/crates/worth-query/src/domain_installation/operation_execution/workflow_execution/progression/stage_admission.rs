@@ -23,9 +23,58 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 self.stage_admission_denial(WorthQueryWorkflowAdvanceDenialKind::InputContract)
             );
         }
+        if let Err(denial) = self.validate_artifact_input(&stage, input) {
+            return Err(self.stage_admission_denial(
+                WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(denial),
+            ));
+        }
         self.validate_stage_capabilities(&stage)?;
         self.validate_stage_domains(&stage)?;
         Ok(stage)
+    }
+
+    fn validate_artifact_input(
+        &self,
+        stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+        input: &WorthQueryWorkflowValue,
+    ) -> Result<(), crate::domain_installation::WorthQueryArtifactDenial> {
+        let worth_query_installation::facade::WorthQueryWorkflowValueContract::InstalledArtifact(_) =
+            &stage.semantics().input
+        else {
+            return Ok(());
+        };
+        let WorthQueryWorkflowValue::TransferredArtifact(handle) = input else {
+            return Err(crate::domain_installation::WorthQueryArtifactDenial::new(
+                crate::domain_installation::WorthQueryArtifactDenialKind::StageMismatch,
+                None,
+                "artifact workflow input must come from an admitted stage transfer",
+            ));
+        };
+        let expected_contract = self
+            .graph
+            .artifact_contracts(stage.identity())
+            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::input)
+            .cloned()
+            .ok_or_else(|| {
+                crate::domain_installation::WorthQueryArtifactDenial::new(
+                    crate::domain_installation::WorthQueryArtifactDenialKind::ArtifactContractNotInstalled,
+                    None,
+                    "workflow stage has no installed artifact input authority",
+                )
+            })?;
+        let admission = crate::domain_installation::WorthQueryArtifactTransferAdmission::mint(
+            super::WorthQueryArtifactTransferAdmissionParts {
+                expected_contract,
+                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
+                operation_identity: self.bound.definition().canonical_identity().to_owned(),
+                binding_identity: self.bound.binding_identity().to_owned(),
+                run_identity: self.identity.clone(),
+                predecessor_stage: stage.identity().to_owned(),
+                consumer_stage: stage.identity().to_owned(),
+                basis_identity: self.bound.basis().capability_digest().to_owned(),
+            },
+        );
+        handle.validate_input(&admission)
     }
 
     fn validate_stage_runtime_authority(

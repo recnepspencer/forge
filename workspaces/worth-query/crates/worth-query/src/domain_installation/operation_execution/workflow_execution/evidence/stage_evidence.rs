@@ -11,11 +11,14 @@ use super::{
 pub struct WorthQueryInstalledWorkflowGraph {
     definition: worth_query_installation::facade::WorthQueryPortableWorkflowDefinition,
     stage_index: BTreeMap<String, usize>,
+    artifact_contracts: BTreeMap<String, super::WorthQueryInstalledWorkflowArtifactContracts>,
 }
 
 impl WorthQueryInstalledWorkflowGraph {
     pub(crate) fn compile(
         operation: &worth_query_installation::facade::WorthQueryPortableDomainOperationDefinition,
+        owner: &str,
+        portable_index: &worth_query_installation::facade::WorthQueryInstalledPackageIndex,
     ) -> Option<Self> {
         match &operation.semantics().workflow {
             worth_query_installation::facade::WorthQueryOperationWorkflowContract::Declared(
@@ -28,9 +31,15 @@ impl WorthQueryInstalledWorkflowGraph {
                     .enumerate()
                     .map(|(index, stage)| (stage.identity().to_string(), index))
                     .collect();
+                let artifact_contracts = super::compile_workflow_artifact_contracts(
+                    owner,
+                    definition.stages(),
+                    portable_index,
+                );
                 Some(Self {
                     definition,
                     stage_index,
+                    artifact_contracts,
                 })
             }
             worth_query_installation::facade::WorthQueryOperationWorkflowContract::NotRequired => {
@@ -54,6 +63,13 @@ impl WorthQueryInstalledWorkflowGraph {
         self.stage_index
             .get(identity)
             .map(|index| &self.definition.stages()[*index])
+    }
+
+    pub(super) fn artifact_contracts(
+        &self,
+        stage_identity: &str,
+    ) -> Option<&super::WorthQueryInstalledWorkflowArtifactContracts> {
+        self.artifact_contracts.get(stage_identity)
     }
 }
 
@@ -208,6 +224,7 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(super) predecessor_receipt_identities: Vec<String>,
     pub(super) input: WorthQueryWorkflowSemanticValue,
     pub(super) output: WorthQueryWorkflowValue,
+    pub(super) output_semantics: WorthQueryWorkflowSemanticValue,
     pub(super) result_state: Option<WorthQueryOperationResultState>,
     pub(super) warnings: Vec<WorthQueryWorkflowStageWarning>,
     pub(super) graph_receipts: Vec<WorthQueryBoundGraphExecutionReceipt>,
@@ -263,6 +280,50 @@ impl WorthQueryWorkflowStageReceipt {
     }
     pub(crate) fn output(&self) -> &WorthQueryWorkflowValue {
         &self.output
+    }
+    pub(super) fn take_output(&mut self) -> WorthQueryWorkflowValue {
+        std::mem::replace(&mut self.output, WorthQueryWorkflowValue::NotRequired)
+    }
+    pub(super) fn restore_output(&mut self, output: WorthQueryWorkflowValue) {
+        debug_assert!(matches!(self.output, WorthQueryWorkflowValue::NotRequired));
+        self.output = output;
+    }
+    pub(super) fn set_artifact_disposition(
+        &mut self,
+        disposition: crate::domain_installation::WorthQueryArtifactDisposition,
+    ) {
+        self.output_semantics.set_artifact_disposition(disposition);
+    }
+    pub(super) fn cancel_artifact_output(&mut self) {
+        let output = self.take_output();
+        match output {
+            WorthQueryWorkflowValue::InstalledArtifact(handle) => {
+                let disposed = handle.cancel();
+                self.set_artifact_disposition(if disposed.provider_disposed() {
+                    crate::domain_installation::WorthQueryArtifactDisposition::Disposed
+                } else {
+                    crate::domain_installation::WorthQueryArtifactDisposition::Cancelled
+                });
+            }
+            output => self.restore_output(output),
+        }
+    }
+    pub(super) fn retire_artifact_output(&mut self) {
+        let output = self.take_output();
+        match output {
+            WorthQueryWorkflowValue::InstalledArtifact(handle) => {
+                let disposed = handle.retire_for_trace();
+                self.set_artifact_disposition(if disposed.provider_disposed() {
+                    crate::domain_installation::WorthQueryArtifactDisposition::Disposed
+                } else {
+                    crate::domain_installation::WorthQueryArtifactDisposition::Released
+                });
+            }
+            output => self.restore_output(output),
+        }
+    }
+    pub(crate) fn output_semantics(&self) -> &WorthQueryWorkflowSemanticValue {
+        &self.output_semantics
     }
     pub fn result_state(&self) -> Option<WorthQueryOperationResultState> {
         self.result_state

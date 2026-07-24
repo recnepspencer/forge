@@ -96,11 +96,28 @@ where
             );
         }
         for stage in intent.stages() {
-            run = match run.advance(
-                stage.stage_identity(),
-                stage.input().runtime_value(),
-                workspace,
-            ) {
+            let advanced = match stage.input() {
+                super::WorthQueryWorkflowIntentValue::PredecessorArtifact { predecessor_stage } => {
+                    run.advance_with_artifact(stage.stage_identity(), predecessor_stage, workspace)
+                }
+                super::WorthQueryWorkflowIntentValue::PredecessorArtifactLease {
+                    predecessor_stage,
+                    lease_role,
+                } => run.advance_with_artifact_lease(
+                    stage.stage_identity(),
+                    predecessor_stage,
+                    lease_role.clone(),
+                    workspace,
+                ),
+                input => run.advance(
+                    stage.stage_identity(),
+                    input
+                        .runtime_value()
+                        .expect("non-artifact intent has a primitive runtime value"),
+                    workspace,
+                ),
+            };
+            run = match advanced {
                 TransitionOutcome::Success(run) => run,
                 TransitionOutcome::Denied(stop) => {
                     return TransitionOutcome::Denied(WorthQueryWorkflowReexecutionStop::Advance(
