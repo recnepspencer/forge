@@ -290,6 +290,7 @@ internal_packages = [
   "worth-query-declaration",
   "worth-query-installation",
   "worth-query-admission",
+  "worth-query-execution",
 ]
 
 [[rule_contracts.query_audience.facade_surfaces]]

@@ -160,8 +160,11 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 run_identity: self.identity.clone(),
                 basis_identity: self.bound.basis().capability_digest().into(),
                 frontier,
-                execution_resources: self.operation_resource_evidence.clone(),
-                resource_envelope: self.resources.operation().shared_envelope(),
+                execution_resources: self.resource_attempt.evidence().clone(),
+                resource_envelope: self
+                    .resource_attempt
+                    .operation_resources()
+                    .shared_envelope(),
             },
         );
         let provider = self.parallel_admission_provider.as_ref().ok_or_else(|| {

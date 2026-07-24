@@ -1,0 +1,18 @@
+[package]
+name = "worth-query-execution"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Installed Query execution authority over admitted plans."
+publish = false
+
+[dependencies]
+sha2 = "0.10"
+worth-query-admission = { path = "../worth-query-admission" }
+
+[dev-dependencies]
+worth-query-declaration = { path = "../worth-query-declaration" }
+worth-query-installation = { path = "../worth-query-installation" }
+
+[lints]
+workspace = true

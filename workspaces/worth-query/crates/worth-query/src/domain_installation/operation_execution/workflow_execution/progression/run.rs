@@ -8,8 +8,8 @@ use super::{
     WorthQueryAdmittedWorkflowOperation, WorthQueryAdmittedWorkflowResourcePlan,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
     WorthQueryInstalledWorkflowGraph, WorthQueryInstalledWorkflowParallelAdmissionProvider,
-    WorthQueryInstalledWorkflowStageExecutor, WorthQueryWorkflowRunCounters,
-    WorthQueryWorkflowStageReceipt, WorthQueryWorkflowStartDenial,
+    WorthQueryInstalledWorkflowStageExecutor, WorthQueryWorkflowExecutionResourceAttempt,
+    WorthQueryWorkflowRunCounters, WorthQueryWorkflowStageReceipt, WorthQueryWorkflowStartDenial,
     WorthQueryWorkflowStartDenialKind,
 };
 use super::{WorthQueryExecutableDomainOperation, WorthQueryWorkflowOperation};
@@ -72,9 +72,7 @@ pub struct WorthQueryWorkflowRun<D, O, F, L: BasisOperationLane> {
         Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(super) artifact_registry: crate::domain_installation::WorthQueryWorkflowArtifactRegistry,
     pub(super) domain_evidence_ledger: super::WorthQueryDomainEvidenceAdmissionLedger,
-    pub(super) resources: WorthQueryAdmittedWorkflowResourcePlan,
-    pub(super) provider_session: WorthQueryExecutionProviderSession,
-    pub(super) operation_resource_evidence: WorthQueryExecutionResourceAttemptEvidence,
+    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
 }
 
 struct DeclaredWorkflowRuntime {
@@ -101,10 +99,7 @@ where
         attempt: u64,
     ) -> WorthQueryWorkflowStartOutcome<D, O, F, L> {
         let mut counters = WorthQueryWorkflowRunCounters::default();
-        let operation_resource_evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
-            self.resources.operation(),
-            &self.provider_session,
-        );
+        let operation_resource_evidence = self.resource_attempt.evidence().clone();
         let declared_runtime = match self.declared_workflow_runtime() {
             Ok(runtime) => runtime,
             Err(kind) => {
@@ -123,7 +118,7 @@ where
                     snapshot: &snapshot,
                     run_identity: &identity,
                     attempt,
-                    resources: self.resources.operation(),
+                    resources: self.resource_attempt.operation_resources(),
                     resource_evidence: &operation_resource_evidence,
                     run_counters: &mut counters,
                 },
@@ -179,9 +174,7 @@ where
                 identity,
             ),
             domain_evidence_ledger: super::WorthQueryDomainEvidenceAdmissionLedger::default(),
-            resources: self.resources,
-            provider_session: self.provider_session,
-            operation_resource_evidence,
+            resource_attempt: self.resource_attempt,
         })
     }
 
@@ -218,8 +211,8 @@ where
             format!("operation:{}", self.bound.definition().canonical_identity()),
             format!("snapshot:{}", snapshot.evidence_identity().as_str()),
             format!("attempt:{attempt}"),
-            format!("resources:{}", self.resources.identity()),
-            format!("provider-session:{}", self.provider_session.identity()),
+            format!("resources:{}", self.resources().identity()),
+            format!("provider-session:{}", self.provider_session().identity()),
         ])
     }
 }
@@ -243,13 +236,13 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
         &self.operation_conditional
     }
     pub fn resources(&self) -> &WorthQueryAdmittedWorkflowResourcePlan {
-        &self.resources
+        self.resource_attempt.resources()
     }
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
-        &self.provider_session
+        self.resource_attempt.provider_session()
     }
     pub fn operation_resource_evidence(&self) -> &WorthQueryExecutionResourceAttemptEvidence {
-        &self.operation_resource_evidence
+        self.resource_attempt.evidence()
     }
 }
 

@@ -13,7 +13,7 @@ use super::{
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenial,
     WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
-    WorthQueryExecutionResourceSupportSnapshot,
+    WorthQueryExecutionResourceSupportSnapshot, WorthQueryWorkflowExecutionResourceAttempt,
 };
 
 pub type WorthQueryWorkflowResourceAdmissionOutcome<D, O, F, L> = TransitionOutcome<
@@ -27,18 +27,17 @@ pub type WorthQueryWorkflowResourceAdmissionOutcome<D, O, F, L> = TransitionOutc
 
 pub struct WorthQueryAdmittedWorkflowOperation<D, O, F, L: BasisOperationLane> {
     pub(crate) bound: crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
-    pub(crate) resources: WorthQueryAdmittedWorkflowResourcePlan,
-    pub(crate) provider_session: WorthQueryExecutionProviderSession,
+    pub(crate) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     pub(crate) phase_proof: WorthQueryOperationPhaseProof<WorthQueryResourceAdmittedOperationPhase>,
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryAdmittedWorkflowOperation<D, O, F, L> {
     pub fn resources(&self) -> &WorthQueryAdmittedWorkflowResourcePlan {
-        &self.resources
+        self.resource_attempt.resources()
     }
 
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
-        &self.provider_session
+        self.resource_attempt.provider_session()
     }
 }
 
@@ -88,7 +87,7 @@ where
             self.workflow_parallel_admission_provider()
                 .map(|provider| provider.resource_support().clone()),
         );
-        let mut operation = match admit_execution_resource_plan(
+        let operation = match admit_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
             &request,
@@ -107,20 +106,19 @@ where
             Ok(stages) => stages,
             Err(denial) => return admission_denial_outcome(denial),
         };
-        operation.record_provider_session_mint();
         let resources = WorthQueryAdmittedWorkflowResourcePlan::new(operation, stages);
-        let provider_session = WorthQueryExecutionProviderSession::mint(resources.identity());
+        let resource_attempt = WorthQueryWorkflowExecutionResourceAttempt::start(resources);
         let mut basis = operation_phase_basis(self.authority_proof()).clone();
-        basis.resource_admission_identity = Some(resources.identity().to_owned());
+        basis.resource_admission_identity =
+            Some(resource_attempt.resources().identity().to_owned());
         let phase_proof = mint_operation_phase_proof(
-            resources.identity().to_owned(),
+            resource_attempt.resources().identity().to_owned(),
             Some(self.authority_proof().payload().identity()),
             basis,
         );
         TransitionOutcome::Success(WorthQueryAdmittedWorkflowOperation {
             bound: self,
-            resources,
-            provider_session,
+            resource_attempt,
             phase_proof,
         })
     }

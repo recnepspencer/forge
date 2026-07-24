@@ -8,8 +8,8 @@ use worth_query_declaration::facade::domain_computation::WorthQueryExecutionReso
 
 use super::{
     admit_execution_resource_plan, WorthQueryAdmittedExecutionResourcePlan,
-    WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
-    WorthQueryExecutionResourceAdmissionDenial,
+    WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionProviderSession,
+    WorthQueryExecutionResourceAdmissionCounters, WorthQueryExecutionResourceAdmissionDenial,
     WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
     WorthQueryExecutionResourceSupportSnapshot,
 };
@@ -29,8 +29,7 @@ where
 {
     pub(crate) bound: crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
     pub(crate) input: O::Input,
-    pub(crate) resources: WorthQueryAdmittedExecutionResourcePlan,
-    pub(crate) provider_session: WorthQueryExecutionProviderSession,
+    pub(crate) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
     pub(crate) phase_proof: WorthQueryOperationPhaseProof<WorthQueryResourceAdmittedOperationPhase>,
 }
 
@@ -39,11 +38,11 @@ where
     O: crate::domain_installation::WorthQueryExecutableDomainOperation<D, F>,
 {
     pub fn resources(&self) -> &WorthQueryAdmittedExecutionResourcePlan {
-        &self.resources
+        self.resource_attempt.resources()
     }
 
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
-        &self.provider_session
+        self.resource_attempt.provider_session()
     }
 }
 
@@ -116,7 +115,7 @@ where
             ));
         };
         let support = direct_support_snapshot(&self, &executor.resource_support);
-        let mut resources = match admit_execution_resource_plan(
+        let resources = match admit_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
             &request,
@@ -126,20 +125,19 @@ where
             Ok(resources) => resources,
             Err(denial) => return admission_denial_outcome(denial),
         };
+        let resource_attempt = WorthQueryDirectExecutionResourceAttempt::start(resources);
         let mut basis = operation_phase_basis(self.authority_proof()).clone();
-        basis.resource_admission_identity = Some(resources.identity().to_owned());
+        basis.resource_admission_identity =
+            Some(resource_attempt.resources().identity().to_owned());
         let phase_proof = mint_operation_phase_proof(
-            resources.identity().to_owned(),
+            resource_attempt.resources().identity().to_owned(),
             Some(self.authority_proof().payload().identity()),
             basis,
         );
-        let provider_session = WorthQueryExecutionProviderSession::mint(resources.identity());
-        resources.record_provider_session_mint();
         TransitionOutcome::Success(WorthQueryAdmittedDirectOperation {
             bound: self,
             input,
-            resources,
-            provider_session,
+            resource_attempt,
             phase_proof,
         })
     }

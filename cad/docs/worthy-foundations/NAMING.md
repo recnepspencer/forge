@@ -43,6 +43,7 @@ ungrammatical names:
 | `worth-query-declaration` | internal declaration authority | `worth-query-installation`, migration engine, declaration/host facades, cold certification | denied |
 | `worth-query-installation` | internal installation authority | migration engine, host facade, cold certification | denied |
 | `worth-query-admission` | internal admission authority | migration engine, later Query authorities, host facade, cold certification | denied |
+| `worth-query-execution` | internal execution authority | migration engine, later Query publication, host facade, cold certification | denied |
 | `worth-query-certification` | cold certification leaf | explicit Query certification; cert-only replay facade when required | denied |
 | `worth-query-decl` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |
 | `worth-query-host` | audience facade | `entry` band (`worth` + `worthy`), `cert` | denied |

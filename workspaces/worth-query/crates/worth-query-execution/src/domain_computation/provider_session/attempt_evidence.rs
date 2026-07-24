@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use super::{WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionProviderSession};
+use worth_query_admission::facade::resource_admission::WorthQueryAdmittedExecutionResourcePlan;
+
+use super::WorthQueryExecutionProviderSession;
+use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryExecutionResourceAttemptEvidence {
@@ -15,11 +18,11 @@ pub struct WorthQueryExecutionResourceAttemptEvidence {
 }
 
 impl WorthQueryExecutionResourceAttemptEvidence {
-    pub(crate) fn capture(
+    pub(super) fn capture(
         plan: &WorthQueryAdmittedExecutionResourcePlan,
         session: &WorthQueryExecutionProviderSession,
     ) -> Self {
-        let identity = Arc::<str>::from(crate::identity::hash_parts(&[
+        let identity = Arc::<str>::from(hash_parts(&[
             "worth_query_execution_resource_attempt_evidence_v1".into(),
             format!("admission:{}", plan.identity()),
             format!("request:{}", plan.request_identity()),

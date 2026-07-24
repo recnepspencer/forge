@@ -152,16 +152,15 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
         let counters_before = self.counters;
         let stage = self.admit_stage(stage_identity, &input, runtime_admission)?;
-        let resources = self.resources.shared_stage(stage_identity).ok_or_else(|| {
-            WorthQueryWorkflowAdvanceDenial::new(
-                WorthQueryWorkflowAdvanceDenialKind::ResourceAdmissionMissing,
-                self.counters,
-            )
-        })?;
-        let resource_evidence = super::WorthQueryExecutionResourceAttemptEvidence::capture(
-            &resources,
-            &self.provider_session,
-        );
+        let (resources, resource_evidence) = self
+            .resource_attempt
+            .stage_resources_and_evidence(stage_identity)
+            .ok_or_else(|| {
+                WorthQueryWorkflowAdvanceDenial::new(
+                    WorthQueryWorkflowAdvanceDenialKind::ResourceAdmissionMissing,
+                    self.counters,
+                )
+            })?;
         let semantic_input = input.semantic_value();
         let graph_snapshot = workspace.snapshot_identity();
         let conditional = match self.admit_stage_condition(
@@ -338,7 +337,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 graph_receipts,
                 resources,
                 resource_evidence,
-                provider_session: &self.provider_session,
+                provider_session: self.resource_attempt.provider_session(),
                 query_authority: self
                     .bound
                     .definition()

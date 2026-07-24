@@ -8,8 +8,8 @@ use super::{
     WorthQueryAdmittedDirectOperation, WorthQueryAdmittedExecutionResourcePlan,
     WorthQueryBoundExecutionDenial, WorthQueryBoundExecutionDenialKind,
     WorthQueryBoundExecutionReceipt, WorthQueryBoundGraphExecutionReceipt,
-    WorthQueryExecutableDomainOperation, WorthQueryExecutionProviderSession,
-    WorthQueryExecutionResourceAttemptEvidence, WorthQueryOperationExecutionContext,
+    WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutableDomainOperation,
+    WorthQueryExecutionProviderSession, WorthQueryOperationExecutionContext,
     WorthQueryOperationExecutionCounters, WorthQueryOperationExecutionWarning,
     WorthQueryOperationOutput, WorthQueryTerminalOperation,
 };
@@ -30,8 +30,7 @@ pub struct WorthQueryExecutedDomainOperation<D, O, F, L: BasisOperationLane, Out
     execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     phase_proof: WorthQueryOperationPhaseProof<WorthQueryExecutedOperationPhase>,
     conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
-    resources: WorthQueryAdmittedExecutionResourcePlan,
-    provider_session: WorthQueryExecutionProviderSession,
+    resource_attempt: WorthQueryDirectExecutionResourceAttempt,
 }
 pub type WorthQueryBoundExecutionOutcome<D, O, F, L, Output> = TransitionOutcome<
     WorthQueryExecutedDomainOperation<D, O, F, L, Output>,
@@ -60,10 +59,10 @@ impl<D, O, F, L: BasisOperationLane, Output> WorthQueryExecutedDomainOperation<D
         &self.conditional
     }
     pub fn resources(&self) -> &WorthQueryAdmittedExecutionResourcePlan {
-        &self.resources
+        self.resource_attempt.resources()
     }
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
-        &self.provider_session
+        self.resource_attempt.provider_session()
     }
 }
 impl<D, O, F, L: BasisOperationLane, Output> WorthQueryExecutedDomainOperation<D, O, F, L, Output>
@@ -89,10 +88,7 @@ where
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryBoundExecutionOutcome<D, O, F, L, O::Output> {
         let mut counters = WorthQueryOperationExecutionCounters::default();
-        let resource_evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
-            &self.resources,
-            &self.provider_session,
-        );
+        let resource_evidence = self.resource_attempt.evidence().clone();
         let execution_snapshot = workspace.snapshot_identity();
         let execution_identity = format!(
             "{}:bound-capability:{}",
@@ -108,7 +104,7 @@ where
                 scope: crate::domain_installation::WorthQueryConditionalEvaluationScope::Operation,
                 workflow_run_identity: None,
                 attempt: 1,
-                resources: &self.resources,
+                resources: self.resource_attempt.resources(),
                 resource_evidence: &resource_evidence,
                 counters: &mut counters,
             },
@@ -147,7 +143,7 @@ where
         };
         let graph_receipts = match invoke_bound_graphs(
             &self.bound,
-            &self.resources,
+            self.resource_attempt.resources(),
             &resource_evidence,
             &execution_snapshot,
             &mut counters,
@@ -172,8 +168,8 @@ where
             self.bound.basis().normalized(),
             executor.installed_read.as_ref(),
             &graph_receipts,
-            &self.resources,
-            &self.provider_session,
+            self.resource_attempt.resources(),
+            self.resource_attempt.provider_session(),
         );
         counters.executor_contacts += 1;
         let (material, primary_read_contacts) =
@@ -277,8 +273,7 @@ where
             execution_snapshot,
             phase_proof,
             conditional,
-            resources: self.resources,
-            provider_session: self.provider_session,
+            resource_attempt: self.resource_attempt,
         })
     }
 }

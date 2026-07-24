@@ -1,12 +1,8 @@
 mod direct_attempt;
-mod evidence;
-mod provider_session;
 mod support_snapshot;
 mod workflow_attempt;
 
 pub use direct_attempt::*;
-pub use evidence::*;
-pub use provider_session::*;
 pub(crate) use support_snapshot::*;
 pub use workflow_attempt::*;
 
@@ -16,4 +12,8 @@ pub use worth_query_admission::facade::domain_computation::{
     WorthQueryExecutionResourceAdmissionDenial, WorthQueryExecutionResourceAdmissionDenialKind,
     WorthQueryExecutionResourceAdmissionPosture, WorthQueryExecutionResourceSupport,
     WorthQueryExecutionResourceSupportSnapshot,
+};
+pub use worth_query_execution::facade::provider_session::{
+    WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionProviderSession,
+    WorthQueryExecutionResourceAttemptEvidence, WorthQueryWorkflowExecutionResourceAttempt,
 };

@@ -2135,6 +2135,7 @@ dependencies = [
  "worth-proof",
  "worth-query-admission",
  "worth-query-declaration",
+ "worth-query-execution",
  "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
@@ -2158,6 +2159,16 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "worth-foundational",
+]
+
+[[package]]
+name = "worth-query-execution"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "worth-query-admission",
+ "worth-query-declaration",
+ "worth-query-installation",
 ]
 
 [[package]]

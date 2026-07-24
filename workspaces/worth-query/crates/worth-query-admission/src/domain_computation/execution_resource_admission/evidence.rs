@@ -183,6 +183,11 @@ impl WorthQueryAdmittedWorkflowResourcePlan {
         self.counters
     }
 
+    pub fn record_provider_session_mint(&mut self) {
+        self.operation.record_provider_session_mint();
+        self.counters.provider_session_mints += 1;
+    }
+
     pub fn stages(&self) -> impl Iterator<Item = (&str, &WorthQueryAdmittedExecutionResourcePlan)> {
         self.stages
             .iter()
