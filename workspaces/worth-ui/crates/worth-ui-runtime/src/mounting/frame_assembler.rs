@@ -28,6 +28,7 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub request: UiMountedFrameRequest,
     pub lanes: UiMountedLaneAssembly,
     pub preview: Option<UiMountedPreviewProjectionInput>,
+    pub reuse_contract: super::UiMountedFrameReuseContract,
 }
 
 pub(crate) struct UiMountedFrameAssembler<'state> {
@@ -40,6 +41,7 @@ pub(crate) struct UiMountedFrameAssembler<'state> {
     allocation_truth_revision: u64,
     required: UiMountedLaneAssembly,
     recorded: UiMountedLaneAssembly,
+    reuse_contract: super::UiMountedFrameReuseContract,
 }
 
 impl<'state> UiMountedFrameAssembler<'state> {
@@ -86,6 +88,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
                 preview: input.preview.is_some(),
                 ..Default::default()
             },
+            reuse_contract: input.reuse_contract,
         })
     }
 
@@ -141,6 +144,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
             self.manifest,
             self.graph_world,
             self.allocation_truth_revision,
+            self.reuse_contract,
         )
     }
 }

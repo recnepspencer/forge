@@ -33,6 +33,7 @@ pub struct UiMountedPresentationInFlight {
     attempt: UiMountedPresentationAttemptIdentity,
     deadline: UiPresentationDeadline,
     pending_bindings: Box<[UiSurfaceBindingGeneration]>,
+    cost: super::super::UiMountCostReport,
 }
 
 pub(super) struct UiMountedPresentationInFlightState {
@@ -161,7 +162,10 @@ impl Drop for UiPresentationAdmissionLease {
 }
 
 impl UiMountedPresentationInFlight {
-    pub(super) fn from_state(state: &UiMountedPresentationInFlightState) -> Self {
+    pub(super) fn from_state(
+        state: &UiMountedPresentationInFlightState,
+        cost: super::super::UiMountCostReport,
+    ) -> Self {
         Self {
             attempt: state.attempt,
             deadline: state.deadline,
@@ -170,6 +174,7 @@ impl UiMountedPresentationInFlight {
                 .iter()
                 .map(|pending| pending.binding)
                 .collect(),
+            cost,
         }
     }
 
@@ -185,6 +190,10 @@ impl UiMountedPresentationInFlight {
         &self,
     ) -> impl ExactSizeIterator<Item = UiSurfaceBindingGeneration> + '_ {
         self.pending_bindings.iter().copied()
+    }
+
+    pub fn cost_report(&self) -> super::super::UiMountCostReport {
+        self.cost
     }
 }
 use std::cell::RefCell;

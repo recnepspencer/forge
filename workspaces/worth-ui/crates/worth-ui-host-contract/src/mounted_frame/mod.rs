@@ -1,6 +1,7 @@
 mod assembly;
 mod identity;
 mod presentation;
+mod presentation_cost;
 mod protocol;
 mod surface_registration;
 
@@ -22,6 +23,9 @@ pub use presentation::{
     UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView, UiMountedPresentationLease,
     UiMountedPresentationLeaseDenial, UiMountedPresentationLeaseGate,
     UiMountedSurfacePresentationCompletion, UiPresentationDeadline,
+};
+pub use presentation_cost::{
+    UiHostPresentationCostInput, UiHostPresentationCostOverflow, UiHostPresentationCostReport,
 };
 pub use protocol::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,

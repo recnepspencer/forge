@@ -91,11 +91,18 @@ impl WorthUiActiveApplicationSession {
                 &candidate_graph,
             ))
             .map_err(WorthUiApplicationCutoverDenial::MountedIdentity)?;
+        let capability_report = self.host_session.capability_report();
         let frame = super::mounted_frame::prepare_candidate_mounted_frame(
             &application,
             &mut mounted_successor,
             crate::graph::UiGraphAuthority::new(&candidate_graph),
-            candidate_generation,
+            super::mounted_frame::UiMountedReplacementReuseBasis {
+                generation: candidate_generation,
+                host_session: self.host_session.identity().as_u64(),
+                protocol: self.host_session.protocol(),
+                capability_generation: capability_report.observation_generation(),
+                capability_profile_digest: capability_report.profile_identity_digest(),
+            },
             request,
         )
         .map_err(WorthUiApplicationCutoverDenial::MountedFrame)?;

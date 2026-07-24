@@ -1,4 +1,6 @@
 mod assembly;
+mod counters;
+mod delta;
 mod denial;
 mod frame_assembler;
 mod host_truth;
@@ -9,9 +11,13 @@ mod presentation;
 mod projection;
 mod publication;
 mod retention;
+mod reuse;
 mod surface_binding;
 
 pub(crate) use assembly::{binding_requirement, validate_manifest};
+pub(crate) use counters::{UiMountCostOverflow, UiMountStageCounters};
+pub use counters::{UiMountCostReport, UiMountNamedCounters, UiMountWorkClass};
+pub use delta::UiMountedFrameDelta;
 pub use denial::UiMountedIdentityDenial;
 pub(crate) use frame_assembler::{
     UiMountedFrameAssembler, UiMountedFrameAssemblyInput, UiMountedLaneAssembly,
@@ -46,13 +52,18 @@ pub use projection::{
     UiProjectedMountedFrameCandidate,
 };
 pub use publication::{
-    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameReuseWitness,
-    UiMountedPublicationLeaseDenial,
+    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedPublicationLeaseDenial,
 };
 pub(crate) use publication::{
     UiMountedFramePublicationCandidate, UiMountedFrameReconciliationCandidate,
 };
 pub(crate) use retention::{UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation};
+pub(crate) use reuse::UiMountedFrameReuseExternalBasis;
+pub use reuse::{
+    UiMountedFrameExecutionPosture, UiMountedFrameReuse, UiMountedFrameReuseComparator,
+    UiMountedFrameReuseContract, UiMountedFrameReuseDependency, UiMountedFrameReuseMintingStage,
+    UiMountedFrameReuseWitness,
+};
 pub use surface_binding::{UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile};
 
 pub use assembly::{

@@ -310,6 +310,16 @@ fn adapter_overreported_effects_cannot_publish_as_exact_completion() {
                     worth_ui_host_contract::UiMountedEffectFamily::RecordedProjection,
                     worth_ui_host_contract::UiMountedEffectFamily::NativePaint,
                 ]),
+                worth_ui_host_contract::UiHostPresentationCostReport::from_adapter(
+                    worth_ui_host_contract::UiHostPresentationCostInput {
+                        presented_surfaces: 1,
+                        translated_rows: 0,
+                        translated_bytes: 0,
+                        native_resource_cache_hits: 0,
+                        native_resource_cache_misses: 0,
+                        asynchronous_handoffs: 0,
+                    },
+                ),
             ),
         ),
     );

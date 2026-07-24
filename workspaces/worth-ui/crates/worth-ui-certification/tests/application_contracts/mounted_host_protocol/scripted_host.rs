@@ -87,11 +87,25 @@ pub(crate) fn recorded_effects() -> UiMountedCompletedEffects {
     UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection])
 }
 
+fn scripted_presentation_cost() -> worth_ui_host_contract::UiHostPresentationCostReport {
+    worth_ui_host_contract::UiHostPresentationCostReport::from_adapter(
+        worth_ui_host_contract::UiHostPresentationCostInput {
+            presented_surfaces: 1,
+            translated_rows: 0,
+            translated_bytes: 0,
+            native_resource_cache_hits: 0,
+            native_resource_cache_misses: 0,
+            asynchronous_handoffs: 0,
+        },
+    )
+}
+
 pub(crate) fn presented_completion() -> ScriptedSurfaceCompletion {
     ScriptedSurfaceCompletion::Presented(
         worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
             recorded_effects(),
+            scripted_presentation_cost(),
         ),
     )
 }
@@ -110,6 +124,7 @@ impl ScriptedPresentationHost {
             worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
                 UiHostSurfacePresentationMode::RecordOnly,
                 recorded_effects(),
+                scripted_presentation_cost(),
             ),
         ));
     }

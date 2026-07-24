@@ -85,14 +85,18 @@ impl UiMountedPresentationCoordinator {
                         cancel_all(remaining, host);
                         return Ok(self.indeterminate(frame, attempt, affected));
                     }
+                    let (effects, adapter_cost) = completion.into_parts();
                     completed.push(UiMountedSurfacePresentationReceipt::new(
                         binding,
-                        completion.into_effects(),
+                        effects,
+                        adapter_cost,
                     ));
                 }
             }
         }
-        Ok(self.finish_or_wait(frame, attempt, deadline, remaining, rejected, completed))
+        Ok(self.finish_or_wait(
+            frame, attempt, deadline, remaining, rejected, completed, host,
+        ))
     }
 
     pub fn cancel(

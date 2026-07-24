@@ -3,7 +3,8 @@ use std::sync::{Arc, Mutex};
 
 use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
-    UiHostProtocolNegotiation, UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
+    UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostProtocolNegotiation,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
     UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily, UiMountedAccessibilityProjection,
     UiMountedCompletedEffects, UiMountedEffectFamily, UiMountedFrameConsumptionView,
     UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedParticipationStatus,
@@ -188,9 +189,16 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
         if let Some(denial) = self.validate_mounted_view(view) {
             return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
         }
+        let cost = match projection_cost(view.projection()) {
+            Ok(cost) => cost,
+            Err(denial) => {
+                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+            }
+        };
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::NativeDisplay,
             UiMountedCompletedEffects::new(Vec::new()),
+            cost,
         ))
     }
 
@@ -208,6 +216,47 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
             before - registrations.len(),
         ))
     }
+}
+
+fn projection_cost(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<UiHostPresentationCostReport, UiHostSurfacePresentationDenial> {
+    let rows = [
+        projection.nodes().len(),
+        projection.clips().rows().len(),
+        projection.layers().rows().len(),
+        projection.paint_batches().rows().len(),
+        projection.spatial_batches().rows().len(),
+        projection.realtime_batches().rows().len(),
+        projection.resources().entries().len(),
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    let bytes = [
+        std::mem::size_of_val(projection.nodes()),
+        std::mem::size_of_val(projection.clips().rows()),
+        std::mem::size_of_val(projection.layers().rows()),
+        std::mem::size_of_val(projection.paint_batches().rows()),
+        std::mem::size_of_val(projection.spatial_batches().rows()),
+        std::mem::size_of_val(projection.realtime_batches().rows()),
+        std::mem::size_of_val(projection.resources().entries()),
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    Ok(UiHostPresentationCostReport::from_adapter(
+        UiHostPresentationCostInput {
+            presented_surfaces: 1,
+            translated_rows: u64::try_from(rows)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            translated_bytes: u64::try_from(bytes)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            native_resource_cache_hits: 0,
+            native_resource_cache_misses: 0,
+            asynchronous_handoffs: 0,
+        },
+    ))
 }
 
 fn next_generation(current: u64) -> u64 {

@@ -14,12 +14,14 @@ use crate::mounting::{
 pub(crate) struct UiMountedSurfaceRegistrationCandidate {
     request: UiHostSurfaceRegistrationRequest,
     profile: UiSurfaceBindingProfile,
+    successor_binding_revision: u64,
 }
 
 pub(crate) struct UiMountedSurfaceDeregistrationCandidate {
     semantic_surface: UiSemanticSurfaceIdentity,
     record: SurfaceBindingRecord,
     preserve_published_frame: bool,
+    successor_binding_revision: u64,
 }
 
 impl UiMountedIdentityState {
@@ -39,6 +41,7 @@ impl UiMountedIdentityState {
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
         let binding_generation = UiSurfaceBindingGeneration::mint_unbound()
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
+        let successor_binding_revision = super::next(&super::NEXT_STATE_REVISION)?;
         let request =
             UiHostSurfaceRegistrationRequest::from_runtime(UiHostSurfaceRegistrationInput {
                 host_session_identity: self.host_session_identity.as_u64(),
@@ -50,7 +53,11 @@ impl UiMountedIdentityState {
                 capability_profile_digest: capability_report.profile_identity_digest(),
                 presentation_mode: mode,
             });
-        Ok(UiMountedSurfaceRegistrationCandidate { request, profile })
+        Ok(UiMountedSurfaceRegistrationCandidate {
+            request,
+            profile,
+            successor_binding_revision,
+        })
     }
 
     pub(crate) fn commit_surface_registration(
@@ -73,6 +80,7 @@ impl UiMountedIdentityState {
             request.semantic_surface_identity(),
             SurfaceBindingRecord { view, request },
         );
+        self.binding_revision = candidate.successor_binding_revision;
         view
     }
 
@@ -87,10 +95,12 @@ impl UiMountedIdentityState {
             .find(|(_, record)| record.view.binding_generation() == binding)
             .map(|(surface, record)| (*surface, *record))
             .ok_or(UiMountedIdentityDenial::UnknownSurfaceBinding)?;
+        let successor_binding_revision = super::next(&super::NEXT_STATE_REVISION)?;
         Ok(UiMountedSurfaceDeregistrationCandidate {
             semantic_surface,
             record,
             preserve_published_frame,
+            successor_binding_revision,
         })
     }
 
@@ -107,7 +117,9 @@ impl UiMountedIdentityState {
             self.current_manifest = None;
             self.current_core = None;
             self.current_publication = None;
+            self.current_reuse_contract = None;
         }
+        self.binding_revision = candidate.successor_binding_revision;
         candidate.semantic_surface
     }
 }

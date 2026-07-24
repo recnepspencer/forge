@@ -15,6 +15,7 @@ pub struct UiMountedPresentationReceipt {
     attempt: UiMountedPresentationAttemptIdentity,
     frame: UiMountedFrameIdentity,
     surfaces: Box<[UiMountedSurfacePresentationReceipt]>,
+    cost: super::super::UiMountCostReport,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -27,6 +28,7 @@ pub struct UiMountedPresentationWitness {
 pub struct UiMountedSurfacePresentationReceipt {
     binding: UiSurfaceBindingGeneration,
     effects: UiMountedCompletedEffects,
+    adapter_cost: worth_ui_host_contract::UiHostPresentationCostReport,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -69,13 +71,31 @@ impl UiMountedPresentationReceipt {
     pub(super) fn new(
         attempt: UiMountedPresentationAttemptIdentity,
         frame: UiMountedFrameIdentity,
+        mounting_cost: super::super::UiMountCostReport,
         surfaces: Vec<UiMountedSurfacePresentationReceipt>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, super::super::UiMountCostOverflow> {
+        let cost = Self::compose_cost(mounting_cost, &surfaces)?;
+        Ok(Self {
             attempt,
             frame,
             surfaces: surfaces.into_boxed_slice(),
-        }
+            cost,
+        })
+    }
+
+    pub(super) fn compose_cost(
+        mounting_cost: super::super::UiMountCostReport,
+        surfaces: &[UiMountedSurfacePresentationReceipt],
+    ) -> Result<super::super::UiMountCostReport, super::super::UiMountCostOverflow> {
+        let adapter_cost = surfaces.iter().try_fold(
+            worth_ui_host_contract::UiHostPresentationCostReport::default(),
+            |total, surface| {
+                total
+                    .checked_add(surface.adapter_cost())
+                    .map_err(|_| super::super::UiMountCostOverflow)
+            },
+        )?;
+        mounting_cost.with_adapter(adapter_cost)
     }
 
     pub fn attempt(&self) -> UiMountedPresentationAttemptIdentity {
@@ -88,6 +108,10 @@ impl UiMountedPresentationReceipt {
 
     pub fn surfaces(&self) -> &[UiMountedSurfacePresentationReceipt] {
         &self.surfaces
+    }
+
+    pub fn cost_report(&self) -> super::super::UiMountCostReport {
+        self.cost
     }
 }
 
@@ -110,8 +134,13 @@ impl UiMountedSurfacePresentationReceipt {
     pub(super) fn new(
         binding: UiSurfaceBindingGeneration,
         effects: UiMountedCompletedEffects,
+        adapter_cost: worth_ui_host_contract::UiHostPresentationCostReport,
     ) -> Self {
-        Self { binding, effects }
+        Self {
+            binding,
+            effects,
+            adapter_cost,
+        }
     }
 
     pub fn binding(&self) -> UiSurfaceBindingGeneration {
@@ -120,6 +149,10 @@ impl UiMountedSurfacePresentationReceipt {
 
     pub fn effects(&self) -> &UiMountedCompletedEffects {
         &self.effects
+    }
+
+    pub fn adapter_cost(&self) -> worth_ui_host_contract::UiHostPresentationCostReport {
+        self.adapter_cost
     }
 }
 

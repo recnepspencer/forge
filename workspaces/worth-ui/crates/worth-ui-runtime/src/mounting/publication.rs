@@ -13,6 +13,7 @@ struct UiMountedFramePublicationReceiptInner {
     generation:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     bindings: Box<[UiSurfaceBindingGeneration]>,
+    cost: std::cell::Cell<super::UiMountCostReport>,
 }
 
 pub struct UiMountedFramePublicationCandidate {
@@ -24,12 +25,6 @@ pub(crate) struct UiMountedFrameReconciliationCandidate {
     replacements: Box<[super::UiMountedSurfaceReconciliationBinding]>,
     receipt: UiMountedFramePublicationReceipt,
     presented_basis: super::retention::UiPreparedPresentedFrameBasis,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiMountedFrameReuseWitness {
-    frame: UiMountedFrameIdentity,
-    bindings: Box<[UiSurfaceBindingGeneration]>,
 }
 
 pub enum UiMountedFrameOutcome {
@@ -65,6 +60,7 @@ impl UiMountedFrameReconciliationCandidate {
                 predecessor: current.predecessor(),
                 generation: current.generation().clone(),
                 bindings: bindings.into_boxed_slice(),
+                cost: std::cell::Cell::new(admission.frame().cost_report()),
             }),
         };
         let presented_basis = super::retention::UiMountedPresentedFrameRetention::prepare(
@@ -93,6 +89,7 @@ impl UiMountedFrameReconciliationCandidate {
             presented_basis,
             ..
         } = self;
+        receipt.finalize_cost(presented.receipt().cost_report());
         state.publish_reconciled_frame(presented.into_frame(), receipt.clone(), presented_basis);
         receipt
     }
@@ -123,6 +120,7 @@ impl UiMountedFramePublicationCandidate {
                 predecessor,
                 generation: admission.frame().generation().clone(),
                 bindings: bindings.into_boxed_slice(),
+                cost: std::cell::Cell::new(admission.frame().cost_report()),
             }),
         };
         let presented_basis = super::retention::UiMountedPresentedFrameRetention::prepare(
@@ -145,6 +143,7 @@ impl UiMountedFramePublicationCandidate {
             receipt,
             presented_basis,
         } = self;
+        receipt.finalize_cost(presented.receipt().cost_report());
         state.publish_presented_frame(presented.into_frame(), receipt.clone(), presented_basis);
         receipt
     }
@@ -173,21 +172,41 @@ impl UiMountedFramePublicationReceipt {
     pub fn bindings(&self) -> &[UiSurfaceBindingGeneration] {
         &self.inner.bindings
     }
+
+    pub fn cost_report(&self) -> super::UiMountCostReport {
+        self.inner.cost.get()
+    }
+
+    fn finalize_cost(&self, cost: super::UiMountCostReport) {
+        self.inner.cost.set(cost);
+    }
 }
 
-impl UiMountedFrameReuseWitness {
-    pub(crate) fn new(
-        frame: UiMountedFrameIdentity,
-        bindings: Box<[UiSurfaceBindingGeneration]>,
-    ) -> Self {
-        Self { frame, bindings }
-    }
-
-    pub fn frame(&self) -> UiMountedFrameIdentity {
-        self.frame
-    }
-
-    pub fn bindings(&self) -> &[UiSurfaceBindingGeneration] {
-        &self.bindings
+impl UiMountedFrameOutcome {
+    pub fn cost_report(&self) -> Option<super::UiMountCostReport> {
+        match self {
+            Self::Published(receipt) | Self::Reconciled(receipt) => Some(receipt.cost_report()),
+            Self::Unchanged(_) => Some(super::UiMountCostReport::unchanged_reuse()),
+            Self::RejectedBeforeEffects(frame) => Some(
+                frame
+                    .frame()
+                    .cost_report()
+                    .reclassified(super::UiMountWorkClass::RejectedPresentation),
+            ),
+            Self::InFlight(frame) => Some(frame.cost_report()),
+            Self::PresentationIndeterminate(frame) => Some(
+                frame
+                    .frame()
+                    .cost_report()
+                    .reclassified(super::UiMountWorkClass::IndeterminatePresentation),
+            ),
+            Self::AdmissionDenied(rejection) => Some(
+                rejection
+                    .frame()
+                    .cost_report()
+                    .reclassified(super::UiMountWorkClass::RejectedPresentation),
+            ),
+            Self::CompletionDenied(_) => None,
+        }
     }
 }

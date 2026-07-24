@@ -13,6 +13,7 @@ pub enum UiMountedProjectionDenial {
     NegativeExtent,
     TableCapacityExceeded,
     DuplicateLaneContribution,
+    CostCounterOverflow,
 }
 
 impl From<super::super::UiMountedIdentityDenial> for UiMountedProjectionDenial {

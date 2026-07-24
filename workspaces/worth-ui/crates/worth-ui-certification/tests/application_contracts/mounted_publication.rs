@@ -4,7 +4,7 @@ use worth_ui::facade::app::{
 use worth_ui::facade::graph::UiAdmittedAllocationCatalogDelta;
 use worth_ui::facade::mounted::{
     UiHostSurfaceCancellationOutcome, UiMountedFrameOutcome, UiMountedFrameRequest,
-    UiMountedPresentationCompletionDenial, UiPresentationDeadline,
+    UiMountedFrameReuse, UiMountedPresentationCompletionDenial, UiPresentationDeadline,
 };
 use worth_ui::facade::runtime::WorthUiFrameBoundary;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
@@ -22,61 +22,8 @@ use super::mounted_host_protocol::scripted_host::{
 };
 use super::mounted_protocol_model::ModelPublicationWorld;
 
-#[test]
-fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter() {
-    let host = ScriptedPresentationHost::default();
-    let (mut session, _) = mounted_session(host.clone(), "mounted-publication-ordinary", 1);
-    host.push_presented();
-    let first_frame = prepared(&mut session);
-    let first = published(session.present_prepared_mounted_frame(
-        first_frame,
-        UiPresentationDeadline::at_tick(10),
-        0,
-    ));
-    assert_eq!(
-        session.inspect_mounted_identity().current_frame(),
-        Some(first.frame())
-    );
-    assert_eq!(first.predecessor(), None);
-
-    let witness = session
-        .current_mounted_frame_reuse_witness()
-        .expect("published current truth issues an exact reuse witness");
-    let calls_before_reuse = host.presentation_calls();
-    let unchanged = match session
-        .reuse_current_mounted_frame(&witness)
-        .expect("exact current witness reuses")
-    {
-        UiMountedFrameOutcome::Unchanged(receipt) => receipt,
-        _ => panic!("exact reuse is classified as unchanged"),
-    };
-    assert_eq!(unchanged, first);
-    assert_eq!(host.presentation_calls(), calls_before_reuse);
-
-    host.push_rejected();
-    let rejected = prepared(&mut session);
-    let rejected_frame = rejected.canonical_core().frame();
-    assert!(matches!(
-        session.present_prepared_mounted_frame(rejected, UiPresentationDeadline::at_tick(20), 1,),
-        UiMountedFrameOutcome::RejectedBeforeEffects(_)
-    ));
-    assert_ne!(rejected_frame, first.frame());
-    assert_eq!(
-        session.current_mounted_publication(),
-        Some(&first),
-        "effect-free rejection preserves predecessor publication"
-    );
-
-    let binding = session.inspect_mounted_identity().surface_bindings()[0];
-    session
-        .rebind_host_surface(
-            binding.binding_generation(),
-            binding.presentation_mode(),
-            profile(2),
-        )
-        .unwrap();
-    assert!(session.reuse_current_mounted_frame(&witness).is_none());
-}
+#[path = "mounted_publication/exact_reuse.rs"]
+mod exact_reuse;
 
 #[test]
 fn accepted_frame_owns_the_successor_slot_until_terminal_publication() {

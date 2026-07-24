@@ -161,14 +161,16 @@ impl UiMountedPresentationCoordinator {
                         settlement::cancel_all(pending, host);
                         return self.indeterminate(frame, attempt, affected);
                     }
+                    let (effects, adapter_cost) = completion.into_parts();
                     completed.push(UiMountedSurfacePresentationReceipt::new(
                         requirement.binding(),
-                        completion.into_effects(),
+                        effects,
+                        adapter_cost,
                     ));
                 }
             }
         }
-        self.finish_or_wait(frame, attempt, deadline, pending, rejected, completed)
+        self.finish_or_wait(frame, attempt, deadline, pending, rejected, completed, host)
     }
 
     fn finish_or_wait(
@@ -179,8 +181,18 @@ impl UiMountedPresentationCoordinator {
         pending: Vec<super::state::UiPendingMountedSurface>,
         rejected: Vec<UiMountedSurfacePresentationRejection>,
         mut completed: Vec<UiMountedSurfacePresentationReceipt>,
+        host: UiHostEffectPort<'_>,
     ) -> UiMountedPresentationOutcome {
         if !pending.is_empty() {
+            let cost =
+                match UiMountedPresentationReceipt::compose_cost(frame.cost_report(), &completed) {
+                    Ok(cost) => cost,
+                    Err(_) => {
+                        let affected = aggregate_affected(&completed, &pending, &rejected);
+                        settlement::cancel_all(pending, host);
+                        return self.indeterminate(frame, attempt, affected);
+                    }
+                };
             let state = super::state::UiMountedPresentationInFlightState {
                 frame,
                 attempt,
@@ -189,7 +201,7 @@ impl UiMountedPresentationCoordinator {
                 rejected,
                 completed,
             };
-            let handle = UiMountedPresentationInFlight::from_state(&state);
+            let handle = UiMountedPresentationInFlight::from_state(&state, cost);
             self.in_flight.insert(attempt, state);
             return UiMountedPresentationOutcome::InFlight(handle);
         }
@@ -203,8 +215,22 @@ impl UiMountedPresentationCoordinator {
         }
         self.active.borrow_mut().remove(&attempt);
         completed.sort_by_key(UiMountedSurfacePresentationReceipt::binding);
-        let receipt =
-            UiMountedPresentationReceipt::new(attempt, frame.canonical_core().frame(), completed);
+        let receipt = match UiMountedPresentationReceipt::new(
+            attempt,
+            frame.canonical_core().frame(),
+            frame.cost_report(),
+            completed,
+        ) {
+            Ok(receipt) => receipt,
+            Err(_) => {
+                let affected = frame
+                    .surfaces()
+                    .iter()
+                    .map(|surface| surface.requirement().binding())
+                    .collect();
+                return self.indeterminate(frame, attempt, affected);
+            }
+        };
         UiMountedPresentationOutcome::Presented(UiMountedPresentedFrame::new(
             frame,
             receipt,

@@ -103,6 +103,28 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
             .copied()
             .ok_or(WorthUiMountedPreviewPreparationDenial::MissingSurfaceBinding)?;
         let allocation_revision = preview.capture_isolation_basis().revision();
+        let request = crate::mounting::UiMountedFrameRequest::exact_surfaces(vec![surface]);
+        let lanes = crate::mounting::UiMountedLaneAssembly {
+            preview: true,
+            ..Default::default()
+        };
+        let capability_report = self.ports.host_session.capability_report();
+        let reuse_contract = self.ports.identity.seal_reuse_contract(
+            crate::mounting::UiMountedFrameReuseExternalBasis {
+                generation: self.generation.clone(),
+                host_session: self.ports.host_session.identity().as_u64(),
+                execution: crate::mounting::UiMountedFrameExecutionPosture::ActiveFrame {
+                    frame_epoch: preview.frame_epoch().as_u64(),
+                },
+                plan_digest: self.plan_digest,
+                allocation_truth_revision: allocation_revision,
+                request: request.reuse_identity(),
+                lanes,
+                protocol: self.ports.host_session.protocol(),
+                capability_generation: capability_report.observation_generation(),
+                capability_profile_digest: capability_report.profile_identity_digest(),
+            },
+        );
         let assembler = crate::mounting::UiMountedFrameAssembler::begin(
             self.ports.identity,
             crate::mounting::UiMountedFrameAssemblyInput {
@@ -112,11 +134,8 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                 plan_rows: &[],
                 allocation_receipts: &[],
                 allocation_truth_revision: allocation_revision,
-                request: crate::mounting::UiMountedFrameRequest::exact_surfaces(vec![surface]),
-                lanes: crate::mounting::UiMountedLaneAssembly {
-                    preview: true,
-                    ..Default::default()
-                },
+                request,
+                lanes,
                 preview: Some(crate::mounting::UiMountedPreviewProjectionInput {
                     mounted_instance,
                     graph_node: preview.target(),
@@ -125,6 +144,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                     candidate_count: preview.candidate_count(),
                     all_candidates_admitted: preview.all_candidates_admitted(),
                 }),
+                reuse_contract,
             },
         )
         .map_err(WorthUiMountedPreviewPreparationDenial::Frame)?;

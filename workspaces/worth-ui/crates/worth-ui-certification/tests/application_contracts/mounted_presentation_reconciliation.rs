@@ -1,6 +1,7 @@
 use worth_ui::facade::mounted::{
     UiHostPresentationReconciliation, UiHostSurfacePresentationMode, UiMountedFrameOutcome,
-    UiMountedIdentityDenial, UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
+    UiMountedFrameRequest, UiMountedFrameReuse, UiMountedIdentityDenial,
+    UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
 };
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::{
@@ -14,9 +15,10 @@ fn published_predecessor_survives_indeterminacy_and_requires_exact_re_presentati
     let host = ScriptedPresentationHost::default();
     let (mut session, bindings) =
         mounted_session(host.clone(), "published-current-reconciliation", 1);
+    let request = UiMountedFrameRequest::all_bound_surfaces();
     let affected_binding = bindings[0];
     host.push_presented();
-    let predecessor_frame = prepared_frame(&mut session);
+    let predecessor_frame = prepared_with_request(&mut session, &request);
     let predecessor = expect_published(session.present_prepared_mounted_frame(
         predecessor_frame,
         UiPresentationDeadline::at_tick(10),
@@ -49,7 +51,10 @@ fn published_predecessor_survives_indeterminacy_and_requires_exact_re_presentati
         Some(&predecessor),
         "mechanical rebind cannot erase predecessor runtime truth"
     );
-    assert!(session.current_mounted_frame_reuse_witness().is_none());
+    assert!(matches!(
+        classify_reuse(&mut session, &request),
+        UiMountedFrameReuse::ComparisonRequired(_)
+    ));
     assert!(!session.reconcile_mounted_presentation(
         UiHostPresentationReconciliation::KnownEmptyBaseline {
             affected_binding,
@@ -92,13 +97,10 @@ fn published_predecessor_survives_indeterminacy_and_requires_exact_re_presentati
     assert_eq!(reconciled.frame(), predecessor.frame());
     assert_eq!(reconciled.bindings(), &[replacement.binding_generation()]);
     assert_eq!(session.current_mounted_publication(), Some(&reconciled));
-    assert_eq!(
-        session
-            .current_mounted_frame_reuse_witness()
-            .unwrap()
-            .frame(),
-        predecessor.frame()
-    );
+    let UiMountedFrameReuse::Exact(witness) = classify_reuse(&mut session, &request) else {
+        panic!("reconciled current truth must restore exact reuse authority");
+    };
+    assert_eq!(witness.frame(), predecessor.frame());
 
     host.push_presented();
     let successor_frame = prepared_frame(&mut session);
@@ -348,6 +350,31 @@ fn prepared_frame(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
     prepared(session)
+}
+
+fn prepared_with_request(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    request: &UiMountedFrameRequest,
+) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+    session
+        .execute_framework_turn(|_| {})
+        .unwrap()
+        .into_execution()
+        .unwrap_or_else(|_| panic!("empty source turn permits mounted preparation"))
+        .prepare_mounted_frame(request.clone())
+        .unwrap()
+}
+
+fn classify_reuse(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    request: &UiMountedFrameRequest,
+) -> UiMountedFrameReuse {
+    session
+        .execute_framework_turn(|_| {})
+        .unwrap()
+        .into_execution()
+        .unwrap_or_else(|_| panic!("empty source turn carries mounted reuse authority"))
+        .classify_mounted_frame_reuse(request)
 }
 
 fn expect_published(

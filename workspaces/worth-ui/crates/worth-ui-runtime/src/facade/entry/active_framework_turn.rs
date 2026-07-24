@@ -35,6 +35,9 @@ pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
     mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
+    host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
+    host_capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    host_capability_profile_digest: u64,
 }
 
 impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
@@ -61,6 +64,8 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             mounted_publication_reservations,
             host_observations,
         } = self;
+        let host_protocol = host_session.protocol();
+        let capability_report = host_session.capability_report();
         match completion.into_execution() {
             Ok(execution) => Ok(WorthUiActiveFrameworkTurnExecution {
                 generation_identity,
@@ -68,6 +73,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 host_session_identity,
                 execution,
                 mounted_identity,
+                host_protocol,
+                host_capability_generation: capability_report.observation_generation(),
+                host_capability_profile_digest: capability_report.profile_identity_digest(),
             }),
             Err(completion) => Err(Box::new(Self {
                 generation_identity,

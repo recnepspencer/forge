@@ -17,6 +17,7 @@ pub struct UiMountedCompletedEffects {
 pub struct UiMountedSurfacePresentationCompletion {
     mode: crate::UiHostSurfacePresentationMode,
     effects: UiMountedCompletedEffects,
+    cost: super::presentation_cost::UiHostPresentationCostReport,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -254,8 +255,13 @@ impl UiMountedSurfacePresentationCompletion {
     pub fn new(
         mode: crate::UiHostSurfacePresentationMode,
         effects: UiMountedCompletedEffects,
+        cost: super::presentation_cost::UiHostPresentationCostReport,
     ) -> Self {
-        Self { mode, effects }
+        Self {
+            mode,
+            effects,
+            cost,
+        }
     }
 
     pub fn mode(&self) -> crate::UiHostSurfacePresentationMode {
@@ -266,8 +272,17 @@ impl UiMountedSurfacePresentationCompletion {
         &self.effects
     }
 
-    pub fn into_effects(self) -> UiMountedCompletedEffects {
-        self.effects
+    pub fn cost(&self) -> super::presentation_cost::UiHostPresentationCostReport {
+        self.cost
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        UiMountedCompletedEffects,
+        super::presentation_cost::UiHostPresentationCostReport,
+    ) {
+        (self.effects, self.cost)
     }
 }
 

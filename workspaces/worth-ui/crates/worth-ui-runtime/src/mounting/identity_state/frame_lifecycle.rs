@@ -5,13 +5,17 @@ use worth_ui_host_contract::{
 
 use super::{UiMountedIdentityFrameCandidate, UiMountedIdentityState};
 use crate::mounting::{
-    UiMountedFrameIdentityView, UiMountedFramePublicationReceipt, UiMountedFrameReuseWitness,
-    UiMountedGraphNodeHandle, UiMountedIdentityDenial, UiMountedIdentityView,
-    UiMountedInstanceIdentityView, UiPreparedMountedFrame, UiPresentedFrameBasisDenial,
-    UiPresentedFrameBasisRelation,
+    UiMountedFrameIdentityView, UiMountedFramePublicationReceipt, UiMountedFrameReuseContract,
+    UiMountedFrameReuseWitness, UiMountedGraphNodeHandle, UiMountedIdentityDenial,
+    UiMountedIdentityView, UiMountedInstanceIdentityView, UiPreparedMountedFrame,
+    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation,
 };
 
 impl UiMountedIdentityState {
+    pub(in crate::mounting) fn has_published_frame(&self) -> bool {
+        self.current_publication.is_some()
+    }
+
     pub(crate) fn advance_frame(
         &mut self,
     ) -> Result<UiMountedFrameIdentity, UiMountedIdentityDenial> {
@@ -52,6 +56,7 @@ impl UiMountedIdentityState {
         self.current_manifest = None;
         self.current_core = None;
         self.current_publication = None;
+        self.current_reuse_contract = None;
     }
 
     pub(crate) fn publish_presented_frame(
@@ -60,7 +65,7 @@ impl UiMountedIdentityState {
         receipt: UiMountedFramePublicationReceipt,
         presented_basis: super::super::retention::UiPreparedPresentedFrameBasis,
     ) {
-        let (candidate, manifest, core) = frame.into_publication_parts();
+        let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
         self.current_manifest = Some(manifest);
         self.current_core = Some(core);
         let (projection, identity_candidate) = candidate.into_parts();
@@ -70,6 +75,7 @@ impl UiMountedIdentityState {
         self.current_receipts = receipts;
         self.current_projection = Some(projection);
         self.current_publication = Some(receipt);
+        self.current_reuse_contract = Some(reuse_contract);
     }
 
     pub(crate) fn publish_reconciled_frame(
@@ -79,7 +85,7 @@ impl UiMountedIdentityState {
         presented_basis: super::super::retention::UiPreparedPresentedFrameBasis,
     ) {
         debug_assert_eq!(self.current_frame, Some(frame.canonical_core().frame()));
-        let (candidate, manifest, core) = frame.into_publication_parts();
+        let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
         self.current_manifest = Some(manifest);
         self.current_core = Some(core);
         let (projection, identity_candidate) = candidate.into_parts();
@@ -89,11 +95,14 @@ impl UiMountedIdentityState {
         self.current_receipts = receipts;
         self.current_projection = Some(projection);
         self.current_publication = Some(receipt);
+        self.current_reuse_contract = Some(reuse_contract);
     }
 
     pub(crate) fn prepare_current_reconciliation_frame(
         &self,
         replacements: &[super::super::UiMountedSurfaceReconciliationBinding],
+        protocol: worth_ui_host_contract::UiHostProtocolAgreement,
+        capability_report: &worth_ui_host_contract::WorthUiHostCapabilityReport,
     ) -> Result<UiPreparedMountedFrame, UiMountedIdentityDenial> {
         if replacements.is_empty() {
             return Err(UiMountedIdentityDenial::ReconciliationBasisMismatch);
@@ -153,6 +162,15 @@ impl UiMountedIdentityState {
             manifest,
             current_core.graph_world(),
             current_core.allocation_truth_revision(),
+            self.current_reuse_contract
+                .as_ref()
+                .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?
+                .reconciled(
+                    self.binding_revision,
+                    protocol,
+                    capability_report.observation_generation(),
+                    capability_report.profile_identity_digest(),
+                ),
         )
         .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)
     }
@@ -170,21 +188,19 @@ impl UiMountedIdentityState {
         })
     }
 
-    pub(crate) fn reuse_witness(&self) -> Option<UiMountedFrameReuseWitness> {
-        let receipt = self.current_publication.as_ref()?;
-        let mut current_bindings = self
-            .bindings
-            .values()
-            .map(|record| record.view.binding_generation())
-            .collect::<Vec<_>>();
-        current_bindings.sort();
-        if current_bindings != receipt.bindings() {
-            return None;
+    pub(crate) fn classify_reuse(
+        &self,
+        contract: UiMountedFrameReuseContract,
+    ) -> super::super::UiMountedFrameReuse {
+        match (&self.current_reuse_contract, &self.current_publication) {
+            (Some(current), Some(publication)) if current == &contract => {
+                super::super::UiMountedFrameReuse::Exact(UiMountedFrameReuseWitness::mint(
+                    contract,
+                    publication.clone(),
+                ))
+            }
+            _ => super::super::UiMountedFrameReuse::ComparisonRequired(contract),
         }
-        Some(UiMountedFrameReuseWitness::new(
-            receipt.frame(),
-            receipt.bindings().to_vec().into_boxed_slice(),
-        ))
     }
 
     pub(crate) fn reuse_receipt(
@@ -192,7 +208,8 @@ impl UiMountedIdentityState {
         witness: &UiMountedFrameReuseWitness,
     ) -> Option<UiMountedFramePublicationReceipt> {
         let receipt = self.current_publication.as_ref()?;
-        (receipt.frame() == witness.frame() && receipt.bindings() == witness.bindings())
+        let contract = self.current_reuse_contract.as_ref()?;
+        (contract == witness.contract() && receipt == witness.publication())
             .then(|| receipt.clone())
     }
 

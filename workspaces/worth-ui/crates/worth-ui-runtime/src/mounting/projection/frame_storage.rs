@@ -44,6 +44,7 @@ pub struct UiMountedProjectionFrame {
     virtualized_recorded: bool,
     canvas_recorded: bool,
     realtime_recorded: bool,
+    counters: super::super::UiMountStageCounters,
 }
 
 impl UiMountedProjectionFrame {
@@ -52,6 +53,7 @@ impl UiMountedProjectionFrame {
         plan_digest: u64,
         nodes: Vec<UiMountedProjectionNodeRecord>,
         surfaces: Vec<UiMountedProjectionSurface>,
+        counters: super::super::UiMountStageCounters,
     ) -> Self {
         Self {
             frame,
@@ -67,6 +69,7 @@ impl UiMountedProjectionFrame {
             virtualized_recorded: false,
             canvas_recorded: false,
             realtime_recorded: false,
+            counters,
         }
     }
 
@@ -78,6 +81,10 @@ impl UiMountedProjectionFrame {
     }
     pub fn node_receipts(&self) -> impl ExactSizeIterator<Item = &UiMountedNodeReceipt> {
         self.nodes.iter().map(|record| &record.receipt)
+    }
+
+    pub fn cost_report(&self) -> super::super::UiMountCostReport {
+        self.counters.finish()
     }
 
     pub(super) fn record_ordinary(
@@ -129,6 +136,7 @@ impl UiMountedProjectionFrame {
         if self.spatial_batches.len() >= TABLE_LIMIT {
             return Err(UiMountedProjectionDenial::TableCapacityExceeded);
         }
+        self.record_rows::<UiMountedSpatialBatchRow>(1)?;
         self.spatial_batches.push(UiMountedSpatialBatchRow::new(
             receipt.visible_primitive_count(),
             receipt.queried_hit_test_region_count(),
@@ -156,6 +164,7 @@ impl UiMountedProjectionFrame {
         if self.realtime_batches.len() >= TABLE_LIMIT {
             return Err(UiMountedProjectionDenial::TableCapacityExceeded);
         }
+        self.record_rows::<UiMountedRealtimeBatchRow>(1)?;
         self.realtime_batches.push(UiMountedRealtimeBatchRow::new(
             receipt.touched_overlay_row_count(),
         ));
@@ -255,6 +264,7 @@ impl UiMountedProjectionFrame {
         if self.paint_batches.len() >= TABLE_LIMIT {
             return Err(UiMountedProjectionDenial::TableCapacityExceeded);
         }
+        self.record_rows::<UiMountedPaintBatchRow>(1)?;
         let batch_index = u16::try_from(self.paint_batches.len())
             .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded)?;
         self.paint_batches.push(UiMountedPaintBatchRow::new(
@@ -295,6 +305,7 @@ impl UiMountedProjectionFrame {
         if self.layers.len() >= TABLE_LIMIT {
             return Err(UiMountedProjectionDenial::TableCapacityExceeded);
         }
+        self.record_rows::<UiMountedLayerRow>(1)?;
         let index = u16::try_from(self.layers.len())
             .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded)?;
         self.layers.push(UiMountedLayerRow::new(
@@ -320,6 +331,7 @@ impl UiMountedProjectionFrame {
         if self.resources.len() >= RESOURCE_LIMIT {
             return Err(UiMountedProjectionDenial::TableCapacityExceeded);
         }
+        self.record_rows::<UiMountedResourceEntry>(1)?;
         let index = u16::try_from(self.resources.len())
             .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded)?;
         self.resources.push(UiMountedResourceEntry::new(
@@ -328,6 +340,12 @@ impl UiMountedProjectionFrame {
             0,
         ));
         Ok(UiMountedResourceReference::new(index))
+    }
+
+    fn record_rows<Row>(&mut self, count: usize) -> Result<(), UiMountedProjectionDenial> {
+        self.counters
+            .replace_rows::<Row>(count)
+            .map_err(|_| UiMountedProjectionDenial::CostCounterOverflow)
     }
 }
 

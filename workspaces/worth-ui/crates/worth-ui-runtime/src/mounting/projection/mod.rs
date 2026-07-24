@@ -1,3 +1,4 @@
+mod cost_accounting;
 mod denial;
 mod frame_storage;
 mod geometry;

@@ -15,6 +15,7 @@ use super::{
 };
 
 static NEXT_WORLD: AtomicU64 = AtomicU64::new(1);
+static NEXT_STATE_REVISION: AtomicU64 = AtomicU64::new(1);
 const SEMANTIC_SURFACE_LIMIT: usize = 256;
 const MOUNTED_CLOSURE_LIMIT: usize = 2_048;
 const GRAPH_NODE_MOUNT_LIMIT: usize = 1_024;
@@ -56,7 +57,10 @@ pub(crate) struct UiMountedIdentityState {
     current_manifest: Option<worth_ui_host_contract::UiMountedFrameManifest>,
     current_core: Option<worth_ui_host_contract::UiMountedFrameCanonicalCore>,
     current_publication: Option<super::UiMountedFramePublicationReceipt>,
+    current_reuse_contract: Option<super::UiMountedFrameReuseContract>,
     presented_frames: super::retention::UiMountedPresentedFrameRetention,
+    semantic_revision: u64,
+    binding_revision: u64,
 }
 
 impl UiMountedIdentityState {
@@ -67,6 +71,8 @@ impl UiMountedIdentityState {
     pub(crate) fn new(
         host_session_identity: WorthUiHostSessionIdentity,
     ) -> Result<Self, UiMountedIdentityDenial> {
+        let semantic_revision = next(&NEXT_STATE_REVISION)?;
+        let binding_revision = next(&NEXT_STATE_REVISION)?;
         Ok(Self {
             world_identity: UiMountedGraphWorldIdentity::new(next(&NEXT_WORLD)?),
             host_session_identity,
@@ -83,7 +89,10 @@ impl UiMountedIdentityState {
             current_manifest: None,
             current_core: None,
             current_publication: None,
+            current_reuse_contract: None,
             presented_frames: Default::default(),
+            semantic_revision,
+            binding_revision,
         })
     }
 
@@ -102,7 +111,9 @@ impl UiMountedIdentityState {
         }
         let identity = UiSemanticSurfaceIdentity::mint_unbound()
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
+        let semantic_revision = next(&NEXT_STATE_REVISION)?;
         self.semantic_surfaces.insert(identity, audience);
+        self.semantic_revision = semantic_revision;
         Ok(identity)
     }
 
@@ -147,6 +158,7 @@ impl UiMountedIdentityState {
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
         let identity = UiMountedInstanceIdentity::mint_unbound()
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
+        let semantic_revision = next(&NEXT_STATE_REVISION)?;
         let basis = UiMountedIdentityBasis::new(
             handle.graph_node_identity(),
             graph_node.value().repeated_instance_basis().clone(),
@@ -160,6 +172,7 @@ impl UiMountedIdentityState {
             .or_default()
             .insert(identity);
         self.visible_order.push(identity);
+        self.semantic_revision = semantic_revision;
         Ok(identity)
     }
 
@@ -167,13 +180,15 @@ impl UiMountedIdentityState {
         &mut self,
         identity: UiMountedInstanceIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
-        let record = self.instances.remove(&identity).ok_or_else(|| {
+        let record = self.instances.get(&identity).cloned().ok_or_else(|| {
             if self.retired_instances.contains(&identity) {
                 UiMountedIdentityDenial::RetiredMountedInstance
             } else {
                 UiMountedIdentityDenial::UnknownMountedInstance
             }
         })?;
+        let semantic_revision = next(&NEXT_STATE_REVISION)?;
+        self.instances.remove(&identity);
         if let Some(instances) = self.by_graph.get_mut(&record.basis.graph_node_identity()) {
             instances.remove(&identity);
         }
@@ -181,6 +196,7 @@ impl UiMountedIdentityState {
             .retain(|candidate| *candidate != identity);
         self.current_receipts.remove(&identity);
         self.remember_retirement(identity);
+        self.semantic_revision = semantic_revision;
         Ok(())
     }
 
@@ -195,6 +211,7 @@ impl UiMountedIdentityState {
         graph: UiGraphAuthority<'_>,
     ) -> Result<Self, UiMountedIdentityDenial> {
         let next_world = self.prepare_graph_replacement()?;
+        let semantic_revision = next(&NEXT_STATE_REVISION)?;
         let instances = self
             .instances
             .iter()
@@ -238,7 +255,10 @@ impl UiMountedIdentityState {
             current_manifest: None,
             current_core: None,
             current_publication: None,
+            current_reuse_contract: None,
             presented_frames: self.presented_frames.inherited_by_replacement(),
+            semantic_revision,
+            binding_revision: self.binding_revision,
         };
         for identity in self
             .instances
@@ -261,8 +281,10 @@ impl UiMountedIdentityState {
         if requested != current || requested.len() != order.len() {
             return Err(UiMountedIdentityDenial::ReorderMembershipMismatch);
         }
+        let semantic_revision = next(&NEXT_STATE_REVISION)?;
         self.visible_order.clear();
         self.visible_order.extend_from_slice(order);
+        self.semantic_revision = semantic_revision;
         Ok(())
     }
 
@@ -298,6 +320,18 @@ impl UiMountedIdentityState {
                 .expect("an over-limit retirement queue is non-empty");
             self.retired_instances.remove(&expired);
         }
+    }
+
+    pub(crate) fn seal_reuse_contract(
+        &self,
+        basis: super::UiMountedFrameReuseExternalBasis,
+    ) -> super::UiMountedFrameReuseContract {
+        super::UiMountedFrameReuseContract::seal(
+            basis,
+            self.world_identity.diagnostic_value(),
+            self.semantic_revision,
+            self.binding_revision,
+        )
     }
 }
 

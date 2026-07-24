@@ -3,12 +3,13 @@ use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostProtocolNegotiation,
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
-    UiHostSurfacePresentationOutcome, UiHostSurfaceRegistrationDenial,
-    UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects, UiMountedEffectFamily,
-    UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostPresentationCostInput,
+    UiHostPresentationCostReport, UiHostProtocolNegotiation, UiHostSurfacePresentationDenial,
+    UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
+    UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects,
+    UiMountedEffectFamily, UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion,
+    WorthUiHostCapability, WorthUiHostCapabilityReport, WorthUiHostContract,
+    WorthUiMeasurementHostAdapter,
 };
 
 use super::headless_translation::translate_headless_frame;
@@ -228,10 +229,17 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessRecorder {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
+        let adapter_cost = match projection_cost(view.projection()) {
+            Ok(cost) => cost,
+            Err(denial) => {
+                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+            }
+        };
         self.state.borrow_mut().transcripts.push_back(transcript);
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
             UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection]),
+            adapter_cost,
         ))
     }
 
@@ -249,4 +257,45 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessRecorder {
             retained_before - state.registrations.len(),
         ))
     }
+}
+
+fn projection_cost(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<UiHostPresentationCostReport, UiHostSurfacePresentationDenial> {
+    let rows = [
+        projection.nodes().len(),
+        projection.clips().rows().len(),
+        projection.layers().rows().len(),
+        projection.paint_batches().rows().len(),
+        projection.spatial_batches().rows().len(),
+        projection.realtime_batches().rows().len(),
+        projection.resources().entries().len(),
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    let bytes = [
+        std::mem::size_of_val(projection.nodes()),
+        std::mem::size_of_val(projection.clips().rows()),
+        std::mem::size_of_val(projection.layers().rows()),
+        std::mem::size_of_val(projection.paint_batches().rows()),
+        std::mem::size_of_val(projection.spatial_batches().rows()),
+        std::mem::size_of_val(projection.realtime_batches().rows()),
+        std::mem::size_of_val(projection.resources().entries()),
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    Ok(UiHostPresentationCostReport::from_adapter(
+        UiHostPresentationCostInput {
+            presented_surfaces: 1,
+            translated_rows: u64::try_from(rows)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            translated_bytes: u64::try_from(bytes)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            native_resource_cache_hits: 0,
+            native_resource_cache_misses: 0,
+            asynchronous_handoffs: 0,
+        },
+    ))
 }

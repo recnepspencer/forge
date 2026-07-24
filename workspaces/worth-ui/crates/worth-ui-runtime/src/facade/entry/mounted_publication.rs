@@ -63,10 +63,12 @@ impl WorthUiActiveApplicationSession {
             .publication_receipt()
             .cloned()
             .ok_or(crate::mounting::UiMountedIdentityDenial::NoPublishedMountedFrame)?;
-        let frame = self
-            .mounted_identity
-            .prepare_current_reconciliation_frame(replacements)?;
         let capability_report = self.host_session.capability_report().clone();
+        let frame = self.mounted_identity.prepare_current_reconciliation_frame(
+            replacements,
+            self.host_session.protocol(),
+            &capability_report,
+        )?;
         let admission = match self.mounted_presentation.admit_reconciliation(
             frame,
             replacements,
@@ -126,10 +128,6 @@ impl WorthUiActiveApplicationSession {
             Ok(outcome) => self.finish_mounted_presentation(outcome),
             Err(denial) => UiMountedFrameOutcome::CompletionDenied(denial),
         }
-    }
-
-    pub fn current_mounted_frame_reuse_witness(&self) -> Option<UiMountedFrameReuseWitness> {
-        self.mounted_identity.reuse_witness()
     }
 
     pub fn reuse_current_mounted_frame(

@@ -2,13 +2,16 @@
 
 pub use crate::mounting::{
     UiHostPresentationReconciliation, UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity,
-    UiHostSurfacePresentationMode, UiMountIncarnation, UiMountedFrameIdentity,
+    UiHostSurfacePresentationMode, UiMountCostReport, UiMountIncarnation, UiMountNamedCounters,
+    UiMountWorkClass, UiMountedFrameDelta, UiMountedFrameExecutionPosture, UiMountedFrameIdentity,
     UiMountedFrameIdentityView, UiMountedFrameOutcome, UiMountedFramePreparationDenial,
     UiMountedFramePublicationReceipt, UiMountedFrameReceipt, UiMountedFrameRequest,
-    UiMountedFrameReuseWitness, UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity,
-    UiMountedIdentityBasis, UiMountedIdentityDenial, UiMountedIdentityView,
-    UiMountedIndeterminateFrame, UiMountedInstanceIdentity, UiMountedInstanceIdentityView,
-    UiMountedNodeReceipt, UiMountedNodeReceiptIdentity, UiMountedPresentationAdmission,
+    UiMountedFrameReuse, UiMountedFrameReuseComparator, UiMountedFrameReuseContract,
+    UiMountedFrameReuseDependency, UiMountedFrameReuseMintingStage, UiMountedFrameReuseWitness,
+    UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMountedIdentityBasis,
+    UiMountedIdentityDenial, UiMountedIdentityView, UiMountedIndeterminateFrame,
+    UiMountedInstanceIdentity, UiMountedInstanceIdentityView, UiMountedNodeReceipt,
+    UiMountedNodeReceiptIdentity, UiMountedPresentationAdmission,
     UiMountedPresentationAdmissionDenial, UiMountedPresentationAdmissionRejection,
     UiMountedPresentationAttempt, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedPresentationOutcome, UiMountedPresentationReceipt,
@@ -24,6 +27,7 @@ pub use crate::mounting::{
 };
 pub use worth_ui_host_contract::{
     UiHeadlessMountedResourceHandle, UiHostPresentationCompletionToken,
+    UiHostPresentationCostInput, UiHostPresentationCostOverflow, UiHostPresentationCostReport,
     UiHostSurfaceCancellationOutcome, UiHostSurfaceInFlightCompletion,
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationOutcome,
     UiMountedAccessibilityProjection, UiMountedAllocationBasis, UiMountedAllocationProjection,

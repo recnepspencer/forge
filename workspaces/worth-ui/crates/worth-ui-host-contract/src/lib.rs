@@ -7,7 +7,8 @@ mod runtime;
 pub use inspection::WorthUiInspectionHostContract;
 pub use mounted_frame::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion,
-    UiHostPresentationCompletionToken, UiHostProtocolAgreement, UiHostProtocolContract,
+    UiHostPresentationCompletionToken, UiHostPresentationCostInput, UiHostPresentationCostOverflow,
+    UiHostPresentationCostReport, UiHostProtocolAgreement, UiHostProtocolContract,
     UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
     UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiHostSurfaceBaselineReceipt,
     UiHostSurfaceCancellationOutcome, UiHostSurfaceDeregistrationIndeterminate,

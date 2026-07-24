@@ -15,6 +15,7 @@ pub(crate) struct UiPreparedMountedProjection {
     canvas: Option<(crate::runtime::WorthUiCanvasSpatialFrameReceipt, u64)>,
     realtime: Option<crate::runtime::WorthUiRealtimeFrameReceipt>,
     preview: Option<UiMountedPreviewProjectionInput>,
+    counters: super::super::UiMountStageCounters,
 }
 
 pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
@@ -156,6 +157,7 @@ impl UiPreparedMountedProjection {
             self.plan_digest,
             nodes,
             self.surfaces,
+            self.counters,
         );
         if let Some(receipt) = self.ordinary.as_ref() {
             frame.record_ordinary(receipt)?;
@@ -233,6 +235,17 @@ pub(crate) fn prepare_projection(
             })
         })
         .collect::<Result<Vec<_>, UiMountedProjectionDenial>>()?;
+    let counters = super::cost_accounting::begin_projection_cost(
+        super::cost_accounting::UiMountedProjectionCostInput {
+            has_published_frame: state.has_published_frame(),
+            plan_rows: input.plan_rows.len(),
+            allocation_receipts: input.allocation_receipts.len(),
+            mounted_instances: identity_view.mounted_instances().len(),
+            surface_bindings: identity_view.surface_bindings().len(),
+            projected_instances: nodes.len(),
+            projected_surfaces: surfaces.len(),
+        },
+    )?;
     Ok(UiPreparedMountedProjection {
         plan_digest: input.plan_digest,
         nodes,
@@ -242,6 +255,7 @@ pub(crate) fn prepare_projection(
         canvas: None,
         realtime: None,
         preview: input.preview,
+        counters,
     })
 }
 

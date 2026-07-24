@@ -1,10 +1,20 @@
 use super::WorthUiPreparedApplicationActivation;
 
+pub(super) struct UiMountedReplacementReuseBasis {
+    pub(super) generation:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) host_session: u64,
+    pub(super) protocol: worth_ui_host_contract::UiHostProtocolAgreement,
+    pub(super) capability_generation:
+        worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    pub(super) capability_profile_digest: u64,
+}
+
 pub(super) fn prepare_candidate_mounted_frame(
     application: &WorthUiPreparedApplicationActivation,
     state: &mut crate::mounting::UiMountedIdentityState,
     graph: crate::graph::UiGraphAuthority<'_>,
-    generation: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    reuse_basis: UiMountedReplacementReuseBasis,
     request: crate::mounting::UiMountedFrameRequest,
 ) -> Result<crate::mounting::UiPreparedMountedFrame, crate::mounting::UiMountedFramePreparationDenial>
 {
@@ -13,11 +23,24 @@ pub(super) fn prepare_candidate_mounted_frame(
     let lanes = candidate_lanes(plan, range.is_some());
     let plan_rows = plan.mounted_projection_rows();
     let allocations = application.candidate_allocation_receipts();
+    let reuse_contract =
+        state.seal_reuse_contract(crate::mounting::UiMountedFrameReuseExternalBasis {
+            generation: reuse_basis.generation.clone(),
+            host_session: reuse_basis.host_session,
+            execution: crate::mounting::UiMountedFrameExecutionPosture::ReplacementCandidate,
+            plan_digest: application.candidate_plan_digest(),
+            allocation_truth_revision: application.candidate_allocation_truth_revision(),
+            request: request.reuse_identity(),
+            lanes,
+            protocol: reuse_basis.protocol,
+            capability_generation: reuse_basis.capability_generation,
+            capability_profile_digest: reuse_basis.capability_profile_digest,
+        });
     let mut assembler = crate::mounting::UiMountedFrameAssembler::begin(
         state,
         crate::mounting::UiMountedFrameAssemblyInput {
             graph,
-            generation,
+            generation: reuse_basis.generation,
             plan_digest: application.candidate_plan_digest(),
             allocation_truth_revision: application.candidate_allocation_truth_revision(),
             plan_rows: &plan_rows,
@@ -25,6 +48,7 @@ pub(super) fn prepare_candidate_mounted_frame(
             request,
             lanes,
             preview: None,
+            reuse_contract,
         },
     )?;
     execute_candidate_lanes(application, &mut assembler, lanes, range)?;

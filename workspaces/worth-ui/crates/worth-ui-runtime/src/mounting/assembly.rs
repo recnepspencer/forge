@@ -6,17 +6,21 @@ use worth_ui_host_contract::{
 
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct UiMountedFrameRequest {
     surfaces: UiMountedSurfaceSelection,
     virtualized_range: Option<crate::runtime::WorthUiVisibleRange>,
+    reuse_identity: UiMountedFrameRequestIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum UiMountedSurfaceSelection {
     AllBound,
-    Exact(Box<[UiSemanticSurfaceIdentity]>),
+    Exact(std::rc::Rc<[UiSemanticSurfaceIdentity]>),
 }
+
+#[derive(Clone)]
+pub(crate) struct UiMountedFrameRequestIdentity(std::rc::Rc<()>);
 
 #[derive(Debug, PartialEq)]
 pub enum UiMountedFramePreparationDenial {
@@ -41,6 +45,7 @@ pub struct UiMountedFrameReceipt {
     canonical_core: UiMountedFrameCanonicalCore,
     integrity: UiMountedFrameIntegrity,
     surface_count: usize,
+    cost: super::UiMountCostReport,
 }
 
 pub struct UiPreparedMountedFrame {
@@ -50,6 +55,8 @@ pub struct UiPreparedMountedFrame {
     canonical_core: UiMountedFrameCanonicalCore,
     integrity: UiMountedFrameIntegrity,
     surfaces: Box<[UiMountedSurfaceReceipt]>,
+    cost: super::UiMountCostReport,
+    reuse_contract: super::UiMountedFrameReuseContract,
 }
 
 impl UiMountedFrameRequest {
@@ -57,23 +64,30 @@ impl UiMountedFrameRequest {
         Self {
             surfaces: UiMountedSurfaceSelection::AllBound,
             virtualized_range: None,
+            reuse_identity: UiMountedFrameRequestIdentity(std::rc::Rc::new(())),
         }
     }
 
     pub fn exact_surfaces(surfaces: Vec<UiSemanticSurfaceIdentity>) -> Self {
         Self {
-            surfaces: UiMountedSurfaceSelection::Exact(surfaces.into_boxed_slice()),
+            surfaces: UiMountedSurfaceSelection::Exact(surfaces.into()),
             virtualized_range: None,
+            reuse_identity: UiMountedFrameRequestIdentity(std::rc::Rc::new(())),
         }
     }
 
     pub fn with_virtualized_range(mut self, range: crate::runtime::WorthUiVisibleRange) -> Self {
         self.virtualized_range = Some(range);
+        self.reuse_identity = UiMountedFrameRequestIdentity(std::rc::Rc::new(()));
         self
     }
 
     pub fn virtualized_range(&self) -> Option<crate::runtime::WorthUiVisibleRange> {
         self.virtualized_range
+    }
+
+    pub(crate) fn reuse_identity(&self) -> UiMountedFrameRequestIdentity {
+        self.reuse_identity.clone()
     }
 
     pub(crate) fn resolve_requirements(
@@ -105,6 +119,28 @@ impl UiMountedFrameRequest {
     }
 }
 
+impl PartialEq for UiMountedFrameRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.surfaces == other.surfaces && self.virtualized_range == other.virtualized_range
+    }
+}
+
+impl Eq for UiMountedFrameRequest {}
+
+impl PartialEq for UiMountedFrameRequestIdentity {
+    fn eq(&self, other: &Self) -> bool {
+        std::rc::Rc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl Eq for UiMountedFrameRequestIdentity {}
+
+impl std::fmt::Debug for UiMountedFrameRequestIdentity {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("UiMountedFrameRequestIdentity")
+    }
+}
+
 impl UiMountedSurfaceReceipt {
     pub fn requirement(&self) -> UiMountedSurfaceBindingRequirement {
         self.requirement
@@ -127,6 +163,14 @@ impl UiMountedFrameReceipt {
     pub fn surface_count(&self) -> usize {
         self.surface_count
     }
+
+    pub fn cost_report(&self) -> super::UiMountCostReport {
+        self.cost
+    }
+
+    pub fn delta(&self) -> super::UiMountedFrameDelta {
+        super::UiMountedFrameDelta::from_cost(self.cost)
+    }
 }
 
 impl UiPreparedMountedFrame {
@@ -136,6 +180,7 @@ impl UiPreparedMountedFrame {
         manifest: UiMountedFrameManifest,
         graph_world: u64,
         allocation_truth_revision: u64,
+        reuse_contract: super::UiMountedFrameReuseContract,
     ) -> Result<Self, UiMountedFramePreparationDenial> {
         validate_manifest(&manifest)?;
         let surfaces = manifest
@@ -163,6 +208,7 @@ impl UiPreparedMountedFrame {
         if !integrity.verifies(canonical_core, &manifest) {
             return Err(UiMountedFramePreparationDenial::IntegrityMismatch);
         }
+        let cost = candidate.frame().cost_report();
         Ok(Self {
             candidate,
             generation,
@@ -170,6 +216,8 @@ impl UiPreparedMountedFrame {
             canonical_core,
             integrity,
             surfaces: surfaces.into_boxed_slice(),
+            cost,
+            reuse_contract,
         })
     }
 
@@ -198,7 +246,16 @@ impl UiPreparedMountedFrame {
             canonical_core: self.canonical_core,
             integrity: self.integrity,
             surface_count: self.surfaces.len(),
+            cost: self.cost,
         }
+    }
+
+    pub fn cost_report(&self) -> super::UiMountCostReport {
+        self.cost
+    }
+
+    pub fn reuse_contract(&self) -> &super::UiMountedFrameReuseContract {
+        &self.reuse_contract
     }
 
     pub fn is_unpublished(&self) -> bool {
@@ -222,8 +279,14 @@ impl UiPreparedMountedFrame {
         super::UiProjectedMountedFrameCandidate,
         UiMountedFrameManifest,
         UiMountedFrameCanonicalCore,
+        super::UiMountedFrameReuseContract,
     ) {
-        (self.candidate, self.manifest, self.canonical_core)
+        (
+            self.candidate,
+            self.manifest,
+            self.canonical_core,
+            self.reuse_contract,
+        )
     }
 }
 
