@@ -11,6 +11,7 @@ pub(crate) struct WorthQueryRuntimeArtifactOwner {
     semantic_projection: WorthQueryArtifactSemanticProjection,
     retained_bytes: usize,
     created_thread: std::thread::ThreadId,
+    provider_access_session_identity: String,
     resource: Mutex<Option<Box<dyn WorthQueryErasedArtifactProviderResource>>>,
     pub(super) lifecycle: Mutex<WorthQueryRuntimeArtifactLifecycle>,
 }
@@ -37,11 +38,25 @@ impl WorthQueryRuntimeArtifactOwner {
         prepared: WorthQueryPreparedArtifactResource,
     ) -> Arc<Self> {
         let (semantic_projection, retained_bytes, resource) = prepared.into_owner_parts();
+        let provider_access_session_identity = crate::identity::hash_parts(&[
+            "worth_query_artifact_provider_access_session_v1".into(),
+            format!("owner:{}", binding.owner_identity),
+            format!(
+                "provider:{}",
+                binding
+                    .contract
+                    .contract()
+                    .ownership()
+                    .provider_family()
+                    .unwrap_or("unbound")
+            ),
+        ]);
         Arc::new(Self {
             binding,
             semantic_projection,
             retained_bytes,
             created_thread: std::thread::current().id(),
+            provider_access_session_identity,
             resource: Mutex::new(Some(resource)),
             lifecycle: Mutex::new(WorthQueryRuntimeArtifactLifecycle::new(retained_bytes)),
         })
@@ -61,6 +76,27 @@ impl WorthQueryRuntimeArtifactOwner {
 
     pub(super) fn created_thread(&self) -> std::thread::ThreadId {
         self.created_thread
+    }
+
+    pub(super) fn provider_access_session_identity(&self) -> &str {
+        &self.provider_access_session_identity
+    }
+
+    pub(super) fn with_native_access_provider<T>(
+        &self,
+        access: impl FnOnce(&dyn super::WorthQueryArtifactNativeAccessProvider) -> T,
+    ) -> Option<T> {
+        let resource = self
+            .resource
+            .lock()
+            .expect("artifact provider resource lock must remain available");
+        let provider = resource.as_ref()?.native_access_provider()?;
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| access(provider)));
+        drop(resource);
+        match outcome {
+            Ok(value) => Some(value),
+            Err(panic) => std::panic::resume_unwind(panic),
+        }
     }
 
     pub(super) fn dispose_provider_if_required(&self, should_dispose: bool) {

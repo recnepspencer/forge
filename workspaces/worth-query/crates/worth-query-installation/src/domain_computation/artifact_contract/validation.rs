@@ -22,6 +22,7 @@ pub enum WorthQueryArtifactContractValidationDenialKind {
     InvalidSearchContract,
     InvalidConvergenceContract,
     InvalidTransformationContract,
+    InvalidAccessPathContract,
     DerivedReconstructionClaimsAuthority,
     InvalidCarriageContract,
     InvalidStructuralCounterContract,
@@ -67,6 +68,12 @@ pub(crate) fn validate_artifact_contract(
     search::validate(contract)?;
     convergence::validate(contract)?;
     transformation::validate(contract)?;
+    if !crate::domain_computation::validate_artifact_access_path(&contract.access_path) {
+        return Err(WorthQueryArtifactContractValidationDenial::new(
+            WorthQueryArtifactContractValidationDenialKind::InvalidAccessPathContract,
+            contract.family.as_str(),
+        ));
+    }
     carriage_and_governance::validate(contract)?;
     compatibility::validate(contract)
 }

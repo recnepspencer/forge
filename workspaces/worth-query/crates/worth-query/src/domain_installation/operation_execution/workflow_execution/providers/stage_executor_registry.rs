@@ -85,6 +85,7 @@ where
             workspace,
             artifact_registry,
             context.artifact_production_authority(),
+            context.artifact_access_authority(),
         );
         let mut material = match self.executor.execute_stage(input, context, &mut workspace) {
             Ok(material) => material,

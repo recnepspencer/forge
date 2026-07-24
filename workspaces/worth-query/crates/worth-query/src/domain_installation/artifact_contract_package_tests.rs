@@ -80,6 +80,7 @@ fn candidate_contract() -> WorthQueryPortableArtifactContract {
     .search(WorthQueryCandidateSearchContract::not_applicable())
     .convergence(WorthQueryConvergenceContract::NotIterative)
     .transformation(WorthQueryTransformationEvidenceContract::not_a_transformation())
+    .access_path(WorthQueryArtifactAccessPathContract::denied())
     .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(WorthQueryArtifactLifecycleContract::ArenaScoped)
     .counters(WorthQueryStructuralCounterContract::new(

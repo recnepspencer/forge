@@ -8,9 +8,10 @@ use super::{
     WorthQueryArtifactSchemaVersion, WorthQueryPortableArtifactContractBuilder,
 };
 use crate::domain_computation::{
-    WorthQueryArtifactOccurrenceContract, WorthQueryArtifactReproducibilityContract,
-    WorthQueryCandidateSearchContract, WorthQueryConvergenceContract,
-    WorthQueryStructuralCounterContract, WorthQueryTransformationEvidenceContract,
+    WorthQueryArtifactAccessPathContract, WorthQueryArtifactOccurrenceContract,
+    WorthQueryArtifactReproducibilityContract, WorthQueryCandidateSearchContract,
+    WorthQueryConvergenceContract, WorthQueryStructuralCounterContract,
+    WorthQueryTransformationEvidenceContract,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -26,6 +27,7 @@ pub struct WorthQueryPortableArtifactContract {
     pub(crate) search: WorthQueryCandidateSearchContract,
     pub(crate) convergence: WorthQueryConvergenceContract,
     pub(crate) transformation: WorthQueryTransformationEvidenceContract,
+    pub(crate) access_path: WorthQueryArtifactAccessPathContract,
     pub(crate) carriage: WorthQueryArtifactCarriageContract,
     pub(crate) lifecycle: WorthQueryArtifactLifecycleContract,
     pub(crate) counters: WorthQueryStructuralCounterContract,
@@ -102,6 +104,10 @@ impl WorthQueryPortableArtifactContract {
 
     pub fn transformation(&self) -> &WorthQueryTransformationEvidenceContract {
         &self.transformation
+    }
+
+    pub fn access_path(&self) -> &WorthQueryArtifactAccessPathContract {
+        &self.access_path
     }
 
     pub const fn carriage(&self) -> WorthQueryArtifactCarriageContract {

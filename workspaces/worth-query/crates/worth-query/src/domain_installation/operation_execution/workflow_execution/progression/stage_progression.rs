@@ -318,6 +318,11 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                     .artifact_contracts(stage.identity())
                     .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::output)
                     .map(std::sync::Arc::clone),
+                input_artifact_contract: self
+                    .graph
+                    .artifact_contracts(stage.identity())
+                    .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::input)
+                    .map(std::sync::Arc::clone),
             },
         )
     }

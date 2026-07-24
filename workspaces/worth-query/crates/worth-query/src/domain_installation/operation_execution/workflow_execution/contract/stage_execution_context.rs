@@ -1,8 +1,9 @@
 use super::{
-    WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowEffectEvidence,
-    WorthQueryWorkflowPredecessorReceipt, WorthQueryWorkflowStageEffectDenial,
-    WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionScope,
-    WorthQueryWorkflowStageExecutorFailure, WorthQueryWorkflowStageWorkspace,
+    workflow_stage_lineage::lineage_traversal, WorthQueryBoundGraphExecutionReceipt,
+    WorthQueryWorkflowEffectEvidence, WorthQueryWorkflowPredecessorReceipt,
+    WorthQueryWorkflowStageEffectDenial, WorthQueryWorkflowStageExecutionAuthority,
+    WorthQueryWorkflowStageExecutionScope, WorthQueryWorkflowStageExecutorFailure,
+    WorthQueryWorkflowStageLineageDenial, WorthQueryWorkflowStageWorkspace,
 };
 
 pub struct WorthQueryWorkflowStageExecutionContext<'a> {
@@ -26,16 +27,10 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
             worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
         >,
     >,
+    pub(super) artifact_access_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>>,
     pub(super) artifact_production_authority:
         Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryWorkflowStageLineageDenial {
-    RuntimeMutationEvidenceRequired,
-    AuthoritativeContinuityEvidenceRequired,
-    IdentityEvolutionAdmission(crate::identity_evolution::IdentityEvolutionAdmissionError),
-    IdentityEvolutionOutcomeMismatch,
 }
 
 impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
@@ -47,6 +42,20 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             authority.output_artifact_contract.as_ref().map(|contract| {
                 crate::domain_installation::WorthQueryArtifactProductionAuthority::mint(
                     crate::domain_installation::WorthQueryArtifactProductionAuthorityParts {
+                        contract: std::sync::Arc::clone(contract),
+                        domain_authority: std::sync::Arc::clone(&authority.domain_authority),
+                        operation_identity: scope.operation_identity.to_owned(),
+                        binding_identity: scope.binding_identity.to_owned(),
+                        run_identity: scope.run_identity.to_owned(),
+                        stage_identity: scope.stage.identity().to_owned(),
+                        basis_identity: authority.identity_evolution_basis_identity.clone(),
+                    },
+                )
+            });
+        let artifact_access_authority =
+            authority.input_artifact_contract.as_ref().map(|contract| {
+                std::sync::Arc::new(
+                    crate::domain_installation::WorthQueryArtifactAccessAuthority {
                         contract: std::sync::Arc::clone(contract),
                         domain_authority: std::sync::Arc::clone(&authority.domain_authority),
                         operation_identity: scope.operation_identity.to_owned(),
@@ -76,6 +85,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             identity_evolution_basis_identity: authority.identity_evolution_basis_identity,
             domain_authority: authority.domain_authority,
             output_artifact_contract: authority.output_artifact_contract,
+            artifact_access_authority,
             artifact_production_authority,
         }
     }
@@ -85,6 +95,14 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     ) -> Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>
     {
         self.artifact_production_authority
+            .as_ref()
+            .map(std::sync::Arc::clone)
+    }
+
+    pub(crate) fn artifact_access_authority(
+        &self,
+    ) -> Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>> {
+        self.artifact_access_authority
             .as_ref()
             .map(std::sync::Arc::clone)
     }
@@ -294,97 +312,5 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                 && declared.participation
                     == worth_query_installation::facade::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph
         })
-    }
-}
-
-fn lineage_traversal(
-    mutation_receipt: &crate::runtime::WorthQueryWriteReceipt,
-) -> Result<
-    (
-        crate::identity_evolution::LineageTraversalDescriptor,
-        Option<crate::memory_workspace::WorthQueryEntityIdentity>,
-    ),
-    WorthQueryWorkflowStageLineageDenial,
-> {
-    let required_target = || {
-        mutation_receipt
-            .target_entity_identity()
-            .ok_or(WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired)
-    };
-    match mutation_receipt.mutation_family() {
-        crate::runtime::WorthQueryMutationFamily::Insert => {
-            let target = required_target()?;
-            Ok((
-                crate::identity_evolution::LineageTraversalDescriptor::generated_identity(
-                    target.evidence_identity().as_str().to_owned(),
-                ),
-                Some(target.clone()),
-            ))
-        }
-        crate::runtime::WorthQueryMutationFamily::Delete => {
-            let target = required_target()?;
-            Ok((
-                crate::identity_evolution::LineageTraversalDescriptor::retired_identity(
-                    target.evidence_identity().as_str().to_owned(),
-                ),
-                Some(target.clone()),
-            ))
-        }
-        crate::runtime::WorthQueryMutationFamily::Update => Ok((
-            authoritative_continuity_descriptor(
-                mutation_receipt.continuity_mutation_evidence().ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?,
-            )?,
-            None,
-        )),
-        crate::runtime::WorthQueryMutationFamily::Assertion => {
-            Err(WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired)
-        }
-    }
-}
-
-fn authoritative_continuity_descriptor(
-    continuity: &crate::runtime::WorthQueryContinuityMutationEvidence,
-) -> Result<
-    crate::identity_evolution::LineageTraversalDescriptor,
-    WorthQueryWorkflowStageLineageDenial,
-> {
-    use crate::runtime::WorthQueryContinuityOutcomeClass as Outcome;
-
-    let anchor = continuity
-        .prior_authoritative_identity()
-        .evidence_identity()
-        .as_str()
-        .to_owned();
-    let successors = continuity
-        .successor_authoritative_identities()
-        .iter()
-        .map(|identity| identity.evidence_identity().as_str().to_owned())
-        .collect::<Vec<_>>();
-    match continuity.outcome_class() {
-        Outcome::ContinuesAsSingleSuccessor => Ok(
-            crate::identity_evolution::LineageTraversalDescriptor::direct_successor_exact(
-                anchor,
-                successors[0].clone(),
-            ),
-        ),
-        Outcome::ContinuesAsSplitSuccessors => Ok(
-            crate::identity_evolution::LineageTraversalDescriptor::direct_split_successors_exact(
-                anchor, successors,
-            ),
-        ),
-        Outcome::ContinuesViaTruthLoweredCanonicalMergeSuccessor => Ok(
-            crate::identity_evolution::LineageTraversalDescriptor::direct_merge_successor_exact(
-                anchor,
-                successors[0].clone(),
-            ),
-        ),
-        Outcome::RejectedNoAuthoritativeSuccessor
-        | Outcome::RejectedAmbiguousSuccessor
-        | Outcome::RejectedUnsupportedContinuityClass
-        | Outcome::RejectedHistoricalResolutionFailure => {
-            Err(WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired)
-        }
     }
 }

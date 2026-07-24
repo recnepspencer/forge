@@ -16,6 +16,11 @@ pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
             worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
         >,
     >,
+    pub(crate) input_artifact_contract: Option<
+        std::sync::Arc<
+            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
+        >,
+    >,
 }
 
 pub(crate) struct WorthQueryWorkflowStageExecutionScope<'a> {

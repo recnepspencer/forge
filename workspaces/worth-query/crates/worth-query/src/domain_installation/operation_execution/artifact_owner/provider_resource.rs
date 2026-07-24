@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use super::native_access::WorthQueryArtifactNativeAccessProvider;
+
 /// Provider-owned payload mechanics admitted into a Query-managed artifact.
 ///
 /// Query never exposes this resource or downcasts it. The provider supplies
@@ -12,6 +14,10 @@ pub trait WorthQueryArtifactProviderResource: Send + 'static {
 
     fn retained_bytes(&self) -> usize;
 
+    fn native_access_provider(&self) -> Option<&dyn WorthQueryArtifactNativeAccessProvider> {
+        None
+    }
+
     fn dispose(self);
 }
 
@@ -19,6 +25,8 @@ pub(crate) trait WorthQueryErasedArtifactProviderResource: Send {
     fn canonical_semantic_projection(&self) -> Vec<u8>;
 
     fn retained_bytes(&self) -> usize;
+
+    fn native_access_provider(&self) -> Option<&dyn WorthQueryArtifactNativeAccessProvider>;
 
     fn dispose(self: Box<Self>);
 }
@@ -42,6 +50,13 @@ impl<R: WorthQueryArtifactProviderResource> WorthQueryErasedArtifactProviderReso
             .as_ref()
             .expect("prepared provider resource remains present")
             .retained_bytes()
+    }
+
+    fn native_access_provider(&self) -> Option<&dyn WorthQueryArtifactNativeAccessProvider> {
+        self.resource
+            .as_ref()
+            .expect("prepared provider resource remains present")
+            .native_access_provider()
     }
 
     fn dispose(mut self: Box<Self>) {

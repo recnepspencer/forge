@@ -40,6 +40,7 @@ pub(crate) fn canonical_artifact_contract_identity(
     semantic_postures::hash_search(&mut hash, &contract.search);
     semantic_postures::hash_convergence(&mut hash, &contract.convergence);
     semantic_postures::hash_transformation(&mut hash, &contract.transformation);
+    crate::domain_computation::hash_artifact_access_path(&mut hash, &contract.access_path);
     carriage_and_governance::hash_carriage(&mut hash, contract);
     carriage_and_governance::hash_governance(&mut hash, contract);
     carriage_and_governance::hash_compatibility(&mut hash, &contract.compatibility);

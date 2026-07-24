@@ -13,6 +13,7 @@ pub struct WorthQueryPortableArtifactContractBuilder {
     search: Option<WorthQueryCandidateSearchContract>,
     convergence: Option<WorthQueryConvergenceContract>,
     transformation: Option<WorthQueryTransformationEvidenceContract>,
+    access_path: Option<WorthQueryArtifactAccessPathContract>,
     carriage: Option<WorthQueryArtifactCarriageContract>,
     lifecycle: Option<WorthQueryArtifactLifecycleContract>,
     counters: Option<WorthQueryStructuralCounterContract>,
@@ -40,6 +41,7 @@ impl WorthQueryPortableArtifactContractBuilder {
             search: None,
             convergence: None,
             transformation: None,
+            access_path: None,
             carriage: None,
             lifecycle: None,
             counters: None,
@@ -87,6 +89,11 @@ impl WorthQueryPortableArtifactContractBuilder {
 
     pub fn transformation(mut self, value: WorthQueryTransformationEvidenceContract) -> Self {
         self.transformation = Some(value);
+        self
+    }
+
+    pub fn access_path(mut self, value: WorthQueryArtifactAccessPathContract) -> Self {
+        self.access_path = Some(value);
         self
     }
 
@@ -153,6 +160,7 @@ impl WorthQueryPortableArtifactContractBuilder {
             transformation: self
                 .transformation
                 .ok_or_else(|| missing("transformation"))?,
+            access_path: self.access_path.ok_or_else(|| missing("access-path"))?,
             carriage: self.carriage.ok_or_else(|| missing("carriage"))?,
             lifecycle: self.lifecycle.ok_or_else(|| missing("lifecycle"))?,
             counters: self.counters.ok_or_else(|| missing("counters"))?,

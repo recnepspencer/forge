@@ -92,6 +92,8 @@ mod workflow_stage_evidence_validation;
 mod workflow_stage_execution_authority;
 #[path = "workflow_execution/contract/stage_execution_context.rs"]
 mod workflow_stage_execution_context;
+#[path = "workflow_execution/contract/stage_lineage.rs"]
+mod workflow_stage_lineage;
 #[path = "workflow_execution/evidence/stage_receipt.rs"]
 mod workflow_stage_receipt;
 #[path = "workflow_execution/contract/stage_workspace.rs"]
@@ -194,6 +196,7 @@ pub(crate) use workflow_stage_execution_authority::{
     WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionScope,
 };
 pub use workflow_stage_execution_context::*;
+pub use workflow_stage_lineage::*;
 pub use workflow_stage_workspace::*;
 pub use workflow_start_evidence::*;
 pub use workflow_trace::*;

@@ -10,6 +10,8 @@ pub struct WorthQueryWorkflowStageWorkspace<'a> {
         &'a crate::domain_installation::WorthQueryWorkflowArtifactRegistry,
     pub(super) artifact_production_authority:
         Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
+    pub(super) artifact_access_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>>,
     pub(super) installed_read_executions: usize,
     pub(super) executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
 }
@@ -21,11 +23,15 @@ impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
         artifact_production_authority: Option<
             std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>,
         >,
+        artifact_access_authority: Option<
+            std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>,
+        >,
     ) -> Self {
         Self {
             workspace,
             artifact_registry,
             artifact_production_authority,
+            artifact_access_authority,
             installed_read_executions: 0,
             executed_effects: Vec::new(),
         }
@@ -33,6 +39,26 @@ impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
 
     pub(crate) fn installed_read_executions(&self) -> usize {
         self.installed_read_executions
+    }
+
+    pub fn artifact_reader<'b>(
+        &'b self,
+        artifact: &'b crate::domain_installation::WorthQueryTransferredArtifactHandle,
+    ) -> Result<
+        crate::domain_installation::WorthQueryStageArtifactReader<'b>,
+        crate::domain_installation::WorthQueryArtifactNativeAccessDenial,
+    > {
+        let Some(authority) = self.artifact_access_authority.as_deref() else {
+            return Err(
+                crate::domain_installation::WorthQueryArtifactNativeAccessDenial::new(
+                    crate::domain_installation::WorthQueryArtifactNativeAccessDenialKind::AccessPathDenied,
+                    None,
+                    "workflow stage has no installed artifact input access authority",
+                    crate::domain_installation::WorthQueryArtifactNativeAccessCounters::default(),
+                ),
+            );
+        };
+        crate::domain_installation::WorthQueryStageArtifactReader::admit(artifact, authority)
     }
 
     pub fn register_artifact<R: crate::domain_installation::WorthQueryArtifactProviderResource>(

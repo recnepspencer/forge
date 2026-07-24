@@ -42,6 +42,7 @@ pub fn candidate_contract() -> domain::WorthQueryPortableArtifactContract {
     .search(domain::WorthQueryCandidateSearchContract::not_applicable())
     .convergence(domain::WorthQueryConvergenceContract::NotIterative)
     .transformation(domain::WorthQueryTransformationEvidenceContract::not_a_transformation())
+    .access_path(domain::WorthQueryArtifactAccessPathContract::denied())
     .carriage(domain::WorthQueryArtifactCarriageContract::new(
         domain::WorthQueryArtifactMovePosture::Required,
         domain::WorthQueryArtifactBorrowPosture::SharedReadOnly,

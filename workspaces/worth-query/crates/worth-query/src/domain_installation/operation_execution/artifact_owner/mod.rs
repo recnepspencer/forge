@@ -8,6 +8,7 @@ mod handle;
 mod handle_core;
 mod installed_binding;
 mod lifecycle;
+mod native_access;
 mod owner;
 mod production;
 mod production_admission;
@@ -25,6 +26,7 @@ pub use counters::{WorthQueryArtifactLifecycleCounters, WorthQueryArtifactOwnerS
 pub use denial::{WorthQueryArtifactDenial, WorthQueryArtifactDenialKind};
 pub use disposition::{WorthQueryArtifactDisposition, WorthQueryDisposedArtifact};
 pub use handle::WorthQueryMoveOnlyArtifactHandle;
+pub use native_access::*;
 pub use production_admission::{
     WorthQueryArtifactProductionAdmission, WorthQueryArtifactProductionEvidence,
 };

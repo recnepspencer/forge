@@ -82,6 +82,7 @@ pub(crate) fn valid_contract(
         100,
     ))
     .transformation(WorthQueryTransformationEvidenceContract::not_a_transformation())
+    .access_path(WorthQueryArtifactAccessPathContract::denied())
     .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(lifecycle)
     .counters(WorthQueryStructuralCounterContract::new(
@@ -155,6 +156,7 @@ pub(crate) fn base_builder_with_versions(
     .search(WorthQueryCandidateSearchContract::not_applicable())
     .convergence(WorthQueryConvergenceContract::NotIterative)
     .transformation(WorthQueryTransformationEvidenceContract::not_a_transformation())
+    .access_path(WorthQueryArtifactAccessPathContract::denied())
     .carriage(WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(WorthQueryArtifactLifecycleContract::ArenaScoped)
     .counters(WorthQueryStructuralCounterContract::new(
