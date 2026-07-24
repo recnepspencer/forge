@@ -9,10 +9,10 @@ publish = false
 [dependencies]
 sha2 = "0.10"
 worth-query-admission = { path = "../worth-query-admission" }
+worth-query-installation = { path = "../worth-query-installation" }
 
 [dev-dependencies]
 worth-query-declaration = { path = "../worth-query-declaration" }
-worth-query-installation = { path = "../worth-query-installation" }
 
 [lints]
 workspace = true

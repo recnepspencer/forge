@@ -78,6 +78,7 @@ pub mod facade {
         WorthQueryInstalledPackageAuthority, WorthQueryInstalledPackageIndex,
         WorthQueryInstalledPackageIndexCounters, WorthQueryInstalledPackageIndexDenial,
         WorthQueryInstalledPackageIndexDenialKind, WorthQueryInstalledPackageIndexRebuildReport,
+        WorthQueryInstalledPackageIndexRelation,
     };
     pub use crate::installed_operation::WorthQueryInstalledOperationAuthority;
     pub use crate::package::{

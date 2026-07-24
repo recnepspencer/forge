@@ -35,21 +35,33 @@ impl WorthQueryRuntimeBuilder {
         };
         let graph_obligation_index =
             WorthQueryGraphObligationIndex::from_catalog(&graph_obligation_registration_catalog);
-        let authority_identity = super::super::WorthQueryRuntimeAuthorityIdentity::mint();
-        let installation_runtime =
-            worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity::fresh();
+        let execution_runtime_installer =
+            worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstaller::new();
+        let authority_identity = execution_runtime_installer.authority_identity();
+        let installed_domain_artifacts = self.pending_domain_installations.into_artifacts();
         let graph_participation_registry = self
             .pending_graph_participations
-            .install(authority_identity, &installation_runtime)
+            .install(
+                authority_identity,
+                execution_runtime_installer.installation_runtime(),
+            )
             .map_err(|denial| WorthQueryRuntimeError::InvariantRegistration {
                 stage: "graph_participation_installation",
                 message: format!("{:?}: {}", denial.kind(), denial.detail()),
             })?;
+        let execution_runtime = execution_runtime_installer
+            .install(
+                worth_query_installation::facade::WorthQueryInstallationGeneration::initial(),
+                installed_domain_artifacts
+                    .iter()
+                    .map(|artifact| artifact.portable_package.clone()),
+            )
+            .expect("locally admitted packages must build the execution installed index");
         let domain_installation_registry =
             crate::domain_installation::WorthQueryDomainInstallationRegistry::from_artifacts(
-                self.pending_domain_installations.into_artifacts(),
+                installed_domain_artifacts,
                 authority_identity,
-                installation_runtime,
+                execution_runtime.retain_installed_packages(),
             );
         let (conditional_signal_runtime, conditional_execution_registry) =
             WorthQueryRuntimeBuilder::install_conditional_execution(
@@ -92,6 +104,7 @@ impl WorthQueryRuntimeBuilder {
             backend,
             evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
             authority_identity,
+            execution_runtime,
             domain_installation_registry,
             domain_operation_executor_registry,
             workflow_stage_executor_registry,

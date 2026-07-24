@@ -9,6 +9,7 @@ mod construction;
 mod denial;
 mod index_identity;
 mod rebuild_report;
+mod relation;
 
 pub use authority::WorthQueryInstalledPackageAuthority;
 pub use denial::{
@@ -17,6 +18,7 @@ pub use denial::{
 pub use rebuild_report::{
     WorthQueryInstalledPackageIndexCounters, WorthQueryInstalledPackageIndexRebuildReport,
 };
+pub use relation::WorthQueryInstalledPackageIndexRelation;
 
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
@@ -193,5 +195,7 @@ impl WorthQueryInstalledPackageIndex {
     }
 }
 
+#[cfg(test)]
+mod relation_tests;
 #[cfg(test)]
 mod tests;

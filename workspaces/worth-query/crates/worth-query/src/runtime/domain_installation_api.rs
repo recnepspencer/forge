@@ -297,8 +297,13 @@ impl WorthQueryRuntime {
     pub(crate) fn destroy_and_rebuild_domain_execution_index(
         &mut self,
     ) -> WorthQueryDomainExecutionIndexRebuildReport {
-        self.domain_installation_registry
-            .destroy_and_rebuild_execution_index()
+        let report = self
+            .domain_installation_registry
+            .destroy_and_rebuild_execution_index();
+        self.execution_runtime
+            .replace_rebuilt_installation(self.domain_installation_registry.retain_portable_index())
+            .expect("a deterministic installed-index rebuild must preserve execution identity");
+        report
     }
 
     pub(crate) fn replace_domain_installation_with_successor_generation(
@@ -314,6 +319,9 @@ impl WorthQueryRuntime {
                 &successor,
                 &self.graph_participation_registry,
             )?;
+        self.execution_runtime
+            .commit_successor_installation(successor.retain_portable_index())
+            .expect("the staged successor must advance the current execution installation");
         self.domain_installation_registry
             .commit_successor_generation(successor);
         if let Some(current) = self.conditional_signal_runtime.as_mut() {

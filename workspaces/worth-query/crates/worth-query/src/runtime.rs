@@ -760,8 +760,7 @@ pub use native_aspect_contracts::{
 pub(crate) use ordinary_workflow_authority::{
     WorthQueryLowerRuntimeMutationExecution, WorthQueryMergeAuthorityValidationError,
     WorthQueryOrdinaryAuthorityAdmission, WorthQueryOrdinaryAuthorityDrift,
-    WorthQueryOrdinaryAuthorityFamily, WorthQueryRuntimeAuthorityIdentity,
-    WorthQueryValidatedMergeAuthority,
+    WorthQueryOrdinaryAuthorityFamily, WorthQueryValidatedMergeAuthority,
 };
 pub use ordinary_workflow_branch_name::WorthQueryAdmittedBranchName;
 pub(crate) use ordinary_workflow_execution::{
@@ -905,11 +904,13 @@ pub use workspace_declaration::{
 };
 pub use workspace_inspection::WorthQueryWorkspaceInspectionLane;
 pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
+pub(crate) use worth_query_execution::facade::runtime::WorthQueryRuntimeAuthorityIdentity;
 
 pub struct WorthQueryRuntime {
     backend: Box<dyn WorthQueryRuntimeBackend>,
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
+    execution_runtime: worth_query_execution::facade::runtime::WorthQueryExecutionRuntime,
     domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
     domain_operation_executor_registry:
         crate::domain_installation::WorthQueryDomainOperationExecutorRegistry,

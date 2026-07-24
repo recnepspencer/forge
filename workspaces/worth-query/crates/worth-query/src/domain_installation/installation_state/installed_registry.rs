@@ -22,7 +22,7 @@ pub(crate) struct WorthQueryDomainInstallationRegistry {
     records: Vec<WorthQueryInstalledDomainRecord>,
     by_marker_type: HashMap<TypeId, usize>,
     execution_index: WorthQueryInstalledDomainExecutionIndex,
-    portable_index: worth_query_installation::facade::WorthQueryInstalledPackageIndex,
+    portable_index: Arc<worth_query_installation::facade::WorthQueryInstalledPackageIndex>,
     handle_lookups: AtomicUsize,
 }
 
@@ -30,41 +30,14 @@ impl WorthQueryDomainInstallationRegistry {
     pub(crate) fn from_artifacts(
         artifacts: Vec<WorthQueryInstalledDomainArtifact>,
         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
-        installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
+        portable_index: Arc<worth_query_installation::facade::WorthQueryInstalledPackageIndex>,
     ) -> Self {
         let generation = WorthQueryDomainInstallationGeneration::initial();
-        Self::from_artifacts_at_generation(
-            artifacts,
-            runtime_authority,
-            installation_runtime,
-            generation,
-            WorthQueryDomainInstallationGenerationLease::new(generation),
-        )
-    }
-
-    fn from_artifacts_at_generation(
-        artifacts: Vec<WorthQueryInstalledDomainArtifact>,
-        runtime_authority: WorthQueryRuntimeAuthorityIdentity,
-        installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
-        generation: WorthQueryDomainInstallationGeneration,
-        generation_lease: WorthQueryDomainInstallationGenerationLease,
-    ) -> Self {
-        let portable_index =
-            worth_query_installation::facade::WorthQueryInstalledPackageIndex::build(
-                installation_runtime,
-                worth_query_installation::facade::WorthQueryInstallationGeneration::from_ordinal(
-                    generation.ordinal(),
-                ),
-                artifacts
-                    .iter()
-                    .map(|artifact| artifact.portable_package.clone()),
-            )
-            .expect("locally admitted packages must build the portable installed index");
         Self::from_artifacts_and_portable_index(
             artifacts,
             runtime_authority,
             generation,
-            generation_lease,
+            WorthQueryDomainInstallationGenerationLease::new(generation),
             portable_index,
         )
     }
@@ -74,12 +47,12 @@ impl WorthQueryDomainInstallationRegistry {
         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
         generation: WorthQueryDomainInstallationGeneration,
         generation_lease: WorthQueryDomainInstallationGenerationLease,
-        portable_index: worth_query_installation::facade::WorthQueryInstalledPackageIndex,
+        portable_index: Arc<worth_query_installation::facade::WorthQueryInstalledPackageIndex>,
     ) -> Self {
         let execution_index = WorthQueryInstalledDomainExecutionIndex::build(
             &artifacts,
             runtime_authority,
-            &portable_index,
+            portable_index.as_ref(),
         );
         let (records, by_marker_type) = construct_installed_domain_records(
             artifacts,
@@ -87,7 +60,7 @@ impl WorthQueryDomainInstallationRegistry {
             generation,
             &generation_lease,
             &execution_index,
-            &portable_index,
+            portable_index.as_ref(),
         );
         Self {
             runtime_authority,
@@ -239,14 +212,14 @@ impl WorthQueryDomainInstallationRegistry {
             .iter()
             .map(|record| record.artifact.clone())
             .collect::<Vec<_>>();
-        let rebuilt_portable = self.portable_index.rebuild();
+        let rebuilt_portable = Arc::new(self.portable_index.rebuild());
         let retired_portable = std::mem::replace(&mut self.portable_index, rebuilt_portable);
         drop(retired_portable);
 
         let empty = WorthQueryInstalledDomainExecutionIndex::build(
             &[],
             self.runtime_authority,
-            &self.portable_index,
+            self.portable_index.as_ref(),
         );
         let retired = std::mem::replace(&mut self.execution_index, empty);
         let retired_identity = retired.identity().as_str().to_string();
@@ -255,7 +228,7 @@ impl WorthQueryDomainInstallationRegistry {
         let rebuilt = WorthQueryInstalledDomainExecutionIndex::build(
             &artifacts,
             self.runtime_authority,
-            &self.portable_index,
+            self.portable_index.as_ref(),
         );
         let rebuilt_identity = rebuilt.identity().as_str().to_string();
         let shape = rebuilt.shape();
@@ -271,7 +244,7 @@ impl WorthQueryDomainInstallationRegistry {
             .map(|record| record.artifact.clone())
             .collect::<Vec<_>>();
         let generation = self.generation.successor();
-        let portable_index = self.portable_index.successor_generation();
+        let portable_index = Arc::new(self.portable_index.successor_generation());
         // Staging authority is current only inside this unexposed registry.
         // Committing later advances the prior registry's separate lease, so a
         // failed conditional reinstall leaves every published handle current.
@@ -282,6 +255,12 @@ impl WorthQueryDomainInstallationRegistry {
             WorthQueryDomainInstallationGenerationLease::new(generation),
             portable_index,
         )
+    }
+
+    pub(crate) fn retain_portable_index(
+        &self,
+    ) -> Arc<worth_query_installation::facade::WorthQueryInstalledPackageIndex> {
+        Arc::clone(&self.portable_index)
     }
 
     pub(crate) fn commit_successor_generation(&mut self, successor: Self) {
