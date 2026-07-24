@@ -123,6 +123,8 @@ where
                     snapshot: &snapshot,
                     run_identity: &identity,
                     attempt,
+                    resources: self.resources.operation(),
+                    resource_evidence: &operation_resource_evidence,
                     run_counters: &mut counters,
                 },
             ) {

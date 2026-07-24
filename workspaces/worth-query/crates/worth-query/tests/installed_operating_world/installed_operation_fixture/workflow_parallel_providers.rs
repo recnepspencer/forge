@@ -8,6 +8,10 @@ pub(super) struct SerialParallelProvider;
 impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, WorkflowRead, ReadFamily>
     for WorkflowParallelProvider
 {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn admit_parallel_frontier(
         &self,
         call: &domain::WorthQueryWorkflowParallelAdmissionCall,
@@ -42,6 +46,10 @@ impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, Workflo
 impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, WorkflowRead, ReadFamily>
     for SerialParallelProvider
 {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn admit_parallel_frontier(
         &self,
         _call: &domain::WorthQueryWorkflowParallelAdmissionCall,

@@ -14,6 +14,20 @@ pub(crate) trait WorthQueryProjectionLifecycleSource<D, O, F, L: BasisOperationL
     ) -> Option<crate::ordinary::read::WorthQueryReadDeclaration>;
     fn workflow_run_identity(&self) -> Option<&str>;
     fn publication_stage_identity(&self) -> Option<&str>;
+    fn operation_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan;
+    fn operation_resource_evidence(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence;
+    fn stage_resources(
+        &self,
+        stage_identity: &str,
+    ) -> Option<&crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan>;
+    fn stage_resource_evidence(
+        &self,
+        stage_identity: &str,
+    ) -> Option<&crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence>;
     fn native_access_layout(
         &self,
     ) -> Option<&crate::domain_installation::WorthQueryNativeAccessLayout>;
@@ -93,6 +107,32 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryProjectionLifecycleSource<D, O, F
         None
     }
 
+    fn operation_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan {
+        self.resources()
+    }
+
+    fn operation_resource_evidence(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        self.execution_receipt().execution_resources()
+    }
+
+    fn stage_resources(
+        &self,
+        _stage_identity: &str,
+    ) -> Option<&crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan> {
+        None
+    }
+
+    fn stage_resource_evidence(
+        &self,
+        _stage_identity: &str,
+    ) -> Option<&crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence> {
+        None
+    }
+
     fn native_access_layout(
         &self,
     ) -> Option<&crate::domain_installation::WorthQueryNativeAccessLayout> {
@@ -149,6 +189,36 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryProjectionLifecycleSource<D, O, F
 
     fn publication_stage_identity(&self) -> Option<&str> {
         Some(self.publication_stage_identity())
+    }
+
+    fn operation_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan {
+        self.trace().resources().operation()
+    }
+
+    fn operation_resource_evidence(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        self.trace().operation_resource_evidence()
+    }
+
+    fn stage_resources(
+        &self,
+        stage_identity: &str,
+    ) -> Option<&crate::domain_installation::WorthQueryAdmittedExecutionResourcePlan> {
+        self.trace().resources().stage(stage_identity)
+    }
+
+    fn stage_resource_evidence(
+        &self,
+        stage_identity: &str,
+    ) -> Option<&crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence> {
+        self.trace()
+            .stage_receipts()
+            .iter()
+            .find(|receipt| receipt.stage_identity() == stage_identity)
+            .map(crate::domain_installation::WorthQueryWorkflowStageReceipt::execution_resources)
     }
 
     fn native_access_layout(

@@ -48,6 +48,10 @@ impl domain::WorthQueryGraphParticipationProvider<RemoteGraph> for UncontactedPr
 }
 
 impl domain::WorthQueryGraphCommitProvider<SeparateCommit> for UncontactedProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn admit_commit(
         &self,
         call: &domain::WorthQueryGraphCommitCall,

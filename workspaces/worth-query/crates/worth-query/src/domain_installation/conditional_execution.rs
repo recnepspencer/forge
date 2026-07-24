@@ -13,7 +13,10 @@ pub(crate) use evaluation::{
     WorthQueryConditionalEvaluationScope, WorthQueryConditionalEvaluationStop,
     WorthQueryOwnerImpactConditionalEvaluationPass,
 };
-pub(crate) use installation::{PendingConditionalInstallation, PendingConditionalNode};
+pub(crate) use installation::{
+    PendingConditionalInstallation, PendingConditionalNode,
+    WorthQueryConditionalComputeContextParts,
+};
 pub use installation::{
     WorthQueryConditionalComputeContext, WorthQueryConditionalDependencyInstallation,
     WorthQueryConditionalNodeComputeProvider, WorthQueryConditionalNodeInstallationDenial,

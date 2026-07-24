@@ -64,6 +64,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,

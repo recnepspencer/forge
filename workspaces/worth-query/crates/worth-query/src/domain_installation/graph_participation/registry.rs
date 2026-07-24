@@ -81,11 +81,16 @@ pub(crate) struct GraphParticipationProviderRegistration {
     pub resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
 
+struct GraphCommitProviderRegistration {
+    provider: Arc<dyn ErasedGraphCommitProvider>,
+    resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
+}
+
 #[derive(Default)]
 pub(crate) struct WorthQueryPendingGraphParticipations {
     definitions: HashMap<TypeId, ErasedGraphParticipationDefinition>,
     providers: HashMap<TypeId, GraphParticipationProviderRegistration>,
-    commit_providers: HashMap<TypeId, Arc<dyn ErasedGraphCommitProvider>>,
+    commit_providers: HashMap<TypeId, GraphCommitProviderRegistration>,
     denial: Option<WorthQueryGraphParticipationInstallationDenial>,
 }
 
@@ -153,11 +158,15 @@ impl WorthQueryPendingGraphParticipations {
         provider: P,
     ) -> Self {
         let marker = TypeId::of::<C>();
-        let provider = Arc::new(TypedGraphCommitProvider::<C, P> {
-            provider,
-            _marker: PhantomData,
-        });
-        if self.commit_providers.insert(marker, provider).is_some() && self.denial.is_none() {
+        let resource_support = provider.execution_resource_support();
+        let registration = GraphCommitProviderRegistration {
+            provider: Arc::new(TypedGraphCommitProvider::<C, P> {
+                provider,
+                _marker: PhantomData,
+            }),
+            resource_support,
+        };
+        if self.commit_providers.insert(marker, registration).is_some() && self.denial.is_none() {
             self.denial = Some(WorthQueryGraphParticipationInstallationDenial::new(
                 WorthQueryGraphParticipationInstallationDenialKind::DuplicateProvider,
                 "one commit marker received multiple providers",
@@ -222,17 +231,17 @@ impl WorthQueryPendingGraphParticipations {
         let commit_authorities = referenced_commit_markers
             .into_iter()
             .map(|marker| {
-                let provider = Arc::clone(
-                    self.commit_providers
-                        .get(&marker)
-                        .expect("commit provider set was closed"),
-                );
+                let registration = self
+                    .commit_providers
+                    .get(&marker)
+                    .expect("commit provider set was closed");
                 (
                     marker,
                     Arc::new(WorthQueryInstalledGraphCommitAuthority {
                         runtime_authority,
                         marker,
-                        provider,
+                        provider: Arc::clone(&registration.provider),
+                        resource_support: registration.resource_support.clone(),
                     }),
                 )
             })
@@ -308,6 +317,7 @@ pub(crate) struct WorthQueryInstalledGraphCommitAuthority {
     runtime_authority: crate::runtime::WorthQueryRuntimeAuthorityIdentity,
     marker: TypeId,
     pub provider: Arc<dyn ErasedGraphCommitProvider>,
+    pub resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
 
 impl WorthQueryInstalledGraphCommitAuthority {

@@ -7,6 +7,10 @@ use worth_query_host::facade::{
     installed::{
         self,
         collection::{WorthQueryCollectionCursor, WorthQueryCollectionPatch},
+        operation::{
+            WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionProviderSession,
+            WorthQueryExecutionResourceAdmissionDenial, WorthQueryExecutionResourceRequest,
+        },
     },
     runtime::WorthQueryWorkspace,
 };
@@ -31,6 +35,22 @@ fn inspect_opaque_collection_artifacts(
     let _ = cursor.is_beginning();
     let _ = patch.maintenance_ordinal();
     let _ = patch.authority();
+}
+
+fn inspect_resource_admission(
+    plan: &WorthQueryAdmittedExecutionResourcePlan,
+    denial: &WorthQueryExecutionResourceAdmissionDenial,
+    session: &WorthQueryExecutionProviderSession,
+    transition: installed::transition::WorthQueryResourceAdmissionTransition<()>,
+) {
+    let _: &WorthQueryExecutionResourceRequest = plan.request();
+    let _ = plan.request_identity();
+    let _ = plan.strategy();
+    let _ = plan.envelope();
+    let _ = denial.kind();
+    let _ = session.identity();
+    let _ = session.attempt_identity();
+    let _ = transition.into_result();
 }
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {

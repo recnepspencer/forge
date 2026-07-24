@@ -89,6 +89,8 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
             bound.binding_identity(),
             &authority,
             roles.clone(),
+            resources,
+            resource_evidence,
         )
         .map_err(|denial| {
             WorthQueryWorkflowAdvanceDenial::new(
@@ -107,6 +109,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
                 format!("binding:{}", bound.binding_identity()),
                 format!("scope:{scope_identity}"),
                 format!("roles:{}", roles.join(",")),
+                format!("resources:{}", resource_evidence.identity()),
             ]),
             projection: None,
             commit_authority_identity: Some(authority.identity()),

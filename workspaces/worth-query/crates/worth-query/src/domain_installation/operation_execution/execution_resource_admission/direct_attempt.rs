@@ -10,7 +10,7 @@ use super::{
     lower_execution_resource_plan, WorthQueryAdmittedExecutionResourcePlan,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenial,
-    WorthQueryExecutionResourceAdmissionDenialKind as Kind,
+    WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
     WorthQueryExecutionResourceSupportSnapshot,
 };
 
@@ -115,18 +115,7 @@ where
                 counters,
             ));
         };
-        let support = WorthQueryExecutionResourceSupportSnapshot::new(
-            executor.resource_support.clone(),
-            self.graph_participations()
-                .iter()
-                .map(|participation| {
-                    (
-                        participation.role.clone(),
-                        participation.record.resource_support.clone(),
-                    )
-                })
-                .collect(),
-        );
+        let support = direct_support_snapshot(&self, &executor.resource_support);
         let mut resources = match lower_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
@@ -154,6 +143,45 @@ where
             phase_proof,
         })
     }
+}
+
+fn direct_support_snapshot<D, O, F, L: BasisOperationLane>(
+    bound: &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
+    executor: &WorthQueryExecutionResourceSupport,
+) -> WorthQueryExecutionResourceSupportSnapshot {
+    let semantics = bound.definition().semantics();
+    let mut graph_roles = semantics
+        .graph_reads
+        .roles()
+        .iter()
+        .map(|read| read.role.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    if let crate::domain_installation::WorthQueryOperationTouchContract::Declared {
+        graph_roles: touch_roles,
+        ..
+    } = &semantics.touches
+    {
+        graph_roles.extend(touch_roles.iter().map(String::as_str));
+    }
+    WorthQueryExecutionResourceSupportSnapshot::new(
+        super::WorthQueryExecutionResourceSupportSnapshotParts {
+            executor: executor.clone(),
+            conditional_nodes: super::operation_conditional_supports(bound),
+            graph_providers: bound
+                .graph_participations()
+                .iter()
+                .filter(|participation| graph_roles.contains(participation.role.as_str()))
+                .map(|participation| {
+                    (
+                        participation.role.clone(),
+                        participation.record.resource_support.clone(),
+                    )
+                })
+                .collect(),
+            commit_providers: super::commit_supports_for_roles(bound, &graph_roles),
+            parallel_admission: None,
+        },
+    )
 }
 
 fn direct_graph_evidence_can_realize(

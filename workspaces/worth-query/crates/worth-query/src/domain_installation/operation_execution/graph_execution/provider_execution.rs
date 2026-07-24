@@ -207,6 +207,8 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
             self.bound.binding_identity(),
             &authority,
             roles.clone(),
+            self.resources,
+            self.resource_evidence,
         )
         .map_err(|failure| {
             WorthQueryBoundExecutionDenial::new(
@@ -226,6 +228,7 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
                 format!("binding:{}", self.bound.binding_identity()),
                 format!("scope:{}", self.scope_identity),
                 format!("roles:{}", roles.join(",")),
+                format!("resources:{}", self.resource_evidence.identity()),
             ]),
             projection: None,
             commit_authority_identity: Some(authority.identity()),

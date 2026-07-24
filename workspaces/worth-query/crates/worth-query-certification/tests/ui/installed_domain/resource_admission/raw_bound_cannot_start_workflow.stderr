@@ -1,0 +1,5 @@
+error[E0599]: no method named `start_workflow` found for struct `WorthQueryBoundDomainOperation<D, O, F, L>` in the current scope
+  --> tests/ui/installed_domain/resource_admission/raw_bound_cannot_start_workflow.rs:14:19
+   |
+14 |     let _ = bound.start_workflow(workspace);
+   |                   ^^^^^^^^^^^^^^ method not found in `WorthQueryBoundDomainOperation<D, O, F, ObservationLaneWitness>`

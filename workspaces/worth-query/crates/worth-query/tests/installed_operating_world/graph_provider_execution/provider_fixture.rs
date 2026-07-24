@@ -99,6 +99,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
 }
 
 impl domain::WorthQueryGraphCommitProvider<SharedCommit> for SelectiveProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn admit_commit(
         &self,
         call: &domain::WorthQueryGraphCommitCall,

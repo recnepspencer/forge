@@ -108,6 +108,8 @@ where
                 scope: crate::domain_installation::WorthQueryConditionalEvaluationScope::Operation,
                 workflow_run_identity: None,
                 attempt: 1,
+                resources: &self.resources,
+                resource_evidence: &resource_evidence,
                 counters: &mut counters,
             },
         ) {

@@ -53,15 +53,32 @@ pub struct WorthQueryGraphCommitCall {
     operation_identity: String,
     binding_identity: String,
     graph_roles: Vec<String>,
+    execution_resources: crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
+}
+
+pub(crate) struct WorthQueryGraphCommitCallParts {
+    pub(crate) scope_identity: String,
+    pub(crate) operation_identity: String,
+    pub(crate) binding_identity: String,
+    pub(crate) graph_roles: Vec<String>,
+    pub(crate) execution_resources:
+        crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    pub(crate) resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
 }
 
 impl WorthQueryGraphCommitCall {
-    pub(crate) fn new(
-        scope_identity: String,
-        operation_identity: String,
-        binding_identity: String,
-        mut graph_roles: Vec<String>,
-    ) -> Self {
+    pub(crate) fn new(parts: WorthQueryGraphCommitCallParts) -> Self {
+        let WorthQueryGraphCommitCallParts {
+            scope_identity,
+            operation_identity,
+            binding_identity,
+            mut graph_roles,
+            execution_resources,
+            resource_envelope,
+        } = parts;
         graph_roles.sort();
         graph_roles.dedup();
         Self {
@@ -71,11 +88,14 @@ impl WorthQueryGraphCommitCall {
                 format!("binding:{binding_identity}"),
                 format!("roles:{}", graph_roles.join(",")),
                 format!("scope:{scope_identity}"),
+                format!("resources:{}", execution_resources.identity()),
             ]),
             scope_identity,
             operation_identity,
             binding_identity,
             graph_roles,
+            execution_resources,
+            resource_envelope,
         }
     }
 
@@ -93,6 +113,18 @@ impl WorthQueryGraphCommitCall {
 
     pub fn scope_identity(&self) -> &str {
         &self.scope_identity
+    }
+
+    pub fn execution_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
+    }
+
+    pub fn resource_envelope(
+        &self,
+    ) -> &worth_query_installation::facade::WorthQueryExecutionResourceEnvelope {
+        &self.resource_envelope
     }
 
     pub fn completed(&self, provider_receipt: impl Into<String>) -> WorthQueryGraphProviderReceipt {
@@ -282,6 +314,10 @@ pub trait WorthQueryGraphParticipationProvider<G>: Send + Sync + 'static {
 }
 
 pub trait WorthQueryGraphCommitProvider<C>: Send + Sync + 'static {
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
+
     fn admit_commit(
         &self,
         call: &WorthQueryGraphCommitCall,

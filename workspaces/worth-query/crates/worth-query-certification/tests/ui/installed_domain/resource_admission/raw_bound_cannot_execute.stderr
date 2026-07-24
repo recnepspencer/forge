@@ -1,0 +1,5 @@
+error[E0599]: no method named `execute` found for struct `WorthQueryBoundDomainOperation<D, O, F, L>` in the current scope
+  --> tests/ui/installed_domain/resource_admission/raw_bound_cannot_execute.rs:14:19
+   |
+14 |     let _ = bound.execute(workspace);
+   |                   ^^^^^^^ method not found in `WorthQueryBoundDomainOperation<D, O, F, ObservationLaneWitness>`

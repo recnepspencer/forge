@@ -17,6 +17,23 @@ pub struct WorthQueryConditionalComputeContext {
     workflow_run_identity: Option<String>,
     snapshot_identity: String,
     attempt: u64,
+    execution_resources: crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
+}
+
+pub(crate) struct WorthQueryConditionalComputeContextParts {
+    pub(crate) location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+    pub(crate) operation_identity: String,
+    pub(crate) binding_identity: String,
+    pub(crate) basis_identity: String,
+    pub(crate) workflow_run_identity: Option<String>,
+    pub(crate) snapshot_identity: String,
+    pub(crate) attempt: u64,
+    pub(crate) execution_resources:
+        crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    pub(crate) resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
 }
 
 impl WorthQueryConditionalComputeContext {
@@ -41,15 +58,28 @@ impl WorthQueryConditionalComputeContext {
     pub const fn attempt(&self) -> u64 {
         self.attempt
     }
-    pub(crate) fn new(
-        location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
-        operation_identity: String,
-        binding_identity: String,
-        basis_identity: String,
-        workflow_run_identity: Option<String>,
-        snapshot_identity: String,
-        attempt: u64,
-    ) -> Self {
+    pub fn execution_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
+    }
+    pub fn resource_envelope(
+        &self,
+    ) -> &worth_query_installation::facade::WorthQueryExecutionResourceEnvelope {
+        &self.resource_envelope
+    }
+    pub(crate) fn new(parts: WorthQueryConditionalComputeContextParts) -> Self {
+        let WorthQueryConditionalComputeContextParts {
+            location,
+            operation_identity,
+            binding_identity,
+            basis_identity,
+            workflow_run_identity,
+            snapshot_identity,
+            attempt,
+            execution_resources,
+            resource_envelope,
+        } = parts;
         Self {
             location,
             operation_identity,
@@ -58,6 +88,8 @@ impl WorthQueryConditionalComputeContext {
             workflow_run_identity,
             snapshot_identity,
             attempt,
+            execution_resources,
+            resource_envelope,
         }
     }
 }
@@ -68,6 +100,10 @@ pub trait WorthQueryConditionalNodeComputeProvider<D, O, F>: Send + Sync + 'stat
     type SemanticContract: Eq + Send + Sync + 'static;
 
     fn semantic_contract(&self) -> Self::SemanticContract;
+
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
 
     fn compute(
         &self,
@@ -322,6 +358,7 @@ where
                 operation_identity: operation.definition().canonical_identity().to_string(),
                 runtime_authority: operation.domain_authority().runtime_authority().as_u64(),
                 installation_generation: operation.installation_generation().ordinal(),
+                resource_support: self.compute.execution_resource_support(),
             })
             .map_err(|_| WorthQueryConditionalNodeInstallationDenial::DuplicateInstallation)
     }

@@ -154,11 +154,15 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         frontier: Vec<WorthQueryWorkflowParallelFrontierStage>,
     ) -> Result<(), WorthQueryWorkflowAdvanceDenial> {
         let call = WorthQueryWorkflowParallelAdmissionCall::new(
-            self.bound.definition().canonical_identity(),
-            self.bound.binding_identity(),
-            &self.identity,
-            self.bound.basis().capability_digest(),
-            frontier,
+            super::WorthQueryWorkflowParallelAdmissionCallParts {
+                operation_identity: self.bound.definition().canonical_identity().into(),
+                binding_identity: self.bound.binding_identity().into(),
+                run_identity: self.identity.clone(),
+                basis_identity: self.bound.basis().capability_digest().into(),
+                frontier,
+                execution_resources: self.operation_resource_evidence.clone(),
+                resource_envelope: self.resources.operation().shared_envelope(),
+            },
         );
         let provider = self.parallel_admission_provider.as_ref().ok_or_else(|| {
             self.denial(WorthQueryWorkflowAdvanceDenialKind::ParallelProviderMissing)

@@ -14,6 +14,7 @@ pub(crate) struct WorthQueryInstalledConditionalNode {
     pub(crate) operation_identity: String,
     pub(crate) runtime_authority: u64,
     pub(crate) installation_generation: u64,
+    pub(crate) resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
 
 struct AuthoritativeConditionalInstallation {
@@ -112,6 +113,7 @@ impl WorthQueryConditionalExecutionRegistry {
                     operation_identity: current.operation_identity.clone(),
                     runtime_authority,
                     installation_generation,
+                    resource_support: donor.resource_support.clone(),
                 })
             })
             .collect::<Vec<_>>();

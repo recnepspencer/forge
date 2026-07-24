@@ -164,13 +164,18 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         );
         let semantic_input = input.semantic_value();
         let graph_snapshot = workspace.snapshot_identity();
-        let conditional =
-            match self.admit_stage_condition(stage_identity, &graph_snapshot, workspace)? {
-                WorthQueryStageConditionAdmission::Admitted(conditional) => conditional,
-                WorthQueryStageConditionAdmission::Deferred(conditional) => {
-                    return Ok(WorthQueryWorkflowAdvanceStep::Deferred(conditional));
-                }
-            };
+        let conditional = match self.admit_stage_condition(
+            stage_identity,
+            &resources,
+            &resource_evidence,
+            &graph_snapshot,
+            workspace,
+        )? {
+            WorthQueryStageConditionAdmission::Admitted(conditional) => conditional,
+            WorthQueryStageConditionAdmission::Deferred(conditional) => {
+                return Ok(WorthQueryWorkflowAdvanceStep::Deferred(conditional));
+            }
+        };
         let graph_receipts = invoke_stage_graphs(
             &self.bound,
             &self.identity,
@@ -208,6 +213,8 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
     fn admit_stage_condition(
         &mut self,
         stage_identity: &str,
+        resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+        resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
         graph_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryStageConditionAdmission, WorthQueryWorkflowAdvanceDenial> {
@@ -218,6 +225,8 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             stage_identity,
             &self.identity,
             self.receipts.len() as u64 + 1,
+            resources,
+            resource_evidence,
             &mut self.counters,
         ) {
             Ok(conditional) => Ok(WorthQueryStageConditionAdmission::Admitted(conditional)),

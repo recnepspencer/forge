@@ -1,0 +1,10 @@
+error[E0624]: associated function `mint` is private
+ --> tests/ui/installed_domain/resource_admission/provider_session_constructor_private.rs:4:41
+  |
+4 |     WorthQueryExecutionProviderSession::mint("forged-attempt")
+  |                                         ^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/execution_resource_admission/provider_session.rs
+  |
+  |     pub(crate) fn mint(attempt_identity: &str) -> Self {
+  |     -------------------------------------------------- private associated function defined here

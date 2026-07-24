@@ -332,6 +332,11 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
     pub fn resources(&self) -> &crate::domain_installation::WorthQueryAdmittedWorkflowResourcePlan {
         self.run.resources()
     }
+    pub fn operation_resource_evidence(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        self.run.operation_resource_evidence()
+    }
     pub fn lineage_report(
         &self,
     ) -> Option<&crate::domain_installation::WorthQueryTraceLineageReport> {

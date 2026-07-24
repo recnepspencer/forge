@@ -54,6 +54,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for Provider {
 }
 
 impl<C> domain::WorthQueryGraphCommitProvider<C> for Provider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn admit_commit(
         &self,
         call: &domain::WorthQueryGraphCommitCall,

@@ -81,8 +81,15 @@ where
             ));
         };
         let support = WorthQueryExecutionResourceSupportSnapshot::new(
-            executor.resource_support.clone(),
-            Vec::new(),
+            super::WorthQueryExecutionResourceSupportSnapshotParts {
+                executor: executor.resource_support.clone(),
+                conditional_nodes: super::operation_conditional_supports(&self),
+                graph_providers: Vec::new(),
+                commit_providers: Vec::new(),
+                parallel_admission: self
+                    .workflow_parallel_admission_provider()
+                    .map(|provider| provider.resource_support().clone()),
+            },
         );
         let mut operation = match lower_execution_resource_plan(
             self.binding_identity(),
@@ -172,19 +179,30 @@ fn stage_support_snapshot<D, O, F, L: BasisOperationLane>(
         .chain(&stage.semantics().touch_roles)
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
+    let touch_roles = stage
+        .semantics()
+        .touch_roles
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     WorthQueryExecutionResourceSupportSnapshot::new(
-        executor_support.clone(),
-        bound
-            .graph_participations()
-            .iter()
-            .filter(|participation| roles.contains(participation.role.as_str()))
-            .map(|participation| {
-                (
-                    participation.role.clone(),
-                    participation.record.resource_support.clone(),
-                )
-            })
-            .collect(),
+        super::WorthQueryExecutionResourceSupportSnapshotParts {
+            executor: executor_support.clone(),
+            conditional_nodes: super::stage_conditional_supports(bound, stage.identity()),
+            graph_providers: bound
+                .graph_participations()
+                .iter()
+                .filter(|participation| roles.contains(participation.role.as_str()))
+                .map(|participation| {
+                    (
+                        participation.role.clone(),
+                        participation.record.resource_support.clone(),
+                    )
+                })
+                .collect(),
+            commit_providers: super::commit_supports_for_roles(bound, &touch_roles),
+            parallel_admission: None,
+        },
     )
 }
 

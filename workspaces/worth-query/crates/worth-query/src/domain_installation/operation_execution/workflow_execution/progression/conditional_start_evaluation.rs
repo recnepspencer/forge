@@ -10,6 +10,8 @@ pub(super) struct ConditionalWorkflowStartEvaluationPass<'a> {
     pub(super) snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) run_identity: &'a str,
     pub(super) attempt: u64,
+    pub(super) resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    pub(super) resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,
     pub(super) run_counters: &'a mut super::WorthQueryWorkflowRunCounters,
 }
 
@@ -25,6 +27,8 @@ pub(super) fn evaluate<D: 'static, O: 'static, F: 'static, L: BasisOperationLane
         snapshot,
         run_identity,
         attempt,
+        resources,
+        resource_evidence,
         run_counters,
     } = pass;
     let execution_identity = format!("{}:{run_identity}:operation", bound.binding_identity());
@@ -38,6 +42,8 @@ pub(super) fn evaluate<D: 'static, O: 'static, F: 'static, L: BasisOperationLane
             scope: crate::domain_installation::WorthQueryConditionalEvaluationScope::Operation,
             workflow_run_identity: Some(run_identity),
             attempt,
+            resources,
+            resource_evidence,
             counters: &mut counters,
         },
     );

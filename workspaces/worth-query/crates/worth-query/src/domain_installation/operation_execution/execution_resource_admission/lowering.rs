@@ -61,14 +61,13 @@ fn support_mismatch(
     counters: WorthQueryExecutionResourceAdmissionCounters,
 ) -> WorthQueryExecutionResourceAdmissionDenial {
     let required = strategy.provider_requirements();
-    let Some((role, actual)) = support.first_mismatch(strategy) else {
+    let Some((subject, actual)) = support.first_mismatch(strategy) else {
         return WorthQueryExecutionResourceAdmissionDenial::new(
             Kind::Backpressured,
             "resource support changed after strategy evaluation",
             counters,
         );
     };
-    let subject = role.map_or("executor".to_owned(), |role| format!("graph role `{role}`"));
     let (kind, detail) = if actual.provider() != required.provider() {
         (
             Kind::DifferentProviderRequired,
