@@ -55,7 +55,7 @@ fn native_access_work_is_invariant_to_unrelated_rows_facts_views_and_domains() {
 #[derive(Debug)]
 struct CaseCounters {
     journey: std::collections::BTreeMap<
-        &'static str,
+        String,
         (u64, worth_foundational::FoundationalPerformanceWorkClass),
     >,
     access: domain::WorthQueryNativeAccessCounters,
@@ -153,7 +153,12 @@ fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: boo
             .consumption_cost_snapshot()
             .rows()
             .iter()
-            .map(|row| (row.name(), (row.observed_count(), row.work_class())))
+            .map(|row| {
+                (
+                    row.name().to_owned(),
+                    (row.observed_count(), row.work_class()),
+                )
+            })
             .collect(),
         access,
         binding: settled.native_access_binding_counters().unwrap(),

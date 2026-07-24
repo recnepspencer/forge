@@ -6,10 +6,16 @@ mod contract;
 mod direct_executor;
 #[path = "domain_evidence/material.rs"]
 mod material;
+#[path = "domain_evidence/workflow_executor.rs"]
+mod workflow_executor;
+#[path = "domain_evidence/workflow_workspace.rs"]
+mod workflow_workspace;
 #[path = "domain_evidence/workspace.rs"]
 mod workspace;
 
 pub use material::EvidenceScenario;
+pub use workflow_executor::EvidenceWorkflowMode;
+pub use workflow_workspace::{evidence_workflow_intent, evidence_workflow_workspace};
 pub use workspace::evidence_workspace;
 
 #[derive(Clone, Copy, Debug)]

@@ -25,6 +25,7 @@ mod dependency_impact_retry;
 mod dependency_impact_role_matrix;
 mod dependency_impact_scale;
 mod dependency_impact_semantic_convergence;
+mod domain_evidence;
 mod graph_participation;
 mod graph_provider_execution;
 mod installed_operation_fixture;

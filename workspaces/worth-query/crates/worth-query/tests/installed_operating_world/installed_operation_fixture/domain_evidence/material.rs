@@ -10,30 +10,75 @@ pub enum EvidenceScenario {
     ImpossibleAggregate,
     SearchOverclaim,
     LossMismatch,
+    LedgerRegression,
+    ReplayCoreDrift,
 }
 
 pub(super) fn evidence_material(
     output_occurrence_identity: &str,
     scenario: EvidenceScenario,
 ) -> domain::WorthQueryDomainEvidenceMaterial {
-    let candidate_initial = if scenario == EvidenceScenario::BackwardCounter {
-        7
+    let candidate = if scenario == EvidenceScenario::BackwardCounter {
+        CounterWindow::new(7, 6)
     } else {
-        0
+        CounterWindow::new(0, 6)
     };
-    let candidate_observed = 6;
-    let work_observed = if scenario == EvidenceScenario::ImpossibleAggregate {
-        9
+    evidence_material_with_window(output_occurrence_identity, scenario, candidate, false)
+}
+
+pub(super) fn workflow_evidence_material(
+    output_occurrence_identity: &str,
+    scenario: EvidenceScenario,
+    stage_identity: &str,
+) -> domain::WorthQueryDomainEvidenceMaterial {
+    let candidate = match (stage_identity, scenario) {
+        ("start", _) => CounterWindow::new(0, 6),
+        ("left", EvidenceScenario::LedgerRegression) => CounterWindow::new(0, 5),
+        ("left", _) => CounterWindow::new(6, 12),
+        _ => panic!("only evidence-declaring workflow stages may attach evidence"),
+    };
+    evidence_material_with_window(
+        output_occurrence_identity,
+        scenario,
+        candidate,
+        stage_identity == "left",
+    )
+}
+
+#[derive(Clone, Copy)]
+struct CounterWindow {
+    initial: u64,
+    observed: u64,
+}
+
+impl CounterWindow {
+    const fn new(initial: u64, observed: u64) -> Self {
+        Self { initial, observed }
+    }
+}
+
+fn evidence_material_with_window(
+    output_occurrence_identity: &str,
+    scenario: EvidenceScenario,
+    candidate: CounterWindow,
+    workflow_left: bool,
+) -> domain::WorthQueryDomainEvidenceMaterial {
+    let bytes_observed = if scenario == EvidenceScenario::ReplayCoreDrift && workflow_left {
+        129
     } else {
-        10
+        128
     };
+    let work = CounterWindow::new(
+        candidate.initial,
+        candidate.observed + 4 - u64::from(scenario == EvidenceScenario::ImpossibleAggregate),
+    );
     let mut material = domain::WorthQueryDomainEvidenceMaterial::new()
-        .counter(observation("bytes", 0, 128))
+        .counter(observation("bytes", 0, bytes_observed))
         .counter(observation("elements", 0, 4))
         .counter(observation(
             "candidate-comparisons",
-            candidate_initial,
-            candidate_observed,
+            candidate.initial,
+            candidate.observed,
         ))
         .decision(domain::WorthQueryDecisionSummary::new(
             decision_kind(),
@@ -42,7 +87,7 @@ pub(super) fn evidence_material(
         .candidate_search(candidate_summary(scenario))
         .transformation(transformation_summary(output_occurrence_identity, scenario));
     if scenario != EvidenceScenario::MissingRequiredCounter {
-        material = material.counter(observation("work", 0, work_observed));
+        material = material.counter(observation("work", work.initial, work.observed));
     }
     if scenario != EvidenceScenario::OmitSidecars {
         material = material.with_sidecar(sidecars(output_occurrence_identity));

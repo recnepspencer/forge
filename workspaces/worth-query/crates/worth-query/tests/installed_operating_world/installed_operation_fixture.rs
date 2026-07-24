@@ -54,7 +54,10 @@ pub(super) use correspondence_bridge::{
     conditional_runtime_bridge_with_repeated_value_changes, correspondence_bridge,
 };
 pub use count_vertices::{CountVertices, CountVerticesInput};
-pub use domain_evidence::{evidence_workspace, EvidenceFamily, EvidenceRead, EvidenceScenario};
+pub use domain_evidence::{
+    evidence_workflow_intent, evidence_workflow_workspace, evidence_workspace, EvidenceFamily,
+    EvidenceRead, EvidenceScenario, EvidenceWorkflowMode,
+};
 pub use executors::graph_projection_material;
 use executors::{
     CountVerticesExecutor, FederatedReadExecutor, ReadVertexExecutor,

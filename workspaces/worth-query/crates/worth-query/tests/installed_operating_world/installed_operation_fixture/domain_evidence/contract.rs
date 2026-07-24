@@ -3,7 +3,7 @@ use worth_foundational::facade::{
 };
 use worth_query::facade::domain;
 
-use super::super::{canonical_bundle, semantic_closure, GeometryDomain};
+use super::super::{canonical_bundle, semantic_closure, GeometryDomain, ReadFamily, WorkflowRead};
 use super::{EvidenceFamily, EvidenceRead};
 
 pub(super) struct EvidenceArtifactFamily;
@@ -39,7 +39,59 @@ pub(super) fn direct_package(
         GeometryDomain,
         domain::WorthQueryDomainIdentityDeclaration::new(
             domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
-            domain::WorthQueryDomainIdentityName::new("domain-evidence").unwrap(),
+            domain::WorthQueryDomainIdentityName::new("geometry").unwrap(),
+            domain::WorthQueryDomainSemanticVersion::new(1, 0),
+        ),
+    )
+    .operation(operation)
+    .artifact_contract(contract)
+}
+
+pub(super) fn workflow_package(
+    redaction: domain::WorthQueryArtifactRedactionPosture,
+) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    let contract = evidence_contract(redaction);
+    let stages = super::super::workflow::valid_stages()
+        .into_iter()
+        .map(|stage| {
+            if !matches!(stage.identity(), "start" | "left") {
+                return stage;
+            }
+            let mut semantics = stage.semantics().clone();
+            semantics.evidence =
+                domain::WorthQueryDomainEvidenceContract::installed_artifact(contract.reference());
+            stage.with_semantics(semantics)
+        })
+        .collect::<Vec<_>>();
+    let workflow = domain::WorthQueryPortableWorkflowDefinition::new("start", stages);
+    let mut semantics = semantic_closure(
+        canonical_bundle("Vertex"),
+        domain::WorthQuerySupportRequirement::Required,
+        true,
+    );
+    semantics.lowering = domain::WorthQueryOperationLoweringContract {
+        family: "domain-evidence-workflow-v1".into(),
+        deterministic: true,
+    };
+    semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
+        comparator: domain::WorthQueryOperationReplayComparatorContract {
+            family: "domain-evidence-workflow-exact-v1",
+        },
+    };
+    semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
+    let operation = domain::WorthQueryDomainOperationDefinition::<
+        GeometryDomain,
+        WorkflowRead,
+        ReadFamily,
+    >::new(
+        domain::WorthQueryDomainOperationIdentity::new("workflow-read", 1),
+        semantics,
+    );
+    domain::WorthQueryDomainPackage::declare(
+        GeometryDomain,
+        domain::WorthQueryDomainIdentityDeclaration::new(
+            domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+            domain::WorthQueryDomainIdentityName::new("geometry").unwrap(),
             domain::WorthQueryDomainSemanticVersion::new(1, 0),
         ),
     )
@@ -137,7 +189,7 @@ fn evidence_contract(
         domain::WorthQueryArtifactRetirementRule::Active,
         domain::WorthQueryArtifactDowngradePosture::Denied,
     ))
-    .produced_by(["evidence-read:1", "evidence"])
+    .produced_by(["evidence-read:1", "evidence", "left", "start"])
     .consumed_by(["audit"])
     .finish()
     .unwrap()
