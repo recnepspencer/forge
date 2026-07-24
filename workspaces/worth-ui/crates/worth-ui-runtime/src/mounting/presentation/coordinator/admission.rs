@@ -11,9 +11,21 @@ use super::super::{
 use super::UiMountedPresentationCoordinator;
 
 impl UiMountedPresentationCoordinator {
-    pub fn admit(
+    pub(crate) fn admit_current(
         &mut self,
+        identity: &super::super::super::UiMountedIdentityState,
         frame: super::super::super::UiPreparedMountedFrame,
+        capability_report: &WorthUiHostCapabilityReport,
+        deadline: UiPresentationDeadline,
+        now: u64,
+    ) -> Result<UiMountedPresentationAdmission, UiMountedPresentationAdmissionRejection> {
+        let frame = identity.admit_prepared_frame_authority(frame)?;
+        self.admit(frame, capability_report, deadline, now)
+    }
+
+    fn admit(
+        &mut self,
+        frame: super::super::super::UiAuthorityAdmittedMountedFrame,
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
         now: u64,
@@ -23,7 +35,7 @@ impl UiMountedPresentationCoordinator {
 
     pub(crate) fn admit_reconciliation(
         &mut self,
-        frame: super::super::super::UiPreparedMountedFrame,
+        frame: super::super::super::UiAuthorityAdmittedMountedFrame,
         replacements: &[UiMountedSurfaceReconciliationBinding],
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
@@ -34,12 +46,13 @@ impl UiMountedPresentationCoordinator {
 
     fn admit_for(
         &mut self,
-        frame: super::super::super::UiPreparedMountedFrame,
+        frame: super::super::super::UiAuthorityAdmittedMountedFrame,
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
         now: u64,
         reconciliation: Option<&[UiMountedSurfaceReconciliationBinding]>,
     ) -> Result<UiMountedPresentationAdmission, UiMountedPresentationAdmissionRejection> {
+        let frame = frame.into_frame();
         if self.shutting_down {
             return Err(rejected(
                 frame,

@@ -262,15 +262,8 @@ impl UiPreparedMountedFrame {
         self.candidate.is_unpublished()
     }
 
-    pub(crate) fn presented_receipts(
-        &self,
-    ) -> impl Iterator<
-        Item = (
-            worth_ui_host_contract::UiMountedInstanceIdentity,
-            worth_ui_host_contract::UiMountedNodeReceiptIdentity,
-        ),
-    > + '_ {
-        self.candidate.presented_receipts()
+    pub(crate) fn presented_receipt_basis(&self) -> &super::UiMountedNodeReceiptBasis {
+        self.candidate.presented_receipt_basis()
     }
 
     pub(crate) fn into_publication_parts(

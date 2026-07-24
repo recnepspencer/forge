@@ -9,7 +9,9 @@ mod identity_state;
 mod identity_view;
 mod presentation;
 mod projection;
+mod projection_changes;
 mod publication;
+mod receipt_basis;
 mod retention;
 mod reuse;
 mod surface_binding;
@@ -24,7 +26,7 @@ pub(crate) use frame_assembler::{
 };
 pub(crate) use host_truth::UiMountedHostTruthCoordinator;
 pub use identity::{UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMountedIdentityBasis};
-pub(crate) use identity_state::UiMountedIdentityState;
+pub(crate) use identity_state::{UiAuthorityAdmittedMountedFrame, UiMountedIdentityState};
 pub use identity_view::{
     UiMountedFrameIdentityView, UiMountedIdentityView, UiMountedInstanceIdentityView,
     UiSurfaceBindingIdentityView,
@@ -51,12 +53,16 @@ pub use projection::{
     UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame,
     UiProjectedMountedFrameCandidate,
 };
+pub(crate) use projection_changes::{
+    UiMountedProjectionChangeSnapshot, UiMountedProjectionChanges,
+};
 pub use publication::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedPublicationLeaseDenial,
 };
 pub(crate) use publication::{
     UiMountedFramePublicationCandidate, UiMountedFrameReconciliationCandidate,
 };
+pub(crate) use receipt_basis::UiMountedNodeReceiptBasis;
 pub(crate) use retention::{UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation};
 pub(crate) use reuse::UiMountedFrameReuseExternalBasis;
 pub use reuse::{

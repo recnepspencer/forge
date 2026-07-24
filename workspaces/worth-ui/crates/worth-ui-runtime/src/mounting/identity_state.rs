@@ -2,26 +2,25 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::facade::WorthUiHostSessionIdentity;
-use crate::graph::{UiGraphAuthority, UiGraphNodeIdentity};
+use crate::graph::UiGraphNodeIdentity;
 use worth_ui_host_contract::{
-    UiHostSurfaceRegistrationRequest, UiMountIncarnation, UiMountedFrameIdentity,
-    UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity, UiMountedProjectionAudience,
-    UiSemanticSurfaceIdentity,
+    UiHostSurfaceRegistrationRequest, UiMountedFrameIdentity, UiMountedInstanceIdentity,
+    UiMountedProjectionAudience, UiSemanticSurfaceIdentity,
 };
 
 use super::{
-    UiMountedFrameIdentityView, UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity,
-    UiMountedIdentityBasis, UiMountedIdentityDenial, UiSurfaceBindingIdentityView,
+    UiMountedGraphWorldIdentity, UiMountedIdentityBasis, UiMountedIdentityDenial,
+    UiSurfaceBindingIdentityView,
 };
 
 static NEXT_WORLD: AtomicU64 = AtomicU64::new(1);
 static NEXT_STATE_REVISION: AtomicU64 = AtomicU64::new(1);
 const SEMANTIC_SURFACE_LIMIT: usize = 256;
-const MOUNTED_CLOSURE_LIMIT: usize = 2_048;
-const GRAPH_NODE_MOUNT_LIMIT: usize = 1_024;
 const RETIRED_INSTANCE_LIMIT: usize = 256;
 
 mod frame_lifecycle;
+mod graph_replacement;
+mod instance_lifecycle;
 pub(crate) mod surface_lifecycle;
 
 #[derive(Clone, Debug)]
@@ -37,8 +36,11 @@ struct SurfaceBindingRecord {
 
 #[derive(Clone)]
 pub(crate) struct UiMountedIdentityFrameCandidate {
-    frame: UiMountedFrameIdentity,
-    receipts: BTreeMap<UiMountedInstanceIdentity, UiMountedFrameIdentityView>,
+    receipt_basis: super::UiMountedNodeReceiptBasis,
+}
+
+pub(crate) struct UiAuthorityAdmittedMountedFrame {
+    frame: super::UiPreparedMountedFrame,
 }
 
 pub(crate) struct UiMountedIdentityState {
@@ -51,14 +53,17 @@ pub(crate) struct UiMountedIdentityState {
     retirement_order: VecDeque<UiMountedInstanceIdentity>,
     by_graph: BTreeMap<UiGraphNodeIdentity, BTreeSet<UiMountedInstanceIdentity>>,
     visible_order: Vec<UiMountedInstanceIdentity>,
+    mounted_instance_membership:
+        crate::runtime::persistent_index::UiPersistentOrdSet<UiMountedInstanceIdentity>,
     current_frame: Option<UiMountedFrameIdentity>,
-    current_receipts: BTreeMap<UiMountedInstanceIdentity, UiMountedFrameIdentityView>,
+    current_receipt_basis: Option<super::UiMountedNodeReceiptBasis>,
     current_projection: Option<super::UiMountedProjectionFrame>,
     current_manifest: Option<worth_ui_host_contract::UiMountedFrameManifest>,
     current_core: Option<worth_ui_host_contract::UiMountedFrameCanonicalCore>,
     current_publication: Option<super::UiMountedFramePublicationReceipt>,
     current_reuse_contract: Option<super::UiMountedFrameReuseContract>,
     presented_frames: super::retention::UiMountedPresentedFrameRetention,
+    pending_projection_changes: super::UiMountedProjectionChanges,
     semantic_revision: u64,
     binding_revision: u64,
 }
@@ -83,14 +88,16 @@ impl UiMountedIdentityState {
             retirement_order: VecDeque::new(),
             by_graph: BTreeMap::new(),
             visible_order: Vec::new(),
+            mounted_instance_membership: Default::default(),
             current_frame: None,
-            current_receipts: BTreeMap::new(),
+            current_receipt_basis: None,
             current_projection: None,
             current_manifest: None,
             current_core: None,
             current_publication: None,
             current_reuse_contract: None,
             presented_frames: Default::default(),
+            pending_projection_changes: Default::default(),
             semantic_revision,
             binding_revision,
         })
@@ -115,187 +122,6 @@ impl UiMountedIdentityState {
         self.semantic_surfaces.insert(identity, audience);
         self.semantic_revision = semantic_revision;
         Ok(identity)
-    }
-
-    pub(crate) fn graph_node_handle(
-        &self,
-        graph: UiGraphAuthority<'_>,
-        graph_node_identity: UiGraphNodeIdentity,
-    ) -> Result<UiMountedGraphNodeHandle, UiMountedIdentityDenial> {
-        graph
-            .lookup()
-            .graph_node(graph_node_identity)
-            .ok_or(UiMountedIdentityDenial::UnknownGraphNode)?;
-        Ok(UiMountedGraphNodeHandle::new(
-            self.world_identity,
-            graph_node_identity,
-        ))
-    }
-
-    pub(crate) fn mount(
-        &mut self,
-        graph: UiGraphAuthority<'_>,
-        handle: UiMountedGraphNodeHandle,
-        surface: UiSemanticSurfaceIdentity,
-    ) -> Result<UiMountedInstanceIdentity, UiMountedIdentityDenial> {
-        self.require_handle(handle)?;
-        self.require_surface(surface)?;
-        if self.instances.len() >= MOUNTED_CLOSURE_LIMIT {
-            return Err(UiMountedIdentityDenial::MountedClosureCapacityExceeded);
-        }
-        if self
-            .by_graph
-            .get(&handle.graph_node_identity())
-            .is_some_and(|instances| instances.len() >= GRAPH_NODE_MOUNT_LIMIT)
-        {
-            return Err(UiMountedIdentityDenial::GraphNodeMountCapacityExceeded);
-        }
-        let graph_node = graph
-            .lookup()
-            .graph_node(handle.graph_node_identity())
-            .ok_or(UiMountedIdentityDenial::UnknownGraphNode)?;
-        let incarnation = UiMountIncarnation::mint_unbound()
-            .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
-        let identity = UiMountedInstanceIdentity::mint_unbound()
-            .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
-        let semantic_revision = next(&NEXT_STATE_REVISION)?;
-        let basis = UiMountedIdentityBasis::new(
-            handle.graph_node_identity(),
-            graph_node.value().repeated_instance_basis().clone(),
-            surface,
-            incarnation,
-        );
-        self.instances
-            .insert(identity, MountedInstanceRecord { basis });
-        self.by_graph
-            .entry(handle.graph_node_identity())
-            .or_default()
-            .insert(identity);
-        self.visible_order.push(identity);
-        self.semantic_revision = semantic_revision;
-        Ok(identity)
-    }
-
-    pub(crate) fn unmount(
-        &mut self,
-        identity: UiMountedInstanceIdentity,
-    ) -> Result<(), UiMountedIdentityDenial> {
-        let record = self.instances.get(&identity).cloned().ok_or_else(|| {
-            if self.retired_instances.contains(&identity) {
-                UiMountedIdentityDenial::RetiredMountedInstance
-            } else {
-                UiMountedIdentityDenial::UnknownMountedInstance
-            }
-        })?;
-        let semantic_revision = next(&NEXT_STATE_REVISION)?;
-        self.instances.remove(&identity);
-        if let Some(instances) = self.by_graph.get_mut(&record.basis.graph_node_identity()) {
-            instances.remove(&identity);
-        }
-        self.visible_order
-            .retain(|candidate| *candidate != identity);
-        self.current_receipts.remove(&identity);
-        self.remember_retirement(identity);
-        self.semantic_revision = semantic_revision;
-        Ok(())
-    }
-
-    pub(crate) fn prepare_graph_replacement(
-        &self,
-    ) -> Result<UiMountedGraphWorldIdentity, UiMountedIdentityDenial> {
-        Ok(UiMountedGraphWorldIdentity::new(next(&NEXT_WORLD)?))
-    }
-
-    pub(crate) fn prepare_graph_replacement_successor(
-        &self,
-        graph: UiGraphAuthority<'_>,
-    ) -> Result<Self, UiMountedIdentityDenial> {
-        let next_world = self.prepare_graph_replacement()?;
-        let semantic_revision = next(&NEXT_STATE_REVISION)?;
-        let instances = self
-            .instances
-            .iter()
-            .filter(|(_, record)| {
-                graph
-                    .lookup()
-                    .graph_node(record.basis.graph_node_identity())
-                    .is_some_and(|candidate| {
-                        candidate.value().repeated_instance_basis()
-                            == record.basis.repeated_instance_basis()
-                    })
-            })
-            .map(|(identity, record)| (*identity, record.clone()))
-            .collect::<BTreeMap<_, _>>();
-        let mut by_graph = BTreeMap::<_, BTreeSet<_>>::new();
-        for (identity, record) in &instances {
-            by_graph
-                .entry(record.basis.graph_node_identity())
-                .or_default()
-                .insert(*identity);
-        }
-        let visible_order = self
-            .visible_order
-            .iter()
-            .copied()
-            .filter(|identity| instances.contains_key(identity))
-            .collect();
-        let mut successor = Self {
-            world_identity: next_world,
-            host_session_identity: self.host_session_identity,
-            semantic_surfaces: self.semantic_surfaces.clone(),
-            bindings: self.bindings.clone(),
-            instances,
-            retired_instances: self.retired_instances.clone(),
-            retirement_order: self.retirement_order.clone(),
-            by_graph,
-            visible_order,
-            current_frame: None,
-            current_receipts: BTreeMap::new(),
-            current_projection: None,
-            current_manifest: None,
-            current_core: None,
-            current_publication: None,
-            current_reuse_contract: None,
-            presented_frames: self.presented_frames.inherited_by_replacement(),
-            semantic_revision,
-            binding_revision: self.binding_revision,
-        };
-        for identity in self
-            .instances
-            .keys()
-            .filter(|identity| !successor.instances.contains_key(identity))
-            .copied()
-            .collect::<Vec<_>>()
-        {
-            successor.remember_retirement(identity);
-        }
-        Ok(successor)
-    }
-
-    pub(crate) fn reorder(
-        &mut self,
-        order: &[UiMountedInstanceIdentity],
-    ) -> Result<(), UiMountedIdentityDenial> {
-        let requested = order.iter().copied().collect::<BTreeSet<_>>();
-        let current = self.visible_order.iter().copied().collect::<BTreeSet<_>>();
-        if requested != current || requested.len() != order.len() {
-            return Err(UiMountedIdentityDenial::ReorderMembershipMismatch);
-        }
-        let semantic_revision = next(&NEXT_STATE_REVISION)?;
-        self.visible_order.clear();
-        self.visible_order.extend_from_slice(order);
-        self.semantic_revision = semantic_revision;
-        Ok(())
-    }
-
-    fn require_handle(
-        &self,
-        handle: UiMountedGraphNodeHandle,
-    ) -> Result<(), UiMountedIdentityDenial> {
-        if handle.world_identity() != self.world_identity {
-            return Err(UiMountedIdentityDenial::ForeignGraphWorld);
-        }
-        Ok(())
     }
 
     fn require_surface(
@@ -333,6 +159,22 @@ impl UiMountedIdentityState {
             self.binding_revision,
         )
     }
+
+    pub(crate) fn projection_change_snapshot(&self) -> super::UiMountedProjectionChangeSnapshot {
+        self.pending_projection_changes
+            .snapshot(self.semantic_revision, self.binding_revision)
+    }
+
+    fn commit_projection_changes(
+        &mut self,
+        snapshot: &super::UiMountedProjectionChangeSnapshot,
+    ) -> bool {
+        if !snapshot.matches(self.semantic_revision, self.binding_revision) {
+            return false;
+        }
+        self.pending_projection_changes = Default::default();
+        true
+    }
 }
 
 fn next(counter: &AtomicU64) -> Result<u64, UiMountedIdentityDenial> {
@@ -345,17 +187,20 @@ fn next(counter: &AtomicU64) -> Result<u64, UiMountedIdentityDenial> {
 
 impl UiMountedIdentityFrameCandidate {
     pub(super) fn frame(&self) -> UiMountedFrameIdentity {
-        self.frame
+        self.receipt_basis.frame()
     }
 
-    pub(super) fn presented_receipts(
-        &self,
-    ) -> impl Iterator<Item = (UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity)> + '_ {
-        self.receipts.values().map(|receipt| {
-            (
-                receipt.mounted_instance_identity(),
-                receipt.node_receipt_identity(),
-            )
-        })
+    pub(super) fn receipt_basis(&self) -> &super::UiMountedNodeReceiptBasis {
+        &self.receipt_basis
+    }
+}
+
+impl UiAuthorityAdmittedMountedFrame {
+    fn new(frame: super::UiPreparedMountedFrame) -> Self {
+        Self { frame }
+    }
+
+    pub(in crate::mounting) fn into_frame(self) -> super::UiPreparedMountedFrame {
+        self.frame
     }
 }

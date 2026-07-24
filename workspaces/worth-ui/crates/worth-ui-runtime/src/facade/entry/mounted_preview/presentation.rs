@@ -23,10 +23,13 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
             ports,
         } = self;
         let capabilities = ports.host_session.capability_report().clone();
-        let admission = match ports
-            .presentation
-            .admit(frame, &capabilities, deadline, now)
-        {
+        let admission = match ports.presentation.admit_current(
+            ports.identity,
+            frame,
+            &capabilities,
+            deadline,
+            now,
+        ) {
             Ok(admission) => admission,
             Err(rejection) => {
                 ports

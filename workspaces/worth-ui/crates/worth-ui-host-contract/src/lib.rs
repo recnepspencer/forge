@@ -22,7 +22,7 @@ pub use mounted_frame::{
     UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView, UiMountedFrameIdentity,
     UiMountedFrameIntegrity, UiMountedFrameManifest, UiMountedFrameSchemaVersion,
     UiMountedInstanceIdentity, UiMountedLaneParticipation, UiMountedNodeReceiptIdentity,
-    UiMountedPresentationAttemptIdentity, UiMountedPresentationLease,
+    UiMountedNodeReceiptIssuer, UiMountedPresentationAttemptIdentity, UiMountedPresentationLease,
     UiMountedPresentationLeaseDenial, UiMountedPresentationLeaseGate,
     UiMountedPresentationSchemaVersion, UiMountedSurfaceBindingRequirement,
     UiMountedSurfacePresentationCompletion, UiPresentationDeadline, UiRequiredLaneContribution,
