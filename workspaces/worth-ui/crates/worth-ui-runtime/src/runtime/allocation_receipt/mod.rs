@@ -40,6 +40,8 @@ mod ledger_state;
 mod mounted_projection_catalog;
 #[path = "ledger_lifecycle/mounted_projection_journal.rs"]
 mod mounted_projection_journal;
+#[path = "ledger_lifecycle/mounted_projection_row.rs"]
+mod mounted_projection_row;
 #[path = "transaction/prepared_portal_commit.rs"]
 mod prepared_portal_commit;
 #[path = "transaction/prepared_replan.rs"]
@@ -142,7 +144,11 @@ pub use truth_revision::{
 pub(crate) use ledger_state::UiAllocationCatalogLedgerLineage;
 pub(crate) use ledger_state::UiAllocationCatalogLedgerTransition;
 pub(crate) use mounted_projection_catalog::UiMountedAllocationProjectionCatalog;
-pub(crate) use mounted_projection_journal::UiMountedAllocationProjectionSource;
+pub(crate) use mounted_projection_journal::{
+    UiMountedAllocationExactDelta, UiMountedAllocationProjectionDelta,
+    UiMountedAllocationProjectionSource,
+};
+pub(crate) use mounted_projection_row::UiMountedAllocationProjectionDenial;
 pub(in crate::runtime) use prepared_replan::{
     UiAllocationLedgerPreparation, UiPreparedAllocationLedgerTransition,
 };

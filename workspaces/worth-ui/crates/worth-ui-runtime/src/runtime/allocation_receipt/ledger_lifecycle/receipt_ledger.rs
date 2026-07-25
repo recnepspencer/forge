@@ -18,8 +18,16 @@ impl UiAllocationReceiptLedger {
         }
     }
 
-    pub(crate) fn mounted_projection_catalog(&self) -> super::UiMountedAllocationProjectionCatalog {
-        self.state.borrow().mounted_projection_catalog.clone()
+    pub(crate) fn mounted_projection_source(
+        &self,
+        predecessor_revision: Option<u64>,
+    ) -> super::UiMountedAllocationProjectionSource {
+        let state = self.state.borrow();
+        state.mounted_projection_journal.source(
+            state.mounted_projection_catalog.clone(),
+            predecessor_revision,
+            state.truth_revision.revision(),
+        )
     }
 
     pub(super) fn prepare_selected_mode(
@@ -318,6 +326,21 @@ impl UiAllocationReceiptLedger {
             successor.committed_by_scope.insert(scope, receipt.clone());
             successor.mounted_projection_catalog.insert(receipt.clone());
         }
+        let changed_graph_nodes = committed
+            .receipts()
+            .iter()
+            .map(|receipt| receipt.identity().graph_node_identity())
+            .filter(|graph_node| {
+                successor
+                    .mounted_projection_catalog
+                    .projection_changed_since(&predecessor.mounted_projection_catalog, *graph_node)
+            })
+            .collect();
+        successor.mounted_projection_journal.record(
+            predecessor.truth_revision.revision(),
+            successor.truth_revision.revision(),
+            changed_graph_nodes,
+        );
         successor.next_transaction_generation = generation;
         if let Some(basis) = mode.durable_resize() {
             let mutated = successor

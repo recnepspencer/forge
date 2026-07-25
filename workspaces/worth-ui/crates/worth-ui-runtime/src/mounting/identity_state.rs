@@ -43,6 +43,11 @@ pub(crate) struct UiAuthorityAdmittedMountedFrame {
     frame: super::UiPreparedMountedFrame,
 }
 
+pub(crate) struct UiMountedProjectionAffectedInstances {
+    instances: Box<[UiMountedInstanceIdentity]>,
+    index_entries_touched: usize,
+}
+
 pub(crate) struct UiMountedIdentityState {
     world_identity: UiMountedGraphWorldIdentity,
     host_session_identity: WorthUiHostSessionIdentity,
@@ -180,6 +185,12 @@ impl UiMountedIdentityState {
         self.current_projection.as_ref()
     }
 
+    pub(crate) fn current_allocation_truth_revision(&self) -> Option<u64> {
+        self.current_core
+            .as_ref()
+            .map(|core| core.allocation_truth_revision())
+    }
+
     pub(crate) fn projection_instance(
         &self,
         identity: UiMountedInstanceIdentity,
@@ -198,6 +209,25 @@ impl UiMountedIdentityState {
             .filter_map(|identity| self.projection_instance(*identity))
             .filter(|instance| surfaces.contains(&instance.basis().semantic_surface_identity()))
             .collect()
+    }
+
+    pub(crate) fn try_projection_instances_for_graph_nodes(
+        &self,
+        graph_nodes: &[UiGraphNodeIdentity],
+    ) -> Option<UiMountedProjectionAffectedInstances> {
+        let mut instances = BTreeSet::new();
+        let mut index_entries_touched = 0usize;
+        for graph_node in graph_nodes {
+            index_entries_touched = index_entries_touched.checked_add(1)?;
+            if let Some(mounted) = self.by_graph.get(graph_node) {
+                index_entries_touched = index_entries_touched.checked_add(mounted.len())?;
+                instances.extend(mounted.iter().copied());
+            }
+        }
+        Some(UiMountedProjectionAffectedInstances {
+            instances: instances.into_iter().collect::<Vec<_>>().into_boxed_slice(),
+            index_entries_touched,
+        })
     }
 
     pub(crate) fn projection_order(
@@ -226,6 +256,16 @@ impl UiMountedIdentityState {
             self.bindings.get(&surface)?.view,
             self.semantic_surfaces.get(&surface).copied()?,
         ))
+    }
+}
+
+impl UiMountedProjectionAffectedInstances {
+    pub(crate) fn instances(&self) -> &[UiMountedInstanceIdentity] {
+        &self.instances
+    }
+
+    pub(crate) fn index_entries_touched(&self) -> usize {
+        self.index_entries_touched
     }
 }
 

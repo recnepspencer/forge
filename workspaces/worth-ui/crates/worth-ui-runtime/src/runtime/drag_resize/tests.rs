@@ -249,6 +249,49 @@ fn terminal_resize_mutates_once_and_commits_one_receipt_per_turn() {
 }
 
 #[test]
+fn durable_resize_truth_change_does_not_counterfeit_mounted_projection_delta() {
+    let (mut runtime, root, input) =
+        crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
+    let predecessor_revision = runtime.allocation_truth_revision().revision();
+    let predecessor_projection = runtime
+        .allocation_receipt_ledger
+        .mounted_projection_source(Some(predecessor_revision))
+        .projection(root)
+        .expect("activated allocation geometry is valid")
+        .expect("durable target has a mounted allocation projection");
+    let extent = crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(360.0).unwrap();
+
+    let completion = runtime.execute_framework_turn(|turn| {
+        turn.durable_resize(|source| {
+            source
+                .admit_and_submit(crate::runtime::UiDurableResizeCommitIntent::terminal(
+                    input.clone(),
+                    extent,
+                ))
+                .expect("activated durable source admits");
+        });
+    });
+    assert!(completion.durable_resize_outcome().is_some());
+    assert!(runtime.allocation_truth_revision().revision() > predecessor_revision);
+
+    let projection_source = runtime
+        .allocation_receipt_ledger
+        .mounted_projection_source(Some(predecessor_revision));
+    let crate::runtime::UiMountedAllocationProjectionDelta::Exact(delta) =
+        projection_source.delta()
+    else {
+        panic!("retained predecessor must produce exact mounted allocation delta");
+    };
+    assert_eq!(delta.journal_entries_touched(), 1);
+    assert!(delta.changed_graph_nodes().is_empty());
+    let successor_projection = projection_source
+        .projection(root)
+        .expect("committed allocation geometry is valid")
+        .expect("durable target has a committed mounted projection");
+    assert_eq!(successor_projection, predecessor_projection);
+}
+
+#[test]
 fn foreign_reconciliation_generation_denies_before_ingress_or_state_change() {
     let (mut runtime, _, active_input) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
     let before = runtime.durable_semantic_state().unwrap();

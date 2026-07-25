@@ -21,7 +21,9 @@ pub(super) fn prepare_candidate_mounted_frame(
     let range = request.virtualized_range();
     let plan = application.candidate_plan();
     let lanes = candidate_lanes(plan, range.is_some());
-    let allocation_catalog = application.candidate_allocation_catalog();
+    let allocation_source = crate::runtime::UiMountedAllocationProjectionSource::for_replacement(
+        application.candidate_allocation_catalog(),
+    );
     let reuse_contract =
         state.seal_reuse_contract(crate::mounting::UiMountedFrameReuseExternalBasis {
             generation: reuse_basis.generation.clone(),
@@ -43,7 +45,7 @@ pub(super) fn prepare_candidate_mounted_frame(
             plan_digest: application.candidate_plan_digest(),
             plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
             allocation_truth_revision: application.candidate_allocation_truth_revision(),
-            allocation_catalog,
+            allocation_source,
             request,
             lanes,
             preview: None,

@@ -22,7 +22,7 @@ pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) graph: crate::graph::UiGraphAuthority<'graph>,
     pub(crate) plan_digest: u64,
     pub(crate) plan: super::super::UiMountedPlanProjectionSource<'input>,
-    pub(crate) allocation_catalog: &'input crate::runtime::UiMountedAllocationProjectionCatalog,
+    pub(crate) allocation_source: &'input crate::runtime::UiMountedAllocationProjectionSource,
     pub(crate) requested_surfaces: &'input [worth_ui_host_contract::UiSemanticSurfaceIdentity],
     pub(crate) preview: Option<UiMountedPreviewProjectionInput>,
 }
@@ -40,7 +40,7 @@ pub(crate) struct UiMountedPreviewProjectionInput {
 struct UiMountedNodeLoweringContext<'input, 'graph> {
     graph: crate::graph::UiGraphAuthority<'graph>,
     plan: super::super::UiMountedPlanProjectionSource<'input>,
-    allocation_catalog: &'input crate::runtime::UiMountedAllocationProjectionCatalog,
+    allocation_source: &'input crate::runtime::UiMountedAllocationProjectionSource,
     plan_digest: u64,
 }
 
@@ -187,7 +187,7 @@ pub(crate) fn prepare_projection(
     let lowering = UiMountedNodeLoweringContext {
         graph: input.graph,
         plan: input.plan,
-        allocation_catalog: input.allocation_catalog,
+        allocation_source: input.allocation_source,
         plan_digest: input.plan_digest,
     };
     let projection_changes = state.projection_change_snapshot();
@@ -199,15 +199,19 @@ pub(crate) fn prepare_projection(
                 .semantic_projection()
                 .supports_surfaces(input.requested_surfaces)
         });
-    let delta = match delta_predecessor {
-        Some(current) => build_delta_projection(
+    let delta = match (delta_predecessor, input.allocation_source.delta()) {
+        (
+            Some(current),
+            crate::runtime::UiMountedAllocationProjectionDelta::Exact(allocation_delta),
+        ) => build_delta_projection(
             state,
             &lowering,
             current.semantic_projection(),
             input.requested_surfaces,
             &projection_changes,
+            allocation_delta,
         )?,
-        None => None,
+        _ => None,
     };
     let build = match delta {
         Some(build) => build,
@@ -293,18 +297,33 @@ fn build_delta_projection(
     predecessor: &UiMountedSemanticProjection,
     requested_surfaces: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
     changes: &super::super::UiMountedProjectionChangeSnapshot,
+    allocation_delta: &crate::runtime::UiMountedAllocationExactDelta,
 ) -> Result<Option<UiMountedProjectionBuild>, UiMountedProjectionDenial> {
-    let changed = changes.changed_instances().collect::<Vec<_>>();
+    let allocation_affected = state
+        .try_projection_instances_for_graph_nodes(allocation_delta.changed_graph_nodes())
+        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
+    let mut changed = changes.changed_instances().collect::<Vec<_>>();
+    changed.extend_from_slice(allocation_affected.instances());
+    changed.sort();
+    changed.dedup();
     let retired = changes.retired_instances().collect::<Vec<_>>();
     let changed_surfaces = changes.changed_surfaces().collect::<Vec<_>>();
     let removed_surfaces = changes.removed_surfaces().collect::<Vec<_>>();
+    let declared_semantic_changed = changes.changed_instances().next().is_some()
+        || !retired.is_empty()
+        || changes.order_changed();
     let semantic_changed = !changed.is_empty() || !retired.is_empty() || changes.order_changed();
     let surface_changed = !changed_surfaces.is_empty() || !removed_surfaces.is_empty();
-    if !semantic_changed && !surface_changed {
+    let allocation_delta_observed = allocation_delta.journal_entries_touched() > 0
+        || !allocation_delta.changed_graph_nodes().is_empty();
+    if !semantic_changed && !surface_changed && !allocation_delta_observed {
         return Ok(None);
     }
     let mut semantic = predecessor.clone();
-    let mut index_entries = 0usize;
+    let mut index_entries = allocation_delta
+        .journal_entries_touched()
+        .checked_add(allocation_affected.index_entries_touched())
+        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
     let mut changed_projected = 0usize;
     let mut membership_changed = false;
     for instance in &retired {
@@ -354,8 +373,10 @@ fn build_delta_projection(
     Ok(Some(UiMountedProjectionBuild {
         semantic,
         cost: super::cost_accounting::UiMountedProjectionCostInput {
-            work_class: if semantic_changed {
+            work_class: if declared_semantic_changed {
                 super::super::UiMountWorkClass::SemanticDelta
+            } else if allocation_delta_observed {
+                super::super::UiMountWorkClass::BatchDelta
             } else {
                 super::super::UiMountWorkClass::SurfaceOnly
             },
@@ -453,8 +474,8 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             .plan_index(provenance)
             .map_err(|_| UiMountedProjectionDenial::ForeignPlan)?;
         let allocation = lower_allocation(
-            self.allocation_catalog
-                .receipt(instance.graph_node_identity()),
+            self.allocation_source
+                .projection(instance.graph_node_identity()),
         )?;
         Ok(UiMountedProjectionNodeDraft {
             mounted_instance: instance.identity(),

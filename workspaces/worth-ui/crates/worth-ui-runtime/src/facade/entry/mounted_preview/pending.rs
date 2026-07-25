@@ -132,7 +132,8 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                 generation: self.generation.clone(),
                 plan_digest: self.plan_digest,
                 plan: crate::mounting::UiMountedPlanProjectionSource::PreviewOnly,
-                allocation_catalog: Default::default(),
+                allocation_source:
+                    crate::runtime::UiMountedAllocationProjectionSource::preview_only(),
                 allocation_truth_revision: allocation_revision,
                 request,
                 lanes,

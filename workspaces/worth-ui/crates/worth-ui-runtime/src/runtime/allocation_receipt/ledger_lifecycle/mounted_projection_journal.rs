@@ -17,9 +17,19 @@ struct UiMountedAllocationProjectionJournalEntry {
 #[derive(Clone, Debug)]
 pub(crate) struct UiMountedAllocationProjectionSource {
     catalog: super::UiMountedAllocationProjectionCatalog,
+    delta: UiMountedAllocationProjectionDelta,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum UiMountedAllocationProjectionDelta {
+    Exact(UiMountedAllocationExactDelta),
+    ReconstructionRequired,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct UiMountedAllocationExactDelta {
     changed_graph_nodes: Box<[crate::graph::UiGraphNodeIdentity]>,
     journal_entries_touched: usize,
-    reconstructive: bool,
 }
 
 impl UiMountedAllocationProjectionJournal {
@@ -29,6 +39,10 @@ impl UiMountedAllocationProjectionJournal {
         successor_revision: u64,
         mut changed_graph_nodes: Vec<crate::graph::UiGraphNodeIdentity>,
     ) {
+        debug_assert!(successor_revision >= predecessor_revision);
+        if successor_revision <= predecessor_revision {
+            return;
+        }
         changed_graph_nodes.sort();
         changed_graph_nodes.dedup();
         self.entries
@@ -83,27 +97,26 @@ impl Default for UiMountedAllocationProjectionJournal {
 }
 
 impl UiMountedAllocationProjectionSource {
-    pub(crate) fn from_catalog(catalog: super::UiMountedAllocationProjectionCatalog) -> Self {
+    pub(crate) fn for_replacement(catalog: super::UiMountedAllocationProjectionCatalog) -> Self {
         Self::exact(catalog, Vec::new(), 0)
     }
 
-    pub(crate) fn receipt(
+    pub(crate) fn preview_only() -> Self {
+        Self::exact(Default::default(), Vec::new(), 0)
+    }
+
+    pub(crate) fn projection(
         &self,
         graph_node: crate::graph::UiGraphNodeIdentity,
-    ) -> Option<&super::UiAllocationReceipt> {
-        self.catalog.receipt(graph_node)
+    ) -> Result<
+        Option<worth_ui_host_contract::UiMountedAllocationProjection>,
+        super::UiMountedAllocationProjectionDenial,
+    > {
+        self.catalog.projection(graph_node)
     }
 
-    pub(crate) fn changed_graph_nodes(&self) -> &[crate::graph::UiGraphNodeIdentity] {
-        &self.changed_graph_nodes
-    }
-
-    pub(crate) fn journal_entries_touched(&self) -> usize {
-        self.journal_entries_touched
-    }
-
-    pub(crate) fn is_reconstructive(&self) -> bool {
-        self.reconstructive
+    pub(crate) fn delta(&self) -> &UiMountedAllocationProjectionDelta {
+        &self.delta
     }
 
     fn exact(
@@ -113,24 +126,80 @@ impl UiMountedAllocationProjectionSource {
     ) -> Self {
         Self {
             catalog,
-            changed_graph_nodes: changed_graph_nodes.into_boxed_slice(),
-            journal_entries_touched,
-            reconstructive: false,
+            delta: UiMountedAllocationProjectionDelta::Exact(UiMountedAllocationExactDelta {
+                changed_graph_nodes: changed_graph_nodes.into_boxed_slice(),
+                journal_entries_touched,
+            }),
         }
     }
 
     fn reconstructive(catalog: super::UiMountedAllocationProjectionCatalog) -> Self {
         Self {
             catalog,
-            changed_graph_nodes: Box::new([]),
-            journal_entries_touched: 0,
-            reconstructive: true,
+            delta: UiMountedAllocationProjectionDelta::ReconstructionRequired,
         }
     }
 }
 
-impl Default for UiMountedAllocationProjectionSource {
-    fn default() -> Self {
-        Self::from_catalog(Default::default())
+impl UiMountedAllocationExactDelta {
+    pub(crate) fn changed_graph_nodes(&self) -> &[crate::graph::UiGraphNodeIdentity] {
+        &self.changed_graph_nodes
+    }
+
+    pub(crate) fn journal_entries_touched(&self) -> usize {
+        self.journal_entries_touched
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        UiMountedAllocationProjectionDelta, UiMountedAllocationProjectionJournal,
+        MOUNTED_PROJECTION_DELTA_HISTORY_LIMIT,
+    };
+
+    #[test]
+    fn exact_source_composes_retained_revision_chain_once_per_graph_node() {
+        let mut journal = UiMountedAllocationProjectionJournal::default();
+        journal.record(7, 8, vec![crate::graph::UiGraphNodeIdentity::new(10)]);
+        journal.record(
+            8,
+            9,
+            vec![
+                crate::graph::UiGraphNodeIdentity::new(20),
+                crate::graph::UiGraphNodeIdentity::new(10),
+            ],
+        );
+
+        let source = journal.source(Default::default(), Some(7), 9);
+        let UiMountedAllocationProjectionDelta::Exact(delta) = source.delta() else {
+            panic!("retained contiguous revisions must produce an exact delta");
+        };
+        assert_eq!(delta.journal_entries_touched(), 2);
+        assert_eq!(
+            delta.changed_graph_nodes(),
+            &[
+                crate::graph::UiGraphNodeIdentity::new(10),
+                crate::graph::UiGraphNodeIdentity::new(20),
+            ]
+        );
+    }
+
+    #[test]
+    fn expired_predecessor_requires_reconstruction_instead_of_empty_delta() {
+        let mut journal = UiMountedAllocationProjectionJournal::default();
+        for predecessor in 0..=MOUNTED_PROJECTION_DELTA_HISTORY_LIMIT as u64 {
+            journal.record(predecessor, predecessor + 1, Vec::new());
+        }
+
+        let source = journal.source(
+            Default::default(),
+            Some(0),
+            MOUNTED_PROJECTION_DELTA_HISTORY_LIMIT as u64 + 1,
+        );
+        assert!(matches!(
+            source.delta(),
+            UiMountedAllocationProjectionDelta::ReconstructionRequired
+        ));
     }
 }
