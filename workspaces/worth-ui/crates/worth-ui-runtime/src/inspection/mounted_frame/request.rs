@@ -4,6 +4,7 @@ use worth_ui_host_contract::{UiMountedFrameIdentity, UiMountedInstanceIdentity};
 pub struct UiMountedInspectionRequest {
     target: UiMountedInspectionTarget,
     instance: Option<UiMountedInstanceIdentity>,
+    diagnostics: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -17,6 +18,7 @@ impl UiMountedInspectionRequest {
         Self {
             target: UiMountedInspectionTarget::Current,
             instance: None,
+            diagnostics: false,
         }
     }
 
@@ -24,6 +26,7 @@ impl UiMountedInspectionRequest {
         Self {
             target: UiMountedInspectionTarget::Frame(frame),
             instance: None,
+            diagnostics: false,
         }
     }
 
@@ -34,6 +37,15 @@ impl UiMountedInspectionRequest {
 
     pub const fn target(self) -> UiMountedInspectionTarget {
         self.target
+    }
+
+    pub const fn with_diagnostics(mut self) -> Self {
+        self.diagnostics = true;
+        self
+    }
+
+    pub const fn diagnostics_requested(self) -> bool {
+        self.diagnostics
     }
 
     pub const fn instance(self) -> Option<UiMountedInstanceIdentity> {
@@ -51,6 +63,7 @@ impl UiMountedInspectionRequest {
                 }
             },
             instance: self.instance,
+            diagnostics: self.diagnostics,
         }
     }
 }

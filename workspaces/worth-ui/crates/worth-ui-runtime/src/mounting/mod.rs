@@ -65,11 +65,13 @@ pub(crate) use publication::{
 };
 pub(crate) use receipt_basis::UiMountedNodeReceiptBasis;
 pub(crate) use retention::{
-    UiMountedFrameInspectionBasis, UiMountedFrameInspectionDenial,
-    UiMountedFrameInspectionSelection, UiMountedFrameInspectionTarget,
-    UiMountedFrameRetentionCoordinator, UiMountedFrameRetentionSnapshot,
-    UiMountedObservationBasisLease, UiMountedObservationBasisRetentionDenial,
-    UiMountedRetentionUsageSnapshot, UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation,
+    UiMountedDiagnosticInspectionBasis, UiMountedDiagnosticInspectionDenial,
+    UiMountedDiagnosticRetentionLease, UiMountedFrameInspectionBasis,
+    UiMountedFrameInspectionDenial, UiMountedFrameInspectionSelection,
+    UiMountedFrameInspectionTarget, UiMountedFrameRetentionCoordinator,
+    UiMountedFrameRetentionSnapshot, UiMountedObservationBasisLease,
+    UiMountedObservationBasisRetentionDenial, UiMountedRetentionUsageSnapshot,
+    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiRetainedMountedDiagnostics,
 };
 pub use retention::{
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
