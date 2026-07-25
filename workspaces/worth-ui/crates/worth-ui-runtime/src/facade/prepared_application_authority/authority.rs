@@ -46,6 +46,28 @@ pub struct WorthUiPreparedApplicationAuthority {
         Box<[crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle]>,
 }
 
+pub(crate) struct WorthUiPreparedApplicationGraphSuccessor {
+    predecessor_authority: crate::graph::UiGraphAuthorityIdentity,
+    graph_snapshot: UiGraphSnapshot,
+    generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    lowering_authority: WorthUiPreparedApplicationLoweringAuthority,
+}
+
+impl WorthUiPreparedApplicationGraphSuccessor {
+    pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
+        &self.graph_snapshot
+    }
+
+    pub(crate) fn lowering_authority(&self) -> WorthUiPreparedApplicationLoweringAuthority {
+        self.lowering_authority.clone()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiPreparedApplicationGraphSuccessorDenial {
+    StaleGraphPredecessor,
+}
+
 impl WorthUiPreparedApplicationAuthority {
     pub(crate) fn seal(input: WorthUiPreparedApplicationAuthorityInput) -> Self {
         let WorthUiPreparedApplicationAuthorityInput {
@@ -159,6 +181,62 @@ impl WorthUiPreparedApplicationAuthority {
             self.query_binding_plan.clone(),
             self.host_session_plan.clone(),
         );
+    }
+
+    pub(crate) fn prepare_graph_successor(
+        &self,
+        committed: crate::graph::UiGraphMutationCommitResult,
+    ) -> Result<
+        WorthUiPreparedApplicationGraphSuccessor,
+        WorthUiPreparedApplicationGraphSuccessorDenial,
+    > {
+        let predecessor_authority = self.graph_snapshot.authority_identity();
+        if committed.predecessor_authority() != Some(predecessor_authority) {
+            return Err(WorthUiPreparedApplicationGraphSuccessorDenial::StaleGraphPredecessor);
+        }
+        let graph_snapshot = committed.into_committed_snapshot();
+        let generation_identity = WorthUiPreparedApplicationGenerationIdentity::derive(
+            self.capability_snapshot.digest(),
+            self.canonical_artifact.identity(),
+            self.declaration_source_identity.clone(),
+            graph_snapshot.authority_digest(),
+            &self.query_binding_plan,
+            &self.host_session_plan,
+        );
+        let lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
+            generation_identity.clone(),
+            self.source_backed_candidate_basis(),
+            self.canonical_artifact
+                .runtime_artifact_authority()
+                .map(|(artifact, _)| artifact),
+            graph_snapshot.authority_identity(),
+            Rc::clone(&self.capability_snapshot),
+            self.query_binding_plan.clone(),
+            self.host_session_plan.clone(),
+        );
+        Ok(WorthUiPreparedApplicationGraphSuccessor {
+            predecessor_authority,
+            graph_snapshot,
+            generation_identity,
+            lowering_authority,
+        })
+    }
+
+    pub(crate) fn commit_graph_successor(
+        &mut self,
+        successor: WorthUiPreparedApplicationGraphSuccessor,
+    ) -> Result<
+        WorthUiPreparedApplicationLoweringAuthority,
+        WorthUiPreparedApplicationGraphSuccessorDenial,
+    > {
+        if self.graph_snapshot.authority_identity() != successor.predecessor_authority {
+            return Err(WorthUiPreparedApplicationGraphSuccessorDenial::StaleGraphPredecessor);
+        }
+        self.graph_snapshot = successor.graph_snapshot;
+        self.generation_identity = successor.generation_identity;
+        self.lowering_authority = successor.lowering_authority;
+        self.rebuild_derived_indexes();
+        Ok(self.lowering_authority.clone())
     }
 
     pub(crate) fn lifecycle(&self) -> &WorthUiFacadeLifecycleBootstrap {

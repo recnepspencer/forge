@@ -16,6 +16,7 @@ mod validation;
 
 pub(crate) use attempt::{
     UiCommittedAllocationActivationAttempt, UiCommittedAllocationActivationInput,
+    UiCommittedMountedAllocationActivationInput,
 };
 pub use counters::{
     UiCommittedAllocationActivationCounterExhaustion, UiCommittedAllocationActivationCounters,

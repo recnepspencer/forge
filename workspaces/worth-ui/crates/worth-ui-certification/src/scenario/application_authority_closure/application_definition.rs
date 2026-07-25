@@ -132,7 +132,21 @@ pub(crate) fn preview_application_builder_with_host<Host>(
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
-    application_builder_with_host(query, host)
+    register_preview_contracts(application_builder_with_host(query, host))
+}
+
+pub(crate) fn preview_cross_lane_application_builder_with_host<Host>(
+    query: &WorthUiInstalledQueryTestFixture,
+    host: Host,
+) -> WorthUiBuilder
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    register_preview_contracts(cross_lane_application_builder_with_host(query, host))
+}
+
+fn register_preview_contracts(builder: WorthUiBuilder) -> WorthUiBuilder {
+    builder
         .register_component(component(PREVIEW_COMPONENT))
         .register_surface(SurfaceDescriptor::new(
             SurfaceId::new(PREVIEW_SURFACE).expect("valid preview surface id"),

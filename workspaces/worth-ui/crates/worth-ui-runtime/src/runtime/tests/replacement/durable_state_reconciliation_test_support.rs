@@ -178,7 +178,7 @@ pub(super) fn rebind_plan_with_inventory() -> (
         WorthUiNodeLifecycleTransition::Rebind,
         Some(WorthUiIdentityMatchNodeKind::Binding),
         Some(WorthUiIdentityMatchNodeKind::Binding),
-        false,
+        None,
     );
     let inventory = platform_inventory(&runtime)
         .build_for_replacement(&plan)
@@ -199,7 +199,7 @@ pub(crate) fn splitter_replace_inputs() -> (
         WorthUiNodeLifecycleTransition::Replace,
         Some(WorthUiIdentityMatchNodeKind::Surface),
         Some(WorthUiIdentityMatchNodeKind::Surface),
-        true,
+        Some((11, 12)),
     );
     let inventory = platform_inventory(&runtime)
         .build_for_replacement(&plan)
@@ -320,12 +320,18 @@ fn plan_from_single_transition(
     transition: WorthUiNodeLifecycleTransition,
     active_kind: Option<WorthUiIdentityMatchNodeKind>,
     candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
-    has_restorable_splitter_state: bool,
+    splitter_shapes: Option<(u64, u64)>,
 ) -> WorthUiNodeReplacementPlan {
     let mut counters = WorthUiNodeReplacementCounters::default();
     counters.record_active_node_classified();
     counters.record_candidate_node_classified();
     counters.record_transition(transition);
+    let resize_contract_id = splitter_shapes.map(|_| {
+        crate::capability::MosaicSizingContractId::new("workspace.sizing.splitter.manual")
+            .expect("manual splitter contract is valid")
+    });
+    let resize_permission =
+        splitter_shapes.map(|_| crate::capability::MosaicResizePermission::UserResizable);
     WorthUiNodeReplacementPlan::new(
         active_artifact_digest,
         candidate_artifact_digest,
@@ -338,14 +344,14 @@ fn plan_from_single_transition(
                 candidate_kind,
                 active_durable_state_eligible: true,
                 candidate_durable_state_eligible: true,
-                active_has_restorable_splitter_state: has_restorable_splitter_state,
-                candidate_has_restorable_splitter_state: has_restorable_splitter_state,
-                active_resize_contract_id: None,
-                candidate_resize_contract_id: None,
-                active_resize_permission: None,
-                candidate_resize_permission: None,
-                active_resize_shape_digest: None,
-                candidate_resize_shape_digest: None,
+                active_has_restorable_splitter_state: splitter_shapes.is_some(),
+                candidate_has_restorable_splitter_state: splitter_shapes.is_some(),
+                active_resize_contract_id: resize_contract_id.clone(),
+                candidate_resize_contract_id: resize_contract_id,
+                active_resize_permission: resize_permission.clone(),
+                candidate_resize_permission: resize_permission,
+                active_resize_shape_digest: splitter_shapes.map(|shapes| shapes.0),
+                candidate_resize_shape_digest: splitter_shapes.map(|shapes| shapes.1),
             },
         )],
         counters,

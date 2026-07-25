@@ -21,6 +21,8 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
 
 #[path = "mounted_headless_recorder/capacity.rs"]
 mod capacity;
+#[path = "mounted_headless_recorder/measurement.rs"]
+mod measurement;
 
 #[test]
 fn real_wui_record_only_presentation_emits_post_translation_mechanics() {

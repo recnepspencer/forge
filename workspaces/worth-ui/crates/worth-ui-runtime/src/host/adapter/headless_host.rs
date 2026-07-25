@@ -1,11 +1,7 @@
 use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
-};
-
-use super::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostSessionReleaseOutcome,
+    UiHostSessionReleaseReceipt, WorthUiHostCapability, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
 
 /// Operational host for applications that deliberately expose no native
@@ -22,12 +18,12 @@ impl WorthUiMeasurementHostAdapter for WorthUiHeadlessHost {
     }
 }
 
-impl WorthUiOperationalHostAdapter for WorthUiHeadlessHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
+impl WorthUiHostMechanicsAdapter for WorthUiHeadlessHost {
+    fn mechanical_host_contract(&self) -> WorthUiHostContract {
         WorthUiHostContract::headless()
     }
 
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
+    fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
         WorthUiHostCapabilityReport::available(vec![
             WorthUiHostCapability::CanvasSpatialDraw,
             WorthUiHostCapability::CanvasSpatialHitTest,
@@ -40,31 +36,19 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessHost {
         ])
     }
 
-    fn register_surface(
+    fn perform_surface_registration(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
     ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
-        if request.host_session_identity() != authority.host_session_identity() {
-            return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
-                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
-            );
-        }
         worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::Registered(
             request.confirm_known_empty(),
         )
     }
 
-    fn deregister_surface(
+    fn perform_surface_deregistration(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
     ) -> worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome {
-        if request.host_session_identity() != authority.host_session_identity() {
-            return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
-                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
-            );
-        }
         worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::Deregistered(
             worth_ui_host_contract::UiHostSurfaceDeregistrationReceipt::from_runtime(
                 request.host_session_identity(),
@@ -73,12 +57,12 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessHost {
         )
     }
 
-    fn release_host_session(
+    fn release_mechanical_host_session(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
+        host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
+            host_session_identity,
             0,
         ))
     }

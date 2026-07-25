@@ -29,6 +29,20 @@ pub(crate) struct UiCommittedAllocationActivationInput<'a> {
     pub lane_parity_report: Option<&'a crate::runtime::WorthUiLaneParityReport>,
 }
 
+pub(crate) struct UiCommittedMountedAllocationActivationInput<'a> {
+    pub basis: crate::runtime::WorthUiMountedAllocationActivationBasis,
+    pub plan_input: &'a crate::runtime::WorthUiExecutionPlanInput,
+    pub handle_allocation: &'a crate::runtime::WorthUiRuntimeHandleAllocation,
+    pub candidate_bundle: crate::runtime::active::WorthUiSealedExecutionPlanBundle,
+    pub query_succession: worth_ui_query_binding::WorthUiPreparedQueryBindingSuccession,
+    pub successor_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    pub successor_planning_authority:
+        std::rc::Rc<crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    pub application_publication: crate::runtime::activation::WorthUiPreparedApplicationPublication,
+    pub boundary: crate::runtime::WorthUiFrameBoundary,
+}
+
 impl UiCommittedAllocationActivationAttempt {
     pub(in crate::runtime) fn new(
         catalog: crate::runtime::invalidation_narrowing::UiAllocationActivationCatalog,
@@ -63,6 +77,12 @@ impl UiCommittedAllocationActivationAttempt {
 
     pub(in crate::runtime) fn operational_meaning_unchanged(&self) -> bool {
         self.ledger_transition.operational_meaning_unchanged()
+    }
+
+    pub(in crate::runtime) fn committed_outcome(
+        &self,
+    ) -> &crate::runtime::UiCommittedAllocationReplan {
+        &self.committed
     }
 
     pub(in crate::runtime) fn apply_catalog_successor_delta(
@@ -172,6 +192,60 @@ impl UiCommittedAllocationActivationAttempt {
                 successor_application_authority,
                 successor_planning_authority,
                 application_publication,
+                boundary,
+            },
+        )
+    }
+
+    pub(in crate::runtime) fn activate_mounted(
+        self,
+        runtime: &mut crate::runtime::WorthUiRuntime,
+        input: UiCommittedMountedAllocationActivationInput<'_>,
+    ) -> Result<
+        super::prepared::UiPreparedCommittedAllocationActivation,
+        super::UiCommittedAllocationActivationDenial,
+    > {
+        let UiCommittedMountedAllocationActivationInput {
+            basis,
+            plan_input,
+            handle_allocation,
+            candidate_bundle,
+            query_succession,
+            successor_application_authority,
+            successor_planning_authority,
+            application_publication,
+            boundary,
+        } = input;
+        let attempt_identity = self.identity.clone();
+        let invalidation_authority =
+            runtime
+                .allocation_invalidation_index
+                .try_borrow()
+                .map_err(|_| {
+                    super::UiCommittedAllocationActivationDenial::preparation(
+                    attempt_identity,
+                    super::UiCommittedAllocationActivationCounters::default(),
+                    super::UiCommittedAllocationActivationDenialReason::CommitResourceUnavailable,
+                )
+                })?;
+        let validated = super::UiCommittedAllocationValidation::prepare_mounted(
+            basis,
+            plan_input,
+            handle_allocation,
+            self,
+            &invalidation_authority,
+            &candidate_bundle,
+        )?;
+        drop(invalidation_authority);
+        super::publication::publish_validated_committed_allocation(
+            runtime,
+            validated,
+            super::publication::UiCommittedAllocationPublicationInput {
+                candidate_bundle,
+                query_succession,
+                successor_application_authority,
+                successor_planning_authority,
+                application_publication: Some(application_publication),
                 boundary,
             },
         )

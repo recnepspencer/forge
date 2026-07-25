@@ -2,6 +2,7 @@ mod inspection;
 mod mounted_frame;
 mod mounted_projection;
 mod observation_report;
+mod operational_adapter;
 mod runtime;
 
 pub use inspection::WorthUiInspectionHostContract;
@@ -56,6 +57,10 @@ pub use observation_report::{
     UiHostObservationReport, UiHostObservationSequence, UiHostObservationSequenceRange,
     UiHostObservationTimeBasis, UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
     UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT,
+};
+pub use operational_adapter::{
+    UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiHostMechanicsAdapter,
 };
 pub use runtime::{
     UiDpiScaleFactorObservation, UiDpiScaleFactorRequest, UiFontMeasurementKey,

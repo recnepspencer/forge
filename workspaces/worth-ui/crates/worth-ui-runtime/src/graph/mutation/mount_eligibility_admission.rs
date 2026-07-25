@@ -66,7 +66,8 @@ impl UiGraphAuthority<'_> {
             }
         }
 
-        Ok(UiGraphMutationCommitResult::new(
+        Ok(UiGraphMutationCommitResult::successor(
+            self.snapshot().authority_identity(),
             UiGraphMutationStage::mount_eligibility_admitted_successor(
                 self.snapshot(),
                 &transitions,

@@ -1,3 +1,5 @@
+//! Current mounted allocation projection truth indexed by graph identity.
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct UiMountedAllocationProjectionCatalog {
     by_graph: crate::runtime::persistent_index::UiPersistentOrdMap<

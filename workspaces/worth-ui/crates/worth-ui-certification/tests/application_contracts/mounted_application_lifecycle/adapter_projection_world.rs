@@ -101,7 +101,12 @@ pub(crate) fn submit_preview<'session>(
         })
         .expect("no mounted presentation lease is active")
         .into_mounted_preview()
-        .unwrap_or_else(|_| panic!("typed resize preview must produce mounted preview authority"))
+        .unwrap_or_else(|other| {
+            panic!(
+                "typed resize preview must produce mounted preview authority: {:?}",
+                (*other).into_completion()
+            )
+        })
 }
 
 pub(crate) fn cell_status(

@@ -15,7 +15,7 @@ impl UiGraphInstantiationPlan {
             ));
         }
 
-        Ok(UiGraphMutationCommitResult::new(
+        Ok(UiGraphMutationCommitResult::initial(
             UiGraphMutationStage::from_initial_plan(self, world_profile).commit(),
         ))
     }
@@ -30,7 +30,8 @@ impl UiGraphInstantiationPlan {
             ));
         }
 
-        Ok(UiGraphMutationCommitResult::new(
+        Ok(UiGraphMutationCommitResult::successor(
+            prior_graph.snapshot().authority_identity(),
             UiGraphMutationStage::from_successor_plan(prior_graph.snapshot(), self).commit(),
         ))
     }

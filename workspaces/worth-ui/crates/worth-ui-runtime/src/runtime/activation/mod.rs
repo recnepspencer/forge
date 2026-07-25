@@ -15,6 +15,8 @@ pub use committed_allocation_attempt::{
     WorthUiPriorValidPlanObservation,
 };
 mod gate;
+mod mounted_catalog_gate;
+pub(crate) use mounted_catalog_gate::WorthUiInitialMountedAllocationActivationDenial;
 mod query_aware_plan_outcome;
 mod semantic_no_op;
 #[cfg(test)]

@@ -4,15 +4,12 @@ use std::sync::{Arc, Mutex};
 use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
     UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostProtocolNegotiation,
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
-    UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily, UiMountedCompletedEffects,
-    UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion,
-    UiSurfaceBindingGeneration, UiViewportExtentObservation, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
-};
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
+    UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, UiHostSurfacePresentationDenial,
+    UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily,
+    UiMountedCompletedEffects, UiMountedFrameConsumptionView,
+    UiMountedSurfacePresentationCompletion, UiSurfaceBindingGeneration,
+    UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
 
 #[derive(Clone, Default)]
@@ -76,19 +73,19 @@ impl WorthUiMeasurementHostAdapter for WorthUiHostEgui {
     }
 }
 
-impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
+impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
+    fn mechanical_host_contract(&self) -> WorthUiHostContract {
         WorthUiHostContract::egui()
     }
 
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
+    fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
         WorthUiHostCapabilityReport::available(vec![
             WorthUiHostCapability::DpiObservation,
             WorthUiHostCapability::ViewportObservation,
         ])
     }
 
-    fn measurement_environment_report(
+    fn mechanical_measurement_environment_report(
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
         let viewport = self.context.input(|input| {
@@ -113,12 +110,11 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
         )
     }
 
-    fn register_surface(
+    fn perform_surface_registration(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
     ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
-        let current_protocol = match self.operational_protocol_contract().negotiate() {
+        let current_protocol = match self.mechanical_protocol_contract().negotiate() {
             UiHostProtocolNegotiation::Compatible(agreement) => agreement,
             UiHostProtocolNegotiation::Incompatible(_) => {
                 return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
@@ -126,9 +122,8 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
                 );
             }
         };
-        let capabilities = self.operational_capability_report();
-        if request.host_session_identity() != authority.host_session_identity()
-            || request.protocol() != current_protocol
+        let capabilities = self.mechanical_capability_report();
+        if request.protocol() != current_protocol
             || request.capability_profile_digest() != capabilities.profile_identity_digest()
         {
             return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
@@ -150,16 +145,10 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
         )
     }
 
-    fn deregister_surface(
+    fn perform_surface_deregistration(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
     ) -> worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome {
-        if request.host_session_identity() != authority.host_session_identity() {
-            return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
-                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
-            );
-        }
         let mut registrations = self.registrations.lock().unwrap();
         if registrations.remove(&request.binding_generation()) != Some(request) {
             return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
@@ -174,16 +163,10 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
         )
     }
 
-    fn present_mounted_surface(
+    fn perform_mounted_surface_presentation(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         view: &UiMountedFrameConsumptionView<'_>,
     ) -> UiHostSurfacePresentationOutcome {
-        if !authority.admits_mounted_presentation(view) {
-            return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
-                UiHostSurfacePresentationDenial::SurfaceBindingChanged,
-            );
-        }
         if let Some(denial) = self.validate_mounted_view(view) {
             return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
         }
@@ -200,17 +183,15 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
         ))
     }
 
-    fn release_host_session(
+    fn release_mechanical_host_session(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
+        host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut registrations = self.registrations.lock().unwrap();
         let before = registrations.len();
-        registrations.retain(|_, request| {
-            request.host_session_identity() != authority.host_session_identity()
-        });
+        registrations.retain(|_, request| request.host_session_identity() != host_session_identity);
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
+            host_session_identity,
             before - registrations.len(),
         ))
     }
@@ -276,7 +257,7 @@ impl WorthUiHostEgui {
                 ),
             );
         }
-        let live_protocol = match self.operational_protocol_contract().negotiate() {
+        let live_protocol = match self.mechanical_protocol_contract().negotiate() {
             UiHostProtocolNegotiation::Compatible(agreement) => agreement,
             UiHostProtocolNegotiation::Incompatible(denial) => {
                 return Some(UiHostSurfacePresentationDenial::Protocol(denial));
@@ -285,7 +266,7 @@ impl WorthUiHostEgui {
         if view.protocol() != live_protocol {
             return Some(UiHostSurfacePresentationDenial::ProtocolChanged);
         }
-        let capabilities = self.operational_capability_report();
+        let capabilities = self.mechanical_capability_report();
         if view.capability_profile_digest() != capabilities.profile_identity_digest() {
             return Some(UiHostSurfacePresentationDenial::CapabilityProfileChanged);
         }

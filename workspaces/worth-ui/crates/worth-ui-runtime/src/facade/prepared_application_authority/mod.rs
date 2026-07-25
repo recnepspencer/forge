@@ -16,6 +16,9 @@ pub(crate) use application_artifact::WorthUiPreparedApplicationArtifact;
 pub use application_artifact::WorthUiPreparedApplicationArtifactPosture;
 pub use authority::WorthUiPreparedApplicationAuthority;
 pub(crate) use authority::WorthUiPreparedApplicationAuthorityInput;
+pub(crate) use authority::{
+    WorthUiPreparedApplicationGraphSuccessor, WorthUiPreparedApplicationGraphSuccessorDenial,
+};
 pub use declaration_source_identity::WorthUiPreparedDeclarationSourceIdentity;
 pub use generation_identity::WorthUiPreparedApplicationGenerationIdentity;
 pub(crate) use generation_witness::WorthUiPreparedApplicationGenerationWitness;

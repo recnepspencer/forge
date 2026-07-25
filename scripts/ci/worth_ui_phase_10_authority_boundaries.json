@@ -57,7 +57,7 @@
       "authority_owner": "prepared allocation activation",
       "rationale": "the move-only prepared activation is defined by the activation owner and carried through crate-private query-aware and application preparation until one total commit consumes it",
       "allowed": {
-        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/attempt.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/prepared.rs": 4,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/publication.rs": 1,
@@ -117,7 +117,9 @@
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/mod.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/activation_catalog_commit.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation/mounted.rs": 2,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/ledger_lifecycle/removal_catalog_commit.rs": 2,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/mounted_allocation_transition.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/launch/planning_transition.rs": 3,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/mod.rs": 1
       }
@@ -267,9 +269,10 @@
       "pattern": "validate_portal_bindings",
       "legacy": false,
       "authority_owner": "committed catalog activation validation",
-      "rationale": "binding validation is defined by committed catalog truth and invoked once by activation validation before publication",
+      "rationale": "binding validation is defined by committed catalog truth and invoked once by the applicable ordinary or mounted activation validator before publication",
       "allowed": {
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation.rs": 1,
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/activation/committed_allocation_attempt/validation/mounted.rs": 1,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_receipt/committed_truth/committed_catalog_binding.rs": 1
       }
     },

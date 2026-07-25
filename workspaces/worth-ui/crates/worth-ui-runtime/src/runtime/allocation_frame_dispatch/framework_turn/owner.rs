@@ -132,7 +132,7 @@ impl WorthUiRuntime {
         }
     }
 
-    pub(in crate::runtime::allocation_frame_dispatch) fn host_measurement_collector(
+    pub(crate) fn host_measurement_collector(
         &self,
     ) -> crate::host::WorthUiHostMeasurementCollector {
         crate::host::WorthUiHostMeasurementCollector::new(std::rc::Rc::clone(

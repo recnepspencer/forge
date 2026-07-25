@@ -13,6 +13,8 @@ pub struct WorthUiDurableStateReconciliationCounters {
     incompatible_shape_count: usize,
     query_posture_required_count: usize,
     rejected_reconciliation_count: usize,
+    initial_artifact_node_visit_count: usize,
+    initialized_resize_input_count: usize,
 }
 
 impl WorthUiDurableStateReconciliationCounters {
@@ -48,6 +50,14 @@ impl WorthUiDurableStateReconciliationCounters {
 
     pub(crate) fn record_rejected_reconciliation(&mut self) {
         self.rejected_reconciliation_count += 1;
+    }
+
+    pub(crate) fn record_initial_artifact_nodes(&mut self, count: usize) {
+        self.initial_artifact_node_visit_count += count;
+    }
+
+    pub(crate) fn record_initialized_resize_input(&mut self) {
+        self.initialized_resize_input_count += 1;
     }
 
     pub fn reconciled_family_count(&self) -> usize {
@@ -92,5 +102,13 @@ impl WorthUiDurableStateReconciliationCounters {
 
     pub fn rejected_reconciliation_count(&self) -> usize {
         self.rejected_reconciliation_count
+    }
+
+    pub fn initial_artifact_node_visit_count(&self) -> usize {
+        self.initial_artifact_node_visit_count
+    }
+
+    pub fn initialized_resize_input_count(&self) -> usize {
+        self.initialized_resize_input_count
     }
 }

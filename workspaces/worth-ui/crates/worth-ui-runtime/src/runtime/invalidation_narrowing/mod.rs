@@ -65,8 +65,9 @@ mod settled_query_fact;
 
 pub(crate) use crate::graph::UiAdmittedAllocationPlanReference;
 pub(crate) use active_catalog_store::UiActiveAllocationCatalog;
+pub(crate) use active_set::UiAllocationActivationCatalog;
+pub use active_set::UiAllocationActivationCatalogDenial;
 pub(crate) use active_set::UiAllocationNeighborhoodCatalogTransition;
-pub(crate) use active_set::{UiAllocationActivationCatalog, UiAllocationActivationCatalogDenial};
 pub(crate) use authority::{
     UiAllocationInvalidationAdmissionContext, UiAllocationInvalidationAuthority,
     UiCommittedAllocationInvalidationContext,

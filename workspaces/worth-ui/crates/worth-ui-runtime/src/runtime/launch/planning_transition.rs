@@ -37,7 +37,7 @@ pub(crate) enum UiAllocationCatalogPreparationDenial {
 }
 
 impl UiAllocationCatalogMintAuthority {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self(())
     }
 }

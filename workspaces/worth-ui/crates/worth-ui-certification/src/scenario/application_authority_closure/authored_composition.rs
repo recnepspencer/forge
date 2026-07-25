@@ -31,7 +31,7 @@ pub(crate) fn rust_submission(
     rust_submission_with_query_binding(component, provider_id, snapshot, false)
 }
 
-fn query_rust_submission(
+pub(crate) fn query_rust_submission(
     component: &str,
     provider_id: &str,
     snapshot: &CapabilitySnapshot,

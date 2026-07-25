@@ -8,12 +8,14 @@ use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
 
 use super::application_authority_closure::application_definition::{
     application_builder, application_builder_with_host, cross_lane_application_builder_with_host,
-    preview_application_builder_with_host, CANDIDATE_COMPONENT, CROSS_LANE_CANVAS,
-    CROSS_LANE_REALTIME, CURRENT_COMPONENT, IMPORTED_CANDIDATE_COMPONENT,
-    IMPORTED_CURRENT_COMPONENT, PREVIEW_COMPONENT, PREVIEW_REGION, PREVIEW_SCROLL_STATE_SLOT,
-    PREVIEW_SIZING, PREVIEW_STATE_SLOT, PREVIEW_SURFACE,
+    preview_application_builder_with_host, preview_cross_lane_application_builder_with_host,
+    CANDIDATE_COMPONENT, CROSS_LANE_CANVAS, CROSS_LANE_REALTIME, CURRENT_COMPONENT,
+    IMPORTED_CANDIDATE_COMPONENT, IMPORTED_CURRENT_COMPONENT, PREVIEW_COMPONENT, PREVIEW_REGION,
+    PREVIEW_SCROLL_STATE_SLOT, PREVIEW_SIZING, PREVIEW_STATE_SLOT, PREVIEW_SURFACE,
 };
-use super::application_authority_closure::authored_composition::{file_source, rust_submission};
+use super::application_authority_closure::authored_composition::{
+    file_source, query_rust_submission, rust_submission,
+};
 use super::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 
 pub struct FilesystemApplicationLifecycleScenario {
@@ -29,6 +31,14 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn current_source_text() -> String {
         file_source(CURRENT_COMPONENT)
+    }
+
+    pub fn current_query_source_text() -> String {
+        use super::application_authority_closure::application_definition::QUERY_BINDING;
+        format!(
+            "{}\nbinding {QUERY_BINDING} {{}}",
+            Self::current_source_text()
+        )
     }
 
     pub fn ordinary_execution_source_text() -> String {
@@ -87,6 +97,14 @@ impl FilesystemApplicationLifecycleScenario {
             "{}\ncomponent {CROSS_LANE_CANVAS} {{}}\ncomponent {CROSS_LANE_REALTIME} {{}}\n\
              binding inspector.measurements {{}}\n",
             Self::ordinary_execution_source_text()
+        )
+    }
+
+    pub fn preview_cross_lane_source_text(include_successor: bool) -> String {
+        format!(
+            "{}\n{}",
+            Self::cross_lane_source_text(),
+            Self::preview_source_text(include_successor)
         )
     }
 
@@ -201,6 +219,15 @@ impl FilesystemApplicationLifecycleScenario {
             .expect("splitter preview capabilities should prepare")
     }
 
+    pub fn preview_cross_lane_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        preview_cross_lane_application_builder_with_host(&self.query, host)
+            .freeze()
+            .expect("splitter cross-lane capabilities should prepare")
+    }
+
     pub fn scaled_canvas_capability_application<Host>(
         &self,
         host: Host,
@@ -230,6 +257,20 @@ impl FilesystemApplicationLifecycleScenario {
             .with_candidate_submission(submission)
             .freeze()
             .expect("filesystem-authored cross-lane application should prepare")
+    }
+
+    pub fn prepare_preview_cross_lane_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        preview_cross_lane_application_builder_with_host(&self.query, host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored splitter cross-lane application should prepare")
     }
 
     pub fn prepare_scaled_canvas_application_with_host<Host>(
@@ -270,6 +311,16 @@ impl FilesystemApplicationLifecycleScenario {
         rust_submission(
             CURRENT_COMPONENT,
             "filesystem-equivalent-rust",
+            capabilities,
+        )
+    }
+
+    pub fn current_query_rust_submission(
+        capabilities: &CapabilitySnapshot,
+    ) -> WorthUiWatchedCandidateSubmission {
+        query_rust_submission(
+            CURRENT_COMPONENT,
+            "filesystem-equivalent-query-rust",
             capabilities,
         )
     }

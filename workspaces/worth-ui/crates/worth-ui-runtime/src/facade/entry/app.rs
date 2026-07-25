@@ -132,6 +132,26 @@ impl WorthUiApp {
         self.prepared.advance_graph_snapshot(committed);
     }
 
+    pub(crate) fn prepare_graph_successor(
+        &self,
+        committed: crate::graph::UiGraphMutationCommitResult,
+    ) -> Result<
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGraphSuccessor,
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGraphSuccessorDenial,
+    >{
+        self.prepared.prepare_graph_successor(committed)
+    }
+
+    pub(crate) fn commit_graph_successor(
+        &mut self,
+        successor: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGraphSuccessor,
+    ) -> Result<
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGraphSuccessorDenial,
+    >{
+        self.prepared.commit_graph_successor(successor)
+    }
+
     pub(crate) fn lifecycle(&self) -> &WorthUiFacadeLifecycleBootstrap {
         self.prepared.lifecycle()
     }

@@ -17,9 +17,22 @@ pub struct WorthUiDurableResizeInputDisposition {
     family_id: WorthUiDurableStateFamilyId,
     transition: WorthUiNodeLifecycleTransition,
     resize_permission: MosaicResizePermission,
+    resize_contract_id: crate::capability::MosaicSizingContractId,
+    resize_shape_digest: u64,
     posture: WorthUiDurableResizeInputPosture,
     planning_time_only: bool,
     identity_digest: u64,
+}
+
+pub(crate) struct WorthUiDurableResizeInputDispositionInput {
+    pub identity_basis: String,
+    pub authored_provenance_digest: Option<u64>,
+    pub family_id: WorthUiDurableStateFamilyId,
+    pub transition: WorthUiNodeLifecycleTransition,
+    pub resize_permission: MosaicResizePermission,
+    pub resize_contract_id: crate::capability::MosaicSizingContractId,
+    pub resize_shape_digest: u64,
+    pub posture: WorthUiDurableResizeInputPosture,
 }
 
 /// Move-only durable resize truth admitted by reconciliation itself.
@@ -54,15 +67,18 @@ pub(crate) struct WorthUiDurableResizeSourceAuthority {
 }
 
 impl WorthUiDurableResizeInputDisposition {
-    pub(crate) fn new(
-        identity_basis: String,
-        authored_provenance_digest: Option<u64>,
-        family_id: WorthUiDurableStateFamilyId,
-        transition: WorthUiNodeLifecycleTransition,
-        resize_permission: MosaicResizePermission,
-        posture: WorthUiDurableResizeInputPosture,
-        planning_time_only: bool,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiDurableResizeInputDispositionInput) -> Self {
+        let WorthUiDurableResizeInputDispositionInput {
+            identity_basis,
+            authored_provenance_digest,
+            family_id,
+            transition,
+            resize_permission,
+            resize_contract_id,
+            resize_shape_digest,
+            posture,
+        } = input;
+        let planning_time_only = true;
         let identity_digest = stable_text_digest("worth-ui.runtime.durable-resize-input")
             ^ stable_text_digest(&identity_basis).rotate_left(7)
             ^ authored_provenance_digest
@@ -71,14 +87,18 @@ impl WorthUiDurableResizeInputDisposition {
             ^ family_digest(&family_id).rotate_left(13)
             ^ transition_digest(transition).rotate_left(19)
             ^ resize_permission_digest(&resize_permission).rotate_left(23)
+            ^ stable_text_digest(resize_contract_id.as_str()).rotate_left(27)
+            ^ resize_shape_digest.rotate_left(31)
             ^ posture_digest(posture).rotate_left(29)
-            ^ bool_digest(planning_time_only).rotate_left(31);
+            ^ bool_digest(planning_time_only).rotate_left(37);
         Self {
             identity_basis,
             authored_provenance_digest,
             family_id,
             transition,
             resize_permission,
+            resize_contract_id,
+            resize_shape_digest,
             posture,
             planning_time_only,
             identity_digest,
@@ -99,6 +119,12 @@ impl WorthUiDurableResizeInputDisposition {
     }
     pub fn resize_permission(&self) -> &MosaicResizePermission {
         &self.resize_permission
+    }
+    pub fn resize_contract_id(&self) -> &crate::capability::MosaicSizingContractId {
+        &self.resize_contract_id
+    }
+    pub fn resize_shape_digest(&self) -> u64 {
+        self.resize_shape_digest
     }
     pub fn posture(&self) -> WorthUiDurableResizeInputPosture {
         self.posture

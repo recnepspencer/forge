@@ -1,7 +1,7 @@
-use worth_ui::facade::host::WorthUiHeadlessHost;
+use worth_ui::facade::host::WorthUiHeadlessRecorder;
 use worth_ui::facade::mounted::{
-    UiMountedAllocationProjection, UiMountedFrameRequest, UiMountedOmissionReason,
-    UiMountedParticipationStatus,
+    UiMountedAllocationProjection, UiMountedFrameOutcome, UiMountedFrameRequest,
+    UiMountedOmissionReason, UiMountedParticipationStatus, UiPresentationDeadline,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
@@ -25,12 +25,28 @@ struct AuthoredMountedOracle {
 struct ProjectedMountedOracle {
     authored: AuthoredMountedOracle,
     cost: worth_ui::facade::mounted::UiMountCostReport,
+    publication_transition_is_coherent: bool,
+    mounted_identity_is_continuous: bool,
+}
+
+#[derive(Clone, Copy)]
+enum AuthoringLane {
+    File,
+    Rust,
+}
+
+#[derive(Clone, Copy)]
+enum QueryPosture {
+    Free,
+    Backed,
 }
 
 #[test]
-fn real_query_free_and_query_backed_paths_match_the_authored_ui_oracle() {
-    let query_free = project_query_free();
-    let query_backed = project_query_backed();
+fn file_and_rust_query_free_and_backed_worlds_match_one_mounted_contract() {
+    let file_free = project_world(AuthoringLane::File, QueryPosture::Free);
+    let rust_free = project_world(AuthoringLane::Rust, QueryPosture::Free);
+    let file_backed = project_world(AuthoringLane::File, QueryPosture::Backed);
+    let rust_backed = project_world(AuthoringLane::Rust, QueryPosture::Backed);
     let expected = AuthoredMountedOracle {
         paint: UiMountedParticipationStatus::Deferred,
         input: UiMountedParticipationStatus::Deferred,
@@ -40,107 +56,128 @@ fn real_query_free_and_query_backed_paths_match_the_authored_ui_oracle() {
         allocation_omission: UiMountedOmissionReason::NoCommittedAllocation,
     };
 
-    assert_eq!(query_free.authored, expected);
-    assert_eq!(query_backed.authored, expected);
-    assert_ui_owned_cost_parity(query_free.cost, query_backed.cost);
-    assert_eq!(query_free.cost.replaced_batch_rows(), 3);
-    assert_eq!(query_backed.cost.replaced_batch_rows(), 10);
+    for observed in [&file_free, &rust_free, &file_backed, &rust_backed] {
+        assert_eq!(observed.authored, expected);
+        assert!(observed.publication_transition_is_coherent);
+        assert!(observed.mounted_identity_is_continuous);
+    }
+    assert_ui_owned_cost_parity(file_free.cost, rust_free.cost);
+    assert_ui_owned_cost_parity(file_backed.cost, rust_backed.cost);
+    assert_ui_owned_cost_parity(file_free.cost, file_backed.cost);
+    assert_eq!(
+        file_free.cost.replaced_batch_rows(),
+        rust_free.cost.replaced_batch_rows()
+    );
+    assert_eq!(
+        file_backed.cost.replaced_batch_rows(),
+        rust_backed.cost.replaced_batch_rows()
+    );
 }
 
 fn assert_ui_owned_cost_parity(
-    query_free: worth_ui::facade::mounted::UiMountCostReport,
-    query_backed: worth_ui::facade::mounted::UiMountCostReport,
+    left: worth_ui::facade::mounted::UiMountCostReport,
+    right: worth_ui::facade::mounted::UiMountCostReport,
 ) {
     assert_eq!(
-        query_free.initial_mounted_instances(),
-        query_backed.initial_mounted_instances()
+        left.initial_mounted_instances(),
+        right.initial_mounted_instances()
     );
     assert_eq!(
-        query_free.changed_mounted_instances(),
-        query_backed.changed_mounted_instances()
+        left.changed_mounted_instances(),
+        right.changed_mounted_instances()
+    );
+    assert_eq!(left.index_entries_touched(), right.index_entries_touched());
+    assert_eq!(
+        left.surface_instance_pairs(),
+        right.surface_instance_pairs()
     );
     assert_eq!(
-        query_free.index_entries_touched(),
-        query_backed.index_entries_touched()
+        left.changed_binding_generations(),
+        right.changed_binding_generations()
     );
-    assert_eq!(
-        query_free.surface_instance_pairs(),
-        query_backed.surface_instance_pairs()
-    );
-    assert_eq!(
-        query_free.changed_binding_generations(),
-        query_backed.changed_binding_generations()
-    );
-    assert_eq!(
-        query_free.named().considered(),
-        query_backed.named().considered()
-    );
-    assert_eq!(query_free.named().minted(), query_backed.named().minted());
+    assert_eq!(left.named().considered(), right.named().considered());
+    assert_eq!(left.named().minted(), right.named().minted());
 }
 
-fn project_query_free() -> ProjectedMountedOracle {
-    let scenario = FilesystemApplicationLifecycleScenario::new("mounted-parity-query-free");
-    let workspace = FilesystemContractWorkspace::new("mounted-parity-query-free");
-    workspace.write(
-        "app/main.wui",
-        &FilesystemApplicationLifecycleScenario::ordinary_execution_source_text(),
-    );
+fn project_world(authoring: AuthoringLane, query: QueryPosture) -> ProjectedMountedOracle {
+    let label = match (authoring, query) {
+        (AuthoringLane::File, QueryPosture::Free) => "mounted-parity-file-free",
+        (AuthoringLane::Rust, QueryPosture::Free) => "mounted-parity-rust-free",
+        (AuthoringLane::File, QueryPosture::Backed) => "mounted-parity-file-query",
+        (AuthoringLane::Rust, QueryPosture::Backed) => "mounted-parity-rust-query",
+    };
+    let mut scenario = FilesystemApplicationLifecycleScenario::new(label);
     let capabilities = scenario.capability_application();
-    let submission = FilesystemApplicationLifecycleScenario::lower_snapshot(
-        WorthUiFilesystemSourceProvider::new(workspace.root())
-            .read()
-            .unwrap(),
-        capabilities.capabilities(),
-    );
-    let mut session = scenario.prepare_application(submission).launch().unwrap();
-    let oracle = project_first_node(&mut session);
-    let _ = session.shutdown();
-    workspace.close();
-    oracle
-}
-
-fn project_query_backed() -> ProjectedMountedOracle {
-    let mut scenario = FilesystemApplicationLifecycleScenario::new("mounted-parity-query-backed");
-    let workspace = FilesystemContractWorkspace::new("mounted-parity-query-backed");
-    workspace.write(
-        "app/main.wui",
-        &FilesystemApplicationLifecycleScenario::cross_lane_source_text(),
-    );
-    let capabilities = scenario.cross_lane_capability_application(WorthUiHeadlessHost);
-    let submission = FilesystemApplicationLifecycleScenario::lower_snapshot(
-        WorthUiFilesystemSourceProvider::new(workspace.root())
-            .read()
-            .unwrap(),
-        capabilities.capabilities(),
-    );
+    let submission = match authoring {
+        AuthoringLane::File => file_submission(label, query, capabilities.capabilities()),
+        AuthoringLane::Rust => match query {
+            QueryPosture::Free => FilesystemApplicationLifecycleScenario::current_rust_submission(
+                capabilities.capabilities(),
+            ),
+            QueryPosture::Backed => {
+                FilesystemApplicationLifecycleScenario::current_query_rust_submission(
+                    capabilities.capabilities(),
+                )
+            }
+        },
+    };
+    let recorder = WorthUiHeadlessRecorder::default();
     let mut session = scenario
-        .prepare_cross_lane_application_with_host(submission, WorthUiHeadlessHost)
+        .prepare_application_with_host(submission, recorder.clone())
         .launch()
         .unwrap();
+    if matches!(query, QueryPosture::Backed) {
+        admit_query_projection(&mut scenario, &mut session);
+    }
+    let oracle = project_first_node(&mut session, &recorder);
+    let _ = session.shutdown();
+    oracle
+}
+
+fn file_submission(
+    label: &str,
+    query: QueryPosture,
+    capabilities: &worth_ui::facade::diagnostics::CapabilitySnapshot,
+) -> worth_ui::facade::source::WorthUiWatchedCandidateSubmission {
+    let workspace = FilesystemContractWorkspace::new(label);
+    let source = match query {
+        QueryPosture::Free => FilesystemApplicationLifecycleScenario::current_source_text(),
+        QueryPosture::Backed => FilesystemApplicationLifecycleScenario::current_query_source_text(),
+    };
+    workspace.write("app/main.wui", &source);
+    let snapshot = WorthUiFilesystemSourceProvider::new(workspace.root())
+        .read()
+        .unwrap();
+    workspace.close();
+    FilesystemApplicationLifecycleScenario::lower_snapshot(snapshot, capabilities)
+}
+
+fn admit_query_projection(
+    scenario: &mut FilesystemApplicationLifecycleScenario,
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+) {
     let projection = scenario.settled_query_projection();
     let link = session.query_fact_link("inspector.measurements").unwrap();
-    let completion = session
-        .execute_framework_turn(|turn| {
-            turn.query_projection(|source| {
-                source.admit_settled(projection).unwrap();
-                source.submit_settled(&link).unwrap();
-            });
-        })
-        .expect("no mounted presentation lease is active");
-    drop(completion.into_completion());
-    let oracle = project_first_node(&mut session);
-    let _ = session.shutdown();
-    workspace.close();
-    oracle
+    drop(
+        session
+            .execute_framework_turn(|turn| {
+                turn.query_projection(|source| {
+                    source.admit_settled(projection).unwrap();
+                    source.submit_settled(&link).unwrap();
+                });
+            })
+            .unwrap()
+            .into_completion(),
+    );
 }
 
 fn project_first_node(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    recorder: &WorthUiHeadlessRecorder,
 ) -> ProjectedMountedOracle {
     let surface = registered_surface(session);
     let node = first_node(session);
-    session.mount_instance(node, surface).unwrap();
-    let binding = session.inspect_mounted_identity().surface_bindings()[0].binding_generation();
+    let mounted_instance = session.mount_instance(node, surface).unwrap();
     let candidate = session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")
@@ -149,27 +186,61 @@ fn project_first_node(
         .prepare_mounted_frame(UiMountedFrameRequest::all_bound_surfaces())
         .unwrap();
     let cost = candidate.cost_report();
-    let view = candidate
-        .surfaces()
-        .iter()
-        .find(|receipt| receipt.requirement().binding() == binding)
-        .unwrap()
-        .projection();
+    let view = &candidate.surfaces()[0].projection();
     let node = &view.nodes()[0];
     let participation = node.participation();
     let allocation_omission = match node.allocation() {
         UiMountedAllocationProjection::Omitted(reason) => reason,
         other => panic!("authored scenario has no committed allocation, got {other:?}"),
     };
+    let authored = AuthoredMountedOracle {
+        paint: participation.paint().status(),
+        input: participation.input().status(),
+        focus: participation.focus().status(),
+        hit_test: participation.hit_test().status(),
+        diagnostic: participation.diagnostic().status(),
+        allocation_omission,
+    };
+    drop(candidate);
+    let first = session
+        .execute_mounted_frame(
+            UiMountedFrameRequest::all_bound_surfaces(),
+            UiPresentationDeadline::at_tick(10),
+            0,
+            |_| {},
+        )
+        .unwrap_or_else(|_| panic!("first public mounted frame executes"));
+    let published = match first {
+        UiMountedFrameOutcome::Published(receipt) => receipt,
+        _ => panic!("first public mounted frame must publish"),
+    };
+    let second = session
+        .execute_mounted_frame(
+            UiMountedFrameRequest::all_bound_surfaces(),
+            UiPresentationDeadline::at_tick(11),
+            1,
+            |_| {},
+        )
+        .unwrap_or_else(|_| panic!("unchanged public mounted frame executes"));
+    let publication_transition_is_coherent = match second {
+        UiMountedFrameOutcome::Unchanged(receipt) => {
+            receipt.frame() == published.frame() && recorder.observed_transcripts().len() == 1
+        }
+        UiMountedFrameOutcome::Published(receipt) => {
+            receipt.predecessor() == Some(published.frame())
+                && recorder.observed_transcripts().len() == 2
+        }
+        _ => false,
+    };
+    let identity = session.inspect_mounted_identity();
+    let mounted_identity_is_continuous = identity
+        .mounted_instances()
+        .iter()
+        .any(|receipt| receipt.identity() == mounted_instance);
     ProjectedMountedOracle {
         cost,
-        authored: AuthoredMountedOracle {
-            paint: participation.paint().status(),
-            input: participation.input().status(),
-            focus: participation.focus().status(),
-            hit_test: participation.hit_test().status(),
-            diagnostic: participation.diagnostic().status(),
-            allocation_omission,
-        },
+        authored,
+        publication_transition_is_coherent,
+        mounted_identity_is_continuous,
     }
 }

@@ -60,6 +60,55 @@ pub(super) fn validate_activation_inputs(
     })
 }
 
+pub(super) fn validate_mounted_activation_inputs(
+    basis: &crate::runtime::WorthUiMountedAllocationActivationBasis,
+    plan_input: &WorthUiExecutionPlanInput,
+    handle_allocation: &WorthUiRuntimeHandleAllocation,
+    allocation_catalog: &crate::runtime::invalidation_narrowing::UiAllocationActivationCatalog,
+    candidate_bundle: &crate::runtime::active::WorthUiSealedExecutionPlanBundle,
+) -> Result<UiActivationInputValidationFacts, WorthUiActivationGateDenial> {
+    let mut counters = WorthUiActivationGateCounters::default();
+    counters.record_readiness_check();
+    counters.record_digest_check();
+    let plan_basis = plan_input.basis();
+    let matches_basis = plan_basis.prior_artifact_digest().is_none()
+        && plan_basis.candidate_artifact_digest() == basis.projection().candidate_artifact_digest()
+        && plan_basis.frame_epoch() == basis.projection().frame_epoch()
+        && basis
+            .candidate_application_authority()
+            .graph_authority_identity()
+            == basis.projection().graph_authority_identity();
+    if !matches_basis {
+        return Err(denial_from_basis(
+            plan_basis,
+            WorthUiActivationGateDenialReason::PendingAndPlanInputMismatch,
+            counters,
+        ));
+    }
+    reject_handle_receipt_mismatch(
+        plan_input,
+        handle_allocation,
+        allocation_catalog,
+        &mut counters,
+    )?;
+    reject_execution_plan_receipt_mismatch(
+        handle_allocation,
+        candidate_bundle.execution_plan(),
+        &mut counters,
+    )?;
+    Ok(UiActivationInputValidationFacts {
+        candidate_execution_plan_digest: candidate_bundle.digest(),
+        handle_allocation_basis_digest: handle_allocation.receipt().basis_digest(),
+        node_classification_count: plan_basis.candidate_node_input_count(),
+        lane_changed_node_count: 0,
+        reconciliation_basis_digest: basis.reconciliation().basis_digest(),
+        query_rebind_basis_digest: 0,
+        query_rebind_denied_count: 0,
+        lane_parity_semantic_reference_digest: None,
+        counters,
+    })
+}
+
 fn reject_not_ready(
     pending: &WorthUiPendingActivation,
     counters: &mut WorthUiActivationGateCounters,

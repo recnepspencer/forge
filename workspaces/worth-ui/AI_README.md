@@ -90,24 +90,29 @@ candidate submission
 -> summary() / cost_envelope() observation
 -> stage_prepared_replacement
 -> framework-turn activation boundary
--> activate_prepared_replacement
+-> prepare_mounted_replacement
+-> present through the mounted host contract
+-> publish application, plan, allocation, mounting, and frame together
 ```
 
 Preparation does not decide semantic no-op. The current surface carries a
 successfully prepared candidate through allocation admission, complete plan
 lowering, exact executable comparison, and the activation decision. Only that
-final decision may return `WorthUiApplicationReplacementOutcome::SemanticNoOp`;
-an artifact digest is never sufficient authority to skip lowering.
+final decision may return
+`WorthUiMountedReplacementPreparationOutcome::SemanticNoOp`; an artifact
+digest is never sufficient authority to skip lowering.
 
-Successful cutover changes the application generation atomically. Invalid,
-foreign, stale, or incomplete candidates preserve the last complete active
-generation. The host session remains bound to the active application session.
+Successful visible cutover changes the application generation, executable
+plan, allocation catalog, mounted identity, and current frame atomically.
+Invalid, foreign, stale, incomplete, or pre-effect-rejected candidates preserve
+the last complete active publication. The host session remains bound to the
+active application session.
 
 Lowering is reconstructive work and is intentionally visible in the method
 name. `summary()` and `cost_envelope()` are compact observations of work already
-performed; neither can stage, activate, or execute the candidate. Activated and
-semantic-no-op outcomes both expose `reload_cost()` derived from the real
-production work.
+performed; neither can stage, present, publish, or execute the candidate.
+Published and semantic-no-op outcomes expose cost evidence derived from the
+real production work.
 
 ## Framework Turns
 
@@ -115,6 +120,13 @@ production work.
 frame owner. Its closure collects admitted source inputs; after collection the
 owner closes and pumps once, creates a proof-bearing transition plan, executes
 the selected policy family, and publishes a typed completion.
+
+For visible work, continue through
+`WorthUiActiveApplicationSession::execute_mounted_frame`. It is the single
+ordinary runtime-to-host route: all participating execution lanes and required
+surfaces assemble into one sealed frame before the adapter sees anything.
+Preview and replacement use the same mounted presentation and publication
+owners; no lane receipt or preview callback is independently presentable.
 
 Use source capabilities supplied by the turn:
 
@@ -124,6 +136,18 @@ Use source capabilities supplied by the turn:
 - resize sources for preview or durable resize input
 
 A raw host adapter or raw runtime object cannot submit work independently.
+
+Mount graph nodes before establishing the first allocation catalog. Call
+`establish_mounted_allocation_catalog` only after the relevant mounted
+instances and real host-measurement capability exist. The resulting allocation
+and resize evidence comes from the active artifact and host response; a dummy
+replacement or capability marker is not equivalent.
+
+Treat presentation outcomes exhaustively. Rejection before effects preserves
+the prior publication. In-flight work remains bounded. If effects may have
+begun, the affected binding becomes explicitly uncertain and stays blocked
+until `present_current_mounted_frame_for_reconciliation` fully re-presents the
+current frame on fresh binding generations.
 
 Frame-executable plan lowering is runtime-owner implementation work. Ordinary
 consumers do not construct plan inputs, allocate runtime handles, choose lane
@@ -149,6 +173,9 @@ When following a value across the system, preserve these bindings:
 - Query authority: registered installed view and projection outcome
 - host authority: active application session, host-session identity, and host
   measurement capability
+- mounted authority: semantic surface, host binding generation, mounted
+  instance/incarnation, frame-scoped node receipt, presentation attempt, and
+  publication receipt remain distinct
 - source authority: candidate composition, declaration source, source revision,
   and ordering receipt
 
@@ -156,6 +183,10 @@ Raw IDs and digests are reportable evidence. They do not promote authority.
 Query projection also crosses as one sealed outcome; do not split it into local
 basis/status/fact/digest truth or convert Foundational native aspect values
 through JSON or text for operational UI use.
+
+Solicited host measurement responses and unsolicited host observation reports
+are separate protocols. A structurally valid observation remains weaker than
+semantic UI intent and cannot mutate the graph, Query state, or publication.
 
 ## Crate Ownership
 

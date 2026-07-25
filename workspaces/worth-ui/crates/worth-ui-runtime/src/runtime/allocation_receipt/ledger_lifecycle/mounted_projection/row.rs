@@ -1,3 +1,5 @@
+//! One committed mounted allocation projection row.
+
 use worth_ui_host_contract::{
     UiMountedAllocationBasis, UiMountedAllocationProjection, UiMountedCanonicalBox,
     UiMountedCanonicalBoxInput, UiMountedCoordinateSpace, UiMountedGeometryDenial,

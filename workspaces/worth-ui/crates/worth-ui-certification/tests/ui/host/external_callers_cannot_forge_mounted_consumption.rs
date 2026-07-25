@@ -16,6 +16,13 @@ fn construct_consumption_view() {
     let _ = UiMountedFrameConsumptionView {};
 }
 
+fn extract_runtime_authority(view: &UiMountedFrameConsumptionView<'_>) {
+    let _ = view.application_authority();
+    let _ = view.graph_authority();
+    let _ = view.query_authority();
+    let _ = view.publication_authority();
+}
+
 fn clone_completion_token(token: UiHostPresentationCompletionToken) {
     let _ = token.clone();
 }
@@ -36,6 +43,7 @@ fn main() {
     let _ = (
         mint_removed_runtime_authority,
         construct_consumption_view,
+        extract_runtime_authority,
         clone_completion_token,
         forge_publication_witness,
         invoke_host_effect_without_runtime_session,

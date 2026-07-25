@@ -3,6 +3,7 @@
 pub(crate) mod activation;
 pub(crate) use activation::committed_allocation_attempt::UiCommittedAllocationActivationAttempt;
 pub(crate) use activation::UiAllocationCatalogDeltaActivationInput;
+pub(crate) use activation::WorthUiInitialMountedAllocationActivationDenial;
 pub(crate) use activation::WorthUiPreparedApplicationPlanSwap;
 pub(crate) use activation::WorthUiPreparedApplicationPublication;
 mod active;
@@ -24,6 +25,9 @@ pub(crate) use invalidation_narrowing::{
 mod launch;
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use launch::WorthUiActivationStagingPlans;
+pub(crate) use launch::{
+    WorthUiInitialMountedCatalogPreparationDenial, WorthUiMountedAllocationActivationBasis,
+};
 mod measurement;
 pub(crate) mod persistent_index;
 pub(crate) mod planning;
