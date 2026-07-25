@@ -22,8 +22,10 @@ pub(super) fn prepare_replacement_presentation(
     input: WorthUiMountedReplacementAdmissionInput<'_>,
     deadline: worth_ui_host_contract::UiPresentationDeadline,
     now: u64,
-) -> Result<WorthUiAdmittedMountedReplacement<'_>, WorthUiMountedApplicationReplacementOutcome<'_>>
-{
+) -> Result<
+    WorthUiAdmittedMountedReplacement<'_>,
+    Box<WorthUiMountedApplicationReplacementOutcome<'_>>,
+> {
     let WorthUiMountedReplacementAdmissionInput {
         session,
         application,
@@ -38,7 +40,7 @@ pub(super) fn prepare_replacement_presentation(
             session
                 .host_observations
                 .record_never_presented_frame(rejection.frame().canonical_core().frame());
-            return Err(
+            return Err(Box::new(
                 WorthUiMountedApplicationReplacementOutcome::AdmissionDenied(
                     WorthUiMountedReplacementAdmissionDenial {
                         denial,
@@ -50,7 +52,7 @@ pub(super) fn prepare_replacement_presentation(
                         }),
                     },
                 ),
-            );
+            ));
         }
     };
     let retained = match session.mounted_retention.prepare_publication(admitted) {
@@ -59,7 +61,7 @@ pub(super) fn prepare_replacement_presentation(
             session
                 .host_observations
                 .record_never_presented_frame(rejection.frame().canonical_core().frame());
-            return Err(
+            return Err(Box::new(
                 WorthUiMountedApplicationReplacementOutcome::RetentionDenied(
                     WorthUiMountedReplacementRetentionDenial {
                         denial: rejection.denial(),
@@ -71,7 +73,7 @@ pub(super) fn prepare_replacement_presentation(
                         }),
                     },
                 ),
-            );
+            ));
         }
     };
     let admission = match session.mounted_presentation.admit_current(
@@ -86,7 +88,7 @@ pub(super) fn prepare_replacement_presentation(
             session
                 .host_observations
                 .record_never_presented_frame(rejection.frame().canonical_core().frame());
-            return Err(
+            return Err(Box::new(
                 WorthUiMountedApplicationReplacementOutcome::AdmissionDenied(
                     WorthUiMountedReplacementAdmissionDenial {
                         denial,
@@ -98,7 +100,7 @@ pub(super) fn prepare_replacement_presentation(
                         }),
                     },
                 ),
-            );
+            ));
         }
     };
     let publication = crate::mounting::UiMountedFramePublicationCandidate::reserve(

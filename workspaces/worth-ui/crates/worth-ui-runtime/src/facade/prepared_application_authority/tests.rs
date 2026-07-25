@@ -53,7 +53,7 @@ fn query_and_host_plan_drift_change_identity_without_capability_drift() {
         .freeze()
         .expect("headless app should prepare");
     let egui = WorthUi::app()
-        .with_host(EguiPlanAdapter::default())
+        .with_host(EguiPlanAdapter)
         .freeze()
         .expect("egui app should prepare");
 

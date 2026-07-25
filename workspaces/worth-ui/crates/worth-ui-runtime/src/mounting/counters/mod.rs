@@ -36,7 +36,6 @@ pub struct UiMountCostReport {
     replaced_batch_bytes: u64,
     surface_instance_pairs: u64,
     changed_binding_generations: u64,
-    report_entries_handled: u64,
     named: UiMountNamedCounters,
     adapter: UiHostPresentationCostReport,
 }
@@ -61,7 +60,6 @@ impl UiMountStageCounters {
                 replaced_batch_bytes: 0,
                 surface_instance_pairs: 0,
                 changed_binding_generations: 0,
-                report_entries_handled: 0,
                 named: UiMountNamedCounters::default(),
                 adapter: UiHostPresentationCostReport::default(),
             },
@@ -185,10 +183,6 @@ impl UiMountCostReport {
 
     pub const fn adapter(self) -> UiHostPresentationCostReport {
         self.adapter
-    }
-
-    pub const fn report_entries_handled(self) -> u64 {
-        self.report_entries_handled
     }
 
     pub const fn named(self) -> UiMountNamedCounters {

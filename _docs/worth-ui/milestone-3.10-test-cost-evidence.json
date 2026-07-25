@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "milestone": "3.10",
   "opening": {
     "captured_at": "2026-07-24T05:21:22.0385646+00:00",
@@ -271,6 +271,103 @@
         "bytes": 290698387,
         "files": 864,
         "reason": "The execution wrapper terminated the first clean compile attempt after five seconds. This partial target is not reused by or counted in any measurement."
+      }
+    },
+    "proof_cost_layers": {
+      "compilation": {
+        "owner": "Cargo workspace and consolidated compile-contract runners",
+        "posture": "One clean application-contract build plus two consolidated compile-contract Cargo sessions; compiler artifacts are retained separately from linked executables.",
+        "evidence": [
+          "opening.topology.workspace_cargo_targets",
+          "opening.topology.compile_contract_cargo_sessions",
+          "opening.measurements.clean_application_compile_and_link"
+        ],
+        "metrics": {
+          "workspace_cargo_targets": 20,
+          "compile_contract_cargo_sessions": 2,
+          "compiler_artifact_files": 348,
+          "compiler_artifact_bytes": 2845796024
+        }
+      },
+      "linking": {
+        "owner": "Cargo integration-test link graph",
+        "posture": "Linked executable count and bytes are recorded independently from compiler artifacts even though the opening wall-clock sample covered clean compilation and linking together.",
+        "evidence": [
+          "opening.topology.integration_test_targets",
+          "opening.retained_artifacts.targets[0]"
+        ],
+        "metrics": {
+          "integration_test_targets": 9,
+          "linked_executables": 14,
+          "linked_executable_bytes": 218175488,
+          "application_contract_executable_bytes": 55468032
+        }
+      },
+      "immutable_world_construction": {
+        "owner": "Worth UI certification scenario blueprints",
+        "posture": "Opening tests construct fresh sessions from the filesystem lifecycle and installed Query world blueprints; no mutable live runtime is shared between cases.",
+        "evidence": [
+          "workspaces/worth-ui/crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs",
+          "workspaces/worth-ui/crates/worth-ui-certification/src/scenario/installed_query_world.rs"
+        ],
+        "metrics": {
+          "reusable_blueprints": 2
+        }
+      },
+      "isolated_delta_construction": {
+        "owner": "Milestone 3.10 certification scenario deltas",
+        "posture": "The opening baseline predates the milestone-owned isolated mounted-delta families; zero is an explicit baseline rather than delta setup hidden in execution.",
+        "evidence": [
+          "_docs/worth-ui/milestone-3.10.md"
+        ],
+        "metrics": {
+          "named_delta_families": 0
+        }
+      },
+      "execution": {
+        "owner": "worth-ui-certification application_contracts target",
+        "posture": "Warm execution reuses a successfully compiled target and reports the executed case count separately from filesystem-only startup cases.",
+        "evidence": [
+          "opening.measurements.warm_application_contracts"
+        ],
+        "metrics": {
+          "application_contract_cases": 53,
+          "warm_median_milliseconds": 14972
+        }
+      },
+      "external_startup": {
+        "owner": "Production filesystem source provider and operating-system watcher scenarios",
+        "posture": "Actual .wui writes, filesystem acquisition, watcher startup, delivery, and teardown are isolated as a filtered real-boundary sample.",
+        "evidence": [
+          "opening.measurements.warm_filesystem_external_boundary"
+        ],
+        "metrics": {
+          "filesystem_cases": 6,
+          "warm_median_milliseconds": 7259
+        }
+      },
+      "retained_artifacts": {
+        "owner": "Milestone 3.10 isolated target-root capture",
+        "posture": "Only successful measurement targets are counted; failed capture residue is named and excluded.",
+        "evidence": [
+          "opening.retained_artifacts"
+        ],
+        "metrics": {
+          "files": 4131,
+          "bytes": 4886254975
+        }
+      },
+      "retries": {
+        "owner": "Worth UI test topology policy",
+        "posture": "The flake retry budget and retries used are both zero; failed capture wrappers contributed no samples and were not test retries.",
+        "evidence": [
+          "opening.topology.flake_retry_budget",
+          "opening.topology.test_retries_used"
+        ],
+        "metrics": {
+          "budget": 0,
+          "used": 0
+        }
       }
     },
     "capture_notes": [

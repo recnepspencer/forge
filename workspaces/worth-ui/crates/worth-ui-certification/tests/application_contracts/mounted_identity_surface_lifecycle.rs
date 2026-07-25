@@ -83,7 +83,7 @@ fn surface_recreation_preserves_semantic_instance_but_retires_frame_affinity() {
 
 #[test]
 fn registration_without_known_empty_truth_is_denied_before_binding() {
-    let app = mounted_application_with_host("mounted-no-baseline", NoBaselineHost::default());
+    let app = mounted_application_with_host("mounted-no-baseline", NoBaselineHost);
     let mut session = app.launch().expect("runtime should launch");
     let surface = session.create_semantic_surface().unwrap();
     assert_eq!(

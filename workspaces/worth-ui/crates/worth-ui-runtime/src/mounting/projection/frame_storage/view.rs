@@ -12,15 +12,15 @@ use super::super::{UiMountedNodeReceipt, UiMountedProjectionDenial};
 use super::{UiMountedProjectionFrame, UiMountedProjectionNodeRecord};
 
 #[derive(Clone)]
-pub(super) enum UiMountedPaintSelector {
-    Ordinary {
-        receipt: crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
-        batch: UiMountedPaintBatchReference,
-    },
-    PlanIndexes {
-        indexes: Box<[u32]>,
-        batch: UiMountedPaintBatchReference,
-    },
+pub(super) struct UiMountedOrdinaryPaintSelector {
+    receipt: crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
+    batch: UiMountedPaintBatchReference,
+}
+
+#[derive(Clone)]
+pub(super) struct UiMountedPlanIndexPaintSelector {
+    indexes: Box<[u32]>,
+    batch: UiMountedPaintBatchReference,
 }
 
 impl UiMountedProjectionFrame {
@@ -97,10 +97,15 @@ impl UiMountedProjectionFrame {
                 UiMountedOmissionReason::NotProducedByExecutedLane,
             );
         }
-        self.paint_selectors
+        self.plan_index_paint_selectors
             .iter()
             .rev()
             .find_map(|selector| selector.batch_for(node.plan_index))
+            .or_else(|| {
+                self.ordinary_paint_selector
+                    .as_ref()
+                    .and_then(|selector| selector.batch_for(node.plan_index))
+            })
             .map_or_else(
                 || {
                     UiMountedPaintProjection::Omitted(
@@ -132,18 +137,36 @@ impl UiMountedProjectionFrame {
     }
 }
 
-impl UiMountedPaintSelector {
+impl UiMountedOrdinaryPaintSelector {
+    pub(super) fn new(
+        receipt: crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
+        batch: UiMountedPaintBatchReference,
+    ) -> Self {
+        Self { receipt, batch }
+    }
+
     pub(super) fn batch_for(
         &self,
         plan_index: Option<u32>,
     ) -> Option<UiMountedPaintBatchReference> {
         let plan_index = plan_index?;
-        match self {
-            Self::Ordinary { receipt, batch } => receipt
-                .touch()
-                .names_plan_index(plan_index)
-                .then_some(*batch),
-            Self::PlanIndexes { indexes, batch } => indexes.contains(&plan_index).then_some(*batch),
-        }
+        self.receipt
+            .touch()
+            .names_plan_index(plan_index)
+            .then_some(self.batch)
+    }
+}
+
+impl UiMountedPlanIndexPaintSelector {
+    pub(super) fn new(indexes: Box<[u32]>, batch: UiMountedPaintBatchReference) -> Self {
+        Self { indexes, batch }
+    }
+
+    pub(super) fn batch_for(
+        &self,
+        plan_index: Option<u32>,
+    ) -> Option<UiMountedPaintBatchReference> {
+        let plan_index = plan_index?;
+        self.indexes.contains(&plan_index).then_some(self.batch)
     }
 }

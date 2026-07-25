@@ -150,7 +150,7 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
             now,
         ) {
             Ok(admitted) => admitted,
-            Err(outcome) => return outcome,
+            Err(outcome) => return *outcome,
         };
         let (state, admission, capability_report) = admitted.into_parts();
         let outcome = state.session.mounted_presentation.present(
@@ -204,7 +204,7 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
                 }))
             }
             crate::mounting::UiMountedPresentationOutcome::InFlight(handle) => {
-                WorthUiMountedApplicationReplacementOutcome::InFlight(
+                WorthUiMountedApplicationReplacementOutcome::InFlight(Box::new(
                     WorthUiMountedApplicationReplacementInFlight {
                         session,
                         application,
@@ -212,14 +212,16 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
                         publication,
                         handle,
                     },
-                )
+                ))
             }
             crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(frame) => {
                 session.host_observations.record_indeterminate_frame(
                     frame.frame().canonical_core().frame(),
                     frame.report().affected_bindings(),
                 );
-                WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(frame)
+                WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(Box::new(
+                    frame,
+                ))
             }
         }
     }
@@ -246,7 +248,10 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
         &self.handle
     }
 
-    pub fn complete(mut self, now: u64) -> WorthUiMountedApplicationReplacementOutcome<'session> {
+    pub fn complete(
+        mut self: Box<Self>,
+        now: u64,
+    ) -> WorthUiMountedApplicationReplacementOutcome<'session> {
         let observed = self.handle.clone();
         let outcome = self.session.mounted_presentation.complete(
             observed,
@@ -256,12 +261,12 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(denial) => {
-                return WorthUiMountedApplicationReplacementOutcome::CompletionDenied(
+                return WorthUiMountedApplicationReplacementOutcome::CompletionDenied(Box::new(
                     WorthUiMountedReplacementCompletionDenial {
                         denial,
-                        in_flight: self,
+                        in_flight: *self,
                     },
-                );
+                ));
             }
         };
         match outcome {
@@ -299,7 +304,9 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
                     frame.frame().canonical_core().frame(),
                     frame.report().affected_bindings(),
                 );
-                WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(frame)
+                WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(Box::new(
+                    frame,
+                ))
             }
         }
     }

@@ -53,11 +53,10 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
     assert_generation_boundaries(&mut rust_session);
     let _ = rust_session.shutdown();
 
-    let operational_file_app =
-        application_builder_with_host(&file_query, AuthorityClosureHost::default())
-            .with_candidate_submission(current_file(file_snapshot.capabilities()))
-            .freeze()
-            .expect("operational file-authored application should prepare");
+    let operational_file_app = application_builder_with_host(&file_query, AuthorityClosureHost)
+        .with_candidate_submission(current_file(file_snapshot.capabilities()))
+        .freeze()
+        .expect("operational file-authored application should prepare");
     let mut session = operational_file_app
         .launch()
         .expect("file-authored app should launch");

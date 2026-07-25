@@ -58,14 +58,16 @@ fn one_instance_delta_names_its_order_batch_without_rescanning_semantic_truth() 
     assert_eq!(delta_cost.surface_instance_pairs(), 1);
     assert_eq!(delta_cost.changed_binding_generations(), 0);
     assert_eq!(delta_cost.named().considered(), 1);
-    assert!(
-        delta_cost.index_entries_touched() < INITIAL_INSTANCES as u64,
-        "persistent index work must follow the local delta, not graph size"
-    );
+    assert_logarithmic_index_work(delta_cost.index_entries_touched(), INITIAL_INSTANCES);
     assert_eq!(
         delta_cost.replaced_batch_rows(),
         INITIAL_INSTANCES as u64 + 3,
         "ordinary layer and paint rows plus the honestly replaced semantic-order batch"
+    );
+    assert_eq!(
+        delta_cost.replaced_batch_bytes(),
+        ordinary_replacement_bytes(INITIAL_INSTANCES + 1),
+        "b names exact rows and bytes for the replacement granule"
     );
 }
 
@@ -124,7 +126,42 @@ fn overlapping_semantic_and_binding_delta_counts_distinct_surface_pairs_once() {
         "65 semantic-order rows plus two honestly replaced specialized rows"
     );
     assert_eq!(
+        cost.replaced_batch_bytes(),
+        ordinary_replacement_bytes(WARM_INSTANCES + 1)
+    );
+    assert_eq!(
         delta.receipt().delta().surface_instance_pairs(),
         cost.surface_instance_pairs()
     );
+}
+
+fn assert_logarithmic_index_work(index_entries: u64, graph_instances: usize) {
+    let binary_search_levels =
+        usize::BITS as usize - graph_instances.max(1).leading_zeros() as usize;
+    let independent_avl_ceiling = 2 + 4 * binary_search_levels;
+    assert!(
+        (2..=u64::try_from(independent_avl_ceiling).unwrap()).contains(&index_entries),
+        "one changed instance may touch two entries and an AVL search path, not a linear \
+         fraction of {graph_instances} instances; observed {index_entries}, ceiling \
+         {independent_avl_ceiling}"
+    );
+}
+
+fn ordinary_replacement_bytes(order_rows: usize) -> u64 {
+    let bytes = order_rows
+        .checked_mul(std::mem::size_of::<
+            worth_ui::facade::mounted::UiMountedInstanceIdentity,
+        >())
+        .and_then(|bytes| {
+            bytes.checked_add(std::mem::size_of::<
+                worth_ui::facade::mounted::UiMountedLayerRow,
+            >())
+        })
+        .and_then(|bytes| {
+            bytes.checked_add(std::mem::size_of::<
+                worth_ui::facade::mounted::UiMountedPaintBatchRow,
+            >())
+        })
+        .expect("the deterministic replacement granule fits usize");
+    u64::try_from(bytes).expect("the replacement granule fits u64")
 }

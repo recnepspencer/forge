@@ -45,13 +45,13 @@ impl<'session> WorthUiMountedPreviewAdmissionRejection<'session> {
         self.denial
     }
     pub fn retry(
-        self,
+        self: Box<Self>,
         deadline: UiPresentationDeadline,
         now: u64,
     ) -> WorthUiMountedPreviewOutcome<'session> {
         self.preview.present(deadline, now)
     }
-    pub fn supersede(self) -> WorthUiResolvedMountedPreview {
+    pub fn supersede(self: Box<Self>) -> WorthUiResolvedMountedPreview {
         self.preview.supersede()
     }
 }
@@ -61,13 +61,13 @@ impl<'session> WorthUiMountedPreviewRetentionRejection<'session> {
         self.denial
     }
     pub fn retry(
-        self,
+        self: Box<Self>,
         deadline: UiPresentationDeadline,
         now: u64,
     ) -> WorthUiMountedPreviewOutcome<'session> {
         self.preview.present(deadline, now)
     }
-    pub fn supersede(self) -> WorthUiResolvedMountedPreview {
+    pub fn supersede(self: Box<Self>) -> WorthUiResolvedMountedPreview {
         self.preview.supersede()
     }
 }
@@ -76,7 +76,7 @@ impl<'session> WorthUiMountedPreviewCompletionRejection<'session> {
     pub fn denial(&self) -> crate::mounting::UiMountedPresentationCompletionDenial {
         self.denial
     }
-    pub fn retry(self, now: u64) -> WorthUiMountedPreviewOutcome<'session> {
-        self.in_flight.complete(now)
+    pub fn retry(self: Box<Self>, now: u64) -> WorthUiMountedPreviewOutcome<'session> {
+        Box::new(self.in_flight).complete(now)
     }
 }

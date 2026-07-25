@@ -109,9 +109,16 @@ impl UiMountedPresentationCoordinator {
                 }
             }
         }
-        Ok(self.finish_or_wait(
-            frame, retention, attempt, deadline, remaining, rejected, completed, host,
-        ))
+        Ok(self.finish_or_wait(super::UiMountedPresentationSettlement {
+            frame,
+            retention,
+            attempt,
+            deadline,
+            pending: remaining,
+            rejected,
+            completed,
+            host,
+        }))
     }
 
     pub fn cancel(

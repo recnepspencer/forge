@@ -84,9 +84,9 @@ pub struct WorthUiResolvedMountedPreview {
 }
 
 pub enum WorthUiMountedPreviewOutcome<'session> {
-    Resolved(WorthUiResolvedMountedPreview),
-    InFlight(WorthUiMountedPreviewInFlight<'session>),
-    RetentionDenied(WorthUiMountedPreviewRetentionRejection<'session>),
-    AdmissionDenied(WorthUiMountedPreviewAdmissionRejection<'session>),
-    CompletionDenied(WorthUiMountedPreviewCompletionRejection<'session>),
+    Resolved(Box<WorthUiResolvedMountedPreview>),
+    InFlight(Box<WorthUiMountedPreviewInFlight<'session>>),
+    RetentionDenied(Box<WorthUiMountedPreviewRetentionRejection<'session>>),
+    AdmissionDenied(Box<WorthUiMountedPreviewAdmissionRejection<'session>>),
+    CompletionDenied(Box<WorthUiMountedPreviewCompletionRejection<'session>>),
 }

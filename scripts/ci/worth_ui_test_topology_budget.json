@@ -284,6 +284,7 @@
     "workspaces/worth-ui/crates/worth-ui-runtime/src/facade/entry"
   ],
   "timing_evidence": "_docs/worth-ui/milestone-3.9-timing-evidence.json",
+  "test_cost_evidence": "_docs/worth-ui/milestone-3.10-test-cost-evidence.json",
   "filesystem_provider_source": "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/source_ingress/filesystem/filesystem_source_provider.rs",
   "real_filesystem_proof_sources": [
     "workspaces/worth-ui/crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs",

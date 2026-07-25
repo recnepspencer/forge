@@ -134,7 +134,7 @@ fn over_budget_or_unsupported_host_denies_before_active_publication() {
 
     let host_workspace = FilesystemContractWorkspace::new("realtime-host-denial");
     let host_app = file_app(&host_workspace, &format!("component {HUD} {{}}\n"), || {
-        hud_builder_with_policy(8, 4, 16, MissingRealtimeHookHost::default())
+        hud_builder_with_policy(8, 4, 16, MissingRealtimeHookHost)
     });
     let host_denial = match host_app.launch() {
         Ok(_) => panic!("host without exact realtime hook support cannot publish"),
