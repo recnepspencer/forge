@@ -86,17 +86,10 @@ fn unsupported_effect(
         surface.requirement().presentation_mode(),
         surface.projection(),
     );
-    [
-        UiMountedEffectFamily::CanvasSpatial,
-        UiMountedEffectFamily::Realtime,
-        UiMountedEffectFamily::NativePaint,
-        UiMountedEffectFamily::Accessibility,
-        UiMountedEffectFamily::Focus,
-        UiMountedEffectFamily::RecordedProjection,
-    ]
-    .into_iter()
-    .find(|effect| effects.contains(effect) && !supports_effect(capabilities, *effect))
-    .map(UiHostSurfacePresentationDenial::UnsupportedEffect)
+    effects
+        .into_iter()
+        .find(|effect| !supports_effect(capabilities, *effect))
+        .map(UiHostSurfacePresentationDenial::UnsupportedEffect)
 }
 
 fn supports_effect(report: &WorthUiHostCapabilityReport, effect: UiMountedEffectFamily) -> bool {
@@ -109,6 +102,7 @@ fn supports_effect(report: &WorthUiHostCapabilityReport, effect: UiMountedEffect
             report.supports(WorthUiHostCapability::Accessibility)
         }
         UiMountedEffectFamily::Focus => report.supports(WorthUiHostCapability::NativeFocus),
+        UiMountedEffectFamily::Motion | UiMountedEffectFamily::Diagnostic => false,
         UiMountedEffectFamily::CanvasSpatial => supports_canvas(report),
         UiMountedEffectFamily::Realtime => supports_realtime(report),
     }

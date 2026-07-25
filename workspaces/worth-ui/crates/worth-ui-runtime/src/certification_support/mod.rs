@@ -5,6 +5,7 @@
 
 mod activation_interruption;
 mod layout_admission;
+mod mounted_frame_execution;
 mod planning;
 mod runtime_launch;
 mod touch_origin;
@@ -22,6 +23,9 @@ pub use activation_interruption::{
 };
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;
+pub use mounted_frame_execution::{
+    WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
+};
 pub use planning::planning_pair_for_certification_suite;
 pub use runtime_launch::launch_empty_runtime_for_certification;
 pub use touch_origin::{

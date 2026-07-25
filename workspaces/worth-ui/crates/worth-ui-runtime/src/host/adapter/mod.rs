@@ -2,6 +2,8 @@ mod headless_host;
 mod headless_recorder;
 mod headless_transcript;
 mod headless_translation;
+#[cfg(test)]
+mod headless_translation_effect_tests;
 mod operational_contract;
 mod session_authority;
 mod session_release;

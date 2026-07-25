@@ -11,6 +11,7 @@ use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
     UiHostObservationReportOutcome,
 };
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use crate::host_observation_fixture::{batch, report, source};
 use crate::mounted_application_lifecycle::in_flight_presentation_world::prepared;

@@ -3,6 +3,7 @@ use worth_ui::facade::mounted::{
     UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInstanceIdentity,
     UiMountedNodeReceiptIdentity, UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::in_flight_presentation_world::{mounted_session, prepared};
 use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;

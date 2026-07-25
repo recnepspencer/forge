@@ -6,18 +6,16 @@ fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter(
     let (mut session, _) = mounted_session(host.clone(), "mounted-publication-ordinary", 1);
     let request = UiMountedFrameRequest::all_bound_surfaces();
     host.push_presented();
-    let first_frame = session
-        .execute_framework_turn(|_| {})
-        .unwrap()
-        .into_execution()
-        .unwrap_or_else(|_| panic!("empty source turn permits mounted preparation"))
-        .prepare_mounted_frame(request.clone())
-        .unwrap();
-    let first = published(session.present_prepared_mounted_frame(
-        first_frame,
-        UiPresentationDeadline::at_tick(10),
-        0,
-    ));
+    let first = published(
+        session
+            .execute_mounted_frame(
+                request.clone(),
+                UiPresentationDeadline::at_tick(10),
+                0,
+                |_| {},
+            )
+            .unwrap_or_else(|_| panic!("empty source turn publishes a mounted frame")),
+    );
     assert_eq!(
         session.inspect_mounted_identity().current_frame(),
         Some(first.frame())
@@ -25,22 +23,15 @@ fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter(
     assert_eq!(first.predecessor(), None);
     assert_eq!(first.cost_report().named().retained(), 1);
 
-    let execution = session
-        .execute_framework_turn(|_| {})
-        .unwrap()
-        .into_execution()
-        .unwrap_or_else(|_| panic!("empty source turn carries exact reuse authority"));
-    let witness = match execution.classify_mounted_frame_reuse(&request) {
-        UiMountedFrameReuse::Exact(witness) => witness,
-        UiMountedFrameReuse::ComparisonRequired(_) => {
-            panic!("identical framework turn must carry exact reuse")
-        }
-    };
-    drop(execution);
     let calls_before_reuse = host.presentation_calls();
     let outcome = session
-        .reuse_current_mounted_frame(&witness)
-        .expect("exact current witness reuses");
+        .execute_mounted_frame(
+            request.clone(),
+            UiPresentationDeadline::at_tick(11),
+            1,
+            |_| {},
+        )
+        .unwrap_or_else(|_| panic!("identical framework turn carries exact reuse authority"));
     assert_constant_unchanged_cost(outcome.cost_report().unwrap());
     let unchanged = match outcome {
         UiMountedFrameOutcome::Unchanged(receipt) => receipt,
@@ -50,12 +41,20 @@ fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter(
     assert_eq!(host.presentation_calls(), calls_before_reuse);
 
     host.push_rejected();
-    let rejected = prepared(&mut session);
-    let rejected_frame = rejected.canonical_core().frame();
-    assert!(matches!(
-        session.present_prepared_mounted_frame(rejected, UiPresentationDeadline::at_tick(20), 1,),
-        UiMountedFrameOutcome::RejectedBeforeEffects(_)
-    ));
+    let rejected = session
+        .execute_mounted_frame(
+            UiMountedFrameRequest::all_bound_surfaces(),
+            UiPresentationDeadline::at_tick(20),
+            2,
+            |_| {},
+        )
+        .unwrap_or_else(|_| panic!("a fresh request reaches host presentation"));
+    let rejected_frame = match &rejected {
+        UiMountedFrameOutcome::RejectedBeforeEffects(frame) => {
+            frame.frame().canonical_core().frame()
+        }
+        _ => panic!("scripted rejection remains typed before effects"),
+    };
     assert_ne!(rejected_frame, first.frame());
     assert_eq!(
         session.current_mounted_publication(),
@@ -71,7 +70,13 @@ fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter(
             profile(2),
         )
         .unwrap();
-    assert!(session.reuse_current_mounted_frame(&witness).is_none());
+    host.push_presented();
+    assert!(matches!(
+        session
+            .execute_mounted_frame(request, UiPresentationDeadline::at_tick(30), 3, |_| {},)
+            .unwrap_or_else(|_| panic!("rebound frame remains executable")),
+        UiMountedFrameOutcome::Published(_)
+    ));
 }
 
 fn assert_constant_unchanged_cost(cost: worth_ui::facade::mounted::UiMountCostReport) {

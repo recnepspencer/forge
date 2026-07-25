@@ -1,4 +1,7 @@
 use worth_ui::facade::mounted::{UiHostSurfacePresentationMode, UiMountedFrameRequest};
+use worth_ui_test_support::{
+    WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
+};
 
 use super::known_empty_surface_world::{first_node, mounted_application_with_host, profile};
 use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;

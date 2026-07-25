@@ -4,6 +4,8 @@ pub enum UiMountedEffectFamily {
     NativePaint,
     Accessibility,
     Focus,
+    Motion,
+    Diagnostic,
     CanvasSpatial,
     Realtime,
 }

@@ -32,14 +32,15 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
 
 /// Executable framework-turn authority lent by one active application session.
 pub struct WorthUiActiveFrameworkTurnExecution<'session> {
-    generation_identity: WorthUiPreparedApplicationGenerationIdentity,
-    graph: crate::graph::UiGraphAuthority<'session>,
-    host_session_identity: crate::facade::WorthUiHostSessionIdentity,
-    execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
-    mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
-    host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
-    host_capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
-    host_capability_profile_digest: u64,
+    pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) graph: crate::graph::UiGraphAuthority<'session>,
+    pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
+    pub(super) execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
+    pub(super) mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
+    pub(super) host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
+    pub(super) host_capability_generation:
+        worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    pub(super) host_capability_profile_digest: u64,
 }
 
 impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {

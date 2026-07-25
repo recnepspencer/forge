@@ -1,3 +1,5 @@
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
+
 use super::mounted_application_lifecycle::in_flight_presentation_world::mounted_session;
 use super::mounted_application_lifecycle::in_flight_presentation_world::prepared;
 use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;

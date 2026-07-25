@@ -4,12 +4,13 @@ use worth_ui::facade::app::{
 use worth_ui::facade::graph::UiAdmittedAllocationCatalogDelta;
 use worth_ui::facade::mounted::{
     UiHostSurfaceCancellationOutcome, UiMountedFrameOutcome, UiMountedFrameRequest,
-    UiMountedFrameReuse, UiMountedPresentationCompletionDenial, UiPresentationDeadline,
+    UiMountedPresentationCompletionDenial, UiPresentationDeadline,
 };
 use worth_ui::facade::runtime::WorthUiFrameBoundary;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::in_flight_presentation_world::{

@@ -238,6 +238,7 @@ impl UiMountedIdentityState {
         }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn reuse_receipt(
         &self,
         witness: &UiMountedFrameReuseWitness,

@@ -3,6 +3,7 @@ use worth_ui::facade::mounted::{
     UiMountedFrameCanonicalCore, UiMountedFrameManifest, UiMountedFramePreparationDenial,
     UiMountedFrameRequest, UiMountedLaneParticipation, UiRequiredLaneContributionStatus,
 };
+use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     first_node, mounted_application_with_host, profile, registered_surface,
