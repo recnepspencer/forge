@@ -1,16 +1,10 @@
-use std::sync::Arc;
-
-use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
-use worth_query::facade::foundation::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QuerySchemaView,
-    WorthQuerySnapshotIdentity,
-};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
     UiGraphInstantiationPlan, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
     UiPreviewSessionIdentity, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
 };
+use worth_ui_certification::scenario::installed_query_world;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
@@ -141,11 +135,9 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
 }
 
 #[test]
-fn graph_world_profile_compare_distinguishes_query_snapshot_basis_worlds() {
-    let alpha_world =
-        query_snapshot_world_profile("snapshot:alpha", ["worth-ui.graph", "authority", "alpha"]);
-    let beta_world =
-        query_snapshot_world_profile("snapshot:beta", ["worth-ui.graph", "authority", "beta"]);
+fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
+    let alpha_world = query_snapshot_world_profile("snapshot:equal-looking");
+    let beta_world = query_snapshot_world_profile("snapshot:equal-looking");
 
     let alpha = WorthUi::app()
         .with_graph_world_profile(alpha_world.clone())
@@ -277,23 +269,9 @@ fn unrelated_inserted_control_spec() -> UiDslSemanticArtifactSpec {
     .with_structural_token(UiDslStructuralToken::new("slot:header"))
 }
 
-fn query_snapshot_world_profile(
-    snapshot_label: &str,
-    schema_basis_parts: [&str; 3],
-) -> UiGraphWorldProfile {
-    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
-        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-    );
-    let basis = admit_runtime_current_snapshot_basis_for_certification(
-        snapshot_identity.evidence_identity(),
-        QuerySchemaView::new(schema_basis_parts.join(":"), [], []),
+fn query_snapshot_world_profile(snapshot_label: &str) -> UiGraphWorldProfile {
+    installed_query_world::settled_query_world_profile(
+        worth_ui::facade::registry::ViewBindingId::new("workspace.binding.shared").unwrap(),
+        snapshot_label.replace('-', "_"),
     )
-    .expect("runtime current snapshot basis should resolve");
-
-    let prerequisites =
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteBoundary::new(
-        )
-        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query prerequisites should admit");
-    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }

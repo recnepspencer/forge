@@ -33,7 +33,10 @@ impl ObservedFacadeExports {
     }
 }
 
-pub(super) fn observe_facade_document(packages: &[Road1Package]) -> Result<FacadeDocument, String> {
+pub(super) fn observe_facade_document(
+    packages: &[Road1Package],
+    configured_surfaces: &[(String, PathBuf)],
+) -> Result<FacadeDocument, String> {
     let mut facades = packages
         .iter()
         .map(|package| {
@@ -45,11 +48,75 @@ pub(super) fn observe_facade_document(packages: &[Road1Package]) -> Result<Facad
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
+    for (label, path) in configured_surfaces {
+        if facades.iter().any(|row| &row.package == label) {
+            return Err(format!(
+                "configured facade surface label is duplicated: {label}"
+            ));
+        }
+        facades.push(FacadeRow {
+            package: label.clone(),
+            exports: extract_namespace_exports(path)?,
+        });
+    }
     facades.sort_by(|left, right| left.package.cmp(&right.package));
     Ok(FacadeDocument {
         schema_version: SCHEMA_VERSION,
         facades,
     })
+}
+
+fn extract_namespace_exports(path: &Path) -> Result<Vec<String>, String> {
+    let text =
+        fs::read_to_string(path).map_err(|error| format!("read {}: {error}", path.display()))?;
+    let syntax =
+        syn::parse_file(&text).map_err(|error| format!("parse {}: {error}", path.display()))?;
+    let mut exports = BTreeSet::new();
+    collect_namespace_items(&syntax.items, "", &mut exports, path)?;
+    Ok(exports.into_iter().collect())
+}
+
+fn collect_namespace_items(
+    items: &[Item],
+    prefix: &str,
+    exports: &mut BTreeSet<String>,
+    path: &Path,
+) -> Result<(), String> {
+    for item in items {
+        match item {
+            Item::Use(item_use) if matches!(item_use.vis, Visibility::Public(_)) => {
+                let mut local = BTreeSet::new();
+                collect(&item_use.tree, None, &mut local, path)?;
+                exports.extend(local.into_iter().map(|name| qualify(prefix, &name)));
+            }
+            Item::Mod(module) if matches!(module.vis, Visibility::Public(_)) => {
+                let name = qualify(prefix, &module.ident.to_string());
+                exports.insert(name.clone());
+                let Some((_, nested)) = &module.content else {
+                    return Err(format!(
+                        "configured nested facade modules must be inline in {}",
+                        path.display()
+                    ));
+                };
+                collect_namespace_items(nested, &name, exports, path)?;
+            }
+            _ => {
+                return Err(format!(
+                    "configured facade surface must contain only public re-exports or inline namespaces in {}",
+                    path.display()
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn qualify(prefix: &str, name: &str) -> String {
+    if prefix.is_empty() {
+        name.to_owned()
+    } else {
+        format!("{prefix}::{name}")
+    }
 }
 
 fn extract_exports(path: &Path) -> Result<Vec<String>, String> {
@@ -167,6 +234,28 @@ mod tests {
         let error = extract_exports(&path).unwrap_err();
         fs::remove_file(&path).unwrap();
         assert!(error.contains("cannot form an exact compiled surface"));
+    }
+
+    #[test]
+    fn configured_namespace_surface_records_qualified_nested_exports() {
+        let path = temporary_facade(
+            "namespace",
+            "pub use x::Root;\npub mod nested { pub use y::{First, Second}; }\n",
+        );
+        let exports = extract_namespace_exports(&path).unwrap();
+        fs::remove_file(&path).unwrap();
+        assert_eq!(
+            exports,
+            ["Root", "nested", "nested::First", "nested::Second"]
+        );
+    }
+
+    #[test]
+    fn configured_namespace_surface_rejects_behavior_items() {
+        let path = temporary_facade("namespace-behavior", "pub fn bypass() {}\n");
+        let error = extract_namespace_exports(&path).unwrap_err();
+        fs::remove_file(&path).unwrap();
+        assert!(error.contains("only public re-exports or inline namespaces"));
     }
 
     fn temporary_facade(label: &str, contents: &str) -> PathBuf {

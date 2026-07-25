@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 pub(crate) struct WorthQuerySharedInvalidationSeed {
     touches: Vec<crate::domain_installation::WorthQueryNativeTouchCoordinate>,
+    affected_entities: Vec<crate::memory_workspace::WorthQueryEntityIdentity>,
     delivery_causes: Vec<crate::ordinary::live::WorthQueryManagedLiveDeliveryCauseKind>,
     counters: crate::domain_installation::WorthQueryConsumerInvalidationEpochCounters,
 }
@@ -12,6 +13,7 @@ impl WorthQuerySharedInvalidationSeed {
         fanout_targets: usize,
     ) -> Self {
         let mut touches = BTreeSet::new();
+        let mut affected_entities = BTreeSet::new();
         let mut delivery_causes = Vec::new();
         let mut counters =
             crate::domain_installation::WorthQueryConsumerInvalidationEpochCounters {
@@ -44,6 +46,7 @@ impl WorthQuerySharedInvalidationSeed {
                 continue;
             };
             counters.mutation_deltas_visited += 1;
+            affected_entities.insert(mutation.entity_identity().clone());
             for touch in mutation.admitted_touched_aspects() {
                 counters.touched_aspects_visited += 1;
                 touches.insert(
@@ -58,6 +61,7 @@ impl WorthQuerySharedInvalidationSeed {
         delivery_causes.dedup();
         Self {
             touches: touches.into_iter().collect(),
+            affected_entities: affected_entities.into_iter().collect(),
             delivery_causes,
             counters,
         }
@@ -65,6 +69,10 @@ impl WorthQuerySharedInvalidationSeed {
 
     pub(crate) fn touches(&self) -> &[crate::domain_installation::WorthQueryNativeTouchCoordinate] {
         &self.touches
+    }
+
+    pub(crate) fn affected_entities(&self) -> &[crate::memory_workspace::WorthQueryEntityIdentity] {
+        &self.affected_entities
     }
 
     pub(crate) fn delivery_causes(

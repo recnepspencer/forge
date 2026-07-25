@@ -26,6 +26,7 @@ pub struct WorthUiIdentityMatchNode {
     semantic_meaning: crate::source::WorthUiArtifactNode,
     stable_identity: bool,
     durable_state_eligible: bool,
+    has_restorable_splitter_state: bool,
     resize_contract_id: Option<MosaicSizingContractId>,
     resize_permission: Option<MosaicResizePermission>,
     resize_shape_digest: Option<u64>,
@@ -39,6 +40,7 @@ pub(crate) struct WorthUiIdentityMatchNodeInput {
     pub semantic_meaning: crate::source::WorthUiArtifactNode,
     pub stable_identity: bool,
     pub durable_state_eligible: bool,
+    pub has_restorable_splitter_state: bool,
     pub resize_contract_id: Option<MosaicSizingContractId>,
     pub resize_permission: Option<MosaicResizePermission>,
     pub resize_shape_digest: Option<u64>,
@@ -54,6 +56,7 @@ impl WorthUiIdentityMatchNode {
             semantic_meaning,
             stable_identity,
             durable_state_eligible,
+            has_restorable_splitter_state,
             resize_contract_id,
             resize_permission,
             resize_shape_digest,
@@ -68,6 +71,7 @@ impl WorthUiIdentityMatchNode {
             semantic_meaning,
             stable_identity,
             durable_state_eligible,
+            has_restorable_splitter_state,
             resize_contract_id,
             resize_permission,
             resize_shape_digest,
@@ -103,6 +107,10 @@ impl WorthUiIdentityMatchNode {
 
     pub fn durable_state_eligible(&self) -> bool {
         self.durable_state_eligible
+    }
+
+    pub fn has_restorable_splitter_state(&self) -> bool {
+        self.has_restorable_splitter_state
     }
 
     pub fn resize_contract_id(&self) -> Option<&MosaicSizingContractId> {

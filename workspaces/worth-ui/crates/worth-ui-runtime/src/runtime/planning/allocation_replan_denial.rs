@@ -2,4 +2,6 @@
 pub(crate) enum WorthUiAllocationReplanDenial {
     ConstraintSetDenied,
     CandidateProjectionUnavailable,
+    QueryMeasurementBasisMismatch,
+    PortalMeasurementBasisMismatch,
 }

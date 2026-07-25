@@ -114,15 +114,17 @@ fn prepare_shared_read_slot(
         declaration,
         request.resolved_request_context(),
     )?;
-    let scheduled =
-        WorthServerScheduledProductOperation::admit(WorthServerLoweredProductOperationPlan::new(
+    let scheduled = WorthServerScheduledProductOperation::admit(
+        WorthServerLoweredProductOperationPlan::new(
             operation_admission,
             declaration.clone(),
             payload,
             readiness.support_posture().clone(),
             readiness.precondition_posture().clone(),
             readiness.concurrency_class(),
-        ))?;
+        ),
+        None,
+    )?;
     if scheduled.scheduler_admission().scheduler_lane() != "shared-read" {
         return Err(WorthServerProductOperationSurfaceDenial::new(
             WorthServerProductOperationSurfaceDenialCode::InvalidDeclaration,

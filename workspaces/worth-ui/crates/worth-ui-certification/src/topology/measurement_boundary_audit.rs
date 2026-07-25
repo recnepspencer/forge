@@ -2,7 +2,7 @@ use std::path::Path;
 
 use worth_ui_host_contract::{
     UiDpiScaleFactorRequest, UiFontMeasurementKey, UiFontMetricsRequest,
-    UiForbiddenHostAuthorityAsk, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiForbiddenHostAuthorityAsk, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestDenial, UiMeasurementRequestFamily, UiMeasurementRequestIdentity,
     UiNativeControlIntrinsicSizeRequest, UiNativeControlKind, UiPortalAnchorRectRequest,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeRequest,
@@ -75,13 +75,13 @@ fn allowed_measurement_requests(
 ) -> [(
     &'static str,
     UiMeasurementRequestFamily,
-    Result<UiMeasurementRequest, worth_ui_host_contract::UiMeasurementRequestDenial>,
+    Result<UiHostMeasurementRequest, worth_ui_host_contract::UiMeasurementRequestDenial>,
 ); 8] {
     [
         (
             "text_intrinsic_size",
             UiMeasurementRequestFamily::TextIntrinsicSize,
-            UiMeasurementRequest::text_intrinsic_size(
+            UiHostMeasurementRequest::text_intrinsic_size(
                 UiMeasurementRequestIdentity::new(1),
                 UiMeasurementEvidenceFamily::TextIntrinsicSize,
                 UiTextIntrinsicSizeRequest::single_line("Inbox", UiFontMeasurementKey::new("body")),
@@ -91,7 +91,7 @@ fn allowed_measurement_requests(
         (
             "text_baseline_metrics",
             UiMeasurementRequestFamily::TextBaselineMetrics,
-            UiMeasurementRequest::text_baseline_metrics(
+            UiHostMeasurementRequest::text_baseline_metrics(
                 UiMeasurementRequestIdentity::new(2),
                 UiMeasurementEvidenceFamily::TextBaselineMetrics,
                 UiTextBaselineMetricsRequest::single_line(
@@ -104,7 +104,7 @@ fn allowed_measurement_requests(
         (
             "font_metrics",
             UiMeasurementRequestFamily::FontMetrics,
-            UiMeasurementRequest::font_metrics(
+            UiHostMeasurementRequest::font_metrics(
                 UiMeasurementRequestIdentity::new(3),
                 UiMeasurementEvidenceFamily::FontMetrics,
                 UiFontMetricsRequest::new(UiFontMeasurementKey::new("body")),
@@ -114,7 +114,7 @@ fn allowed_measurement_requests(
         (
             "native_control_intrinsic_size",
             UiMeasurementRequestFamily::NativeControlIntrinsicSize,
-            UiMeasurementRequest::native_control_intrinsic_size(
+            UiHostMeasurementRequest::native_control_intrinsic_size(
                 UiMeasurementRequestIdentity::new(4),
                 UiMeasurementEvidenceFamily::NativeControlIntrinsicSize,
                 UiNativeControlIntrinsicSizeRequest::new(UiNativeControlKind::Button, Some("OK")),
@@ -124,7 +124,7 @@ fn allowed_measurement_requests(
         (
             "viewport_extent",
             UiMeasurementRequestFamily::ViewportExtent,
-            UiMeasurementRequest::viewport_extent(
+            UiHostMeasurementRequest::viewport_extent(
                 UiMeasurementRequestIdentity::new(5),
                 UiMeasurementEvidenceFamily::ViewportExtent,
                 UiViewportExtentRequest,
@@ -134,7 +134,7 @@ fn allowed_measurement_requests(
         (
             "dpi_scale_factor",
             UiMeasurementRequestFamily::DpiScaleFactor,
-            UiMeasurementRequest::dpi_scale_factor(
+            UiHostMeasurementRequest::dpi_scale_factor(
                 UiMeasurementRequestIdentity::new(6),
                 UiMeasurementEvidenceFamily::DpiScaleFactor,
                 UiDpiScaleFactorRequest,
@@ -144,7 +144,7 @@ fn allowed_measurement_requests(
         (
             "portal_anchor_rect",
             UiMeasurementRequestFamily::PortalAnchorRect,
-            UiMeasurementRequest::portal_anchor_rect(
+            UiHostMeasurementRequest::portal_anchor_rect(
                 UiMeasurementRequestIdentity::new(7),
                 UiMeasurementEvidenceFamily::PortalAnchorRect,
                 UiPortalAnchorRectRequest::new(77),
@@ -154,7 +154,7 @@ fn allowed_measurement_requests(
         (
             "scroll_container_viewport",
             UiMeasurementRequestFamily::ScrollContainerViewport,
-            UiMeasurementRequest::scroll_container_viewport(
+            UiHostMeasurementRequest::scroll_container_viewport(
                 UiMeasurementRequestIdentity::new(8),
                 UiMeasurementEvidenceFamily::ScrollContainerViewport,
                 UiScrollContainerViewportRequest::new(88),

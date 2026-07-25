@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 #[cfg(any(test, feature = "certification-support"))]
 use crate::graph::UiGraphParticipationMutation;
 use crate::graph::{
-    materialize_graph_mounted_receipts, materialize_graph_participation_posture,
+    materialize_graph_mount_eligibilities, materialize_graph_participation_posture,
     materialize_graph_topology, UiGraphAxisParticipation, UiGraphCoreIndexes,
     UiGraphDeclarationCorrespondence, UiGraphGeneration, UiGraphInstantiationPlan,
-    UiGraphMountedReceiptAuthoritySeedStore, UiGraphMountedReceiptTransition, UiGraphNode,
+    UiGraphMountEligibilityStore, UiGraphMountEligibilityTransition, UiGraphNode,
     UiGraphNodeIdentity, UiGraphParticipationAxis, UiGraphParticipationPosture,
     UiGraphParticipationStatus, UiGraphSnapshot, UiGraphTopology, UiGraphWorldProfile,
 };
@@ -16,7 +16,7 @@ pub(crate) struct UiGraphMutationStage {
     world_profile: UiGraphWorldProfile,
     nodes: Vec<UiGraphNode>,
     topology: UiGraphTopology,
-    mounted_receipts: UiGraphMountedReceiptAuthoritySeedStore,
+    mount_eligibilities: UiGraphMountEligibilityStore,
     core_indexes: UiGraphCoreIndexes,
 }
 
@@ -25,7 +25,8 @@ impl UiGraphMutationStage {
         plan: &UiGraphInstantiationPlan,
         world_profile: UiGraphWorldProfile,
     ) -> Self {
-        let mounted_receipt_reservations = plan.mounted_receipt_reservations(world_profile.clone());
+        let mount_eligibility_reservations =
+            plan.mount_eligibility_reservations(world_profile.clone());
         let mut declaration_to_nodes = BTreeMap::<u64, Vec<UiGraphNodeIdentity>>::new();
         let mut node_to_declaration = BTreeMap::new();
         let mut authored_provenance_to_nodes = BTreeMap::<u64, Vec<UiGraphNodeIdentity>>::new();
@@ -36,7 +37,7 @@ impl UiGraphMutationStage {
         for (entry, reservation) in plan
             .node_entries()
             .iter()
-            .zip(mounted_receipt_reservations.iter().copied())
+            .zip(mount_eligibility_reservations.iter().copied())
         {
             let graph_node_identity = reservation.graph_node_identity();
             let node = UiGraphNode::new(crate::graph::UiGraphNodeInput {
@@ -75,13 +76,14 @@ impl UiGraphMutationStage {
             node_to_authored_provenance,
         );
         let topology = materialize_graph_topology(plan, &node_identities);
-        let mounted_receipts = materialize_graph_mounted_receipts(&mounted_receipt_reservations);
+        let mount_eligibilities =
+            materialize_graph_mount_eligibilities(&mount_eligibility_reservations);
         let core_indexes = UiGraphCoreIndexes::build(
             plan.node_entries(),
             &nodes,
             declaration_correspondence,
             &topology,
-            &mounted_receipts,
+            &mount_eligibilities,
         );
 
         Self {
@@ -89,7 +91,7 @@ impl UiGraphMutationStage {
             world_profile,
             nodes,
             topology,
-            mounted_receipts,
+            mount_eligibilities,
             core_indexes,
         }
     }
@@ -139,15 +141,15 @@ impl UiGraphMutationStage {
         Self::successor_with_nodes(prior_snapshot, nodes)
     }
 
-    pub(crate) fn mounted_layout_admitted_successor(
+    pub(crate) fn mount_eligibility_admitted_successor(
         prior_snapshot: &UiGraphSnapshot,
-        transitions: &[UiGraphMountedReceiptTransition],
+        transitions: &[UiGraphMountEligibilityTransition],
     ) -> Self {
         let transitions = transitions
             .iter()
             .map(|transition| {
                 (
-                    transition.authority_record().graph_node_identity(),
+                    transition.eligibility_record().graph_node_identity(),
                     *transition,
                 )
             })
@@ -163,7 +165,7 @@ impl UiGraphMutationStage {
                     .participation_posture()
                     .with_axis(
                         UiGraphParticipationAxis::Mounted,
-                        transition.next_mounted_axis_participation(),
+                        transition.next_eligibility(),
                     )
                     .with_axis(
                         UiGraphParticipationAxis::Layout,
@@ -190,7 +192,7 @@ impl UiGraphMutationStage {
             world_profile: prior_snapshot.world_profile().clone(),
             nodes,
             topology: prior_snapshot.topology().clone(),
-            mounted_receipts: prior_snapshot.mounted_receipts().clone(),
+            mount_eligibilities: prior_snapshot.mount_eligibilities().clone(),
             core_indexes,
         }
     }
@@ -201,7 +203,7 @@ impl UiGraphMutationStage {
             self.world_profile,
             self.nodes,
             self.topology,
-            self.mounted_receipts,
+            self.mount_eligibilities,
             self.core_indexes,
         )
     }

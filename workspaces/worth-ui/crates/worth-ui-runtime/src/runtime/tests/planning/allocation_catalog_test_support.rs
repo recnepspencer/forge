@@ -69,10 +69,10 @@ pub(crate) fn admitted_scroll_planning_admissions_from_settled_fact(
         label,
         count,
         "operator:scroll",
-        Some(UiGraphWorldProfile::settled_query_binding(
+        Some(UiGraphWorldProfile::settled_query_fact(
             crate::capability::ViewBindingId::new(view_binding_id)
                 .expect("catalog Query binding identity"),
-            fact.query_binding_identity(),
+            fact,
         )),
         |ordinal, identity, target, app, capability, generation| {
             if ordinal == 0 {

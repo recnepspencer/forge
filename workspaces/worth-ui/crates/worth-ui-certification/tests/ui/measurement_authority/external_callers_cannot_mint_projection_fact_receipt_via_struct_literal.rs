@@ -1,7 +1,7 @@
-use worth_ui_runtime::facade::evidence::UiProjectionFactReceipt;
+use worth_ui_runtime::facade::evidence::UiSettledQueryFactReceipt;
 
 fn main() {
-    let _ = UiProjectionFactReceipt {
+    let _ = UiSettledQueryFactReceipt {
         declaration_identity: unsafe { std::mem::zeroed() },
         declaration_support_authority_generation: unsafe { std::mem::zeroed() },
         query_basis_digest: "basis".into(),

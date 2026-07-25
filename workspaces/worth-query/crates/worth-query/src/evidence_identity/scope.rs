@@ -11,6 +11,7 @@ pub enum WorthQueryEvidenceScope {
     RuntimeSubscriptionBudget,
     RuntimeHostileCertificationArtifact,
     RuntimeStateSnapshot,
+    AsyncResourceRequestIdentity,
     WorkflowContextBinding,
     WorkflowMutationLowering,
     SubscriptionActivationReceipt,

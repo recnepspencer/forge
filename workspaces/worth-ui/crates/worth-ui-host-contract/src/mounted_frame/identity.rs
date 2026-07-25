@@ -1,0 +1,108 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_MOUNTED_CONTRACT_IDENTITY: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiMountedContractIdentityExhaustion;
+
+macro_rules! opaque_identity {
+    ($name:ident) => {
+        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        pub struct $name(u64);
+
+        impl $name {
+            #[doc(hidden)]
+            pub fn mint_unbound() -> Result<Self, UiMountedContractIdentityExhaustion> {
+                next_identity_value().map(Self)
+            }
+
+            pub const fn diagnostic_value(self) -> u64 {
+                self.0
+            }
+        }
+    };
+}
+
+opaque_identity!(UiSemanticSurfaceIdentity);
+opaque_identity!(UiHostSurfaceIdentity);
+opaque_identity!(UiSurfaceBindingGeneration);
+opaque_identity!(UiMountIncarnation);
+opaque_identity!(UiMountedInstanceIdentity);
+opaque_identity!(UiMountedFrameIdentity);
+opaque_identity!(UiMountedPresentationAttemptIdentity);
+
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct UiMountedNodeReceiptIssuer {
+    frame: UiMountedFrameIdentity,
+    nonce: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct UiMountedNodeReceiptIdentity {
+    frame: UiMountedFrameIdentity,
+    mounted_instance: UiMountedInstanceIdentity,
+    issuer_nonce: u64,
+}
+
+impl UiMountedNodeReceiptIssuer {
+    #[doc(hidden)]
+    pub fn mint_for(
+        frame: UiMountedFrameIdentity,
+    ) -> Result<Self, UiMountedContractIdentityExhaustion> {
+        Ok(Self {
+            frame,
+            nonce: next_identity_value()?,
+        })
+    }
+
+    #[doc(hidden)]
+    pub const fn receipt_for(
+        self,
+        mounted_instance: UiMountedInstanceIdentity,
+    ) -> UiMountedNodeReceiptIdentity {
+        UiMountedNodeReceiptIdentity {
+            frame: self.frame,
+            mounted_instance,
+            issuer_nonce: self.nonce,
+        }
+    }
+
+    #[doc(hidden)]
+    pub const fn frame_identity(self) -> UiMountedFrameIdentity {
+        self.frame
+    }
+}
+
+impl UiMountedNodeReceiptIdentity {
+    #[doc(hidden)]
+    pub fn mint_unbound() -> Result<Self, UiMountedContractIdentityExhaustion> {
+        let frame = UiMountedFrameIdentity::mint_unbound()?;
+        let mounted_instance = UiMountedInstanceIdentity::mint_unbound()?;
+        UiMountedNodeReceiptIssuer::mint_for(frame)
+            .map(|issuer| issuer.receipt_for(mounted_instance))
+    }
+
+    pub const fn diagnostic_value(self) -> u64 {
+        self.issuer_nonce.rotate_left(17)
+            ^ self.frame.diagnostic_value().rotate_left(37)
+            ^ self
+                .mounted_instance
+                .diagnostic_value()
+                .wrapping_mul(0x9e37_79b9_7f4a_7c15)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiHostSurfacePresentationMode {
+    NativeDisplay,
+    RecordOnly,
+}
+
+fn next_identity_value() -> Result<u64, UiMountedContractIdentityExhaustion> {
+    NEXT_MOUNTED_CONTRACT_IDENTITY
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .map_err(|_| UiMountedContractIdentityExhaustion)
+}

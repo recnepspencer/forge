@@ -24,6 +24,9 @@ use super::{
     WorthQueryOperationExecutionWarning,
 };
 
+#[path = "consumption_progression/collection_delivery_contract.rs"]
+mod collection_delivery_contract;
+
 pub struct WorthQueryPublishedDomainOperation<D, O, F, L: BasisOperationLane> {
     executed: WorthQueryExecutedDomainOperation<D, O, F, L, WorthQueryReadCompletion>,
     receipt: WorthQueryDerivedPublicationReceipt,
@@ -269,6 +272,20 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySettledDomainProjection<D, O, F, 
 
     pub(crate) fn native_access_layout(&self) -> Option<&WorthQueryNativeAccessLayout> {
         self.consumed.native_access.as_ref()
+    }
+
+    pub(crate) fn collection_execution_rows(&self) -> &[crate::memory_workspace::WorthQueryEntity] {
+        self.consumed.published.executed.output.result().rows()
+    }
+
+    pub(crate) fn collection_declarative_request(
+        &self,
+    ) -> Option<&crate::declarative_live::DeclarativeLiveQueryRequest> {
+        self.bound_operation()
+            .executor()?
+            .installed_read
+            .as_ref()
+            .map(crate::ordinary::read::WorthQueryReadDeclaration::declarative_request)
     }
 
     pub fn identity(&self) -> &str {

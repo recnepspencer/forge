@@ -88,6 +88,16 @@ impl WorthServerCompatibilityProductOperationFacade {
             .execute_from_compat_http(prepared_request, input)
     }
 
+    pub(crate) fn execute_product_protocol(
+        &self,
+        prepared_request: &WorthServerCompatibilityPreparedRequest,
+        input: WorthServerProductOperationInput,
+    ) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial>
+    {
+        self.runtime
+            .execute_from_product_protocol(prepared_request, input)
+    }
+
     pub fn execute_admitted_mutation(
         &self,
         prepared_request: &WorthServerCompatibilityPreparedRequest,

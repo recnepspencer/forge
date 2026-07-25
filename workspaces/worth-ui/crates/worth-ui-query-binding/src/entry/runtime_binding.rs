@@ -1,12 +1,8 @@
-use std::sync::Arc;
-
-use crate::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryLiveAdmissionDenial,
-    WorthUiQueryLiveAdmissionStop, WorthUiQueryLiveProjectionOutcome, WorthUiQueryLiveResource,
-    WorthUiQueryMeasurementFactSettlement, WorthUiQueryViewExecutionEvidenceReference,
-};
+use crate::{WorthUiInstalledQueryBindingReference, WorthUiQueryViewExecutionEvidenceReference};
 
 use super::WorthUiInstalledDownstreamQueryState;
+
+mod operation_live;
 
 /// Runtime binding posture. The installed variant owns downstream UI state,
 /// never a Query operating world or move-only Query progression value.
@@ -90,19 +86,13 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
-    pub fn managed_live_compatibility_observation(
-        &self,
-    ) -> crate::compatibility::managed_live::WorthUiManagedLiveCompatibilityObservation {
-        match self {
-            Self::QueryFree => Default::default(),
-            Self::Installed(binding) => binding.managed_live_compatibility_observation(),
-        }
-    }
-
     pub fn admit_settled_snapshot(
         &mut self,
         projection: crate::WorthUiSettledSnapshotProjection,
-    ) -> Result<crate::WorthUiSettledSnapshotFact, WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<
+        std::sync::Arc<crate::WorthUiSettledSnapshotFact>,
+        WorthUiSettledSnapshotAdmissionStop,
+    > {
         match self {
             Self::QueryFree => Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::QueryNotInstalled,
@@ -115,7 +105,10 @@ impl WorthUiRuntimeQueryBinding {
     pub fn refresh_settled_snapshot(
         &mut self,
         projection: crate::WorthUiSettledSnapshotProjection,
-    ) -> Result<crate::WorthUiSettledSnapshotFact, WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<
+        std::sync::Arc<crate::WorthUiSettledSnapshotFact>,
+        WorthUiSettledSnapshotAdmissionStop,
+    > {
         match self {
             Self::QueryFree => Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::QueryNotInstalled,
@@ -135,6 +128,74 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
+    /// Returns a shallow reference to the exact UI fact retained with the
+    /// binding-owned Query projection. Cloning this reference never clones
+    /// native facts or Query proof state.
+    pub fn settled_snapshot_fact_reference_for(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        std::sync::Arc<crate::WorthUiSettledSnapshotFact>,
+        WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        match self {
+            Self::QueryFree => Err(WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled),
+            Self::Installed(binding) => binding.settled_snapshot_fact_reference_for(reference),
+        }
+    }
+
+    pub fn readmit_settled_snapshot_fact<'a>(
+        &self,
+        fact: &'a crate::WorthUiSettledSnapshotFact,
+    ) -> Result<
+        crate::WorthUiReadmittedSettledSnapshotFact<'a>,
+        crate::WorthUiSettledSnapshotReadmissionDenial,
+    > {
+        let current = self
+            .settled_snapshot_fact_for(fact.binding_reference().installed_reference())
+            .map_err(|denial| match denial {
+                WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled => {
+                    crate::WorthUiSettledSnapshotReadmissionDenial::QueryNotInstalled
+                }
+                WorthUiQueryViewExecutionEvidenceDenial::ForeignInstalledReference => {
+                    crate::WorthUiSettledSnapshotReadmissionDenial::ForeignInstalledReference
+                }
+                WorthUiQueryViewExecutionEvidenceDenial::ProjectionNotAdmitted => {
+                    crate::WorthUiSettledSnapshotReadmissionDenial::ProjectionNotAdmitted
+                }
+            })?;
+        if current.settlement_reference() != fact.settlement_reference() {
+            return Err(crate::WorthUiSettledSnapshotReadmissionDenial::StaleSettlementReference);
+        }
+        Ok(crate::WorthUiReadmittedSettledSnapshotFact::new(fact))
+    }
+
+    pub fn settlement_touch_reference_for(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        crate::WorthUiAdmittedQuerySettlementTouchReference,
+        WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        match self {
+            Self::QueryFree => Err(WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled),
+            Self::Installed(binding) => binding.settlement_touch_reference_for(reference),
+        }
+    }
+
+    pub fn readmits_settlement_touch_reference(
+        &self,
+        reference: &WorthUiInstalledQueryBindingReference,
+        touch: &crate::WorthUiAdmittedQuerySettlementTouchReference,
+    ) -> Result<bool, WorthUiQueryViewExecutionEvidenceDenial> {
+        match self {
+            Self::QueryFree => Err(WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled),
+            Self::Installed(binding) => {
+                binding.readmits_settlement_touch_reference(reference, touch)
+            }
+        }
+    }
+
     pub fn exact_settled_snapshot_evidence_for(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -146,19 +207,6 @@ impl WorthUiRuntimeQueryBinding {
             Self::QueryFree => Err(WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled),
             Self::Installed(binding) => binding.exact_settled_snapshot_evidence_for(reference),
         }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn rebuild_settled_snapshot_index_for_test(&mut self) {
-        if let Self::Installed(binding) = self {
-            binding.rebuild_settled_snapshot_index();
-        }
-    }
-    pub(crate) fn swap_runtime_state_with(&mut self, other: &mut Self) {
-        let (Self::Installed(left), Self::Installed(right)) = (self, other) else {
-            return;
-        };
-        left.swap_retained_state_with(right);
     }
 
     pub(crate) fn admits_reference(
@@ -178,17 +226,10 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
-    pub fn admit_live(
-        &mut self,
-        resource: WorthUiQueryLiveResource,
-        outcome: WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<WorthUiQueryMeasurementFactSettlement, WorthUiQueryLiveAdmissionStop> {
+    pub(crate) fn installed_references(&self) -> Vec<WorthUiInstalledQueryBindingReference> {
         match self {
-            Self::QueryFree => Err(WorthUiQueryLiveAdmissionStop::new(
-                WorthUiQueryLiveAdmissionDenial::QueryNotInstalled,
-                resource,
-            )),
-            Self::Installed(binding) => binding.admit_live(resource, outcome),
+            Self::QueryFree => Vec::new(),
+            Self::Installed(binding) => binding.installed_references().collect(),
         }
     }
 
@@ -213,50 +254,6 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
-    pub fn exact_live_resource_evidence_for(
-        &self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<
-        Option<crate::WorthUiExactManagedLiveResourceEvidence>,
-        WorthUiQueryViewExecutionEvidenceDenial,
-    > {
-        match self {
-            Self::QueryFree => Err(WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled),
-            Self::Installed(binding) => binding.exact_live_resource_evidence_for(reference),
-        }
-    }
-
-    pub fn retains_live_resource_for(
-        &self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<bool, WorthUiQueryViewExecutionEvidenceDenial> {
-        match self {
-            Self::QueryFree => Err(WorthUiQueryViewExecutionEvidenceDenial::QueryNotInstalled),
-            Self::Installed(binding) => binding.retains_live_resource_for(reference),
-        }
-    }
-
-    pub(crate) fn take_settlement(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Option<Arc<WorthUiQueryMeasurementFactSettlement>> {
-        match self {
-            Self::QueryFree => None,
-            Self::Installed(binding) => binding.take_settlement(reference),
-        }
-    }
-
-    pub(crate) fn replace_settlement(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-        settlement: Arc<WorthUiQueryMeasurementFactSettlement>,
-    ) {
-        let Self::Installed(binding) = self else {
-            unreachable!("validated successor reference requires an installed binding")
-        };
-        binding.replace_settlement(reference, settlement);
-    }
-
     pub(crate) fn take_settled_snapshot(
         &mut self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -277,61 +274,12 @@ impl WorthUiRuntimeQueryBinding {
         binding.replace_settled_snapshot(projection);
     }
 
-    pub(crate) fn take_live_resource(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Option<WorthUiQueryLiveResource> {
-        match self {
-            Self::QueryFree => None,
-            Self::Installed(binding) => binding.take_live_resource(reference),
-        }
-    }
-
-    pub(crate) fn replace_live_resource(
-        &mut self,
-        reference: &WorthUiInstalledQueryBindingReference,
-        resource: WorthUiQueryLiveResource,
-    ) -> Option<WorthUiQueryLiveResource> {
-        let Self::Installed(binding) = self else {
-            unreachable!("validated successor reference requires an installed binding")
-        };
-        binding.replace_live_resource(reference, resource)
-    }
-
-    pub(crate) fn drain_live_resources_into(
-        &mut self,
-        retirement: &mut Vec<WorthUiQueryLiveResource>,
-    ) {
-        if let Self::Installed(binding) = self {
-            binding.drain_live_resources_into(retirement);
-        }
-    }
-
-    pub(crate) fn retain_only_live_resources_for(
-        &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
-        retirement: &mut Vec<WorthUiQueryLiveResource>,
-    ) {
-        if let Self::Installed(binding) = self {
-            binding.retain_only_live_resources_for(references, retirement);
-        }
-    }
-
-    pub(crate) fn finish_managed_live_succession(
-        &mut self,
-        retirement: &mut Vec<WorthUiQueryLiveResource>,
-    ) {
-        if let Self::Installed(binding) = self {
-            binding.finish_managed_live_succession(retirement);
-        }
-    }
-
     pub(crate) fn retain_only_settlements_for(
         &mut self,
-        references: &[WorthUiInstalledQueryBindingReference],
+        retained: &std::collections::BTreeSet<crate::WorthUiQueryViewIdentity>,
     ) {
         if let Self::Installed(binding) = self {
-            binding.retain_only_settlements_for(references);
+            binding.retain_only_settlements_for(retained);
         }
     }
 }

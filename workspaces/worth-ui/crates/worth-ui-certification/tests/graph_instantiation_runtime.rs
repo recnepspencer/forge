@@ -94,9 +94,9 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
         entry,
         UiGraphParticipationAxis::Mounted,
         UiGraphParticipationStatus::Deferred,
-        UiGraphParticipationReasonSource::MountedReceiptAuthority,
+        UiGraphParticipationReasonSource::MountEligibility,
         UiGraphParticipationReasonCode::MountedAxisAwaitsRuntimeMutation,
-        UiGraphParticipationEvidenceHandle::MountedReceiptAuthoritySeed,
+        UiGraphParticipationEvidenceHandle::MountEligibilitySeed,
     );
     assert_participation_seed_axis(
         entry,
@@ -130,7 +130,7 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
         UiGraphParticipationReasonCode::DiagnosticSurfaceAbsent,
         UiGraphParticipationEvidenceHandle::DiagnosticContainmentClaim,
     );
-    assert!(entry.mounted_receipt_seed().graph_owned_slot_reserved());
+    assert!(entry.mount_eligibility_seed().graph_eligibility_reserved());
     assert!(entry
         .core_index_contribution_seed()
         .declaration_correspondence());
@@ -279,8 +279,8 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         enriched_entry.attachment_posture()
     );
     assert_eq!(
-        baseline_entry.mounted_receipt_seed(),
-        enriched_entry.mounted_receipt_seed()
+        baseline_entry.mount_eligibility_seed(),
+        enriched_entry.mount_eligibility_seed()
     );
     assert_eq!(
         baseline_entry.core_index_contribution_seed(),

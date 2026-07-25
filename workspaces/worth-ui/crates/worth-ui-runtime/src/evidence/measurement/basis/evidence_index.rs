@@ -7,6 +7,8 @@ use crate::graph::UiGraphNodeIdentity;
 pub(super) struct UiMeasurementEvidenceIndex {
     query_by_source:
         BTreeMap<super::UiQueryAllocationSourceKey, Vec<super::UiQueryAllocationTargetMapping>>,
+    query_by_binding:
+        BTreeMap<super::UiQueryAllocationBindingKey, Vec<super::UiQueryAllocationTargetMapping>>,
     host_by_request: BTreeMap<worth_ui_host_contract::UiMeasurementRequestIdentity, usize>,
     durable_by_input: BTreeMap<u64, usize>,
 }
@@ -18,24 +20,15 @@ impl UiMeasurementEvidenceIndex {
     ) -> Self {
         let mut index = Self::default();
         for (position, input) in inputs.iter().enumerate() {
-            if let Some(receipt) = input.as_query_projection_fact() {
+            if let Some(receipt) = input.as_settled_query_fact() {
                 let mapping = super::UiQueryAllocationTargetMapping::from_admitted_receipt(
                     receipt,
                     query_target,
                 );
-                let rows = index
-                    .query_by_source
-                    .entry(mapping.source_key().clone())
-                    .or_default();
-                if !rows.iter().any(|row| row == &mapping) {
-                    rows.push(mapping);
-                    rows.sort_by_key(super::UiQueryAllocationTargetMapping::identity_digest);
-                }
-            }
-            if let Some(receipt) = input.as_settled_query_fact() {
-                let mapping = super::UiQueryAllocationTargetMapping::from_settled_receipt(
-                    receipt,
-                    query_target,
+                insert_query_mapping(
+                    &mut index.query_by_binding,
+                    mapping.source_key().binding_key(),
+                    mapping.clone(),
                 );
                 let rows = index
                     .query_by_source
@@ -63,12 +56,12 @@ impl UiMeasurementEvidenceIndex {
         index
     }
 
-    pub(super) fn query_mappings(
+    pub(super) fn query_mappings_for_binding(
         &self,
-        source_key: &super::UiQueryAllocationSourceKey,
+        binding: &super::UiQueryAllocationBindingKey,
     ) -> &[super::UiQueryAllocationTargetMapping] {
-        self.query_by_source
-            .get(source_key)
+        self.query_by_binding
+            .get(binding)
             .map(Vec::as_slice)
             .unwrap_or_default()
     }
@@ -107,5 +100,20 @@ impl UiMeasurementEvidenceIndex {
 
     pub(super) fn durable_inputs(&self) -> impl Iterator<Item = u64> + '_ {
         self.durable_by_input.keys().copied()
+    }
+}
+
+fn insert_query_mapping(
+    index: &mut BTreeMap<
+        super::UiQueryAllocationBindingKey,
+        Vec<super::UiQueryAllocationTargetMapping>,
+    >,
+    binding: super::UiQueryAllocationBindingKey,
+    mapping: super::UiQueryAllocationTargetMapping,
+) {
+    let rows = index.entry(binding).or_default();
+    if !rows.iter().any(|row| row == &mapping) {
+        rows.push(mapping);
+        rows.sort_by_key(super::UiQueryAllocationTargetMapping::identity_digest);
     }
 }

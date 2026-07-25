@@ -65,7 +65,7 @@ pub fn validate_result_shape_bindings(
         counters.record_result_shape_binding_validated();
         validated_bindings.push(ValidatedResultShapeBinding::from_canonical(
             field,
-            schema_field.kind().clone(),
+            *schema_field.kind(),
         ));
         events.push(ValidationEvent::ResultShapeBindingValidated {
             aspect: source.aspect().to_string(),

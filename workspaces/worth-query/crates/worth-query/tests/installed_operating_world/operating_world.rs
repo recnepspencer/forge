@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
     configured_runtime_for_package, federated_package, federated_touch_package,
@@ -74,7 +74,8 @@ fn required_domain_is_resolved_and_retained_by_the_bound_capability() {
     assert_eq!(rebuild.operation_required_domain_count(), 1);
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -92,7 +93,8 @@ fn missing_required_domain_denies_before_graph_or_execution_work() {
         .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
     {
@@ -120,14 +122,15 @@ impl Provider {
 fn one_root_mints_equivalent_non_detachable_bound_authority() {
     let workspace = workspace("operating-world", false).unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
-    let basis = observation_basis();
     let first = workspace
-        .operating_world(basis.clone())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, ReadVertex)
         .unwrap();
     let second = workspace
-        .operating_world(basis)
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, ReadVertex)
         .unwrap();
@@ -145,7 +148,8 @@ fn foreign_domain_denies_before_graph_binding_or_provider_contact() {
     let foreign = workspace("operating-world-foreign", false).unwrap();
     let foreign_domain = foreign.domain(GeometryDomain).unwrap();
     let denial = match owner
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&foreign_domain, ReadVertex)
     {
@@ -189,7 +193,8 @@ fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
         2
     );
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&domain, FederatedRead)
         .unwrap();
@@ -245,7 +250,8 @@ fn independent_equal_role_providers_deny_before_provider_contact() {
             .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, FederatedRead)
     {
@@ -285,7 +291,8 @@ fn separately_committed_graphs_bind_only_with_declared_compensation() {
             .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(mutation_basis())
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, FederatedRead)
         .unwrap();
@@ -313,7 +320,8 @@ fn same_role_lookalike_cannot_replace_the_exact_attached_graph_marker() {
         .unwrap();
     let installed_domain = result.domain(GeometryDomain).unwrap();
     let denial = match result
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, FederatedRead)
     {
@@ -325,27 +333,6 @@ fn same_role_lookalike_cannot_replace_the_exact_attached_graph_marker() {
         domain::WorthQueryOperationBindingDenialKind::GraphParticipationNotInstalled
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
-}
-
-fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
-        .unwrap()
 }
 
 fn atomic_definition<G>(role: &str) -> domain::WorthQueryGraphParticipationDefinition<G> {

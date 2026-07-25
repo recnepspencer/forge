@@ -3,24 +3,23 @@ use crate::runtime::activation::committed_allocation_attempt::UiCommittedAllocat
 use crate::runtime::WorthUiFrameBoundary;
 use crate::runtime::WorthUiRuntime;
 
-pub(super) struct UiCommittedAllocationPublicationInput<'application> {
+pub(super) struct UiCommittedAllocationPublicationInput {
     pub candidate_bundle: crate::runtime::active::WorthUiSealedExecutionPlanBundle,
     pub query_succession: worth_ui_query_binding::WorthUiPreparedQueryBindingSuccession,
     pub successor_application_authority:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     pub successor_planning_authority:
         std::rc::Rc<crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
-    pub application_publication:
-        Option<crate::runtime::WorthUiPreparedApplicationPublication<'application>>,
+    pub application_publication: Option<crate::runtime::WorthUiPreparedApplicationPublication>,
     pub boundary: WorthUiFrameBoundary,
 }
 
 pub(super) fn publish_validated_committed_allocation(
     runtime: &mut WorthUiRuntime,
     mut ready_activation: UiCommittedAllocationValidation,
-    input: UiCommittedAllocationPublicationInput<'_>,
+    input: UiCommittedAllocationPublicationInput,
 ) -> Result<
-    super::prepared::UiCommittedAllocationPublication,
+    super::prepared::UiPreparedCommittedAllocationActivation,
     crate::runtime::UiCommittedAllocationActivationDenial,
 > {
     let UiCommittedAllocationPublicationInput {
@@ -148,7 +147,7 @@ pub(super) fn publish_validated_committed_allocation(
         &attempt_identity,
         activation_counters,
     )?;
-    let invalidation = match runtime.allocation_invalidation_index.try_borrow_mut() {
+    let invalidation_guard = match runtime.allocation_invalidation_index.try_borrow_mut() {
         Ok(invalidation) => invalidation,
         Err(_) => {
             return Err(crate::runtime::UiCommittedAllocationActivationDenial::preparation(
@@ -158,13 +157,14 @@ pub(super) fn publish_validated_committed_allocation(
                 ));
         }
     };
+    drop(invalidation_guard);
     deny_after_preflight_if_interrupted(
         "ledger commit preparation",
         &attempt_identity,
         activation_counters,
     )?;
     let truth_resources = match preflight
-        .acquire_truth_resources(&runtime.allocation_receipt_ledger, invalidation)
+        .acquire_truth_resources(&runtime.allocation_receipt_ledger)
     {
         Ok(resources) => resources,
         Err(_) => {
@@ -196,26 +196,21 @@ pub(super) fn publish_validated_committed_allocation(
                 ),
             ),
         };
-    let (prepared, ledger_commit, invalidation) =
+    let (prepared, ledger_commit) =
         truth_resources.seal(scroll_catalog_evidence, prepared_catalog_transition);
-    Ok(prepared
-        .bind_commit_resources(super::UiCommittedAllocationCommitResources {
+    let last_valid_successor =
+        crate::runtime::launch::WorthUiLastValidRuntimeState::record_from_active(&runtime.active);
+    Ok(
+        prepared.bind_commit_resources(super::UiCommittedAllocationCommitResources {
             ledger_commit,
-            invalidation,
             frame_commit,
-            active: &mut runtime.active,
-            last_valid: &mut runtime.last_valid,
-            transient_interaction_admission: &mut runtime.transient_interaction_admission,
-            durable_resize_source: &mut runtime.durable_resize_source,
-            query_binding: &mut runtime.query_binding,
             query_succession,
-            active_application_authority: &mut runtime.active_application_lowering_authority,
             successor_application_authority,
-            retained_planning_authority: &mut runtime.retained_allocation_planning_evidence,
             successor_planning_authority,
             application_publication,
-        })
-        .commit_once())
+            last_valid_successor,
+        }),
+    )
 }
 
 fn deny_if_interrupted(

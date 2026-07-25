@@ -282,8 +282,8 @@ unrelated.
 Execution uses the same bound operation journey:
 
 ```rust
-let bound = workspace
-    .operating_world(observation_basis)
+let world = workspace.observe_operating_world()?;
+let bound = world
     .family(GeometryFamily)
     .bind(&installed_domain, RebuildFaceMesh)?;
 

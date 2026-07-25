@@ -1,7 +1,15 @@
 # Milestone 3.9.1: Query 9.14 Consumer-Path Modernization
 
-Status: Closed on 2026-07-21. The bounded managed-live compatibility seam
-remains subject to the documented Query 9.14 Phase 17/19/23/24 exit trigger.
+Status: Closed on 2026-07-21.
+
+Exit-trigger amendment, 2026-07-23: Query 9.14 Phases 17, 19, 23, and 24 are
+complete, and the bounded managed-live compatibility seam described by this
+historical plan has been replaced by Query's ordinary lifecycle, lease,
+invalidation, collection-window, and patch surfaces. Milestone 3.9.2 owns the
+remaining declaration-indexed native-access, opaque operational-identity, and
+UI-consequence cutover before Milestone 3.10. The phase descriptions below
+record the boundary that 3.9.1 actually closed; they are not rewritten as
+though the later Query surface already existed.
 
 ## Goal
 

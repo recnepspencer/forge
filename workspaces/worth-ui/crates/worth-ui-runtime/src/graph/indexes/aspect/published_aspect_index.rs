@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::declaration::{UiAspectContract, UiAspectName};
 use crate::graph::{
-    UiGraphMountedReceiptAuthoritySeedStore, UiGraphMountedReceiptIndex, UiGraphNodeIdentity,
+    UiGraphMountEligibilityIndex, UiGraphMountEligibilityStore, UiGraphNodeIdentity,
 };
 
 const EMPTY_PUBLISHERS: [UiGraphAspectPublisher; 0] = [];
@@ -10,7 +10,7 @@ const EMPTY_PUBLISHERS: [UiGraphAspectPublisher; 0] = [];
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiGraphAspectPublisherKind {
     GraphNode(UiGraphNodeIdentity),
-    MountedReceiptSlot(crate::graph::UiMountedReceiptIdentity),
+    MountEligibilitySlot(crate::graph::UiGraphMountEligibilityIdentity),
     FutureReceipt,
 }
 
@@ -37,8 +37,8 @@ pub struct UiGraphPublishedAspectIndex {
 impl UiGraphPublishedAspectIndex {
     pub(crate) fn build(
         node_aspects: &[(&UiAspectContract, UiGraphNodeIdentity)],
-        mounted_receipts: &UiGraphMountedReceiptAuthoritySeedStore,
-        mounted_receipt_index: &UiGraphMountedReceiptIndex,
+        mount_eligibilities: &UiGraphMountEligibilityStore,
+        mount_eligibility_index: &UiGraphMountEligibilityIndex,
     ) -> Self {
         let mut publishers_by_aspect = BTreeMap::<UiAspectName, Vec<UiGraphAspectPublisher>>::new();
 
@@ -52,14 +52,14 @@ impl UiGraphPublishedAspectIndex {
                     ));
 
                 if let Some(slot) =
-                    mounted_receipt_index.slot_for_node(mounted_receipts, *graph_node_identity)
+                    mount_eligibility_index.slot_for_node(mount_eligibilities, *graph_node_identity)
                 {
                     publishers_by_aspect
                         .entry(aspect.clone())
                         .or_default()
                         .push(UiGraphAspectPublisher::new(
-                            UiGraphAspectPublisherKind::MountedReceiptSlot(
-                                slot.mounted_receipt_identity(),
+                            UiGraphAspectPublisherKind::MountEligibilitySlot(
+                                slot.mount_eligibility_identity(),
                             ),
                         ));
                 }

@@ -107,20 +107,67 @@ impl WorthUiPendingActivation {
 }
 
 /// Receipt emitted when the runtime host is consumed during shutdown.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
+    query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
+    mounted_presentation: crate::mounting::UiMountedPresentationShutdownReport,
+    host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
     pub(crate) fn new(
         final_frame_epoch: WorthUiRuntimeFrameEpoch,
         _queue_disposition: crate::runtime::UiAllocationFrameQueueDisposition,
+        query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
     ) -> Self {
-        Self { final_frame_epoch }
+        Self {
+            final_frame_epoch,
+            query_retirement,
+            mounted_presentation: Default::default(),
+            host_session_release: None,
+        }
     }
 
     pub fn final_frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
         self.final_frame_epoch
+    }
+
+    pub fn operation_live_retirement(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiOperationLiveRetirement {
+        &self.query_retirement
+    }
+
+    pub fn mounted_presentation(&self) -> &crate::mounting::UiMountedPresentationShutdownReport {
+        &self.mounted_presentation
+    }
+
+    pub fn host_session_release(
+        &self,
+    ) -> Option<crate::host::adapter::UiHostSessionReleaseOutcome> {
+        self.host_session_release
+    }
+
+    pub(crate) fn bind_mounted_presentation(
+        mut self,
+        report: crate::mounting::UiMountedPresentationShutdownReport,
+    ) -> Self {
+        self.mounted_presentation = report;
+        self
+    }
+
+    pub(crate) fn bind_host_session_release(
+        mut self,
+        outcome: crate::host::adapter::UiHostSessionReleaseOutcome,
+    ) -> Self {
+        self.host_session_release = Some(outcome);
+        self
+    }
+
+    pub fn into_operation_live_retirement(
+        self,
+    ) -> worth_ui_query_binding::WorthUiOperationLiveRetirement {
+        self.query_retirement
     }
 }

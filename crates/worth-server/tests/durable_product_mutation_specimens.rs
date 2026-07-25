@@ -5,7 +5,9 @@ mod durable_support;
 #[path = "support/route_assembly_phase_twelve/request_driver.rs"]
 mod request_driver;
 
-use durable_support::{build_server, execute, result_body, session, TestDurableProductExecutor};
+use durable_support::{
+    build_server, execute, result_body, session, session_with_principal, TestDurableProductExecutor,
+};
 use request_driver::WorthServerRouteHttpTestDriver;
 
 struct ProductMutationSpecimen {
@@ -93,6 +95,39 @@ fn product_shaped_mutations_survive_runtime_reconstruction_once() {
     assert_eq!(executor.commit_count(), 3);
 }
 
+#[test]
+fn durable_attempts_preserve_principal_and_partition_request_identity() {
+    let first_executor = TestDurableProductExecutor::default();
+    let first_server = build_server(&first_executor);
+    execute(
+        &session_with_principal(&first_server, "tenant-a", "workspace-42", "principal-alpha"),
+        "product.host_connection.upsert",
+        "product.host-connection.upsert.v1",
+        json!({ "connection_id": "host-7" }),
+        "basis:0",
+        "principal-bound-key",
+    )
+    .expect("first principal mutation should commit");
+
+    let second_executor = TestDurableProductExecutor::default();
+    let second_server = build_server(&second_executor);
+    execute(
+        &session_with_principal(&second_server, "tenant-a", "workspace-42", "principal-beta"),
+        "product.host_connection.upsert",
+        "product.host-connection.upsert.v1",
+        json!({ "connection_id": "host-7" }),
+        "basis:0",
+        "principal-bound-key",
+    )
+    .expect("second principal mutation should commit in its independent fixture");
+
+    let first = first_executor.observed_attempts();
+    let second = second_executor.observed_attempts();
+    assert_eq!(first[0].0, "principal-alpha");
+    assert_eq!(second[0].0, "principal-beta");
+    assert_ne!(first[0].1, second[0].1);
+}
+
 #[tokio::test]
 async fn declared_http_mutation_projects_result_and_durable_completion_without_a_draft_session() {
     let executor = TestDurableProductExecutor::default();
@@ -128,6 +163,43 @@ async fn declared_http_mutation_projects_result_and_durable_completion_without_a
         .as_str()
         .is_some());
     assert_eq!(executor.commit_count(), 1);
+}
+
+#[tokio::test]
+async fn durable_product_rejection_projects_the_product_semantic_denial_class() {
+    let executor = TestDurableProductExecutor::default();
+    let server = build_server(&executor);
+    let response = WorthServerRouteHttpTestDriver::new(&server)
+        .post_json(
+            "/compat/mutations/product.host_connection.upsert?basis=basis:0",
+            &[
+                ("x-principal-id", "principal-7"),
+                ("x-tenant-id", "tenant-a"),
+                ("x-workspace-id", "workspace-42"),
+                ("x-branch-id", "branch-9"),
+                ("idempotency-key", "http-rejection-key"),
+            ],
+            &json!({
+                "connection_id": "host-http",
+                "reject_reason": "host_connection_policy_denied"
+            }),
+        )
+        .await;
+
+    let body = response.json_body().expect("JSON rejection response");
+    assert_eq!(body["envelope_kind"], "Denial");
+    assert_eq!(
+        body["denial"]["reason_key"],
+        "host_connection_policy_denied"
+    );
+    assert_eq!(body["denial"]["code"], "ProductSemantic");
+    assert_eq!(
+        body["denial"]["detail"],
+        "durable product mutation rejected"
+    );
+    assert!(body["failure"].is_null());
+    assert!(body["durable_completion"].is_null());
+    assert_eq!(executor.commit_count(), 0);
 }
 
 fn product_mutation_specimens() -> [ProductMutationSpecimen; 3] {

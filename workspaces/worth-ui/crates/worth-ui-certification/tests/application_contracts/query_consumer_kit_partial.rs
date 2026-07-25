@@ -1,16 +1,13 @@
 use worth_foundational::facade::CanonicalF32;
 use worth_query::facade::domain;
-use worth_ui::facade::query_binding::{
-    WorthUiQueryAllocationDetail, WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
-    WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-};
 use worth_ui_query_binding::{
     WorthUiQueryInspection, WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance,
+    WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
 };
 
 use crate::query_consumer_kit_application::file_authored_query_app;
 use crate::query_consumer_kit_workspace::{
-    measurement_value_path, observation_basis, partial_measurement_workspace,
+    interactive_borrowed_collection_requirements, partial_measurement_workspace,
 };
 
 #[test]
@@ -21,32 +18,21 @@ fn public_partial_query_settlement_preserves_posture_and_derives_only_ui_facts()
         .unwrap()
         .measurement_view("inspector.measurements")
         .unwrap();
+    let view_identity = view.definition().identity().clone();
     let app = file_authored_query_app(view);
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap();
     let settled = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
-        .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
-            domain::WorthQueryConsumerBoundaryRequirements {
-                presentation: domain::WorthQueryConsumerPresentationPosture::Interactive,
-                allocation: domain::WorthQueryConsumerAllocationPosture::Borrowed,
-            },
-            WorthUiQueryAllocationDetail::BorrowedFactSlice,
-            WorthUiQueryViewShape::Collection,
-            WorthUiQueryDenialPresentation::StructuredStatus,
-            WorthUiQueryInspectionRelevance::Relevant,
-        ))
+        .prepare_snapshot_consumer(interactive_borrowed_collection_requirements())
         .unwrap()
         .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
-        .consume(domain::project_facts().display_field(measurement_value_path()))
+        .consume()
         .unwrap()
         .settle()
         .unwrap();
@@ -62,7 +48,7 @@ fn public_partial_query_settlement_preserves_posture_and_derives_only_ui_facts()
     ));
     assert_eq!(settled.fact().execution_warning_count(), 1);
     assert_eq!(
-        settled.fact().measurement_facts().unwrap().observations()[0].extent(),
+        settled.fact().measurement_facts().observations()[0].extent(),
         CanonicalF32::from_f32(240.0)
     );
     assert_eq!(settled.counters().executor_contacts, 1);
@@ -78,7 +64,7 @@ fn public_partial_query_settlement_preserves_posture_and_derives_only_ui_facts()
         WorthUiQueryInspectionRelevance::Relevant,
         WorthUiQueryInspectionEvidencePolicy::Rich,
     );
-    assert_eq!(compact.settlement_identity(), rich.settlement_identity());
+    assert_eq!(compact.settlement_reference(), rich.settlement_reference());
     assert_eq!(compact.result_state(), rich.result_state());
     assert!(std::ptr::eq(compact.exact_projection(), &settled));
     assert!(std::ptr::eq(rich.exact_projection(), &settled));

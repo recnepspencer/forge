@@ -47,6 +47,9 @@ pub(super) fn inspection_selection_reason(
                 UiGraphTouchOriginClass::DeclarationChange => {
                     UiInspectionTouchOriginClass::DeclarationChange
                 }
+                UiGraphTouchOriginClass::QueryBindingChange => {
+                    UiInspectionTouchOriginClass::QueryBindingChange
+                }
                 UiGraphTouchOriginClass::QueryFactChange => {
                     UiInspectionTouchOriginClass::QueryFactChange
                 }
@@ -113,8 +116,8 @@ pub(super) fn inspection_selection_reason(
                 UiObligationWorldProfileClass::TestCertification => {
                     UiInspectionObligationWorldProfileClass::TestCertification
                 }
-                UiObligationWorldProfileClass::QuerySnapshotBasis => {
-                    UiInspectionObligationWorldProfileClass::QuerySnapshotBasis
+                UiObligationWorldProfileClass::SettledQueryBinding => {
+                    UiInspectionObligationWorldProfileClass::SettledQueryBinding
                 }
             })
         }

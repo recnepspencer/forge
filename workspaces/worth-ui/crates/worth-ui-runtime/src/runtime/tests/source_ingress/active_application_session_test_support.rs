@@ -29,17 +29,6 @@ pub(crate) fn source_backed_scaled_component_session(
         .expect("scaled component source application should launch")
 }
 
-pub(crate) fn source_backed_component_session_with_host<Adapter>(
-    adapter: Adapter,
-) -> WorthUiActiveApplicationSession
-where
-    Adapter: crate::facade::host_observation::WorthUiOperationalHostAdapter + 'static,
-{
-    source_backed_component_app_with_host(adapter)
-        .launch()
-        .expect("component source application should launch with configured host")
-}
-
 pub(crate) fn source_backed_component_app() -> WorthUiApp {
     let builder = component_builder();
     let snapshot = component_builder()
@@ -53,24 +42,6 @@ pub(crate) fn source_backed_component_app() -> WorthUiApp {
         ))
         .freeze()
         .expect("component source application should prepare")
-}
-
-fn source_backed_component_app_with_host<Adapter>(adapter: Adapter) -> WorthUiApp
-where
-    Adapter: crate::facade::host_observation::WorthUiOperationalHostAdapter + 'static,
-{
-    let builder = component_builder().with_host(adapter);
-    let snapshot = component_builder()
-        .freeze()
-        .expect("component snapshot should prepare");
-    builder
-        .with_candidate_submission(component_submission(
-            "active-session-host-current",
-            "workspace.component.active_session_current",
-            snapshot.capabilities(),
-        ))
-        .freeze()
-        .expect("component source application should prepare with configured host")
 }
 
 pub(crate) fn component_candidate_submission(
@@ -167,7 +138,7 @@ fn candidate_catalog_partition(
                 .axis(crate::graph::UiGraphParticipationAxis::Mounted);
             let transition = prepared
                 .candidate_graph()
-                .mounted_receipt_transition_for_node(
+                .mount_eligibility_transition_for_node(
                     node,
                     prior,
                     crate::graph::UiGraphAxisParticipation::runtime_mutation(
@@ -179,7 +150,7 @@ fn candidate_catalog_partition(
         })
         .collect::<Vec<_>>();
     prepared
-        .commit_candidate_mounted_layout_admissions(
+        .commit_candidate_mount_eligibility_admissions(
             candidate_inputs
                 .iter()
                 .map(|(_, _, _, transition)| *transition)

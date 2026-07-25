@@ -1,5 +1,6 @@
 //! Host observation lane: freeze request → observe → normalize → admit freshness.
 
+pub mod adapter;
 mod admitted_measurement;
 mod host_session;
 mod measurement_assumption_profile;
@@ -15,7 +16,6 @@ mod measurement_result_boundary;
 #[cfg(test)]
 mod measurement_result_boundary_tests;
 mod measurement_result_denial;
-mod preview_paint;
 mod result_construction;
 #[cfg(test)]
 #[path = "tests/mod.rs"]
@@ -40,13 +40,6 @@ pub(crate) use measurement_result_boundary::normalize_host_measurement_evidence;
 pub use measurement_result_denial::{
     UiHostMeasurementEvidenceDenial, UiHostMeasurementInvalidationReason,
     UiHostMeasurementNormalizationDenial,
-};
-pub(crate) use preview_paint::seal_preview_paint_input;
-pub use preview_paint::{
-    UiHostPreviewDiscardReason, UiHostPreviewPaintContext, UiHostPreviewPaintDenial,
-    UiHostPreviewPaintDenialReport, UiHostPreviewPaintDiscardReport, UiHostPreviewPaintDisposition,
-    UiHostPreviewPaintGeometry, UiHostPreviewPaintInput, UiHostPreviewPaintReceipt,
-    WorthUiPreviewPaintHost,
 };
 pub(crate) use transitions::{
     admit_fresh_host_evidence, construct_freshness_witness, normalize_host_observation,

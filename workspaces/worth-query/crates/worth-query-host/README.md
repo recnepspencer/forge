@@ -22,7 +22,8 @@ Host code may:
 - register runtime executors, graph providers, Runtime Bridge, Signal graph,
   and exact conditional providers
 - obtain a workspace and installed domain handle
-- bind through `workspace.operating_world(...)`
+- bind through the workspace-issued `workspace.observe_operating_world()` or
+  `workspace.prepare_mutation_operating_world()` root
 - execute the move-only operation or workflow progression
 - run ordinary installed workflow re-execution
 - admit and execute installed exact-inverse or compensation aftermath

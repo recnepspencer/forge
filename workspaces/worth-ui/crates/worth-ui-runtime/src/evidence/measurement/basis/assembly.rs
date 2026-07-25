@@ -10,25 +10,17 @@ use crate::declaration::UiDeclaredMeasurementBasisRequirementSet;
 use crate::evidence::measurement::{
     MeasurementEvidenceInput, UiChildIntrinsicMeasurementEvidence, UiMeasurementDependencyLineage,
     UiMeasurementDependencyLineageEntry, UiMeasurementDependencyLineageKind,
-    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiProjectionFactReceipt,
-    UiSettledQueryFactReceipt,
+    UiMeasurementEvidenceCategory, UiMeasurementGenerationCompatibility, UiSettledQueryFactReceipt,
 };
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
-use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 pub(super) struct SelectedEvidence<'a> {
-    pub query_receipt: Option<SelectedQueryReceipt<'a>>,
+    pub query_receipt: Option<&'a UiSettledQueryFactReceipt>,
     pub host_capability_report: Option<&'a WorthUiHostCapabilityReport>,
     pub host_results: HostResultSlots<'a>,
     pub child_intrinsic_measurements: Vec<&'a UiChildIntrinsicMeasurementEvidence>,
     pub sibling_resize_support: Option<&'a crate::evidence::UiMeasurementSiblingResizeSupport>,
     conflicting_slot: Option<UiMeasurementEvidenceSlot>,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub(super) enum SelectedQueryReceipt<'a> {
-    ManagedLiveCompatibility(&'a UiProjectionFactReceipt),
-    SettledSnapshot(&'a UiSettledQueryFactReceipt),
 }
 
 impl<'a> SelectedEvidence<'a> {
@@ -57,17 +49,9 @@ impl<'a> SelectedEvidence<'a> {
             conflicting_slot: None,
         };
         for input in evidence_inputs {
-            if let Some(receipt) = input.as_query_projection_fact() {
-                if requirements.requires_query_projection_receipt() {
-                    selected.assign_query_receipt(SelectedQueryReceipt::ManagedLiveCompatibility(
-                        receipt,
-                    ));
-                }
-                continue;
-            }
             if let Some(receipt) = input.as_settled_query_fact() {
                 if requirements.requires_query_projection_receipt() {
-                    selected.assign_query_receipt(SelectedQueryReceipt::SettledSnapshot(receipt));
+                    selected.assign_query_receipt(receipt);
                 }
                 continue;
             }
@@ -156,7 +140,7 @@ impl<'a> SelectedEvidence<'a> {
         selected
     }
 
-    fn assign_query_receipt(&mut self, receipt: SelectedQueryReceipt<'a>) {
+    fn assign_query_receipt(&mut self, receipt: &'a UiSettledQueryFactReceipt) {
         if self.query_receipt.is_none() {
             self.query_receipt = Some(receipt);
         } else if self.conflicting_slot.is_none() {
@@ -167,14 +151,7 @@ impl<'a> SelectedEvidence<'a> {
     pub(super) fn admitted_inputs(&self) -> Box<[MeasurementEvidenceInput]> {
         let mut inputs = Vec::new();
         if let Some(receipt) = self.query_receipt {
-            inputs.push(match receipt {
-                SelectedQueryReceipt::ManagedLiveCompatibility(receipt) => {
-                    MeasurementEvidenceInput::query_projection_fact(receipt)
-                }
-                SelectedQueryReceipt::SettledSnapshot(receipt) => {
-                    MeasurementEvidenceInput::settled_query_fact(receipt)
-                }
-            });
+            inputs.push(MeasurementEvidenceInput::settled_query_fact(receipt));
         }
         if let Some(report) = self.host_capability_report {
             inputs.push(MeasurementEvidenceInput::host_capability_report(report));
@@ -198,20 +175,10 @@ impl<'a> SelectedEvidence<'a> {
     pub(super) fn dependency_lineage(&self) -> UiMeasurementDependencyLineage {
         let mut entries = Vec::new();
         if let Some(receipt) = self.query_receipt {
-            let (identity_digest, generation) = match receipt {
-                SelectedQueryReceipt::ManagedLiveCompatibility(receipt) => (
-                    receipt.observation_identity_digest(),
-                    receipt.declaration_support_authority_generation().as_u64(),
-                ),
-                SelectedQueryReceipt::SettledSnapshot(receipt) => (
-                    receipt.observation_identity_digest(),
-                    receipt.declaration_support_authority_generation().as_u64(),
-                ),
-            };
             entries.push(UiMeasurementDependencyLineageEntry::new(
                 UiMeasurementDependencyLineageKind::QueryScrollContentExtent,
-                identity_digest,
-                generation,
+                receipt.observation_identity_digest(),
+                receipt.declaration_support_authority_generation().as_u64(),
             ));
         }
         push_host_lineage(
@@ -342,16 +309,5 @@ impl<'a> SelectedEvidence<'a> {
             );
         }
         None
-    }
-}
-
-impl SelectedQueryReceipt<'_> {
-    pub(super) fn declaration_support_authority_generation(self) -> UiEvidenceAuthorityGeneration {
-        match self {
-            Self::ManagedLiveCompatibility(receipt) => {
-                receipt.declaration_support_authority_generation()
-            }
-            Self::SettledSnapshot(receipt) => receipt.declaration_support_authority_generation(),
-        }
     }
 }

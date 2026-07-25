@@ -22,6 +22,9 @@ fn compat_http_surface_root_exposes_phase_one_route_families() {
         .contains(WorthServerCompatHttpRouteFamily::Read));
     assert!(compat_http
         .route_families()
+        .contains(WorthServerCompatHttpRouteFamily::Query));
+    assert!(compat_http
+        .route_families()
         .contains(WorthServerCompatHttpRouteFamily::Mutation));
     assert!(compat_http
         .route_families()

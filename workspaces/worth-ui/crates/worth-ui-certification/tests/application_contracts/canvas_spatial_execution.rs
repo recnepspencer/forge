@@ -1,5 +1,8 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiBuilder};
-use worth_ui::facade::host::WorthUiHeadlessHost;
+use worth_ui::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
+};
 use worth_ui::facade::registry::{
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership,
@@ -12,10 +15,8 @@ use worth_ui::facade::runtime::{
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementRequest, WorthUiCanvasSpatialHostOutputTarget,
-    WorthUiHostCapability, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiHostOutputDisposition, WorthUiHostOutputEnvelope, WorthUiHostOutputLane,
-    WorthUiHostOutputPayload, WorthUiMeasurementHostAdapter, WorthUiOperationalHostAdapter,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -51,6 +52,7 @@ fn real_wui_canvas_executes_only_from_the_host_bound_active_plan() {
     );
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("empty collection closes a framework turn"));
     let first_receipt = execution
@@ -73,25 +75,7 @@ fn real_wui_canvas_executes_only_from_the_host_bound_active_plan() {
         first_receipt.counters().skipped_noncanvas_plan_row_count(),
         0
     );
-    assert_eq!(
-        first_receipt.disposition(),
-        WorthUiHostOutputDisposition::Consumed
-    );
-    assert_eq!(
-        first_receipt.output().receipt_reference().lane(),
-        WorthUiHostOutputLane::CanvasSpatial
-    );
-    let first_output = match first_receipt.output().payload() {
-        WorthUiHostOutputPayload::CanvasSpatial(output) => output,
-        _ => panic!("canvas execution must emit the canvas payload"),
-    };
-    assert_eq!(
-        first_output.target(),
-        WorthUiCanvasSpatialHostOutputTarget::HitTest {
-            viewport_x: 144,
-            viewport_y: 96,
-        }
-    );
+    assert_ne!(first_receipt.touch_digest(), 0);
     let second_receipt = execution
         .execute_canvas_spatial_frame(WorthUiCanvasSpatialFrameTarget::hit_test(
             WorthUiSpatialHitTestRequest::for_viewport_point(
@@ -100,25 +84,7 @@ fn real_wui_canvas_executes_only_from_the_host_bound_active_plan() {
             ),
         ))
         .expect("a second exact hit-test point should execute");
-    let second_output = match second_receipt.output().payload() {
-        WorthUiHostOutputPayload::CanvasSpatial(output) => output,
-        _ => panic!("canvas execution must emit the canvas payload"),
-    };
-    assert_eq!(
-        second_output.target(),
-        WorthUiCanvasSpatialHostOutputTarget::HitTest {
-            viewport_x: -8,
-            viewport_y: 512,
-        }
-    );
-    assert_ne!(
-        first_output.meaning_digest(),
-        second_output.meaning_digest()
-    );
-    assert_ne!(
-        first_receipt.output().receipt_reference().digest(),
-        second_receipt.output().receipt_reference().digest()
-    );
+    assert_ne!(first_receipt.touch_digest(), second_receipt.touch_digest());
 
     let viewport_receipt = execution
         .execute_canvas_spatial_frame(WorthUiCanvasSpatialFrameTarget::viewport(
@@ -126,18 +92,7 @@ fn real_wui_canvas_executes_only_from_the_host_bound_active_plan() {
                 .expect("positive zoom factor"),
         ))
         .expect("exact viewport request should execute");
-    let viewport_output = match viewport_receipt.output().payload() {
-        WorthUiHostOutputPayload::CanvasSpatial(output) => output,
-        _ => panic!("canvas execution must emit the canvas payload"),
-    };
-    assert_eq!(
-        viewport_output.target(),
-        WorthUiCanvasSpatialHostOutputTarget::Viewport {
-            pan_delta_x: 12,
-            pan_delta_y: -4,
-            zoom_milli_factor: 1_250,
-        }
-    );
+    assert_eq!(viewport_receipt.counters().viewport_transform_count(), 1);
 
     drop(execution);
     let _ = session.shutdown();
@@ -165,6 +120,7 @@ fn foreign_active_session_handle_denies_before_spatial_work() {
     );
     let execution = second
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("framework turn execution"));
     let denial = execution
@@ -224,6 +180,7 @@ fn unrelated_ordinary_source_does_not_expand_one_spatial_target() {
         .expect("canvas handle");
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("framework turn execution"));
     let receipt = execution
@@ -336,11 +293,14 @@ fn file_app(
         .expect("file-authored application should prepare")
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 struct MissingHitTestHost;
 
 impl WorthUiMeasurementHostAdapter for MissingHitTestHost {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         unreachable!("missing host capabilities deny before observation")
     }
 }
@@ -359,7 +319,13 @@ impl WorthUiOperationalHostAdapter for MissingHitTestHost {
         ])
     }
 
-    fn consume_output(&self, _output: &WorthUiHostOutputEnvelope) -> WorthUiHostOutputDisposition {
-        WorthUiHostOutputDisposition::Consumed
+    fn release_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> UiHostSessionReleaseOutcome {
+        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
+            authority.host_session_identity(),
+            0,
+        ))
     }
 }

@@ -49,7 +49,7 @@ impl WorthServerWorthNativeDirectFacade {
                         return self.runtime_error_outcome(*error);
                     }
                     Err(WorthServerNamedLiveProjectionExecutionError::Consumption(path_error)) => {
-                        return self.projection_error_outcome(path_error);
+                        return self.projection_error_outcome(*path_error);
                     }
                 };
                 let support_posture = handoff.support_posture().clone();

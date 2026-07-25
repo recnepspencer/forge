@@ -24,7 +24,7 @@ pub(crate) struct UiCommittedAllocationActivationInput<'a> {
     pub successor_planning_authority:
         std::rc::Rc<crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
     pub application_publication:
-        Option<crate::runtime::activation::WorthUiPreparedApplicationPublication<'a>>,
+        Option<crate::runtime::activation::WorthUiPreparedApplicationPublication>,
     pub boundary: crate::runtime::WorthUiFrameBoundary,
     pub lane_parity_report: Option<&'a crate::runtime::WorthUiLaneParityReport>,
 }
@@ -120,7 +120,7 @@ impl UiCommittedAllocationActivationAttempt {
         runtime: &mut crate::runtime::WorthUiRuntime,
         input: UiCommittedAllocationActivationInput<'_>,
     ) -> Result<
-        super::prepared::UiCommittedAllocationPublication,
+        super::prepared::UiPreparedCommittedAllocationActivation,
         super::UiCommittedAllocationActivationDenial,
     > {
         let UiCommittedAllocationActivationInput {

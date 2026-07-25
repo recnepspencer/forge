@@ -17,10 +17,10 @@ const COMPETING_CONSUMED_ASPECT: &str = "interaction.operability";
 mod aspect_evidence_lookup_support;
 
 use aspect_evidence_lookup_support::{
-    all_graph_node_digests, all_mounted_receipt_digests, aspect_identity_app,
+    all_graph_node_digests, all_mount_eligibility_digests, aspect_identity_app,
     aspect_neighborhood_facts_from_receipt, assert_lane_identity_distinctness, assert_membership,
     consumed_aspect_query, consumed_aspect_with_provenance_query, declaration_artifact_digests,
-    declaration_ref_digests, expected_graph_node_digests, expected_mounted_receipt_digests,
+    declaration_ref_digests, expected_graph_node_digests, expected_mount_eligibility_digests,
     published_aspect_query, published_aspect_with_provenance_query,
 };
 
@@ -28,7 +28,7 @@ use aspect_evidence_lookup_support::{
 fn shared_aspect_queries_stay_family_local_and_explicitly_cover_receipts() {
     let app = aspect_identity_app();
     let all_graph_node_digests = all_graph_node_digests(&app);
-    let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
+    let all_mount_eligibility_digests = all_mount_eligibility_digests(&app);
     let published_receipt = app.inspect(published_aspect_query(" Content.Text "));
     let published_provenance_receipt =
         app.inspect(published_aspect_with_provenance_query(SHARED_ASPECT));
@@ -41,37 +41,37 @@ fn shared_aspect_queries_stay_family_local_and_explicitly_cover_receipts() {
         SHARED_ASPECT,
         &published_receipt,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let published_provenance_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &published_provenance_receipt,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let consumed_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &consumed_receipt,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let consumed_provenance_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &consumed_provenance_receipt,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let competing_published_facts = aspect_neighborhood_facts_from_receipt(
         COMPETING_PUBLISHED_ASPECT,
         &competing_published,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let competing_consumed_facts = aspect_neighborhood_facts_from_receipt(
         COMPETING_CONSUMED_ASPECT,
         &competing_consumed,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
 
     assert_eq!(
@@ -88,25 +88,25 @@ fn shared_aspect_queries_stay_family_local_and_explicitly_cover_receipts() {
         &published_facts,
         UiAspectEvidenceLane::Published,
         &expected_graph_node_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_membership(
         &consumed_facts,
         UiAspectEvidenceLane::Consumed,
         &expected_graph_node_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_membership(
         &competing_published_facts,
         UiAspectEvidenceLane::Published,
         &expected_graph_node_digests(&app, &[BETA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[BETA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[BETA_MODULE_PATH]),
     );
     assert_membership(
         &competing_consumed_facts,
         UiAspectEvidenceLane::Consumed,
         &expected_graph_node_digests(&app, &[DELTA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[DELTA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[DELTA_MODULE_PATH]),
     );
     assert_lane_identity_distinctness(&published_facts, &consumed_facts);
 }
@@ -115,20 +115,20 @@ fn shared_aspect_queries_stay_family_local_and_explicitly_cover_receipts() {
 fn shared_published_and_consumed_aspect_queries_keep_relationships_and_provenance_in_parity() {
     let app = aspect_identity_app();
     let all_graph_node_digests = all_graph_node_digests(&app);
-    let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
+    let all_mount_eligibility_digests = all_mount_eligibility_digests(&app);
     let published_receipt = app.inspect(published_aspect_with_provenance_query(SHARED_ASPECT));
     let consumed_receipt = app.inspect(consumed_aspect_with_provenance_query(SHARED_ASPECT));
     let published_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &published_receipt,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let consumed_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &consumed_receipt,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
 
     assert_eq!(
@@ -136,8 +136,8 @@ fn shared_published_and_consumed_aspect_queries_keep_relationships_and_provenanc
         consumed_facts.graph_node_digests,
     );
     assert_eq!(
-        published_facts.mounted_receipt_digests,
-        consumed_facts.mounted_receipt_digests,
+        published_facts.mount_eligibility_digests,
+        consumed_facts.mount_eligibility_digests,
     );
     assert_eq!(
         declaration_ref_digests(

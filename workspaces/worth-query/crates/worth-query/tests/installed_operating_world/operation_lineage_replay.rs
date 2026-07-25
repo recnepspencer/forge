@@ -1,7 +1,7 @@
 use worth_query::facade::{certification, domain};
 
 use super::installed_operation_fixture::{lineage_workflow_workspace, LineageEvidenceScenario};
-use super::operation_lineage::{bind, execute, intent, mutation_basis};
+use super::operation_lineage::{bind, execute, intent};
 
 #[test]
 fn certification_replay_reexecutes_the_same_lineage_semantics() {
@@ -12,12 +12,11 @@ fn certification_replay_reexecutes_the_same_lineage_semantics() {
         vec![LineageEvidenceScenario::SingularSuccessor],
     )
     .unwrap();
-    let basis = mutation_basis();
-    let original = execute(&mut workspace, basis.clone());
+    let original = execute(&mut workspace);
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
-        bind(&workspace, basis),
+        bind(&workspace),
         intent(),
         &mut workspace,
     )

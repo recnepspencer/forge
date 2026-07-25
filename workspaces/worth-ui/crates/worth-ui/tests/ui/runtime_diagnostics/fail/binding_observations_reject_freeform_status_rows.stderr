@@ -7,10 +7,15 @@ error[E0432]: unresolved import `worth_ui_query_binding::WorthUiQueryOperatingWo
 error[E0432]: unresolved import `worth_ui::facade::query_binding::WorthUiQuerySupportReceipt`
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/local_query_support_mint_is_not_a_facade.rs
 
-error[E0432]: unresolved import `worth_ui::facade::query_binding::WorthUiQueryLiveResource`
- --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/managed_live_is_named_compatibility_and_cannot_promote.rs
+error[E0432]: unresolved imports `worth_ui::facade::query_binding::WorthUiCollectionChangeConsequence`, `worth_ui::facade::query_binding::WorthUiOperationLiveResource`, `worth_ui::facade::query_binding::WorthUiSettledSnapshotProjection`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/query_progression_authority_is_not_a_product_facade.rs
  help: consider importing this struct instead:
-worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource
+worth_ui_query_binding::WorthUiCollectionChangeConsequence
+ help: consider importing this struct instead:
+worth_ui_query_binding::WorthUiOperationLiveResource
+ help: consider importing one of these structs instead:
+worth_ui_query_binding::WorthUiSettledSnapshotProjection
+worth_ui_runtime::facade::query_binding::WorthUiSettledSnapshotProjection
 
 error[E0599]: no function or associated item named `from_freeform_rows` found for struct `WorthUiBindingObservationSurface` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/binding_observations_reject_freeform_status_rows.rs
@@ -18,7 +23,3 @@ error[E0599]: no function or associated item named `from_freeform_rows` found fo
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/raw_strings_cannot_replace_diagnostic_codes.rs
  note: function defined here
-
-error[E0277]: the trait bound `WorthUiSettledSnapshotProjection: From<WorthUiQueryLiveRetirementCloseReceipt>` is not satisfied
- --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_diagnostics/fail/managed_live_is_named_compatibility_and_cannot_promote.rs
- note: required for `WorthUiQueryLiveRetirementCloseReceipt` to implement `Into<WorthUiSettledSnapshotProjection>`

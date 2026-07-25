@@ -1,6 +1,60 @@
 use super::*;
 
 #[test]
+fn replacement_successor_is_fully_prepared_without_mutating_the_live_dispatcher() {
+    let initial = WorthUiRuntimeFrameEpoch::initial();
+    let authority = UiAllocationFrameDispatcher::launch_for_test(
+        initial,
+        NonZeroU16::new(2).expect("test capacity is non-zero"),
+    );
+
+    let (assignment, transition, successor) = authority
+        .prepare_replacement_successor()
+        .expect("empty open dispatcher admits prepared replacement");
+
+    assert_eq!(
+        authority.state(),
+        UiAllocationFrameDispatcherState::Open(initial)
+    );
+    assert_eq!(assignment.epoch(), initial.checked_next().unwrap());
+    assert_eq!(
+        transition.queue_disposition().reason(),
+        UiAllocationFramePauseReason::Replacement
+    );
+    assert!(transition.queue_disposition().ingress().is_empty());
+    assert!(transition
+        .queue_disposition()
+        .successor_ingress()
+        .is_empty());
+    assert_eq!(
+        successor.state(),
+        UiAllocationFrameDispatcherState::Open(assignment.epoch())
+    );
+}
+
+#[test]
+fn queued_predecessor_work_denies_replacement_preparation_without_consuming_it() {
+    let mut authority = UiAllocationFrameDispatcher::launch_for_test(
+        WorthUiRuntimeFrameEpoch::initial(),
+        NonZeroU16::new(2).expect("test capacity is non-zero"),
+    );
+    let lease = source_lease(&mut authority, 1, 1);
+    let admitted = ingress(&lease, 1, 1);
+    assert!(submit(&mut authority, admitted.clone()).is_queued());
+
+    let denial = authority
+        .prepare_replacement_successor()
+        .expect_err("queued work cannot cross application replacement");
+
+    assert_eq!(
+        denial,
+        UiAllocationFrameDispatchDenial::ReplacementNotQuiescent
+    );
+    let frame = dispatched(authority.dispatch_for_test());
+    assert_eq!(frame.ingress(), &[admitted]);
+}
+
+#[test]
 fn closing_frame_assigns_late_ingress_to_the_reserved_successor() {
     let initial = WorthUiRuntimeFrameEpoch::initial();
     let mut authority = UiAllocationFrameDispatcher::launch_for_test(

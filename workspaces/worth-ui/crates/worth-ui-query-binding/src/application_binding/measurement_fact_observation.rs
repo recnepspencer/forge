@@ -1,14 +1,12 @@
 use worth_foundational::CanonicalF32;
-use worth_query::facade::foundation::WorthQueryConsumedProjectionAuthority;
+use worth_query::facade::{installed::operation, read};
 
 use super::WorthUiQueryMeasurementFactFamily;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiQueryMeasurementFactObservationError {
-    ProjectionConsumptionNotAdmitted,
-    MissingObservedValue(WorthUiQueryMeasurementFactFamily),
-    AmbiguousObservedValue(WorthUiQueryMeasurementFactFamily),
-    UnsupportedObservedValue(WorthUiQueryMeasurementFactFamily),
+    NativeAccess(Box<operation::WorthQueryNativeAccessDenial>),
+    NativeRefinement(Box<read::ConsumedNativeRefinementDenial>),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -28,40 +26,23 @@ pub struct WorthUiQueryMeasurementRefinementCounters {
 }
 
 impl WorthUiQueryMeasurementFactObservation {
-    pub(crate) fn from_query_authority(
-        authority: &WorthQueryConsumedProjectionAuthority,
+    pub(crate) fn from_native_access(
+        access: &operation::WorthQueryNativeFieldAccess<'_>,
     ) -> Result<
         (Box<[Self]>, WorthUiQueryMeasurementRefinementCounters),
         WorthUiQueryMeasurementFactObservationError,
     > {
-        let mut observations = Vec::new();
-        let declared_measurement_fact_count = authority
-            .consumer_contract()
-            .requested_facts()
-            .filter(|request| {
-                request.kind().as_str() == "display_field"
-                    || request.kind().as_str() == "derived_field"
-            })
-            .count();
-        let projected_measurement_fact_count =
-            authority.facts().display_fields().len() + authority.facts().derived_fields().len();
-
-        if authority.contract().fact_families().iter().any(|family| {
-            family.kind().as_str() == "display_field" || family.kind().as_str() == "derived_field"
-        }) {
-            let family = WorthUiQueryMeasurementFactFamily::ScrollContentExtent;
-            let extent = extract_single_extent(authority, family)?;
-            observations.push(Self { family, extent });
-        }
-
-        let admitted_observation_count = observations.len();
+        let family = WorthUiQueryMeasurementFactFamily::ScrollContentExtent;
+        let extent = access.fact().as_float32().copied().map_err(|denial| {
+            WorthUiQueryMeasurementFactObservationError::NativeRefinement(Box::new(denial))
+        })?;
         Ok((
-            observations.into_boxed_slice(),
+            Box::new([Self { family, extent }]),
             WorthUiQueryMeasurementRefinementCounters {
-                declared_measurement_fact_count,
-                projected_measurement_fact_count,
-                refinement_attempt_count: projected_measurement_fact_count,
-                admitted_observation_count,
+                declared_measurement_fact_count: 1,
+                projected_measurement_fact_count: 1,
+                refinement_attempt_count: 1,
+                admitted_observation_count: 1,
             },
         ))
     }
@@ -91,32 +72,4 @@ impl WorthUiQueryMeasurementRefinementCounters {
     pub fn admitted_observation_count(self) -> usize {
         self.admitted_observation_count
     }
-}
-
-fn extract_single_extent(
-    authority: &WorthQueryConsumedProjectionAuthority,
-    family: WorthUiQueryMeasurementFactFamily,
-) -> Result<CanonicalF32, WorthUiQueryMeasurementFactObservationError> {
-    let mut observed = None;
-    for fact in authority
-        .facts()
-        .display_fields()
-        .iter()
-        .chain(authority.facts().derived_fields().iter())
-    {
-        let value = fact.as_float32().copied().map_err(|_| {
-            WorthUiQueryMeasurementFactObservationError::UnsupportedObservedValue(family)
-        })?;
-        match observed {
-            None => observed = Some(value),
-            Some(existing) if existing == value => {}
-            Some(_) => {
-                return Err(
-                    WorthUiQueryMeasurementFactObservationError::AmbiguousObservedValue(family),
-                );
-            }
-        }
-    }
-
-    observed.ok_or(WorthUiQueryMeasurementFactObservationError::MissingObservedValue(family))
 }

@@ -135,10 +135,11 @@ declare intent -> refine it -> using(context) -> run(...) or open(...) -> typed 
 
 Choose `facade::read`, `facade::aggregate`, `facade::live`, `facade::history`,
 `facade::comparison`, `facade::preview`, `facade::mutation`,
-`facade::workflow`, `facade::inspection`, or `facade::domain` based on the
-job. Query owns the canonicalization, authority admission, planning,
-lower-runtime selection, execution, lifecycle, receipts, and stops behind that
-declaration.
+`facade::workflow`, `facade::inspection`, or `facade::installed` based on the
+product job. Use `facade::domain` only to declare or assemble an installed
+domain. Query owns the canonicalization, authority admission, planning,
+lower-runtime selection, execution, lifecycle, receipts, and stops behind
+those surfaces.
 
 Use this category whenever a consumer is tempted to import phase artifacts,
 choose a backend, pair basis digests with receipts, or split live activation,
@@ -160,8 +161,13 @@ that mirrors Query's implementation tree:
 
 - `worth_query::facade::{read, aggregate, live, history, comparison}` owns
   query-shaped observation.
-- `worth_query::facade::{preview, mutation, workflow, domain}` owns declared
-  change and promotion journeys.
+- `worth_query::facade::{preview, mutation, workflow}` owns declared change and
+  promotion journeys.
+- `worth_query::facade::domain` owns portable installed-domain package,
+  operation-definition, and runtime-assembly grammar.
+- `worth_query::facade::installed` owns ordinary installed-operation
+  consumption: one operating-world root, typed family views, bound operations,
+  and guarantee-specific progression modules.
 - `worth_query::facade::inspection` owns outcome-attached inspection.
 - `worth_query::facade::runtime` contains workspaces and backend-owned runtime
   products used by those journeys.
@@ -178,16 +184,23 @@ Visibility and support are separate. A public type can describe vocabulary for
 a deferred neighbor without making that neighbor an admitted runtime lane.
 Check the support matrix for the active profile.
 
-Use audience facades and capability namespaces explicitly:
+Use the installed consumer surface explicitly:
 
 ```rust
-use worth_query::facade::{domain, foundation, read, runtime};
+use worth_query::facade::{installed, runtime};
+```
+
+Hosts that declare packages or register volatile execution mechanics use the
+assembly surface instead:
+
+```rust
+use worth_query::facade::{domain, runtime};
 ```
 
 An entry-band host can use the narrower host audience:
 
 ```rust
-use worth_query_host::facade::{domain, runtime};
+use worth_query_host::facade::{domain, installed, runtime};
 ```
 
 Pure schema and meaning crates remain Query-agnostic. They expose portable
@@ -200,8 +213,10 @@ opening preview or branch sessions, inspecting retained handles, or deciding
 whether a public family is really supported today.
 
 The mistakes to avoid are importing from `worth_query::facade` as a flat
-barrel, using `facade::certification` in production code, and teaching support
-from autocomplete.
+barrel, using `facade::domain` as the ordinary installed-operation consumer
+path, importing raw `worth_proof` progression in product code, using
+`facade::certification` in production code, and teaching support from
+autocomplete.
 
 Read next:
 
@@ -452,10 +467,24 @@ cross-runtime, cross-basis, semantic-drift, and exact-counter behavior. Do not
 write a second layer of tests merely to prove that these tests or manifests
 exist.
 
+Milestone 9.14 provider and domain certification enters through the cold
+`worth-query-certification` crate. That crate depends on
+`worth-query-host` and `worth-query-replay`, never Query implementation
+modules. It owns the generic hostile matrix, complete installed-operation
+journey vocabulary, exact denial/counter evidence, and provider-independent
+parity oracle. A configured downstream certification owner contributes only
+its eight small semantic scenario families: workflow, replay, conditional
+node, semantic-aspect correspondence, reversal, lineage, dependency impact,
+and counter contract, including an independent expected semantic oracle.
+Query derives the generic journey checkpoints and runs the hostile provider
+separately, so domains reproduce neither the generic compile-fail nor hostile
+attack cross-product. Ordinary packages cannot depend on this kit.
+
 Read next:
 
 - [Certification Surface And Closeout Bundle](./domain-capabilities/certification/certification-surface-and-closeout-bundle.md)
 - [Goldens, Boundaries, And Hostile Certification](./domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md)
+- [Installed Operation Certification Kit](./domain-capabilities/certification/installed-operation-certification-kit.md)
 - [Installed Domain Closeout Evidence](./domain-capabilities/platform-entry-closeout.md)
 - [Domain Capability Documentation Certification](./domain-capabilities/public-doc-coverage.md)
 
@@ -817,7 +846,9 @@ Read next:
 The ordinary Query experience starts in a capability namespace: `facade::read`,
 `facade::aggregate`, `facade::live`, `facade::history`, `facade::comparison`,
 `facade::preview`, `facade::mutation`, `facade::workflow`,
-`facade::inspection`, or `facade::domain`.
+`facade::inspection`, or `facade::installed`. Package declaration and runtime
+assembly use `facade::domain` before ordinary installed-operation consumption
+begins.
 
 Declare what the application wants, attach explicit authority with `using(...)`,
 then call `run(...)` for one-shot work or `open(...)` for a managed resource.
@@ -827,8 +858,9 @@ outcome shaping. Consumer code does not recreate those steps locally.
 Outcomes retain distinct completed, advisory, stopped, denied, deferred, and
 unavailable postures. Live handles own activation, maintenance, and close; the
 consumer holds the handle instead of assembling subscription lifecycle calls.
-Domain integrations contribute typed meaning through `facade::domain`, while
-Query remains the owner of canonical execution artifacts.
+Domain integrations contribute typed meaning through `facade::domain`, then
+consume installed work through `facade::installed`; Query remains the owner of
+canonical execution artifacts across both sides of that boundary.
 
 Read next:
 
@@ -1006,29 +1038,57 @@ identities are authority inputs; matching strings are not substitutes.
 
 ### One operating world
 
-`WorthQueryWorkspace::operating_world(admitted_basis)` is the authority-bearing
-entry for installed operations. Its family view borrows that root and can only
+`WorthQueryWorkspace::observe_operating_world()` and
+`prepare_mutation_operating_world()` are the owner-issued authority entries for
+ordinary installed operations. Callers choose intent; Query admits and seals
+the basis internally. A family view borrows that root and can only
 bind operations installed in the same runtime generation, basis, domain,
 family, provider set, and graph world. A family view cannot mint a runtime,
 basis, graph, or installation authority.
 
+Ordinary downstream code imports this grammar through
+`worth_query::facade::installed`. The module root teaches the operating world,
+typed family view, bound operation, and exact entry or binding denials.
+Continue through the guarantee-specific `installed::operation`,
+`installed::observation`, `installed::collection`,
+`installed::compatibility`, `installed::workflow`, and
+`installed::recovery` modules. Runtime/package assembly remains in the host
+facades, provider callbacks are absent from the installed consumer surface,
+and replay remains certification-only.
+
 The ordinary operation grammar is:
 
 ```rust
+use worth_query::facade::installed;
+
 let installed_domain = workspace.domain(GeometryDomain)?;
-let bound = workspace
-    .operating_world(observation_basis)
+let world = workspace.observe_operating_world()?;
+let bound = world
     .family(ReadFamily)
     .bind(&installed_domain, ReadVertex)?;
 
 let consumer = bound.consumer_projection_contract()?;
-let executed = bound.execute(input, &mut workspace)?;
-let published = executed.publish()?;
-let consumed = published.consume(
+let executed = match installed::transition::execution(
+    bound.execute(input, &mut workspace),
+) {
+    installed::transition::WorthQueryExecutionTransition::Executed(value) => value,
+    stop => return handle_execution_stop(stop),
+};
+let published = match installed::transition::publication(executed.publish()) {
+    installed::transition::WorthQueryPublicationTransition::Published(value) => value,
+    stop => return handle_publication_stop(stop),
+};
+let consumed = match installed::transition::consumption(published.consume(
     consumer,
-    read::project_facts().entity_identities(),
-)?;
-let settled = consumed.settle()?;
+    installed::operation::project_facts().entity_identities(),
+)) {
+    installed::transition::WorthQueryConsumptionTransition::Consumed(value) => value,
+    stop => return handle_consumption_stop(stop),
+};
+let settled = match installed::transition::settlement(consumed.settle()) {
+    installed::transition::WorthQuerySettlementTransition::Settled(value) => value,
+    stop => return handle_settlement_stop(stop),
+};
 ```
 
 Every value is minted by the preceding phase. The phase types are move-only,
@@ -1039,10 +1099,13 @@ into `execute`. Do not cache phase ingredients for later recombination, invoke
 an executor directly, or reconstruct publication or consumption authority from
 receipts and identities.
 
-The compact example shows the success shape. Progression APIs can return
-`worth_proof::TransitionOutcome`; production code must preserve `Success`,
-`Denied`, `Deferred`, `Stale`, `RebindRequired`, and `Failed` rather than
-flattening them into a local status.
+The `handle_*_stop` names above are application-owned placeholders for mapping
+Query's typed stops into the caller's error or retry boundary. Preserve
+`Executed`/`Published`/`Consumed`/`Settled`, `Denied`, `Deferred`, `Stale`,
+`RebindRequired`, and `Failed`; do not replace the matches with an unchecked
+success extractor. The owner-specific `installed::transition` adapters keep
+raw `worth_proof` progression out of the consumer API without erasing any
+stop.
 
 An operation whose installed publication contract is `NotRequired` finishes
 at its executed terminal value. Its operation marker uses the terminal
@@ -1063,6 +1126,93 @@ dimension-specific denial. Reports, summaries, labels, and digests are
 observational; none can satisfy admission. Presentation and allocation needs
 belong in the separate `WorthQueryConsumerBoundary` and cannot rewrite Query's
 requirements.
+
+### Collection windows and patch delivery
+
+Installed collection windows and query-shaped patches are operational
+capabilities, not future vocabulary. Use them when a settled installed
+operation declares collection delivery and the consumer needs an ordered,
+bounded mounted view that can advance incrementally.
+
+A window is not an offset/limit pair. Query binds its opaque cursor and breadth
+to the exact collection capability generation, basis, ordering, result shape,
+native layout, and collection-delivery contract. The breadth declares viewport
+rows, overscan before and after, and the consumer's mounting budget. A cursor
+from another capability, generation, basis, or ordering is denied before row
+or index work.
+
+For the ordinary first window, prepare the consumer directly from the settled
+projection before moving that projection into live lifecycle:
+
+```rust
+use worth_query::facade::installed::{collection, observation};
+
+let breadth =
+    collection::WorthQueryCollectionWindowBreadth::new(40, 8, 8, 56)?;
+let mut mounted = settled.prepare_collection_consumer(breadth)?;
+
+let live = match settled.into_lifecycle().promote(&mut workspace) {
+    observation::WorthQueryProjectionPromotionOutcome::Promoted(live) => live,
+    stopped => return handle_promotion_stop(stopped),
+};
+let lease = match live.into_managed_lease(&mut workspace) {
+    observation::WorthQueryProjectionLeaseAdmissionOutcome::Admitted(lease) => lease,
+    observation::WorthQueryProjectionLeaseAdmissionOutcome::Stopped(stop) => {
+        return handle_lease_stop(stop);
+    }
+};
+```
+
+If the application needs explicit paging before live promotion, use the longer
+`settled.into_bound_collection() -> declare_window(...) ->
+resolve_window(...) -> WorthQueryCollectionConsumerWindow::from_bound(...)`
+path. Both paths retain the same Query-owned cursor and collection authority;
+neither accepts caller-authored row identities or patch posture.
+
+After an authoritative change, drain the managed lease, derive and readmit its
+capability-bound invalidation delta, bind that exact lease target to the
+consumer window, then plan and apply the patch:
+
+```rust
+let delivery = lease.drain(&mut workspace)?;
+if !delivery.delivery().is_empty() {
+    let delta = lease.consumer_invalidation_delta(delivery)?;
+    let admitted =
+        lease.admit_consumer_invalidation_delta(delta, &workspace)?;
+    mounted.bind_shared_target(&admitted, &workspace)?;
+
+    match mounted.plan_patch(&admitted, &workspace) {
+        collection::WorthQueryCollectionDeliveryOutcome::Patch(patch) => {
+            let receipt = mounted.apply_patch(patch)?;
+            apply_domain_consequences(receipt);
+        }
+        collection::WorthQueryCollectionDeliveryOutcome::NoDelivery(stop) => {
+            handle_no_collection_delivery(stop);
+        }
+    }
+}
+```
+
+The `handle_promotion_stop`, `handle_lease_stop`,
+`apply_domain_consequences`, and `handle_no_collection_delivery` names are
+application-owned placeholders. Query ends at the typed stop or patch receipt;
+the application decides how to retry, report, or translate that result into
+local consequences.
+
+The patch can carry insert, remove, move, update, explicit window shift,
+result-state, warning, continuation, or reset-required operations together
+with native facts and exact counters. Applying it validates lease, capability
+generation, window contract, cursor/order, and maintenance order before
+touching consumer state. Duplicate, reordered, superseded, foreign, and
+wrong-window patches remain typed denials. A reset is an explicit operation
+with a reason and replacement-cost contract; it is never a silent fallback.
+
+Equivalent admitted windows may share one underlying maintenance pass, but
+each lease receives a separately applicable patch. Query owns suppression,
+impact, row identity, patch assembly, and delivery authority. The consumer
+owns only application consequences such as UI graph touches, mounting policy,
+allocation, and measurement invalidation. Do not expose raw CDC, diff the full
+collection, or hash a local patch posture.
 
 ### Derived indexes and exact counters
 
@@ -1690,11 +1840,23 @@ Read next:
 Downstream crates extend Query through typed `facade::domain` contribution
 contracts. A contribution declares domain meaning; Query still owns canonical
 admission, execution, receipts, and outcomes. Keep family-specific ergonomic
-helpers as thin declaration builders over that same ordinary facade.
+helpers as thin declaration builders over that same package-assembly facade.
+
+Once a host has installed that meaning, downstream execution switches to
+`facade::installed`; it does not keep using the package-assembly namespace.
+The reference pattern is one thin binding crate that owns
+domain-to-application refinement while forwarding Query authority intact.
+Worth UI follows this shape through `worth-ui-query-binding`, its sole normal
+production Query importer. It translates admitted Query facts and patch
+receipts into UI-owned allocation and graph consequences without
+reconstructing Query support, compatibility, invalidation, row identity,
+patch, or lifecycle posture.
 
 Do not add consumer-local coordinators, backend selectors, canonicalizers,
 planners, executors, success-envelope builders, or subscription lifecycle
-managers.
+managers. Do not hide those reconstructions behind a consumer facade: the
+facade should reduce imports and route typed denials, not become another
+authority owner.
 
 Read next:
 
@@ -1774,7 +1936,7 @@ Need the shortest path between close surfaces:
 Need platform entry or operating world:
 
 - for installed domain operations, resolve the installed domain and enter
-  through `workspace.operating_world(basis).family(family).bind(...)`
+  through `workspace.observe_operating_world()?.family(family).bind(...)`
 - for other capability families, use the owning ordinary namespace plus a
   Query-owned workspace and explicit context
 
@@ -1923,8 +2085,11 @@ Need async capabilities:
 
 Need public DX:
 
-- expose a domain facade that forwards to Query instead of teaching raw lower
-  runtime plumbing
+- keep package declaration and volatile provider registration in host assembly
+  through `facade::domain` and `facade::runtime`
+- expose installed operation consumption through one thin
+  `facade::installed`-backed consumer boundary instead of teaching raw lower
+  runtime plumbing or re-exporting assembly ingredients
 
 Need installed native values:
 
@@ -1949,6 +2114,16 @@ Need shared installed live work or consumer invalidation:
 - do not use region-scoped stream metadata, Foundational locators, copied
   generations, or replay inspection as invalidation authority
 
+Need installed collection windows or query-shaped patches:
+
+- prepare the initial consumer window from the settled projection, or bind an
+  explicit opaque cursor through the bound collection capability
+- bind the current admitted lease delta before planning a patch, apply only the
+  exact returned patch, and preserve reset-required as a typed operation
+- translate the application receipt into domain-local consequences; do not
+  reinterpret raw CDC, diff the full collection, or reconstruct row identity,
+  cursor, ordering, generation, or patch posture
+
 ## Current Installed-Operation Boundary
 
 The installed-operation surface currently includes portable operation
@@ -1962,7 +2137,9 @@ identity promotion. It also includes declaration-indexed native access,
 relationship-specific pair-bound compatibility, proof-carrying promotion,
 refresh, replacement, rebind, cancellation and disposal, compiled dependency
 impact, shared live execution owners, move-only consumer leases, and
-capability-bound invalidation deltas.
+capability-bound invalidation deltas. Bound collection capabilities now admit
+opaque cursor windows and capability-, generation-, basis-, ordering-, and
+lease-bound query-shaped patch delivery.
 
 Settled direct and workflow projections also expose a sealed consumption-cost
 snapshot. Query owns these operational measurements: lookup, binding, support,
@@ -2004,9 +2181,15 @@ separate. Cert replay may reexecute the same installed mutation, but only the
 ordinary live owner and lease route emits and admits invalidation authority.
 See [Bound Projection Lifecycle, Sharing, And Consumer Invalidation](./domain-capabilities/bound-projection-sharing-and-invalidation.md).
 
-Collection windows and query-shaped patch delivery still have only their
-declared support vocabulary here. Do not manufacture those later journeys from
-invalidation deltas, reports, or lower-runtime APIs.
+Collection windows and query-shaped patch delivery are available when the
+installed operation's exact consumer-support contract admits collection
+delivery. Patches preserve stable row identity, native facts, result state,
+warnings, continuation, window shifts, explicit reset posture, compiled
+impact, target lease, and exact work counters. `apply_patch(...)` validates
+authority and delivery order before consumer mutation. The consumer then owns
+only its local consequences. Foundational patch components remain descriptive
+inside this stronger Query artifact and cannot authorize delivery by
+themselves.
 
 This boundary is specific to installed-operation phase values. Query's general
 history, replay, live, subscription, and other capability families remain as
@@ -2049,7 +2232,10 @@ See [Operational Identity Authority](./foundations/operational-identity-authorit
 - Domain setup starts with `WorthQueryDomainPackage::declare`, installs through
   `WorthQueryRuntimeBuilder::domain_package`, resolves from
   `WorthQueryWorkspace::domain`, and binds through
-  `WorthQueryWorkspace::operating_world(...).family(...).bind(...)`.
+  `WorthQueryWorkspace::observe_operating_world()?.family(...).bind(...)` for
+  observation or
+  `WorthQueryWorkspace::prepare_mutation_operating_world()?.family(...).bind(...)`
+  for mutation.
 - Portable operation meaning lives in
   `WorthQueryDomainOperationDefinition`; volatile execution, graph,
   conditional, and workflow mechanics are registered separately and retained
@@ -2101,9 +2287,9 @@ Before building on a Query category, answer these:
 10. If another runtime depends on Query facts, am I transferring one
     `WorthQueryConsumedProjectionAuthority` rather than pairing basis, receipt,
     source, fact, label, or digest projections locally?
-11. If this is an installed operation, did I enter through one operating world
-    and preserve the move-only `bound -> executed -> published -> consumed ->
-    settled` authority chain?
+11. If this is an installed operation, did I import `facade::installed`, enter
+    through one operating world, and preserve the move-only `bound -> executed
+    -> published -> consumed -> settled` authority chain?
 12. If the operation is conditional, did Query author semantic dependencies,
     Runtime Bridge admit the exact correspondence, and Signal produce the
     decision, or did I accidentally build another condition engine?
@@ -2129,6 +2315,9 @@ Before building on a Query category, answer these:
 21. If this claims bounded cost, which boundary-local result or denial carries
     the exact counters, and is any Foundational export still treated only as
     derived reporting evidence?
+22. If this is collection delivery, did the exact lease-bound invalidation
+    admit the patch, and does the consumer apply the Query patch before deriving
+    only domain-local consequences?
 
 If you cannot answer those, read the owning docs before writing code.
 

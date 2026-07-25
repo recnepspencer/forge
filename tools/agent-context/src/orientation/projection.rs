@@ -31,6 +31,7 @@ pub(crate) fn load_orientations(
         root,
         &contract.query_audience,
         &contract.machine_constitution,
+        &facade_snapshot,
     )? {
         orientations.push(certification);
     }

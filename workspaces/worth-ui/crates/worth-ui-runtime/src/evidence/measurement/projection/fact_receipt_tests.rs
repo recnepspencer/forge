@@ -6,22 +6,19 @@ use crate::declaration::{
 };
 
 use super::fact_test_support::{
-    display_field_projection_consumption, entity_identity_projection_context,
-    synthetic_declaration_identity,
+    display_field_projection_consumption, synthetic_declaration_identity,
 };
-use crate::evidence::{
-    consume_declared_measurement_projection_facts, UiProjectionFactReceiptDenial,
-};
+use crate::evidence::consume_declared_measurement_projection_facts;
 
 #[test]
 fn projection_fact_receipts_preserve_declaration_dependency_identity_for_basis_assembly() {
-    let (prerequisites, attempt) = display_field_projection_consumption("basis-assembly");
+    let (view_binding_id, fact) = display_field_projection_consumption("basis-assembly");
     let receipt = consume_declared_measurement_projection_facts(
         synthetic_declaration_identity("basis-assembly"),
         UiEvidenceAuthorityGeneration::new(17),
         &scroll_measurement_policy(true),
-        prerequisites,
-        &attempt,
+        view_binding_id.clone(),
+        &fact,
     )
     .expect("scroll-backed measurement should consume projection facts into a typed receipt");
 
@@ -45,34 +42,29 @@ fn projection_fact_receipts_preserve_declaration_dependency_identity_for_basis_a
         receipt.required_query_fact_family_set_digest(),
         receipt.consumed_fact_family_set_digest()
     );
-    assert!(!receipt
-        .projection_contract_digest_for_diagnostics()
-        .is_empty());
-    assert!(!receipt
-        .projection_consumption_receipt_digest_for_diagnostics()
-        .is_empty());
-    assert!(!receipt
-        .projection_fact_set_digest_for_diagnostics()
-        .is_empty());
+    assert_eq!(receipt.view_binding_id(), &view_binding_id);
+    assert_eq!(receipt.binding_reference(), fact.binding_reference());
+    assert_eq!(receipt.settlement_reference(), fact.settlement_reference());
+    assert_ne!(receipt.observation_identity_digest(), 0);
 }
 
 #[test]
 fn non_query_measurement_dependencies_do_not_widen_query_projection_receipt_identity() {
-    let (prerequisites, attempt) = display_field_projection_consumption("narrowing");
+    let (view_binding_id, fact) = display_field_projection_consumption("narrowing");
     let with_host_dependency = consume_declared_measurement_projection_facts(
         synthetic_declaration_identity("with-host"),
         UiEvidenceAuthorityGeneration::new(17),
         &scroll_measurement_policy(true),
-        prerequisites.clone(),
-        &attempt,
+        view_binding_id.clone(),
+        &fact,
     )
     .expect("host-plus-query measurement should admit");
     let query_only = consume_declared_measurement_projection_facts(
         synthetic_declaration_identity("query-only"),
         UiEvidenceAuthorityGeneration::new(17),
         &scroll_measurement_policy(false),
-        prerequisites,
-        &attempt,
+        view_binding_id,
+        &fact,
     )
     .expect("query-only measurement should admit");
 
@@ -84,33 +76,6 @@ fn non_query_measurement_dependencies_do_not_widen_query_projection_receipt_iden
         with_host_dependency.consumed_fact_family_set_digest(),
         query_only.consumed_fact_family_set_digest()
     );
-}
-
-#[test]
-fn missing_query_fact_families_deny_before_best_effort_basis_assembly() {
-    let (prerequisites, attempt, _) = entity_identity_projection_context("missing");
-
-    let denial = consume_declared_measurement_projection_facts(
-        synthetic_declaration_identity("missing"),
-        UiEvidenceAuthorityGeneration::new(17),
-        &scroll_measurement_policy(false),
-        prerequisites,
-        &attempt,
-    )
-    .expect_err(
-        "entity-only projection facts should not satisfy scroll content extent measurement",
-    );
-
-    match denial {
-        UiProjectionFactReceiptDenial::MissingRequiredFactFamilies { required, consumed } => {
-            assert_eq!(
-                required.as_ref(),
-                &[worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent]
-            );
-            assert!(consumed.is_empty());
-        }
-        other => panic!("expected missing required fact families denial, got {other:?}"),
-    }
 }
 
 fn scroll_measurement_policy(

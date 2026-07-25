@@ -45,7 +45,11 @@ pub(crate) async fn serve_runtime(runtime: WorthServerRuntime) -> io::Result<()>
     );
     let router = project_axum_router(
         runtime.assembly().route_assembly(),
-        WorthServerOperationRouter::new(runtime.assembly().route_assembly().clone(), compat_http),
+        WorthServerOperationRouter::new(
+            runtime.assembly().route_assembly().clone(),
+            compat_http,
+            runtime.assembly().transport_caller_admission().clone(),
+        ),
     );
     axum::serve(listener, router).await
 }

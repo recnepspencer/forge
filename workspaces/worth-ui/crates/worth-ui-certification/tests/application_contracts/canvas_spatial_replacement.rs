@@ -42,7 +42,7 @@ fn public_replacement_retires_and_remints_exact_canvas_resource_generation() {
         .expect("canvas removal activates")
         .into_activation()
         .expect("canvas removal changes executable meaning");
-    assert!(removal.managed_live_compatibility_retirement().is_empty());
+    assert!(removal.operation_live_retirement().is_empty());
     assert_eq!(
         session
             .inspect_canvas_spatial_target(stale)
@@ -59,9 +59,7 @@ fn public_replacement_retires_and_remints_exact_canvas_resource_generation() {
         .expect("canvas reinsertion activates")
         .into_activation()
         .expect("canvas reinsertion changes executable meaning");
-    assert!(reinsertion
-        .managed_live_compatibility_retirement()
-        .is_empty());
+    assert!(reinsertion.operation_live_retirement().is_empty());
     assert_eq!(
         session
             .inspect_canvas_spatial_target(stale)
@@ -87,6 +85,7 @@ fn public_replacement_retires_and_remints_exact_canvas_resource_generation() {
 
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("successor execution turn"));
     let denial = execution
@@ -153,7 +152,7 @@ fn remove_first_canvas_region(canvas_count: usize) -> CanvasReplacementEvidence 
         .expect("one-region canvas removal activates")
         .into_activation()
         .expect("one-region canvas removal changes executable meaning");
-    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert!(cutover.operation_live_retirement().is_empty());
     let summary = cutover
         .plan_decision()
         .summary()

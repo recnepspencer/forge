@@ -1,19 +1,31 @@
-use worth_query::facade::{
-    domain,
-    foundation::{
-        ConsumedFieldValueFact, ConsumedNativeValueView, WorthQueryConsumedProjectionAuthority,
-    },
-};
+use worth_query::facade::installed::operation;
 
+use super::WorthUiSnapshotNativeAccess;
 use crate::{
-    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactObservationError,
-    WorthUiQueryMeasurementRefinementCounters,
+    WorthUiAdmittedQueryBindingReference, WorthUiAdmittedQuerySettlementReference,
+    WorthUiNativeKeyResolutionCounters, WorthUiQueryMeasurementFactObservation,
+    WorthUiQueryMeasurementFactObservationError, WorthUiQueryMeasurementRefinementCounters,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiSettledMeasurementFactBatch {
     observations: Box<[WorthUiQueryMeasurementFactObservation]>,
     refinement_counters: WorthUiQueryMeasurementRefinementCounters,
+    key_resolution_counters: WorthUiNativeKeyResolutionCounters,
+    native_access_counters: operation::WorthQueryNativeAccessCounters,
+    native_access_binding_counters: Option<WorthUiNativeAccessBindingCounters>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct WorthUiNativeAccessBindingCounters {
+    declared_key_routes: usize,
+    declared_key_layout_checks: usize,
+    lane_shape_checks: usize,
+    fact_scans: usize,
+    row_scans: usize,
+    path_parses: usize,
+    view_registry_inspections: usize,
+    domain_registry_inspections: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -24,12 +36,10 @@ pub struct WorthUiSettledSnapshotSourceOrder(u64);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthUiSettledSnapshotFact {
-    settlement_identity: String,
-    query_binding_identity: String,
-    measurement_facts:
-        Result<WorthUiSettledMeasurementFactBatch, WorthUiQueryMeasurementFactObservationError>,
-    native_facts: Box<[ConsumedFieldValueFact]>,
-    result_state: domain::WorthQueryOperationResultState,
+    binding_reference: WorthUiAdmittedQueryBindingReference,
+    settlement_reference: WorthUiAdmittedQuerySettlementReference,
+    measurement_facts: WorthUiSettledMeasurementFactBatch,
+    result_state: operation::WorthQueryOperationResultState,
     execution_warning_count: usize,
     projection_warning_count: usize,
     source_generation: Option<WorthUiSettledSnapshotSourceGeneration>,
@@ -37,14 +47,19 @@ pub struct WorthUiSettledSnapshotFact {
 }
 
 impl WorthUiSettledMeasurementFactBatch {
-    fn from_query_authority(
-        authority: &WorthQueryConsumedProjectionAuthority,
+    fn from_native_access(
+        access: &operation::WorthQueryNativeFieldAccess<'_>,
+        key_resolution_counters: WorthUiNativeKeyResolutionCounters,
+        native_access_binding_counters: Option<WorthUiNativeAccessBindingCounters>,
     ) -> Result<Self, WorthUiQueryMeasurementFactObservationError> {
         let (observations, refinement_counters) =
-            WorthUiQueryMeasurementFactObservation::from_query_authority(authority)?;
+            WorthUiQueryMeasurementFactObservation::from_native_access(access)?;
         Ok(Self {
             observations,
             refinement_counters,
+            key_resolution_counters,
+            native_access_counters: access.counters(),
+            native_access_binding_counters,
         })
     }
 
@@ -55,29 +70,59 @@ impl WorthUiSettledMeasurementFactBatch {
     pub fn refinement_counters(&self) -> WorthUiQueryMeasurementRefinementCounters {
         self.refinement_counters
     }
+
+    pub fn key_resolution_counters(&self) -> WorthUiNativeKeyResolutionCounters {
+        self.key_resolution_counters
+    }
+
+    pub fn native_access_counters(&self) -> operation::WorthQueryNativeAccessCounters {
+        self.native_access_counters
+    }
+
+    pub fn native_access_binding_counters(&self) -> Option<WorthUiNativeAccessBindingCounters> {
+        self.native_access_binding_counters
+    }
 }
 
 impl WorthUiSettledSnapshotFact {
-    pub(super) fn from_settled<D, O, F, L>(
-        settled: &domain::WorthQuerySettledDomainProjection<D, O, F, L>,
-    ) -> Self
+    pub(crate) fn from_settled<D, O, F, L>(
+        settled: &operation::WorthQuerySettledDomainProjection<D, O, F, L>,
+        native_access: &WorthUiSnapshotNativeAccess,
+        binding_reference: WorthUiAdmittedQueryBindingReference,
+        settlement_reference: WorthUiAdmittedQuerySettlementReference,
+    ) -> Result<Self, WorthUiQueryMeasurementFactObservationError>
     where
         L: worth_query::facade::foundation::BasisOperationLane,
     {
-        Self {
-            settlement_identity: settled.identity().to_owned(),
-            query_binding_identity: settled.execution_receipt().binding_identity().to_owned(),
-            measurement_facts: WorthUiSettledMeasurementFactBatch::from_query_authority(
-                settled.authority(),
-            ),
-            native_facts: settled
-                .authority()
-                .facts()
-                .display_fields()
-                .iter()
-                .chain(settled.authority().facts().derived_fields())
-                .cloned()
-                .collect(),
+        let native_access_binding_counters =
+            settled.native_access_binding_counters().map(|counters| {
+                WorthUiNativeAccessBindingCounters {
+                    declared_key_routes: counters.declared_key_routes,
+                    declared_key_layout_checks: counters.declared_key_layout_checks,
+                    lane_shape_checks: counters.lane_shape_checks,
+                    fact_scans: counters.fact_scans,
+                    row_scans: counters.row_scans,
+                    path_parses: counters.path_parses,
+                    view_registry_inspections: counters.view_registry_inspections,
+                    domain_registry_inspections: counters.domain_registry_inspections,
+                }
+            });
+        let measurement_facts = settled
+            .native_value(native_access.key(), 0)
+            .map_err(|denial| {
+                WorthUiQueryMeasurementFactObservationError::NativeAccess(Box::new(denial))
+            })
+            .and_then(|access| {
+                WorthUiSettledMeasurementFactBatch::from_native_access(
+                    &access,
+                    native_access.resolution_counters(),
+                    native_access_binding_counters,
+                )
+            })?;
+        Ok(Self {
+            binding_reference,
+            settlement_reference,
+            measurement_facts,
             result_state: settled.result_state(),
             execution_warning_count: settled.warnings().len(),
             projection_warning_count: settled
@@ -85,7 +130,7 @@ impl WorthUiSettledSnapshotFact {
                 .map_or(0, |warnings| warnings.warning_kinds().len()),
             source_generation: None,
             source_order: None,
-        }
+        })
     }
 
     pub(crate) fn attach_source_coordinates(
@@ -99,41 +144,30 @@ impl WorthUiSettledSnapshotFact {
         self.source_order = Some(order);
     }
 
-    pub fn settlement_identity(&self) -> &str {
-        &self.settlement_identity
-    }
-
-    pub fn query_binding_identity(&self) -> &str {
-        &self.query_binding_identity
-    }
-
-    pub fn measurement_facts(
-        &self,
-    ) -> Result<&WorthUiSettledMeasurementFactBatch, WorthUiQueryMeasurementFactObservationError>
-    {
-        self.measurement_facts.as_ref().map_err(|error| *error)
+    pub fn measurement_facts(&self) -> &WorthUiSettledMeasurementFactBatch {
+        &self.measurement_facts
     }
 
     pub fn projected_measurement_fact_count(&self) -> usize {
-        self.measurement_facts.as_ref().map_or(0, |facts| {
-            facts.refinement_counters.projected_measurement_fact_count()
-        })
+        self.measurement_facts
+            .refinement_counters
+            .projected_measurement_fact_count()
     }
 
-    pub fn native_fact_count(&self) -> usize {
-        self.native_facts.len()
+    pub fn binding_reference(&self) -> &WorthUiAdmittedQueryBindingReference {
+        &self.binding_reference
     }
 
-    pub fn native_fact(&self, index: usize) -> Option<ConsumedNativeValueView<'_>> {
-        self.native_facts.get(index).map(|fact| fact.native_value())
+    pub fn settlement_reference(&self) -> &WorthUiAdmittedQuerySettlementReference {
+        &self.settlement_reference
     }
 
-    pub fn result_state(&self) -> domain::WorthQueryOperationResultState {
+    pub fn result_state(&self) -> operation::WorthQueryOperationResultState {
         self.result_state
     }
 
     pub fn is_partial(&self) -> bool {
-        self.result_state == domain::WorthQueryOperationResultState::Partial
+        self.result_state == operation::WorthQueryOperationResultState::Partial
     }
 
     pub fn execution_warning_count(&self) -> usize {
@@ -154,6 +188,40 @@ impl WorthUiSettledSnapshotFact {
 
     pub fn source_order(&self) -> Option<WorthUiSettledSnapshotSourceOrder> {
         self.source_order
+    }
+}
+
+impl WorthUiNativeAccessBindingCounters {
+    pub fn declared_key_routes(self) -> usize {
+        self.declared_key_routes
+    }
+
+    pub fn declared_key_layout_checks(self) -> usize {
+        self.declared_key_layout_checks
+    }
+
+    pub fn lane_shape_checks(self) -> usize {
+        self.lane_shape_checks
+    }
+
+    pub fn fact_scans(self) -> usize {
+        self.fact_scans
+    }
+
+    pub fn row_scans(self) -> usize {
+        self.row_scans
+    }
+
+    pub fn path_parses(self) -> usize {
+        self.path_parses
+    }
+
+    pub fn view_registry_inspections(self) -> usize {
+        self.view_registry_inspections
+    }
+
+    pub fn domain_registry_inspections(self) -> usize {
+        self.domain_registry_inspections
     }
 }
 

@@ -22,7 +22,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         worth_query_declaration_progression_recipe(legal, self.retained_world_basis())
     }
 
-    pub(crate) fn progress_declaration<I>(
+    pub fn progress_declaration<I>(
         &self,
         legal: WorthQueryDeclarationLegalityEvidence<D, I>,
     ) -> Result<
@@ -83,7 +83,7 @@ impl<D: WorthQueryDomainEntryMarker, C: WorthQueryDomainOperatingContext<D>>
         }
     }
 
-    pub(crate) fn progress_declaration_checked<I>(
+    pub fn progress_declaration_checked<I>(
         &self,
         legal: WorthQueryDeclarationLegalityEvidence<D, I>,
     ) -> WorthQueryDeclarationProgressionChecked<D, I>

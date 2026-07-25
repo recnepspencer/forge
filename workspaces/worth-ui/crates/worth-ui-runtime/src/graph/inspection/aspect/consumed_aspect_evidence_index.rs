@@ -4,7 +4,8 @@ use super::super::aspect_evidence_record::{UiAspectEvidenceRecord, UiAspectEvide
 use super::aspect_evidence_neighborhood::{UiAspectEvidenceLookup, UiAspectEvidenceNeighborhood};
 use crate::evidence::{order_refs, UiEvidenceAuthorityGeneration, UiEvidenceRef};
 use crate::graph::{
-    UiGraphAspectConsumerKind, UiGraphNodeEvidenceIndex, UiGraphSnapshot, UiMountedReceiptIdentity,
+    UiGraphAspectConsumerKind, UiGraphMountEligibilityIdentity, UiGraphNodeEvidenceIndex,
+    UiGraphSnapshot,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -96,17 +97,17 @@ fn neighborhood_for_consumers(
                     .reference(),
                 );
             }
-            UiGraphAspectConsumerKind::MountedReceiptSlot(mounted_receipt_identity) => {
+            UiGraphAspectConsumerKind::MountEligibilitySlot(mount_eligibility_identity) => {
                 declaration_artifact_indexes.insert(receipt_artifact_index(
                     graph_snapshot,
                     graph_node_evidence_index,
-                    mounted_receipt_identity,
+                    mount_eligibility_identity,
                 ));
                 refs.push(
                     UiAspectEvidenceRecord::new(
                         canonical_label,
-                        UiAspectEvidenceRecordKind::ConsumedMountedReceipt(
-                            mounted_receipt_identity.digest(),
+                        UiAspectEvidenceRecordKind::ConsumedMountEligibility(
+                            mount_eligibility_identity.digest(),
                         ),
                         authority_generation,
                     )
@@ -128,15 +129,15 @@ fn neighborhood_for_consumers(
 fn receipt_artifact_index(
     graph_snapshot: &UiGraphSnapshot,
     graph_node_evidence_index: &UiGraphNodeEvidenceIndex,
-    mounted_receipt_identity: UiMountedReceiptIdentity,
+    mount_eligibility_identity: UiGraphMountEligibilityIdentity,
 ) -> usize {
-    let mounted_receipt_slot = graph_snapshot
+    let mount_eligibility_slot = graph_snapshot
         .lookup()
-        .mounted_receipt_slot(mounted_receipt_identity)
-        .expect("consumed aspect receipt should resolve through mounted receipt index");
+        .mount_eligibility_slot(mount_eligibility_identity)
+        .expect("consumed aspect receipt should resolve through mount eligibility index");
     graph_node_evidence_index
-        .lookup_graph_node_identity(mounted_receipt_slot.value().graph_node_identity())
-        .expect("mounted receipt graph node should resolve through graph-node evidence index")
+        .lookup_graph_node_identity(mount_eligibility_slot.value().graph_node_identity())
+        .expect("mount eligibility graph node should resolve through graph-node evidence index")
         .neighborhood()
         .declaration_artifact_index()
 }

@@ -121,6 +121,13 @@ capability enters the implementation vocabulary only when its owning milestone
 positively introduces it. Earlier milestones and specs do not enumerate,
 pre-design, stub, or carry support posture for later capabilities.
 
+Query Milestone 9.15 may establish single-semantic-world candidate-search,
+bounded-convergence, transformation-occurrence, loss, and proposal evidence
+before this roadmap closes. Those artifacts are derived inputs to later
+governed resolution. They may not create conflict identity, participant
+authority, durable decision state, branch-aware carry-forward, or resolution
+session recovery.
+
 ## Governing Summaries
 
 - `MENTALITY.md` protects adversarial-first, foundation-first construction. Its
@@ -195,6 +202,11 @@ The architecture has failed if it:
 - represents conflict as strings, paths without typed identity, or an opaque
   left/right value bag
 - lets manual resolution mutate truth outside a governed, replayable session
+- promotes candidate-search, convergence, transformation, loss, repair, or
+  advisory evidence into a resolution command because its fields appear to
+  match
+- gives merge, import repair, routing, physics, assumptions, or AI advisories
+  separate durable problem/decision/session state machines
 - assumes a derived Signal graph can be merged as authoritative truth
 - allows Query to become a second merge engine, the physical Store to learn
   semantic branch meaning, or the Store-Query adapter to become a third runtime
@@ -273,6 +285,19 @@ not grant completion credit to the current implementation.
     may close through a shadow backend, direct physical mechanism access,
     second Relational instance, Store-local query language, or persisted
     representation promoted into semantic authority.
+15. The current `crates/worth-store` implementation is not treated as the
+    collaboration substrate or compatibility authority. Durable work targets
+    the replacement Store/runtime boundaries established by the active Store
+    roadmaps.
+16. Candidate sets, search completeness, optimality claims, convergence
+    evidence, transformation records, correspondence suggestions, loss ledgers,
+    repair proposals, and advisories are derived evidence. None can authorize
+    resolution or publication without an admitted governed-resolution command.
+17. Milestones 10-11 establish the one reusable governed-resolution lifecycle
+    for merge conflicts and later domain problems such as foreign-model repair,
+    physical routing, assumption review, and engineering advisories. Merge is
+    the first mandatory specialization, not permission to encode the shared
+    lifecycle in merge-shaped value bags or Query-local session state.
 
 ## Semantic History Principles
 
@@ -407,7 +432,7 @@ Relational authority
   definition_world/             schema, aspect, logic, invariant, policy versions
   correspondence/               identity lineage and admitted correspondence
   merge_planning/               typed three-way plans and strategy lowering
-  conflict_resolution/          resolution commands and stale-plan rejection
+  conflict_resolution/          merge loci and publication sufficiency
 
 Signal authority
   definition_world/             derived-node and dependency definitions
@@ -419,11 +444,28 @@ Runtime Bridge authority
   merge_publication/            publication-to-derivation continuity
   collaboration_recovery/       typed incomplete-transition recovery
 
+Governed resolution control-plane authority
+  resolution_problem/           admitted problem and alternative lifecycle
+  resolution_decision/          commands, decisions, supersession, stale rejection
+  resolution_session/           roles, progress, checkpoint, recovery, disposal
+  specialization/               sealed merge/domain semantic-owner handoffs
+
 Query product surface
   collaboration_context/        admitted world, branch, policy, and strategy context
   comparison/                   semantic diff and explanation declarations
   merge_workflow/               plan, resolve, publish, inspect, and recover
+  resolution_workflow/          inspect, propose, decide, defer, replan, and recover
   offline_workflow/             capsule, sync, readmission, and partial-world DX
+
+Store integration authority
+  semantic_commit_record/        versioned commit and parent representation
+  resolution_session_record/     governed decisions and workflow checkpoints
+  replica_journal_record/        causal operation and frontier representation
+  semantic_merge_commit/         durability/publication/acknowledgment join
+  semantic_merge_recovery/       checkpoint, tail, idempotency, and readmission
+  offline_capsule_transfer/      capsule export, import, and resume mechanics
+  replica_transfer/              replication and anti-entropy mechanics
+  semantic_history_reclaim/      retention, stability, compaction, and GC
 
 Certification
   semantic_git_oracles/          independent reference semantics
@@ -433,6 +475,9 @@ Certification
 
 Directories exist only when the responsibility is real. No `common`, `shared`,
 `helpers`, `manager`, or collaboration-wide type bag is allowed.
+Milestone 1 must assign the governed-resolution control-plane authority to a
+legal crate/package boundary without defaulting it into Query, Relational,
+Store, or Foundational merely because those authorities participate.
 
 The responsibilities for Store-backed records, lowering, hydration, durable
 publication joins, recovery readmission, physical transfer, and physical
@@ -1056,12 +1101,14 @@ deduplication, tombstone, migration, and invariant posture.
 Earn `SemanticClose` when every automatic merge or convergence claim is backed
 by a named executable contract and no unclassified fallback strategy remains.
 
-## Milestone 10: Conflict And Resolution Model
+## Milestone 10: Conflict And Governed Resolution Model
 
 ### Goal
 
-Make semantic conflicts durable, typed, composable, manually resolvable, and
-safe against stale bases, partial decisions, and authority drift.
+Make semantic conflicts and the shared governed-resolution problem model
+durable, typed, composable, manually resolvable, and safe against stale bases,
+partial decisions, derived-proposal promotion, and authority drift. Merge
+conflict is the first mandatory specialization of the shared model.
 
 ### Hard Problem
 
@@ -1070,14 +1117,25 @@ problem, choose among base/left/right/custom/domain repair options, defer some
 conflicts, collaborate on decisions, and resume later without applying a
 resolution to a world that has since changed.
 
+The same lifecycle will later govern foreign-model repairs, physical routing
+alternatives, assumption review, and engineering advisories. If this milestone
+hard-codes base/left/right as the shared representation or treats Query 9.15
+candidate evidence as authority, every later domain will build a second
+resolution system.
+
 ### Must Ship
 
 - a typed conflict taxonomy for definition, identity, aspect, relationship,
   topology, invariant, policy, strategy, authority, basis, and availability
   conflicts
+- a canonical governed-resolution problem contract carrying problem family,
+  semantic locus, exact basis, policy, authority requirement, domain payload
+  contract, lifecycle, and publication owner without requiring merge vocabulary
 - stable conflict identity derived from semantic locus and exact compared
   bases, not display text or list position
 - typed alternatives, domain repair proposals, and resolution requirements
+  whose derived search, feasibility, completeness, optimality, convergence,
+  transformation, and loss evidence remains distinct from resolution authority
 - explicit unresolved, proposed, admitted, rejected, superseded, applied, and
   invalidated resolution states
 - resolution commands that carry resolver authority, reason, scope, policy,
@@ -1087,19 +1145,33 @@ resolution to a world that has since changed.
 - replan and carry-forward rules when branch heads, definitions, policy, or
   authority change
 - deterministic canonical ordering and grouping for UI, API, audit, and replay
+- an admitted specialization boundary through which later domain problems
+  reuse the same command and decision lifecycle while retaining their own
+  candidate, comparator, repair, invariant, and publication semantics
 
 ### Authority And Derivation
 
-Relational owns whether an authoritative conflict is resolved sufficiently to
-prepare publication. Human and domain decisions enter as governed commands.
-Query owns the ergonomic workflow and presentation. Diagnostics and suggested
-repairs are not authority.
+The governed-resolution control-plane authority owns problem identity,
+alternative/decision progression, supersession, and stale-basis rejection.
+Relational owns whether an authoritative merge conflict is resolved
+sufficiently to prepare publication. Human and domain decisions enter as
+governed commands. Query owns the ergonomic workflow and presentation.
+Diagnostics and suggested repairs are not authority.
+
+For a non-merge domain specialization, the owning semantic authority decides
+whether the admitted decisions are sufficient to prepare its ordinary
+authoritative operation. The shared resolution model owns problem/decision
+progression and stale-basis rejection, not domain truth or publication.
 
 ### DX Target
 
 A user can resolve one aspect, accept an invariant-aware domain repair for
 another, defer a topology conflict, and later resume with a precise report of
 which decisions remain valid or became stale.
+
+The same public shape can later inspect a STEP repair set or routing tradeoff
+without exposing merge-only base/left/right fields or allowing a candidate
+artifact to masquerade as an approved command.
 
 ### Proof Obligations
 
@@ -1109,19 +1181,29 @@ which decisions remain valid or became stale.
 - conflict ordering and identity remain stable across restart and projection
 - custom resolutions re-enter invariant validation and cannot bypass policy
 - no partially resolved plan reaches authoritative publication
+- candidate, convergence, transformation, loss, correspondence, and advisory
+  artifacts from Query 9.15 remain derived until admitted by a resolution
+  command carrying current authority and expected basis
+- one hostile non-merge specialization proves the shared problem, alternative,
+  command, stale-basis, and invariant-readmission contracts contain no
+  merge-specific representation while using the same production lifecycle
 
 ### Closeout Gate
 
 Earn `SemanticClose` when manual resolution is a complete governed semantic
-transition rather than an out-of-band value override.
+transition rather than an out-of-band value override, and when merge conflict
+is proven to be one specialization of a reusable lifecycle rather than the
+definition of resolution itself.
 
 ## Milestone 11: Durable Collaborative Resolution Sessions
 
 ### Goal
 
-Wrap merge inspection and manual resolution in a framework-owned, durable,
-multi-participant session lifecycle with progress, leases, decisions,
-cancellation, recovery, and explicit publication authority.
+Wrap governed problem inspection and manual resolution in a framework-owned,
+durable, multi-participant session lifecycle with progress, leases, decisions,
+cancellation, recovery, and explicit publication authority. Merge sessions are
+the first production specialization; later admitted domain sessions reuse the
+same control plane.
 
 ### Hard Problem
 
@@ -1131,10 +1213,16 @@ of chosen values is insufficient to recover authority, staleness, participant
 roles, decision provenance, or the plan that those choices were meant to
 resolve.
 
+A domain repair or routing session may not involve two branch heads, but it has
+the same hard lifecycle problem: its source world, definitions, assumptions,
+policy, candidate evidence, target generation, participant authority, and
+publication owner can drift independently while the session remains open.
+
 ### Must Ship
 
-- session identity, exact merge-plan basis, participant roles, policy basis,
-  lease state, progress frontier, and lifecycle typestates
+- session identity, governed problem identity, exact semantic-world and
+  specialization-plan basis, participant roles, policy basis, lease state,
+  progress frontier, and lifecycle typestates
 - separate read/inspect, propose, approve, reject, replan, cancel, abandon, and
   publish capabilities
 - durable append-only decision records with actor authority, reason, affected
@@ -1145,20 +1233,31 @@ resolve.
   replanning-required, cancelled, abandoned, and indeterminate outcomes
 - framework-owned disposal and retention participation
 - Query-facing progress streams with backpressure and lifecycle control
+- specialization-neutral checkpoints and journals that retain typed domain
+  decisions and evidence references without serializing merge-only value bags
 
 ### Authority And Derivation
 
-The session control plane owns workflow state, not semantic truth. Relational
-still decides whether the resolved plan can prepare. In Store-backed mode,
-session records persist through the adapter's declared semantic-artifact
-mapping. Query exposes participant and operator workflows. A persisted role or
-past approval does not restore current authority without readmission.
+The governed-resolution control-plane authority owns session workflow state,
+not semantic truth. Relational still decides whether a resolved merge plan can
+prepare. In Store-backed mode, session records persist through the adapter's
+declared semantic-artifact mapping. Query exposes participant and operator
+workflows. A persisted role or past approval does not restore current authority
+without readmission.
+
+For non-merge specializations, the owning semantic authority replaces
+Relational's merge-sufficiency role for the final preparation decision; Store,
+Query, participant readmission, and session authority remain unchanged.
 
 ### DX Target
 
 Opening a conflict returns a session handle, not a blocking merge call. The
 handle supports inspect, propose, approve, checkpoint, replan, publish, cancel,
 and recover with typed next actions.
+
+Opening an admitted repair, routing, or advisory problem returns the same class
+of handle while preserving domain-shaped alternatives and outcomes. Callers
+never select a different session framework based on problem domain.
 
 ### Proof Obligations
 
@@ -1169,13 +1268,18 @@ and recover with typed next actions.
 - abandoned sessions cannot pin history forever without declared retention
   policy
 - session memory, journal, participant, and progress counters remain bounded
+- merge-conflict and one non-merge domain session share lifecycle, authority,
+  staleness, checkpoint, recovery, and retention oracles while keeping their
+  problem payloads, invariants, and publication owners distinct
+- a Query 9.15 candidate or repair artifact with matching serialized fields
+  cannot restore a session, approve a decision, or publish an outcome
 
 ### Closeout Gate
 
 Earn `SemanticClose` for the session state machine and reference persistence
-model. Earn `JoinedClose` only after the production Store-backed composition
-durably recovers sessions, decisions, and pins through the adapter without
-promoting persisted authority.
+model across merge and one hostile non-merge specialization. Earn `JoinedClose`
+only after the production Store-backed composition durably recovers sessions,
+decisions, and pins through the adapter without promoting persisted authority.
 
 ## Milestone 12: Signal Definition And Derived-World Reconciliation
 
@@ -1404,6 +1508,9 @@ projections over the real lower-authority model built in Milestones 1 through
   basis, tag/reference policy, mutation, fast-forward classification, true
   merge planning, conflict preview, resolution session, publication, and
   post-merge inspection workflows
+- specialization-neutral governed-resolution authoring, inspection, proposal,
+  approval, deferral, replan, cancellation, recovery, and publication
+  projection over the Milestones 10-14 authorities
 - typed readmission classifications including replayable, current, stale,
   rebind-required, authority-mismatch, merge-inspection-required,
   semantic-conflict, unavailable, and indeterminate
@@ -1420,6 +1527,9 @@ recovery projection. It lowers to Relational, Signal, Bridge, Foundational,
 Proof, and Query publication-provider contracts and may not reinterpret their
 verdicts. In Store-backed mode, the production adapter implements the relevant
 provider contracts without becoming visible product vocabulary.
+Candidate/search/convergence/transformation evidence from Query 9.15 may be
+projected into this workflow but cannot replace its conflict, decision, session,
+publication, or recovery authorities.
 
 ### DX Target
 
@@ -1438,6 +1548,8 @@ losing access to advanced plan and recovery detail.
 - documentation, goldens, support matrices, inventories, and compile-fail
   boundaries teach the exact public path
 - runtime-backed and Store-backed Query semantic oracles agree
+- merge and non-merge resolution workflows use one Query surface and one lower
+  control plane while preserving distinct semantic owners and publication paths
 
 ### Closeout Gate
 
@@ -1718,6 +1830,9 @@ incompatible version changes, or unverifiable convergence claims.
   aspect and relationship semantics, merge strategy, invariant contracts,
   correspondence rules, repair proposals, offline participation, and
   convergence posture
+- governed-resolution specialization declaring problem/candidate payloads,
+  authority requirements, stale-basis dependencies, invariant readmission, and
+  publication owner while reusing the Milestones 10-11 lifecycle
 - object-style definitions for whole semantic shape and builders only for real
   proof progression
 - sealed registration and compatibility admission
@@ -1751,6 +1866,9 @@ registries.
   operation-convergent domain
 - packages cannot bypass authority, invariant, publication, retention, or
   diagnostic policy
+- packages cannot install a parallel decision/session state machine or promote
+  Query 9.15 candidate, search, convergence, transformation, or loss evidence
+  into resolution authority
 - missing declarations fail at installation rather than during first merge
 - package upgrade matrices cover old branches, offline capsules, active
   sessions, and mixed-version replicas
@@ -2003,6 +2121,15 @@ in parallel only after the shared prerequisites below are fixed:
 - The semantic-history reference model and boundary tests begin in Milestone 1.
   Later milestones add certification only when they introduce the capability
   being certified; Milestone 22 remains the final integrated gate.
+- Query 9.15 candidate-search, convergence, transformation, loss, and
+  single-basis proposal evidence may proceed before Milestone 10. Durable
+  conflict identity, participant decisions, approval/deferral, carry-forward,
+  session persistence, and resolution recovery may not.
+- STEP parsing/normalization/healing kernels and physical resolver/solver work
+  may proceed as derived single-basis computation. Authoritative imported
+  identity, repair publication, branch-aware correspondence, and durable
+  advisory/manual resolution consume Milestones 2-11 according to the authority
+  they require.
 
 ## Completion Standard
 
@@ -2024,6 +2151,9 @@ This roadmap is complete only when WORTH can honestly say:
   or produces exact typed conflict
 - manual resolution is governed, durable, collaborative, replayable, and safe
   against stale bases and authority drift
+- merge conflicts and later foreign-model repair, physical routing, assumption,
+  and engineering-advisory problems reuse one governed-resolution lifecycle
+  without collapsing their domain semantics or publication authorities
 - one cross-runtime protocol joins semantic preparation, durable publication,
   branch-head truth, derived reconciliation, acknowledgment, and recovery
 - the Store-backed composition closes that protocol through one Query runtime,

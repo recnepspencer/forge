@@ -2,14 +2,14 @@ use crate::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use crate::declaration::UiDeclarationIdentity;
 use crate::evidence::{
     query_measurement_fact_family_set_digest, UiEvidenceAuthorityGeneration,
-    UiProjectionFactReceipt,
+    UiSettledQueryFactReceipt,
 };
 use crate::graph::UiGraphNodeIdentity;
 use worth_ui_query_binding::WorthUiQueryMeasurementFactFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiQueryMeasurementUnsupportedQueryReason {
-    MissingQueryPrerequisites,
+    MissingSettledQueryFact,
     WrongWorldProjection,
     RebindRequired,
     AmbiguousSources,
@@ -17,16 +17,10 @@ pub enum UiQueryMeasurementUnsupportedQueryReason {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum UiQueryMeasurementBasisAuthority {
-    AdmittedPrerequisites {
-        prerequisites: Box<
-            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
-        >,
-    },
-    ProjectionConsumption {
-        authority:
-            Box<worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle>,
-    },
+pub struct UiQueryMeasurementSourceIdentity {
+    view_binding_id: crate::capability::ViewBindingId,
+    binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+    settlement_reference: worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,10 +34,11 @@ pub enum UiQueryMeasurementEligibilityPosture {
         world: UiAdmissionWorld,
         reason: UiQueryMeasurementUnsupportedQueryReason,
     },
-    StaleBasisGeneration {
+    StaleSettlement {
         world: UiAdmissionWorld,
-        expected: UiQueryMeasurementBasisAuthority,
-        observed: UiQueryMeasurementBasisAuthority,
+        expected_view_binding_id: crate::capability::ViewBindingId,
+        expected_binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+        observed: Box<UiQueryMeasurementSourceIdentity>,
     },
     UnavailableFactFamilies {
         world: UiAdmissionWorld,
@@ -63,7 +58,7 @@ pub struct UiQueryMeasurementEligibility {
     boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
     required_fact_family_set_digest: u64,
     required_families: Box<[WorthUiQueryMeasurementFactFamily]>,
-    projection_fact_receipt: Option<UiProjectionFactReceipt>,
+    projection_fact_receipt: Option<UiSettledQueryFactReceipt>,
     posture: UiQueryMeasurementEligibilityPosture,
 }
 
@@ -76,7 +71,7 @@ pub(crate) struct UiQueryMeasurementEligibilityInput {
     pub selected_support_authority_generation: UiEvidenceAuthorityGeneration,
     pub boundary_support_authority_generation: UiEvidenceAuthorityGeneration,
     pub required_families: Box<[WorthUiQueryMeasurementFactFamily]>,
-    pub projection_fact_receipt: Option<UiProjectionFactReceipt>,
+    pub projection_fact_receipt: Option<UiSettledQueryFactReceipt>,
     pub posture: UiQueryMeasurementEligibilityPosture,
 }
 
@@ -139,31 +134,6 @@ impl UiQueryMeasurementEligibility {
         self.boundary_support_authority_generation
     }
 
-    pub fn query_basis_digest_for_diagnostics(&self) -> Option<&str> {
-        self.target
-            .query_prerequisites()
-            .map(|evidence| evidence.basis_digest_for_diagnostics())
-    }
-
-    pub fn query_resolution_mode(
-        &self,
-    ) -> Option<worth_ui_query_binding::compatibility::managed_live::WorthUiQueryResolutionMode>
-    {
-        self.target
-            .query_prerequisites()
-            .map(|evidence| evidence.resolution_mode())
-    }
-
-    pub fn query_projection_contract_identity(
-        &self,
-    ) -> Option<
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryProjectionContractIdentity,
-    > {
-        self.target
-            .query_prerequisites()
-            .and_then(|evidence| evidence.projection_contract_identity())
-    }
-
     pub fn required_fact_family_set_digest(&self) -> u64 {
         self.required_fact_family_set_digest
     }
@@ -172,11 +142,40 @@ impl UiQueryMeasurementEligibility {
         &self.required_families
     }
 
-    pub fn projection_fact_receipt(&self) -> Option<&UiProjectionFactReceipt> {
+    pub fn projection_fact_receipt(&self) -> Option<&UiSettledQueryFactReceipt> {
         self.projection_fact_receipt.as_ref()
     }
 
     pub fn posture(&self) -> &UiQueryMeasurementEligibilityPosture {
         &self.posture
+    }
+}
+
+impl UiQueryMeasurementSourceIdentity {
+    pub(crate) fn from_settled_fact(
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
+    ) -> Self {
+        Self {
+            view_binding_id,
+            binding_reference: fact.binding_reference().clone(),
+            settlement_reference: fact.settlement_reference().clone(),
+        }
+    }
+
+    pub fn view_binding_id(&self) -> &crate::capability::ViewBindingId {
+        &self.view_binding_id
+    }
+
+    pub fn binding_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference {
+        &self.binding_reference
+    }
+
+    pub fn settlement_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference {
+        &self.settlement_reference
     }
 }

@@ -27,7 +27,6 @@ use crate::graph::{
 };
 use crate::lifecycle::WorthUiRuntimeSupportInventory;
 use crate::obligations::closeout::UiObligationCloseoutReport;
-use crate::obligations::touch::UiGraphTouchDescriptor;
 use crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 use std::rc::Rc;
 
@@ -62,6 +61,22 @@ impl WorthUiApp {
     /// Inspect the comparison-safe identity of this prepared generation.
     pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
         self.prepared.generation_identity()
+    }
+
+    pub(super) fn mounted_frame_retention_budget(
+        &self,
+    ) -> crate::mounting::UiMountedFrameRetentionBudget {
+        self.prepared
+            .host_session_plan()
+            .mounted_frame_retention_budget()
+    }
+
+    pub(super) fn host_observation_capacity(
+        &self,
+    ) -> crate::host_exchange::observation_report_validation::UiHostObservationCapacity {
+        self.prepared
+            .host_session_plan()
+            .host_observation_capacity()
     }
 
     /// Borrow the sealed prepared authority without transferring any
@@ -104,17 +119,6 @@ impl WorthUiApp {
             self.prepared.declaration_artifacts(),
             self.prepared.graph_snapshot(),
         )
-    }
-
-    /// Admit Query-backed measurement eligibility from an ordinary projection-fact
-    /// consumption attempt without requiring callers to mint prerequisite artifacts.
-    pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
-        &self,
-        touch: &UiGraphTouchDescriptor,
-        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-    ) -> Option<crate::admission::UiQueryMeasurementEligibility> {
-        self.admission()
-            .admit_query_measurement_eligibility_for_touch_from_query_authority(touch, authority)
     }
 
     pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
@@ -223,11 +227,7 @@ impl WorthUiApp {
             admission,
             Rc::clone(&self.retained_allocation_planning_evidence),
         )?;
-        Ok(crate::facade::entry::WorthUiActiveApplicationSession::new(
-            self,
-            runtime,
-            host_session,
-        ))
+        crate::facade::entry::WorthUiActiveApplicationSession::new(self, runtime, host_session)
     }
 
     /// Certification-only launch seam for subsystem tests that construct a
@@ -250,7 +250,17 @@ impl WorthUiApp {
         let initial_allocation_commit = self.prepared.initial_allocation_commit(artifact_digest)?;
         let host_session =
             crate::facade::WorthUiHostSessionAuthority::activate(self.prepared.host_session_plan())
-                .map_err(|_| WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted)?;
+                .map_err(|denial| match denial {
+                    crate::facade::WorthUiHostSessionActivationDenial::IdentityExhausted => {
+                        WorthUiRuntimeLaunchDenial::HostSessionIdentityExhausted
+                    }
+                    crate::facade::WorthUiHostSessionActivationDenial::Protocol(denial) => {
+                        WorthUiRuntimeLaunchDenial::HostProtocol(denial)
+                    }
+                    crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(
+                        denial,
+                    ) => WorthUiRuntimeLaunchDenial::HostMountedPresentationLease(denial),
+                })?;
         let runtime = WorthUiRuntime::launch(
             launch,
             lowering_authority,

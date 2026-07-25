@@ -41,7 +41,7 @@ fn touch_measurement_neighborhood_hint_only_projects_for_matching_node() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&host_result_font_metrics(
                 21,
@@ -109,7 +109,7 @@ fn query_fact_touch_origins_deny_outside_query_world_before_touch_construction()
         authoritative_app
             .try_query_touch_for_node(graph_node_identity)
             .expect_err("authoritative world should deny query-fact touch origins"),
-        UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld
+        UiGraphTouchDenial::QueryBindingChangeUnavailableInCurrentWorld
     );
 }
 

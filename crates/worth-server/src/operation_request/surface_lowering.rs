@@ -41,6 +41,38 @@ pub(crate) fn lower_compat_http_request_input(
     Ok(builder.build())
 }
 
+pub(crate) fn lower_browser_origin(
+    prepared_request: &WorthServerCompatibilityPreparedRequest,
+) -> Result<Option<String>, WorthServerOperationRequestDenial> {
+    let diagnostics_profile = prepared_request
+        .admission()
+        .request_context()
+        .diagnostics_profile();
+    let Some(values) = prepared_request
+        .request_contract()
+        .canonical_headers()
+        .values("origin")
+    else {
+        return Ok(None);
+    };
+    if values.len() != 1 {
+        return Err(WorthServerOperationRequestDenial::new(
+            WorthServerOperationRequestDenialCode::InvalidBrowserOrigin,
+            diagnostics_profile,
+            "operation request admits at most one canonical browser `Origin` header",
+        ));
+    }
+    let origin = values[0].trim();
+    if origin.is_empty() {
+        return Err(WorthServerOperationRequestDenial::new(
+            WorthServerOperationRequestDenialCode::InvalidBrowserOrigin,
+            diagnostics_profile,
+            "operation request browser `Origin` header may not be blank",
+        ));
+    }
+    Ok(Some(origin.to_string()))
+}
+
 fn lower_basis_digest(
     prepared_request: &WorthServerCompatibilityPreparedRequest,
     diagnostics_profile: DiagnosticRichnessProfile,
@@ -120,6 +152,7 @@ pub(crate) fn validate_compatibility_operation_binding(
     })?;
     let route_stem = match prepared_request.request_contract().route_family() {
         WorthServerCompatHttpRouteFamily::Read => "/compat/reads/",
+        WorthServerCompatHttpRouteFamily::Query => "/compat/queries/",
         WorthServerCompatHttpRouteFamily::Mutation => "/compat/mutations/",
         WorthServerCompatHttpRouteFamily::Streaming => "/compat/streams/",
         WorthServerCompatHttpRouteFamily::Upload => "/compat/uploads/",

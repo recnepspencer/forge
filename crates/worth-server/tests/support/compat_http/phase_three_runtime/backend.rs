@@ -91,12 +91,15 @@ impl WorthQueryRuntimeBackend for StatefulCountingMutationRuntimeBackend {
     }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
-        WorthQuerySnapshotIdentity::from_relational_snapshot(
-            RelationalBridgeSnapshotIdentityParts::new(
-                self.snapshot_version.load(Ordering::Relaxed) as u64,
-                1,
+        WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+            worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(
+                    self.snapshot_version.load(Ordering::Relaxed) as u64,
+                    1,
+                ),
             ),
         )
+        .expect("relational snapshot projection must retain its typed payload")
     }
 
     fn install_live_subscription(
@@ -136,17 +139,24 @@ fn test_mutation_receipt(
     kind: WorthQueryMutationKind,
 ) -> WorthQueryMutationReceipt {
     WorthQueryMutationReceipt::from_authoritative_parts(
-        WorthQueryCommitIdentity::from_relational_commit_id(ordinal as u64),
-        WorthQuerySnapshotIdentity::from_relational_snapshot(
-            RelationalBridgeSnapshotIdentityParts::new(ordinal as u64, 1),
+        WorthQueryCommitIdentity::from_bridge_commit_projection(
+            worth_runtime_bridge::facade::TruthCommitIdentity::from_relational_commit_id(
+                ordinal as u64,
+            ),
         ),
+        WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+            worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(ordinal as u64, 1),
+            ),
+        )
+        .expect("relational snapshot projection must retain its typed payload"),
         vec![WorthQueryMutationDelta::from_touched_aspects(
             command
                 .declared_collection_identity()
                 .map(|collection| collection.as_str().to_string())
                 .unwrap_or_else(|| "Task".to_string()),
             command.declared_entity_identity().unwrap_or_else(|| {
-                WorthQueryEntityIdentity::from_relational_record(
+                WorthQueryEntityIdentity::from_bridge_record_projection(
                     RelationalBridgeRecordIdentityParts::entity(1, ordinal as u64, 0),
                 )
             }),

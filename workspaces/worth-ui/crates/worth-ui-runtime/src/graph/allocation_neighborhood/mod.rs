@@ -31,6 +31,8 @@ mod projection;
 mod replan_authority;
 #[path = "replan_selection/transaction/replan_consequence.rs"]
 mod replan_consequence;
+#[path = "replan_selection/transaction/replan_plan_reference.rs"]
+mod replan_plan_reference;
 mod replan_selection;
 #[path = "replan_selection/transaction/replan_target_set.rs"]
 mod replan_target_set;
@@ -108,10 +110,10 @@ pub(crate) use equivalence::equivalent_identity;
 pub(crate) use graph_neighborhood_footprint::UiGraphNeighborhoodFootprint;
 pub use replan_authority::UiAdmittedAllocationInvalidationTargetSet;
 pub(crate) use replan_authority::{
-    UiAdmittedAllocationInvalidationTarget, UiAdmittedAllocationPlanReference,
-    UiGraphReplanAdmission, UiGraphReplanAuthority, UiGraphReplanTargetDisposition,
-    UiReplanGenerationKey,
+    UiAdmittedAllocationInvalidationTarget, UiGraphReplanAdmission, UiGraphReplanAuthority,
+    UiGraphReplanTargetDisposition,
 };
+pub(crate) use replan_plan_reference::{UiAdmittedAllocationPlanReference, UiReplanGenerationKey};
 pub(crate) use replan_selection::select_replan_neighborhoods;
 pub use replan_selection::{
     UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet, UiReplanLocalityDenial,
@@ -120,7 +122,7 @@ pub use replan_selection::{
 };
 pub(crate) use replan_selection::{
     UiGraphReplanConsequences, UiGraphReplanTransactionBasis, UiPortalReplanConsequence,
-    UiScrollReplanConsequence,
+    UiQueryMeasurementReplanConsequence, UiScrollReplanConsequence,
 };
 #[path = "activation_handoff/activation_lifecycle.rs"]
 mod activation_lifecycle;

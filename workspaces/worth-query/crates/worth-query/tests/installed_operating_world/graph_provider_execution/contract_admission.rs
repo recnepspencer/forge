@@ -4,9 +4,9 @@ use worth_query::facade::domain;
 
 use super::{
     configured_runtime_for_package, configured_runtime_for_understated_cost_package,
-    federated_operation_contract_drift_package, federated_package, observation_basis,
-    read_definition, FederatedOperationContractDrift, FederatedRead, GeometryDomain, ReadFamily,
-    RemoteA, RemoteB, SelectiveProvider,
+    federated_operation_contract_drift_package, federated_package, read_definition,
+    FederatedOperationContractDrift, FederatedRead, GeometryDomain, ReadFamily, RemoteA, RemoteB,
+    SelectiveProvider,
 };
 
 #[test]
@@ -73,7 +73,8 @@ fn assert_graph_contract_denial(
 ) {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, FederatedRead)
     {

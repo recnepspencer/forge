@@ -20,8 +20,4 @@ impl<'runtime, L: BasisOperationLane> WorthQueryInstalledOperatingWorld<'runtime
     ) -> super::WorthQueryOperationFamilyView<'_, 'runtime, F, L> {
         super::WorthQueryOperationFamilyView::new(self)
     }
-
-    pub fn basis(&self) -> &AdmittedBasisCapability<L> {
-        &self.basis
-    }
 }

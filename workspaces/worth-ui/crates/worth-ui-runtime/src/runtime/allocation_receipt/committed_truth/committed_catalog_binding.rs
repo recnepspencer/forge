@@ -155,7 +155,7 @@ pub enum UiCommittedAllocationCatalogActivationDenial {
 }
 
 impl UiCommittedAllocationCatalogActivation {
-    pub(super) fn seal(
+    pub(in crate::runtime) fn seal(
         candidates: &[super::UiAllocationCandidate],
         bindings: &UiCommittedAllocationCatalogBindings,
     ) -> Result<Self, UiCommittedAllocationCatalogActivationDenial> {

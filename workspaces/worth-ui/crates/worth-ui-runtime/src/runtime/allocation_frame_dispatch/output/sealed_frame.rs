@@ -233,4 +233,5 @@ pub enum UiAllocationFrameDispatchDenial {
     NoOpenFrame,
     EmptyFrame,
     EpochExhausted,
+    ReplacementNotQuiescent,
 }

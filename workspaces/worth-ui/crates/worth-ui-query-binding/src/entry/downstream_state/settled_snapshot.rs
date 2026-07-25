@@ -9,7 +9,6 @@ use crate::{
 #[derive(Default)]
 pub(super) struct WorthUiSettledSnapshotRetention {
     slots: Vec<Option<WorthUiSettledSnapshotProjection>>,
-    vacant_slots: Vec<usize>,
     index: BTreeMap<WorthUiQueryViewIdentity, usize>,
     next_order: u64,
 }
@@ -18,25 +17,51 @@ impl std::fmt::Debug for WorthUiSettledSnapshotRetention {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
             .debug_struct("WorthUiSettledSnapshotRetention")
-            .field("projection_count", &self.index.len())
+            .field("projection_count", &self.slots.iter().flatten().count())
             .finish()
     }
 }
 
 impl WorthUiSettledSnapshotRetention {
+    pub(super) fn for_identities(
+        identities: impl IntoIterator<Item = WorthUiQueryViewIdentity>,
+    ) -> Self {
+        let identities = identities.into_iter();
+        let (minimum, _) = identities.size_hint();
+        let mut slots = Vec::with_capacity(minimum);
+        let mut index = BTreeMap::new();
+        for identity in identities {
+            let slot = slots.len();
+            slots.push(None);
+            index.insert(identity, slot);
+        }
+        Self {
+            slots,
+            index,
+            next_order: 0,
+        }
+    }
+
     pub(super) fn admit(
         &mut self,
         mut projection: WorthUiSettledSnapshotProjection,
         reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<WorthUiSettledSnapshotFact, WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<std::sync::Arc<WorthUiSettledSnapshotFact>, WorthUiSettledSnapshotAdmissionStop>
+    {
         if projection.installed_reference() != reference {
             return Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::ForeignInstalledReference,
                 projection,
             ));
         }
-        let identity = reference.definition().identity().clone();
-        if self.index.contains_key(&identity) {
+        let identity = reference.definition().identity();
+        let Some(slot) = self.index.get(identity).copied() else {
+            return Err(WorthUiSettledSnapshotAdmissionStop::new(
+                WorthUiSettledSnapshotAdmissionDenial::ForeignInstalledReference,
+                projection,
+            ));
+        };
+        if self.slots[slot].is_some() {
             return Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::DuplicateSettlement,
                 projection,
@@ -52,9 +77,8 @@ impl WorthUiSettledSnapshotRetention {
             crate::WorthUiSettledSnapshotSourceGeneration::new(1),
             crate::WorthUiSettledSnapshotSourceOrder::new(order),
         );
-        let fact = projection.fact().clone();
-        let slot = self.insert_into_vacant_or_append(projection);
-        self.index.insert(identity, slot);
+        let fact = projection.shared_fact();
+        self.slots[slot] = Some(projection);
         self.next_order = order;
         Ok(fact)
     }
@@ -63,7 +87,8 @@ impl WorthUiSettledSnapshotRetention {
         &mut self,
         mut projection: WorthUiSettledSnapshotProjection,
         reference: &WorthUiInstalledQueryBindingReference,
-    ) -> Result<WorthUiSettledSnapshotFact, WorthUiSettledSnapshotAdmissionStop> {
+    ) -> Result<std::sync::Arc<WorthUiSettledSnapshotFact>, WorthUiSettledSnapshotAdmissionStop>
+    {
         if projection.installed_reference() != reference {
             return Err(WorthUiSettledSnapshotAdmissionStop::new(
                 WorthUiSettledSnapshotAdmissionDenial::ForeignInstalledReference,
@@ -101,7 +126,7 @@ impl WorthUiSettledSnapshotRetention {
             crate::WorthUiSettledSnapshotSourceGeneration::new(generation),
             crate::WorthUiSettledSnapshotSourceOrder::new(order),
         );
-        let fact = projection.fact().clone();
+        let fact = projection.shared_fact();
         self.slots[slot] = Some(projection);
         self.next_order = order;
         Ok(fact)
@@ -135,10 +160,8 @@ impl WorthUiSettledSnapshotRetention {
         &mut self,
         reference: &WorthUiInstalledQueryBindingReference,
     ) -> Option<WorthUiSettledSnapshotProjection> {
-        let slot = self.index.remove(reference.definition().identity())?;
-        let projection = self.slots.get_mut(slot)?.take()?;
-        self.vacant_slots.push(slot);
-        Some(projection)
+        let slot = *self.index.get(reference.definition().identity())?;
+        self.slots.get_mut(slot)?.take()
     }
 
     pub(super) fn replace(&mut self, projection: WorthUiSettledSnapshotProjection) {
@@ -149,30 +172,18 @@ impl WorthUiSettledSnapshotRetention {
                 .expect("retained settlements carry source coordinates")
                 .as_u64(),
         );
-        let identity = projection
-            .installed_reference()
-            .definition()
-            .identity()
-            .clone();
-        if let Some(slot) = self.index.get(&identity).copied() {
-            self.slots[slot] = Some(projection);
-        } else {
-            let slot = self.insert_into_vacant_or_append(projection);
-            self.index.insert(identity, slot);
-        }
+        let identity = projection.installed_reference().definition().identity();
+        let slot = *self
+            .index
+            .get(identity)
+            .expect("installed settlement references have reserved slots");
+        self.slots[slot] = Some(projection);
     }
 
-    pub(super) fn retain_only(&mut self, references: &[WorthUiInstalledQueryBindingReference]) {
-        let retained = references
-            .iter()
-            .map(|reference| reference.definition().identity())
-            .collect::<BTreeSet<_>>();
-        for (identity, slot) in std::mem::take(&mut self.index) {
-            if retained.contains(&identity) {
-                self.index.insert(identity, slot);
-            } else {
-                self.slots[slot] = None;
-                self.vacant_slots.push(slot);
+    pub(super) fn retain_only(&mut self, retained: &BTreeSet<WorthUiQueryViewIdentity>) {
+        for (identity, slot) in &self.index {
+            if !retained.contains(identity) {
+                self.slots[*slot] = None;
             }
         }
     }
@@ -190,10 +201,6 @@ impl WorthUiSettledSnapshotRetention {
         (retained, orphaned)
     }
 
-    pub(super) fn swap_with(&mut self, other: &mut Self) {
-        std::mem::swap(self, other);
-    }
-
     fn projection_for(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,
@@ -201,47 +208,96 @@ impl WorthUiSettledSnapshotRetention {
         let slot = *self.index.get(reference.definition().identity())?;
         self.slots.get(slot)?.as_ref()
     }
+}
 
-    fn insert_into_vacant_or_append(
-        &mut self,
-        projection: WorthUiSettledSnapshotProjection,
-    ) -> usize {
-        if let Some(slot) = self.vacant_slots.pop() {
-            debug_assert!(self.slots[slot].is_none());
-            self.slots[slot] = Some(projection);
-            slot
-        } else {
-            let slot = self.slots.len();
-            self.slots.push(Some(projection));
-            slot
-        }
+#[cfg(test)]
+mod exhaustion_tests {
+    use super::WorthUiSettledSnapshotRetention;
+    use crate::{
+        WorthUiQueryBindingPlan, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+        WorthUiSettledSnapshotAdmissionDenial, WorthUiSettledSnapshotSourceGeneration,
+        WorthUiSettledSnapshotSourceOrder,
+    };
+
+    #[test]
+    fn source_order_exhaustion_preserves_the_exact_predecessor_projection() {
+        let mut workspace = crate::snapshot_refresh_isolation_tests::installed_workspace();
+        let (_plan, reference) = binding(&workspace);
+        let mut retention = WorthUiSettledSnapshotRetention::for_identities([reference
+            .definition()
+            .identity()
+            .clone()]);
+        let predecessor = retention
+            .admit(
+                crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace),
+                &reference,
+            )
+            .unwrap();
+        retention.next_order = u64::MAX;
+
+        let stop = retention
+            .refresh(
+                crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace),
+                &reference,
+            )
+            .expect_err("an exhausted owner order cannot publish a refresh");
+
+        assert_eq!(
+            stop.denial(),
+            WorthUiSettledSnapshotAdmissionDenial::SourceOrderExhausted
+        );
+        assert_eq!(retention.fact_for(&reference), Some(predecessor.as_ref()));
     }
 
-    #[cfg(test)]
-    pub(super) fn rebuild_index(&mut self) {
-        self.index.clear();
-        self.vacant_slots.clear();
-        self.next_order = 0;
-        for (slot, projection) in self.slots.iter().enumerate() {
-            let Some(projection) = projection else {
-                self.vacant_slots.push(slot);
-                continue;
-            };
-            self.index.insert(
-                projection
-                    .installed_reference()
-                    .definition()
-                    .identity()
-                    .clone(),
-                slot,
-            );
-            self.next_order = self.next_order.max(
-                projection
-                    .fact()
-                    .source_order()
-                    .expect("retained settlements carry source coordinates")
-                    .as_u64(),
-            );
-        }
+    #[test]
+    fn source_generation_exhaustion_preserves_the_exact_predecessor_projection() {
+        let mut workspace = crate::snapshot_refresh_isolation_tests::installed_workspace();
+        let (_plan, reference) = binding(&workspace);
+        let mut predecessor =
+            crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace);
+        predecessor.attach_source_coordinates(
+            WorthUiSettledSnapshotSourceGeneration::new(u64::MAX),
+            WorthUiSettledSnapshotSourceOrder::new(1),
+        );
+        let predecessor_fact = predecessor.fact().clone();
+        let mut retention = WorthUiSettledSnapshotRetention::for_identities([reference
+            .definition()
+            .identity()
+            .clone()]);
+        retention.replace(predecessor);
+
+        let stop = retention
+            .refresh(
+                crate::snapshot_refresh_isolation_tests::settle(&reference, &mut workspace),
+                &reference,
+            )
+            .expect_err("an exhausted source generation cannot publish a refresh");
+
+        assert_eq!(
+            stop.denial(),
+            WorthUiSettledSnapshotAdmissionDenial::SourceGenerationExhausted
+        );
+        assert_eq!(retention.fact_for(&reference), Some(&predecessor_fact));
+    }
+
+    fn binding(
+        workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
+    ) -> (
+        WorthUiQueryBindingPlan,
+        crate::WorthUiInstalledQueryBindingReference,
+    ) {
+        let view = workspace
+            .worth_ui()
+            .unwrap()
+            .measurement_view("dashboard.exhaustion")
+            .unwrap();
+        let identity = view.definition().identity().clone();
+        let plan = WorthUiQueryBindingPlan::default()
+            .register_view(view)
+            .unwrap();
+        let reference = plan
+            .resolve_definition(&identity, WorthUiQueryViewShape::Collection)
+            .unwrap();
+        (plan, reference)
     }
 }

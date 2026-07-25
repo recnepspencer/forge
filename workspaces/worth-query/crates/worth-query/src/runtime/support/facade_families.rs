@@ -44,6 +44,25 @@ pub enum WorthQueryRuntimeFacadeFamily {
 }
 
 impl WorthQueryRuntimeFacadeFamily {
+    pub const ALL: [Self; 16] = [
+        Self::Read,
+        Self::Live,
+        Self::Computed,
+        Self::SharedRead,
+        Self::Submission,
+        Self::Replay,
+        Self::Effect,
+        Self::BranchPreview,
+        Self::Write,
+        Self::Intent,
+        Self::Inspect,
+        Self::Temporal,
+        Self::AsyncResource,
+        Self::MixedCauseDelivery,
+        Self::StoreBackedExecution,
+        Self::DurableArtifacts,
+    ];
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Read => "read",

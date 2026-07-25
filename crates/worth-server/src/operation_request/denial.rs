@@ -8,6 +8,7 @@ pub enum WorthServerOperationRequestDenialCode {
     InvalidBasisDigest,
     InvalidIdempotencyKey,
     InvalidProductSessionIdentity,
+    InvalidBrowserOrigin,
     InvalidPayloadEnvelope,
     InvalidDeclaredSchemaIdentity,
     UnknownOperationName,

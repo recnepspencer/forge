@@ -117,7 +117,7 @@ const MILESTONE35_GUARANTEES: &[UiInspectionCloseoutGuarantee] = &[
 
 const MILESTONE35_NON_GOALS: &[UiInspectionCloseoutNonGoal] = &[
     UiInspectionCloseoutNonGoal::MeasurementEvidence,
-    UiInspectionCloseoutNonGoal::MountedReceiptEvidence,
+    UiInspectionCloseoutNonGoal::MountEligibilityEvidence,
     UiInspectionCloseoutNonGoal::VisualSnapshotEvidence,
     UiInspectionCloseoutNonGoal::ReplayEvidence,
     UiInspectionCloseoutNonGoal::RendererLocalExplanation,

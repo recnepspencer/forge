@@ -277,11 +277,14 @@ impl StatefulCountingMutationRuntimeBackend {
     }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
-        WorthQuerySnapshotIdentity::from_relational_snapshot(
-            RelationalBridgeSnapshotIdentityParts::new(
-                self.snapshot_version.load(Ordering::Relaxed) as u64,
-                1,
+        WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+            worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(
+                    self.snapshot_version.load(Ordering::Relaxed) as u64,
+                    1,
+                ),
             ),
         )
+        .expect("relational snapshot projection must retain its typed payload")
     }
 }

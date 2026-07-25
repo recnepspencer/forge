@@ -16,6 +16,8 @@ mod committed_evidence;
 mod committed_lowering_input;
 #[path = "committed_truth/committed_receipt.rs"]
 mod committed_receipt;
+#[path = "ledger_lifecycle/completed_replay.rs"]
+mod completed_replay;
 #[path = "report_freshness/consumer_admission.rs"]
 mod consumer_admission;
 #[path = "transaction/denial.rs"]
@@ -34,6 +36,12 @@ mod geometry_evidence;
 mod ledger_denial;
 #[path = "ledger_lifecycle/ledger_state.rs"]
 mod ledger_state;
+#[path = "ledger_lifecycle/mounted_projection_catalog.rs"]
+mod mounted_projection_catalog;
+#[path = "ledger_lifecycle/mounted_projection_journal.rs"]
+mod mounted_projection_journal;
+#[path = "ledger_lifecycle/mounted_projection_row.rs"]
+mod mounted_projection_row;
 #[path = "transaction/prepared_portal_commit.rs"]
 mod prepared_portal_commit;
 #[path = "transaction/prepared_replan.rs"]
@@ -123,8 +131,9 @@ pub use reuse_verdict::{
     UiAllocationLeafRemeasureWitness, UiAllocationReuseDenial, UiAllocationReuseVerdict,
 };
 pub use transaction_outcome::{
-    UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionCounters,
-    UiAllocationReplanTransactionOutcome, UiCommittedAllocationReplan,
+    UiAllocationAuthoritySuccessionDenial, UiAllocationReplanTransactionCommitDenial,
+    UiAllocationReplanTransactionCounters, UiAllocationReplanTransactionOutcome,
+    UiCommittedAllocationReplan,
 };
 #[cfg(test)]
 pub use truth_revision::UiAllocationAuthorityCounter;
@@ -134,6 +143,12 @@ pub use truth_revision::{
 
 pub(crate) use ledger_state::UiAllocationCatalogLedgerLineage;
 pub(crate) use ledger_state::UiAllocationCatalogLedgerTransition;
+pub(crate) use mounted_projection_catalog::UiMountedAllocationProjectionCatalog;
+pub(crate) use mounted_projection_journal::{
+    UiMountedAllocationExactDelta, UiMountedAllocationProjectionDelta,
+    UiMountedAllocationProjectionSource,
+};
+pub(crate) use mounted_projection_row::UiMountedAllocationProjectionDenial;
 pub(in crate::runtime) use prepared_replan::{
     UiAllocationLedgerPreparation, UiPreparedAllocationLedgerTransition,
 };

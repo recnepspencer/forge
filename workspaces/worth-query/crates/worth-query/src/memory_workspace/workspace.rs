@@ -188,6 +188,29 @@ impl WorthQueryMemoryWorkspace {
             })
     }
 
+    pub(crate) fn entity(&self, identity: &WorthQueryEntityIdentity) -> Option<WorthQueryEntity> {
+        let entity_id = super::runtime_identity::entity_id_from_identity(identity.clone()).ok()?;
+        let version_id = self
+            .runtime
+            .publication()
+            .latest_bundle()
+            .map(|bundle| bundle.commit.version_id)?;
+        let projection_scope = self.workspace_projection_scope();
+        self.runtime
+            .read_truth()
+            .project_version(version_id)
+            .entity_record_with_projection_scope(entity_id, projection_scope, |record| {
+                let (aspect_values, struct_aspect_values, native_field_values) =
+                    self.aspect_projection_from_projection_record(record);
+                Some(WorthQueryEntity::from_aspect_projection(
+                    super::runtime_identity::entity_identity(record.entity_id()),
+                    aspect_values,
+                    struct_aspect_values,
+                    native_field_values,
+                ))
+            })
+    }
+
     pub fn snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         super::runtime_identity::snapshot_identity_from_runtime(&self.runtime)
     }

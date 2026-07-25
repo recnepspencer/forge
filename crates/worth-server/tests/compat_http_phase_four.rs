@@ -15,7 +15,7 @@ use compat_http_phase_four_assertions::{
     assert_cancellation_counters, assert_cancellation_kind, assert_export_counters,
     assert_read_artifact_parity, collect_stream_bytes,
 };
-use compat_http_phase_four_runtime::{
+use compat_http_phase_four_runtime::request_support::{
     build_phase_four_server, build_phase_four_server_with_workspace_provider, compat_read_input,
     compat_stream_input, default_stream_selection, oversized_streaming_provider,
     streaming_response_success,
@@ -150,7 +150,10 @@ fn compat_http_streaming_large_export_completes_after_full_incremental_consumpti
 fn compat_http_streaming_head_is_explicitly_buffered_with_zero_transfer() {
     let server = build_phase_four_server();
     let response = streaming_response_success(server.compat_http().stream(
-        compat_http_phase_four_runtime::compat_stream_head_input(&server, "users.profile"),
+        compat_http_phase_four_runtime::request_support::compat_stream_head_input(
+            &server,
+            "users.profile",
+        ),
         default_stream_selection(),
     ));
     let export = match response {

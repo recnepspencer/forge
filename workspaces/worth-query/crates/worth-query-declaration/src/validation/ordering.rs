@@ -52,7 +52,7 @@ pub fn validate_ordering_entries(
         counters.record_ordering_validated();
         validated_ordering.push(ValidatedOrderingEntry::from_canonical(
             entry,
-            field.kind().clone(),
+            *field.kind(),
             projected,
         ));
         events.push(ValidationEvent::OrderingValidated {

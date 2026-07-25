@@ -63,6 +63,25 @@ fn product_operation_response(operation: crate::WorthServerCompletedProductOpera
             "product_commit_digest": receipt.product_commit_digest(),
         })
     });
+    let denial = match operation.outcome() {
+        crate::WorthServerProductOperationOutcome::Denied(denial) => Some(json!({
+            "reason_key": denial.reason_key(),
+            "detail": denial.detail(),
+            "code": denial.facts().map(|facts| format!("{:?}", facts.code())),
+            "expected_basis_digest": denial.facts().and_then(|facts| facts.expected_basis_digest()),
+            "observed_basis_digest": denial.facts().and_then(|facts| facts.observed_basis_digest()),
+        })),
+        crate::WorthServerProductOperationOutcome::Success(_)
+        | crate::WorthServerProductOperationOutcome::Failed(_) => None,
+    };
+    let failure = match operation.outcome() {
+        crate::WorthServerProductOperationOutcome::Failed(failure) => Some(json!({
+            "reason_key": failure.reason_key(),
+            "detail": failure.detail(),
+        })),
+        crate::WorthServerProductOperationOutcome::Success(_)
+        | crate::WorthServerProductOperationOutcome::Denied(_) => None,
+    };
     response_with_headers(
         Json(json!({
             "route_kind": "product_operation",
@@ -71,6 +90,8 @@ fn product_operation_response(operation: crate::WorthServerCompletedProductOpera
             "canonical_digest": operation.envelope().canonical_digest(),
             "plan_digest": operation.plan().map(|plan| plan.canonical_digest()),
             "result": result,
+            "denial": denial,
+            "failure": failure,
             "durable_completion": durable_completion,
         })),
         semantic_headers(

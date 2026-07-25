@@ -1,5 +1,5 @@
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::domain;
 
 use crate::{
     worth_ui_domain_package, WorthUiQueryAllocationDetail, WorthUiQueryBindingPlan,
@@ -9,17 +9,19 @@ use crate::{
     WorthUiSnapshotConsumerPreparationDenial,
 };
 
+mod cost;
+
 #[test]
 fn query_mints_support_while_ui_presentation_remains_adjacent() {
     let workspace = installed_workspace("consumer-boundary-adjacency");
     let reference = installed_reference(&workspace);
     let hidden = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .prepare_snapshot_consumer(requirements(WorthUiQueryDenialPresentation::Hidden))
         .unwrap();
     let structured = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .prepare_snapshot_consumer(requirements(
             WorthUiQueryDenialPresentation::StructuredStatus,
@@ -27,8 +29,8 @@ fn query_mints_support_while_ui_presentation_remains_adjacent() {
         .unwrap();
 
     assert_eq!(
-        hidden.query_contract().canonical_operation_identity(),
-        structured.query_contract().canonical_operation_identity()
+        hidden.installed_reference(),
+        structured.installed_reference()
     );
     assert_eq!(
         hidden.query_boundary_requirements(),
@@ -42,7 +44,7 @@ fn one_bound_operation_cannot_mint_a_second_consumer_contract() {
     let workspace = installed_workspace("single-consumer-contract");
     let reference = installed_reference(&workspace);
     let bound = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .bind_snapshot()
         .unwrap();
@@ -55,7 +57,7 @@ fn one_bound_operation_cannot_mint_a_second_consumer_contract() {
 
     assert!(matches!(
         second,
-        domain::WorthQueryConsumerProjectionContractDenial::AlreadyMinted
+        domain::WorthQueryConsumerProjectionContractDenial::AlreadyMinted { .. }
     ));
 }
 
@@ -70,7 +72,7 @@ fn unsupported_projection_consumption_is_a_query_denial() {
         .unwrap();
     let reference = installed_reference(&workspace);
     let denial = reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .prepare_snapshot_consumer(requirements(
             WorthUiQueryDenialPresentation::StructuredStatus,
@@ -95,42 +97,51 @@ fn unsupported_projection_consumption_is_a_query_denial() {
 #[test]
 fn exact_settled_projection_is_retained_once_and_derives_ui_fact() {
     let mut workspace = installed_workspace("exact-settlement-retention");
-    let plan = binding_plan(&workspace);
+    let (plan, view_identity) = binding_plan(&workspace);
     let reference = plan
-        .resolve_definition(
-            &WorthUiQueryViewIdentity::new("dashboard.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_definition(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap();
     let settled = settle(&reference, &mut workspace);
-    let expected_identity = settled.fact().settlement_identity().to_owned();
+    let derived_fact_address = settled.fact() as *const crate::WorthUiSettledSnapshotFact;
+    let batch = settled.fact().measurement_facts();
+    let resolution = batch.key_resolution_counters();
+    assert_eq!(resolution.declaration_checks(), 1);
+    assert_eq!(resolution.indexed_slot_lookups(), 2);
+    assert_eq!(resolution.key_scans(), 0);
+    assert_eq!(resolution.path_parses(), 0);
+    let access = batch.native_access_counters();
+    assert_eq!(access.indexed_accesses, 1);
+    assert_eq!(access.refinement_checks, 1);
+    assert_eq!(access.fact_scans, 0);
+    assert_eq!(access.row_scans, 0);
+    assert_eq!(access.path_parses, 0);
+    let binding = batch.native_access_binding_counters().unwrap();
+    assert_eq!(binding.declared_key_routes(), 1);
+    assert_eq!(binding.declared_key_layout_checks(), 1);
+    assert_eq!(binding.lane_shape_checks(), 2);
+    assert_eq!(binding.fact_scans(), 0);
+    assert_eq!(binding.row_scans(), 0);
+    assert_eq!(binding.path_parses(), 0);
+    let expected_binding = settled.fact().binding_reference().clone();
+    let expected_settlement = settled.fact().settlement_reference().clone();
     let mut runtime = plan.prepare_downstream_state();
     let fact = runtime
         .admit_settled_snapshot(settled)
         .expect("exact settled projection should admit once");
 
-    assert_eq!(fact.settlement_identity(), expected_identity);
+    assert_eq!(
+        std::sync::Arc::as_ptr(&fact),
+        derived_fact_address,
+        "admission must share the projection's one derived UI fact"
+    );
+    assert_eq!(fact.binding_reference(), &expected_binding);
+    assert_eq!(fact.settlement_reference(), &expected_settlement);
     assert_eq!(fact.source_generation().unwrap().as_u64(), 1);
     assert_eq!(fact.source_order().unwrap().as_u64(), 1);
     assert_eq!(
         runtime.settled_snapshot_fact_for(&reference).unwrap(),
-        &fact
+        fact.as_ref()
     );
-    let exact_before_rebuild = runtime
-        .exact_settled_snapshot_evidence_for(&reference)
-        .unwrap();
-    runtime.rebuild_settled_snapshot_index_for_test();
-    assert_eq!(
-        runtime.settled_snapshot_fact_for(&reference).unwrap(),
-        &fact
-    );
-    assert_eq!(
-        runtime
-            .exact_settled_snapshot_evidence_for(&reference)
-            .unwrap(),
-        exact_before_rebuild
-    );
-
     let duplicate = settle(&reference, &mut workspace);
     let stop = runtime
         .admit_settled_snapshot(duplicate)
@@ -145,13 +156,59 @@ fn exact_settled_projection_is_retained_once_and_derives_ui_fact() {
 
 #[test]
 fn foreign_equal_installation_cannot_admit_exact_settlement() {
-    let mut owner = installed_workspace("exact-settlement-owner");
-    let foreign = installed_workspace("exact-settlement-foreign");
-    let owner_reference = installed_reference(&owner);
-    let projection = settle(&owner_reference, &mut owner);
-    let mut foreign_runtime = binding_plan(&foreign).prepare_downstream_state();
-    let stop = foreign_runtime
-        .admit_settled_snapshot(projection)
+    let mut owner = installed_workspace("exact-settlement-equal-label");
+    let mut foreign = installed_workspace("exact-settlement-equal-label");
+    let (owner_plan, owner_identity) = binding_plan(&owner);
+    let owner_reference = owner_plan
+        .resolve_definition(&owner_identity, WorthUiQueryViewShape::Collection)
+        .unwrap();
+    let (foreign_plan, foreign_identity) = binding_plan(&foreign);
+    let foreign_reference = foreign_plan
+        .resolve_definition(&foreign_identity, WorthUiQueryViewShape::Collection)
+        .unwrap();
+    let owner_projection = settle(&owner_reference, &mut owner);
+    let foreign_projection = settle(&foreign_reference, &mut foreign);
+    assert_eq!(owner_reference.definition(), foreign_reference.definition());
+    assert_eq!(
+        owner_projection.fact().measurement_facts().observations(),
+        foreign_projection.fact().measurement_facts().observations()
+    );
+    assert_ne!(
+        owner_projection.fact().binding_reference(),
+        foreign_projection.fact().binding_reference()
+    );
+    assert_ne!(
+        owner_projection.fact().settlement_reference(),
+        foreign_projection.fact().settlement_reference()
+    );
+
+    let mut owner_runtime = owner_plan.prepare_downstream_state();
+    owner_runtime
+        .admit_settled_snapshot(owner_projection)
+        .unwrap();
+    let mut foreign_runtime = foreign_plan.prepare_downstream_state();
+    foreign_runtime
+        .admit_settled_snapshot(foreign_projection)
+        .unwrap();
+    let foreign_fact = foreign_runtime
+        .settled_snapshot_fact_for(&foreign_reference)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        owner_runtime
+            .readmit_settled_snapshot_fact(&foreign_fact)
+            .err(),
+        Some(crate::WorthUiSettledSnapshotReadmissionDenial::ForeignInstalledReference)
+    );
+    let foreign_touch = foreign_runtime
+        .settlement_touch_reference_for(&foreign_reference)
+        .unwrap();
+    assert!(!owner_runtime
+        .readmits_settlement_touch_reference(&owner_reference, &foreign_touch)
+        .unwrap());
+
+    let stop = owner_runtime
+        .refresh_settled_snapshot(settle(&foreign_reference, &mut foreign))
         .expect_err("equal labels cannot replace exact Query authority");
 
     assert_eq!(
@@ -163,28 +220,43 @@ fn foreign_equal_installation_cannot_admit_exact_settlement() {
 #[test]
 fn in_generation_refresh_atomically_advances_source_coordinates() {
     let mut workspace = installed_workspace("exact-settlement-refresh");
-    let plan = binding_plan(&workspace);
+    let (plan, view_identity) = binding_plan(&workspace);
     let reference = plan
-        .resolve_definition(
-            &WorthUiQueryViewIdentity::new("dashboard.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_definition(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap();
     let mut runtime = plan.prepare_downstream_state();
     let first = runtime
         .admit_settled_snapshot(settle(&reference, &mut workspace))
         .unwrap();
+    let predecessor_touch = runtime.settlement_touch_reference_for(&reference).unwrap();
     let second = runtime
         .refresh_settled_snapshot(settle(&reference, &mut workspace))
         .unwrap();
+    let current_touch = runtime.settlement_touch_reference_for(&reference).unwrap();
 
     assert_eq!(first.source_generation().unwrap().as_u64(), 1);
     assert_eq!(first.source_order().unwrap().as_u64(), 1);
     assert_eq!(second.source_generation().unwrap().as_u64(), 2);
     assert_eq!(second.source_order().unwrap().as_u64(), 2);
+    assert_eq!(first.binding_reference(), second.binding_reference());
+    assert_ne!(first.settlement_reference(), second.settlement_reference());
+    assert_eq!(
+        runtime.readmit_settled_snapshot_fact(&first).err(),
+        Some(crate::WorthUiSettledSnapshotReadmissionDenial::StaleSettlementReference)
+    );
+    let readmitted = runtime
+        .readmit_settled_snapshot_fact(&second)
+        .expect("the current settlement fact must readmit");
+    assert_eq!(readmitted.fact(), second.as_ref());
+    assert!(!runtime
+        .readmits_settlement_touch_reference(&reference, &predecessor_touch)
+        .unwrap());
+    assert!(runtime
+        .readmits_settlement_touch_reference(&reference, &current_touch)
+        .unwrap());
     assert_eq!(
         runtime.settled_snapshot_fact_for(&reference).unwrap(),
-        &second
+        second.as_ref()
     );
 
     let mut foreign_workspace = installed_workspace("exact-settlement-refresh-foreign");
@@ -198,7 +270,7 @@ fn in_generation_refresh_atomically_advances_source_coordinates() {
     );
     assert_eq!(
         runtime.settled_snapshot_fact_for(&reference).unwrap(),
-        &second
+        second.as_ref()
     );
 }
 
@@ -207,7 +279,7 @@ fn settle(
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
 ) -> crate::WorthUiSettledSnapshotProjection {
     reference
-        .enter_snapshot_attempt(workspace, observation_basis())
+        .enter_snapshot_attempt(workspace)
         .unwrap()
         .prepare_snapshot_consumer(requirements(
             WorthUiQueryDenialPresentation::StructuredStatus,
@@ -217,7 +289,7 @@ fn settle(
         .unwrap()
         .publish()
         .unwrap()
-        .consume(worth_query::facade::read::project_facts().entity_identities())
+        .consume()
         .unwrap()
         .settle()
         .unwrap()
@@ -239,30 +311,56 @@ fn requirements(denial: WorthUiQueryDenialPresentation) -> WorthUiQueryConsumerR
 fn installed_reference(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
 ) -> crate::WorthUiInstalledQueryBindingReference {
-    binding_plan(workspace)
-        .resolve_definition(
-            &WorthUiQueryViewIdentity::new("dashboard.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+    let (plan, view_identity) = binding_plan(workspace);
+    plan.resolve_definition(&view_identity, WorthUiQueryViewShape::Collection)
         .unwrap()
 }
 
 fn binding_plan(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
-) -> WorthUiQueryBindingPlan {
-    WorthUiQueryBindingPlan::default()
-        .register_view(
-            workspace
-                .worth_ui()
-                .unwrap()
-                .measurement_view("dashboard.measurements")
-                .unwrap(),
-        )
+) -> (WorthUiQueryBindingPlan, WorthUiQueryViewIdentity) {
+    let view = workspace
+        .worth_ui()
         .unwrap()
+        .measurement_view("dashboard.measurements")
+        .unwrap();
+    let view_identity = view.definition().identity().clone();
+    (
+        WorthUiQueryBindingPlan::default()
+            .register_view(view)
+            .unwrap(),
+        view_identity,
+    )
 }
 
 fn installed_workspace(label: &str) -> worth_query::facade::runtime::WorthQueryWorkspace {
-    installed_builder().workspace(label).unwrap()
+    let mut workspace = installed_builder().workspace(label).unwrap();
+    workspace
+        .insert("WorthUiMeasurement", |measurement| {
+            measurement
+                .set_aspect(
+                    worth_query::facade::runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
+                        "identity.id",
+                    )
+                    .unwrap(),
+                    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(
+                        "measurement",
+                    ),
+                )
+                .set_aspect(
+                    worth_query::facade::runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
+                        "measurement.value",
+                    )
+                    .unwrap(),
+                    worth_query::facade::runtime::WorthQueryAuthoredAspectValue::native(
+                        worth_foundational::AspectValue::Float32(
+                            worth_foundational::CanonicalF32::from_f32(240.0),
+                        ),
+                    ),
+                )
+        })
+        .unwrap();
+    workspace
 }
 
 fn installed_builder() -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
@@ -278,15 +376,4 @@ fn installed_builder() -> worth_query::facade::consumer_kit::WorthQueryInMemoryT
             .with_schema(schema)
             .domain_package(worth_ui_domain_package()),
     )
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

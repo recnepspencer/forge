@@ -235,6 +235,9 @@ fn lower_request_context_input(
         .with_authenticated_principal_id(input.authenticated_principal_id())
         .with_tenant_id(input.tenant_id())
         .with_workspace_id(input.workspace_id());
+    if let Some(admitted_caller) = input.admitted_transport_caller() {
+        builder = builder.with_admitted_transport_caller(admitted_caller.clone());
+    }
 
     builder = match input.branch_target() {
         RawWorthServerCompatibilityBranchTarget::Main => builder.with_main_branch(),
@@ -258,6 +261,9 @@ fn lower_pipeline_intent(
     route_family: WorthServerCompatHttpRouteFamily,
 ) -> WorthServerPipelineIntent {
     match route_family {
+        WorthServerCompatHttpRouteFamily::Query => {
+            WorthServerPipelineIntent::query_read("compat_http.request_contract")
+        }
         WorthServerCompatHttpRouteFamily::Mutation => {
             WorthServerPipelineIntent::query_mutation("compat_http.request_contract")
         }
@@ -274,6 +280,7 @@ fn method_matches_route_family(
 ) -> bool {
     match route_family {
         WorthServerCompatHttpRouteFamily::Read => matches!(method, "GET" | "HEAD"),
+        WorthServerCompatHttpRouteFamily::Query => method == "POST",
         WorthServerCompatHttpRouteFamily::Mutation => {
             matches!(method, "POST" | "PUT" | "PATCH" | "DELETE")
         }

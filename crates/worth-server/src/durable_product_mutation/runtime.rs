@@ -1,9 +1,9 @@
 use crate::{
     WorthServerCompletedProductOperation, WorthServerProductIdempotencyConflict,
-    WorthServerProductOperationExecutionBoundary, WorthServerProductOperationOutcome,
-    WorthServerProductOperationRetryReceipt, WorthServerProductOperationSurfaceDenial,
-    WorthServerProductOperationSurfaceDenialCode, WorthServerProductOperationSurfaceDenialFacts,
-    WorthServerScheduledProductOperation,
+    WorthServerProductOperationDenialCode, WorthServerProductOperationExecutionBoundary,
+    WorthServerProductOperationOutcome, WorthServerProductOperationRetryReceipt,
+    WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
+    WorthServerProductOperationSurfaceDenialFacts, WorthServerScheduledProductOperation,
 };
 
 use super::{
@@ -54,7 +54,9 @@ pub(crate) fn execute_durable_product_mutation(
             ))
         }
         WorthServerDurableProductMutationConclusion::Rejected(denial) => {
-            let outcome = WorthServerProductOperationOutcome::Denied(denial);
+            let outcome = WorthServerProductOperationOutcome::Denied(
+                denial.with_code(WorthServerProductOperationDenialCode::ProductSemantic),
+            );
             let envelope = crate::product_adapter::build_envelope(scheduled, &outcome);
             Ok(WorthServerCompletedProductOperation::new(outcome, envelope)
                 .with_durable_executor_attempt(scheduled))

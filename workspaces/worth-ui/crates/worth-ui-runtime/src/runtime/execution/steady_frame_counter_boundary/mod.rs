@@ -2,6 +2,7 @@ mod boundary;
 mod counter_schema;
 mod denial;
 mod diagnostic_policy;
+mod execution_basis;
 mod foundational_bridge;
 mod frame_receipt;
 mod lane_frame_receipt;
@@ -12,6 +13,7 @@ mod work_scope;
 
 pub use boundary::WorthUiSteadyFrameCounterBoundary;
 pub use denial::{WorthUiSteadyFrameCounterDenial, WorthUiSteadyFrameCounterDenialReason};
+pub use execution_basis::WorthUiFrameExecutionBasis;
 pub use foundational_bridge::{
     WorthUiSteadyFrameFoundationalBridge, WorthUiSteadyFrameFoundationalEvidence,
 };

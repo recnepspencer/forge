@@ -41,7 +41,7 @@ fn declaration_identity_changes_basis_identity_even_when_evidence_stays_fixed() 
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
@@ -54,7 +54,7 @@ fn declaration_identity_changes_basis_identity_even_when_evidence_stays_fixed() 
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
@@ -99,7 +99,7 @@ fn incompatible_world_is_reported_on_the_returned_basis_artifact() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
@@ -143,7 +143,7 @@ fn stale_query_fact_receipt_is_reported_on_the_returned_basis_artifact() {
         current_generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),

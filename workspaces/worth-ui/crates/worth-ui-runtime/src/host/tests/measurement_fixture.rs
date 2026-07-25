@@ -1,7 +1,7 @@
 //! Test-only host lane fixtures. Production callers use the runtime collector capability.
 
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiScrollContainerViewportRequest, WorthUiHostCapabilityReport,
     WorthUiMeasurementHostAdapter,
 };
@@ -16,18 +16,21 @@ use crate::host::{
 use super::measurement_result_test_support::normalization_context_for;
 
 struct ValueStubAdapter {
-    value: UiHostObservationValue,
+    value: UiHostMeasurementObservationValue,
 }
 
 impl WorthUiMeasurementHostAdapter for ValueStubAdapter {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         self.value.clone()
     }
 }
 
 pub(crate) fn collect_measurement_via_host_lane_for_test(
-    request: &UiMeasurementRequest,
-    value: UiHostObservationValue,
+    request: &UiHostMeasurementRequest,
+    value: UiHostMeasurementObservationValue,
     need: UiHostMeasurementNeed,
     evidence_family: UiMeasurementEvidenceFamily,
     generation: UiEvidenceAuthorityGeneration,

@@ -6,7 +6,7 @@ use worth_server::{
     WorthServerDurableProductMutationConclusion, WorthServerDurableProductMutationExecution,
     WorthServerDurableProductMutationExecutor, WorthServerDurableProductMutationRecoveryHandle,
     WorthServerProductDurabilityCapability, WorthServerProductOperationBaseDigest,
-    WorthServerProductOperationSuccess,
+    WorthServerProductOperationDenial, WorthServerProductOperationSuccess,
 };
 
 use super::persistence_state::{
@@ -15,6 +15,10 @@ use super::persistence_state::{
 };
 use super::product_result::DurableMutationProductResult;
 use super::TestConcurrencyProbe;
+
+mod crash_execution;
+
+use crash_execution::injected_crash_execution;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DurableMutationCrashPoint {
@@ -73,6 +77,14 @@ impl TestDurableProductExecutor {
 
     pub fn commit_count(&self) -> usize {
         self.state.commit_count.load(Ordering::Relaxed)
+    }
+
+    pub fn observed_attempts(&self) -> Vec<(String, String)> {
+        self.state
+            .observed_attempts
+            .lock()
+            .expect("observed durable attempts")
+            .clone()
     }
 
     pub fn advance_time(&self, seconds: u64) {
@@ -278,6 +290,29 @@ impl WorthServerDurableProductMutationExecutor for TestDurableProductExecutor {
         &self,
         attempt: &WorthServerAdmittedDurableProductMutation,
     ) -> WorthServerDurableProductMutationExecution {
+        self.state
+            .observed_attempts
+            .lock()
+            .expect("observed durable attempts")
+            .push((
+                attempt.principal_id().to_string(),
+                attempt.request_digest().to_string(),
+            ));
+        if let Some(reason_key) = attempt
+            .payload()
+            .body()
+            .get("reject_reason")
+            .and_then(Value::as_str)
+        {
+            return WorthServerDurableProductMutationExecution::after_basis_comparison(
+                WorthServerDurableProductMutationConclusion::Rejected(
+                    WorthServerProductOperationDenial::new(
+                        reason_key,
+                        "durable product mutation rejected",
+                    ),
+                ),
+            );
+        }
         self.execute_atomically(attempt)
     }
 
@@ -355,19 +390,4 @@ fn build_completion(
         ),
     )
     .expect("test executor completion should match its attempt"))
-}
-
-fn injected_crash_execution(
-    crash: DurableMutationCrashPoint,
-    basis_compared: bool,
-) -> WorthServerDurableProductMutationExecution {
-    let conclusion = WorthServerDurableProductMutationConclusion::failed(
-        format!("injected_crash_{}", crash.as_str()),
-        format!("test executor injected crash at `{}`", crash.as_str()),
-    );
-    if basis_compared {
-        WorthServerDurableProductMutationExecution::after_basis_comparison(conclusion)
-    } else {
-        WorthServerDurableProductMutationExecution::before_basis_comparison(conclusion)
-    }
 }

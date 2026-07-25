@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiViewportExtentObservation, UiViewportExtentRequest,
     WorthUiMeasurementHostAdapter,
 };
@@ -8,8 +8,11 @@ use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 struct ViewportAdapter(f32);
 
 impl WorthUiMeasurementHostAdapter for ViewportAdapter {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::ViewportExtent(UiViewportExtentObservation {
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
             width: self.0,
             height: 600.0,
         })

@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use worth_query::facade::foundation::ConsumedNativeValueView;
-
 use crate::{
+    WorthUiAdmittedQueryBindingReference, WorthUiAdmittedQuerySettlementReference,
     WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceOrder,
-    WorthUiQueryMeasurementFactObservation, WorthUiQueryMeasurementFactSettlement,
+    WorthUiQueryMeasurementFactObservation,
 };
 
 /// Read-only sharing of one exact Query-owned settlement at the UI plan edge.
 ///
-/// This reference deliberately exposes native values and compact coordinates,
-/// but no method can recover the retained consumed-projection authority.
+/// This reference exposes only UI-owned observations and compact coordinates;
+/// no method can recover Query native values or retained projection authority.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthUiQueryViewExecutionEvidenceReference {
     representation: WorthUiQueryViewExecutionEvidenceRepresentation,
@@ -22,21 +21,9 @@ enum WorthUiQueryViewExecutionEvidenceRepresentation {
         reference: crate::WorthUiInstalledQueryBindingReference,
         fact: Arc<crate::WorthUiSettledSnapshotFact>,
     },
-    ManagedLiveCompatibility(Arc<WorthUiQueryMeasurementFactSettlement>),
 }
 
 impl WorthUiQueryViewExecutionEvidenceReference {
-    pub(crate) fn from_managed_live_compatibility(
-        settlement: Arc<WorthUiQueryMeasurementFactSettlement>,
-    ) -> Self {
-        Self {
-            representation:
-                WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                    settlement,
-                ),
-        }
-    }
-
     pub(crate) fn from_settled_snapshot(
         reference: crate::WorthUiInstalledQueryBindingReference,
         fact: Arc<crate::WorthUiSettledSnapshotFact>,
@@ -54,52 +41,29 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot {
                 reference, ..
             } => reference.definition(),
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.definition(),
         }
     }
 
     pub fn observations(&self) -> &[WorthUiQueryMeasurementFactObservation] {
         match &self.representation {
-            WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => fact
-                .measurement_facts()
-                .map_or(&[], |facts| facts.observations()),
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.receipt().observations(),
-        }
-    }
-
-    pub fn native_fact_count(&self) -> usize {
-        match &self.representation {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
-                fact.native_fact_count()
-            }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => {
-                let facts = settlement.receipt().query_authority().authority().facts();
-                facts.display_fields().len() + facts.derived_fields().len()
+                fact.measurement_facts().observations()
             }
         }
     }
 
-    pub fn native_fact(&self, index: usize) -> Option<ConsumedNativeValueView<'_>> {
+    pub fn binding_reference(&self) -> &WorthUiAdmittedQueryBindingReference {
         match &self.representation {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
-                fact.native_fact(index)
+                fact.binding_reference()
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => {
-                let facts = settlement.receipt().query_authority().authority().facts();
-                facts
-                    .display_fields()
-                    .iter()
-                    .chain(facts.derived_fields())
-                    .nth(index)
-                    .map(|fact| fact.native_value())
+        }
+    }
+
+    pub fn settlement_reference(&self) -> &WorthUiAdmittedQuerySettlementReference {
+        match &self.representation {
+            WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
+                fact.settlement_reference()
             }
         }
     }
@@ -113,9 +77,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
                         .as_u64(),
                 )
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.allocation_source_generation(),
         }
     }
 
@@ -128,9 +89,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
                         .as_u64(),
                 )
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.allocation_source_order(),
         }
     }
 
@@ -139,9 +97,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot { fact, .. } => {
                 fact.is_partial()
             }
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement.is_partial(),
         }
     }
 
@@ -150,12 +105,6 @@ impl WorthUiQueryViewExecutionEvidenceReference {
             WorthUiQueryViewExecutionEvidenceRepresentation::SettledSnapshot {
                 reference, ..
             } => reference.definition().digest().as_u64(),
-            WorthUiQueryViewExecutionEvidenceRepresentation::ManagedLiveCompatibility(
-                settlement,
-            ) => settlement
-                .allocation_source_identity()
-                .authority_index_key()
-                .identity_digest(),
         };
         basis
             ^ self.source_generation().as_u64().rotate_left(17)

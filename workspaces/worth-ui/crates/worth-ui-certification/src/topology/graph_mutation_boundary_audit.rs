@@ -291,8 +291,8 @@ pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
     let mutation_stage_file = runtime_root.join("graph/mutation/graph_mutation_stage.rs");
     let snapshot_file = runtime_root.join("graph/snapshot/graph_snapshot.rs");
     let topology_mutation_file = runtime_root.join("graph/topology/topology_mutation.rs");
-    let mounted_receipt_store_file =
-        runtime_root.join("graph/mounted_receipt/mounted_receipt_authority_seed_store.rs");
+    let mount_eligibility_store_file =
+        runtime_root.join("graph/mount_eligibility/mount_eligibility_store.rs");
     let forbidden_calls = [
         ForbiddenCall {
             type_name: "UiGraphCoreIndexes",
@@ -331,16 +331,16 @@ pub fn audit_graph_mutation_boundary_owns_snapshot_and_index_commit(
             message: "constructs authoritative membership facts outside the graph mutation boundary",
         },
         ForbiddenCall {
-            type_name: "UiGraphMountedReceiptAuthoritySeedStore",
+            type_name: "UiGraphMountEligibilityStore",
             method_name: "new",
-            allowed_paths: &[&mounted_receipt_store_file],
-            message: "constructs mounted-receipt authority seed state outside the graph mutation boundary",
+            allowed_paths: &[&mount_eligibility_store_file],
+            message: "constructs mount-eligibility authority seed state outside the graph mutation boundary",
         },
         ForbiddenCall {
-            type_name: "UiGraphMountedReceiptSlot",
+            type_name: "UiGraphMountEligibilitySlot",
             method_name: "new",
-            allowed_paths: &[&mounted_receipt_store_file],
-            message: "constructs mounted-receipt authority slots outside the graph mutation boundary",
+            allowed_paths: &[&mount_eligibility_store_file],
+            message: "constructs mount-eligibility authority slots outside the graph mutation boundary",
         },
     ];
     let mut violations = Vec::new();

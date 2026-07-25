@@ -1,6 +1,7 @@
 use crate::{
     WorthServerOperationAuthorityKind, WorthServerOperationConcurrencyClass,
     WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
+    WorthServerProductSession,
 };
 
 use super::WorthServerLoweredProductOperationPlan;
@@ -42,20 +43,26 @@ impl WorthServerProductSchedulerAdmission {
 pub struct WorthServerScheduledProductOperation {
     plan: WorthServerLoweredProductOperationPlan,
     scheduler_admission: WorthServerProductSchedulerAdmission,
+    admitted_product_session: Option<WorthServerProductSession>,
     canonical_digest: String,
 }
 
 impl WorthServerScheduledProductOperation {
     pub(crate) fn admit(
         plan: WorthServerLoweredProductOperationPlan,
+        admitted_product_session: Option<WorthServerProductSession>,
     ) -> Result<Self, WorthServerProductOperationSurfaceDenial> {
         let scheduler_lane = derive_scheduler_lane(&plan)?;
         validate_product_scheduler_admission(&plan, &scheduler_lane)?;
         let canonical_digest = format!(
-            "worth-server-scheduled-product-operation-v1|plan={}|lane={}|concurrency={}",
+            "worth-server-scheduled-product-operation-v2|plan={}|lane={}|concurrency={}|product_session={}",
             plan.canonical_digest(),
             scheduler_lane,
             concurrency_label(plan.concurrency_class()),
+            admitted_product_session
+                .as_ref()
+                .map(WorthServerProductSession::canonical_digest)
+                .unwrap_or("none"),
         );
         let scheduler_admission = WorthServerProductSchedulerAdmission::new(
             scheduler_lane,
@@ -65,6 +72,7 @@ impl WorthServerScheduledProductOperation {
         Ok(Self {
             plan,
             scheduler_admission,
+            admitted_product_session,
             canonical_digest,
         })
     }
@@ -75,6 +83,10 @@ impl WorthServerScheduledProductOperation {
 
     pub fn scheduler_admission(&self) -> &WorthServerProductSchedulerAdmission {
         &self.scheduler_admission
+    }
+
+    pub fn admitted_product_session(&self) -> Option<&WorthServerProductSession> {
+        self.admitted_product_session.as_ref()
     }
 
     pub fn canonical_digest(&self) -> &str {

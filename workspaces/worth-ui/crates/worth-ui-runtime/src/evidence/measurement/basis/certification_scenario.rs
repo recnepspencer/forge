@@ -3,9 +3,6 @@ use worth_ui_host_contract::{
     WorthUiMeasurementHostAdapter,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
-use worth_ui_query_binding::compatibility::managed_live::{
-    WorthUiQueryAuthorityHandle, WorthUiQueryPrerequisiteEvidence,
-};
 
 use crate::declaration::{UiDeclarationIdentity, UiDeclaredMeasurementPolicyPosture};
 use crate::graph::{UiGraphNodeIdentity, UiGraphWorldProfile};
@@ -19,7 +16,7 @@ use super::{
 };
 use crate::evidence::measurement::{
     consume_declared_measurement_projection_facts, MeasurementEvidenceInput,
-    UiProjectionFactReceiptDenial,
+    UiSettledQueryFactReceiptDenial,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,8 +35,8 @@ pub struct UiMeasurementBasisCertificationScenario {
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
     query_receipt_authority_generation: Option<UiEvidenceAuthorityGeneration>,
     declared_measurement_policy: UiDeclaredMeasurementPolicyPosture,
-    query_prerequisites: Option<WorthUiQueryPrerequisiteEvidence>,
-    query_authority: Option<WorthUiQueryAuthorityHandle>,
+    query_view_binding_id: Option<crate::capability::ViewBindingId>,
+    settled_query_fact: Option<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     host_capability_report: WorthUiHostCapabilityReport,
     host_requests: Box<[UiMeasurementBasisCertificationHostRequest]>,
 }
@@ -56,7 +53,7 @@ pub enum UiMeasurementBasisCertificationScenarioError {
     ActiveHostCapabilityReportMismatch,
     MissingQueryPrerequisites,
     MissingProjectionConsumption,
-    ProjectionFactReceiptDenied(UiProjectionFactReceiptDenial),
+    ProjectionFactReceiptDenied(UiSettledQueryFactReceiptDenial),
     HostMeasurementEvidenceDenied(UiHostMeasurementEvidenceDenial),
 }
 
@@ -116,20 +113,20 @@ impl UiMeasurementBasisCertificationScenario {
             declaration_support_authority_generation,
             query_receipt_authority_generation: None,
             declared_measurement_policy,
-            query_prerequisites: None,
-            query_authority: None,
+            query_view_binding_id: None,
+            settled_query_fact: None,
             host_capability_report,
             host_requests: Box::new([]),
         }
     }
 
-    pub fn with_query_authority(
+    pub fn with_settled_query_fact(
         mut self,
-        query_prerequisites: WorthUiQueryPrerequisiteEvidence,
-        query_authority: WorthUiQueryAuthorityHandle,
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: worth_ui_query_binding::WorthUiSettledSnapshotFact,
     ) -> Self {
-        self.query_prerequisites = Some(query_prerequisites);
-        self.query_authority = Some(query_authority);
+        self.query_view_binding_id = Some(view_binding_id);
+        self.settled_query_fact = Some(fact);
         self
     }
 
@@ -191,19 +188,22 @@ fn materialize_measurement_basis_for_certification<
 ) -> Result<UiMeasurementBasis, UiMeasurementBasisCertificationScenarioError> {
     let mut inputs = Vec::new();
 
-    match (&scenario.query_prerequisites, &scenario.query_authority) {
-        (Some(prerequisites), Some(query_authority)) => {
+    match (
+        &scenario.query_view_binding_id,
+        &scenario.settled_query_fact,
+    ) {
+        (Some(view_binding_id), Some(fact)) => {
             let receipt = consume_declared_measurement_projection_facts(
                 scenario.declaration_identity.clone(),
                 scenario
                     .query_receipt_authority_generation
                     .unwrap_or(scenario.declaration_support_authority_generation),
                 &scenario.declared_measurement_policy,
-                prerequisites.clone(),
-                query_authority,
+                view_binding_id.clone(),
+                fact,
             )
             .map_err(UiMeasurementBasisCertificationScenarioError::ProjectionFactReceiptDenied)?;
-            inputs.push(MeasurementEvidenceInput::query_projection_fact(&receipt));
+            inputs.push(MeasurementEvidenceInput::settled_query_fact(&receipt));
         }
         (Some(_), None) => {
             return Err(UiMeasurementBasisCertificationScenarioError::MissingProjectionConsumption);

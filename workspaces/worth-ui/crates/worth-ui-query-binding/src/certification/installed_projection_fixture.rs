@@ -1,6 +1,4 @@
-use worth_foundational::{CanonicalFieldPath, FieldKey};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::foundation::ProjectionFactFieldPath;
 use worth_query::facade::runtime::{
     WorthQueryAspectTouch, WorthQueryAuthoredAspectValue, WorthQueryWorkspace,
 };
@@ -35,8 +33,11 @@ pub fn worth_ui_installed_test_domain(label: &str) -> WorthUiInstalledQueryDomai
 /// Hostile integration fixture owned by the only crate allowed to translate
 /// Query execution into Worth UI binding artifacts.
 pub struct WorthUiInstalledQueryTestFixture {
-    workspace: WorthQueryWorkspace,
+    pub(super) workspace: WorthQueryWorkspace,
     view: WorthUiInstalledSnapshotQueryView,
+    plan: WorthUiQueryBindingPlan,
+    reference: crate::WorthUiInstalledQueryBindingReference,
+    admitted_binding_reference: Option<crate::WorthUiAdmittedQueryBindingReference>,
 }
 
 impl WorthUiInstalledQueryTestFixture {
@@ -78,13 +79,30 @@ impl WorthUiInstalledQueryTestFixture {
         let view = installed
             .measurement_view("inspector.measurements")
             .expect("measurement view");
-        Self { workspace, view }
+        let plan = WorthUiQueryBindingPlan::default()
+            .register_view(view.clone())
+            .expect("installed view registration");
+        let reference = plan
+            .resolve_definition(
+                view.definition().identity(),
+                WorthUiQueryViewShape::Collection,
+            )
+            .expect("fixture resolves its canonical installed reference");
+        let mut fixture = Self {
+            workspace,
+            view,
+            plan,
+            reference,
+            admitted_binding_reference: None,
+        };
+        let admitted_binding_reference =
+            fixture.settle_snapshot().fact().binding_reference().clone();
+        fixture.admitted_binding_reference = Some(admitted_binding_reference);
+        fixture
     }
 
     pub fn binding_plan(&self) -> WorthUiQueryBindingPlan {
-        WorthUiQueryBindingPlan::default()
-            .register_view(self.view.clone())
-            .expect("installed view registration")
+        self.plan.clone()
     }
 
     /// Clone the installed view as input to a production registration facade.
@@ -94,16 +112,16 @@ impl WorthUiInstalledQueryTestFixture {
         self.view.clone().into()
     }
 
+    pub fn binding_reference(&self) -> &crate::WorthUiAdmittedQueryBindingReference {
+        self.admitted_binding_reference
+            .as_ref()
+            .expect("fixture initialization admits one real settled binding")
+    }
+
     pub fn settle_snapshot(&mut self) -> WorthUiSettledSnapshotProjection {
-        let reference = self
-            .binding_plan()
-            .resolve_definition(
-                self.view.definition().identity(),
-                WorthUiQueryViewShape::Collection,
-            )
-            .expect("fixture resolves its installed snapshot reference");
-        reference
-            .enter_snapshot_attempt(&self.workspace, observation_basis())
+        self.reference
+            .clone()
+            .enter_snapshot_attempt(&self.workspace)
             .expect("fixture enters the exact Query operating world")
             .prepare_snapshot_consumer(WorthUiQueryConsumerRequirements::new(
                 worth_query::facade::domain::WorthQueryConsumerBoundaryRequirements {
@@ -120,30 +138,28 @@ impl WorthUiInstalledQueryTestFixture {
             .unwrap()
             .publish()
             .unwrap()
-            .consume(worth_query::facade::domain::project_facts().display_field(
-                ProjectionFactFieldPath::from_canonical_field_path(
-                    CanonicalFieldPath::new(vec![
-                        FieldKey::new("measurement").expect("aspect path"),
-                        FieldKey::new("value").expect("field path"),
-                    ])
-                    .expect("measurement path"),
-                ),
-            ))
+            .consume()
             .unwrap()
             .settle()
             .unwrap()
     }
-}
 
-fn observation_basis() -> worth_query::facade::foundation::AdmittedBasisCapability<
-    worth_query::facade::foundation::ObservationLaneWitness,
-> {
-    worth_query::facade::foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
+    /// Builds an owned value only for isolated runtime unit fixtures whose
+    /// subject begins after query-binding retention. Production scenarios
+    /// should use the retained projection or its shared fact reference.
+    pub fn clone_retained_fact_for_isolated_test(&mut self) -> crate::WorthUiSettledSnapshotFact {
+        let plan = self.binding_plan();
+        let mut downstream = plan.prepare_downstream_state();
+        let retained = downstream
+            .admit_settled_snapshot(self.settle_snapshot())
+            .expect("fixture settlement belongs to its installed binding plan");
+        retained.as_ref().clone()
+    }
+
+    pub fn close_retirement(
+        &mut self,
+        retirement: crate::WorthUiOperationLiveRetirement,
+    ) -> crate::WorthUiOperationLiveRetirementCloseOutcome {
+        retirement.close(&mut self.workspace)
+    }
 }

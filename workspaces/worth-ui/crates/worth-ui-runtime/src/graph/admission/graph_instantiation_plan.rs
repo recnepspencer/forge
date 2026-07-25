@@ -7,7 +7,7 @@ use crate::declaration::{
 };
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphInstantiationDenial,
-    UiGraphMountedReceiptAuthoritySeed, UiGraphParentResolutionClaim, UiRepeatedInstanceBasis,
+    UiGraphMountEligibilitySeed, UiGraphParentResolutionClaim, UiRepeatedInstanceBasis,
     UiRepeatedInstanceBasisDenial, UiRuntimeInstanceBasisAdmission,
 };
 
@@ -54,7 +54,7 @@ pub struct UiGraphNodeInstantiationEntry {
     topology_seed: UiGraphTopologySeed,
     participation_seed: UiGraphParticipationSeed,
     attachment_posture: UiGraphAttachmentPosture,
-    mounted_receipt_seed: UiGraphMountedReceiptAuthoritySeed,
+    mount_eligibility_seed: UiGraphMountEligibilitySeed,
     core_index_contribution_seed: UiGraphCoreIndexContributionSeed,
 }
 
@@ -67,7 +67,7 @@ pub(crate) struct UiGraphNodeInstantiationInput {
     pub(crate) topology_seed: UiGraphTopologySeed,
     pub(crate) participation_seed: UiGraphParticipationSeed,
     pub(crate) attachment_posture: UiGraphAttachmentPosture,
-    pub(crate) mounted_receipt_seed: UiGraphMountedReceiptAuthoritySeed,
+    pub(crate) mount_eligibility_seed: UiGraphMountEligibilitySeed,
     pub(crate) core_index_contribution_seed: UiGraphCoreIndexContributionSeed,
 }
 
@@ -82,7 +82,7 @@ impl UiGraphNodeInstantiationEntry {
             topology_seed,
             participation_seed,
             attachment_posture,
-            mounted_receipt_seed,
+            mount_eligibility_seed,
             core_index_contribution_seed,
         } = input;
         Self {
@@ -94,7 +94,7 @@ impl UiGraphNodeInstantiationEntry {
             topology_seed,
             participation_seed,
             attachment_posture,
-            mounted_receipt_seed,
+            mount_eligibility_seed,
             core_index_contribution_seed,
         }
     }
@@ -133,8 +133,8 @@ impl UiGraphNodeInstantiationEntry {
         self.attachment_posture
     }
 
-    pub fn mounted_receipt_seed(&self) -> UiGraphMountedReceiptAuthoritySeed {
-        self.mounted_receipt_seed
+    pub fn mount_eligibility_seed(&self) -> UiGraphMountEligibilitySeed {
+        self.mount_eligibility_seed
     }
 
     pub fn core_index_contribution_seed(&self) -> UiGraphCoreIndexContributionSeed {

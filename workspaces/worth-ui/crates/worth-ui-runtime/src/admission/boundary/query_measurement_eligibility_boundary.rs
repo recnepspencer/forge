@@ -1,59 +1,52 @@
 use crate::admission::{
-    UiMeasurementAdmission, UiQueryMeasurementBasisAuthority, UiQueryMeasurementEligibility,
-    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementUnsupportedQueryReason,
+    UiMeasurementAdmission, UiQueryMeasurementEligibility, UiQueryMeasurementEligibilityPosture,
+    UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
 use crate::declaration::{
     declared_query_measurement_dependencies, UiDeclarationSupportRowSchemaKind,
     UiDeclaredMeasurementPolicyPosture,
 };
-use crate::evidence::{
-    admit_declared_measurement_projection_fact_receipt, UiProjectionFactReceipt,
-    UiProjectionFactReceiptDenial,
-};
-use worth_ui_query_binding::compatibility::managed_live::{
-    WorthUiQueryAuthorityHandle, WorthUiQueryBasisPosture, WorthUiQueryMeasurementFactReceiptError,
-    WorthUiQueryPrerequisiteBoundary, WorthUiQueryPrerequisiteEvidence,
-};
+use crate::evidence::{consume_settled_query_measurement_fact, UiSettledQueryFactReceiptDenial};
 
 use super::UiAdmissionBoundary;
 
 impl<'a> UiAdmissionBoundary<'a> {
-    pub fn admit_query_measurement_eligibility_for_touch_from_query_authority(
+    pub(crate) fn admit_query_measurement_eligibility_for_touch_from_readmitted_fact(
         &self,
         touch: &crate::obligations::touch::UiGraphTouchDescriptor,
-        query_authority: WorthUiQueryAuthorityHandle,
+        view_binding_id: crate::capability::ViewBindingId,
+        readmitted: worth_ui_query_binding::WorthUiReadmittedSettledSnapshotFact<'_>,
     ) -> Option<UiQueryMeasurementEligibility> {
-        let base_target = crate::admission::UiAdmissionTarget::graph_node(
+        let fact = readmitted.fact();
+        let target = crate::admission::UiAdmissionTarget::graph_node(
             touch.target().graph_node_identity(),
             crate::admission::UiAdmissionWorld::from_graph_world_profile(
                 touch.world().world_profile().clone(),
             ),
         );
-        let target = base_target
-            .clone()
-            .with_query_prerequisites_from_query_authority(&query_authority)
-            .unwrap_or(base_target);
         let selected = self.select_obligations_for_target(touch, target);
         let measurement_admission = self.admit_measurement_requirement(&selected)?;
-        self.admit_query_measurement_eligibility_from_query_authority(
+        self.admit_query_measurement_eligibility_from_settled_fact(
             &selected,
             &measurement_admission,
-            query_authority,
+            view_binding_id,
+            fact,
         )
     }
 
-    pub fn admit_query_measurement_eligibility_from_query_authority(
+    pub(crate) fn admit_query_measurement_eligibility_from_settled_fact(
         &self,
         _selected: &crate::obligations::selection::UiSelectedObligationSet,
         measurement_admission: &UiMeasurementAdmission,
-        query_authority: WorthUiQueryAuthorityHandle,
+        view_binding_id: crate::capability::ViewBindingId,
+        fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
     ) -> Option<UiQueryMeasurementEligibility> {
         let declaration_identity = measurement_admission.declaration_identity()?.clone();
         let measurement_policy = measurement_policy_posture(self, measurement_admission)?;
         let dependencies = declared_query_measurement_dependencies(measurement_policy)?;
         let required_families = dependencies.fact_families().to_vec().into_boxed_slice();
         let target = measurement_admission.target().clone();
-        let admission = |posture, projection_fact_receipt: Option<UiProjectionFactReceipt>| {
+        let admission = |posture, projection_fact_receipt| {
             UiQueryMeasurementEligibility::new(
                 crate::admission::UiQueryMeasurementEligibilityInput {
                     target: target.clone(),
@@ -73,109 +66,42 @@ impl<'a> UiAdmissionBoundary<'a> {
             )
         };
 
-        let Some(current_prerequisites) = target.query_prerequisites() else {
+        let crate::graph::UiGraphWorldProfile::SettledQueryBinding {
+            view_binding_id: expected_view_binding_id,
+            binding_reference: expected_binding_reference,
+        } = target.world().graph_world_profile()
+        else {
             return Some(admission(
                 UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
                     world: target.world().clone(),
-                    reason: UiQueryMeasurementUnsupportedQueryReason::MissingQueryPrerequisites,
+                    reason: UiQueryMeasurementUnsupportedQueryReason::MissingSettledQueryFact,
                 },
                 None,
             ));
         };
 
-        let current_receipt_stale = matches!(
-            current_prerequisites.basis_posture(),
-            WorthUiQueryBasisPosture::StaleReceipt
-        );
-        match current_prerequisites.basis_posture() {
-            WorthUiQueryBasisPosture::WrongWorldProjection => {
-                return Some(admission(
-                    UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
-                        world: target.world().clone(),
-                        reason: UiQueryMeasurementUnsupportedQueryReason::WrongWorldProjection,
-                    },
-                    None,
-                ));
-            }
-            WorthUiQueryBasisPosture::RebindRequired => {
-                return Some(admission(
-                    UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
-                        world: target.world().clone(),
-                        reason: UiQueryMeasurementUnsupportedQueryReason::RebindRequired,
-                    },
-                    None,
-                ));
-            }
-            WorthUiQueryBasisPosture::AmbiguousSources => {
-                return Some(admission(
-                    UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
-                        world: target.world().clone(),
-                        reason: UiQueryMeasurementUnsupportedQueryReason::AmbiguousSources,
-                    },
-                    None,
-                ));
-            }
-            WorthUiQueryBasisPosture::StaleReceipt => {}
-            WorthUiQueryBasisPosture::GraphAligned => {}
-        }
-
-        let observed_authority = observed_basis_authority(&query_authority);
-        let query_receipt = match WorthUiQueryPrerequisiteBoundary::new()
-            .measurement_fact_receipt_from_query_authority(
-                current_prerequisites.clone(),
-                query_authority,
-            ) {
-            Ok(receipt) => receipt,
-            Err(
-                WorthUiQueryMeasurementFactReceiptError::BasisDigestMismatch
-                | WorthUiQueryMeasurementFactReceiptError::ProjectionContractMismatch,
-            ) => {
-                let posture = stale_basis_posture_from_query_authority(
-                    target.world().clone(),
-                    current_prerequisites,
-                    observed_authority,
-                );
-                return Some(admission(posture, None));
-            }
-            Err(_) => {
-                return Some(admission(
-                    UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
-                        world: target.world().clone(),
-                        reason: UiQueryMeasurementUnsupportedQueryReason::ProjectionConsumptionUnavailable,
-                    },
-                    None,
-                ));
-            }
-        };
-
-        if !query_receipt.binds_prerequisites(current_prerequisites) {
+        let observed =
+            UiQueryMeasurementSourceIdentity::from_settled_fact(view_binding_id.clone(), fact);
+        if expected_view_binding_id != &view_binding_id
+            || expected_binding_reference != fact.binding_reference()
+        {
             return Some(admission(
-                stale_basis_posture_from_query_authority(
-                    target.world().clone(),
-                    current_prerequisites,
-                    observed_authority.clone(),
-                ),
+                UiQueryMeasurementEligibilityPosture::StaleSettlement {
+                    world: target.world().clone(),
+                    expected_view_binding_id: expected_view_binding_id.clone(),
+                    expected_binding_reference: expected_binding_reference.clone(),
+                    observed: Box::new(observed),
+                },
                 None,
             ));
         }
 
-        if current_receipt_stale {
-            return Some(admission(
-                stale_basis_posture_from_query_authority(
-                    target.world().clone(),
-                    current_prerequisites,
-                    observed_authority,
-                ),
-                None,
-            ));
-        }
-
-        match admit_declared_measurement_projection_fact_receipt(
+        match consume_settled_query_measurement_fact(
             declaration_identity,
             measurement_admission.selected_support_authority_generation(),
-            dependencies,
-            current_prerequisites.resolution_mode(),
-            query_receipt,
+            measurement_policy,
+            view_binding_id,
+            fact,
         ) {
             Ok(receipt) => Some(admission(
                 UiQueryMeasurementEligibilityPosture::Eligible {
@@ -188,7 +114,7 @@ impl<'a> UiAdmissionBoundary<'a> {
                 },
                 Some(receipt),
             )),
-            Err(UiProjectionFactReceiptDenial::MissingRequiredFactFamilies {
+            Err(UiSettledQueryFactReceiptDenial::MissingRequiredFactFamilies {
                 required,
                 consumed,
             }) => Some(admission(
@@ -204,8 +130,8 @@ impl<'a> UiAdmissionBoundary<'a> {
                 },
                 None,
             )),
-            Err(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies) => None,
-            Err(UiProjectionFactReceiptDenial::QueryFactReceipt(_)) => Some(admission(
+            Err(UiSettledQueryFactReceiptDenial::NoQueryMeasurementDependencies) => None,
+            Err(UiSettledQueryFactReceiptDenial::SettledFactObservation(_)) => Some(admission(
                 UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture {
                     world: target.world().clone(),
                     reason:
@@ -213,9 +139,6 @@ impl<'a> UiAdmissionBoundary<'a> {
                 },
                 None,
             )),
-            Err(UiProjectionFactReceiptDenial::SettledFactObservation(_)) => {
-                unreachable!("legacy Query authority admission cannot observe a settled fact")
-            }
         }
     }
 }
@@ -229,32 +152,4 @@ fn measurement_policy_posture<'a>(
     let snapshot = artifact.support_snapshot().ok()?;
     let row = snapshot.row(UiDeclarationSupportRowSchemaKind::MeasurementPolicy)?;
     row.declared_measurement_policy_posture()
-}
-
-fn stale_basis_posture_from_query_authority(
-    world: crate::admission::UiAdmissionWorld,
-    current: &WorthUiQueryPrerequisiteEvidence,
-    observed: UiQueryMeasurementBasisAuthority,
-) -> UiQueryMeasurementEligibilityPosture {
-    UiQueryMeasurementEligibilityPosture::StaleBasisGeneration {
-        world,
-        expected: prerequisite_basis_authority(current),
-        observed,
-    }
-}
-
-fn observed_basis_authority(
-    authority: &WorthUiQueryAuthorityHandle,
-) -> UiQueryMeasurementBasisAuthority {
-    UiQueryMeasurementBasisAuthority::ProjectionConsumption {
-        authority: Box::new(authority.clone()),
-    }
-}
-
-fn prerequisite_basis_authority(
-    prerequisites: &WorthUiQueryPrerequisiteEvidence,
-) -> UiQueryMeasurementBasisAuthority {
-    UiQueryMeasurementBasisAuthority::AdmittedPrerequisites {
-        prerequisites: Box::new(prerequisites.clone()),
-    }
 }

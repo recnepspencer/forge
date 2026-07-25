@@ -1,7 +1,7 @@
 use crate::obligations::dispatch::{UiObligationDispatchExecution, UiObligationDispatchPlan};
 use crate::obligations::inspection::{
-    query_prerequisite_evidence_from_refs, UiObligationEvidenceAuthoritySource,
-    UiObligationEvidenceDecision, UiObligationEvidenceDispatchPosture, UiObligationEvidenceHandle,
+    UiObligationEvidenceAuthoritySource, UiObligationEvidenceDecision,
+    UiObligationEvidenceDispatchPosture, UiObligationEvidenceHandle,
     UiObligationEvidenceHandleKind, UiObligationEvidenceRecord, UiObligationEvidenceRecordInput,
 };
 
@@ -33,7 +33,6 @@ pub(crate) fn dispatch_evidence_records(
                 denial_posture: None,
                 selection_reasons: Box::new([]),
                 prerequisite_sources: Box::new([]),
-                query_prerequisite_evidence: Box::new([]),
                 non_selection_reason: None,
                 legality_reason: None,
             },
@@ -93,10 +92,6 @@ pub(crate) fn dispatch_evidence_records(
                         entry.selected().prerequisite_evidence_refs(),
                     )
                     .into_boxed_slice(),
-                query_prerequisite_evidence: query_prerequisite_evidence_from_refs(
-                    entry.selected().prerequisite_evidence_refs(),
-                )
-                .into_boxed_slice(),
                 non_selection_reason: None,
                 legality_reason: None,
             })

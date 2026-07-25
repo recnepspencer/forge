@@ -1,4 +1,5 @@
 mod budget_receipt;
+mod budget_taxonomy;
 mod counters;
 mod lifecycle_evidence;
 

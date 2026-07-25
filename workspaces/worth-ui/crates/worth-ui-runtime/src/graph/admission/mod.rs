@@ -1,6 +1,6 @@
 mod graph_instantiation_denial;
 mod graph_instantiation_plan;
-mod graph_instantiation_plan_mounted_receipts;
+mod graph_instantiation_plan_mount_eligibilities;
 mod graph_participation_seed;
 mod handoff_admission;
 mod handoff_classification;

@@ -26,4 +26,8 @@ impl WorthUiInstalledQueryDomain {
     pub(crate) fn handle(&self) -> &WorthQueryInstalledDomainHandle<WorthUiDomainEntry> {
         &self.handle
     }
+
+    pub(crate) fn authority_order(&self) -> usize {
+        self.handle.authority() as *const _ as usize
+    }
 }

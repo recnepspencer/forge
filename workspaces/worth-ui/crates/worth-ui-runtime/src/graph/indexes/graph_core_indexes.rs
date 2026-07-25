@@ -1,9 +1,9 @@
 use super::{
-    UiGraphConsumedAspectIndex, UiGraphMountedReceiptIndex, UiGraphNodeIdentityIndex,
+    UiGraphConsumedAspectIndex, UiGraphMountEligibilityIndex, UiGraphNodeIdentityIndex,
     UiGraphParticipationIndexes, UiGraphPublishedAspectIndex, UiGraphTopologyIndexes,
 };
 use crate::graph::{
-    UiGraphDeclarationCorrespondence, UiGraphMountedReceiptAuthoritySeedStore, UiGraphNode,
+    UiGraphDeclarationCorrespondence, UiGraphMountEligibilityStore, UiGraphNode,
     UiGraphNodeInstantiationEntry, UiGraphTopology,
 };
 
@@ -13,7 +13,7 @@ pub struct UiGraphCoreIndexes {
     declaration_correspondence: UiGraphDeclarationCorrespondence,
     topology_indexes: UiGraphTopologyIndexes,
     participation_indexes: UiGraphParticipationIndexes,
-    mounted_receipt_index: UiGraphMountedReceiptIndex,
+    mount_eligibility_index: UiGraphMountEligibilityIndex,
     published_aspect_index: UiGraphPublishedAspectIndex,
     consumed_aspect_index: UiGraphConsumedAspectIndex,
 }
@@ -24,9 +24,9 @@ impl UiGraphCoreIndexes {
         nodes: &[UiGraphNode],
         declaration_correspondence: UiGraphDeclarationCorrespondence,
         topology: &UiGraphTopology,
-        mounted_receipts: &UiGraphMountedReceiptAuthoritySeedStore,
+        mount_eligibilities: &UiGraphMountEligibilityStore,
     ) -> Self {
-        let mounted_receipt_index = UiGraphMountedReceiptIndex::build(mounted_receipts);
+        let mount_eligibility_index = UiGraphMountEligibilityIndex::build(mount_eligibilities);
         let node_aspects = node_entries
             .iter()
             .zip(nodes.iter())
@@ -37,16 +37,16 @@ impl UiGraphCoreIndexes {
             node_identity_index: UiGraphNodeIdentityIndex::build(nodes),
             topology_indexes: UiGraphTopologyIndexes::build(topology),
             participation_indexes: UiGraphParticipationIndexes::build(nodes, topology),
-            mounted_receipt_index: mounted_receipt_index.clone(),
+            mount_eligibility_index: mount_eligibility_index.clone(),
             published_aspect_index: UiGraphPublishedAspectIndex::build(
                 &node_aspects,
-                mounted_receipts,
-                &mounted_receipt_index,
+                mount_eligibilities,
+                &mount_eligibility_index,
             ),
             consumed_aspect_index: UiGraphConsumedAspectIndex::build(
                 &node_aspects,
-                mounted_receipts,
-                &mounted_receipt_index,
+                mount_eligibilities,
+                &mount_eligibility_index,
             ),
             declaration_correspondence,
         }
@@ -62,7 +62,7 @@ impl UiGraphCoreIndexes {
             declaration_correspondence: prior.declaration_correspondence.clone(),
             topology_indexes: UiGraphTopologyIndexes::build(topology),
             participation_indexes: UiGraphParticipationIndexes::build(nodes, topology),
-            mounted_receipt_index: prior.mounted_receipt_index.clone(),
+            mount_eligibility_index: prior.mount_eligibility_index.clone(),
             published_aspect_index: prior.published_aspect_index.clone(),
             consumed_aspect_index: prior.consumed_aspect_index.clone(),
         }
@@ -84,8 +84,8 @@ impl UiGraphCoreIndexes {
         &self.participation_indexes
     }
 
-    pub fn mounted_receipts(&self) -> &UiGraphMountedReceiptIndex {
-        &self.mounted_receipt_index
+    pub fn mount_eligibilities(&self) -> &UiGraphMountEligibilityIndex {
+        &self.mount_eligibility_index
     }
 
     pub fn published_aspects(&self) -> &UiGraphPublishedAspectIndex {

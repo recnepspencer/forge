@@ -9,7 +9,7 @@ use super::{
 use crate::runtime::{WorthUiHostCapability, WorthUiHostCapabilityReport};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiMeasurementRequest {
+pub struct UiHostMeasurementRequest {
     identity: UiMeasurementRequestIdentity,
     family: UiMeasurementRequestFamily,
     evidence_family: UiMeasurementEvidenceFamily,
@@ -17,7 +17,7 @@ pub struct UiMeasurementRequest {
     payload: UiMeasurementRequestPayload,
 }
 
-impl UiMeasurementRequest {
+impl UiHostMeasurementRequest {
     pub fn text_intrinsic_size(
         identity: UiMeasurementRequestIdentity,
         evidence_family: UiMeasurementEvidenceFamily,
@@ -154,7 +154,7 @@ impl UiMeasurementRequest {
         )
     }
 
-    fn new(
+    pub(super) fn new(
         identity: UiMeasurementRequestIdentity,
         family: UiMeasurementRequestFamily,
         expected_evidence_family: UiMeasurementEvidenceFamily,
@@ -258,6 +258,26 @@ impl UiMeasurementRequest {
             _ => None,
         }
     }
+
+    pub fn encoded_len(&self) -> usize {
+        let payload = match &self.payload {
+            UiMeasurementRequestPayload::TextIntrinsicSize(value) => {
+                value.text().len() + value.font().token().len()
+            }
+            UiMeasurementRequestPayload::TextBaselineMetrics(value) => {
+                value.text().len() + value.font().token().len()
+            }
+            UiMeasurementRequestPayload::FontMetrics(value) => value.font().token().len(),
+            UiMeasurementRequestPayload::NativeControlIntrinsicSize(value) => {
+                1 + value.label().map_or(0, str::len)
+            }
+            UiMeasurementRequestPayload::ViewportExtent(_)
+            | UiMeasurementRequestPayload::DpiScaleFactor(_) => 0,
+            UiMeasurementRequestPayload::PortalAnchorRect(_)
+            | UiMeasurementRequestPayload::ScrollContainerViewport(_) => 8,
+        };
+        24 + payload + self.required_capabilities().len() * 2
+    }
 }
 
 #[cfg(test)]
@@ -270,7 +290,7 @@ mod tests {
         let capability_report = WorthUiHostCapabilityReport::available(vec![
             WorthUiHostCapability::TextIntrinsicMeasurement,
         ]);
-        let denial = UiMeasurementRequest::text_intrinsic_size(
+        let denial = UiHostMeasurementRequest::text_intrinsic_size(
             UiMeasurementRequestIdentity::new(7),
             UiMeasurementEvidenceFamily::FontMetrics,
             UiTextIntrinsicSizeRequest::single_line("Inbox", UiFontMeasurementKey::new("body")),

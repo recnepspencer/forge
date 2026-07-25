@@ -87,7 +87,7 @@ impl WorthUiQuerySettledFactSubmission {
         &mut self,
         plan_index: u32,
         view_binding_id: crate::capability::ViewBindingId,
-        fact: worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        fact: std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     ) -> UiAllocationFrameGatewayOutcome {
         let source_generation = fact
             .source_generation()
@@ -104,7 +104,7 @@ impl WorthUiQuerySettledFactSubmission {
             source_order,
             UiAllocationFrameSourceFact::QuerySettledFact {
                 view_binding_id,
-                fact: Box::new(fact),
+                fact,
             },
         )
     }

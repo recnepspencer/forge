@@ -1,4 +1,4 @@
-use std::borrow::Borrow;
+use std::borrow::{Borrow, Cow};
 
 use super::construct_verified_planning_input_handoff;
 use super::WorthUiAllocationReplanDenial;
@@ -77,16 +77,39 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
 }
 
 pub(crate) fn replan_admitted_candidate(
-    previous: &UiAllocationCandidate,
+    selected: &crate::graph::UiAdmittedReplanNeighborhood,
 ) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
-    replan_admitted_candidate_with_portal(previous, None)
+    replan_admitted_candidate_with_sources(selected, None, None)
 }
 
-fn replan_admitted_candidate_with_portal(
-    previous: &UiAllocationCandidate,
+fn replan_admitted_candidate_with_sources(
+    selected: &crate::graph::UiAdmittedReplanNeighborhood,
     portal: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
+    query: Option<&crate::graph::UiQueryMeasurementReplanConsequence>,
 ) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
-    let measurement_basis = previous.measurement_basis();
+    let previous = selected.allocation_candidate();
+    let mut measurement_basis = Cow::Borrowed(previous.measurement_basis());
+    if let Some(query) = query {
+        if query.predecessor_basis_identity_digest()
+            != previous.measurement_basis().identity_digest()
+        {
+            return Err(WorthUiAllocationReplanDenial::QueryMeasurementBasisMismatch);
+        }
+        measurement_basis = Cow::Owned(
+            previous
+                .measurement_basis()
+                .succeed_settled_query_receipt(query.receipt())
+                .map_err(|_| WorthUiAllocationReplanDenial::QueryMeasurementBasisMismatch)?,
+        );
+    }
+    if let Some(portal) = portal.as_ref() {
+        measurement_basis = Cow::Owned(
+            measurement_basis
+                .succeed_portal_measurement_result(portal.measurement_result())
+                .map_err(|_| WorthUiAllocationReplanDenial::PortalMeasurementBasisMismatch)?,
+        );
+    }
+    let measurement_basis = measurement_basis.as_ref();
     let neighborhood = previous.allocation_neighborhood();
     let constraint_basis = portal
         .as_ref()
@@ -109,10 +132,13 @@ fn replan_admitted_candidate_with_portal(
             constraint_basis,
             portal,
         );
-    Ok(UiAllocationCandidate::from_planning(
+    let mut candidate = UiAllocationCandidate::from_planning(
         WorthUiAllocationPlanner::plan(admission),
         UiAllocationCandidateMintAuthority::new(),
-    ))
+    );
+    let (impact, narrowing) = selected.replacement_lineage();
+    candidate.seal_replan_successor(impact, narrowing);
+    Ok(candidate)
 }
 
 pub(crate) fn replan_selected_candidates(
@@ -122,9 +148,7 @@ pub(crate) fn replan_selected_candidates(
         .ordered_neighborhoods()
         .iter()
         .enumerate()
-        .map(|(ordinal, selected)| {
-            replan_admitted_candidate(selected.allocation_candidate()).map_err(|_| ordinal as u16)
-        })
+        .map(|(ordinal, selected)| replan_admitted_candidate(selected).map_err(|_| ordinal as u16))
         .collect()
 }
 
@@ -158,7 +182,19 @@ pub(crate) fn replan_selected_candidates_with_portal(
                     .ok_or(ordinal as u16)
                 })
                 .transpose()?;
-            replan_admitted_candidate_with_portal(selected.allocation_candidate(), portal)
+            let mut matching_query =
+                consequences
+                    .query_measurements()
+                    .iter()
+                    .filter(|consequence| {
+                        consequence.neighborhood_identity_digest()
+                            == selected.identity().identity_digest()
+                    });
+            let query = matching_query.next();
+            if query.is_some() && matching_query.next().is_some() {
+                return Err(ordinal as u16);
+            }
+            replan_admitted_candidate_with_sources(selected, portal, query)
                 .map_err(|_| ordinal as u16)
         })
         .collect()
@@ -169,8 +205,10 @@ pub(crate) fn replan_selected_candidates_with_resize(
     basis: &crate::runtime::UiResizeAllocationPlanningBasis,
 ) -> Result<Vec<UiAllocationCandidate>, u16> {
     let mut candidates = replan_selected_candidates(selection)?;
-    for candidate in &mut candidates {
+    for (candidate, selected) in candidates.iter_mut().zip(selection.ordered_neighborhoods()) {
         candidate.seal_resize_basis(basis.clone());
+        let (impact, narrowing) = selected.replacement_lineage();
+        candidate.seal_replan_successor(impact, narrowing);
     }
     Ok(candidates)
 }

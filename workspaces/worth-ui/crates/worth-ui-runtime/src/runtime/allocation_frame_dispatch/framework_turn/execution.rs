@@ -68,6 +68,9 @@ pub(super) fn execute_planned_framework_transition(
                 .apply_allocation_frame_epoch_assignment(frame_epoch_assignment);
         }
     }
+    runtime
+        .query_binding
+        .publish_staged_operation_live_changes();
     execute_family(runtime, family, planning_counters)
 }
 

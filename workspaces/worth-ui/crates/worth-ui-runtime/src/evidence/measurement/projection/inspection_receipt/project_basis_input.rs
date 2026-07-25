@@ -10,20 +10,12 @@ pub(crate) fn project_basis_input(
     input: &MeasurementEvidenceInput,
 ) -> UiInspectionMeasurementBasisInput {
     match input {
-        MeasurementEvidenceInput::QueryProjectionFact(receipt) => {
-            UiInspectionMeasurementBasisInput::QueryProjectionFact {
-                query_basis_digest: receipt.query_basis_digest_for_diagnostics().into(),
-                projection_contract_digest: receipt
-                    .projection_contract_digest_for_diagnostics()
-                    .into(),
-                required_fact_family_set_digest: receipt.required_query_fact_family_set_digest(),
-                consumed_fact_family_set_digest: receipt.consumed_fact_family_set_digest(),
-            }
-        }
         MeasurementEvidenceInput::SettledQueryFact(receipt) => {
+            let (binding_digest, settlement_digest) =
+                receipt.reference_reporting_digests();
             UiInspectionMeasurementBasisInput::QueryProjectionFact {
-                query_basis_digest: receipt.query_binding_identity().into(),
-                projection_contract_digest: receipt.settlement_identity().into(),
+                query_basis_digest: format!("{binding_digest:016x}").into(),
+                projection_contract_digest: format!("{settlement_digest:016x}").into(),
                 required_fact_family_set_digest: receipt.required_query_fact_family_set_digest(),
                 consumed_fact_family_set_digest: receipt.consumed_fact_family_set_digest(),
             }

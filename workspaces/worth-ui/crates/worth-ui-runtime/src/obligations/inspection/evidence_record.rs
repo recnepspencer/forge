@@ -11,7 +11,6 @@ use crate::obligations::verdict::{UiObligationDispatchStopPosture, UiObligationV
 use worth_ui_inspection::{
     UiEvidenceAuthorityGeneration, UiEvidenceMaterializationPosture, UiEvidenceRetentionPosture,
 };
-use worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence;
 
 use super::projection_mapping::{
     inspection_decision, inspection_denial_posture, inspection_dispatch_posture, inspection_family,
@@ -159,7 +158,6 @@ pub struct UiObligationEvidenceRecord {
     denial_posture: Option<UiObligationEvidenceDenialPosture>,
     selection_reasons: Box<[UiObligationSelectionReason]>,
     prerequisite_sources: Box<[UiObligationEvidencePrerequisiteSource]>,
-    query_prerequisite_evidence: Box<[WorthUiQueryPrerequisiteEvidence]>,
     non_selection_reason: Option<UiObligationNonSelectionReason>,
     legality_reason: Option<UiObligationLegalityReasonEvidence>,
 }
@@ -177,7 +175,6 @@ pub(crate) struct UiObligationEvidenceRecordInput {
     pub denial_posture: Option<UiObligationEvidenceDenialPosture>,
     pub selection_reasons: Box<[UiObligationSelectionReason]>,
     pub prerequisite_sources: Box<[UiObligationEvidencePrerequisiteSource]>,
-    pub query_prerequisite_evidence: Box<[WorthUiQueryPrerequisiteEvidence]>,
     pub non_selection_reason: Option<UiObligationNonSelectionReason>,
     pub legality_reason: Option<UiObligationLegalityReasonEvidence>,
 }
@@ -197,7 +194,6 @@ impl UiObligationEvidenceRecord {
             denial_posture,
             selection_reasons,
             prerequisite_sources,
-            query_prerequisite_evidence,
             non_selection_reason,
             legality_reason,
         } = input;
@@ -214,7 +210,6 @@ impl UiObligationEvidenceRecord {
             denial_posture,
             selection_reasons,
             prerequisite_sources,
-            query_prerequisite_evidence,
             non_selection_reason,
             legality_reason,
         }
@@ -273,10 +268,6 @@ impl UiObligationEvidenceRecord {
 
     pub fn prerequisite_sources(&self) -> &[UiObligationEvidencePrerequisiteSource] {
         &self.prerequisite_sources
-    }
-
-    pub fn query_prerequisite_evidence(&self) -> &[WorthUiQueryPrerequisiteEvidence] {
-        &self.query_prerequisite_evidence
     }
 
     pub fn non_selection_reason(&self) -> Option<UiObligationNonSelectionReason> {

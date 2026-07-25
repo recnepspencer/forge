@@ -85,6 +85,8 @@ pub(super) fn ambiguous_plan_for_same_active(
                 candidate_kind: Some(WorthUiIdentityMatchNodeKind::Binding),
                 active_durable_state_eligible: true,
                 candidate_durable_state_eligible: true,
+                active_has_restorable_splitter_state: false,
+                candidate_has_restorable_splitter_state: false,
                 active_resize_contract_id: None,
                 candidate_resize_contract_id: None,
                 active_resize_permission: None,

@@ -10,6 +10,8 @@ pub struct WorthUiNodeReplacementClassification {
     candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
     active_durable_state_eligible: bool,
     candidate_durable_state_eligible: bool,
+    active_has_restorable_splitter_state: bool,
+    candidate_has_restorable_splitter_state: bool,
     active_resize_contract_id: Option<MosaicSizingContractId>,
     candidate_resize_contract_id: Option<MosaicSizingContractId>,
     active_resize_permission: Option<MosaicResizePermission>,
@@ -26,6 +28,8 @@ pub(crate) struct WorthUiNodeReplacementClassificationInput {
     pub candidate_kind: Option<WorthUiIdentityMatchNodeKind>,
     pub active_durable_state_eligible: bool,
     pub candidate_durable_state_eligible: bool,
+    pub active_has_restorable_splitter_state: bool,
+    pub candidate_has_restorable_splitter_state: bool,
     pub active_resize_contract_id: Option<MosaicSizingContractId>,
     pub candidate_resize_contract_id: Option<MosaicSizingContractId>,
     pub active_resize_permission: Option<MosaicResizePermission>,
@@ -44,6 +48,8 @@ impl WorthUiNodeReplacementClassification {
             candidate_kind,
             active_durable_state_eligible,
             candidate_durable_state_eligible,
+            active_has_restorable_splitter_state,
+            candidate_has_restorable_splitter_state,
             active_resize_contract_id,
             candidate_resize_contract_id,
             active_resize_permission,
@@ -59,6 +65,8 @@ impl WorthUiNodeReplacementClassification {
             candidate_kind,
             active_durable_state_eligible,
             candidate_durable_state_eligible,
+            active_has_restorable_splitter_state,
+            candidate_has_restorable_splitter_state,
             active_resize_contract_id,
             candidate_resize_contract_id,
             active_resize_permission,
@@ -94,6 +102,14 @@ impl WorthUiNodeReplacementClassification {
 
     pub fn candidate_durable_state_eligible(&self) -> bool {
         self.candidate_durable_state_eligible
+    }
+
+    pub fn active_has_restorable_splitter_state(&self) -> bool {
+        self.active_has_restorable_splitter_state
+    }
+
+    pub fn candidate_has_restorable_splitter_state(&self) -> bool {
+        self.candidate_has_restorable_splitter_state
     }
 
     pub fn active_resize_contract_id(&self) -> Option<&MosaicSizingContractId> {

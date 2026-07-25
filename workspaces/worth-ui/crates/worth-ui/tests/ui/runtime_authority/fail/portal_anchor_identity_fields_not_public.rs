@@ -1,4 +1,4 @@
-use worth_ui_runtime::facade::host_observation::UiPortalAnchorTargetIdentity;
+use worth_ui_runtime::facade::measurement_exchange::UiPortalAnchorTargetIdentity;
 use worth_ui_runtime::facade::runtime_handoff::UiPortalAnchorIdentity;
 
 fn main() {

@@ -64,19 +64,6 @@ impl WorthUiScrollOffsetTurnSource<'_> {
             .borrow()
             .acquire_host_scroll_projection(result.authority_witness(), receipt)
     }
-    pub fn acquire_query_owner(
-        &self,
-        query: &crate::evidence::UiProjectionFactReceipt,
-        allocation_receipt: &crate::runtime::UiAllocationReceipt,
-    ) -> Result<
-        crate::runtime::UiActivatedScrollOwner,
-        crate::runtime::UiScrollOwnerAcquisitionDenial,
-    > {
-        self.runtime
-            .allocation_invalidation_index
-            .borrow()
-            .acquire_query_scroll_projection(query.query_authority(), allocation_receipt)
-    }
     pub fn acquire_settled_query_owner(
         &self,
         query: &crate::evidence::UiSettledQueryFactReceipt,
@@ -201,7 +188,7 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.runtime.admit_settled_query_projection(projection)
@@ -214,7 +201,7 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.runtime.refresh_settled_query_projection(projection)
@@ -232,16 +219,38 @@ impl WorthUiQueryProjectionTurnSource<'_> {
         self.runtime.submit_settled_query_fact(link)
     }
 
-    pub fn admit_managed_live_compatibility_and_submit(
+    pub fn admit_operation_live(
         &mut self,
-        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
+        resource: worth_ui_query_binding::WorthUiOperationLiveResource,
+    ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
+        self.runtime.admit_operation_live(resource)
+    }
+
+    /// Stage one sealed UI collection consequence for atomic publication when
+    /// this framework turn succeeds.
+    ///
+    /// Query progression remains entirely inside `worth-ui-query-binding`.
+    /// Runtime receives only this WUI-owned artifact, and the predecessor
+    /// admitted consequence remains current until the enclosing callback
+    /// completes without unwinding.
+    pub fn admit_collection_change(
+        &mut self,
+        consequence: worth_ui_query_binding::WorthUiCollectionChangeConsequence,
     ) -> Result<
-        UiAllocationFrameGatewayOutcome,
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
+        worth_ui_query_binding::WorthUiCollectionChangeStagingReceipt,
+        worth_ui_query_binding::WorthUiCollectionChangeAdmissionStop,
     > {
-        self.runtime
-            .admit_and_submit_live_query_projection(resource, outcome)
+        self.runtime.admit_operation_live_change(consequence)
+    }
+
+    pub fn refresh_operation_live(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveSourceRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveSourceRefreshStop,
+    > {
+        self.runtime.refresh_and_admit_operation_live(request)
     }
 }
 

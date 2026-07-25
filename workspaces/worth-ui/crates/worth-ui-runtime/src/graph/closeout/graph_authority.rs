@@ -2,7 +2,7 @@ use crate::evidence::{preflight_evidence_expansion, UiEvidenceExpansion, UiEvide
 use crate::graph::inspection::UiGraphEvidenceRecord;
 use crate::graph::{
     UiGraphAxisParticipation, UiGraphCloseoutReport, UiGraphGeneration, UiGraphInspectionSupport,
-    UiGraphLookupSurface, UiGraphMountedReceiptMutation, UiGraphMountedReceiptTransition,
+    UiGraphLookupSurface, UiGraphMountEligibilityMutation, UiGraphMountEligibilityTransition,
     UiGraphNodeIdentity, UiGraphSnapshot, UiGraphSnapshotComparable, UiGraphWorldProfile,
 };
 use crate::obligations::touch::UiGraphTouchAuthority;
@@ -43,8 +43,8 @@ impl<'a> UiGraphAuthority<'a> {
         self.snapshot.allocation_planning_node_identities()
     }
 
-    pub fn mounted_receipt_slot_count(self) -> usize {
-        self.snapshot.mounted_receipt_slot_count()
+    pub fn mount_eligibility_slot_count(self) -> usize {
+        self.snapshot.mount_eligibility_slot_count()
     }
 
     pub fn world_profile(self) -> &'a UiGraphWorldProfile {
@@ -103,29 +103,29 @@ impl<'a> UiGraphAuthority<'a> {
         self.snapshot.compare_to(other.snapshot)
     }
 
-    pub fn mounted_receipt_mutation_for_node(
+    pub fn mount_eligibility_mutation_for_node(
         self,
         graph_node_identity: UiGraphNodeIdentity,
-        prior_mounted_axis_participation: UiGraphAxisParticipation,
-        next_mounted_axis_participation: UiGraphAxisParticipation,
-    ) -> Option<UiGraphMountedReceiptMutation> {
-        self.snapshot.mounted_receipt_mutation_for_node(
+        prior_eligibility: UiGraphAxisParticipation,
+        next_eligibility: UiGraphAxisParticipation,
+    ) -> Option<UiGraphMountEligibilityMutation> {
+        self.snapshot.mount_eligibility_mutation_for_node(
             graph_node_identity,
-            prior_mounted_axis_participation,
-            next_mounted_axis_participation,
+            prior_eligibility,
+            next_eligibility,
         )
     }
 
-    pub fn mounted_receipt_transition_for_node(
+    pub fn mount_eligibility_transition_for_node(
         self,
         graph_node_identity: UiGraphNodeIdentity,
-        prior_mounted_axis_participation: UiGraphAxisParticipation,
-        next_mounted_axis_participation: UiGraphAxisParticipation,
-    ) -> Option<UiGraphMountedReceiptTransition> {
-        self.snapshot.mounted_receipt_transition_for_node(
+        prior_eligibility: UiGraphAxisParticipation,
+        next_eligibility: UiGraphAxisParticipation,
+    ) -> Option<UiGraphMountEligibilityTransition> {
+        self.snapshot.mount_eligibility_transition_for_node(
             graph_node_identity,
-            prior_mounted_axis_participation,
-            next_mounted_axis_participation,
+            prior_eligibility,
+            next_eligibility,
         )
     }
 

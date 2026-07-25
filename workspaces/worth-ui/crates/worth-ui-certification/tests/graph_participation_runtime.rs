@@ -43,9 +43,9 @@ fn node_participation_posture_exposes_every_required_axis_with_status_reason_and
         control_node.participation_posture(),
         UiGraphParticipationAxis::Mounted,
         UiGraphParticipationStatus::Deferred,
-        UiGraphParticipationReasonSource::MountedReceiptAuthority,
+        UiGraphParticipationReasonSource::MountEligibility,
         UiGraphParticipationReasonCode::MountedAxisAwaitsRuntimeMutation,
-        UiGraphParticipationEvidenceHandle::MountedReceiptAuthoritySeed,
+        UiGraphParticipationEvidenceHandle::MountEligibilitySeed,
     );
     for axis in [
         UiGraphParticipationAxis::Visible,

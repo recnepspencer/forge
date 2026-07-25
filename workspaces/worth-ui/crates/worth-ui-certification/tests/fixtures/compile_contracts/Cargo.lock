@@ -800,16 +800,12 @@ version = "0.1.0"
 [[package]]
 name = "worth-ui-inspection"
 version = "0.1.0"
-dependencies = [
- "worth-ui-query-binding",
-]
 
 [[package]]
 name = "worth-ui-query-binding"
 version = "0.1.0"
 dependencies = [
  "worth-foundational",
- "worth-proof",
  "worth-query",
  "worth-query-decl",
 ]

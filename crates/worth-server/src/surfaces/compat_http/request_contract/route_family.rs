@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum WorthServerCompatHttpRouteFamily {
     Read,
+    Query,
     Mutation,
     Streaming,
     Upload,
@@ -14,6 +15,7 @@ impl WorthServerCompatHttpRouteFamily {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Read => "read",
+            Self::Query => "query",
             Self::Mutation => "mutation",
             Self::Streaming => "streaming",
             Self::Upload => "upload",
@@ -38,6 +40,7 @@ impl WorthServerCompatHttpRouteFamilies {
     pub fn all_phase_one() -> Self {
         Self::new([
             WorthServerCompatHttpRouteFamily::Read,
+            WorthServerCompatHttpRouteFamily::Query,
             WorthServerCompatHttpRouteFamily::Mutation,
             WorthServerCompatHttpRouteFamily::Streaming,
             WorthServerCompatHttpRouteFamily::Upload,

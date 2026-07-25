@@ -7,5 +7,5 @@ pub enum UiGraphInspectionStopPoint {
     AttachmentPosture,
     PublishedAspectIndex,
     ConsumedAspectIndex,
-    MountedReceiptAuthority,
+    MountEligibility,
 }

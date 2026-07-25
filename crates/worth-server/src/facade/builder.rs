@@ -11,11 +11,14 @@ use crate::{
         WorthServerProductAdapterRegistry, WorthServerProductAdapterRegistryError,
         WorthServerProductApplicationAdapterRegistration,
     },
-    product_session::WorthServerProductSessionClock,
+    product_session::{
+        SharedProductSessionTerminationObserver, WorthServerProductSessionClock,
+        WorthServerProductSessionTerminationObserver,
+    },
     registration::{
         WorthServerSurfaceRegistration, WorthServerSurfaceRegistry, WorthServerSurfaceRegistryError,
     },
-    runtime::{WorthServerRuntime, WorthServerRuntimeAssembly},
+    runtime::{WorthServerRuntime, WorthServerRuntimeAssembly, WorthServerRuntimeAssemblyParts},
     transport::WorthServerRouteAssemblyError,
 };
 
@@ -28,6 +31,8 @@ pub struct WorthServerBuilder {
     operation_registrations: Vec<WorthServerOperationRegistration>,
     product_adapter_registrations: Vec<WorthServerProductApplicationAdapterRegistration>,
     product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
+    product_session_termination_observers: Vec<SharedProductSessionTerminationObserver>,
+    transport_caller_verifier: Option<Arc<dyn crate::WorthServerTransportCallerVerifier>>,
 }
 
 impl WorthServerBuilder {
@@ -78,6 +83,22 @@ impl WorthServerBuilder {
         self
     }
 
+    pub fn observe_product_session_termination(
+        mut self,
+        observer: Arc<dyn WorthServerProductSessionTerminationObserver>,
+    ) -> Self {
+        self.product_session_termination_observers.push(observer);
+        self
+    }
+
+    pub fn with_transport_caller_verifier(
+        mut self,
+        verifier: Arc<dyn crate::WorthServerTransportCallerVerifier>,
+    ) -> Self {
+        self.transport_caller_verifier = Some(verifier);
+        self
+    }
+
     pub fn build(self) -> Result<WorthServer, WorthServerBuildError> {
         let config = self.config.ok_or(WorthServerBuildError::MissingConfig)?;
         let counters = Arc::new(WorthServerCounters::default());
@@ -96,15 +117,17 @@ impl WorthServerBuilder {
             &product_adapter_registry,
         )
         .map_err(WorthServerBuildError::InvalidRouteAssembly)?;
-        let assembly = WorthServerRuntimeAssembly::new(
+        let assembly = WorthServerRuntimeAssembly::new(WorthServerRuntimeAssemblyParts {
             config,
             surface_registry,
             operation_registry,
             product_adapter_registry,
             route_assembly,
             counters,
-            self.product_session_clock,
-        );
+            product_session_clock: self.product_session_clock,
+            product_session_termination_observers: self.product_session_termination_observers,
+            transport_caller_verifier: self.transport_caller_verifier,
+        });
         let runtime = WorthServerRuntime::from_assembly(assembly);
         Ok(WorthServer::new(runtime))
     }

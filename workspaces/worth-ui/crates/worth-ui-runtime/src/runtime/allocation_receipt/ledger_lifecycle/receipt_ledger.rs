@@ -18,6 +18,18 @@ impl UiAllocationReceiptLedger {
         }
     }
 
+    pub(crate) fn mounted_projection_source(
+        &self,
+        predecessor_revision: Option<u64>,
+    ) -> super::UiMountedAllocationProjectionSource {
+        let state = self.state.borrow();
+        state.mounted_projection_journal.source(
+            state.mounted_projection_catalog.clone(),
+            predecessor_revision,
+            state.truth_revision.revision(),
+        )
+    }
+
     pub(super) fn prepare_selected_mode(
         &self,
         mode: super::replan_commit_mode::UiAllocationReplanCommitMode<'_>,
@@ -165,6 +177,16 @@ impl UiAllocationReceiptLedger {
             {
                 verdict = UiAllocationReuseVerdict::NewCommit;
             }
+            if mode.admits_query_measurement_successor(selected.identity())
+                && matches!(
+                    verdict,
+                    UiAllocationReuseVerdict::Denied(
+                        super::UiAllocationReuseDenial::EquivalenceBasisMismatch
+                    )
+                )
+            {
+                verdict = UiAllocationReuseVerdict::NewCommit;
+            }
             if candidate.portal_allocation_input().is_some()
                 && matches!(verdict, UiAllocationReuseVerdict::Denied(_))
             {
@@ -203,12 +225,18 @@ impl UiAllocationReceiptLedger {
             verdicts.push(verdict);
         }
         drop(state);
-        let committed =
+        let (committed, successor_candidates) =
             match Self::commit_candidates(&mode, transaction, candidates, verdicts, counters) {
                 Ok(committed) => committed,
                 Err(denial) => return UiAllocationReplanTransactionOutcome::Denied(denial).into(),
             };
-        self.prepare_transition(&mode, generation, replay_key, committed)
+        self.prepare_transition(
+            &mode,
+            generation,
+            replay_key,
+            committed,
+            successor_candidates,
+        )
     }
 
     fn commit_candidates(
@@ -217,7 +245,13 @@ impl UiAllocationReceiptLedger {
         candidates: Vec<crate::runtime::UiAllocationCandidate>,
         verdicts: Vec<UiAllocationReuseVerdict>,
         mut counters: UiAllocationReplanTransactionCounters,
-    ) -> Result<UiCommittedAllocationReplan, UiAllocationReplanTransactionCommitDenial> {
+    ) -> Result<
+        (
+            UiCommittedAllocationReplan,
+            Vec<crate::runtime::UiAllocationCandidate>,
+        ),
+        UiAllocationReplanTransactionCommitDenial,
+    > {
         let catalog_candidates = candidates.clone();
         let receipts = candidates
             .into_iter()
@@ -239,12 +273,13 @@ impl UiAllocationReceiptLedger {
         let committed =
             UiCommittedAllocationReplan::new(transaction, receipts, counters, catalog_bindings)
                 .map_err(|_| UiAllocationReplanTransactionCommitDenial::EvidenceCounterExhausted)?;
-        Ok(match mode {
+        let committed = match mode {
             super::replan_commit_mode::UiAllocationReplanCommitMode::Viewport(basis) => {
                 super::viewport_inspection::attach_viewport_inspection(committed, basis)
             }
             _ => committed,
-        })
+        };
+        Ok((committed, catalog_candidates))
     }
 
     fn prepare_transition(
@@ -253,6 +288,7 @@ impl UiAllocationReceiptLedger {
         generation: u64,
         replay_key: u64,
         committed: UiCommittedAllocationReplan,
+        successor_candidates: Vec<crate::runtime::UiAllocationCandidate>,
     ) -> super::UiAllocationLedgerPreparation {
         let committed_frame_epoch = committed.transaction().frame_epoch();
         let predecessor = self.state.borrow().clone();
@@ -288,7 +324,23 @@ impl UiAllocationReceiptLedger {
                 receipt.committed_allocation().allocation_neighborhood(),
             );
             successor.committed_by_scope.insert(scope, receipt.clone());
+            successor.mounted_projection_catalog.insert(receipt.clone());
         }
+        let changed_graph_nodes = committed
+            .receipts()
+            .iter()
+            .map(|receipt| receipt.identity().graph_node_identity())
+            .filter(|graph_node| {
+                successor
+                    .mounted_projection_catalog
+                    .projection_changed_since(&predecessor.mounted_projection_catalog, *graph_node)
+            })
+            .collect();
+        successor.mounted_projection_journal.record(
+            predecessor.truth_revision.revision(),
+            successor.truth_revision.revision(),
+            changed_graph_nodes,
+        );
         successor.next_transaction_generation = generation;
         if let Some(basis) = mode.durable_resize() {
             let mutated = successor
@@ -304,7 +356,12 @@ impl UiAllocationReceiptLedger {
             .or_default()
             .push(committed.clone());
         super::UiAllocationLedgerPreparation::Prepared(Box::new(
-            super::UiPreparedAllocationLedgerTransition::new(predecessor, successor, committed),
+            super::UiPreparedAllocationLedgerTransition::new(
+                predecessor,
+                successor,
+                committed,
+                successor_candidates,
+            ),
         ))
     }
 }

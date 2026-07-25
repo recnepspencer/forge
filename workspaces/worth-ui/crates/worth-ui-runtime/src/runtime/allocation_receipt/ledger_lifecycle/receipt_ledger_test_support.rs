@@ -109,6 +109,7 @@ impl super::UiAllocationReceiptLedger {
             transaction,
         );
         let mut state = self.state.borrow_mut();
+        let predecessor_revision = state.truth_revision;
         let revision = match state.checked_truth_successor(1, false, false) {
             Ok(revision) => revision,
             Err(denial) => {
@@ -117,8 +118,22 @@ impl super::UiAllocationReceiptLedger {
                 ))
             }
         };
+        let predecessor_projection = state.mounted_projection_catalog.clone();
         state.committed_by_scope.insert(scope, receipt.clone());
+        state.mounted_projection_catalog.insert(receipt.clone());
         state.truth_revision = revision;
+        let graph_node = receipt.identity().graph_node_identity();
+        let changed_graph_nodes = state
+            .mounted_projection_catalog
+            .projection_changed_since(&predecessor_projection, graph_node)
+            .then_some(graph_node)
+            .into_iter()
+            .collect();
+        state.mounted_projection_journal.record(
+            predecessor_revision.revision(),
+            revision.revision(),
+            changed_graph_nodes,
+        );
         super::UiAllocationReceiptCommitOutcome::Committed(Box::new(receipt))
     }
 }

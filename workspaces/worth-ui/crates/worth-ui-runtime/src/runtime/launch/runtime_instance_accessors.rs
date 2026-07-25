@@ -54,9 +54,18 @@ impl WorthUiRuntime {
         self.allocation_receipt_ledger.durable_semantic_state()
     }
 
+    pub(crate) fn allocation_truth_revision(&self) -> crate::runtime::UiAllocationTruthRevision {
+        self.allocation_receipt_ledger.truth_revision()
+    }
+
     pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
         let queue_disposition = self.shutdown_allocation_frame_dispatcher();
-        WorthUiRuntimeShutdownReceipt::new(self.active.frame_epoch(), queue_disposition)
+        let query_retirement = self.query_binding.into_operation_live_retirement();
+        WorthUiRuntimeShutdownReceipt::new(
+            self.active.frame_epoch(),
+            queue_disposition,
+            query_retirement,
+        )
     }
 
     #[cfg(test)]

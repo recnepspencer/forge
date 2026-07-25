@@ -38,7 +38,7 @@ fn certification_reports_equivalent_basis_pairs_as_deterministic() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
@@ -54,7 +54,7 @@ fn certification_reports_equivalent_basis_pairs_as_deterministic() {
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
         ],
     );
     let report = certify_measurement_basis_determinism(&first, &second);
@@ -103,7 +103,7 @@ fn certification_reports_value_drift_as_divergent() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_a),
@@ -116,7 +116,7 @@ fn certification_reports_value_drift_as_divergent() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_b),

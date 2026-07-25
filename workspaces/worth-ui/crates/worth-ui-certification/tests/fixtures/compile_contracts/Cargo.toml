@@ -105,5 +105,9 @@ name = "certification-second-host-adapter"
 path = "../../ui/host/second_adapter_implements_contract.rs"
 
 [[bin]]
+name = "certification-mounted-consumption-authority"
+path = "../../ui/host/external_callers_cannot_forge_mounted_consumption.rs"
+
+[[bin]]
 name = "certification-shared-inspection-contract"
 path = "../../ui/inspection/ai_and_human_callers_share_inspection_contract.rs"

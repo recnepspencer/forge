@@ -5,11 +5,6 @@ pub(crate) struct UiScrollInvalidationAuthorityLookup<'a> {
     probes: u16,
 }
 
-pub(crate) struct UiScrollInvalidationAuthorityLookupDenial {
-    pub(crate) reason: UiInvalidationAuthorityLookupDenial,
-    pub(crate) probes: u16,
-}
-
 impl UiAllocationInvalidationAuthority {
     pub(crate) fn scroll_target(
         &self,
@@ -22,25 +17,13 @@ impl UiAllocationInvalidationAuthority {
         })
     }
 
-    pub(crate) fn scroll_query_target(
-        &self,
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-    ) -> Result<UiScrollInvalidationAuthorityLookup<'_>, UiScrollInvalidationAuthorityLookupDenial>
-    {
-        let (bindings, probes) =
-            self.scroll_bindings
-                .query_extent(authority)
-                .map_err(
-                    |(reason, probes)| UiScrollInvalidationAuthorityLookupDenial { reason, probes },
-                )?;
-        Ok(UiScrollInvalidationAuthorityLookup { bindings, probes })
-    }
-
     pub(crate) fn scroll_settled_query_target(
         &self,
         source_key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
     ) -> UiScrollInvalidationAuthorityLookup<'_> {
-        let (bindings, probes) = self.scroll_bindings.settled_query_extent(source_key);
+        let (bindings, probes) = self
+            .scroll_bindings
+            .settled_query_binding_extent(source_key);
         UiScrollInvalidationAuthorityLookup { bindings, probes }
     }
 }

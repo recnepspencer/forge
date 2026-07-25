@@ -15,6 +15,7 @@ pub enum WorthServerRouteBranchTarget {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerRouteTransportRequest {
     authenticated_principal_id: String,
+    admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
     tenant_id: String,
     workspace_id: String,
     branch_target: WorthServerRouteBranchTarget,
@@ -34,6 +35,7 @@ impl WorthServerRouteTransportRequest {
     ) -> Self {
         Self {
             authenticated_principal_id: authenticated_principal_id.into(),
+            admitted_transport_caller: None,
             tenant_id: tenant_id.into(),
             workspace_id: workspace_id.into(),
             branch_target,
@@ -50,6 +52,14 @@ impl WorthServerRouteTransportRequest {
         diagnostics_profile: DiagnosticRichnessProfile,
     ) -> Self {
         self.diagnostics_profile = Some(diagnostics_profile);
+        self
+    }
+
+    pub(crate) fn with_admitted_transport_caller(
+        mut self,
+        admitted_transport_caller: crate::WorthServerAdmittedTransportCaller,
+    ) -> Self {
+        self.admitted_transport_caller = Some(admitted_transport_caller);
         self
     }
 
@@ -77,6 +87,12 @@ impl WorthServerRouteTransportRequest {
 
     pub(crate) fn authenticated_principal_id(&self) -> &str {
         &self.authenticated_principal_id
+    }
+
+    pub(crate) fn admitted_transport_caller(
+        &self,
+    ) -> Option<&crate::WorthServerAdmittedTransportCaller> {
+        self.admitted_transport_caller.as_ref()
     }
 
     pub(crate) fn tenant_id(&self) -> &str {

@@ -1,3 +1,5 @@
+use super::query_aware_plan_outcome::WorthUiPreparedQueryAwarePlanOutcome;
+#[cfg(test)]
 use super::query_aware_plan_outcome::WorthUiQueryAwarePlanOutcome;
 use super::{
     UiAllocationCatalogDeltaActivationInput, WorthUiAllocationCatalogActivationDenial,
@@ -58,21 +60,24 @@ impl WorthUiRuntime {
             crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry,
         >,
     ) -> Result<WorthUiQueryAwarePlanOutcome, WorthUiAllocationCatalogActivationDenial> {
-        self.activate_admitted_allocation_catalog_with_boundary_source_and_query_binding(
-            pending_activation,
-            UiAllocationCatalogReplacementInput::Complete(admitted_catalog),
-            |_, _, _, _| Ok((boundary, lane_parity_report)),
-            candidate_query_binding,
-            successor_planning_authority,
-            None,
-        )
+        let prepared = self
+            .prepare_admitted_allocation_catalog_with_boundary_source_and_query_binding(
+                pending_activation,
+                UiAllocationCatalogReplacementInput::Complete(admitted_catalog),
+                |_, _, _, _| Ok((boundary, lane_parity_report)),
+                candidate_query_binding,
+                successor_planning_authority,
+                None,
+            )?;
+        Ok(prepared.commit_once(self, None))
     }
 
-    pub(crate) fn activate_admitted_allocation_catalog_delta_with_query_binding(
+    pub(crate) fn prepare_admitted_allocation_catalog_delta_with_query_binding(
         &mut self,
         pending_activation: WorthUiPendingActivation,
-        input: UiAllocationCatalogDeltaActivationInput<'_>,
-    ) -> Result<WorthUiQueryAwarePlanOutcome, WorthUiAllocationCatalogActivationDenial> {
+        input: UiAllocationCatalogDeltaActivationInput,
+    ) -> Result<WorthUiPreparedQueryAwarePlanOutcome, WorthUiAllocationCatalogActivationDenial>
+    {
         let UiAllocationCatalogDeltaActivationInput {
             admitted_delta,
             active_graph,
@@ -83,7 +88,7 @@ impl WorthUiRuntime {
             successor_planning_authority,
             application_publication,
         } = input;
-        self.activate_admitted_allocation_catalog_with_boundary_source_and_query_binding(
+        self.prepare_admitted_allocation_catalog_with_boundary_source_and_query_binding(
             pending_activation,
             UiAllocationCatalogReplacementInput::Delta {
                 admitted: Box::new(admitted_delta),
@@ -121,18 +126,21 @@ impl WorthUiRuntime {
             .prepare_downstream_state();
         let successor_planning_authority =
             std::rc::Rc::clone(&self.retained_allocation_planning_evidence);
-        self.activate_admitted_allocation_catalog_with_boundary_source_and_query_binding(
-            pending_activation,
-            UiAllocationCatalogReplacementInput::Complete(admitted_catalog),
-            boundary_source,
-            candidate_query_binding,
-            successor_planning_authority,
-            None,
-        )
-        .map(|publication| publication.into_plan_swap_after_asserting_no_query_retirement())
+        let prepared = self
+            .prepare_admitted_allocation_catalog_with_boundary_source_and_query_binding(
+                pending_activation,
+                UiAllocationCatalogReplacementInput::Complete(admitted_catalog),
+                boundary_source,
+                candidate_query_binding,
+                successor_planning_authority,
+                None,
+            )?;
+        Ok(prepared
+            .commit_once(self, None)
+            .into_plan_swap_after_asserting_no_query_retirement())
     }
 
-    fn activate_admitted_allocation_catalog_with_boundary_source_and_query_binding<F>(
+    fn prepare_admitted_allocation_catalog_with_boundary_source_and_query_binding<F>(
         &mut self,
         pending_activation: WorthUiPendingActivation,
         catalog_input: UiAllocationCatalogReplacementInput,
@@ -141,8 +149,8 @@ impl WorthUiRuntime {
         successor_planning_authority: std::rc::Rc<
             crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry,
         >,
-        application_publication: Option<super::WorthUiPreparedApplicationPublication<'_>>,
-    ) -> Result<WorthUiQueryAwarePlanOutcome, WorthUiAllocationCatalogActivationDenial>
+        application_publication: Option<super::WorthUiPreparedApplicationPublication>,
+    ) -> Result<WorthUiPreparedQueryAwarePlanOutcome, WorthUiAllocationCatalogActivationDenial>
     where
         F: FnOnce(
             &mut WorthUiRuntime,
@@ -154,7 +162,7 @@ impl WorthUiRuntime {
             WorthUiAllocationCatalogActivationDenial,
         >,
     {
-        let (prepared, delta_lowering, mut catalog_successor_receipt) = match catalog_input {
+        let (prepared, delta_lowering, catalog_successor_receipt) = match catalog_input {
             #[cfg(any(test, feature = "certification-support"))]
             UiAllocationCatalogReplacementInput::Complete(admitted_catalog) => {
                 deny_if_certification_interrupted("catalog activation preparation")?;
@@ -300,16 +308,16 @@ impl WorthUiRuntime {
             }
             crate::runtime::WorthUiExecutablePlanDecision::ExactSemanticNoOp(summary) => {
                 if prepared.operational_meaning_unchanged() {
-                    return Ok(WorthUiQueryAwarePlanOutcome::SemanticNoOp(Box::new(
-                        crate::runtime::WorthUiSemanticNoOpReceipt::new(
+                    return Ok(WorthUiPreparedQueryAwarePlanOutcome::SemanticNoOp(
+                        Box::new(crate::runtime::WorthUiSemanticNoOpReceipt::new(
                             candidate_bundle.generation_identity().clone(),
                             self.active.generation_identity().clone(),
                             summary,
                             candidate_bundle
                                 .cross_lane_receipt()
                                 .construction_counters(),
-                        ),
-                    )));
+                        )),
+                    ));
                 }
             }
             crate::runtime::WorthUiExecutablePlanDecision::BoundedChangedRegions(_)
@@ -321,7 +329,7 @@ impl WorthUiRuntime {
             .query_succession_changes(&candidate_bundle);
         deny_if_certification_interrupted("Query succession")?;
         let query_succession = candidate_query_binding
-            .prepare_regional_succession(query_changes)
+            .prepare_regional_succession(&self.query_binding, query_changes)
             .map_err(WorthUiAllocationCatalogActivationDenial::QuerySuccession)?;
         let (pending_activation, _committed_input, plan_input) =
             lowering_authority.into_replacement_parts();
@@ -342,21 +350,13 @@ impl WorthUiRuntime {
                 lane_parity_report: lane_parity_report.as_ref(),
             },
         ) {
-            Ok(publication) => {
-                let (plan_swap, query_retirement, derived_index_counters) =
-                    publication.into_parts();
-                if let Some(receipt) = catalog_successor_receipt.as_mut() {
-                    receipt.bind_derived_index_work(derived_index_counters);
-                }
-                Ok(WorthUiQueryAwarePlanOutcome::Activated(Box::new(
-                    super::query_aware_plan_outcome::WorthUiQueryAwarePlanSwap::new(
-                        plan_swap,
-                        query_retirement,
-                        plan_decision,
-                        catalog_successor_receipt,
-                    ),
-                )))
-            }
+            Ok(activation) => Ok(WorthUiPreparedQueryAwarePlanOutcome::Activation(Box::new(
+                super::query_aware_plan_outcome::WorthUiPreparedQueryAwarePlanSwap::new(
+                    activation,
+                    plan_decision,
+                    catalog_successor_receipt,
+                ),
+            ))),
             Err(denial) => Err(WorthUiAllocationCatalogActivationDenial::Attempt(Box::new(
                 denial,
             ))),

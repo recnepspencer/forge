@@ -882,8 +882,10 @@ Detailed spec: [milestone-3.9.1.md](./milestone-3.9.1.md)
 
 Status: Closed on 2026-07-21. Exact-source closing evidence records a 0.462 s
 targeted warm median, 8.070 s warm fast-lane median, and 80.738 s isolated cold
-compile-contract median. The bounded managed-live seam retains its explicit
-Query 9.14 Phase 17/19/23/24 exit trigger.
+compile-contract median. Query 9.14 has since satisfied the bounded
+managed-live seam's Phase 17/19/23/24 exit trigger. The dated amendment in the
+detailed spec preserves the historical boundary and routes the resulting
+cutover to Milestone 3.9.2.
 
 This corrective modernization slice follows the closed 3.9 execution-plan
 lifecycle and precedes mounted receipts, hot rebind, broader projection
@@ -955,30 +957,181 @@ formed.
 - boundary, agent-context, line-cap, workspace quality, and existing compile-
   contract gates pass without a new nested build or test-target explosion
 
+### Milestone 3.9.2: Query 9.14 Native Consumer and Identity Cutover
+
+Detailed spec: [milestone-3.9.2.md](./milestone-3.9.2.md)
+
+Status: Complete on 2026-07-23. Phases 1 through 7 are closed.
+
+This final pre-mount modernization slice follows Query 9.14 completion and
+precedes mounted receipts. It replaces Worth UI's remaining projection scans,
+positional native-fact copies, and printable Query identity decisions with the
+completed declaration-indexed native-access and owner-specific identity
+contracts. It also narrows the already-correct operation-native patch path into
+one sealed UI consequence boundary for later rebind and projection work.
+
+**Must ship**
+
+- a search-seeded, manually adjudicated subsystem inventory and boundary-edge
+  matrix; no grep-based migration sentinel
+- exact consumer-contract-derived native selections and
+  `WorthQueryNativeAccessKey` values carried through `consume_bound(...)`
+- `O(1)` settled and refreshed native access per admitted key and row, with no
+  whole-projection scan, positional copy, or local selector authority
+- separate sealed UI-local binding-authority and settlement references minted
+  only after the Query binding owner validates its exact retained source
+- graph, eligibility, fact, touch, allocation, replacement, planning, and
+  execution decisions free of printable Query identity authority
+- one retained Query settlement and one complete UI measurement consequence per
+  source revision, fanned out through compact generation-scoped references
+- the real Query live-owner, lease, invalidation-delta, compiled-impact,
+  collection-window, and patch path translated exactly once into a sealed
+  UI-owned change consequence without local Query-impact reconstruction
+- exact Query and UI counters plus real public lifecycle certification inside
+  existing compiled owners
+- a narrow facade and updated 3.9.1/3.10/3.12/3.13 documentary seam
+
+**Must preserve**
+
+- all closed 3.9 and 3.9.1 application, plan, allocation, filesystem,
+  replacement, host, cleanup, and frame-cost truths
+- Query-owned native access, operational identity, compatibility, lifecycle,
+  invalidation, row, ordering, window, patch, denial, and counter meaning
+- UI-owned authored binding, graph, measurement, source-coordinate, allocation,
+  dependency, invalidation-consequence, and presentation meaning
+- Query-free applications without dummy Query ceremony or cost
+- prior active truth on every stale input, denial, reset requirement, or
+  interrupted replacement
+- `worth-ui-query-binding` as the sole production Query importer
+- 3.10 ownership of mounted receipts and host observations, 3.12 ownership of
+  changed-fact/rebind planning, and 3.13 ownership of the broad projection
+  product substrate
+- existing compile-session and integration-target budgets
+
+**Acceptance evidence**
+
+- identical Query labels and native bytes from different runtimes,
+  installations, capabilities, generations, settlements, windows, or leases
+  cannot alias in any operational UI decision
+- adding unrelated projected fields does not increase the work for `k` declared
+  UI facts: Query reports exactly the admitted keyed accesses and zero fact,
+  row, or path scans
+- settlement refresh atomically replaces one UI consequence revision and
+  rejects predecessor fact, touch, and allocation evidence while stable
+  binding-slot plan links resolve the current consequence without relowering
+- one real operation-native patch produces one sealed UI consequence; stale,
+  foreign, duplicate, out-of-order, reset-required, and stopped-disposal cases
+  preserve prior truth at their owning boundary
+- Query artifacts and identity representations cannot reach host authority,
+  future mounted receipts, or downstream Query re-entry
+- boundary, agent-context, line-cap, format, clippy, workspace, compile-
+  contract, and certification gates pass without new build topology
+
 ### Milestone 3.10: Mounted Receipts and Host Contract
+
+Detailed spec: [milestone-3.10.md](./milestone-3.10.md)
 
 This slice closes the host boundary: host code may render and observe, but may
 not own visible UI meaning. It extends/refines Milestone 3.9's minimal sealed
 host-output envelope into complete mounted-node and mounted-frame receipts; it
 must not introduce a parallel runtime-to-host output path or reopen active-plan
-ownership.
+ownership. It consumes only UI-owned graph, measurement, allocation, and
+presentation meaning admitted through 3.9.2; no Query key, settlement, patch,
+row handle, operational identity representation, or change consequence becomes
+a mounted or host authority artifact. One prepared frame is complete across all
+participating execution lanes and surface bindings before effects begin;
+runtime publication is atomic, while native multi-surface effects retain honest
+rejection-before-effects, in-flight, complete-presentation, and indeterminate
+outcomes. Application replacement does not become current until complete
+presentation is followed by the matching infallible runtime publication.
 
 **Must ship**
 
 - `UiMountedNodeReceipt`
 - `UiMountedFrameReceipt`
+- mounted-instance identity distinct from graph-node identity, including
+  zero-to-many graph-node cardinality and remount incarnation
+- separate semantic-surface, host-surface, surface-binding-generation,
+  mounted-instance, and frame-scoped receipt identities
+- typed known-empty host-surface registration baselines for honest first-frame
+  recovery
+- one cross-lane, multi-surface prepared-frame and publication lifecycle
 - mounted receipt facts for paint intent, clip/layer, allocation box, input
   participation, focus participation, hit-test participation, accessibility,
   motion projection, and diagnostic projection
-- host contract for viewport, pointer, keyboard, focus, scroll, time/tick, and
-  text-measurement observations
+- specialized compact storage for canvas, realtime, and other high-volume
+  batches rather than one generic receipt per primitive
+- typed rejection-before-effects, bounded in-flight, complete-presentation,
+  publication, unchanged-reuse, and presentation-indeterminate outcomes
+- explicit reconciliation that restores known host presentation truth without
+  pretending native rollback
+- replacement publication, mounted indexes, and bounded retention tied to the
+  exact application, graph world, plan, allocation, host session, surface set,
+  and frame generation
+- host contract for viewport, pointer, keyboard, text/IME, focus, scroll,
+  time/tick, and text-measurement observations
+- bounded, non-reentrant, generation-aware raw and structurally validated host
+  report batches; Milestone 3.12 retains ownership of semantic observation
+  admission and rebind planning
+- real egui translation and an honest headless recorder through the same sealed
+  host contract
+- egui executes only effect families completely defined by mounted receipts;
+  count-only or appearance-incomplete paint is rejected before effects rather
+  than synthesized, while Milestone 3.16 retains visual appearance ownership
+- independent authored, deterministic model, headless-transcript, egui-native,
+  zero-effect-denial, and public-publication oracles inside the existing
+  consolidated test owners; scripted host fault injection remains protocol
+  evidence rather than a claim of real native effects
+- explicit host-protocol and per-artifact schema identity, version negotiation,
+  compatibility windows, and reject-before-effects posture
+- named initial, delta, surface-specific, adapter, unchanged, retained,
+  rejected, and observation cost evidence
+
+**Must preserve**
+
+- one canonical runtime-to-host presentation path; the minimal envelope,
+  lane-local presentation, and direct preview-paint paths do not survive as
+  compatibility lanes
+- host ownership of native mechanics without host ownership of visibility,
+  enabledness, validity, layout, semantic focus, hit testing, accessibility,
+  motion, diagnostics, application lifecycle, or Query meaning
+- predecessor complete truth on every denial before native effects and an
+  explicit distinction between current runtime truth and known host
+  presentation truth when effects become indeterminate
+- Query-free applications without dummy Query ceremony or Query-derived cost
+- existing consolidated integration targets, two-session compile contracts,
+  ordinary fast-lane posture, zero flake retries, and no test-only runtime path
+- Milestone 3.11 ownership of visual snapshots, Milestone 3.12 ownership of
+  semantic observation admission, Milestone 3.13 ownership of broad Query
+  projection, and Milestones 3.14 through 3.16 ownership of intent, services,
+  and appearance
 
 **Acceptance evidence**
 
-- egui adapter renders only mounted receipts
-- egui adapter reports observations only
+- one real framework turn combining ordinary, virtualized, canvas, and
+  realtime work across multiple surfaces reaches only complete presentation,
+  rejection before effects, bounded in-flight work, or an explicit blocked
+  indeterminate outcome
+- egui consumes only mounted receipts and reports only native mechanics it
+  actually executed through the bounded report boundary; incomplete paint
+  produces typed denial and no synthetic shapes
+- reorder preserves a live semantic mounted instance, while actual
+  unmount/remount creates a distinct incarnation
+- failed replacement or pre-effect host denial preserves one coherent
+  predecessor application/plan/allocation/mounted-frame truth
+- retained-predecessor reports remain distinguishable from foreign,
+  never-presented, duplicate, reordered, overflowing, reentrant, or
+  indeterminate-basis reports, and none mutates semantic UI truth in 3.10
+- deterministic identity, presentation, publication, and report traces agree
+  with an independent model, while real filesystem, watcher, headless, and egui
+  scenarios separately prove their production boundaries without test-only
+  runtime paths or retries
+- steady projection work is bounded by changed semantic instances, affected
+  indexes, honest batch granules, and affected surface-specific work; unchanged
+  work is constant only through an exact carried reuse witness
 - host cannot receive authored declarations directly
-- host cannot decide visible/disabled/valid/layout meaning
+- host cannot decide visible/disabled/valid/layout meaning or recover Query,
+  graph, plan, allocation, or publication authority from its sealed view
 
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
@@ -1009,7 +1162,10 @@ identity-backed runtime evidence instead of loose image bytes.
 ### Milestone 3.12: Observation Intake and Hot Rebind Planner
 
 This slice makes hot reload real as bounded rebind rather than renderer
-refresh.
+refresh. Query-backed changes enter only as the sealed UI source consequences
+admitted by 3.9.2's framework-turn boundary. This milestone classifies their
+affected UI scope and decides preservation or remounting; it does not reopen
+Query leases, deltas, rows, ordering, patches, or identity.
 
 **Must ship**
 
@@ -1044,7 +1200,10 @@ This slice broadens Milestone 2's declared binding references into a minimal
 runtime binding substrate, but not yet the full product surface richness of
 Milestone 6. Milestone 3.9 proves only plan/handle/visible-range execution for
 already-admitted opaque view references; 3.13 owns the broader UI projection
-facts, schema/view-shape posture, result-state, and invalidation semantics.
+facts, schema/view-shape posture, result-state, and invalidation semantics. It
+generalizes 3.9.2's contract-derived access and admitted-source pattern; it may
+not restore field scans, positional fact bags, printable Query identity, or raw
+Query patch types as a convenience layer.
 
 **Must ship**
 

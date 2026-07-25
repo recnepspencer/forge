@@ -1,5 +1,5 @@
-error[E0451]: fields `runtime_authority`, `installation_generation`, `capability_identity`, `capability_generation`, `shared_owner_generation`, `owner`, `lease`, `source_identity`, `binding_identity` and `_owner_identity` of struct `WorthQueryConsumerInvalidationAuthority` are private
+error[E0451]: fields `runtime_authority`, `installation_generation`, `capability_identity`, `capability_generation`, `shared_owner_generation`, `owner`, `lease`, `source_identity`, `binding_identity`, `collection_delivery_contract_identity` and `_owner_identity` of struct `WorthQueryConsumerInvalidationAuthority` are private
  --> tests/ui/installed_domain/consumer_invalidation/invalidation_authority_constructor_private.rs:5:63
   |
 5 |     let _forged = WorthQueryConsumerInvalidationAuthority { ..panic!() };
-  |                                                               ^^^^^^^^ fields `runtime_authority`, `installation_generation`, `capability_identity`, `capability_generation`, `shared_owner_generation`, `owner`, `lease`, `source_identity`, `binding_identity` and `_owner_identity` are private
+  |                                                               ^^^^^^^^ fields `runtime_authority`, `installation_generation`, `capability_identity`, `capability_generation`, `shared_owner_generation`, `owner`, `lease`, `source_identity`, `binding_identity`, `collection_delivery_contract_identity` and `_owner_identity` are private

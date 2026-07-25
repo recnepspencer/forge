@@ -1,13 +1,9 @@
-use worth_query::facade::domain;
 use worth_ui::facade::app::{
     WorthUiApplicationCutoverDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
 };
-use worth_ui::facade::query_binding::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryViewIdentity, WorthUiQueryViewShape,
+use worth_ui_query_binding::{
+    WorthUiInstalledLiveQueryView, WorthUiInstalledQueryBindingReference, WorthUiQueryViewShape,
     WorthUiQueryWorkspaceExt,
-};
-use worth_ui_query_binding::compatibility::managed_live::{
-    WorthUiInstalledLiveQueryView, WorthUiQueryLiveOpenOutcome,
 };
 use worth_ui_test_support::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
@@ -19,8 +15,8 @@ use super::scenario::{
 };
 use super::settled_snapshot_preservation::{admit_active_settlement, settle_snapshot};
 use super::support::{
-    activation_boundary, admit_active_resource, admit_candidate_resource, close, open_resource,
-    prepare_catalog,
+    activation_boundary, admit_active_resource, admit_candidate_resource,
+    assert_active_operation_live_resource, close, close_retirement, open_resource, prepare_catalog,
 };
 
 #[test]
@@ -36,12 +32,11 @@ fn every_fallible_precommit_stage_reaps_candidate_live_state_and_preserves_exact
     let snapshot = installed
         .measurement_view(SNAPSHOT_VIEW)
         .expect("snapshot view");
-    let app = mixed_live_snapshot_application(first.clone(), second.clone(), snapshot);
+    let snapshot_identity = snapshot.definition().identity().clone();
+    let app =
+        mixed_live_snapshot_application(first.clone(), second.clone(), snapshot, &mut workspace);
     let snapshot_reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new(SNAPSHOT_VIEW).expect("snapshot identity"),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&snapshot_identity, WorthUiQueryViewShape::Collection)
         .expect("application retains the exact snapshot reference");
     let mut session = app.launch().expect("Query application launch");
     admit_active_resource(&mut session, &first, &mut workspace);
@@ -63,13 +58,11 @@ fn every_fallible_precommit_stage_reaps_candidate_live_state_and_preserves_exact
         );
     }
 
-    assert!(matches!(
-        first
-            .open_using(domain::current(), &mut workspace)
-            .expect("predecessor installed authority remains exact"),
-        WorthUiQueryLiveOpenOutcome::Stopped(_)
-    ));
-    let _ = session.shutdown();
+    assert_active_operation_live_resource(&session);
+    close_retirement(
+        session.shutdown().into_operation_live_retirement(),
+        &mut workspace,
+    );
     close(open_resource(&first, &mut workspace), &mut workspace);
 }
 
@@ -131,6 +124,7 @@ fn assert_query_rollback_at(
     assert_eq!(after.snapshot_digest(), prior_runtime.snapshot_digest());
     session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("predecessor turn remains executable"))
         .execute_virtualized_data_frame(prior_target)

@@ -34,6 +34,11 @@ pub(crate) use providers::DirectConditionalCompute;
 #[derive(Clone, Copy, Debug)]
 pub struct ConditionalModelGraph;
 
+pub(crate) fn fixture_record_identity(
+) -> worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts {
+    worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(0, 0, 1)
+}
+
 pub(super) struct ConditionalModelGraphProvider;
 
 pub(super) fn conditional_model_graph_definition(

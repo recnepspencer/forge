@@ -7,6 +7,7 @@ mod lifecycle;
 mod lifecycle_gate;
 mod record;
 mod registry;
+mod termination;
 
 pub(crate) use clock::default_product_session_clock;
 pub use clock::{WorthServerProductSessionClock, WorthServerSystemProductSessionClock};
@@ -20,3 +21,8 @@ pub use lifecycle_gate::{WorthServerProductSessionDenial, WorthServerProductSess
 pub use record::WorthServerProductSession;
 pub(crate) use record::WorthServerProductSessionParts;
 pub use registry::WorthServerProductSessionRegistry;
+pub(crate) use termination::SharedProductSessionTerminationObserver;
+pub use termination::{
+    WorthServerProductSessionTermination, WorthServerProductSessionTerminationKind,
+    WorthServerProductSessionTerminationObserver,
+};

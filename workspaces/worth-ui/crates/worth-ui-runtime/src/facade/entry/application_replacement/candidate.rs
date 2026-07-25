@@ -32,7 +32,7 @@ impl WorthUiPreparedApplicationReplacement {
         &mut self,
         projection: worth_ui_query_binding::WorthUiSettledSnapshotProjection,
     ) -> Result<
-        worth_ui_query_binding::WorthUiSettledSnapshotFact,
+        std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
         worth_ui_query_binding::WorthUiSettledSnapshotAdmissionStop,
     > {
         self.candidate_query_binding
@@ -47,31 +47,25 @@ impl WorthUiPreparedApplicationReplacement {
         self.next_app.declaration_artifacts()
     }
 
-    pub fn admit_candidate_managed_live_compatibility_projection(
+    pub fn admit_candidate_operation_live(
         &mut self,
-        resource: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveResource,
-        outcome: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveProjectionOutcome,
-    ) -> Result<
-        (),
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveAdmissionStop,
-    > {
-        self.candidate_query_binding
-            .admit_live(resource, outcome)
-            .map(drop)
+        resource: worth_ui_query_binding::WorthUiOperationLiveResource,
+    ) -> Result<(), worth_ui_query_binding::WorthUiOperationLiveAdmissionStop> {
+        self.candidate_query_binding.admit_operation_live(resource)
     }
 
-    pub fn commit_candidate_mounted_layout_admissions(
+    pub fn commit_candidate_mount_eligibility_admissions(
         &mut self,
-        transitions: Vec<crate::graph::UiGraphMountedReceiptTransition>,
-    ) -> Result<(), crate::graph::UiGraphMountedLayoutAdmissionDenial> {
+        transitions: Vec<crate::graph::UiGraphMountEligibilityTransition>,
+    ) -> Result<(), crate::graph::UiGraphMountEligibilityAdmissionDenial> {
         self.candidate_graph_changed_nodes.extend(
             transitions
                 .iter()
-                .map(|transition| transition.authority_record().graph_node_identity()),
+                .map(|transition| transition.eligibility_record().graph_node_identity()),
         );
         let committed = self
             .candidate_graph()
-            .commit_mounted_layout_admissions(transitions)?;
+            .commit_mount_eligibility_admissions(transitions)?;
         self.next_app.advance_prepared_graph(committed);
         self.basis.rebind_graph(&self.next_app);
         Ok(())

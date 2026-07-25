@@ -1,16 +1,10 @@
-use std::sync::Arc;
-
-use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
-use worth_query::facade::foundation::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QuerySchemaView,
-    WorthQuerySnapshotIdentity,
-};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDenial, UiGraphTouchOriginClass,
     UiGraphTouchTiming, UiGraphWorldProfile,
 };
+use worth_ui_certification::scenario::installed_query_world;
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
     UiDslStructuralToken, WorthUiDslPackage,
@@ -48,7 +42,7 @@ fn origin_authority_cannot_be_remixed_onto_unrelated_graph_targets() {
     let query_origin = query_world
         .graph()
         .touches()
-        .query_fact_change_receipt()
+        .query_binding_change_receipt()
         .expect("query-backed world should admit query-change origin");
     let direct_query_touch = query_world.graph().touches().from_node(
         query_origin,
@@ -60,7 +54,7 @@ fn origin_authority_cannot_be_remixed_onto_unrelated_graph_targets() {
     assert!(matches!(
         direct_query_touch,
         Err(UiGraphTouchDenial::OriginDoesNotAuthorizeGraphNode {
-            origin_class: UiGraphTouchOriginClass::QueryFactChange,
+            origin_class: UiGraphTouchOriginClass::QueryBindingChange,
             ..
         })
     ));
@@ -138,19 +132,9 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
-        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-    );
-    let basis = admit_runtime_current_snapshot_basis_for_certification(
-        snapshot_identity.evidence_identity(),
-        QuerySchemaView::new(schema_basis_parts.join(":"), [], []),
+    let binding = schema_basis_parts.join(".").replace('-', "_");
+    installed_query_world::settled_query_world_profile(
+        worth_ui::facade::registry::ViewBindingId::new(binding.clone()).unwrap(),
+        format!("{binding}.{snapshot_label}").replace('-', "_"),
     )
-    .expect("runtime current snapshot basis should resolve");
-
-    let prerequisites =
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteBoundary::new(
-        )
-        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query prerequisites should admit");
-    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }

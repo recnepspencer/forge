@@ -1,10 +1,10 @@
 use crate::facade::entry::CapabilityRegistrationBuilder;
-use crate::facade::host_observation::WorthUiOperationalHostAdapter;
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::lifecycle::{
     prepare_application_authority, WorthUiApplicationPreparationDenial,
     WorthUiApplicationPreparationSource,
 };
+use crate::facade::measurement_exchange::WorthUiOperationalHostAdapter;
 use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
 use crate::facade::registry::descriptor::{
     CommandDescriptor, CommandProjectionDescriptor, ComponentDescriptor, IconDescriptor,
@@ -45,7 +45,7 @@ impl WorthUiBuilder {
                 WorthUiDslPackage::empty(),
             ),
             host_session_plan: WorthUiHostSessionPlan::prepare(
-                worth_ui_host_contract::WorthUiHeadlessHost,
+                crate::host::adapter::WorthUiHeadlessHost,
             ),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             runtime_instance_basis_admissions: Vec::new(),
@@ -73,7 +73,31 @@ impl WorthUiBuilder {
     where
         Host: WorthUiOperationalHostAdapter + 'static,
     {
+        let retention_budget = self.host_session_plan.mounted_frame_retention_budget();
+        let observation_capacity = self.host_session_plan.host_observation_capacity();
         self.host_session_plan = WorthUiHostSessionPlan::prepare(host);
+        self.host_session_plan
+            .set_mounted_frame_retention_budget(retention_budget);
+        self.host_session_plan
+            .set_host_observation_capacity(observation_capacity);
+        self
+    }
+
+    pub fn with_host_observation_capacity(
+        mut self,
+        capacity: crate::facade::observation_report::UiHostObservationCapacity,
+    ) -> Self {
+        self.host_session_plan
+            .set_host_observation_capacity(capacity);
+        self
+    }
+
+    pub fn with_mounted_frame_retention_budget(
+        mut self,
+        budget: crate::mounting::UiMountedFrameRetentionBudget,
+    ) -> Self {
+        self.host_session_plan
+            .set_mounted_frame_retention_budget(budget);
         self
     }
 

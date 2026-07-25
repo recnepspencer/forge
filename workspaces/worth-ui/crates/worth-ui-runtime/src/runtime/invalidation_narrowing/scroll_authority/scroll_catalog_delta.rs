@@ -80,6 +80,11 @@ impl super::UiScrollInvalidationBindingIndex {
                     return Err(super::UiScrollInvalidationBindingDenial::ContradictorySource);
                 };
                 remove_binding(&mut self.query, query.source_key(), &key)?;
+                remove_binding(
+                    &mut self.query_by_binding,
+                    &query.source_key().binding_key(),
+                    &key,
+                )?;
             }
             if !self
                 .projection_contracts
@@ -168,6 +173,12 @@ impl super::UiScrollInvalidationBindingIndex {
                     &mut self.query,
                     query.source_key().clone(),
                     key.clone(),
+                    binding.clone(),
+                )?;
+                insert_binding(
+                    &mut self.query_by_binding,
+                    query.source_key().binding_key(),
+                    key.clone(),
                     binding,
                 )?;
             }
@@ -189,7 +200,7 @@ impl super::UiScrollInvalidationBindingIndex {
     }
 }
 
-fn insert_binding<K: Ord + Clone>(
+pub(super) fn insert_binding<K: Ord + Clone>(
     index: &mut crate::runtime::persistent_index::UiPersistentOrdMap<K, BindingKeyIndex>,
     owner: K,
     key: crate::runtime::UiScrollReceiptActivationKey,
@@ -205,7 +216,7 @@ fn insert_binding<K: Ord + Clone>(
     Ok(())
 }
 
-fn remove_binding<K: Ord + Clone>(
+pub(super) fn remove_binding<K: Ord + Clone>(
     index: &mut crate::runtime::persistent_index::UiPersistentOrdMap<K, BindingKeyIndex>,
     owner: &K,
     key: &crate::runtime::UiScrollReceiptActivationKey,

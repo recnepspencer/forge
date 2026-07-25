@@ -4,10 +4,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity,
     WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
-    WorthUiOperationalHostAdapter,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
+use crate::host::adapter::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome,
+    WorthUiOperationalHostAdapter,
+};
 use crate::host::{
     UiHostMeasurementCollectionInput, UiHostMeasurementNeed, UiHostMeasurementNormalizationContext,
 };
@@ -36,7 +39,17 @@ pub struct WorthUiHostMeasurementSessionInput {
 
 pub(crate) struct WorthUiHostSessionAuthority {
     identity: WorthUiHostSessionIdentity,
+    protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     measurement_capability: WorthUiHostMeasurementCapability,
+    mounted_presentation_lease: worth_ui_host_contract::UiMountedPresentationLease,
+    adapter_authority: UiHostAdapterSessionAuthority,
+    adapter_session_released: bool,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct UiHostEffectPort<'session> {
+    adapter: &'session dyn WorthUiOperationalHostAdapter,
+    authority: &'session UiHostAdapterSessionAuthority,
 }
 
 /// Narrow immutable host authority carried into plan construction.
@@ -45,36 +58,53 @@ pub(crate) struct WorthUiHostPlanBinding {
     session_identity: WorthUiHostSessionIdentity,
     observation_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
-    canvas_spatial_supported: bool,
-    realtime_overlay_supported: bool,
+    canvas_spatial_execution_supported: bool,
+    realtime_overlay_execution_supported: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthUiHostSessionActivationDenial {
     IdentityExhausted,
+    Protocol(worth_ui_host_contract::UiHostProtocolDenial),
+    MountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
 }
 
 impl WorthUiHostSessionAuthority {
     pub(crate) fn activate(
         plan: &crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
     ) -> Result<Self, WorthUiHostSessionActivationDenial> {
+        let protocol = match plan.protocol_contract().negotiate() {
+            worth_ui_host_contract::UiHostProtocolNegotiation::Compatible(agreement) => agreement,
+            worth_ui_host_contract::UiHostProtocolNegotiation::Incompatible(denial) => {
+                return Err(WorthUiHostSessionActivationDenial::Protocol(denial));
+            }
+        };
         let value = NEXT_HOST_SESSION_IDENTITY
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
                 next_host_session_identity_value(current)
             })
             .map_err(|_| WorthUiHostSessionActivationDenial::IdentityExhausted)?;
         let identity = WorthUiHostSessionIdentity { value };
+        let adapter_authority = UiHostAdapterSessionAuthority::activate(value);
         let capability_report = plan
             .capability_report()
             .clone()
             .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(value));
+        let adapter = plan.adapter();
+        let mounted_presentation_lease = adapter_authority
+            .claim_mounted_presentation_lease()
+            .map_err(WorthUiHostSessionActivationDenial::MountedPresentationLease)?;
         Ok(Self {
             identity,
+            protocol,
             measurement_capability: WorthUiHostMeasurementCapability {
                 session_identity: identity,
                 capability_report,
-                adapter: plan.adapter(),
+                adapter,
             },
+            mounted_presentation_lease,
+            adapter_authority,
+            adapter_session_released: false,
         })
     }
 
@@ -90,8 +120,76 @@ impl WorthUiHostSessionAuthority {
         self.measurement_capability.adapter()
     }
 
+    pub(crate) fn effect_port(&self) -> UiHostEffectPort<'_> {
+        UiHostEffectPort {
+            adapter: self.output_adapter(),
+            authority: &self.adapter_authority,
+        }
+    }
+
+    pub(crate) fn release_adapter_session(&mut self) -> UiHostSessionReleaseOutcome {
+        if self.adapter_session_released {
+            return crate::host::adapter::UiHostSessionReleaseOutcome::Released(
+                crate::host::adapter::UiHostSessionReleaseReceipt::released(self.identity.value, 0),
+            );
+        }
+        self.adapter_session_released = true;
+        let outcome = self
+            .output_adapter()
+            .release_host_session(&self.adapter_authority);
+        match outcome {
+            UiHostSessionReleaseOutcome::Released(receipt)
+                if receipt.host_session_identity() == self.identity.value =>
+            {
+                outcome
+            }
+            UiHostSessionReleaseOutcome::ReleaseIndeterminate(indeterminate)
+                if indeterminate.host_session_identity() == self.identity.value =>
+            {
+                outcome
+            }
+            _ => UiHostSessionReleaseOutcome::ReleaseIndeterminate(
+                UiHostSessionReleaseIndeterminate::after_effects_may_have_begun(
+                    self.identity.value,
+                ),
+            ),
+        }
+    }
+
+    pub(crate) fn capability_report(&self) -> &WorthUiHostCapabilityReport {
+        self.measurement_capability.capability_report()
+    }
+
+    pub(crate) fn protocol(&self) -> worth_ui_host_contract::UiHostProtocolAgreement {
+        self.protocol
+    }
+
+    pub(crate) fn mounted_presentation_lease(
+        &self,
+    ) -> &worth_ui_host_contract::UiMountedPresentationLease {
+        &self.mounted_presentation_lease
+    }
+
     pub(crate) fn plan_binding(&self) -> WorthUiHostPlanBinding {
         WorthUiHostPlanBinding::from_session(self)
+    }
+}
+
+impl<'session> UiHostEffectPort<'session> {
+    pub(crate) fn adapter(self) -> &'session dyn WorthUiOperationalHostAdapter {
+        self.adapter
+    }
+
+    pub(crate) fn authority(self) -> &'session UiHostAdapterSessionAuthority {
+        self.authority
+    }
+}
+
+impl Drop for WorthUiHostSessionAuthority {
+    fn drop(&mut self) {
+        if !self.adapter_session_released {
+            let _ = self.release_adapter_session();
+        }
     }
 }
 
@@ -110,16 +208,20 @@ impl WorthUiHostPlanBinding {
             worth_ui_host_contract::WorthUiHostCapability::RealtimeOverlaySurface,
             worth_ui_host_contract::WorthUiHostCapability::RealtimeOverlayHook,
         ];
+        let mounted_recording =
+            report.supports(worth_ui_host_contract::WorthUiHostCapability::MountedFrameRecording);
         Self {
             session_identity: session.identity,
             observation_generation: report.observation_generation(),
             capability_profile_digest: report.profile_identity_digest(),
-            canvas_spatial_supported: required
-                .into_iter()
-                .all(|capability| report.supports(capability)),
-            realtime_overlay_supported: realtime_required
-                .into_iter()
-                .all(|capability| report.supports(capability)),
+            canvas_spatial_execution_supported: mounted_recording
+                || required
+                    .into_iter()
+                    .all(|capability| report.supports(capability)),
+            realtime_overlay_execution_supported: mounted_recording
+                || realtime_required
+                    .into_iter()
+                    .all(|capability| report.supports(capability)),
         }
     }
 
@@ -135,12 +237,12 @@ impl WorthUiHostPlanBinding {
         self.capability_profile_digest
     }
 
-    pub(crate) fn canvas_spatial_supported(self) -> bool {
-        self.canvas_spatial_supported
+    pub(crate) fn canvas_spatial_execution_supported(self) -> bool {
+        self.canvas_spatial_execution_supported
     }
 
-    pub(crate) fn realtime_overlay_supported(self) -> bool {
-        self.realtime_overlay_supported
+    pub(crate) fn realtime_overlay_execution_supported(self) -> bool {
+        self.realtime_overlay_execution_supported
     }
 
     pub(crate) fn shares_session_with(self, other: Self) -> bool {
@@ -148,8 +250,9 @@ impl WorthUiHostPlanBinding {
     }
 
     pub(crate) fn executable_contract_matches(self, other: Self) -> bool {
-        self.canvas_spatial_supported == other.canvas_spatial_supported
-            && self.realtime_overlay_supported == other.realtime_overlay_supported
+        self.canvas_spatial_execution_supported == other.canvas_spatial_execution_supported
+            && self.realtime_overlay_execution_supported
+                == other.realtime_overlay_execution_supported
     }
 }
 
@@ -234,8 +337,8 @@ mod tests {
             session_identity: WorthUiHostSessionIdentity { value: 1 },
             observation_generation: WorthUiHostCapabilityObservationGeneration::new(1),
             capability_profile_digest: 11,
-            canvas_spatial_supported: true,
-            realtime_overlay_supported: true,
+            canvas_spatial_execution_supported: true,
+            realtime_overlay_execution_supported: true,
         };
         let cases = [
             ("identical", baseline, true),
@@ -266,7 +369,7 @@ mod tests {
             (
                 "canvas capability",
                 WorthUiHostPlanBinding {
-                    canvas_spatial_supported: false,
+                    canvas_spatial_execution_supported: false,
                     ..baseline
                 },
                 false,
@@ -274,7 +377,7 @@ mod tests {
             (
                 "realtime capability",
                 WorthUiHostPlanBinding {
-                    realtime_overlay_supported: false,
+                    realtime_overlay_execution_supported: false,
                     ..baseline
                 },
                 false,

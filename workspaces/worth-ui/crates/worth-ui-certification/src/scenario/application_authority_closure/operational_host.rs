@@ -1,25 +1,32 @@
 //! Deterministic operational host used by the authority-closure scenario.
 
-use worth_ui_host_contract::{
-    UiDpiScaleFactorObservation, UiHostObservationValue, UiMeasurementRequest,
-    UiMeasurementRequestFamily, UiViewportExtentObservation, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+use worth_ui::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiOperationalHostAdapter,
 };
+use worth_ui_host_contract::{
+    UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
+    UiMeasurementRequestFamily, UiViewportExtentObservation, WorthUiHostCapability,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
 
+#[derive(Clone, Copy, Default)]
 pub(super) struct AuthorityClosureHost;
 
 impl WorthUiMeasurementHostAdapter for AuthorityClosureHost {
-    fn observe_measurement(&self, request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         match request.family() {
             UiMeasurementRequestFamily::ViewportExtent => {
-                UiHostObservationValue::ViewportExtent(UiViewportExtentObservation {
+                UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
                     width: 1280.0,
                     height: 720.0,
                 })
             }
             UiMeasurementRequestFamily::DpiScaleFactor => {
-                UiHostObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
+                UiHostMeasurementObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
                     scale_factor: 1.0,
                 })
             }
@@ -42,10 +49,13 @@ impl WorthUiOperationalHostAdapter for AuthorityClosureHost {
         ])
     }
 
-    fn consume_output(
+    fn release_host_session(
         &self,
-        _output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
-        worth_ui_host_contract::WorthUiHostOutputDisposition::Consumed
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> UiHostSessionReleaseOutcome {
+        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
+            authority.host_session_identity(),
+            0,
+        ))
     }
 }

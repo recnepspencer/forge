@@ -3,7 +3,7 @@
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
-    UiGraphAxisParticipation, UiGraphMountedReceiptTransition, UiGraphNodeIdentity,
+    UiGraphAxisParticipation, UiGraphMountEligibilityTransition, UiGraphNodeIdentity,
     UiGraphParticipationAxis, UiGraphParticipationStatus, UiGraphTouchAspectPosture,
     UiGraphTouchAspects, UiGraphTouchDescriptor, UiGraphTouchTiming,
 };
@@ -44,13 +44,13 @@ pub fn query_touch(app: &WorthUiApp) -> UiGraphTouchDescriptor {
     let artifact = artifact_from_module_path(app, "app/obligation_dispatch_prereq_runtime.wui");
     app.graph()
         .touches()
-        .from_mounted_receipt_transition(
+        .from_mount_eligibility_transition(
             app.graph()
                 .touches()
-                .query_fact_change_receipt()
+                .query_binding_change_receipt()
                 .expect("query world should admit query receipt"),
             UiGraphTouchTiming::PostMutation,
-            mounted_receipt_transition(app, artifact),
+            mount_eligibility_transition(app, artifact),
             UiGraphTouchAspects::new()
                 .query_binding(UiGraphTouchAspectPosture::Invalidated)
                 .participation(UiGraphTouchAspectPosture::Invalidated),
@@ -116,10 +116,10 @@ pub fn graph_node_identity(
         .expect("declaration should admit one graph node")
 }
 
-fn mounted_receipt_transition(
+fn mount_eligibility_transition(
     app: &WorthUiApp,
     artifact: &UiDeclarationArtifact,
-) -> UiGraphMountedReceiptTransition {
+) -> UiGraphMountEligibilityTransition {
     let graph_node_identity = graph_node_identity(app, artifact);
     let control_node = app
         .graph()
@@ -129,7 +129,7 @@ fn mounted_receipt_transition(
         .value();
 
     app.graph()
-        .mounted_receipt_transition_for_node(
+        .mount_eligibility_transition_for_node(
             graph_node_identity,
             control_node
                 .participation_posture()

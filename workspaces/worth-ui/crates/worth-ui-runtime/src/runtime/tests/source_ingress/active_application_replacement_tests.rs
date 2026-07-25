@@ -40,6 +40,7 @@ fn successful_cutover_publishes_runtime_app_and_inspection_as_one_generation() {
         .expect("lowered successor should stage");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("empty framework turn should yield an activation boundary")
@@ -152,6 +153,7 @@ fn foreign_catalog_denial_preserves_active_and_candidate_inspection_scopes() {
         .expect("foreign graph should admit its own allocation delta");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("empty framework turn should yield an activation boundary")

@@ -7,12 +7,17 @@ pub(crate) enum UiAllocationNeighborhoodActivationDenial {
 }
 
 pub(crate) struct UiPreparedInvalidationCatalogTransition {
+    predecessor_identity_digest: u64,
     successor: super::UiAllocationInvalidationAuthority,
     scroll_evidence: crate::runtime::UiScrollCatalogSwapEvidence,
     derived_index_counters: crate::runtime::invalidation_narrowing::UiDerivedIndexDeltaCounters,
 }
 
 impl UiPreparedInvalidationCatalogTransition {
+    pub(crate) fn predecessor_identity_digest(&self) -> u64 {
+        self.predecessor_identity_digest
+    }
+
     pub(crate) fn scroll_catalog_evidence(&self) -> crate::runtime::UiScrollCatalogSwapEvidence {
         self.scroll_evidence.clone()
     }
@@ -88,6 +93,7 @@ impl super::UiAllocationInvalidationAuthority {
         successor.portal_bindings = portal_bindings;
         successor.rebuild_indexes();
         Ok(UiPreparedInvalidationCatalogTransition {
+            predecessor_identity_digest: self.active_catalog_identity_digest(),
             successor,
             scroll_evidence,
             derived_index_counters: Default::default(),
@@ -156,6 +162,7 @@ impl super::UiAllocationInvalidationAuthority {
                 .expect("delta scroll bindings carry their receipt"),
         );
         Ok(UiPreparedInvalidationCatalogTransition {
+            predecessor_identity_digest: self.active_catalog_identity_digest(),
             successor,
             scroll_evidence,
             derived_index_counters,

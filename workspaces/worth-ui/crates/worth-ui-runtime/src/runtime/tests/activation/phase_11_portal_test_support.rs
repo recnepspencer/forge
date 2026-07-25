@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
     WorthUiMeasurementHostAdapter,
 };
@@ -7,8 +7,11 @@ use worth_ui_host_contract::{
 struct PortalAnchorAdapter(UiPortalAnchorRectObservation);
 
 impl WorthUiMeasurementHostAdapter for PortalAnchorAdapter {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::PortalAnchorRect(self.0)
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::PortalAnchorRect(self.0)
     }
 }
 

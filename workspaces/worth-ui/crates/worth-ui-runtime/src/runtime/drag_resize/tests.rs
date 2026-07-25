@@ -1,32 +1,3 @@
-#[derive(Default)]
-struct RecordingPreviewPaintHost {
-    painted: u16,
-    deny: bool,
-}
-
-impl crate::host::WorthUiPreviewPaintHost for RecordingPreviewPaintHost {
-    fn paint_preview(
-        &mut self,
-        geometry: crate::host::UiHostPreviewPaintGeometry<'_>,
-    ) -> Result<(), crate::host::UiHostPreviewPaintDenial> {
-        if self.deny {
-            return Err(crate::host::UiHostPreviewPaintDenial::HostUnavailable);
-        }
-        assert!(geometry.candidate_count() > 0);
-        assert!(geometry.all_candidates_admitted());
-        self.painted += 1;
-        Ok(())
-    }
-}
-
-fn painted_receipt(
-    disposition: crate::host::UiHostPreviewPaintDisposition,
-) -> crate::host::UiHostPreviewPaintReceipt {
-    match disposition {
-        crate::host::UiHostPreviewPaintDisposition::Painted(receipt) => receipt,
-        other => panic!("expected painted preview, got {other:?}"),
-    }
-}
 #[test]
 fn three_hundred_pointer_samples_publish_ten_previews_and_no_committed_truth() {
     let (mut runtime, root, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
@@ -34,9 +5,8 @@ fn three_hundred_pointer_samples_publish_ten_previews_and_no_committed_truth() {
     let durable_before = runtime
         .durable_semantic_state()
         .expect("activated catalog owns durable semantic state");
-    let mut host = RecordingPreviewPaintHost::default();
     let mut publications = 0u16;
-    let mut preview_paints = 0u16;
+    let mut preview_projections = 0u16;
     for frame in 0..10u32 {
         let completion = runtime.execute_framework_turn(|turn| {
             turn.resize_preview(|source| {
@@ -51,110 +21,39 @@ fn three_hundred_pointer_samples_publish_ten_previews_and_no_committed_truth() {
                 }
             });
         });
-        let resolved = completion
-            .resolve_preview_paint(&mut host)
-            .unwrap_or_else(|other| panic!("ordinary turn carries preview paint: {other:?}"));
+        let (transition, _) = completion
+            .into_pending_mounted_preview()
+            .unwrap_or_else(|other| panic!("ordinary turn carries mounted preview: {other:?}"));
+        let preview = transition.preview();
+        let counters = preview.stream_counters();
+        assert_eq!(preview.target(), root);
+        assert_eq!(preview.candidate_count(), 1);
+        assert!(preview.all_candidates_admitted());
+        assert_eq!(
+            preview.extent(),
+            crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(
+                (frame * 30 + 29) as f32,
+            )
+            .unwrap(),
+        );
+        let before = preview.capture_isolation_basis();
+        let resolved = transition.finish(before);
         let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) =
-            resolved.isolation()
+            resolved.isolation
         else {
             panic!("pointer-rate preview must preserve allocation truth")
         };
         assert_eq!(isolation.before(), isolation.after());
         assert_eq!(isolation.durable_mutations(), 0);
         assert_eq!(isolation.committed_receipts(), 0);
-        let receipt = painted_receipt(resolved.disposition());
-        let counters = receipt.context().stream_counters();
-        preview_paints += 1;
+        preview_projections += 1;
         publications += counters.preview_publications();
         assert_eq!(counters.admitted_samples(), 30);
         assert_eq!(counters.durable_mutations(), 0);
         assert_eq!(counters.committed_receipts(), 0);
-        assert_eq!(receipt.context().target(), root);
-        assert_eq!(receipt.painted_candidates(), 1);
-        assert_eq!(
-            receipt.context().extent(),
-            crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(
-                (frame * 30 + 29) as f32,
-            )
-            .unwrap(),
-        );
     }
     assert_eq!(publications, 10);
-    assert_eq!(preview_paints, 10);
-    assert_eq!(host.painted, 10);
-    assert_eq!(
-        runtime.committed_allocation_scope_count_for_test(),
-        committed_before
-    );
-    assert_eq!(runtime.durable_semantic_state().unwrap(), durable_before);
-}
-
-#[test]
-fn denied_host_preview_consumption_is_one_shot_and_keeps_truth_unchanged() {
-    let (mut runtime, root, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
-    let completion = runtime.execute_framework_turn(|turn| {
-        turn.resize_preview(|source| {
-            source
-                .admit_and_submit(crate::runtime::UiResizePreviewSample::new(
-                    root,
-                    crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(280.0).unwrap(),
-                ))
-                .unwrap();
-        });
-    });
-    let mut host = RecordingPreviewPaintHost {
-        painted: 0,
-        deny: true,
-    };
-    let resolved = completion.resolve_preview_paint(&mut host).unwrap();
-    let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) = resolved.isolation()
-    else {
-        panic!("preview denial must preserve allocation truth")
-    };
-    assert_eq!(isolation.before(), isolation.after());
-    let crate::host::UiHostPreviewPaintDisposition::Denied(report) = resolved.disposition() else {
-        panic!("host denial must remain typed")
-    };
-    assert_eq!(
-        report.denial(),
-        crate::host::UiHostPreviewPaintDenial::HostUnavailable
-    );
-    assert_eq!(report.context().target(), root);
-    assert_eq!(host.painted, 0);
-}
-
-#[test]
-fn superseded_preview_is_explicitly_discarded_without_host_or_truth_effects() {
-    let (mut runtime, root, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
-    let committed_before = runtime.committed_allocation_scope_count_for_test();
-    let durable_before = runtime.durable_semantic_state().unwrap();
-    let completion = runtime.execute_framework_turn(|turn| {
-        turn.resize_preview(|source| {
-            source
-                .admit_and_submit(crate::runtime::UiResizePreviewSample::new(
-                    root,
-                    crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(290.0).unwrap(),
-                ))
-                .unwrap();
-        });
-    });
-    let resolved = completion
-        .discard_preview_paint(crate::host::UiHostPreviewDiscardReason::Superseded)
-        .unwrap();
-    let crate::runtime::UiPreviewPaintIsolationOutcome::Verified(isolation) = resolved.isolation()
-    else {
-        panic!("discarded preview must preserve allocation truth")
-    };
-    assert_eq!(isolation.before(), isolation.after());
-    let crate::host::UiHostPreviewPaintDisposition::Discarded(report) = resolved.disposition()
-    else {
-        panic!("supersession must remain typed")
-    };
-    assert_eq!(
-        report.reason(),
-        crate::host::UiHostPreviewDiscardReason::Superseded
-    );
-    assert_eq!(report.context().target(), root);
+    assert_eq!(preview_projections, 10);
     assert_eq!(
         runtime.committed_allocation_scope_count_for_test(),
         committed_before
@@ -261,6 +160,29 @@ fn terminal_resize_mutates_once_and_commits_one_receipt_per_turn() {
             .extent(),
         extent,
     );
+    let different_extent =
+        crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(321.0).unwrap();
+    let (not_replayed, unchanged_state, different_mutated) = runtime
+        .replay_admitted_durable_transaction_for_test(
+            &replay_selection,
+            input.identity_digest(),
+            different_extent,
+        );
+    assert!(matches!(
+        not_replayed,
+        crate::runtime::UiAllocationReplanTransactionOutcome::Denied(
+            crate::runtime::UiAllocationReplanTransactionCommitDenial::AdmittedGenerationSetChanged
+        )
+    ));
+    assert!(!different_mutated);
+    assert_eq!(
+        unchanged_state
+            .unwrap()
+            .committed_resize(input.identity_digest())
+            .unwrap()
+            .extent(),
+        extent,
+    );
 
     let repeated = runtime.execute_framework_turn(|turn| {
         turn.durable_resize(|source| {
@@ -324,6 +246,49 @@ fn terminal_resize_mutates_once_and_commits_one_receipt_per_turn() {
             .extent(),
         changed_extent,
     );
+}
+
+#[test]
+fn durable_resize_truth_change_does_not_counterfeit_mounted_projection_delta() {
+    let (mut runtime, root, input) =
+        crate::runtime::tests::production_catalog_activation_test_support::runtime_with_durable_resize_catalog();
+    let predecessor_revision = runtime.allocation_truth_revision().revision();
+    let predecessor_projection = runtime
+        .allocation_receipt_ledger
+        .mounted_projection_source(Some(predecessor_revision))
+        .projection(root)
+        .expect("activated allocation geometry is valid")
+        .expect("durable target has a mounted allocation projection");
+    let extent = crate::runtime::UiResizeLogicalExtent::try_from_logical_pixels(360.0).unwrap();
+
+    let completion = runtime.execute_framework_turn(|turn| {
+        turn.durable_resize(|source| {
+            source
+                .admit_and_submit(crate::runtime::UiDurableResizeCommitIntent::terminal(
+                    input.clone(),
+                    extent,
+                ))
+                .expect("activated durable source admits");
+        });
+    });
+    assert!(completion.durable_resize_outcome().is_some());
+    assert!(runtime.allocation_truth_revision().revision() > predecessor_revision);
+
+    let projection_source = runtime
+        .allocation_receipt_ledger
+        .mounted_projection_source(Some(predecessor_revision));
+    let crate::runtime::UiMountedAllocationProjectionDelta::Exact(delta) =
+        projection_source.delta()
+    else {
+        panic!("retained predecessor must produce exact mounted allocation delta");
+    };
+    assert_eq!(delta.journal_entries_touched(), 1);
+    assert!(delta.changed_graph_nodes().is_empty());
+    let successor_projection = projection_source
+        .projection(root)
+        .expect("committed allocation geometry is valid")
+        .expect("durable target has a committed mounted projection");
+    assert_eq!(successor_projection, predecessor_projection);
 }
 
 #[test]

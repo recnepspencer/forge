@@ -1,4 +1,8 @@
 use worth_ui::facade::app::{UiAllocationCatalogRowDisposition, WorthUi, WorthUiBuilder};
+use worth_ui::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiOperationalHostAdapter,
+};
 use worth_ui::facade::registry::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
@@ -13,11 +17,11 @@ use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::{
     admit_candidate_catalog, admit_candidate_catalog_with_removed_roots,
 };
+use worth_ui_certification::scenario::installed_query_world;
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementRequest, UiMeasurementRequestFamily,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementRequestFamily,
     UiPortalAnchorRectObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiHostOutputDisposition, WorthUiHostOutputEnvelope,
-    WorthUiMeasurementHostAdapter, WorthUiOperationalHostAdapter,
+    WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -139,6 +143,7 @@ fn boundary(
 ) -> worth_ui::facade::runtime::WorthUiFrameBoundary {
     session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .unwrap_or_else(|_| panic!("empty boundary turn should execute"))
@@ -161,14 +166,10 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
 fn builder() -> WorthUiBuilder {
     WorthUi::app()
         .with_host(MultiRemovalHost)
-        .with_graph_world_profile(
-            worth_ui::facade::graph::UiGraphWorldProfile::query_snapshot_basis(
-                worth_ui_query_binding::certification::worth_ui_query_snapshot_prerequisites(
-                    "multi-removal-filesystem",
-                    ["worth-ui.phase14", "filesystem", "multi-removal"],
-                ),
-            ),
-        )
+        .with_graph_world_profile(installed_query_world::settled_query_world_profile(
+            worth_ui::facade::registry::ViewBindingId::new("multi.removal.filesystem").unwrap(),
+            "worth-ui.phase14.filesystem.multi-removal",
+        ))
         .register_component(component(BASE))
         .register_component(component(FIRST))
         .register_component(component(SECOND))
@@ -193,13 +194,17 @@ fn base_source() -> String {
     format!("component {BASE} {{ region {BASE_REGION} {{ sizing {BASE_SIZING}; }} }}\n")
 }
 
+#[derive(Clone, Copy, Default)]
 struct MultiRemovalHost;
 
 impl WorthUiMeasurementHostAdapter for MultiRemovalHost {
-    fn observe_measurement(&self, request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         match request.family() {
             UiMeasurementRequestFamily::PortalAnchorRect => {
-                UiHostObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
+                UiHostMeasurementObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
                     x: 24.0,
                     y: 48.0,
                     width: 640.0,
@@ -220,8 +225,14 @@ impl WorthUiOperationalHostAdapter for MultiRemovalHost {
         WorthUiHostCapabilityReport::available(vec![WorthUiHostCapability::PortalAnchorObservation])
     }
 
-    fn consume_output(&self, _output: &WorthUiHostOutputEnvelope) -> WorthUiHostOutputDisposition {
-        WorthUiHostOutputDisposition::Consumed
+    fn release_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> UiHostSessionReleaseOutcome {
+        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
+            authority.host_session_identity(),
+            0,
+        ))
     }
 }
 

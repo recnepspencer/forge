@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
     UiScrollContainerViewportObservation, UiScrollContainerViewportRequest,
     UiViewportExtentObservation, UiViewportExtentRequest, WorthUiMeasurementHostAdapter,
@@ -11,8 +11,11 @@ struct ScrollAdapter;
 struct PortalAdapter;
 
 impl WorthUiMeasurementHostAdapter for ViewportAdapter {
-    fn observe_measurement(&self, _: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::ViewportExtent(UiViewportExtentObservation {
+    fn observe_measurement(
+        &self,
+        _: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
             width: 1024.0,
             height: 768.0,
         })
@@ -20,35 +23,30 @@ impl WorthUiMeasurementHostAdapter for ViewportAdapter {
 }
 
 impl WorthUiMeasurementHostAdapter for ScrollAdapter {
-    fn observe_measurement(&self, _: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::ScrollContainerViewport(UiScrollContainerViewportObservation {
-            width: 320.0,
-            height: 180.0,
-        })
+    fn observe_measurement(
+        &self,
+        _: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::ScrollContainerViewport(
+            UiScrollContainerViewportObservation {
+                width: 320.0,
+                height: 180.0,
+            },
+        )
     }
 }
 
 impl WorthUiMeasurementHostAdapter for PortalAdapter {
-    fn observe_measurement(&self, _: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
+    fn observe_measurement(
+        &self,
+        _: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::PortalAnchorRect(UiPortalAnchorRectObservation {
             x: 160.0,
             y: 96.0,
             width: 240.0,
             height: 120.0,
         })
-    }
-}
-
-#[derive(Default)]
-struct PreviewHost;
-
-impl crate::host::WorthUiPreviewPaintHost for PreviewHost {
-    fn paint_preview(
-        &mut self,
-        geometry: crate::host::UiHostPreviewPaintGeometry<'_>,
-    ) -> Result<(), crate::host::UiHostPreviewPaintDenial> {
-        assert!(geometry.all_candidates_admitted());
-        Ok(())
     }
 }
 
@@ -172,16 +170,19 @@ fn run_hostile_workbench() -> WorkbenchSummary {
             }
         });
     });
-    let resolved_preview = preview
-        .resolve_preview_paint(&mut PreviewHost)
+    let (transition, _) = preview
+        .into_pending_mounted_preview()
         .unwrap_or_else(|other| panic!("preview remains isolated: {other:?}"));
+    assert!(transition.preview().all_candidates_admitted());
+    let before = transition.preview().capture_isolation_basis();
+    let resolved_preview = transition.finish(before);
     assert!(matches!(
-        resolved_preview.isolation(),
+        resolved_preview.isolation,
         crate::runtime::UiPreviewPaintIsolationOutcome::Verified(_)
     ));
     assert!(matches!(
-        resolved_preview.follow_on(),
-        crate::runtime::WorthUiPreviewPaintFollowOn::PreviewOnly
+        resolved_preview.follow_on,
+        crate::runtime::WorthUiMountedPreviewFollowOn::PreviewOnly
     ));
     verified_source_transitions += 1;
 
@@ -345,8 +346,8 @@ fn observe_completion(
                 }
                 crate::runtime::UiAllocationReplanTransactionOutcome::Denied(denial) => {
                     panic!(
-                        "hostile workbench transaction denied: {:?}",
-                        denial.evidence()
+                        "hostile workbench {stream:?}/{invalidation:?} transaction denied: {:?}",
+                        denial.evidence(),
                     )
                 }
             }

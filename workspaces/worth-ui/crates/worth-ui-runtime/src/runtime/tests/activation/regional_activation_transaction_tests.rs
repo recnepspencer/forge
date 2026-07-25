@@ -204,6 +204,7 @@ fn activate_scaled_component_replacement(
         .expect("scaled source-backed candidate stages");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("scaled boundary turn completes")

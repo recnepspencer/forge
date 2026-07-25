@@ -172,7 +172,6 @@ impl UiPortalInvalidationBindingIndex {
         }
         Ok(super::UiPreparedPortalBindingSuccession::new(
             self.identity_digest(),
-            successor,
             lineage,
             counters,
         ))

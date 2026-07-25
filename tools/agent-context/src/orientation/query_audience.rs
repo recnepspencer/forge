@@ -71,6 +71,7 @@ pub(crate) fn framework_certification_orientation(
     root: &Path,
     contract: &QueryAudienceContractSpec,
     machine_constitution: &str,
+    facade_snapshot: &CommittedFacadeSnapshot,
 ) -> Result<Option<CrateOrientation>, String> {
     let Some(certification_package) = &contract.certification_package else {
         return Ok(None);
@@ -85,6 +86,7 @@ pub(crate) fn framework_certification_orientation(
             "configured Query certification package missing at {relative_path}"
         ));
     }
+    let facade_exports = facade_snapshot.exports_for(certification_package)?;
 
     Ok(Some(CrateOrientation {
         crate_name: certification_package.clone(),
@@ -92,23 +94,31 @@ pub(crate) fn framework_certification_orientation(
         constitutional_class: "framework/query-certification".to_owned(),
         domain: "certification".to_owned(),
         exemplar_role: format!(
-            "Cold Query compiler and hostile certification over `{}`",
-            contract.engine_package
+            "Cold Query compiler and hostile certification over {}",
+            render_packages(&contract.certification_authority_packages)
         ),
         deferred_routes: Vec::new(),
-        public_surface: "none; explicit certification test targets only".to_owned(),
+        public_surface: "facade-only certification contracts".to_owned(),
         allowed_target_bands: Vec::new(),
-        facade_exports: Vec::new(),
-        owned_modules: Vec::new(),
+        facade_exports,
+        owned_modules: vec![
+            "scenario".to_owned(),
+            "evidence".to_owned(),
+            "oracle".to_owned(),
+        ],
         machine_fences: vec![
             format!(
-                "Cold leaf over Query engine `{}`; ordinary Query packages must not depend on it.",
-                contract.engine_package
+                "Cold certification facade over {}; ordinary Query packages must not depend on it.",
+                render_packages(&contract.certification_authority_packages)
             ),
             "Selected explicitly for compiler, replay, or hostile certification; absent from the ordinary workspace default members.".to_owned(),
-            "Must not expose fixture registries, source scanners, pre-solved authority constructors, or runner protocols.".to_owned(),
+            format!(
+                "Configured downstream certification owners: {}; all other consumers are denied.",
+                render_packages(&contract.certification_consumers)
+            ),
+            "May expose provider-neutral scenario, evidence, and oracle contracts; must not expose pre-solved Query authority constructors or production runner state.".to_owned(),
         ],
-        skeleton_fence: "Framework certification leaf: test and cert-only support ownership; no product authority.".to_owned(),
+        skeleton_fence: "Framework certification leaf: cert-only semantic scenarios and hostile evidence; no product authority.".to_owned(),
         machine_constitution: machine_constitution.to_owned(),
     }))
 }

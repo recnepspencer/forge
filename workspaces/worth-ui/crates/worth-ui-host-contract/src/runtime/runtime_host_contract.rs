@@ -1,4 +1,4 @@
-use super::{UiHostObservationValue, UiMeasurementRequest};
+use super::{UiHostMeasurementObservationValue, UiHostMeasurementRequest};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiHostKind {
@@ -14,28 +14,11 @@ pub struct WorthUiHostContract {
 }
 
 pub trait WorthUiMeasurementHostAdapter {
-    fn observe_measurement(&self, request: &UiMeasurementRequest) -> UiHostObservationValue;
-}
-
-/// Native adapter that can be explicitly admitted into one active host
-/// session. The report describes mechanics the adapter can actually observe;
-/// the session assigns operational identity and freshness generation.
-pub trait WorthUiOperationalHostAdapter: WorthUiMeasurementHostAdapter {
-    fn operational_host_contract(&self) -> WorthUiHostContract;
-
-    fn operational_capability_report(&self) -> super::WorthUiHostCapabilityReport;
-
-    fn consume_output(
+    fn observe_measurement(
         &self,
-        output: &super::WorthUiHostOutputEnvelope,
-    ) -> super::WorthUiHostOutputDisposition;
+        request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue;
 }
-
-/// A configured host is operational by construction. Contract-only markers
-/// are not accepted by application preparation.
-pub trait WorthUiHostAdapter: WorthUiOperationalHostAdapter {}
-
-impl<Adapter> WorthUiHostAdapter for Adapter where Adapter: WorthUiOperationalHostAdapter + ?Sized {}
 
 impl WorthUiHostContract {
     pub fn headless() -> Self {

@@ -6,18 +6,22 @@ use worth_ui::facade::app::{
     WorthUiOrdinaryFrameTarget, WorthUiVirtualizedDataFrameTarget,
     WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
 };
-use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiWatchedCandidateSubmission,
 };
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_host_egui::WorthUiHostEgui;
-use worth_ui_query_binding::compatibility::managed_live::WorthUiInstalledLiveQueryView;
+use worth_ui_query_binding::{
+    WorthUiInstalledLiveQueryView, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+};
+
+mod query_patch;
 
 use super::scenario::{
-    application_with_submission_and_host, capability_application, installed_workspace,
-    ACTIVE_COMPONENT, FIRST_VIEW, NEXT_COMPONENT, SECOND_VIEW,
+    application_with_submission_and_host, capability_application,
+    installed_workspace_with_measurement_authority, ACTIVE_COMPONENT, FIRST_VIEW, NEXT_COMPONENT,
+    SECOND_VIEW,
 };
 use super::support::{
     activation_boundary, admit_active_resource, admit_candidate_resource, close, close_retirement,
@@ -38,7 +42,8 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         WorthUiFilesystemSourceWatcher::start(WorthUiFilesystemSourceProvider::new(watched.root()))
             .expect("the production watcher registers the real source tree");
 
-    let mut query_workspace = installed_workspace("mixed-real-lifecycle");
+    let (mut query_workspace, measurement) =
+        installed_workspace_with_measurement_authority("mixed-real-lifecycle");
     let installed = query_workspace
         .worth_ui()
         .expect("Worth UI domain installed");
@@ -48,7 +53,13 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     let second = installed
         .live_measurement_view(SECOND_VIEW)
         .expect("second installed view");
-    let capabilities = capability_application(first.clone(), second.clone());
+    let capabilities = capability_application(first.clone(), second.clone(), &mut query_workspace);
+    let first_reference = capabilities
+        .resolve_query_view(
+            first.definition().identity(),
+            WorthUiQueryViewShape::Collection,
+        )
+        .expect("the live capability application resolves its exact installed reference");
     let initial = watcher
         .take_initial_snapshot()
         .expect("the watcher owns the settled initial source")
@@ -60,10 +71,17 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         second.clone(),
         initial,
         WorthUiHostEgui::new(context.clone()),
+        &mut query_workspace,
     )
     .launch()
     .expect("the watcher-backed Query and egui application launches");
     admit_active_resource(&mut session, &first, &mut query_workspace);
+    query_patch::apply_real_live_patch(
+        &mut session,
+        &first_reference,
+        &measurement,
+        &mut query_workspace,
+    );
     execute_real_egui_frame(&context, &mut session, true);
 
     let launch_generation = session.generation_identity().clone();
@@ -71,7 +89,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     let primed = activate_settled(&mut watcher, &mut session, None, &mut query_workspace)
         .into_activation()
         .expect("the first replacement primes complete allocation truth");
-    assert!(primed.managed_live_compatibility_retirement().is_empty());
+    assert!(primed.operation_live_retirement().is_empty());
     assert_ne!(session.generation_identity(), &launch_generation);
     execute_real_egui_frame(&context, &mut session, true);
 
@@ -94,7 +112,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     .expect("bounded Query change publishes");
     assert_ne!(session.generation_identity(), &primed_generation);
     close_retirement(
-        changed.into_managed_live_compatibility_retirement(),
+        changed.into_operation_live_retirement(),
         &mut query_workspace,
     );
     assert_stale_query_target(&mut session, first_target);
@@ -138,7 +156,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
             .expect("restoration must return one canonical executable decision");
         assert_eq!(receipt.prior_generation(), &before_removed_import);
         assert_eq!(receipt.active_generation(), session.generation_identity());
-        assert!(receipt.managed_live_compatibility_retirement().is_empty());
+        assert!(receipt.operation_live_retirement().is_empty());
     }
     execute_real_egui_frame(&context, &mut session, true);
 
@@ -147,7 +165,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         .into_activation()
         .expect("Query removal publishes");
     close_retirement(
-        query_free.into_managed_live_compatibility_retirement(),
+        query_free.into_operation_live_retirement(),
         &mut query_workspace,
     );
     assert_eq!(
@@ -165,7 +183,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     )
     .into_activation()
     .expect("Query reintroduction publishes");
-    assert!(rebound.managed_live_compatibility_retirement().is_empty());
+    assert!(rebound.operation_live_retirement().is_empty());
     execute_real_egui_frame(&context, &mut session, true);
 
     let frozen = freeze_churn_candidates(&session, CHURN_COUNT);
@@ -179,15 +197,18 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         )
         .into_activation()
         .expect("each production-frozen candidate publishes");
-        assert_eq!(changed.managed_live_compatibility_retirement().len(), 1);
+        assert_eq!(changed.operation_live_retirement().len(), 1);
         close_retirement(
-            changed.into_managed_live_compatibility_retirement(),
+            changed.into_operation_live_retirement(),
             &mut query_workspace,
         );
         execute_real_egui_frame(&context, &mut session, true);
     }
 
-    let _ = session.shutdown();
+    close_retirement(
+        session.shutdown().into_operation_live_retirement(),
+        &mut query_workspace,
+    );
     close(
         open_resource(&first, &mut query_workspace),
         &mut query_workspace,
@@ -261,31 +282,27 @@ fn execute_real_egui_frame(
     session: &mut WorthUiActiveApplicationSession,
     query_expected: bool,
 ) {
-    let expected = session.inspect_runtime();
     let query_target = query_expected.then(|| visible_target(session));
-    let mut observed_generation = None;
     let native = context.run(raw_input(), |_| {
         let execution = session
             .execute_framework_turn(|_| {})
+            .expect("no mounted presentation lease is active")
             .into_execution()
             .unwrap_or_else(|_| panic!("egui framework turn"));
         let ordinary = execution
             .execute_ordinary_frame(WorthUiOrdinaryFrameTarget::root_shell())
             .expect("ordinary frame executes");
-        observed_generation = Some(ordinary.output().generation());
+        drop(ordinary);
         if let Some(target) = query_target {
             execution
                 .execute_virtualized_data_frame(target)
                 .expect("visible Query frame executes");
         }
     });
-    let observed = observed_generation.expect("egui receives a sealed output");
-    assert_eq!(
-        observed.active_artifact_digest(),
-        expected.artifact_digest()
+    assert!(
+        native.shapes.is_empty(),
+        "lane execution is receipt-only and cannot contact egui"
     );
-    assert_eq!(observed.active_plan_digest(), expected.active_plan_digest());
-    assert!(!native.shapes.is_empty());
 }
 
 fn visible_target(session: &WorthUiActiveApplicationSession) -> WorthUiVirtualizedDataFrameTarget {
@@ -301,6 +318,7 @@ fn assert_stale_query_target(
 ) {
     let execution = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_execution()
         .unwrap_or_else(|_| panic!("stale-target framework turn"));
     assert!(execution.execute_virtualized_data_frame(target).is_err());

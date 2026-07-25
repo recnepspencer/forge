@@ -76,10 +76,15 @@ fn moved_rect_preserves_identity_and_replans_only_graph_owned_portal_locality() 
     assert_eq!(geometry.identity(), portal.identity_transition().current());
     assert_eq!(geometry.observed_bounds().x(), 101.0);
     assert_eq!(geometry.observed_bounds().y(), 202.0);
+    let successor_basis_generation = receipt
+        .committed_allocation()
+        .measurement_basis()
+        .generation();
     assert_eq!(
         receipt.generation().measurement_basis_generation(),
-        activation_basis_generation
+        successor_basis_generation
     );
+    assert_ne!(successor_basis_generation, activation_basis_generation);
     assert_eq!(
         receipt
             .generation()

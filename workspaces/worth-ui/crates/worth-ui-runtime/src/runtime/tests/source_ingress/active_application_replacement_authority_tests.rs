@@ -101,6 +101,7 @@ fn pending_cutover_cannot_cross_identical_active_sessions() {
         .expect("origin session should stage its replacement");
     let boundary = second
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("foreign session can produce only its own boundary")
@@ -148,6 +149,7 @@ fn equal_looking_frame_boundary_cannot_cross_active_sessions() {
         .expect("origin candidate stages");
     let foreign_boundary = second
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("equal-looking foreign session produces its own boundary")
@@ -173,6 +175,7 @@ fn equal_looking_frame_boundary_cannot_cross_active_sessions() {
     );
     let boundary = first
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("origin session produces a retry boundary")
@@ -217,7 +220,7 @@ fn mounted_transition_from_equivalent_candidate_graph_cannot_advance_another_can
         .axis(crate::graph::UiGraphParticipationAxis::Mounted);
     let foreign = second_prepared
         .candidate_graph()
-        .mounted_receipt_transition_for_node(
+        .mount_eligibility_transition_for_node(
             node,
             prior,
             crate::graph::UiGraphAxisParticipation::runtime_mutation(
@@ -226,11 +229,11 @@ fn mounted_transition_from_equivalent_candidate_graph_cannot_advance_another_can
         )
         .expect("second graph should mint its own transition");
     let denial = first_prepared
-        .commit_candidate_mounted_layout_admissions(vec![foreign])
+        .commit_candidate_mount_eligibility_admissions(vec![foreign])
         .expect_err("opaque graph authority must deny cross-candidate transition reuse");
     assert!(matches!(
         denial,
-        crate::graph::UiGraphMountedLayoutAdmissionDenial::ForeignMountedReceipt(_)
+        crate::graph::UiGraphMountEligibilityAdmissionDenial::ForeignMountEligibility(_)
     ));
 }
 
@@ -283,6 +286,7 @@ fn equal_digest_foreign_catalog_cannot_cross_candidate_graph_authority() {
         .expect("origin candidate should stage");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("empty framework turn should yield an activation boundary")

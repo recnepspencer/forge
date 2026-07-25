@@ -1,4 +1,4 @@
-error[E0432]: unresolved imports `worth_ui::facade::graph::UiGraphCoreIndexes`, `worth_ui::facade::graph::UiGraphMountedReceiptAuthoritySeedStore`, `worth_ui::facade::graph::UiGraphNode`, `worth_ui::facade::graph::UiGraphNodeTopology`, `worth_ui::facade::graph::UiGraphSnapshot`, `worth_ui::facade::graph::UiGraphTopology`
+error[E0432]: unresolved imports `worth_ui::facade::graph::UiGraphCoreIndexes`, `worth_ui::facade::graph::UiGraphMountEligibilityStore`, `worth_ui::facade::graph::UiGraphNode`, `worth_ui::facade::graph::UiGraphNodeTopology`, `worth_ui::facade::graph::UiGraphSnapshot`, `worth_ui::facade::graph::UiGraphTopology`
  --> tests/ui/graph_authority/external_callers_cannot_forge_graph_identity_or_snapshot.rs
  help: a similar name exists in the module
  help: a similar name exists in the module
@@ -57,7 +57,7 @@ error[E0624]: associated function `new` is private
 error[E0624]: associated function `declaration_change` is private
  --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs
 
-error[E0624]: associated function `query_fact_change` is private
+error[E0599]: no function or associated item named `query_fact_change` found for struct `UiGraphTouchOriginReceipt` in the current scope
  --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs
 
 error[E0624]: associated function `host_observation` is private
@@ -75,7 +75,7 @@ error[E0624]: associated function `diagnostic_only` is private
 error[E0624]: associated function `declaration_instances` is private
  --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs
 
-error[E0599]: no function or associated item named `mounted_receipt_transition_only` found for struct `UiGraphTouchOriginWitness` in the current scope
+error[E0599]: no function or associated item named `mount_eligibility_transition_only` found for struct `UiGraphTouchOriginWitness` in the current scope
  --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs
 
 error[E0624]: associated function `authored_provenance_digests` is private
@@ -96,7 +96,7 @@ error[E0624]: associated function `region_membership` is private
 error[E0624]: associated function `mosaic_membership` is private
  --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs
 
-error[E0624]: associated function `mounted_receipt_slot` is private
+error[E0624]: associated function `mount_eligibility_slot` is private
  --> tests/ui/graph_touch/external_callers_cannot_forge_touch_descriptors.rs
 
 error[E0624]: associated function `new` is private

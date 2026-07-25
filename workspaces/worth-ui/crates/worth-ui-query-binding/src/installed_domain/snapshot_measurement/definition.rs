@@ -3,7 +3,7 @@ use worth_query::facade::domain;
 use worth_query_decl::facade::{
     authoring::{
         AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField,
-        CollectionQueryBuilder, CollectionResultShapeBuilder, RootEntityKey,
+        CollectionQueryBuilder, CollectionResultShapeBuilder, OrderingSelector, RootEntityKey,
     },
     binding::QueryBindingDescriptor,
     canonicalization::canonicalize_request,
@@ -36,16 +36,17 @@ fn semantic_closure(
         native_projection: measurement.clone(),
         canonical_query,
         collection: domain::WorthQueryOperationCollectionContract::Collection {
-            row_identity_field:
-                domain::WorthQueryOperationCollectionField::from_dotted("identity.id")
-                    .expect("the static identity collection field must admit"),
-            ordering_fields: vec![
-                domain::WorthQueryOperationCollectionField::from_dotted("identity.id")
-                    .expect("the static identity ordering field must admit"),
-            ],
+            row_identity_field: domain::WorthQueryOperationCollectionField::from_dotted(
+                "identity.id",
+            )
+            .expect("the static identity collection field must admit"),
+            ordering_fields: vec![domain::WorthQueryOperationCollectionField::from_dotted(
+                "identity.id",
+            )
+            .expect("the static identity ordering field must admit")],
             grouping: domain::WorthQueryOperationGroupingContract::Ungrouped,
-            window: domain::WorthQueryOperationWindowPolicy::CompleteCollection,
-            continuation: domain::WorthQueryOperationContinuationPosture::NotRequired,
+            window: domain::WorthQueryOperationWindowPolicy::ContinuationBounded,
+            continuation: domain::WorthQueryOperationContinuationPosture::LiveCursor,
         },
         required_capabilities: vec![
             domain::WorthQueryOperationCapabilityRequirement::QueryRead,
@@ -117,6 +118,10 @@ fn canonical_bundle(
     )
     .project(selector("identity", "id"))
     .project(selector("measurement", "value"))
+    .order_by(
+        OrderingSelector::ascending("identity", "id")
+            .expect("static measurement ordering must admit"),
+    )
     .build()
     .expect("static measurement query must admit")
     .into_raw();

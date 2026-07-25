@@ -9,7 +9,7 @@ pub enum UiGraphClosedSemanticLane {
     SlotOccupancyTopology,
     PageRegionMosaicMembership,
     ParticipationPosture,
-    MountedReceiptAuthority,
+    MountEligibility,
     AspectIndexes,
     BoundedLookup,
     InspectionSupport,

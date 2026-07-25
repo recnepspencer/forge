@@ -1,7 +1,4 @@
-use crate::{
-    WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceOrder,
-    WorthUiQueryMeasurementFactSettlement,
-};
+use crate::{WorthUiQueryAllocationSourceGeneration, WorthUiQueryAllocationSourceOrder};
 
 /// Compact, non-authoritative evidence carried by an ordinary UI frame.
 ///
@@ -12,7 +9,6 @@ pub struct WorthUiQueryFrameEvidence {
     evidence_identity_digest: u64,
     source_generation: WorthUiQueryAllocationSourceGeneration,
     source_order: WorthUiQueryAllocationSourceOrder,
-    native_fact_count: usize,
     observation_count: usize,
     partial: bool,
 }
@@ -42,36 +38,8 @@ impl WorthUiQueryFrameEvidence {
             ),
             source_generation,
             source_order,
-            native_fact_count: fact.native_fact_count(),
-            observation_count: fact
-                .measurement_facts()
-                .map_or(0, |batch| batch.observations().len()),
+            observation_count: fact.measurement_facts().observations().len(),
             partial: fact.is_partial(),
-        }
-    }
-
-    pub(crate) fn from_managed_live_compatibility(
-        settlement: &WorthUiQueryMeasurementFactSettlement,
-    ) -> Self {
-        let facts = settlement.receipt().query_authority().authority().facts();
-        let source_generation = settlement.allocation_source_generation();
-        let source_order = settlement.allocation_source_order();
-        let definition_digest = settlement.definition().digest().as_u64();
-        Self {
-            evidence_identity_digest: evidence_identity_digest(
-                settlement
-                    .allocation_source_identity()
-                    .authority_index_key()
-                    .identity_digest(),
-                source_generation,
-                source_order,
-                definition_digest,
-            ),
-            source_generation,
-            source_order,
-            native_fact_count: facts.display_fields().len() + facts.derived_fields().len(),
-            observation_count: settlement.receipt().observations().len(),
-            partial: settlement.is_partial(),
         }
     }
 
@@ -85,10 +53,6 @@ impl WorthUiQueryFrameEvidence {
 
     pub fn source_order(self) -> WorthUiQueryAllocationSourceOrder {
         self.source_order
-    }
-
-    pub fn native_fact_count(self) -> usize {
-        self.native_fact_count
     }
 
     pub fn observation_count(self) -> usize {

@@ -71,16 +71,16 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
     let competing_aspect_consumer_inspection = graph
         .inspection()
         .inspect_aspect_consumers(&competing_aspect);
-    let mounted_receipt_identity = graph
+    let mount_eligibility_identity = graph
         .lookup()
-        .mounted_receipt_slot_for_node(control_id)
-        .expect("mounted receipt slot should resolve for control")
+        .mount_eligibility_slot_for_node(control_id)
+        .expect("mount eligibility slot should resolve for control")
         .value()
-        .mounted_receipt_identity();
-    let mounted_receipt_inspection = graph
+        .mount_eligibility_identity();
+    let mount_eligibility_inspection = graph
         .inspection()
-        .inspect_mounted_receipt_slot(mounted_receipt_identity)
-        .expect("mounted receipt inspection should target committed slot");
+        .inspect_mount_eligibility_slot(mount_eligibility_identity)
+        .expect("mount eligibility inspection should target committed slot");
 
     assert_eq!(node_inspection.generation(), graph.generation());
     assert_eq!(
@@ -203,7 +203,7 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
     assert!(aspect_inspection
         .evidence_refs()
         .iter()
-        .any(|evidence_ref| { matches!(evidence_ref, UiGraphEvidenceRef::MountedReceipt(_)) }));
+        .any(|evidence_ref| { matches!(evidence_ref, UiGraphEvidenceRef::MountEligibility(_)) }));
 
     assert_eq!(
         aspect_consumer_inspection.target(),
@@ -229,7 +229,7 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
     assert!(aspect_consumer_inspection
         .evidence_refs()
         .iter()
-        .any(|evidence_ref| { matches!(evidence_ref, UiGraphEvidenceRef::MountedReceipt(_)) }));
+        .any(|evidence_ref| { matches!(evidence_ref, UiGraphEvidenceRef::MountEligibility(_)) }));
 
     assert_eq!(
         competing_aspect_inspection.target(),
@@ -280,21 +280,21 @@ fn graph_truth_is_inspectable_through_formal_graph_inspection_support() {
         .contains(&UiGraphEvidenceRef::GraphNode(consumer_id)));
 
     assert_eq!(
-        mounted_receipt_inspection.target(),
-        &UiGraphInspectionTarget::MountedReceipt(mounted_receipt_identity)
+        mount_eligibility_inspection.target(),
+        &UiGraphInspectionTarget::MountEligibility(mount_eligibility_identity)
     );
     assert_eq!(
-        mounted_receipt_inspection.lookup_receipt().family(),
-        UiGraphLookupFamily::MountedReceiptSlot
+        mount_eligibility_inspection.lookup_receipt().family(),
+        UiGraphLookupFamily::MountEligibilitySlot
     );
     assert_eq!(
-        mounted_receipt_inspection.lookup_receipt().cost_class(),
+        mount_eligibility_inspection.lookup_receipt().cost_class(),
         UiGraphLookupCostClass::IndexedScalar
     );
-    assert!(mounted_receipt_inspection.evidence_refs().contains(
-        &UiGraphEvidenceRef::MountedReceipt(mounted_receipt_identity)
+    assert!(mount_eligibility_inspection.evidence_refs().contains(
+        &UiGraphEvidenceRef::MountEligibility(mount_eligibility_identity)
     ));
-    assert!(mounted_receipt_inspection
+    assert!(mount_eligibility_inspection
         .evidence_refs()
         .contains(&UiGraphEvidenceRef::GraphNode(control_id)));
 }

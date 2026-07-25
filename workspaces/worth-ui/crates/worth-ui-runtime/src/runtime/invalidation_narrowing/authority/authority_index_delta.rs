@@ -97,6 +97,13 @@ impl super::UiAllocationInvalidationAuthority {
             let work = remove_member(&mut self.query_contexts, &source, &scope)?;
             counters.record_persistent_work(work)?;
             counters.record_membership()?;
+            let work = remove_member(
+                &mut self.query_contexts_by_binding,
+                &source.binding_key(),
+                &scope,
+            )?;
+            counters.record_persistent_work(work)?;
+            counters.record_membership()?;
         }
 
         let mut row_witnesses = BTreeSet::new();
@@ -150,7 +157,11 @@ impl super::UiAllocationInvalidationAuthority {
             .map(|(source, _)| source.clone())
             .collect::<BTreeSet<_>>();
         for source in query_sources {
+            let binding = source.binding_key();
             let work = insert_member(&mut self.query_contexts, source, scope.clone())?;
+            counters.record_persistent_work(work)?;
+            counters.record_membership()?;
+            let work = insert_member(&mut self.query_contexts_by_binding, binding, scope.clone())?;
             counters.record_persistent_work(work)?;
             counters.record_membership()?;
         }

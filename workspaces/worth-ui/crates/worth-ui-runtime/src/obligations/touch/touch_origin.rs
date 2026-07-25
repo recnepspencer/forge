@@ -1,8 +1,10 @@
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationIdentity};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UiGraphTouchOriginClass {
     DeclarationChange,
+    QueryBindingChange,
     QueryFactChange,
     HostObservation,
     ServiceEvent,
@@ -24,42 +26,14 @@ impl UiGraphTouchOriginReceipt {
         }
     }
 
-    pub(crate) fn query_fact_change(
-        prerequisites: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
-    ) -> Self {
-        let canonical = prerequisites.canonical_basis_digest();
-        let authority_digest = canonical
-            .value()
-            .bytes()
-            .iter()
-            .take(8)
-            .enumerate()
-            .fold(0u64, |digest, (index, byte)| {
-                digest | (u64::from(*byte) << (index * 8))
-            });
-        Self {
-            class: UiGraphTouchOriginClass::QueryFactChange,
-            authority_digest,
-        }
-    }
-
-    pub(crate) fn installed_query_fact_change(
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
-    ) -> Self {
-        Self {
-            class: UiGraphTouchOriginClass::QueryFactChange,
-            authority_digest: authority.identity().as_u64(),
-        }
-    }
-
-    pub(crate) fn settled_query_fact_change(
+    pub(crate) fn settled_query_binding_change(
         view_binding_id: &crate::capability::ViewBindingId,
-        query_binding_identity: &str,
+        binding_reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     ) -> Self {
         Self {
-            class: UiGraphTouchOriginClass::QueryFactChange,
+            class: UiGraphTouchOriginClass::QueryBindingChange,
             authority_digest: crate::declaration::stable_text_digest(view_binding_id.as_str())
-                ^ crate::declaration::stable_text_digest(query_binding_identity).rotate_left(29),
+                ^ opaque_reference_digest(binding_reference).rotate_left(29),
         }
     }
 
@@ -119,38 +93,16 @@ impl UiGraphTouchOriginWitness {
         }
     }
 
-    pub(crate) fn query_basis(
-        receipt: UiGraphTouchOriginReceipt,
-        prerequisites: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
-    ) -> Self {
-        Self {
-            receipt,
-            authority: UiGraphTouchOriginAuthority::QueryBasis {
-                prerequisites: Box::new(prerequisites),
-            },
-        }
-    }
-
-    pub(crate) fn installed_query_basis(
-        receipt: UiGraphTouchOriginReceipt,
-        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
-    ) -> Self {
-        Self {
-            receipt,
-            authority: UiGraphTouchOriginAuthority::InstalledQueryBasis { authority },
-        }
-    }
-
     pub(crate) fn settled_query_binding(
         receipt: UiGraphTouchOriginReceipt,
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: Box<str>,
+        binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     ) -> Self {
         Self {
             receipt,
             authority: UiGraphTouchOriginAuthority::SettledQueryBinding {
                 view_binding_id,
-                query_binding_identity,
+                binding_reference,
             },
         }
     }
@@ -187,19 +139,19 @@ pub(crate) enum UiGraphTouchOriginAuthority {
     DeclarationInstances {
         declaration_identity: UiDeclarationIdentity,
     },
-    QueryBasis {
-        prerequisites: Box<
-            worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteEvidence,
-        >,
-    },
-    InstalledQueryBasis {
-        authority: worth_ui_query_binding::compatibility::managed_live::WorthUiQueryBasisAuthority,
-    },
     SettledQueryBinding {
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: Box<str>,
+        binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     },
     AuthoredProvenanceDigests {
         digests: Vec<u64>,
     },
+}
+
+pub(super) fn opaque_reference_digest(
+    reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    reference.hash(&mut hasher);
+    hasher.finish()
 }

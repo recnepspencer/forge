@@ -1,23 +1,17 @@
 //! Host-lane-only measurement result construction. Other modules must use the host transition chain.
 
-use worth_ui_host_contract::{UiHostObservation, UiHostObservationValue};
+use worth_ui_host_contract::{UiHostMeasurementObservation, UiHostMeasurementObservationValue};
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::evidence::{
-    UiHostMeasurementResultInput, UiMeasurementCoordinateSpace, UiMeasurementEvidenceCategory,
-    UiMeasurementResult, UiMeasurementRoundingPosture, UiMeasurementUnitPosture,
+    UiHostMeasurementResultInput, UiMeasurementEvidenceCategory, UiMeasurementResult,
     UiMeasurementValue,
 };
 
-use super::UiHostMeasurementAssumptionProfile;
-
 pub(super) fn construct_measurement_result_from_host_observation(
-    observation: UiHostObservation,
+    observation: UiHostMeasurementObservation,
     evidence_generation: UiEvidenceAuthorityGeneration,
-    unit_posture: UiMeasurementUnitPosture,
-    coordinate_space: UiMeasurementCoordinateSpace,
-    rounding_posture: UiMeasurementRoundingPosture,
-    assumption_profile: UiHostMeasurementAssumptionProfile,
+    normalization: super::UiHostMeasurementNormalizationContext,
 ) -> UiMeasurementResult {
     let request_identity = observation.request_identity();
     let request_shape_digest =
@@ -35,33 +29,41 @@ pub(super) fn construct_measurement_result_from_host_observation(
         request_shape_digest,
         evidence_category,
         evidence_generation,
-        unit_posture,
-        coordinate_space,
-        rounding_posture,
-        assumption_profile,
+        unit_posture: normalization.unit_posture(),
+        coordinate_space: normalization.coordinate_space(),
+        rounding_posture: normalization.rounding_posture(),
+        assumption_profile: normalization.assumption_profile(),
         value,
         portal_anchor_target_identity,
     })
 }
 
-fn measurement_value_from_host_observation(value: UiHostObservationValue) -> UiMeasurementValue {
+fn measurement_value_from_host_observation(
+    value: UiHostMeasurementObservationValue,
+) -> UiMeasurementValue {
     match value {
-        UiHostObservationValue::TextIntrinsicSize(value) => {
+        UiHostMeasurementObservationValue::TextIntrinsicSize(value) => {
             UiMeasurementValue::TextIntrinsicSize(value)
         }
-        UiHostObservationValue::TextBaselineMetrics(value) => {
+        UiHostMeasurementObservationValue::TextBaselineMetrics(value) => {
             UiMeasurementValue::TextBaselineMetrics(value)
         }
-        UiHostObservationValue::FontMetrics(value) => UiMeasurementValue::FontMetrics(value),
-        UiHostObservationValue::NativeControlIntrinsicSize(value) => {
+        UiHostMeasurementObservationValue::FontMetrics(value) => {
+            UiMeasurementValue::FontMetrics(value)
+        }
+        UiHostMeasurementObservationValue::NativeControlIntrinsicSize(value) => {
             UiMeasurementValue::NativeControlIntrinsicSize(value)
         }
-        UiHostObservationValue::ViewportExtent(value) => UiMeasurementValue::ViewportExtent(value),
-        UiHostObservationValue::DpiScaleFactor(value) => UiMeasurementValue::DpiScaleFactor(value),
-        UiHostObservationValue::PortalAnchorRect(value) => {
+        UiHostMeasurementObservationValue::ViewportExtent(value) => {
+            UiMeasurementValue::ViewportExtent(value)
+        }
+        UiHostMeasurementObservationValue::DpiScaleFactor(value) => {
+            UiMeasurementValue::DpiScaleFactor(value)
+        }
+        UiHostMeasurementObservationValue::PortalAnchorRect(value) => {
             UiMeasurementValue::PortalAnchorRect(value)
         }
-        UiHostObservationValue::ScrollContainerViewport(value) => {
+        UiHostMeasurementObservationValue::ScrollContainerViewport(value) => {
             UiMeasurementValue::ScrollContainerViewport(value)
         }
     }

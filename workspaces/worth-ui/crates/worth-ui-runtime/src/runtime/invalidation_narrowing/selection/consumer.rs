@@ -175,103 +175,6 @@ fn narrow_source(
                 Ok(UiAllocationInvalidationTarget::Graph(target))
             }
         }
-        UiAllocationFrameSourceFact::QueryProjection { source, .. }
-            if matches!(
-                family,
-                UiAllocationInvalidationFamily::QueryMeasurementFactChange
-                    | UiAllocationInvalidationFamily::ContentExtentChange
-            ) =>
-        {
-            counted(counters.visit_query_settlement(), ordinal)?;
-            let basis = source.allocation_invalidation_basis();
-            if ingress_key.source_generation().as_u64() != basis.source_generation().as_u64() {
-                return Err(
-                    UiAllocationInvalidationNarrowingDenial::QuerySourceGenerationMismatch {
-                        ordinal,
-                    },
-                );
-            }
-            if ingress_key.source_order().as_u64() != basis.source_order().as_u64() {
-                return Err(
-                    UiAllocationInvalidationNarrowingDenial::QuerySourceOrderMismatch { ordinal },
-                );
-            }
-            if ingress_key.ingress_identity().as_u64() != source.allocation_ingress_identity() {
-                return Err(
-                    UiAllocationInvalidationNarrowingDenial::QueryConsumptionReceiptMismatch {
-                        ordinal,
-                    },
-                );
-            }
-            if basis.consumed_families().is_empty() {
-                return Err(
-                    UiAllocationInvalidationNarrowingDenial::QuerySettlementFamilyMissing {
-                        ordinal,
-                    },
-                );
-            }
-            counted(
-                counters.visit_query_observations(basis.observations().len()),
-                ordinal,
-            )?;
-            counted(counters.lookup_graph_target(), ordinal)?;
-            if basis
-                .observations()
-                .iter()
-                .any(|value| value.extent().as_f32().is_nan())
-            {
-                return Err(
-                    UiAllocationInvalidationNarrowingDenial::QueryExtentUnordered { ordinal },
-                );
-            }
-            if family == UiAllocationInvalidationFamily::ContentExtentChange {
-                let authority_ref = authority.borrow();
-                let scroll_lookup = authority_ref.scroll_query_target(
-                    basis.query_authority(),
-                ).map_err(|denial| {
-                    if counters.record_authority_probes(denial.probes).is_err() {
-                        return UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal };
-                    }
-                    match denial.reason {
-                    super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
-                        UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable =>
-                        UiAllocationInvalidationNarrowingDenial::QueryAuthorityNotIndexable { ordinal },
-                    _ => unreachable!("Query lookup cannot return host denial"),
-                }})?;
-                counted(
-                    counters.record_authority_probes(scroll_lookup.probes()),
-                    ordinal,
-                )?;
-                if scroll_lookup.is_empty() {
-                    return Err(
-                        UiAllocationInvalidationNarrowingDenial::ScrollOwnershipNotAdmitted {
-                            ordinal,
-                        },
-                    );
-                }
-                return Ok(UiAllocationInvalidationTarget::ScrollOwnedContentExtent {
-                    bindings: scroll_lookup.materialize_bindings(),
-                });
-            }
-            let lookup = authority
-                .borrow()
-                .query_target(basis.query_authority())
-                .map_err(|denial| match denial {
-                    super::authority::UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted =>
-                        UiAllocationInvalidationNarrowingDenial::AuthorityCounterExhausted { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable =>
-                        UiAllocationInvalidationNarrowingDenial::QueryAuthorityNotIndexable { ordinal },
-                    super::authority::UiInvalidationAuthorityLookupDenial::HostEvidenceGenerationMismatch
-                    | super::authority::UiInvalidationAuthorityLookupDenial::HostNormalizationAuthorityMismatch
-                    => unreachable!("Query lookup cannot return host denial"),
-                })?;
-            counted(counters.record_authority_probes(lookup.probes), ordinal)?;
-            let target = lookup.target.ok_or(
-                UiAllocationInvalidationNarrowingDenial::QueryTargetNotAdmitted { ordinal },
-            )?;
-            Ok(UiAllocationInvalidationTarget::QueryProjection { basis, target })
-        }
         UiAllocationFrameSourceFact::QuerySettledFact {
             view_binding_id,
             fact,
@@ -284,8 +187,8 @@ fn narrow_source(
             super::settled_query_fact::narrow_settled_query_fact(
                 ingress_key,
                 family,
-                &view_binding_id,
-                &fact,
+                view_binding_id,
+                fact,
                 ordinal,
                 authority,
                 counters,

@@ -87,7 +87,8 @@ fn settle_native_lane(
 ) -> super::super::operation_sharing::SettledProjection {
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -123,17 +124,6 @@ pub(crate) fn consume_empty_invalidation_epoch(
 ) {
     assert!(first.drain(workspace).unwrap().delivery().is_empty());
     assert!(second.drain(workspace).unwrap().delivery().is_empty());
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }
 
 pub(crate) fn materialized_invalidation_profile() -> MaterializedFoundationalProfileSet {

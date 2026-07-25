@@ -3,6 +3,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+mod durable_recovery;
+
 use crate::{
     product_operation_contract::{
         admit_retry, build_storage_key, record_retry, WorthServerProductIdempotencyBinding,
@@ -98,6 +100,19 @@ impl WorthServerProductOperationRuntime {
         )
     }
 
+    pub(crate) fn execute_from_product_protocol(
+        &self,
+        prepared_request: &WorthServerCompatibilityPreparedRequest,
+        input: WorthServerProductOperationInput,
+    ) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial>
+    {
+        let protocol_input = input.clone();
+        match self.execute_from_compat_http(prepared_request, input) {
+            Ok(operation) => Ok(operation),
+            Err(denial) => self.project_session_denial(prepared_request, &protocol_input, denial),
+        }
+    }
+
     pub fn execute_shared_read_batch_from_worth_native(
         &self,
         admission: &WorthServerAdmission,
@@ -119,78 +134,6 @@ impl WorthServerProductOperationRuntime {
         Ok(executed)
     }
 
-    pub fn resolve_durable_mutation(
-        &self,
-        admission: &WorthServerAdmission,
-        recovery: &crate::WorthServerDurableProductMutationRecoveryHandle,
-    ) -> Result<
-        crate::WorthServerDurableProductMutationConclusion,
-        WorthServerProductOperationSurfaceDenial,
-    > {
-        let (_, declaration) = self.resolve_declaration(recovery.operation_name())?;
-        let Some(contract) = declaration.durable_mutation_contract() else {
-            return Err(WorthServerProductOperationSurfaceDenial::new(
-                WorthServerProductOperationSurfaceDenialCode::InvalidDeclaration,
-                format!(
-                    "product operation `{}` does not declare durable recovery",
-                    recovery.operation_name()
-                ),
-            ));
-        };
-        crate::durable_product_mutation::admit_durable_product_recovery(
-            &self.operation_registry,
-            admission,
-            declaration,
-        )?;
-        let workspace_target = admission.request_context().workspace_target();
-        if recovery.tenant_id() != workspace_target.tenant_id()
-            || recovery.workspace_id() != workspace_target.workspace_id()
-            || recovery.authority_scope() != contract.authority_scope()
-        {
-            return Err(WorthServerProductOperationSurfaceDenial::new(
-                WorthServerProductOperationSurfaceDenialCode::RequestDenied,
-                "durable product recovery handle is outside the admitted product scope".to_string(),
-            ));
-        }
-        let executor = self
-            .adapter_registry
-            .resolve_durable_executor(recovery.operation_name())
-            .ok_or_else(|| {
-                WorthServerProductOperationSurfaceDenial::new(
-                    WorthServerProductOperationSurfaceDenialCode::InvalidDeclaration,
-                    "validated durable product declaration lost its installed executor".to_string(),
-                )
-            })?;
-        self.counters.increment_durable_product_recovery_attempts();
-        let conclusion = executor.resolve(recovery);
-        match &conclusion {
-            crate::WorthServerDurableProductMutationConclusion::Committed(completion)
-            | crate::WorthServerDurableProductMutationConclusion::PreviouslyCommitted(completion) =>
-            {
-                if !completion.matches_recovery(recovery, declaration.result_contract()) {
-                    self.counters.increment_durable_product_recovery_failed();
-                    return Err(WorthServerProductOperationSurfaceDenial::new(
-                        WorthServerProductOperationSurfaceDenialCode::InvalidDurableCompletion,
-                        "durable product recovery returned a completion outside the admitted recovery authority"
-                            .to_string(),
-                    )
-                    .with_facts(
-                        WorthServerProductOperationSurfaceDenialFacts::default()
-                            .with_execution_boundary(
-                                WorthServerProductOperationExecutionBoundary::DurableExecutorAttempted,
-                            ),
-                    ));
-                }
-                self.counters.increment_durable_product_recovery_resolved();
-                self.counters.record_product_result_artifact(
-                    completion.success().result_artifact().body().byte_len(),
-                );
-            }
-            _ => self.counters.increment_durable_product_recovery_failed(),
-        }
-        Ok(conclusion)
-    }
-
     fn resolve_declaration(
         &self,
         operation_name: &str,
@@ -209,6 +152,37 @@ impl WorthServerProductOperationRuntime {
                     format!("no registered product adapter owns `{operation_name}`"),
                 )
             })
+    }
+
+    fn project_session_denial(
+        &self,
+        prepared_request: &WorthServerCompatibilityPreparedRequest,
+        input: &WorthServerProductOperationInput,
+        denial: WorthServerProductOperationSurfaceDenial,
+    ) -> Result<WorthServerCompletedProductOperation, WorthServerProductOperationSurfaceDenial>
+    {
+        let Some(session_denial_code) = denial
+            .facts()
+            .and_then(WorthServerProductOperationSurfaceDenialFacts::session_denial_code)
+        else {
+            return Err(denial);
+        };
+        let (_, declaration) = self.resolve_declaration(input.operation_name())?;
+        let request = WorthServerOperationRequestFacade::new(self.operation_registry.clone())
+            .admit_from_compat_http_with_request_input(
+                prepared_request,
+                build_request_input(declaration, input),
+            )
+            .map_err(WorthServerProductOperationSurfaceDenial::from_request_denial)?;
+        let outcome = WorthServerProductOperationOutcome::Denied(
+            super::WorthServerProductOperationDenial::new(
+                session_denial_code.reason_key(),
+                denial.detail(),
+            )
+            .with_code(super::WorthServerProductOperationDenialCode::ProductSemantic),
+        );
+        let envelope = build_early_envelope(declaration.operation_name(), &request, &outcome);
+        Ok(WorthServerCompletedProductOperation::new(outcome, envelope))
     }
 
     fn execute_resolved(
@@ -308,7 +282,7 @@ impl WorthServerProductOperationRuntime {
             readiness.precondition_posture().clone(),
             readiness.concurrency_class(),
         );
-        let scheduled = WorthServerScheduledProductOperation::admit(plan)?;
+        let scheduled = WorthServerScheduledProductOperation::admit(plan, admitted_session)?;
         if let Some(durable_contract) = durable_contract {
             let executor = self
                 .adapter_registry

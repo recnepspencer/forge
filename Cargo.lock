@@ -2215,6 +2215,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-server-client-generation"
+version = "0.1.0"
+dependencies = [
+ "worth-server",
+]
+
+[[package]]
 name = "worth-signal"
 version = "0.1.0"
 dependencies = [

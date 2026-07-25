@@ -1,12 +1,12 @@
 use super::aspect_evidence_test_support::{
-    all_graph_node_digests, all_mounted_receipt_digests, aspect_identity_app,
+    all_graph_node_digests, all_mount_eligibility_digests, aspect_identity_app,
     aspect_neighborhood_facts, aspect_neighborhood_facts_from_receipt, aspect_ref_count,
     assert_indexed_lookup, assert_lane_identity_distinctness, assert_membership,
     consumed_aspect_query, consumed_aspect_with_provenance_query, declaration_artifact_digests,
     declaration_ref_digests, expected_declaration_indexes, expected_graph_node_digests,
-    expected_mounted_receipt_digests, published_aspect_query, ALPHA_MODULE_PATH, BETA_MODULE_PATH,
-    COMPETING_CONSUMED_ASPECT, COMPETING_PUBLISHED_ASPECT, DELTA_MODULE_PATH, GAMMA_MODULE_PATH,
-    SHARED_ASPECT,
+    expected_mount_eligibility_digests, published_aspect_query, ALPHA_MODULE_PATH,
+    BETA_MODULE_PATH, COMPETING_CONSUMED_ASPECT, COMPETING_PUBLISHED_ASPECT, DELTA_MODULE_PATH,
+    GAMMA_MODULE_PATH, SHARED_ASPECT,
 };
 use super::UiGraphAspectEvidenceIndexes;
 use crate::facade::inspection_bridge::UiInspectionReceipt;
@@ -25,7 +25,7 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
     let aspect_indexes =
         UiGraphAspectEvidenceIndexes::rebuild(app.graph().snapshot(), &graph_node_index);
     let all_graph_node_digests = all_graph_node_digests(&app);
-    let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
+    let all_mount_eligibility_digests = all_mount_eligibility_digests(&app);
     let shared_published = aspect_indexes
         .lookup_published_aspect(SHARED_ASPECT)
         .unwrap();
@@ -47,25 +47,25 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
         SHARED_ASPECT,
         shared_published.neighborhood().refs(),
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let shared_consumed_facts = aspect_neighborhood_facts(
         SHARED_ASPECT,
         shared_consumed.neighborhood().refs(),
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let competing_published_facts = aspect_neighborhood_facts(
         COMPETING_PUBLISHED_ASPECT,
         competing_published.neighborhood().refs(),
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let competing_consumed_facts = aspect_neighborhood_facts(
         COMPETING_CONSUMED_ASPECT,
         competing_consumed.neighborhood().refs(),
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
 
     assert_indexed_lookup(shared_published.cost());
@@ -92,7 +92,7 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
             SHARED_ASPECT,
             &public_shared_published,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
     );
     assert_eq!(
@@ -101,7 +101,7 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
             SHARED_ASPECT,
             &public_shared_consumed,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
     );
     assert_eq!(
@@ -110,7 +110,7 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
             COMPETING_PUBLISHED_ASPECT,
             &public_competing_published,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
     );
     assert_eq!(
@@ -119,32 +119,32 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
             COMPETING_CONSUMED_ASPECT,
             &public_competing_consumed,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
     );
     assert_membership(
         &shared_published_facts,
         UiAspectEvidenceLane::Published,
         &expected_graph_node_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_membership(
         &shared_consumed_facts,
         UiAspectEvidenceLane::Consumed,
         &expected_graph_node_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_membership(
         &competing_published_facts,
         UiAspectEvidenceLane::Published,
         &expected_graph_node_digests(&app, &[BETA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[BETA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[BETA_MODULE_PATH]),
     );
     assert_membership(
         &competing_consumed_facts,
         UiAspectEvidenceLane::Consumed,
         &expected_graph_node_digests(&app, &[DELTA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[DELTA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[DELTA_MODULE_PATH]),
     );
     assert_lane_identity_distinctness(&shared_published_facts, &shared_consumed_facts);
 }
@@ -153,7 +153,7 @@ fn shared_aspect_lookups_are_indexed_receipt_backed_and_in_parity() {
 fn ordinary_aspect_queries_stay_local_and_do_not_rebuild_aspect_indexes() {
     let app = aspect_identity_app();
     let all_graph_node_digests = all_graph_node_digests(&app);
-    let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
+    let all_mount_eligibility_digests = all_mount_eligibility_digests(&app);
     let observation_before = app.inspection_observation();
     let first_published = app.inspect(published_aspect_query(" Content.Text "));
     let second_published = app.inspect(published_aspect_query(SHARED_ASPECT));
@@ -165,25 +165,25 @@ fn ordinary_aspect_queries_stay_local_and_do_not_rebuild_aspect_indexes() {
         SHARED_ASPECT,
         &first_published,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let second_published_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &second_published,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let first_consumed_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &first_consumed,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
     let second_consumed_facts = aspect_neighborhood_facts_from_receipt(
         SHARED_ASPECT,
         &second_consumed,
         &all_graph_node_digests,
-        &all_mounted_receipt_digests,
+        &all_mount_eligibility_digests,
     );
 
     assert_eq!(
@@ -210,13 +210,13 @@ fn ordinary_aspect_queries_stay_local_and_do_not_rebuild_aspect_indexes() {
         &first_published_facts,
         UiAspectEvidenceLane::Published,
         &expected_graph_node_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_membership(
         &first_consumed_facts,
         UiAspectEvidenceLane::Consumed,
         &expected_graph_node_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
-        &expected_mounted_receipt_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
+        &expected_mount_eligibility_digests(&app, &[ALPHA_MODULE_PATH, GAMMA_MODULE_PATH]),
     );
     assert_lane_identity_distinctness(&first_published_facts, &first_consumed_facts);
     assert_eq!(aspect_ref_count(&competing_published), 2);
@@ -300,7 +300,7 @@ fn aspect_targets_reject_unindexed_widening_and_missing_targets() {
 fn rebuilding_graph_node_index_preserves_aspect_lookup_answers_and_records_aspect_rebuilds() {
     let mut app = aspect_identity_app();
     let all_graph_node_digests = all_graph_node_digests(&app);
-    let all_mounted_receipt_digests = all_mounted_receipt_digests(&app);
+    let all_mount_eligibility_digests = all_mount_eligibility_digests(&app);
     let published_before = app.inspect(published_aspect_query(SHARED_ASPECT));
     let consumed_before = app.inspect(consumed_aspect_with_provenance_query(SHARED_ASPECT));
     let observation_before = app.inspection_observation();
@@ -326,13 +326,13 @@ fn rebuilding_graph_node_index_preserves_aspect_lookup_answers_and_records_aspec
             SHARED_ASPECT,
             &published_before,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
         aspect_neighborhood_facts_from_receipt(
             SHARED_ASPECT,
             &published_after,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
     );
     assert_eq!(
@@ -344,13 +344,13 @@ fn rebuilding_graph_node_index_preserves_aspect_lookup_answers_and_records_aspec
             SHARED_ASPECT,
             &consumed_before,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
         aspect_neighborhood_facts_from_receipt(
             SHARED_ASPECT,
             &consumed_after,
             &all_graph_node_digests,
-            &all_mounted_receipt_digests,
+            &all_mount_eligibility_digests,
         ),
     );
 }

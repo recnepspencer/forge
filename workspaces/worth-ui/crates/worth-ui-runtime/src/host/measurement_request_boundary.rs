@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
     UiDpiScaleFactorRequest, UiFontMetricsRequest, UiForbiddenHostAuthorityAsk,
-    UiMeasurementEvidenceFamily, UiMeasurementRequest, UiMeasurementRequestDenial,
+    UiHostMeasurementRequest, UiMeasurementEvidenceFamily, UiMeasurementRequestDenial,
     UiMeasurementRequestIdentity, UiNativeControlIntrinsicSizeRequest, UiPortalAnchorRectRequest,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeRequest,
     UiViewportExtentRequest, WorthUiHostCapabilityReport,
@@ -24,10 +24,10 @@ pub fn freeze_measurement_request(
     evidence_family: UiMeasurementEvidenceFamily,
     need: UiHostMeasurementNeed,
     capability_report: &WorthUiHostCapabilityReport,
-) -> Result<UiMeasurementRequest, UiMeasurementRequestDenial> {
+) -> Result<UiHostMeasurementRequest, UiMeasurementRequestDenial> {
     match need {
         UiHostMeasurementNeed::TextIntrinsicSize(input) => {
-            UiMeasurementRequest::text_intrinsic_size(
+            UiHostMeasurementRequest::text_intrinsic_size(
                 identity,
                 evidence_family,
                 input,
@@ -35,44 +35,49 @@ pub fn freeze_measurement_request(
             )
         }
         UiHostMeasurementNeed::TextBaselineMetrics(input) => {
-            UiMeasurementRequest::text_baseline_metrics(
+            UiHostMeasurementRequest::text_baseline_metrics(
                 identity,
                 evidence_family,
                 input,
                 capability_report,
             )
         }
-        UiHostMeasurementNeed::FontMetrics(input) => {
-            UiMeasurementRequest::font_metrics(identity, evidence_family, input, capability_report)
-        }
+        UiHostMeasurementNeed::FontMetrics(input) => UiHostMeasurementRequest::font_metrics(
+            identity,
+            evidence_family,
+            input,
+            capability_report,
+        ),
         UiHostMeasurementNeed::NativeControlIntrinsicSize(input) => {
-            UiMeasurementRequest::native_control_intrinsic_size(
+            UiHostMeasurementRequest::native_control_intrinsic_size(
                 identity,
                 evidence_family,
                 input,
                 capability_report,
             )
         }
-        UiHostMeasurementNeed::ViewportExtent(input) => UiMeasurementRequest::viewport_extent(
+        UiHostMeasurementNeed::ViewportExtent(input) => UiHostMeasurementRequest::viewport_extent(
             identity,
             evidence_family,
             input,
             capability_report,
         ),
-        UiHostMeasurementNeed::DpiScaleFactor(input) => UiMeasurementRequest::dpi_scale_factor(
+        UiHostMeasurementNeed::DpiScaleFactor(input) => UiHostMeasurementRequest::dpi_scale_factor(
             identity,
             evidence_family,
             input,
             capability_report,
         ),
-        UiHostMeasurementNeed::PortalAnchorRect(input) => UiMeasurementRequest::portal_anchor_rect(
-            identity,
-            evidence_family,
-            input,
-            capability_report,
-        ),
+        UiHostMeasurementNeed::PortalAnchorRect(input) => {
+            UiHostMeasurementRequest::portal_anchor_rect(
+                identity,
+                evidence_family,
+                input,
+                capability_report,
+            )
+        }
         UiHostMeasurementNeed::ScrollContainerViewport(input) => {
-            UiMeasurementRequest::scroll_container_viewport(
+            UiHostMeasurementRequest::scroll_container_viewport(
                 identity,
                 evidence_family,
                 input,

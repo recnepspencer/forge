@@ -1,3 +1,4 @@
+use super::UiReplanLocalityProof;
 use crate::evidence::UiAllocationNeighborhoodIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -26,17 +27,6 @@ pub enum UiReplanOverlapDisposition {
     ContainmentSuperseded,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiReplanLocalityProof {
-    graph_generation: crate::graph::UiGraphGeneration,
-    measurement_basis_generation: crate::evidence::UiMeasurementBasisGeneration,
-    target_graph_node_identity: crate::graph::UiGraphNodeIdentity,
-    graph_membership_probes: u16,
-    replacement_active_artifact_digest: u64,
-    replacement_candidate_artifact_digest: u64,
-    affected_handle_count: u16,
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiAdmittedReplanNeighborhood {
     identity: UiAllocationNeighborhoodIdentity,
@@ -44,6 +34,8 @@ pub struct UiAdmittedReplanNeighborhood {
     widen_reason: Option<UiReplanWidenReason>,
     allocation_plan: crate::runtime::UiAdmittedAllocationPlanReference,
     neighborhood_footprint: std::rc::Rc<super::super::UiGraphNeighborhoodFootprint>,
+    replacement_impact: std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>,
+    impact_narrowing: std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>,
     root_target: bool,
 }
 
@@ -87,57 +79,16 @@ pub enum UiReplanLocalityDenial {
     OverlappingNeighborhoodSupersessionRequired,
     EmptyScrollConsequence,
     ContradictoryScrollConsequence,
+    QueryMeasurementSuccessorDenied,
     CounterExhausted,
-}
-
-impl UiReplanLocalityProof {
-    pub(super) fn from_target(
-        target: &crate::graph::UiAdmittedAllocationInvalidationTarget,
-    ) -> Result<Self, UiReplanLocalityDenial> {
-        let impact = target
-            .replacement_impact()
-            .ok_or(UiReplanLocalityDenial::MissingReplacementImpact)?;
-        let narrowing = target
-            .impact_narrowing()
-            .ok_or(UiReplanLocalityDenial::MissingReplacementImpact)?;
-        Ok(Self {
-            graph_generation: target.graph_generation(),
-            measurement_basis_generation: target.measurement_basis_generation(),
-            target_graph_node_identity: target.graph_node_identity(),
-            graph_membership_probes: target.graph_membership_probes(),
-            replacement_active_artifact_digest: impact.active_artifact_digest(),
-            replacement_candidate_artifact_digest: impact.candidate_artifact_digest(),
-            affected_handle_count: u16::try_from(narrowing.affected_handle_count())
-                .map_err(|_| UiReplanLocalityDenial::CounterExhausted)?,
-        })
-    }
-    pub fn graph_generation(&self) -> crate::graph::UiGraphGeneration {
-        self.graph_generation
-    }
-    pub fn measurement_basis_generation(&self) -> crate::evidence::UiMeasurementBasisGeneration {
-        self.measurement_basis_generation
-    }
-    pub fn target_graph_node_identity(&self) -> crate::graph::UiGraphNodeIdentity {
-        self.target_graph_node_identity
-    }
-    pub fn graph_membership_probes(&self) -> u16 {
-        self.graph_membership_probes
-    }
-    pub fn replacement_active_artifact_digest(&self) -> u64 {
-        self.replacement_active_artifact_digest
-    }
-    pub fn replacement_candidate_artifact_digest(&self) -> u64 {
-        self.replacement_candidate_artifact_digest
-    }
-    pub fn affected_handle_count(&self) -> u16 {
-        self.affected_handle_count
-    }
 }
 
 impl UiAdmittedReplanNeighborhood {
     pub(in crate::graph::allocation_neighborhood) fn primary(
         target: &crate::graph::UiAdmittedAllocationInvalidationTarget,
     ) -> Result<Self, UiReplanLocalityDenial> {
+        let (replacement_impact, impact_narrowing) =
+            super::replan_locality::retain_replacement_lineage(target)?;
         Ok(Self {
             identity: target.neighborhood_identity().clone(),
             locality: UiReplanLocalityProof::from_target(target)?,
@@ -147,6 +98,8 @@ impl UiAdmittedReplanNeighborhood {
                 .cloned()
                 .ok_or(UiReplanLocalityDenial::MissingAdmittedCandidate)?,
             neighborhood_footprint: target.neighborhood_footprint(),
+            replacement_impact,
+            impact_narrowing,
             root_target: target.disposition()
                 == crate::graph::UiGraphReplanTargetDisposition::RootPrimaryEligible,
         })
@@ -155,6 +108,8 @@ impl UiAdmittedReplanNeighborhood {
         target: &crate::graph::UiAdmittedAllocationInvalidationTarget,
         reason: UiReplanWidenReason,
     ) -> Result<Self, UiReplanLocalityDenial> {
+        let (replacement_impact, impact_narrowing) =
+            super::replan_locality::retain_replacement_lineage(target)?;
         Ok(Self {
             identity: target.neighborhood_identity().clone(),
             locality: UiReplanLocalityProof::from_target(target)?,
@@ -164,6 +119,8 @@ impl UiAdmittedReplanNeighborhood {
                 .cloned()
                 .ok_or(UiReplanLocalityDenial::MissingAdmittedCandidate)?,
             neighborhood_footprint: target.neighborhood_footprint(),
+            replacement_impact,
+            impact_narrowing,
             root_target: target.disposition()
                 == crate::graph::UiGraphReplanTargetDisposition::RootPrimaryEligible,
         })
@@ -179,6 +136,17 @@ impl UiAdmittedReplanNeighborhood {
     }
     pub(crate) fn allocation_candidate(&self) -> &crate::runtime::UiAllocationCandidate {
         self.allocation_plan.candidate()
+    }
+    pub(crate) fn replacement_lineage(
+        &self,
+    ) -> (
+        std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>,
+        std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>,
+    ) {
+        (
+            std::rc::Rc::clone(&self.replacement_impact),
+            std::rc::Rc::clone(&self.impact_narrowing),
+        )
     }
     pub fn planning_identity_digest(&self) -> u64 {
         self.allocation_plan.planning_identity_digest()

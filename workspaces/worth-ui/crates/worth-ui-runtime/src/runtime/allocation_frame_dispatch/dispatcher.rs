@@ -1,11 +1,12 @@
 use std::num::NonZeroU16;
 
+#[cfg(test)]
+use super::UiAllocationFrameReplacementTransition;
 use super::{
     UiAdmittedAllocationStreamFrame, UiAdmittedAllocationStreamIngress,
     UiAllocationFrameDispatchDenial, UiAllocationFrameDispatcherCounters,
     UiAllocationFrameDispatcherState, UiAllocationFrameEpoch, UiAllocationFrameMailbox,
-    UiAllocationFramePauseReason, UiAllocationFrameQueueDisposition,
-    UiAllocationFrameReplacementTransition, UiAllocationFrameRetryState,
+    UiAllocationFramePauseReason, UiAllocationFrameQueueDisposition, UiAllocationFrameRetryState,
     UiAllocationFrameSubmissionAssignmentBatch, UiAllocationFrameSubmissionDenial,
     UiAllocationFrameSubmissionOutcome, UiAllocationFrameTransitionOutcome,
 };
@@ -16,6 +17,7 @@ use super::{
 };
 
 mod epoch_assignment;
+mod replacement;
 mod submission;
 mod submission_transition;
 pub(crate) use epoch_assignment::UiAllocationFrameEpochAssignment;
@@ -55,15 +57,6 @@ pub(crate) struct UiAllocationFrameDispatcher {
 impl UiAllocationFrameDispatcher {
     pub(crate) fn launch(epoch: UiAllocationFrameEpoch) -> Self {
         Self::with_capacity(epoch, ALLOCATION_FRAME_MAILBOX_CAPACITY)
-    }
-
-    fn launch_with_runtime_state(
-        epoch: UiAllocationFrameEpoch,
-        retry_state: UiAllocationFrameRetryState,
-    ) -> Self {
-        let mut dispatcher = Self::with_capacity(epoch, ALLOCATION_FRAME_MAILBOX_CAPACITY);
-        dispatcher.retry_state = retry_state;
-        dispatcher
     }
 
     #[cfg(test)]
@@ -237,6 +230,7 @@ impl UiAllocationFrameDispatcher {
         self.state = UiAllocationFrameDispatcherState::Open(next_epoch);
     }
 
+    #[cfg(test)]
     pub(super) fn pause_for_replacement(&mut self) -> UiAllocationFrameReplacementTransition {
         let Some(successor_epoch) = self.replacement_successor_epoch() else {
             self.counters.record_terminal_denial();
@@ -255,16 +249,6 @@ impl UiAllocationFrameDispatcher {
             UiAllocationFrameEpochAssignment::from_linearization(successor_epoch),
             self.retry_state.clone(),
         )
-    }
-
-    pub(super) fn install_replacement_successor(
-        &mut self,
-        transition: &UiAllocationFrameReplacementTransition,
-    ) {
-        let assignment = transition
-            .successor_assignment()
-            .expect("successful or rolled-back swap retains a successor epoch witness");
-        *self = Self::launch_with_runtime_state(assignment.epoch(), transition.retry_state());
     }
 
     pub(super) fn shutdown(&mut self) -> UiAllocationFrameQueueDisposition {
@@ -346,23 +330,6 @@ impl UiAllocationFrameDispatcher {
             successor_ingress,
             self.counters,
         )
-    }
-
-    fn replacement_successor_epoch(&self) -> Option<UiAllocationFrameEpoch> {
-        match self.state {
-            UiAllocationFrameDispatcherState::Open(epoch)
-            | UiAllocationFrameDispatcherState::Sealed(epoch)
-            | UiAllocationFrameDispatcherState::Dispatched(epoch) => epoch.checked_next(),
-            UiAllocationFrameDispatcherState::Closing { next_epoch, .. } => Some(next_epoch),
-            UiAllocationFrameDispatcherState::Paused(_) => None,
-        }
-    }
-
-    pub(super) fn prepare_replacement_assignment(
-        &self,
-    ) -> Option<UiAllocationFrameEpochAssignment> {
-        self.replacement_successor_epoch()
-            .map(UiAllocationFrameEpochAssignment::from_linearization)
     }
 }
 

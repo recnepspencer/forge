@@ -20,45 +20,56 @@ impl WorthUiCandidateInspectionReceipt {
 
 impl WorthUiApplicationCutoverReceipt {
     pub fn plan_decision(&self) -> crate::runtime::WorthUiExecutablePlanDecision {
-        self.plan_decision
+        self.committed_parts().1
     }
 
     pub fn prior_generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.prior_generation
+        &self.transition.identity.prior_generation
     }
 
     pub fn active_generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.active_generation
+        &self.transition.identity.active_generation
     }
 
     pub fn plan_swap(&self) -> &crate::runtime::WorthUiPlanSwapReceipt {
-        &self.plan_swap
+        self.committed_parts().0
     }
 
     pub fn structural_reuse(&self) -> &crate::runtime::WorthUiPlanRegionalEvidence {
-        self.plan_swap.structural_reuse()
+        self.plan_swap().structural_reuse()
     }
 
     pub fn allocation_catalog_successor(
         &self,
     ) -> &crate::runtime::UiAllocationCatalogSuccessorReceipt {
-        &self.allocation_catalog_successor
+        self.committed_parts().3
     }
 
     pub fn publication(&self) -> &super::WorthUiApplicationPublicationObservation {
-        &self.publication
+        &self.transition.publication
     }
 
-    pub fn managed_live_compatibility_retirement(
+    pub fn operation_live_retirement(
         &self,
-    ) -> &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement {
-        &self.query_retirement
+    ) -> &worth_ui_query_binding::WorthUiOperationLiveRetirement {
+        self.committed_parts().2
     }
 
-    pub fn into_managed_live_compatibility_retirement(
+    pub fn into_operation_live_retirement(
         self,
-    ) -> worth_ui_query_binding::compatibility::managed_live::WorthUiQueryLiveRetirement {
-        self.query_retirement
+    ) -> worth_ui_query_binding::WorthUiOperationLiveRetirement {
+        let transition = self
+            .transition
+            .transition
+            .expect("published application transition is present");
+        match transition {
+            super::WorthUiApplicationCutoverTransition::Committed {
+                query_retirement, ..
+            } => query_retirement,
+            super::WorthUiApplicationCutoverTransition::Prepared(_) => {
+                unreachable!("published application receipt cannot be prepared")
+            }
+        }
     }
 
     pub fn reload_cost(
@@ -67,7 +78,38 @@ impl WorthUiApplicationCutoverReceipt {
         &crate::runtime::WorthUiReloadLoweringCounterReceipt,
         &crate::runtime::WorthUiReloadCounterBoundaryDenial,
     > {
-        self.reload_cost.as_ref()
+        self.transition.reload_cost.as_ref()
+    }
+
+    fn committed_parts(
+        &self,
+    ) -> (
+        &crate::runtime::WorthUiPlanSwapReceipt,
+        crate::runtime::WorthUiExecutablePlanDecision,
+        &worth_ui_query_binding::WorthUiOperationLiveRetirement,
+        &crate::runtime::UiAllocationCatalogSuccessorReceipt,
+    ) {
+        match self
+            .transition
+            .transition
+            .as_ref()
+            .expect("published application transition is present")
+        {
+            super::WorthUiApplicationCutoverTransition::Committed {
+                plan_swap,
+                plan_decision,
+                query_retirement,
+                allocation_catalog_successor,
+            } => (
+                plan_swap,
+                *plan_decision,
+                query_retirement,
+                allocation_catalog_successor,
+            ),
+            super::WorthUiApplicationCutoverTransition::Prepared(_) => {
+                unreachable!("published application receipt cannot be prepared")
+            }
+        }
     }
 }
 

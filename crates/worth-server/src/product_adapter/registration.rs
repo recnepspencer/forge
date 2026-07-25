@@ -80,6 +80,26 @@ pub struct WorthServerProductAdapterRegistrationReceipt {
 }
 
 impl WorthServerProductAdapterRegistrationReceipt {
+    /// Projects the receipt an adapter registration must produce from its declared contract.
+    /// This is certification evidence only; it does not register or authorize an adapter.
+    pub fn project_expected(
+        adapter_label: impl Into<String>,
+        declarations: &[WorthServerProductOperationDeclaration],
+    ) -> Self {
+        Self::new(
+            adapter_label,
+            declarations
+                .iter()
+                .map(|declaration| {
+                    (
+                        declaration.operation_name().trim().to_ascii_lowercase(),
+                        declaration.canonical_digest(),
+                    )
+                })
+                .collect(),
+        )
+    }
+
     pub(crate) fn new(
         adapter_label: impl Into<String>,
         operation_rows: Vec<(String, String)>,

@@ -8,11 +8,21 @@ pub enum WorthServerProductOperationDenialCode {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerProductOperationDenialFacts {
     code: WorthServerProductOperationDenialCode,
+    expected_basis_digest: Option<String>,
+    observed_basis_digest: Option<String>,
 }
 
 impl WorthServerProductOperationDenialFacts {
     pub fn code(&self) -> WorthServerProductOperationDenialCode {
         self.code
+    }
+
+    pub fn expected_basis_digest(&self) -> Option<&str> {
+        self.expected_basis_digest.as_deref()
+    }
+
+    pub fn observed_basis_digest(&self) -> Option<&str> {
+        self.observed_basis_digest.as_deref()
     }
 }
 
@@ -33,7 +43,29 @@ impl WorthServerProductOperationDenial {
     }
 
     pub(crate) fn with_code(mut self, code: WorthServerProductOperationDenialCode) -> Self {
-        self.facts = Some(WorthServerProductOperationDenialFacts { code });
+        match self.facts.as_mut() {
+            Some(facts) => facts.code = code,
+            None => {
+                self.facts = Some(WorthServerProductOperationDenialFacts {
+                    code,
+                    expected_basis_digest: None,
+                    observed_basis_digest: None,
+                });
+            }
+        }
+        self
+    }
+
+    pub fn with_basis_mismatch(
+        mut self,
+        expected_basis_digest: impl Into<String>,
+        observed_basis_digest: impl Into<String>,
+    ) -> Self {
+        self.facts = Some(WorthServerProductOperationDenialFacts {
+            code: WorthServerProductOperationDenialCode::ProductSemantic,
+            expected_basis_digest: Some(expected_basis_digest.into()),
+            observed_basis_digest: Some(observed_basis_digest.into()),
+        });
         self
     }
 

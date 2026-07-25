@@ -11,7 +11,6 @@ use worth_query::facade::runtime::{
 };
 
 use crate::{
-    compatibility::managed_live::declaration,
     installed_domain::{measurement_recording, snapshot_measurement},
     WorthUiDomainEntry,
 };
@@ -55,7 +54,7 @@ fn domain_package_base() -> WorthQueryDomainPackage<WorthUiDomainEntry> {
     .requires_capability(WorthQueryCapabilityFamily::WorkflowOrchestration)
     .requires_configuration(WorthQueryConfigSectionFamily::Query)
     .requires_configuration(WorthQueryConfigSectionFamily::Relational)
-    .graph_read_operation(declaration::measurement_allocation_operation())
+    .graph_read_operation(snapshot_measurement::measurement_allocation_operation())
 }
 
 fn finish_domain_package(

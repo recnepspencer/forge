@@ -20,6 +20,10 @@ impl WorthUiActiveExecutionPlan {
         self.bundle.cross_lane_receipt()
     }
 
+    pub(crate) fn mounted_projection_plan_index(&self, provenance: u64) -> Result<Option<u32>, ()> {
+        self.bundle.mounted_projection_plan_index(provenance)
+    }
+
     pub(crate) fn classify_candidate(
         &self,
         candidate: &super::WorthUiSealedExecutionPlanBundle,

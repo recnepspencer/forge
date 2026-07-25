@@ -59,36 +59,28 @@ fn typed_detail_query_api_canonicalizes_and_validates() {
 fn generated_schema_view_matches_typed_surface_expectations() {
     let schema = UserSchema::schema_view();
 
-    assert_eq!(schema.basis().as_str().len() > 0, true);
+    assert!(!schema.basis().as_str().is_empty());
     assert_eq!(
         schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
             .expect("display name field should exist")
             .kind(),
         &ScalarAspectType::String
     );
-    assert_eq!(
+    assert!(
         schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
             .expect("display name field should exist")
-            .is_text_predicate_queryable(),
-        true
+            .is_text_predicate_queryable()
     );
-    assert_eq!(
-        schema_field(&schema, Rank::ASPECT, Rank::FIELD)
-            .expect("rank field should exist")
-            .is_queryable(),
-        false
-    );
-    assert_eq!(
-        schema_field(&schema, Rank::ASPECT, Rank::FIELD)
-            .expect("rank field should exist")
-            .is_orderable(),
-        true
-    );
-    assert_eq!(
-        schema_field(&schema, PrivateNote::ASPECT, PrivateNote::FIELD)
+    assert!(!schema_field(&schema, Rank::ASPECT, Rank::FIELD)
+        .expect("rank field should exist")
+        .is_queryable());
+    assert!(schema_field(&schema, Rank::ASPECT, Rank::FIELD)
+        .expect("rank field should exist")
+        .is_orderable());
+    assert!(
+        !schema_field(&schema, PrivateNote::ASPECT, PrivateNote::FIELD)
             .expect("private note field should exist")
-            .is_queryable(),
-        false
+            .is_queryable()
     );
     assert_eq!(
         schema_field(&schema, Bio::ASPECT, Bio::FIELD)

@@ -44,7 +44,7 @@ fn equivalent_authority_and_evidence_inputs_converge_to_the_same_basis() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
@@ -61,7 +61,7 @@ fn equivalent_authority_and_evidence_inputs_converge_to_the_same_basis() {
             MeasurementEvidenceInput::host_measurement_result(&viewport_extent),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
         ],
     );
 
@@ -141,7 +141,7 @@ fn contradictory_or_partial_inputs_deny_structurally() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
         ],
@@ -208,7 +208,7 @@ fn changed_host_measurement_values_change_basis_identity_and_lineage() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_a),
@@ -221,7 +221,7 @@ fn changed_host_measurement_values_change_basis_identity_and_lineage() {
         generation,
         &scroll_viewport_policy(),
         &[
-            MeasurementEvidenceInput::query_projection_fact(&receipt),
+            MeasurementEvidenceInput::settled_query_fact(&receipt),
             MeasurementEvidenceInput::host_capability_report(&capability_report),
             MeasurementEvidenceInput::host_measurement_result(&font_metrics),
             MeasurementEvidenceInput::host_measurement_result(&viewport_b),

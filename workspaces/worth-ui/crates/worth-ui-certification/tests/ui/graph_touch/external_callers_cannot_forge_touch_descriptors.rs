@@ -13,12 +13,12 @@ fn main() {
     let _ = UiGraphTouchOriginReceipt::intent_submission;
     let _ = UiGraphTouchOriginReceipt::diagnostic_only;
     let _ = UiGraphTouchOriginWitness::declaration_instances;
-    let _ = UiGraphTouchOriginWitness::mounted_receipt_transition_only;
+    let _ = UiGraphTouchOriginWitness::mount_eligibility_transition_only;
     let _ = UiGraphTouchOriginWitness::authored_provenance_digests;
     let _ = UiGraphTouchTarget::node;
     let _ = UiGraphTouchTarget::slot_occupancy;
     let _ = UiGraphTouchTarget::page_membership;
     let _ = UiGraphTouchTarget::region_membership;
     let _ = UiGraphTouchTarget::mosaic_membership;
-    let _ = UiGraphTouchTarget::mounted_receipt_slot;
+    let _ = UiGraphTouchTarget::mount_eligibility_slot;
 }

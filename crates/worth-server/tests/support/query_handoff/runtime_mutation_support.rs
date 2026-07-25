@@ -16,10 +16,17 @@ pub(crate) fn test_mutation_receipt(
     ordinal: usize,
 ) -> WorthQueryMutationReceipt {
     WorthQueryMutationReceipt::from_authoritative_parts(
-        WorthQueryCommitIdentity::from_relational_commit_id(ordinal as u64),
-        WorthQuerySnapshotIdentity::from_relational_snapshot(
-            RelationalBridgeSnapshotIdentityParts::new(ordinal as u64, 1),
+        WorthQueryCommitIdentity::from_bridge_commit_projection(
+            worth_runtime_bridge::facade::TruthCommitIdentity::from_relational_commit_id(
+                ordinal as u64,
+            ),
         ),
+        WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
+            worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
+                RelationalBridgeSnapshotIdentityParts::new(ordinal as u64, 1),
+            ),
+        )
+        .expect("relational snapshot projection must retain its typed payload"),
         vec![WorthQueryMutationDelta::from_touched_aspects(
             mutation_collection(command),
             mutation_entity_identity(command, ordinal),
@@ -63,7 +70,7 @@ fn mutation_entity_identity(
     ordinal: usize,
 ) -> WorthQueryEntityIdentity {
     command.declared_entity_identity().unwrap_or_else(|| {
-        WorthQueryEntityIdentity::from_relational_record(
+        WorthQueryEntityIdentity::from_bridge_record_projection(
             RelationalBridgeRecordIdentityParts::entity(1, ordinal as u64, 0),
         )
     })

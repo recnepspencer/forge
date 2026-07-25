@@ -115,7 +115,8 @@ fn domain_predicate_deferral_is_not_reported_as_temporal_or_on_demand() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed, ReadVertex)
         .unwrap();
@@ -178,7 +179,8 @@ fn execute_first(
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) {
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
@@ -198,7 +200,8 @@ fn execute_second(
     foundation::ObservationLaneWitness,
 > {
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(installed, ReadVertex)
         .unwrap();
@@ -299,15 +302,4 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
             )]),
         ))
     }
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

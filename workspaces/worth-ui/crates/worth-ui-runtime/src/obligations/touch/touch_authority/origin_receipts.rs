@@ -34,34 +34,22 @@ impl UiGraphTouchAuthority<'_> {
         ))
     }
 
-    pub fn query_fact_change_receipt(
+    pub fn query_binding_change_receipt(
         self,
     ) -> Result<UiGraphTouchOriginWitness, UiGraphTouchDenial> {
         match self.snapshot.world_profile() {
-            UiGraphWorldProfile::QuerySnapshotBasis { prerequisites } => {
-                Ok(UiGraphTouchOriginWitness::query_basis(
-                    UiGraphTouchOriginReceipt::query_fact_change(prerequisites),
-                    prerequisites.as_ref().clone(),
-                ))
-            }
-            UiGraphWorldProfile::InstalledQueryBasis { authority } => {
-                Ok(UiGraphTouchOriginWitness::installed_query_basis(
-                    UiGraphTouchOriginReceipt::installed_query_fact_change(authority),
-                    authority.clone(),
-                ))
-            }
             UiGraphWorldProfile::SettledQueryBinding {
                 view_binding_id,
-                query_binding_identity,
+                binding_reference,
             } => Ok(UiGraphTouchOriginWitness::settled_query_binding(
-                UiGraphTouchOriginReceipt::settled_query_fact_change(
+                UiGraphTouchOriginReceipt::settled_query_binding_change(
                     view_binding_id,
-                    query_binding_identity,
+                    binding_reference,
                 ),
                 view_binding_id.clone(),
-                query_binding_identity.clone(),
+                binding_reference.clone(),
             )),
-            _ => Err(UiGraphTouchDenial::QueryFactChangeUnavailableInCurrentWorld),
+            _ => Err(UiGraphTouchDenial::QueryBindingChangeUnavailableInCurrentWorld),
         }
     }
 

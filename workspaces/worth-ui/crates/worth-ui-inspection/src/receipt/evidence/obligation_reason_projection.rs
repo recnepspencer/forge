@@ -28,6 +28,7 @@ pub enum UiInspectionTouchTargetClass {
 pub enum UiInspectionTouchOriginClass {
     DeclarationChange,
     QueryFactChange,
+    QueryBindingChange,
     HostObservation,
     ServiceEvent,
     IntentSubmission,
@@ -63,7 +64,7 @@ pub enum UiInspectionObligationWorldProfileClass {
     Diagnostic,
     HostObservation,
     TestCertification,
-    QuerySnapshotBasis,
+    SettledQueryBinding,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

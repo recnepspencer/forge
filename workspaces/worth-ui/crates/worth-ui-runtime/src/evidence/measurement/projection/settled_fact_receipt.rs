@@ -1,3 +1,4 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::{
@@ -7,22 +8,23 @@ use crate::declaration::{
 use crate::evidence::shared::query_measurement_fact_family_digest::query_measurement_fact_family_set_digest;
 
 use super::fact_receipt::UiProjectionFactObservation;
-use super::UiProjectionFactReceiptDenial;
+use super::UiSettledQueryFactReceiptDenial;
 
 /// Exact UI-owned key for one retained ordinary Query settlement source.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct UiSettledQueryFactKey {
     view_binding_id: crate::capability::ViewBindingId,
-    query_binding_identity: String,
+    binding_key: worth_ui_query_binding::WorthUiAdmittedQueryBindingKey,
+    settlement_reference: worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference,
 }
 
 /// UI measurement receipt derived from a retained Query-owned settlement.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiSettledQueryFactReceipt {
     key: UiSettledQueryFactKey,
+    binding_reference: worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
     declaration_identity: UiDeclarationIdentity,
     declaration_support_authority_generation: UiEvidenceAuthorityGeneration,
-    settlement_identity: String,
     required_measurement_dependencies: Box<[UiDeclaredMeasurementEvidenceRequirement]>,
     required_query_fact_families: Box<[worth_ui_query_binding::WorthUiQueryMeasurementFactFamily]>,
     required_query_fact_family_set_digest: u64,
@@ -39,11 +41,13 @@ pub struct UiSettledQueryFactReceipt {
 impl UiSettledQueryFactKey {
     pub(crate) fn new(
         view_binding_id: crate::capability::ViewBindingId,
-        query_binding_identity: String,
+        binding_key: worth_ui_query_binding::WorthUiAdmittedQueryBindingKey,
+        settlement_reference: worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference,
     ) -> Self {
         Self {
             view_binding_id,
-            query_binding_identity,
+            binding_key,
+            settlement_reference,
         }
     }
 
@@ -51,8 +55,14 @@ impl UiSettledQueryFactKey {
         &self.view_binding_id
     }
 
-    pub(crate) fn query_binding_identity(&self) -> &str {
-        &self.query_binding_identity
+    pub(crate) fn binding_key(&self) -> &worth_ui_query_binding::WorthUiAdmittedQueryBindingKey {
+        &self.binding_key
+    }
+
+    pub(crate) fn settlement_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference {
+        &self.settlement_reference
     }
 }
 
@@ -61,12 +71,16 @@ impl UiSettledQueryFactReceipt {
         &self.key.view_binding_id
     }
 
-    pub fn query_binding_identity(&self) -> &str {
-        &self.key.query_binding_identity
+    pub fn binding_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference {
+        &self.binding_reference
     }
 
-    pub fn settlement_identity(&self) -> &str {
-        &self.settlement_identity
+    pub fn settlement_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference {
+        &self.key.settlement_reference
     }
 
     pub fn declaration_identity(&self) -> &UiDeclarationIdentity {
@@ -128,6 +142,24 @@ impl UiSettledQueryFactReceipt {
     pub(crate) fn key(&self) -> &UiSettledQueryFactKey {
         &self.key
     }
+
+    pub(crate) fn same_binding_slot(&self, other: &Self) -> bool {
+        self.view_binding_id() == other.view_binding_id()
+            && self.binding_reference() == other.binding_reference()
+    }
+
+    pub(crate) fn reference_reporting_digests(&self) -> (u64, u64) {
+        (
+            opaque_reference_digest(self.binding_reference()),
+            opaque_reference_digest(self.settlement_reference()),
+        )
+    }
+}
+
+fn opaque_reference_digest(reference: &impl Hash) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    reference.hash(&mut hasher);
+    hasher.finish()
 }
 
 pub fn consume_settled_query_measurement_fact(
@@ -136,10 +168,10 @@ pub fn consume_settled_query_measurement_fact(
     measurement_policy: &crate::declaration::UiDeclaredMeasurementPolicyPosture,
     view_binding_id: crate::capability::ViewBindingId,
     fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
-) -> Result<UiSettledQueryFactReceipt, UiProjectionFactReceiptDenial> {
+) -> Result<UiSettledQueryFactReceipt, UiSettledQueryFactReceiptDenial> {
     let dependencies =
         crate::declaration::declared_query_measurement_dependencies(measurement_policy)
-            .ok_or(UiProjectionFactReceiptDenial::NoQueryMeasurementDependencies)?;
+            .ok_or(UiSettledQueryFactReceiptDenial::NoQueryMeasurementDependencies)?;
     admit_declared_measurement_settled_query_fact(
         declaration_identity,
         declaration_support_authority_generation,
@@ -155,10 +187,8 @@ fn admit_declared_measurement_settled_query_fact(
     dependencies: UiDeclaredMeasurementQueryDependencySet,
     view_binding_id: crate::capability::ViewBindingId,
     fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
-) -> Result<UiSettledQueryFactReceipt, UiProjectionFactReceiptDenial> {
-    let batch = fact
-        .measurement_facts()
-        .map_err(UiProjectionFactReceiptDenial::SettledFactObservation)?;
+) -> Result<UiSettledQueryFactReceipt, UiSettledQueryFactReceiptDenial> {
+    let batch = fact.measurement_facts();
     let consumed_fact_families = batch
         .observations()
         .iter()
@@ -171,10 +201,12 @@ fn admit_declared_measurement_settled_query_fact(
         .filter(|family| !consumed_fact_families.contains(family))
         .collect::<Vec<_>>();
     if !missing.is_empty() {
-        return Err(UiProjectionFactReceiptDenial::MissingRequiredFactFamilies {
-            required: dependencies.fact_families().to_vec().into_boxed_slice(),
-            consumed: consumed_fact_families.into_boxed_slice(),
-        });
+        return Err(
+            UiSettledQueryFactReceiptDenial::MissingRequiredFactFamilies {
+                required: dependencies.fact_families().to_vec().into_boxed_slice(),
+                consumed: consumed_fact_families.into_boxed_slice(),
+            },
+        );
     }
     let observations = batch
         .observations()
@@ -197,11 +229,12 @@ fn admit_declared_measurement_settled_query_fact(
     Ok(UiSettledQueryFactReceipt {
         key: UiSettledQueryFactKey {
             view_binding_id,
-            query_binding_identity: fact.query_binding_identity().to_owned(),
+            binding_key: fact.binding_reference().key().clone(),
+            settlement_reference: fact.settlement_reference().clone(),
         },
+        binding_reference: fact.binding_reference().clone(),
         declaration_identity,
         declaration_support_authority_generation,
-        settlement_identity: fact.settlement_identity().to_owned(),
         required_measurement_dependencies: dependencies
             .required_measurement_dependencies()
             .to_vec()

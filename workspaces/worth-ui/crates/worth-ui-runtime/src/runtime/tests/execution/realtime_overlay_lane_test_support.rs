@@ -41,6 +41,7 @@ impl RealtimeOverlayFixture {
         let execution = self
             .session
             .execute_framework_turn(|_| {})
+            .expect("no mounted presentation lease is active")
             .into_execution()
             .unwrap_or_else(|_| panic!("empty collection completes the fixture turn"));
         execution

@@ -100,6 +100,7 @@ fn publish_structural_replacement(
         .expect("storm candidate should stage");
     let boundary = session
         .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active")
         .into_completion()
         .into_execution()
         .expect("storm boundary turn should complete")
@@ -110,7 +111,7 @@ fn publish_structural_replacement(
     let cutover = cutover
         .into_activation()
         .expect("storm candidates change executable meaning");
-    assert!(cutover.managed_live_compatibility_retirement().is_empty());
+    assert!(cutover.operation_live_retirement().is_empty());
     assert_eq!(
         cutover
             .allocation_catalog_successor()

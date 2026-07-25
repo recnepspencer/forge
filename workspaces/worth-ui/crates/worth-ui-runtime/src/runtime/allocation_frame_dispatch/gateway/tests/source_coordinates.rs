@@ -5,7 +5,7 @@ use crate::host::{
 };
 use crate::runtime::tests::source_ingress_test_support::{empty_artifact, framework_from_artifact};
 use worth_ui_host_contract::{
-    UiHostObservationValue, UiMeasurementEvidenceFamily, UiMeasurementRequest,
+    UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementEvidenceFamily,
     UiMeasurementRequestIdentity, UiViewportExtentObservation, UiViewportExtentRequest,
     WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
     WorthUiMeasurementHostAdapter,
@@ -68,8 +68,11 @@ fn admit_host_source(
 struct ViewportAdapter(f32);
 
 impl WorthUiMeasurementHostAdapter for ViewportAdapter {
-    fn observe_measurement(&self, _request: &UiMeasurementRequest) -> UiHostObservationValue {
-        UiHostObservationValue::ViewportExtent(UiViewportExtentObservation {
+    fn observe_measurement(
+        &self,
+        _request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
+        UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
             width: self.0,
             height: 600.0,
         })

@@ -342,6 +342,26 @@ cross-feature proof gates before final certification:
   leases, compatibility, invalidation, collection windows, patch delivery,
   replacement, rebind, and disposal remain Query-owned, proof-bearing, and
   exactly accounted
+- `Milestone 9.15` must prove installed domain computation is execution-grade:
+  large typed intermediate products cross workflow stages through managed
+  artifact handles; semantic artifact, production/acquisition occurrence, and
+  independent-certification identities remain distinct; every executable
+  artifact family declares an exact, seeded, canonical-reduction,
+  bound/comparator, distributional, or observational reproducibility class;
+  candidate searches expose universe, termination, completeness, feasibility,
+  comparison, optimality, incumbent, and cost posture; single-basis convergence
+  exposes progress, iteration, oscillation, exhaustion, and retained incumbent;
+  transformation and loss evidence remains derived and cannot mint admission or
+  durable resolution authority;
+  resource admission, cancellation, backpressure, yield, and resume reflect
+  actual provider work; basis-complete decision read-sets and
+  verified realized footprints retain positive, negative, membership, and
+  structural dependencies; proposed post-state invariants are actually
+  executed; and provider-session-bound compare-and-commit either commits once
+  or returns typed stale, abort, partial-effect, or indeterminate posture.
+  Access products, correlated paths, conflict partitions, structural counters,
+  and decision attachments remain generic and lifecycle-governed without moving
+  domain algorithms or vocabulary into Query
 - Query certification must export reusable semantic parity oracles for ordinary,
   historical, live, policy, artifact, and delivery contracts; Store Milestones
   9 through 13 and Store Milestone 19 consume those oracles against physical
@@ -363,7 +383,7 @@ contracts required by physical integration:
   `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` through
   `Milestone 9.13` -> `Milestone 9.13.1` -> `Milestone 9.13.2` ->
-  `Milestone 9.14` ->
+  `Milestone 9.14` -> `Milestone 9.15` ->
   `Milestone 13`
 
 The numbered order remains the semantic dependency order. The condensed ranges
@@ -380,6 +400,11 @@ Store handoffs are explicit:
   lifecycle, native access, compatibility, invalidation, and operational-
   identity opacity close in Query before Store integration or provider
   certification can inherit those boundaries
+- managed domain artifact carriage, provider execution sessions, real post-state
+  invariant execution, basis-complete compare-and-commit, resource-bounded
+  execution, access-product lifecycle, membership coverage, realized
+  footprints, and set-oriented partition admission close in Query before Store
+  integration or provider certification can inherit those boundaries
 - Store Milestones 1 through 4 consume those contracts to establish the backend
   seam, semantic/physical lowering, durable publication join, and cold reads
 - Store Milestones 5 through 10 close joined concurrency, residency, recovery,
@@ -4585,6 +4610,205 @@ them.
   lifecycle tests, reusable operation/workflow certification fixtures, and
   provider-oracle tests agree on one capability path
 
+## Milestone 9.15: Execution-Grade Domain Computation, Transactional Attempts, And Managed Artifacts
+
+### Goal
+
+Make the installed operation model execution-grade for large, long-running,
+data-dependent domain computation while keeping payloads, algorithms,
+validators, physical strategies, and domain vocabulary outside Query.
+
+### Adversarial Constraint
+
+A long-running installed operation must carry large typed intermediate
+products, consume positive and negative graph facts, use a membership-sensitive
+derived access product, discover a narrow footprint inside wider declared
+authority, yield and resume under bounded resources, race concurrent mutation,
+construct a provisional post-state, and execute real domain invariants over that
+state. Cancellation and provider failure may occur at every phase. The
+operation must either commit once through a provider-proven transaction or
+return a typed stale, yielded, cancelled, exhausted, degraded, aborted, partial-
+effect, or indeterminate outcome with no widened authority, fabricated rollback,
+stale promotion, leaked resource, or unexplained authoritative residue.
+
+### Why This Milestone Exists
+
+Milestone 9.14 closes semantic control-plane authority, but a serious domain can
+still be forced into local side stores, validator folklore, unbound provider
+callbacks, scalar bulk loops, and ungoverned index products if Query cannot
+transport domain artifacts or bind actual provider work into one attempt.
+Milestone 13 cannot certify physical-provider parity while those naive lanes
+remain the only execution contract.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.15.md](./milestone-9.15.md).
+
+### Must Ship
+
+- installed schema-versioned domain artifact contracts and runtime-affine,
+  move-only managed artifact handles
+- distinct semantic artifact, production/acquisition occurrence, and
+  independent-certification identities with installed substitution policy
+- installed exact, seeded, canonical-reduction, bound/comparator,
+  distributional, and observational/non-replayable reproducibility classes
+- installed candidate-search contracts exposing universe, termination,
+  completeness, feasibility, comparison, optimality, incumbent, and search cost
+- managed single-semantic-world convergence epochs with bounded progress,
+  iteration, oscillation, cancellation, exhaustion, checkpoint, and incumbent
+  posture
+- derived transformation-occurrence, source/output correspondence-cardinality,
+  and loss/disposition evidence with no admission or resolution authority
+- bulk/chunk native access with actual allocation, resident-memory, and work
+  evidence
+- installed structural counter and decision-record schemas with mandatory core
+  versus policy-materialized sidecar separation
+- multi-axis execution resource admission and managed run lifecycle covering
+  cancellation, backpressure, yield/resume, cleanup, exhaustion, and degradation
+- sealed provider execution plans and prepared session tokens binding reads,
+  effects, proposed state, invariants, prepare, commit, and abort
+- basis-complete decision read-sets including positive, negative, predicate,
+  membership, cardinality, ordering, traversal, artifact, and structural facts
+- managed provisional graph attempts and proposed-state inspection
+- real domain/provider invariant execution over exact proposed post-state
+- provider-proven compare-and-commit with distinct stale, abort, partial-effect,
+  compensation/reconciliation, and indeterminate outcomes
+- managed domain access products with candidate completeness, exact refinement,
+  membership coverage, lifecycle, memory, maintenance, rebuild, and disposal
+  contracts
+- verified realized footprints integrated with dependency impact, conflict,
+  invalidation, reuse, and publication without widening declared authority
+- correlated heterogeneous path programs with provider access-plan admission
+- conflict-proof, set-oriented installed execution and canonical reduction
+- policy-governed domain decision attachment and queryable incremental summary
+- stage/subartifact reuse, incremental maintenance, eviction, and rebuild over
+  existing 9.14 sharing/lifecycle authority
+- planar-boolean, chip/netlist cone, and research-style multi-site reference
+  adoption plus permanent prohibitions and provider-independent hostile
+  certification
+
+### Must Preserve
+
+- Query owns installed contract admission, operational handle authority,
+  lifecycle, phase progression, dependency carriage, public evidence, and
+  certification; it does not own domain algorithms or payload meaning
+- Relational/provider authorities own physical state, transactions, allocation,
+  access strategy, and validator execution mechanics
+- domain packages own artifact schemas, validator and decision semantics,
+  structural counter meaning, equivalence, conflict proof, and replanning policy
+- Store owns durable payloads, indexes, checkpoints, continuations, journals,
+  restart, and recovery/reconciliation persistence
+- artifacts, access products, proposed state, footprints, decisions, counters,
+  and reporting projections remain derived and non-authoritative
+- candidate, convergence, transformation, loss, repair, correspondence, and
+  advisory evidence cannot become durable conflict, decision, approval,
+  resolution-session, or publication authority
+- durable governed resolution, participant roles, deferral, supersession,
+  branch-aware carry-forward, session journals, and recovery remain owned by
+  `_docs/cross-runtime/merging-and-branching-roadmap.md` Milestones 10-11
+- one operating-world root, cert-only replay, exact Foundational values, owner-
+  specific `worth-proof` authority, and every 9.14 lifecycle remain intact
+- Query remains domain-agnostic: no B-rep, topology, tolerance, spatial-index,
+  predicate, repair, routing, compiler, or solver semantics enter its grammar
+
+### Complexity / Proof Obligations
+
+- execution breadth is measured independently across total source size, touched
+  footprint, path/frontier breadth, candidate density, artifact bytes, chunk
+  width, retained memory, batch width, actual conflicts, partitions, provider
+  contacts, occurrence count, comparison breadth, candidate-universe breadth,
+  pruning, convergence iterations, transformation breadth, and consumer pressure
+- cancellation/progress counters derive from actual provider work rather than a
+  fully materialized result
+- relevant drift denies while unrelated drift commits with exact false-conflict
+  and read-set counters
+- realized footprints remain subsets of declared closures and narrow work
+  proportionally to semantic scope
+- bulk partition admission avoids quadratic all-pairs proof and external scalar
+  execution
+- provider/session, invariant, membership, counter, and atomicity claims are
+  tested against independent hostile oracles rather than provider receipts alone
+- occurrence substitution and exact/non-bitwise reproducibility are tested
+  against colliding content, cache hits, provider changes, alternate reduction
+  order, and within/outside-contract result variation
+- candidate searches cannot strengthen completeness or optimality when universe,
+  termination, pruning, comparator, or omitted-candidate evidence weakens
+- convergence tests distinguish converged, stable-without-proof, feasible,
+  oscillating, exhausted, cancelled, and indeterminate outcomes
+- residue enforcement rejects Query-local durable conflict/session authority,
+  participant approval state, resolution journals, and branch-aware carry-forward
+
+### Allowed Debt
+
+- durable artifact bytes, persistent access products, restart-stable
+  continuations, checkpoint/journal survival, distributed recovery, and
+  reconciliation history remain explicit Store handoffs
+- no runtime-backed `Any`/blob artifact lane, fabricated invariant pass, commit-
+  admission-as-atomicity, post-hoc streaming, returned-row-only membership,
+  footprint widening, caller-owned access cache, scalar bulk loop, or domain-
+  vocabulary leak may remain debt
+
+### Sequencing Notes
+
+This follows 9.14 because it extends the installed operation, workflow,
+dependency, publication, sharing, compatibility, and lifecycle authorities
+frozen there. It precedes Milestone 13 because the provider-independent oracle
+must certify the execution-grade artifact, resource, session, invariant,
+transaction, access-product, footprint, path, and partition contracts rather
+than the naive callback lanes they replace.
+
+Candidate search, bounded convergence, transformation evidence, and basis-bound
+proposals close here as single-semantic-world execution capabilities. Durable
+conflict identity, alternatives/decisions, participant approval, deferral,
+supersession, carry-forward, checkpoint/journal persistence, and resolution
+recovery wait for the cross-runtime semantic Git program. This milestone must
+report typed unavailability rather than construct a temporary Query session
+model.
+
+### Store Dependency
+
+Runtime-backed managed artifacts, provider sessions, provisional attempts,
+resource lifecycle, ephemeral access products, realized footprints, and
+evidence are not blocked on Store. Durable payload, index, continuation,
+checkpoint, journal, restart, transaction-recovery, and reconciliation storage
+remain Store-owned implementations of the same semantic contracts.
+
+### Acceptance Evidence
+
+- realistic planar-boolean and chip/netlist cone operations complete the same
+  managed lifecycle without local pseudo-runtimes or Query domain vocabulary
+- a research-style multi-site biological fixture retains byte-identical
+  independent observations as distinct occurrences, rejects cached computation
+  as independent evidence, and admits byte-different equivalent results only
+  through an installed domain comparison contract without Query gaining
+  research vocabulary
+- selected obligations cannot masquerade as executed invariants
+- relevant and unrelated concurrent drift are distinguished from a complete
+  decision read-set
+- provider failure injection proves atomic, aborted, partial, compensated,
+  reconciled, and indeterminate outcomes remain distinct
+- cancellation at every safe point, repeated yield/resume, saturation,
+  exhaustion, and degradation leave no orphan or promotable stale resource
+- candidate searches state exact universe, termination, completeness,
+  feasibility, comparison, optimality, incumbent, and cost posture without
+  presenting heuristic or incomplete work as uniquely best
+- iterative runs converge, remain merely stable or feasible, oscillate,
+  exhaust, cancel, or become indeterminate according to installed single-basis
+  contracts without creating durable resolution authority
+- transformation evidence retains source occurrence, correspondence
+  cardinality, loss/disposition, and identity-consequence posture while being
+  unable to admit or publish repaired truth
+- membership-sensitive access products remain complete under insertion,
+  deletion, motion, rebuild, and eviction
+- serial, chunked, resumed, partitioned, replay-certified, and alternate-
+  provider execution converge on canonical semantic and evidence meaning
+- semantic equality never erases required occurrence or independent-
+  certification identity, and every exact or non-bitwise family converges or
+  denies according to its installed reproducibility class
+- facade, support rows, docs, AI orientation, adoption residue, structural
+  counters, and hostile certification agree on one execution-grade path
+
 ## Store-Gated Implementation Moved
 
 The former Query Milestones 10 through 12 are now Store Milestones 9 through 12
@@ -4657,6 +4881,14 @@ delivery shapes mean.
   native access, dependency impact, shared execution and lease lifecycle,
   compatibility, invalidation, collection window/patch delivery, denial, and
   counter parity established by Milestone 9.14
+- provider-independent domain-computation oracles for managed artifacts,
+  semantic/occurrence/certification identity separation, substitution policy,
+  exact and non-bitwise reproducibility classes, bulk/chunk native access,
+  resource admission, cancellation/yield/resume, provider sessions, complete
+  decision read-sets, proposed post-state, invariant execution,
+  compare-and-commit, access-product completeness and membership, realized
+  footprints, correlated paths, conflict partitions, structural counters,
+  decision attachments, and reuse lifecycle established by Milestone 9.15
 - machine-checkable artifact bundles for plans, results, diagnostics, and live
   evolution that Store Milestones 9 through 13 and 19 can execute unchanged
   against the physical provider
@@ -4691,9 +4923,9 @@ delivery shapes mean.
 
 ### Sequencing Notes
 
-This closes after Milestone 9.14 because Store integration must inherit a
-certified public surface, non-detachable downstream capability, and semantic
-oracle. It does not wait for Store.
+This closes after Milestone 9.15 because Store integration must inherit a
+certified public surface, non-detachable downstream capability, execution-grade
+domain-computation substrate, and semantic oracle. It does not wait for Store.
 
 ### Parallelization Notes
 
@@ -4779,6 +5011,16 @@ roadmap. It does not make physical implementation part of local Query closure.
   and leases, compatibility, invalidation, collection windows and patches,
   lifecycle, opaque operational identity, and exact cost evidence rather than
   authority ingredients they must assemble correctly
+- installed domain computations carry typed managed artifacts; execute through
+  resource-bounded cancellable provider sessions; preserve distinct semantic,
+  occurrence, and certification identity with explicit substitution policy;
+  compare exact and non-bitwise results only through installed reproducibility
+  classes; retain complete decision read-sets, membership coverage, and
+  verified realized footprints; validate exact proposed post-state through real
+  domain invariant execution; commit, abort, or reconcile through honest
+  transaction outcomes; and scale through managed access products, correlated
+  paths, and conflict-proof set-oriented execution without domain semantics
+  entering Query
 - the runtime-backed framework closes at Milestone 13 with provider-independent
   semantic parity oracles and machine-checkable generic/domain evidence
 - Store-backed execution, durable artifacts, restart, portability, blob
@@ -4814,6 +5056,9 @@ answer is "store-gated" or "shared with another subsystem."
 | Livable Query iteration foundation | Milestone 9.13.1 | Selected bulk compile-fail group, responsibility-named ordinary targets, cold certification leaf, permanent declaration and installation packages, consumer-owned Worth UI adoption tests | Load-bearing compiler evidence remains selective; the manual library-test aggregator, repeated reconstruction, historical/privacy/meta fixtures, and Query-to-Worth-UI coupling are removed; declaration and installation edits omit later and cold authorities; each slice inventories only the boundary it immediately changes | Milestone 9.13.1 direct compiler and cold-certification runs, target-ownership migration review, package convergence/rebuild proof, declaration/installation owner commands, Worth UI binding run, and one before/after observation per slice |
 | Query authority crate decomposition | Milestone 9.13.2 | Completed production authority graph, admission/execution/publication packages, retargeted certification, narrow audience facades, authority-local tests, enforced dependency direction | Remaining authority work compiles and tests without later or cold Query authorities; no monolith, facade, shared support crate, or compatibility re-export reconstructs or bypasses authority | Milestone 9.13.2 boundary-check, consumer transcript, authority-local test, compiler-denial, certification-retargeting, and monolith-deletion proof |
 | Installed operation semantics, semantic aspect correspondence, conditional Signal authority, and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, portable Query-authored semantic truth dependencies and conditional-node declarations, aspect-precise Relational publication, installed truth-to-Signal aspect correspondences, pair-bound runtime-bridge lowerings, installed Signal node contracts, Signal-minted decision evidence, Query re-entry receipts, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, semantic truth dependencies, aspect publication, installed aspect correspondence, entry authority, graph participation, workflow progression, conditional authoring, lowering, Signal decisions, Query re-entry, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; Query owns portable semantic dependency and conditional intent, Relational owns authoritative aspect-change meaning, the runtime bridge owns exact installed correspondence and lowering, and Signal owns local aspect slots and evaluation truth; node evaluation and effect conditions remain distinct; skipped, deferred, and reverted-clean outcomes cannot masquerade as new computed delivery; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, semantic-dependency canonicality, Relational publication precision, aspect-correspondence/slot-capacity admission, conditional-authoring canonicality, bridge-lowering admission, Signal-decision authority, conditional outcome/counter matrix, Query re-entry, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
+| Execution-grade domain computation, transactional attempts, and managed artifacts | Milestone 9.15 | Installed artifact/access-product/counter/decision contracts, move-only managed artifact handles, resource envelopes, managed runs and continuations, sealed provider plans and session tokens, basis-complete decision read-sets, provisional post-state attempts, real invariant execution receipts, prepared commit attempts and typed terminal outcomes, coverage/membership witnesses, realized footprints, correlated path programs, verified conflict partitions, structural-cost evidence, decision attachments, and reuse/eviction lifecycle artifacts | Large domain products cross stages without blobs or side stores; actual provider work is bounded, cancellable, resumable, and backpressured; relevant drift denies while unrelated drift commits; blocking invariants execute over exact proposed state; atomicity requires one provider-proven transaction; access-product membership remains complete under negative-space change; realized footprints narrow but never widen declared authority; bulk work stays set-oriented; domain algorithms and vocabulary remain outside Query | Milestone 9.15 managed-artifact, resource-lifecycle, provider-session, read-set, proposed-state, invariant-execution, transaction-failure, access-product/membership, footprint, correlated-path, partition-parity/slope, decision/privacy, reuse/eviction, hostile-provider, reference-adoption, and permanent-prohibition certification + Milestone 13 provider-independent domain-computation parity |
+| Occurrence-safe reuse and declared reproducibility | Milestone 9.15 | Distinct semantic artifact, production/acquisition occurrence, and independent-certification identities; installed substitution policy; exact, seeded, canonical-reduction, bound/comparator, distributional, and observational/non-replayable reproducibility contracts | Equal content cannot erase a required occurrence or manufacture independent evidence; cache reuse obeys consumer purpose; exact and byte-different executions converge or deny only through the installed comparison authority | Milestone 9.15 occurrence-substitution, reproducibility-matrix, research-reference, and permanent-prohibition certification + Milestone 13 provider-independent domain-computation parity |
+| Honest candidate search, single-basis convergence, and transformation evidence | Milestone 9.15; durable resolution in cross-runtime Milestones 10-11 | Installed search-universe/completeness/optimality contracts, managed convergence epochs, transformation occurrences, correspondence cardinality, loss/disposition evidence, and basis-bound proposals | Heuristic or incomplete work cannot claim uniqueness or optimality; convergence, stability, feasibility, oscillation, and exhaustion remain distinct; derived evidence cannot become conflict, decision, approval, session, admission, or publication authority | Milestone 9.15 search-claim, convergence, transformation-authority, scale, and residue certification + cross-runtime Milestones 10-11 governed-resolution and session proof |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |
 | Tolerance-aware aggregation | Milestones 4 and 5 | Tolerance policy metadata, live suppression metadata | Suppression does not change aggregate meaning | Milestone 13 live + policy masking parity and aggregation cases |
 | Relational rollups | Milestone 4 | Rollup descriptors over relation edges | Rollups remain derived from declared truth basis | Milestone 13 execution parity + domain suites |
@@ -4909,6 +5154,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.13.1.md](./milestone-9.13.1.md)
 - [milestone-9.13.2.md](./milestone-9.13.2.md)
 - [milestone-9.14.md](./milestone-9.14.md)
+- [milestone-9.15.md](./milestone-9.15.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/runtime-authoritative-mutation-evidence-plan.md)
 - [worth_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-runtime-bridge/worth_runtime_bridge_roadmap.md)

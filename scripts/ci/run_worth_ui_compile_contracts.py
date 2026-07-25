@@ -153,6 +153,10 @@ def stable_message(message: str) -> str:
     return re.sub(r"\band \d+ others\b", "and $N others", message)
 
 
+def is_incidental_private_field_enumeration(message: str) -> bool:
+    return "private field" in message and message.endswith("not provided")
+
+
 def canonical_diagnostics(messages: list[dict[str, object]], case: Case) -> str:
     lines: list[str] = []
     for message in messages:
@@ -173,6 +177,8 @@ def canonical_diagnostics(messages: list[dict[str, object]], case: Case) -> str:
             if "full name for the type has been written to" in child_message:
                 continue
             if child_message == "consider using `--verbose` to print the full type name to the console":
+                continue
+            if is_incidental_private_field_enumeration(child_message):
                 continue
             level = child.get("level", "note")
             lines.append(f" {level}: {stable_message(child_message)}")

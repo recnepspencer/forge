@@ -33,8 +33,8 @@ fn ordinary_graph_lookup_is_bounded_and_receipt_backed() {
         .page_participation(root_page_id, UiGraphParticipationAxis::QueryBound);
     let receipt_lookup = graph
         .lookup()
-        .mounted_receipt_slot_for_node(control_id)
-        .expect("mounted receipt lookup should resolve the committed slot");
+        .mount_eligibility_slot_for_node(control_id)
+        .expect("mount eligibility lookup should resolve the committed slot");
 
     assert_eq!(
         node_lookup.receipt().family(),
@@ -91,7 +91,7 @@ fn ordinary_graph_lookup_is_bounded_and_receipt_backed() {
 
     assert_eq!(
         receipt_lookup.receipt().family(),
-        UiGraphLookupFamily::MountedReceiptSlot
+        UiGraphLookupFamily::MountEligibilitySlot
     );
     assert_eq!(
         receipt_lookup.receipt().cost_class(),

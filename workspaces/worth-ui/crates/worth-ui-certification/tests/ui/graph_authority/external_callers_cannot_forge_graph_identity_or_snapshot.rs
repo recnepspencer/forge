@@ -1,5 +1,5 @@
 use worth_ui::facade::graph::{
-    UiGraphCoreIndexes, UiGraphMountedReceiptAuthoritySeedStore, UiGraphNode,
+    UiGraphCoreIndexes, UiGraphMountEligibilityStore, UiGraphNode,
     UiGraphNodeTopology, UiGraphSnapshot, UiGraphTopology,
 };
 
@@ -9,7 +9,7 @@ fn main() {
     let _ = std::mem::MaybeUninit::<UiGraphNodeTopology>::uninit();
     let _ = std::mem::MaybeUninit::<UiGraphTopology>::uninit();
     let _ = std::mem::MaybeUninit::<UiGraphCoreIndexes>::uninit();
-    let _ = std::mem::MaybeUninit::<UiGraphMountedReceiptAuthoritySeedStore>::uninit();
+    let _ = std::mem::MaybeUninit::<UiGraphMountEligibilityStore>::uninit();
 }
 
 // graph and obligation denials share one compiler process.

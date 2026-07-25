@@ -7,6 +7,9 @@ pub(super) struct UiAllocationReceiptLedgerState {
         UiAllocationNeighborhoodScope,
         super::UiAllocationReceipt,
     >,
+    pub(super) mounted_projection_catalog: super::UiMountedAllocationProjectionCatalog,
+    pub(super) mounted_projection_journal:
+        super::mounted_projection_journal::UiMountedAllocationProjectionJournal,
     pub(super) completed_transactions: BTreeMap<u64, Vec<super::UiCommittedAllocationReplan>>,
     pub(super) denied_transactions: BTreeMap<
         u64,
@@ -26,6 +29,8 @@ impl UiAllocationReceiptLedgerState {
     pub(super) fn initial(runtime_generation: u64) -> Self {
         Self {
             committed_by_scope: Default::default(),
+            mounted_projection_catalog: Default::default(),
+            mounted_projection_journal: Default::default(),
             completed_transactions: BTreeMap::new(),
             denied_transactions: BTreeMap::new(),
             latest_frame_epoch: None,
@@ -107,17 +112,42 @@ impl UiAllocationCatalogLedgerTransition {
         changed: &[super::UiAllocationReceipt],
     ) {
         let mut complete = self.predecessor.committed_by_scope.clone();
+        let mut projection = self.predecessor.mounted_projection_catalog.clone();
+        let mut candidate_graph_nodes = Vec::new();
         for scope in affected {
+            if let Some(receipt) = complete.get(scope) {
+                candidate_graph_nodes.push(receipt.identity().graph_node_identity());
+                projection.remove(receipt);
+            }
             complete.remove(scope);
         }
         for receipt in changed {
+            candidate_graph_nodes.push(receipt.identity().graph_node_identity());
             complete.insert(
                 crate::evidence::UiAllocationNeighborhoodScope::from_neighborhood(
                     receipt.committed_allocation().allocation_neighborhood(),
                 ),
                 receipt.clone(),
             );
+            projection.insert(receipt.clone());
         }
+        candidate_graph_nodes.sort();
+        candidate_graph_nodes.dedup();
+        let changed_graph_nodes = candidate_graph_nodes
+            .into_iter()
+            .filter(|graph_node| {
+                projection.projection_changed_since(
+                    &self.predecessor.mounted_projection_catalog,
+                    *graph_node,
+                )
+            })
+            .collect();
         self.successor.committed_by_scope = complete;
+        self.successor.mounted_projection_catalog = projection;
+        self.successor.mounted_projection_journal.record(
+            self.predecessor.truth_revision.revision(),
+            self.successor.truth_revision.revision(),
+            changed_graph_nodes,
+        );
     }
 }

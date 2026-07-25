@@ -1539,6 +1539,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-query-certification"
+version = "0.1.0"
+dependencies = [
+ "worth-query-host",
+ "worth-query-replay",
+]
+
+[[package]]
 name = "worth-query-decl"
 version = "0.1.0"
 dependencies = [
@@ -1554,6 +1562,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-query-host"
+version = "0.1.0"
+dependencies = [
+ "worth-query",
+]
+
+[[package]]
 name = "worth-query-installation"
 version = "0.1.0"
 dependencies = [
@@ -1561,6 +1576,13 @@ dependencies = [
  "worth-foundational",
  "worth-proof",
  "worth-query-declaration",
+]
+
+[[package]]
+name = "worth-query-replay"
+version = "0.1.0"
+dependencies = [
+ "worth-query",
 ]
 
 [[package]]
@@ -1635,6 +1657,7 @@ dependencies = [
  "toml",
  "worth-foundational",
  "worth-query",
+ "worth-query-certification",
  "worth-ui",
  "worth-ui-dsl",
  "worth-ui-host-contract",
@@ -1668,21 +1691,18 @@ version = "0.1.0"
 dependencies = [
  "egui",
  "worth-ui-host-contract",
+ "worth-ui-runtime",
 ]
 
 [[package]]
 name = "worth-ui-inspection"
 version = "0.1.0"
-dependencies = [
- "worth-ui-query-binding",
-]
 
 [[package]]
 name = "worth-ui-query-binding"
 version = "0.1.0"
 dependencies = [
  "worth-foundational",
- "worth-proof",
  "worth-query",
  "worth-query-decl",
  "worth-relational",
@@ -1692,13 +1712,11 @@ dependencies = [
 name = "worth-ui-runtime"
 version = "0.1.0"
 dependencies = [
- "egui",
  "notify",
  "worth-foundational",
  "worth-proof",
  "worth-ui-dsl",
  "worth-ui-host-contract",
- "worth-ui-host-egui",
  "worth-ui-inspection",
  "worth-ui-query-binding",
 ]

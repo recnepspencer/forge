@@ -11,11 +11,10 @@ pub(super) fn assert_posture_denial(
     expected_posture: domain::WorthQueryAftermathPosture,
 ) {
     let mut workspace = aftermath_workspace("aftermath-posture", contract).unwrap();
-    let basis = mutation_basis();
-    let original = bind_original(&workspace, basis.clone())
+    let original = bind_original(&workspace)
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
-    match original.admit_aftermath(bind_candidate(&workspace, basis)) {
+    match original.admit_aftermath(bind_candidate(&workspace)) {
         domain::WorthQueryAftermathAdmission::Denied {
             denial,
             posture,
@@ -42,7 +41,6 @@ pub(super) fn intent(input: &str) -> domain::WorthQueryNormalizedWorkflowIntent 
 
 pub(super) fn bind_original(
     workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     AftermathOriginal,
@@ -51,7 +49,8 @@ pub(super) fn bind_original(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(AftermathFamily)
         .bind(&installed, AftermathOriginal)
         .unwrap()
@@ -59,7 +58,6 @@ pub(super) fn bind_original(
 
 pub(super) fn bind_candidate(
     workspace: &runtime::WorthQueryWorkspace,
-    basis: foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness>,
 ) -> domain::WorthQueryBoundDomainOperation<
     GeometryDomain,
     AftermathCandidate,
@@ -68,28 +66,31 @@ pub(super) fn bind_candidate(
 > {
     let installed = workspace.domain(GeometryDomain).unwrap();
     workspace
-        .operating_world(basis)
+        .prepare_mutation_operating_world()
+        .unwrap()
         .family(AftermathFamily)
         .bind(&installed, AftermathCandidate)
         .unwrap()
 }
 
-pub(super) fn mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_mutation_preparation()
+pub(super) fn bind_branch_candidate(
+    workspace: &runtime::WorthQueryWorkspace,
+) -> domain::WorthQueryBoundDomainOperation<
+    GeometryDomain,
+    AftermathCandidate,
+    AftermathFamily,
+    foundation::MutationPreparationLaneWitness,
+> {
+    let installed = workspace.domain(GeometryDomain).unwrap();
+    workspace
+        .prepare_branch_mutation_operating_world(
+            worth_query::facade::installed::WorthQueryBranchHeadIdentity::new(
+                "aftermath-foreign-basis",
+            )
+            .unwrap(),
+        )
         .unwrap()
-        .admit()
-        .unwrap()
-}
-
-pub(super) fn branch_mutation_basis(
-) -> foundation::AdmittedBasisCapability<foundation::MutationPreparationLaneWitness> {
-    foundation::basis_lifecycle()
-        .branch_head("aftermath-foreign-basis", true)
-        .for_mutation_preparation()
-        .unwrap()
-        .admit()
+        .family(AftermathFamily)
+        .bind(&installed, AftermathCandidate)
         .unwrap()
 }

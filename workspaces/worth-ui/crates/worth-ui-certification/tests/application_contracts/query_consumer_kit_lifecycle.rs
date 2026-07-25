@@ -1,25 +1,19 @@
-use worth_query::facade::domain;
 use worth_ui::facade::{
     app::{WorthUi, WorthUiQueryViewRegistrationError},
-    query_binding::{
-        WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryOperationAttemptDenial,
-        WorthUiQueryViewIdentity, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
-    },
+    query_binding::WorthUiQueryBindingRegistrationDenialKind,
 };
 use worth_ui_dsl::UiDslSourceProvenance;
-use worth_ui_query_binding::compatibility::managed_live::{
-    WorthUiQueryLiveCloseOutcome, WorthUiQueryLiveOpenOutcome,
+use worth_ui_query_binding::{
+    WorthUiQueryOperationAttemptDenial, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
 };
 
 use crate::query_consumer_kit_application::{
     query_bound_rust_submission, query_bound_submission, query_free_app,
 };
-use crate::query_consumer_kit_workspace::{
-    installed_measurement_workspace, measurement_value_path, observation_basis,
-};
+use crate::query_consumer_kit_workspace::installed_measurement_workspace;
 
 #[test]
-fn public_query_free_application_has_no_query_or_managed_live_runtime_cost() {
+fn public_query_free_application_has_no_query_observation_runtime_cost() {
     let session = query_free_app()
         .launch()
         .expect("the real file-authored Query-free application launches");
@@ -29,8 +23,8 @@ fn public_query_free_application_has_no_query_or_managed_live_runtime_cost() {
     assert_eq!(scan.scanned_plan_query_links(), 0);
     assert_eq!(scan.scanned_settled_snapshots(), 0);
     assert_eq!(scan.scanned_live_resources(), 0);
-    assert_eq!(scan.managed_live_subsystem_construction_count(), 0);
-    assert_eq!(scan.managed_live_succession_operation_count(), 0);
+    assert_eq!(scan.operation_live_subsystem_construction_count(), 0);
+    assert_eq!(scan.operation_live_succession_operation_count(), 0);
     assert!(scan.is_clean());
     let _shutdown = session.shutdown();
 }
@@ -58,56 +52,33 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
         .freeze()
         .expect("application preparation");
     let mut session = app.launch().expect("Query-bound application launch");
-    let resource = match resource_view
-        .open_using(domain::current(), &mut workspace)
-        .expect("installed authority matches the Query workspace")
-    {
-        WorthUiQueryLiveOpenOutcome::Opened(resource) => resource,
-        WorthUiQueryLiveOpenOutcome::Stopped(_) => panic!("live resource open stopped"),
-    };
-    let read = match resource.read(&mut workspace) {
-        Ok(read) => read,
-        Err(_) => panic!("live resource read stopped"),
-    };
-    let projection = resource.project(
-        &read,
-        domain::project_facts().display_field(measurement_value_path()),
-    );
+    let resource =
+        crate::query_replacement_lifecycle::support::open_resource(&resource_view, &mut workspace);
     let mut admission = None;
 
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|query| {
-            admission =
-                Some(query.admit_managed_live_compatibility_and_submit(resource, projection));
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|query| {
+                admission = Some(query.admit_operation_live(resource));
+            });
+        })
+        .expect("no mounted presentation lease is active");
 
-    let completion = completion.into_completion();
-    assert!(
-        matches!(
-            completion,
-            worth_ui::facade::runtime::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied { .. }
-        ),
-        "unexpected live Query framework completion: {completion:?}"
-    );
-    let gateway = admission
+    drop(completion.into_completion());
+    admission
         .expect("live Query source executed")
         .expect("live resource and projection admitted atomically");
-    assert!(gateway.submission().is_some());
-    let _shutdown = session.shutdown();
+    let shutdown = session.shutdown();
+    crate::query_replacement_lifecycle::support::close_retirement(
+        shutdown.into_operation_live_retirement(),
+        &mut workspace,
+    );
 
-    let reopened = match resource_view
-        .open_using(domain::current(), &mut workspace)
-        .expect("shutdown abandonment is reaped by Query")
-    {
-        WorthUiQueryLiveOpenOutcome::Opened(resource) => resource,
-        WorthUiQueryLiveOpenOutcome::Stopped(_) => {
-            panic!("Query must allow the resource to reopen after UI shutdown")
-        }
-    };
+    let reopened =
+        crate::query_replacement_lifecycle::support::open_resource(&resource_view, &mut workspace);
     assert!(matches!(
         reopened.close(&mut workspace),
-        WorthUiQueryLiveCloseOutcome::Closed(_)
+        worth_ui_query_binding::WorthUiOperationLiveCloseOutcome::Closed(_)
     ));
 }
 
@@ -127,6 +98,7 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
     let second_view = second
         .measurement_view("inspector.measurements")
         .expect("second semantically equal view installs");
+    let first_identity = first_view.definition().identity().clone();
     assert_eq!(
         first_view.definition().digest(),
         second_view.definition().digest(),
@@ -138,13 +110,10 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
         .freeze()
         .expect("first installation prepares");
     let reference = app
-        .resolve_query_view(
-            &WorthUiQueryViewIdentity::new("inspector.measurements").unwrap(),
-            WorthUiQueryViewShape::Collection,
-        )
+        .resolve_query_view(&first_identity, WorthUiQueryViewShape::Collection)
         .expect("prepared application retains its installed reference");
     assert!(matches!(
-        reference.enter_snapshot_attempt(&second_workspace, observation_basis()),
+        reference.enter_snapshot_attempt(&second_workspace),
         Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch)
     ));
     let builder = WorthUi::app()
@@ -169,6 +138,7 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
     let view = installed
         .measurement_view("inspector.measurements")
         .unwrap();
+    let identity = view.definition().identity().clone();
     let capability_app = WorthUi::app()
         .register_query_view(view.clone())
         .unwrap()
@@ -186,7 +156,6 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
         .with_candidate_submission(query_bound_rust_submission(capability_app.capabilities()))
         .freeze()
         .unwrap();
-    let identity = WorthUiQueryViewIdentity::new("inspector.measurements").unwrap();
     let file_reference = file_app
         .resolve_query_view(&identity, WorthUiQueryViewShape::Collection)
         .unwrap();
@@ -210,12 +179,12 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
             UiDslSourceProvenance::RustAuthored { .. }
         )));
     let file_bound = file_reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .bind_snapshot()
         .unwrap();
     let rust_bound = rust_reference
-        .enter_snapshot_attempt(&workspace, observation_basis())
+        .enter_snapshot_attempt(&workspace)
         .unwrap()
         .bind_snapshot()
         .unwrap();

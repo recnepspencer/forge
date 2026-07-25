@@ -1,0 +1,383 @@
+{
+  "schema_version": 2,
+  "milestone": "3.10",
+  "opening": {
+    "captured_at": "2026-07-24T05:21:22.0385646+00:00",
+    "git_commit": "ac5bf91a81497fcf8bb6cb597f5ed1aef5e730ba",
+    "platform": "Microsoft Windows 11 Home 10.0.26200",
+    "cargo": "cargo 1.94.0 (85eff7c80 2026-01-15)",
+    "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
+    "cargo_incremental": false,
+    "compiler_cache": "disabled (RUSTC_WRAPPER cleared)",
+    "source_snapshot": {
+      "algorithm": "sha256-path-and-git-blob-v1",
+      "kind": "working_tree",
+      "scope": [
+        "Cargo.toml",
+        "Cargo.lock",
+        ".cargo",
+        "crates",
+        "workspaces/worth-query",
+        "workspaces/worth-ui",
+        "scripts/ci"
+      ],
+      "digest": "5f92ce242320b573e04b87f16aa2a82d960608b06243ede7fdf7177484a01b75",
+      "file_count": 20990
+    },
+    "environment": {
+      "operating_system": "Microsoft Windows 11 Home",
+      "processor": "AMD Ryzen 7 9700X 8-Core Processor",
+      "physical_memory_bytes": 66145669120,
+      "worktree_state": "production source matches ac5bf91a; milestone 3.10 specification and Phase 1 evidence are untracked and the Worth UI roadmap is modified",
+      "isolated_target_root": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening"
+    },
+    "topology": {
+      "workspace_packages": 11,
+      "workspace_cargo_targets": 20,
+      "integration_test_targets": 9,
+      "integration_test_target_names": [
+        "worth-ui:capability_contracts",
+        "worth-ui:registry_contracts",
+        "worth-ui-certification:application_contracts",
+        "worth-ui-certification:declaration_contracts",
+        "worth-ui-certification:graph_contracts",
+        "worth-ui-certification:inspection_contracts",
+        "worth-ui-certification:measurement_contracts",
+        "worth-ui-certification:obligation_contracts",
+        "worth-ui-certification:topology_contracts"
+      ],
+      "compile_contract_fail_cases": 14,
+      "compile_contract_pass_cases": 9,
+      "compile_contract_cargo_sessions": 2,
+      "trybuild_sessions": 0,
+      "external_fixture_workspaces": 2,
+      "external_fixture_workspace_names": [
+        "compile_contracts",
+        "host_contract_only_adapter"
+      ],
+      "flake_retry_budget": 0,
+      "test_retries_used": 0
+    },
+    "baseline_gates": {
+      "format": {
+        "command": "cargo fmt --all --manifest-path workspaces/worth-ui/Cargo.toml -- --check",
+        "status": "passed"
+      },
+      "strict_clippy": {
+        "command": "cargo clippy --workspace --all-targets --all-features --manifest-path workspaces/worth-ui/Cargo.toml -- -D warnings",
+        "status": "passed"
+      },
+      "fast": {
+        "command": "python scripts/ci/run_worth_ui_test_lane.py fast",
+        "status": "passed"
+      },
+      "hostile_certification": {
+        "command": "python scripts/ci/run_worth_ui_test_lane.py hostile-certification",
+        "status": "passed"
+      },
+      "compile_contracts": {
+        "command": "python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "status": "passed"
+      },
+      "dependency_contract": {
+        "command": "python scripts/ci/run_worth_ui_test_lane.py dependency-contract",
+        "status": "passed"
+      },
+      "platform_check": {
+        "command": "python scripts/ci/run_worth_ui_test_lane.py platform-check",
+        "status": "passed"
+      },
+      "test_topology": {
+        "command": "python scripts/ci/check_worth_ui_test_topology.py",
+        "status": "passed"
+      },
+      "boundary": {
+        "command": "cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .",
+        "status": "passed"
+      },
+      "agent_context": {
+        "command": "cargo run --manifest-path tools/agent-context/Cargo.toml -- check",
+        "status": "passed"
+      },
+      "worth_ui_rust_line_cap": {
+        "command": "git ls-files plus one git cat-file --batch stream for every tracked workspaces/worth-ui/**/*.rs blob; overlay dirty Rust files from the working tree",
+        "status": "passed",
+        "checked_files": 2884,
+        "dirty_rust_files": 0,
+        "maximum_lines": 400
+      },
+      "workspace_rust_line_cap": {
+        "command": "bash scripts/ci/check_workspace_rust_line_caps.sh",
+        "status": "external_baseline_failure",
+        "worth_ui_violations": 0,
+        "scope": "Committed over-cap files were reported only outside workspaces/worth-ui. They are outside this milestone and the user's declared Worth UI ownership boundary; this evidence does not claim that the workspace-wide command passed."
+      }
+    },
+    "measurements": {
+      "clean_application_compile_and_link": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-certification --test application_contracts --no-run --target-dir <clean-application-2>",
+        "classification": "clean compile and link",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2"
+        ],
+        "samples_seconds": [
+          82.846
+        ],
+        "median_seconds": 82.846,
+        "exit_codes": [
+          0
+        ],
+        "comparison": "opening_baseline"
+      },
+      "warm_fast_lane": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py fast",
+        "classification": "warm compile plus execution",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2"
+        ],
+        "samples_seconds": [
+          7.657,
+          7.6,
+          7.694
+        ],
+        "median_seconds": 7.657,
+        "exit_codes": [
+          0,
+          0,
+          0
+        ],
+        "comparison": "opening_baseline"
+      },
+      "warm_application_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-certification --test application_contracts --quiet --target-dir <clean-application-2>",
+        "classification": "warm compile plus execution",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2"
+        ],
+        "samples_seconds": [
+          15.578,
+          14.698,
+          14.972
+        ],
+        "median_seconds": 14.972,
+        "executed_tests_per_sample": 53,
+        "exit_codes": [
+          0,
+          0,
+          0
+        ],
+        "comparison": "opening_baseline"
+      },
+      "warm_filesystem_external_boundary": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> cargo test --manifest-path workspaces/worth-ui/Cargo.toml --all-features -p worth-ui-certification --test application_contracts filesystem_ --quiet --target-dir <clean-application-2>",
+        "classification": "warm real fixture creation plus filesystem I/O plus operating-system watcher startup and settlement plus execution and teardown",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2"
+        ],
+        "samples_seconds": [
+          7.235,
+          7.259,
+          7.275
+        ],
+        "median_seconds": 7.259,
+        "executed_tests_per_sample": 6,
+        "external_boundary": "actual .wui bytes, production filesystem reader, operating-system watcher delivery, replacement lifecycle, and real temporary directories",
+        "exit_codes": [
+          0,
+          0,
+          0
+        ],
+        "comparison": "opening_baseline"
+      },
+      "cold_compile_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "classification": "cold two-session compile contract",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-1",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-2",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-3"
+        ],
+        "samples_seconds": [
+          62.377,
+          63.416,
+          68.111
+        ],
+        "median_seconds": 63.416,
+        "cargo_sessions_per_sample": 2,
+        "exit_codes": [
+          0,
+          0,
+          0
+        ],
+        "comparison": "opening_baseline"
+      },
+      "warm_compile_contracts": {
+        "command": "CARGO_INCREMENTAL=0 RUSTC_WRAPPER=<disabled> python scripts/ci/run_worth_ui_test_lane.py compile-contracts",
+        "classification": "warm two-session compile contract",
+        "target_directories": [
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-3",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-3",
+          "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-3"
+        ],
+        "samples_seconds": [
+          1.586,
+          1.482,
+          2.281
+        ],
+        "median_seconds": 1.586,
+        "cargo_sessions_per_sample": 2,
+        "exit_codes": [
+          0,
+          0,
+          0
+        ],
+        "comparison": "opening_baseline"
+      }
+    },
+    "retained_artifacts": {
+      "policy": "Retained under the ignored Worth UI target root for Phase 10 audit and comparable closing capture; never imported by tests or production.",
+      "valid_measurement_target_bytes": 4886254975,
+      "valid_measurement_target_files": 4131,
+      "targets": [
+        {
+          "path": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application-2",
+          "bytes": 4064753316,
+          "files": 1728
+        },
+        {
+          "path": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-1",
+          "bytes": 273833675,
+          "files": 799
+        },
+        {
+          "path": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-2",
+          "bytes": 273833671,
+          "files": 799
+        },
+        {
+          "path": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\cold-compile-contracts-3",
+          "bytes": 273834313,
+          "files": 805
+        }
+      ],
+      "excluded_capture_residue": {
+        "path": "C:\\Users\\Esther\\Documents\\Programming\\forge_workspace\\worth-ui\\workspaces\\worth-ui\\target\\milestone-3.10-opening\\clean-application",
+        "bytes": 290698387,
+        "files": 864,
+        "reason": "The execution wrapper terminated the first clean compile attempt after five seconds. This partial target is not reused by or counted in any measurement."
+      }
+    },
+    "proof_cost_layers": {
+      "compilation": {
+        "owner": "Cargo workspace and consolidated compile-contract runners",
+        "posture": "One clean application-contract build plus two consolidated compile-contract Cargo sessions; compiler artifacts are retained separately from linked executables.",
+        "evidence": [
+          "opening.topology.workspace_cargo_targets",
+          "opening.topology.compile_contract_cargo_sessions",
+          "opening.measurements.clean_application_compile_and_link"
+        ],
+        "metrics": {
+          "workspace_cargo_targets": 20,
+          "compile_contract_cargo_sessions": 2,
+          "compiler_artifact_files": 348,
+          "compiler_artifact_bytes": 2845796024
+        }
+      },
+      "linking": {
+        "owner": "Cargo integration-test link graph",
+        "posture": "Linked executable count and bytes are recorded independently from compiler artifacts even though the opening wall-clock sample covered clean compilation and linking together.",
+        "evidence": [
+          "opening.topology.integration_test_targets",
+          "opening.retained_artifacts.targets[0]"
+        ],
+        "metrics": {
+          "integration_test_targets": 9,
+          "linked_executables": 14,
+          "linked_executable_bytes": 218175488,
+          "application_contract_executable_bytes": 55468032
+        }
+      },
+      "immutable_world_construction": {
+        "owner": "Worth UI certification scenario blueprints",
+        "posture": "Opening tests construct fresh sessions from the filesystem lifecycle and installed Query world blueprints; no mutable live runtime is shared between cases.",
+        "evidence": [
+          "workspaces/worth-ui/crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs",
+          "workspaces/worth-ui/crates/worth-ui-certification/src/scenario/installed_query_world.rs"
+        ],
+        "metrics": {
+          "reusable_blueprints": 2
+        }
+      },
+      "isolated_delta_construction": {
+        "owner": "Milestone 3.10 certification scenario deltas",
+        "posture": "The opening baseline predates the milestone-owned isolated mounted-delta families; zero is an explicit baseline rather than delta setup hidden in execution.",
+        "evidence": [
+          "_docs/worth-ui/milestone-3.10.md"
+        ],
+        "metrics": {
+          "named_delta_families": 0
+        }
+      },
+      "execution": {
+        "owner": "worth-ui-certification application_contracts target",
+        "posture": "Warm execution reuses a successfully compiled target and reports the executed case count separately from filesystem-only startup cases.",
+        "evidence": [
+          "opening.measurements.warm_application_contracts"
+        ],
+        "metrics": {
+          "application_contract_cases": 53,
+          "warm_median_milliseconds": 14972
+        }
+      },
+      "external_startup": {
+        "owner": "Production filesystem source provider and operating-system watcher scenarios",
+        "posture": "Actual .wui writes, filesystem acquisition, watcher startup, delivery, and teardown are isolated as a filtered real-boundary sample.",
+        "evidence": [
+          "opening.measurements.warm_filesystem_external_boundary"
+        ],
+        "metrics": {
+          "filesystem_cases": 6,
+          "warm_median_milliseconds": 7259
+        }
+      },
+      "retained_artifacts": {
+        "owner": "Milestone 3.10 isolated target-root capture",
+        "posture": "Only successful measurement targets are counted; failed capture residue is named and excluded.",
+        "evidence": [
+          "opening.retained_artifacts"
+        ],
+        "metrics": {
+          "files": 4131,
+          "bytes": 4886254975
+        }
+      },
+      "retries": {
+        "owner": "Worth UI test topology policy",
+        "posture": "The flake retry budget and retries used are both zero; failed capture wrappers contributed no samples and were not test retries.",
+        "evidence": [
+          "opening.topology.flake_retry_budget",
+          "opening.topology.test_retries_used"
+        ],
+        "metrics": {
+          "budget": 0,
+          "used": 0
+        }
+      }
+    },
+    "capture_notes": [
+      "Every recorded command ran against the declared working-tree source digest with CARGO_INCREMENTAL=0 and RUSTC_WRAPPER cleared.",
+      "The clean application compile used a target directory that did not exist before the successful command. Each cold compile-contract sample used its own target directory that did not exist before that sample.",
+      "Warm measurements reused only a fully successful target. Setup warmups and timed-out capture commands are excluded from samples.",
+      "The filesystem measurement includes fixture creation, actual file writes, production filesystem acquisition, operating-system watcher startup and delivery, execution, and teardown; it is not an in-memory substitute.",
+      "No failing test was retried. Capture-wrapper failures changed the measurement execution plan but supplied no recorded sample.",
+      "Phase 1 adds no Cargo target, fixture workspace, compile session, retry, ignored test, production branch, or machine-consumed migration manifest."
+    ]
+  },
+  "closing": null
+}

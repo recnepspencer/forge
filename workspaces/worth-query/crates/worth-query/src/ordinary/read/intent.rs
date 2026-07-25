@@ -132,6 +132,10 @@ impl WorthQueryDeclaredReadIntent {
         self.canonical.result_shape().digest()
     }
 
+    pub(crate) fn declarative_request(&self) -> &DeclarativeLiveQueryRequest {
+        &self.declarative_request
+    }
+
     pub(crate) fn family(&self) -> &WorthQueryReadGraphFamily {
         &self.family
     }

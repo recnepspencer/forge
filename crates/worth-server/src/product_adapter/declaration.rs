@@ -1,11 +1,18 @@
 use std::sync::Arc;
 
-use crate::{WorthServerOperationFamily, WorthServerProductSupportPosture};
+use crate::WorthServerOperationFamily;
 
 use super::{
     WorthServerProductAdapterCertificationCode, WorthServerProductAdapterCertificationError,
-    WorthServerProductOperationErrorMap, WorthServerProductPayloadSchemaValidator,
+    WorthServerProductOperationErrorMap, WorthServerProductOperationSupportSnapshot,
+    WorthServerProductPayloadSchemaValidator,
 };
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthServerProductReadTransport {
+    FlatQuery,
+    StructuredQuery,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthServerProductOperationBasisKind {
@@ -16,65 +23,12 @@ pub enum WorthServerProductOperationBasisKind {
 }
 
 impl WorthServerProductOperationBasisKind {
-    pub(crate) fn as_shared_read_basis_kind(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::QueryDerived => "query-derived",
             Self::ProductSessionDerived => "product-session-derived",
             Self::DurableProductDerived => "durable-product-derived",
             Self::FixtureOnly => "fixture-only",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthServerProductOperationSupportSnapshot {
-    support_row: String,
-    posture: WorthServerProductSupportPosture,
-}
-
-impl WorthServerProductOperationSupportSnapshot {
-    pub fn production_admitted(support_row: impl Into<String>) -> Self {
-        Self {
-            support_row: support_row.into(),
-            posture: WorthServerProductSupportPosture::ProductionAdmitted,
-        }
-    }
-
-    pub fn unsupported(support_row: impl Into<String>) -> Self {
-        Self {
-            support_row: support_row.into(),
-            posture: WorthServerProductSupportPosture::Unsupported,
-        }
-    }
-
-    pub fn unknown(support_row: impl Into<String>) -> Self {
-        Self {
-            support_row: support_row.into(),
-            posture: WorthServerProductSupportPosture::Unknown,
-        }
-    }
-
-    pub fn incompatible_basis(support_row: impl Into<String>) -> Self {
-        Self {
-            support_row: support_row.into(),
-            posture: WorthServerProductSupportPosture::IncompatibleBasis,
-        }
-    }
-
-    pub fn support_row(&self) -> &str {
-        &self.support_row
-    }
-
-    pub(crate) fn posture(&self) -> WorthServerProductSupportPosture {
-        self.posture.clone()
-    }
-
-    fn canonical_label(&self) -> &'static str {
-        match self.posture {
-            WorthServerProductSupportPosture::ProductionAdmitted => "production-admitted",
-            WorthServerProductSupportPosture::Unsupported => "unsupported",
-            WorthServerProductSupportPosture::Unknown => "unknown",
-            WorthServerProductSupportPosture::IncompatibleBasis => "incompatible-basis",
         }
     }
 }
@@ -88,6 +42,7 @@ pub struct WorthServerProductOperationDeclaration {
     basis_kind: WorthServerProductOperationBasisKind,
     support_snapshot: WorthServerProductOperationSupportSnapshot,
     authority_requirement: WorthServerProductOperationAuthorityRequirement,
+    read_transport: Option<WorthServerProductReadTransport>,
     payload_validator: Option<Arc<dyn WorthServerProductPayloadSchemaValidator>>,
     error_map: Option<Arc<dyn WorthServerProductOperationErrorMap>>,
 }
@@ -102,6 +57,7 @@ impl std::fmt::Debug for WorthServerProductOperationDeclaration {
             .field("basis_kind", &self.basis_kind)
             .field("support_snapshot", &self.support_snapshot)
             .field("authority_requirement", &self.authority_requirement)
+            .field("read_transport", &self.read_transport)
             .finish()
     }
 }
@@ -114,6 +70,41 @@ impl WorthServerProductOperationDeclaration {
         basis_kind: WorthServerProductOperationBasisKind,
         support_snapshot: WorthServerProductOperationSupportSnapshot,
     ) -> Self {
+        Self::product_read_with_transport(
+            operation_name,
+            payload_schema_identity,
+            result_contract,
+            basis_kind,
+            support_snapshot,
+            WorthServerProductReadTransport::FlatQuery,
+        )
+    }
+
+    pub fn product_structured_read(
+        operation_name: impl Into<String>,
+        payload_schema_identity: impl Into<String>,
+        result_contract: crate::WorthServerProductResultContract,
+        basis_kind: WorthServerProductOperationBasisKind,
+        support_snapshot: WorthServerProductOperationSupportSnapshot,
+    ) -> Self {
+        Self::product_read_with_transport(
+            operation_name,
+            payload_schema_identity,
+            result_contract,
+            basis_kind,
+            support_snapshot,
+            WorthServerProductReadTransport::StructuredQuery,
+        )
+    }
+
+    fn product_read_with_transport(
+        operation_name: impl Into<String>,
+        payload_schema_identity: impl Into<String>,
+        result_contract: crate::WorthServerProductResultContract,
+        basis_kind: WorthServerProductOperationBasisKind,
+        support_snapshot: WorthServerProductOperationSupportSnapshot,
+        read_transport: WorthServerProductReadTransport,
+    ) -> Self {
         Self {
             operation_name: operation_name.into(),
             operation_family: WorthServerOperationFamily::ProductApplicationRead,
@@ -122,6 +113,7 @@ impl WorthServerProductOperationDeclaration {
             basis_kind,
             support_snapshot,
             authority_requirement: WorthServerProductOperationAuthorityRequirement::SharedRead,
+            read_transport: Some(read_transport),
             payload_validator: None,
             error_map: None,
         }
@@ -145,6 +137,7 @@ impl WorthServerProductOperationDeclaration {
             authority_requirement: WorthServerProductOperationAuthorityRequirement::DraftMutation {
                 draft_scope: draft_scope.into(),
             },
+            read_transport: None,
             payload_validator: None,
             error_map: None,
         }
@@ -169,6 +162,7 @@ impl WorthServerProductOperationDeclaration {
                 WorthServerProductOperationAuthorityRequirement::SessionCoordination {
                     coordination_lane: coordination_lane.into(),
                 },
+            read_transport: None,
             payload_validator: None,
             error_map: None,
         }
@@ -220,6 +214,7 @@ impl WorthServerProductOperationDeclaration {
                 WorthServerProductOperationAuthorityRequirement::DurableMutation {
                     contract: durable_contract,
                 },
+            read_transport: None,
             payload_validator: None,
             error_map: None,
         }
@@ -239,6 +234,10 @@ impl WorthServerProductOperationDeclaration {
 
     pub fn authority_requirement(&self) -> &WorthServerProductOperationAuthorityRequirement {
         &self.authority_requirement
+    }
+
+    pub fn read_transport(&self) -> Option<WorthServerProductReadTransport> {
+        self.read_transport
     }
 
     pub fn durable_mutation_contract(
@@ -274,10 +273,18 @@ impl WorthServerProductOperationDeclaration {
         .field("family", self.operation_family.as_str())
         .field("payload", &self.payload_schema_identity)
         .field("result", self.result_contract.canonical_digest())
-        .field("basis", self.basis_kind.as_shared_read_basis_kind())
+        .field("basis", self.basis_kind.as_str())
         .field("support_row", self.support_snapshot.support_row())
         .field("support_posture", self.support_snapshot.canonical_label())
         .field("authority", &authority)
+        .field(
+            "read_transport",
+            match self.read_transport {
+                Some(WorthServerProductReadTransport::FlatQuery) => "flat-query",
+                Some(WorthServerProductReadTransport::StructuredQuery) => "structured-query",
+                None => "not-applicable",
+            },
+        )
         .finish()
     }
 

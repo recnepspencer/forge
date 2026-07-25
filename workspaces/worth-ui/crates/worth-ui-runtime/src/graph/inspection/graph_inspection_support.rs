@@ -1,9 +1,10 @@
 use crate::declaration::{UiAspectName, UiDeclarationIdentity};
 use crate::graph::{
     UiGraphAspectConsumerKind, UiGraphAspectPublisherKind, UiGraphEvidenceRef, UiGraphInspection,
-    UiGraphInspectionTarget, UiGraphLookup, UiGraphMountedReceiptAuthorityRecord,
-    UiGraphNodeIdentity, UiGraphNodeRecord, UiGraphPageParticipationMember,
-    UiGraphParticipationAxis, UiGraphSnapshot, UiGraphTopologyRecord, UiMountedReceiptIdentity,
+    UiGraphInspectionTarget, UiGraphLookup, UiGraphMountEligibilityIdentity,
+    UiGraphMountEligibilityRecord, UiGraphNodeIdentity, UiGraphNodeRecord,
+    UiGraphPageParticipationMember, UiGraphParticipationAxis, UiGraphSnapshot,
+    UiGraphTopologyRecord,
 };
 
 pub struct UiGraphInspectionSupport<'a> {
@@ -169,8 +170,8 @@ impl<'a> UiGraphInspectionSupport<'a> {
                     UiGraphAspectPublisherKind::GraphNode(node_identity) => {
                         [Some(UiGraphEvidenceRef::GraphNode(node_identity)), None]
                     }
-                    UiGraphAspectPublisherKind::MountedReceiptSlot(receipt_identity) => [
-                        Some(UiGraphEvidenceRef::MountedReceipt(receipt_identity)),
+                    UiGraphAspectPublisherKind::MountEligibilitySlot(receipt_identity) => [
+                        Some(UiGraphEvidenceRef::MountEligibility(receipt_identity)),
                         None,
                     ],
                     UiGraphAspectPublisherKind::FutureReceipt => [None, None],
@@ -196,8 +197,8 @@ impl<'a> UiGraphInspectionSupport<'a> {
             UiGraphAspectConsumerKind::GraphNode(node_identity) => {
                 UiGraphEvidenceRef::GraphNode(node_identity)
             }
-            UiGraphAspectConsumerKind::MountedReceiptSlot(receipt_identity) => {
-                UiGraphEvidenceRef::MountedReceipt(receipt_identity)
+            UiGraphAspectConsumerKind::MountEligibilitySlot(receipt_identity) => {
+                UiGraphEvidenceRef::MountEligibility(receipt_identity)
             }
         }));
 
@@ -209,21 +210,21 @@ impl<'a> UiGraphInspectionSupport<'a> {
         )
     }
 
-    pub fn inspect_mounted_receipt_slot(
+    pub fn inspect_mount_eligibility_slot(
         self,
-        mounted_receipt_identity: UiMountedReceiptIdentity,
-    ) -> Option<UiGraphInspection<UiGraphMountedReceiptAuthorityRecord>> {
+        mount_eligibility_identity: UiGraphMountEligibilityIdentity,
+    ) -> Option<UiGraphInspection<UiGraphMountEligibilityRecord>> {
         self.snapshot
             .lookup()
-            .mounted_receipt_slot(mounted_receipt_identity)
+            .mount_eligibility_slot(mount_eligibility_identity)
             .map(|lookup| {
                 let slot = lookup.value();
                 scalar(
                     self.snapshot,
-                    UiGraphInspectionTarget::MountedReceipt(mounted_receipt_identity),
+                    UiGraphInspectionTarget::MountEligibility(mount_eligibility_identity),
                     lookup,
                     vec![
-                        UiGraphEvidenceRef::MountedReceipt(mounted_receipt_identity),
+                        UiGraphEvidenceRef::MountEligibility(mount_eligibility_identity),
                         UiGraphEvidenceRef::GraphNode(slot.graph_node_identity()),
                     ],
                 )

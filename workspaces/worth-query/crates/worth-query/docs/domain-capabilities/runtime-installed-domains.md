@@ -37,7 +37,8 @@ operations.
 - `runtime::WorthQueryRuntimeBuilder::domain_package(...)`
 - `runtime::WorthQueryRuntimeBuilder::domain_operation_executor(...)`
 - `runtime::WorthQueryWorkspace::domain(...)`
-- `runtime::WorthQueryWorkspace::operating_world(...)`
+- `runtime::WorthQueryWorkspace::observe_operating_world()`
+- `runtime::WorthQueryWorkspace::prepare_mutation_operating_world()`
 - `domain::WorthQueryOperationFamilyView::bind(...)`
 - `domain::WorthQueryBoundDomainOperation`
 - `domain::WorthQueryBoundDomainOperation::reexecute(...)`
@@ -306,8 +307,8 @@ Obtain the installed domain and bind through one operating world:
 use worth_query::facade::{domain, read};
 
 let installed_domain = workspace.domain(GeometryDomain)?;
-let bound = workspace
-    .operating_world(observation_basis)
+let world = workspace.observe_operating_world()?;
+let bound = world
     .family(ReadFamily)
     .bind(&installed_domain, ReadVertex)?;
 

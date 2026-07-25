@@ -27,7 +27,6 @@ pub use evidence_record::{
 pub use selected_evidence_projection::UiSelectedObligationEvidenceProjection;
 pub(crate) use selection_evidence_records::{
     not_selected_obligation_evidence_record, prerequisite_sources_from_refs,
-    prerequisite_sources_from_target, query_prerequisite_evidence_from_refs,
-    query_prerequisite_evidence_from_target, selected_obligation_evidence_records,
+    prerequisite_sources_from_target, selected_obligation_evidence_records,
 };
 pub(crate) use verdict_evidence_records::verdict_evidence_records;

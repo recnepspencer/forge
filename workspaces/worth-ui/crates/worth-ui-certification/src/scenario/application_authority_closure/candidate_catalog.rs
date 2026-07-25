@@ -17,7 +17,7 @@ use worth_ui_runtime::facade::evidence::{
     certify_measurement_basis_determinism_for_active_host,
     UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationScenario,
 };
-use worth_ui_runtime::facade::host_observation::UiPortalAnchorCoordinateSpacePosture;
+use worth_ui_runtime::facade::host::UiPortalAnchorCoordinateSpacePosture;
 
 pub fn admit_candidate_catalog(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
@@ -41,7 +41,7 @@ fn admit_catalog(
 ) -> worth_ui::facade::graph::UiAdmittedAllocationCatalogDelta {
     let candidates = candidate_inputs(prepared);
     prepared
-        .commit_candidate_mounted_layout_admissions(
+        .commit_candidate_mount_eligibility_admissions(
             candidates
                 .iter()
                 .map(|(_, _, _, transition)| *transition)
@@ -70,7 +70,7 @@ fn candidate_inputs(
     worth_ui::facade::declaration::UiDeclarationIdentity,
     worth_ui::facade::graph::UiGraphNodeIdentity,
     worth_ui_runtime::facade::obligations::UiSelectedObligationSet,
-    worth_ui::facade::graph::UiGraphMountedReceiptTransition,
+    worth_ui::facade::graph::UiGraphMountEligibilityTransition,
 )> {
     prepared
         .candidate_graph()
@@ -100,7 +100,7 @@ fn candidate_inputs(
                 .participation_posture()
                 .axis(UiGraphParticipationAxis::Mounted);
             let transition = graph
-                .mounted_receipt_transition_for_node(
+                .mount_eligibility_transition_for_node(
                     node,
                     prior,
                     UiGraphAxisParticipation::runtime_mutation(
@@ -120,7 +120,7 @@ fn measurement_entries(
         worth_ui::facade::declaration::UiDeclarationIdentity,
         worth_ui::facade::graph::UiGraphNodeIdentity,
         worth_ui_runtime::facade::obligations::UiSelectedObligationSet,
-        worth_ui::facade::graph::UiGraphMountedReceiptTransition,
+        worth_ui::facade::graph::UiGraphMountEligibilityTransition,
     )>,
 ) -> Vec<(
     worth_ui_runtime::facade::evidence::UiMeasurementBasis,

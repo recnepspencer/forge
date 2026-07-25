@@ -108,7 +108,9 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
     let pending = session
         .stage_prepared_replacement(lowered)
         .expect("lowered replacement should stage");
-    let boundary_turn = session.execute_framework_turn(|_| {});
+    let boundary_turn = session
+        .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active");
     assert_eq!(boundary_turn.generation_identity(), &initial_generation);
     let boundary_completion = boundary_turn.into_completion();
     let boundary_counters = boundary_completion
@@ -153,16 +155,18 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
         .expect("active catalog should retain one planning root");
     let active_graph_generation = session.graph().generation();
     let mut interaction_admitted = false;
-    let interaction = session.execute_framework_turn(|turn| {
-        turn.interaction(|source| {
-            interaction_admitted = source
-                .admit_and_submit(
-                    interaction_target,
-                    WorthUiTransientInteractionState::TextInput,
-                )
-                .is_ok();
-        });
-    });
+    let interaction = session
+        .execute_framework_turn(|turn| {
+            turn.interaction(|source| {
+                interaction_admitted = source
+                    .admit_and_submit(
+                        interaction_target,
+                        WorthUiTransientInteractionState::TextInput,
+                    )
+                    .is_ok();
+            });
+        })
+        .expect("no mounted presentation lease is active");
     assert!(
         interaction_admitted,
         "active graph interaction should admit"
@@ -202,12 +206,14 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
         .query_fact_link("inspector.measurements")
         .expect("active plan retains the installed Query fact link");
     let settled = file_query.settle_snapshot();
-    let completion = session.execute_framework_turn(|turn| {
-        turn.query_projection(|source| {
-            projection_admitted =
-                source.admit_settled(settled).is_ok() && source.submit_settled(&fact_link).is_ok();
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.query_projection(|source| {
+                projection_admitted = source.admit_settled(settled).is_ok()
+                    && source.submit_settled(&fact_link).is_ok();
+            });
+        })
+        .expect("no mounted presentation lease is active");
     assert!(
         projection_admitted,
         "registered Query authority should submit"
@@ -275,13 +281,15 @@ fn assert_operational_host_evidence(
     );
     let generation = session.generation_identity().clone();
     let mut admitted = false;
-    let completion = session.execute_framework_turn(|turn| {
-        turn.host_measurement(|source| {
-            admitted = source
-                .collect_and_submit_capability(&capability, input)
-                .is_ok();
-        });
-    });
+    let completion = session
+        .execute_framework_turn(|turn| {
+            turn.host_measurement(|source| {
+                admitted = source
+                    .collect_and_submit_capability(&capability, input)
+                    .is_ok();
+            });
+        })
+        .expect("no mounted presentation lease is active");
     assert!(
         admitted,
         "operational host evidence must enter the active turn"
@@ -299,7 +307,9 @@ fn assert_generation_boundaries(
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),
     ));
-    let completion = session.execute_framework_turn(|_| {});
+    let completion = session
+        .execute_framework_turn(|_| {})
+        .expect("no mounted presentation lease is active");
     assert_eq!(completion.generation_identity(), &generation);
     drop(completion);
     assert_eq!(inspection.generation_identity(), &generation);

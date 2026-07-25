@@ -6,7 +6,7 @@ pub enum WorthUiQueryViewIdentityError {
     ContainsWhitespace,
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct WorthUiQueryViewIdentity(Arc<str>);
 
 impl WorthUiQueryViewIdentity {

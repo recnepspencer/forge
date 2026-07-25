@@ -8,8 +8,8 @@ use crate::source::{WorthUiArtifact, WorthUiArtifactIdentitySeed, WorthUiArtifac
 
 use super::denial_assembly::duplicate_identity_denial;
 use super::structure_digests::{
-    durable_state_is_eligible, node_durable_state_eligibility, node_identity_seed,
-    node_resize_contract_id, node_resize_permission, node_resize_shape_digest,
+    durable_state_is_eligible, node_durable_state_eligibility, node_has_restorable_splitter_state,
+    node_identity_seed, node_resize_contract_id, node_resize_permission, node_resize_shape_digest,
 };
 use super::types::IndexedIdentityNode;
 
@@ -46,6 +46,7 @@ pub(super) fn index_artifact_nodes(
                     durable_state_eligible: durable_state_is_eligible(
                         node_durable_state_eligibility(node),
                     ),
+                    has_restorable_splitter_state: node_has_restorable_splitter_state(node),
                     resize_contract_id: node_resize_contract_id(node),
                     resize_permission: node_resize_permission(node),
                     resize_shape_digest: node_resize_shape_digest(node),

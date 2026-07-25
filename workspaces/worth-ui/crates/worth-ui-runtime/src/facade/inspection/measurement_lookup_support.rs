@@ -6,13 +6,13 @@ use worth_ui_inspection::{
 };
 
 use crate::admission::{
-    UiAdmissionTarget, UiAdmissionWorld, UiQueryMeasurementBasisAuthority,
-    UiQueryMeasurementEligibility, UiQueryMeasurementEligibilityPosture,
+    UiAdmissionTarget, UiAdmissionWorld, UiQueryMeasurementEligibility,
+    UiQueryMeasurementEligibilityPosture, UiQueryMeasurementSourceIdentity,
 };
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::{
     MeasurementEvidenceInput, UiEvidenceRef, UiInspectionCostMetrics, UiMeasurementBasis,
-    UiProjectionFactReceipt,
+    UiSettledQueryFactReceipt,
 };
 use crate::facade::measurement_inspection_evidence::{
     UiMeasurementInspectionEvidenceBundle, UiMeasurementInspectionEvidenceSnapshot,
@@ -131,15 +131,6 @@ pub(super) fn admission_target_for_touch(
     {
         target = target.with_host_capability_report(report.clone());
     }
-    if let Some(authority) = bundle.and_then(UiMeasurementInspectionEvidenceBundle::query_authority)
-    {
-        if let Ok(bound_target) = target
-            .clone()
-            .with_query_prerequisites_from_query_authority(authority)
-        {
-            target = bound_target;
-        }
-    }
     target
 }
 
@@ -155,11 +146,19 @@ pub(super) fn query_measurement_outcome_for_bundle(
         UiQueryMeasurementEligibilityPosture::Eligible { .. } => eligibility
             .projection_fact_receipt()
             .cloned()
+            .map(Box::new)
             .map(QueryMeasurementInspectionOutcome::Receipt),
-        UiQueryMeasurementEligibilityPosture::StaleBasisGeneration {
-            expected, observed, ..
+        UiQueryMeasurementEligibilityPosture::StaleSettlement {
+            expected_view_binding_id,
+            expected_binding_reference,
+            observed,
+            ..
         } => Some(QueryMeasurementInspectionOutcome::Compatibility(
-            project_query_basis_compatibility(expected, observed),
+            project_query_settlement_compatibility(
+                expected_view_binding_id,
+                expected_binding_reference,
+                observed,
+            ),
         )),
         UiQueryMeasurementEligibilityPosture::UnsupportedQueryPosture { reason, .. } => {
             Some(QueryMeasurementInspectionOutcome::Denial(
@@ -223,14 +222,19 @@ fn query_measurement_eligibility_for_bundle(
     measurement_admission: Option<&crate::admission::UiMeasurementAdmission>,
     bundle: Option<&UiMeasurementInspectionEvidenceBundle>,
 ) -> Option<UiQueryMeasurementEligibility> {
-    let authority = bundle?.query_authority()?.clone();
+    let (view_binding_id, fact) = bundle?.settled_query_fact()?;
     let admission = measurement_admission?;
     app.admission()
-        .admit_query_measurement_eligibility_from_query_authority(selected, admission, authority)
+        .admit_query_measurement_eligibility_from_settled_fact(
+            selected,
+            admission,
+            view_binding_id.clone(),
+            fact,
+        )
 }
 
 pub(super) enum QueryMeasurementInspectionOutcome {
-    Receipt(UiProjectionFactReceipt),
+    Receipt(Box<UiSettledQueryFactReceipt>),
     Denial(
         UiInspectionMeasurementDenialPosture,
         Option<UiInspectionMeasurementFailureSource>,
@@ -238,9 +242,10 @@ pub(super) enum QueryMeasurementInspectionOutcome {
     Compatibility(UiInspectionMeasurementGenerationCompatibility),
 }
 
-fn project_query_basis_compatibility(
-    _expected: &UiQueryMeasurementBasisAuthority,
-    _observed: &UiQueryMeasurementBasisAuthority,
+fn project_query_settlement_compatibility(
+    _expected_view_binding_id: &crate::capability::ViewBindingId,
+    _expected_binding_reference: &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference,
+    _observed: &UiQueryMeasurementSourceIdentity,
 ) -> UiInspectionMeasurementGenerationCompatibility {
     UiInspectionMeasurementGenerationCompatibility::IncompatibleWorld {
         reason:
@@ -252,7 +257,7 @@ fn project_query_unsupported_reason(
     reason: crate::admission::UiQueryMeasurementUnsupportedQueryReason,
 ) -> UiInspectionMeasurementQueryUnsupportedReason {
     match reason {
-        crate::admission::UiQueryMeasurementUnsupportedQueryReason::MissingQueryPrerequisites => {
+        crate::admission::UiQueryMeasurementUnsupportedQueryReason::MissingSettledQueryFact => {
             UiInspectionMeasurementQueryUnsupportedReason::MissingQueryPrerequisites
         }
         crate::admission::UiQueryMeasurementUnsupportedQueryReason::WrongWorldProjection => {

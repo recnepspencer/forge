@@ -7,8 +7,8 @@ use crate::runtime::{
 pub(super) fn narrow_settled_query_fact(
     ingress_key: &crate::runtime::UiAllocationFrameIngressKey,
     family: UiAllocationInvalidationFamily,
-    view_binding_id: &crate::capability::ViewBindingId,
-    fact: &worth_ui_query_binding::WorthUiSettledSnapshotFact,
+    view_binding_id: crate::capability::ViewBindingId,
+    fact: std::sync::Arc<worth_ui_query_binding::WorthUiSettledSnapshotFact>,
     ordinal: u16,
     authority: &std::cell::RefCell<super::authority::UiAllocationInvalidationAuthority>,
     counters: &mut UiAllocationInvalidationNarrowingCounters,
@@ -35,9 +35,7 @@ pub(super) fn narrow_settled_query_fact(
             UiAllocationInvalidationNarrowingDenial::QueryConsumptionReceiptMismatch { ordinal },
         );
     }
-    let batch = fact.measurement_facts().map_err(|_| {
-        UiAllocationInvalidationNarrowingDenial::QuerySettlementFamilyMissing { ordinal }
-    })?;
+    let batch = fact.measurement_facts();
     if batch.observations().is_empty() {
         return Err(
             UiAllocationInvalidationNarrowingDenial::QuerySettlementFamilyMissing { ordinal },
@@ -57,7 +55,7 @@ pub(super) fn narrow_settled_query_fact(
     let source_key =
         crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_settled_fact(
             view_binding_id.clone(),
-            fact,
+            &fact,
         );
     if family == UiAllocationInvalidationFamily::ContentExtentChange {
         let authority = authority.borrow();
@@ -70,6 +68,8 @@ pub(super) fn narrow_settled_query_fact(
         }
         return Ok(UiAllocationInvalidationTarget::ScrollOwnedContentExtent {
             bindings: lookup.materialize_bindings(),
+            view_binding_id,
+            fact,
         });
     }
     counted(counters.lookup_graph_target(), ordinal)?;
@@ -81,7 +81,11 @@ pub(super) fn narrow_settled_query_fact(
     let target = lookup
         .target
         .ok_or(UiAllocationInvalidationNarrowingDenial::QueryTargetNotAdmitted { ordinal })?;
-    Ok(UiAllocationInvalidationTarget::SettledQueryFact { target })
+    Ok(UiAllocationInvalidationTarget::SettledQueryFact {
+        target,
+        view_binding_id,
+        fact,
+    })
 }
 
 fn counted(

@@ -1,33 +1,73 @@
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+
 use worth_ui_host_contract::{
-    UiDpiScaleFactorObservation, UiHostObservationValue, UiMeasurementRequest,
-    UiMeasurementRequestFamily, UiViewportExtentObservation, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+    UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
+    UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostProtocolNegotiation,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
+    UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily, UiMountedAccessibilityProjection,
+    UiMountedCompletedEffects, UiMountedEffectFamily, UiMountedFrameConsumptionView,
+    UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedParticipationStatus,
+    UiMountedSurfacePresentationCompletion, UiSurfaceBindingGeneration,
+    UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiOperationalHostAdapter,
 };
 
 #[derive(Clone, Default)]
 pub struct WorthUiHostEgui {
     context: egui::Context,
+    registrations: Arc<
+        Mutex<
+            BTreeMap<
+                UiSurfaceBindingGeneration,
+                worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+            >,
+        >,
+    >,
+    measurement_environment: Arc<Mutex<EguiMeasurementEnvironment>>,
+}
+
+#[derive(Default)]
+struct EguiMeasurementEnvironment {
+    viewport: Option<(u32, u32)>,
+    dpi: Option<u32>,
+    viewport_generation: u64,
+    dpi_generation: u64,
 }
 
 impl WorthUiHostEgui {
     pub fn new(context: egui::Context) -> Self {
-        Self { context }
+        Self {
+            context,
+            registrations: Arc::default(),
+            measurement_environment: Arc::default(),
+        }
+    }
+
+    pub fn registered_surface_count(&self) -> usize {
+        self.registrations.lock().unwrap().len()
     }
 }
 
 impl WorthUiMeasurementHostAdapter for WorthUiHostEgui {
-    fn observe_measurement(&self, request: &UiMeasurementRequest) -> UiHostObservationValue {
+    fn observe_measurement(
+        &self,
+        request: &UiHostMeasurementRequest,
+    ) -> UiHostMeasurementObservationValue {
         match request.family() {
             UiMeasurementRequestFamily::ViewportExtent => {
                 let size = self.context.input(|input| input.screen_rect().size());
-                UiHostObservationValue::ViewportExtent(UiViewportExtentObservation {
+                UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
                     width: size.x,
                     height: size.y,
                 })
             }
             UiMeasurementRequestFamily::DpiScaleFactor => {
-                UiHostObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
+                UiHostMeasurementObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
                     scale_factor: self.context.pixels_per_point(),
                 })
             }
@@ -47,64 +87,283 @@ impl WorthUiOperationalHostAdapter for WorthUiHostEgui {
         WorthUiHostCapabilityReport::available(vec![
             WorthUiHostCapability::DpiObservation,
             WorthUiHostCapability::ViewportObservation,
-            WorthUiHostCapability::CanvasSpatialDraw,
-            WorthUiHostCapability::CanvasSpatialHitTest,
-            WorthUiHostCapability::CanvasSpatialOverlay,
-            WorthUiHostCapability::CanvasSpatialToolState,
-            WorthUiHostCapability::CanvasSpatialRenderResource,
-            WorthUiHostCapability::RealtimeOverlayDraw,
-            WorthUiHostCapability::RealtimeOverlaySurface,
-            WorthUiHostCapability::RealtimeOverlayHook,
         ])
     }
 
-    fn consume_output(
+    fn measurement_environment_report(
         &self,
-        output: &worth_ui_host_contract::WorthUiHostOutputEnvelope,
-    ) -> worth_ui_host_contract::WorthUiHostOutputDisposition {
-        use worth_ui_host_contract::{WorthUiHostOutputDisposition, WorthUiHostOutputPayload};
-
-        let generation = output.generation();
-        let receipt = output.receipt_reference();
-        let id = egui::Id::new((
-            "worth-ui-host-output",
-            generation.active_artifact_digest(),
-            generation.active_plan_digest(),
-            generation.frame_epoch(),
-            receipt.digest(),
-        ));
-        let payload_label = match output.payload() {
-            WorthUiHostOutputPayload::Ordinary(value) => format!(
-                "ordinary:{:?}:{}",
-                value.target(),
-                value.touched_row_count()
-            ),
-            WorthUiHostOutputPayload::VirtualizedData(value) => {
-                format!("virtualized:{}x{}", value.row_count(), value.column_count())
-            }
-            WorthUiHostOutputPayload::CanvasSpatial(value) => format!(
-                "canvas:{:?}:{}",
-                value.target(),
-                value.visible_primitive_count()
-            ),
-            WorthUiHostOutputPayload::RealtimeOverlay(value) => {
-                format!("realtime:{}", value.overlay_row_count())
-            }
-            _ => return WorthUiHostOutputDisposition::UnsupportedPayload,
-        };
-        let label = format!(
-            "worth-ui:{}:{payload_label}",
-            generation.active_plan_digest()
-        );
-        self.context
-            .layer_painter(egui::LayerId::new(egui::Order::Foreground, id))
-            .text(
-                egui::Pos2::ZERO,
-                egui::Align2::LEFT_TOP,
-                label,
-                egui::FontId::monospace(10.0),
-                egui::Color32::GRAY,
-            );
-        WorthUiHostOutputDisposition::Consumed
+    ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
+        let viewport = self.context.input(|input| {
+            let size = input.screen_rect().size();
+            (size.x.to_bits(), size.y.to_bits())
+        });
+        let dpi = self.context.pixels_per_point().to_bits();
+        let mut environment = self.measurement_environment.lock().unwrap();
+        if environment.viewport != Some(viewport) {
+            environment.viewport = Some(viewport);
+            environment.viewport_generation = next_generation(environment.viewport_generation);
+        }
+        if environment.dpi != Some(dpi) {
+            environment.dpi = Some(dpi);
+            environment.dpi_generation = next_generation(environment.dpi_generation);
+        }
+        worth_ui_host_contract::UiHostMeasurementEnvironmentReport::new(
+            Some(environment.viewport_generation),
+            Some(environment.dpi_generation),
+            None,
+            None,
+        )
     }
+
+    fn register_surface(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+    ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
+        let current_protocol = match self.operational_protocol_contract().negotiate() {
+            UiHostProtocolNegotiation::Compatible(agreement) => agreement,
+            UiHostProtocolNegotiation::Incompatible(_) => {
+                return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
+                    worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
+                );
+            }
+        };
+        let capabilities = self.operational_capability_report();
+        if request.host_session_identity() != authority.host_session_identity()
+            || request.protocol() != current_protocol
+            || request.capability_profile_digest() != capabilities.profile_identity_digest()
+        {
+            return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
+            );
+        }
+        let mut registrations = self.registrations.lock().unwrap();
+        if registrations
+            .get(&request.binding_generation())
+            .is_some_and(|registered| *registered != request)
+        {
+            return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
+            );
+        }
+        registrations.insert(request.binding_generation(), request);
+        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::Registered(
+            request.confirm_known_empty(),
+        )
+    }
+
+    fn deregister_surface(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
+    ) -> worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome {
+        if request.host_session_identity() != authority.host_session_identity() {
+            return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
+            );
+        }
+        let mut registrations = self.registrations.lock().unwrap();
+        if registrations.remove(&request.binding_generation()) != Some(request) {
+            return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
+                worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
+            );
+        }
+        worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::Deregistered(
+            worth_ui_host_contract::UiHostSurfaceDeregistrationReceipt::from_runtime(
+                request.host_session_identity(),
+                request.host_surface_identity(),
+            ),
+        )
+    }
+
+    fn present_mounted_surface(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        view: &UiMountedFrameConsumptionView<'_>,
+    ) -> UiHostSurfacePresentationOutcome {
+        if !authority.admits_mounted_presentation(view) {
+            return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+                UiHostSurfacePresentationDenial::SurfaceBindingChanged,
+            );
+        }
+        if let Some(denial) = self.validate_mounted_view(view) {
+            return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+        }
+        let cost = match projection_cost(view.projection()) {
+            Ok(cost) => cost,
+            Err(denial) => {
+                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+            }
+        };
+        UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
+            UiHostSurfacePresentationMode::NativeDisplay,
+            UiMountedCompletedEffects::new(Vec::new()),
+            cost,
+        ))
+    }
+
+    fn release_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> UiHostSessionReleaseOutcome {
+        let mut registrations = self.registrations.lock().unwrap();
+        let before = registrations.len();
+        registrations.retain(|_, request| {
+            request.host_session_identity() != authority.host_session_identity()
+        });
+        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
+            authority.host_session_identity(),
+            before - registrations.len(),
+        ))
+    }
+}
+
+fn projection_cost(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<UiHostPresentationCostReport, UiHostSurfacePresentationDenial> {
+    let rows = [
+        projection.nodes().len(),
+        projection.clips().rows().len(),
+        projection.layers().rows().len(),
+        projection.paint_batches().rows().len(),
+        projection.spatial_batches().rows().len(),
+        projection.realtime_batches().rows().len(),
+        projection.resources().entries().len(),
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    let bytes = [
+        std::mem::size_of_val(projection.nodes()),
+        std::mem::size_of_val(projection.clips().rows()),
+        std::mem::size_of_val(projection.layers().rows()),
+        std::mem::size_of_val(projection.paint_batches().rows()),
+        std::mem::size_of_val(projection.spatial_batches().rows()),
+        std::mem::size_of_val(projection.realtime_batches().rows()),
+        std::mem::size_of_val(projection.resources().entries()),
+    ]
+    .into_iter()
+    .try_fold(0usize, usize::checked_add)
+    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    Ok(UiHostPresentationCostReport::from_adapter(
+        UiHostPresentationCostInput {
+            presented_surfaces: 1,
+            translated_rows: u64::try_from(rows)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            translated_bytes: u64::try_from(bytes)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            native_resource_cache_hits: 0,
+            native_resource_cache_misses: 0,
+            asynchronous_handoffs: 0,
+        },
+    ))
+}
+
+fn next_generation(current: u64) -> u64 {
+    current
+        .checked_add(1)
+        .expect("egui measurement environment generation exhausted")
+}
+
+impl WorthUiHostEgui {
+    fn validate_mounted_view(
+        &self,
+        view: &UiMountedFrameConsumptionView<'_>,
+    ) -> Option<UiHostSurfacePresentationDenial> {
+        let requirement = view.requirement();
+        if requirement.presentation_mode() != UiHostSurfacePresentationMode::NativeDisplay {
+            return Some(
+                UiHostSurfacePresentationDenial::UnsupportedPresentationMode(
+                    requirement.presentation_mode(),
+                ),
+            );
+        }
+        let live_protocol = match self.operational_protocol_contract().negotiate() {
+            UiHostProtocolNegotiation::Compatible(agreement) => agreement,
+            UiHostProtocolNegotiation::Incompatible(denial) => {
+                return Some(UiHostSurfacePresentationDenial::Protocol(denial));
+            }
+        };
+        if view.protocol() != live_protocol {
+            return Some(UiHostSurfacePresentationDenial::ProtocolChanged);
+        }
+        let capabilities = self.operational_capability_report();
+        if view.capability_profile_digest() != capabilities.profile_identity_digest() {
+            return Some(UiHostSurfacePresentationDenial::CapabilityProfileChanged);
+        }
+        let registered = self
+            .registrations
+            .lock()
+            .unwrap()
+            .get(&requirement.binding())
+            .copied();
+        if !registration_matches(registered, view) {
+            return Some(UiHostSurfacePresentationDenial::SurfaceBindingChanged);
+        }
+        unsupported_projection_effect(view.projection())
+            .map(UiHostSurfacePresentationDenial::UnsupportedEffect)
+    }
+}
+
+fn registration_matches(
+    registered: Option<worth_ui_host_contract::UiHostSurfaceRegistrationRequest>,
+    view: &UiMountedFrameConsumptionView<'_>,
+) -> bool {
+    let Some(registered) = registered else {
+        return false;
+    };
+    let requirement = view.requirement();
+    registered.host_session_identity() == view.host_session_identity()
+        && registered.semantic_surface_identity() == requirement.semantic_surface()
+        && registered.host_surface_identity() == requirement.host_surface()
+        && registered.binding_generation() == requirement.binding()
+        && registered.protocol() == view.protocol()
+        && registered.capability_generation() == view.capability_generation()
+        && registered.capability_profile_digest() == view.capability_profile_digest()
+        && registered.presentation_mode() == requirement.presentation_mode()
+        && view.projection().surface() == requirement.semantic_surface()
+        && view.projection().binding() == requirement.binding()
+}
+
+fn unsupported_projection_effect(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Option<UiMountedEffectFamily> {
+    if !projection.spatial_batches().rows().is_empty()
+        || projection
+            .paint_batches()
+            .rows()
+            .iter()
+            .any(|row| row.primitive_kind() == UiMountedPaintPrimitiveKind::CanvasSpatialBatch)
+    {
+        return Some(UiMountedEffectFamily::CanvasSpatial);
+    }
+    if !projection.realtime_batches().rows().is_empty()
+        || projection
+            .paint_batches()
+            .rows()
+            .iter()
+            .any(|row| row.primitive_kind() == UiMountedPaintPrimitiveKind::RealtimeBatch)
+    {
+        return Some(UiMountedEffectFamily::Realtime);
+    }
+    if projection
+        .nodes()
+        .iter()
+        .any(|node| matches!(node.paint(), UiMountedPaintProjection::Batch(_)))
+    {
+        return Some(UiMountedEffectFamily::NativePaint);
+    }
+    if projection.nodes().iter().any(|node| {
+        matches!(
+            node.accessibility(),
+            UiMountedAccessibilityProjection::Admitted(_)
+        )
+    }) {
+        return Some(UiMountedEffectFamily::Accessibility);
+    }
+    projection
+        .nodes()
+        .iter()
+        .any(|node| node.participation().focus().status() == UiMountedParticipationStatus::Admitted)
+        .then_some(UiMountedEffectFamily::Focus)
 }

@@ -21,6 +21,27 @@ pub enum WorthServerProductSessionDenialCode {
     SessionRebindRequired,
 }
 
+impl WorthServerProductSessionDenialCode {
+    pub fn reason_key(self) -> &'static str {
+        match self {
+            Self::CoordinationRequestDenied => "worth_product_session_coordination_request_denied",
+            Self::CoordinationAdmissionDenied => {
+                "worth_product_session_coordination_admission_denied"
+            }
+            Self::CoordinationReadinessDenied => {
+                "worth_product_session_coordination_readiness_denied"
+            }
+            Self::MissingProductSessionIdentity => "worth_product_session_identity_missing",
+            Self::UnknownProductSessionIdentity => "worth_product_session_unknown",
+            Self::ForeignProductSession => "worth_product_session_foreign",
+            Self::ExpiredProductSession => "worth_product_session_expired",
+            Self::ClosedProductSession => "worth_product_session_closed",
+            Self::PreviewSessionCannotMutate => "worth_product_session_preview_mutation_denied",
+            Self::SessionRebindRequired => "worth_product_session_rebind_required",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthServerProductSessionDenial {
     code: WorthServerProductSessionDenialCode,

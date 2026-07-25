@@ -44,7 +44,6 @@ pub struct UiPortalBindingSuccessionLineage {
 
 #[derive(Clone, Debug)]
 pub(crate) struct UiPreparedPortalBindingSuccession {
-    pub(super) successor: super::UiPortalInvalidationBindingIndex,
     predecessor_identity_digest: u64,
     receipt: UiPortalBindingSuccessionReceipt,
 }
@@ -135,12 +134,10 @@ impl UiPortalBindingSuccessionLineage {
 impl UiPreparedPortalBindingSuccession {
     pub(crate) fn new(
         predecessor_identity_digest: u64,
-        successor: super::UiPortalInvalidationBindingIndex,
         lineage: Vec<UiPortalBindingSuccessionLineage>,
         counters: UiPortalBindingSuccessionCounters,
     ) -> Self {
         Self {
-            successor,
             predecessor_identity_digest,
             receipt: UiPortalBindingSuccessionReceipt {
                 lineage: lineage.into_boxed_slice(),

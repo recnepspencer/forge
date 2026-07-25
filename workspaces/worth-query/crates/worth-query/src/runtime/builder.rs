@@ -10,6 +10,7 @@ use worth_relational::facade::runtime::{
 mod conditional_execution;
 mod construction;
 mod consumer_support;
+mod declaration_authority;
 mod domain_operation_executors;
 mod domain_packages;
 mod graph_participation;

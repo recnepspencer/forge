@@ -10,21 +10,22 @@ pub mod entry;
 pub mod evidence;
 pub mod execution;
 pub mod graph;
-pub mod host_observation;
+pub mod host;
 mod host_session_authority;
 mod inspection;
 pub mod inspection_bridge;
 mod inspection_observation;
 mod inspection_receipt;
 pub mod lifecycle;
+pub mod measurement_exchange;
 mod measurement_inspection_evidence;
-#[cfg(test)]
-mod measurement_inspection_query_denial_tests;
 #[cfg(test)]
 mod measurement_inspection_test_support;
 #[cfg(test)]
 mod measurement_inspection_tests;
+pub mod mounted;
 pub mod obligations;
+pub mod observation_report;
 pub mod prepared_application_authority;
 pub mod query_binding;
 pub mod registry;
@@ -45,12 +46,22 @@ pub use entry::{
     WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
     WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
     WorthUiApplicationSemanticNoOpReceipt, WorthUiBuilder, WorthUiCandidateInspectionReceipt,
-    WorthUiLoweredApplicationReplacement, WorthUiPendingApplicationCutover,
-    WorthUiPreparedApplicationReplacement, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope,
+    WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
+    WorthUiMountedApplicationReplacementOutcome, WorthUiMountedLaneProjectionDenial,
+    WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
+    WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
+    WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
+    WorthUiMountedPreviewRetentionRejection, WorthUiMountedReplacementAdmissionDenial,
+    WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
+    WorthUiMountedReplacementRetentionDenial, WorthUiPendingApplicationCutover,
+    WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiResolvedMountedPreview,
 };
-pub(crate) use host_session_authority::WorthUiHostPlanBinding;
+pub(crate) use host_session_authority::WorthUiHostSessionActivationDenial;
 pub(crate) use host_session_authority::WorthUiHostSessionAuthority;
+pub(crate) use host_session_authority::{UiHostEffectPort, WorthUiHostPlanBinding};
 pub use host_session_authority::{
     WorthUiHostMeasurementCapability, WorthUiHostMeasurementSessionInput,
     WorthUiHostSessionIdentity,

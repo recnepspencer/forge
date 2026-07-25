@@ -8,6 +8,9 @@ pub enum WorthServerRouteAssemblyError {
     MissingCompatReadRouteFamily {
         operation_name: String,
     },
+    MissingCompatQueryRouteFamily {
+        operation_name: String,
+    },
     DuplicateMethodPath {
         method: String,
         path: String,
@@ -26,6 +29,9 @@ impl WorthServerRouteAssemblyError {
             ),
             Self::MissingCompatReadRouteFamily { operation_name } => format!(
                 "compatibility read route family must be enabled before assembling route `{operation_name}`"
+            ),
+            Self::MissingCompatQueryRouteFamily { operation_name } => format!(
+                "compatibility query route family must be enabled before assembling structured read route `{operation_name}`"
             ),
             Self::DuplicateMethodPath { method, path } => {
                 format!("route assembly rejected duplicate `{method} {path}`")

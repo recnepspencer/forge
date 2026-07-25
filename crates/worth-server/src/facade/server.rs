@@ -15,6 +15,10 @@ use crate::{
     product_adapter::{
         WorthServerProductAdapterRegistrationReceipt, WorthServerProductOperationRuntime,
     },
+    product_protocol_catalog::{
+        project_product_protocol_catalog, WorthServerProductProtocolCatalog,
+        WorthServerProductProtocolCatalogError,
+    },
     product_session::WorthServerProductSessionRegistry,
     query_dependency_audit::WorthServerQueryDependencyAuditFacade,
     query_handoff::WorthServerQueryHandoffFacade,
@@ -99,6 +103,15 @@ impl WorthServer {
             .assembly()
             .product_adapter_registry()
             .receipts()
+    }
+
+    pub fn product_protocol_catalog(
+        &self,
+    ) -> Result<WorthServerProductProtocolCatalog, WorthServerProductProtocolCatalogError> {
+        project_product_protocol_catalog(
+            self.runtime.assembly().product_adapter_registry(),
+            self.runtime.assembly().route_assembly().inventory(),
+        )
     }
 
     pub fn product_operation_runtime(&self) -> WorthServerProductOperationRuntime {
@@ -230,6 +243,7 @@ impl WorthServer {
         WorthServerOperationRouter::new(
             self.runtime.assembly().route_assembly().clone(),
             self.compat_http(),
+            self.runtime.assembly().transport_caller_admission().clone(),
         )
     }
 

@@ -1,10 +1,3 @@
-use std::sync::Arc;
-
-use worth_query::facade::certification::admit_runtime_current_snapshot_basis_for_certification;
-use worth_query::facade::foundation::{
-    snapshot_resolution_report, QueryExternalIdentityToken, QuerySchemaView,
-    WorthQuerySnapshotIdentity,
-};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::declaration::UiDeclarationSupportRowSchemaKind;
@@ -18,6 +11,7 @@ use worth_ui::facade::obligations::{
     UiObligationSupportBasis, UiObligationSupportSelectionPosture, UiObligationWorldProfileClass,
     UiSelectedObligation,
 };
+use worth_ui_certification::scenario::installed_query_world;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
@@ -112,13 +106,13 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
     let artifact = control_artifact(&app);
     let touch = graph
         .touches()
-        .from_mounted_receipt_transition(
+        .from_mount_eligibility_transition(
             graph
                 .touches()
-                .query_fact_change_receipt()
+                .query_binding_change_receipt()
                 .expect("query world should admit query receipt"),
             UiGraphTouchTiming::PostMutation,
-            mounted_receipt_transition(&app, artifact),
+            mount_eligibility_transition(&app, artifact),
             UiGraphTouchAspects::new()
                 .query_binding(UiGraphTouchAspectPosture::Invalidated)
                 .participation(UiGraphTouchAspectPosture::Invalidated)
@@ -160,9 +154,11 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         participation.selection_reasons(),
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
-            UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
+            UiObligationSelectionReason::TouchOriginClass(
+                UiGraphTouchOriginClass::QueryBindingChange,
+            ),
             UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::QuerySnapshotBasis,
+                UiObligationWorldProfileClass::SettledQueryBinding,
             ),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
@@ -193,9 +189,11 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         query_binding.selection_reasons(),
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
-            UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
+            UiObligationSelectionReason::TouchOriginClass(
+                UiGraphTouchOriginClass::QueryBindingChange,
+            ),
             UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::QuerySnapshotBasis,
+                UiObligationWorldProfileClass::SettledQueryBinding,
             ),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
@@ -227,9 +225,11 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
         diagnostic.selection_reasons(),
         [
             UiObligationSelectionReason::TouchTargetClass(UiGraphTouchTargetClass::AttachmentLane),
-            UiObligationSelectionReason::TouchOriginClass(UiGraphTouchOriginClass::QueryFactChange),
+            UiObligationSelectionReason::TouchOriginClass(
+                UiGraphTouchOriginClass::QueryBindingChange,
+            ),
             UiObligationSelectionReason::WorldProfile(
-                UiObligationWorldProfileClass::QuerySnapshotBasis,
+                UiObligationWorldProfileClass::SettledQueryBinding,
             ),
             UiObligationSelectionReason::SupportPosture(
                 UiObligationSupportSelectionPosture::Supported,
@@ -290,10 +290,10 @@ fn graph_node_identity(
         .expect("declaration should admit one graph node")
 }
 
-fn mounted_receipt_transition(
+fn mount_eligibility_transition(
     app: &worth_ui::facade::app::WorthUiApp,
     artifact: &UiDeclarationArtifact,
-) -> worth_ui::facade::graph::UiGraphMountedReceiptTransition {
+) -> worth_ui::facade::graph::UiGraphMountEligibilityTransition {
     let graph = app.graph();
     let graph_node_identity = graph_node_identity(graph, artifact);
     let control_node = graph
@@ -303,7 +303,7 @@ fn mounted_receipt_transition(
         .value();
 
     graph
-        .mounted_receipt_transition_for_node(
+        .mount_eligibility_transition_for_node(
             graph_node_identity,
             control_node
                 .participation_posture()
@@ -317,21 +317,11 @@ fn query_snapshot_world_profile(
     snapshot_label: &str,
     schema_basis_parts: [&str; 3],
 ) -> UiGraphWorldProfile {
-    let snapshot_identity = WorthQuerySnapshotIdentity::admit_external_token(
-        QueryExternalIdentityToken::new(Arc::<str>::from(snapshot_label)),
-    );
-    let basis = admit_runtime_current_snapshot_basis_for_certification(
-        snapshot_identity.evidence_identity(),
-        QuerySchemaView::new(schema_basis_parts.join(":"), [], []),
+    let binding = schema_basis_parts.join(".").replace('-', "_");
+    installed_query_world::settled_query_world_profile(
+        worth_ui::facade::registry::ViewBindingId::new(binding.clone()).unwrap(),
+        format!("{binding}.{snapshot_label}").replace('-', "_"),
     )
-    .expect("runtime current snapshot basis should resolve");
-
-    let prerequisites =
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryPrerequisiteBoundary::new(
-        )
-        .graph_aligned(basis.clone(), snapshot_resolution_report(&basis))
-        .expect("query prerequisites should admit");
-    UiGraphWorldProfile::query_snapshot_basis(prerequisites)
 }
 
 fn obligation_by_family(

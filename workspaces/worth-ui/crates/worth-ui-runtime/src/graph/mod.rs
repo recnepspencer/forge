@@ -24,7 +24,7 @@ mod inspection;
 mod measurement_neighborhood_hint;
 #[cfg(test)]
 mod measurement_neighborhood_hint_tests;
-mod mounted_receipt;
+mod mount_eligibility;
 mod mutation;
 mod participation;
 mod snapshot;
@@ -45,9 +45,11 @@ pub use admission::{
 
 // --- allocation neighborhood (graph → planning handoff; admission sealed pub(crate)) ---
 pub(crate) use allocation_neighborhood::select_replan_neighborhoods;
+pub(crate) use allocation_neighborhood::UiAdmittedReplanNeighborhood;
 pub(crate) use allocation_neighborhood::UiGraphNeighborhoodActivationTransition;
 pub(crate) use allocation_neighborhood::UiGraphReplanConsequences;
 pub(crate) use allocation_neighborhood::UiGraphReplanTransactionBasis;
+pub(crate) use allocation_neighborhood::UiQueryMeasurementReplanConsequence;
 pub use allocation_neighborhood::{
     UiAdmittedAllocationCatalogBasisSet, UiAdmittedAllocationCatalogDelta,
     UiAdmittedAllocationInvalidationTargetSet, UiAdmittedReplanNeighborhoodSet,
@@ -65,7 +67,7 @@ pub(crate) use allocation_neighborhood::{
 pub use closeout::{
     UiGraphAuthority, UiGraphClosedSemanticLane, UiGraphCloseoutGuarantee, UiGraphCloseoutNonGoal,
     UiGraphCloseoutReport, UiGraphInspectionStopPoint, UiGraphInspectionSupportReport,
-    UiGraphMountedReceiptAuthorityRecord, UiGraphNodeRecord, UiGraphTopologyRecord,
+    UiGraphMountEligibilityRecord, UiGraphNodeRecord, UiGraphTopologyRecord,
 };
 
 // --- identity ---
@@ -82,7 +84,7 @@ pub use indexes::{
     UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
     UiGraphAspectPublisherKind, UiGraphCoreIndexes, UiGraphLookup, UiGraphLookupCostClass,
     UiGraphLookupFamily, UiGraphLookupReceipt, UiGraphLookupSurface, UiGraphMosaicMembershipIndex,
-    UiGraphMountedReceiptIndex, UiGraphPageMembershipIndex, UiGraphPageParticipationIndex,
+    UiGraphMountEligibilityIndex, UiGraphPageMembershipIndex, UiGraphPageParticipationIndex,
     UiGraphPageParticipationMember, UiGraphParentChildIndex, UiGraphRegionMembershipIndex,
     UiGraphSlotOccupancyIndex,
 };
@@ -103,19 +105,20 @@ pub(crate) use inspection::{
 #[cfg(test)]
 pub(crate) use measurement_neighborhood_hint::UiGraphMeasurementNeighborhoodHint;
 
-// --- mounted receipt ---
-pub(crate) use mounted_receipt::materialize_graph_mounted_receipts;
-pub use mounted_receipt::{
-    UiGraphMountedPostureRelationship, UiGraphMountedReceiptAuthoritySeed,
-    UiGraphMountedReceiptAuthoritySeedStore, UiGraphMountedReceiptMutation,
-    UiGraphMountedReceiptMutationKind, UiGraphMountedReceiptReservation, UiGraphMountedReceiptSlot,
-    UiGraphMountedReceiptTransition, UiMountedReceiptIdentity,
+// --- mount eligibility ---
+pub(crate) use mount_eligibility::materialize_graph_mount_eligibilities;
+pub use mount_eligibility::{
+    UiGraphMountEligibilityIdentity, UiGraphMountEligibilityMutation,
+    UiGraphMountEligibilityMutationKind, UiGraphMountEligibilityRelationship,
+    UiGraphMountEligibilityReservation, UiGraphMountEligibilitySeed, UiGraphMountEligibilitySlot,
+    UiGraphMountEligibilityStore, UiGraphMountEligibilityTransition,
 };
 
 // --- mutation ---
 pub(crate) use mutation::UiGraphMutationStage;
 pub use mutation::{
-    UiGraphMountedLayoutAdmissionDenial, UiGraphMutationCommitDenial, UiGraphMutationCommitResult,
+    UiGraphMountEligibilityAdmissionDenial, UiGraphMutationCommitDenial,
+    UiGraphMutationCommitResult,
 };
 
 // --- participation ---

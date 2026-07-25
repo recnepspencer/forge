@@ -141,7 +141,7 @@ fn lower_command(
 
 fn admit_compat_entity_identity(entity_identity: &str) -> WorthQueryEntityIdentity {
     RelationalBridgeRecordIdentityParts::from_bridge_entity_identity(entity_identity)
-        .map(WorthQueryEntityIdentity::from_relational_record)
+        .map(WorthQueryEntityIdentity::from_bridge_record_projection)
         .unwrap_or_else(|| {
             WorthQueryEntityIdentity::admit_authored_entity_token(QueryExternalIdentityToken::new(
                 Arc::from(entity_identity),

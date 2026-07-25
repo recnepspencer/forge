@@ -26,6 +26,10 @@ pub(crate) struct UiAllocationInvalidationAuthority {
         crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
         PersistentScopes,
     >,
+    pub(super) query_contexts_by_binding: crate::runtime::persistent_index::UiPersistentOrdMap<
+        crate::evidence::measurement::basis::UiQueryAllocationBindingKey,
+        PersistentScopes,
+    >,
     pub(super) host_targets_by_witness: crate::runtime::persistent_index::UiPersistentOrdMap<
         crate::evidence::UiHostMeasurementAuthorityWitness,
         UiHostInvalidationTargetMapping,
@@ -97,7 +101,6 @@ pub(super) struct UiHostInvalidationTargetMapping {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiInvalidationAuthorityLookupDenial {
-    QueryAuthorityNotIndexable,
     HostEvidenceGenerationMismatch,
     HostNormalizationAuthorityMismatch,
     AuthorityCounterExhausted,
@@ -114,17 +117,6 @@ impl UiAllocationInvalidationAuthority {
             return Err(super::UiPortalBindingSuccessionDenial::TransactionPermitMismatch);
         }
         self.portal_bindings.prepare_succession(committed)
-    }
-    pub(in crate::runtime) fn commit_portal_binding_succession(
-        &mut self,
-        permit: &mut crate::runtime::allocation_frame_dispatch::UiAllocationTransactionAuthority,
-        prepared: super::UiPreparedPortalBindingSuccession,
-    ) {
-        debug_assert!(
-            prepared.predecessor_identity_digest() == self.portal_binding_identity_digest()
-        );
-        let _ = permit;
-        self.portal_bindings = prepared.successor;
     }
     pub(crate) fn portal_binding_identity_digest(&self) -> u64 {
         self.portal_bindings.identity_digest()
@@ -169,17 +161,6 @@ impl UiAllocationInvalidationAuthority {
     > {
         self.scroll_bindings.projection_for_host(witness, receipt)
     }
-    pub(crate) fn acquire_query_scroll_projection(
-        &self,
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-        allocation_receipt: &crate::runtime::UiAllocationReceipt,
-    ) -> Result<
-        crate::runtime::UiActivatedScrollOwner,
-        crate::runtime::UiScrollOwnerAcquisitionDenial,
-    > {
-        self.scroll_bindings
-            .projection_for_query(authority, allocation_receipt)
-    }
     pub(crate) fn acquire_settled_query_scroll_projection(
         &self,
         receipt: &crate::evidence::UiSettledQueryFactReceipt,
@@ -201,18 +182,18 @@ impl UiAllocationInvalidationAuthority {
 
     pub(crate) fn seal_catalog_transition(
         &self,
-        catalog: &super::UiAllocationActivationCatalog,
         activation: crate::runtime::allocation_receipt::UiCommittedAllocationCatalogActivation,
-        activation_identity: crate::runtime::UiCommittedAllocationActivationIdentity,
         affected_predecessor_scopes: Option<Box<[crate::evidence::UiAllocationNeighborhoodScope]>>,
     ) -> super::UiAllocationNeighborhoodCatalogTransition {
         super::UiAllocationNeighborhoodCatalogTransition::seal(
             &self.graph_replan,
-            catalog,
             activation,
-            activation_identity,
             affected_predecessor_scopes,
         )
+    }
+
+    pub(crate) fn active_catalog_identity_digest(&self) -> u64 {
+        self.graph_replan.active_identity_digest()
     }
 
     pub(crate) fn graph_target(
@@ -259,21 +240,6 @@ impl UiAllocationInvalidationAuthority {
         Err(UiInvalidationAuthorityLookupDenial::HostNormalizationAuthorityMismatch)
     }
 
-    pub(crate) fn query_target(
-        &self,
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-    ) -> Result<UiInvalidationAuthorityLookup, UiInvalidationAuthorityLookupDenial> {
-        if !self.has_invalidation_contexts() {
-            return Ok(UiInvalidationAuthorityLookup {
-                target: None,
-                probes: 0,
-            });
-        }
-        let source_key = crate::evidence::measurement::basis::UiQueryAllocationSourceKey::from_managed_live_compatibility(authority)
-            .map_err(|_| UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable)?;
-        self.query_target_for_source(&source_key)
-    }
-
     pub(crate) fn settled_query_target(
         &self,
         source_key: &crate::evidence::measurement::basis::UiQueryAllocationSourceKey,
@@ -291,7 +257,8 @@ impl UiAllocationInvalidationAuthority {
                 probes: 0,
             });
         }
-        let Some(ordinals) = self.query_contexts.get(source_key) else {
+        let binding = source_key.binding_key();
+        let Some(ordinals) = self.query_contexts_by_binding.get(&binding) else {
             return Ok(UiInvalidationAuthorityLookup {
                 target: None,
                 probes: 1,
@@ -307,7 +274,7 @@ impl UiAllocationInvalidationAuthority {
                 .ok_or(UiInvalidationAuthorityLookupDenial::AuthorityCounterExhausted)?;
             for mapping in context
                 .basis
-                .query_allocation_mappings_for_source(source_key)
+                .query_allocation_mappings_for_binding(&binding)
             {
                 probes = probes
                     .checked_add(1)

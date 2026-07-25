@@ -1,6 +1,8 @@
-mod fixture;
+mod collection_delivery;
+mod collection_window;
+pub(crate) mod fixture;
 mod parity;
 mod rejection;
-mod samples;
+pub(crate) mod samples;
 mod scaling;
 mod world_scale;

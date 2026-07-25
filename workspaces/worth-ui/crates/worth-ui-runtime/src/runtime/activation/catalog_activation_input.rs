@@ -1,4 +1,4 @@
-pub(crate) struct UiAllocationCatalogDeltaActivationInput<'application> {
+pub(crate) struct UiAllocationCatalogDeltaActivationInput {
     pub(crate) admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
     pub(crate) active_graph: crate::graph::UiGraphSnapshot,
     pub(crate) graph_changed_nodes: std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
@@ -7,5 +7,5 @@ pub(crate) struct UiAllocationCatalogDeltaActivationInput<'application> {
     pub(crate) candidate_query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     pub(crate) successor_planning_authority:
         std::rc::Rc<crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
-    pub(crate) application_publication: super::WorthUiPreparedApplicationPublication<'application>,
+    pub(crate) application_publication: super::WorthUiPreparedApplicationPublication,
 }

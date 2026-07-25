@@ -11,7 +11,7 @@ use crate::{
         compat_resume_success, download_input as resume_download_input,
         prepared_request as resume_prepared_request,
     },
-    compat_http_phase_four_runtime::{
+    compat_http_phase_four_runtime::request_support::{
         build_phase_four_server, compat_stream_input, default_stream_selection,
         streaming_response_success,
     },

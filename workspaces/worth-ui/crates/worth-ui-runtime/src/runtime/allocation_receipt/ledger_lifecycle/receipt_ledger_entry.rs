@@ -4,14 +4,29 @@ use super::{
 };
 use std::cell::RefMut;
 
-pub(in crate::runtime) struct UiPreparedAllocationCatalogLedgerCommit<'ledger> {
-    live: RefMut<'ledger, super::ledger_state::UiAllocationReceiptLedgerState>,
+pub(in crate::runtime) struct UiPreparedAllocationCatalogLedgerCommit {
+    predecessor: super::ledger_state::UiAllocationReceiptLedgerState,
     successor: super::ledger_state::UiAllocationReceiptLedgerState,
 }
 
-impl UiPreparedAllocationCatalogLedgerCommit<'_> {
-    pub(in crate::runtime) fn commit_once(mut self) {
-        *self.live = self.successor;
+impl UiPreparedAllocationCatalogLedgerCommit {
+    pub(in crate::runtime) fn successor_truth_revision(&self) -> super::UiAllocationTruthRevision {
+        self.successor.truth_revision
+    }
+
+    pub(in crate::runtime) fn successor_mounted_projection_catalog(
+        &self,
+    ) -> super::UiMountedAllocationProjectionCatalog {
+        self.successor.mounted_projection_catalog.clone()
+    }
+
+    pub(in crate::runtime) fn commit_once(self, ledger: &UiAllocationReceiptLedger) {
+        let mut live = ledger.state.borrow_mut();
+        assert_eq!(
+            *live, self.predecessor,
+            "reserved allocation-ledger predecessor changed before total publication"
+        );
+        *live = self.successor;
     }
 }
 
@@ -105,13 +120,13 @@ impl UiAllocationReceiptLedger {
     pub(in crate::runtime) fn prepare_catalog_commit(
         &self,
         transition: &super::UiAllocationCatalogLedgerTransition,
-    ) -> Option<UiPreparedAllocationCatalogLedgerCommit<'_>> {
-        let live = self.state.borrow_mut();
+    ) -> Option<UiPreparedAllocationCatalogLedgerCommit> {
+        let live = self.state.borrow();
         if *live != transition.predecessor {
             return None;
         }
         Some(UiPreparedAllocationCatalogLedgerCommit {
-            live,
+            predecessor: transition.predecessor.clone(),
             successor: transition.successor.clone(),
         })
     }

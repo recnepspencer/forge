@@ -35,6 +35,28 @@ pub(crate) struct WorthQueryNativeAccessLayout {
 }
 
 impl WorthQueryNativeAccessLayout {
+    pub(crate) fn semantic_identity(&self) -> String {
+        let mut parts = vec![
+            "worth_query_native_access_semantics_v1".to_string(),
+            format!("source-family:{:?}", self.source_family),
+        ];
+        parts.extend(
+            self.display_keys
+                .iter()
+                .chain(&self.derived_keys)
+                .map(semantic_key_identity_part),
+        );
+        crate::identity::hash_parts(&parts)
+    }
+
+    pub(crate) fn selected_keys(&self) -> Vec<WorthQueryNativeAccessKey> {
+        self.display_keys
+            .iter()
+            .chain(&self.derived_keys)
+            .cloned()
+            .collect()
+    }
+
     pub(crate) fn shares_execution_projection_with(&self, candidate: &Self) -> bool {
         self.source_family == candidate.source_family
             && self.row_count == candidate.row_count
@@ -244,6 +266,21 @@ impl WorthQueryNativeAccessLayout {
             counters,
         )
     }
+}
+
+fn semantic_key_identity_part(key: &WorthQueryNativeAccessKey) -> String {
+    format!(
+        "key:{}:{}:{}:{}:{:?}:{:?}:{:?}:{}:{}",
+        key.contract_key().as_str(),
+        key.contract_identity().0,
+        key.contract_revision().0,
+        key.field_path().terminal_projection_for_boundary(),
+        key.expected_shape(),
+        key.absence_posture(),
+        key.lane(),
+        key.lane_slot(),
+        key.lane_width(),
+    )
 }
 
 struct PartitionedNativeAccessPlan {

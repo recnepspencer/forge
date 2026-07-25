@@ -43,7 +43,6 @@ pub use denial::{
 pub use frame_receipt::WorthUiCanvasSpatialFrameReceipt;
 pub(crate) use frame_receipt::WorthUiCanvasSpatialFrameReceiptInput;
 pub use frame_target::WorthUiCanvasSpatialFrameTarget;
-pub(crate) use frame_target::WorthUiCanvasSpatialFrameTargetKind;
 pub use hit_test_request::WorthUiSpatialHitTestRequest;
 pub use lane::WorthUiCanvasSpatialLane;
 pub use plan::WorthUiCanvasSpatialPlan;

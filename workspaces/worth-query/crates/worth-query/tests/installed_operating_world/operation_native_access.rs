@@ -11,7 +11,8 @@ fn installed_projection_key_borrows_the_exact_foundational_value_in_constant_wor
     let mut workspace = workspace("installed-native-access", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -44,12 +45,14 @@ fn key_from_an_equivalent_distinct_capability_is_denied_before_indexing() {
     let mut workspace = workspace("installed-native-affinity", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let owner = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
     let foreign = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -86,7 +89,8 @@ fn out_of_bounds_row_is_distinct_and_does_no_fact_access() {
     let mut workspace = workspace("installed-native-row-bound", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -114,12 +118,14 @@ fn access_key_requires_the_bound_native_layout() {
     let mut workspace = workspace("installed-native-layout-required", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let owner = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
     let foreign = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, ReadVertex)
         .unwrap();
@@ -150,7 +156,8 @@ fn workflow_publication_uses_the_same_bound_native_access_contract() {
     let mut workspace = workflow_workspace("installed-workflow-native-access").unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
-        .operating_world(observation_basis())
+        .observe_operating_world()
+        .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap();
@@ -214,15 +221,4 @@ fn native_id_request<D, O, F, L: foundation::BasisOperationLane>(
     let request = builder.build().unwrap();
     let key = request.resolve_native_key(&selection).unwrap().into_key();
     (request, key)
-}
-
-fn observation_basis() -> foundation::AdmittedBasisCapability<foundation::ObservationLaneWitness> {
-    foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .unwrap()
-        .admit()
-        .unwrap()
-        .capability()
-        .clone()
 }

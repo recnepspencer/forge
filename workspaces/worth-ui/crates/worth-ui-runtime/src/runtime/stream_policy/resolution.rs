@@ -14,10 +14,10 @@ use crate::runtime::allocation_frame_dispatch::{
     UiAllocationFrameIngressKey, UiPendingAllocationFrameHandoff,
 };
 use crate::runtime::{
-    UiAllocationFrameQuerySettlementPosture, UiAllocationFrameQueryWarningPosture,
-    UiAllocationFrameSourceFact, UiAllocationInvalidationFamily, UiAllocationInvalidationIntent,
-    UiAllocationPartialSettlementLaw, UiAllocationStreamCompositionDenial,
-    UiAllocationStreamFamily, UiResolvedAllocationStreamPolicy, WorthUiTransientInteractionState,
+    UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
+    UiAllocationInvalidationFamily, UiAllocationInvalidationIntent,
+    UiAllocationStreamCompositionDenial, UiAllocationStreamFamily,
+    UiResolvedAllocationStreamPolicy, WorthUiTransientInteractionState,
 };
 use posture::resolve_ingress_policy_verdict;
 pub(crate) use source_order_transition::UiAllocationSourceOrderTransition;
@@ -332,23 +332,15 @@ fn denial_postures(
 #[rustfmt::skip]
 fn classify(fact: &UiAllocationFrameSourceFact) -> Result<(UiAllocationStreamFamily, UiAllocationInvalidationFamily), UiAllocationFrameResolutionDenial> {
     Ok(match fact {
-        UiAllocationFrameSourceFact::QueryProjection { source, posture: UiAllocationFrameQuerySettlementPosture::Settled | UiAllocationFrameQuerySettlementPosture::Partial, .. } => {
-            let invalidation = if source.receipt().consumed_families().contains(
-                &worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent,
-            ) {
-                UiAllocationInvalidationFamily::ContentExtentChange
-            } else {
-                UiAllocationInvalidationFamily::QueryMeasurementFactChange
-            };
-            (UiAllocationStreamFamily::QueryProjection, invalidation)
-        },
         UiAllocationFrameSourceFact::QuerySettledFact { fact, .. } => {
-            let carries_content_extent = fact.measurement_facts().is_ok_and(|batch| {
-                batch.observations().iter().any(|observation| {
+            let carries_content_extent = fact
+                .measurement_facts()
+                .observations()
+                .iter()
+                .any(|observation| {
                     observation.family()
                         == worth_ui_query_binding::WorthUiQueryMeasurementFactFamily::ScrollContentExtent
-                })
-            });
+                });
             let invalidation = if carries_content_extent {
                 UiAllocationInvalidationFamily::ContentExtentChange
             } else {

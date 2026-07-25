@@ -1,4 +1,4 @@
-use worth_query::facade::{domain, foundation, runtime};
+use worth_query::facade::{foundation::ObservationLaneWitness, installed, runtime};
 
 use crate::{
     application_binding::WorthUiInstalledSnapshotOperationReference,
@@ -6,7 +6,7 @@ use crate::{
     WorthUiQueryWorkspaceExt, WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily,
 };
 
-pub type WorthUiBoundSnapshotMeasurement<L> = domain::WorthQueryBoundDomainOperation<
+pub type WorthUiBoundSnapshotMeasurement<L> = installed::WorthQueryBoundDomainOperation<
     crate::WorthUiDomainEntry,
     WorthUiSnapshotMeasurement,
     WorthUiSnapshotMeasurementFamily,
@@ -17,7 +17,7 @@ pub type WorthUiBoundSnapshotMeasurement<L> = domain::WorthQueryBoundDomainOpera
 pub enum WorthUiQueryOperationAttemptDenial {
     Installation(WorthUiQueryInstallationDenial),
     InstalledDomainAuthorityMismatch,
-    SnapshotOperationRequired,
+    OperatingWorld(Box<installed::WorthQueryOperatingWorldEntryDenial>),
 }
 
 /// One attempt-scoped entry into Query's installed operating world.
@@ -26,22 +26,19 @@ pub enum WorthUiQueryOperationAttemptDenial {
 /// workspace resolve the same exact installed-domain authority. Consuming the
 /// gateway binds one operation; neither the world nor the move-only bound
 /// operation can be retained in an application plan or steady frame.
-pub struct WorthUiQueryOperatingWorldGateway<'runtime, L: foundation::BasisOperationLane> {
-    world: domain::WorthQueryInstalledOperatingWorld<'runtime, L>,
+pub struct WorthUiQueryOperatingWorldGateway<'runtime> {
+    world: installed::WorthQueryInstalledOperatingWorld<'runtime, ObservationLaneWitness>,
     pub(super) reference: WorthUiInstalledQueryBindingReference,
     operation: WorthUiInstalledSnapshotOperationReference,
 }
 
 impl WorthUiInstalledQueryBindingReference {
-    pub fn enter_snapshot_attempt<'runtime, L: foundation::BasisOperationLane>(
+    pub fn enter_snapshot_attempt<'runtime>(
         &self,
         workspace: &'runtime runtime::WorthQueryWorkspace,
-        basis: foundation::AdmittedBasisCapability<L>,
-    ) -> Result<WorthUiQueryOperatingWorldGateway<'runtime, L>, WorthUiQueryOperationAttemptDenial>
+    ) -> Result<WorthUiQueryOperatingWorldGateway<'runtime>, WorthUiQueryOperationAttemptDenial>
     {
-        let operation = self
-            .snapshot_operation()
-            .ok_or(WorthUiQueryOperationAttemptDenial::SnapshotOperationRequired)?;
+        let operation = self.snapshot_operation();
         let current = workspace
             .worth_ui()
             .map_err(WorthUiQueryOperationAttemptDenial::Installation)?;
@@ -49,20 +46,28 @@ impl WorthUiInstalledQueryBindingReference {
             return Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch);
         }
         Ok(WorthUiQueryOperatingWorldGateway {
-            world: workspace.operating_world(basis),
+            world: workspace.observe_operating_world().map_err(|denial| {
+                WorthUiQueryOperationAttemptDenial::OperatingWorld(Box::new(denial))
+            })?,
             reference: self.clone(),
             operation,
         })
     }
 }
 
-impl<L: foundation::BasisOperationLane> WorthUiQueryOperatingWorldGateway<'_, L> {
+impl WorthUiQueryOperatingWorldGateway<'_> {
     pub fn bind_snapshot(
         self,
-    ) -> Result<WorthUiBoundSnapshotMeasurement<L>, domain::WorthQueryOperationBindingDenial> {
-        self.world.family(self.operation.family).bind(
-            self.reference.installed_domain().handle(),
-            self.operation.operation,
-        )
+    ) -> Result<
+        WorthUiBoundSnapshotMeasurement<ObservationLaneWitness>,
+        Box<installed::WorthQueryOperationBindingDenial>,
+    > {
+        self.world
+            .family(self.operation.family)
+            .bind(
+                self.reference.installed_domain().handle(),
+                self.operation.operation,
+            )
+            .map_err(Box::new)
     }
 }

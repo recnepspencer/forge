@@ -75,6 +75,8 @@ fn lane_change_plan(plan: &WorthUiNodeReplacementPlan) -> WorthUiNodeReplacement
                     candidate_kind: classification.candidate_kind(),
                     active_durable_state_eligible: classification.active_durable_state_eligible(),
                     candidate_durable_state_eligible: classification.candidate_durable_state_eligible(),
+                    active_has_restorable_splitter_state: classification.active_has_restorable_splitter_state(),
+                    candidate_has_restorable_splitter_state: classification.candidate_has_restorable_splitter_state(),
                     active_resize_contract_id: classification.active_resize_contract_id().cloned(),
                     candidate_resize_contract_id: classification.candidate_resize_contract_id().cloned(),
                     active_resize_permission: classification.active_resize_permission().cloned(),

@@ -17,7 +17,7 @@ use crate::WorthServerDirectProjectionRequest;
 
 pub(crate) enum WorthServerNamedLiveProjectionExecutionError {
     Runtime(Box<WorthQueryRuntimeError>),
-    Consumption(ProjectionFactConsumptionPathError),
+    Consumption(Box<ProjectionFactConsumptionPathError>),
 }
 
 pub struct WorthServerPreparedDirectDeclaration {
@@ -226,7 +226,9 @@ impl WorthServerAdmittedDirectDeclaration {
                 ),
                 request.authority_contract_owned(),
             )
-            .map_err(WorthServerNamedLiveProjectionExecutionError::Consumption)
+            .map_err(|error| {
+                WorthServerNamedLiveProjectionExecutionError::Consumption(Box::new(error))
+            })
     }
 
     fn with_workspace<T>(&self, operation: impl FnOnce(&WorthQueryWorkspace) -> T) -> T {

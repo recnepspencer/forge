@@ -4,7 +4,7 @@ use super::installed_operation_fixture::{
     consume_empty_invalidation_epoch as consume_empty_epoch, lineage_invalidation_workspace,
     settle_native, InvalidationLease as Lease,
 };
-use super::operation_lineage::{bind, intent, mutation_basis};
+use super::operation_lineage::{bind, intent};
 
 #[test]
 fn cert_reexecution_and_live_maintenance_converge_without_replay_authority_promotion() {
@@ -26,8 +26,7 @@ fn cert_reexecution_and_live_maintenance_converge_without_replay_authority_promo
     let (subject, candidate) = shared.into_leases();
     consume_empty_epoch(&mut workspace, &subject, &candidate);
 
-    let basis = mutation_basis();
-    let original = bind(&workspace, basis.clone())
+    let original = bind(&workspace)
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let original_delivery = subject.drain(&mut workspace).unwrap();
@@ -38,7 +37,7 @@ fn cert_reexecution_and_live_maintenance_converge_without_replay_authority_promo
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
-        bind(&workspace, basis),
+        bind(&workspace),
         intent(),
         &mut workspace,
     )

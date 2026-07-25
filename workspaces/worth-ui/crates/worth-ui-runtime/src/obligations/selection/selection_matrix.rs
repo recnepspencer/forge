@@ -209,8 +209,11 @@ impl UiObligationSelectionRule {
                 touch.origin().class() == origin && has_lane(touch, lane)
             }
             Self::QueryBindingRequirement => {
-                touch.origin().class() == UiGraphTouchOriginClass::QueryFactChange
-                    && has_lane(touch, UiGraphTouchRuntimeLane::QueryBinding)
+                matches!(
+                    touch.origin().class(),
+                    UiGraphTouchOriginClass::QueryBindingChange
+                        | UiGraphTouchOriginClass::QueryFactChange
+                ) && has_lane(touch, UiGraphTouchRuntimeLane::QueryBinding)
                     && node_record
                         .map(|record| record.attachment_posture().query_binding_attached())
                         .unwrap_or(false)

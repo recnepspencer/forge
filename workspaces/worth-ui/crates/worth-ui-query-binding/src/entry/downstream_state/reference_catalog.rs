@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    WorthUiInstalledQueryBindingReference, WorthUiQueryMeasurementFactSettlementDenial,
-    WorthUiQueryViewDefinition, WorthUiQueryViewExecutionEvidenceDenial, WorthUiQueryViewIdentity,
+    WorthUiInstalledQueryBindingReference, WorthUiQueryViewExecutionEvidenceDenial,
+    WorthUiQueryViewIdentity,
 };
 
 #[derive(Debug)]
@@ -15,21 +15,6 @@ impl WorthUiInstalledReferenceCatalog {
         references: BTreeMap<WorthUiQueryViewIdentity, WorthUiInstalledQueryBindingReference>,
     ) -> Self {
         Self { references }
-    }
-
-    pub(super) fn reference_for_projection(
-        &self,
-        definition: &WorthUiQueryViewDefinition,
-    ) -> Result<&WorthUiInstalledQueryBindingReference, WorthUiQueryMeasurementFactSettlementDenial>
-    {
-        let reference = self
-            .references
-            .get(definition.identity())
-            .ok_or(WorthUiQueryMeasurementFactSettlementDenial::UnregisteredView)?;
-        if reference.definition() != definition {
-            return Err(WorthUiQueryMeasurementFactSettlementDenial::UnregisteredView);
-        }
-        Ok(reference)
     }
 
     pub(super) fn validate(
@@ -64,5 +49,26 @@ impl WorthUiInstalledReferenceCatalog {
         self.references.values().any(|reference| {
             reference.definition().lifecycle() == crate::WorthUiQueryViewLifecycle::Live
         })
+    }
+
+    pub(super) fn identities(
+        &self,
+    ) -> impl ExactSizeIterator<Item = WorthUiQueryViewIdentity> + '_ {
+        self.references.keys().cloned()
+    }
+
+    pub(super) fn live_identities(&self) -> impl Iterator<Item = WorthUiQueryViewIdentity> + '_ {
+        self.references
+            .values()
+            .filter(|reference| {
+                reference.definition().lifecycle() == crate::WorthUiQueryViewLifecycle::Live
+            })
+            .map(|reference| reference.definition().identity().clone())
+    }
+
+    pub(super) fn references(
+        &self,
+    ) -> impl ExactSizeIterator<Item = WorthUiInstalledQueryBindingReference> + '_ {
+        self.references.values().cloned()
     }
 }

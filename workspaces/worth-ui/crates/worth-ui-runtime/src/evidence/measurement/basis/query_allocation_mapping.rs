@@ -1,4 +1,5 @@
 use crate::graph::UiGraphNodeIdentity;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 /// Sealed UI mapping law joining admitted Query consumption to its graph target.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -9,10 +10,13 @@ pub(crate) enum UiQueryAllocationPurpose {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum UiQueryAllocationSourceKey {
-    ManagedLiveCompatibility(
-        worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityIndexKey,
-    ),
     SettledSnapshot(super::super::UiSettledQueryFactKey),
+}
+
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub(crate) struct UiQueryAllocationBindingKey {
+    view_binding_id: crate::capability::ViewBindingId,
+    binding_key: worth_ui_query_binding::WorthUiAdmittedQueryBindingKey,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,16 +29,10 @@ pub(crate) struct UiQueryAllocationTargetMapping {
 
 impl UiQueryAllocationTargetMapping {
     pub(super) fn from_admitted_receipt(
-        receipt: &crate::evidence::UiProjectionFactReceipt,
+        receipt: &crate::evidence::UiSettledQueryFactReceipt,
         target: UiGraphNodeIdentity,
     ) -> Self {
-        Self::from_parts(
-            UiQueryAllocationSourceKey::ManagedLiveCompatibility(
-                receipt.authority_index_key().clone(),
-            ),
-            receipt.consumed_fact_families(),
-            target,
-        )
+        Self::from_settled_receipt(receipt, target)
     }
 
     pub(super) fn from_settled_receipt(
@@ -98,23 +96,31 @@ impl UiQueryAllocationTargetMapping {
 }
 
 impl UiQueryAllocationSourceKey {
-    pub(crate) fn identity_digest(&self) -> u64 {
+    pub(crate) fn binding_key(&self) -> UiQueryAllocationBindingKey {
         match self {
-            Self::ManagedLiveCompatibility(key) => key.identity_digest(),
-            Self::SettledSnapshot(key) => {
-                crate::declaration::stable_text_digest(key.view_binding_id().as_str())
-                    ^ crate::declaration::stable_text_digest(key.query_binding_identity())
-                        .rotate_left(29)
-            }
+            Self::SettledSnapshot(key) => UiQueryAllocationBindingKey {
+                view_binding_id: key.view_binding_id().clone(),
+                binding_key: key.binding_key().clone(),
+            },
         }
     }
 
-    pub(crate) fn from_managed_live_compatibility(
-        authority: &worth_ui_query_binding::compatibility::managed_live::WorthUiQueryAuthorityHandle,
-    ) -> Result<Self, worth_ui_query_binding::compatibility::managed_live::WorthUiQueryMeasurementFactReceiptError>{
-        authority
-            .authority_index_key()
-            .map(Self::ManagedLiveCompatibility)
+    pub(crate) fn settlement_reference(
+        &self,
+    ) -> &worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference {
+        match self {
+            Self::SettledSnapshot(key) => key.settlement_reference(),
+        }
+    }
+
+    pub(crate) fn identity_digest(&self) -> u64 {
+        match self {
+            Self::SettledSnapshot(key) => {
+                crate::declaration::stable_text_digest(key.view_binding_id().as_str())
+                    ^ opaque_reference_digest(key.binding_key()).rotate_left(29)
+                    ^ opaque_reference_digest(key.settlement_reference()).rotate_left(43)
+            }
+        }
     }
 
     pub(crate) fn from_settled_fact(
@@ -123,9 +129,16 @@ impl UiQueryAllocationSourceKey {
     ) -> Self {
         Self::SettledSnapshot(super::super::UiSettledQueryFactKey::new(
             view_binding_id,
-            fact.query_binding_identity().to_owned(),
+            fact.binding_reference().key().clone(),
+            fact.settlement_reference().clone(),
         ))
     }
+}
+
+fn opaque_reference_digest(reference: &impl Hash) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    reference.hash(&mut hasher);
+    hasher.finish()
 }
 
 #[cfg(test)]

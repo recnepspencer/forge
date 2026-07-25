@@ -11,6 +11,7 @@ pub enum UiGraphTouchDenial {
         declaration_identity: UiDeclarationIdentity,
     },
     QueryFactChangeUnavailableInCurrentWorld,
+    QueryBindingChangeUnavailableInCurrentWorld,
     OriginAuthorityUnavailable {
         origin_class: UiGraphTouchOriginClass,
     },
@@ -20,7 +21,7 @@ pub enum UiGraphTouchDenial {
     UnknownGraphNode {
         graph_node_identity: UiGraphNodeIdentity,
     },
-    ForeignMountedReceiptTransition {
+    ForeignMountEligibilityTransition {
         graph_node_identity: UiGraphNodeIdentity,
     },
     OriginDoesNotAuthorizeGraphNode {

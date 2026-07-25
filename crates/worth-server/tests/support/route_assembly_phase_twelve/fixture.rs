@@ -9,7 +9,20 @@ use worth_server::{
 mod product_fixture;
 
 pub fn build_server() -> WorthServer {
-    product_fixture::build_server(vec![product_fixture::editor_registration(None, None)])
+    let structured_read =
+        worth_server::WorthServerProductOperationDeclaration::product_structured_read(
+            "product_editor.inspect",
+            "product-editor.inspect.v1",
+            product_fixture::result_contract("product-editor.inspect.result.v1"),
+            worth_server::WorthServerProductOperationBasisKind::DurableProductDerived,
+            worth_server::WorthServerProductOperationSupportSnapshot::production_admitted(
+                "inspect-supported",
+            ),
+        )
+        .with_error_map(worth_server::WorthServerProductOperationErrorMaps::passthrough());
+    product_fixture::build_server(vec![
+        product_fixture::editor_registration(None, None).with_operation(structured_read)
+    ])
 }
 
 pub fn base_config() -> worth_server::WorthServerConfig {

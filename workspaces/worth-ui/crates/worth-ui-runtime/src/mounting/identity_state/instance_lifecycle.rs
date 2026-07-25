@@ -1,0 +1,150 @@
+use std::collections::BTreeSet;
+
+use crate::graph::{UiGraphAuthority, UiGraphNodeIdentity};
+use worth_ui_host_contract::{
+    UiMountIncarnation, UiMountedInstanceIdentity, UiSemanticSurfaceIdentity,
+};
+
+use super::{MountedInstanceRecord, UiMountedIdentityState};
+use crate::mounting::{UiMountedGraphNodeHandle, UiMountedIdentityBasis, UiMountedIdentityDenial};
+
+const MOUNTED_CLOSURE_LIMIT: usize = 2_048;
+const GRAPH_NODE_MOUNT_LIMIT: usize = 1_024;
+
+impl UiMountedIdentityState {
+    pub(crate) fn graph_node_handle(
+        &self,
+        graph: UiGraphAuthority<'_>,
+        graph_node_identity: UiGraphNodeIdentity,
+    ) -> Result<UiMountedGraphNodeHandle, UiMountedIdentityDenial> {
+        graph
+            .lookup()
+            .graph_node(graph_node_identity)
+            .ok_or(UiMountedIdentityDenial::UnknownGraphNode)?;
+        Ok(UiMountedGraphNodeHandle::new(
+            self.world_identity,
+            graph_node_identity,
+        ))
+    }
+
+    pub(crate) fn mount(
+        &mut self,
+        graph: UiGraphAuthority<'_>,
+        handle: UiMountedGraphNodeHandle,
+        surface: UiSemanticSurfaceIdentity,
+    ) -> Result<UiMountedInstanceIdentity, UiMountedIdentityDenial> {
+        self.require_handle(handle)?;
+        self.require_surface(surface)?;
+        self.require_mount_capacity(handle)?;
+        let graph_node = graph
+            .lookup()
+            .graph_node(handle.graph_node_identity())
+            .ok_or(UiMountedIdentityDenial::UnknownGraphNode)?;
+        let incarnation = UiMountIncarnation::mint_unbound()
+            .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
+        let identity = UiMountedInstanceIdentity::mint_unbound()
+            .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
+        let semantic_revision = super::next(&super::NEXT_STATE_REVISION)?;
+        let basis = UiMountedIdentityBasis::new(
+            handle.graph_node_identity(),
+            graph_node.value().repeated_instance_basis().clone(),
+            surface,
+            incarnation,
+        );
+        self.commit_mount(identity, basis);
+        self.pending_projection_changes
+            .mark_changed_instance(identity);
+        self.semantic_revision = semantic_revision;
+        Ok(identity)
+    }
+
+    pub(crate) fn unmount(
+        &mut self,
+        identity: UiMountedInstanceIdentity,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        let record = self.instances.get(&identity).cloned().ok_or_else(|| {
+            if self.retired_instances.contains(&identity) {
+                UiMountedIdentityDenial::RetiredMountedInstance
+            } else {
+                UiMountedIdentityDenial::UnknownMountedInstance
+            }
+        })?;
+        let semantic_revision = super::next(&super::NEXT_STATE_REVISION)?;
+        self.instances.remove(&identity);
+        if let Some(instances) = self.by_graph.get_mut(&record.basis.graph_node_identity()) {
+            instances.remove(&identity);
+        }
+        self.visible_order
+            .retain(|candidate| *candidate != identity);
+        let removed = self
+            .mounted_instance_membership
+            .remove_with_work(&identity)
+            .0;
+        debug_assert!(removed);
+        if let Some(current) = self.current_receipt_basis.as_mut() {
+            current.remove(identity);
+        }
+        self.pending_projection_changes
+            .mark_retired_instance(identity);
+        self.remember_retirement(identity);
+        self.semantic_revision = semantic_revision;
+        Ok(())
+    }
+
+    pub(crate) fn reorder(
+        &mut self,
+        order: &[UiMountedInstanceIdentity],
+    ) -> Result<(), UiMountedIdentityDenial> {
+        let requested = order.iter().copied().collect::<BTreeSet<_>>();
+        let current = self.visible_order.iter().copied().collect::<BTreeSet<_>>();
+        if requested != current || requested.len() != order.len() {
+            return Err(UiMountedIdentityDenial::ReorderMembershipMismatch);
+        }
+        let semantic_revision = super::next(&super::NEXT_STATE_REVISION)?;
+        self.visible_order.clear();
+        self.visible_order.extend_from_slice(order);
+        self.pending_projection_changes.mark_order_changed(order);
+        self.semantic_revision = semantic_revision;
+        Ok(())
+    }
+
+    pub(super) fn require_handle(
+        &self,
+        handle: UiMountedGraphNodeHandle,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        if handle.world_identity() != self.world_identity {
+            return Err(UiMountedIdentityDenial::ForeignGraphWorld);
+        }
+        Ok(())
+    }
+
+    fn require_mount_capacity(
+        &self,
+        handle: UiMountedGraphNodeHandle,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        if self.instances.len() >= MOUNTED_CLOSURE_LIMIT {
+            return Err(UiMountedIdentityDenial::MountedClosureCapacityExceeded);
+        }
+        if self
+            .by_graph
+            .get(&handle.graph_node_identity())
+            .is_some_and(|instances| instances.len() >= GRAPH_NODE_MOUNT_LIMIT)
+        {
+            return Err(UiMountedIdentityDenial::GraphNodeMountCapacityExceeded);
+        }
+        Ok(())
+    }
+
+    fn commit_mount(&mut self, identity: UiMountedInstanceIdentity, basis: UiMountedIdentityBasis) {
+        let graph_node = basis.graph_node_identity();
+        self.instances
+            .insert(identity, MountedInstanceRecord { basis });
+        self.by_graph
+            .entry(graph_node)
+            .or_default()
+            .insert(identity);
+        self.visible_order.push(identity);
+        let inserted = self.mounted_instance_membership.insert(identity);
+        debug_assert!(inserted);
+    }
+}

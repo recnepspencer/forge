@@ -1,8 +1,11 @@
-use worth_foundational::facade::{AspectValue, CanonicalF32, CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::{AspectValue, CanonicalF32};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
-use worth_query::facade::foundation::ProjectionFactFieldPath;
 use worth_query::facade::runtime;
-use worth_ui::facade::query_binding::{worth_ui_domain_package, worth_ui_native_aspect_contracts};
+use worth_ui_query_binding::{
+    worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiQueryAllocationDetail,
+    WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
+    WorthUiQueryInspectionRelevance, WorthUiQueryViewShape,
+};
 
 pub(super) fn installed_measurement_workspace(label: &str) -> runtime::WorthQueryWorkspace {
     installed_measurement_workspace_with(label, false)
@@ -27,7 +30,7 @@ fn installed_measurement_workspace_with(
     label: &str,
     partial: bool,
 ) -> runtime::WorthQueryWorkspace {
-    let builder = measurement_runtime_builder();
+    let builder = operation_live_support(measurement_runtime_builder());
     let builder = if partial {
         worth_ui_query_binding::install_worth_ui_partial_test_operation_executors(builder)
     } else {
@@ -36,6 +39,26 @@ fn installed_measurement_workspace_with(
     let mut workspace = builder.workspace(label).expect("installed Query workspace");
     insert_measurement(&mut workspace);
     workspace
+}
+
+fn operation_live_support(
+    builder: worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder,
+) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
+    use worth_query::facade::domain::{
+        WorthQueryConsumerSupportDimension as Dimension,
+        WorthQueryConsumerSupportPosture as Posture,
+    };
+    [
+        Dimension::Live,
+        Dimension::Sharing,
+        Dimension::Invalidation,
+        Dimension::DependencyImpact,
+        Dimension::CollectionDelivery,
+    ]
+    .into_iter()
+    .fold(builder, |builder, dimension| {
+        builder.consumer_support_posture(dimension, Posture::Supported)
+    })
 }
 
 fn measurement_runtime_builder(
@@ -74,25 +97,16 @@ fn insert_measurement(workspace: &mut runtime::WorthQueryWorkspace) {
         .expect("measurement insertion");
 }
 
-pub(super) fn observation_basis() -> worth_query::facade::foundation::AdmittedBasisCapability<
-    worth_query::facade::foundation::ObservationLaneWitness,
-> {
-    worth_query::facade::foundation::basis_lifecycle()
-        .current_head()
-        .for_observation()
-        .expect("current head should admit observation preparation")
-        .admit()
-        .expect("observation preparation should admit")
-        .capability()
-        .clone()
-}
-
-pub(super) fn measurement_value_path() -> ProjectionFactFieldPath {
-    ProjectionFactFieldPath::from_canonical_field_path(
-        CanonicalFieldPath::new([
-            FieldKey::new("measurement").expect("aspect path"),
-            FieldKey::new("value").expect("field path"),
-        ])
-        .expect("measurement path"),
+pub(super) fn interactive_borrowed_collection_requirements() -> WorthUiQueryConsumerRequirements {
+    WorthUiQueryConsumerRequirements::new(
+        worth_query::facade::domain::WorthQueryConsumerBoundaryRequirements {
+            presentation:
+                worth_query::facade::domain::WorthQueryConsumerPresentationPosture::Interactive,
+            allocation: worth_query::facade::domain::WorthQueryConsumerAllocationPosture::Borrowed,
+        },
+        WorthUiQueryAllocationDetail::BorrowedFactSlice,
+        WorthUiQueryViewShape::Collection,
+        WorthUiQueryDenialPresentation::StructuredStatus,
+        WorthUiQueryInspectionRelevance::Relevant,
     )
 }

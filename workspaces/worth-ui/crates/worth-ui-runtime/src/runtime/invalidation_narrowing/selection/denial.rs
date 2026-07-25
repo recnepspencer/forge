@@ -119,8 +119,6 @@ pub(super) fn map_host_lookup_denial(
     ordinal: u16,
 ) -> UiAllocationInvalidationNarrowingDenial {
     match denial {
-        super::authority::UiInvalidationAuthorityLookupDenial::QueryAuthorityNotIndexable =>
-            UiAllocationInvalidationNarrowingDenial::QueryAuthorityNotIndexable { ordinal },
         super::authority::UiInvalidationAuthorityLookupDenial::HostEvidenceGenerationMismatch =>
             UiAllocationInvalidationNarrowingDenial::HostEvidenceGenerationMismatch { ordinal },
         super::authority::UiInvalidationAuthorityLookupDenial::HostNormalizationAuthorityMismatch =>

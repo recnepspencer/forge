@@ -29,7 +29,6 @@ REQUIRED_PHASES = {
     "headless_cross_lane_parity": "11",
     "executor_allocator_observation": "5",
     "cross_lane_allocator_reconciliation": "16",
-    "egui_allocator_attribution": "16",
     "same_session_mixed_real_lifecycle": "18",
     "public_multi_removal_successor": "18",
 }

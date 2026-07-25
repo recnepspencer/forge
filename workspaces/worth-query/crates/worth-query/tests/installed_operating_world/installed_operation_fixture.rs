@@ -13,6 +13,7 @@ mod foreign_material;
 mod invalidation;
 mod lineage_workflow;
 mod mutation_workflow;
+mod operating_world_families;
 mod operation_semantics;
 mod read_operation_types;
 mod required_domains;
@@ -37,7 +38,7 @@ pub(crate) use conditional_workspace::{
     conditional_controlled_workspace_with_donor, conditional_installation,
     conditional_installation_with_change, conditional_installation_with_repeated_value_changes,
     conditional_public_observe_workspace_with_invalidation, conditional_public_workspace_with,
-    conditional_workspace_with, DirectConditionalCompute,
+    conditional_workspace_with, fixture_record_identity, DirectConditionalCompute,
 };
 pub use conditional_workspace::{conditional_workspace, ConditionalModelGraph};
 pub(super) use correspondence_bridge::{
@@ -69,8 +70,13 @@ pub use lineage_workflow::{lineage_workflow_workspace, LineageEvidenceScenario};
 pub use mutation_workflow::{
     mixed_mutation_workflow_runtime, mutation_workflow_workspace, MutationFamily, WorkflowMutation,
 };
+pub use operating_world_families::{
+    operating_world_family_workspace, BooleanFamily, BooleanOperation, ConstructFamily,
+    ConstructOperation, RouteFamily, RouteOperation, TransformFamily, TransformOperation,
+};
 pub(super) use operation_semantics::{
-    canonical_bundle, canonical_collection_bundle, operation_identity_contract, semantic_closure,
+    canonical_bundle, canonical_collection_bundle, canonical_ordered_collection_bundle,
+    operation_identity_contract, semantic_closure,
 };
 pub use read_operation_types::{
     FederatedRead, GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex, ReadVertexLookalike,

@@ -16,11 +16,9 @@ use worth_ui::facade::registry::{
     MosaicStateTruthPosture, MosaicViewportConstraint, NamedMeasurementDefinition,
     NamedMeasurementToken, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
-    ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingId,
 };
-use worth_ui_query_binding::certification::{
-    worth_ui_query_snapshot_prerequisites, WorthUiInstalledQueryTestFixture,
-};
+use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
 
 pub(crate) const CURRENT_COMPONENT: &str = "workspace.component.authority_current";
 pub(crate) const CANDIDATE_COMPONENT: &str = "workspace.component.authority_candidate";
@@ -37,6 +35,12 @@ pub(crate) const TOKEN: &str = "theme.text.authority_default";
 pub(crate) const QUERY_BINDING: &str = "inspector.measurements";
 pub(crate) const CROSS_LANE_CANVAS: &str = "workspace.component.cross_lane_canvas";
 pub(crate) const CROSS_LANE_REALTIME: &str = "workspace.component.cross_lane_realtime";
+pub(crate) const PREVIEW_COMPONENT: &str = "workspace.component.preview_content";
+pub(crate) const PREVIEW_SURFACE: &str = "workspace.surface.preview_splitter";
+pub(crate) const PREVIEW_REGION: &str = "workspace.region.preview_split";
+pub(crate) const PREVIEW_SIZING: &str = "workspace.sizing.preview_splitter";
+pub(crate) const PREVIEW_STATE_SLOT: &str = "workspace.state.preview_splitter_position";
+pub(crate) const PREVIEW_SCROLL_STATE_SLOT: &str = "workspace.state.preview_scroll_position";
 
 pub(crate) fn application_builder(query: &WorthUiInstalledQueryTestFixture) -> WorthUiBuilder {
     application_builder_with_host(query, WorthUiHeadlessHost)
@@ -51,11 +55,9 @@ where
 {
     WorthUi::app()
         .with_host(host)
-        .with_graph_world_profile(UiGraphWorldProfile::query_snapshot_basis(
-            worth_ui_query_snapshot_prerequisites(
-                "authority-closure",
-                ["worth-ui.phase14", "application", "authority-closure"],
-            ),
+        .with_graph_world_profile(UiGraphWorldProfile::settled_query_binding(
+            ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),
+            query.binding_reference(),
         ))
         .register_component(component(CURRENT_COMPONENT))
         .register_component(component(CANDIDATE_COMPONENT))
@@ -121,6 +123,28 @@ where
                 .expect("cross-lane realtime contract fits its frame budget"),
             ),
         )
+}
+
+pub(crate) fn preview_application_builder_with_host<Host>(
+    query: &WorthUiInstalledQueryTestFixture,
+    host: Host,
+) -> WorthUiBuilder
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    application_builder_with_host(query, host)
+        .register_component(component(PREVIEW_COMPONENT))
+        .register_surface(SurfaceDescriptor::new(
+            SurfaceId::new(PREVIEW_SURFACE).expect("valid preview surface id"),
+            SurfaceKind::primary_content(),
+            ComponentId::new(PREVIEW_COMPONENT).expect("valid preview component id"),
+            SurfacePlacementClass::primary_region(),
+            SurfaceStateClass::restorable(),
+        ))
+        .register_mosaic_region_kind(preview_region())
+        .register_mosaic_sizing_contract(preview_sizing())
+        .register_mosaic_state_slot(preview_state_slot())
+        .register_mosaic_state_slot(preview_scroll_state_slot())
 }
 
 pub(crate) fn scaled_canvas_application_builder_with_host<Host>(
@@ -204,6 +228,70 @@ fn state_slot() -> MosaicStateSlotDescriptor {
     )
     .with_owner_identity(MosaicStateOwnerIdentity::mosaic_region_kind(
         MosaicRegionKindId::new(REGION).expect("valid scenario region id"),
+    ))
+    .with_persistence_policy(MosaicStatePersistencePolicy::restore_across_hot_reload())
+    .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())
+    .with_truth_posture(MosaicStateTruthPosture::ui_runtime_state())
+}
+
+fn preview_region() -> MosaicRegionKindDescriptor {
+    MosaicRegionKindDescriptor::new(
+        MosaicRegionKindId::new(PREVIEW_REGION).expect("valid preview region id"),
+        MosaicRegionRole::split(),
+    )
+    .with_sizing_behavior(MosaicSizingBehavior::fills_available_space())
+    .with_scroll_ownership(MosaicScrollOwnership::region_owned())
+    .with_focus_scope(MosaicFocusScopeKind::active_surface_scope())
+    .with_child_rule(MosaicChildRule::accepts_surfaces())
+    .with_allowed_surface_class(SurfacePlacementClass::primary_region())
+    .with_persistence(MosaicRegionPersistence::restorable())
+    .with_clipping(MosaicClippingPosture::clip_to_region())
+    .with_hit_test(MosaicHitTestPosture::participates())
+}
+
+fn preview_sizing() -> MosaicSizingContractDescriptor {
+    MosaicSizingContractDescriptor::new(
+        MosaicSizingContractId::new(PREVIEW_SIZING).expect("valid preview sizing id"),
+        MosaicSizingKind::fill(),
+    )
+    .with_measurement_authority(MosaicMeasurementAuthority::runtime_token())
+    .with_resize_permission(MosaicResizePermission::user_resizable())
+    .with_persistence(MosaicSizingPersistence::restorable())
+    .with_overflow_behavior(MosaicOverflowBehavior::scroll_when_constrained())
+    .with_parent_growth_behavior(MosaicParentGrowthBehavior::does_not_force_parent())
+    .with_viewport_constraint(MosaicViewportConstraint::clamp_to_viewport())
+    .with_named_measurement(NamedMeasurementDefinition::new(
+        NamedMeasurementToken::new("workspace.measurement.preview_splitter")
+            .expect("valid preview measurement token"),
+        MeasurementValue::logical_pixels(320),
+        MeasurementConstraint::between(
+            MeasurementValue::logical_pixels(200),
+            MeasurementValue::logical_pixels(640),
+        ),
+    ))
+}
+
+fn preview_state_slot() -> MosaicStateSlotDescriptor {
+    MosaicStateSlotDescriptor::new(
+        MosaicStateSlotId::new(PREVIEW_STATE_SLOT).expect("valid preview state slot id"),
+        MosaicStateSlotKind::splitter_position(),
+    )
+    .with_owner_identity(MosaicStateOwnerIdentity::mosaic_region_kind(
+        MosaicRegionKindId::new(PREVIEW_REGION).expect("valid preview region id"),
+    ))
+    .with_persistence_policy(MosaicStatePersistencePolicy::restore_across_hot_reload())
+    .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())
+    .with_truth_posture(MosaicStateTruthPosture::ui_runtime_state())
+}
+
+fn preview_scroll_state_slot() -> MosaicStateSlotDescriptor {
+    MosaicStateSlotDescriptor::new(
+        MosaicStateSlotId::new(PREVIEW_SCROLL_STATE_SLOT)
+            .expect("valid preview scroll state slot id"),
+        MosaicStateSlotKind::scroll_position(),
+    )
+    .with_owner_identity(MosaicStateOwnerIdentity::mosaic_region_kind(
+        MosaicRegionKindId::new(PREVIEW_REGION).expect("valid preview region id"),
     ))
     .with_persistence_policy(MosaicStatePersistencePolicy::restore_across_hot_reload())
     .with_replacement_rule(MosaicStateReplacementRule::preserve_when_owner_matches())

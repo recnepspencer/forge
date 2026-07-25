@@ -11,14 +11,13 @@ fn certification_replay_compares_full_lineage_output_and_stage_evidence_semantic
         vec![LineageEvidenceScenario::SingularSuccessor],
     )
     .unwrap();
-    let basis = super::operation_lineage::mutation_basis();
-    let original = super::operation_lineage::bind(&workspace, basis.clone())
+    let original = super::operation_lineage::bind(&workspace)
         .reexecute(super::operation_lineage::intent(), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
-        super::operation_lineage::bind(&workspace, basis),
+        super::operation_lineage::bind(&workspace),
         super::operation_lineage::intent(),
         &mut workspace,
     )

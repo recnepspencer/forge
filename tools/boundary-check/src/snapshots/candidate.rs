@@ -13,10 +13,13 @@ pub(crate) struct ConstitutionSnapshots {
 }
 
 impl ConstitutionSnapshots {
-    pub(crate) fn observe(packages: &[Road1Package]) -> Result<Self, String> {
+    pub(crate) fn observe(
+        packages: &[Road1Package],
+        configured_surfaces: &[(String, PathBuf)],
+    ) -> Result<Self, String> {
         Ok(Self {
             dag: crate_dag_document(packages),
-            facades: observe_facade_document(packages)?,
+            facades: observe_facade_document(packages, configured_surfaces)?,
         })
     }
 

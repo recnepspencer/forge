@@ -10,13 +10,13 @@ use super::{
     sibling_resize_support::UiMeasurementSiblingResizeSupport,
 };
 use crate::evidence::measurement::{
-    UiMeasurementEvidenceCategory, UiMeasurementResult, UiMeasurementValue, UiProjectionFactReceipt,
+    UiMeasurementEvidenceCategory, UiMeasurementResult, UiMeasurementValue,
+    UiSettledQueryFactReceipt,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum MeasurementEvidenceInput {
-    QueryProjectionFact(UiProjectionFactReceipt),
-    SettledQueryFact(super::super::UiSettledQueryFactReceipt),
+    SettledQueryFact(UiSettledQueryFactReceipt),
     HostMeasurementResult(UiMeasurementResult),
     HostCapabilityReport(WorthUiHostCapabilityReport),
     ChildIntrinsicMeasurement(UiChildIntrinsicMeasurementEvidence),
@@ -26,7 +26,6 @@ pub enum MeasurementEvidenceInput {
 impl MeasurementEvidenceInput {
     pub(crate) fn operationally_matches(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::QueryProjectionFact(left), Self::QueryProjectionFact(right)) => left == right,
             (Self::SettledQueryFact(left), Self::SettledQueryFact(right)) => left == right,
             (Self::HostMeasurementResult(left), Self::HostMeasurementResult(right)) => {
                 left.operationally_matches(right)
@@ -42,11 +41,7 @@ impl MeasurementEvidenceInput {
         }
     }
 
-    pub fn query_projection_fact(receipt: &UiProjectionFactReceipt) -> Self {
-        Self::QueryProjectionFact(receipt.clone())
-    }
-
-    pub fn settled_query_fact(receipt: &super::super::UiSettledQueryFactReceipt) -> Self {
+    pub fn settled_query_fact(receipt: &UiSettledQueryFactReceipt) -> Self {
         Self::SettledQueryFact(receipt.clone())
     }
 
@@ -60,7 +55,7 @@ impl MeasurementEvidenceInput {
 
     pub fn child_query_projection_fact(
         contributor_graph_node_identity: UiGraphNodeIdentity,
-        receipt: &UiProjectionFactReceipt,
+        receipt: &UiSettledQueryFactReceipt,
     ) -> Self {
         Self::ChildIntrinsicMeasurement(
             UiChildIntrinsicMeasurementEvidence::for_query_projection_fact(
@@ -112,23 +107,12 @@ impl MeasurementEvidenceInput {
 
     pub(crate) fn identity_digest(&self) -> u64 {
         match self {
-            Self::QueryProjectionFact(receipt) => {
-                stable_text_digest("measurement-evidence-input:query-projection-fact")
-                    ^ receipt
-                        .authority_index_key()
-                        .identity_digest()
-                        .rotate_left(19)
-                    ^ receipt
-                        .required_query_fact_family_set_digest()
-                        .rotate_left(29)
-                    ^ receipt.consumed_fact_family_set_digest().rotate_left(31)
-                    ^ receipt.observation_identity_digest().rotate_left(37)
-            }
             Self::SettledQueryFact(receipt) => {
+                let (binding_digest, settlement_digest) = receipt.reference_reporting_digests();
                 stable_text_digest("measurement-evidence-input:settled-query-fact")
                     ^ stable_text_digest(receipt.view_binding_id().as_str()).rotate_left(11)
-                    ^ stable_text_digest(receipt.query_binding_identity()).rotate_left(19)
-                    ^ stable_text_digest(receipt.settlement_identity()).rotate_left(29)
+                    ^ binding_digest.rotate_left(19)
+                    ^ settlement_digest.rotate_left(29)
                     ^ receipt.observation_identity_digest().rotate_left(37)
             }
             Self::HostMeasurementResult(result) => {
@@ -159,14 +143,7 @@ impl MeasurementEvidenceInput {
         }
     }
 
-    pub(crate) fn as_query_projection_fact(&self) -> Option<&UiProjectionFactReceipt> {
-        match self {
-            Self::QueryProjectionFact(receipt) => Some(receipt),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn as_settled_query_fact(&self) -> Option<&super::super::UiSettledQueryFactReceipt> {
+    pub(crate) fn as_settled_query_fact(&self) -> Option<&UiSettledQueryFactReceipt> {
         match self {
             Self::SettledQueryFact(receipt) => Some(receipt),
             _ => None,

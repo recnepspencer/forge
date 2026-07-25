@@ -253,8 +253,8 @@ mod tests {
             enriched_entry.attachment_posture()
         );
         assert_eq!(
-            baseline_entry.mounted_receipt_seed(),
-            enriched_entry.mounted_receipt_seed()
+            baseline_entry.mount_eligibility_seed(),
+            enriched_entry.mount_eligibility_seed()
         );
         assert_eq!(
             baseline_entry.core_index_contribution_seed(),
