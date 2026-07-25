@@ -44,6 +44,10 @@ const fn required_units_for_lane(
             ForegroundResourceUnitKind::WorkerPermit,
             ForegroundResourceUnitKind::CacheResidencyHint,
         ],
+        ForegroundIoLaneKind::ArtifactMetadataRead => &[
+            ForegroundResourceUnitKind::QueueSlot,
+            ForegroundResourceUnitKind::WorkerPermit,
+        ],
         ForegroundIoLaneKind::CommitCriticalWalWrite => &[
             ForegroundResourceUnitKind::QueueSlot,
             ForegroundResourceUnitKind::BandwidthToken,

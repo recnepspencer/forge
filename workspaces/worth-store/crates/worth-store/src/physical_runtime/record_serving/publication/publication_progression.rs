@@ -2,38 +2,33 @@ use worth_store_physical_backend::{MediaCounterSnapshot, QualifiedFilesystemMedi
 use worth_store_physical_format::DurablePhysicalRootManifest;
 
 use super::super::publication::{
-    classify_catalog_replacement_failure, indeterminate, unpublished_backend,
-    unpublished_candidate_frame_contract, unpublished_residency, unpublished_semantic,
-    unpublished_stream, write_candidate_data, CandidateDataArtifact, CandidateDataWriteFailure,
-    PublicationPlan, RecordPublicationStage,
+    indeterminate_physical_work, unpublished_physical_work, unpublished_semantic, PublicationPlan,
+    RecordPublicationStage,
 };
 use super::super::residency::publication_artifacts::PublicationRecordArtifacts;
-use super::super::UnpublishedRecordEffectFate;
-use super::super::{AdmittedPhysicalRecordFormat, PublishedRecordBatch, RecordAppendError};
+use super::super::{PublishedRecordBatch, RecordAppendError};
+use super::{
+    catalog_candidate_progression::{synchronize_catalog_candidate, CatalogCandidateSynchronized},
+    manifest_progression::{synchronize_manifests, DataSynchronized},
+};
 
-struct CandidateDataWritten(PublicationPlan);
-struct DataSynchronized(PublicationPlan);
-struct ManifestsSynchronized(PublicationPlan);
-struct CatalogCandidateSynchronized(PublicationPlan);
 struct CatalogReplaced(PublicationPlan);
 struct NamespaceSynchronized(PublicationPlan);
 
-pub(in crate::physical_runtime::record_serving) fn execute(
+pub(in crate::physical_runtime::record_serving) fn execute_prepared_root(
+    mutation: &super::super::CanonicalRecordMutationPort,
     media: &QualifiedFilesystemMedia,
-    format: AdmittedPhysicalRecordFormat,
     plan: PublicationPlan,
+    replacement: super::super::PreparedCatalogReplacement,
     residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
     counters_before: MediaCounterSnapshot,
+    #[cfg(feature = "certification-test-authority")] reject_catalog_eligibility_join: bool,
 ) -> Result<(PublishedRecordBatch, DurablePhysicalRootManifest), RecordAppendError> {
-    let artifacts = PublicationRecordArtifacts::new(media);
-    let candidate_data =
-        write_all_candidate_data(media, &artifacts, format, plan, residency, counters_before)?;
-    let data_synchronized =
-        synchronize_candidate_data(media, &artifacts, candidate_data, counters_before)?;
+    let artifacts = PublicationRecordArtifacts::new(mutation);
     let manifests_synchronized = synchronize_manifests(
         media,
         &artifacts,
-        data_synchronized,
+        DataSynchronized::new(plan),
         residency,
         counters_before,
     )?;
@@ -44,20 +39,43 @@ pub(in crate::physical_runtime::record_serving) fn execute(
         residency,
         counters_before,
     )?;
-    super::catalog_cutover_preflight::validate_frame_set(
+    let settled = candidate_synchronized.settled_artifacts();
+    let frame_set = super::catalog_cutover_preflight::validate_frame_set(
         media,
-        &candidate_synchronized.0,
+        candidate_synchronized.plan(),
         residency,
         counters_before,
     )?;
-    super::catalog_cutover_preflight::prepare_residency(
+    #[cfg(feature = "certification-test-authority")]
+    let frame_set = if reject_catalog_eligibility_join {
+        frame_set.certification_mismatched()
+    } else {
+        frame_set
+    };
+    let residency_prepared = super::catalog_cutover_preflight::prepare_residency(
         media,
-        &candidate_synchronized.0,
+        candidate_synchronized.plan(),
         residency,
         counters_before,
     )?;
-    let catalog_replaced =
-        replace_catalog(media, &artifacts, candidate_synchronized, counters_before)?;
+    let eligibility =
+        super::CatalogReplacementEligibility::join(settled, frame_set, residency_prepared)
+            .ok_or_else(|| {
+                unpublished_semantic(
+                    media,
+                    candidate_synchronized.plan(),
+                    counters_before,
+                    RecordPublicationStage::CatalogReplacement,
+                    super::super::RecordAppendDenial::CatalogReplacementEligibilityMismatch,
+                )
+            })?;
+    let catalog_replaced = replace_catalog(
+        media,
+        replacement,
+        eligibility,
+        candidate_synchronized,
+        counters_before,
+    )?;
     let namespace_synchronized =
         synchronize_namespace(media, &artifacts, catalog_replaced, counters_before)?;
     Ok(complete_publication(
@@ -67,292 +85,39 @@ pub(in crate::physical_runtime::record_serving) fn execute(
     ))
 }
 
-fn write_all_candidate_data(
-    media: &QualifiedFilesystemMedia,
-    artifacts: &PublicationRecordArtifacts<'_>,
-    format: AdmittedPhysicalRecordFormat,
-    mut plan: PublicationPlan,
-    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
-    before: MediaCounterSnapshot,
-) -> Result<CandidateDataWritten, RecordAppendError> {
-    let mut prior_effect_fate = UnpublishedRecordEffectFate::DeniedBeforeEffect;
-    for data in &mut plan.data {
-        if let Err(failure) =
-            write_candidate_data(artifacts, format, data, residency, &mut plan.observation)
-        {
-            return Err(match failure {
-                CandidateDataWriteFailure::PreEffectDenied(denial) => {
-                    if prior_effect_fate == UnpublishedRecordEffectFate::DeniedBeforeEffect {
-                        RecordAppendError::Denied(denial)
-                    } else {
-                        unpublished_semantic(
-                            media,
-                            &plan,
-                            before,
-                            RecordPublicationStage::CandidateDataWrite,
-                            denial,
-                        )
-                    }
-                }
-                CandidateDataWriteFailure::Semantic(denial) => unpublished_semantic(
-                    media,
-                    &plan,
-                    before,
-                    RecordPublicationStage::CandidateDataWrite,
-                    denial,
-                ),
-                CandidateDataWriteFailure::Residency(denial) => unpublished_residency(
-                    media,
-                    &plan,
-                    before,
-                    RecordPublicationStage::CandidateDataWrite,
-                    denial,
-                ),
-                CandidateDataWriteFailure::Stream(failure) => {
-                    unpublished_stream(media, &plan, before, failure)
-                }
-                CandidateDataWriteFailure::Backend {
-                    failure,
-                    effect_fate,
-                } => unpublished_backend(
-                    media,
-                    &plan,
-                    before,
-                    RecordPublicationStage::CandidateDataWrite,
-                    failure,
-                    prior_effect_fate.combine(effect_fate),
-                ),
-                CandidateDataWriteFailure::CandidateFrameContract(violation) => {
-                    unpublished_candidate_frame_contract(
-                        media,
-                        &plan,
-                        before,
-                        RecordPublicationStage::CandidateDataWrite,
-                        violation,
-                    )
-                }
-            });
-        }
-        prior_effect_fate = UnpublishedRecordEffectFate::EffectPossible;
-    }
-    Ok(CandidateDataWritten(plan))
-}
-
-fn synchronize_candidate_data(
-    media: &QualifiedFilesystemMedia,
-    artifacts: &PublicationRecordArtifacts<'_>,
-    written: CandidateDataWritten,
-    before: MediaCounterSnapshot,
-) -> Result<DataSynchronized, RecordAppendError> {
-    for data in &written.0.data {
-        let artifact = match data {
-            CandidateDataArtifact::Segment(value) => value.artifact,
-            CandidateDataArtifact::Extent(value) => value.artifact,
-        };
-        artifacts
-            .synchronize_artifact(artifact)
-            .and_then(|()| artifacts.synchronize_artifact_parent(artifact))
-            .map_err(|failure| {
-                unpublished_backend(
-                    media,
-                    &written.0,
-                    before,
-                    RecordPublicationStage::DataSynchronization,
-                    failure,
-                    UnpublishedRecordEffectFate::EffectPossible,
-                )
-            })?;
-    }
-    Ok(DataSynchronized(written.0))
-}
-
-fn synchronize_manifests(
-    media: &QualifiedFilesystemMedia,
-    artifacts: &PublicationRecordArtifacts<'_>,
-    mut synchronized: DataSynchronized,
-    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
-    before: MediaCounterSnapshot,
-) -> Result<ManifestsSynchronized, RecordAppendError> {
-    for index in 0..synchronized.0.manifests.len() {
-        let (artifact, bytes) = &mut synchronized.0.manifests[index];
-        let artifact = *artifact;
-        let resident = residency.write_frame(
-            super::super::residency::frame_ports::CandidateFrame::new(
-                super::super::residency::frame_ports::CandidateFrameRole::ManifestBlock,
-                super::super::residency::frame_ports::CandidateFrameCoordinate::new(artifact, 0),
-                std::mem::take(bytes),
-            ),
-            &mut |bytes| {
-                let physical = artifacts.write_new_frame(artifact, bytes)?;
-                artifacts.synchronize_artifact(artifact)?;
-                artifacts.synchronize_artifact_parent(artifact)?;
-                Ok(physical)
-            },
-        );
-        let resident = match resident {
-            Ok(resident) => resident,
-            Err(super::super::residency::frame_ports::CandidateFrameWriteFailure::Backend(
-                failure,
-            )) => {
-                return Err(unpublished_backend(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::ManifestSynchronization,
-                    failure,
-                    UnpublishedRecordEffectFate::EffectPossible,
-                ));
-            }
-            Err(super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract(
-                violation,
-            )) => {
-                return Err(unpublished_candidate_frame_contract(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::ManifestSynchronization,
-                    violation,
-                ));
-            }
-            Err(super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(
-                denial,
-            )) => {
-                return Err(unpublished_residency(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::ManifestSynchronization,
-                    denial,
-                ));
-            }
-        };
-        synchronized
-            .0
-            .observation
-            .observe_transfer(resident.frame_bytes() as usize);
-    }
-    let root = synchronized.0.root;
-    let resident_root = residency
-        .write_frame(
-            super::super::residency::frame_ports::CandidateFrame::new(
-                super::super::residency::frame_ports::CandidateFrameRole::RootManifest,
-                super::super::residency::frame_ports::CandidateFrameCoordinate::new(root, 0),
-                std::mem::take(&mut synchronized.0.root_bytes),
-            ),
-            &mut |bytes| {
-                let physical = artifacts.write_new_frame(root, bytes)?;
-                artifacts.synchronize_artifact(root)?;
-                artifacts.synchronize_artifact_parent(root)?;
-                Ok(physical)
-            },
-        )
-        .map_err(|failure| match failure {
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Backend(failure) => {
-                unpublished_backend(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::ManifestSynchronization,
-                    failure,
-                    UnpublishedRecordEffectFate::EffectPossible,
-                )
-            }
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract(
-                violation,
-            ) => unpublished_candidate_frame_contract(
-                media,
-                &synchronized.0,
-                before,
-                RecordPublicationStage::ManifestSynchronization,
-                violation,
-            ),
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(denial) => {
-                unpublished_residency(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::ManifestSynchronization,
-                    denial,
-                )
-            }
-        })?;
-    synchronized
-        .0
-        .observation
-        .observe_transfer(resident_root.frame_bytes() as usize);
-    Ok(ManifestsSynchronized(synchronized.0))
-}
-
-fn synchronize_catalog_candidate(
-    media: &QualifiedFilesystemMedia,
-    artifacts: &PublicationRecordArtifacts<'_>,
-    mut synchronized: ManifestsSynchronized,
-    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
-    before: MediaCounterSnapshot,
-) -> Result<CatalogCandidateSynchronized, RecordAppendError> {
-    let candidate = synchronized.0.candidate;
-    let resident_catalog = residency
-        .write_frame(
-            super::super::residency::frame_ports::CandidateFrame::new(
-                super::super::residency::frame_ports::CandidateFrameRole::CatalogCandidate,
-                super::super::residency::frame_ports::CandidateFrameCoordinate::new(candidate, 0),
-                std::mem::take(&mut synchronized.0.catalog_bytes),
-            ),
-            &mut |bytes| {
-                let physical = artifacts.write_new_frame(candidate, bytes)?;
-                artifacts.synchronize_artifact(candidate)?;
-                Ok(physical)
-            },
-        )
-        .map_err(|failure| match failure {
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Backend(failure) => {
-                unpublished_backend(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::CatalogCandidateSynchronization,
-                    failure,
-                    UnpublishedRecordEffectFate::EffectPossible,
-                )
-            }
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract(
-                violation,
-            ) => unpublished_candidate_frame_contract(
-                media,
-                &synchronized.0,
-                before,
-                RecordPublicationStage::CatalogCandidateSynchronization,
-                violation,
-            ),
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(denial) => {
-                unpublished_residency(
-                    media,
-                    &synchronized.0,
-                    before,
-                    RecordPublicationStage::CatalogCandidateSynchronization,
-                    denial,
-                )
-            }
-        })?;
-    synchronized
-        .0
-        .observation
-        .observe_transfer(resident_catalog.frame_bytes() as usize);
-    Ok(CatalogCandidateSynchronized(synchronized.0))
-}
-
 fn replace_catalog(
     media: &QualifiedFilesystemMedia,
-    artifacts: &PublicationRecordArtifacts<'_>,
+    replacement: super::super::PreparedCatalogReplacement,
+    eligibility: super::CatalogReplacementEligibility,
     synchronized: CatalogCandidateSynchronized,
     before: MediaCounterSnapshot,
 ) -> Result<CatalogReplaced, RecordAppendError> {
-    artifacts
-        .replace_catalog(synchronized.0.candidate)
-        .map_err(|failure| {
-            classify_catalog_replacement_failure(media, &synchronized.0, before, failure)
-        })?;
-    Ok(CatalogReplaced(synchronized.0))
+    let settlement = replacement.execute(eligibility).map_err(|failure| {
+        if failure.effect_fate() == crate::physical_runtime::PhysicalWorkEffectFate::Indeterminate {
+            indeterminate_physical_work(
+                media,
+                synchronized.plan(),
+                before,
+                RecordPublicationStage::CatalogReplacement,
+                &failure,
+            )
+        } else {
+            unpublished_physical_work(
+                media,
+                synchronized.plan(),
+                before,
+                RecordPublicationStage::CatalogReplacement,
+                &failure,
+            )
+        }
+    })?;
+    let mut plan = synchronized.into_plan();
+    plan.work.record_settled(
+        RecordPublicationStage::CatalogReplacement,
+        settlement.identity(),
+        settlement.publication(),
+    );
+    Ok(CatalogReplaced(plan))
 }
 
 fn synchronize_namespace(
@@ -361,13 +126,21 @@ fn synchronize_namespace(
     replaced: CatalogReplaced,
     before: MediaCounterSnapshot,
 ) -> Result<NamespaceSynchronized, RecordAppendError> {
-    artifacts.synchronize_record_family().map_err(|failure| {
-        indeterminate(
+    let mut replaced = replaced;
+    let synchronization = {
+        let mut stage = artifacts.at(
+            RecordPublicationStage::NamespaceSynchronization,
+            &mut replaced.0.work,
+        );
+        stage.synchronize_record_family()
+    };
+    synchronization.map_err(|failure| {
+        indeterminate_physical_work(
             media,
             &replaced.0,
             before,
             RecordPublicationStage::NamespaceSynchronization,
-            failure,
+            &failure,
         )
     })?;
     Ok(NamespaceSynchronized(replaced.0))
@@ -391,6 +164,7 @@ fn complete_publication(
         synchronized.0.generation,
         publication,
         synchronized.0.observation,
+        synchronized.0.work,
         before,
         after,
     );

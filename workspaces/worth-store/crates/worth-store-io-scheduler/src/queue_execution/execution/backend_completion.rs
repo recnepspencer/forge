@@ -4,14 +4,15 @@ use worth_store_physical_backend::{
 
 use crate::IoSchedulerBackendCapabilityRequirement;
 
-use super::completion::{QueueBackendCompletionAuthority, QueueBackendCompletionEvidence};
-use super::outcome::{
+use super::adjudication::{
     execute_grouped_ready_queue_plans_with_backend_completion,
     execute_ready_queue_plan_with_backend_completion, map_backend_backpressure, submitted_units,
 };
+use super::completion::{QueueBackendCompletionAuthority, QueueBackendCompletionEvidence};
 use super::{
     QueueExecutionCounterSnapshot, QueueExecutionOutcome, QueueExecutionReadyPlan,
-    QueueExecutionViolation, QueueExecutionViolationCause, QueueGroupedReadyPlans,
+    QueueExecutionUnitCounts, QueueExecutionViolation, QueueExecutionViolationCause,
+    QueueGroupedReadyPlans,
 };
 
 pub fn execute_ready_queue_plan(
@@ -22,8 +23,7 @@ pub fn execute_ready_queue_plan(
         return QueueExecutionOutcome::Violation(QueueExecutionViolation {
             cause: QueueExecutionViolationCause::BackendContradictedWitness,
             counters: completion_violation_counters(
-                submitted_units(plan.admitted_budget()),
-                submitted_units(plan.admitted_budget()),
+                QueueExecutionUnitCounts::all_admitted(submitted_units(plan.admitted_budget())),
                 completion,
             ),
             plan: plan.execute_proof(),
@@ -35,8 +35,7 @@ pub fn execute_ready_queue_plan(
         return QueueExecutionOutcome::Violation(QueueExecutionViolation {
             cause: QueueExecutionViolationCause::BackendContradictedWitness,
             counters: completion_violation_counters(
-                submitted_units(plan.admitted_budget()),
-                submitted_units(plan.admitted_budget()),
+                QueueExecutionUnitCounts::all_admitted(submitted_units(plan.admitted_budget())),
                 completion,
             ),
             plan: plan.execute_proof(),
@@ -59,7 +58,10 @@ pub fn execute_grouped_ready_queue_plans(
         let (plan, secondary_plan, _) = grouped.into_execution_pair();
         return QueueExecutionOutcome::Violation(QueueExecutionViolation {
             cause: QueueExecutionViolationCause::BackendContradictedWitness,
-            counters: completion_violation_counters(submitted, submitted, completion),
+            counters: completion_violation_counters(
+                QueueExecutionUnitCounts::all_admitted(submitted),
+                completion,
+            ),
             plan: plan.execute_proof(),
             secondary_plan: Some(secondary_plan.execute_proof()),
         });
@@ -73,7 +75,10 @@ pub fn execute_grouped_ready_queue_plans(
         let (plan, secondary_plan, _) = grouped.into_execution_pair();
         return QueueExecutionOutcome::Violation(QueueExecutionViolation {
             cause: QueueExecutionViolationCause::BackendContradictedWitness,
-            counters: completion_violation_counters(submitted, submitted, completion),
+            counters: completion_violation_counters(
+                QueueExecutionUnitCounts::all_admitted(submitted),
+                completion,
+            ),
             plan: plan.execute_proof(),
             secondary_plan: Some(secondary_plan.execute_proof()),
         });
@@ -91,21 +96,12 @@ fn secure_frame_backend_completion_is_invalid(
 }
 
 fn completion_violation_counters(
-    submitted: u64,
-    admitted: u64,
+    units: QueueExecutionUnitCounts,
     completion: BackendQueueExecutionCompletion,
 ) -> QueueExecutionCounterSnapshot {
-    QueueExecutionCounterSnapshot::violation_observed(
-        submitted,
-        admitted,
-        completion.queue_depth_sample(),
-        completion.grouped_writes(),
-        completion.read_ahead_units(),
-        completion.write_back_units(),
-        completion.mechanical_retries(),
-        completion.partial_read_events(),
-        completion.short_write_events(),
-        completion.foreground_wait_events(),
+    QueueExecutionCounterSnapshot::violation_from_backend_completion(
+        units,
+        completion,
         completion.backpressure().map(map_backend_backpressure),
     )
 }

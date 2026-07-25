@@ -3,6 +3,7 @@ pub(super) use crate::courtroom::harness::test_support::integrity_handoff_test_s
     recovery_blocking_quarantine_binding, unresolved_authority_record,
 };
 pub(super) use crate::courtroom::harness::test_support::recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map;
+pub(super) use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::recovery_memory_allocation;
 use worth_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };
@@ -12,18 +13,13 @@ use worth_store_aspect_native::{
     StorePhysicalBoundaryWitness,
 };
 use worth_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
-use worth_store_buffer_pool::{
-    AdmittedBackgroundEnvelope, AllocationAdmission, AllocationByteBudget,
-    AllocationEnvelopeDeclaration, BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest,
-    BackgroundWorkBudgetSnapshot, BackgroundWorkClass, FixedMetadataReservation,
-};
 use worth_store_contracts::PhysicalAuthorityRecap;
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use worth_store_recovery_physics::{
     AdmittedRecoveryIntegrityInput, IntegrityHandoffPayload,
     RecoveryCheckpointRecordSecurityMetadataEnvelope,
     RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission,
-    RecoveryEntryAdmissionDecision, RecoveryMemoryEnvelope, RecoveryRootSecurityMetadataEnvelope,
+    RecoveryEntryAdmissionDecision, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoverySecurityScopePropagationInput,
     RecoveryWalRecordSecurityMetadataEnvelope, RecoveryWalRecordSecurityMetadataIdentity,
 };
@@ -35,7 +31,7 @@ use worth_store_security::{
 pub(super) fn admit_entry(model_input: AdmittedRecoveryIntegrityInput) -> RecoveryEntryAdmission {
     let decision = RecoveryEntryAdmission::admit(
         model_input,
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
         physical_authority(),
     );
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
@@ -69,64 +65,8 @@ pub(super) fn damaged_integrity_model_input() -> AdmittedRecoveryIntegrityInput 
     admit_recovery_handoff_payload(payload)
 }
 
-pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
-    RecoveryMemoryEnvelope::from_admitted(admit_background(class_request(
-        BackgroundWorkClass::RecoveryPlanning,
-    )))
-    .expect("recovery envelope admits only recovery planning class")
-}
-
-pub(super) fn admit_background(request: BackgroundEnvelopeRequest) -> AdmittedBackgroundEnvelope {
-    let mut admission = BackgroundEnvelopeAdmission::new();
-    let mut allocation = allocation_admission();
-    admission
-        .admit(request, permissive_budget(), &mut allocation)
-        .expect("background envelope admits")
-}
-
-pub(super) fn class_request(work_class: BackgroundWorkClass) -> BackgroundEnvelopeRequest {
-    let builder = match work_class {
-        BackgroundWorkClass::RecoveryPlanning => BackgroundEnvelopeRequest::recovery_planning(),
-        BackgroundWorkClass::CompactionPlanning => BackgroundEnvelopeRequest::compaction_planning(),
-        BackgroundWorkClass::ScrubPlanning => BackgroundEnvelopeRequest::scrub_planning(),
-        BackgroundWorkClass::ImportExport => BackgroundEnvelopeRequest::import_export(),
-        BackgroundWorkClass::LargeRecordStreaming => {
-            BackgroundEnvelopeRequest::large_record_streaming()
-        }
-    };
-    builder
-        .resident_frames(1)
-        .resident_bytes(128)
-        .pin_pages_for_bounded_step(1)
-        .allocation_bytes(128)
-        .finish()
-}
-
 pub(super) fn physical_authority() -> PhysicalAuthorityRecap {
     PhysicalAuthorityRecap::from_physical_format_authority(3, 2, 1).unwrap()
-}
-
-pub(super) fn permissive_budget() -> BackgroundWorkBudgetSnapshot {
-    BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16)
-}
-
-pub(super) fn allocation_admission() -> AllocationAdmission {
-    AllocationAdmission::from_declaration(
-        AllocationEnvelopeDeclaration::declare()
-            .foreground(bytes(512))
-            .maintenance(bytes(512))
-            .recovery(bytes(512))
-            .scrub(bytes(512))
-            .import_export(bytes(512))
-            .streaming(bytes(512))
-            .fixed_metadata(FixedMetadataReservation::constant_bytes(64).unwrap())
-            .seal()
-            .unwrap(),
-    )
-}
-
-fn bytes(bytes: u64) -> AllocationByteBudget {
-    AllocationByteBudget::bytes(bytes).unwrap()
 }
 
 pub(super) fn recovery_security_scope(

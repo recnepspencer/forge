@@ -35,6 +35,7 @@ mod durable_record_manifest;
 mod export_bundle_observation;
 mod forensic_acquisition;
 mod handoff;
+mod hostile_physical_truth;
 mod inspection;
 mod media_acquisition;
 mod repair_blast_radius_observation;
@@ -90,6 +91,12 @@ pub use forensic_acquisition::{
 pub use handoff::{
     map_offline_damage_hint_to_handoff, reject_offline_classification_as_blob_authority,
     reject_offline_observation_as_blob_authority, OfflineBlobAuthorityRejection,
+};
+pub use hostile_physical_truth::{
+    observe_hostile_physical_truth, OfflineHostileArtifactObservation,
+    OfflineHostileCurrentRecordTruth, OfflineHostilePhysicalTruthBudget,
+    OfflineHostilePhysicalTruthBudgetDenial, OfflineHostilePhysicalTruthDenial,
+    OfflineHostilePhysicalTruthObservation,
 };
 pub use inspection::{
     OfflineInspectionBudget, OfflineInspectionCancellation, OfflineInspectionCheckpoint,

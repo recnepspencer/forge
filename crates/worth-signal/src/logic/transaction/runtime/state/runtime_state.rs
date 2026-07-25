@@ -1443,6 +1443,42 @@ where
         Ok(())
     }
 
+    fn reconcile_resource_revalidation_wakes(
+        &mut self,
+        report: &ResourceRevalidationReport,
+        resource_node: ResourceNodeId,
+        prior_timeout_wake: Option<crate::data::temporal::TemporalWakeId>,
+        prior_stale_after_wake: Option<crate::data::temporal::TemporalWakeId>,
+        scheduled_timeout_wake: Option<ScheduledTemporalWake>,
+    ) -> Result<(), crate::data::error::SignalError> {
+        let Some(admitted) = report.admitted_revalidation() else {
+            if let Some(wake) = scheduled_timeout_wake.as_ref() {
+                self.dispose_resource_timeout_wake(wake);
+            }
+            return Ok(());
+        };
+
+        self.retire_superseded_resource_timeout_wake(
+            prior_timeout_wake,
+            scheduled_timeout_wake.as_ref(),
+        )?;
+        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
+        if prior_stale_after_wake.is_some() {
+            self.resource.clear_stale_after_wake_for_node(resource_node);
+        }
+        if let Some(wake) = scheduled_timeout_wake {
+            if let Err(err) = self.resource.attach_timeout_wake(
+                admitted.admitted_request().handle(),
+                wake.id(),
+                &mut self.telemetry.resource,
+            ) {
+                self.dispose_resource_timeout_wake(&wake);
+                return Err(err);
+            }
+        }
+        Ok(())
+    }
+
     fn retire_superseded_resource_stale_after_wake(
         &mut self,
         prior_stale_after_wake: Option<crate::data::temporal::TemporalWakeId>,
@@ -1685,12 +1721,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
-
         let report = self.resource.admit_resource_revalidation(
             intent,
             self.graph.current_branch().id,
@@ -1715,20 +1745,13 @@ where
             }),
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            resource_node,
+            prior_timeout_wake,
+            prior_stale_after_wake,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 
@@ -1794,12 +1817,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
-
         let report = self.resource.admit_forced_resource_revalidation(
             &proof,
             self.graph.current_branch().id,
@@ -1815,20 +1832,13 @@ where
             }),
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            resource_node,
+            prior_timeout_wake,
+            prior_stale_after_wake,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 
@@ -1998,12 +2008,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
-
         let report = self.resource.admit_dependency_change_resource_revalidation(
             proof,
             self.graph.current_branch().id,
@@ -2019,20 +2023,13 @@ where
             }),
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            resource_node,
+            prior_timeout_wake,
+            prior_stale_after_wake,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 
@@ -2095,12 +2092,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
-
         let report = self.resource.admit_observer_demand_resource_revalidation(
             proof,
             self.graph.current_branch().id,
@@ -2116,20 +2107,13 @@ where
             }),
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            resource_node,
+            prior_timeout_wake,
+            prior_stale_after_wake,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 
@@ -2207,12 +2191,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
-
         let report = self.resource.admit_terminal_state_resource_revalidation(
             proof,
             self.graph.current_branch().id,
@@ -2228,20 +2206,13 @@ where
             }),
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            resource_node,
+            prior_timeout_wake,
+            prior_stale_after_wake,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 
@@ -2319,12 +2290,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-        self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
-
         let report = self
             .resource
             .admit_fulfilled_lifecycle_resource_revalidation(
@@ -2342,20 +2307,13 @@ where
                 }),
                 &mut self.telemetry.resource,
             );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            resource_node,
+            prior_timeout_wake,
+            prior_stale_after_wake,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 
@@ -2430,11 +2388,6 @@ where
             .map(|resolved| self.schedule_resource_timeout_wake(node, resolved))
             .transpose()?
             .flatten();
-        self.retire_superseded_resource_timeout_wake(
-            prior_timeout_wake,
-            scheduled_timeout_wake.as_ref(),
-        )?;
-
         let report = self.resource.admit_resource_revalidation(
             ResourceRevalidationIntent::new(node),
             self.graph.current_branch().id,
@@ -2475,20 +2428,13 @@ where
             }),
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
+        self.reconcile_resource_revalidation_wakes(
+            &report,
+            node,
+            prior_timeout_wake,
+            None,
+            scheduled_timeout_wake,
+        )?;
         Ok(report)
     }
 

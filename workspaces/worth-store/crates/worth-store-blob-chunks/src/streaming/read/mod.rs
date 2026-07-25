@@ -7,6 +7,7 @@ mod observation;
 mod orchestration;
 mod receipt_construction;
 mod request;
+mod residency;
 mod transitions;
 mod types;
 mod verification;
@@ -25,4 +26,5 @@ pub use observation::{BlobStreamingReadObservation, BlobStreamingReadObservedChu
 pub use orchestration::BlobStreamingReadExecution;
 pub use receipt_construction::BlobStreamingReadCounterBackedPerformanceReceipt;
 pub use request::{BlobStreamingReadRequest, BlobStreamingReadWindow};
+pub use residency::BlobStreamingReadResidencyProof;
 pub use types::BlobStreamingVerifiedRead;

@@ -15,7 +15,7 @@ fn grouped_certification_preserves_secondary_replay_identity() {
     let QueueGroupingOutcome::Grouped(grouped) = grouping else {
         panic!("equivalent ready plans should group");
     };
-    let expected_secondary = grouped.replay_identities()[1];
+    let expected_secondary = grouped.replay_identities()[1].clone();
     let scope = BackendQueueSpeculativeScope::admitted(
         grouped.first().grouping_basis().security_scope_identity(),
         grouped.first().grouping_basis().tenant_scope(),

@@ -2,9 +2,13 @@ use worth_store_physical_backend::{
     ArtifactRangeWriteDurabilityRequirement, ArtifactTreeDirectory, ArtifactTreeFailure,
     ArtifactTreeFile, ArtifactTreeMedia, BackendQueueExecutionAdaptation,
     BackendQueueExecutionPlanBinding, BackendQueueSpeculativeScope, QualifiedFilesystemMedia,
-    ScheduledArtifactRangeWriteOutcome,
+    ScheduledArtifactMetadataReadOutcome, ScheduledArtifactNewWriteOutcome,
+    ScheduledArtifactRangeReadOutcome, ScheduledArtifactRangeWriteOutcome,
+    ScheduledArtifactTreePublicationEffectOutcome,
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
+
+mod family_lifecycle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime::record_serving) enum RecordFamilyInventory {
@@ -19,7 +23,7 @@ pub(in crate::physical_runtime::record_serving) enum RecordFamilyCreationFailure
     AfterEffect(ArtifactTreeFailure),
 }
 
-pub(in crate::physical_runtime::record_serving) struct PhysicalRecordArtifactTree<'media> {
+pub(in crate::physical_runtime) struct PhysicalRecordArtifactTree<'media> {
     tree: ArtifactTreeMedia<'media>,
     families: ArtifactTreeDirectory,
     staging: ArtifactTreeDirectory,
@@ -34,9 +38,7 @@ pub(in crate::physical_runtime::record_serving) struct PhysicalRecordArtifactTre
 }
 
 impl<'media> PhysicalRecordArtifactTree<'media> {
-    pub(in crate::physical_runtime::record_serving) fn new(
-        media: &'media QualifiedFilesystemMedia,
-    ) -> Self {
+    pub(in crate::physical_runtime) fn new(media: &'media QualifiedFilesystemMedia) -> Self {
         let families = ArtifactTreeDirectory::families();
         let staging = ArtifactTreeDirectory::staging();
         let record_family = families.child("records").expect("portable Store layout");
@@ -72,82 +74,12 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn inventory(
-        &self,
-    ) -> Result<RecordFamilyInventory, ArtifactTreeFailure> {
-        let family = self.tree.directory_exists(&self.record_family)?;
-        let staging = self.tree.directory_exists(&self.record_staging)?;
-        if !family && !staging {
-            return Ok(RecordFamilyInventory::ProvenAbsent);
-        }
-        let roots = self.tree.directory_exists(&self.root_manifests)?;
-        let segments = self.tree.directory_exists(&self.page_segments)?;
-        let segment_manifests = self.tree.directory_exists(&self.segment_manifests)?;
-        let extents = self.tree.directory_exists(&self.extents)?;
-        let extent_manifests = self.tree.directory_exists(&self.extent_manifests)?;
-        let free_space = self.tree.directory_exists(&self.free_space_manifests)?;
-        let catalog = self
-            .tree
-            .file_exists(&self.artifact(RecordArtifactFile::BootstrapCatalog))?;
-        if family
-            && staging
-            && roots
-            && segments
-            && segment_manifests
-            && extents
-            && extent_manifests
-            && free_space
-            && catalog
-        {
-            Ok(RecordFamilyInventory::Published)
-        } else {
-            Ok(RecordFamilyInventory::Residue)
-        }
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn create_record_family(
-        &self,
-    ) -> Result<(), RecordFamilyCreationFailure> {
-        self.tree
-            .create_directory(&self.record_family)
-            .map_err(RecordFamilyCreationFailure::BeforeEffect)?;
-        self.synchronize_created_directory_parent(&self.families)?;
-        self.create_and_publish_directory(&self.record_staging, &self.staging)?;
-        self.tree
-            .create_directory(&self.root_manifests)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.tree
-            .create_directory(&self.page_segments)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.tree
-            .create_directory(&self.segment_manifests)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.tree
-            .create_directory(&self.extents)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.tree
-            .create_directory(&self.extent_manifests)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.tree
-            .create_directory(&self.free_space_manifests)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.synchronize_created_directory_parent(&self.record_family)?;
-        Ok(())
-    }
-
     pub(in crate::physical_runtime::record_serving) fn write_new(
         &self,
         artifact: RecordArtifactFile,
         bytes: &[u8],
     ) -> Result<(), ArtifactTreeFailure> {
         self.tree.write_new(&self.artifact(artifact), bytes)
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn create_new_file(
-        &self,
-        artifact: RecordArtifactFile,
-    ) -> Result<worth_store_physical_backend::ArtifactTreeNewFile<'_>, ArtifactTreeFailure> {
-        self.tree.create_new_file(&self.artifact(artifact))
     }
 
     pub(in crate::physical_runtime::record_serving) fn file_length(
@@ -175,7 +107,7 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(in crate::physical_runtime::record_serving) fn write_scheduled_exact_at(
+    pub(in crate::physical_runtime) fn write_scheduled_exact_at(
         &self,
         coordinate: RecordFrameCoordinate,
         bytes: &[u8],
@@ -193,6 +125,136 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
             scope,
             durability,
         )
+    }
+
+    pub(in crate::physical_runtime) fn read_scheduled_exact_at(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        target: &mut [u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactRangeReadOutcome {
+        self.tree.read_scheduled_exact_at(
+            &self.artifact(coordinate.artifact()),
+            coordinate,
+            target,
+            binding,
+            adaptation,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn read_scheduled_file_length(
+        &self,
+        artifact: RecordArtifactFile,
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactMetadataReadOutcome {
+        self.tree.read_scheduled_file_length(
+            &self.artifact(artifact),
+            artifact,
+            binding,
+            adaptation,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::physical_runtime) fn write_scheduled_foreground_exact_at(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> ScheduledArtifactRangeWriteOutcome {
+        self.tree.write_scheduled_foreground_exact_at(
+            &self.artifact(coordinate.artifact()),
+            coordinate,
+            bytes,
+            binding,
+            adaptation,
+            durability,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::physical_runtime) fn append_scheduled_foreground_exact_at(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> ScheduledArtifactRangeWriteOutcome {
+        self.tree.append_scheduled_foreground_exact_at(
+            &self.artifact(coordinate.artifact()),
+            coordinate,
+            bytes,
+            binding,
+            adaptation,
+            durability,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn write_scheduled_new_exact(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactNewWriteOutcome {
+        self.tree.write_scheduled_new_exact(
+            &self.artifact(coordinate.artifact()),
+            coordinate,
+            bytes,
+            binding,
+            adaptation,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn synchronize_scheduled_artifact(
+        &self,
+        artifact: RecordArtifactFile,
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactTreePublicationEffectOutcome {
+        self.tree
+            .synchronize_scheduled_file(&self.artifact(artifact), binding, adaptation)
+    }
+
+    pub(in crate::physical_runtime) fn synchronize_scheduled_artifact_parent(
+        &self,
+        artifact: RecordArtifactFile,
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactTreePublicationEffectOutcome {
+        self.tree.synchronize_scheduled_directory(
+            self.artifact_directory(artifact),
+            binding,
+            adaptation,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn replace_scheduled_catalog(
+        &self,
+        candidate: RecordArtifactFile,
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactTreePublicationEffectOutcome {
+        self.tree.replace_scheduled(
+            &self.artifact(candidate),
+            &self.artifact(RecordArtifactFile::BootstrapCatalog),
+            binding,
+            adaptation,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn synchronize_scheduled_record_family(
+        &self,
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+    ) -> ScheduledArtifactTreePublicationEffectOutcome {
+        self.tree
+            .synchronize_scheduled_directory(&self.record_family, binding, adaptation)
     }
 
     pub(in crate::physical_runtime::record_serving) fn synchronize_artifact(
@@ -255,25 +317,5 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
             RecordArtifactFile::FreeSpaceManifest { .. }
             | RecordArtifactFile::FreeSpaceMembershipBlock { .. } => &self.free_space_manifests,
         }
-    }
-
-    fn create_and_publish_directory(
-        &self,
-        directory: &ArtifactTreeDirectory,
-        parent: &ArtifactTreeDirectory,
-    ) -> Result<(), RecordFamilyCreationFailure> {
-        self.tree
-            .create_directory(directory)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)?;
-        self.synchronize_created_directory_parent(parent)
-    }
-
-    fn synchronize_created_directory_parent(
-        &self,
-        parent: &ArtifactTreeDirectory,
-    ) -> Result<(), RecordFamilyCreationFailure> {
-        self.tree
-            .synchronize_directory(parent)
-            .map_err(RecordFamilyCreationFailure::AfterEffect)
     }
 }

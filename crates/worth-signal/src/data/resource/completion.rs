@@ -99,6 +99,7 @@ impl ValidatedCompletionEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AdmittedResourceCompletion {
     handle: ResourceRequestHandle,
+    attempt: ResourceAttemptId,
     node: ResourceNodeId,
     descriptor_id: ResourceDescriptorId,
     completion_ordinal: ResourceCompletionOrdinal,
@@ -109,6 +110,7 @@ pub struct AdmittedResourceCompletion {
 impl AdmittedResourceCompletion {
     pub(crate) fn new(
         handle: ResourceRequestHandle,
+        attempt: ResourceAttemptId,
         node: ResourceNodeId,
         descriptor_id: ResourceDescriptorId,
         completion_ordinal: ResourceCompletionOrdinal,
@@ -117,6 +119,7 @@ impl AdmittedResourceCompletion {
     ) -> Self {
         Self {
             handle,
+            attempt,
             node,
             descriptor_id,
             completion_ordinal,
@@ -127,6 +130,10 @@ impl AdmittedResourceCompletion {
 
     pub fn handle(self) -> ResourceRequestHandle {
         self.handle
+    }
+
+    pub fn attempt(self) -> ResourceAttemptId {
+        self.attempt
     }
 
     pub fn node(self) -> ResourceNodeId {

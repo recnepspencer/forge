@@ -27,3 +27,5 @@ pub(crate) mod pre_decode_physical_admission_test_support;
 pub(crate) mod record_view_evidence_test_support;
 #[cfg(test)]
 pub(crate) mod recovery_blocking_damage_test_support;
+#[cfg(test)]
+pub(crate) mod recovery_memory_allocation_test_support;

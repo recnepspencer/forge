@@ -29,14 +29,16 @@ fn premature_identity_subset_and_success_mutants_fail_causally() {
         FilesystemMediaAdmission::production(FilesystemAccessPosture::CoordinatedServiceAccount);
     let authority = admission.fault_schedule_authority();
     let schedule = authority
-        .schedule(vec![authority.rule(
-            MediaOperationRole::SynchronizeFileState,
-            prior_syncs + 1,
-            MediaFaultDirective::FailBarrier {
-                kind: std::io::ErrorKind::Other,
-                raw_os_error: None,
-            },
-        )])
+        .schedule(vec![authority
+            .rule(
+                MediaOperationRole::SynchronizeFileState,
+                prior_syncs + 3,
+                MediaFaultDirective::FailBarrier {
+                    kind: std::io::ErrorKind::Other,
+                    raw_os_error: None,
+                },
+            )
+            .for_identified_operation()])
         .unwrap();
     let runtime = PhysicalStore::admit(PhysicalRuntimeAdmission::new(&root).unwrap()).unwrap();
     let admitted = runtime
@@ -46,9 +48,9 @@ fn premature_identity_subset_and_success_mutants_fail_causally() {
         panic!("the controlled mutation must target publication")
     };
     let (format, placement, access) = configuration();
-    let mut serving = success(media.open_record_store(PhysicalRecordOpen::new(format, access)));
+    let serving = success(media.open_record_store(PhysicalRecordOpen::new(format, access)));
     let store = serving.store_identity();
-    let outcome = serving.records_mut().append_batch(
+    let outcome = serving.record_submission().append_batch(
         RecordAppendBatch::try_from_iter([
             b"batch-a".as_slice(),
             b"batch-b".as_slice(),
@@ -57,21 +59,37 @@ fn premature_identity_subset_and_success_mutants_fail_causally() {
         .unwrap(),
         placement,
     );
-    let RecordAppendError::Unpublished(failure) = outcome.unwrap_err() else {
-        panic!("a failed required barrier must never return Published")
+    let RecordAppendError::Unpublished(failure) = outcome.as_ref().unwrap_err() else {
+        panic!(
+            "a failed required barrier must never return Published: outcome={outcome:?}, counters={:?}",
+            serving.media_counters()
+        )
     };
     assert_eq!(
         failure.attempted_records(),
         3,
         "C5_PREDICATE:batch-atomicity"
     );
+    let UnpublishedRecordBatchCause::PhysicalWork {
+        stage,
+        failure: physical,
+    } = failure.cause()
+    else {
+        panic!("barrier fault bypassed canonical physical work: {failure:?}");
+    };
+    assert_eq!(
+        *stage,
+        worth_store::physical_runtime::RecordPublicationStage::DataSynchronization
+    );
+    assert!(physical.identity().is_some());
     assert!(matches!(
-        failure.cause(),
-        UnpublishedRecordBatchCause::Backend {
-            stage: worth_store::physical_runtime::RecordPublicationStage::DataSynchronization,
-            ..
-        }
+        physical.cause(),
+        worth_store::physical_runtime::PhysicalRecordMutationFailureCause::Backend(_)
     ));
+    assert_eq!(
+        physical.effect_fate(),
+        worth_store::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect
+    );
 
     let candidate = std::fs::read_dir(root.join("families/records/segments"))
         .unwrap()
@@ -88,7 +106,15 @@ fn premature_identity_subset_and_success_mutants_fail_causally() {
     serving.abort();
 
     let reopened = super::serving_from_open(&root);
-    assert!(super::scan_journeys::collect_scan(&reopened, 3, 64).is_empty());
+    assert!(matches!(
+        reopened.records().scan(
+            worth_store::physical_runtime::RecordScanRequest::from_start()
+                .with_batch_limit(worth_store::physical_runtime::RecordCountLimit::new(3).unwrap())
+        ),
+        Err(error)
+            if error.denial()
+                == worth_store::physical_runtime::RecordScanDenial::ServingRequiresInspection
+    ));
     for descriptor in descriptors {
         let mut encoded = [0_u8; 40];
         encoded[..16].copy_from_slice(&store.bytes());
@@ -102,7 +128,7 @@ fn premature_identity_subset_and_success_mutants_fail_causally() {
             Err(error) => error,
             Ok(_) => panic!("a candidate identity must not open before root publication"),
         };
-        assert_eq!(error.denial(), RecordReadDenial::RecordNotFound);
+        assert_eq!(error.denial(), RecordReadDenial::ServingRequiresInspection);
     }
     let offline = worth_store_offline_verifier::walk_current_durable_record_manifest(
         &root,

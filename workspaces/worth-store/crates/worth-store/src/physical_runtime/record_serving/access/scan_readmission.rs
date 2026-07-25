@@ -46,7 +46,7 @@ impl ExternalRecordScanCursor {
 }
 
 pub(in crate::physical_runtime::record_serving) fn readmit_cursor(
-    reader: &PhysicalRecordReader<'_>,
+    reader: &PhysicalRecordReader,
     cursor: Option<ExternalRecordScanCursor>,
 ) -> Result<Option<PersistedRecordIdentity>, RecordScanError> {
     let Some(cursor) = cursor else {
@@ -68,7 +68,7 @@ pub(in crate::physical_runtime::record_serving) fn readmit_cursor(
 }
 
 pub(in crate::physical_runtime::record_serving) fn cursor_for(
-    reader: &PhysicalRecordReader<'_>,
+    reader: &PhysicalRecordReader,
     root: &DurablePhysicalRootManifest,
     record: PhysicalRecordId,
 ) -> ExternalRecordScanCursor {

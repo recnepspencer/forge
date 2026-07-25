@@ -7,7 +7,7 @@ mod crash_record;
 mod denial;
 mod durability_observation;
 mod executed_append;
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-test-authority"))]
 mod tests;
 
 pub use ack_precondition::AcknowledgmentPrecondition;

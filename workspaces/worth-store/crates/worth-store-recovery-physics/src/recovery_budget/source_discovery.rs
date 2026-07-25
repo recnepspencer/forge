@@ -5,7 +5,7 @@ use crate::{
 
 use super::{RecoveryBudget, RecoveryBudgetDenial, RecoveryBudgetDenialKind};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct BoundedRecoverySourcePrecedenceGraph {
     budget: RecoveryBudget,
     graph: RecoverySourcePrecedenceGraph,

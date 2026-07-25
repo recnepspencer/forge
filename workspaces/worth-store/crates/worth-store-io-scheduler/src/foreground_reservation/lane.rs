@@ -12,6 +12,7 @@ pub enum ForegroundIoLaneKind {
     OrdinaryPageWrite,
     InteractiveRead,
     InternalForegroundRead,
+    ArtifactMetadataRead,
 }
 
 impl ForegroundIoLaneKind {
@@ -21,6 +22,7 @@ impl ForegroundIoLaneKind {
             | Self::RangeRead
             | Self::InteractiveRead
             | Self::InternalForegroundRead => IoSchedulerBackendCapabilityRequirement::DirectIo,
+            Self::ArtifactMetadataRead => IoSchedulerBackendCapabilityRequirement::BufferedFile,
             Self::CommitCriticalWalWrite => IoSchedulerBackendCapabilityRequirement::Fsync,
             Self::OrdinaryPageWrite => IoSchedulerBackendCapabilityRequirement::BufferedFile,
         }
@@ -60,10 +62,31 @@ impl ForegroundLaneDeclaration {
         Self::new(ForegroundIoLaneKind::InternalForegroundRead)
     }
 
+    pub const fn artifact_metadata_read() -> Self {
+        Self::new(ForegroundIoLaneKind::ArtifactMetadataRead)
+    }
+
     pub const fn secure_frame_internal_foreground_read(
     ) -> Result<Self, ForegroundReservationAdmissionDenial> {
         let lane = Self::internal_foreground_read().with_store_owned_backend_requirement(
             IoSchedulerBackendCapabilityRequirement::SecureFrameIo,
+        );
+        if lane.backend_requirement_is_store_owned() {
+            Ok(lane)
+        } else {
+            Err(
+                ForegroundReservationAdmissionDenial::LaneBackendRequirementNotStoreOwned {
+                    lane: lane.lane,
+                    backend_requirement: lane.backend_requirement,
+                },
+            )
+        }
+    }
+
+    pub const fn buffered_file_internal_foreground_read(
+    ) -> Result<Self, ForegroundReservationAdmissionDenial> {
+        let lane = Self::internal_foreground_read().with_store_owned_backend_requirement(
+            IoSchedulerBackendCapabilityRequirement::BufferedFile,
         );
         if lane.backend_requirement_is_store_owned() {
             Ok(lane)
@@ -119,6 +142,12 @@ impl ForegroundLaneDeclaration {
             ) | (
                 ForegroundIoLaneKind::InternalForegroundRead,
                 IoSchedulerBackendCapabilityRequirement::SecureFrameIo,
+            ) | (
+                ForegroundIoLaneKind::InternalForegroundRead,
+                IoSchedulerBackendCapabilityRequirement::BufferedFile,
+            ) | (
+                ForegroundIoLaneKind::ArtifactMetadataRead,
+                IoSchedulerBackendCapabilityRequirement::BufferedFile,
             )
         )
     }

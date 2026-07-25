@@ -106,7 +106,6 @@ fn retained_authority_rollback_stages_forward_then_completes_its_own_cutover() {
     );
     let roots = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "rollback-full-cutover",
         111,
     );
     let publication_directory = tempfile::tempdir().unwrap();

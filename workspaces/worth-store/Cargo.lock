@@ -601,6 +601,8 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
+ "worth-store",
 ]
 
 [[package]]
@@ -1200,6 +1202,7 @@ dependencies = [
  "worth-proof",
  "worth-signal",
  "worth-store-aspect-native",
+ "worth-store-authority",
  "worth-store-buffer-pool",
  "worth-store-certification",
  "worth-store-contracts",
@@ -1472,10 +1475,9 @@ version = "0.1.0"
 dependencies = [
  "worth-store-buffer-pool",
  "worth-store-contracts",
- "worth-store-io-scheduler",
  "worth-store-layout-indexes",
+ "worth-store-physical-format",
  "worth-store-physical-integrity",
- "worth-store-retention",
 ]
 
 [[package]]
@@ -1782,7 +1784,6 @@ dependencies = [
  "worth-store-physical-format",
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
- "worth-store-readiness",
  "worth-store-recovery-physics",
  "worth-store-security",
  "worth-store-wal",

@@ -341,7 +341,6 @@ fn current_snapshot(
     );
     let roots = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "s10-owner-world-restore",
         91,
     );
     let publication_root = scenario

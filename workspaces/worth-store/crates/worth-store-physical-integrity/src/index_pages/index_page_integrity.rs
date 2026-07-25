@@ -148,8 +148,7 @@ fn derived_index_page_is_damaged(
         return Ok(true);
     };
     Ok(!page
-        .checked_bytes()
-        .as_bytes()
+        .checked_payload_bytes()
         .starts_with(DERIVED_INDEX_SENTINEL))
 }
 

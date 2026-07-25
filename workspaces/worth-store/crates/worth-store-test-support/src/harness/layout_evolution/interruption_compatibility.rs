@@ -39,7 +39,7 @@ fn observe_migration_interruption() -> Vec<OwnerCaseObservation<LayoutMigrationI
 
     let request = LayoutMigrationExecutionRequest::new(
         world::migration_plan(rollback_declaration, &authority),
-        world::publication_plan(&authority, "migration-interruption-target", 13_001),
+        world::publication_plan(&authority, 13_001),
     );
     let mut publication = crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(
         request.publication_source_root(),
@@ -51,13 +51,13 @@ fn observe_migration_interruption() -> Vec<OwnerCaseObservation<LayoutMigrationI
         .unwrap();
     let replay = LayoutMigrationExecutionRequest::new(
         world::migration_plan(rollback_declaration, &authority),
-        world::publication_plan(&authority, "migration-interruption-target", 13_001),
+        world::publication_plan(&authority, 13_001),
     );
     let rollback = replay.resume_or_rollback(target.interruption_state());
 
     let different = LayoutMigrationExecutionRequest::new(
         world::migration_plan(rollback_declaration, &authority),
-        world::publication_plan(&authority, "migration-interruption-other", 13_002),
+        world::publication_plan(&authority, 13_002),
     );
     let denied = different.resume_or_rollback(target.interruption_state());
 
@@ -70,12 +70,7 @@ fn observe_migration_interruption() -> Vec<OwnerCaseObservation<LayoutMigrationI
 fn observe_rollback_interruption() -> Vec<OwnerCaseObservation<LayoutRollbackInterruptionCaseId>> {
     let authority = world::authority("store.layout_evolution.rollback_interruption");
     let declaration = world::declaration(LayoutInterruptionPolicy::ResumeDeclaredMigration);
-    let (migrated, inputs) = world::execute_migration_with_inputs(
-        declaration,
-        &authority,
-        "rollback-interruption-migration",
-        13_101,
-    );
+    let (migrated, _inputs) = world::execute_migration_with_inputs(declaration, &authority, 13_101);
     let target = migrated.target_binding().clone();
     let plan = layout_rollback_operation()
         .plan(
@@ -86,12 +81,7 @@ fn observe_rollback_interruption() -> Vec<OwnerCaseObservation<LayoutRollbackInt
         .unwrap();
     let request = LayoutRollbackExecutionRequest::new(
         plan,
-        world::successor_publication_plan(
-            &inputs,
-            &authority,
-            "rollback-interruption-target",
-            13_102,
-        ),
+        world::successor_publication_plan(migrated.publication(), &authority, 13_102),
     );
     let source_state = request.interruption_state();
     let matching = request.clone();
@@ -106,13 +96,7 @@ fn observe_rollback_interruption() -> Vec<OwnerCaseObservation<LayoutRollbackInt
         .into_published()
         .unwrap()
         .interruption_state();
-    let matching = rollback_request_for(
-        declaration,
-        &authority,
-        "rollback-interruption-migration",
-        "rollback-interruption-target",
-        13_101,
-    );
+    let matching = rollback_request_for(declaration, &authority, 13_101);
     let published = matching.classify_interruption(target_state.clone());
     let different_plan = layout_rollback_operation()
         .plan(
@@ -123,12 +107,7 @@ fn observe_rollback_interruption() -> Vec<OwnerCaseObservation<LayoutRollbackInt
         .unwrap();
     let different = LayoutRollbackExecutionRequest::new(
         different_plan,
-        world::successor_publication_plan(
-            &inputs,
-            &authority,
-            "rollback-interruption-other",
-            13_103,
-        ),
+        world::successor_publication_plan(migrated.publication(), &authority, 13_103),
     );
     let denied = different.classify_interruption(target_state);
 
@@ -141,12 +120,10 @@ fn observe_rollback_interruption() -> Vec<OwnerCaseObservation<LayoutRollbackInt
 fn rollback_request_for(
     declaration: LayoutEvolutionDeclaration,
     authority: &worth_store_authority::StoreCurrentAuthorityWitness,
-    migration_digest: &str,
-    rollback_digest: &str,
     generation: u64,
 ) -> LayoutRollbackExecutionRequest {
-    let (migrated, inputs) =
-        world::execute_migration_with_inputs(declaration, authority, migration_digest, generation);
+    let (migrated, _inputs) =
+        world::execute_migration_with_inputs(declaration, authority, generation);
     let target = migrated.target_binding().clone();
     let plan = layout_rollback_operation()
         .plan(
@@ -157,7 +134,7 @@ fn rollback_request_for(
         .unwrap();
     LayoutRollbackExecutionRequest::new(
         plan,
-        world::successor_publication_plan(&inputs, authority, rollback_digest, generation + 1),
+        world::successor_publication_plan(migrated.publication(), authority, generation + 1),
     )
 }
 

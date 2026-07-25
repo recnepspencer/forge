@@ -1,5 +1,5 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::AllocationDenial;
+use worth_store_buffer_pool::OperationAllocationScope;
 use worth_store_io_scheduler::{
     foreground_reservation::{
         ForegroundIoLaneKind, ForegroundReservationAdmissionDenial, ForegroundReservationState,
@@ -8,6 +8,7 @@ use worth_store_io_scheduler::{
 };
 use worth_store_physical_isolation::PhysicalReadExecutionDenial;
 
+use super::super::allocation::BlobStreamingAllocationDenial;
 use crate::{
     BlobChunkByteRange, BlobChunkOrdinal, BlobCorruptionDenial, BlobDamageCase,
     BlobQuarantineDiagnostics, BlobStreamingReadCounterSnapshot,
@@ -27,14 +28,14 @@ pub enum BlobStreamingReadDenial {
     MissingExactCounters {
         actual: CounterEvidenceStrength,
     },
-    AllocationDenied(AllocationDenial),
-    AllocationScopeMismatch,
-    AllocationKindMismatch,
-    AllocationCountersHidden,
-    ResidentEnvelopeExceeded {
-        peak_resident_bytes: u64,
-        envelope_bytes: u64,
+    AllocationScopeMismatch {
+        actual: OperationAllocationScope,
     },
+    AllocationWindowExceeded {
+        window_bytes: u64,
+        allocation_bytes: u64,
+    },
+    AllocationCountersUnavailable,
     ForegroundReservationNotAdmitted {
         lane: ForegroundIoLaneKind,
         state: ForegroundReservationState,
@@ -104,6 +105,26 @@ pub enum BlobStreamingReadDenial {
     CorruptionReferenceEdgeMismatch(Box<BlobCorruptionDenial>),
     LogicalContentDigestMismatch,
     ChunkTreeRootMismatch,
+}
+
+impl From<BlobStreamingAllocationDenial> for BlobStreamingReadDenial {
+    fn from(denial: BlobStreamingAllocationDenial) -> Self {
+        match denial {
+            BlobStreamingAllocationDenial::WrongScope { actual } => {
+                Self::AllocationScopeMismatch { actual }
+            }
+            BlobStreamingAllocationDenial::WindowExceedsAllocation {
+                window_bytes,
+                allocation_bytes,
+            } => Self::AllocationWindowExceeded {
+                window_bytes,
+                allocation_bytes,
+            },
+            BlobStreamingAllocationDenial::CountersUnavailable => {
+                Self::AllocationCountersUnavailable
+            }
+        }
+    }
 }
 
 pub fn reject_full_blob_vec_as_streaming_read(bytes: Vec<u8>) -> BlobStreamingReadDenial {

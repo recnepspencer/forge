@@ -1,11 +1,12 @@
 use sha2::{Digest, Sha256};
 use worth_store_io_scheduler::foreground_reservation::{
-    ForegroundIoLaneKind, ForegroundReservationReceipt,
+    ForegroundIoLaneKind, PhysicalInstanceForegroundCapacityLease,
+    PhysicalInstanceForegroundReservation,
 };
 use worth_store_io_scheduler::{
     admit_queue_execution_plan, admit_queue_policy_receipt, lower_physical_foreground_work,
     IoSchedulerBackendCapabilityAdmission, QueueDurabilityClass, QueueExecutionAdmissionDenial,
-    QueueExecutionAdmissionRequest, QueueLocalityIdentity,
+    QueueExecutionAdmissionRequest, QueueLocalityIdentity, QueueLocalityRange,
     QueueRecoveryOrdering, QueueWorkDeclaration, QueueWritebackPolicy, SecureIoPreservationReceipt,
 };
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
@@ -24,11 +25,14 @@ pub enum PhysicalSchedulerDenial {
         lane: ForegroundIoLaneKind,
     },
     Queue(QueueExecutionAdmissionDenial),
+    ResidencyWorkMismatch,
+    Residency(worth_store_buffer_pool::PhysicalResidencyDenial),
 }
 
 pub struct PhysicalSchedulerDemand {
     ready: ReadyPhysicalWork,
     work: QueueWorkDeclaration,
+    capacity: PhysicalInstanceForegroundCapacityLease,
 }
 
 pub struct PhysicalWorkScheduler;
@@ -36,15 +40,18 @@ pub struct PhysicalWorkScheduler;
 impl PhysicalSchedulerDemand {
     pub fn foreground(
         ready: ReadyPhysicalWork,
-        reservation: ForegroundReservationReceipt,
+        reservation: PhysicalInstanceForegroundReservation,
         secure_io: Option<SecureIoPreservationReceipt>,
     ) -> Result<Self, PhysicalSchedulerDenial> {
         let intent = ready.intent();
-        require_lane(intent.operation(), reservation.lane())?;
+        require_lane(intent.operation(), reservation.receipt().lane())?;
+        let pressure_marked = ready.mark_pressure(pressure_class(reservation.receipt().lane()));
+        debug_assert!(pressure_marked);
+        let (receipt, capacity) = reservation.into_parts();
         let resources = intent.resources();
         let (durability, recovery, writeback) = scheduler_posture(intent);
         let work = lower_physical_foreground_work(
-            reservation,
+            receipt,
             intent.security(),
             physical_locality(intent.identity().store(), intent.scope()),
             resources.queue_shape(),
@@ -55,15 +62,80 @@ impl PhysicalSchedulerDemand {
             secure_io,
         )
         .map_err(PhysicalSchedulerDenial::Queue)?;
-        Ok(Self { ready, work })
+        Ok(Self {
+            ready,
+            work,
+            capacity,
+        })
+    }
+
+    pub fn residency_writeback(
+        ready: ReadyPhysicalWork,
+        declaration: worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration,
+        reservation: PhysicalInstanceForegroundReservation,
+        secure_io: Option<SecureIoPreservationReceipt>,
+    ) -> Result<Self, PhysicalSchedulerDenial> {
+        let intent = ready.intent();
+        let [coordinate] = intent.scope().coordinates() else {
+            return Err(PhysicalSchedulerDenial::ResidencyWorkMismatch);
+        };
+        if intent.operation() != PhysicalWorkOperationFamily::ArtifactRangeWrite
+            || declaration.store() != intent.identity().store()
+            || declaration.frame() != *coordinate
+            || declaration.grouping_scope().security_scope_identity() != intent.security()
+        {
+            return Err(PhysicalSchedulerDenial::ResidencyWorkMismatch);
+        }
+        require_lane(intent.operation(), reservation.receipt().lane())?;
+        let pressure_marked = ready.mark_pressure(pressure_class(reservation.receipt().lane()));
+        debug_assert!(pressure_marked);
+        let (receipt, capacity) = reservation.into_parts();
+        let mut work =
+            worth_store_io_scheduler::lower_buffer_pool_queue_declaration(declaration, receipt)
+                .map_err(PhysicalSchedulerDenial::Queue)?;
+        if let Some(secure_io) = secure_io {
+            work = work.with_secure_io_scope(secure_io);
+        }
+        Ok(Self {
+            ready,
+            work,
+            capacity,
+        })
     }
 
     pub const fn intent(&self) -> &super::PhysicalWorkIntent {
         self.ready.intent()
     }
 
-    pub const fn queue_work(&self) -> QueueWorkDeclaration {
-        self.work
+    pub fn queue_work(&self) -> QueueWorkDeclaration {
+        self.work.clone()
+    }
+
+    pub fn with_secure_io(mut self, secure_io: SecureIoPreservationReceipt) -> Self {
+        self.work = self.work.with_secure_io_scope(secure_io);
+        self
+    }
+}
+
+const fn pressure_class(lane: ForegroundIoLaneKind) -> super::PhysicalWorkPressureClass {
+    match lane {
+        ForegroundIoLaneKind::PointRead => super::PhysicalWorkPressureClass::ForegroundPointRead,
+        ForegroundIoLaneKind::RangeRead => super::PhysicalWorkPressureClass::ForegroundRangeRead,
+        ForegroundIoLaneKind::InteractiveRead => {
+            super::PhysicalWorkPressureClass::ForegroundInteractiveRead
+        }
+        ForegroundIoLaneKind::InternalForegroundRead => {
+            super::PhysicalWorkPressureClass::ForegroundInternalRead
+        }
+        ForegroundIoLaneKind::ArtifactMetadataRead => {
+            super::PhysicalWorkPressureClass::ForegroundInternalRead
+        }
+        ForegroundIoLaneKind::OrdinaryPageWrite => {
+            super::PhysicalWorkPressureClass::ForegroundMutation
+        }
+        ForegroundIoLaneKind::CommitCriticalWalWrite => {
+            super::PhysicalWorkPressureClass::ForegroundMutation
+        }
     }
 }
 
@@ -74,50 +146,41 @@ fn physical_locality(
     let mut digest = Sha256::new();
     digest.update(b"worth-store.physical-queue-locality.v1");
     digest.update(store.bytes());
-    digest.update((scope.coordinates().len() as u64).to_le_bytes());
+    digest.update((scope.member_count() as u64).to_le_bytes());
+    if let Some(artifact) = scope.artifact_target() {
+        update_artifact(&mut digest, artifact);
+        let identity = digest.finalize().into();
+        let mut artifact_identity = Sha256::new();
+        artifact_identity.update(b"worth-store.physical-queue-artifact.v1");
+        artifact_identity.update(store.bytes());
+        update_artifact(&mut artifact_identity, artifact);
+        let range = QueueLocalityRange::new(artifact_identity.finalize().into(), 0, u64::MAX)
+            .expect("artifact-wide locality is nonempty");
+        return QueueLocalityIdentity::from_ranges(identity, [range])
+            .expect("one artifact-wide locality range is valid");
+    }
     for coordinate in scope.coordinates() {
         update_artifact(&mut digest, coordinate.artifact());
         digest.update(coordinate.offset().to_le_bytes());
         digest.update(coordinate.length().to_le_bytes());
     }
     let identity = digest.finalize().into();
-    let coordinates = scope.coordinates();
-    let first_artifact = coordinates[0].artifact();
-    if coordinates
-        .iter()
-        .all(|coordinate| coordinate.artifact() == first_artifact)
-    {
+    let ranges = scope.coordinates().iter().map(|coordinate| {
         let mut artifact = Sha256::new();
         artifact.update(b"worth-store.physical-queue-artifact.v1");
         artifact.update(store.bytes());
-        update_artifact(&mut artifact, first_artifact);
-        let start = coordinates
-            .iter()
-            .map(|coordinate| coordinate.offset())
-            .min()
-            .expect("physical scope is nonempty");
-        let end = coordinates
-            .iter()
-            .map(|coordinate| {
-                coordinate
-                    .offset()
-                    .saturating_add(u64::from(coordinate.length()))
-            })
-            .max()
-            .expect("physical scope is nonempty");
-        let covered_bytes = coordinates.iter().fold(0_u64, |total, coordinate| {
-            total.saturating_add(u64::from(coordinate.length()))
-        });
-        return QueueLocalityIdentity::from_single_artifact_scope(
-            identity,
+        update_artifact(&mut artifact, coordinate.artifact());
+        QueueLocalityRange::new(
             artifact.finalize().into(),
-            start,
-            end,
-            covered_bytes,
-            u16::try_from(coordinates.len()).expect("physical scope capacity fits u16"),
-        );
-    }
-    QueueLocalityIdentity::from_digest(identity)
+            coordinate.offset(),
+            coordinate
+                .offset()
+                .saturating_add(u64::from(coordinate.length())),
+        )
+        .expect("admitted physical scope ranges are nonempty")
+    });
+    QueueLocalityIdentity::from_ranges(identity, ranges)
+        .expect("admitted physical scope ranges are sorted and disjoint")
 }
 
 fn update_artifact(digest: &mut Sha256, artifact: RecordArtifactFile) {
@@ -152,6 +215,9 @@ fn require_lane(
     lane: ForegroundIoLaneKind,
 ) -> Result<(), PhysicalSchedulerDenial> {
     let compatible = match operation {
+        PhysicalWorkOperationFamily::ArtifactMetadataRead => {
+            lane == ForegroundIoLaneKind::ArtifactMetadataRead
+        }
         PhysicalWorkOperationFamily::ArtifactRangeRead => matches!(
             lane,
             ForegroundIoLaneKind::PointRead
@@ -175,15 +241,17 @@ impl PhysicalWorkScheduler {
         backend: &IoSchedulerBackendCapabilityAdmission,
         policy: worth_foundational::FoundationalPolicyAdmissionReceipt,
     ) -> Result<ResourceAdmittedPhysicalWork, PhysicalSchedulerDenial> {
-        let policy = admit_queue_policy_receipt(demand.work, policy)
+        let PhysicalSchedulerDemand {
+            ready,
+            work,
+            capacity,
+        } = demand;
+        let policy = admit_queue_policy_receipt(work.clone(), policy)
             .map_err(PhysicalSchedulerDenial::Queue)?;
-        let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-            demand.work,
-            backend,
-            policy,
-        ))
-        .map_err(PhysicalSchedulerDenial::Queue)?;
-        Ok(ResourceAdmittedPhysicalWork::new(demand.ready, plan))
+        let plan =
+            admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, backend, policy))
+                .map_err(PhysicalSchedulerDenial::Queue)?;
+        Ok(ResourceAdmittedPhysicalWork::new(ready, plan, capacity))
     }
 }
 
@@ -196,7 +264,8 @@ fn scheduler_posture(
 ) {
     match (intent.operation(), intent.durability()) {
         (
-            PhysicalWorkOperationFamily::ArtifactRangeRead,
+            PhysicalWorkOperationFamily::ArtifactMetadataRead
+            | PhysicalWorkOperationFamily::ArtifactRangeRead,
             PhysicalWorkDurabilityRequirement::ReadOnly,
         ) => (
             QueueDurabilityClass::ReadOnly,

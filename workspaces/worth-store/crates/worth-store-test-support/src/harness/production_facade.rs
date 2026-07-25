@@ -14,7 +14,7 @@ pub use super::fixtures::{
 };
 #[cfg(feature = "layout-fixtures")]
 pub use super::layout::*;
-#[cfg(feature = "layout-fixtures")]
+#[cfg(feature = "certification-world")]
 pub use super::lsm_execution_fixture::{
     execute_baseline_lsm_persisted_fixture, execute_baseline_lsm_replay_source_fixture,
     execute_frontierless_lsm_replay_source_fixture, execute_lsm_compaction_reader_cutover_fixture,

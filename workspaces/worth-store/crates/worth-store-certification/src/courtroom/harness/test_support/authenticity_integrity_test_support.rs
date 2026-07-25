@@ -1,5 +1,5 @@
 use super::pre_decode_physical_admission_test_support::{
-    crc32c, with_pre_decode_admission, CountingSemanticDecoder,
+    crc32c, current_frame_bytes, with_pre_decode_admission, CountingSemanticDecoder,
 };
 use worth_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
@@ -93,7 +93,9 @@ pub(crate) fn policy_lane_observation(
                     validation,
                     witness,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-policy-switch")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"checksum-valid-auth-policy-switch",
+                    ))),
                 ))
                 .unwrap();
             let identity = checked.gate_evidence().identity().clone();

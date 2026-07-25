@@ -1,7 +1,8 @@
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     ExternalPhysicalRecordLocator, PhysicalLocatorReadmissionDenial, PhysicalRecordInitialization,
-    PhysicalRecordOpen, RecordAppendBatch, RecordAppendDenial, RecordAppendError,
+    PhysicalRecordOpen, PhysicalWorkEffectFate, RecordAppendBatch, RecordAppendDenial,
+    RecordAppendError, RecordByteLimit, RecordReadDenial, RecordReadLimits,
     RecordServingTerminalPosture,
 };
 use worth_store_physical_backend::MediaOperationRole;
@@ -16,12 +17,12 @@ fn locator_readmission_and_free_space_truth_survive_reopen() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
             placement,
@@ -93,12 +94,12 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"locator truth".as_slice()]).unwrap(),
             placement,
@@ -117,14 +118,65 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
     damaged[final_byte] ^= 1;
     std::fs::write(&block_path, damaged).unwrap();
 
-    let mut reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let invalidations_before = reopened
+        .physical_signal_observation()
+        .unwrap()
+        .aspect_invalidation_count();
+    let error = match reopened.records().open_external(
+        locator,
+        RecordReadLimits::new(RecordByteLimit::new(64).unwrap()),
+    ) {
+        Ok(_) => panic!("damaged locator truth must not construct a read session"),
+        Err(error) => error,
+    };
+    assert_eq!(error.denial(), RecordReadDenial::ArtifactDamaged);
+    assert_eq!(
+        reopened
+            .physical_signal_observation()
+            .unwrap()
+            .aspect_invalidation_count(),
+        invalidations_before + 1,
+        "semantic rejection after a completed range read must invalidate its exact projection"
+    );
+    let failed_identity = error
+        .observation()
+        .last_physical_work()
+        .expect("semantic damage retains the rejected physical read identity");
+    let failed = reopened
+        .physical_work_observer()
+        .causal()
+        .records()
+        .iter()
+        .find(|record| record.identity() == failed_identity)
+        .copied()
+        .expect("semantic damage joins to a causal physical settlement");
+    assert_eq!(failed.effect_fate(), PhysicalWorkEffectFate::ReadCompleted);
+    assert!(failed.backend_operation().is_some());
+    assert_mutation_fenced(&reopened, placement);
+    assert_eq!(
+        reopened.close().records().posture(),
+        RecordServingTerminalPosture::InspectionRequired
+    );
+
+    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
     assert_eq!(
         reopened.records().readmit_locator(locator).into_result(),
         Err(PhysicalLocatorReadmissionDenial::CurrentRootUnavailable)
     );
+    assert_mutation_fenced(&reopened, placement);
+    assert_eq!(
+        reopened.close().records().posture(),
+        RecordServingTerminalPosture::InspectionRequired
+    );
+}
+
+fn assert_mutation_fenced(
+    serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
+    placement: worth_store::physical_runtime::AdmittedRecordPlacementPolicy,
+) {
     assert!(matches!(
-        reopened.records_mut().append_batch(
+        serving.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"must stay sealed".as_slice()]).unwrap(),
             placement,
         ),
@@ -132,10 +184,6 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
             RecordAppendDenial::ServingRequiresInspection
         ))
     ));
-    assert_eq!(
-        reopened.close().records().posture(),
-        RecordServingTerminalPosture::InspectionRequired
-    );
 }
 
 #[test]
@@ -143,12 +191,12 @@ fn validly_framed_extra_free_space_claim_is_not_accepted_as_truth() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
             placement,
@@ -164,10 +212,9 @@ fn validly_framed_extra_free_space_claim_is_not_accepted_as_truth() {
     entries.sort_by_key(|entry| worth_store_physical_format::FreeSpaceKey::from(*entry));
     overwrite_free_space_root_block(&root, format.declaration(), &free.header, entries);
 
-    let mut reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
     assert!(matches!(
-        reopened.records_mut().append_batch(
+        reopened.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"must inspect the tree".as_slice()]).unwrap(),
             placement,
         ),
@@ -184,13 +231,13 @@ fn altered_free_range_and_generation_cannot_be_readmitted_as_authority() {
         let parent = tempfile::tempdir().unwrap();
         let root = parent.path().join(case);
         let (format, placement, access) = dense_configuration(4);
-        let mut serving = success(
+        let serving = success(
             media(&root).initialize_record_store(PhysicalRecordInitialization::new(
                 format, placement, access,
             )),
         );
         serving
-            .records_mut()
+            .record_submission()
             .append_batch(
                 RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
                 placement,
@@ -215,11 +262,11 @@ fn altered_free_range_and_generation_cannot_be_readmitted_as_authority() {
         .unwrap();
         overwrite_free_space_root_block(&root, format.declaration(), &free.header, entries);
 
-        let mut reopened =
+        let reopened =
             success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
         assert!(
             matches!(
-                reopened.records_mut().append_batch(
+                reopened.record_submission().append_batch(
                     RecordAppendBatch::try_from_iter([b"tree damage".as_slice()]).unwrap(),
                     placement,
                 ),

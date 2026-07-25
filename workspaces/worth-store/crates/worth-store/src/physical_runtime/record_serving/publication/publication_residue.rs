@@ -85,12 +85,19 @@ impl RecordPublicationResidueObservation {
             stage,
             super::super::RecordPublicationStage::CandidateDataWrite
                 | super::super::RecordPublicationStage::DataSynchronization
+                | super::super::RecordPublicationStage::PayloadManifestSynchronization
                 | super::super::RecordPublicationStage::ManifestSynchronization
                 | super::super::RecordPublicationStage::CatalogCandidateSynchronization
                 | super::super::RecordPublicationStage::CatalogReplacement
                 | super::super::RecordPublicationStage::NamespaceSynchronization
         );
         let manifests_may_exist = !matches!(
+            stage,
+            super::super::RecordPublicationStage::CandidateDataWrite
+                | super::super::RecordPublicationStage::DataSynchronization
+                | super::super::RecordPublicationStage::PayloadManifestSynchronization
+        );
+        let payload_manifests_may_exist = !matches!(
             stage,
             super::super::RecordPublicationStage::CandidateDataWrite
                 | super::super::RecordPublicationStage::DataSynchronization
@@ -140,6 +147,14 @@ impl RecordPublicationResidueObservation {
                     _ => {}
                 }
             }
+        }
+        if payload_manifests_may_exist
+            && plan
+                .payload_manifests
+                .iter()
+                .any(|(artifact, _)| matches!(artifact, RecordArtifactFile::ExtentManifest { .. }))
+        {
+            observation.next_extent_manifest = true;
         }
         observation
     }

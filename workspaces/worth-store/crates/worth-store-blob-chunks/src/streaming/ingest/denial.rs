@@ -1,10 +1,11 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::AllocationDenial;
+use worth_store_buffer_pool::{OperationAllocationScope, PhysicalResidencyDenial};
 use worth_store_io_scheduler::{
     foreground_reservation::ForegroundIoLaneKind, BackgroundIoPressureClass,
     BackgroundPacingStaleRebindKind,
 };
 
+use super::super::allocation::BlobStreamingAllocationDenial;
 use crate::BlobChunkIntegrityDenial;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,14 +27,15 @@ pub enum BlobStreamingIngestDenial {
     MissingExactCounters {
         actual: CounterEvidenceStrength,
     },
-    AllocationDenied(AllocationDenial),
-    AllocationScopeMismatch,
-    AllocationKindMismatch,
-    AllocationCountersHidden,
-    ResidentEnvelopeExceeded {
-        peak_resident_bytes: u64,
-        envelope_bytes: u64,
+    AllocationDenied(PhysicalResidencyDenial),
+    AllocationScopeMismatch {
+        actual: OperationAllocationScope,
     },
+    AllocationWindowExceeded {
+        window_bytes: u64,
+        allocation_bytes: u64,
+    },
+    AllocationCountersUnavailable,
     BackgroundPressureDeferred,
     BackgroundPressureDenied,
     BackgroundPressureStale {
@@ -71,9 +73,29 @@ impl From<BlobChunkIntegrityDenial> for BlobStreamingIngestDenial {
     }
 }
 
-impl From<AllocationDenial> for BlobStreamingIngestDenial {
-    fn from(denial: AllocationDenial) -> Self {
+impl From<PhysicalResidencyDenial> for BlobStreamingIngestDenial {
+    fn from(denial: PhysicalResidencyDenial) -> Self {
         Self::AllocationDenied(denial)
+    }
+}
+
+impl From<BlobStreamingAllocationDenial> for BlobStreamingIngestDenial {
+    fn from(denial: BlobStreamingAllocationDenial) -> Self {
+        match denial {
+            BlobStreamingAllocationDenial::WrongScope { actual } => {
+                Self::AllocationScopeMismatch { actual }
+            }
+            BlobStreamingAllocationDenial::WindowExceedsAllocation {
+                window_bytes,
+                allocation_bytes,
+            } => Self::AllocationWindowExceeded {
+                window_bytes,
+                allocation_bytes,
+            },
+            BlobStreamingAllocationDenial::CountersUnavailable => {
+                Self::AllocationCountersUnavailable
+            }
+        }
     }
 }
 

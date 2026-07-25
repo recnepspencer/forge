@@ -7,7 +7,7 @@ use worth_store::physical_runtime::{
 
 use super::fixture::{
     family_locality_fixture, matching_aspect_delta, serving_from_initialization_with_work_profile,
-    serving_from_open_with_work_profile, work_fixture,
+    serving_from_open_with_work_profile, work_fixture, EXPECTED_NATIVE_RECORD_BINDING_COUNT,
 };
 
 #[test]
@@ -16,6 +16,7 @@ fn store_admission_precedes_signal_lineage_and_both_are_effect_free() {
     let (profile, read_request, _) = work_fixture();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let receipt = success(serving.physical_read_submission().submit(read_request));
+    let identity = receipt.identity();
     let before = serving.media_counters();
 
     let admitted = serving.admit_physical_work(receipt).unwrap();
@@ -44,9 +45,14 @@ fn store_admission_precedes_signal_lineage_and_both_are_effect_free() {
         serving.admit_physical_work(receipt).err(),
         Some(PhysicalWorkPreEffectDenial::CommandAbsent)
     );
+    await_no_active_signal(&serving);
     let closed = serving.close();
     assert_eq!(closed.work().declared(), 1);
-    assert_eq!(closed.work().terminal().len(), 0);
+    assert_eq!(closed.work().residual(), 0);
+    assert_eq!(
+        closed.work().drain().released_before_dispatch(),
+        &[identity]
+    );
     assert_eq!(closed.work().unaccounted_terminal(), 0);
 }
 
@@ -174,7 +180,7 @@ fn changed_declared_dependency_is_evaluated_before_readiness_without_media() {
     let (profile, read_request, _) = work_fixture();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     serving
-        .apply_physical_aspect_delta(matching_aspect_delta(1, "dirty"))
+        .certification_apply_physical_aspect_delta(matching_aspect_delta(1, "dirty"))
         .unwrap();
     let admitted = serving
         .admit_physical_work(success(
@@ -194,7 +200,9 @@ fn dependency_invalidation_evaluates_only_its_locality_owner() {
     let root = tempdir().unwrap();
     let (profile, read_request, write_request, read_delta) = family_locality_fixture();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
-    serving.apply_physical_aspect_delta(read_delta).unwrap();
+    serving
+        .certification_apply_physical_aspect_delta(read_delta)
+        .unwrap();
     let read = serving
         .admit_physical_work(success(
             serving.physical_read_submission().submit(read_request),
@@ -231,7 +239,10 @@ fn changed_dependency_revalidation_refreshes_the_exact_active_lineage_without_me
     let ready = ready_read(&serving, read_request);
     let active = ready.signal_request();
     serving
-        .apply_physical_aspect_delta(matching_aspect_delta(1, "changed-after-readiness"))
+        .certification_apply_physical_aspect_delta(matching_aspect_delta(
+            1,
+            "changed-after-readiness",
+        ))
         .unwrap();
     let before = serving.media_counters();
 
@@ -245,6 +256,18 @@ fn changed_dependency_revalidation_refreshes_the_exact_active_lineage_without_me
         refreshed.revalidated_from_signal_request(),
         Some(active),
         "Store must carry Signal's exact supersession lineage"
+    );
+    let supersession = refreshed
+        .supersession()
+        .expect("revalidation must retain Signal's supersession proof");
+    assert_eq!(supersession.signal().previous(), active);
+    assert_eq!(
+        supersession.signal().replacing(),
+        refreshed.signal_request()
+    );
+    assert_eq!(
+        supersession.previous_obligation(),
+        worth_store::physical_runtime::PhysicalEffectObligation::NotDispatched
     );
     assert_eq!(
         refreshed.signal_request().generation().get(),
@@ -281,19 +304,38 @@ fn rebuilding_the_signal_owner_preserves_readiness_descriptors_without_media_eff
 fn signal_observation_is_bounded_and_contains_no_runtime_handles() {
     let root = tempdir().unwrap();
     let (profile, _, _) = work_fixture();
-    let expected_profile = profile.identity();
-    let serving = serving_from_initialization_with_work_profile(root.path(), profile);
+    let declared_profile = profile.identity();
+    let declared_binding_count = u16::try_from(profile.contract_count()).unwrap();
+    let serving = serving_from_initialization_with_work_profile(root.path(), profile.clone());
     let observation = serving.physical_signal_observation().unwrap();
-    assert_eq!(observation.profile(), expected_profile);
+    assert_ne!(
+        observation.profile(),
+        declared_profile,
+        "runtime observation must identify the installed profile, including native bindings"
+    );
     assert_eq!(observation.graph_owner_count(), 1);
-    assert_eq!(observation.aspect_binding_count(), 1);
-    assert_eq!(observation.locality_owner_count(), 1);
+    let installed_binding_count = declared_binding_count + EXPECTED_NATIVE_RECORD_BINDING_COUNT;
+    assert_eq!(observation.aspect_binding_count(), installed_binding_count);
+    assert_eq!(observation.locality_owner_count(), installed_binding_count);
     assert_eq!(observation.async_family_count(), 4);
     assert_eq!(observation.clock().current_tick(), 0);
     serving.close();
+
+    let rebuilt = serving_from_open_with_work_profile(root.path(), profile);
+    let rebuilt_observation = rebuilt.physical_signal_observation().unwrap();
+    assert_eq!(
+        rebuilt_observation.profile(),
+        observation.profile(),
+        "the installed profile identity must be stable across runtime reconstruction"
+    );
+    assert_eq!(
+        rebuilt_observation.aspect_binding_count(),
+        installed_binding_count
+    );
+    rebuilt.close();
 }
 
-fn success(outcome: PhysicalWorkSubmissionOutcome) -> PhysicalWorkSubmissionReceipt {
+pub(super) fn success(outcome: PhysicalWorkSubmissionOutcome) -> PhysicalWorkSubmissionReceipt {
     match outcome.into_raw() {
         TransitionOutcome::Success(receipt) => receipt,
         outcome => panic!("physical work should be declared: {outcome:?}"),
@@ -326,4 +368,19 @@ fn readiness_descriptors(
         ready.capability_bundle_digest().to_owned(),
         ready.payload_contract_digest().to_owned(),
     )
+}
+
+fn await_no_active_signal(serving: &worth_store::physical_runtime::ServingPhysicalRuntime) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        let observation = serving.physical_signal_observation().unwrap();
+        if observation.active_locality_count() == 0 && observation.active_in_flight_count() == 0 {
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "dropped readiness retained Signal state"
+        );
+        std::thread::yield_now();
+    }
 }

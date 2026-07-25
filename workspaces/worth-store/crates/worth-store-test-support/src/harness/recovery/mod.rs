@@ -1,4 +1,5 @@
 pub mod checkpoint_basis;
+#[cfg(feature = "certification-world")]
 pub mod checkpoint_durability;
 #[cfg(feature = "certification-world")]
 pub mod checkpoint_publication;
@@ -11,6 +12,7 @@ pub mod compaction_observation;
 pub mod counter_evidence;
 #[cfg(feature = "certification-world")]
 pub mod coverage;
+#[cfg(feature = "certification-world")]
 pub mod dirty_publication;
 pub mod memory_budget;
 pub mod redo_replay;
@@ -36,7 +38,12 @@ mod s4_recovery_physical_fixture;
 mod s4_recovery_readiness_fixture;
 #[path = "drivers/storage_interposer.rs"]
 mod s4_storage_interposer;
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures"
+))]
 pub mod source_precedence;
+#[cfg(feature = "certification-world")]
 pub mod wal_durability;
 pub mod wal_tail;
 

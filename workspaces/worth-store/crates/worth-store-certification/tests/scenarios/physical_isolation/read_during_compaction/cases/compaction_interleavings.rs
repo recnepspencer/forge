@@ -56,6 +56,9 @@ fn read_during_compaction_keeps_old_reader_and_new_reader_stable() {
         inputs.new_validation,
         None,
     );
+    let new_authority =
+        worth_store_physical_isolation::admit_post_publication_read_stability_authority(&receipt)
+            .unwrap();
     let publication =
         worth_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
             CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
@@ -74,7 +77,7 @@ fn read_during_compaction_keeps_old_reader_and_new_reader_stable() {
     )
     .complete();
     let post_plan = admit_plan(
-        &inputs.new_authority,
+        &new_authority,
         inputs.new_root,
         protected_set([current_generation_page_reference(702)], 4),
         8,

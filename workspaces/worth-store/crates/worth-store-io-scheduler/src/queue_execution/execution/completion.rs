@@ -12,14 +12,14 @@ pub enum QueueBackendCompletionAuthorityDenial {
     UnexpectedGroupedWrites,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueBackendCompletionAuthority {
     binding: QueueExecutionPlanBinding,
     posture: BackendQueueExecutionPosture,
     grouped_writes: u32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueBackendCompletionEvidence {
     binding: QueueExecutionPlanBinding,
     posture: BackendQueueExecutionPosture,
@@ -93,7 +93,7 @@ impl QueueBackendCompletionAuthority {
 }
 
 impl QueueBackendCompletionEvidence {
-    pub(crate) const fn from_backend_completion(
+    pub(crate) fn from_backend_completion(
         authority: QueueBackendCompletionAuthority,
         completion: BackendQueueExecutionCompletion,
     ) -> Self {
@@ -114,43 +114,43 @@ impl QueueBackendCompletionEvidence {
         }
     }
 
-    pub(crate) const fn binding(self) -> QueueExecutionPlanBinding {
-        self.binding
+    pub(crate) const fn binding(&self) -> &QueueExecutionPlanBinding {
+        &self.binding
     }
-    pub(crate) const fn posture(self) -> BackendQueueExecutionPosture {
+    pub(crate) const fn posture(&self) -> BackendQueueExecutionPosture {
         self.posture
     }
-    pub(crate) const fn queue_depth_sample(self) -> u32 {
+    pub(crate) const fn queue_depth_sample(&self) -> u32 {
         self.queue_depth_sample
     }
-    pub(crate) const fn grouped_writes(self) -> u32 {
+    pub(crate) const fn grouped_writes(&self) -> u32 {
         self.grouped_writes
     }
-    pub(crate) const fn read_ahead_units(self) -> u64 {
+    pub(crate) const fn read_ahead_units(&self) -> u64 {
         self.read_ahead_units
     }
-    pub(crate) const fn read_ahead_scope(self) -> Option<BackendQueueSpeculativeScope> {
+    pub(crate) const fn read_ahead_scope(&self) -> Option<BackendQueueSpeculativeScope> {
         self.read_ahead_scope
     }
-    pub(crate) const fn write_back_units(self) -> u64 {
+    pub(crate) const fn write_back_units(&self) -> u64 {
         self.write_back_units
     }
-    pub(crate) const fn write_back_scope(self) -> Option<BackendQueueSpeculativeScope> {
+    pub(crate) const fn write_back_scope(&self) -> Option<BackendQueueSpeculativeScope> {
         self.write_back_scope
     }
-    pub(crate) const fn mechanical_retries(self) -> u64 {
+    pub(crate) const fn mechanical_retries(&self) -> u64 {
         self.mechanical_retries
     }
-    pub(crate) const fn partial_read_events(self) -> u64 {
+    pub(crate) const fn partial_read_events(&self) -> u64 {
         self.partial_read_events
     }
-    pub(crate) const fn short_write_events(self) -> u64 {
+    pub(crate) const fn short_write_events(&self) -> u64 {
         self.short_write_events
     }
-    pub(crate) const fn backpressure(self) -> Option<BackendQueueExecutionBackpressure> {
+    pub(crate) const fn backpressure(&self) -> Option<BackendQueueExecutionBackpressure> {
         self.backpressure
     }
-    pub(crate) const fn foreground_wait_events(self) -> u64 {
+    pub(crate) const fn foreground_wait_events(&self) -> u64 {
         self.foreground_wait_events
     }
 }

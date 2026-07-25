@@ -5,17 +5,18 @@ use worth_store_aspect_native::{
     StorePhysicalBoundaryWitness,
 };
 use worth_store_buffer_pool::{
-    AllocationAdmission, AllocationByteBudget, AllocationEnvelopeDeclaration,
-    BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest, BackgroundWorkBudgetSnapshot,
-    FixedMetadataReservation,
+    OperationAllocationScope, PhysicalResidencyLimits, PhysicalResidencyPool,
 };
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
+use worth_store_physical_format::store_namespace::{
+    ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
+};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceScope,
     PhysicalSegmentId,
 };
 use worth_store_recovery_physics::{
-    LogSequenceNumber, RecoveryCandidateDiscoveryTrace, RecoveryMemoryEnvelope, WalLsnRange,
+    LogSequenceNumber, RecoveryCandidateDiscoveryTrace, RecoveryMemoryAllocation, WalLsnRange,
 };
 
 pub fn wal_range(start: u64, end: u64) -> WalLsnRange {
@@ -92,44 +93,20 @@ pub(super) fn generation(value: u64) -> PhysicalGeneration {
     PhysicalGeneration::from_raw(value).unwrap()
 }
 
-pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
-    RecoveryMemoryEnvelope::from_admitted(admit_background()).unwrap()
-}
-
-fn admit_background() -> worth_store_buffer_pool::AdmittedBackgroundEnvelope {
-    let mut admission = BackgroundEnvelopeAdmission::new();
-    let mut allocation = allocation_admission();
-    admission
-        .admit(
-            BackgroundEnvelopeRequest::recovery_planning()
-                .resident_frames(1)
-                .resident_bytes(128)
-                .pin_pages_for_bounded_step(1)
-                .allocation_bytes(128)
-                .finish(),
-            BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16),
-            &mut allocation,
+pub(super) fn recovery_memory_allocation() -> RecoveryMemoryAllocation {
+    let pool = PhysicalResidencyPool::open(
+        StoreNamespaceIdentityRecord::new(
+            StoreNamespaceVersion::CURRENT,
+            ProposedStoreIdentity::from_nonzero_bytes([0x42; 16]).unwrap(),
         )
-        .unwrap()
-}
-
-fn allocation_admission() -> AllocationAdmission {
-    AllocationAdmission::from_declaration(
-        AllocationEnvelopeDeclaration::declare()
-            .foreground(bytes(512))
-            .maintenance(bytes(512))
-            .recovery(bytes(512))
-            .scrub(bytes(512))
-            .import_export(bytes(512))
-            .streaming(bytes(512))
-            .fixed_metadata(FixedMetadataReservation::constant_bytes(64).unwrap())
-            .seal()
-            .unwrap(),
+        .published_identity(),
+        PhysicalResidencyLimits::new(512, 1, 1, 512, 1).unwrap(),
     )
-}
-
-fn bytes(bytes: u64) -> AllocationByteBudget {
-    AllocationByteBudget::bytes(bytes).unwrap()
+    .unwrap();
+    let allocation = pool
+        .begin_operation(OperationAllocationScope::Recovery, 128)
+        .unwrap();
+    RecoveryMemoryAllocation::from_allocation_grant(allocation).unwrap()
 }
 
 fn seed_basis(seed: &str) -> u64 {

@@ -9,20 +9,20 @@ use super::{configuration, serving_from_initialization};
 fn deterministic_page_residue_requires_inspection_instead_of_retry() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let orphan =
         root.join("families/records/segments/segment-0000000000000001-0000000000000001.pages");
     std::fs::write(&orphan, b"existing residue").unwrap();
     let (_, placement, _) = configuration();
     let error = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"must not overwrite".as_slice()]).unwrap(),
             placement,
         )
         .unwrap_err();
     let RecordAppendError::Unpublished(failure) = error else {
-        panic!("pre-existing candidate residue must be an unpublished failure");
+        panic!("pre-existing candidate residue must be an unpublished failure: {error:?}");
     };
     assert_eq!(
         failure.effect_fate(),
@@ -36,7 +36,7 @@ fn deterministic_page_residue_requires_inspection_instead_of_retry() {
     assert_eq!(std::fs::read(orphan).unwrap(), b"existing residue");
     assert_eq!(
         serving
-            .records_mut()
+            .record_submission()
             .append_batch(
                 RecordAppendBatch::try_from_iter([b"retry".as_slice()]).unwrap(),
                 placement,

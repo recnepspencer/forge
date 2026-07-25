@@ -1,6 +1,7 @@
-use worth_store_budgets::{AllocationEnvelopeSet, CounterEvidenceStrength};
-use worth_store_buffer_pool::AllocationReceipt;
+use worth_store_budgets::CounterEvidenceStrength;
+use worth_store_buffer_pool::OperationAllocationGrant;
 
+use super::super::super::allocation::AdmittedBlobStreamingAllocation;
 use super::super::transitions::{
     admit_stream, advance_frontier, emit_ingest_receipt, finalize_sequence,
 };
@@ -13,8 +14,7 @@ use crate::{
 
 pub struct BlobStreamingIngestExecution {
     window: BlobStreamingWindow,
-    allocation: AllocationReceipt,
-    envelopes: AllocationEnvelopeSet,
+    allocation: OperationAllocationGrant,
     pressure: BlobStreamingPressureAdmission,
     counter_strength: CounterEvidenceStrength,
 }
@@ -22,15 +22,13 @@ pub struct BlobStreamingIngestExecution {
 impl BlobStreamingIngestExecution {
     pub fn new(
         window: BlobStreamingWindow,
-        allocation: AllocationReceipt,
-        envelopes: AllocationEnvelopeSet,
+        allocation: OperationAllocationGrant,
         pressure: BlobStreamingPressureAdmission,
         counter_strength: CounterEvidenceStrength,
     ) -> Self {
         Self {
             window,
             allocation,
-            envelopes,
             pressure,
             counter_strength,
         }
@@ -61,6 +59,10 @@ where
     W: BlobStreamingChunkWriter,
 {
     counter_strength::require_exact(execution.counter_strength)?;
+    let allocation = AdmittedBlobStreamingAllocation::admit(
+        execution.allocation,
+        execution.window.max_resident_bytes(),
+    )?;
     let declared_total_bytes = request.declared_total_bytes();
     let (admission, chunking, counters) = admit_stream::admit_stream(request, execution.pressure)?;
     let (admission, chunking, counters) = advance_frontier::advance_frontier(
@@ -76,8 +78,7 @@ where
         finalize_sequence::finalize_sequence(chunking, admission, counters, writer)?;
     emit_ingest_receipt::emit_ingest_receipt(
         sequence,
-        execution.allocation,
-        execution.envelopes,
+        allocation,
         execution.window,
         execution.counter_strength,
         counters,

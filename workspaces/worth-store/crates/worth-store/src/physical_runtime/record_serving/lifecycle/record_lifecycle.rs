@@ -8,8 +8,6 @@ pub struct RecordServingCounterSnapshot {
     owner_live: u64,
     reader_acquisitions: u64,
     readers_live: u64,
-    writer_acquisitions: u64,
-    writers_live: u64,
     read_session_acquisitions: u64,
     read_sessions_live: u64,
     scan_session_acquisitions: u64,
@@ -27,8 +25,6 @@ impl RecordServingCounterSnapshot {
         owner_live,
         reader_acquisitions,
         readers_live,
-        writer_acquisitions,
-        writers_live,
         read_session_acquisitions,
         read_sessions_live,
         scan_session_acquisitions,
@@ -37,7 +33,6 @@ impl RecordServingCounterSnapshot {
 
     pub const fn live_handles(self) -> u64 {
         self.readers_live
-            .saturating_add(self.writers_live)
             .saturating_add(self.read_sessions_live)
             .saturating_add(self.scan_sessions_live)
     }
@@ -56,10 +51,6 @@ impl RecordServingOwner {
 
     pub(in crate::physical_runtime::record_serving) fn reader(&self) -> RecordReaderLease {
         RecordReaderLease::acquire(Arc::clone(&self.counters))
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn writer(&self) -> RecordWriterLease {
-        RecordWriterLease::acquire(Arc::clone(&self.counters))
     }
 
     pub(in crate::physical_runtime::record_serving) fn observer(
@@ -113,24 +104,6 @@ impl Drop for RecordReaderLease {
     }
 }
 
-pub(in crate::physical_runtime::record_serving) struct RecordWriterLease {
-    counters: Arc<RecordServingCounterCells>,
-}
-
-impl RecordWriterLease {
-    fn acquire(counters: Arc<RecordServingCounterCells>) -> Self {
-        increment(&counters.writer_acquisitions);
-        increment(&counters.writers_live);
-        Self { counters }
-    }
-}
-
-impl Drop for RecordWriterLease {
-    fn drop(&mut self) {
-        decrement(&self.counters.writers_live);
-    }
-}
-
 pub(in crate::physical_runtime::record_serving) struct RecordReadSessionLease {
     counters: Arc<RecordServingCounterCells>,
 }
@@ -171,8 +144,6 @@ pub(in crate::physical_runtime::record_serving) struct RecordServingCounterCells
     owner_live: AtomicU64,
     reader_acquisitions: AtomicU64,
     readers_live: AtomicU64,
-    writer_acquisitions: AtomicU64,
-    writers_live: AtomicU64,
     read_session_acquisitions: AtomicU64,
     read_sessions_live: AtomicU64,
     scan_session_acquisitions: AtomicU64,
@@ -185,8 +156,6 @@ impl RecordServingCounterCells {
             owner_live: AtomicU64::new(1),
             reader_acquisitions: AtomicU64::new(0),
             readers_live: AtomicU64::new(0),
-            writer_acquisitions: AtomicU64::new(0),
-            writers_live: AtomicU64::new(0),
             read_session_acquisitions: AtomicU64::new(0),
             read_sessions_live: AtomicU64::new(0),
             scan_session_acquisitions: AtomicU64::new(0),
@@ -201,8 +170,6 @@ impl RecordServingCounterCells {
             owner_live: load(&self.owner_live),
             reader_acquisitions: load(&self.reader_acquisitions),
             readers_live: load(&self.readers_live),
-            writer_acquisitions: load(&self.writer_acquisitions),
-            writers_live: load(&self.writers_live),
             read_session_acquisitions: load(&self.read_session_acquisitions),
             read_sessions_live: load(&self.read_sessions_live),
             scan_session_acquisitions: load(&self.scan_session_acquisitions),

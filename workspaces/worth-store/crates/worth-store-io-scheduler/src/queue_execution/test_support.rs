@@ -43,14 +43,12 @@ pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
         buffer_pool_declaration(true, reservation.security_scope_identity(), resource_shape);
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("write-back producer should lower to queue work");
-    let backend = backend_for(work);
-    let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
-        policy_receipt(work),
-    ))
-    .expect("write-back queue work should admit")
+    let backend = backend_for(&work);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
+    let policy = policy_receipt(&work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+        .expect("write-back queue work should admit")
 }
 
 pub(crate) fn admitted_plan_for_backend_profile(
@@ -64,18 +62,16 @@ pub(crate) fn admitted_plan_for_backend_profile(
         budget,
     )
     .with_grouping_basis(grouping_for(reservation.security_scope_identity()));
-    let backend = backend_for_profile(work, profile);
-    let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
-        policy_receipt(work),
-    ))
-    .expect("test plan should admit")
+    let backend = backend_for_profile(&work, profile);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
+    let policy = policy_receipt(&work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+        .expect("test plan should admit")
 }
 
 pub(crate) fn secure_io_for_work(
-    work: QueueWorkDeclaration,
+    work: &QueueWorkDeclaration,
     backend: &IoSchedulerBackendCapabilityAdmission,
 ) -> crate::SecureIoPreservationReceipt {
     let operation = secure_operation_for_test_work(work);
@@ -86,7 +82,7 @@ pub(crate) fn secure_io_for_work(
     .expect("test secure-I/O scope should admit")
 }
 
-fn secure_operation_for_test_work(work: QueueWorkDeclaration) -> SecureIoOperation {
+fn secure_operation_for_test_work(work: &QueueWorkDeclaration) -> SecureIoOperation {
     match work.class() {
         crate::QueueWorkClass::Background(crate::BackgroundIoPressureClass::RepairScan) => {
             SecureIoOperation::RepairScan
@@ -155,12 +151,12 @@ pub(crate) fn point_read_budget() -> BackgroundResourceBudget {
         .with_cache_residency(CacheResidencyHint::frames(1).unwrap())
 }
 
-pub(crate) fn backend_for(work: QueueWorkDeclaration) -> IoSchedulerBackendCapabilityAdmission {
+pub(crate) fn backend_for(work: &QueueWorkDeclaration) -> IoSchedulerBackendCapabilityAdmission {
     backend_for_profile(work, BackendTargetProfile::PosixFileFsyncDirSync)
 }
 
 pub(crate) fn backend_for_profile(
-    work: QueueWorkDeclaration,
+    work: &QueueWorkDeclaration,
     profile: BackendTargetProfile,
 ) -> IoSchedulerBackendCapabilityAdmission {
     admit_backend_capability_for_scheduler_claim(
@@ -312,9 +308,7 @@ impl TestBackendQueueCompletionBuilder {
     }
 }
 
-pub(crate) fn policy_receipt(
-    work: QueueWorkDeclaration,
-) -> crate::QueuePolicyAdmissionReceipt {
+pub(crate) fn policy_receipt(work: &QueueWorkDeclaration) -> crate::QueuePolicyAdmissionReceipt {
     let budget = work.requested_budget();
     let work_class = match work.durability_class() {
         QueueDurabilityClass::ReadOnly => FoundationalPerformanceWorkClass::AuthoritativeRead,
@@ -360,7 +354,8 @@ pub(crate) fn policy_receipt(
         )
         .finish()
         .expect("policy receipt should build");
-    crate::admit_queue_policy_receipt(work, receipt).expect("policy receipt should bind exact work")
+    crate::admit_queue_policy_receipt(work.clone(), receipt)
+        .expect("policy receipt should bind exact work")
 }
 
 fn backend_witness_for_profile(

@@ -285,6 +285,7 @@ fn every_foreground_lane_has_distinct_fairness_class_without_laundering() {
         ForegroundIoLaneKind::OrdinaryPageWrite,
         ForegroundIoLaneKind::InteractiveRead,
         ForegroundIoLaneKind::InternalForegroundRead,
+        ForegroundIoLaneKind::ArtifactMetadataRead,
     ];
 
     let classes = lanes.map(ForegroundArbitrationPolicy::class_for);
@@ -297,6 +298,7 @@ fn every_foreground_lane_has_distinct_fairness_class_without_laundering() {
             ForegroundFairnessClass::OrdinaryPageWrite,
             ForegroundFairnessClass::InteractiveRead,
             ForegroundFairnessClass::InternalForegroundRead,
+            ForegroundFairnessClass::ArtifactMetadataRead,
         ],
     );
 

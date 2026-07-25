@@ -195,7 +195,7 @@ fn resource_revalidation_denies_stale_expected_handle_after_newer_generation() {
     let node = graph.node().build();
     let mut runtime = TestRuntime::build(graph);
     runtime
-        .declare_resource_node(resource_declaration(node))
+        .declare_resource_node(timeout_resource_declaration(node, 5))
         .expect("resource declaration should lower");
     let first = runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
@@ -207,6 +207,10 @@ fn resource_revalidation_denies_stale_expected_handle_after_newer_generation() {
         .expect("second request should supersede first")
         .admitted_request()
         .handle();
+    let second_wake = runtime
+        .in_flight_resource_request(second)
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("newer active request should retain its timeout wake");
 
     let report = runtime
         .revalidate_resource_node(ResourceRevalidationIntent::with_expected_active(
@@ -236,4 +240,9 @@ fn resource_revalidation_denies_stale_expected_handle_after_newer_generation() {
             .resource_revalidation_expected_mismatch_denial_count,
         1
     );
+    let cancellation = runtime
+        .cancel_resource_request(second, ResourceCancellationReason::HostRequested)
+        .expect("denied stale revalidation must preserve cancellable timeout state");
+    assert!(cancellation.cancelled_request().is_some());
+    assert!(runtime.promote_temporal_wake_ready(second_wake).is_err());
 }

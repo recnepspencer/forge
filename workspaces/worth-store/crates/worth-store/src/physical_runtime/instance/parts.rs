@@ -1,16 +1,14 @@
-use worth_store_physical_format::{DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest};
-
 use crate::physical_runtime::{
     lifecycle::LifecycleTerminationGuard,
     record_serving::{
-        AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, RecordAllocationFrontier,
-        RecordFramePorts, RecordPublicationResidueObservation, RecordServingOwner, ServingHealth,
+        AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, RecordFramePorts,
+        RecordPublicationDirector, RecordServingOwner, RecordWorkAdmission,
     },
     runtime::PhysicalRuntimeCore,
-    work::{PhysicalWorkAdmissionAuthority, PhysicalWorkSubmissionOwner},
+    work::PhysicalWorkAdmissionAuthority,
 };
 
-use super::{PhysicalSchedulerAdmissionOwner, PhysicalWorkExecutor, PhysicalWorkSignalOwner};
+use super::{PhysicalSchedulerAdmissionOwner, PhysicalStoreWorkRuntime};
 
 /// Exhaustive construction packet for the owners installed in record-serving.
 ///
@@ -20,18 +18,13 @@ use super::{PhysicalSchedulerAdmissionOwner, PhysicalWorkExecutor, PhysicalWorkS
 pub(in crate::physical_runtime) struct PhysicalStoreInstanceParts {
     pub(in crate::physical_runtime) termination: LifecycleTerminationGuard,
     pub(in crate::physical_runtime) work_admission: PhysicalWorkAdmissionAuthority,
-    pub(in crate::physical_runtime) work_submission: PhysicalWorkSubmissionOwner,
-    pub(in crate::physical_runtime) signal_owner: PhysicalWorkSignalOwner,
+    pub(in crate::physical_runtime) work_runtime: std::sync::Arc<PhysicalStoreWorkRuntime>,
     pub(in crate::physical_runtime) scheduler_admission: PhysicalSchedulerAdmissionOwner,
     pub(in crate::physical_runtime) record_owner: RecordServingOwner,
-    pub(in crate::physical_runtime) executor: PhysicalWorkExecutor,
+    pub(in crate::physical_runtime) record_work: std::sync::Arc<RecordWorkAdmission>,
     pub(in crate::physical_runtime) core: PhysicalRuntimeCore,
     pub(in crate::physical_runtime) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
-    pub(in crate::physical_runtime) current_root: DurablePhysicalRootManifest,
-    pub(in crate::physical_runtime) free_space: DurableFreeSpaceManifestHeader,
-    pub(in crate::physical_runtime) allocation_frontier: RecordAllocationFrontier,
-    pub(in crate::physical_runtime) publication_residue: RecordPublicationResidueObservation,
-    pub(in crate::physical_runtime) health: ServingHealth,
+    pub(in crate::physical_runtime) publication: std::sync::Arc<RecordPublicationDirector>,
     pub(in crate::physical_runtime) frame_ports: RecordFramePorts,
 }

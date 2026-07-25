@@ -11,7 +11,7 @@ fn scan_batch_widths_converge_to_one_physical_sequence() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
@@ -26,7 +26,7 @@ fn scan_batch_widths_converge_to_one_physical_sequence() {
         })
         .collect::<Vec<_>>();
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
             placement,
@@ -71,7 +71,7 @@ fn whole_extent_materialization_mutant_is_replaced_by_deferred_scan_payload() {
         .scratch_limit(RecordByteLimit::new(131_072).unwrap())
         .admit(format)
         .unwrap();
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
@@ -81,7 +81,7 @@ fn whole_extent_materialization_mutant_is_replaced_by_deferred_scan_payload() {
         .build()
         .unwrap();
     let record = serving
-        .records_mut()
+        .record_submission()
         .append_batch(batch, placement)
         .unwrap()
         .record_id(0)
@@ -129,12 +129,12 @@ fn stale_foreign_and_out_of_range_cursors_fail_before_payload_read() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
             placement,
@@ -177,12 +177,12 @@ fn scratch_retry_preserves_position_and_counts_manifest_discovery_once() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
             placement,
@@ -252,7 +252,7 @@ fn collect_resume(
 }
 
 fn collect_session(
-    mut scan: worth_store::physical_runtime::PhysicalRecordScanSession<'_>,
+    mut scan: worth_store::physical_runtime::PhysicalRecordScanSession,
     scratch_bytes: usize,
 ) -> CollectedScan {
     let mut scratch = vec![0_u8; scratch_bytes];

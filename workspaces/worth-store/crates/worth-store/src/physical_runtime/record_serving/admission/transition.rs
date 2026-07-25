@@ -1,6 +1,8 @@
 use worth_proof::TransitionOutcome;
 
-use crate::physical_runtime::MediaOwnedPhysicalRuntime;
+use crate::physical_runtime::{
+    instance::PhysicalStoreInstanceFoundation, MediaOwnedPhysicalRuntime,
+};
 
 use super::super::{
     admission::bootstrap::BootstrapTransitionFailure, PhysicalRecordInitialization,
@@ -139,15 +141,15 @@ fn initialize_serving(
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
     core.progress_to_record_serving();
-    match ServingPhysicalRuntime::from_admission(
+    match ServingPhysicalRuntime::from_admission(PhysicalStoreInstanceFoundation {
         termination,
         media,
         core,
-        state,
-        frontier,
+        bootstrap: state,
+        allocation_frontier: frontier,
         frame_ports,
         work_profile,
-    ) {
+    }) {
         Ok(serving) => TransitionOutcome::success(serving).into(),
         Err(failure) => TransitionOutcome::failed(failure).into(),
     }
@@ -162,15 +164,15 @@ fn open_serving(
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
     core.progress_to_record_serving();
-    match ServingPhysicalRuntime::from_admission(
+    match ServingPhysicalRuntime::from_admission(PhysicalStoreInstanceFoundation {
         termination,
         media,
         core,
-        state,
-        frontier,
+        bootstrap: state,
+        allocation_frontier: frontier,
         frame_ports,
         work_profile,
-    ) {
+    }) {
         Ok(serving) => TransitionOutcome::success(serving).into(),
         Err(failure) => TransitionOutcome::failed(failure).into(),
     }

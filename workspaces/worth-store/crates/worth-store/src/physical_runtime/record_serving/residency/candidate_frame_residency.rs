@@ -1,4 +1,3 @@
-use worth_store_physical_backend::ArtifactTreeFailure;
 use worth_store_physical_format::RecordArtifactFile;
 
 pub use self::write_evidence::CandidateFrameContractViolation;
@@ -8,6 +7,7 @@ pub(in crate::physical_runtime::record_serving) use self::write_evidence::{
 use super::super::RecordAppendDenial;
 
 mod write_evidence;
+mod write_progression;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime::record_serving) struct CandidateFrameDeclaration {
@@ -195,6 +195,8 @@ pub(in crate::physical_runtime::record_serving) trait ResidentCandidateFrame {
     fn coordinate(&self) -> CandidateFrameCoordinate;
     fn bytes(&self) -> &[u8];
 
+    fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial>;
+
     fn publish_clean(
         self: Box<Self>,
         physical: &CandidateFramePhysicalWrite,
@@ -229,79 +231,6 @@ impl StoreCandidateFramePublicationSession {
             next_declaration: 0,
             residency,
         })
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn write_frame(
-        &mut self,
-        frame: CandidateFrame,
-        store_write: &mut dyn FnMut(
-            &[u8],
-        )
-            -> Result<CandidateFramePhysicalWrite, ArtifactTreeFailure>,
-    ) -> Result<CandidateFrameWriteCompletion, CandidateFrameWriteFailure> {
-        let frame_bytes = frame.bytes().len() as u64;
-        let frame_role = frame.role();
-        let frame_coordinate = frame.coordinate();
-        let frame_checksum = frame.checksum();
-        if !coordinate_matches_role(frame.role(), frame.coordinate().artifact()) {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::CoordinateRoleMismatch,
-            ));
-        }
-        let Some(expected) = self.declaration.declaration(self.next_declaration) else {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::FrameCountExceedsDeclaration,
-            ));
-        };
-        if expected.role != frame_role
-            || expected.coordinate != frame_coordinate
-            || u64::from(expected.length) != frame_bytes
-        {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::UnexpectedFrame,
-            ));
-        }
-        let next_frames = self.resident_frames.saturating_add(1);
-        let next_bytes = self.resident_bytes.saturating_add(frame_bytes);
-        if next_bytes > self.declaration.total_frame_bytes() {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::FrameBytesExceedDeclaration,
-            ));
-        }
-
-        let resident = self
-            .residency
-            .retain(frame)
-            .map_err(CandidateFrameWriteFailure::Residency)?;
-        if resident.bytes().len() as u64 != frame_bytes
-            || resident.role() != frame_role
-            || resident.coordinate() != frame_coordinate
-        {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::RetainedFrameMismatch,
-            ));
-        }
-        if worth_store_physical_format::durable_artifact_checksum(resident.bytes())
-            != frame_checksum
-        {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::RetainedFrameBytesChanged,
-            ));
-        }
-        let physical =
-            store_write(resident.bytes()).map_err(CandidateFrameWriteFailure::Backend)?;
-        let completion = resident
-            .publish_clean(&physical)
-            .map_err(CandidateFrameWriteFailure::Residency)?;
-        if completion.frame_bytes() != frame_bytes {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::FrameCompletionMismatch,
-            ));
-        }
-        self.resident_frames = next_frames;
-        self.resident_bytes = next_bytes;
-        self.next_declaration += 1;
-        Ok(completion)
     }
 
     pub(in crate::physical_runtime::record_serving) fn require_complete(

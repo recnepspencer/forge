@@ -5,7 +5,8 @@ use worth_store_recovery_physics::{PublicationCrashStage, RecoveredPublicationSt
 
 use super::publication_support::{
     execute_mixed_tree_recovery_replay, execute_publication_recovery_replay, publication_inputs,
-    publication_inputs_with_new_root_digest, publish_copy_on_write,
+    publication_inputs_with_root_generation, publish_copy_on_write,
+    successor_publication_inputs_for_store,
 };
 
 #[test]
@@ -75,8 +76,7 @@ fn crash_matrix_recovers_old_or_new_stable_structure_never_mixed_tree() {
 
 #[test]
 fn recovery_receipt_binds_to_each_publication_receipt_roots() {
-    let first = publication_inputs_with_new_root_digest("s5-phase7-new-root-a", 721);
-    let second = publication_inputs_with_new_root_digest("s5-phase7-new-root-b", 722);
+    let first = publication_inputs_with_root_generation(721);
     let first_receipt = publish_copy_on_write(
         PhysicalPublicationIntent::copy_on_write_root_manifest(
             first.old_candidate,
@@ -85,6 +85,11 @@ fn recovery_receipt_binds_to_each_publication_receipt_roots() {
         ),
         first.new_validation,
         None,
+    );
+    let second = successor_publication_inputs_for_store(
+        &first_receipt,
+        &worth_store_physical_format::PhysicalStoreIdentity::physical_format_default(),
+        722,
     );
     let second_receipt = publish_copy_on_write(
         PhysicalPublicationIntent::copy_on_write_root_manifest(

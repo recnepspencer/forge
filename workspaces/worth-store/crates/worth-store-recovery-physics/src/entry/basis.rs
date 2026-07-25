@@ -1,5 +1,5 @@
 use crate::{
-    AdmittedRecoveryIntegrityInput, PartialPublicationBeforeWalReplayRead, RecoveryMemoryEnvelope,
+    AdmittedRecoveryIntegrityInput, PartialPublicationBeforeWalReplayRead, RecoveryMemoryAllocation,
 };
 use worth_store_buffer_pool::OperationAllocationScope;
 use worth_store_contracts::{PhysicalAuthorityRecap, StableDigest};
@@ -19,14 +19,14 @@ pub struct RecoveryEntryBasis {
 impl RecoveryEntryBasis {
     pub(crate) fn from_entry_inputs(
         integrity_readiness: &AdmittedRecoveryIntegrityInput,
-        memory_envelope: RecoveryMemoryEnvelope,
+        memory_allocation: &RecoveryMemoryAllocation,
         physical_authority: PhysicalAuthorityRecap,
     ) -> Self {
         Self {
             integrity_handoff_identity: integrity_readiness.payload().identity().clone(),
             integrity_damage_basis: integrity_readiness.payload().damage_map().basis(),
-            memory_allocation_scope: memory_envelope.allocation_scope(),
-            memory_counters: memory_envelope.counters(),
+            memory_allocation_scope: memory_allocation.allocation_scope(),
+            memory_counters: memory_allocation.counters(),
             physical_reference_count: physical_authority.physical_reference_count(),
             header_decode_witness_count: physical_authority.header_decode_witness_count(),
             payload_admission_witness_count: physical_authority.payload_admission_witness_count(),

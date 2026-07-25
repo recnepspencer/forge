@@ -89,10 +89,10 @@ fn ready_queue_grouping_is_typed_and_replay_visible() {
     assert_eq!(grouped.grouped_writes(), 2);
     assert_eq!(
         grouped.replay_identities()[0],
-        grouped.first().replay_identity()
+        grouped.first().replay_identity().clone()
     );
     assert_eq!(
         grouped.replay_identities()[1],
-        grouped.second().replay_identity()
+        grouped.second().replay_identity().clone()
     );
 }

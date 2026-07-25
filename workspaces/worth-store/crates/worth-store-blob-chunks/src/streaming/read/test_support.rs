@@ -1,8 +1,4 @@
-use worth_store_budgets::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationScope, CounterEvidenceStrength,
-    FixedMetadataReservation,
-};
-use worth_store_buffer_pool::{AllocationAdmission, AllocationReceipt, AllocationRequest};
+use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::{
     admit_background_pacing,
     foreground_reservation::admitted_point_read_reservation_for_certification_test,
@@ -15,7 +11,9 @@ use worth_store_security::StoreTenantScope;
 
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
 use crate::test_support::physical_payload_for_bytes;
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
+use crate::test_support::{
+    admitted_multichunk_sequence_for_scope, blob_allocation_grant, blob_scope,
+};
 use crate::{
     BlobChunkOrdinal, BlobCorruptionReferenceEdges, BlobGenerationPublished,
     BlobQuarantineAuthority, BlobStreamingContentFrontier, BlobStreamingReadAdmission,
@@ -37,13 +35,11 @@ pub(crate) fn layout_runtime_case(
     let (published, visible) =
         publish_generation_with_bytes_and_chunk_size(case, bytes, chunk_size);
     let request = request(case, bytes, chunk_size, visible.clone(), &published);
-    let (allocation, envelopes) = allocation_receipt_and_envelope(window_bytes);
     let verified = BlobStreamingVerifiedRead::verify_bounded(
         request.clone(),
         crate::BlobStreamingReadExecution::new(
             BlobStreamingReadWindow::bounded(window_bytes).unwrap(),
-            allocation,
-            envelopes,
+            blob_allocation_grant(window_bytes),
             admission(bytes.len() as u64),
             quarantine_authority(case),
             CounterEvidenceStrength::Exact,
@@ -132,34 +128,6 @@ fn admitted_verification_pressure() -> BackgroundPacingOutcome {
 
 fn read_pressure_budget() -> BackgroundResourceBudget {
     BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(2).unwrap())
-}
-
-fn allocation_receipt_and_envelope(
-    streaming_bytes: u64,
-) -> (
-    AllocationReceipt,
-    worth_store_budgets::AllocationEnvelopeSet,
-) {
-    let budget = AllocationByteBudget::bytes(64).unwrap();
-    let envelopes = AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(AllocationByteBudget::bytes(streaming_bytes).unwrap())
-        .fixed_metadata(FixedMetadataReservation::constant_bytes(16).unwrap())
-        .seal()
-        .unwrap();
-    let mut admission = AllocationAdmission::from_declaration(envelopes);
-    let grant = admission
-        .admit(
-            AllocationRequest::streaming_window(AllocationScope::Streaming, streaming_bytes)
-                .unwrap(),
-        )
-        .expect("streaming allocation should admit");
-    let receipt = admission.record_allocation(grant).unwrap();
-    (receipt, envelopes)
 }
 
 fn ordinal(value: u64) -> BlobChunkOrdinal {

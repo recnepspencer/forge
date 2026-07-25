@@ -1,10 +1,13 @@
 use worth_store_recovery_physics::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
-    PersistedRecoveryArtifactDenial, PersistedRecoveryArtifactMaterialization,
-    PersistedRecoveryArtifacts, RecoveryPersistedRecord, RecoveryProfileId,
-    WalRedoFrameMaterialization,
+    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
+    CheckpointPageImageMaterialization, PersistedRecoveryArtifactDenial,
+    PersistedRecoveryArtifactMaterialization, PersistedRecoveryArtifacts, RecoveryPersistedRecord,
+    RecoveryProfileId, WalRedoFrameMaterialization,
 };
+
+pub(super) const RECOVERY_ARTIFACT_FORMAT_VERSION: &str = "s4-format-v1";
+pub(super) const RECOVERY_ARTIFACT_BACKEND_PROFILE: &str = "strict-posix-fsync-dir-fsync";
 
 pub fn deterministic_recovery_artifacts() -> PersistedRecoveryArtifacts {
     materialized_artifacts("op-20")
@@ -62,15 +65,14 @@ fn materialized_artifacts(operation_digest: &str) -> PersistedRecoveryArtifacts 
 
 fn materialization(operation_digest: &str) -> PersistedRecoveryArtifactMaterialization {
     PersistedRecoveryArtifactMaterialization::new(
-        "s4-format-v1",
-        "strict-posix-fsync-dir-fsync",
+        RECOVERY_ARTIFACT_FORMAT_VERSION,
+        RECOVERY_ARTIFACT_BACKEND_PROFILE,
         RecoveryProfileId::strict_offline_recovery_artifacts(),
         CheckpointManifestMaterialization::new(
             "checkpoint-manifest",
-            "alpha",
-            19,
+            CheckpointManifestRecoveryBasisMaterialization::new(1, 1, 10, 20),
             CheckpointManifestSourceMaterialization::new("strict-test-profile", 2),
-            CheckpointManifestBudgetMaterialization::new(128, 1, 128, 0),
+            CheckpointManifestBudgetMaterialization::new(128, 0, 128, 0),
         ),
         WalRedoFrameMaterialization::new("wal-tail-20", 20, 2, operation_digest, "idem-20"),
         CheckpointPageImageMaterialization::new("page-2", 2, 7, 19, "checkpoint-page"),
@@ -79,8 +81,8 @@ fn materialization(operation_digest: &str) -> PersistedRecoveryArtifactMateriali
 
 fn artifacts_from_records(records: Vec<RecoveryPersistedRecord>) -> PersistedRecoveryArtifacts {
     PersistedRecoveryArtifacts::admit(
-        "s4-format-v1",
-        "strict-posix-fsync-dir-fsync",
+        RECOVERY_ARTIFACT_FORMAT_VERSION,
+        RECOVERY_ARTIFACT_BACKEND_PROFILE,
         RecoveryProfileId::strict_offline_recovery_artifacts(),
         records,
     )

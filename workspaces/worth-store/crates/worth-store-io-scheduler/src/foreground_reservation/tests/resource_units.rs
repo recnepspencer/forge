@@ -14,6 +14,9 @@ fn every_lane_denies_when_a_required_resource_unit_is_missing() {
     for unit in page_write_required_units() {
         assert_missing_required_unit(ForegroundIoLaneKind::OrdinaryPageWrite, unit);
     }
+    for unit in metadata_required_units() {
+        assert_missing_required_unit(ForegroundIoLaneKind::ArtifactMetadataRead, unit);
+    }
 }
 
 #[test]
@@ -124,6 +127,13 @@ fn page_write_required_units() -> [ForegroundResourceUnitKind; 5] {
         ForegroundResourceUnitKind::BandwidthToken,
         ForegroundResourceUnitKind::WriteBackWindow,
         ForegroundResourceUnitKind::DirtyPageBudget,
+        ForegroundResourceUnitKind::WorkerPermit,
+    ]
+}
+
+fn metadata_required_units() -> [ForegroundResourceUnitKind; 2] {
+    [
+        ForegroundResourceUnitKind::QueueSlot,
         ForegroundResourceUnitKind::WorkerPermit,
     ]
 }
@@ -241,6 +251,9 @@ const fn lane_declaration(lane: ForegroundIoLaneKind) -> ForegroundLaneDeclarati
         ForegroundIoLaneKind::InternalForegroundRead => {
             ForegroundLaneDeclaration::internal_foreground_read()
         }
+        ForegroundIoLaneKind::ArtifactMetadataRead => {
+            ForegroundLaneDeclaration::artifact_metadata_read()
+        }
     }
 }
 
@@ -250,9 +263,16 @@ fn budget_for_lane(lane: ForegroundIoLaneKind) -> ForegroundResourceBudget {
         | ForegroundIoLaneKind::RangeRead
         | ForegroundIoLaneKind::InteractiveRead
         | ForegroundIoLaneKind::InternalForegroundRead => read_budget(),
+        ForegroundIoLaneKind::ArtifactMetadataRead => metadata_budget(),
         ForegroundIoLaneKind::CommitCriticalWalWrite => wal_write_budget(),
         ForegroundIoLaneKind::OrdinaryPageWrite => page_write_budget(),
     }
+}
+
+fn metadata_budget() -> ForegroundResourceBudget {
+    ForegroundResourceBudget::new()
+        .with_queue_slots(QueueSlot::new(1).unwrap())
+        .with_worker_permits(WorkerPermit::new(1).unwrap())
 }
 
 fn budget_for_lane_except(

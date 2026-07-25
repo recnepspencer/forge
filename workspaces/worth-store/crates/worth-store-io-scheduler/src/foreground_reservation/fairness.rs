@@ -8,6 +8,7 @@ pub enum ForegroundFairnessClass {
     OrdinaryPageWrite,
     InteractiveRead,
     InternalForegroundRead,
+    ArtifactMetadataRead,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,6 +57,9 @@ impl ForegroundArbitrationPolicy {
             ForegroundIoLaneKind::InteractiveRead => ForegroundFairnessClass::InteractiveRead,
             ForegroundIoLaneKind::InternalForegroundRead => {
                 ForegroundFairnessClass::InternalForegroundRead
+            }
+            ForegroundIoLaneKind::ArtifactMetadataRead => {
+                ForegroundFairnessClass::ArtifactMetadataRead
             }
         }
     }

@@ -10,11 +10,12 @@ use crate::test_support::{
 };
 use crate::{
     BlobAuthorityClassification, BlobChunkDedupeAdmission, BlobChunkDedupeReferenceRegistry,
-    BlobChunkOrdinal, BlobChunkRootPublication, BlobCompactionColdReadiness, BlobCompactionIntent,
-    BlobCompactionPacingAdmission, BlobCompactionReadHold, BlobCorruptedChunkLocalization,
-    BlobCorruptionDetectionSource, BlobCorruptionGuard, BlobCorruptionPlacementClass,
-    BlobCorruptionReferenceEdges, BlobQuarantineAuthority, BlobStreamingContentFrontier,
-    BlobStreamingVerifiedRead, LifecycleReceipt,
+    BlobChunkOrdinal, BlobChunkRootPublication, BlobCompactionAuthority,
+    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPacingAdmission,
+    BlobCompactionReadHold, BlobCorruptedChunkLocalization, BlobCorruptionDetectionSource,
+    BlobCorruptionGuard, BlobCorruptionPlacementClass, BlobCorruptionReferenceEdges,
+    BlobQuarantineAuthority, BlobStreamingContentFrontier, BlobStreamingVerifiedRead,
+    LifecycleReceipt,
 };
 use worth_proof::TransitionOutcome;
 use worth_store_physical_isolation::{
@@ -26,6 +27,10 @@ use worth_store_security::StoreTenantScope;
 use super::rewrite_binding::physical_rewrite_manifest_epoch_for_root;
 
 pub(crate) const BYTES: &[u8] = b"phase18-compaction-bytes";
+
+pub(crate) fn authority(case: &str) -> BlobCompactionAuthority {
+    BlobCompactionAuthority::from_current_store_authority(current_authority(case, "compaction"))
+}
 
 pub(crate) fn lifecycle_with_publication(
     case: &str,

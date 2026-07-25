@@ -39,10 +39,10 @@ impl ChunkIntegrityAuthority {
         let counters = protected_window_counters(
             window.object_bytes(),
             window.window_bytes(),
-            frame.checked_bytes().len_bytes() as u64,
+            frame.checked_payload_bytes().len() as u64,
         );
         reject_protected_window_overread(
-            frame.checked_bytes().len_bytes() as u64,
+            frame.checked_payload_bytes().len() as u64,
             window,
             counters,
             basis.clone(),
@@ -58,7 +58,7 @@ impl ChunkIntegrityAuthority {
                 Some(ChunkDamageLocality::ChunkHeader(basis.scope())),
             ));
         }
-        inspect_chunk_window_bytes(frame.checked_bytes().as_bytes(), counters, basis, window)
+        inspect_chunk_window_bytes(frame.checked_payload_bytes(), counters, basis, window)
     }
 }
 

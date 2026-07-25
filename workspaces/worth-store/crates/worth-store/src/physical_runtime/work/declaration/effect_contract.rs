@@ -10,7 +10,8 @@ pub(super) fn require_effect_contract(
     recovery: PhysicalWorkRecoveryDisposition,
 ) -> Result<(), PhysicalWorkDeclarationDenial> {
     match operation {
-        PhysicalWorkOperationFamily::ArtifactRangeRead => {
+        PhysicalWorkOperationFamily::ArtifactMetadataRead
+        | PhysicalWorkOperationFamily::ArtifactRangeRead => {
             require_read_contract(effect, durability, recovery)
         }
         PhysicalWorkOperationFamily::ArtifactRangeWrite => {

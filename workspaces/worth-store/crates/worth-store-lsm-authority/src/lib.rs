@@ -26,6 +26,9 @@ pub use replay_source::{
     LsmReplaySourceIdentity, LsmReplaySourceKind,
 };
 
+#[cfg(feature = "certification-test-authority")]
+pub use membership::issue_published_lsm_membership_for_certification;
+
 pub(crate) use worth_store_wal::{
     AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, AdmittedWalArtifactStore,
     BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,

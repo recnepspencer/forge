@@ -7,14 +7,14 @@ use worth_store_io_scheduler::{
 use worth_store_physical_backend::{
     ArtifactRangeWriteDurabilityRequirement, ArtifactTreeFailure, BackendQueueExecutionAdaptation,
     BackendQueueSpeculativeScope, CompletedArtifactRangeWrite, IndeterminateArtifactRangeWrite,
-    QualifiedFilesystemMedia, ScheduledArtifactRangeWriteOutcome,
+    ScheduledArtifactRangeWriteOutcome,
 };
 
 use super::artifact_tree::PhysicalRecordArtifactTree;
-use super::frame_ports::RecordFramePorts;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalScheduledWritebackAdmissionDenial {
+    ServingRequiresInspection,
     MissingPhysicalDeclaration,
     NotWriteback,
     GroupedPlan,
@@ -24,18 +24,20 @@ pub enum PhysicalScheduledWritebackAdmissionDenial {
     FrameMismatch,
     SecurityScopeMismatch,
     ReadOnlyPlan,
+    CanonicalWorkMismatch,
     Residency(PhysicalResidencyDenial),
+    Retry(crate::physical_runtime::PhysicalExecutorCommandDenial),
 }
 
 #[derive(Debug)]
-pub(super) struct PhysicalScheduledWriteback {
+pub(in crate::physical_runtime) struct PhysicalScheduledWriteback {
     plan: QueueExecutionReadyPlan,
     claim: PhysicalWritebackClaim,
     durability: ArtifactRangeWriteDurabilityRequirement,
 }
 
 #[derive(Debug)]
-pub enum PhysicalScheduledWritebackOutcome {
+pub(in crate::physical_runtime) enum PhysicalScheduledWritebackOutcome {
     RetryableBeforeEffect(ArtifactTreeFailure),
     InspectionRequired(IndeterminateArtifactRangeWrite),
     WrittenButNotApplied {
@@ -54,10 +56,23 @@ pub enum PhysicalScheduledWritebackOutcome {
 }
 
 impl PhysicalScheduledWriteback {
-    pub(super) fn admit(
+    pub(in crate::physical_runtime) fn admit(
         claim: PhysicalWritebackClaim,
         plan: QueueExecutionReadyPlan,
     ) -> Result<Self, PhysicalScheduledWritebackAdmissionDenial> {
+        Self::validate(&claim, &plan)?;
+        let durability = durability(&plan)?;
+        Ok(Self {
+            plan,
+            claim,
+            durability,
+        })
+    }
+
+    pub(in crate::physical_runtime) fn validate(
+        claim: &PhysicalWritebackClaim,
+        plan: &QueueExecutionReadyPlan,
+    ) -> Result<(), PhysicalScheduledWritebackAdmissionDenial> {
         if plan
             .backend_completion_binding()
             .grouped_replay_identity()
@@ -89,25 +104,11 @@ impl PhysicalScheduledWriteback {
         if grouping.security_scope_identity() != security {
             return Err(PhysicalScheduledWritebackAdmissionDenial::SecurityScopeMismatch);
         }
-        let durability = match plan.work().durability_class() {
-            QueueDurabilityClass::ReadOnly => {
-                return Err(PhysicalScheduledWritebackAdmissionDenial::ReadOnlyPlan);
-            }
-            QueueDurabilityClass::BufferedWrite => {
-                ArtifactRangeWriteDurabilityRequirement::BufferedWrite
-            }
-            QueueDurabilityClass::WalCommit | QueueDurabilityClass::PlatformDurable => {
-                ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization
-            }
-        };
-        Ok(Self {
-            plan,
-            claim,
-            durability,
-        })
+        let _ = durability(plan)?;
+        Ok(())
     }
 
-    pub(super) fn execute(
+    pub(in crate::physical_runtime) fn execute(
         self,
         artifacts: &PhysicalRecordArtifactTree<'_>,
         adaptation: BackendQueueExecutionAdaptation,
@@ -160,23 +161,18 @@ impl PhysicalScheduledWriteback {
     }
 }
 
-pub(in crate::physical_runtime::record_serving) fn execute_store_writeback(
-    frame_ports: &RecordFramePorts,
-    media: &QualifiedFilesystemMedia,
-    plan: QueueExecutionReadyPlan,
-    adaptation: BackendQueueExecutionAdaptation,
-) -> Result<PhysicalScheduledWritebackOutcome, PhysicalScheduledWritebackAdmissionDenial> {
-    let declaration = plan
-        .work()
-        .buffer_pool_declaration()
-        .ok_or(PhysicalScheduledWritebackAdmissionDenial::MissingPhysicalDeclaration)?;
-    let claim = frame_ports
-        .claim_writeback(declaration.frame())
-        .map_err(PhysicalScheduledWritebackAdmissionDenial::Residency)?;
-    let writeback = PhysicalScheduledWriteback::admit(claim, plan)?;
-    Ok(writeback.execute(&PhysicalRecordArtifactTree::new(media), adaptation))
+fn durability(
+    plan: &QueueExecutionReadyPlan,
+) -> Result<ArtifactRangeWriteDurabilityRequirement, PhysicalScheduledWritebackAdmissionDenial> {
+    match plan.work().durability_class() {
+        QueueDurabilityClass::ReadOnly => {
+            Err(PhysicalScheduledWritebackAdmissionDenial::ReadOnlyPlan)
+        }
+        QueueDurabilityClass::BufferedWrite => {
+            Ok(ArtifactRangeWriteDurabilityRequirement::BufferedWrite)
+        }
+        QueueDurabilityClass::WalCommit | QueueDurabilityClass::PlatformDurable => {
+            Ok(ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization)
+        }
+    }
 }
-
-#[cfg(all(test, feature = "certification-test-authority"))]
-#[path = "scheduled_writeback/tests.rs"]
-mod tests;

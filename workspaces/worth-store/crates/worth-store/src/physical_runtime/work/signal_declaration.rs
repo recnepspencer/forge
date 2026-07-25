@@ -60,6 +60,15 @@ impl PhysicalWorkSignalDeclaration {
             max_payload_bytes: spec.max_payload_bytes(),
         }
     }
+
+    pub(in crate::physical_runtime) fn for_family(
+        family: PhysicalWorkSignalFamily,
+    ) -> Option<Self> {
+        PHYSICAL_ASYNC_CAPABILITIES
+            .into_iter()
+            .find(|spec| spec.family() == family)
+            .map(Self::from_spec)
+    }
 }
 
 impl PendingPhysicalSignalTopology {
@@ -68,8 +77,11 @@ impl PendingPhysicalSignalTopology {
         bindings: &PhysicalSignalAspectBindingSet,
     ) -> Result<Self, SignalError> {
         let sources = declare_binding_sources(graph, bindings);
-        let mut capabilities =
-            Vec::with_capacity(bindings.len().saturating_mul(PHYSICAL_ASYNC_CAPABILITIES.len()));
+        let mut capabilities = Vec::with_capacity(
+            bindings
+                .len()
+                .saturating_mul(PHYSICAL_ASYNC_CAPABILITIES.len()),
+        );
         for (slot, binding) in bindings.bindings().iter().enumerate() {
             for spec in PHYSICAL_ASYNC_CAPABILITIES {
                 if let Some(capability) =
@@ -122,8 +134,7 @@ fn declare_binding_sources(
             graph
                 .node()
                 .with_contract(
-                    NodeContract::reads(AspectMask::EMPTY)
-                        .with_produces(binding.signal_aspect()),
+                    NodeContract::reads(AspectMask::EMPTY).with_produces(binding.signal_aspect()),
                 )
                 .build()
         })
@@ -146,7 +157,7 @@ fn declare_binding_capability(
         PhysicalSignalAspectRole::Dependency | PhysicalSignalAspectRole::DependencyAndOutput
     );
     let consumed = if is_dependency {
-        AspectMask::from_aspect(binding.signal_aspect())
+        binding.signal_mask()
     } else {
         AspectMask::EMPTY
     };
@@ -181,9 +192,7 @@ fn declare_dependency_edge(
     let subscription = binding
         .projection_subscription()
         .expect("profile admission proved dependency projection mask");
-    debug_assert!(subscription
-        .signal_mask()
-        .contains(AspectMask::from_aspect(binding.signal_aspect())));
+    debug_assert!(subscription.signal_mask().contains(binding.signal_mask()));
     graph.set_dependencies(
         node,
         [match subscription.partition() {

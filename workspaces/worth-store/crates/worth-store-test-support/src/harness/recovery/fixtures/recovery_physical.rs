@@ -1,27 +1,69 @@
-use worth_store_buffer_pool::{
-    BufferPoolBudget, DirtyPageBudget, PinnedPageBudget, ResidentFrameLoadRequest,
-    ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
-};
-use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
+use worth_store_buffer_pool::{PhysicalFrameKey, PhysicalResidencyLimits, PhysicalResidencyPool};
 use worth_store_physical_format::{
+    store_namespace::{
+        ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
+        StoreNamespaceVersion,
+    },
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalGenerationOwner, PhysicalHeaderAuthority,
     PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalRootManifest,
-    PhysicalRootReference, PhysicalSegmentId, SlotGenerationCell,
+    PhysicalRootReference, PhysicalSegmentId, RecordArtifactFile, RecordFrameCoordinate,
+    SlotGenerationCell,
 };
 use worth_store_physical_integrity::ProtectedPhysicalByteView;
 
-pub(super) fn with_protected_payload_view(
+pub(super) fn with_protected_page_view(
     payload: &[u8],
+    cell: PageGenerationCell,
+    run: impl FnOnce(ProtectedPhysicalByteView<'_>, PhysicalHeaderDecodeWitness),
+) {
+    let page = page_bytes(cell, payload);
+    let witness = header_authority()
+        .decode_page_header(cell, &page, PhysicalPageKind::DataPage)
+        .unwrap()
+        .witness();
+    with_protected_physical_bytes(&page, cell.owner().page_id().unwrap().get(), |protected| {
+        run(protected, witness);
+    });
+}
+
+pub(super) fn with_protected_frame_view(
+    payload: &[u8],
+    validation: PhysicalReferenceValidationWitness,
+    run: impl FnOnce(ProtectedPhysicalByteView<'_>, PhysicalHeaderDecodeWitness),
+) {
+    let frame = frame_bytes(slot_cell_for_owner(validation.owner()), payload);
+    let witness = header_authority()
+        .decode_frame_header(validation, &frame, PhysicalFrameKind::RecordFrame)
+        .unwrap()
+        .witness();
+    with_protected_physical_bytes(
+        &frame,
+        validation.owner().page_id().unwrap().get(),
+        |protected| run(protected, witness),
+    );
+}
+
+fn with_protected_physical_bytes(
+    bytes: &[u8],
+    page: u64,
     run: impl FnOnce(ProtectedPhysicalByteView<'_>),
 ) {
-    let mut table = resident_frame_table();
-    let frame = admit_payload_frame(&mut table, 7, 2, payload);
-    let lease = table.lease_page(frame.resident_frame_token()).unwrap();
-    let pinned = lease.pin().unwrap();
-    let view = pinned.view().unwrap();
-    run(ProtectedPhysicalByteView::from_pinned_frame(&view));
+    let store = physical_residency_store();
+    let pool = PhysicalResidencyPool::open(
+        store,
+        PhysicalResidencyLimits::new(8192, 4, 1, 512, 1).unwrap(),
+    )
+    .unwrap();
+    let key = PhysicalFrameKey::new(store, frame_coordinate(page, bytes.len()));
+    let lease = pool
+        .load(key, |target| {
+            target.copy_from_slice(bytes);
+            Ok::<_, std::convert::Infallible>(())
+        })
+        .unwrap();
+    run(ProtectedPhysicalByteView::from_physical_frame(&lease));
 }
 
 pub(super) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
@@ -77,30 +119,6 @@ pub(super) fn validation(
         .unwrap()
 }
 
-pub(super) fn page_witness(
-    payload: &[u8],
-    cell: PageGenerationCell,
-) -> PhysicalHeaderDecodeWitness {
-    header_authority()
-        .decode_page_header(cell, &page_bytes(cell, payload), PhysicalPageKind::DataPage)
-        .unwrap()
-        .witness()
-}
-
-pub(super) fn frame_witness(
-    payload: &[u8],
-    validation: PhysicalReferenceValidationWitness,
-) -> PhysicalHeaderDecodeWitness {
-    header_authority()
-        .decode_frame_header(
-            validation,
-            &frame_bytes(slot_cell_for_owner(validation.owner()), payload),
-            PhysicalFrameKind::RecordFrame,
-        )
-        .unwrap()
-        .witness()
-}
-
 pub(super) fn page_cell(segment: u64, page: u64, generation: u64) -> PageGenerationCell {
     PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment_id(segment), page_id(page))
@@ -111,43 +129,6 @@ pub(super) fn slot_cell(segment: u64, page: u64, slot: u64, generation: u64) -> 
     PhysicalGenerationAuthority::for_canonical_physical_format()
         .slot_cell(segment_id(segment), page_id(page), record_slot(slot))
         .with_slot_generation(physical_generation(generation))
-}
-
-fn resident_frame_table() -> ResidentFrameTable {
-    let admitted = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        physical_substrate_model_snapshot(),
-    )
-    .unwrap()
-    .with_budget(BufferPoolBudget::declare(
-        ResidentMemoryBudget::bytes(8192).unwrap(),
-        PinnedPageBudget::pages(4).unwrap(),
-        DirtyPageBudget::pages(1).unwrap(),
-    ))
-    .admit()
-    .unwrap();
-    ResidentFrameTable::open(admitted, ResidentFrameTableCapacity::frames(1).unwrap()).unwrap()
-}
-
-fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
-    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
-}
-
-fn admit_payload_frame(
-    table: &mut ResidentFrameTable,
-    generation: u64,
-    page: u64,
-    payload: &[u8],
-) -> worth_store_buffer_pool::ResidentFrameAdmission {
-    let frame = frame_bytes(slot_cell(1, page, 3, generation), payload);
-    let request = ResidentFrameLoadRequest::from_physical_format_physical_frame(
-        validation(1, page, 3, generation),
-        frame_witness(payload, validation(1, page, 3, generation)),
-    )
-    .unwrap();
-    let view = header_authority()
-        .payload_view(&frame, request.header())
-        .unwrap();
-    table.admit_resident_frame_bytes(request, view).unwrap()
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {
@@ -216,4 +197,24 @@ fn record_slot(value: u64) -> PhysicalRecordSlot {
 
 fn physical_generation(value: u64) -> PhysicalGeneration {
     PhysicalGeneration::from_raw(value).unwrap()
+}
+
+fn physical_residency_store() -> StableStoreIdentity {
+    StoreNamespaceIdentityRecord::new(
+        StoreNamespaceVersion::CURRENT,
+        ProposedStoreIdentity::from_nonzero_bytes([0x52; 16]).unwrap(),
+    )
+    .published_identity()
+}
+
+fn frame_coordinate(page: u64, frame_bytes: usize) -> RecordFrameCoordinate {
+    RecordFrameCoordinate::new(
+        RecordArtifactFile::RootRoutingBlock {
+            generation: 7,
+            block: page,
+        },
+        0,
+        u32::try_from(frame_bytes).expect("fixture frame length fits the physical coordinate"),
+    )
+    .unwrap()
 }

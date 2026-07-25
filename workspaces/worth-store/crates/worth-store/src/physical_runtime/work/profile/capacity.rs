@@ -5,6 +5,7 @@ pub struct PhysicalWorkCapacity {
     total_scope_members: usize,
     semantic_bytes_per_work: usize,
     total_semantic_bytes: usize,
+    terminal_evidence: usize,
 }
 
 impl PhysicalWorkCapacity {
@@ -29,7 +30,16 @@ impl PhysicalWorkCapacity {
             total_scope_members,
             semantic_bytes_per_work,
             total_semantic_bytes,
+            terminal_evidence: commands,
         })
+    }
+
+    pub fn with_terminal_evidence_capacity(mut self, capacity: usize) -> Option<Self> {
+        if capacity == 0 {
+            return None;
+        }
+        self.terminal_evidence = capacity;
+        Some(self)
     }
 
     pub const fn commands(self) -> usize {
@@ -47,6 +57,9 @@ impl PhysicalWorkCapacity {
     pub const fn total_semantic_bytes(self) -> usize {
         self.total_semantic_bytes
     }
+    pub const fn terminal_evidence(self) -> usize {
+        self.terminal_evidence
+    }
 }
 
 impl Default for PhysicalWorkCapacity {
@@ -57,6 +70,7 @@ impl Default for PhysicalWorkCapacity {
             total_scope_members: 32_768,
             semantic_bytes_per_work: 1024 * 1024,
             total_semantic_bytes: 64 * 1024 * 1024,
+            terminal_evidence: 4_096,
         }
     }
 }
@@ -69,5 +83,9 @@ mod tests {
     fn totals_cannot_be_smaller_than_per_work_limits() {
         assert!(PhysicalWorkCapacity::new(1, 2, 1, 1, 1).is_none());
         assert!(PhysicalWorkCapacity::new(1, 1, 1, 2, 1).is_none());
+        assert!(PhysicalWorkCapacity::new(1, 1, 1, 1, 1)
+            .unwrap()
+            .with_terminal_evidence_capacity(0)
+            .is_none());
     }
 }

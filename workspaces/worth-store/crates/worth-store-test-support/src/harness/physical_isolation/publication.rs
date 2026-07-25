@@ -1,8 +1,6 @@
 use super::epoch_scope::{
     current_generation_page_reference, current_root_from_authority,
     physical_authority_from_complete_closeout, physical_authority_from_complete_closeout_for_store,
-    physical_authority_from_operation_digest_closeout,
-    physical_authority_from_operation_digest_closeout_for_store,
 };
 use super::read_plan::{admit_plan, protected_set};
 use crate::harness::recovery::closeout as closeout_fixture;
@@ -11,9 +9,10 @@ use worth_store_physical_format::{
     PhysicalRootReference, RootPublicationValidationWitness,
 };
 use worth_store_physical_isolation::{
-    CopyOnWritePublicationPlan, CrashStableFreeReusePosture, NewRootPublicationProof,
-    OldReachabilityPreservation, PhysicalPublicationIntent, PhysicalPublicationReadiness,
-    PhysicalReadPlanReleaseReceipt, PublicationLatchReadiness, PublicationRootCandidate,
+    admit_post_publication_read_stability_authority, CopyOnWritePublicationPlan,
+    CrashStableFreeReusePosture, NewRootPublicationProof, OldReachabilityPreservation,
+    PhysicalPublicationIntent, PhysicalPublicationReadiness, PhysicalReadPlanReleaseReceipt,
+    PublicationLatchReadiness, PublicationRootCandidate, PublicationRootSuccessorOwner,
     ReadCopyUpdateRootPublication, RootSwapOrderingContract,
 };
 use worth_store_recovery_physics::{
@@ -21,7 +20,7 @@ use worth_store_recovery_physics::{
 };
 
 pub struct PublicationInputs {
-    pub new_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
+    pub old_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
     pub old_root: worth_store_physical_isolation::CurrentPhysicalRoot,
     pub new_root: worth_store_physical_isolation::CurrentPhysicalRoot,
     pub old_candidate: PublicationRootCandidate,
@@ -32,158 +31,84 @@ pub struct PublicationInputs {
 }
 
 pub fn publication_inputs() -> PublicationInputs {
-    publication_inputs_with_new_root_digest("s5-phase7-new-root", 701)
+    publication_inputs_with_root_generation(701)
 }
 
-pub fn publication_inputs_with_new_root_digest(
-    operation_digest: &str,
-    reference_generation: u64,
-) -> PublicationInputs {
+pub fn publication_inputs_with_root_generation(reference_generation: u64) -> PublicationInputs {
     let old_authority = physical_authority_from_complete_closeout();
     let old_root = current_root_from_authority(&old_authority);
-    let (new_authority, new_root) = publication_successor(old_root, operation_digest);
     let old_validation = root_publication_validation(old_root.scope(), 1);
-    let new_validation = root_publication_validation(new_root.scope(), 2);
     let old_candidate = PublicationRootCandidate::admit(old_root, old_validation).unwrap();
-    let new_candidate = PublicationRootCandidate::admit(new_root, new_validation).unwrap();
-    let reference = current_generation_page_reference(reference_generation);
-    let old_plan = admit_plan(
-        &old_authority,
-        old_root,
-        protected_set([reference], 4),
-        8,
-        4,
-    );
-    let old_reachability = OldReachabilityPreservation::from_protected_footprint(
-        old_plan.footprint().declared_footprint_basis(),
+    let new_candidate = PublicationRootSuccessorOwner::plan(
+        old_candidate,
+        physical_generation(reference_generation),
     )
     .unwrap();
-    let old_release = old_plan.into_execution_ready_handle().release();
-    PublicationInputs {
-        new_authority,
-        old_root,
-        new_root,
+    publication_inputs_from_candidates(
+        old_authority,
         old_candidate,
         new_candidate,
-        old_reachability,
-        old_release,
-        new_validation,
-    }
+        reference_generation,
+    )
 }
 
 pub fn publication_inputs_for_store(
     store_identity: &worth_store_physical_format::PhysicalStoreIdentity,
-    operation_digest: &str,
     reference_generation: u64,
 ) -> PublicationInputs {
     let old_authority = physical_authority_from_complete_closeout_for_store(store_identity);
     let old_root = current_root_from_authority(&old_authority);
-    let (new_authority, new_root) =
-        publication_successor_for_store(old_root, operation_digest, store_identity);
-    publication_inputs_from_roots(
+    let old_candidate =
+        PublicationRootCandidate::admit(old_root, root_publication_validation(old_root.scope(), 1))
+            .unwrap();
+    let new_candidate = PublicationRootSuccessorOwner::plan(
+        old_candidate,
+        physical_generation(reference_generation),
+    )
+    .unwrap();
+    publication_inputs_from_candidates(
         old_authority,
-        new_authority,
-        old_root,
-        new_root,
+        old_candidate,
+        new_candidate,
         reference_generation,
     )
 }
 
 pub fn successor_publication_inputs_for_store(
-    prior: &PublicationInputs,
+    prior: &worth_store_physical_isolation::PhysicalPublicationReceipt,
     store_identity: &worth_store_physical_format::PhysicalStoreIdentity,
-    operation_digest: &str,
     reference_generation: u64,
 ) -> PublicationInputs {
-    let old_authority = prior.new_authority.clone();
-    let old_root = prior.new_root;
-    let (new_authority, new_root) =
-        publication_successor_for_store(old_root, operation_digest, store_identity);
-    let new_validation = root_publication_validation(new_root.scope(), 3);
-    publication_inputs_from_validations(
+    assert_eq!(
+        prior.new_root().store_authority_identity(),
+        store_identity.authority_identity(),
+        "successor fixture Store must match the published root"
+    );
+    let old_authority = admit_post_publication_read_stability_authority(prior).unwrap();
+    let old_candidate =
+        PublicationRootCandidate::admit(prior.new_root(), prior.new_root_validation()).unwrap();
+    let new_candidate = PublicationRootSuccessorOwner::plan(
+        old_candidate,
+        physical_generation(reference_generation),
+    )
+    .unwrap();
+    publication_inputs_from_candidates(
         old_authority,
-        new_authority,
-        old_root,
-        new_root,
-        prior.new_validation,
-        new_validation,
+        old_candidate,
+        new_candidate,
         reference_generation,
     )
 }
 
-fn publication_successor(
-    old_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-    operation_digest: &str,
-) -> (
-    worth_store_physical_isolation::PhysicalReadStabilityAuthority,
-    worth_store_physical_isolation::CurrentPhysicalRoot,
-) {
-    (0..1_024)
-        .find_map(|attempt| {
-            let candidate_digest = format!("{operation_digest}.{attempt}");
-            let authority = physical_authority_from_operation_digest_closeout(&candidate_digest);
-            let candidate = current_root_from_authority(&authority);
-            (candidate.epoch().get() > old_root.epoch().get()
-                && candidate.manifest_epoch().get() > old_root.manifest_epoch().get())
-            .then_some((authority, candidate))
-        })
-        .expect("fixture must derive a publication successor with newer root and manifest epochs")
-}
-
-fn publication_successor_for_store(
-    old_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-    operation_digest: &str,
-    store_identity: &worth_store_physical_format::PhysicalStoreIdentity,
-) -> (
-    worth_store_physical_isolation::PhysicalReadStabilityAuthority,
-    worth_store_physical_isolation::CurrentPhysicalRoot,
-) {
-    (0..1_024)
-        .find_map(|attempt| {
-            let candidate_digest = format!("{operation_digest}.{attempt}");
-            let authority = physical_authority_from_operation_digest_closeout_for_store(
-                &candidate_digest,
-                store_identity,
-            );
-            let candidate = current_root_from_authority(&authority);
-            (candidate.epoch().get() > old_root.epoch().get()
-                && candidate.manifest_epoch().get() > old_root.manifest_epoch().get())
-            .then_some((authority, candidate))
-        })
-        .expect("fixture must derive a same-Store publication successor")
-}
-
-fn publication_inputs_from_roots(
+fn publication_inputs_from_candidates(
     old_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
-    new_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
-    old_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-    new_root: worth_store_physical_isolation::CurrentPhysicalRoot,
+    old_candidate: PublicationRootCandidate,
+    new_candidate: PublicationRootCandidate,
     reference_generation: u64,
 ) -> PublicationInputs {
-    let old_validation = root_publication_validation(old_root.scope(), 1);
-    let new_validation = root_publication_validation(new_root.scope(), 2);
-    publication_inputs_from_validations(
-        old_authority,
-        new_authority,
-        old_root,
-        new_root,
-        old_validation,
-        new_validation,
-        reference_generation,
-    )
-}
-
-fn publication_inputs_from_validations(
-    old_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
-    new_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
-    old_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-    new_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-    old_validation: RootPublicationValidationWitness,
-    new_validation: RootPublicationValidationWitness,
-    reference_generation: u64,
-) -> PublicationInputs {
-    let old_candidate = PublicationRootCandidate::admit(old_root, old_validation).unwrap();
-    let new_candidate = PublicationRootCandidate::admit(new_root, new_validation).unwrap();
+    let old_root = old_candidate.root();
+    let new_root = new_candidate.root();
+    let new_validation = new_candidate.validation();
     let reference = current_generation_page_reference(reference_generation);
     let old_plan = admit_plan(
         &old_authority,
@@ -198,7 +123,7 @@ fn publication_inputs_from_validations(
     .unwrap();
     let old_release = old_plan.into_execution_ready_handle().release();
     PublicationInputs {
-        new_authority,
+        old_authority,
         old_root,
         new_root,
         old_candidate,
@@ -207,6 +132,17 @@ fn publication_inputs_from_validations(
         old_release,
         new_validation,
     }
+}
+
+pub fn publish_inputs(
+    inputs: &PublicationInputs,
+) -> worth_store_physical_isolation::PhysicalPublicationReceipt {
+    let mut fixture = super::PhysicalRootPublicationFixture::open(inputs.old_root).unwrap();
+    fixture
+        .publish(admitted_copy_on_write_plan(inputs))
+        .unwrap()
+        .receipt()
+        .clone()
 }
 
 pub fn admitted_copy_on_write_plan(inputs: &PublicationInputs) -> CopyOnWritePublicationPlan {
@@ -307,4 +243,8 @@ pub fn root_publication_validation(root: u64, generation: u64) -> RootPublicatio
     references
         .validate_root_publication(references.admit_root_publication(cell), cell)
         .unwrap()
+}
+
+fn physical_generation(generation: u64) -> PhysicalGeneration {
+    PhysicalGeneration::from_raw(generation).expect("fixture root generation must be nonzero")
 }

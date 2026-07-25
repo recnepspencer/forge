@@ -14,12 +14,22 @@ const TERMINATING_PHASE: u64 = 5;
 const INITIAL_GENERATION: u64 = 1;
 
 /// Identity of one lifecycle state within a runtime incarnation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LifecycleGeneration(u64);
 
 impl LifecycleGeneration {
     pub const fn get(self) -> u64 {
         self.0
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(crate) fn certification_predecessor(self) -> Self {
+        Self(
+            self.0
+                .checked_sub(1)
+                .filter(|generation| *generation != 0)
+                .expect("a serving generation has a prior lifecycle generation"),
+        )
     }
 }
 

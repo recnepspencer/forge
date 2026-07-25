@@ -1,3 +1,5 @@
+use crate::HarnessCloseoutEvidenceReport;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoundedMemoryResidencySuite {
     reports: Vec<BoundedOperationEnvelopeReport>,
@@ -130,7 +132,9 @@ impl BoundedOperationEnvelopeCounters {
         self,
         operation: BoundedMemoryOperationKind,
     ) -> Result<(), BoundedMemoryResidencySuiteDenial> {
-        if self.resident_bytes == 0 || self.allocation_bytes == 0 {
+        let requires_resident_bytes =
+            !matches!(operation, BoundedMemoryOperationKind::CompactionPlanning);
+        if self.allocation_bytes == 0 || (requires_resident_bytes && self.resident_bytes == 0) {
             return Err(BoundedMemoryResidencySuiteDenial::MissingEnvelopeCounters(
                 operation,
             ));
@@ -217,4 +221,31 @@ fn require_contains_denial(
         Err(BoundedMemoryResidencySuiteDenial::MissingDenial(denial))
     }
 }
-use crate::HarnessCloseoutEvidenceReport;
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        BoundedMemoryOperationKind, BoundedMemoryResidencySuiteDenial,
+        BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport,
+    };
+
+    #[test]
+    fn canonical_compaction_requires_allocation_but_not_forged_residency() {
+        let allocation_only = BoundedOperationEnvelopeCounters::exact(0, 0, 0, 64, 0, 0);
+        BoundedOperationEnvelopeReport::from_counters(
+            BoundedMemoryOperationKind::CompactionPlanning,
+            allocation_only,
+        )
+        .expect("canonical compaction owns bounded operation allocation");
+
+        assert_eq!(
+            BoundedOperationEnvelopeReport::from_counters(
+                BoundedMemoryOperationKind::AdmittedRead,
+                allocation_only,
+            ),
+            Err(BoundedMemoryResidencySuiteDenial::MissingEnvelopeCounters(
+                BoundedMemoryOperationKind::AdmittedRead,
+            ))
+        );
+    }
+}

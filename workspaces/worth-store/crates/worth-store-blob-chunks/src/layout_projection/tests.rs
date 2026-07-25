@@ -1,21 +1,28 @@
 use worth_store_budgets::CounterEvidenceStrength;
+#[cfg(feature = "certification-test-authority")]
 use worth_store_contracts::DurableArtifactFamilyId;
+#[cfg(feature = "certification-test-authority")]
 use worth_store_retention::RetentionDisposition;
+#[cfg(feature = "certification-test-authority")]
 use worth_store_security::StoreTenantScope;
 
+#[cfg(feature = "certification-test-authority")]
 use crate::corruption::test_support::quarantined_read_corruption;
 use crate::layout_runtime_case;
+#[cfg(feature = "certification-test-authority")]
 use crate::test_support::{
     admitted_sequence_for_scope, blob_scope, candidate_for_bytes_and_scope, canonical_equivalence,
 };
+#[cfg(feature = "certification-test-authority")]
 use crate::{
-    phase25_compacted_rewritten_publication, phase25_compaction_intent, phase25_reclaim_fixture,
-    phase25_verified_read_for_rewritten, publish_generation_with_bytes_and_chunk_size,
-    BlobChunkDedupeAdmission, BlobChunkReachabilityRegistry, BlobCompactionAuthority,
-    BlobCompactionEquivalence, BlobQuarantineRepairCapability, BlobReachabilityEdge,
-    BlobRetentionHold, BlobRetentionReclaimRequest, BlobRetentionSafeReclaimPlanner,
-    BlobVisibleGeneration,
+    phase25_compacted_rewritten_publication, phase25_compaction_authority,
+    phase25_compaction_intent, phase25_reclaim_fixture, phase25_verified_read_for_rewritten,
+    publish_generation_with_bytes_and_chunk_size, BlobChunkDedupeAdmission,
+    BlobChunkReachabilityRegistry, BlobCompactionEquivalence, BlobQuarantineRepairCapability,
+    BlobReachabilityEdge, BlobRetentionHold, BlobRetentionReclaimRequest,
+    BlobRetentionSafeReclaimPlanner, BlobVisibleGeneration,
 };
+#[cfg(feature = "certification-test-authority")]
 use worth_proof::TransitionOutcome;
 
 use super::{
@@ -80,6 +87,7 @@ fn layout_admission_uses_published_and_verified_runtime_path() {
 }
 
 #[test]
+#[cfg(feature = "certification-test-authority")]
 fn layout_admission_uses_runtime_maintenance_authority() {
     let dedupe_scope = blob_scope("phase25-dedupe", StoreTenantScope::TenantPhysicalBoundary);
     let dedupe_existing = candidate_for_bytes_and_scope(BYTES, dedupe_scope);
@@ -132,7 +140,7 @@ fn layout_admission_uses_runtime_maintenance_authority() {
         quarantined_read_corruption("phase25-quarantine", &quarantine_published, visible);
     let quarantine_layout = quarantine.project_quarantine_layout().unwrap();
 
-    let plan = BlobCompactionAuthority::store_owned()
+    let plan = phase25_compaction_authority("phase25-compaction")
         .plan_compaction(phase25_compaction_intent("phase25-compaction"))
         .unwrap();
     let rewritten = phase25_compacted_rewritten_publication("phase25-compaction");

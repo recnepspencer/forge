@@ -1,4 +1,6 @@
-use super::{assert_pre_decode_denial_counters, crc32c, with_pre_decode_admission};
+use super::{
+    assert_pre_decode_denial_counters, crc32c, current_frame_bytes, with_pre_decode_admission,
+};
 use worth_store_physical_format::PhysicalFrameKind;
 use worth_store_physical_integrity::{
     DeclaredPhysicalChecksum, LogicalDecodeGateIdentity, PhysicalIntegrityAdmissionRequest,
@@ -18,7 +20,7 @@ pub(crate) fn admit_checked_frame(
     expected_payload: &[u8],
     actual_payload: &[u8],
 ) -> CheckedFrameObservation {
-    let expected = DeclaredPhysicalChecksum::new(crc32c(expected_payload));
+    let expected = DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(expected_payload)));
     let mut output = None;
     with_pre_decode_admission(actual_payload, |admission, validation, witness| {
         let checked = admission
@@ -45,7 +47,7 @@ pub(crate) fn deny_checked_frame(
     actual_payload: &[u8],
     expected_kind: PreDecodePhysicalDenialKind,
 ) -> PreDecodePhysicalDenial {
-    let expected = DeclaredPhysicalChecksum::new(crc32c(expected_payload));
+    let expected = DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(expected_payload)));
     let mut output = None;
     with_pre_decode_admission(actual_payload, |admission, validation, witness| {
         let denial = admission
@@ -58,7 +60,11 @@ pub(crate) fn deny_checked_frame(
             .unwrap_err();
         assert_eq!(denial.kind(), expected_kind);
         assert_eq!(denial.locality(), Some(witness.owner()));
-        assert_pre_decode_denial_counters(denial.clone(), actual_payload.len() as u64, 1);
+        assert_pre_decode_denial_counters(
+            denial.clone(),
+            current_frame_bytes(actual_payload).len() as u64,
+            1,
+        );
         output = Some(denial);
     });
     output.unwrap()

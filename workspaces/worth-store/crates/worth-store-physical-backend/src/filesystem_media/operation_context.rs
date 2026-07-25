@@ -20,6 +20,7 @@ pub struct MediaOperationContext {
     publication_stage: Option<NamespacePublicationStage>,
     required_capability: MediaCapabilityRequirement,
     role_ordinal: u64,
+    identified_operation_ordinal: Option<u64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,6 +76,10 @@ impl MediaOperationCoordinates {
         self.publication_stage = Some(publication_stage);
         self
     }
+
+    pub(super) const fn operation_identity(self) -> Option<MediaOperationIdentity> {
+        self.operation
+    }
 }
 
 impl MediaOperationContext {
@@ -84,6 +89,7 @@ impl MediaOperationContext {
         requested_bytes: u64,
         coordinates: MediaOperationCoordinates,
         role_ordinal: u64,
+        identified_operation_ordinal: Option<u64>,
     ) -> Self {
         Self {
             owner: binding.owner,
@@ -98,6 +104,7 @@ impl MediaOperationContext {
             publication_stage: coordinates.publication_stage,
             required_capability: role.contract().capability(),
             role_ordinal,
+            identified_operation_ordinal,
         }
     }
 
@@ -147,5 +154,9 @@ impl MediaOperationContext {
 
     pub const fn role_ordinal(self) -> u64 {
         self.role_ordinal
+    }
+
+    pub const fn identified_operation_ordinal(self) -> Option<u64> {
+        self.identified_operation_ordinal
     }
 }

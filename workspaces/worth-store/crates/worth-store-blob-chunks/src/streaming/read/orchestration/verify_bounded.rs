@@ -1,6 +1,7 @@
-use worth_store_budgets::{AllocationEnvelopeSet, CounterEvidenceStrength};
-use worth_store_buffer_pool::AllocationReceipt;
+use worth_store_budgets::CounterEvidenceStrength;
+use worth_store_buffer_pool::OperationAllocationGrant;
 
+use super::super::super::allocation::AdmittedBlobStreamingAllocation;
 use super::super::transitions::{admit_read, finish_verified_read, observe_chunk_window};
 use super::super::types::BlobStreamingVerifiedRead;
 use super::super::verification::{counter_strength, StreamingReadVerifier};
@@ -11,8 +12,7 @@ use crate::{
 
 pub struct BlobStreamingReadExecution {
     window: BlobStreamingReadWindow,
-    allocation: AllocationReceipt,
-    envelopes: AllocationEnvelopeSet,
+    allocation: OperationAllocationGrant,
     admission: BlobStreamingReadAdmission,
     quarantine_authority: BlobQuarantineAuthority,
     counter_strength: CounterEvidenceStrength,
@@ -21,8 +21,7 @@ pub struct BlobStreamingReadExecution {
 impl BlobStreamingReadExecution {
     pub fn new(
         window: BlobStreamingReadWindow,
-        allocation: AllocationReceipt,
-        envelopes: AllocationEnvelopeSet,
+        allocation: OperationAllocationGrant,
         admission: BlobStreamingReadAdmission,
         quarantine_authority: BlobQuarantineAuthority,
         counter_strength: CounterEvidenceStrength,
@@ -30,7 +29,6 @@ impl BlobStreamingReadExecution {
         Self {
             window,
             allocation,
-            envelopes,
             admission,
             quarantine_authority,
             counter_strength,
@@ -45,18 +43,17 @@ impl BlobStreamingVerifiedRead {
         observations: impl IntoIterator<Item = BlobStreamingReadObservation>,
     ) -> Result<Self, BlobStreamingReadDenial> {
         counter_strength::require_exact(execution.counter_strength)?;
-        let mut counters = admit_read::admit_read(
-            execution.admission,
-            &request,
+        let allocation = AdmittedBlobStreamingAllocation::admit(
             execution.allocation,
-            execution.envelopes,
-            execution.counter_strength,
+            execution.window.max_resident_bytes(),
         )?;
+        let mut counters =
+            admit_read::admit_read(execution.admission, &request, execution.counter_strength)?;
         let mut verifier =
             StreamingReadVerifier::new(request, execution.window, execution.quarantine_authority);
         for observation in observations {
             observe_chunk_window::observe_chunk_window(&mut verifier, observation, &mut counters)?;
         }
-        finish_verified_read::finish_verified_read(verifier, counters)
+        finish_verified_read::finish_verified_read(verifier, counters, allocation)
     }
 }

@@ -10,7 +10,7 @@ use super::{
     QueueWorkDeclaration, QueueWritebackPolicy,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueExecutionReplayIdentity {
     work_class: QueueWorkClass,
     backend_requirement: IoSchedulerBackendCapabilityRequirement,
@@ -19,7 +19,7 @@ pub struct QueueExecutionReplayIdentity {
     requested_budget: BackgroundResourceBudget,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueExecutionPlanBinding {
     replay_identity: QueueExecutionReplayIdentity,
     backend_profile: BackendTargetProfile,
@@ -28,10 +28,7 @@ pub struct QueueExecutionPlanBinding {
 }
 
 impl QueueExecutionReplayIdentity {
-    pub(crate) const fn new(
-        work: QueueWorkDeclaration,
-        grouping_basis: QueueGroupingBasis,
-    ) -> Self {
+    pub(crate) fn new(work: &QueueWorkDeclaration, grouping_basis: QueueGroupingBasis) -> Self {
         Self {
             work_class: work.class(),
             backend_requirement: work.backend_requirement(),
@@ -41,27 +38,27 @@ impl QueueExecutionReplayIdentity {
         }
     }
 
-    pub const fn work_class(self) -> QueueWorkClass {
+    pub const fn work_class(&self) -> QueueWorkClass {
         self.work_class
     }
 
-    pub const fn backend_requirement(self) -> IoSchedulerBackendCapabilityRequirement {
+    pub const fn backend_requirement(&self) -> IoSchedulerBackendCapabilityRequirement {
         self.backend_requirement
     }
 
-    pub const fn durability_class(self) -> QueueDurabilityClass {
+    pub const fn durability_class(&self) -> QueueDurabilityClass {
         self.durability_class
     }
 
-    pub const fn grouping_basis(self) -> QueueGroupingBasis {
-        self.grouping_basis
+    pub const fn grouping_basis(&self) -> &QueueGroupingBasis {
+        &self.grouping_basis
     }
 
-    pub const fn requested_budget(self) -> BackgroundResourceBudget {
+    pub const fn requested_budget(&self) -> BackgroundResourceBudget {
         self.requested_budget
     }
 
-    pub const fn backend_completion_binding(
+    pub fn backend_completion_binding(
         self,
         backend_profile: BackendTargetProfile,
         backend_evidence_class: CapabilityEvidenceClass,
@@ -76,7 +73,7 @@ impl QueueExecutionReplayIdentity {
 }
 
 impl QueueExecutionPlanBinding {
-    pub(crate) const fn grouped(
+    pub(crate) fn grouped(
         first: QueueExecutionReplayIdentity,
         second: QueueExecutionReplayIdentity,
         backend_profile: BackendTargetProfile,
@@ -90,26 +87,28 @@ impl QueueExecutionPlanBinding {
         }
     }
 
-    pub const fn replay_identity(self) -> QueueExecutionReplayIdentity {
-        self.replay_identity
+    pub fn replay_identity(&self) -> &QueueExecutionReplayIdentity {
+        &self.replay_identity
     }
 
-    pub const fn backend_profile(self) -> BackendTargetProfile {
+    pub const fn backend_profile(&self) -> BackendTargetProfile {
         self.backend_profile
     }
 
-    pub const fn backend_evidence_class(self) -> CapabilityEvidenceClass {
+    pub const fn backend_evidence_class(&self) -> CapabilityEvidenceClass {
         self.backend_evidence_class
     }
 
-    pub const fn grouped_replay_identity(self) -> Option<QueueExecutionReplayIdentity> {
-        self.grouped_replay_identity
+    pub fn grouped_replay_identity(&self) -> Option<&QueueExecutionReplayIdentity> {
+        self.grouped_replay_identity.as_ref()
     }
 
     pub fn backend_execution_binding(self) -> BackendQueueExecutionPlanBinding {
         BackendQueueExecutionPlanBinding::from_store_replay_binding(
-            backend_replay_binding(self.replay_identity),
-            self.grouped_replay_identity.map(backend_replay_binding),
+            backend_replay_binding(&self.replay_identity),
+            self.grouped_replay_identity
+                .as_ref()
+                .map(backend_replay_binding),
             self.backend_profile,
             self.backend_evidence_class,
             self.grouped_replay_identity.map_or(0, |_| 2),
@@ -118,9 +117,9 @@ impl QueueExecutionPlanBinding {
 }
 
 fn backend_replay_binding(
-    identity: QueueExecutionReplayIdentity,
+    identity: &QueueExecutionReplayIdentity,
 ) -> BackendQueueExecutionReplayBinding {
-    let grouping = identity.grouping_basis;
+    let grouping = &identity.grouping_basis;
     BackendQueueExecutionReplayBinding::from_store_queue_replay(
         tag_work_class(identity.work_class),
         tag_backend_requirement(identity.backend_requirement),
@@ -166,6 +165,7 @@ const fn tag_foreground_lane(lane: crate::foreground_reservation::ForegroundIoLa
         crate::foreground_reservation::ForegroundIoLaneKind::OrdinaryPageWrite => 4,
         crate::foreground_reservation::ForegroundIoLaneKind::InteractiveRead => 5,
         crate::foreground_reservation::ForegroundIoLaneKind::InternalForegroundRead => 6,
+        crate::foreground_reservation::ForegroundIoLaneKind::ArtifactMetadataRead => 7,
     }
 }
 

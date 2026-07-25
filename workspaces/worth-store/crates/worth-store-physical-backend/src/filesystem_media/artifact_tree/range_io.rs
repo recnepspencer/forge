@@ -1,9 +1,11 @@
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, Seek, SeekFrom, Write};
 
 use cap_fs_ext::{FollowSymlinks, OpenOptionsFollowExt};
 use cap_std::fs::OpenOptions;
 
-use super::super::artifact_tree_effects::{artifact_file_length, begin, write_all_interposed};
+use super::super::artifact_tree_effects::{
+    artifact_file_length, begin, begin_identified, write_all_interposed,
+};
 use super::{
     ArtifactRangeWriteOutcome, ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile,
     ArtifactTreeMedia, CompletedArtifactRangeWrite, IndeterminateArtifactRangeWrite,
@@ -14,6 +16,7 @@ use crate::filesystem_media::{FilesystemMediaOwner, MediaOperationRole};
 pub struct ArtifactTreeNewFile<'media> {
     owner: &'media FilesystemMediaOwner,
     store: worth_store_physical_format::store_namespace::StableStoreIdentity,
+    create_operation: crate::filesystem_media::MediaOperationIdentity,
     artifact: ArtifactTreeFile,
     file: cap_std::fs::File,
     mutation_sequence: crate::filesystem_media::file_mutation_sequence::FileMutationSequence,
@@ -22,7 +25,20 @@ pub struct ArtifactTreeNewFile<'media> {
     completed_bytes: u64,
 }
 
+pub(super) enum ArtifactTreeCreateFileOutcome<'media> {
+    Created(ArtifactTreeNewFile<'media>),
+    DeniedBeforeEffect(ArtifactTreeFailure),
+    Indeterminate {
+        failure: ArtifactTreeFailure,
+        operation: crate::filesystem_media::MediaOperationIdentity,
+    },
+}
+
 impl ArtifactTreeNewFile<'_> {
+    pub const fn create_operation(&self) -> crate::filesystem_media::MediaOperationIdentity {
+        self.create_operation
+    }
+
     pub fn write_chunk(&mut self, bytes: &[u8]) -> Result<(), ArtifactTreeFailure> {
         let _sequence = self.mutation_sequence.lock();
         write_all_interposed(self.owner, &mut self.file, bytes)?;
@@ -35,6 +51,36 @@ impl ArtifactTreeNewFile<'_> {
 
     pub const fn completed_bytes(&self) -> u64 {
         self.completed_bytes
+    }
+
+    fn write_obligation_record(&mut self, bytes: &[u8]) -> Result<(), ArtifactTreeFailure> {
+        let _sequence = self.mutation_sequence.lock();
+        let requested = bytes.len() as u64;
+        let attempt = begin(self.owner, MediaOperationRole::Append, requested);
+        if let Some(error) = attempt.fail_before_error() {
+            attempt.denied();
+            return Err(ArtifactTreeFailure::io(
+                ArtifactTreeFailureKind::DeniedBeforeEffect,
+                &error,
+            ));
+        }
+        let limit = attempt.transfer_limit(requested) as usize;
+        if let Err(error) = self.file.write_all(&bytes[..limit]) {
+            attempt.indeterminate(0);
+            return Err(ArtifactTreeFailure::io(
+                ArtifactTreeFailureKind::IndeterminateEffect,
+                &error,
+            ));
+        }
+        if limit != bytes.len() || attempt.effect_observation_is_indeterminate() {
+            attempt.indeterminate(limit as u64);
+            return Err(ArtifactTreeFailure::structural(
+                ArtifactTreeFailureKind::IndeterminateEffect,
+            ));
+        }
+        self.completed_bytes = requested;
+        attempt.completed(requested);
+        super::super::artifact_tree_effects::synchronize_file(self.owner, &self.file)
     }
 
     pub fn write_exact_chunk(
@@ -63,7 +109,10 @@ impl ArtifactTreeNewFile<'_> {
                 self.completed_bytes = self.completed_bytes.saturating_add(completed_bytes);
                 ArtifactRangeWriteOutcome::Indeterminate(IndeterminateArtifactRangeWrite::new(
                     failure,
+                    self.owner.identity(),
+                    self.store,
                     coordinate,
+                    bytes,
                     completed_bytes,
                     operation,
                 ))
@@ -83,27 +132,64 @@ impl ArtifactTreeNewFile<'_> {
 }
 
 impl ArtifactTreeMedia<'_> {
+    pub fn write_new_obligation_record(
+        &self,
+        artifact: &ArtifactTreeFile,
+        bytes: &[u8],
+    ) -> Result<(), ArtifactTreeFailure> {
+        let mut file = self.create_new_file(artifact)?;
+        file.write_obligation_record(bytes)
+    }
+
     pub fn create_new_file(
         &self,
         artifact: &ArtifactTreeFile,
     ) -> Result<ArtifactTreeNewFile<'_>, ArtifactTreeFailure> {
+        match self.create_new_file_observed(artifact) {
+            ArtifactTreeCreateFileOutcome::Created(file) => Ok(file),
+            ArtifactTreeCreateFileOutcome::DeniedBeforeEffect(failure)
+            | ArtifactTreeCreateFileOutcome::Indeterminate { failure, .. } => Err(failure),
+        }
+    }
+
+    pub(super) fn create_new_file_observed(
+        &self,
+        artifact: &ArtifactTreeFile,
+    ) -> ArtifactTreeCreateFileOutcome<'_> {
         let coordination = self
             .owner
             .begin_artifact_namespace_mutation(vec![artifact.coordination_key()])
             .map_err(|_| {
                 ArtifactTreeFailure::structural(ArtifactTreeFailureKind::DeniedBeforeEffect)
-            })?;
-        let directory = self.open_directory(&artifact.directory)?;
+            });
+        let coordination = match coordination {
+            Ok(coordination) => coordination,
+            Err(failure) => {
+                return ArtifactTreeCreateFileOutcome::DeniedBeforeEffect(failure);
+            }
+        };
+        let directory = match self.open_directory(&artifact.directory) {
+            Ok(directory) => directory,
+            Err(failure) => {
+                return ArtifactTreeCreateFileOutcome::DeniedBeforeEffect(failure);
+            }
+        };
         let mut options = OpenOptions::new();
         options
             .read(true)
             .write(true)
             .create_new(true)
             .follow(FollowSymlinks::No);
-        let create = begin(self.owner, MediaOperationRole::CreateNew, 0);
+        let Some((create_operation, create)) =
+            begin_identified(self.owner, MediaOperationRole::CreateNew, 0)
+        else {
+            return ArtifactTreeCreateFileOutcome::DeniedBeforeEffect(
+                ArtifactTreeFailure::structural(ArtifactTreeFailureKind::DeniedBeforeEffect),
+            );
+        };
         if let Some(error) = create.fail_before_error() {
             create.denied();
-            return Err(ArtifactTreeFailure::io(
+            return ArtifactTreeCreateFileOutcome::DeniedBeforeEffect(ArtifactTreeFailure::io(
                 ArtifactTreeFailureKind::DeniedBeforeEffect,
                 &error,
             ));
@@ -114,24 +200,31 @@ impl ArtifactTreeMedia<'_> {
                     Ok(file) => file,
                     Err(_) => {
                         create.indeterminate(0);
-                        return Err(ArtifactTreeFailure::structural(
-                            ArtifactTreeFailureKind::IndeterminateEffect,
-                        ));
+                        return ArtifactTreeCreateFileOutcome::Indeterminate {
+                            failure: ArtifactTreeFailure::structural(
+                                ArtifactTreeFailureKind::IndeterminateEffect,
+                            ),
+                            operation: create_operation,
+                        };
                     }
                 };
                 let mutation_sequence = match self.owner.mutation_sequence_for(&sequence_file) {
                     Ok(sequence) => sequence,
                     Err(_) => {
                         create.indeterminate(0);
-                        return Err(ArtifactTreeFailure::structural(
-                            ArtifactTreeFailureKind::IndeterminateEffect,
-                        ));
+                        return ArtifactTreeCreateFileOutcome::Indeterminate {
+                            failure: ArtifactTreeFailure::structural(
+                                ArtifactTreeFailureKind::IndeterminateEffect,
+                            ),
+                            operation: create_operation,
+                        };
                     }
                 };
                 create.completed(0);
-                Ok(ArtifactTreeNewFile {
+                ArtifactTreeCreateFileOutcome::Created(ArtifactTreeNewFile {
                     owner: self.owner,
                     store: self.store,
+                    create_operation,
                     artifact: artifact.clone(),
                     file,
                     mutation_sequence,
@@ -146,7 +239,9 @@ impl ArtifactTreeMedia<'_> {
                 } else {
                     ArtifactTreeFailureKind::DeniedBeforeEffect
                 };
-                Err(ArtifactTreeFailure::io(kind, &error))
+                ArtifactTreeCreateFileOutcome::DeniedBeforeEffect(ArtifactTreeFailure::io(
+                    kind, &error,
+                ))
             }
         }
     }

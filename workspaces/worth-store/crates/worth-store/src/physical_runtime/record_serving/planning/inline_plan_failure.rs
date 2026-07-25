@@ -16,16 +16,57 @@ pub(in crate::physical_runtime::record_serving) fn admitted_generation(
 pub(in crate::physical_runtime::record_serving) fn layout_failure(
     failure: super::super::residency::frame_loading::FrameLoadFailure,
 ) -> RecordAppendError {
-    match failure {
-        super::super::residency::frame_loading::FrameLoadFailure::Backend(failure)
+    match failure.kind() {
+        super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure)
             if failure.kind() == ArtifactTreeFailureKind::DeniedBeforeEffect =>
         {
             RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
         }
-        super::super::residency::frame_loading::FrameLoadFailure::Residency(reason) => {
+        super::super::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => {
             RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason))
         }
+        super::super::residency::frame_loading::FrameLoadFailureKind::Work(failure) => {
+            canonical_work_failure(failure)
+        }
         _ => RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged),
+    }
+}
+
+fn canonical_work_failure(failure: super::super::CanonicalRecordReadFailure) -> RecordAppendError {
+    match failure {
+        super::super::CanonicalRecordReadFailure::Backend(failure)
+            if failure.kind() == ArtifactTreeFailureKind::DeniedBeforeEffect =>
+        {
+            RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
+        }
+        super::super::CanonicalRecordReadFailure::Backend(_) => {
+            RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)
+        }
+        super::super::CanonicalRecordReadFailure::Terminal(cause) => terminal_failure(cause),
+        _ => RecordAppendError::Denied(RecordAppendDenial::PhysicalReadWorkUnavailable(
+            failure
+                .work_denial()
+                .expect("non-backend canonical failures have work denials"),
+        )),
+    }
+}
+
+fn terminal_failure(
+    cause: crate::physical_runtime::PhysicalWorkTerminalCause,
+) -> RecordAppendError {
+    match cause {
+        crate::physical_runtime::PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect => {
+            RecordAppendError::Denied(RecordAppendDenial::PhysicalReadWorkUnavailable(
+                super::super::RecordReadWorkDenial::SchedulerSettlementRejected,
+            ))
+        }
+        crate::physical_runtime::PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(
+            reason,
+        ) => RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason)),
+        crate::physical_runtime::PhysicalWorkTerminalCause::Backend(_)
+        | crate::physical_runtime::PhysicalWorkTerminalCause::IncompleteRead { .. } => {
+            RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)
+        }
     }
 }
 
@@ -35,8 +76,13 @@ pub(in crate::physical_runtime::record_serving) fn manifest_lookup_failure(
     match failure {
         super::super::access::manifest_routing::ManifestLookupFailure::Backend(failure) => {
             layout_failure(
-                super::super::residency::frame_loading::FrameLoadFailure::Backend(failure),
+                super::super::residency::frame_loading::FrameLoadFailure::new(
+                    super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure),
+                ),
             )
+        }
+        super::super::access::manifest_routing::ManifestLookupFailure::Frame(kind) => {
+            layout_failure(super::super::residency::frame_loading::FrameLoadFailure::new(kind))
         }
         super::super::access::manifest_routing::ManifestLookupFailure::Damaged => {
             RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)

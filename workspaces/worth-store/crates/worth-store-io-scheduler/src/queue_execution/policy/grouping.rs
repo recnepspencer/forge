@@ -1,22 +1,24 @@
+use std::sync::Arc;
+
 use worth_store_security::{
     StoreAuthenticityRequirement, StoreKeyScope, StoreSecurityScopeIdentity, StoreTenantScope,
 };
 
 use super::{QueueDurabilityClass, QueueGroupingDenial, QueueWorkClass};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+const MAX_QUEUE_LOCALITY_RANGES: usize = 256;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueLocalityIdentity {
     digest: [u8; 32],
-    envelope: Option<QueueLocalityEnvelope>,
+    ranges: Arc<[QueueLocalityRange]>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct QueueLocalityEnvelope {
+pub struct QueueLocalityRange {
     artifact: [u8; 32],
     start: u64,
     end: u64,
-    covered_bytes: u64,
-    members: u16,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -29,54 +31,102 @@ pub enum QueueLocalityRelation {
 }
 
 impl QueueLocalityIdentity {
-    pub const fn from_digest(digest: [u8; 32]) -> Self {
+    pub fn from_digest(digest: [u8; 32]) -> Self {
         Self {
             digest,
-            envelope: None,
+            ranges: Arc::from([]),
         }
     }
 
-    pub const fn from_single_artifact_scope(
+    pub fn from_ranges(
         digest: [u8; 32],
-        artifact: [u8; 32],
-        start: u64,
-        end: u64,
-        covered_bytes: u64,
-        members: u16,
-    ) -> Self {
-        Self {
-            digest,
-            envelope: Some(QueueLocalityEnvelope {
-                artifact,
-                start,
-                end,
-                covered_bytes,
-                members,
-            }),
+        ranges: impl IntoIterator<Item = QueueLocalityRange>,
+    ) -> Option<Self> {
+        let mut exact = Vec::new();
+        for range in ranges {
+            if exact.len() == MAX_QUEUE_LOCALITY_RANGES {
+                return None;
+            }
+            exact.push(range);
         }
+        if exact.is_empty() {
+            return None;
+        }
+        exact.sort_unstable_by_key(|range| (range.artifact, range.start, range.end));
+        if exact.iter().any(|range| range.start >= range.end)
+            || exact
+                .windows(2)
+                .any(|pair| pair[0].artifact == pair[1].artifact && pair[0].end > pair[1].start)
+        {
+            return None;
+        }
+        Some(Self {
+            digest,
+            ranges: exact.into(),
+        })
     }
 
-    pub const fn as_bytes(self) -> [u8; 32] {
+    pub const fn as_bytes(&self) -> [u8; 32] {
         self.digest
     }
 
-    pub fn relation(self, other: Self) -> QueueLocalityRelation {
-        if self.digest == other.digest {
+    pub fn relation(&self, other: &Self) -> QueueLocalityRelation {
+        if self == other {
             return QueueLocalityRelation::Exact;
         }
-        let (Some(left), Some(right)) = (self.envelope, other.envelope) else {
+        if self.ranges.is_empty() || other.ranges.is_empty() {
             return QueueLocalityRelation::StructurallyUnknown;
-        };
-        if left.artifact != right.artifact {
-            return QueueLocalityRelation::Disjoint;
         }
-        if left.end == right.start || right.end == left.start {
-            return QueueLocalityRelation::Adjacent;
+        relation_between_sorted_ranges(&self.ranges, &other.ranges)
+    }
+}
+
+impl QueueLocalityRange {
+    pub const fn new(artifact: [u8; 32], start: u64, end: u64) -> Option<Self> {
+        if start >= end {
+            return None;
         }
-        if left.end <= right.start || right.end <= left.start {
-            return QueueLocalityRelation::Disjoint;
+        Some(Self {
+            artifact,
+            start,
+            end,
+        })
+    }
+}
+
+fn relation_between_sorted_ranges(
+    left: &[QueueLocalityRange],
+    right: &[QueueLocalityRange],
+) -> QueueLocalityRelation {
+    let mut adjacent = false;
+    let mut left_index = 0;
+    let mut right_index = 0;
+    while left_index < left.len() && right_index < right.len() {
+        let l = left[left_index];
+        let r = right[right_index];
+        if l.artifact < r.artifact {
+            left_index += 1;
+        } else if r.artifact < l.artifact {
+            right_index += 1;
+        } else if l.end < r.start {
+            left_index += 1;
+        } else if r.end < l.start {
+            right_index += 1;
+        } else if l.end == r.start || r.end == l.start {
+            adjacent = true;
+            if l.end <= r.end {
+                left_index += 1;
+            } else {
+                right_index += 1;
+            }
+        } else {
+            return QueueLocalityRelation::OverlappingOrInterleaved;
         }
-        QueueLocalityRelation::OverlappingOrInterleaved
+    }
+    if adjacent {
+        QueueLocalityRelation::Adjacent
+    } else {
+        QueueLocalityRelation::Disjoint
     }
 }
 
@@ -94,7 +144,7 @@ pub enum QueueWritebackPolicy {
     DeferredWithinFlushEpoch,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueGroupingBasis {
     security_scope_identity: StoreSecurityScopeIdentity,
     tenant_scope: StoreTenantScope,
@@ -135,12 +185,12 @@ impl QueueGroupingBasis {
         }
     }
 
-    pub(crate) const fn with_locality(mut self, locality: QueueLocalityIdentity) -> Self {
+    pub(crate) fn with_locality(mut self, locality: QueueLocalityIdentity) -> Self {
         self.locality = Some(locality);
         self
     }
 
-    pub fn compatible_with(self, other: Self) -> Result<(), QueueGroupingDenial> {
+    pub fn compatible_with(&self, other: &Self) -> Result<(), QueueGroupingDenial> {
         if self.security_scope_identity != other.security_scope_identity {
             return Err(QueueGroupingDenial::SecurityScopeMismatch);
         }
@@ -174,43 +224,99 @@ impl QueueGroupingBasis {
         Ok(())
     }
 
-    pub const fn security_scope_identity(self) -> StoreSecurityScopeIdentity {
+    pub const fn security_scope_identity(&self) -> StoreSecurityScopeIdentity {
         self.security_scope_identity
     }
 
-    pub const fn tenant_scope(self) -> StoreTenantScope {
+    pub const fn tenant_scope(&self) -> StoreTenantScope {
         self.tenant_scope
     }
 
-    pub const fn key_scope(self) -> StoreKeyScope {
+    pub const fn key_scope(&self) -> StoreKeyScope {
         self.key_scope
     }
 
-    pub const fn authenticity_requirement(self) -> StoreAuthenticityRequirement {
+    pub const fn authenticity_requirement(&self) -> StoreAuthenticityRequirement {
         self.authenticity_requirement
     }
 
-    pub const fn durability_class(self) -> QueueDurabilityClass {
+    pub const fn durability_class(&self) -> QueueDurabilityClass {
         self.durability_class
     }
 
-    pub const fn flush_epoch(self) -> u64 {
+    pub const fn flush_epoch(&self) -> u64 {
         self.flush_epoch
     }
 
-    pub const fn work_class(self) -> QueueWorkClass {
+    pub const fn work_class(&self) -> QueueWorkClass {
         self.work_class
     }
 
-    pub const fn recovery_ordering(self) -> QueueRecoveryOrdering {
+    pub const fn recovery_ordering(&self) -> QueueRecoveryOrdering {
         self.recovery_ordering
     }
 
-    pub const fn writeback_policy(self) -> QueueWritebackPolicy {
+    pub const fn writeback_policy(&self) -> QueueWritebackPolicy {
         self.writeback_policy
     }
 
-    pub const fn locality(self) -> Option<QueueLocalityIdentity> {
-        self.locality
+    pub fn locality(&self) -> Option<&QueueLocalityIdentity> {
+        self.locality.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod locality_tests {
+    use super::{QueueLocalityIdentity, QueueLocalityRange, QueueLocalityRelation};
+
+    #[test]
+    fn multi_artifact_ranges_preserve_overlap_and_disjoint_truth() {
+        let left = locality(1, [range(1, 0, 8), range(2, 32, 40), range(3, 64, 72)]);
+        let overlapping = locality(2, [range(2, 36, 44)]);
+        let disjoint = locality(3, [range(1, 8, 16), range(4, 0, 8)]);
+
+        assert_eq!(
+            left.relation(&overlapping),
+            QueueLocalityRelation::OverlappingOrInterleaved
+        );
+        assert_eq!(left.relation(&disjoint), QueueLocalityRelation::Adjacent);
+    }
+
+    #[test]
+    fn malformed_or_overlapping_structural_ranges_are_rejected() {
+        assert!(
+            QueueLocalityIdentity::from_ranges([9; 32], [range(1, 0, 8), range(1, 4, 12)])
+                .is_none()
+        );
+        assert!(QueueLocalityIdentity::from_ranges([9; 32], [range(1, 0, 8); 257]).is_none());
+        assert!(QueueLocalityRange::new([1; 32], 8, 8).is_none());
+    }
+
+    #[test]
+    fn equal_caller_digests_cannot_override_contradictory_structural_ranges() {
+        let left = locality(9, [range(1, 0, 8)]);
+        let different_artifact = locality(9, [range(2, 0, 8)]);
+        let overlapping_offset = locality(9, [range(1, 4, 12)]);
+
+        assert_eq!(left.relation(&left), QueueLocalityRelation::Exact);
+        assert_eq!(
+            left.relation(&different_artifact),
+            QueueLocalityRelation::Disjoint
+        );
+        assert_eq!(
+            left.relation(&overlapping_offset),
+            QueueLocalityRelation::OverlappingOrInterleaved
+        );
+    }
+
+    fn locality<const N: usize>(
+        digest: u8,
+        ranges: [QueueLocalityRange; N],
+    ) -> QueueLocalityIdentity {
+        QueueLocalityIdentity::from_ranges([digest; 32], ranges).unwrap()
+    }
+
+    fn range(artifact: u8, start: u64, end: u64) -> QueueLocalityRange {
+        QueueLocalityRange::new([artifact; 32], start, end).unwrap()
     }
 }

@@ -1,4 +1,3 @@
-use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::{
     CurrentPhysicalRecordPlacement, DurableInlineRecordPlacement, DurablePhysicalRootManifest,
 };
@@ -9,8 +8,8 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) fn last_inline_placement(
-    media: &QualifiedFilesystemMedia,
-    frame_load: &(dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    frame_ports: super::super::residency::frame_ports::RecordFramePorts,
+    source: super::super::residency::frame_loading::CanonicalFrameReadSource,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
     root: &DurablePhysicalRootManifest,
@@ -21,8 +20,12 @@ pub(in crate::physical_runtime::record_serving) fn last_inline_placement(
     };
     let mut counters =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
-    let reader = super::super::access::manifest_routing::ManifestReader::with_loader(
-        media, frame_load, format, access, root,
+    let reader = super::super::access::manifest_routing::ManifestReader::serving(
+        frame_ports,
+        source,
+        format,
+        access,
+        root.clone(),
     );
     let found = reader
         .locate(record, &mut counters)

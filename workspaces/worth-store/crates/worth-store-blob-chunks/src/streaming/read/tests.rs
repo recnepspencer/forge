@@ -1,8 +1,5 @@
-use worth_store_budgets::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationScope, CounterEvidenceStrength,
-    FixedMetadataReservation,
-};
-use worth_store_buffer_pool::{AllocationAdmission, AllocationReceipt, AllocationRequest};
+use worth_store_budgets::CounterEvidenceStrength;
+use worth_store_buffer_pool::OperationAllocationScope;
 use worth_store_io_scheduler::{
     admit_background_pacing,
     foreground_reservation::{
@@ -19,7 +16,10 @@ use worth_store_security::StoreTenantScope;
 
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
 use crate::test_support::physical_payload_for_bytes;
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
+use crate::test_support::{
+    admitted_multichunk_sequence_for_scope, blob_allocation, blob_allocation_grant, blob_scope,
+    operation_allocation,
+};
 use crate::{
     reject_full_blob_vec_as_streaming_read, BlobChunkByteRange, BlobChunkOrdinal,
     BlobCorruptionReferenceEdge, BlobCorruptionReferenceEdges, BlobQuarantineAuthority,
@@ -27,6 +27,81 @@ use crate::{
     BlobStreamingReadObservation, BlobStreamingReadObservedChunk, BlobStreamingReadRequest,
     BlobStreamingReadWindow, BlobStreamingVerifiedRead,
 };
+
+#[test]
+fn verified_read_retains_canonical_allocation_provenance_and_releases_authority() {
+    let (pool, allocation) = blob_allocation(8);
+    let verified = BlobStreamingVerifiedRead::verify_bounded(
+        request(),
+        crate::BlobStreamingReadExecution::new(
+            BlobStreamingReadWindow::bounded(8).unwrap(),
+            allocation,
+            admission(),
+            BlobQuarantineAuthority::from_current_store_authority(
+                crate::lifecycle::generation_registry_test_support::current_authority(
+                    "phase10.streaming.read.allocation",
+                    "quarantine",
+                ),
+            ),
+            CounterEvidenceStrength::Exact,
+        ),
+        observations_for(b"abcdefghijkl", 8),
+    )
+    .unwrap();
+
+    assert_eq!(
+        pool.counters()
+            .active_operation_bytes_for(OperationAllocationScope::Blob),
+        0
+    );
+    let observed = verified.residency().allocation().allocation();
+    assert_eq!(observed.store(), pool.store_identity());
+    assert_eq!(observed.pool(), pool.incarnation());
+    assert_eq!(observed.scope(), OperationAllocationScope::Blob);
+    assert_eq!(observed.bytes(), 8);
+    assert_eq!(
+        observed
+            .counters()
+            .active_operation_bytes_for(OperationAllocationScope::Blob),
+        8
+    );
+    assert_eq!(verified.residency().peak_resident_bytes(), 4);
+}
+
+#[test]
+fn read_wrong_scope_is_denied_before_observations_are_consumed() {
+    let (pool, allocation) = operation_allocation(OperationAllocationScope::Recovery, 8);
+    let consumed = std::cell::Cell::new(0_u64);
+    let observations = observations_for(b"abcdefghijkl", 8)
+        .into_iter()
+        .inspect(|_| consumed.set(consumed.get() + 1));
+    let denial = BlobStreamingVerifiedRead::verify_bounded(
+        request(),
+        crate::BlobStreamingReadExecution::new(
+            BlobStreamingReadWindow::bounded(8).unwrap(),
+            allocation,
+            admission(),
+            BlobQuarantineAuthority::from_current_store_authority(
+                crate::lifecycle::generation_registry_test_support::current_authority(
+                    "phase10.streaming.read.wrong-scope",
+                    "quarantine",
+                ),
+            ),
+            CounterEvidenceStrength::Exact,
+        ),
+        observations,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        denial,
+        BlobStreamingReadDenial::AllocationScopeMismatch {
+            actual: OperationAllocationScope::Recovery
+        }
+    );
+    assert_eq!(consumed.get(), 0);
+    assert_eq!(pool.counters().active_operation_bytes(), 0);
+}
 
 const READ_CASE: &str = "phase10.streaming.read";
 const READ_BYTES: &[u8] = b"abcdefghijkl";
@@ -183,13 +258,11 @@ fn verify_observations(
 fn verify_with_admission(
     admission: BlobStreamingReadAdmission,
 ) -> Result<BlobStreamingVerifiedRead, BlobStreamingReadDenial> {
-    let (allocation, envelopes) = allocation_receipt_and_envelope(8);
     BlobStreamingVerifiedRead::verify_bounded(
         request(),
         crate::BlobStreamingReadExecution::new(
             BlobStreamingReadWindow::bounded(8)?,
-            allocation,
-            envelopes,
+            blob_allocation_grant(8),
             admission,
             BlobQuarantineAuthority::from_current_store_authority(
                 crate::lifecycle::generation_registry_test_support::current_authority(
@@ -207,13 +280,11 @@ fn verify_observations_with_window(
     window_bytes: u64,
     observations: impl IntoIterator<Item = BlobStreamingReadObservation>,
 ) -> Result<BlobStreamingVerifiedRead, BlobStreamingReadDenial> {
-    let (allocation, envelopes) = allocation_receipt_and_envelope(window_bytes);
     BlobStreamingVerifiedRead::verify_bounded(
         request(),
         crate::BlobStreamingReadExecution::new(
             BlobStreamingReadWindow::bounded(window_bytes)?,
-            allocation,
-            envelopes,
+            blob_allocation_grant(window_bytes),
             admission(),
             BlobQuarantineAuthority::from_current_store_authority(
                 crate::lifecycle::generation_registry_test_support::current_authority(
@@ -294,40 +365,6 @@ fn admitted_verification_pressure() -> BackgroundPacingOutcome {
 
 fn read_pressure_budget() -> BackgroundResourceBudget {
     BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(2).unwrap())
-}
-
-fn allocation_receipt_and_envelope(
-    streaming_bytes: u64,
-) -> (
-    AllocationReceipt,
-    worth_store_budgets::AllocationEnvelopeSet,
-) {
-    let envelopes = allocation_envelope(streaming_bytes);
-    let mut admission = AllocationAdmission::from_declaration(envelopes);
-    let grant = admission
-        .admit(
-            AllocationRequest::streaming_window(AllocationScope::Streaming, streaming_bytes)
-                .unwrap(),
-        )
-        .expect("streaming read allocation should admit");
-    let receipt = admission
-        .record_allocation(grant)
-        .expect("streaming read allocation should record");
-    (receipt, envelopes)
-}
-
-fn allocation_envelope(streaming_bytes: u64) -> worth_store_budgets::AllocationEnvelopeSet {
-    let budget = AllocationByteBudget::bytes(64).unwrap();
-    AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(AllocationByteBudget::bytes(streaming_bytes).unwrap())
-        .fixed_metadata(FixedMetadataReservation::constant_bytes(16).unwrap())
-        .seal()
-        .unwrap()
 }
 
 fn ordinal(value: u64) -> BlobChunkOrdinal {

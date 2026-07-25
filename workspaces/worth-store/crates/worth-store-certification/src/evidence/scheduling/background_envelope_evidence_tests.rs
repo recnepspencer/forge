@@ -1,3 +1,6 @@
+use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::{
+    operation_allocation, recovery_memory_allocation,
+};
 use crate::{
     BackgroundEnvelopeEvidenceBundle, BackgroundEnvelopeEvidenceDenial, RequiredInterferenceKind,
 };
@@ -6,34 +9,33 @@ use worth_store_buffer_pool::{
     AdmittedBackgroundEnvelope, AllocationAdmission, AllocationByteBudget,
     AllocationEnvelopeDeclaration, BackgroundEnvelopeAdmission, BackgroundEnvelopeDenialKind,
     BackgroundEnvelopeRequest, BackgroundMemoryInterferenceReport, BackgroundWorkBudgetSnapshot,
-    BackgroundWorkClass, FixedMetadataReservation,
+    BackgroundWorkClass, FixedMetadataReservation, OperationAllocationScope,
 };
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
-use worth_store_recovery_physics::RecoveryMemoryEnvelope;
+use worth_store_recovery_physics::{RecoveryMemoryAllocation, RecoveryMemoryAllocationDenial};
 
 #[test]
 fn background_envelope_honesty_suite_certifies_all_classes_and_interference() {
-    let recovery = RecoveryMemoryEnvelope::from_admitted(admit(class_request(
-        BackgroundWorkClass::RecoveryPlanning,
-    )))
-    .expect("recovery wrapper consumes recovery envelope");
-    let compaction = CompactionPlanningMemoryEnvelope::from_admitted(admit(class_request(
-        BackgroundWorkClass::CompactionPlanning,
-    )))
-    .expect("compaction wrapper consumes compaction envelope");
+    let recovery = recovery_memory_allocation();
+    let compaction =
+        CompactionPlanningMemoryEnvelope::from_allocation_grant(maintenance_allocation())
+            .expect("maintenance allocation authorizes compaction planning");
     let scrub = ScrubPlanningMemoryEnvelope::from_admitted(admit(class_request(
         BackgroundWorkClass::ScrubPlanning,
     )))
     .expect("scrub wrapper consumes scrub envelope");
-    let import_export = ImportExportMemoryEnvelope::from_admitted(admit(class_request(
-        BackgroundWorkClass::ImportExport,
-    )))
-    .expect("import/export wrapper consumes import/export envelope");
+    let import_export = ImportExportMemoryEnvelope::from_allocation_grant(maintenance_allocation())
+        .expect("maintenance allocation authorizes import-export work");
     let streaming = LargeRecordStreamingEnvelope::from_admitted(admit(streaming_request(128, 512)))
         .expect("streaming wrapper consumes streaming envelope");
     let reports = complete_interference_reports();
+    assert_eq!(
+        recovery.allocation_scope(),
+        OperationAllocationScope::Recovery
+    );
 
+    assert!(!compaction.proves_compaction_validity());
     let bundle = BackgroundEnvelopeEvidenceBundle::from_envelopes(
         recovery,
         compaction,
@@ -47,8 +49,6 @@ fn background_envelope_honesty_suite_certifies_all_classes_and_interference() {
     assert_eq!(bundle.admitted_classes(), BackgroundWorkClass::ALL);
     assert_eq!(streaming.object_bytes(), 128);
     assert_eq!(streaming.window_bytes(), 512);
-    assert!(!recovery.proves_wal_recovery());
-    assert!(!compaction.proves_compaction_validity());
     assert!(!scrub.proves_corruption_localization());
     assert!(!streaming.proves_blob_lifecycle_completion());
 }
@@ -56,22 +56,13 @@ fn background_envelope_honesty_suite_certifies_all_classes_and_interference() {
 #[test]
 fn evidence_rejects_missing_required_interference_reports() {
     let denial = BackgroundEnvelopeEvidenceBundle::from_envelopes(
-        RecoveryMemoryEnvelope::from_admitted(admit(class_request(
-            BackgroundWorkClass::RecoveryPlanning,
-        )))
-        .unwrap(),
-        CompactionPlanningMemoryEnvelope::from_admitted(admit(class_request(
-            BackgroundWorkClass::CompactionPlanning,
-        )))
-        .unwrap(),
+        recovery_memory_allocation(),
+        CompactionPlanningMemoryEnvelope::from_allocation_grant(maintenance_allocation()).unwrap(),
         ScrubPlanningMemoryEnvelope::from_admitted(admit(class_request(
             BackgroundWorkClass::ScrubPlanning,
         )))
         .unwrap(),
-        ImportExportMemoryEnvelope::from_admitted(admit(class_request(
-            BackgroundWorkClass::ImportExport,
-        )))
-        .unwrap(),
+        ImportExportMemoryEnvelope::from_allocation_grant(maintenance_allocation()).unwrap(),
         LargeRecordStreamingEnvelope::from_admitted(admit(streaming_request(4096, 512))).unwrap(),
         &[],
     )
@@ -102,22 +93,14 @@ fn evidence_rejects_each_missing_interference_report() {
             .collect();
 
         let denial = BackgroundEnvelopeEvidenceBundle::from_envelopes(
-            RecoveryMemoryEnvelope::from_admitted(admit(class_request(
-                BackgroundWorkClass::RecoveryPlanning,
-            )))
-            .unwrap(),
-            CompactionPlanningMemoryEnvelope::from_admitted(admit(class_request(
-                BackgroundWorkClass::CompactionPlanning,
-            )))
-            .unwrap(),
+            recovery_memory_allocation(),
+            CompactionPlanningMemoryEnvelope::from_allocation_grant(maintenance_allocation())
+                .unwrap(),
             ScrubPlanningMemoryEnvelope::from_admitted(admit(class_request(
                 BackgroundWorkClass::ScrubPlanning,
             )))
             .unwrap(),
-            ImportExportMemoryEnvelope::from_admitted(admit(class_request(
-                BackgroundWorkClass::ImportExport,
-            )))
-            .unwrap(),
+            ImportExportMemoryEnvelope::from_allocation_grant(maintenance_allocation()).unwrap(),
             LargeRecordStreamingEnvelope::from_admitted(admit(streaming_request(4096, 512)))
                 .unwrap(),
             &incomplete_reports,
@@ -132,16 +115,16 @@ fn evidence_rejects_each_missing_interference_report() {
 }
 
 #[test]
-fn later_sequence_wrappers_reject_wrong_envelope_classes() {
-    let compaction_envelope = admit(class_request(BackgroundWorkClass::CompactionPlanning));
-    let denial = RecoveryMemoryEnvelope::from_admitted(compaction_envelope)
-        .expect_err("recovery wrapper cannot consume compaction envelope");
+fn recovery_allocation_rejects_wrong_operation_scope() {
+    let maintenance = operation_allocation(OperationAllocationScope::Maintenance, 128)
+        .expect("bounded maintenance allocation should admit");
+    let denial = RecoveryMemoryAllocation::from_allocation_grant(maintenance)
+        .expect_err("maintenance allocation cannot authorize recovery");
 
     assert_eq!(
         denial,
-        worth_store_recovery_physics::RecoveryMemoryEnvelopeDenial::WrongBackgroundEnvelopeClass {
-            expected: BackgroundWorkClass::RecoveryPlanning,
-            actual: BackgroundWorkClass::CompactionPlanning,
+        RecoveryMemoryAllocationDenial::WrongAllocationScope {
+            actual: OperationAllocationScope::Maintenance,
         }
     );
 }
@@ -210,6 +193,11 @@ fn complete_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {
             },
         ),
     ]
+}
+
+fn maintenance_allocation() -> worth_store_buffer_pool::OperationAllocationGrant {
+    operation_allocation(OperationAllocationScope::Maintenance, 128)
+        .expect("bounded maintenance allocation should admit")
 }
 
 fn deny(

@@ -16,13 +16,13 @@ fn multi_page_cow_preserves_untouched_page_generation_and_all_records() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let first_payloads = [vec![1_u8; 3_000], vec![2_u8; 3_000], vec![3_u8; 3_000]];
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter(first_payloads.iter()).unwrap(),
             placement,
@@ -33,7 +33,7 @@ fn multi_page_cow_preserves_untouched_page_generation_and_all_records() {
     serving.drain_clean_residency();
     let before_cow = serving.media_counters();
     let fourth = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([fourth_payload.as_slice()]).unwrap(),
             placement,
@@ -121,11 +121,15 @@ fn segment_target_drift_opens_a_new_policy_honest_segment() {
     let (format, _, access) = dense_configuration(2);
     let first_policy = placement(format, 2);
     let second_policy = placement(format, 3);
-    let mut serving = success(media(&root).initialize_record_store(
-        PhysicalRecordInitialization::new(format, first_policy, access),
-    ));
+    let serving = success(
+        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
+            format,
+            first_policy,
+            access,
+        )),
+    );
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"first".as_slice()]).unwrap(),
             first_policy,
@@ -133,10 +137,9 @@ fn segment_target_drift_opens_a_new_policy_honest_segment() {
         .unwrap();
     serving.close();
 
-    let mut serving =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let serving = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
     let second = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"second".as_slice()]).unwrap(),
             second_policy,
@@ -209,25 +212,29 @@ fn returning_to_an_older_policy_does_not_search_historical_segments() {
     let (format, _, access) = dense_configuration(2);
     let two_page_policy = placement(format, 2);
     let three_page_policy = placement(format, 3);
-    let mut serving = success(media(&root).initialize_record_store(
-        PhysicalRecordInitialization::new(format, two_page_policy, access),
-    ));
+    let serving = success(
+        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
+            format,
+            two_page_policy,
+            access,
+        )),
+    );
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"first".as_slice()]).unwrap(),
             two_page_policy,
         )
         .unwrap();
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"second".as_slice()]).unwrap(),
             three_page_policy,
         )
         .unwrap();
     let third = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"third".as_slice()]).unwrap(),
             two_page_policy,

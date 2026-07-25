@@ -2011,12 +2011,59 @@ expose only the typed seams required for C.6 buffer-pool completion.
   aspect/partition broadening, internal JSON carriers, physical effect retry
   after derived Signal completion rollback, a Store-owned branch writer
   registry, and branch-label-based physical disjointness.
+- The authoritative Phase 16 mutation campaign is a slow sealing lane, not a
+  routine development test. Regenerate its complete machine report with:
+
+  ```text
+  cargo run -p store-test-runner --features physical-work-evidence -- mutants --mutation-scope physical-work --report target/c5-1/phase16-mutants.json
+  ```
+
+  Report publication must reject the all-mutant catalog, a single-mutant
+  selector, or a resumed suffix; the courtroom consumer requires the complete
+  physical-work scope.
+- The Phase 16 evidence lanes are distinct and mechanically enforced:
+  package-scoped formatting and focused owner tests form the edit lane; complete
+  owner tests and strict lint form the ordinary regression lane; Courtrooms B
+  and C form explicit certification lanes; and mutation generation is the slow
+  sealing lane. A slower lane must not become an implicit prerequisite of a
+  faster lane.
+- Courtrooms B and C must record source inventory, pre-build source binding,
+  post-build binary binding, post-build source binding, each child/scenario
+  stage, final source binding, executable re-verification, report encoding,
+  cold binary build, and total campaign wall time separately. Missing or
+  duplicate timing phases invalidate report publication.
+- Runner-controlled timing budgets are: mutation-evidence validation at most
+  30,000 ms; world construction at most 1,000 ms; source inventory at most
+  5,000 ms; pre-build source binding at most 2,000 ms; post-build binary
+  binding at most 3,000 ms; post-build source binding at most 2,000 ms; each
+  child or scenario stage at most 5,000 ms; final source binding at most 2,000
+  ms; executable re-verification at most 1,000 ms; report encoding at most 500
+  ms; and total runner-controlled work at most 30,000 ms. Courtroom B
+  additionally limits its 25 scenario stages to 15,000 ms in aggregate.
+- Cold Cargo binary construction is reported but excluded from the
+  runner-controlled aggregate because toolchain and host cache posture are not
+  courtroom work. Campaign wall time remains reported so exclusion cannot hide
+  user-visible cost. No other phase may be excluded or moved between lanes
+  without revising this specification and its hostile budget tests.
+- Timing tests must independently exceed every stage and aggregate budget,
+  reject the report, and prove that failed or abandoned publication leaves no
+  success artifact. A later warm success is evidence only for warm posture; it
+  cannot be cited as a cold-path measurement, and the failed run's named stage
+  remains the cause that must be classified before changing any budget.
 
 **Engineering decisions**
 
 - These three courtrooms replace broad combinatorial matrices.
 - Every courtroom uses production facades, real filesystem effects, independent
   expected truth, and at least one fresh process.
+- Package-scoped checks are the normal implementation feedback loop; complete
+  workspace formatting, constitutional gates, all-feature verification, and
+  mutation generation are sealing evidence. Both lanes remain required, but
+  they are not charged to every local edit.
+- Complete retained-mutant verification remains mandatory for each standalone
+  courtroom report even when it is cold and expensive. The report binds 29
+  distinct executed binaries; cache reuse may improve a later run but cannot
+  replace cryptographic validation or be claimed as a cold-path result.
 - C.6 may add residency policy and frame lifecycle only by implementing the
   handoff; it may not add another async or I/O runtime.
 - Part II may bind its Relational branch-write authority to submitted physical

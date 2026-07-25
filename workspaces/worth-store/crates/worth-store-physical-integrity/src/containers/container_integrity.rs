@@ -23,10 +23,10 @@ impl PhysicalContainerIntegrity {
         reject_non_page_witness(page, counters)
             .map_err(|denial| denial.with_basis(admission.basis().clone()))?;
         counters = counters.with_body_boundary_check();
-        reject_body_length_mismatch(page.checked_bytes().len_bytes(), page, counters)
+        reject_body_length_mismatch(page.checked_payload_bytes().len(), page, counters)
             .map_err(|denial| denial.with_basis(admission.basis().clone()))?;
         let (slot_directory, counters) = inspect_record_slot_directory(
-            page.checked_bytes().as_bytes(),
+            page.checked_payload_bytes(),
             page.physical_witness().owner(),
             counters,
         )
@@ -51,7 +51,7 @@ impl PhysicalContainerIntegrity {
             .with_frame_boundary_check();
         reject_non_frame_witness(frame, counters)
             .map_err(|denial| denial.with_basis(admission.basis().clone()))?;
-        reject_frame_payload_length_mismatch(frame.checked_bytes().len_bytes(), frame, counters)
+        reject_frame_payload_length_mismatch(frame.checked_payload_bytes().len(), frame, counters)
             .map_err(|denial| denial.with_basis(admission.basis().clone()))?;
         Ok(FrameIntegrityReport::new(
             admission.basis().clone(),
@@ -74,7 +74,7 @@ impl PhysicalContainerIntegrity {
             .with_frame_boundary_check();
         reject_non_frame_witness(frame, counters)
             .map_err(|denial| denial.with_basis(admission.basis().clone()))?;
-        reject_frame_payload_length_mismatch(frame.checked_bytes().len_bytes(), frame, counters)
+        reject_frame_payload_length_mismatch(frame.checked_payload_bytes().len(), frame, counters)
             .map_err(|denial| denial.with_basis(admission.basis().clone()))?;
         let frame_report = FrameIntegrityReport::new(
             admission.basis().clone(),
@@ -98,7 +98,7 @@ impl PhysicalContainerIntegrity {
         };
         let counters = ContainerIntegrityCounters::start().with_slot_directory_read();
         let (report, _) = inspect_record_slot_directory(
-            page.checked_bytes().as_bytes(),
+            page.checked_payload_bytes(),
             page.physical_witness().owner(),
             counters,
         )

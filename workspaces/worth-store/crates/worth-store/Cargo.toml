@@ -10,7 +10,6 @@ description = "Public Worth Store facade and owner of the physical runtime lifec
 default = []
 certification-test-authority = [
     "dep:worth-store-certification",
-    "dep:worth-foundational",
     "dep:worth-store-offline-verifier",
     "worth-store-physical-backend/certification-test-authority",
     "worth-store-io-scheduler/certification-test-authority",
@@ -18,6 +17,7 @@ certification-test-authority = [
 
 [dependencies]
 worth-store-aspect-native.workspace = true
+worth-store-authority.workspace = true
 worth-store-buffer-pool.workspace = true
 worth-store-certification = { workspace = true, optional = true }
 worth-store-contracts.workspace = true
@@ -28,7 +28,7 @@ worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-signal = { path = "../../../../crates/worth-signal" }
-worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
+worth-foundational = { path = "../../../../crates/worth-foundational" }
 sha2 = "0.10"
 getrandom = "0.4"
 
@@ -46,6 +46,13 @@ workspace = true
 [[bin]]
 name = "physical_media_os_observer"
 path = "src/bin/physical_media_os_observer.rs"
+test = false
+doctest = false
+
+[[bin]]
+name = "physical_store_work_courtroom"
+path = "src/bin/physical_store_work_courtroom.rs"
+required-features = ["certification-test-authority"]
 test = false
 doctest = false
 

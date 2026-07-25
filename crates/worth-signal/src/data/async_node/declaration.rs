@@ -2,13 +2,15 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
 use crate::data::resource::{
+    FrozenResourcePolicyDescriptorSet, FrozenResourcePolicyRegistry, LoweredResourcePolicyBundle,
     ResourceCancellationPolicyDeclaration, ResourceDiagnosticsPolicyDeclaration,
     ResourceLifecyclePolicyDeclaration, ResourceNodeDeclaration, ResourceNodeId,
     ResourceObservationPolicyDeclaration, ResourceOutputContinuityPolicyDeclaration,
-    ResourceReplayPolicyDeclaration, ResourceRetentionPolicyDeclaration, ResourceRetryBudgetScope,
-    ResourceRetryPolicyDeclaration, ResourceRevalidationPolicyDeclaration,
-    ResourceStaleAfterPolicyDeclaration, ResourceSupersessionPolicyDeclaration,
-    ResourceTimeoutPolicyDeclaration, ValidatedResourcePolicyDeclaration,
+    ResourcePolicyResolutionError, ResourceReplayPolicyDeclaration,
+    ResourceRetentionPolicyDeclaration, ResourceRetryBudgetScope, ResourceRetryPolicyDeclaration,
+    ResourceRevalidationPolicyDeclaration, ResourceStaleAfterPolicyDeclaration,
+    ResourceSupersessionPolicyDeclaration, ResourceTimeoutPolicyDeclaration,
+    ValidatedResourcePolicyDeclaration,
 };
 use crate::data::temporal::TemporalDuration;
 
@@ -225,6 +227,21 @@ impl AsyncNodeCapabilityDeclaration {
 
     pub fn from_legacy_resource_declaration(inner: ResourceNodeDeclaration) -> Self {
         Self { inner }
+    }
+
+    /// Resolves this declaration through Signal's canonical built-in policy
+    /// registry and returns the exact bundle consumed by runtime admission.
+    pub fn canonical_policy_bundle(
+        &self,
+    ) -> Result<LoweredResourcePolicyBundle, ResourcePolicyResolutionError> {
+        let registry = FrozenResourcePolicyRegistry::built_in();
+        let validated =
+            ValidatedResourcePolicyDeclaration::from_declaration(&self.inner, &registry)?;
+        let frozen =
+            FrozenResourcePolicyDescriptorSet::from_validated_declaration(&validated, &registry)?;
+        Ok(LoweredResourcePolicyBundle::from_frozen_descriptors(
+            &frozen,
+        ))
     }
 
     pub(crate) fn as_resource_declaration(&self) -> &ResourceNodeDeclaration {

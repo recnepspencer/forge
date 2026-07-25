@@ -11,25 +11,13 @@ use super::mutation_support::executed_btree_mutation;
 #[test]
 fn exact_btree_publication_declares_exactly_ordinary_owner_cases() {
     let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
-    let exact = executed_btree_mutation(
-        IndexMaintenanceMode::SynchronousExact,
-        "exact-publication-owner",
-        1_101,
-    );
+    let exact = executed_btree_mutation(IndexMaintenanceMode::SynchronousExact, 1_101);
     let exact_materialization = materialization_for(&catalog, &exact);
 
-    let lagged = executed_btree_mutation(
-        IndexMaintenanceMode::AsynchronousLagged,
-        "lagged-publication-owner",
-        1_102,
-    );
+    let lagged = executed_btree_mutation(IndexMaintenanceMode::AsynchronousLagged, 1_102);
     let lagged_materialization = materialization_for(&catalog, &lagged);
 
-    let other_publication = executed_btree_mutation(
-        IndexMaintenanceMode::SynchronousExact,
-        "other-exact-publication-owner",
-        1_103,
-    );
+    let other_publication = executed_btree_mutation(IndexMaintenanceMode::SynchronousExact, 1_103);
     let other_materialization = materialization_for(&catalog, &other_publication);
 
     let (other_family, _) = root_manifest_scope();

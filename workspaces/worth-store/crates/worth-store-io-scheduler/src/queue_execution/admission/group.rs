@@ -49,7 +49,10 @@ pub fn group_ready_queue_pair(
         .compatible_with(second.grouping_basis())
     {
         Ok(()) => QueueGroupingOutcome::Grouped(Box::new(QueueGroupedReadyPlans {
-            replay_identities: [first.replay_identity(), second.replay_identity()],
+            replay_identities: [
+                first.replay_identity().clone(),
+                second.replay_identity().clone(),
+            ],
             first,
             second,
             grouped_writes: 2,
@@ -63,8 +66,8 @@ pub fn group_ready_queue_pair(
 }
 
 impl QueueGroupedReadyPlans {
-    pub const fn replay_identities(&self) -> [QueueExecutionReplayIdentity; 2] {
-        self.replay_identities
+    pub fn replay_identities(&self) -> &[QueueExecutionReplayIdentity; 2] {
+        &self.replay_identities
     }
 
     pub const fn grouped_writes(&self) -> u32 {
@@ -79,10 +82,10 @@ impl QueueGroupedReadyPlans {
         &self.second
     }
 
-    pub const fn backend_completion_binding(&self) -> QueueExecutionPlanBinding {
+    pub fn backend_completion_binding(&self) -> QueueExecutionPlanBinding {
         QueueExecutionPlanBinding::grouped(
-            self.replay_identities[0],
-            self.replay_identities[1],
+            self.replay_identities[0].clone(),
+            self.replay_identities[1].clone(),
             self.first.backend_profile(),
             self.first.backend_evidence_class(),
         )

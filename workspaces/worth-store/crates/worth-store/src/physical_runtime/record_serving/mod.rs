@@ -1,17 +1,25 @@
 mod access;
 mod access_policy;
 mod admission;
+mod c6_handoff;
+mod canonical_read_execution;
 mod evidence;
 mod identity;
 mod lifecycle;
+mod mutation_work_port;
 mod planning;
 mod publication;
-mod residency;
+mod read_work_port;
+mod record_queue_policy;
+mod record_work_admission;
+pub(in crate::physical_runtime) mod residency;
 
-pub use access::locate::{OpenedPhysicalRecord, PhysicalRecordReader, RecordReadSession};
+pub use access::locate::{
+    OpenedPhysicalRecord, PhysicalRecordReader, RecordReadCancellation, RecordReadSession,
+};
 pub use access::read_observation::{
     RecordReadDenial, RecordReadError, RecordReadLimits, RecordReadObservation,
-    StalePhysicalRecordPlacement,
+    RecordReadWorkDenial, StalePhysicalRecordPlacement,
 };
 pub use access::readmission::{
     PhysicalLocatorReadmissionDenial, PhysicalLocatorReadmissionOutcome,
@@ -43,6 +51,16 @@ pub use admission::format_admission::AdmittedPhysicalRecordFormat;
 pub use admission::request::{
     PhysicalRecordInitialization, PhysicalRecordOpen, PhysicalRecordResidencyPolicy,
 };
+pub use c6_handoff::{
+    C6AdmittedDirtyFrame, C6AdmittedPhysicalWriteback, C6PhysicalFrameLease,
+    C6PhysicalFrameReadFailure, C6PhysicalFrameWorkFailure, C6PhysicalResidencyWork,
+    C6PhysicalWorkHandoff, C6PhysicalWorkHandoffFailure, C6PhysicalWorkHandoffIdentity,
+    C6PhysicalWorkSettlement, C6PhysicalWritebackExecution, C6PhysicalWritebackReservation,
+    C6PhysicalWritebackTransitionFailure, C6PreparedPhysicalWriteback,
+    C6RetryablePhysicalWriteback,
+};
+use canonical_read_execution::PreparedCanonicalMetadataRead;
+pub(in crate::physical_runtime) use canonical_read_execution::PreparedCanonicalRecordRead;
 #[cfg(feature = "certification-test-authority")]
 pub use evidence::canonical_evidence::{
     lower_offline_record_publication_canonical_basis, lower_record_publication_canonical_basis,
@@ -57,15 +75,50 @@ pub use evidence::performance_evidence::{
     RecordPerformanceEvidenceDenial, RecordScanPerformanceExpectation,
     RecordTransferPerformanceExpectation, StoreRecordPerformanceReceipt,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use evidence::physical_work::{
+    PhysicalWorkArtifactBinding, PhysicalWorkBackendEvidenceClass,
+    PhysicalWorkBackendProfileEvidence, PhysicalWorkCausalEvidence, PhysicalWorkCounterEvidence,
+    PhysicalWorkCounterStageEvidence, PhysicalWorkCourtroomBinding, PhysicalWorkCourtroomEvidence,
+    PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomFinishDenial,
+    PhysicalWorkCourtroomRunBinding, PhysicalWorkCourtroomVerdict, PhysicalWorkEffectFateEvidence,
+    PhysicalWorkEvidenceBindingDenial, PhysicalWorkEvidenceDigest, PhysicalWorkExecutionContext,
+    PhysicalWorkFamilyEvidence, PhysicalWorkFeatureGraphEvidence, PhysicalWorkFeatureNodeEvidence,
+    PhysicalWorkFilesystemCapabilityEvidence, PhysicalWorkFilesystemCapabilityObservation,
+    PhysicalWorkFilesystemLocationEvidence, PhysicalWorkFilesystemProfileEvidence,
+    PhysicalWorkFilesystemProfileParts, PhysicalWorkFilesystemSupportEvidence,
+    PhysicalWorkFreshReopenEvidence, PhysicalWorkFreshReopenIdentity,
+    PhysicalWorkFreshReopenPosture, PhysicalWorkHostileArtifactEvidence,
+    PhysicalWorkHostileCurrentTruth, PhysicalWorkHostileProcessEvidence,
+    PhysicalWorkHostileTruthCampaignEvidence, PhysicalWorkHostileTruthCaseBinding,
+    PhysicalWorkHostileTruthCaseEvidence, PhysicalWorkHostileTruthComparison,
+    PhysicalWorkHostileTruthEvidenceDenial, PhysicalWorkHostileTruthFinding,
+    PhysicalWorkHostileTruthScenario, PhysicalWorkHostileTruthVerdict, PhysicalWorkMutantBinding,
+    PhysicalWorkMutantExecutionContext, PhysicalWorkMutantLocalization, PhysicalWorkMutantOutcome,
+    PhysicalWorkMutantSubject, PhysicalWorkOracleEvidence, PhysicalWorkPlatformEvidence,
+    PhysicalWorkPressureEvidence, PhysicalWorkProcessEvidence, PhysicalWorkProcessFateEvidence,
+    PhysicalWorkRecoveryEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
+    PhysicalWorkRunProvenanceDenial, PhysicalWorkSchedulerEvidence, PhysicalWorkShutdownEvidence,
+    PhysicalWorkSignalSettlementEvidence, PhysicalWorkSourceBinding,
+};
 pub use identity::{ExternalPhysicalRecordLocator, PhysicalRecordId};
 pub use lifecycle::record_lifecycle::RecordServingCounterSnapshot;
 pub(in crate::physical_runtime) use lifecycle::record_lifecycle::RecordServingOwner;
 pub use lifecycle::record_observation::{PhysicalRecordObservation, PhysicalRecordObserver};
 pub(in crate::physical_runtime) use lifecycle::serving_health::ServingHealth;
-pub use lifecycle::serving_runtime::{PhysicalRecordWriter, ServingPhysicalRuntime};
+pub use lifecycle::serving_runtime::ServingPhysicalRuntime;
 pub use lifecycle::serving_shutdown::{
     RecordServingOwnerDisposition, RecordServingTerminalObservation, RecordServingTerminalPosture,
     ServingShutdownOutcome,
+};
+pub(in crate::physical_runtime::record_serving) use mutation_work_port::CanonicalRecordPublicationEffect;
+pub(in crate::physical_runtime::record_serving) use mutation_work_port::PreparedCatalogReplacement;
+pub(in crate::physical_runtime) use mutation_work_port::{
+    CanonicalRecordMutationCompletion, CanonicalRecordMutationFailure, CanonicalRecordMutationPort,
+    CanonicalRecordMutationSettlement, PreparedCanonicalRecordMutation,
+};
+pub use mutation_work_port::{
+    PhysicalRecordMutationFailureCause, PhysicalRecordMutationFailureEvidence,
 };
 pub use planning::placement_policy::{
     AdmittedRecordPlacementPolicy, PhysicalRecordPlacementPolicy,
@@ -78,22 +131,33 @@ pub use publication::append::{RecordAppendDenial, RecordAppendError, RecordPlace
 pub use publication::append_observation::{PublishedRecordBatch, RecordAppendObservation};
 pub use publication::batch::{RecordAppendBatch, RecordAppendBatchBuilder};
 pub use publication::publication_outcome::{
-    IndeterminateRecordPublication, RecordPublicationOutcome, RecordPublicationRecoveryLocator,
-    UnpublishedRecordBatchCause, UnpublishedRecordBatchFailure, UnpublishedRecordEffectFate,
-    UnpublishedRecordWorldFate,
+    IndeterminateRecordPublication, IndeterminateRecordPublicationCause, RecordPublicationOutcome,
+    RecordPublicationRecoveryBasis, RecordPublicationRecoveryLocator, UnpublishedRecordBatchCause,
+    UnpublishedRecordBatchFailure, UnpublishedRecordEffectFate, UnpublishedRecordWorldFate,
 };
 pub use publication::publication_residue::RecordPublicationResidueObservation;
 pub use publication::streaming::{
     RecordStreamFailure, RecordStreamFailureKind, RecordWriteSource, RecordWriteSourceError,
 };
 pub use publication::RecordPublicationStage;
+pub use publication::{
+    PhysicalRecordSubmission, PreparedRecordAppend, RecordPublicationWorkEffect,
+    RecordPublicationWorkSettlement, RecordPublicationWorkTrace,
+};
+pub(in crate::physical_runtime) use publication::{
+    RecordPublicationDirector, RecordPublicationFoundation,
+};
+pub(in crate::physical_runtime) use read_work_port::{
+    CanonicalRecordReadFailure, CanonicalRecordReadPort,
+};
+pub(in crate::physical_runtime) use record_work_admission::{
+    RecordReadPartition, RecordWorkAdmission,
+};
 pub use residency::candidate_frame_residency::CandidateFrameContractViolation;
 pub(in crate::physical_runtime) use residency::frame_ports::RecordFramePorts;
 #[cfg(feature = "certification-test-authority")]
 pub use residency::frame_ports::{FramePortCounterObserver, FramePortCounterSnapshot};
-pub use residency::scheduled_writeback::{
-    PhysicalScheduledWritebackAdmissionDenial, PhysicalScheduledWritebackOutcome,
-};
+pub use residency::scheduled_writeback::PhysicalScheduledWritebackAdmissionDenial;
 pub use worth_store_physical_format::{
     PhysicalPageSizeClass, PhysicalRecordByteOrder, PhysicalRecordFormatDeclaration,
     PhysicalRecordFormatDeclarationBuilder, PhysicalRecordFormatDenial,

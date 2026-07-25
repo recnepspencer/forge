@@ -1,4 +1,4 @@
-use worth_store_buffer_pool::{AllocationScope, BackgroundEnvelopeCounterSnapshot};
+use worth_store_buffer_pool::{OperationAllocationScope, PhysicalResidencyCounters};
 use worth_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use worth_store_layout_indexes::observation::AccessShape;
 
@@ -18,21 +18,16 @@ pub enum MaintenanceQueueInterferencePosture {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MaintenanceQueueAccessBudget {
-    resident_frames: u32,
-    resident_bytes: u64,
-    pinned_pages: u32,
     allocation_bytes: u64,
-    copied_bytes: u64,
-    streaming_window_bytes: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 enum MaintenanceQueueLayoutEvidence {
     Compaction(CompactionPlanningMemoryEnvelope),
     ImportExport(ImportExportMemoryEnvelope),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct MaintenanceQueueLayoutReport {
     family_id: DurableArtifactFamilyId,
     access_shape: AccessShape,
@@ -43,7 +38,7 @@ pub struct MaintenanceQueueLayoutReport {
 }
 
 impl MaintenanceQueueLayoutReport {
-    const fn from_compaction(envelope: CompactionPlanningMemoryEnvelope) -> Self {
+    fn from_compaction(envelope: CompactionPlanningMemoryEnvelope) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::MaintenanceQueueDeclaration,
             access_shape: AccessShape::BoundedScan,
@@ -54,7 +49,7 @@ impl MaintenanceQueueLayoutReport {
         }
     }
 
-    const fn from_import_export(envelope: ImportExportMemoryEnvelope) -> Self {
+    fn from_import_export(envelope: ImportExportMemoryEnvelope) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::MaintenanceQueueDeclaration,
             access_shape: AccessShape::BoundedScan,
@@ -81,8 +76,8 @@ impl MaintenanceQueueLayoutReport {
         self.queue_class
     }
 
-    pub const fn allocation_scope(&self) -> AllocationScope {
-        match self.evidence {
+    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+        match &self.evidence {
             MaintenanceQueueLayoutEvidence::Compaction(envelope) => envelope.allocation_scope(),
             MaintenanceQueueLayoutEvidence::ImportExport(envelope) => envelope.allocation_scope(),
         }
@@ -93,7 +88,7 @@ impl MaintenanceQueueLayoutReport {
     }
 
     pub const fn declared_budget(&self) -> MaintenanceQueueAccessBudget {
-        match self.evidence {
+        match &self.evidence {
             MaintenanceQueueLayoutEvidence::Compaction(envelope) => {
                 MaintenanceQueueAccessBudget::from_compaction(envelope)
             }
@@ -103,8 +98,8 @@ impl MaintenanceQueueLayoutReport {
         }
     }
 
-    pub const fn exact_counters(&self) -> BackgroundEnvelopeCounterSnapshot {
-        match self.evidence {
+    pub fn exact_counters(&self) -> PhysicalResidencyCounters {
+        match &self.evidence {
             MaintenanceQueueLayoutEvidence::Compaction(envelope) => envelope.counters(),
             MaintenanceQueueLayoutEvidence::ImportExport(envelope) => envelope.counters(),
         }
@@ -112,61 +107,31 @@ impl MaintenanceQueueLayoutReport {
 }
 
 impl MaintenanceQueueAccessBudget {
-    const fn from_compaction(envelope: CompactionPlanningMemoryEnvelope) -> Self {
+    const fn from_compaction(envelope: &CompactionPlanningMemoryEnvelope) -> Self {
         Self {
-            resident_frames: envelope.resident_frames(),
-            resident_bytes: envelope.resident_bytes(),
-            pinned_pages: envelope.pinned_pages(),
             allocation_bytes: envelope.allocation_bytes(),
-            copied_bytes: envelope.copied_bytes(),
-            streaming_window_bytes: envelope.streaming_window_bytes(),
         }
     }
 
-    const fn from_import_export(envelope: ImportExportMemoryEnvelope) -> Self {
+    const fn from_import_export(envelope: &ImportExportMemoryEnvelope) -> Self {
         Self {
-            resident_frames: envelope.resident_frames(),
-            resident_bytes: envelope.resident_bytes(),
-            pinned_pages: envelope.pinned_pages(),
             allocation_bytes: envelope.allocation_bytes(),
-            copied_bytes: envelope.copied_bytes(),
-            streaming_window_bytes: envelope.streaming_window_bytes(),
         }
-    }
-
-    pub const fn resident_frames(&self) -> u32 {
-        self.resident_frames
-    }
-
-    pub const fn resident_bytes(&self) -> u64 {
-        self.resident_bytes
-    }
-
-    pub const fn pinned_pages(&self) -> u32 {
-        self.pinned_pages
     }
 
     pub const fn allocation_bytes(&self) -> u64 {
         self.allocation_bytes
     }
-
-    pub const fn copied_bytes(&self) -> u64 {
-        self.copied_bytes
-    }
-
-    pub const fn streaming_window_bytes(&self) -> u64 {
-        self.streaming_window_bytes
-    }
 }
 
 impl CompactionPlanningMemoryEnvelope {
-    pub fn project_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
-        MaintenanceQueueLayoutReport::from_compaction(*self)
+    pub fn project_maintenance_queue_layout(self) -> MaintenanceQueueLayoutReport {
+        MaintenanceQueueLayoutReport::from_compaction(self)
     }
 }
 
 impl ImportExportMemoryEnvelope {
-    pub fn project_maintenance_queue_layout(&self) -> MaintenanceQueueLayoutReport {
-        MaintenanceQueueLayoutReport::from_import_export(*self)
+    pub fn project_maintenance_queue_layout(self) -> MaintenanceQueueLayoutReport {
+        MaintenanceQueueLayoutReport::from_import_export(self)
     }
 }

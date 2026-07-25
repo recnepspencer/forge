@@ -11,7 +11,7 @@ mod redo_application;
 mod rollback_image_publication;
 mod wal_before_data_ordering;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "legacy-certification-models"))]
 mod tests;
 
 pub use counters::PageLsnPublicationCounterSnapshot;

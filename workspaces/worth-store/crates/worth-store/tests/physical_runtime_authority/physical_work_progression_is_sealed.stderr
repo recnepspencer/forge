@@ -10,3 +10,18 @@ help: you might have meant to use the `new` associated function
 7 -     let _admitted = AdmittedPhysicalWork { intent };
 7 +     let _admitted = AdmittedPhysicalWork::new(_, _, _);
   |
+
+error: cannot construct `ResourceAdmittedPhysicalWork` with struct literal syntax due to private fields
+  --> tests/physical_runtime_authority/physical_work_progression_is_sealed.rs:11:30
+   |
+11 |     let _resource_admitted = ResourceAdmittedPhysicalWork { ready, queue_plan };
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^   -----  ---------- private field
+   |                                                             |
+   |                                                             private field
+   |
+   = note: ...and other private field `scheduler_capacity` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+11 -     let _resource_admitted = ResourceAdmittedPhysicalWork { ready, queue_plan };
+11 +     let _resource_admitted = ResourceAdmittedPhysicalWork::new(_, _, _);
+   |

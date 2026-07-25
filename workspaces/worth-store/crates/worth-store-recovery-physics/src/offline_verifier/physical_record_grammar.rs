@@ -20,8 +20,10 @@ impl PersistedPhysicalRecord {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct CheckpointManifestRecord {
-    pub(super) root: String,
-    pub(super) frontier_lsn: u64,
+    pub(super) root_reference: u64,
+    pub(super) root_generation: u64,
+    pub(super) covered_lsn_start: u64,
+    pub(super) covered_lsn_end: u64,
     pub(super) source_profile: String,
     pub(super) source_candidate_count: usize,
     pub(super) memory_envelope_bytes: u64,
@@ -68,8 +70,10 @@ fn parse_checkpoint_manifest(
 ) -> Result<PersistedPhysicalRecord, PersistedRecoveryArtifactDenial> {
     Ok(PersistedPhysicalRecord::CheckpointManifest(
         CheckpointManifestRecord {
-            root: field_text(record_id, fields, "root")?.to_string(),
-            frontier_lsn: field_u64(record_id, fields, "frontier")?,
+            root_reference: field_u64(record_id, fields, "root_reference")?,
+            root_generation: field_u64(record_id, fields, "root_generation")?,
+            covered_lsn_start: field_u64(record_id, fields, "covered_start")?,
+            covered_lsn_end: field_u64(record_id, fields, "covered_end")?,
             source_profile: field_text(record_id, fields, "source_profile")?.to_string(),
             source_candidate_count: field_usize(record_id, fields, "source_candidates")?,
             memory_envelope_bytes: field_u64(record_id, fields, "memory_bytes")?,

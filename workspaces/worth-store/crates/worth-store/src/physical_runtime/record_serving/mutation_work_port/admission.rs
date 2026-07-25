@@ -1,0 +1,242 @@
+use worth_proof::TransitionOutcome;
+use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
+use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
+
+use crate::physical_runtime::{
+    PhysicalExecutorCommand, PhysicalMutationWorkRequest, PhysicalSchedulerDemand,
+    PhysicalWorkAdmission, PhysicalWorkReadiness, PhysicalWorkScope, RecordPublicationStage,
+};
+
+use super::{
+    CanonicalRecordMutationFailure, CanonicalRecordMutationKind, CanonicalRecordMutationPort,
+    CanonicalRecordPublicationEffect, PreparedCanonicalRecordMutation,
+};
+
+impl CanonicalRecordMutationPort {
+    pub(in crate::physical_runtime) fn prepare_new_artifact(
+        &self,
+        stage: RecordPublicationStage,
+        coordinate: RecordFrameCoordinate,
+        payload: impl Into<Box<[u8]>>,
+    ) -> Result<PreparedCanonicalRecordMutation, CanonicalRecordMutationFailure> {
+        let work = self.admit_range(stage, coordinate)?;
+        let identity = work.intent().identity();
+        let command = PhysicalExecutorCommand::new_artifact(work, payload)
+            .map_err(|failure| CanonicalRecordMutationFailure::command(identity, failure))?;
+        Ok(self.prepared(
+            command,
+            CanonicalRecordMutationKind::NewArtifact,
+            crate::physical_runtime::PhysicalWorkRecoveryTarget::Range(coordinate),
+        ))
+    }
+
+    pub(in crate::physical_runtime) fn prepare_extent_append(
+        &self,
+        stage: RecordPublicationStage,
+        coordinate: RecordFrameCoordinate,
+        payload: impl Into<Box<[u8]>>,
+    ) -> Result<PreparedCanonicalRecordMutation, CanonicalRecordMutationFailure> {
+        let work = self.admit_range(stage, coordinate)?;
+        let identity = work.intent().identity();
+        let command = PhysicalExecutorCommand::publication_append(work, payload)
+            .map_err(|failure| CanonicalRecordMutationFailure::command(identity, failure))?;
+        Ok(self.prepared(
+            command,
+            CanonicalRecordMutationKind::ExactWrite,
+            crate::physical_runtime::PhysicalWorkRecoveryTarget::Range(coordinate),
+        ))
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn prepare_publication_effect(
+        &self,
+        stage: RecordPublicationStage,
+        artifact: RecordArtifactFile,
+        effect: CanonicalRecordPublicationEffect,
+    ) -> Result<PreparedCanonicalRecordMutation, CanonicalRecordMutationFailure> {
+        let work = self.admit_effect(stage, artifact)?;
+        let identity = work.intent().identity();
+        let command = PhysicalExecutorCommand::publication_effect(work, effect.physical())
+            .map_err(|failure| CanonicalRecordMutationFailure::command(identity, failure))?;
+        Ok(self.prepared(
+            command,
+            CanonicalRecordMutationKind::PublicationEffect,
+            publication_effect_target(artifact, effect),
+        ))
+    }
+
+    fn admit_range(
+        &self,
+        stage: RecordPublicationStage,
+        coordinate: RecordFrameCoordinate,
+    ) -> Result<crate::physical_runtime::ResourceAdmittedPhysicalWork, CanonicalRecordMutationFailure>
+    {
+        let runtime = self.runtime()?;
+        let ready = self.request_ready(
+            &runtime,
+            stage,
+            PhysicalWorkScope::one(coordinate),
+            ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+        )?;
+        let identity = ready.intent().identity();
+        let (reservation, backend) = self
+            .scheduler
+            .record_write(
+                self.record.scheduler_security(),
+                u64::from(coordinate.length()),
+                false,
+                true,
+            )
+            .map_err(|failure| {
+                CanonicalRecordMutationFailure::scheduler_reservation(identity, failure)
+            })?;
+        self.admit_scheduler(&runtime, ready, reservation, backend)
+    }
+
+    fn admit_effect(
+        &self,
+        stage: RecordPublicationStage,
+        artifact: RecordArtifactFile,
+    ) -> Result<crate::physical_runtime::ResourceAdmittedPhysicalWork, CanonicalRecordMutationFailure>
+    {
+        let runtime = self.runtime()?;
+        let ready = self.request_ready(
+            &runtime,
+            stage,
+            PhysicalWorkScope::artifact(artifact),
+            ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization,
+        )?;
+        let identity = ready.intent().identity();
+        let (reservation, backend) = self
+            .scheduler
+            .record_publication_effect(self.record.scheduler_security())
+            .map_err(|failure| {
+                CanonicalRecordMutationFailure::scheduler_reservation(identity, failure)
+            })?;
+        self.admit_scheduler(&runtime, ready, reservation, backend)
+    }
+
+    fn runtime(
+        &self,
+    ) -> Result<
+        std::sync::Arc<crate::physical_runtime::instance::PhysicalStoreWorkRuntime>,
+        CanonicalRecordMutationFailure,
+    > {
+        self.runtime
+            .upgrade()
+            .ok_or_else(CanonicalRecordMutationFailure::runtime_released)
+    }
+
+    fn request_ready(
+        &self,
+        runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
+        stage: RecordPublicationStage,
+        scope: PhysicalWorkScope,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> Result<crate::physical_runtime::ReadyPhysicalWork, CanonicalRecordMutationFailure> {
+        let request = PhysicalMutationWorkRequest::publication(
+            scope,
+            self.record.mutation_basis(stage),
+            self.record.security(),
+            durability,
+        )
+        .map_err(|_| CanonicalRecordMutationFailure::submission_rejected())?;
+        let receipt = match self.submission.submit(request).into_raw() {
+            TransitionOutcome::Success(receipt) => receipt,
+            _ => return Err(CanonicalRecordMutationFailure::submission_rejected()),
+        };
+        let identity = receipt.identity();
+        let admitted = PhysicalWorkAdmission::admit(
+            &runtime.submission,
+            receipt,
+            &self.physical,
+            &runtime.health,
+        )
+        .map_err(|failure| CanonicalRecordMutationFailure::pre_effect(identity, failure))?;
+        match runtime
+            .signal
+            .request(admitted)
+            .map_err(|failure| CanonicalRecordMutationFailure::pre_effect(identity, failure))?
+        {
+            PhysicalWorkReadiness::Ready(ready) => Ok(ready),
+            PhysicalWorkReadiness::Blocked(_) => {
+                Err(CanonicalRecordMutationFailure::dependency_blocked(identity))
+            }
+        }
+    }
+
+    fn admit_scheduler(
+        &self,
+        runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
+        ready: crate::physical_runtime::ReadyPhysicalWork,
+        reservation: worth_store_io_scheduler::foreground_reservation::
+            PhysicalInstanceForegroundReservation,
+        backend: worth_store_io_scheduler::IoSchedulerBackendCapabilityAdmission,
+    ) -> Result<crate::physical_runtime::ResourceAdmittedPhysicalWork, CanonicalRecordMutationFailure>
+    {
+        let identity = ready.intent().identity();
+        let demand = PhysicalSchedulerDemand::foreground(ready, reservation, None)
+            .map_err(|failure| CanonicalRecordMutationFailure::scheduler(identity, failure))?;
+        PhysicalWorkAdmission::require_current(
+            &runtime.submission,
+            demand.intent(),
+            &runtime.health,
+        )
+        .map_err(|failure| CanonicalRecordMutationFailure::pre_effect(identity, failure))?;
+        let policy =
+            super::super::record_queue_policy::admit_record_queue_policy(&demand.queue_work());
+        crate::physical_runtime::PhysicalWorkScheduler::admit(demand, &backend, policy)
+            .map_err(|failure| CanonicalRecordMutationFailure::scheduler(identity, failure))
+    }
+
+    fn prepared(
+        &self,
+        command: PhysicalExecutorCommand,
+        expected: CanonicalRecordMutationKind,
+        target: crate::physical_runtime::PhysicalWorkRecoveryTarget,
+    ) -> PreparedCanonicalRecordMutation {
+        PreparedCanonicalRecordMutation {
+            identity: command.identity(),
+            execution: self.execution.clone(),
+            command,
+            expected,
+            target,
+        }
+    }
+}
+
+const fn publication_effect_target(
+    artifact: RecordArtifactFile,
+    effect: CanonicalRecordPublicationEffect,
+) -> crate::physical_runtime::PhysicalWorkRecoveryTarget {
+    match effect {
+        CanonicalRecordPublicationEffect::Artifact => {
+            crate::physical_runtime::PhysicalWorkRecoveryTarget::ArtifactFileSynchronization(
+                artifact,
+            )
+        }
+        CanonicalRecordPublicationEffect::ArtifactParent => {
+            crate::physical_runtime::PhysicalWorkRecoveryTarget::ArtifactParentSynchronization(
+                artifact,
+            )
+        }
+        CanonicalRecordPublicationEffect::RecordFamily => {
+            crate::physical_runtime::PhysicalWorkRecoveryTarget::RecordNamespaceSynchronization
+        }
+    }
+}
+
+impl CanonicalRecordPublicationEffect {
+    const fn physical(self) -> crate::physical_runtime::PhysicalPublicationEffect {
+        match self {
+            Self::Artifact => {
+                crate::physical_runtime::PhysicalPublicationEffect::SynchronizeArtifact
+            }
+            Self::ArtifactParent => {
+                crate::physical_runtime::PhysicalPublicationEffect::SynchronizeArtifactParent
+            }
+            Self::RecordFamily => {
+                crate::physical_runtime::PhysicalPublicationEffect::SynchronizeRecordFamily
+            }
+        }
+    }
+}

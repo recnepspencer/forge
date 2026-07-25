@@ -12,8 +12,9 @@ use worth_store::aspect_native::{
 use worth_store::physical_runtime::{
     PhysicalSignalAspectBindingSet, PhysicalSignalAspectDeclaration, PhysicalSignalAspectRole,
     PhysicalSignalDeltaApplicationFailure, PhysicalWorkAspectDelta, PhysicalWorkAspectDeltaDenial,
-    PhysicalWorkProfileDeclaration,
+    PhysicalWorkProfileDeclaration, PhysicalWorkScope,
 };
+use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
 use super::fixture::{
     admitted_contract, security_scope, serving_from_initialization_with_work_profile,
@@ -24,18 +25,27 @@ use super::fixture::{
 fn an_installed_native_delta_routes_without_media_or_temporal_clock_effects() {
     let root = tempdir().unwrap();
     let (contract, identity, admission, witness) = admitted_contract(1);
-    let profile = PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission]).unwrap();
+    let profile =
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), [admission]).unwrap();
     let bindings = PhysicalSignalAspectBindingSet::from_profile(profile.clone());
     let delta = PhysicalWorkAspectDelta::from_boundary_fact(
         bindings.binding_for_slot(0).unwrap(),
         &boundary_fact(&contract, identity, witness, "changed"),
+        delta_scope(),
     )
     .unwrap();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let before_clock = serving.physical_signal_clock_observation().unwrap();
     let before_media = serving.media_counters();
 
-    serving.apply_physical_aspect_delta(delta).unwrap();
+    assert_eq!(
+        serving.apply_physical_aspect_delta(delta.clone()),
+        Err(PhysicalSignalDeltaApplicationFailure::BindingCapabilityMismatch),
+        "a digest-compatible binding reconstructed outside the runtime opens no mutation door"
+    );
+    serving
+        .certification_apply_physical_aspect_delta(delta)
+        .unwrap();
 
     assert_eq!(
         serving.physical_signal_clock_observation().unwrap(),
@@ -65,6 +75,7 @@ fn a_valid_delta_from_another_binding_cannot_alias_the_same_signal_slot() {
             foreign_witness,
             "foreign",
         ),
+        delta_scope(),
     )
     .unwrap();
     let serving = serving_from_initialization_with_work_profile(root.path(), installed_profile);
@@ -101,6 +112,7 @@ fn wrong_revision_and_projection_only_facts_cannot_mint_deltas() {
                 foreign_witness,
                 "wrong-revision",
             ),
+            delta_scope(),
         ),
         Err(PhysicalWorkAspectDeltaDenial::ContractRevisionMismatch)
     );
@@ -114,11 +126,8 @@ fn wrong_revision_and_projection_only_facts_cannot_mint_deltas() {
     .admit_projection_mask(AspectMask::<ProjectionMask>::whole_aspect())
     .unwrap();
     let projection_bindings = PhysicalSignalAspectBindingSet::from_profile(
-        PhysicalWorkProfileDeclaration::new(
-            security_scope(installed_witness),
-            [projection_only],
-        )
-        .unwrap(),
+        PhysicalWorkProfileDeclaration::new(security_scope(installed_witness), [projection_only])
+            .unwrap(),
     );
     assert_eq!(
         PhysicalWorkAspectDelta::from_boundary_fact(
@@ -129,6 +138,7 @@ fn wrong_revision_and_projection_only_facts_cannot_mint_deltas() {
                 installed_witness,
                 "projection-only",
             ),
+            delta_scope(),
         ),
         Err(PhysicalWorkAspectDeltaDenial::MutationMaskAbsent)
     );
@@ -168,13 +178,16 @@ fn native_patch_delta_preserves_the_bound_partition_route() {
     let delta = PhysicalWorkAspectDelta::from_patch_boundary_fact(
         bindings.binding_for_slot(0).unwrap(),
         &fact,
+        delta_scope(),
     )
     .unwrap();
     assert!(delta.is_partitioned());
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let before = serving.media_counters();
 
-    serving.apply_physical_aspect_delta(delta).unwrap();
+    serving
+        .certification_apply_physical_aspect_delta(delta)
+        .unwrap();
 
     assert_eq!(serving.media_counters(), before);
     serving.close();
@@ -183,9 +196,7 @@ fn native_patch_delta_preserves_the_bound_partition_route() {
 #[test]
 fn native_patch_delta_rejects_fields_outside_the_admitted_mutation_mask() {
     let vocabulary = aspects().vocabulary();
-    let key = vocabulary
-        .key("store.physical.work.delta-mask")
-        .unwrap();
+    let key = vocabulary.key("store.physical.work.delta-mask").unwrap();
     let shape = aspects()
         .struct_fields()
         .optional("admitted", ScalarAspectType::String)
@@ -241,9 +252,16 @@ fn native_patch_delta_rejects_fields_outside_the_admitted_mutation_mask() {
         PhysicalWorkAspectDelta::from_patch_boundary_fact(
             bindings.binding_for_slot(0).unwrap(),
             &fact,
+            delta_scope(),
         ),
         Err(PhysicalWorkAspectDeltaDenial::MutationMaskMismatch)
     );
+}
+
+fn delta_scope() -> PhysicalWorkScope {
+    PhysicalWorkScope::one(
+        RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 8).unwrap(),
+    )
 }
 
 fn boundary_fact(

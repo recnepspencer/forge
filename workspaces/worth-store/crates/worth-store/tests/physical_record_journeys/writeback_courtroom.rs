@@ -2,27 +2,13 @@ use std::io::Write;
 use std::path::Path;
 
 use sha2::{Digest, Sha256};
-use worth_foundational::{
-    performance, FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceBoundary,
-    FoundationalPerformanceBreadthLocalityPosture, FoundationalPerformanceBudgetKind,
-    FoundationalPerformanceEvidenceStrength, FoundationalPerformanceExecutionTemperature,
-    FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
-    FoundationalPerformanceWorkClass,
-};
-use worth_store::physical_runtime::{PhysicalScheduledWritebackOutcome, ServingPhysicalRuntime};
-use worth_store_buffer_pool::BufferPoolQueueGroupingScope;
+use worth_store::physical_runtime::{PhysicalWorkEffectFate, ServingPhysicalRuntime};
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::{
-    admit_queue_execution_plan, admit_queue_policy_receipt, admit_secure_io_scope_for_scheduler,
-    admit_security_scope_for_scheduler, lower_buffer_pool_queue_declaration,
-    BackgroundResourceBudget, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
-    QueueExecutionReadyPlan, SecureIoOperation, SecureIoPostureRequirement,
-    SecureIoPreservationRequest,
+    admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler, SecureIoOperation,
+    SecureIoPostureRequirement, SecureIoPreservationRequest,
 };
-use worth_store_physical_backend::BackendQueueExecutionAdaptation;
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
-
-const RANGE_BYTES: usize = 64;
 
 #[test]
 fn physical_writeback_survives_process_exit_and_fresh_store_admission() {
@@ -40,28 +26,26 @@ fn physical_writeback_survives_process_exit_and_fresh_store_admission() {
 }
 
 pub(super) fn writer(root: &Path) {
-    let serving = super::serving_from_initialization(root);
+    let (profile, _, request) = super::physical_work::work_fixture();
+    let serving =
+        super::physical_work::serving_from_initialization_with_work_profile(root, profile);
     let target = root.join("families/records/bootstrap.catalog");
-    let bytes = std::fs::read(target).unwrap()[..RANGE_BYTES].to_vec();
+    let bytes = std::fs::read(target).unwrap()[8..16].to_vec();
     let coordinate =
-        RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, RANGE_BYTES as u32)
-            .unwrap();
+        RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();
     serving
         .certification_admit_dirty_frame(coordinate, bytes.clone())
         .unwrap();
-    let outcome = serving
-        .execute_scheduled_writeback(
-            writeback_plan(&serving, coordinate),
-            BackendQueueExecutionAdaptation::None,
-        )
+    let admitted = admitted_writeback(&serving, request);
+    let command = serving
+        .physical_residency_writeback_command(admitted)
         .unwrap();
-    assert!(matches!(
-        outcome,
-        PhysicalScheduledWritebackOutcome::Applied {
-            execution: QueueExecutionOutcome::Executed(_),
-            ..
-        }
-    ));
+    let outcome = serving.execute_physical_work(command).unwrap();
+    assert_eq!(
+        outcome.settled().evidence().fate(),
+        PhysicalWorkEffectFate::WriteCompleted
+    );
+    assert_eq!(serving.residency_counters().dirty_frames(), 0);
     println!("C6_WRITEBACK {}", hex(&Sha256::digest(bytes)));
     std::io::stdout().flush().unwrap();
     std::process::exit(0);
@@ -69,7 +53,7 @@ pub(super) fn writer(root: &Path) {
 
 pub(super) fn observer(root: &Path, expected_digest: &str) {
     let bytes = std::fs::read(root.join("families/records/bootstrap.catalog")).unwrap();
-    assert_eq!(hex(&Sha256::digest(&bytes[..RANGE_BYTES])), expected_digest);
+    assert_eq!(hex(&Sha256::digest(&bytes[8..16])), expected_digest);
     println!("C6_WRITEBACK_OBSERVED");
     std::io::stdout().flush().unwrap();
 }
@@ -82,23 +66,21 @@ pub(super) fn reopener(root: &Path) {
     serving.close();
 }
 
-fn writeback_plan(
+fn admitted_writeback(
     serving: &ServingPhysicalRuntime,
-    coordinate: RecordFrameCoordinate,
-) -> QueueExecutionReadyPlan {
-    let reservation = worth_store_io_scheduler::foreground_reservation::
-        admitted_page_write_reservation_for_certification_test();
-    let security = reservation.security_scope_identity();
+    request: worth_store::physical_runtime::PhysicalMutationWorkRequest,
+) -> worth_store::physical_runtime::ResourceAdmittedPhysicalWork {
+    let ready = super::physical_work::ready_work(serving, request);
+    let reservation = super::physical_work::reserved_page_write(serving);
     let shape = QueueProducerResourceShape::new()
         .with_queue_slots(1)
-        .with_bandwidth_tokens(u64::from(coordinate.length()))
+        .with_bandwidth_tokens(8)
         .with_write_back_windows(1)
         .with_worker_permits(1);
-    let grouping = BufferPoolQueueGroupingScope::new(security);
-    let declaration = serving
-        .certification_writeback_declaration(coordinate, grouping, 7, shape)
+    let demand = serving
+        .prepare_physical_residency_writeback(ready, reservation, 7, shape, None)
         .unwrap();
-    let work = lower_buffer_pool_queue_declaration(declaration, reservation).unwrap();
+    let work = demand.queue_work();
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
@@ -110,57 +92,14 @@ fn writeback_plan(
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
     )
     .unwrap();
-    let work = work.with_secure_io_scope(secure_io);
-    let policy = admit_queue_policy_receipt(work, policy_receipt(work.requested_budget())).unwrap();
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
-        policy,
-    ))
-    .unwrap()
-}
-
-fn policy_receipt(
-    budget: BackgroundResourceBudget,
-) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
-    let claim = performance()
-        .claim()
-        .policy_admission()
-        .boundary(FoundationalPerformanceBoundary::AuthoritativeExecution)
-        .evidence_strength(FoundationalPerformanceEvidenceStrength::RuntimePolicyAdmission)
-        .breadth_locality(FoundationalPerformanceBreadthLocalityPosture::DeltaBound)
-        .access_pattern(FoundationalPerformanceAccessPatternPosture::PointLookup)
-        .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
-        .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
-        .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(FoundationalPerformanceWorkClass::AuthoritativeMutation)
-        .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
-        .finish()
-        .unwrap();
-    let amount = |kind| match kind {
-        FoundationalPerformanceBudgetKind::Breadth => {
-            budget.queue_slots() + budget.worker_permits()
-        }
-        FoundationalPerformanceBudgetKind::Density => {
-            budget.bandwidth_tokens() + budget.cache_residency_hints()
-        }
-        FoundationalPerformanceBudgetKind::Locality => {
-            budget.read_ahead_window() + budget.write_back_window() + budget.reclaim_permits()
-        }
-        FoundationalPerformanceBudgetKind::FreshnessSensitive => 0,
-    } as u32;
-    let receipt = performance().policy_admission_receipt(claim);
-    [
-        FoundationalPerformanceBudgetKind::Breadth,
-        FoundationalPerformanceBudgetKind::Density,
-        FoundationalPerformanceBudgetKind::Locality,
-    ]
-    .into_iter()
-    .fold(receipt, |receipt, kind| {
-        receipt.budget_decision(kind, amount(kind), amount(kind))
-    })
-    .finish()
-    .unwrap()
+    let demand = demand.with_secure_io(secure_io);
+    serving
+        .admit_physical_scheduler_demand(
+            demand,
+            &backend,
+            super::physical_work::policy_receipt(work.requested_budget()),
+        )
+        .unwrap()
 }
 
 fn hex(bytes: &[u8]) -> String {

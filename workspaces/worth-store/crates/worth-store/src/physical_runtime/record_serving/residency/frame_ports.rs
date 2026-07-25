@@ -19,6 +19,7 @@ use super::candidate_frame_publishers::{
 };
 use super::frame_loading::BoundedFrameLoader;
 
+#[derive(Clone)]
 pub(in crate::physical_runtime) struct RecordFramePorts {
     pool: PhysicalResidencyPool,
     loader: BoundedFrameLoader,
@@ -89,6 +90,23 @@ impl RecordFramePorts {
             )])
     }
 
+    pub(in crate::physical_runtime::record_serving) fn writeback_declaration(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        grouping: worth_store_buffer_pool::BufferPoolQueueGroupingScope,
+        flush_epoch: u64,
+        resource_shape: worth_store_contracts::QueueProducerResourceShape,
+    ) -> Result<worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration, PhysicalResidencyDenial>
+    {
+        worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration::write_back(
+            &self.pool,
+            worth_store_buffer_pool::PhysicalFrameKey::new(self.pool.store_identity(), coordinate),
+            grouping,
+            flush_epoch,
+            resource_shape,
+        )
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn admit_dirty_for_certification(
         &self,
@@ -110,13 +128,7 @@ impl RecordFramePorts {
         resource_shape: worth_store_contracts::QueueProducerResourceShape,
     ) -> Result<worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration, PhysicalResidencyDenial>
     {
-        worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration::write_back(
-            &self.pool,
-            worth_store_buffer_pool::PhysicalFrameKey::new(self.pool.store_identity(), coordinate),
-            grouping,
-            flush_epoch,
-            resource_shape,
-        )
+        self.writeback_declaration(coordinate, grouping, flush_epoch, resource_shape)
     }
 
     #[cfg(feature = "certification-test-authority")]
@@ -125,6 +137,11 @@ impl RecordFramePorts {
             pool: self.pool.clone(),
             candidate_counters: Arc::clone(&self.candidate_counters),
         }
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn reject_next_candidate_publication(&self) {
+        self.candidate_counters.reject_next_publication();
     }
 }
 

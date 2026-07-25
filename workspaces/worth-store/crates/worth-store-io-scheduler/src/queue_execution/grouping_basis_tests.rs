@@ -21,47 +21,47 @@ fn grouping_basis_compatibility_rejects_every_declared_axis() {
     let base = base_grouping_basis();
     for (mutated, expected) in [
         (
-            basis_with_security_scope(base),
+            basis_with_security_scope(base.clone()),
             QueueGroupingDenial::SecurityScopeMismatch,
         ),
         (
-            basis_with_tenant_scope(base),
+            basis_with_tenant_scope(base.clone()),
             QueueGroupingDenial::TenantScopeMismatch,
         ),
         (
-            basis_with_key_scope(base),
+            basis_with_key_scope(base.clone()),
             QueueGroupingDenial::KeyScopeMismatch,
         ),
         (
-            basis_with_authenticity(base),
+            basis_with_authenticity(base.clone()),
             QueueGroupingDenial::AuthenticityRequirementMismatch,
         ),
         (
-            basis_with_durability(base),
+            basis_with_durability(base.clone()),
             QueueGroupingDenial::DurabilityClassMismatch,
         ),
         (
-            basis_with_flush_epoch(base),
+            basis_with_flush_epoch(base.clone()),
             QueueGroupingDenial::FlushEpochMismatch,
         ),
         (
-            basis_with_work_class(base),
+            basis_with_work_class(base.clone()),
             QueueGroupingDenial::WorkClassMismatch,
         ),
         (
-            basis_with_recovery_ordering(base),
+            basis_with_recovery_ordering(base.clone()),
             QueueGroupingDenial::RecoveryOrderingMismatch,
         ),
         (
-            basis_with_writeback_policy(base),
+            basis_with_writeback_policy(base.clone()),
             QueueGroupingDenial::WritebackPolicyMismatch,
         ),
         (
-            basis_with_locality(base),
+            basis_with_locality(base.clone()),
             QueueGroupingDenial::LocalityMismatch,
         ),
     ] {
-        assert_eq!(base.compatible_with(mutated), Err(expected));
+        assert_eq!(base.compatible_with(&mutated), Err(expected));
     }
 }
 
@@ -141,13 +141,11 @@ fn admit_plan_with_basis(
         budget,
     )
     .with_grouping_basis(basis);
-    let backend = backend_for(work);
-    let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
-        policy_receipt(work),
-    ))
+    let backend = backend_for(&work);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
+    let policy = policy_receipt(&work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
 }
 
 fn base_grouping_basis() -> QueueGroupingBasis {

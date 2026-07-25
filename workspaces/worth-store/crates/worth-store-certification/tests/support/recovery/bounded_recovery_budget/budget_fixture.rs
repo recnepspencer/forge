@@ -5,7 +5,7 @@ use worth_store_recovery_physics::{
     RedoApplicationPageFact, WalTailRedoSource, WalTailReplayBudget,
 };
 
-use super::memory_budget_fixture::recovery_memory_envelope;
+use super::memory_budget_fixture::recovery_memory_allocation;
 use super::redo_replay_fixture::{
     cursor, frame, grammar_for, page_lsn, redo_eligibility, redo_eligibility_for_page, valid_prefix,
 };
@@ -204,7 +204,7 @@ pub fn budget_with(
         WalTailReplayBudget::max_frames(max_replay_frames)
             .with_max_scanned_segments(max_scanned_segments)
             .with_max_page_redos(max_page_redos),
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
     )
     .with_max_memory_envelope_bytes(max_memory_bytes)
     .with_max_allocation_bytes(max_allocation_bytes)

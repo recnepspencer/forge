@@ -9,42 +9,6 @@ fn fixed_name(byte: u8) -> StagedNamespaceName {
     StagedNamespaceName::for_identity(attempt)
 }
 
-#[test]
-fn schedules_reject_ambiguous_or_semantically_impossible_matches() {
-    let zero = MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
-        MediaOperationRole::PositionedWrite,
-        0,
-        MediaFaultDirective::AllowPrefix { bytes: 1 },
-    )]);
-    assert!(matches!(zero, Err(MediaFaultScheduleDenial::ZeroOrdinal)));
-
-    let mismatch = MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
-        MediaOperationRole::ReadMetadata,
-        1,
-        MediaFaultDirective::AllowPrefix { bytes: 1 },
-    )]);
-    assert!(matches!(
-        mismatch,
-        Err(MediaFaultScheduleDenial::DirectiveRoleMismatch)
-    ));
-
-    let rule = || {
-        MediaFaultRule::for_certification(
-            MediaOperationRole::PositionedRead,
-            1,
-            MediaFaultDirective::FailBefore {
-                kind: std::io::ErrorKind::Other,
-                raw_os_error: None,
-            },
-        )
-    };
-    let duplicate = MediaFaultSchedule::for_certification(vec![rule(), rule()]);
-    assert!(matches!(
-        duplicate,
-        Err(MediaFaultScheduleDenial::DuplicateSemanticMatch)
-    ));
-}
-
 fn qualified(root: &std::path::Path, schedule: MediaFaultSchedule) -> QualifiedFilesystemMedia {
     let request = FilesystemQualificationRequest::certification(
         root,

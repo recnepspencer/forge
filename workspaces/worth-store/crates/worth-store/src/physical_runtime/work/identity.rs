@@ -22,7 +22,7 @@ impl PhysicalOperationIdentity {
 }
 
 /// The lifecycle generation to which physical work is fenced.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicalWorkGeneration(LifecycleGeneration);
 
 impl PhysicalWorkGeneration {
@@ -42,7 +42,7 @@ impl PhysicalWorkGeneration {
 /// Signal handles, scheduler bindings, digests, and backend receipts cannot
 /// construct this value. Only the generation owner can combine the four
 /// identity dimensions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicalWorkIdentity {
     store: StableStoreIdentity,
     runtime: RuntimeIdentity,
@@ -91,6 +91,16 @@ pub struct PhysicalEffectIdentity {
 }
 
 impl PhysicalEffectIdentity {
+    pub(in crate::physical_runtime) const fn new(
+        work: PhysicalWorkIdentity,
+        backend_operation: MediaOperationIdentity,
+    ) -> Self {
+        Self {
+            work,
+            backend_operation,
+        }
+    }
+
     pub const fn work(self) -> PhysicalWorkIdentity {
         self.work
     }

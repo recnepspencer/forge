@@ -27,8 +27,9 @@ pub use fresh_runtime_execution::{
 };
 pub use persisted_artifact_materialization::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
-    PersistedRecoveryArtifactMaterialization, WalRedoFrameMaterialization,
+    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
+    CheckpointPageImageMaterialization, PersistedRecoveryArtifactMaterialization,
+    WalRedoFrameMaterialization,
 };
 pub use persisted_artifacts::{
     PersistedRecoveryArtifactDenial, PersistedRecoveryArtifacts, RecoveryProfileId,

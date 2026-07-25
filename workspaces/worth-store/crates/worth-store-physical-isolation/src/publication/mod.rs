@@ -13,6 +13,7 @@ mod receipt;
 mod root_candidate;
 mod runtime;
 mod store;
+mod successor;
 mod swap;
 #[cfg(test)]
 mod tests;
@@ -42,5 +43,6 @@ pub use receipt::{
 };
 pub use root_candidate::PublicationRootCandidate;
 pub use runtime::PhysicalRootPublicationRuntime;
+pub use successor::PublicationRootSuccessorOwner;
 pub use swap::PublishedCopyOnWriteRootSwap;
 pub use swap::ReadCopyUpdateRootPublication;

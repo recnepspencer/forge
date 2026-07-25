@@ -14,7 +14,7 @@ pub(crate) fn assert_counter_snapshot(
     assert_eq!(counters.scanned_segments(), 1);
     assert_eq!(counters.page_redos(), page_redos);
     assert_eq!(counters.memory_envelope_bytes(), 128);
-    assert_eq!(counters.memory_envelope_frames(), 1);
+    assert_eq!(counters.memory_envelope_frames(), 0);
     assert_eq!(counters.allocation_bytes(), 128);
     assert_eq!(counters.residue_rejections(), 0);
     assert_eq!(counters.forbidden_full_store_scans(), 0);
@@ -27,7 +27,7 @@ pub(crate) fn assert_hostile_counter_snapshot(counters: RecoveryCounterSnapshot)
     assert_eq!(counters.scanned_segments(), 2);
     assert_eq!(counters.page_redos(), 1);
     assert_eq!(counters.memory_envelope_bytes(), 128);
-    assert_eq!(counters.memory_envelope_frames(), 1);
+    assert_eq!(counters.memory_envelope_frames(), 0);
     assert_eq!(counters.allocation_bytes(), 128);
     assert_eq!(counters.residue_rejections(), 0);
     assert_eq!(counters.forbidden_full_store_scans(), 0);

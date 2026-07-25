@@ -1,5 +1,5 @@
 use crate::{
-    AdmittedRecoverySource, CheckpointBaseAdmission, RecoveryMemoryEnvelope, RecoveryRedoPlan,
+    AdmittedRecoverySource, CheckpointBaseAdmission, RecoveryMemoryAllocation, RecoveryRedoPlan,
     WalTailRedoSource,
 };
 
@@ -9,11 +9,11 @@ use super::{
     RecoveryBudgetDenialKind, RecoveryStoreFootprint, WalTailReplayBudget,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct RecoveryBudget {
     checkpoint_interval: CheckpointIntervalContract,
     wal_tail: WalTailReplayBudget,
-    memory_envelope: RecoveryMemoryEnvelope,
+    memory_allocation: RecoveryMemoryAllocation,
     max_memory_envelope_bytes: Option<u64>,
     max_allocation_bytes: Option<u64>,
     max_checkpoint_discovery_candidates: Option<usize>,
@@ -21,15 +21,15 @@ pub struct RecoveryBudget {
 }
 
 impl RecoveryBudget {
-    pub const fn new(
+    pub fn new(
         checkpoint_interval: CheckpointIntervalContract,
         wal_tail: WalTailReplayBudget,
-        memory_envelope: RecoveryMemoryEnvelope,
+        memory_allocation: RecoveryMemoryAllocation,
     ) -> Self {
         Self {
             checkpoint_interval,
             wal_tail,
-            memory_envelope,
+            memory_allocation,
             max_memory_envelope_bytes: None,
             max_allocation_bytes: None,
             max_checkpoint_discovery_candidates: None,
@@ -37,22 +37,22 @@ impl RecoveryBudget {
         }
     }
 
-    pub const fn with_max_memory_envelope_bytes(mut self, max_bytes: u64) -> Self {
+    pub fn with_max_memory_envelope_bytes(mut self, max_bytes: u64) -> Self {
         self.max_memory_envelope_bytes = Some(max_bytes);
         self
     }
 
-    pub const fn with_max_allocation_bytes(mut self, max_bytes: u64) -> Self {
+    pub fn with_max_allocation_bytes(mut self, max_bytes: u64) -> Self {
         self.max_allocation_bytes = Some(max_bytes);
         self
     }
 
-    pub const fn with_checkpoint_discovery_candidates(mut self, max_candidates: usize) -> Self {
+    pub fn with_checkpoint_discovery_candidates(mut self, max_candidates: usize) -> Self {
         self.max_checkpoint_discovery_candidates = Some(max_candidates);
         self
     }
 
-    pub const fn with_store_footprint(mut self, footprint: RecoveryStoreFootprint) -> Self {
+    pub fn with_store_footprint(mut self, footprint: RecoveryStoreFootprint) -> Self {
         self.store_footprint = footprint;
         self
     }
@@ -64,11 +64,11 @@ impl RecoveryBudget {
         BoundedRecoverySourcePrecedenceGraph::new(self, profile)
     }
 
-    pub(crate) const fn checkpoint_interval_frame_limit(self) -> usize {
+    pub(crate) const fn checkpoint_interval_frame_limit(&self) -> usize {
         self.checkpoint_interval.max_tail_frame_count()
     }
 
-    pub(crate) const fn wal_tail_frame_limit(self) -> usize {
+    pub(crate) const fn wal_tail_frame_limit(&self) -> usize {
         self.wal_tail.max_frame_count()
     }
 
@@ -98,14 +98,14 @@ impl RecoveryBudget {
             tail,
             redo_plan,
             evidence,
-            self.memory_envelope,
+            self.memory_allocation,
             self.store_footprint,
             work_bounds,
         ))
     }
 
     pub(crate) fn require_source_candidate_count(
-        self,
+        &self,
         discovered: usize,
     ) -> Result<(), RecoveryBudgetDenial> {
         let Some(max) = self.max_checkpoint_discovery_candidates else {
@@ -120,7 +120,7 @@ impl RecoveryBudget {
     }
 
     fn require_declared_tail_matches_plan(
-        self,
+        &self,
         tail: &WalTailRedoSource,
         plan: &RecoveryRedoPlan,
     ) -> Result<(), RecoveryBudgetDenial> {
@@ -138,7 +138,7 @@ impl RecoveryBudget {
     }
 
     fn require_source_trace_matches_plan(
-        self,
+        &self,
         source: &AdmittedRecoverySource,
         plan: &RecoveryRedoPlan,
     ) -> Result<(), RecoveryBudgetDenial> {
@@ -157,12 +157,15 @@ impl RecoveryBudget {
         Ok(())
     }
 
-    fn require_discovery_budget(self, plan: &RecoveryRedoPlan) -> Result<(), RecoveryBudgetDenial> {
+    fn require_discovery_budget(
+        &self,
+        plan: &RecoveryRedoPlan,
+    ) -> Result<(), RecoveryBudgetDenial> {
         self.require_source_candidate_count(plan.source_trace().candidate_count())
     }
 
-    fn require_memory_budget(self) -> Result<(), RecoveryBudgetDenial> {
-        let memory = self.memory_envelope.counters();
+    fn require_memory_budget(&self) -> Result<(), RecoveryBudgetDenial> {
+        let memory = self.memory_allocation.counters();
         if let Some(max_bytes) = self.max_memory_envelope_bytes {
             let admitted_bytes = memory.resident_bytes_admitted();
             if admitted_bytes > max_bytes {

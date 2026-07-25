@@ -18,17 +18,16 @@ pub(super) fn execute(
     file: &mut cap_std::fs::File,
     bytes: &[u8],
 ) -> ExactWriteEffect {
-    let Some(operation) = owner.issue_operation_identity() else {
+    let requested = bytes.len() as u64;
+    let Some((operation, attempt)) = super::super::artifact_tree_effects::begin_identified(
+        owner,
+        MediaOperationRole::PositionedWrite,
+        requested,
+    ) else {
         return ExactWriteEffect::DeniedBeforeEffect(ArtifactTreeFailure::structural(
             ArtifactTreeFailureKind::DeniedBeforeEffect,
         ));
     };
-    let requested = bytes.len() as u64;
-    let attempt = super::super::artifact_tree_effects::begin(
-        owner,
-        MediaOperationRole::PositionedWrite,
-        requested,
-    );
     if let Some(error) = attempt.fail_before_error() {
         attempt.denied();
         return ExactWriteEffect::DeniedBeforeEffect(ArtifactTreeFailure::io(

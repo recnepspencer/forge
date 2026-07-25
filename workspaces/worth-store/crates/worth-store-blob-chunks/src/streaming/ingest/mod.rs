@@ -5,6 +5,7 @@ mod classification;
 mod counters;
 mod denial;
 mod frontier;
+#[cfg(feature = "certification-test-authority")]
 mod large_record_envelope;
 mod orchestration;
 mod receipt_construction;
@@ -28,6 +29,7 @@ pub use admission::{
 pub use counters::BlobStreamingIngestCounterSnapshot;
 pub use denial::{reject_full_blob_vec_as_streaming_ingest, BlobStreamingIngestDenial};
 pub use frontier::BlobStreamingContentFrontier;
+#[cfg(feature = "certification-test-authority")]
 pub use large_record_envelope::{LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial};
 pub use orchestration::BlobStreamingIngestExecution;
 pub use receipt_construction::{

@@ -1,62 +1,28 @@
-use worth_store_physical_backend::QualifiedFilesystemMedia;
-use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, DurablePhysicalRootManifest,
-};
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 use crate::physical_runtime::{
-    instance::PhysicalStoreInstanceParts, media_ownership::PhysicalMediaObserver,
-    runtime::PhysicalRuntimeCore, AbortedRuntime, ClosedRuntime, RuntimeIdentity,
+    instance::{PhysicalStoreInstanceFoundation, PhysicalStoreInstanceParts},
+    media_ownership::PhysicalMediaObserver,
+    AbortedRuntime, ClosedRuntime, RuntimeIdentity,
 };
 
 use super::super::lifecycle::record_observation::PhysicalRecordObserver;
-use super::super::{
-    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, PhysicalRecordReader,
-    RecordAllocationFrontier, RecordPublicationResidueObservation, RecordServingState,
-};
-use super::serving_health::ServingHealth;
+use super::super::{PhysicalRecordReader, RecordPublicationResidueObservation};
 
 #[cfg(feature = "certification-test-authority")]
 #[path = "serving_runtime/certification.rs"]
 mod certification;
 mod physical_work;
-mod record_writer;
 
 pub struct ServingPhysicalRuntime {
     parts: PhysicalStoreInstanceParts,
 }
 
-pub struct PhysicalRecordWriter<'runtime> {
-    media: &'runtime QualifiedFilesystemMedia,
-    format: AdmittedPhysicalRecordFormat,
-    access: AdmittedRecordAccessPolicy,
-    current_root: &'runtime mut DurablePhysicalRootManifest,
-    free_space: &'runtime mut worth_store_physical_format::DurableFreeSpaceManifestHeader,
-    allocation_frontier: &'runtime mut RecordAllocationFrontier,
-    publication_residue: &'runtime mut RecordPublicationResidueObservation,
-    health: &'runtime ServingHealth,
-    _lease: super::super::lifecycle::record_lifecycle::RecordWriterLease,
-    frame_ports: &'runtime super::super::residency::frame_ports::RecordFramePorts,
-}
-
 impl ServingPhysicalRuntime {
     pub(in crate::physical_runtime::record_serving) fn from_admission(
-        termination: crate::physical_runtime::lifecycle::LifecycleTerminationGuard,
-        media: QualifiedFilesystemMedia,
-        core: PhysicalRuntimeCore,
-        bootstrap: RecordServingState,
-        allocation_frontier: RecordAllocationFrontier,
-        frame_ports: super::super::residency::frame_ports::RecordFramePorts,
-        work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
+        foundation: PhysicalStoreInstanceFoundation,
     ) -> Result<Self, super::super::RecordServingAdmissionInspectionRequired> {
-        match PhysicalStoreInstanceParts::from_record_admission(
-            termination,
-            media,
-            core,
-            bootstrap,
-            allocation_frontier,
-            frame_ports,
-            work_profile,
-        ) {
+        match PhysicalStoreInstanceParts::from_record_admission(foundation) {
             Ok(parts) => Ok(Self { parts }),
             Err(failure) => {
                 let (identity, terminal, cause) = failure.abort();
@@ -73,24 +39,32 @@ impl ServingPhysicalRuntime {
         self.parts.core.runtime_identity()
     }
 
-    pub const fn store_identity(&self) -> StableStoreIdentity {
-        self.parts.executor.record_serving_media().store_identity()
+    pub fn store_identity(&self) -> StableStoreIdentity {
+        self.parts
+            .work_runtime
+            .executor
+            .record_serving_media()
+            .store_identity()
     }
 
-    pub const fn observed_staging_residue(&self) -> bool {
-        self.parts.publication_residue.staging_catalog_candidate()
+    pub fn observed_staging_residue(&self) -> bool {
+        self.parts.publication.residue().staging_catalog_candidate()
     }
 
-    pub const fn observed_non_authoritative_residue(&self) -> bool {
-        !self.parts.publication_residue.is_empty()
+    pub fn observed_non_authoritative_residue(&self) -> bool {
+        !self.parts.publication.residue().is_empty()
     }
 
-    pub const fn publication_residue(&self) -> RecordPublicationResidueObservation {
-        self.parts.publication_residue
+    pub fn publication_residue(&self) -> RecordPublicationResidueObservation {
+        self.parts.publication.residue()
     }
 
     pub fn media_counters(&self) -> worth_store_physical_backend::MediaCounterSnapshot {
-        self.parts.executor.record_serving_media().counters()
+        self.parts
+            .work_runtime
+            .executor
+            .record_serving_media()
+            .counters()
     }
 
     pub fn residency_counters(&self) -> worth_store_buffer_pool::PhysicalResidencyCounters {
@@ -101,56 +75,80 @@ impl ServingPhysicalRuntime {
         self.parts.frame_ports.drain_unpinned_clean_frames()
     }
 
-    pub fn execute_scheduled_writeback(
+    pub fn physical_residency_writeback_command(
         &self,
-        plan: worth_store_io_scheduler::QueueExecutionReadyPlan,
-        adaptation: worth_store_physical_backend::BackendQueueExecutionAdaptation,
+        work: crate::physical_runtime::ResourceAdmittedPhysicalWork,
     ) -> Result<
-        super::super::PhysicalScheduledWritebackOutcome,
+        crate::physical_runtime::PhysicalExecutorCommand,
         super::super::PhysicalScheduledWritebackAdmissionDenial,
     > {
-        let outcome = super::super::residency::scheduled_writeback::execute_store_writeback(
-            &self.parts.frame_ports,
-            self.parts.executor.record_serving_media(),
-            plan,
-            adaptation,
+        self.parts.work_runtime.health.permit().map_err(|_| {
+            super::super::PhysicalScheduledWritebackAdmissionDenial::ServingRequiresInspection
+        })?;
+        if work.intent().operation()
+            != crate::physical_runtime::PhysicalWorkOperationFamily::ArtifactRangeWrite
+        {
+            return Err(
+                super::super::PhysicalScheduledWritebackAdmissionDenial::CanonicalWorkMismatch,
+            );
+        }
+        let [coordinate] = work.intent().scope().coordinates() else {
+            return Err(
+                super::super::PhysicalScheduledWritebackAdmissionDenial::CanonicalWorkMismatch,
+            );
+        };
+        let claim = self
+            .parts
+            .frame_ports
+            .claim_writeback(*coordinate)
+            .map_err(super::super::PhysicalScheduledWritebackAdmissionDenial::Residency)?;
+        super::super::residency::scheduled_writeback::PhysicalScheduledWriteback::validate(
+            &claim,
+            work.queue_plan(),
         )?;
-        if matches!(
-            outcome,
-            super::super::PhysicalScheduledWritebackOutcome::InspectionRequired(_)
-                | super::super::PhysicalScheduledWritebackOutcome::ResidencyTerminal { .. }
-        ) {
-            self.parts.health.revoke();
-        }
-        Ok(outcome)
+        Ok(crate::physical_runtime::PhysicalExecutorCommand::residency_writeback(work, claim))
     }
 
-    pub fn records(&self) -> PhysicalRecordReader<'_> {
+    pub fn bind_physical_residency_writeback_retry(
+        &self,
+        retry: crate::physical_runtime::PhysicalRetryCommand,
+        work: crate::physical_runtime::ResourceAdmittedPhysicalWork,
+    ) -> Result<
+        crate::physical_runtime::PhysicalExecutorCommand,
+        super::super::PhysicalScheduledWritebackAdmissionDenial,
+    > {
+        retry
+            .admit_residency_retry(&work)
+            .map_err(super::super::PhysicalScheduledWritebackAdmissionDenial::Retry)?;
+        self.physical_residency_writeback_command(work)
+    }
+
+    pub fn records(&self) -> PhysicalRecordReader {
+        let port = super::super::CanonicalRecordReadPort::new(
+            &self.parts.work_runtime,
+            self.parts.core.lifecycle_generation(),
+            self.parts.work_admission,
+            self.parts.scheduler_admission.clone(),
+            self.parts.record_work.clone(),
+        );
         PhysicalRecordReader {
-            media: self.parts.executor.record_serving_media(),
+            store: self.store_identity(),
             format: self.parts.format,
             access: self.parts.access,
-            current_root: &self.parts.current_root,
-            health: &self.parts.health,
+            current_root: self.parts.publication.current_root(),
+            runtime: std::sync::Arc::downgrade(&self.parts.work_runtime),
             lifecycle: self.parts.record_owner.reader(),
-            frame_load: self.parts.frame_ports.loader(),
-            frame_ports: &self.parts.frame_ports,
+            frame_ports: self.parts.frame_ports.clone(),
+            source: super::super::residency::frame_loading::CanonicalFrameReadSource::new(port),
         }
     }
 
-    pub fn records_mut(&mut self) -> PhysicalRecordWriter<'_> {
-        PhysicalRecordWriter {
-            media: self.parts.executor.record_serving_media(),
-            format: self.parts.format,
-            access: self.parts.access,
-            current_root: &mut self.parts.current_root,
-            free_space: &mut self.parts.free_space,
-            allocation_frontier: &mut self.parts.allocation_frontier,
-            publication_residue: &mut self.parts.publication_residue,
-            health: &self.parts.health,
-            _lease: self.parts.record_owner.writer(),
-            frame_ports: &self.parts.frame_ports,
-        }
+    pub fn c6_physical_work_handoff(&self) -> super::super::C6PhysicalWorkHandoff {
+        super::super::C6PhysicalWorkHandoff::from_parts(&self.parts, self.records())
+    }
+
+    pub fn record_submission(&self) -> super::super::PhysicalRecordSubmission {
+        super::super::RecordPublicationDirector::submission(&self.parts.publication)
     }
 
     pub fn observer(&self) -> PhysicalRecordObserver {
@@ -158,9 +156,19 @@ impl ServingPhysicalRuntime {
         let media = PhysicalMediaObserver::for_record_serving(
             self.runtime_identity(),
             self.store_identity(),
-            self.parts.executor.record_serving_media().mutation_owner(),
-            self.parts.executor.record_serving_media().profile().clone(),
             self.parts
+                .work_runtime
+                .executor
+                .record_serving_media()
+                .mutation_owner(),
+            self.parts
+                .work_runtime
+                .executor
+                .record_serving_media()
+                .profile()
+                .clone(),
+            self.parts
+                .work_runtime
                 .executor
                 .record_serving_media()
                 .counter_observer(),
@@ -171,16 +179,24 @@ impl ServingPhysicalRuntime {
             media,
             self.parts.record_owner.observer(),
             self.parts.format,
-            self.parts.current_root.generation(),
-            self.parts.publication_residue,
+            self.parts.publication.current_root().generation(),
+            self.parts.publication.residue(),
         )
     }
 
     pub fn close(self) -> super::super::ServingShutdownOutcome<ClosedRuntime> {
-        self.parts.close()
+        self.close_plan().execute().into_shutdown()
+    }
+
+    pub fn close_plan(self) -> crate::physical_runtime::PhysicalStoreClosePlan {
+        crate::physical_runtime::PhysicalStoreClosePlan::new(self.parts)
     }
 
     pub fn abort(self) -> super::super::ServingShutdownOutcome<AbortedRuntime> {
-        self.parts.abort()
+        self.abort_with_evidence().into_shutdown()
+    }
+
+    pub fn abort_with_evidence(self) -> crate::physical_runtime::PhysicalStoreAbortOutcome {
+        crate::physical_runtime::PhysicalStoreAbortOutcome::execute(self.parts)
     }
 }

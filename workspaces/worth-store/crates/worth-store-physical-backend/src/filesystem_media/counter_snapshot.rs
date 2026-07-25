@@ -53,6 +53,7 @@ pub struct MediaCounterSnapshot {
     pub(super) first_fault_completed_bytes: Option<u64>,
     pub(super) saturated: bool,
     pub(super) role_attempts: [u64; MediaOperationRole::ALL.len()],
+    pub(super) role_identified_operation_attempts: [u64; MediaOperationRole::ALL.len()],
     pub(super) role_completed_operations: [u64; MediaOperationRole::ALL.len()],
     pub(super) role_denied_before_effect: [u64; MediaOperationRole::ALL.len()],
     pub(super) role_partial_effects: [u64; MediaOperationRole::ALL.len()],
@@ -167,6 +168,12 @@ impl MediaCounterSnapshot {
         self.role_attempts[role.index()]
     }
 
+    /// Per-role attempts carrying a backend-issued operation identity.
+    /// Unbound qualification and recovery helpers do not advance it.
+    pub const fn identified_operation_attempts_for(self, role: MediaOperationRole) -> u64 {
+        self.role_identified_operation_attempts[role.index()]
+    }
+
     pub const fn requested_bytes_for(self, role: MediaOperationRole) -> u64 {
         self.role_requested_bytes[role.index()]
     }
@@ -258,6 +265,7 @@ impl MediaCounterSnapshot {
         ];
         scalar.contains(&u64::MAX)
             || self.role_attempts.contains(&u64::MAX)
+            || self.role_identified_operation_attempts.contains(&u64::MAX)
             || self.role_completed_operations.contains(&u64::MAX)
             || self.role_denied_before_effect.contains(&u64::MAX)
             || self.role_partial_effects.contains(&u64::MAX)

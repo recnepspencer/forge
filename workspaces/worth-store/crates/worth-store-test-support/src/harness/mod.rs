@@ -13,7 +13,7 @@ pub mod fixtures;
 pub mod layout;
 #[cfg(feature = "layout-fixtures")]
 pub mod layout_evolution;
-#[cfg(feature = "layout-fixtures")]
+#[cfg(feature = "certification-world")]
 mod lsm_execution_fixture;
 #[cfg(feature = "physical-isolation-fixtures")]
 pub mod physical_isolation;
@@ -32,7 +32,7 @@ mod security_scope;
 #[cfg(feature = "physical-isolation-fixtures")]
 pub mod test_authority;
 
-#[cfg(feature = "layout-fixtures")]
+#[cfg(feature = "certification-world")]
 pub use lsm_execution_fixture::{
     execute_baseline_lsm_membership_replacement_fixture, execute_baseline_lsm_persisted_fixture,
     execute_baseline_lsm_replay_source_fixture, execute_frontierless_lsm_replay_source_fixture,

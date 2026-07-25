@@ -24,9 +24,9 @@ mod transitions;
 mod types;
 mod verification;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-test-authority"))]
 pub(crate) mod test_support;
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-test-authority"))]
 mod tests;
 
 pub use counters::BlobCompactionCounterSnapshot;

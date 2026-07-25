@@ -17,9 +17,11 @@ merge rules are not known today.
 
 This is a cross-runtime roadmap. It is ordered by implementation dependency,
 not by the repository containing each edit. A milestone may require changes in
-Worth Query, Worth Relational, Worth Signal, Worth Runtime Bridge, Worth Store,
-Worth Foundational, or Worth Proof when those changes are prerequisites for one
-coherent collaboration model.
+Worth Query, Worth Relational, Worth Signal, Worth Runtime Bridge, Worth
+Foundational, or Worth Proof when those changes are prerequisites for one
+coherent semantic collaboration model. Store-backed realization consumes that
+model through the separate runtime-integration program rather than widening
+this roadmap into physical database implementation.
 
 This roadmap does not preserve the current collaboration extension planned as
 Phases 36 through 41 of Query Milestone 9.3.8. Their valid product obligations
@@ -39,23 +41,68 @@ Query Milestone 9.3.8 Phase 35
   -> Milestone 22: hostile universal certification
 ```
 
-The Store roadmaps remain parallel authorities:
+## Current Substrate And Build Posture
 
+This is not a unification pass over complete per-crate branching and merging
+implementations. Query, Relational, Signal, and Runtime Bridge begin with
+different useful substrate fragments, but none currently supplies the complete
+semantic-history, merge, collaboration, offline, or convergence model defined
+here. This roadmap builds the missing authority-owned capabilities in dependency
+order and then joins them through their public contracts.
+
+- Relational begins with transaction, MVCC, visibility, version, identity, and
+  branch-adjacent authority. Milestones 2 through 10 build the composite
+  semantic-world basis, immutable commit and mutable reference graph, canonical
+  change model, definition and lineage history, semantic merge execution,
+  invariant gating, and conflict authority it does not yet have as one complete
+  system.
+- Signal begins with dependency, invalidation, evaluation, and managed-resource
+  substrate. Milestone 12 builds versioned Signal definition worlds,
+  branch-local derived-state lifecycle, and post-merge reconciliation from
+  published authority rather than assuming those capabilities already exist.
+- Runtime Bridge begins with causal crossing and runtime-continuity substrate.
+  Milestones 13 and 14 build the collaboration-specific phase protocol,
+  publication continuity, incomplete-transition recovery, and Store-backed
+  widening points.
+- Query begins with the ordinary declaration and runtime facade. Milestone 15
+  builds the semantic-Git workflow and inspection surface over the completed
+  lower-authority model rather than unifying pre-existing product workflows.
+- The Store program does not supply missing semantic branch or merge behavior.
+  Its Part I physical runtime remains branch-agnostic, and its Part II
+  composition consumes the contracts built here to earn Store-backed
+  durability, historical access, recovery, retention, and transfer.
+
+Statements in this roadmap that a subsystem `owns` a responsibility assign its
+destination authority and dependency direction. They are not claims that the
+responsibility is already implemented, complete, integrated, or certified.
+Each milestone's `Must Ship` and closeout gate define the work required to make
+that ownership real.
+
+The relationship to the active Store program is asymmetric:
+
+- this roadmap owns semantic commit, branch, diff, merge, conflict,
+  collaboration, and offline laws in the existing Query runtime authorities
 - the [Physical Database Roadmap](../worth-store/physical-database-roadmap.md)
-  owns physical survival, isolation, WAL, checkpoint, recovery physics,
-  integrity, and bounded storage mechanics
+  and its
+  [Physical Foundation Reconstruction Roadmap](../worth-store/physical-foundation-reconstruction-roadmap.md)
+  own a branch-agnostic physical Store instance: pages, WAL, checkpoints,
+  stable reads, bounded residency, physical work, exact effect fate, and byte
+  survival
 - the [Store Runtime And Query Integration Roadmap](../worth-store/runtime-integration-roadmap.md)
-  owns the joined runtime, semantic-to-physical integration, durable publication,
-  residency, recovery, Store-backed Query execution, durable historical worlds,
-  replication transport, and joined certification
-- this roadmap owns the semantic branch/diff/merge/collaboration model that
-  those Store milestones make durable
+  owns one Store-backed composition root containing the existing Query runtime,
+  one sibling physical Store instance, and one narrow Store-Query adapter
+- that adapter realizes durable lowering, hydration, publication joins,
+  historical access, recovery readmission, retention, and portable transfer;
+  it does not become a merge engine, branch authority, or third runtime
 
-Store Milestones 10, 15, and 16 do not compete with this roadmap. They provide
-durable historical-world storage, retention/maintenance, and portable transfer
-for the semantic artifacts defined here. If implementation reveals a Query,
-Relational, Signal, Bridge, Foundational, or Proof prerequisite, the edit stays
-in this roadmap's implementation sequence even when the source lives elsewhere.
+Runtime Integration Milestones 1, 3, 5, 10, 15, and 16 consume the semantic
+contracts established here for Query integration readiness, durable commit
+publication, branch-aware concurrent MVCC, durable historical worlds,
+retention, and portable artifacts. Store-backed closure is earned there through
+the same Query grammar and Relational truth model. The physical Store program
+must not acquire branch labels, branch-head generations, MVCC decisions,
+semantic writer leases, diff policy, or merge policy in order to satisfy this
+roadmap.
 
 ## Document Authority And Future Spec Names
 
@@ -68,6 +115,11 @@ Future milestone specs use the
 specs must identify their required closure class and may not claim production
 closure from runtime-only evidence when durable or distributed evidence is
 required.
+
+Milestone scope is closed by its `Goal`, `Must Ship`, and closeout gate. A
+capability enters the implementation vocabulary only when its owning milestone
+positively introduces it. Earlier milestones and specs do not enumerate,
+pre-design, stub, or carry support posture for later capabilities.
 
 Query Milestone 9.15 may establish single-semantic-world candidate-search,
 bounded-convergence, transformation-occurrence, loss, and proposal evidence
@@ -104,10 +156,16 @@ session recovery.
   consistency, cost, progress, cancellation, and recovery.
 - the Query roadmap protects one daily-driver semantic language. Query may
   author and inspect branch workflows, but Relational, Signal, Bridge, and
-  Store retain their real authorities.
-- the Store runtime roadmap protects one joined runtime. This roadmap may not
-  create a second semantic Store runtime, a second Relational instance, or a
-  collaboration database beside the canonical commit path.
+  the physical Store retain their different real authorities.
+- the Physical Database and Physical Foundation Reconstruction roadmaps protect
+  one branch-agnostic physical Store instance. This roadmap may consume exact
+  physical capability and effect-fate contracts but may not push branch,
+  visibility, conflict, or merge meaning below the Store-Query adapter.
+- the Store runtime-integration roadmap protects one joined product runtime:
+  the existing Query runtime and a sibling physical Store instance behind one
+  narrow adapter. This roadmap may not create a second semantic Store runtime,
+  a second Relational instance, or a collaboration database beside the
+  canonical Query commit path.
 
 ## Global Adversarial Constraint
 
@@ -127,8 +185,9 @@ The completed system must survive this hostile condition:
 
 The architecture has failed if it:
 
-- treats a branch as a copied map or a mutable label rather than a basis-exact
-  semantic world with durable lineage
+- treats a branch as a copied map or semantic world rather than an
+  authority-governed mutable reference to an immutable commit and its
+  basis-exact semantic world
 - compares raw current values while ignoring the definition, policy, schema,
   or logic world that gave those values meaning
 - reconstructs node identity from labels, content hashes, storage keys, or
@@ -149,8 +208,8 @@ The architecture has failed if it:
 - gives merge, import repair, routing, physics, assumptions, or AI advisories
   separate durable problem/decision/session state machines
 - assumes a derived Signal graph can be merged as authoritative truth
-- allows Query to become a second merge engine or Store to become semantic
-  branch authority
+- allows Query to become a second merge engine, the physical Store to learn
+  semantic branch meaning, or the Store-Query adapter to become a third runtime
 - claims offline or CRDT support without replica identity, causal context,
   deduplication, tombstone law, causal stability, and bounded compaction
 - garbage-collects history or tombstones while an admitted branch, session,
@@ -167,8 +226,9 @@ This roadmap distinguishes three different claims:
   deterministic reference models are complete. This may unblock later semantic
   milestones before the physical Store runtime exists.
 - `JoinedClose`: the same capability survives durable publication, restart,
-  drainage, retention, and Store-backed execution through the single joined
-  runtime.
+  drainage, retention, and Store-backed execution through the production
+  composition root containing the existing Query runtime, its sibling physical
+  Store instance, and their narrow adapter.
 - `DistributedClose`: the capability survives replica identity, offline
   operation, duplication, reordering, partial transfer, causality, and causal
   reclamation.
@@ -179,6 +239,9 @@ is dishonest only if it calls `SemanticClose` a production durability claim.
 
 ## Product And Authority Locks
 
+These locks name destination ownership and forbidden authority movement. They do
+not grant completion credit to the current implementation.
+
 1. Worth Query is the ordinary authoring, workflow, inspection, and recovery
    facade for collaboration.
 2. Worth Relational owns authoritative semantic version history, branch heads,
@@ -188,11 +251,14 @@ is dishonest only if it calls `SemanticClose` a production durability claim.
    branch-local derived state, and post-merge derived reconciliation.
 4. Worth Runtime Bridge owns the causal protocol joining authoritative truth
    publication to derived evaluation and cross-runtime continuity.
-5. Worth Store owns durable bytes, physical access, durable artifact survival,
-   checkpoint/recovery physics, transfer mechanics, and reclamation mechanics.
-6. The Store integration boundary joins semantic preparation, physical
-   durability, authority publication, Signal routing, acknowledgment, and
-   recovery. It does not invent semantics owned above or below it.
+5. The physical Store instance owns durable bytes, physical access,
+   checkpoint/recovery physics, physical transfer, reclamation mechanics, and
+   exact physical effect fate. It remains ignorant of branch identity, MVCC
+   visibility, semantic conflicts, and merge policy.
+6. The Store-Query adapter owns only the typed join between prepared semantic
+   artifacts and physical evidence: lowering, hydration, evidence correlation,
+   durable publication, and recovery readmission. It does not become a runtime,
+   scheduler, cache, branch registry, truth registry, or merge authority.
 7. Worth Foundational owns vocabulary only where meaning crosses a real crate,
    trust, export, support, or diagnostic boundary. It is not a bag for every
    merge noun.
@@ -214,19 +280,76 @@ is dishonest only if it calls `SemanticClose` a production durability claim.
 13. Public product and platform crates consume Query through the legal audience
     facades. Replay/reconstruction remains certification-only unless an
     ordinary recovery contract explicitly owns the operation.
-14. The current `crates/worth-store` implementation is not treated as the
+14. Store-backed closure consumes the production physical Store facade and
+    Store-Query adapter defined by the active Store roadmaps. No merge milestone
+    may close through a shadow backend, direct physical mechanism access,
+    second Relational instance, Store-local query language, or persisted
+    representation promoted into semantic authority.
+15. The current `crates/worth-store` implementation is not treated as the
     collaboration substrate or compatibility authority. Durable work targets
     the replacement Store/runtime boundaries established by the active Store
     roadmaps.
-15. Candidate sets, search completeness, optimality claims, convergence
+16. Candidate sets, search completeness, optimality claims, convergence
     evidence, transformation records, correspondence suggestions, loss ledgers,
     repair proposals, and advisories are derived evidence. None can authorize
     resolution or publication without an admitted governed-resolution command.
-16. Milestones 10-11 establish the one reusable governed-resolution lifecycle
+17. Milestones 10-11 establish the one reusable governed-resolution lifecycle
     for merge conflicts and later domain problems such as foreign-model repair,
     physical routing, assumption review, and engineering advisories. Merge is
     the first mandatory specialization, not permission to encode the shared
     lifecycle in merge-shaped value bags or Query-local session state.
+
+## Semantic History Principles
+
+Git is the analogy for immutable history, ancestry, references, divergence,
+comparison, and integration. It is not the product feature checklist. WORTH
+uses version-control language only where it names a real semantic responsibility
+or law:
+
+1. A commit is an immutable node in semantic history. It binds ordered parent
+   identity, complete semantic-world basis, canonical authoritative change,
+   definition and policy basis, authoring authority, and provenance. Persisted
+   bytes, display names, or branch labels do not substitute for that identity.
+2. A semantic world is the authoritative meaning observed at one admitted
+   commit basis. It is not a copied map owned by a branch.
+3. A branch is an authority-governed mutable reference to one commit. Moving,
+   protecting, archiving, or deleting the reference is distinct from creating,
+   mutating, retaining, or reclaiming the commits it can reach.
+4. A tag or other named reference has its own mutation, authority, and retention
+   posture. Reference kind is not inferred from a string convention.
+5. A speculative workspace or preview is based on an exact commit but remains
+   distinct from that commit and from any branch reference. Selecting or
+   inspecting a basis does not move a reference or grant publication authority.
+6. Every reference update is compare-and-publish against an expected generation
+   and emits an auditable update record. Protection policy, authority, stale
+   head, indeterminate publication, and recovery posture are explicit.
+7. Commit parent order is canonical and meaningful. The target lineage is the
+   first-parent lineage for an ordinary merge; additional parents preserve the
+   admitted source histories in canonical order.
+8. Merge-base computation returns the exact best common-ancestor basis or basis
+   set. Criss-cross history, multiple best bases, missing ancestry, shallow or
+   partial knowledge, and pruned ancestry remain typed conditions; an executor
+   may not choose an arbitrary convenient base.
+9. A fast-forward is a governed reference movement when the target head is an
+   ancestor of the admitted source head. It does not synthesize a merge commit
+   or rerun semantic merge merely to imitate one.
+10. A true merge reconciles divergent admitted histories through the canonical
+    semantic merge order and normally publishes a new multi-parent commit.
+    Already-integrated and semantic no-op outcomes remain explicit.
+11. Canonical semantic changes must retain enough meaning to test applicability
+    against another admitted basis, compose compatible changes, and preserve
+    source provenance. This supports later selective change application without
+    creating a raw patch lane or bypassing definition, identity, policy,
+    conflict, invariant, or publication law.
+12. Where a domain declares a lawful semantic inverse, reversal creates a new
+    canonical change and commit. It never erases or mutates the original
+    history, and it re-enters ordinary validation and conflict handling.
+
+The history-operation surface is exactly the surface positively admitted by the
+milestones below. Any additional history transformation enters through a later
+product milestone that specifies its semantic identity, provenance, authority,
+collaboration, audit, offline, retention, and recovery laws. Queued-work basis
+movement uses `ReplanRequired` or `BasisAdvanced`.
 
 ## Canonical Semantic Merge Order
 
@@ -295,13 +418,16 @@ graph retroactively.
 ## Target Responsibility Topology
 
 The initial topology below is strongly opinionated about responsibilities but
-does not grant new crate names or freeze exact file cuts. Milestone 1 must map
-it onto legal platform crates and boundary configuration before implementation.
+does not grant new crate names or freeze exact file cuts. Each milestone maps
+and installs only the responsibility slice it makes real. Milestone 1 maps only
+the authority direction needed by `semantic_world_basis/`, `branch_graph/`, and
+`semantic_change/` for Milestones 2 through 4. The remaining destination
+topology enters incrementally with its owning milestones.
 
 ```text
 Relational authority
   semantic_world_basis/         basis and version-world truth
-  branch_graph/                 commits, heads, parents, and ancestry
+  branch_graph/                 commits, references, parents, and ancestry
   semantic_change/              canonical authoritative deltas
   definition_world/             schema, aspect, logic, invariant, policy versions
   correspondence/               identity lineage and admitted correspondence
@@ -353,6 +479,13 @@ Milestone 1 must assign the governed-resolution control-plane authority to a
 legal crate/package boundary without defaulting it into Query, Relational,
 Store, or Foundational merely because those authorities participate.
 
+The responsibilities for Store-backed records, lowering, hydration, durable
+publication joins, recovery readmission, physical transfer, and physical
+reclaim are external consumers of this topology owned by the Store Runtime And
+Query Integration Roadmap. They must implement the semantic contracts through
+the narrow Store-Query adapter; they are not responsibilities to recreate
+inside this roadmap.
+
 ## Product DX Target
 
 The common path should read like semantic intent while the advanced path keeps
@@ -393,40 +526,46 @@ caller crosses the relevant boundary.
 
 ## Milestone Plan
 
-## Milestone 1: Collaboration Laws And Ownership
+## Milestone 1: Semantic History Laws And Ownership
+
+Detailed spec:
+[`merging-and-branching-m1.md`](merging-and-branching-m1.md)
 
 ### Goal
 
-Freeze the semantic vocabulary, authority map, dependency direction, lifecycle
-states, closure classes, and enforcement boundaries for the entire program
-before any crate widens its collaboration API.
+Freeze only the semantic history vocabulary, authority direction, and
+enforcement boundaries required for Milestones 2 through 4 to build world
+basis, commit/reference history, and canonical semantic change without
+competing meanings.
 
 ### Hard Problem
 
-Branch and merge concepts already exist independently in Relational, Signal,
-Bridge, Query, Foundational, and Store planning. If those local concepts are
-extended independently, WORTH will acquire several plausible but incompatible
-definitions of branch basis, strategy, conflict, publication, and recovery.
+Query, Relational, Signal, and Bridge already contain adjacent notions of
+version, branch, basis, publication, and change. If Milestones 2 through 4
+extend them without one minimal ownership law, later merge work will inherit
+incompatible definitions of commit identity, reference movement, semantic
+world basis, and canonical change.
 
 ### Must Ship
 
-- an authority matrix for every canonical and derived collaboration artifact
-- a legal package and dependency home for governed-resolution problem,
-  decision, and session progression that sits above participating semantic
-  domains without acquiring their publication authority
-- a typed lifecycle from raw request through admission, comparison, planning,
-  conflict, resolution, preparation, publication, reconciliation, and recovery
-- a vocabulary decision for world, basis, branch, commit, change, diff, merge,
-  conflict, resolution, replica, frontier, tombstone, and stability
-- an explicit migration map for Query Milestone 9.3.8 Phases 36 through 41 and
-  Store runtime Milestones 10, 15, and 16
-- boundary-check rules preventing Query from owning merge truth, Store from
-  owning semantic visibility, Signal from publishing authority, and ordinary
-  crates from consuming certification replay
-- support-matrix rows for runtime-backed, Store-backed, offline, CRDT, and
-  partial-replica modes
-- a spec template requiring closure class, authority/derivation, DX, cost, and
-  hostile proof sections for every later milestone
+- an authority matrix limited to semantic-world basis, immutable commit,
+  mutable reference, canonical authoritative change, derived ancestry
+  acceleration, and Query projection
+- a vocabulary decision for world, basis, commit, ordered parent, branch, tag,
+  reference, speculative workspace, semantic change, diff, and merge base
+- the minimum typed progression required to admit a world basis, observe or
+  compare commits, prepare canonical change, and compare-and-publish a
+  reference without caller-minted authority
+- boundary-check rules preventing Query from owning commit or reference truth,
+  Signal from publishing authority, persisted representations from minting
+  semantic authority, and ordinary crates from consuming certification replay
+- one cross-roadmap handoff law stating that later Store-backed integration may
+  consume these semantic contracts through Query provider and adapter
+  boundaries while `SemanticClose` remains local to this foundation
+
+This milestone ends at the foundation consumed by Milestones 2 through 4.
+Capability vocabulary, admission posture, support matrices, lifecycle, and
+proof enter with the milestone that owns them.
 
 ### Authority And Derivation
 
@@ -437,22 +576,26 @@ truth.
 
 ### DX Target
 
-An implementer must be able to answer "who proves this, who stores it, who may
-project it, and who may recover it?" from the roadmap and generated boundary
-context without searching source history.
+An implementer of Milestones 2 through 4 must be able to answer "what is the
+world basis, what is immutable history, what is a mutable reference, who may
+move it, and what is canonical change?" without importing later collaboration
+or physical-storage concepts.
 
 ### Proof Obligations
 
 - boundary checker rejects representative authority inversions
-- compile-fail cases reject caller-minted collaboration authority
-- every existing branch/merge surface is classified as canonical, derived,
+- compile-fail cases reject caller-minted basis, commit-publication, and
+  reference-movement authority
+- every existing basis, branch, version, and change surface needed by
+  Milestones 2 through 4 is classified as canonical, derived,
   compatibility-only, or scheduled for replacement
-- no retained term has two incompatible meanings across public facades
+- no retained core history term has two incompatible meanings across the
+  affected public facades
 
 ### Closeout Gate
 
-Earn `SemanticClose` only when the dependency graph and type progression make
-the planned authority split mechanically enforceable. Documentation agreement
+Earn `SemanticClose` only when Milestones 2 through 4 can build against one
+mechanically enforceable semantic history foundation. Documentation agreement
 alone does not close this milestone.
 
 ## Milestone 2: Canonical Semantic World Basis
@@ -511,10 +654,10 @@ assembling lower-runtime ids manually.
 
 Earn `SemanticClose` when every runtime-backed collaboration operation consumes
 the composite proof-bearing basis. Earn `JoinedClose` later when the basis
-survives Store restart and fresh readmission without persisted authority
-promotion.
+survives restart through the Store-backed composition root and fresh Query and
+Relational readmission without persisted authority promotion.
 
-## Milestone 3: Durable Branch And Commit Graph
+## Milestone 3: Canonical Branch, Commit, And Reference Graph
 
 ### Goal
 
@@ -525,9 +668,9 @@ long-running branch retention.
 ### Hard Problem
 
 An in-memory branch copied from a current head cannot support arbitrary bases,
-crash recovery, retained readers, concurrent publication, or offline ancestry.
-Conversely, a physical Store DAG cannot decide semantic parenthood or branch
-truth.
+retained readers, concurrent publication, durable recovery, or offline
+ancestry. Conversely, persisted records or a physical Store DAG cannot decide
+semantic parenthood, reference kind, or branch truth.
 
 ### Must Ship
 
@@ -536,18 +679,27 @@ truth.
 - branch creation from any admitted retained basis, not only the current head
 - atomic compare-and-publish branch-head movement with typed stale-head outcome
 - multi-parent commits without flattening parent meaning into one predecessor
-- tags or named references with authority and retention semantics distinct from
-  mutable branch heads
+- first-parent target lineage and canonical additional-parent ordering
+- tags and other named references with authority, mutation, and retention
+  semantics distinct from mutable branch heads
+- auditable reference-update records distinct from immutable commit history
+- fast-forward classification as governed reference movement rather than a
+  synthetic merge commit
 - branch deletion, archival, protection, and pinning contracts
 - branch-local concurrent preparation and narrow publication coordination
-- ancestry, common-ancestor, generation, reachability, and retained-base indexes
-  whose authoritative versus derived status is explicit
-- canonical durable record contracts consumed later by Store integration
+- ancestry, best-common-ancestor-set, generation, first-parent, reachability,
+  and retained-base indexes whose authoritative versus derived status is
+  explicit
+- typed multiple-best-base, missing-ancestry, partial-ancestry, and
+  pruned-ancestry posture
+- canonical persistence contracts consumed later through the Store-Query
+  adapter
 
 ### Authority And Derivation
 
-Relational owns semantic commit and branch truth. Store later preserves the
-records and atomic publication evidence. Ancestry accelerators are derived and
+Relational owns semantic commit, reference, and branch truth. The Store-backed
+composition later preserves records and atomic physical evidence through the
+adapter without interpreting them. Ancestry accelerators are derived and
 rebuildable. Query exposes workflows but cannot move heads directly.
 
 ### DX Target
@@ -561,6 +713,10 @@ recovery rather than a boolean.
 - randomized DAG operations agree with an independent reference model
 - concurrent disjoint branches progress without a runtime-global lock
 - same-branch overlapping publications cannot lose updates
+- fast-forward changes only the governed reference and preserves the exact
+  descendant world
+- criss-cross histories return the deterministic admitted best-base set or a
+  typed unsupported/indeterminate posture rather than an arbitrary base
 - ancestry and fork cost are sublinear in total world size and carry exact
   structural counters
 - forged parent, reordered parent, missing parent, and cross-runtime parent
@@ -569,8 +725,9 @@ recovery rather than a boolean.
 ### Closeout Gate
 
 Earn `SemanticClose` when the runtime-backed DAG and reference model agree under
-concurrency. The word durable earns `JoinedClose` only in Milestone 14 after
-Store publication and recovery evidence exists.
+concurrency. Earn `JoinedClose` only when Store Runtime Integration Milestones 3
+and 10 consume these contracts through the production adapter and prove
+publication, restart, historical access, and fresh readmission.
 
 ## Milestone 4: Semantic Change And Diff Model
 
@@ -593,6 +750,12 @@ path/value patch would discard exactly the meaning later merge policy needs.
 - explicit unchanged, added, removed, replaced, unknown, unavailable, pruned,
   and not-materialized states
 - normalized semantic deltas with stable ordering and exact round-trip laws
+- applicability classification against another admitted basis without treating
+  a raw patch as authority
+- composition of compatible canonical changes with preserved source-commit and
+  source-basis provenance
+- lawful semantic inversion where the domain contract supports reversal, with
+  typed non-invertible and revalidation-required posture
 - scoped diff planning that declares bases, aspect/relationship selection,
   correspondence requirements, and materialization needs before execution
 - separate authoritative diff and derived impact/explanation artifacts
@@ -604,7 +767,8 @@ path/value patch would discard exactly the meaning later merge policy needs.
 
 Owning runtimes emit canonical effects at commit. Relational compares
 authoritative worlds. Signal supplies derived impact only. Query shapes the
-result. Store persists canonical effects and optional rebuildable acceleration.
+result. The Store-backed adapter may persist canonical effects and optional
+rebuildable acceleration without interpreting or applying them independently.
 
 ### DX Target
 
@@ -617,6 +781,11 @@ changes with basis and ambiguity intact.
 - applying a canonical delta to its admitted basis reconstructs the target
   authoritative world
 - inverse deltas restore the source where the operation family is reversible
+- applying an admitted change to another compatible basis produces the same
+  canonical result as ordinary planning and execution, while definition,
+  identity, policy, conflict, and invariant drift reject or replan typed
+- composed changes preserve the final semantic world and provenance of their
+  ordered source changes
 - direct diff equals accumulated canonical commit effects after normalization
 - narrow diff work scales with candidate semantic delta plus declared
   dependency closure, not total graph size
@@ -626,7 +795,9 @@ changes with basis and ambiguity intact.
 
 Earn `SemanticClose` when diff is a canonical typed semantic artifact and every
 later merge input can depend on it without interpreting raw storage or Query
-projection shapes.
+projection shapes. This milestone supplies the substrate for later selective
+change application and lawful reversal. Its product surface ends at canonical
+semantic change and diff.
 
 ## Milestone 5: Versioned Definition Worlds
 
@@ -658,15 +829,16 @@ results depend on execution time.
   replacement, dependency changes, and rebuild obligations
 - historical interpretation through the definitions admitted at the original
   basis, not ambient current registries
-- compatibility matrices for runtime, Store records, offline capsules, and
-  mixed-version replicas
+- compatibility matrices for runtime artifacts, Store-backed semantic records,
+  offline capsules, and mixed-version replicas
 
 ### Authority And Derivation
 
 Each canonical definition family stays with its semantic owner. Relational
 binds authoritative data to the admitted definition world. Signal owns derived
-definition execution. Store persists versioned definitions but never interprets
-their semantic compatibility independently.
+definition execution. In Store-backed mode, versioned definitions persist
+through declared adapter mappings; neither the physical Store nor the adapter
+interprets their semantic compatibility independently.
 
 ### DX Target
 
@@ -679,7 +851,7 @@ definition conflict is resolved.
 - historical values retain their original meaning after current definitions
   evolve
 - deterministic migrations produce identical canonical outputs across replay,
-  Store restore, and offline import
+  Store-backed restart/readmission, and offline import
 - aspect-add/remove/retype and node-logic divergence matrices cover every
   three-way combination
 - a definition conflict prevents dependent fact merge and derived evaluation
@@ -784,7 +956,8 @@ generic value merge is too weak to preserve domain meaning.
 
 Relational owns authoritative aspect merge execution. Domain-declared strategy
 definitions contribute policy through admitted contracts but do not bypass
-Relational publication. Query authors and inspects; Store persists effects.
+Relational publication. Query authors and inspects; Store-backed persistence
+consumes the canonical effects through the adapter.
 
 ### DX Target
 
@@ -916,7 +1089,8 @@ deduplication, tombstone, migration, and invariant posture.
 
 - generated values and operation histories falsify every claimed law
 - resolver outputs are byte-identical under process, platform-supported build,
-  input permutation, replay, and Store restore where ordering should not matter
+  input permutation, replay, and Store-backed restart/readmission where ordering
+  should not matter
 - a mutation to a certified resolver that breaks one law makes CI red
 - incompatible strategy evolution rejects or migrates before merge
 - negative controls prove the harness detects deliberately non-convergent
@@ -1066,7 +1240,8 @@ publication owner can drift independently while the session remains open.
 
 The governed-resolution control-plane authority owns session workflow state,
 not semantic truth. Relational still decides whether a resolved merge plan can
-prepare. Store persists session records. Query exposes participant and operator
+prepare. In Store-backed mode, session records persist through the adapter's
+declared semantic-artifact mapping. Query exposes participant and operator
 workflows. A persisted role or past approval does not restore current authority
 without readmission.
 
@@ -1103,8 +1278,8 @@ never select a different session framework based on problem domain.
 
 Earn `SemanticClose` for the session state machine and reference persistence
 model across merge and one hostile non-merge specialization. Earn `JoinedClose`
-only after the replacement Store runtime durably recovers sessions, decisions,
-and pins without promoting persisted authority.
+only after the production Store-backed composition durably recovers sessions,
+decisions, and pins through the adapter without promoting persisted authority.
 
 ## Milestone 12: Signal Definition And Derived-World Reconciliation
 
@@ -1141,8 +1316,9 @@ ordinary merges unbounded and destroy live continuity.
 
 Signal owns derived definitions, evaluation, and resource lifecycle.
 Relational's published merge effect is the authoritative input. Bridge carries
-the causal handoff. Query projects continuity and recovery. Store may persist
-declared acceleration but cannot make it authoritative.
+the causal handoff. Query projects continuity and recovery. The Store-backed
+adapter may persist declared acceleration, but neither it nor the physical Store
+can make that acceleration authoritative.
 
 ### DX Target
 
@@ -1172,21 +1348,25 @@ authority promotion.
 ### Goal
 
 Define one typed protocol that joins Relational merge preparation, Bridge
-causality, Signal reconciliation, Store durability preparation, Query outcome,
-and recovery without collapsing their authorities.
+causality, Signal reconciliation, the Query publication-provider boundary,
+Query outcome, and recovery without collapsing their authorities.
 
 ### Hard Problem
 
 A semantically valid Relational merge is not a complete runtime transition. The
-Store must durably record it, the branch head must publish atomically, Signal
+branch head must publish through the admitted Query runtime provider, Signal
 must observe the exact canonical effect, Query must acknowledge honestly, and
-recovery must know which phases happened after a crash.
+recovery must know which semantic phases happened. A Store-backed provider
+later inserts physical durability evidence into this same progression rather
+than creating a second merge protocol.
 
 ### Must Ship
 
 - a proof-widening protocol such as admitted -> compared -> planned -> resolved
-  -> invariant-valid -> prepared -> durable -> authority-published ->
-  derivation-reconciled -> acknowledged
+  -> invariant-valid -> prepared -> publication-admitted ->
+  authority-published -> derivation-reconciled -> acknowledged
+- an explicit Store-backed widening point where `publication-admitted`
+  additionally requires the production adapter's exact durable-commit evidence
 - one immutable cross-runtime merge summary derived once at the batch boundary
 - lowered per-authority plans that executors consume without re-deciding policy,
   strategy, artifact richness, or coordination scope
@@ -1200,9 +1380,9 @@ recovery must know which phases happened after a crash.
 ### Authority And Derivation
 
 The protocol coordinator owns sequencing only. It cannot mint Relational,
-Signal, Store, Query, or operator authority. Each phase consumes a proof from
-the prior authority and returns a sealed artifact sufficient for the next
-phase.
+Signal, Query, publication-provider, physical Store, or operator authority.
+Each phase consumes a proof from the prior authority and returns a sealed
+artifact sufficient for the next phase.
 
 ### DX Target
 
@@ -1222,17 +1402,19 @@ and recovery state without reaching into runtime internals.
 
 ### Closeout Gate
 
-Earn `SemanticClose` when the complete protocol executes against deterministic
-runtime-backed and fake durable authorities. Production publication remains
-unearned until Milestone 14.
+Earn `SemanticClose` when the complete semantic protocol executes through the
+production runtime-backed Query provider with no durability claim and the
+Store-backed widening point is contractually fixed. Fake durability cannot earn
+`JoinedClose`; production Store-backed publication remains Milestone 14.
 
 ## Milestone 14: Crash-Safe Merge Publication And Recovery
 
 ### Goal
 
-Bind the cross-runtime protocol to the replacement Store runtime so a merge is
-durable, atomically publishable, restart-safe, idempotently recoverable, and
-honestly acknowledged.
+Close the cross-runtime protocol through the production Store-backed Query
+composition root so a merge is durable, atomically publishable, restart-safe,
+idempotently recoverable, and honestly acknowledged without adding Store-owned
+merge semantics.
 
 ### Hard Problem
 
@@ -1244,10 +1426,13 @@ truth.
 
 ### Must Ship
 
-- versioned Store records for merge plan identity, canonical effect, ordered
-  parents, branch publication intent, session decisions, definition basis, and
-  protocol progress
-- WAL/checkpoint integration through the physical Store's real durability path
+- versioned semantic persistence requirements for merge plan identity,
+  canonical effect, ordered parents, branch publication intent, session
+  decisions, definition basis, and protocol progress, consumed by the
+  Store-Query adapter
+- lowering through the production physical Store facade and the canonical
+  durable-commit join from Store Runtime Integration Milestone 3, never direct
+  WAL, checkpoint, backend, or physical Signal access from merge code
 - atomic or recoverably joined semantic commit and branch-head publication
 - exact acknowledgment rule distinguishing failed, rejected, committed,
   indeterminate, and recovered outcomes
@@ -1261,10 +1446,12 @@ truth.
 
 ### Authority And Derivation
 
-Store proves byte survival and physical publication. Relational proves semantic
-head truth. Bridge proves causal continuation. Signal proves derived
-reconciliation. Query reports the joined outcome. Recovery may reconstruct
-proofs from authoritative records but cannot restore obsolete authority tokens.
+The physical Store proves byte survival and exact physical effect fate.
+Relational proves semantic head truth. The Store-Query adapter correlates those
+proofs without becoming either authority. Bridge proves causal continuation,
+Signal proves derived reconciliation, and Query reports the joined outcome.
+Recovery may reconstruct admissible evidence from authoritative records but
+must freshly admit Query, Relational, policy, and operator authority.
 
 ### DX Target
 
@@ -1285,9 +1472,11 @@ search logs for a commit id.
 
 ### Closeout Gate
 
-Earn `JoinedClose` only against the production Store boundaries established by
-Store runtime Milestones 2, 3, 7, 8, and 10. A mock WAL or alternate local
-database cannot close this milestone.
+Earn `JoinedClose` only through the production composition root and adapter
+boundaries established by Store Runtime Integration Milestones 2, 3, 7, 8, and
+10 over the certified physical Store facade. A mock WAL, alternate local
+database, direct physical mechanism call, or Store-local merge path cannot
+close this milestone.
 
 ## Milestone 15: Query Semantic-Git Product Surface
 
@@ -1315,8 +1504,10 @@ projections over the real lower-authority model built in Milestones 1 through
   strategy, and protocol posture
 - semantic compare and diff declarations with aspect-, relationship-,
   definition-, topology-, and policy-level result shaping
-- branch creation, mutation, merge planning, conflict preview, resolution
-  session, publication, and post-merge inspection workflows
+- branch and reference inspection, branch creation from an exact retained
+  basis, tag/reference policy, mutation, fast-forward classification, true
+  merge planning, conflict preview, resolution session, publication, and
+  post-merge inspection workflows
 - specialization-neutral governed-resolution authoring, inspection, proposal,
   approval, deferral, replan, cancellation, recovery, and publication
   projection over the Milestones 10-14 authorities
@@ -1332,8 +1523,10 @@ projections over the real lower-authority model built in Milestones 1 through
 ### Authority And Derivation
 
 Query owns declaration, orchestration DX, result shaping, explanation, and
-recovery projection. It lowers to Relational, Signal, Bridge, Store integration,
-Foundational, and Proof authorities and may not reinterpret their verdicts.
+recovery projection. It lowers to Relational, Signal, Bridge, Foundational,
+Proof, and Query publication-provider contracts and may not reinterpret their
+verdicts. In Store-backed mode, the production adapter implements the relevant
+provider contracts without becoming visible product vocabulary.
 Candidate/search/convergence/transformation evidence from Query 9.15 may be
 projected into this workflow but cannot replace its conflict, decision, session,
 publication, or recovery authorities.
@@ -1399,10 +1592,11 @@ policy evolve.
 
 ### Authority And Derivation
 
-Store owns capsule bytes and transfer mechanics. Relational owns imported
-semantic admission and branch integration. Query owns offline workflow DX.
-Security authorities own capability and custody. A capsule is a portable
-observation plus proposed history, not current authority.
+The physical Store owns capsule bytes and transfer mechanics only through the
+Store-backed adapter contracts. Relational owns imported semantic admission and
+branch integration. Query owns offline workflow DX. Security authorities own
+capability and custody. A capsule is a portable observation plus proposed
+history, not current authority.
 
 ### DX Target
 
@@ -1423,9 +1617,10 @@ quarantined outcomes with resumable progress.
 
 ### Closeout Gate
 
-Earn `DistributedClose` only after Store runtime Milestone 16 provides the real
-portable transport and the complete offline edit/import/merge journey passes
-against production boundaries.
+Earn `DistributedClose` only after Store Runtime Integration Milestone 16
+provides the real portable transport through the production adapter and the
+complete offline edit/import/merge journey passes against production
+boundaries.
 
 ## Milestone 17: Replica Causality And CRDT Runtime
 
@@ -1462,8 +1657,9 @@ rules. A vector clock alone does not solve semantic conflicts or invariants.
 
 The causal runtime orders and deduplicates observations; it does not decide
 domain meaning. Relational applies admitted semantic operations. Domain
-convergence contracts define lawful algebra. Store persists journals and
-frontiers. Query exposes synchronization and conflict posture.
+convergence contracts define lawful algebra. In Store-backed mode, journals and
+frontiers persist through the adapter's declared semantic-artifact mappings.
+Query exposes synchronization and conflict posture.
 
 ### DX Target
 
@@ -1521,9 +1717,11 @@ facts outside the selected scope.
 
 ### Authority And Derivation
 
-Source authorities define truth and allowed disclosure. Store transports and
-materializes admitted scope. Query declares scope and shapes partial outcomes.
-A partial replica cannot infer negative truth from missing materialization.
+Source authorities define truth and allowed disclosure. In Store-backed mode,
+the adapter lowers admitted scope into physical transport and materialization
+plans, and the physical Store executes those plans without interpreting
+semantic completeness. Query declares scope and shapes partial outcomes. A
+partial replica cannot infer negative truth from missing materialization.
 
 ### DX Target
 
@@ -1581,10 +1779,11 @@ unbounded.
 
 ### Authority And Derivation
 
-Each artifact owner declares semantic survival requirements. Store executes
-physical reclaim and tier movement. The integration lifecycle authority joins
-pins. Query and operators configure policies through typed scoped plans; they
-cannot order unsafe deletion.
+Each artifact owner declares semantic survival requirements. The physical Store
+executes physical reclaim and tier movement; the Store-backed integration
+lifecycle joins semantic pins to physical work without becoming retention
+authority. Query and operators configure policies through typed scoped plans;
+they cannot order unsafe deletion.
 
 ### DX Target
 
@@ -1607,8 +1806,8 @@ long-running maintenance.
 ### Closeout Gate
 
 Earn `JoinedClose` and `DistributedClose` only after integration with Store
-runtime Milestone 6 residency, Milestone 15 retention, and the real replica
-membership/stability model.
+Runtime Integration Milestone 6 residency, Milestone 15 retention, and the real
+replica membership/stability model through the production composition root.
 
 ## Milestone 20: Extension And Domain Policy SDK
 
@@ -1761,7 +1960,8 @@ Component tests cannot prove the joined system.
 
 - an independent executable semantic reference model
 - deterministic schedule exploration with shrinking for concurrent runtime,
-  session, Store, Bridge, Signal, Query, and replica actors
+  session, Query, Relational, Bridge, semantic Signal, Store-Query adapter,
+  physical Store, and replica actors
 - formal or model-checked protocols for branch-head publication, session
   decision progression, merge publication, replica causality, and stability-
   gated reclamation
@@ -1785,8 +1985,8 @@ reference model is an oracle, not runtime authority.
 
 One command runs the bounded presubmit courtroom; explicit heavier commands run
 schedule exploration, long-duration convergence, formal models, and
-greater-than-memory Store trials. Failures shrink to a replayable semantic and
-interleaving transcript.
+greater-than-memory Store-backed trials through the production composition
+root. Failures shrink to a replayable semantic and interleaving transcript.
 
 ### Proof Obligations
 
@@ -1813,6 +2013,9 @@ uncertified strategy behavior.
 
 - two branches fork from a multi-million-node, aspect-rich world and evolve
   through the equivalent of years of commits
+- histories include fast-forwards, true multi-parent merges, first-parent
+  traversal, criss-cross ancestry with multiple best bases, protected reference
+  updates, branch deletion, retained tags, and semantic no-op integration
 - both branches add and remove aspect definitions, migrate populated aspects,
   replace node logic, change invariants and merge policies, split and join
   identities, restructure relationships, and modify large ordered topologies
@@ -1822,15 +2025,16 @@ uncertified strategy behavior.
 - a multi-user resolution session resolves thousands of aspect-, identity-,
   topology-, definition-, and invariant-level conflicts while heads continue
   moving and selected authorities are revoked
-- crashes occur at every Store, Relational, Bridge, Signal, Query, and session
-  phase; memory pressure concurrently drains and rehydrates state
+- crashes occur at every Query, Relational, Bridge, semantic Signal,
+  Store-Query adapter, physical Store, and session phase; memory pressure
+  concurrently drains and rehydrates state
 - the final published world must equal the independent semantic oracle,
   preserve every acknowledged decision, classify every stale decision, rebuild
   all derived state, and keep work proportional to semantic delta and dependency
   closure rather than total history
 
 This scenario is mandatory from Milestone 3 onward and must close through the
-joined Store runtime in Milestones 14, 19, and 22.
+production Store-backed composition root in Milestones 14, 19, and 22.
 
 ### Scenario B: Offline Planetary Partition And CRDT Siege
 
@@ -1896,9 +2100,10 @@ in parallel only after the shared prerequisites below are fixed:
   Milestone 7 cannot claim automatic convergence it has not yet certified.
 - Session UI and Query ergonomics may prototype against typed fakes after
   Milestone 10, but Milestone 11 and 15 cannot close against those fakes.
-- Store record/codec design may begin with Milestones 2 through 5, but durable
-  publication must use the production integration spine and cannot fork an
-  alternate persistence path.
+- Store Runtime Integration semantic-record and codec design may begin with
+  Milestones 2 through 5, but it must consume the canonical contracts through
+  the production adapter; durable publication cannot fork an alternate
+  persistence or merge path.
 - Signal definition reconciliation may begin after Milestone 5, but full
   reconciliation consumes the canonical authoritative merge effect from
   Milestones 7 and 8.
@@ -1913,8 +2118,9 @@ in parallel only after the shared prerequisites below are fixed:
 - Extension-kit design starts with the first built-in strategy but cannot close
   until offline, partial-replica, lifecycle, and operational obligations are
   known.
-- Certification infrastructure begins in Milestone 1 and expands continuously;
-  Milestone 22 remains the final integrated gate.
+- The semantic-history reference model and boundary tests begin in Milestone 1.
+  Later milestones add certification only when they introduce the capability
+  being certified; Milestone 22 remains the final integrated gate.
 - Query 9.15 candidate-search, convergence, transformation, loss, and
   single-basis proposal evidence may proceed before Milestone 10. Durable
   conflict identity, participant decisions, approval/deferral, carry-forward,
@@ -1931,6 +2137,11 @@ This roadmap is complete only when WORTH can honestly say:
 
 - a semantic world is identified by complete proof-bearing meaning, not a raw
   branch label or value snapshot
+- commits are immutable semantic-history nodes while branches, tags, and other
+  references retain distinct governed mutation and retention laws
+- fast-forward is reference movement, true merge preserves canonical
+  multi-parent history, and multiple-best-base ancestry cannot be collapsed to
+  an arbitrary merge base
 - long-running branches preserve stable identity, definition history,
   relationships, policy, and invariants
 - diff is semantic, structured, scoped, and delta-bounded
@@ -1945,6 +2156,9 @@ This roadmap is complete only when WORTH can honestly say:
   without collapsing their domain semantics or publication authorities
 - one cross-runtime protocol joins semantic preparation, durable publication,
   branch-head truth, derived reconciliation, acknowledgment, and recovery
+- the Store-backed composition closes that protocol through one Query runtime,
+  one branch-agnostic physical Store instance, and one narrow adapter without
+  creating Store-owned merge semantics
 - Query is the ordinary semantic-Git facade without becoming a second truth or
   merge engine
 - offline work crosses trust boundaries through capsules, quarantine, causal

@@ -5,24 +5,24 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BackendQueueExecutionTicketDenial {
+pub(crate) enum BackendQueueExecutionTicketDenial {
     BackendProfileMismatch,
     BackendEvidenceClassMismatch,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct BackendQueueExecutionAuthority {
+pub(crate) struct BackendQueueExecutionAuthority {
     _private: (),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct BackendQueueExecutionTicket {
+pub(crate) struct BackendQueueExecutionTicket {
     binding: BackendQueueExecutionPlanBinding,
     posture: BackendQueueExecutionPosture,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct BackendQueueExecutionCompletionBuilder {
+pub(crate) struct BackendQueueExecutionCompletionBuilder {
     ticket: BackendQueueExecutionTicket,
     queue_depth_sample: u32,
     read_ahead_units: u64,
@@ -68,15 +68,7 @@ impl BackendQueueExecutionTicket {
         Self { binding, posture }
     }
 
-    pub const fn binding(self) -> BackendQueueExecutionPlanBinding {
-        self.binding
-    }
-
-    pub const fn posture(self) -> BackendQueueExecutionPosture {
-        self.posture
-    }
-
-    pub const fn begin_completion(self) -> BackendQueueExecutionCompletionBuilder {
+    pub(crate) const fn begin_completion(self) -> BackendQueueExecutionCompletionBuilder {
         BackendQueueExecutionCompletionBuilder {
             ticket: self,
             queue_depth_sample: 0,
@@ -94,22 +86,12 @@ impl BackendQueueExecutionTicket {
 }
 
 impl BackendQueueExecutionCompletionBuilder {
-    pub const fn observe_queue_depth(mut self, queue_depth_sample: u32) -> Self {
+    pub(crate) const fn observe_queue_depth(mut self, queue_depth_sample: u32) -> Self {
         self.queue_depth_sample = queue_depth_sample;
         self
     }
 
-    pub const fn observe_read_ahead(
-        mut self,
-        units: u64,
-        scope: BackendQueueSpeculativeScope,
-    ) -> Self {
-        self.read_ahead_units = units;
-        self.read_ahead_scope = Some(scope);
-        self
-    }
-
-    pub const fn observe_write_back(
+    pub(crate) const fn observe_write_back(
         mut self,
         units: u64,
         scope: BackendQueueSpeculativeScope,
@@ -119,32 +101,7 @@ impl BackendQueueExecutionCompletionBuilder {
         self
     }
 
-    pub const fn observe_mechanical_adaptation(
-        mut self,
-        retries: u64,
-        partial_reads: u64,
-        short_writes: u64,
-    ) -> Self {
-        self.mechanical_retries = retries;
-        self.partial_read_events = partial_reads;
-        self.short_write_events = short_writes;
-        self
-    }
-
-    pub const fn observe_backpressure(
-        mut self,
-        backpressure: BackendQueueExecutionBackpressure,
-    ) -> Self {
-        self.backpressure = Some(backpressure);
-        self
-    }
-
-    pub const fn observe_foreground_wait_events(mut self, foreground_wait_events: u64) -> Self {
-        self.foreground_wait_events = foreground_wait_events;
-        self
-    }
-
-    pub const fn complete(self) -> BackendQueueExecutionCompletion {
+    pub(crate) const fn complete(self) -> BackendQueueExecutionCompletion {
         BackendQueueExecutionCompletion::from_backend_ticket(
             self.ticket.binding,
             self.ticket.posture,

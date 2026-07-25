@@ -11,7 +11,12 @@ pub(crate) fn validate_source_identifier_denials(
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     for rule in rules {
-        visit_rust_sources(workspace, &workspace.join(&rule.root), rule, &mut diagnostics);
+        visit_rust_sources(
+            workspace,
+            &workspace.join(&rule.root),
+            rule,
+            &mut diagnostics,
+        );
     }
     diagnostics
 }
@@ -49,7 +54,11 @@ fn visit_rust_sources(
                 }
             };
             diagnostics.extend(diagnostics_for_source(
-                &path.strip_prefix(workspace).unwrap_or(&path).display().to_string(),
+                &path
+                    .strip_prefix(workspace)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string(),
                 &source,
                 rule,
             ));
@@ -57,7 +66,11 @@ fn visit_rust_sources(
     }
 }
 
-fn unreadable_source_diagnostic(workspace: &Path, path: &Path, error: &std::io::Error) -> Diagnostic {
+fn unreadable_source_diagnostic(
+    workspace: &Path,
+    path: &Path,
+    error: &std::io::Error,
+) -> Diagnostic {
     Diagnostic::new(
         DiagnosticCode::Bc2001BandDependencyViolation,
         &path
@@ -83,6 +96,7 @@ fn diagnostics_for_source(
     };
     let mut visitor = ForbiddenIdentifierVisitor {
         forbidden: &rule.forbidden_identifiers,
+        forbidden_fragments: &rule.forbidden_identifier_fragments,
         found: BTreeSet::new(),
     };
     visitor.visit_file(&file);
@@ -104,13 +118,19 @@ fn diagnostics_for_source(
 
 struct ForbiddenIdentifierVisitor<'a> {
     forbidden: &'a [String],
+    forbidden_fragments: &'a [String],
     found: BTreeSet<String>,
 }
 
 impl Visit<'_> for ForbiddenIdentifierVisitor<'_> {
     fn visit_ident(&mut self, identifier: &proc_macro2::Ident) {
         let identifier = identifier.to_string();
-        if self.forbidden.iter().any(|denied| denied == &identifier) {
+        if self.forbidden.iter().any(|denied| denied == &identifier)
+            || self
+                .forbidden_fragments
+                .iter()
+                .any(|denied| identifier.contains(denied))
+        {
             self.found.insert(identifier);
         }
     }
@@ -147,6 +167,7 @@ mod tests {
                 "BranchWriterAuthority".into(),
                 "MVCC".into(),
             ],
+            forbidden_identifier_fragments: Vec::new(),
             guidance: "wrong authority layer".into(),
         }
     }
@@ -192,6 +213,24 @@ mod tests {
             &rule,
         );
         assert_eq!(diagnostics.len(), 2);
+    }
+
+    #[test]
+    fn semantic_authority_fragments_reject_composed_names_without_rejecting_physical_branches() {
+        let mut rule = rule();
+        rule.forbidden_identifiers.clear();
+        rule.forbidden_identifier_fragments = vec![
+            "BranchWriter".into(),
+            "branch_label".into(),
+            "BRANCH_WRITER".into(),
+            "SemanticGeneration".into(),
+        ];
+        let diagnostics = diagnostics_for_source(
+            "physical_runtime/record_serving/authority.rs",
+            "struct StoreBranchWriterRegistry; const branch_label_scope: u8 = 1; static BRANCH_WRITER_AUTHORITY: u8 = 1; struct SemanticGenerationLease; enum PhysicalRoutingTree { Branch }",
+            &rule,
+        );
+        assert_eq!(diagnostics.len(), 4);
     }
 
     #[test]

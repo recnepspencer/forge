@@ -10,9 +10,9 @@ use worth_store_recovery_physics::{
 
 use super::s4_recovery_integrity_fixture::{
     inspect_checkpoint_record, inspect_manifest, inspect_page_report, inspect_wal_damage,
-    inspect_wal_frame, inspection_envelope, receipt,
+    inspect_wal_frame, inspection_envelope, receipt, with_checked_frame,
 };
-use super::s4_recovery_physical_fixture::{page_payload_with_record, with_protected_payload_view};
+use super::s4_recovery_physical_fixture::{page_payload_with_record, validation};
 
 pub(super) fn intact_payload(
     label: &str,
@@ -123,9 +123,9 @@ fn partial_publication_before_wal_replay_read(
 ) -> PartialPublicationBeforeWalReplayRead {
     let bytes = partial_publication_before_wal_bytes(operation_digest);
     let mut replay_read = None;
-    with_protected_payload_view(&bytes, |protected| {
+    with_checked_frame(&bytes, validation(1, 2, 3, 7), |checked| {
         replay_read = Some(
-            PartialPublicationBeforeWalReplayRead::from_protected_physical_bytes(protected)
+            PartialPublicationBeforeWalReplayRead::from_integrity_checked_frame(checked)
                 .expect("protected fixture bytes encode before-WAL partial publication replay"),
         );
     });

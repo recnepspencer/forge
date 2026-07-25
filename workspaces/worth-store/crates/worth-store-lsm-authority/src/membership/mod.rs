@@ -27,3 +27,6 @@ pub use runtime::{
     LsmPublishedMembershipLookupView, PublishedLsmMembershipIdentity,
     PublishedLsmMembershipReplacement,
 };
+
+#[cfg(feature = "certification-test-authority")]
+pub use runtime::issue_published_lsm_membership_for_certification;

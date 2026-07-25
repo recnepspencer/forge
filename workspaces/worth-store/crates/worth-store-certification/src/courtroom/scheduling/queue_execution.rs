@@ -33,28 +33,28 @@ impl S6CertifiedQueueExecutionEvidence {
     ) -> Result<Self, S6QueueExecutionCertificationDenial> {
         match outcome {
             QueueExecutionOutcome::Executed(evidence) => Ok(Self {
-                replay_identity: evidence.plan().replay_identity(),
+                replay_identity: evidence.plan().replay_identity().clone(),
                 secondary_replay_identity: secondary_replay_identity(evidence.secondary_plan()),
                 counters: evidence.counters(),
                 progression: QueueExecutionProgression::Executed,
                 counter_backed_receipt: counter_backed_receipt(evidence.counters()),
             }),
             QueueExecutionOutcome::Backpressured(evidence) => Ok(Self {
-                replay_identity: evidence.plan().replay_identity(),
+                replay_identity: evidence.plan().replay_identity().clone(),
                 secondary_replay_identity: secondary_replay_identity(evidence.secondary_plan()),
                 counters: evidence.counters(),
                 progression: QueueExecutionProgression::Executed,
                 counter_backed_receipt: counter_backed_receipt(evidence.counters()),
             }),
             QueueExecutionOutcome::Denied(evidence) => Ok(Self {
-                replay_identity: evidence.plan().replay_identity(),
+                replay_identity: evidence.plan().replay_identity().clone(),
                 secondary_replay_identity: secondary_replay_identity(evidence.secondary_plan()),
                 counters: evidence.counters(),
                 progression: QueueExecutionProgression::Executed,
                 counter_backed_receipt: counter_backed_receipt(evidence.counters()),
             }),
             QueueExecutionOutcome::Violation(evidence) => Ok(Self {
-                replay_identity: evidence.plan().replay_identity(),
+                replay_identity: evidence.plan().replay_identity().clone(),
                 secondary_replay_identity: secondary_replay_identity(evidence.secondary_plan()),
                 counters: evidence.counters(),
                 progression: QueueExecutionProgression::Executed,
@@ -63,12 +63,12 @@ impl S6CertifiedQueueExecutionEvidence {
         }
     }
 
-    pub const fn replay_identity(&self) -> QueueExecutionReplayIdentity {
-        self.replay_identity
+    pub fn replay_identity(&self) -> QueueExecutionReplayIdentity {
+        self.replay_identity.clone()
     }
 
-    pub const fn secondary_replay_identity(&self) -> Option<QueueExecutionReplayIdentity> {
-        self.secondary_replay_identity
+    pub fn secondary_replay_identity(&self) -> Option<QueueExecutionReplayIdentity> {
+        self.secondary_replay_identity.clone()
     }
 
     pub const fn counters(&self) -> QueueExecutionCounterSnapshot {
@@ -90,7 +90,7 @@ impl S6CertifiedQueueExecutionEvidence {
 fn secondary_replay_identity(
     plan: Option<&QueueExecutedPlan>,
 ) -> Option<QueueExecutionReplayIdentity> {
-    plan.map(QueueExecutedPlan::replay_identity)
+    plan.map(QueueExecutedPlan::replay_identity).cloned()
 }
 
 fn counter_backed_receipt(

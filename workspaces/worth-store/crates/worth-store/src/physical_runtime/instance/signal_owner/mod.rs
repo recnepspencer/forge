@@ -1,19 +1,19 @@
 mod availability;
 mod graph;
+mod lifecycle_join;
 mod outcome;
+mod reconciliation;
 mod route;
 mod wake;
 mod worker;
+#[cfg(feature = "certification-test-authority")]
+mod yieldpoint;
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
+use std::sync::Arc;
 
 use crate::physical_runtime::{
     work::{
-        PhysicalSignalAspectBindingDigest, PhysicalSignalAspectBindingSet,
-        PhysicalWorkAspectDelta,
+        PhysicalSignalAspectBindingDigest, PhysicalSignalAspectBindingSet, PhysicalWorkAspectDelta,
     },
     LifecycleGeneration, PhysicalSignalProfileIdentity, PhysicalWorkProfileDeclaration,
 };
@@ -27,6 +27,10 @@ use route::PhysicalSignalRouteOwner;
 use worker::PhysicalSignalGraphWorker;
 
 pub(in crate::physical_runtime) use availability::PhysicalSignalAdmissionStatus;
+#[cfg(feature = "certification-test-authority")]
+pub use graph::PhysicalPublicationDependencyObservation;
+#[cfg(feature = "certification-test-authority")]
+pub use yieldpoint::CertificationPhysicalSignalPauseGate;
 
 pub(in crate::physical_runtime) struct PhysicalWorkSignalOwner {
     runtime_identity: PhysicalSignalRuntimeIdentity,
@@ -34,7 +38,7 @@ pub(in crate::physical_runtime) struct PhysicalWorkSignalOwner {
     bindings: Arc<PhysicalSignalAspectBindingSet>,
     graph_worker: PhysicalSignalGraphWorker,
     admission_status: PhysicalSignalAdmissionStatus,
-    certification_failure: AtomicBool,
+    reconciliation: reconciliation::PhysicalSignalReconciliation,
     _lifecycle_generation: LifecycleGeneration,
 }
 
@@ -49,13 +53,15 @@ impl PhysicalWorkSignalOwner {
         let admission_status = PhysicalSignalAdmissionStatus::available();
         let graph_worker =
             PhysicalSignalGraphWorker::spawn(Arc::clone(&bindings), admission_status.clone())?;
+        let reconciliation =
+            reconciliation::PhysicalSignalReconciliation::bounded(bindings.capacity().commands());
         Ok(Self {
             runtime_identity,
             profile,
             bindings,
             graph_worker,
             admission_status,
-            certification_failure: AtomicBool::new(false),
+            reconciliation,
             _lifecycle_generation: lifecycle_generation,
         })
     }
@@ -68,8 +74,40 @@ impl PhysicalWorkSignalOwner {
         Arc::clone(&self.bindings)
     }
 
+    pub(in crate::physical_runtime) fn binding_observations(
+        &self,
+    ) -> Box<[crate::physical_runtime::PhysicalSignalAspectBindingObservation]> {
+        self.bindings.observations()
+    }
+
     pub(in crate::physical_runtime) fn admission_status(&self) -> PhysicalSignalAdmissionStatus {
         self.admission_status.clone()
+    }
+
+    pub(in crate::physical_runtime) fn abandonment_publisher(
+        &self,
+    ) -> crate::physical_runtime::work::PhysicalWorkAbandonmentPublisher {
+        self.graph_worker.abandonment_publisher()
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) fn pause_after_dequeue_for_certification(
+        &self,
+    ) -> CertificationPhysicalSignalPauseGate {
+        self.graph_worker.pause_after_dequeue_for_certification()
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) fn fail_next_abandonment_for_certification(&self) {
+        self.graph_worker.fail_next_abandonment_for_certification();
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) fn route_depth_for_certification(
+        &self,
+        route: PhysicalSignalAspectBindingDigest,
+    ) -> Option<usize> {
+        self.graph_worker.route_depth_for_certification(route)
     }
 
     pub(in crate::physical_runtime) const fn runtime_identity(
@@ -105,17 +143,97 @@ impl PhysicalWorkSignalOwner {
         route.apply_delta(delta)
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) fn apply_delta_for_certification(
+        &self,
+        delta: PhysicalWorkAspectDelta,
+    ) -> Result<(), PhysicalSignalDeltaApplicationFailure> {
+        let binding = self
+            .bindings
+            .bindings()
+            .iter()
+            .find(|binding| binding.digest() == delta.binding())
+            .ok_or(PhysicalSignalDeltaApplicationFailure::BindingNotInstalled)?;
+        let delta = delta
+            .rebind_for_certification(binding)
+            .map_err(PhysicalSignalDeltaApplicationFailure::SemanticBasisRejected)?;
+        self.apply_delta(delta)
+    }
+
+    pub(in crate::physical_runtime) fn apply_projection_failure_delta(
+        &self,
+        settled: &crate::physical_runtime::SettledPhysicalWork,
+    ) -> Result<(), PhysicalSignalDeltaApplicationFailure> {
+        let Some(delta) =
+            self.projection_failure_delta(settled.intent(), settled.signal_binding())?
+        else {
+            return Ok(());
+        };
+        self.apply_delta(delta)
+    }
+
+    pub(in crate::physical_runtime) fn admit_projection_failure(
+        &self,
+        work: &crate::physical_runtime::ResourceAdmittedPhysicalWork,
+    ) -> Result<Option<PhysicalWorkAspectDelta>, PhysicalSignalDeltaApplicationFailure> {
+        self.projection_failure_delta(work.intent(), work.consumer_handle().route())
+    }
+
+    fn projection_failure_delta(
+        &self,
+        intent: &crate::physical_runtime::PhysicalWorkIntent,
+        signal_binding: PhysicalSignalAspectBindingDigest,
+    ) -> Result<Option<PhysicalWorkAspectDelta>, PhysicalSignalDeltaApplicationFailure> {
+        let Some(fact) = intent.semantic_basis().projection_fact() else {
+            return Ok(None);
+        };
+        let binding = self
+            .bindings
+            .binding_for_identity(intent.semantic_basis().aspect_identity())
+            .filter(|binding| binding.digest() == signal_binding)
+            .ok_or(PhysicalSignalDeltaApplicationFailure::BindingNotInstalled)?;
+        let delta =
+            PhysicalWorkAspectDelta::from_boundary_fact(binding, fact, intent.scope().clone())
+                .map_err(PhysicalSignalDeltaApplicationFailure::SemanticBasisRejected)?;
+        Ok(Some(delta))
+    }
+
+    pub(in crate::physical_runtime) fn revoke_derived_admission(&self) {
+        self.admission_status.revoke();
+    }
+
     pub(in crate::physical_runtime) fn observation(
         &self,
     ) -> Result<PhysicalSignalObservation, PhysicalSignalClockObservationFailure> {
+        let route = self
+            .bindings
+            .bindings()
+            .first()
+            .and_then(|binding| self.route(binding.digest()))
+            .ok_or(PhysicalSignalClockObservationFailure::OwnerUnavailable)?;
+        let observation = route
+            .observation()
+            .map_err(|_| PhysicalSignalClockObservationFailure::OwnerUnavailable)?;
+        let clock = observation.clock();
         Ok(PhysicalSignalObservation::new(
             self.profile,
-            1,
-            u16::try_from(self.bindings.len()).expect("Signal aspect capacity fits u16"),
-            u16::try_from(self.graph_worker.len())
-                .expect("Signal locality owner capacity fits u16"),
-            crate::physical_runtime::work::PHYSICAL_ASYNC_CAPABILITIES.len() as u8,
-            self.clock_observation()?,
+            outcome::PhysicalSignalTopologyObservation {
+                graph_owner_count: 1,
+                aspect_binding_count: u16::try_from(self.bindings.len())
+                    .expect("Signal aspect capacity fits u16"),
+                locality_owner_count: u16::try_from(self.graph_worker.len())
+                    .expect("Signal locality owner capacity fits u16"),
+                active_locality_count: observation.active_locality_count(),
+                active_graph_node_count: observation.active_graph_node_count(),
+                active_in_flight_count: observation.resource().active_in_flight_node_count(),
+                async_family_count: crate::physical_runtime::work::PHYSICAL_ASYNC_CAPABILITIES.len()
+                    as u8,
+                aspect_invalidation_count: observation.aspect_invalidation_count(),
+            },
+            PhysicalSignalClockObservation::new(
+                clock.current_tick().get(),
+                clock.last_advance_ordinal().get(),
+            ),
         ))
     }
 
@@ -133,6 +251,43 @@ impl PhysicalWorkSignalOwner {
             .request(admitted)
     }
 
+    pub(in crate::physical_runtime) fn begin_publication_dependency(
+        &self,
+        admitted: crate::physical_runtime::AdmittedPhysicalWork,
+    ) -> Result<
+        crate::physical_runtime::BlockedPhysicalWork,
+        crate::physical_runtime::PhysicalWorkPreEffectDenial,
+    > {
+        self.require_available()?;
+        let route = admitted.authority().binding();
+        self.route(route)
+            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
+            .begin_publication_dependency(admitted)
+    }
+
+    pub(in crate::physical_runtime) fn advance_publication_dependency(
+        &self,
+        blocked: crate::physical_runtime::BlockedPhysicalWork,
+    ) -> Result<
+        crate::physical_runtime::ReadyPhysicalWork,
+        crate::physical_runtime::PhysicalWorkPreEffectDenial,
+    > {
+        self.require_available()?;
+        let route = blocked.authority().binding();
+        self.route(route)
+            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
+            .advance_publication_dependency(blocked)
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) fn publication_dependencies_for_certification(
+        &self,
+    ) -> Result<Vec<PhysicalPublicationDependencyObservation>, ()> {
+        self.require_available().map_err(|_| ())?;
+        self.graph_worker
+            .publication_dependencies_for_certification()
+    }
+
     pub(in crate::physical_runtime) fn revalidate(
         &self,
         ready: crate::physical_runtime::ReadyPhysicalWork,
@@ -142,8 +297,9 @@ impl PhysicalWorkSignalOwner {
     > {
         self.require_available()?;
         let route = ready.authority().binding();
-        let (admitted, active) = ready.into_signal_parts();
-        self.revalidate_parts(route, admitted, active)
+        self.route(route)
+            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
+            .revalidate_ready(ready)
     }
 
     pub(in crate::physical_runtime) fn revalidate_blocked(
@@ -158,43 +314,26 @@ impl PhysicalWorkSignalOwner {
         let (admitted, active) = blocked
             .into_revalidation_parts()
             .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::DependencyBlocked)?;
-        self.revalidate_parts(route, admitted, active)
+        self.route(route)
+            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
+            .revalidate_blocked(admitted, active)
     }
 
     pub(in crate::physical_runtime) fn dispose(mut self) -> PhysicalSignalShutdownOutcome {
+        let (pending, overflow) = self.reconciliation.counts();
+        let owner_was_available = self.admission_status.is_available();
         self.admission_status.revoke();
         self.graph_worker.stop();
-        if self.certification_failure.load(Ordering::Acquire) {
-            PhysicalSignalShutdownOutcome::OwnerRevoked
-        } else {
+        if pending != 0 || overflow != 0 {
+            PhysicalSignalShutdownOutcome::DerivedReconciliationPending { pending, overflow }
+        } else if owner_was_available {
             PhysicalSignalShutdownOutcome::Disposed
+        } else {
+            PhysicalSignalShutdownOutcome::OwnerRevoked
         }
     }
 
-    #[cfg(feature = "certification-test-authority")]
-    pub(in crate::physical_runtime) fn fail_worker_for_certification(&self) {
-        self.certification_failure.store(true, Ordering::Release);
-        self.graph_worker.fail_for_certification();
-    }
-
-    fn revalidate_parts(
-        &self,
-        route: PhysicalSignalAspectBindingDigest,
-        admitted: crate::physical_runtime::AdmittedPhysicalWork,
-        active: worth_signal::facade::ResourceRequestHandle,
-    ) -> Result<
-        crate::physical_runtime::PhysicalWorkReadiness,
-        crate::physical_runtime::PhysicalWorkPreEffectDenial,
-    > {
-        self.route(route)
-            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
-            .revalidate(admitted, active)
-    }
-
-    fn route(
-        &self,
-        route: PhysicalSignalAspectBindingDigest,
-    ) -> Option<&PhysicalSignalRouteOwner> {
+    fn route(&self, route: PhysicalSignalAspectBindingDigest) -> Option<&PhysicalSignalRouteOwner> {
         self.graph_worker.route(route)
     }
 

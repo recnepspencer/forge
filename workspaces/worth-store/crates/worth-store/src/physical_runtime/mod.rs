@@ -26,6 +26,8 @@ pub use instance::{
     PhysicalSignalClockObservation, PhysicalSignalClockObservationFailure,
     PhysicalSignalConstructionFailure, PhysicalSignalDeltaApplicationFailure,
     PhysicalSignalObservation, PhysicalSignalRuntimeIdentity, PhysicalSignalShutdownOutcome,
+    PhysicalStoreAbortOutcome, PhysicalStoreCloseObservation, PhysicalStoreCloseOutcome,
+    PhysicalStoreClosePhase, PhysicalStoreClosePlan, PhysicalWorkExecution,
 };
 pub use lifecycle::LifecycleGeneration;
 pub use media_ownership::{
@@ -44,29 +46,54 @@ pub use runtime::AdmittedPhysicalRuntime;
 pub use shutdown::{AbortedRuntime, ClosedRuntime};
 pub use work::{
     AdmittedPhysicalWork, AdmittedPhysicalWorkAuthority, BlockedPhysicalWork,
-    DispatchedPhysicalWork, PhysicalEffectIdentity,
-    PhysicalMutationSubmission, PhysicalMutationWorkRequest, PhysicalOperationIdentity,
-    PhysicalReadSubmission, PhysicalReadWorkRequest, PhysicalSchedulerDemand,
+    CompletedPhysicalPublicationEffect, DispatchedPhysicalWork, PhysicalEffectIdentity,
+    PhysicalEffectObligation, PhysicalExecutorCommand, PhysicalExecutorCommandDenial,
+    PhysicalMetadataReadWorkRequest, PhysicalMutationSubmission, PhysicalMutationWorkRequest,
+    PhysicalOperationIdentity, PhysicalPublicationEffect, PhysicalReadSubmission,
+    PhysicalReadWorkRequest, PhysicalRetryCommand, PhysicalSchedulerDemand,
     PhysicalSchedulerDenial, PhysicalSignalAspectBinding, PhysicalSignalAspectBindingDigest,
-    PhysicalSignalAspectBindingSet, PhysicalSignalAspectDeclaration, PhysicalSignalAspectRole,
-    PhysicalSignalAspectSubscription, PhysicalSignalBindingDenial, PhysicalSignalProfileIdentity,
+    PhysicalSignalAspectBindingObservation, PhysicalSignalAspectBindingSet,
+    PhysicalSignalAspectDeclaration, PhysicalSignalAspectRole, PhysicalSignalAspectSubscription,
+    PhysicalSignalBindingDenial, PhysicalSignalProfileIdentity, PhysicalSignalSettlementOutcome,
     PhysicalWorkAdmission, PhysicalWorkAspectDelta, PhysicalWorkAspectDeltaDenial,
-    PhysicalWorkCapacity, PhysicalWorkCapacityDimension, PhysicalWorkDeclarationDenial,
-    PhysicalWorkDurabilityRequirement, PhysicalWorkEffectClass, PhysicalWorkGeneration,
-    PhysicalWorkIdentity, PhysicalWorkIntent, PhysicalWorkObservation, PhysicalWorkOperationFamily,
-    PhysicalWorkPreEffectDenial, PhysicalWorkProfileDeclaration, PhysicalWorkProfileDenial,
-    PhysicalWorkReadiness, PhysicalWorkRecoveryDisposition, PhysicalWorkScheduler,
-    PhysicalWorkScope, PhysicalWorkSemanticBasis,
-    PhysicalWorkSemanticBasisDenial, PhysicalWorkSemanticPosture, PhysicalWorkShutdownObservation,
+    PhysicalWorkBatchDenial, PhysicalWorkCancellationFailure, PhysicalWorkCancellationJoin,
+    PhysicalWorkCapacity, PhysicalWorkCapacityDimension, PhysicalWorkCausalObservation,
+    PhysicalWorkCausalRecord, PhysicalWorkConcurrencyRelation, PhysicalWorkConcurrencyScope,
+    PhysicalWorkConsumerHandle, PhysicalWorkCounterSnapshot, PhysicalWorkCounterStage,
+    PhysicalWorkDeclarationDenial, PhysicalWorkDrainObservation, PhysicalWorkDurabilityRequirement,
+    PhysicalWorkEffectClass, PhysicalWorkEffectFate, PhysicalWorkExecutionBatchOutcome,
+    PhysicalWorkExecutionOutcome, PhysicalWorkGeneration, PhysicalWorkHealthRevocation,
+    PhysicalWorkIdentity, PhysicalWorkIntent, PhysicalWorkNoEffectEvidence,
+    PhysicalWorkObservation, PhysicalWorkOperationFamily, PhysicalWorkPreEffectDenial,
+    PhysicalWorkPressureClass, PhysicalWorkProfileDeclaration, PhysicalWorkProfileDenial,
+    PhysicalWorkPublicationResiduePosture, PhysicalWorkReadiness, PhysicalWorkRecoveryDisposition,
+    PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget, PhysicalWorkResidencyPosture,
+    PhysicalWorkRetryAdmission, PhysicalWorkRetryFailure, PhysicalWorkRetrySchedule,
+    PhysicalWorkRetryScheduleOutcome, PhysicalWorkScheduler, PhysicalWorkSchedulerPosture,
+    PhysicalWorkScope, PhysicalWorkSemanticBasis, PhysicalWorkSemanticBasisDenial,
+    PhysicalWorkSemanticPosture, PhysicalWorkSettlementEvidence, PhysicalWorkShutdownObservation,
     PhysicalWorkSignalDeclaration, PhysicalWorkSignalFamily, PhysicalWorkSignalFamilySet,
     PhysicalWorkSubmissionDeferred, PhysicalWorkSubmissionDenial, PhysicalWorkSubmissionFailure,
     PhysicalWorkSubmissionOutcome, PhysicalWorkSubmissionReceipt, PhysicalWorkSubmissionStale,
-    PhysicalWorkTerminalDisposition, PhysicalWorkTerminalObservation, PhysicalWorkTerminalStage,
-    ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
+    PhysicalWorkSupersessionJoin, PhysicalWorkTerminalCause, PhysicalWorkTerminalDisposition,
+    PhysicalWorkTerminalFailure, PhysicalWorkTerminalObservation, PhysicalWorkTerminalStage,
+    PhysicalWorkTimeoutJoin, ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
+};
+
+pub(in crate::physical_runtime) use work::{
+    PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
+    PhysicalPublicationExecutorCommand, PhysicalReadExecutorCommand,
+    PhysicalResidencyWritebackExecutorCommand, PhysicalWorkSettlement,
+    PhysicalWriteExecutorCommand,
 };
 
 #[cfg(feature = "certification-test-authority")]
 pub mod certification {
+    pub use super::instance::{
+        CertificationPhysicalClosePauseGate, CertificationPhysicalExecutionCheckpoint,
+        CertificationPhysicalExecutionPauseGate, CertificationPhysicalSignalPauseGate,
+        PhysicalPublicationDependencyObservation,
+    };
     pub use super::media_evidence::{
         lower_media_operation_summary, MediaEvidenceLoweringDenial, MediaOperationSummary,
         StoreMediaPerformanceReceipt,

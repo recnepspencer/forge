@@ -53,7 +53,7 @@ fn production_residency_survives_pressure_across_three_processes() {
 
 pub(super) fn pressure_writer(root: &Path, locator_path: &str) {
     let (format, placement, access) = configuration();
-    let mut serving = success(
+    let serving = success(
         media(root).initialize_record_store(
             PhysicalRecordInitialization::new(format, placement, access)
                 .with_residency_policy(policy()),
@@ -64,7 +64,7 @@ pub(super) fn pressure_writer(root: &Path, locator_path: &str) {
     });
     let (published, peak_live_bytes) = peak_live_bytes_during(|| {
         serving
-            .records_mut()
+            .record_submission()
             .append_batch(batch.build().unwrap(), placement)
             .unwrap()
     });
@@ -133,7 +133,7 @@ fn open(
     serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
     locator: ExternalPhysicalRecordLocator,
 ) -> Result<
-    worth_store::physical_runtime::RecordReadSession<'_>,
+    worth_store::physical_runtime::RecordReadSession,
     worth_store::physical_runtime::RecordReadError,
 > {
     serving.records().open_external(

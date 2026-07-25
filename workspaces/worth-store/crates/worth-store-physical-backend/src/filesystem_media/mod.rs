@@ -18,6 +18,7 @@ mod directory_listing;
 mod directory_synchronization;
 mod durable_deletion;
 mod failure_context;
+mod fault_activation;
 mod fault_interposition;
 mod fault_schedule;
 #[cfg(any(test, feature = "certification-test-authority"))]
@@ -72,11 +73,19 @@ pub use allocation::{
     MediaAllocationResult, MediaPhysicalAllocationPosture,
 };
 pub use artifact_tree::{
-    ArtifactRangeWriteDurability, ArtifactRangeWriteDurabilityRequirement,
-    ArtifactRangeWriteOutcome, ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFailureKind,
-    ArtifactTreeFile, ArtifactTreeMedia, ArtifactTreeNewFile, ArtifactTreePathDenial,
-    CompletedArtifactRangeWrite, CompletedScheduledArtifactRangeWrite,
-    IndeterminateArtifactRangeWrite, ScheduledArtifactRangeWriteOutcome,
+    ArtifactNewWriteOutcome, ArtifactRangeReadOutcome, ArtifactRangeWriteDurability,
+    ArtifactRangeWriteDurabilityRequirement, ArtifactRangeWriteOutcome, ArtifactTreeDirectory,
+    ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile, ArtifactTreeMedia,
+    ArtifactTreeNewFile, ArtifactTreePathDenial, ArtifactTreePublicationEffect,
+    ArtifactTreePublicationEffectOutcome, CompletedArtifactMetadataRead, CompletedArtifactNewWrite,
+    CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactMetadataRead,
+    CompletedScheduledArtifactNewWrite, CompletedScheduledArtifactRangeRead,
+    CompletedScheduledArtifactRangeWrite, CompletedScheduledArtifactTreePublicationEffect,
+    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    IndeterminateArtifactTreePublicationEffect, ScheduledArtifactMetadataReadOutcome,
+    ScheduledArtifactNewWriteOutcome, ScheduledArtifactRangeReadOutcome,
+    ScheduledArtifactRangeWriteOutcome, ScheduledArtifactTreePublicationEffectOutcome,
 };
 pub use capability_profile::{
     CapabilityProfileError, CapabilitySupport, FilesystemBackendProfile, FilesystemLocation,
@@ -102,6 +111,8 @@ pub use durable_deletion::{
 pub use failure_context::{
     MediaCausalBoundary, MediaFailureContext, MediaOsCode, MediaOsCodeFamily, MediaPathRole,
 };
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use fault_activation::{CertificationMediaFaultActivation, MediaFaultActivationDenial};
 pub use fault_schedule::{
     MediaFaultDirective, MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial,
 };

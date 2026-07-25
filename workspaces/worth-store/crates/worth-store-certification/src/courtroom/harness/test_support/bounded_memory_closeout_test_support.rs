@@ -6,6 +6,9 @@ pub(crate) use crate::courtroom::memory::bounded_memory_closeout_pressure_suppor
 use super::record_view_evidence_test_support::{
     admit_payload_frame, allocation_admission, framed_record, resident_frame_table,
 };
+use super::recovery_memory_allocation_test_support::{
+    operation_allocation, recovery_memory_allocation,
+};
 use crate::{
     BackgroundEnvelopeEvidenceBundle, BoundedMemoryOperationKind, BoundedOperationEnvelopeCounters,
     BoundedOperationEnvelopeReport, CompletedResidencyBoundaryReceipt, FoundationalEvidenceProfile,
@@ -22,26 +25,16 @@ use worth_store_buffer_pool::{
 use worth_store_contracts::PhysicalSubstrateReadinessSnapshot;
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
-use worth_store_recovery_physics::RecoveryMemoryEnvelope;
 
 pub(crate) fn background_bundle() -> BackgroundEnvelopeEvidenceBundle {
     BackgroundEnvelopeEvidenceBundle::from_envelopes(
-        RecoveryMemoryEnvelope::from_admitted(admit(class_request(
-            BackgroundWorkClass::RecoveryPlanning,
-        )))
-        .unwrap(),
-        CompactionPlanningMemoryEnvelope::from_admitted(admit(class_request(
-            BackgroundWorkClass::CompactionPlanning,
-        )))
-        .unwrap(),
+        recovery_memory_allocation(),
+        CompactionPlanningMemoryEnvelope::from_allocation_grant(maintenance_allocation()).unwrap(),
         ScrubPlanningMemoryEnvelope::from_admitted(admit(class_request(
             BackgroundWorkClass::ScrubPlanning,
         )))
         .unwrap(),
-        ImportExportMemoryEnvelope::from_admitted(admit(class_request(
-            BackgroundWorkClass::ImportExport,
-        )))
-        .unwrap(),
+        ImportExportMemoryEnvelope::from_allocation_grant(maintenance_allocation()).unwrap(),
         LargeRecordStreamingEnvelope::from_admitted(admit(streaming_request(4096, 256))).unwrap(),
         &complete_interference_reports(),
     )
@@ -186,6 +179,14 @@ fn complete_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {
             },
         ),
     ]
+}
+
+fn maintenance_allocation() -> worth_store_buffer_pool::OperationAllocationGrant {
+    operation_allocation(
+        worth_store_buffer_pool::OperationAllocationScope::Maintenance,
+        128,
+    )
+    .expect("bounded maintenance allocation should admit")
 }
 
 fn foreground_counters(

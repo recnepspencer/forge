@@ -145,34 +145,30 @@ pub(super) fn foreign_compatibility() -> worth_store_compatibility::RollingWindo
 
 pub(super) fn physical_inputs(
     authority: &StoreCurrentAuthorityWitness,
-    digest: &str,
     generation: u64,
 ) -> publication::PublicationInputs {
     let store = worth_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
         authority.identity().clone(),
     );
-    publication::publication_inputs_for_store(&store, digest, generation)
+    publication::publication_inputs_for_store(&store, generation)
 }
 
 pub(super) fn publication_plan(
     authority: &StoreCurrentAuthorityWitness,
-    digest: &str,
     generation: u64,
 ) -> CopyOnWritePublicationPlan {
-    publication::admitted_copy_on_write_plan(&physical_inputs(authority, digest, generation))
+    publication::admitted_copy_on_write_plan(&physical_inputs(authority, generation))
 }
 
 pub(super) fn successor_publication_plan(
-    prior: &publication::PublicationInputs,
+    prior: &worth_store_physical_isolation::PhysicalPublicationReceipt,
     authority: &StoreCurrentAuthorityWitness,
-    digest: &str,
     generation: u64,
 ) -> CopyOnWritePublicationPlan {
     let store = worth_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
         authority.identity().clone(),
     );
-    let successor =
-        publication::successor_publication_inputs_for_store(prior, &store, digest, generation);
+    let successor = publication::successor_publication_inputs_for_store(prior, &store, generation);
     publication::admitted_copy_on_write_plan(&successor)
 }
 
@@ -199,7 +195,7 @@ pub(super) fn source_binding(
     authority: &StoreCurrentAuthorityWitness,
 ) -> LayoutBindingWitness {
     let family = admitted_family(declaration.family_declaration(), authority);
-    let source = physical_inputs(authority, "layout-evolution-source", 10_000).old_candidate;
+    let source = physical_inputs(authority, 10_000).old_candidate;
     binding_outcome(
         declaration,
         family,
@@ -228,19 +224,17 @@ pub(super) fn migration_plan(
 pub(super) fn execute_migration(
     declaration: LayoutEvolutionDeclaration,
     authority: &StoreCurrentAuthorityWitness,
-    digest: &str,
     generation: u64,
 ) -> LayoutMigrationReceipt {
-    execute_migration_with_inputs(declaration, authority, digest, generation).0
+    execute_migration_with_inputs(declaration, authority, generation).0
 }
 
 pub(super) fn execute_migration_with_inputs(
     declaration: LayoutEvolutionDeclaration,
     authority: &StoreCurrentAuthorityWitness,
-    digest: &str,
     generation: u64,
 ) -> (LayoutMigrationReceipt, publication::PublicationInputs) {
-    let inputs = physical_inputs(authority, digest, generation);
+    let inputs = physical_inputs(authority, generation);
     let request = LayoutMigrationExecutionRequest::new(
         migration_plan(declaration, authority),
         publication::admitted_copy_on_write_plan(&inputs),

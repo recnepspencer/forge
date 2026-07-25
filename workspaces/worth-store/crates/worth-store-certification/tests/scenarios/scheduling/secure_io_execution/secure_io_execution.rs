@@ -70,12 +70,13 @@ fn secure_frame_read_ahead_plan() -> QueueExecutionReadyPlan {
     )
     .expect("secure-frame read-ahead secure-I/O should admit");
     let work = work.with_secure_io_scope(secure_io);
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
+        work.clone(),
         policy_receipt(work.requested_budget()),
-    ))
-    .expect("secure-frame work should admit into a ready queue plan")
+    )
+    .expect("policy receipt should bind the exact queue work");
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+        .expect("secure-frame work should admit into a ready queue plan")
 }
 
 fn completion_for(
@@ -154,7 +155,7 @@ fn policy_receipt(budget: BackgroundResourceBudget) -> FoundationalPolicyAdmissi
         .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
         .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(FoundationalPerformanceWorkClass::ValidationPlanning)
+        .include_work(FoundationalPerformanceWorkClass::AuthoritativeRead)
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
         .expect("policy claim should build");

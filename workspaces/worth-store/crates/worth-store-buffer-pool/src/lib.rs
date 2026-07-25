@@ -101,12 +101,12 @@ pub use page_lease::PageLease;
 #[cfg(feature = "legacy-s2-models")]
 pub use physical_entry_facts::S2PhysicalEntryFacts;
 pub use physical_residency::{
-    DirtyPhysicalFrame, OperationAllocationGrant, OperationAllocationScope,
-    PhysicalCandidateBatchReservation, PhysicalCandidateFrameReservation, PhysicalFrameKey,
-    PhysicalFrameLease, PhysicalFrameLoadError, PhysicalResidencyCounters, PhysicalResidencyDenial,
-    PhysicalResidencyIncarnation, PhysicalResidencyLimits, PhysicalResidencyPool,
-    PhysicalResidencyShutdown, PhysicalWritebackClaim, SpeculativePhysicalWorkKind,
-    SpeculativeResidencyGrant,
+    DirtyPhysicalFrame, OperationAllocationGrant, OperationAllocationObservation,
+    OperationAllocationScope, PhysicalCandidateBatchReservation, PhysicalCandidateFrameReservation,
+    PhysicalFrameKey, PhysicalFrameLease, PhysicalFrameLoadError, PhysicalResidencyCounters,
+    PhysicalResidencyDenial, PhysicalResidencyIncarnation, PhysicalResidencyLimits,
+    PhysicalResidencyPool, PhysicalResidencyShutdown, PhysicalWritebackClaim,
+    SpeculativePhysicalWorkKind, SpeculativeResidencyGrant,
 };
 #[cfg(feature = "legacy-s2-models")]
 pub use pinned_frame_view::PinnedFrameView;

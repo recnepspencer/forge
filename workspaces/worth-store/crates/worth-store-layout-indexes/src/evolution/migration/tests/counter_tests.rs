@@ -24,7 +24,7 @@ fn migration_and_rollback_publish_exact_version_binding_counters() {
         .expect("executed migration must authorize declared rollback planning");
     let request = LayoutRollbackExecutionRequest::new(
         rollback,
-        rollback_publication_plan(&current, "layout-rollback-publication", 1_903),
+        rollback_publication_plan(&current, migrated.publication(), 1_903),
     );
     let mut publication =
         worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(

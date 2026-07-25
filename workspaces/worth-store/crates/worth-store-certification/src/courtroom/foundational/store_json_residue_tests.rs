@@ -137,6 +137,47 @@ fn exact_terminal_projection_json_home_is_quarantined() {
 }
 
 #[test]
+fn exact_physical_courtroom_tool_protocol_is_narrowly_quarantined() {
+    let prefix = "workspaces/worth-store/crates/worth-store/tests/physical_record_journeys/\
+        physical_work/phase_16_lifecycle_maelstrom/";
+    for suffix in [
+        "mutant_report.rs",
+        "mutant_report/campaign_source.rs",
+        "mutant_report/decoding.rs",
+    ] {
+        let occurrence = StoreJsonResidueOccurrence::new(
+            format!("{prefix}{suffix}"),
+            9,
+            StoreJsonResidueTokenKind::Deserialize,
+            "use serde::Deserialize;",
+        );
+        let inventory = StoreJsonResidueInventory::from_occurrences(vec![occurrence])
+            .expect("exact courtroom evidence protocol is classified");
+        let classification = inventory.classified().first().unwrap();
+
+        assert_eq!(
+            classification.zone(),
+            StoreJsonResidueZone::DedicatedWorkspaceCertificationEnforcement
+        );
+        assert_eq!(
+            classification.authority_risk(),
+            StoreJsonAuthorityRisk::CertificationToolProtocolOnly
+        );
+    }
+
+    let near_miss = StoreJsonResidueOccurrence::new(
+        format!("{prefix}mutant_report/unclassified.rs"),
+        9,
+        StoreJsonResidueTokenKind::Deserialize,
+        "use serde::Deserialize;",
+    );
+    assert_eq!(
+        StoreJsonResidueInventory::from_occurrences(vec![near_miss.clone()]).unwrap_err(),
+        StoreJsonResidueDenial::ForbiddenDedicatedWorkspaceProduction(near_miss)
+    );
+}
+
+#[test]
 fn exact_json_readmission_home_is_quarantined() {
     let occurrence = StoreJsonResidueOccurrence::new(
         "workspaces/worth-store/crates/worth-store-aspect-native/src/json_ingress_readmission.rs",

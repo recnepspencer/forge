@@ -16,8 +16,8 @@ pub struct QueuePolicyAdmissionReceipt {
 }
 
 impl QueuePolicyAdmissionReceipt {
-    pub(super) const fn work(&self) -> QueueWorkDeclaration {
-        self.work
+    pub(super) fn work(&self) -> QueueWorkDeclaration {
+        self.work.clone()
     }
 
     pub(super) fn into_foundational(self) -> FoundationalPolicyAdmissionReceipt {
@@ -33,7 +33,7 @@ pub fn admit_queue_policy_receipt(
     work: QueueWorkDeclaration,
     receipt: FoundationalPolicyAdmissionReceipt,
 ) -> Result<QueuePolicyAdmissionReceipt, QueueExecutionAdmissionDenial> {
-    let expected_work = expected_work_class(work);
+    let expected_work = expected_work_class(&work);
     let exact_policy_context = receipt.boundary()
         == FoundationalPerformanceBoundary::AuthoritativeExecution
         && receipt.evidence_strength()
@@ -46,9 +46,7 @@ pub fn admit_queue_policy_receipt(
         && receipt.denied_work().is_empty()
         && receipt.widened_work().is_empty();
     if !exact_policy_context {
-        return Err(QueueExecutionAdmissionDenial::PolicyReceiptContextMismatch {
-            expected_work,
-        });
+        return Err(QueueExecutionAdmissionDenial::PolicyReceiptContextMismatch { expected_work });
     }
     Ok(QueuePolicyAdmissionReceipt {
         work,
@@ -57,7 +55,7 @@ pub fn admit_queue_policy_receipt(
 }
 
 pub(super) const fn expected_work_class(
-    work: QueueWorkDeclaration,
+    work: &QueueWorkDeclaration,
 ) -> FoundationalPerformanceWorkClass {
     if matches!(work.class(), QueueWorkClass::Background(_)) {
         return FoundationalPerformanceWorkClass::ValidationPlanning;

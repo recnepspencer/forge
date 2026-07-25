@@ -3,7 +3,8 @@ use super::physical_scope_admission_test_support::{
     validation, with_checked_frame, with_checked_page,
 };
 use super::pre_decode_physical_admission_test_support::{
-    checksum_declaration, crc32c, frame_witness, with_entry_seed,
+    checksum_declaration, crc32c, current_frame_bytes_with_declared_payload, frame_witness,
+    with_entry_seed,
 };
 use worth_store_physical_format::{
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
@@ -92,33 +93,28 @@ pub(crate) fn inspect_extent_report(
     report.unwrap()
 }
 
-pub(crate) fn inspect_frame_with_witness_payload(
+pub(crate) fn deny_frame_with_witness_payload_mismatch(
     protected_payload: &[u8],
     witness_payload: &[u8],
-) -> worth_store_physical_integrity::PhysicalContainerIntegrityDenial {
+) -> worth_store_physical_integrity::PreDecodePhysicalDenial {
     let mut denial = None;
     let validation = validation(1, 2, 3, 7);
-    with_entry_seed(protected_payload, |seed| {
+    let protected_bytes =
+        current_frame_bytes_with_declared_payload(protected_payload, witness_payload);
+    with_entry_seed(&protected_bytes, |seed| {
         let declaration =
             checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
-        let checked = admission
-            .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
-                validation,
-                frame_witness(witness_payload),
-                PhysicalFrameKind::RecordFrame,
-                DeclaredPhysicalChecksum::new(crc32c(protected_payload)),
-            ))
-            .unwrap();
-        let scope = PhysicalReferenceScope::frame(validation);
-        let root = root_with_slot(1, 2, 3, 7);
-        let membership = scope_membership(&root, scope);
-        let request = crate::courtroom::harness::test_support::physical_scope_admission_test_support::frame_request(
-            &checked, scope, membership,
+        denial = Some(
+            admission
+                .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
+                    validation,
+                    frame_witness(witness_payload),
+                    PhysicalFrameKind::RecordFrame,
+                    DeclaredPhysicalChecksum::new(crc32c(&protected_bytes)),
+                ))
+                .unwrap_err(),
         );
-        let scoped = PhysicalScopeAdmission::admit_frame(checked, request).unwrap();
-        let input = ScopedPhysicalValidatorInput::frame(scoped).unwrap();
-        denial = Some(PhysicalContainerIntegrity::inspect_frame(input).unwrap_err());
     });
     denial.unwrap()
 }

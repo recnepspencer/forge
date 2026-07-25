@@ -3,9 +3,9 @@ use crate::layout_declarations;
 use worth_store_contracts::DurableArtifactFamilyId;
 use worth_store_recovery_physics::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
-    PersistedRecoveryArtifactMaterialization, RecoveryOfflineVerifier, RecoveryProfileId,
-    WalRedoFrameMaterialization,
+    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
+    CheckpointPageImageMaterialization, PersistedRecoveryArtifactMaterialization,
+    RecoveryOfflineVerifier, RecoveryProfileId, WalRedoFrameMaterialization,
 };
 
 pub(super) fn family() -> crate::PhysicalArtifactFamily {
@@ -40,10 +40,9 @@ pub(super) fn offline_admission(
         recovery_profile.clone(),
         CheckpointManifestMaterialization::new(
             format!("checkpoint-{seed}"),
-            format!("root-{seed}"),
-            19,
+            CheckpointManifestRecoveryBasisMaterialization::new(1, 1, 10, 20),
             CheckpointManifestSourceMaterialization::new("checkpoint", 1),
-            CheckpointManifestBudgetMaterialization::new(4096, 1, 4096, 1),
+            CheckpointManifestBudgetMaterialization::new(4096, 0, 4096, 1),
         ),
         WalRedoFrameMaterialization::new(
             format!("wal-{seed}"),

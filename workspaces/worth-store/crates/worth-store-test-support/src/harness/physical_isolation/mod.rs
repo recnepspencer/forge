@@ -1,13 +1,18 @@
 mod boundary_fact;
+#[cfg(any(
+    feature = "certification-world",
+    feature = "physical-compaction-fixtures"
+))]
 pub mod compaction;
 pub mod epoch_scope;
 #[cfg(feature = "certification-world")]
 pub mod interleaving_resources;
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-world"))]
 mod owner_case_tests;
 pub mod publication;
 mod publication_runtime_fixture;
 pub mod read_plan;
+#[cfg(feature = "certification-world")]
 pub mod reclaim;
 #[cfg(feature = "certification-world")]
 mod yield_schedule;

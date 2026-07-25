@@ -1,9 +1,12 @@
-pub(super) mod artifact_tree;
+pub(in crate::physical_runtime) mod artifact_tree;
 pub(super) mod candidate_frame_publishers;
 pub(super) mod candidate_frame_residency;
+pub(super) mod frame_load_failure;
 pub(super) mod frame_loading;
 pub(super) mod frame_ports;
+pub(super) mod frame_work_trace;
 pub(super) mod initialization_artifacts;
 pub(super) mod publication_artifacts;
-pub(super) mod scheduled_writeback;
+pub(super) mod record_frame_reader;
+pub(in crate::physical_runtime) mod scheduled_writeback;
 pub(super) mod serving_artifacts;

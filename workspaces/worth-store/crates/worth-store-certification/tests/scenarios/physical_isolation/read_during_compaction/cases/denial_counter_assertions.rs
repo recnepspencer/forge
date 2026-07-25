@@ -105,10 +105,7 @@ fn compaction_denies_quarantine_stale_epoch_in_place_and_backend_residue() {
 
 #[test]
 fn compaction_rejects_minted_source_and_publication_mismatches() {
-    let inputs = super::publication_support::publication_inputs_with_new_root_digest(
-        "s5-phase8-mismatched-reachability",
-        702,
-    );
+    let inputs = super::publication_support::publication_inputs_with_root_generation(702);
     let old_authority = physical_authority_from_complete_closeout();
     let protected_reference = current_generation_page_reference(701);
     let mismatched_reference = current_generation_page_reference(702);

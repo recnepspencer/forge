@@ -1,8 +1,15 @@
 mod arguments;
+#[cfg(test)]
+mod c5_1_sealing_gate;
 mod catalog;
 mod classification;
+#[cfg(feature = "physical-work-evidence")]
+mod courtroom_campaign;
 mod execution;
+mod local_source_fingerprint;
 mod mutation_campaign;
+#[cfg(feature = "physical-work-evidence")]
+pub mod physical_work_evidence;
 #[cfg(test)]
 mod physical_writer_gate;
 mod plan;
@@ -15,23 +22,49 @@ use arguments::Arguments;
 use catalog::TestCatalog;
 
 pub fn run_from_environment() -> Result<(), String> {
-    let arguments = Arguments::parse(std::env::args().skip(1))?;
+    let arguments = std::env::args().skip(1).collect::<Vec<_>>();
+    if arguments::help_requested(&arguments) {
+        println!("{}", arguments::usage());
+        return Ok(());
+    }
+    let arguments = Arguments::parse(arguments)?;
     run(arguments, &workspace_root())
 }
 
 fn run(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
     if matches!(arguments.product, product::TestProduct::Mutants) {
-        if arguments.report.is_some() {
-            return Err(
-                "mutants emits one evidence record per mutation; --report is not supported".into(),
-            );
-        }
         return mutation_campaign::run(
             workspace_root,
-            arguments.list,
-            arguments.mutant,
-            arguments.first_mutant,
+            mutation_campaign::MutationCampaignRequest {
+                scope: arguments.mutation_scope,
+                list: arguments.list,
+                selected: arguments.mutant,
+                first: arguments.first_mutant,
+                report: arguments.report.as_deref(),
+            },
         );
+    }
+    if let product::TestProduct::Courtrooms { courtroom } = arguments.product {
+        #[cfg(feature = "physical-work-evidence")]
+        {
+            return courtroom_campaign::run(
+                workspace_root,
+                courtroom_campaign::CourtroomCampaignRequest {
+                    courtroom,
+                    list: arguments.list,
+                    target_root: arguments.target_root.as_deref(),
+                    mutant_report: arguments.mutant_report.as_deref(),
+                    report: arguments.report.as_deref(),
+                },
+            );
+        }
+        #[cfg(not(feature = "physical-work-evidence"))]
+        {
+            let _ = courtroom;
+            return Err(
+                "courtroom campaigns require the runner feature `physical-work-evidence`".into(),
+            );
+        }
     }
     let catalog = TestCatalog::load(workspace_root)?;
     let plan = plan::TestPlan::build(&arguments.product, &catalog, workspace_root)?;

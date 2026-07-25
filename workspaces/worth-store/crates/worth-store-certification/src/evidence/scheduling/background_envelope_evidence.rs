@@ -1,11 +1,12 @@
 use worth_store_blob_chunks::LargeRecordStreamingEnvelope;
 use worth_store_buffer_pool::{
     AllocationScope, BackgroundEnvelopeCounterSnapshot, BackgroundEnvelopeDenialKind,
-    BackgroundMemoryInterferenceReport, BackgroundWorkClass, OperationAllocationScope,
+    BackgroundMemoryInterferenceReport, BackgroundWorkClass, OperationAllocationObservation,
+    OperationAllocationScope,
 };
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
-use worth_store_recovery_physics::RecoveryMemoryEnvelope;
+use worth_store_recovery_physics::RecoveryMemoryAllocation;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackgroundEnvelopeEvidenceBundle {
@@ -15,31 +16,19 @@ pub struct BackgroundEnvelopeEvidenceBundle {
 
 impl BackgroundEnvelopeEvidenceBundle {
     pub fn from_envelopes(
-        recovery: RecoveryMemoryEnvelope,
+        recovery: RecoveryMemoryAllocation,
         compaction: CompactionPlanningMemoryEnvelope,
         scrub: ScrubPlanningMemoryEnvelope,
         import_export: ImportExportMemoryEnvelope,
         streaming: LargeRecordStreamingEnvelope,
         interference_reports: &[BackgroundMemoryInterferenceReport],
     ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
-        reject_recovery_scope(
-            recovery.allocation_scope(),
-            BackgroundWorkClass::RecoveryPlanning,
-        )?;
-        reject_foreground_scope(
-            compaction.allocation_scope(),
-            BackgroundWorkClass::CompactionPlanning,
-        )?;
         reject_foreground_scope(scrub.allocation_scope(), BackgroundWorkClass::ScrubPlanning)?;
-        reject_foreground_scope(
-            import_export.allocation_scope(),
-            BackgroundWorkClass::ImportExport,
-        )?;
         reject_foreground_scope(
             streaming.allocation_scope(),
             BackgroundWorkClass::LargeRecordStreaming,
         )?;
-        reject_later_semantic_claims(recovery, compaction, scrub, import_export, streaming)?;
+        reject_later_semantic_claims(&compaction, &scrub, &import_export, &streaming)?;
         require_interference_report(
             interference_reports,
             RequiredInterferenceKind::ForegroundResidency,
@@ -68,17 +57,17 @@ impl BackgroundEnvelopeEvidenceBundle {
                     BackgroundWorkClass::RecoveryPlanning,
                     recovery.counters(),
                 )?,
-                BackgroundClassEnvelopeEvidence::from_counters(
+                BackgroundClassEnvelopeEvidence::from_maintenance_allocation(
                     BackgroundWorkClass::CompactionPlanning,
-                    compaction.counters(),
+                    compaction.allocation_observation(),
                 )?,
                 BackgroundClassEnvelopeEvidence::from_counters(
                     BackgroundWorkClass::ScrubPlanning,
                     scrub.counters(),
                 )?,
-                BackgroundClassEnvelopeEvidence::from_counters(
+                BackgroundClassEnvelopeEvidence::from_maintenance_allocation(
                     BackgroundWorkClass::ImportExport,
-                    import_export.counters(),
+                    import_export.allocation_observation(),
                 )?,
                 BackgroundClassEnvelopeEvidence::from_counters(
                     BackgroundWorkClass::LargeRecordStreaming,
@@ -120,6 +109,39 @@ pub struct BackgroundClassEnvelopeCounters {
 }
 
 impl BackgroundClassEnvelopeEvidence {
+    pub fn from_maintenance_allocation(
+        work_class: BackgroundWorkClass,
+        allocation: OperationAllocationObservation,
+    ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
+        if allocation.scope() != OperationAllocationScope::Maintenance {
+            return Err(
+                BackgroundEnvelopeEvidenceDenial::WrongOperationAllocationScope {
+                    work_class,
+                    actual: allocation.scope(),
+                },
+            );
+        }
+        let counters = allocation.counters();
+        let allocation_bytes = allocation.bytes();
+        if allocation_bytes == 0
+            || counters.active_operation_bytes_for(OperationAllocationScope::Maintenance)
+                < allocation_bytes
+        {
+            return Err(BackgroundEnvelopeEvidenceDenial::MissingEnvelopeCounters { work_class });
+        }
+        Ok(Self {
+            work_class,
+            counters: BackgroundClassEnvelopeCounters {
+                admitted: 1,
+                allocation_bytes,
+                resident_frames: 0,
+                resident_bytes: 0,
+                pinned_pages: 0,
+                copied_bytes: 0,
+            },
+        })
+    }
+
     pub fn from_counters(
         work_class: BackgroundWorkClass,
         counters: BackgroundEnvelopeCounterSnapshot,
@@ -141,17 +163,22 @@ impl BackgroundClassEnvelopeEvidence {
         work_class: BackgroundWorkClass,
         counters: worth_store_recovery_physics::RecoveryMemoryCounterSnapshot,
     ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
-        Self::from_normalized(
+        let counters = BackgroundClassEnvelopeCounters {
+            admitted: counters.admitted(),
+            allocation_bytes: counters.allocation_bytes_allocated(),
+            resident_frames: counters.resident_frames_admitted(),
+            resident_bytes: counters.resident_bytes_admitted(),
+            pinned_pages: counters.pinned_pages_admitted(),
+            copied_bytes: counters.copied_bytes(),
+        };
+        if counters.admitted == 0 || counters.allocation_bytes == 0 || counters.resident_bytes == 0
+        {
+            return Err(BackgroundEnvelopeEvidenceDenial::MissingEnvelopeCounters { work_class });
+        }
+        Ok(Self {
             work_class,
-            BackgroundClassEnvelopeCounters {
-                admitted: counters.admitted(),
-                allocation_bytes: counters.allocation_bytes_allocated(),
-                resident_frames: counters.resident_frames_admitted(),
-                resident_bytes: counters.resident_bytes_admitted(),
-                pinned_pages: counters.pinned_pages_admitted(),
-                copied_bytes: counters.copied_bytes(),
-            },
-        )
+            counters,
+        })
     }
 
     pub const fn work_class(self) -> BackgroundWorkClass {
@@ -212,9 +239,19 @@ impl BackgroundClassEnvelopeCounters {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackgroundEnvelopeEvidenceDenial {
-    ForegroundScopeUsed { work_class: BackgroundWorkClass },
-    LaterSemanticClaimed { work_class: BackgroundWorkClass },
-    MissingEnvelopeCounters { work_class: BackgroundWorkClass },
+    ForegroundScopeUsed {
+        work_class: BackgroundWorkClass,
+    },
+    WrongOperationAllocationScope {
+        work_class: BackgroundWorkClass,
+        actual: OperationAllocationScope,
+    },
+    LaterSemanticClaimed {
+        work_class: BackgroundWorkClass,
+    },
+    MissingEnvelopeCounters {
+        work_class: BackgroundWorkClass,
+    },
     MissingInterferenceReport(RequiredInterferenceKind),
 }
 
@@ -239,32 +276,12 @@ fn reject_foreground_scope(
     }
 }
 
-fn reject_recovery_scope(
-    scope: OperationAllocationScope,
-    work_class: BackgroundWorkClass,
-) -> Result<(), BackgroundEnvelopeEvidenceDenial> {
-    if matches!(
-        scope,
-        OperationAllocationScope::ForegroundRead | OperationAllocationScope::ForegroundWrite
-    ) {
-        Err(BackgroundEnvelopeEvidenceDenial::ForegroundScopeUsed { work_class })
-    } else {
-        Ok(())
-    }
-}
-
 fn reject_later_semantic_claims(
-    recovery: RecoveryMemoryEnvelope,
-    compaction: CompactionPlanningMemoryEnvelope,
-    scrub: ScrubPlanningMemoryEnvelope,
-    import_export: ImportExportMemoryEnvelope,
-    streaming: LargeRecordStreamingEnvelope,
+    compaction: &CompactionPlanningMemoryEnvelope,
+    scrub: &ScrubPlanningMemoryEnvelope,
+    import_export: &ImportExportMemoryEnvelope,
+    streaming: &LargeRecordStreamingEnvelope,
 ) -> Result<(), BackgroundEnvelopeEvidenceDenial> {
-    if recovery.proves_wal_recovery() || recovery.proves_checkpoint_safety() {
-        return Err(BackgroundEnvelopeEvidenceDenial::LaterSemanticClaimed {
-            work_class: BackgroundWorkClass::RecoveryPlanning,
-        });
-    }
     if compaction.proves_compaction_validity() || compaction.proves_retained_truth_preservation() {
         return Err(BackgroundEnvelopeEvidenceDenial::LaterSemanticClaimed {
             work_class: BackgroundWorkClass::CompactionPlanning,

@@ -1,6 +1,4 @@
-use worth_foundational::{
-    FoundationalPerformanceBudgetKind, FoundationalPerformanceWorkClass,
-};
+use worth_foundational::{FoundationalPerformanceBudgetKind, FoundationalPerformanceWorkClass};
 
 use crate::IoSchedulerBackendCapabilityRequirement;
 use crate::SecureIoPreservationDenial;

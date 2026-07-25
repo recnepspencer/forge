@@ -47,6 +47,8 @@ pub(crate) struct DependencyTargetAllowlistConfig {
 pub(crate) struct SourceIdentifierDenialConfig {
     pub(crate) root: String,
     pub(crate) forbidden_identifiers: Vec<String>,
+    #[serde(default)]
+    pub(crate) forbidden_identifier_fragments: Vec<String>,
     pub(crate) guidance: String,
 }
 

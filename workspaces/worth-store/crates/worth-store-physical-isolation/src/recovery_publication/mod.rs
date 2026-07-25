@@ -8,17 +8,15 @@ use crate::{
     CopyOnWritePublicationPlan, CurrentPhysicalRoot, NewRootPublicationProof,
     OldReachabilityPreservation, PhysicalPublicationIntent, PhysicalPublicationReadiness,
     PhysicalRootPublicationRuntime, PublicationLatchReadiness, PublicationRootCandidate,
-    RootSwapOrderingContract,
+    PublicationRootSuccessorOwner, RootSwapOrderingContract,
 };
 
 mod durable_locator;
 mod publication_start;
-mod recovery_root_candidate;
 mod reopen_request;
 
 use durable_locator::DurableRecoveryPublicationLocator;
 pub use publication_start::RecoveryPublicationStartPosture;
-use recovery_root_candidate::{root_validation, successor_root};
 pub use reopen_request::{
     ReopenRecoveryPublicationByIdentityRequest, ReopenRecoveryPublicationRequest,
 };
@@ -58,7 +56,6 @@ pub enum RecoveryPublicationDenial {
     InvalidBinding,
     StagedMediaNotClosed,
     StagedMediaIdentityMismatch,
-    EpochExhausted,
     Physical(crate::PhysicalPublicationDenial),
     WriteFenceMismatch,
     RootPublicationBindingMismatch,
@@ -145,10 +142,14 @@ impl RecoveryPublicationOwner {
         }
         validate_closed_media(&request.staged_media)?;
         let old_root = request.current_root.root();
-        let candidate_root = successor_root(old_root)?;
-        let validation = root_validation(candidate_root.scope(), request.staged_root_generation)?;
-        let new_candidate = PublicationRootCandidate::admit(candidate_root, validation)
+        let generation = worth_store_physical_format::PhysicalGeneration::from_raw(
+            request.staged_root_generation,
+        )
+        .map_err(|_| RecoveryPublicationDenial::InvalidBinding)?;
+        let new_candidate = PublicationRootSuccessorOwner::plan(request.current_root, generation)
             .map_err(RecoveryPublicationDenial::Physical)?;
+        let candidate_root = new_candidate.root();
+        let validation = new_candidate.validation();
         let validated = PhysicalPublicationIntent::copy_on_write_root_manifest(
             request.current_root,
             new_candidate,

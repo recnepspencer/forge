@@ -19,7 +19,7 @@ mod integrity_handoff;
 mod integrity_input;
 mod integrity_vetted_records;
 mod layout_readmission;
-mod memory_envelope;
+mod memory_allocation;
 mod offline_verifier;
 mod page_lsn_publication;
 mod partial_publication;
@@ -136,21 +136,22 @@ pub use layout_readmission::{
     RecoveryLayoutReadmissionIdentity, RecoveryLayoutReadmissionOutcomeView,
     RecoveryLayoutReadmissionWitness,
 };
-pub use memory_envelope::{
-    RecoveryMemoryCounterSnapshot, RecoveryMemoryEnvelope, RecoveryMemoryEnvelopeDenial,
+pub use memory_allocation::{
+    RecoveryMemoryAllocation, RecoveryMemoryAllocationDenial, RecoveryMemoryCounterSnapshot,
+    RecoveryMemoryObservation,
 };
 pub use offline_verifier::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
-    FreshRuntimeRecoveryDriver, FreshRuntimeRecoveryExecution, FreshRuntimeRecoveryWitness,
-    FreshRuntimeReopenHarnessDenial, FreshRuntimeReopenHarnessEvidence,
-    OfflineRecoveryVerificationReport, OfflineRecoveryVerifierConclusion,
-    PersistedRecoveryArtifactDenial, PersistedRecoveryArtifactDigest,
-    PersistedRecoveryArtifactMaterialization, PersistedRecoveryArtifacts,
-    RecoveryDeterminismClassification, RecoveryDeterminismReport, RecoveryNondeterministicMetadata,
-    RecoveryOfflineVerifier, RecoveryOfflineVerifierDenial, RecoveryPersistedRecord,
-    RecoveryPersistedRecordRole, RecoveryProfileId, RecoveryRuntimeClassification,
-    RecoveryRuntimePosture, ReopenedRecoveryArtifactAdmission,
+    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
+    CheckpointPageImageMaterialization, FreshRuntimeRecoveryDriver, FreshRuntimeRecoveryExecution,
+    FreshRuntimeRecoveryWitness, FreshRuntimeReopenHarnessDenial,
+    FreshRuntimeReopenHarnessEvidence, OfflineRecoveryVerificationReport,
+    OfflineRecoveryVerifierConclusion, PersistedRecoveryArtifactDenial,
+    PersistedRecoveryArtifactDigest, PersistedRecoveryArtifactMaterialization,
+    PersistedRecoveryArtifacts, RecoveryDeterminismClassification, RecoveryDeterminismReport,
+    RecoveryNondeterministicMetadata, RecoveryOfflineVerifier, RecoveryOfflineVerifierDenial,
+    RecoveryPersistedRecord, RecoveryPersistedRecordRole, RecoveryProfileId,
+    RecoveryRuntimeClassification, RecoveryRuntimePosture, ReopenedRecoveryArtifactAdmission,
     ReopenedRecoveryArtifactAdmissionDenial, ReopenedRuntimeBoundaryEvidence,
     ReopenedRuntimeRecoverySession, RuntimeRecoveryComparisonClassification,
     RuntimeRecoveryComparisonReport, RuntimeRecoveryReport, RuntimeRecoveryReportDenial,

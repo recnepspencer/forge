@@ -80,10 +80,10 @@ fn cross_format_placement_cannot_publish_an_unreopenable_root() {
         .manifest_capacity(ManifestEntryCapacity::new(700).unwrap())
         .admit(format_64k())
         .unwrap();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let before = serving.media_counters();
     assert_eq!(
-        serving.records_mut().append_batch(
+        serving.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"wrong format".as_slice()]).unwrap(),
             placement_64k,
         ),
@@ -110,12 +110,16 @@ fn extent_geometry_is_format_owned_and_survives_access_policy_narrowing() {
         .scratch_limit(RecordByteLimit::new(65_536).unwrap())
         .admit(format)
         .unwrap();
-    let mut serving = success(media(&root).initialize_record_store(
-        PhysicalRecordInitialization::new(format, placement, wide_access),
-    ));
+    let serving = success(
+        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
+            format,
+            placement,
+            wide_access,
+        )),
+    );
     let payload = vec![0x5a; 40_000];
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
             placement,

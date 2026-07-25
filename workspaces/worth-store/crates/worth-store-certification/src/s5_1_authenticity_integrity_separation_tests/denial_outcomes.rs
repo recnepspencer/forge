@@ -3,7 +3,7 @@ use super::support::{
     assert_checksum_valid_authenticity_gate_denial, authenticity_physical_identity,
 };
 use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
-    crc32c, with_pre_decode_admission, CountingSemanticDecoder,
+    crc32c, current_frame_bytes, with_pre_decode_admission, CountingSemanticDecoder,
 };
 use crate::courtroom::harness::test_support::authenticity_integrity_test_support::admitted_scope;
 use worth_store_physical_format::PhysicalFrameKind;
@@ -30,7 +30,9 @@ fn checksum_valid_bytes_cannot_reach_decode_without_authenticity_result() {
                     validation,
                     witness,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-absent")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"checksum-valid-auth-absent",
+                    ))),
                 ))
                 .unwrap();
             let physical_identity =
@@ -89,7 +91,9 @@ fn verified_authenticity_result_cannot_be_replayed_to_another_checked_frame() {
                     validation,
                     witness,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-source")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"checksum-valid-auth-source",
+                    ))),
                 ))
                 .unwrap();
             let physical_identity =
@@ -120,7 +124,9 @@ fn verified_authenticity_result_cannot_be_replayed_to_another_checked_frame() {
                             target_validation,
                             target_witness,
                             PhysicalFrameKind::RecordFrame,
-                            DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-target")),
+                            DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                                b"checksum-valid-auth-target",
+                            ))),
                         ))
                         .unwrap();
                     let physical_denial = AuthenticityRequiredPhysicalDecodeGate::admit_frame(

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use worth_store_aspect_native::{
     StoreAspectBindingStamp, StoreAspectBoundaryFact, StoreAspectContractAdmission,
     StoreAspectContractStamp, StoreAspectIdentity, StoreAspectPatchBoundaryFact,
@@ -9,10 +11,12 @@ use worth_store_aspect_native::{
 ///
 /// The variants preserve whether the operation projects authoritative state
 /// or applies an authoritative patch. Raw Foundational values and Signal masks
-/// have no construction path into this type.
+/// have no construction path into this type. Clones share the immutable
+/// admitted fact so ordinary work submission carries proof without rebuilding
+/// its owned patch and identity collections.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalWorkSemanticBasis {
-    kind: PhysicalWorkSemanticBasisKind,
+    kind: Arc<PhysicalWorkSemanticBasisKind>,
     retained_bytes: usize,
 }
 
@@ -65,13 +69,13 @@ impl PhysicalWorkSemanticBasis {
         .identity();
         let retained_bytes = fact.semantic_byte_width();
         Ok(Self {
-            kind: PhysicalWorkSemanticBasisKind::Projection {
+            kind: Arc::new(PhysicalWorkSemanticBasisKind::Projection {
                 fact,
                 aspect,
                 contract,
                 binding,
                 canonical_basis,
-            },
+            }),
             retained_bytes,
         })
     }
@@ -90,26 +94,26 @@ impl PhysicalWorkSemanticBasis {
         .identity();
         let retained_bytes = patch.semantic_byte_width();
         Ok(Self {
-            kind: PhysicalWorkSemanticBasisKind::Mutation {
+            kind: Arc::new(PhysicalWorkSemanticBasisKind::Mutation {
                 patch,
                 aspect,
                 contract,
                 binding,
                 canonical_basis,
-            },
+            }),
             retained_bytes,
         })
     }
 
-    pub const fn aspect_identity(&self) -> &StoreAspectIdentity {
-        match &self.kind {
+    pub fn aspect_identity(&self) -> &StoreAspectIdentity {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { aspect, .. }
             | PhysicalWorkSemanticBasisKind::Mutation { aspect, .. } => aspect,
         }
     }
 
-    pub const fn canonical_basis(&self) -> StoreEquivalenceBasisIdentity {
-        match &self.kind {
+    pub fn canonical_basis(&self) -> StoreEquivalenceBasisIdentity {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection {
                 canonical_basis, ..
             }
@@ -119,8 +123,8 @@ impl PhysicalWorkSemanticBasis {
         }
     }
 
-    pub const fn posture(&self) -> PhysicalWorkSemanticPosture {
-        match &self.kind {
+    pub fn posture(&self) -> PhysicalWorkSemanticPosture {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { .. } => {
                 PhysicalWorkSemanticPosture::Projection
             }
@@ -128,22 +132,22 @@ impl PhysicalWorkSemanticBasis {
         }
     }
 
-    pub const fn contract_stamp(&self) -> StoreAspectContractStamp {
-        match &self.kind {
+    pub fn contract_stamp(&self) -> StoreAspectContractStamp {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { contract, .. }
             | PhysicalWorkSemanticBasisKind::Mutation { contract, .. } => *contract,
         }
     }
 
-    pub const fn binding_stamp(&self) -> StoreAspectBindingStamp {
-        match &self.kind {
+    pub fn binding_stamp(&self) -> StoreAspectBindingStamp {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { binding, .. }
             | PhysicalWorkSemanticBasisKind::Mutation { binding, .. } => *binding,
         }
     }
 
-    pub const fn physical_witness(&self) -> StorePhysicalBoundaryWitness {
-        match &self.kind {
+    pub fn physical_witness(&self) -> StorePhysicalBoundaryWitness {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { fact, .. } => {
                 fact.authority_input().physical_witness()
             }
@@ -153,15 +157,15 @@ impl PhysicalWorkSemanticBasis {
         }
     }
 
-    pub const fn projection_fact(&self) -> Option<&StoreAspectBoundaryFact> {
-        match &self.kind {
+    pub fn projection_fact(&self) -> Option<&StoreAspectBoundaryFact> {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { fact, .. } => Some(fact),
             PhysicalWorkSemanticBasisKind::Mutation { .. } => None,
         }
     }
 
-    pub const fn mutation_patch(&self) -> Option<&StoreAspectPatchBoundaryFact> {
-        match &self.kind {
+    pub fn mutation_patch(&self) -> Option<&StoreAspectPatchBoundaryFact> {
+        match self.kind.as_ref() {
             PhysicalWorkSemanticBasisKind::Projection { .. } => None,
             PhysicalWorkSemanticBasisKind::Mutation { patch, .. } => Some(patch),
         }
@@ -169,6 +173,11 @@ impl PhysicalWorkSemanticBasis {
 
     pub const fn semantic_byte_width(&self) -> usize {
         self.retained_bytes
+    }
+
+    #[cfg(test)]
+    pub(in crate::physical_runtime) fn shares_admitted_state_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.kind, &other.kind)
     }
 }
 

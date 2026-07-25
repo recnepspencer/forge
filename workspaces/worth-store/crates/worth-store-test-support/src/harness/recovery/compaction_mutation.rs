@@ -1,7 +1,7 @@
-use super::{closeout as closeout_fixture, source_precedence as source_precedence_fixture};
+use super::source_precedence as source_precedence_fixture;
 use crate::harness::physical_isolation::{
     epoch_scope::generation_counted_page_reference,
-    publication::root_publication_validation,
+    publication::{self, PublicationInputs},
     read_plan::{admit_plan, protected_set},
 };
 use worth_store_physical_certification::{
@@ -9,30 +9,17 @@ use worth_store_physical_certification::{
     PhysicalIsolationCompactionMutationReplayBinding,
     PhysicalIsolationCompactionMutationScheduledLaneOutput, PhysicalSimulationPlan,
 };
-use worth_store_physical_format::{PhysicalGeneration, RootPublicationValidationWitness};
+use worth_store_physical_format::{PhysicalGeneration, PhysicalStoreIdentity};
 use worth_store_physical_integrity::CompactionSourceIntegrityClearance;
 use worth_store_physical_isolation::{
-    admit_physical_isolation_entry, admit_physical_read_stability_authority,
     pre_wait_denial_for_hierarchy_inversion, CompactionCandidateRangeSet, CompactionCutoverDelta,
     CompactionDeferredReclaimQueue, CompactionMutationLaneOrigin, CompactionMutationLaneReceipt,
     CompactionProtectedReferenceSet, CompactionReadInterlockPlan, CompactionRewritePublication,
     CompactionSourceIntegrityEvidence, CurrentGenerationPhysicalReference, CurrentPhysicalRoot,
-    LatchAcquisitionStep, NewRootPublicationProof, OldReachabilityPreservation,
-    PhysicalIsolationEntryRequest, PhysicalLatchKey, PhysicalOrderingContract,
-    PhysicalPublicationIntent, PhysicalPublicationReadiness, PhysicalReadStabilityAuthority,
-    PublicationLatchReadiness, PublicationRootCandidate, RootSwapOrderingContract,
-    StablePhysicalReadExecution,
+    LatchAcquisitionStep, PhysicalLatchKey, PhysicalPublicationIntent,
+    PhysicalReadStabilityAuthority, StablePhysicalReadExecution,
 };
 use worth_store_recovery_physics::CompactionCutoverRecoveryPosture;
-
-struct PublicationInputs {
-    old_root: CurrentPhysicalRoot,
-    new_root: CurrentPhysicalRoot,
-    old_candidate: PublicationRootCandidate,
-    new_candidate: PublicationRootCandidate,
-    old_reachability: OldReachabilityPreservation,
-    new_validation: RootPublicationValidationWitness,
-}
 
 pub fn complete_compaction_mutation_receipts() -> Vec<CompactionMutationLaneReceipt> {
     vec![
@@ -119,10 +106,7 @@ fn in_place_overwrite_receipt() -> CompactionMutationLaneReceipt {
 
 fn same_footprint_wrong_cutover_in_place_receipt() -> CompactionMutationLaneReceipt {
     let (receipt, _) = CompactionMutationLaneReceipt::from_in_place_overwrite_denial(
-        admitted_compaction_plan_for_new_digest(
-            current_generation_page_reference(701),
-            "phase8-compaction-mutant-wrong-cutover",
-        ),
+        admitted_compaction_plan_for_published_successor(current_generation_page_reference(701)),
     );
     receipt
 }
@@ -135,14 +119,13 @@ fn early_reclaim_receipt() -> CompactionMutationLaneReceipt {
 
 fn stale_epoch_receipt() -> CompactionMutationLaneReceipt {
     let inputs = publication_inputs();
-    let old_authority = physical_authority_from_complete_closeout();
     let reference = current_generation_page_reference(701);
     let expected_plan = admitted_compaction_plan_for(reference);
     CompactionMutationLaneReceipt::from_stale_epoch_admission_denial(
         &expected_plan,
         inputs.new_root.epoch(),
         inputs.old_root.epoch(),
-        stable_source_evidence(&old_authority, inputs.old_root, reference),
+        stable_source_evidence(&inputs.old_authority, inputs.old_root, reference),
     )
     .unwrap()
 }
@@ -188,13 +171,14 @@ fn compaction_publication_for(
     reference: CurrentGenerationPhysicalReference,
 ) -> CompactionRewritePublication {
     let inputs = publication_inputs();
-    let receipt = publish_copy_on_write(
+    let receipt = publication::publish_copy_on_write(
         PhysicalPublicationIntent::copy_on_write_root_manifest(
             inputs.old_candidate,
             inputs.new_candidate,
             inputs.old_reachability,
         ),
         inputs.new_validation,
+        None,
     );
     worth_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
         CompactionCutoverDelta::lower(admitted_compaction_plan_for(reference), inputs.new_root)
@@ -214,20 +198,18 @@ fn admitted_compaction_plan_for(
     admitted_compaction_plan_for_inputs(reference, publication_inputs())
 }
 
-fn admitted_compaction_plan_for_new_digest(
+fn admitted_compaction_plan_for_published_successor(
     reference: CurrentGenerationPhysicalReference,
-    digest: &str,
 ) -> CompactionReadInterlockPlan {
-    admitted_compaction_plan_for_inputs(reference, publication_inputs_for_new_digest(digest))
+    admitted_compaction_plan_for_inputs(reference, successor_publication_inputs())
 }
 
 fn admitted_compaction_plan_for_inputs(
     reference: CurrentGenerationPhysicalReference,
     inputs: PublicationInputs,
 ) -> CompactionReadInterlockPlan {
-    let old_authority = physical_authority_from_complete_closeout();
     let old_plan = admit_plan(
-        &old_authority,
+        &inputs.old_authority,
         inputs.old_root,
         protected_set([reference], 4),
         8,
@@ -238,85 +220,23 @@ fn admitted_compaction_plan_for_inputs(
         CompactionCandidateRangeSet::from_current_generation_refs([reference]).unwrap(),
         inputs.old_root.epoch(),
         inputs.new_root.epoch(),
-        stable_source_evidence(&old_authority, inputs.old_root, reference),
+        stable_source_evidence(&inputs.old_authority, inputs.old_root, reference),
     )
     .unwrap()
 }
 
 fn publication_inputs() -> PublicationInputs {
-    publication_inputs_for_new_digest("phase8-compaction-mutant")
+    publication::publication_inputs_with_root_generation(701)
 }
 
-fn publication_inputs_for_new_digest(digest: &str) -> PublicationInputs {
-    let old_authority = physical_authority_from_complete_closeout();
-    let old_root = current_root_from_authority(&old_authority);
-    let new_authority = advancing_authority_for_digest(old_root, digest);
-    let new_root = current_root_from_authority(&new_authority);
-    let old_validation = root_publication_validation(old_root.scope(), 1);
-    let new_validation = root_publication_validation(new_root.scope(), 2);
-    let old_candidate = PublicationRootCandidate::admit(old_root, old_validation).unwrap();
-    let new_candidate = PublicationRootCandidate::admit(new_root, new_validation).unwrap();
-    let reference = current_generation_page_reference(701);
-    let old_plan = admit_plan(
-        &old_authority,
-        old_root,
-        protected_set([reference], 4),
-        8,
-        4,
-    );
-    let old_reachability = OldReachabilityPreservation::from_protected_footprint(
-        old_plan.footprint().declared_footprint_basis(),
+fn successor_publication_inputs() -> PublicationInputs {
+    let prior = publication_inputs();
+    let receipt = publication::publish_inputs(&prior);
+    publication::successor_publication_inputs_for_store(
+        &receipt,
+        &PhysicalStoreIdentity::physical_format_default(),
+        702,
     )
-    .unwrap();
-    PublicationInputs {
-        old_root,
-        new_root,
-        old_candidate,
-        new_candidate,
-        old_reachability,
-        new_validation,
-    }
-}
-
-fn advancing_authority_for_digest(
-    current_root: CurrentPhysicalRoot,
-    digest: &str,
-) -> PhysicalReadStabilityAuthority {
-    for ordinal in 0..256 {
-        let candidate = physical_authority_from_operation_digest_closeout_with_digest(&format!(
-            "{digest}-{ordinal}"
-        ));
-        let candidate_root = current_root_from_authority(&candidate);
-        if candidate_root.epoch().get() > current_root.epoch().get()
-            && candidate_root.manifest_epoch().get() > current_root.manifest_epoch().get()
-        {
-            return candidate;
-        }
-    }
-
-    panic!("failed to derive a compaction successor with an advancing epoch vector")
-}
-
-fn publish_copy_on_write(
-    intent: PhysicalPublicationIntent,
-    new_validation: RootPublicationValidationWitness,
-) -> worth_store_physical_isolation::PhysicalPublicationReceipt {
-    let validated = intent.validate_copy_on_write_inputs().unwrap();
-    let lowered = validated
-        .clone()
-        .lower_with_ordering(RootSwapOrderingContract::acquire_release_or_stronger())
-        .unwrap();
-    let readiness = PhysicalPublicationReadiness::from_validated_intent(
-        &validated,
-        NewRootPublicationProof::from_root_validation(new_validation),
-        PublicationLatchReadiness::declared_publish_latches_released_before_blocking_io(),
-    );
-    crate::harness::physical_isolation::publish_in_temporary_store(
-        lowered.join_readiness(readiness).unwrap(),
-    )
-    .unwrap()
-    .receipt()
-    .clone()
 }
 
 fn stable_source_evidence(
@@ -344,36 +264,6 @@ fn execute_read(
             .into_execution_ready_handle(),
     )
     .complete()
-}
-
-fn physical_authority_from_complete_closeout() -> PhysicalReadStabilityAuthority {
-    physical_authority_from_completion(closeout_fixture::recovery_completion())
-}
-
-fn physical_authority_from_operation_digest_closeout_with_digest(
-    digest: &str,
-) -> PhysicalReadStabilityAuthority {
-    physical_authority_from_completion(closeout_fixture::recovery_completion_with_operation_digest(
-        digest,
-    ))
-}
-
-fn physical_authority_from_completion(
-    completion: worth_store_recovery_physics::RecoveryCompletion,
-) -> PhysicalReadStabilityAuthority {
-    let entry = admit_physical_isolation_entry(
-        PhysicalIsolationEntryRequest::from_recovery_completion(&completion),
-    )
-    .unwrap();
-    admit_physical_read_stability_authority(&entry).unwrap()
-}
-
-fn current_root_from_authority(authority: &PhysicalReadStabilityAuthority) -> CurrentPhysicalRoot {
-    CurrentPhysicalRoot::from_physical_isolation_entry(
-        authority.root_epoch_basis().current_root_basis(),
-        PhysicalOrderingContract::root_swap_acquire_release(),
-    )
-    .unwrap()
 }
 
 fn current_generation_page_reference(generation: u64) -> CurrentGenerationPhysicalReference {

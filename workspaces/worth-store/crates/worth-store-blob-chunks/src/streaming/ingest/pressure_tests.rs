@@ -1,8 +1,4 @@
-use worth_store_budgets::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationScope, CounterEvidenceStrength,
-    FixedMetadataReservation,
-};
-use worth_store_buffer_pool::{AllocationAdmission, AllocationRequest};
+use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::{
     blob_ingest_deferred_background_capacity_for_certification_test,
     blob_ingest_denied_background_capacity_for_certification_test,
@@ -15,8 +11,7 @@ use worth_store_io_scheduler::{
 use worth_store_physical_backend::BlobBackendChunkWriteSession;
 use worth_store_security::StoreTenantScope;
 
-use crate::test_support::blob_scope;
-use crate::test_support::physical_payload_for_bytes;
+use crate::test_support::{blob_allocation_grant, blob_scope, physical_payload_for_bytes};
 use crate::{
     BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission, BlobStreamingChunkWriter,
     BlobStreamingIngest, BlobStreamingIngestDenial, BlobStreamingIngestRequest,
@@ -107,20 +102,11 @@ fn assert_pressure_denial(
 fn run_ingest(
     pressure: BlobStreamingPressureAdmission,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    let envelopes = allocation_envelope();
-    let mut admission = AllocationAdmission::from_declaration(envelopes);
-    let grant = admission
-        .admit(AllocationRequest::streaming_window(AllocationScope::Streaming, 4).unwrap())
-        .expect("streaming allocation should admit");
-    let allocation = admission
-        .record_allocation(grant)
-        .expect("streaming allocation should record");
     BlobStreamingIngest::run_bounded(
         request(),
         crate::BlobStreamingIngestExecution::new(
             BlobStreamingWindow::bounded(4).unwrap(),
-            allocation,
-            envelopes,
+            blob_allocation_grant(4),
             pressure,
             CounterEvidenceStrength::Exact,
         ),
@@ -152,20 +138,6 @@ fn source_frames() -> Vec<BlobStreamingSourceFrame> {
             .expect("bounded source frame should admit")
         })
         .collect()
-}
-
-fn allocation_envelope() -> worth_store_budgets::AllocationEnvelopeSet {
-    let budget = AllocationByteBudget::bytes(64).unwrap();
-    AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(AllocationByteBudget::bytes(4).unwrap())
-        .fixed_metadata(FixedMetadataReservation::constant_bytes(16).unwrap())
-        .seal()
-        .unwrap()
 }
 
 struct TestChunkWriter;

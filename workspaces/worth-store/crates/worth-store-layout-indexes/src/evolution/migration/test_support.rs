@@ -3,8 +3,11 @@ use worth_store_authority::StoreCurrentAuthorityWitness;
 use worth_store_contracts::DurableArtifactFamilyId;
 
 mod authority;
+mod publication;
 
 pub(crate) use authority::current_authority;
+use publication::{current_publication_source, publication_inputs};
+pub(crate) use publication::{publication_plan, rollback_publication_plan};
 
 use super::{
     layout_evolution_binding, layout_migration_execution, layout_migration_operation,
@@ -163,18 +166,12 @@ pub(crate) fn migration_execution_request(
     declaration: LayoutEvolutionDeclaration,
     authority: &StoreCurrentAuthorityWitness,
 ) -> LayoutMigrationExecutionRequest {
-    migration_execution_request_for_publication(
-        declaration,
-        authority,
-        "layout-migration-publication",
-        1_901,
-    )
+    migration_execution_request_for_publication(declaration, authority, 1_901)
 }
 
 pub(crate) fn migration_execution_request_for_publication(
     declaration: LayoutEvolutionDeclaration,
     authority: &StoreCurrentAuthorityWitness,
-    operation_digest: &str,
     generation: u64,
 ) -> LayoutMigrationExecutionRequest {
     let source = binding(
@@ -186,10 +183,7 @@ pub(crate) fn migration_execution_request_for_publication(
         .plan(migration_request(declaration, source), authority)
         .into_ready()
         .expect("migration fixture must plan through the ordinary owner");
-    LayoutMigrationExecutionRequest::new(
-        plan,
-        publication_plan(authority, operation_digest, generation),
-    )
+    LayoutMigrationExecutionRequest::new(plan, publication_plan(authority, generation))
 }
 
 pub(crate) fn migration_request(
@@ -198,6 +192,29 @@ pub(crate) fn migration_request(
 ) -> LayoutMigrationRequest {
     let current_family = binding.admitted_family();
     LayoutMigrationRequest::new(declaration, binding, current_family)
+}
+
+pub(crate) fn same_store_unbound_migration_source(
+    declaration: LayoutEvolutionDeclaration,
+    authority: &StoreCurrentAuthorityWitness,
+    generation: u64,
+) -> (
+    LayoutBindingWitness,
+    worth_store_physical_isolation::CopyOnWritePublicationPlan,
+) {
+    let inputs = publication_inputs(authority, generation);
+    let source = admitted_binding_from_physical_source(
+        declaration,
+        layout_declarations().seed_family(),
+        authority.clone(),
+        inputs.new_candidate,
+    )
+    .expect("same-Store hostile source should admit through the production owner");
+    let unbound_plan =
+        worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(
+            &inputs,
+        );
+    (source, unbound_plan)
 }
 
 pub(crate) fn rollback_request(
@@ -211,7 +228,6 @@ pub(crate) fn rollback_request(
 pub(crate) fn rollback_execution_request_for_publication(
     declaration: LayoutEvolutionDeclaration,
     authority: &StoreCurrentAuthorityWitness,
-    operation_digest: &str,
     generation: u64,
 ) -> super::LayoutRollbackExecutionRequest {
     let migrated = migrated_binding(declaration, authority);
@@ -224,7 +240,7 @@ pub(crate) fn rollback_execution_request_for_publication(
         .expect("rollback fixture must plan through the ordinary owner");
     super::LayoutRollbackExecutionRequest::new(
         plan,
-        rollback_publication_plan(authority, operation_digest, generation),
+        rollback_publication_plan(authority, migrated.publication(), generation),
     )
 }
 
@@ -257,58 +273,6 @@ pub(crate) fn admitted_family_for_scope(
         .unwrap()
 }
 
-pub(crate) fn publication_plan(
-    authority: &StoreCurrentAuthorityWitness,
-    operation_digest: &str,
-    generation: u64,
-) -> worth_store_physical_isolation::CopyOnWritePublicationPlan {
-    let inputs = publication_inputs(authority, operation_digest, generation);
-    worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(
-        &inputs,
-    )
-}
-
-pub(crate) fn rollback_publication_plan(
-    authority: &StoreCurrentAuthorityWitness,
-    operation_digest: &str,
-    generation: u64,
-) -> worth_store_physical_isolation::CopyOnWritePublicationPlan {
-    let store = worth_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
-        authority.identity().clone(),
-    );
-    let migration = publication_inputs(authority, "layout-migration-publication", 1_901);
-    let rollback = worth_store_test_support::harness::physical_isolation::publication::successor_publication_inputs_for_store(
-        &migration,
-        &store,
-        operation_digest,
-        generation,
-    );
-    worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(
-        &rollback,
-    )
-}
-
-fn current_publication_source(
-    authority: &StoreCurrentAuthorityWitness,
-) -> worth_store_physical_isolation::PublicationRootCandidate {
-    publication_inputs(authority, "layout-binding-physical-source", 1_900).old_candidate
-}
-
-fn publication_inputs(
-    authority: &StoreCurrentAuthorityWitness,
-    operation_digest: &str,
-    generation: u64,
-) -> worth_store_test_support::harness::physical_isolation::publication::PublicationInputs {
-    let store = worth_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
-        authority.identity().clone(),
-    );
-    worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
-        &store,
-        operation_digest,
-        generation,
-    )
-}
-
 pub(crate) fn other_family_migrated_binding(
     authority: &StoreCurrentAuthorityWitness,
 ) -> LayoutMigrationReceipt {
@@ -331,7 +295,7 @@ pub(crate) fn other_family_migrated_binding(
         .plan(migration_request(declared, source), authority)
         .into_ready()
         .expect("migration fixture must plan through the ordinary owner");
-    let publication = publication_plan(authority, "layout-migration-publication", 1_901);
+    let publication = publication_plan(authority, 1_901);
     let request = LayoutMigrationExecutionRequest::new(plan, publication);
     let mut runtime =
         worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
@@ -370,6 +334,21 @@ fn try_admitted_binding(
 ) -> Result<LayoutBindingWitness, super::LayoutEvolutionDenial> {
     assert_eq!(bound_version, declaration.migration_source());
     assert_eq!(observed_version, bound_version);
+    let physical_source = current_publication_source(&bound_authority);
+    admitted_binding_from_physical_source(
+        declaration,
+        family_declaration,
+        bound_authority,
+        physical_source,
+    )
+}
+
+fn admitted_binding_from_physical_source(
+    declaration: LayoutEvolutionDeclaration,
+    family_declaration: &'static crate::PhysicalArtifactFamilyDeclaration,
+    bound_authority: StoreCurrentAuthorityWitness,
+    physical_source: worth_store_physical_isolation::PublicationRootCandidate,
+) -> Result<LayoutBindingWitness, super::LayoutEvolutionDenial> {
     let family = admitted_family_for_scope(
         family_declaration,
         &bound_authority,
@@ -384,7 +363,6 @@ fn try_admitted_binding(
         .into_admitted()
         .unwrap();
     let catalog = crate::bootstrap::test_support::bootstrap_catalog_read_admission();
-    let physical_source = current_publication_source(&bound_authority);
     layout_evolution_binding()
         .admit(LayoutBindingRequest::from_bootstrap_catalog(
             declaration,

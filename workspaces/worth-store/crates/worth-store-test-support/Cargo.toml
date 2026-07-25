@@ -24,10 +24,18 @@ physical-isolation-fixtures = [
     "dep:worth-store-compatibility",
     "dep:worth-store-physical-backend",
     "dep:worth-store-physical-integrity",
-    "dep:worth-store-readiness",
     "dep:worth-store-recovery-physics",
     "dep:worth-store-security",
     "dep:worth-store-wal",
+]
+physical-compaction-fixtures = [
+    "physical-isolation-fixtures",
+    "worth-store-physical-backend/certification-test-authority",
+    "worth-store-physical-integrity/legacy-certification-models",
+    "worth-store-physical-isolation/certification-authority",
+    "worth-store-recovery-physics/certification-test-authority",
+    "worth-store-security/certification-test-authority",
+    "worth-store-wal/certification-authority",
 ]
 layout-fixtures = [
     "physical-isolation-fixtures",
@@ -36,10 +44,10 @@ layout-fixtures = [
 ]
 certification-world = [
     "layout-fixtures",
+    "physical-compaction-fixtures",
     "dep:worth-store-blob-chunks",
     "dep:worth-store-io-scheduler",
     "dep:worth-store-physical-certification",
-    "worth-store-physical-integrity/legacy-certification-models",
 ]
 
 [dependencies]
@@ -63,9 +71,8 @@ worth-store-lsm-authority = { workspace = true, optional = true }
 worth-store-physical-certification = { workspace = true, features = ["certification-test-support"], optional = true }
 worth-store-physical-backend = { workspace = true, optional = true }
 worth-store-physical-format = { workspace = true, optional = true }
-worth-store-physical-isolation = { workspace = true, features = ["certification-authority"], optional = true }
+worth-store-physical-isolation = { workspace = true, optional = true }
 worth-store-physical-integrity = { workspace = true, optional = true }
-worth-store-readiness = { workspace = true, optional = true }
 worth-store-recovery-physics = { workspace = true, optional = true }
 worth-store-security = { workspace = true, optional = true }
 worth-store-wal = { workspace = true, optional = true }

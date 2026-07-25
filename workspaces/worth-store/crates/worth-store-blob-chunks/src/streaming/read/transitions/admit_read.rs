@@ -1,6 +1,6 @@
-use worth_store_budgets::{AllocationEnvelopeSet, CounterEvidenceStrength};
+use worth_store_budgets::CounterEvidenceStrength;
 
-use super::super::verification::{allocation_binding, stable_read_bytes};
+use super::super::verification::stable_read_bytes;
 use crate::{
     BlobStreamingReadAdmission, BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial,
     BlobStreamingReadRequest,
@@ -9,11 +9,8 @@ use crate::{
 pub(crate) fn admit_read(
     admission: BlobStreamingReadAdmission,
     request: &BlobStreamingReadRequest,
-    allocation: worth_store_buffer_pool::AllocationReceipt,
-    envelopes: AllocationEnvelopeSet,
     counter_strength: CounterEvidenceStrength,
 ) -> Result<BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial> {
-    allocation_binding::require_streaming_allocation(allocation, envelopes)?;
     let counters = admission
         .seed_counters(BlobStreamingReadCounterSnapshot::start(counter_strength))
         .record_allocation();

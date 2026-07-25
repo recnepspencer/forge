@@ -5,13 +5,10 @@ use worth_store_physical_format::{
     EXTENT_CHUNK_METADATA_BYTES,
 };
 
-use super::super::{
-    residency::serving_artifacts::ServingRecordArtifacts, RecordReadObservation,
-    RecordStreamFailure, RecordStreamFailureKind,
-};
+use super::super::{RecordReadObservation, RecordStreamFailure, RecordStreamFailureKind};
 
-pub(in crate::physical_runtime::record_serving) struct ExtentReadState<'runtime> {
-    artifacts: ServingRecordArtifacts<'runtime>,
+pub(in crate::physical_runtime::record_serving) struct ExtentReadState {
+    artifacts: super::super::residency::record_frame_reader::RecordFrameReader<'static>,
     artifact: RecordArtifactFile,
     manifest: DurableExtentManifest,
     format: PhysicalRecordFormatDeclaration,
@@ -23,9 +20,9 @@ pub(in crate::physical_runtime::record_serving) struct ExtentReadState<'runtime>
     payload_offset: usize,
 }
 
-impl<'runtime> ExtentReadState<'runtime> {
+impl ExtentReadState {
     pub(in crate::physical_runtime::record_serving) fn new(
-        artifacts: ServingRecordArtifacts<'runtime>,
+        artifacts: super::super::residency::record_frame_reader::RecordFrameReader<'static>,
         artifact: RecordArtifactFile,
         manifest: DurableExtentManifest,
         format: PhysicalRecordFormatDeclaration,
@@ -77,23 +74,31 @@ impl<'runtime> ExtentReadState<'runtime> {
         let frame = self
             .artifacts
             .load_exact(self.artifact, self.artifact_offset, frame_bytes as u32)
-            .map_err(|_| {
+            .map_err(|failure| {
+                observation.observe_physical_work(failure.work_trace());
                 RecordStreamFailure::during_read(
                     RecordStreamFailureKind::ArtifactDamaged,
                     completed,
                 )
             })?;
+        observation.observe_physical_work(frame.work_trace());
         observation.observe_transfer(frame.len());
-        let coordinate = ExtentChunkCoordinate::new(
+        let coordinate = match ExtentChunkCoordinate::new(
             self.manifest.record(),
             self.manifest.extent_cell(),
             self.manifest.logical_bytes(),
             self.logical_offset,
             self.next_ordinal,
-        )
-        .ok_or_else(|| {
-            RecordStreamFailure::during_read(RecordStreamFailureKind::ArtifactDamaged, completed)
-        })?;
+        ) {
+            Some(coordinate) => coordinate,
+            None => {
+                frame.reject_projection_failure();
+                return Err(RecordStreamFailure::during_read(
+                    RecordStreamFailureKind::ArtifactDamaged,
+                    completed,
+                ));
+            }
+        };
         let decoded = decode_extent_chunk(&frame, coordinate);
         match &decoded {
             Ok(_) => {
@@ -104,15 +109,20 @@ impl<'runtime> ExtentReadState<'runtime> {
             }
             Err(_) => {}
         }
-        let (chunk, format) = decoded.map_err(|denial| {
-            let kind = if denial == ExtentFrameDenial::GenerationMismatch {
-                RecordStreamFailureKind::StalePlacement
-            } else {
-                RecordStreamFailureKind::ArtifactDamaged
-            };
-            RecordStreamFailure::during_read(kind, completed)
-        })?;
+        let (chunk, format) = match decoded {
+            Ok(decoded) => decoded,
+            Err(denial) => {
+                frame.reject_projection_failure();
+                let kind = if denial == ExtentFrameDenial::GenerationMismatch {
+                    RecordStreamFailureKind::StalePlacement
+                } else {
+                    RecordStreamFailureKind::ArtifactDamaged
+                };
+                return Err(RecordStreamFailure::during_read(kind, completed));
+            }
+        };
         if format != self.format || chunk.len() != chunk_bytes {
+            frame.reject_projection_failure();
             return Err(RecordStreamFailure::during_read(
                 RecordStreamFailureKind::FormatMismatch,
                 completed,
@@ -125,12 +135,17 @@ impl<'runtime> ExtentReadState<'runtime> {
         self.artifact_offset += frame_bytes as u64;
         self.logical_offset += chunk_bytes as u64;
         if self.logical_offset < self.manifest.logical_bytes() {
-            self.next_ordinal = self.next_ordinal.checked_add(1).ok_or_else(|| {
-                RecordStreamFailure::during_read(
+            let Some(next_ordinal) = self.next_ordinal.checked_add(1) else {
+                self.frame
+                    .take()
+                    .expect("the rejected extent frame was just installed")
+                    .reject_projection_failure();
+                return Err(RecordStreamFailure::during_read(
                     RecordStreamFailureKind::ArtifactDamaged,
                     completed,
-                )
-            })?;
+                ));
+            };
+            self.next_ordinal = next_ordinal;
         }
         Ok(())
     }

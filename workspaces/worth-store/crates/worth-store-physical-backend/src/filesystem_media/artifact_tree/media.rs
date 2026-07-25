@@ -5,7 +5,7 @@ use cap_std::fs::OpenOptions;
 
 use super::super::artifact_tree_effects::{
     artifact_file_length, begin, create_directory, directory_has_entries,
-    directory_has_other_entry, synchronize_directory, synchronize_file,
+    directory_has_other_entry, synchronize_directory,
 };
 use super::path::validate_component;
 use super::{
@@ -110,28 +110,52 @@ impl ArtifactTreeMedia<'_> {
     }
 
     pub fn synchronize_file(&self, artifact: &ArtifactTreeFile) -> Result<(), ArtifactTreeFailure> {
+        discard_publication_effect(self.synchronize_file_observed(artifact))
+    }
+
+    /// Removes one confined artifact and synchronizes its parent namespace.
+    ///
+    /// Success is the durable terminal boundary for short-lived recovery
+    /// obligation files; an indeterminate delete remains an inspection case.
+    pub fn remove_file_durably(
+        &self,
+        artifact: &ArtifactTreeFile,
+    ) -> Result<(), ArtifactTreeFailure> {
         let _coordination = self
             .owner
-            .begin_artifact_mutation(vec![artifact.coordination_key()])
+            .begin_artifact_namespace_mutation(vec![artifact.coordination_key()])
             .map_err(|_| {
                 ArtifactTreeFailure::structural(ArtifactTreeFailureKind::DeniedBeforeEffect)
             })?;
         let directory = self.open_directory(&artifact.directory)?;
-        let file = self.open_mutable_file(&directory, &artifact.file_name)?;
-        let sequence_file = file
-            .try_clone()
-            .map(cap_std::fs::File::into_std)
-            .map_err(|error| {
-                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
-            })?;
-        let sequence = self
-            .owner
-            .mutation_sequence_for(&sequence_file)
-            .map_err(|error| {
-                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
-            })?;
-        let _sequence = sequence.lock();
-        synchronize_file(self.owner, &file)
+        let attempt = begin(self.owner, MediaOperationRole::Delete, 0);
+        if let Some(error) = attempt.fail_before_error() {
+            attempt.denied();
+            return Err(ArtifactTreeFailure::io(
+                ArtifactTreeFailureKind::DeniedBeforeEffect,
+                &error,
+            ));
+        }
+        match directory.remove_file(&artifact.file_name) {
+            Ok(()) if attempt.effect_observation_is_indeterminate() => {
+                attempt.indeterminate(0);
+                Err(ArtifactTreeFailure::structural(
+                    ArtifactTreeFailureKind::IndeterminateEffect,
+                ))
+            }
+            Ok(()) => {
+                self.owner.boundary().counters().deletion();
+                attempt.completed(0);
+                synchronize_directory(self.owner, &directory)
+            }
+            Err(error) => {
+                attempt.denied();
+                Err(ArtifactTreeFailure::io(
+                    ArtifactTreeFailureKind::DeniedBeforeEffect,
+                    &error,
+                ))
+            }
+        }
     }
 
     pub fn read_bounded(
@@ -206,113 +230,14 @@ impl ArtifactTreeMedia<'_> {
         source: &ArtifactTreeFile,
         destination: &ArtifactTreeFile,
     ) -> Result<(), ArtifactTreeFailure> {
-        let _coordination = self
-            .owner
-            .begin_artifact_namespace_mutation(vec![
-                source.coordination_key(),
-                destination.coordination_key(),
-            ])
-            .map_err(|_| {
-                ArtifactTreeFailure::structural(ArtifactTreeFailureKind::DeniedBeforeEffect)
-            })?;
-        let source_directory = self.open_directory(&source.directory)?;
-        let destination_directory = self.open_directory(&destination.directory)?;
-        let source_file = self.open_mutable_file(&source_directory, &source.file_name)?;
-        let source_sequence_file = source_file
-            .try_clone()
-            .map(cap_std::fs::File::into_std)
-            .map_err(|error| {
-                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
-            })?;
-        let source_sequence = self
-            .owner
-            .mutation_sequence_for(&source_sequence_file)
-            .map_err(|error| {
-                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
-            })?;
-        let destination_sequence =
-            match self.open_mutable_file(&destination_directory, &destination.file_name) {
-                Ok(file) => {
-                    let sequence_file =
-                        file.try_clone()
-                            .map(cap_std::fs::File::into_std)
-                            .map_err(|error| {
-                                ArtifactTreeFailure::io(
-                                    ArtifactTreeFailureKind::DeniedBeforeEffect,
-                                    &error,
-                                )
-                            })?;
-                    Some(
-                        self.owner
-                            .mutation_sequence_for(&sequence_file)
-                            .map_err(|error| {
-                                ArtifactTreeFailure::io(
-                                    ArtifactTreeFailureKind::DeniedBeforeEffect,
-                                    &error,
-                                )
-                            })?,
-                    )
-                }
-                Err(failure) if failure.kind() == ArtifactTreeFailureKind::Absent => None,
-                Err(failure) => return Err(failure),
-            };
-        let attempt = begin(self.owner, MediaOperationRole::AtomicReplace, 0);
-        if let Some(error) = attempt.fail_before_error() {
-            attempt.denied();
-            return Err(ArtifactTreeFailure::io(
-                ArtifactTreeFailureKind::DeniedBeforeEffect,
-                &error,
-            ));
-        }
-        let rename = || {
-            source_directory.rename(
-                &source.file_name,
-                &destination_directory,
-                &destination.file_name,
-            )
-        };
-        match super::super::file_mutation_sequence::FileMutationSequence::with_ordered_pair(
-            &source_sequence,
-            destination_sequence.as_ref(),
-            rename,
-        ) {
-            Ok(()) if attempt.effect_observation_is_indeterminate() => {
-                attempt.indeterminate(0);
-                Err(ArtifactTreeFailure::structural(
-                    ArtifactTreeFailureKind::IndeterminateEffect,
-                ))
-            }
-            Ok(()) => {
-                self.owner.boundary().counters().replacement();
-                attempt.completed(0);
-                Ok(())
-            }
-            Err(error) => {
-                attempt.indeterminate(0);
-                Err(ArtifactTreeFailure::io(
-                    ArtifactTreeFailureKind::IndeterminateEffect,
-                    &error,
-                ))
-            }
-        }
+        discard_publication_effect(self.replace_observed(source, destination))
     }
 
     pub fn synchronize_directory(
         &self,
         directory: &ArtifactTreeDirectory,
     ) -> Result<(), ArtifactTreeFailure> {
-        let _coordination = self
-            .owner
-            .begin_artifact_namespace_mutation(vec![directory.coordination_key()])
-            .map_err(|_| {
-                ArtifactTreeFailure::structural(ArtifactTreeFailureKind::DeniedBeforeEffect)
-            })?;
-        if directory.components.is_empty() {
-            synchronize_directory(self.owner, self.root(directory.root))
-        } else {
-            let directory = self.open_directory(directory)?;
-            synchronize_directory(self.owner, &directory)
-        }
+        discard_publication_effect(self.synchronize_directory_observed(directory))
     }
 
     pub fn directory_has_entries(
@@ -332,5 +257,17 @@ impl ArtifactTreeMedia<'_> {
             .map_err(|_| ArtifactTreeFailure::structural(ArtifactTreeFailureKind::Damaged))?;
         let directory = self.open_directory(directory)?;
         directory_has_other_entry(self.owner, &directory, selected)
+    }
+}
+
+fn discard_publication_effect(
+    outcome: super::ArtifactTreePublicationEffectOutcome,
+) -> Result<(), ArtifactTreeFailure> {
+    match outcome {
+        super::ArtifactTreePublicationEffectOutcome::Completed(_) => Ok(()),
+        super::ArtifactTreePublicationEffectOutcome::DeniedBeforeEffect(failure) => Err(failure),
+        super::ArtifactTreePublicationEffectOutcome::Indeterminate(failure) => {
+            Err(failure.failure())
+        }
     }
 }

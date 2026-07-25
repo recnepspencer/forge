@@ -1,6 +1,6 @@
 use super::{
-    MediaFaultDirective, MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial,
-    MediaOperationRole, MediaPauseGate,
+    CertificationMediaFaultActivation, MediaFaultDirective, MediaFaultRule, MediaFaultSchedule,
+    MediaFaultScheduleDenial, MediaOperationRole, MediaPauseGate,
 };
 
 /// Certification-only authority for deterministic faults on the real backend.
@@ -36,6 +36,10 @@ impl CertificationMediaFaultAuthority {
 
     pub fn pause_gate(&self) -> MediaPauseGate {
         MediaPauseGate::for_certification()
+    }
+
+    pub fn one_shot_activation(&self) -> CertificationMediaFaultActivation {
+        CertificationMediaFaultActivation::for_certification()
     }
 }
 

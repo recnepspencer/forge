@@ -8,6 +8,7 @@ mod denial;
 mod envelope;
 mod fairness;
 mod lane;
+mod physical_instance;
 mod receipt;
 mod request;
 mod resource_contract;
@@ -31,6 +32,12 @@ pub use fairness::{
     ForegroundFairnessDenial,
 };
 pub use lane::{ForegroundIoLaneKind, ForegroundLaneDeclaration};
+pub use physical_instance::{
+    admit_physical_instance_foreground_reservation, PhysicalInstanceForegroundAdmissionDenial,
+    PhysicalInstanceForegroundAdmissionRequest, PhysicalInstanceForegroundCapacity,
+    PhysicalInstanceForegroundCapacityLease, PhysicalInstanceForegroundCapacitySnapshot,
+    PhysicalInstanceForegroundReservation,
+};
 pub(crate) use receipt::ForegroundReservationBackendBasis;
 pub use receipt::{
     ForegroundReservationAdmissionOutcome, ForegroundReservationDenied, ForegroundReservationHeld,
@@ -53,6 +60,7 @@ pub use violation::{ForegroundReservationViolationCause, ReservationViolatedWith
 
 #[cfg(any(test, feature = "certification-test-authority"))]
 pub use test_authority::{
+    admitted_buffered_file_read_reservation_for_certification_test,
     admitted_page_write_reservation_for_certification_test,
     admitted_point_read_reservation_for_certification_test,
     admitted_point_read_reservation_for_security_scope_for_certification_test,

@@ -16,7 +16,8 @@ pub(in crate::physical_runtime::record_serving) struct PlacementPlanningContext<
         &'plan DurableFreeSpaceManifestHeader,
     pub(in crate::physical_runtime::record_serving) frontier: &'plan mut RecordAllocationFrontier,
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
-    pub(in crate::physical_runtime::record_serving) generation: u64,
-    pub(in crate::physical_runtime::record_serving) frame_load:
-        &'plan (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    pub(in crate::physical_runtime::record_serving) frame_ports:
+        super::super::residency::frame_ports::RecordFramePorts,
+    pub(in crate::physical_runtime::record_serving) source:
+        super::super::residency::frame_loading::CanonicalFrameReadSource,
 }

@@ -1,16 +1,40 @@
+mod directory_listing;
+mod exact_read_effect;
 mod exact_write_effect;
 mod failure;
 mod media;
 mod media_open;
+mod metadata_read;
+mod new_artifact_write;
 mod path;
+mod publication_effect;
 mod range_io;
+mod range_read;
 mod range_write;
+mod range_write_outcome;
 
 pub use failure::{ArtifactTreeFailure, ArtifactTreeFailureKind};
 pub use media::ArtifactTreeMedia;
+pub use metadata_read::{
+    CompletedArtifactMetadataRead, CompletedScheduledArtifactMetadataRead,
+    ScheduledArtifactMetadataReadOutcome,
+};
+pub use new_artifact_write::{
+    ArtifactNewWriteOutcome, CompletedArtifactNewWrite, CompletedScheduledArtifactNewWrite,
+    IndeterminateArtifactNewWrite, ScheduledArtifactNewWriteOutcome,
+};
 pub use path::{ArtifactTreeDirectory, ArtifactTreeFile, ArtifactTreePathDenial};
+pub use publication_effect::{
+    ArtifactTreePublicationEffect, ArtifactTreePublicationEffectOutcome,
+    CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactTreePublicationEffect,
+    IndeterminateArtifactTreePublicationEffect, ScheduledArtifactTreePublicationEffectOutcome,
+};
 pub use range_io::ArtifactTreeNewFile;
-pub use range_write::{
+pub use range_read::{
+    ArtifactRangeReadOutcome, CompletedArtifactRangeRead, CompletedScheduledArtifactRangeRead,
+    ScheduledArtifactRangeReadOutcome,
+};
+pub use range_write_outcome::{
     ArtifactRangeWriteDurability, ArtifactRangeWriteDurabilityRequirement,
     ArtifactRangeWriteOutcome, CompletedArtifactRangeWrite, CompletedScheduledArtifactRangeWrite,
     IndeterminateArtifactRangeWrite, ScheduledArtifactRangeWriteOutcome,

@@ -1,4 +1,4 @@
-use crate::{RecoveryMemoryEnvelope, RedoExecutionReceipt};
+use crate::{RecoveryMemoryAllocation, RedoExecutionReceipt};
 
 use super::{source_discovery::RecoveryWorkBudgetEvidence, RecoveryStoreFootprint};
 
@@ -35,10 +35,10 @@ impl RecoveryCounterSnapshot {
     pub(crate) fn from_execution(
         execution: &RedoExecutionReceipt,
         evidence: RecoveryWorkBudgetEvidence,
-        memory_envelope: RecoveryMemoryEnvelope,
+        memory_allocation: &RecoveryMemoryAllocation,
         store_footprint: RecoveryStoreFootprint,
     ) -> Self {
-        let memory = memory_envelope.counters();
+        let memory = memory_allocation.counters();
         Self {
             replayed_frames: execution.planned_frame_count(),
             skipped_frames: execution.skipped_frames().len(),

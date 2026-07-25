@@ -99,6 +99,7 @@ fn effect_contracts_reject_read_write_category_substitution() {
 #[test]
 fn effect_contract_matrix_has_no_implicit_success_cells() {
     let operations = [
+        PhysicalWorkOperationFamily::ArtifactMetadataRead,
         PhysicalWorkOperationFamily::ArtifactRangeRead,
         PhysicalWorkOperationFamily::ArtifactRangeWrite,
         PhysicalWorkOperationFamily::ArtifactPublication,
@@ -148,7 +149,8 @@ fn expected_effect_cell(
         PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(_)
     );
     match operation {
-        PhysicalWorkOperationFamily::ArtifactRangeRead => {
+        PhysicalWorkOperationFamily::ArtifactMetadataRead
+        | PhysicalWorkOperationFamily::ArtifactRangeRead => {
             effect == PhysicalWorkEffectClass::ReadOnly
                 && durability == PhysicalWorkDurabilityRequirement::ReadOnly
                 && recovery == PhysicalWorkRecoveryDisposition::NoEffect

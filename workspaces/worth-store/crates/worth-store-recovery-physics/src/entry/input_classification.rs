@@ -1,6 +1,6 @@
 use crate::{
     AdmittedRecoveryIntegrityInput, RecoveryEntryAdmissionDenialKind, RecoveryEntryBasis,
-    RecoveryEntryBlockedByIntegrityDamage, RecoveryEntryCounters, RecoveryMemoryEnvelope,
+    RecoveryEntryBlockedByIntegrityDamage, RecoveryEntryCounters, RecoveryMemoryAllocation,
 };
 use worth_store_contracts::PhysicalAuthorityRecap;
 
@@ -12,7 +12,7 @@ pub(crate) enum RecoveryEntryInputClassification {
 
 pub(crate) fn classify_recovery_entry_inputs(
     integrity_readiness: &AdmittedRecoveryIntegrityInput,
-    memory_envelope: RecoveryMemoryEnvelope,
+    memory_allocation: &RecoveryMemoryAllocation,
     physical_authority: PhysicalAuthorityRecap,
 ) -> RecoveryEntryInputClassification {
     if integrity_readiness.claims_recovery() {
@@ -20,19 +20,6 @@ pub(crate) fn classify_recovery_entry_inputs(
     }
     if !integrity_readiness.proves_no_raw_bytes_crossed() {
         return denied(RecoveryEntryAdmissionDenialKind::RawBytesCrossedIntegrityBoundary);
-    }
-    if memory_envelope.proves_wal_recovery() {
-        return denied(RecoveryEntryAdmissionDenialKind::RecoveryMemoryEnvelopeClaimsWalRecovery);
-    }
-    if memory_envelope.proves_checkpoint_safety() {
-        return denied(
-            RecoveryEntryAdmissionDenialKind::RecoveryMemoryEnvelopeClaimsCheckpointSafety,
-        );
-    }
-    if memory_envelope.proves_repair_behavior() {
-        return denied(
-            RecoveryEntryAdmissionDenialKind::RecoveryMemoryEnvelopeClaimsRepairBehavior,
-        );
     }
     if physical_authority_recap_missing(physical_authority) {
         return denied(RecoveryEntryAdmissionDenialKind::MissingPhysicalAuthorityRecap);
@@ -53,10 +40,10 @@ pub(crate) fn classify_recovery_entry_inputs(
     RecoveryEntryInputClassification::Admissible(
         Box::new(RecoveryEntryBasis::from_entry_inputs(
             integrity_readiness,
-            memory_envelope,
+            memory_allocation,
             physical_authority,
         )),
-        RecoveryEntryCounters::from_entry_inputs(integrity_readiness, memory_envelope),
+        RecoveryEntryCounters::from_entry_inputs(integrity_readiness, memory_allocation),
     )
 }
 

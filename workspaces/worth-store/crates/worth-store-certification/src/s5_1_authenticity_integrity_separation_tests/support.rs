@@ -1,5 +1,5 @@
 use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
-    crc32c, with_pre_decode_admission,
+    crc32c, current_frame_bytes, with_pre_decode_admission,
 };
 use crate::courtroom::harness::test_support::authenticity_integrity_test_support::{
     admitted_scope, admitted_scope_with_requirement,
@@ -30,7 +30,9 @@ pub(super) fn assert_authenticity_denial_counter(
                     validation,
                     witness_head,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-denied")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"checksum-valid-auth-denied",
+                    ))),
                 ))
                 .unwrap();
             let physical_identity =
@@ -89,7 +91,9 @@ pub(super) fn assert_checksum_valid_authenticity_gate_denial(
                     validation,
                     witness,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-stale-or-wrong")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"checksum-valid-auth-stale-or-wrong",
+                    ))),
                 ))
                 .unwrap();
             let physical_identity =

@@ -1,13 +1,14 @@
 use sha2::{Digest, Sha256};
+use std::sync::Arc;
 use worth_signal::facade::{Aspect, AspectMask, PartitionSubscription};
 use worth_store_aspect_native::{
     StoreAspectBindingStamp, StoreAspectContractAdmission, StoreAspectIdentity,
 };
 
 use super::{
-    PhysicalSignalAspectDeclaration, PhysicalSignalAspectRole, PhysicalSignalProfileIdentity,
-    PhysicalWorkCapacity, PhysicalWorkProfileDeclaration, PhysicalWorkSignalFamily,
-    PhysicalWorkSignalFamilySet,
+    declaration::PhysicalWorkProfileParts, PhysicalSignalAspectDeclaration,
+    PhysicalSignalAspectRole, PhysicalSignalProfileIdentity, PhysicalWorkCapacity,
+    PhysicalWorkProfileDeclaration, PhysicalWorkSignalFamily, PhysicalWorkSignalFamilySet,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -27,7 +28,7 @@ pub enum PhysicalSignalBindingDenial {
 #[derive(Debug)]
 pub struct PhysicalSignalAspectBindingSet {
     profile: PhysicalSignalProfileIdentity,
-    security_authority: Option<[u8; 32]>,
+    security_authorities: Box<[[u8; 32]]>,
     capacity: PhysicalWorkCapacity,
     bindings: Box<[PhysicalSignalAspectBinding]>,
 }
@@ -36,6 +37,17 @@ pub struct PhysicalSignalAspectBindingSet {
 pub struct PhysicalSignalAspectBinding {
     contract: StoreAspectContractAdmission,
     signal_aspect: Aspect,
+    signal_mask: AspectMask,
+    role: PhysicalSignalAspectRole,
+    families: PhysicalWorkSignalFamilySet,
+    partition: Option<PartitionSubscription>,
+    digest: PhysicalSignalAspectBindingDigest,
+    capability: Arc<()>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalSignalAspectBindingObservation {
+    identity: StoreAspectIdentity,
     role: PhysicalSignalAspectRole,
     families: PhysicalWorkSignalFamilySet,
     partition: Option<PartitionSubscription>,
@@ -58,7 +70,11 @@ impl PhysicalSignalAspectBindingSet {
         declaration: PhysicalWorkProfileDeclaration,
     ) -> Self {
         let profile = declaration.identity();
-        let (security_authority, aspects, capacity) = declaration.into_parts();
+        let PhysicalWorkProfileParts {
+            security_authorities,
+            aspects,
+            capacity,
+        } = declaration.into_parts();
         let bindings = aspects
             .into_vec()
             .into_iter()
@@ -68,7 +84,7 @@ impl PhysicalSignalAspectBindingSet {
             .into_boxed_slice();
         Self {
             profile,
-            security_authority,
+            security_authorities,
             capacity,
             bindings,
         }
@@ -108,6 +124,16 @@ impl PhysicalSignalAspectBindingSet {
         &self.bindings
     }
 
+    pub(in crate::physical_runtime) fn observations(
+        &self,
+    ) -> Box<[PhysicalSignalAspectBindingObservation]> {
+        self.bindings
+            .iter()
+            .map(PhysicalSignalAspectBindingObservation::from)
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
+    }
+
     pub(in crate::physical_runtime) fn admits(
         &self,
         identity: &StoreAspectIdentity,
@@ -121,7 +147,9 @@ impl PhysicalSignalAspectBindingSet {
         &self,
         receipt: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
     ) -> bool {
-        self.security_authority == Some(receipt.authority_identity().fingerprint())
+        self.security_authorities
+            .binary_search(&receipt.authority_identity().fingerprint())
+            .is_ok()
     }
 }
 
@@ -157,7 +185,7 @@ impl PhysicalSignalAspectBinding {
             .projection_mask()
             .ok_or(PhysicalSignalBindingDenial::ProjectionMaskAbsent)?;
         Ok(PhysicalSignalAspectSubscription {
-            signal_mask: AspectMask::from_aspect(self.signal_aspect),
+            signal_mask: self.signal_mask,
             partition: self.partition.clone(),
             binding: self.digest,
         })
@@ -167,8 +195,54 @@ impl PhysicalSignalAspectBinding {
         self.signal_aspect
     }
 
+    pub(in crate::physical_runtime) const fn signal_mask(&self) -> AspectMask {
+        self.signal_mask
+    }
+
     pub(in crate::physical_runtime) const fn contract(&self) -> &StoreAspectContractAdmission {
         &self.contract
+    }
+
+    pub(in crate::physical_runtime) fn installs(&self, capability: &Arc<()>) -> bool {
+        Arc::ptr_eq(&self.capability, capability)
+    }
+
+    pub(in crate::physical_runtime) fn capability(&self) -> Arc<()> {
+        Arc::clone(&self.capability)
+    }
+}
+
+impl PhysicalSignalAspectBindingObservation {
+    pub const fn identity(&self) -> &StoreAspectIdentity {
+        &self.identity
+    }
+
+    pub const fn role(&self) -> PhysicalSignalAspectRole {
+        self.role
+    }
+
+    pub const fn families(&self) -> PhysicalWorkSignalFamilySet {
+        self.families
+    }
+
+    pub const fn partition(&self) -> Option<&PartitionSubscription> {
+        self.partition.as_ref()
+    }
+
+    pub const fn digest(&self) -> PhysicalSignalAspectBindingDigest {
+        self.digest
+    }
+}
+
+impl From<&PhysicalSignalAspectBinding> for PhysicalSignalAspectBindingObservation {
+    fn from(binding: &PhysicalSignalAspectBinding) -> Self {
+        Self {
+            identity: binding.identity().clone(),
+            role: binding.role(),
+            families: binding.families(),
+            partition: binding.partition().cloned(),
+            digest: binding.digest(),
+        }
     }
 }
 
@@ -197,28 +271,29 @@ fn binding(
     let signal_aspect = Aspect::try_new(slot as u8)
         .expect("profile construction already enforced Signal aspect capacity");
     let (contract, role, families, partition) = declaration.into_parts();
-    let digest = binding_digest(&contract, signal_aspect, role, families, partition.as_ref());
+    let digest = binding_digest(&contract, role, families, partition.as_ref());
     PhysicalSignalAspectBinding {
         contract,
         signal_aspect,
+        signal_mask: AspectMask::from_aspect(signal_aspect),
         role,
         families,
         partition,
         digest,
+        capability: Arc::new(()),
     }
 }
 
 fn binding_digest(
     contract: &StoreAspectContractAdmission,
-    signal_aspect: Aspect,
     role: PhysicalSignalAspectRole,
     families: PhysicalWorkSignalFamilySet,
     partition: Option<&PartitionSubscription>,
 ) -> PhysicalSignalAspectBindingDigest {
     let mut digest = Sha256::new();
-    digest.update(b"worth-store.physical-signal-aspect-binding.v2");
+    digest.update(b"worth-store.physical-signal-aspect-binding.v3");
     digest.update(contract.binding_stamp().as_bytes());
-    digest.update([signal_aspect.id(), role_code(role), families.bits()]);
+    digest.update([role_code(role), families.bits()]);
     if let Some(partition) = partition {
         digest.update([1]);
         digest.update((partition.partition.0.len() as u64).to_le_bytes());

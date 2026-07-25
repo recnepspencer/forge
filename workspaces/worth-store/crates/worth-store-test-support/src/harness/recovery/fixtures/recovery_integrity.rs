@@ -18,8 +18,8 @@ use worth_store_recovery_physics::{
 };
 
 use super::s4_recovery_physical_fixture::{
-    frame_witness, page_cell, page_witness, root_with_slot, slot_cell, validation,
-    with_protected_payload_view,
+    page_cell, root_with_slot, slot_cell, validation, with_protected_frame_view,
+    with_protected_page_view,
 };
 use super::s4_recovery_readiness_fixture::physical_integrity_model_payload;
 
@@ -159,40 +159,44 @@ fn with_checked_page(
     cell: PageGenerationCell,
     run: impl FnOnce(worth_store_physical_integrity::IntegrityCheckedPage<'_>),
 ) {
-    with_entry_seed(payload, |seed| {
-        let admission = seed
-            .with_checksum_declaration(checksum_admission(seed))
-            .unwrap();
-        let checked = admission
-            .admit_page(PhysicalIntegrityAdmissionRequest::page(
-                cell,
-                page_witness(payload, cell),
-                PhysicalPageKind::DataPage,
-                DeclaredPhysicalChecksum::new(crc32c(payload)),
-            ))
-            .unwrap();
-        run(checked);
+    with_protected_page_view(payload, cell, |protected, witness| {
+        with_entry_seed(protected, |seed| {
+            let admission = seed
+                .with_checksum_declaration(checksum_admission(seed))
+                .unwrap();
+            let checked = admission
+                .admit_page(PhysicalIntegrityAdmissionRequest::page(
+                    cell,
+                    witness,
+                    PhysicalPageKind::DataPage,
+                    DeclaredPhysicalChecksum::new(crc32c(protected.as_bytes())),
+                ))
+                .unwrap();
+            run(checked);
+        });
     });
 }
 
-fn with_checked_frame(
+pub(super) fn with_checked_frame(
     payload: &[u8],
     validation: PhysicalReferenceValidationWitness,
     run: impl FnOnce(worth_store_physical_integrity::IntegrityCheckedFrame<'_>),
 ) {
-    with_entry_seed(payload, |seed| {
-        let admission = seed
-            .with_checksum_declaration(checksum_admission(seed))
-            .unwrap();
-        let checked = admission
-            .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
-                validation,
-                frame_witness(payload, validation),
-                PhysicalFrameKind::RecordFrame,
-                DeclaredPhysicalChecksum::new(crc32c(payload)),
-            ))
-            .unwrap();
-        run(checked);
+    with_protected_frame_view(payload, validation, |protected, witness| {
+        with_entry_seed(protected, |seed| {
+            let admission = seed
+                .with_checksum_declaration(checksum_admission(seed))
+                .unwrap();
+            let checked = admission
+                .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
+                    validation,
+                    witness,
+                    PhysicalFrameKind::RecordFrame,
+                    DeclaredPhysicalChecksum::new(crc32c(protected.as_bytes())),
+                ))
+                .unwrap();
+            run(checked);
+        });
     });
 }
 
@@ -202,15 +206,15 @@ fn checksum_admission(
     checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness())
 }
 
-fn with_entry_seed(payload: &[u8], run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>)) {
-    with_protected_payload_view(payload, |protected| {
-        let entry = IntegrityEntryAdmission::from_integrity_model_payload(
-            physical_integrity_model_payload(),
-        )
-        .unwrap();
-        let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
-        run(PhysicalIntegrityAdmission::from_entry(lease));
-    });
+fn with_entry_seed(
+    protected: worth_store_physical_integrity::ProtectedPhysicalByteView<'_>,
+    run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>),
+) {
+    let entry =
+        IntegrityEntryAdmission::from_integrity_model_payload(physical_integrity_model_payload())
+            .unwrap();
+    let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
+    run(PhysicalIntegrityAdmission::from_entry(lease));
 }
 
 fn checksum_declaration() -> ChecksumAlgorithmDeclaration {

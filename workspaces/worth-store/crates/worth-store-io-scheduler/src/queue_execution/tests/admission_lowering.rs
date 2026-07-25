@@ -21,12 +21,14 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
         budget,
     )
     .with_grouping_basis(grouping_for(reservation.security_scope_identity()));
-    let backend = backend_for(work);
-    let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
+    let backend = backend_for(&work);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
+    let policy = policy_receipt(&work);
     let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
+        work.clone(),
         &backend,
-        policy_receipt(work),
+        policy,
     ))
     .expect("matching queue work should lower to an admitted execution plan");
 
@@ -37,7 +39,7 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
     );
     assert_eq!(
         plan.grouping_basis(),
-        grouping_for(work.security_scope_identity())
+        &grouping_for(work.security_scope_identity())
     );
     assert_eq!(plan.replay_identity().work_class(), work.class());
     assert_eq!(
@@ -64,12 +66,14 @@ fn producer_declaration_lowers_through_scheduler_admission() {
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("producer shape should lower to queue work");
     assert_eq!(work.buffer_pool_declaration(), Some(producer));
-    let backend = backend_for(work);
-    let work = work.with_secure_io_scope(secure_io_for_work(work, &backend));
+    let backend = backend_for(&work);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
+    let policy = policy_receipt(&work);
     let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
+        work.clone(),
         &backend,
-        policy_receipt(work),
+        policy,
     ))
     .expect("lowered producer work should admit through scheduler");
 
@@ -129,14 +133,16 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
     .with_grouping_basis(
         grouping_for(reservation.security_scope_identity()).with_different_durability_for_test(),
     );
-    let backend = backend_for(work);
+    let backend = backend_for(&work);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
+    let policy = policy_receipt(&work);
 
-    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
-        policy_receipt(work),
-    ))
-    .expect_err("durability mismatch must not silently batch");
+    let denial =
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+            .expect_err(
+                "C5_PREDICATE:scheduler-admission: durability mismatch must not silently admit",
+            );
 
     assert_eq!(
         denial,
