@@ -47,7 +47,6 @@ error[E0599]: no method named `with_label` found for struct `CommandProjectionDe
 
 error: cannot construct `WorthUiBuilder` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_builder_construction_fails.rs
- note: private fields that were not provided
  help: you might have meant to use the `new` associated function
 
 error[E0560]: struct `WorthUiApp` has no field named `capability_snapshot`

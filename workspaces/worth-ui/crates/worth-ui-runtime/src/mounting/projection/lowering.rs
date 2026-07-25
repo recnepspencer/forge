@@ -6,6 +6,8 @@ use super::node_receipt::UiMountedNodeReceiptInput;
 use super::participation::lower_participation;
 use super::{UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame};
 
+mod delta;
+
 pub(crate) struct UiPreparedMountedProjection {
     plan_digest: u64,
     semantic: UiMountedSemanticProjection,
@@ -203,14 +205,14 @@ pub(crate) fn prepare_projection(
         (
             Some(current),
             crate::runtime::UiMountedAllocationProjectionDelta::Exact(allocation_delta),
-        ) => build_delta_projection(
+        ) => delta::build(delta::UiMountedDeltaProjectionInput {
             state,
-            &lowering,
-            current.semantic_projection(),
-            input.requested_surfaces,
-            &projection_changes,
+            lowering: &lowering,
+            predecessor: current.semantic_projection(),
+            requested_surfaces: input.requested_surfaces,
+            changes: &projection_changes,
             allocation_delta,
-        )?,
+        })?,
         _ => None,
     };
     let build = match delta {
@@ -291,120 +293,6 @@ fn build_full_projection(
     })
 }
 
-fn build_delta_projection(
-    state: &super::super::UiMountedIdentityState,
-    lowering: &UiMountedNodeLoweringContext<'_, '_>,
-    predecessor: &UiMountedSemanticProjection,
-    requested_surfaces: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
-    changes: &super::super::UiMountedProjectionChangeSnapshot,
-    allocation_delta: &crate::runtime::UiMountedAllocationExactDelta,
-) -> Result<Option<UiMountedProjectionBuild>, UiMountedProjectionDenial> {
-    let allocation_affected = state
-        .try_projection_instances_for_graph_nodes(allocation_delta.changed_graph_nodes())
-        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
-    let mut changed = changes.changed_instances().collect::<Vec<_>>();
-    changed.extend_from_slice(allocation_affected.instances());
-    changed.sort();
-    changed.dedup();
-    let retired = changes.retired_instances().collect::<Vec<_>>();
-    let changed_surfaces = changes.changed_surfaces().collect::<Vec<_>>();
-    let removed_surfaces = changes.removed_surfaces().collect::<Vec<_>>();
-    let declared_semantic_changed = changes.changed_instances().next().is_some()
-        || !retired.is_empty()
-        || changes.order_changed();
-    let semantic_changed = !changed.is_empty() || !retired.is_empty() || changes.order_changed();
-    let surface_changed = !changed_surfaces.is_empty() || !removed_surfaces.is_empty();
-    let allocation_delta_observed = allocation_delta.journal_entries_touched() > 0
-        || !allocation_delta.changed_graph_nodes().is_empty();
-    if !semantic_changed && !surface_changed && !allocation_delta_observed {
-        return Ok(None);
-    }
-    let mut semantic = predecessor.clone();
-    let mut index_entries = allocation_delta
-        .journal_entries_touched()
-        .checked_add(allocation_affected.index_entries_touched())
-        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
-    let mut changed_projected = 0usize;
-    let mut changed_projected_outside_changed_surfaces = 0usize;
-    let mut membership_changed = false;
-    for instance in &retired {
-        membership_changed |= semantic.contains(*instance);
-        index_entries = add_mutation_work(index_entries, semantic.remove_node(*instance))?;
-    }
-    for instance in &changed {
-        let previously_projected = semantic.contains(*instance);
-        match state
-            .projection_instance(*instance)
-            .filter(|view| requested_surfaces.contains(&view.basis().semantic_surface_identity()))
-        {
-            Some(view) => {
-                let belongs_to_changed_surface =
-                    changed_surfaces.contains(&view.basis().semantic_surface_identity());
-                let node = lowering.lower(&view)?.materialize();
-                index_entries = index_entries
-                    .checked_add(2)
-                    .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
-                index_entries = add_mutation_work(index_entries, semantic.insert_node(node))?;
-                changed_projected += 1;
-                changed_projected_outside_changed_surfaces +=
-                    usize::from(!belongs_to_changed_surface);
-                membership_changed |= !previously_projected;
-            }
-            None => {
-                index_entries = add_mutation_work(index_entries, semantic.remove_node(*instance))?;
-                membership_changed |= previously_projected;
-            }
-        }
-    }
-    let changed_binding_count = apply_surface_changes(
-        state,
-        &mut semantic,
-        requested_surfaces,
-        &changed_surfaces,
-        &removed_surfaces,
-        &mut index_entries,
-    )?;
-    let replaced_order_rows = if changes.order_changed() || membership_changed {
-        let order = state.projection_order(requested_surfaces);
-        let count = order.len();
-        semantic.replace_order(order);
-        count
-    } else {
-        0
-    };
-    let affected_surface_pairs = semantic
-        .surface_instance_count(&changed_surfaces)
-        .checked_add(changed_projected_outside_changed_surfaces)
-        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
-    let reused = semantic.node_count().saturating_sub(changed_projected);
-    Ok(Some(UiMountedProjectionBuild {
-        semantic,
-        cost: super::cost_accounting::UiMountedProjectionCostInput {
-            work_class: if declared_semantic_changed {
-                super::super::UiMountWorkClass::SemanticDelta
-            } else if allocation_delta_observed {
-                super::super::UiMountWorkClass::BatchDelta
-            } else {
-                super::super::UiMountWorkClass::SurfaceOnly
-            },
-            considered: changed
-                .len()
-                .checked_add(retired.len())
-                .and_then(|count| count.checked_add(changed_binding_count))
-                .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?,
-            index_entries,
-            projected_instances: changed_projected,
-            surface_instance_pairs: affected_surface_pairs,
-            changed_bindings: changed_binding_count,
-            reused,
-            retired: retired.len(),
-            coalesced: changes.coalesced(),
-            overflowed: changes.overflowed(),
-        },
-        replaced_order_rows,
-    }))
-}
-
 fn projection_surfaces(
     state: &super::super::UiMountedIdentityState,
     requested: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
@@ -422,46 +310,6 @@ fn projection_surfaces(
             })
         })
         .collect()
-}
-
-fn apply_surface_changes(
-    state: &super::super::UiMountedIdentityState,
-    semantic: &mut UiMountedSemanticProjection,
-    requested: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
-    changed: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
-    removed: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
-    index_entries: &mut usize,
-) -> Result<usize, UiMountedProjectionDenial> {
-    let mut applied = 0usize;
-    for surface in removed.iter().filter(|surface| requested.contains(surface)) {
-        *index_entries = add_mutation_work(*index_entries, semantic.remove_surface(*surface))?;
-        applied += 1;
-    }
-    for surface in changed.iter().filter(|surface| requested.contains(surface)) {
-        let (binding, audience) = state
-            .projection_surface(*surface)
-            .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
-        *index_entries = add_mutation_work(
-            *index_entries,
-            semantic.replace_surface(UiMountedProjectionSurface {
-                surface: *surface,
-                binding: binding.binding_generation(),
-                audience,
-            }),
-        )?;
-        applied += 1;
-    }
-    Ok(applied)
-}
-
-fn add_mutation_work(
-    total: usize,
-    work: crate::runtime::persistent_index::UiPersistentIndexMutationWork,
-) -> Result<usize, UiMountedProjectionDenial> {
-    total
-        .checked_add(work.key_probes())
-        .and_then(|count| count.checked_add(work.node_copies()))
-        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)
 }
 
 impl UiMountedNodeLoweringContext<'_, '_> {
