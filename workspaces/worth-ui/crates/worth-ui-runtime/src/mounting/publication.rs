@@ -78,10 +78,11 @@ impl UiMountedFrameReconciliationCandidate {
         state: &mut super::UiMountedIdentityState,
     ) -> UiMountedFramePublicationReceipt {
         let Self { receipt, .. } = self;
-        receipt.finalize_cost(presented.receipt().cost_report());
+        let mount_cost = presented.receipt().cost_report();
+        receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
         state.publish_reconciled_frame(frame, receipt.clone());
-        reservation.commit();
+        reservation.commit(mount_cost);
         receipt
     }
 }
@@ -123,10 +124,11 @@ impl UiMountedFramePublicationCandidate {
         state: &mut super::UiMountedIdentityState,
     ) -> UiMountedFramePublicationReceipt {
         let Self { receipt } = self;
-        receipt.finalize_cost(presented.receipt().cost_report());
+        let mount_cost = presented.receipt().cost_report();
+        receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
         state.publish_presented_frame(frame, receipt.clone());
-        reservation.commit();
+        reservation.commit(mount_cost);
         receipt
     }
 }

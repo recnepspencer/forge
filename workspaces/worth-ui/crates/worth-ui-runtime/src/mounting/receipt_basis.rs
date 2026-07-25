@@ -31,10 +31,24 @@ impl UiMountedNodeReceiptBasis {
         &self,
         mounted_instance: UiMountedInstanceIdentity,
     ) -> Option<UiMountedNodeReceiptIdentity> {
-        self.presented_instances
-            .contains_with_probes(&mounted_instance)
-            .0
-            .then(|| self.issuer.receipt_for(mounted_instance))
+        self.receipt_for_with_probes(mounted_instance).0
+    }
+
+    pub(crate) fn receipt_for_with_probes(
+        &self,
+        mounted_instance: UiMountedInstanceIdentity,
+    ) -> (Option<UiMountedNodeReceiptIdentity>, usize) {
+        let (presented, probes) = self
+            .presented_instances
+            .contains_with_probes(&mounted_instance);
+        (
+            presented.then(|| self.issuer.receipt_for(mounted_instance)),
+            probes,
+        )
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.presented_instances.len()
     }
 
     pub(crate) fn receipts(

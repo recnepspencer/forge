@@ -9,6 +9,7 @@ pub(crate) struct UiRetainedPresentedFrame {
     bindings: Box<[UiSurfaceBindingGeneration]>,
     receipts: super::super::UiMountedNodeReceiptBasis,
     structural_bytes: usize,
+    mount_cost: super::super::UiMountCostReport,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,6 +32,7 @@ impl UiRetainedPresentedFrame {
         frame: UiMountedFrameIdentity,
         bindings: &[UiSurfaceBindingGeneration],
         receipts: super::super::UiMountedNodeReceiptBasis,
+        mount_cost: super::super::UiMountCostReport,
     ) -> Option<Self> {
         let mut bindings = bindings.to_vec();
         bindings.sort();
@@ -46,6 +48,7 @@ impl UiRetainedPresentedFrame {
             bindings: bindings.into_boxed_slice(),
             receipts,
             structural_bytes,
+            mount_cost,
         })
     }
 
@@ -55,6 +58,29 @@ impl UiRetainedPresentedFrame {
 
     pub(crate) fn structural_bytes(&self) -> usize {
         self.structural_bytes
+    }
+
+    pub(crate) fn presented_binding_count(&self) -> usize {
+        self.bindings.len()
+    }
+
+    pub(crate) fn mounted_instance_count(&self) -> usize {
+        self.receipts.len()
+    }
+
+    pub(crate) fn mount_cost(&self) -> super::super::UiMountCostReport {
+        self.mount_cost
+    }
+
+    pub(crate) fn set_mount_cost(&mut self, mount_cost: super::super::UiMountCostReport) {
+        self.mount_cost = mount_cost;
+    }
+
+    pub(crate) fn receipt_for_with_probes(
+        &self,
+        mounted_instance: UiMountedInstanceIdentity,
+    ) -> (Option<UiMountedNodeReceiptIdentity>, usize) {
+        self.receipts.receipt_for_with_probes(mounted_instance)
     }
 
     pub(crate) fn classify(

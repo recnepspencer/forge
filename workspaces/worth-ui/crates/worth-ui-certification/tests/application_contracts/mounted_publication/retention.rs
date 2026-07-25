@@ -1,7 +1,8 @@
 use worth_ui::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountWorkClass, UiMountedFrameOutcome,
-    UiMountedFrameRetentionBudget, UiMountedFrameRetentionDenial, UiMountedRetentionClass,
-    UiMountedRetentionClassBudget, UiPresentationDeadline,
+    UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
+    UiMountedFrameRetentionDenial, UiMountedRetentionClass, UiMountedRetentionClassBudget,
+    UiPresentationDeadline,
 };
 
 use crate::mounted_application_lifecycle::in_flight_presentation_world::prepared;
@@ -14,12 +15,15 @@ use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 fn retention_capacity_denies_the_frame_before_any_adapter_effect() {
     let host = ScriptedPresentationHost::default();
     let one_byte = UiMountedRetentionClassBudget::new(1, 1);
-    let budget = UiMountedFrameRetentionBudget::new(
-        one_byte,
-        one_byte,
-        UiMountedRetentionClassBudget::new(8, 1024),
-        64,
-    );
+    let budget = UiMountedFrameRetentionBudget::new(UiMountedFrameRetentionBudgetInput {
+        current: one_byte,
+        in_flight: one_byte,
+        observation_basis: UiMountedRetentionClassBudget::new(8, 1024),
+        predecessor_inspection: UiMountedRetentionClassBudget::new(8, 1024),
+        diagnostic: UiMountedRetentionClassBudget::new(0, 0),
+        future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        expired_identity_limit: 64,
+    });
     let mut session = mounted_application_with_host_and_retention_budget(
         "mounted-retention-pre-effect-denial",
         host.clone(),

@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 use worth_ui_host_contract::{
@@ -36,6 +36,16 @@ pub(super) struct UiMountedFrameRetentionAuthority {
     pub(super) frames: UiMountedRetainedFrameState,
     pub(super) revision: u64,
     pub(super) reservation_active: bool,
+    pub(super) in_flight_structural_bytes: usize,
+    pins: BTreeMap<UiMountedFrameIdentity, UiMountedFramePinCounts>,
+    inspection_usage: super::UiMountedRetentionUsageSnapshot,
+    observation_basis_usage: super::UiMountedRetentionUsageSnapshot,
+}
+
+#[derive(Clone, Copy, Default)]
+struct UiMountedFramePinCounts {
+    inspection: usize,
+    observation_basis: usize,
 }
 
 pub(crate) struct UiRetentionPreparedMountedFrame {
@@ -59,6 +69,10 @@ impl UiMountedFrameRetentionCoordinator {
                 frames: Default::default(),
                 revision: 0,
                 reservation_active: false,
+                in_flight_structural_bytes: 0,
+                pins: BTreeMap::new(),
+                inspection_usage: Default::default(),
+                observation_basis_usage: Default::default(),
             })),
         }
     }
@@ -118,13 +132,14 @@ impl UiMountedFrameRetentionCoordinator {
         let prepared = {
             let mut authority = self.authority.borrow_mut();
             let prepared = prepare_successor(&authority, &frame, reconciliation);
-            if prepared.is_ok() {
+            if let Ok((_, _, _, structural_bytes)) = &prepared {
                 authority.reservation_active = true;
+                authority.in_flight_structural_bytes = *structural_bytes;
             }
             prepared
         };
         match prepared {
-            Ok((successor, expected_revision, successor_revision)) => {
+            Ok((successor, expected_revision, successor_revision, _)) => {
                 Ok(UiRetentionPreparedMountedFrame {
                     frame,
                     reservation: UiMountedRetentionReservation {
@@ -147,6 +162,78 @@ impl Default for UiMountedFrameRetentionCoordinator {
     }
 }
 
+impl UiMountedFrameRetentionAuthority {
+    fn frame_is_pinned(&self, frame: UiMountedFrameIdentity) -> bool {
+        self.pins
+            .get(&frame)
+            .is_some_and(|pins| pins.inspection > 0 || pins.observation_basis > 0)
+    }
+
+    pub(super) fn release_pin(
+        &mut self,
+        frame: UiMountedFrameIdentity,
+        class: UiMountedRetentionClass,
+        structural_bytes: usize,
+    ) {
+        let Some(pins) = self.pins.get(&frame).copied() else {
+            debug_assert!(
+                false,
+                "a retention lease must release an existing frame pin"
+            );
+            return;
+        };
+        let active_for_class = match class {
+            UiMountedRetentionClass::PredecessorInspection => pins.inspection,
+            UiMountedRetentionClass::ObservationBasis => pins.observation_basis,
+            _ => {
+                debug_assert!(
+                    false,
+                    "only lease-backed retention classes release frame pins"
+                );
+                return;
+            }
+        };
+        if active_for_class == 0 {
+            debug_assert!(
+                false,
+                "a retention lease cannot release an absent class pin"
+            );
+            return;
+        }
+
+        let usage = match class {
+            UiMountedRetentionClass::PredecessorInspection => &mut self.inspection_usage,
+            UiMountedRetentionClass::ObservationBasis => &mut self.observation_basis_usage,
+            _ => unreachable!("non-lease classes returned above"),
+        };
+        usage.retained_items = usage
+            .retained_items
+            .checked_sub(1)
+            .expect("retention item accounting includes every active lease");
+        usage.active_leases = usage
+            .active_leases
+            .checked_sub(1)
+            .expect("retention lease accounting includes the released lease");
+        usage.structural_bytes = usage
+            .structural_bytes
+            .checked_sub(structural_bytes)
+            .expect("retention byte accounting includes the released lease");
+
+        let pins = self
+            .pins
+            .get_mut(&frame)
+            .expect("the frame pin was present before accounting");
+        match class {
+            UiMountedRetentionClass::PredecessorInspection => pins.inspection -= 1,
+            UiMountedRetentionClass::ObservationBasis => pins.observation_basis -= 1,
+            _ => unreachable!("non-lease classes returned above"),
+        }
+        if pins.inspection == 0 && pins.observation_basis == 0 {
+            self.pins.remove(&frame);
+        }
+    }
+}
+
 impl UiRetentionPreparedMountedFrame {
     pub(crate) fn frame(&self) -> &super::super::UiPreparedMountedFrame {
         &self.frame
@@ -163,15 +250,19 @@ impl UiRetentionPreparedMountedFrame {
 }
 
 impl UiMountedRetentionReservation {
-    pub(crate) fn commit(mut self) {
+    pub(crate) fn commit(mut self, mount_cost: super::super::UiMountCostReport) {
         let mut authority = self.authority.borrow_mut();
         debug_assert_eq!(
             authority.revision, self.expected_revision,
             "retention authority cannot change while its presentation is in flight"
         );
+        if let Some(current) = self.successor.current.as_mut() {
+            Rc::make_mut(current).set_mount_cost(mount_cost);
+        }
         authority.frames = std::mem::take(&mut self.successor);
         authority.revision = self.successor_revision;
         authority.reservation_active = false;
+        authority.in_flight_structural_bytes = 0;
         self.release_on_drop = false;
     }
 }
@@ -181,6 +272,7 @@ impl Drop for UiMountedRetentionReservation {
         if self.release_on_drop {
             let mut authority = self.authority.borrow_mut();
             authority.reservation_active = false;
+            authority.in_flight_structural_bytes = 0;
         }
     }
 }
@@ -189,7 +281,7 @@ fn prepare_successor(
     authority: &UiMountedFrameRetentionAuthority,
     frame: &super::super::UiPreparedMountedFrame,
     reconciliation: bool,
-) -> Result<(UiMountedRetainedFrameState, u64, u64), UiMountedFrameRetentionDenial> {
+) -> Result<(UiMountedRetainedFrameState, u64, u64, usize), UiMountedFrameRetentionDenial> {
     if authority.reservation_active {
         return Err(capacity_denial(
             UiMountedRetentionClass::InFlight,
@@ -208,6 +300,7 @@ fn prepare_successor(
                 .map(|surface| surface.binding())
                 .collect::<Vec<_>>(),
             frame.presented_receipt_basis().clone(),
+            frame.cost_report(),
         )
         .ok_or(UiMountedFrameRetentionDenial::AccountingOverflow {
             class: UiMountedRetentionClass::InFlight,
@@ -225,6 +318,7 @@ fn prepare_successor(
         candidate.structural_bytes(),
         authority.budget.in_flight(),
     )?;
+    let candidate_structural_bytes = candidate.structural_bytes();
     let successor_revision = authority.revision.checked_add(1).ok_or(
         UiMountedFrameRetentionDenial::AccountingOverflow {
             class: UiMountedRetentionClass::Current,
@@ -245,24 +339,41 @@ fn prepare_successor(
             successor.predecessors.insert(frame, predecessor);
             successor.predecessor_order.push_back(frame);
         }
-        enforce_predecessor_budget(&mut successor, authority.budget)?;
+        enforce_predecessor_budget(&mut successor, authority)?;
     }
-    Ok((successor, authority.revision, successor_revision))
+    Ok((
+        successor,
+        authority.revision,
+        successor_revision,
+        candidate_structural_bytes,
+    ))
 }
 
 fn enforce_predecessor_budget(
     state: &mut UiMountedRetainedFrameState,
-    budget: UiMountedFrameRetentionBudget,
+    authority: &UiMountedFrameRetentionAuthority,
 ) -> Result<(), UiMountedFrameRetentionDenial> {
-    let class_budget = budget.predecessor_inspection();
+    let class_budget = authority.budget.predecessor_inspection();
     loop {
         if class_budget.admits(state.predecessors.len(), state.predecessor_structural_bytes) {
             break;
         }
+        let Some(position) = state
+            .predecessor_order
+            .iter()
+            .position(|frame| !authority.frame_is_pinned(*frame))
+        else {
+            return Err(capacity_denial(
+                UiMountedRetentionClass::PredecessorInspection,
+                state.predecessors.len(),
+                state.predecessor_structural_bytes,
+                class_budget,
+            ));
+        };
         let expired = state
             .predecessor_order
-            .pop_front()
-            .expect("an over-budget predecessor queue is non-empty");
+            .remove(position)
+            .expect("selected predecessor position exists");
         let removed = state
             .predecessors
             .get(&expired)
@@ -277,7 +388,7 @@ fn enforce_predecessor_budget(
             state.expiration_order.push_back(expired);
         }
     }
-    while state.expiration_order.len() > budget.expired_identity_limit() {
+    while state.expiration_order.len() > authority.budget.expired_identity_limit() {
         let forgotten = state
             .expiration_order
             .pop_front()
