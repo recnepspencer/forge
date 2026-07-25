@@ -21,6 +21,11 @@ struct AuthoredMountedOracle {
     allocation_omission: UiMountedOmissionReason,
 }
 
+struct ProjectedMountedOracle {
+    authored: AuthoredMountedOracle,
+    cost: worth_ui::facade::mounted::UiMountCostReport,
+}
+
 #[test]
 fn real_query_free_and_query_backed_paths_match_the_authored_ui_oracle() {
     let query_free = project_query_free();
@@ -34,11 +39,45 @@ fn real_query_free_and_query_backed_paths_match_the_authored_ui_oracle() {
         allocation_omission: UiMountedOmissionReason::NoCommittedAllocation,
     };
 
-    assert_eq!(query_free, expected);
-    assert_eq!(query_backed, expected);
+    assert_eq!(query_free.authored, expected);
+    assert_eq!(query_backed.authored, expected);
+    assert_ui_owned_cost_parity(query_free.cost, query_backed.cost);
+    assert_eq!(query_free.cost.replaced_batch_rows(), 3);
+    assert_eq!(query_backed.cost.replaced_batch_rows(), 10);
 }
 
-fn project_query_free() -> AuthoredMountedOracle {
+fn assert_ui_owned_cost_parity(
+    query_free: worth_ui::facade::mounted::UiMountCostReport,
+    query_backed: worth_ui::facade::mounted::UiMountCostReport,
+) {
+    assert_eq!(
+        query_free.initial_mounted_instances(),
+        query_backed.initial_mounted_instances()
+    );
+    assert_eq!(
+        query_free.changed_mounted_instances(),
+        query_backed.changed_mounted_instances()
+    );
+    assert_eq!(
+        query_free.index_entries_touched(),
+        query_backed.index_entries_touched()
+    );
+    assert_eq!(
+        query_free.surface_instance_pairs(),
+        query_backed.surface_instance_pairs()
+    );
+    assert_eq!(
+        query_free.changed_binding_generations(),
+        query_backed.changed_binding_generations()
+    );
+    assert_eq!(
+        query_free.named().considered(),
+        query_backed.named().considered()
+    );
+    assert_eq!(query_free.named().minted(), query_backed.named().minted());
+}
+
+fn project_query_free() -> ProjectedMountedOracle {
     let scenario = FilesystemApplicationLifecycleScenario::new("mounted-parity-query-free");
     let workspace = FilesystemContractWorkspace::new("mounted-parity-query-free");
     workspace.write(
@@ -59,7 +98,7 @@ fn project_query_free() -> AuthoredMountedOracle {
     oracle
 }
 
-fn project_query_backed() -> AuthoredMountedOracle {
+fn project_query_backed() -> ProjectedMountedOracle {
     let mut scenario = FilesystemApplicationLifecycleScenario::new("mounted-parity-query-backed");
     let workspace = FilesystemContractWorkspace::new("mounted-parity-query-backed");
     workspace.write(
@@ -96,7 +135,7 @@ fn project_query_backed() -> AuthoredMountedOracle {
 
 fn project_first_node(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> AuthoredMountedOracle {
+) -> ProjectedMountedOracle {
     let surface = registered_surface(session);
     let node = first_node(session);
     session.mount_instance(node, surface).unwrap();
@@ -108,6 +147,7 @@ fn project_first_node(
         .unwrap_or_else(|_| panic!("empty source turn permits mounted projection"))
         .prepare_mounted_frame(UiMountedFrameRequest::all_bound_surfaces())
         .unwrap();
+    let cost = candidate.cost_report();
     let view = candidate
         .surfaces()
         .iter()
@@ -120,12 +160,15 @@ fn project_first_node(
         UiMountedAllocationProjection::Omitted(reason) => reason,
         other => panic!("authored scenario has no committed allocation, got {other:?}"),
     };
-    AuthoredMountedOracle {
-        paint: participation.paint().status(),
-        input: participation.input().status(),
-        focus: participation.focus().status(),
-        hit_test: participation.hit_test().status(),
-        diagnostic: participation.diagnostic().status(),
-        allocation_omission,
+    ProjectedMountedOracle {
+        cost,
+        authored: AuthoredMountedOracle {
+            paint: participation.paint().status(),
+            input: participation.input().status(),
+            focus: participation.focus().status(),
+            hit_test: participation.hit_test().status(),
+            diagnostic: participation.diagnostic().status(),
+            allocation_omission,
+        },
     }
 }

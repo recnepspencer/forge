@@ -129,6 +129,22 @@ impl UiMountStageCounters {
         add(&mut self.report.replaced_batch_bytes, bytes)
     }
 
+    pub(crate) fn reuse(&mut self, count: usize) -> Result<(), UiMountCostOverflow> {
+        add(&mut self.report.named.reused, count)
+    }
+
+    pub(crate) fn retire(&mut self, count: usize) -> Result<(), UiMountCostOverflow> {
+        add(&mut self.report.named.retired, count)
+    }
+
+    pub(crate) fn coalesce(&mut self, count: u64) -> Result<(), UiMountCostOverflow> {
+        add_u64(&mut self.report.named.coalesced, count)
+    }
+
+    pub(crate) fn record_overflow(&mut self, overflowed: bool) -> Result<(), UiMountCostOverflow> {
+        add_u64(&mut self.report.named.overflowed, u64::from(overflowed))
+    }
+
     pub(crate) fn finish(self) -> UiMountCostReport {
         self.report
     }

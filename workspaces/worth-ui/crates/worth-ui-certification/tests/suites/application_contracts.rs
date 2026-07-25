@@ -36,6 +36,8 @@ mod host_observation_pressure;
 mod host_observation_reporting;
 #[path = "../application_contracts/mounted_application_lifecycle/mod.rs"]
 mod mounted_application_lifecycle;
+#[path = "../application_contracts/mounted_cost_evidence.rs"]
+mod mounted_cost_evidence;
 #[path = "../application_contracts/mounted_egui_adapter.rs"]
 mod mounted_egui_adapter;
 #[path = "../application_contracts/mounted_frame_assembly.rs"]

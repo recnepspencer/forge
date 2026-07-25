@@ -184,8 +184,10 @@ impl WorthUiPreparedApplicationPlanSwap {
         self.activation.activation.candidate_query_binding()
     }
 
-    pub(crate) fn candidate_allocation_receipts(&self) -> Vec<crate::runtime::UiAllocationReceipt> {
-        self.activation.activation.candidate_allocation_receipts()
+    pub(crate) fn candidate_allocation_catalog(
+        &self,
+    ) -> crate::runtime::UiMountedAllocationProjectionCatalog {
+        self.activation.activation.candidate_allocation_catalog()
     }
 
     pub(crate) fn candidate_plan_digest(&self) -> u64 {

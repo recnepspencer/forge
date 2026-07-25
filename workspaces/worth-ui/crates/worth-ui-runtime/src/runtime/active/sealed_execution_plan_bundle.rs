@@ -125,8 +125,9 @@ impl WorthUiSealedExecutionPlanBundle {
         &self.execution_plan
     }
 
-    pub(crate) fn mounted_projection_rows(&self) -> Vec<(u64, u32)> {
-        self.execution_plan.mounted_projection_rows()
+    pub(crate) fn mounted_projection_plan_index(&self, provenance: u64) -> Result<Option<u32>, ()> {
+        self.execution_plan
+            .mounted_projection_plan_index(provenance)
     }
 
     pub(crate) fn classify_candidate(

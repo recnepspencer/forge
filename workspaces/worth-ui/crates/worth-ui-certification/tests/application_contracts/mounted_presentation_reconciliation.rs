@@ -291,7 +291,7 @@ fn verified_candidate_only_deregistration_closes_its_blocked_generation() {
         )
         .unwrap()
         .binding_generation();
-    session.mount_instance(node, candidate_surface).unwrap();
+    let candidate_instance = session.mount_instance(node, candidate_surface).unwrap();
 
     host.push_presented();
     host.push_presentation(
@@ -340,6 +340,16 @@ fn verified_candidate_only_deregistration_closes_its_blocked_generation() {
     host.push_presented();
     host.push_presented();
     let successor = prepared_frame(&mut session);
+    let candidate_projection = successor
+        .surfaces()
+        .iter()
+        .find(|surface| surface.projection().surface() == candidate_surface)
+        .expect("successor must project the restored candidate-only surface");
+    assert!(candidate_projection
+        .projection()
+        .nodes()
+        .iter()
+        .any(|node| node.mounted_instance() == candidate_instance));
     assert!(matches!(
         session.present_prepared_mounted_frame(successor, UiPresentationDeadline::at_tick(30), 3,),
         UiMountedFrameOutcome::Published(_)

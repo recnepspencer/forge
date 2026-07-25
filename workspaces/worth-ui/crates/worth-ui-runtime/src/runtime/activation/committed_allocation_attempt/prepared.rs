@@ -109,8 +109,10 @@ impl UiPreparedCommittedAllocationActivation {
         self.query_succession.candidate()
     }
 
-    pub(crate) fn candidate_allocation_receipts(&self) -> Vec<crate::runtime::UiAllocationReceipt> {
-        self.ledger_commit.successor_mounted_projection_receipts()
+    pub(crate) fn candidate_allocation_catalog(
+        &self,
+    ) -> crate::runtime::UiMountedAllocationProjectionCatalog {
+        self.ledger_commit.successor_mounted_projection_catalog()
     }
 
     pub(crate) fn candidate_plan_digest(&self) -> u64 {

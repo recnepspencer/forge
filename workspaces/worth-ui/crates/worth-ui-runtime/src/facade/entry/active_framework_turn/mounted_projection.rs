@@ -54,12 +54,11 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             .truth_revision()
             .revision();
         let plan_digest = plan.digest().as_u64();
-        let plan_rows = plan.mounted_projection_rows();
-        let allocation_receipts = self
+        let allocation_catalog = self
             .execution
             .runtime
             .allocation_receipt_ledger
-            .mounted_projection_receipts();
+            .mounted_projection_catalog();
         let reuse_contract = self.reuse_contract(&request, lanes, allocation_truth_revision);
         let assembler = crate::mounting::UiMountedFrameAssembler::begin(
             self.mounted_identity,
@@ -67,8 +66,8 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
                 graph: self.graph,
                 generation,
                 plan_digest,
-                plan_rows: &plan_rows,
-                allocation_receipts: &allocation_receipts,
+                plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
+                allocation_catalog,
                 allocation_truth_revision,
                 request,
                 lanes,

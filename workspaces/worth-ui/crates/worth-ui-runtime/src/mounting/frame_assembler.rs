@@ -22,13 +22,19 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub generation:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     pub plan_digest: u64,
+    pub plan: UiMountedPlanProjectionSource<'input>,
     pub allocation_truth_revision: u64,
-    pub plan_rows: &'input [(u64, u32)],
-    pub allocation_receipts: &'input [crate::runtime::UiAllocationReceipt],
+    pub allocation_catalog: crate::runtime::UiMountedAllocationProjectionCatalog,
     pub request: UiMountedFrameRequest,
     pub lanes: UiMountedLaneAssembly,
     pub preview: Option<UiMountedPreviewProjectionInput>,
     pub reuse_contract: super::UiMountedFrameReuseContract,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum UiMountedPlanProjectionSource<'plan> {
+    Executed(&'plan crate::runtime::WorthUiActiveExecutionPlan),
+    PreviewOnly,
 }
 
 pub(crate) struct UiMountedFrameAssembler<'state> {
@@ -42,6 +48,15 @@ pub(crate) struct UiMountedFrameAssembler<'state> {
     required: UiMountedLaneAssembly,
     recorded: UiMountedLaneAssembly,
     reuse_contract: super::UiMountedFrameReuseContract,
+}
+
+impl UiMountedPlanProjectionSource<'_> {
+    pub(crate) fn plan_index(self, provenance: u64) -> Result<Option<u32>, ()> {
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_plan_index(provenance),
+            Self::PreviewOnly => Ok(None),
+        }
+    }
 }
 
 impl<'state> UiMountedFrameAssembler<'state> {
@@ -69,8 +84,8 @@ impl<'state> UiMountedFrameAssembler<'state> {
             super::UiMountedProjectionInput {
                 graph: input.graph,
                 plan_digest: input.plan_digest,
-                plan_rows: input.plan_rows,
-                allocation_receipts: input.allocation_receipts,
+                plan: input.plan,
+                allocation_catalog: &input.allocation_catalog,
                 requested_surfaces: &surfaces,
                 preview: input.preview,
             },

@@ -14,14 +14,10 @@ impl UiPreparedAllocationCatalogLedgerCommit {
         self.successor.truth_revision
     }
 
-    pub(in crate::runtime) fn successor_mounted_projection_receipts(
+    pub(in crate::runtime) fn successor_mounted_projection_catalog(
         &self,
-    ) -> Vec<super::UiAllocationReceipt> {
-        self.successor
-            .committed_by_scope
-            .iter()
-            .map(|(_, receipt)| receipt.clone())
-            .collect()
+    ) -> super::UiMountedAllocationProjectionCatalog {
+        self.successor.mounted_projection_catalog.clone()
     }
 
     pub(in crate::runtime) fn commit_once(self, ledger: &UiAllocationReceiptLedger) {

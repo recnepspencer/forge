@@ -18,13 +18,8 @@ impl UiAllocationReceiptLedger {
         }
     }
 
-    pub(crate) fn mounted_projection_receipts(&self) -> Vec<super::UiAllocationReceipt> {
-        self.state
-            .borrow()
-            .committed_by_scope
-            .iter()
-            .map(|(_, receipt)| receipt.clone())
-            .collect()
+    pub(crate) fn mounted_projection_catalog(&self) -> super::UiMountedAllocationProjectionCatalog {
+        self.state.borrow().mounted_projection_catalog.clone()
     }
 
     pub(super) fn prepare_selected_mode(
@@ -321,6 +316,7 @@ impl UiAllocationReceiptLedger {
                 receipt.committed_allocation().allocation_neighborhood(),
             );
             successor.committed_by_scope.insert(scope, receipt.clone());
+            successor.mounted_projection_catalog.insert(receipt.clone());
         }
         successor.next_transaction_generation = generation;
         if let Some(basis) = mode.durable_resize() {

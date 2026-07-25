@@ -34,6 +34,10 @@ pub(crate) struct WorthUiPlanRegionStore {
     family_index: WorthUiPlanRegionFamilyIndex,
     root_shell_root: Option<Rc<WorthUiPlanRegionSlotSetNode>>,
     realtime_budget_exhaustion_root: Option<Rc<WorthUiPlanRegionSlotSetNode>>,
+    mounted_projection_index: crate::runtime::persistent_index::UiPersistentOrdMap<
+        u64,
+        crate::runtime::persistent_index::UiPersistentOrdSet<u32>,
+    >,
     root_shell_count: usize,
     region_count: usize,
     next_stable_slot: u64,
