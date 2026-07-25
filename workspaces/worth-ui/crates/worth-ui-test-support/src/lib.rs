@@ -9,6 +9,7 @@ pub use worth_ui_runtime::certification_support::{
     UiMeasurementAdmissionPosture, UiMeasurementCapabilityGateReason,
     UiMeasurementUnsupportedReason, UiQueryMeasurementEligibilityPosture,
     UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
-    WorthUiActivationPrecommitStage, WorthUiTouchOriginCertificationFixture,
+    WorthUiActivationPrecommitStage, WorthUiMountedFrameExecutionCertificationExt,
+    WorthUiMountedPublicationCertificationExt, WorthUiTouchOriginCertificationFixture,
     WorthUiTouchOriginFixtureVariant,
 };

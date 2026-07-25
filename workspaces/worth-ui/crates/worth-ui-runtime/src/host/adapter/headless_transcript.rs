@@ -2,9 +2,9 @@ use worth_ui_host_contract::{
     UiHostProtocolAgreement, UiHostSurfacePresentationMode, UiMountedAccessibilityProjection,
     UiMountedAllocationProjection, UiMountedCanonicalBox, UiMountedEffectFamily,
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedMechanicalRole,
-    UiMountedOmissionReason, UiMountedPaintPrimitiveKind, UiMountedParticipation,
-    UiMountedPresentationAttemptIdentity, UiMountedPreviewProjection, UiMountedResourceKind,
-    UiSurfaceBindingGeneration,
+    UiMountedMotionProjection, UiMountedOmissionReason, UiMountedPaintPrimitiveKind,
+    UiMountedParticipation, UiMountedPresentationAttemptIdentity, UiMountedPreviewProjection,
+    UiMountedResourceKind, UiSurfaceBindingGeneration,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -67,6 +67,20 @@ pub struct UiHeadlessNodeMechanic {
     preview: UiMountedPreviewProjection,
     paint: UiHeadlessNodePaintMechanic,
     accessibility: UiMountedAccessibilityProjection,
+    motion: UiMountedMotionProjection,
+    diagnostic: worth_ui_host_contract::UiMountedDiagnosticProjection,
+}
+
+pub(crate) struct UiHeadlessNodeMechanicInput {
+    pub mounted_instance: UiMountedInstanceIdentity,
+    pub role: UiMountedMechanicalRole,
+    pub participation: UiMountedParticipation,
+    pub allocation: UiMountedAllocationProjection,
+    pub preview: UiMountedPreviewProjection,
+    pub paint: UiHeadlessNodePaintMechanic,
+    pub accessibility: UiMountedAccessibilityProjection,
+    pub motion: UiMountedMotionProjection,
+    pub diagnostic: worth_ui_host_contract::UiMountedDiagnosticProjection,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,6 +93,12 @@ pub enum UiHeadlessUnperformedEffect {
         node_count: u32,
     },
     Focus {
+        node_count: u32,
+    },
+    Motion {
+        node_count: u32,
+    },
+    Diagnostic {
         node_count: u32,
     },
     CanvasSpatial {
@@ -213,23 +233,17 @@ impl UiHeadlessPaintBatchMechanic {
 }
 
 impl UiHeadlessNodeMechanic {
-    pub(crate) fn new(
-        mounted_instance: UiMountedInstanceIdentity,
-        role: UiMountedMechanicalRole,
-        participation: UiMountedParticipation,
-        allocation: UiMountedAllocationProjection,
-        preview: UiMountedPreviewProjection,
-        paint: UiHeadlessNodePaintMechanic,
-        accessibility: UiMountedAccessibilityProjection,
-    ) -> Self {
+    pub(crate) fn new(input: UiHeadlessNodeMechanicInput) -> Self {
         Self {
-            mounted_instance,
-            role,
-            participation,
-            allocation,
-            preview,
-            paint,
-            accessibility,
+            mounted_instance: input.mounted_instance,
+            role: input.role,
+            participation: input.participation,
+            allocation: input.allocation,
+            preview: input.preview,
+            paint: input.paint,
+            accessibility: input.accessibility,
+            motion: input.motion,
+            diagnostic: input.diagnostic,
         }
     }
 
@@ -259,6 +273,14 @@ impl UiHeadlessNodeMechanic {
     pub const fn accessibility(self) -> UiMountedAccessibilityProjection {
         self.accessibility
     }
+
+    pub const fn motion(self) -> UiMountedMotionProjection {
+        self.motion
+    }
+
+    pub const fn diagnostic(self) -> worth_ui_host_contract::UiMountedDiagnosticProjection {
+        self.diagnostic
+    }
 }
 
 impl UiHeadlessUnperformedEffect {
@@ -267,6 +289,8 @@ impl UiHeadlessUnperformedEffect {
             Self::NativePaint { .. } => UiMountedEffectFamily::NativePaint,
             Self::Accessibility { .. } => UiMountedEffectFamily::Accessibility,
             Self::Focus { .. } => UiMountedEffectFamily::Focus,
+            Self::Motion { .. } => UiMountedEffectFamily::Motion,
+            Self::Diagnostic { .. } => UiMountedEffectFamily::Diagnostic,
             Self::CanvasSpatial { .. } => UiMountedEffectFamily::CanvasSpatial,
             Self::Realtime { .. } => UiMountedEffectFamily::Realtime,
         }

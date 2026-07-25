@@ -10,6 +10,7 @@ mod app_builder;
 mod application_replacement;
 mod builder;
 mod measurement_exchange;
+mod mounted_frame_execution;
 mod mounted_identity;
 mod mounted_inspection;
 mod mounted_preview;
@@ -42,6 +43,7 @@ pub use application_replacement::{
     WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
+pub use mounted_frame_execution::WorthUiMountedFrameExecutionStop;
 pub use mounted_preview::{
     WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
     WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,

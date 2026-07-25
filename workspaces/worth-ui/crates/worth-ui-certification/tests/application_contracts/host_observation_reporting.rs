@@ -5,6 +5,7 @@ use worth_ui::facade::observation_report::{
     UiHostObservationReport, UiHostObservationReportDenial, UiHostObservationReportOutcome,
     UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
 };
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::host_observation_fixture::{batch, report, source};
 use super::mounted_application_lifecycle::in_flight_presentation_world::prepared;

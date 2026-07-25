@@ -5,12 +5,10 @@ use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
     UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostProtocolNegotiation,
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
-    UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily, UiMountedAccessibilityProjection,
-    UiMountedCompletedEffects, UiMountedEffectFamily, UiMountedFrameConsumptionView,
-    UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedParticipationStatus,
-    UiMountedSurfacePresentationCompletion, UiSurfaceBindingGeneration,
-    UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
-    WorthUiHostContract, WorthUiMeasurementHostAdapter,
+    UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily, UiMountedCompletedEffects,
+    UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion,
+    UiSurfaceBindingGeneration, UiViewportExtentObservation, WorthUiHostCapability,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
 use worth_ui_runtime::facade::host::{
     UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
@@ -300,7 +298,7 @@ impl WorthUiHostEgui {
         if !registration_matches(registered, view) {
             return Some(UiHostSurfacePresentationDenial::SurfaceBindingChanged);
         }
-        unsupported_projection_effect(view.projection())
+        super::mounted_effect_support::unsupported_projection_effect(view.projection())
             .map(UiHostSurfacePresentationDenial::UnsupportedEffect)
     }
 }
@@ -323,47 +321,4 @@ fn registration_matches(
         && registered.presentation_mode() == requirement.presentation_mode()
         && view.projection().surface() == requirement.semantic_surface()
         && view.projection().binding() == requirement.binding()
-}
-
-fn unsupported_projection_effect(
-    projection: &worth_ui_host_contract::UiMountedProjectionView,
-) -> Option<UiMountedEffectFamily> {
-    if !projection.spatial_batches().rows().is_empty()
-        || projection
-            .paint_batches()
-            .rows()
-            .iter()
-            .any(|row| row.primitive_kind() == UiMountedPaintPrimitiveKind::CanvasSpatialBatch)
-    {
-        return Some(UiMountedEffectFamily::CanvasSpatial);
-    }
-    if !projection.realtime_batches().rows().is_empty()
-        || projection
-            .paint_batches()
-            .rows()
-            .iter()
-            .any(|row| row.primitive_kind() == UiMountedPaintPrimitiveKind::RealtimeBatch)
-    {
-        return Some(UiMountedEffectFamily::Realtime);
-    }
-    if projection
-        .nodes()
-        .iter()
-        .any(|node| matches!(node.paint(), UiMountedPaintProjection::Batch(_)))
-    {
-        return Some(UiMountedEffectFamily::NativePaint);
-    }
-    if projection.nodes().iter().any(|node| {
-        matches!(
-            node.accessibility(),
-            UiMountedAccessibilityProjection::Admitted(_)
-        )
-    }) {
-        return Some(UiMountedEffectFamily::Accessibility);
-    }
-    projection
-        .nodes()
-        .iter()
-        .any(|node| node.participation().focus().status() == UiMountedParticipationStatus::Admitted)
-        .then_some(UiMountedEffectFamily::Focus)
 }

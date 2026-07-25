@@ -12,6 +12,7 @@ use worth_ui_host_contract::{UiMountedParticipationInput, WorthUiHeadlessMounted
 use worth_ui_host_egui::{
     WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache,
 };
+use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::known_empty_surface_world::{

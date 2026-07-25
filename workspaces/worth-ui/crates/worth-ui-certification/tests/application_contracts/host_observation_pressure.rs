@@ -9,6 +9,7 @@ use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
     UiHostObservationReportOutcome, UiHostObservationSequence, UiHostObservationSequenceRange,
 };
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::host_measurement_fixture::{begin_viewport, measurement_host, viewport_observation};
 use super::host_observation_fixture::{batch, pointer, report, source};

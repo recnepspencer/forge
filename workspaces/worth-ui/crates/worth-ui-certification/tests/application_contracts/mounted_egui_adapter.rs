@@ -5,6 +5,9 @@ use worth_ui::facade::mounted::{
     UiMountedParticipationStatus, UiPresentationDeadline,
 };
 use worth_ui_host_egui::WorthUiHostEgui;
+use worth_ui_test_support::{
+    WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
+};
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     first_node, mounted_application_with_host, profile,

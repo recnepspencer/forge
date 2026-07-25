@@ -15,7 +15,7 @@ pub enum WorthUiMountedLaneProjectionDenial {
 }
 
 impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
-    pub fn classify_mounted_frame_reuse(
+    pub(crate) fn classify_mounted_frame_reuse_internal(
         &self,
         request: &crate::mounting::UiMountedFrameRequest,
     ) -> crate::mounting::UiMountedFrameReuse {
@@ -34,7 +34,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         ))
     }
 
-    pub fn prepare_mounted_frame(
+    pub(crate) fn prepare_mounted_frame_internal(
         self,
         request: crate::mounting::UiMountedFrameRequest,
     ) -> Result<

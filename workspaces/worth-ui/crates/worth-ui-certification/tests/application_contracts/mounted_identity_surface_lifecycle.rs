@@ -14,6 +14,7 @@ use worth_ui_host_contract::{
     UiHostSurfaceRegistrationRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
     WorthUiMeasurementHostAdapter,
 };
+use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     active_session, first_node, mounted_application_with_host, profile,

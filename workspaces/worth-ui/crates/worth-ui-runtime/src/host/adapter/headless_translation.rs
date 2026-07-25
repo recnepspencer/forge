@@ -4,7 +4,9 @@ use worth_ui_host_contract::{
     UiMountedParticipationStatus, UiMountedProjectionView, UiMountedTableProjectionStatus,
 };
 
-use super::headless_transcript::UiHeadlessMountedFrameTranscriptInput;
+use super::headless_transcript::{
+    UiHeadlessMountedFrameTranscriptInput, UiHeadlessNodeMechanicInput,
+};
 use super::{
     UiHeadlessClipMechanic, UiHeadlessLayerMechanic, UiHeadlessMountedFrameTranscript,
     UiHeadlessNodeMechanic, UiHeadlessNodePaintMechanic, UiHeadlessPaintBatchMechanic,
@@ -81,6 +83,8 @@ fn validate_mechanic_capacity(
         1,
         usize::from(has_accessibility(projection)),
         usize::from(has_focus(projection)),
+        usize::from(has_motion(projection)),
+        usize::from(has_diagnostic(projection)),
     ]
     .into_iter()
     .try_fold(0usize, usize::checked_add)
@@ -210,15 +214,17 @@ fn translate_nodes(
                     UiHeadlessNodePaintMechanic::Batch(reference.index())
                 }
             };
-            Ok(UiHeadlessNodeMechanic::new(
-                node.mounted_instance(),
-                node.role(),
-                node.participation(),
-                node.allocation(),
-                node.preview(),
+            Ok(UiHeadlessNodeMechanic::new(UiHeadlessNodeMechanicInput {
+                mounted_instance: node.mounted_instance(),
+                role: node.role(),
+                participation: node.participation(),
+                allocation: node.allocation(),
+                preview: node.preview(),
                 paint,
-                node.accessibility(),
-            ))
+                accessibility: node.accessibility(),
+                motion: node.motion(),
+                diagnostic: node.diagnostic(),
+            }))
         })
         .collect()
 }
@@ -236,6 +242,15 @@ fn unperformed_effects(
             )
         })?,
     }];
+    effects.extend(node_unperformed_effects(projection)?);
+    effects.extend(external_batch_effects(projection)?);
+    Ok(effects)
+}
+
+fn node_unperformed_effects(
+    projection: &UiMountedProjectionView,
+) -> Result<Vec<UiHeadlessUnperformedEffect>, UiHostSurfacePresentationDenial> {
+    let mut effects = Vec::new();
     let accessibility_count = matching_node_count(projection, |node| {
         matches!(
             node.accessibility(),
@@ -255,6 +270,35 @@ fn unperformed_effects(
             node_count: focus_count,
         });
     }
+    let motion_count = matching_node_count(projection, |node| {
+        matches!(
+            node.motion(),
+            worth_ui_host_contract::UiMountedMotionProjection::Admitted
+        )
+    })?;
+    if motion_count > 0 {
+        effects.push(UiHeadlessUnperformedEffect::Motion {
+            node_count: motion_count,
+        });
+    }
+    let diagnostic_count = matching_node_count(projection, |node| {
+        matches!(
+            node.diagnostic(),
+            worth_ui_host_contract::UiMountedDiagnosticProjection::Reference(_)
+        )
+    })?;
+    if diagnostic_count > 0 {
+        effects.push(UiHeadlessUnperformedEffect::Diagnostic {
+            node_count: diagnostic_count,
+        });
+    }
+    Ok(effects)
+}
+
+fn external_batch_effects(
+    projection: &UiMountedProjectionView,
+) -> Result<Vec<UiHeadlessUnperformedEffect>, UiHostSurfacePresentationDenial> {
+    let mut effects = Vec::new();
     for (index, batch) in projection.spatial_batches().rows().iter().enumerate() {
         effects.push(UiHeadlessUnperformedEffect::CanvasSpatial {
             batch_index: u16::try_from(index)
@@ -303,6 +347,24 @@ fn has_focus(projection: &UiMountedProjectionView) -> bool {
         .nodes()
         .iter()
         .any(|node| node.participation().focus().status() == UiMountedParticipationStatus::Admitted)
+}
+
+fn has_motion(projection: &UiMountedProjectionView) -> bool {
+    projection.nodes().iter().any(|node| {
+        matches!(
+            node.motion(),
+            worth_ui_host_contract::UiMountedMotionProjection::Admitted
+        )
+    })
+}
+
+fn has_diagnostic(projection: &UiMountedProjectionView) -> bool {
+    projection.nodes().iter().any(|node| {
+        matches!(
+            node.diagnostic(),
+            worth_ui_host_contract::UiMountedDiagnosticProjection::Reference(_)
+        )
+    })
 }
 
 fn paint_order(batch: &UiHeadlessPaintBatchMechanic) -> (u8, u32, u16) {

@@ -5,6 +5,7 @@ use worth_ui::facade::mounted::{
     UiMountedLayerProjection, UiMountedLayerRow, UiMountedLayerTable,
     UiMountedTableProjectionStatus, UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile,
 };
+use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     active_session, first_node, registered_surface,
