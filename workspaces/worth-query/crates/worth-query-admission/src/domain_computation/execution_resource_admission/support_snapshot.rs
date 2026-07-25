@@ -8,12 +8,23 @@ use worth_query_installation::facade::{
 
 use crate::admission_digest::hash_parts;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+pub trait WorthQueryExecutionCapacityReservation: Send {}
+
+impl<T: Send> WorthQueryExecutionCapacityReservation for T {}
+
+pub trait WorthQueryExecutionCapacityPort: Send + Sync {
+    fn capacity_subject_identity(&self) -> &str;
+
+    fn try_reserve(&self) -> Option<Box<dyn WorthQueryExecutionCapacityReservation>>;
+}
+
+#[derive(Clone)]
 pub struct WorthQueryExecutionResourceSupport {
     provider: WorthQueryExecutionProviderFamily,
     access_product: WorthQueryExecutionAccessProductFamily,
     allocator: WorthQueryExecutionAllocatorFamily,
     envelope: WorthQueryExecutionResourceEnvelope,
+    capacity: Arc<dyn WorthQueryExecutionCapacityPort>,
     identity: Arc<str>,
 }
 
@@ -23,12 +34,14 @@ impl WorthQueryExecutionResourceSupport {
         access_product: WorthQueryExecutionAccessProductFamily,
         allocator: WorthQueryExecutionAllocatorFamily,
         envelope: WorthQueryExecutionResourceEnvelope,
+        capacity: Arc<dyn WorthQueryExecutionCapacityPort>,
     ) -> Self {
         let identity = Arc::<str>::from(hash_parts(&[
             "worth_query_execution_resource_support_v1".into(),
             format!("provider:{}", provider.as_str()),
             format!("access:{}", access_product.as_str()),
             format!("allocator:{}", allocator.as_str()),
+            format!("capacity:{}", capacity.capacity_subject_identity()),
             format!("mode:{}", envelope.mode().as_str()),
             format!("safe-point:{}", envelope.cancellation_safe_point().as_str()),
             format!(
@@ -36,6 +49,10 @@ impl WorthQueryExecutionResourceSupport {
                 envelope
                     .degradation()
                     .map_or("complete", |degradation| degradation.as_str())
+            ),
+            format!(
+                "partial-effect:{}",
+                envelope.partial_effect_posture().as_str()
             ),
             format!(
                 "scale:{}",
@@ -61,6 +78,7 @@ impl WorthQueryExecutionResourceSupport {
             access_product,
             allocator,
             envelope,
+            capacity,
             identity,
         }
     }
@@ -85,6 +103,18 @@ impl WorthQueryExecutionResourceSupport {
         &self.identity
     }
 
+    pub fn capacity_subject_identity(&self) -> &str {
+        self.capacity.capacity_subject_identity()
+    }
+
+    pub(super) fn capacity(&self) -> &Arc<dyn WorthQueryExecutionCapacityPort> {
+        &self.capacity
+    }
+
+    pub(super) fn has_same_capacity_authority(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.capacity, &other.capacity)
+    }
+
     fn supports(&self, strategy: &WorthQueryExecutionStrategyContract) -> bool {
         let required = strategy.provider_requirements();
         self.provider == *required.provider()
@@ -93,6 +123,32 @@ impl WorthQueryExecutionResourceSupport {
             && covers(&self.envelope, strategy.envelope())
     }
 }
+
+impl std::fmt::Debug for WorthQueryExecutionResourceSupport {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthQueryExecutionResourceSupport")
+            .field("provider", &self.provider)
+            .field("access_product", &self.access_product)
+            .field("allocator", &self.allocator)
+            .field("envelope", &self.envelope)
+            .field("capacity_subject", &self.capacity_subject_identity())
+            .finish()
+    }
+}
+
+impl PartialEq for WorthQueryExecutionResourceSupport {
+    fn eq(&self, other: &Self) -> bool {
+        self.provider == other.provider
+            && self.access_product == other.access_product
+            && self.allocator == other.allocator
+            && self.envelope == other.envelope
+            && self.capacity_subject_identity() == other.capacity_subject_identity()
+            && self.has_same_capacity_authority(other)
+    }
+}
+
+impl Eq for WorthQueryExecutionResourceSupport {}
 
 fn covers(
     support: &WorthQueryExecutionResourceEnvelope,
@@ -109,6 +165,7 @@ fn covers(
         && admitted.mode() == support.mode()
         && admitted.cancellation_safe_point() == support.cancellation_safe_point()
         && admitted.degradation() == support.degradation()
+        && admitted.partial_effect_posture() == support.partial_effect_posture()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -194,6 +251,14 @@ impl WorthQueryExecutionResourceSupportSnapshot {
 
     pub fn parallel_admission(&self) -> Option<&WorthQueryExecutionResourceSupport> {
         self.parallel_admission.as_ref()
+    }
+
+    pub(super) fn all_supports(&self) -> impl Iterator<Item = &WorthQueryExecutionResourceSupport> {
+        std::iter::once(&self.executor)
+            .chain(self.conditional_nodes.iter().map(|(_, support)| support))
+            .chain(self.graph_providers.iter().map(|(_, support)| support))
+            .chain(self.commit_providers.iter().map(|(_, support)| support))
+            .chain(self.parallel_admission.iter())
     }
 
     pub fn identity(&self) -> &str {

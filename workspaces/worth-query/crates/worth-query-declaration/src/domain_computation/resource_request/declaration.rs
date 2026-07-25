@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use super::{
     canonical_identity::canonical_resource_request_identity, validation::validate_resource_request,
     WorthQueryCancellationSafePointFamily, WorthQueryExecutionDegradation, WorthQueryExecutionMode,
-    WorthQueryResourceLimitRequest, WorthQuerySemanticScaleRequest,
+    WorthQueryPartialEffectPosture, WorthQueryResourceLimitRequest, WorthQuerySemanticScaleRequest,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -12,6 +12,7 @@ pub struct WorthQueryExecutionResourceRequest {
     limits: WorthQueryResourceLimitRequest,
     modes: BTreeSet<WorthQueryExecutionMode>,
     degradations: BTreeSet<WorthQueryExecutionDegradation>,
+    partial_effect_postures: BTreeSet<WorthQueryPartialEffectPosture>,
     cancellation_safe_point: WorthQueryCancellationSafePointFamily,
 }
 
@@ -26,6 +27,9 @@ impl WorthQueryExecutionResourceRequest {
             limits,
             modes: [WorthQueryExecutionMode::Synchronous].into_iter().collect(),
             degradations: BTreeSet::new(),
+            partial_effect_postures: [WorthQueryPartialEffectPosture::EffectFree]
+                .into_iter()
+                .collect(),
             cancellation_safe_point,
         };
         validate_resource_request(&request)?;
@@ -55,6 +59,11 @@ impl WorthQueryExecutionResourceRequest {
         self
     }
 
+    pub fn allow_partial_effect_posture(mut self, posture: WorthQueryPartialEffectPosture) -> Self {
+        self.partial_effect_postures.insert(posture);
+        self
+    }
+
     pub fn scale(&self) -> &WorthQuerySemanticScaleRequest {
         &self.scale
     }
@@ -69,6 +78,10 @@ impl WorthQueryExecutionResourceRequest {
 
     pub fn degradations(&self) -> &BTreeSet<WorthQueryExecutionDegradation> {
         &self.degradations
+    }
+
+    pub fn partial_effect_postures(&self) -> &BTreeSet<WorthQueryPartialEffectPosture> {
+        &self.partial_effect_postures
     }
 
     pub fn cancellation_safe_point(&self) -> &WorthQueryCancellationSafePointFamily {

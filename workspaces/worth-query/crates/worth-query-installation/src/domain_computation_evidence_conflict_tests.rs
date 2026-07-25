@@ -29,7 +29,7 @@ fn evidence_schema_drift_conflicts_atomically_for_every_required_dimension() {
         contract(
             domain_counter(
                 WorthQueryStructuralCounterUnit::Comparisons,
-                WorthQueryStructuralCounterAggregation::SumOf(vec![counter("elements")]),
+                WorthQueryStructuralCounterAggregation::SumOf(vec![counter("comparison-source")]),
                 WorthQueryStructuralCounterRequiredness::OptionalSidecar,
                 WorthQueryStructuralCounterReplayPosture::NotCompared,
             ),
@@ -116,6 +116,13 @@ fn contract(
             WorthQueryStructuralCounterRole::StructuralWork,
             WorthQueryStructuralCounterUnit::Operations,
         ),
+        domain_counter_named(
+            "comparison-source",
+            WorthQueryStructuralCounterUnit::Comparisons,
+            WorthQueryStructuralCounterAggregation::Independent,
+            WorthQueryStructuralCounterRequiredness::OptionalSidecar,
+            WorthQueryStructuralCounterReplayPosture::NotCompared,
+        ),
         domain_counter,
     ]);
     let decisions = WorthQueryDecisionRecordContract::declared([WorthQueryDecisionSchema::new(
@@ -134,6 +141,14 @@ fn contract(
     base_builder()
         .counters(counters)
         .decisions(decisions)
+        .governance(WorthQueryArtifactGovernanceContract::new(
+            ["internal"],
+            WorthQueryArtifactClassification::Restricted,
+            WorthQueryArtifactRedactionPosture::CanonicalProjectionOnly,
+            RetentionDeliveryProfile::Durable,
+            WorthQueryArtifactDeletionPosture::DeleteAfterRetention,
+            WorthQueryArtifactLegalHoldPosture::DomainControlled,
+        ))
         .compatibility(active_compatibility())
         .finish()
         .unwrap()
@@ -145,8 +160,24 @@ fn domain_counter(
     requiredness: WorthQueryStructuralCounterRequiredness,
     replay: WorthQueryStructuralCounterReplayPosture,
 ) -> WorthQueryStructuralCounterSchema {
-    schema(
+    domain_counter_named(
         "candidate-comparisons",
+        unit,
+        aggregation,
+        requiredness,
+        replay,
+    )
+}
+
+fn domain_counter_named(
+    name: &str,
+    unit: WorthQueryStructuralCounterUnit,
+    aggregation: WorthQueryStructuralCounterAggregation,
+    requiredness: WorthQueryStructuralCounterRequiredness,
+    replay: WorthQueryStructuralCounterReplayPosture,
+) -> WorthQueryStructuralCounterSchema {
+    schema(
+        name,
         WorthQueryStructuralCounterRole::DomainWork,
         unit,
         aggregation,

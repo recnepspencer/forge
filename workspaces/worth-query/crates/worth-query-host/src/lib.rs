@@ -1,19 +1,18 @@
 //! Query host audience facade.
 //!
-//! Admission, lowering, and execution consumers depend on this crate instead
-//! of importing Query internals. The host surface preserves Query's runtime and
-//! installed-domain namespaces without adding another executable authority.
+//! Admission, lowering, execution, and publication consumers depend on this
+//! crate instead of importing Query's internal authority packages directly.
 //!
 //! ```
-//! use worth_query_host::facade::{domain, installed, runtime};
+//! use worth_query_host::facade::{admission, domain, runtime};
 //! # fn _host_surface(
-//! #     builder: runtime::WorthQueryRuntimeBuilder,
-//! #     package: domain::WorthQueryDomainPackage<impl domain::WorthQueryDomainEntryMarker>,
+//! #     installer: runtime::WorthQueryExecutionRuntimeInstaller,
+//! #     package: domain::WorthQueryPortableDomainPackage,
 //! # ) {
 //! #     let _ = (
-//! #         builder,
+//! #         installer,
 //! #         package,
-//! #         std::any::TypeId::of::<installed::operation::WorthQueryOperationResultState>(),
+//! #         std::any::TypeId::of::<admission::resource_admission::WorthQueryExecutionResourceAdmissionDenial>(),
 //! #     );
 //! # }
 //! ```

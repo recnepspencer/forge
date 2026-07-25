@@ -31,7 +31,6 @@ pub(super) fn installed_conditional_operation<D: 'static, O: 'static, F: 'static
             domain.authority_arc(),
             resolved.authority,
             resolved.workflow_graph,
-            resolved.evidence_contract,
             bindings,
             crate::domain_installation::WorthQueryInstalledDomainOperationLookupCounters {
                 authority_checks: 1,

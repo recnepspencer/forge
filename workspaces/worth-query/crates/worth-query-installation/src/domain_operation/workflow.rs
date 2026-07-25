@@ -65,6 +65,41 @@ impl WorthQueryPortableWorkflowDefinition {
     pub fn stages(&self) -> &[WorthQueryPortableWorkflowStage] {
         &self.stages
     }
+
+    pub fn has_parallel_frontier(&self) -> bool {
+        self.stages.iter().enumerate().any(|(left_index, left)| {
+            self.stages.iter().skip(left_index + 1).any(|right| {
+                !self.depends_on(left.identity(), right.identity())
+                    && !self.depends_on(right.identity(), left.identity())
+            })
+        })
+    }
+
+    fn depends_on(&self, stage_identity: &str, possible_predecessor: &str) -> bool {
+        let mut pending = vec![stage_identity];
+        let mut visited = std::collections::BTreeSet::new();
+        while let Some(identity) = pending.pop() {
+            if !visited.insert(identity) {
+                continue;
+            }
+            let Some(stage) = self
+                .stages
+                .iter()
+                .find(|stage| stage.identity() == identity)
+            else {
+                continue;
+            };
+            if stage
+                .predecessors()
+                .iter()
+                .any(|predecessor| predecessor == possible_predecessor)
+            {
+                return true;
+            }
+            pending.extend(stage.predecessors().iter().map(String::as_str));
+        }
+        false
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

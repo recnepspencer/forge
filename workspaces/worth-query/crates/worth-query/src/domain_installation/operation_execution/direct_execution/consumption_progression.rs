@@ -282,7 +282,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQuerySettledDomainProjection<D, O, F, 
         &self,
     ) -> Option<&crate::declarative_live::DeclarativeLiveQueryRequest> {
         self.bound_operation()
-            .executor()?
+            .direct_executor()
             .installed_read
             .as_ref()
             .map(crate::ordinary::read::WorthQueryReadDeclaration::declarative_request)

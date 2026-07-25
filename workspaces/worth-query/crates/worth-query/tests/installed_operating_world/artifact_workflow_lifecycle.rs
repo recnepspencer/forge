@@ -70,6 +70,52 @@ fn distinct_retained_leases_borrow_and_release_the_same_owner_generation_safely(
 }
 
 #[test]
+fn completed_consumer_denial_precedes_a_second_lease_mutation() {
+    let (mut workspace, probe) =
+        artifact_lease_workspace("artifact-completed-consumer-lease").unwrap();
+    let run = bind_artifact_workflow(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .start_workflow(&mut workspace)
+        .unwrap()
+        .advance(
+            "produce",
+            domain::WorthQueryWorkflowValue::Text("retain-observer-lease".into()),
+            &mut workspace,
+        )
+        .unwrap()
+        .advance_with_artifact_lease("observe-a", "produce", "observer-a", &mut workspace)
+        .unwrap();
+    let retained = probe
+        .take_escaped_lease()
+        .expect("producer retained an independent observation lease");
+    let before = retained.owner_snapshot();
+    assert_eq!(before.counters().lease_admissions, 2);
+
+    let denial = match run.advance_with_artifact_lease(
+        "observe-a",
+        "produce",
+        "forbidden-retry",
+        &mut workspace,
+    ) {
+        TransitionOutcome::Denied(denial) => denial,
+        _ => panic!("completed artifact consumer did not deny"),
+    };
+    assert_eq!(
+        denial.kind(),
+        &domain::WorthQueryWorkflowAdvanceDenialKind::StageAlreadyCompleted
+    );
+    assert_eq!(denial.counters().stage_executor_contacts, 2);
+    assert_eq!(probe.borrow_observations(), 1);
+    let after = retained.owner_snapshot();
+    assert_eq!(after.counters().lease_admissions, 2);
+    assert_eq!(after.counters().transfer_admissions, 0);
+}
+
+#[test]
 fn replacement_disposes_the_prior_owner_and_eventually_the_successor_once_each() {
     let (mut workspace, probe) = artifact_move_workspace("artifact-replacement").unwrap();
     bind_artifact_workflow(&workspace)

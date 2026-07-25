@@ -87,13 +87,7 @@ where
     CO: WorthQueryExecutableDomainOperation<D, CF, Execution = WorthQueryWorkflowOperation>
         + 'static,
 {
-    let Some(executor) = admitted.candidate.workflow_executor().cloned() else {
-        return TransitionOutcome::Denied(WorthQueryWorkflowReexecutionStop::Aftermath(
-            WorthQueryAftermathExecutionDenial::before_execution(
-                WorthQueryAftermathExecutionDenialKind::DomainPlanUnavailable,
-            ),
-        ));
-    };
+    let executor = std::sync::Arc::clone(admitted.candidate.workflow_providers().1);
     let Some(intent) = executor.prepare_aftermath_intent(&admitted.original_evidence) else {
         return TransitionOutcome::Denied(WorthQueryWorkflowReexecutionStop::Aftermath(
             WorthQueryAftermathExecutionDenial::before_execution(

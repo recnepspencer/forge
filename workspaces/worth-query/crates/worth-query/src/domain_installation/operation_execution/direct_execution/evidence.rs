@@ -4,6 +4,7 @@ use super::WorthQueryBoundGraphExecutionReceipt;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryOperationExecutionCounters {
+    pub runtime_authority_checks: usize,
     pub graph_provider_contacts: usize,
     pub primary_read_contacts: usize,
     pub executor_contacts: usize,
@@ -31,7 +32,7 @@ pub struct WorthQueryOperationExecutionCounters {
     pub conditional_decisions_delivered: usize,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryBoundExecutionReceipt {
     pub(super) identity: String,
     pub(super) binding_identity: String,
@@ -88,6 +89,9 @@ pub enum WorthQueryBoundExecutionDenialKind {
     UndeclaredFailureClass(crate::domain_installation::WorthQueryOperationFailureClass),
     UndeclaredResultState,
     DomainEvidence(super::WorthQueryDomainEvidenceAdmissionDenialKind),
+    DomainEvidenceBinding(
+        worth_query_execution::facade::domain_computation::WorthQueryDomainEvidenceBindingDenial,
+    ),
     ConditionalExecution(worth_runtime_bridge::facade::BridgeConditionalDenialKind),
     ConditionalReentry(crate::domain_installation::WorthQueryConditionalAdmissionDenial),
 }

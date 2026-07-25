@@ -127,6 +127,9 @@ pub(crate) fn execution_resource_support() -> domain::WorthQueryExecutionResourc
         domain::WorthQueryExecutionAccessProductFamily::new("fixture-access").unwrap(),
         domain::WorthQueryExecutionAllocatorFamily::new("fixture-arena").unwrap(),
         execution_resource_envelope(),
+        std::sync::Arc::new(
+            domain::WorthQueryFixedExecutionCapacity::mint("fixture-provider", 1_000_000).unwrap(),
+        ),
     )
 }
 

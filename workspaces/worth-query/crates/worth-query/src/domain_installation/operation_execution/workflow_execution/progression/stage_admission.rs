@@ -9,34 +9,66 @@ pub(crate) struct WorthQueryWorkflowStageRuntimeAdmission {
     _private: (),
 }
 
+pub(crate) struct WorthQueryAdmittedWorkflowStage {
+    pub(super) stage: worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    pub(super) counters_before: super::WorthQueryWorkflowRunCounters,
+}
+
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
     pub(super) fn admit_stage(
         &mut self,
         stage_identity: &str,
         input: &WorthQueryWorkflowValue,
         _runtime_admission: WorthQueryWorkflowStageRuntimeAdmission,
-    ) -> Result<
-        worth_query_installation::facade::WorthQueryPortableWorkflowStage,
-        WorthQueryWorkflowAdvanceDenial,
-    > {
-        let stage = self.pending_stage(stage_identity)?;
-        self.validate_stage_predecessors(&stage)?;
+    ) -> Result<WorthQueryAdmittedWorkflowStage, WorthQueryWorkflowAdvanceDenial> {
+        let admitted = self.admit_stage_readiness(stage_identity)?;
+        let stage = &admitted.stage;
         if !input.satisfies(&stage.semantics().input) {
             return Err(
                 self.stage_admission_denial(WorthQueryWorkflowAdvanceDenialKind::InputContract)
             );
         }
-        if let Err(denial) = self.validate_artifact_input(&stage, input) {
+        if let Err(denial) = self.validate_artifact_input(stage, input) {
             return Err(self.stage_admission_denial(
                 WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(denial),
             ));
         }
-        self.validate_stage_capabilities(&stage)?;
-        self.validate_stage_domains(&stage)?;
-        Ok(stage)
+        Ok(admitted)
     }
 
-    fn validate_artifact_input(
+    pub(super) fn admit_artifact_stage(
+        &mut self,
+        stage_identity: &str,
+        _runtime_admission: WorthQueryWorkflowStageRuntimeAdmission,
+    ) -> Result<WorthQueryAdmittedWorkflowStage, WorthQueryWorkflowAdvanceDenial> {
+        let admitted = self.admit_stage_readiness(stage_identity)?;
+        if !matches!(
+            admitted.stage.semantics().input,
+            worth_query_installation::facade::WorthQueryWorkflowValueContract::InstalledArtifact(_)
+        ) {
+            return Err(
+                self.stage_admission_denial(WorthQueryWorkflowAdvanceDenialKind::InputContract)
+            );
+        }
+        Ok(admitted)
+    }
+
+    fn admit_stage_readiness(
+        &mut self,
+        stage_identity: &str,
+    ) -> Result<WorthQueryAdmittedWorkflowStage, WorthQueryWorkflowAdvanceDenial> {
+        let counters_before = self.counters;
+        let stage = self.pending_stage(stage_identity)?;
+        self.validate_stage_predecessors(&stage)?;
+        self.validate_stage_capabilities(&stage)?;
+        self.validate_stage_domains(&stage)?;
+        Ok(WorthQueryAdmittedWorkflowStage {
+            stage,
+            counters_before,
+        })
+    }
+
+    pub(super) fn validate_artifact_input(
         &self,
         stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
         input: &WorthQueryWorkflowValue,
@@ -53,30 +85,9 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 "artifact workflow input must come from an admitted stage transfer",
             ));
         };
-        let expected_contract = self
-            .graph
-            .artifact_contracts(stage.identity())
-            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::input)
-            .cloned()
-            .ok_or_else(|| {
-                crate::domain_installation::WorthQueryArtifactDenial::new(
-                    crate::domain_installation::WorthQueryArtifactDenialKind::ArtifactContractNotInstalled,
-                    None,
-                    "workflow stage has no installed artifact input authority",
-                )
-            })?;
-        let admission = crate::domain_installation::WorthQueryArtifactTransferAdmission::mint(
-            super::WorthQueryArtifactTransferAdmissionParts {
-                expected_contract,
-                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
-                operation_identity: self.bound.definition().canonical_identity().to_owned(),
-                binding_identity: self.bound.binding_identity().to_owned(),
-                run_identity: self.identity.clone(),
-                predecessor_stage: stage.identity().to_owned(),
-                consumer_stage: stage.identity().to_owned(),
-                basis_identity: self.bound.basis().capability_digest().to_owned(),
-            },
-        );
+        let admission = self
+            .artifact_authority
+            .input_validation_admission(stage.identity())?;
         handle.validate_input(&admission)
     }
 

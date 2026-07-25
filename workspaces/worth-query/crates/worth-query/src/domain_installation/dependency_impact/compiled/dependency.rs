@@ -130,10 +130,12 @@ impl WorthQueryCompiledSemanticAspectDependency {
                 observations,
             },
             WorthQuerySemanticAspectDependencySource::RealizedDirectOutput {
-                execution,
+                result_state,
+                output_identity,
                 publication,
             } => WorthQuerySemanticAspectDependencyView::RealizedDirectOutput {
-                execution,
+                result_state: *result_state,
+                output_identity,
                 publication,
             },
             WorthQuerySemanticAspectDependencySource::RealizedWorkflowEffect(evidence) => {

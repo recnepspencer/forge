@@ -42,6 +42,20 @@ fn bulk_and_scalar_lanes_preserve_semantics_basis_and_distinct_physical_work() {
         scalar.evidence().basis_identity()
     );
     assert_eq!(bulk.evidence().layout(), scalar.evidence().layout());
+    assert_eq!(
+        bulk.evidence().access_bound(),
+        &domain::WorthQueryArtifactNativeAccessBound::RowBatch {
+            start_row: 0,
+            max_rows: ROWS,
+        }
+    );
+    assert_eq!(
+        scalar.evidence().access_bound(),
+        &domain::WorthQueryArtifactNativeAccessBound::ScalarFallback {
+            max_calls_per_admission: 64,
+            max_call_amplification: 32,
+        }
+    );
     let bulk_work = bulk.evidence().counters();
     assert_eq!(bulk_work.provider_contacts, 1);
     assert_eq!(bulk_work.row_batch_contacts, 1);
@@ -79,6 +93,13 @@ fn field_slice_and_short_chunks_expose_all_rows_without_continuation_skips() {
         &(0..ROWS).map(|row| 1_000 + row as u64).collect::<Vec<_>>()
     );
     let field_work = field.evidence().counters();
+    assert_eq!(
+        field.evidence().access_bound(),
+        &domain::WorthQueryArtifactNativeAccessBound::FieldSlice {
+            start_row: 0,
+            max_rows: ROWS,
+        }
+    );
     assert_eq!(field_work.provider_contacts, 1);
     assert_eq!(field_work.field_slice_contacts, 1);
     assert_eq!(field_work.source_bytes, ROWS * 8);
@@ -88,6 +109,10 @@ fn field_slice_and_short_chunks_expose_all_rows_without_continuation_skips() {
     assert_eq!(chunked.lane(), ArtifactNativeLane::ChunkedRows);
     assert_candidates(chunked.values());
     let chunk_work = chunked.evidence().counters();
+    assert_eq!(
+        chunked.evidence().access_bound(),
+        &domain::WorthQueryArtifactNativeAccessBound::Chunk { chunk_rows: 8 }
+    );
     assert_eq!(chunk_work.provider_contacts, 12);
     assert_eq!(chunk_work.row_batch_contacts, 11);
     assert_eq!(chunk_work.chunk_contacts, 11);
@@ -124,6 +149,20 @@ fn projection_chunk_width_controls_actual_allocated_capacity() {
     assert_eq!(wide.lane(), ArtifactNativeLane::SummaryProjection);
     assert_candidates(small.values());
     assert_candidates(wide.values());
+    assert_eq!(
+        small.evidence().access_bound(),
+        &domain::WorthQueryArtifactNativeAccessBound::Projection {
+            projection_identity: "candidate-summary-v1".into(),
+            chunk_rows: 4,
+        }
+    );
+    assert_eq!(
+        wide.evidence().access_bound(),
+        &domain::WorthQueryArtifactNativeAccessBound::Projection {
+            projection_identity: "candidate-summary-v1".into(),
+            chunk_rows: ROWS,
+        }
+    );
     assert_eq!(small.chunk_capacity_bytes().len(), 8);
     assert_eq!(wide.chunk_capacity_bytes().len(), 1);
     let small_peak = *small.chunk_capacity_bytes().iter().max().unwrap();
@@ -226,6 +265,14 @@ fn layout_bounds_session_and_progress_denials_stop_at_the_responsible_boundary()
             2,
             1,
             1,
+            0,
+        ),
+        (
+            "native-zero-projection-progress",
+            domain::WorthQueryArtifactNativeAccessDenialKind::ProviderDenied,
+            2,
+            1,
+            0,
             0,
         ),
     ] {

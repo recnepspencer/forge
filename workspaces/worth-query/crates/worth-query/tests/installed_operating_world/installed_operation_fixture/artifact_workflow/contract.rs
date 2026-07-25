@@ -100,7 +100,7 @@ pub fn candidate_contract() -> domain::WorthQueryPortableArtifactContract {
         domain::WorthQueryArtifactRetirementRule::Active,
         domain::WorthQueryArtifactDowngradePosture::Denied,
     ))
-    .produced_by(["produce"])
+    .produced_by(["produce", "consume"])
     .consumed_by(["consume", "observe-a", "observe-b"])
     .finish()
     .unwrap()

@@ -11,8 +11,8 @@ pub(crate) use registry::{
     WorthQueryInstalledGraphParticipationRegistry, WorthQueryPendingGraphParticipations,
 };
 pub(crate) use worth_query_execution::facade::provider_session::{
-    WorthQueryGraphCallBindingDenial, WorthQueryGraphCallReadBinding, WorthQueryGraphCallScope,
-    WorthQueryGraphCommitCallSpec, WorthQueryGraphProviderCallSpec,
+    WorthQueryGraphCallBindingDenial, WorthQueryGraphCommitCallRequest,
+    WorthQueryGraphProviderCallRequest,
 };
 pub use worth_query_execution::facade::provider_session::{
     WorthQueryGraphCommitCall, WorthQueryGraphCommitProvider, WorthQueryGraphParticipationProvider,

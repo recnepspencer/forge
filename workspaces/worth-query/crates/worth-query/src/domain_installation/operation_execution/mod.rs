@@ -1,4 +1,3 @@
-#[path = "artifact_owner/mod.rs"]
 mod artifact_owner;
 #[path = "graph_execution/provider_execution.rs"]
 mod bound_graph_execution;
@@ -8,7 +7,6 @@ pub(crate) mod certification_replay;
 mod commit_execution;
 #[path = "direct_execution/consumption_progression.rs"]
 mod consumption_progression;
-#[path = "domain_evidence/mod.rs"]
 mod domain_evidence;
 #[path = "execution_resource_admission/mod.rs"]
 mod execution_resource_admission;
@@ -70,6 +68,8 @@ mod workflow_predecessor_admission;
 mod workflow_predecessor_receipt;
 #[path = "workflow_execution/progression/stage_progression.rs"]
 mod workflow_progression;
+#[path = "workflow_execution/progression/stage_progression_state.rs"]
+mod workflow_progression_state;
 #[path = "workflow_execution/contract/stage_executor_contract.rs"]
 mod workflow_provider;
 #[path = "workflow_execution/progression/publication.rs"]
@@ -115,15 +115,11 @@ pub use worth_query_execution::facade::provider_session::{
 
 pub use artifact_owner::*;
 pub(crate) use artifact_owner::{
-    WorthQueryArtifactProductionAuthority, WorthQueryArtifactProductionAuthorityParts,
+    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactAuthority,
     WorthQueryWorkflowArtifactRegistry,
 };
 pub use consumption_progression::*;
 pub use domain_evidence::*;
-pub(crate) use domain_evidence::{
-    domain_evidence_binding_material, domain_evidence_core_material,
-    domain_evidence_governance_material,
-};
 pub use execution_resource_admission::*;
 pub use operation_input::*;
 pub use operation_output::*;
@@ -206,7 +202,9 @@ pub use workflow_retry::*;
 pub use workflow_run::*;
 pub use workflow_semantic_trace::*;
 pub use workflow_semantic_value::*;
-pub(crate) use workflow_stage_admission::WorthQueryWorkflowStageRuntimeAdmission;
+pub(crate) use workflow_stage_admission::{
+    WorthQueryAdmittedWorkflowStage, WorthQueryWorkflowStageRuntimeAdmission,
+};
 pub use workflow_stage_denial::*;
 pub(crate) use workflow_stage_execution_authority::{
     WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionScope,

@@ -274,6 +274,8 @@ impl WorthQueryPendingGraphParticipations {
                     installation_runtime,
                     definition.role.clone(),
                     registration.provider_identity,
+                    requires_commit,
+                    registration.commit_marker.map(|(_, identity)| identity),
                     provider_anchor,
                 )
                 .expect("validated Query graph participation must mint installation authority"),

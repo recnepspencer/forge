@@ -10,8 +10,7 @@ use super::{
     admit_execution_resource_plan, WorthQueryAdmittedExecutionResourcePlan,
     WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionProviderSession,
     WorthQueryExecutionResourceAdmissionCounters, WorthQueryExecutionResourceAdmissionDenial,
-    WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
-    WorthQueryExecutionResourceSupportSnapshot,
+    WorthQueryExecutionResourceAdmissionDenialKind as Kind,
 };
 
 pub type WorthQueryDirectResourceAdmissionOutcome<D, O, F, L> = TransitionOutcome<
@@ -29,6 +28,8 @@ where
 {
     pub(crate) bound: crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
     pub(crate) input: O::Input,
+    pub(crate) executor:
+        std::sync::Arc<crate::domain_installation::WorthQueryInstalledDomainOperationExecutor>,
     pub(crate) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
     pub(crate) phase_proof: WorthQueryOperationPhaseProof<WorthQueryResourceAdmittedOperationPhase>,
 }
@@ -107,14 +108,12 @@ where
                 counters,
             ));
         }
-        let Some(executor) = self.executor() else {
-            return TransitionOutcome::Failed(WorthQueryExecutionResourceAdmissionDenial::new(
-                Kind::ExecutorSupportMissing,
-                "bound direct operation has no installed executor support snapshot",
-                counters,
-            ));
-        };
-        let support = direct_support_snapshot(&self, &executor.resource_support);
+        let executor = std::sync::Arc::clone(self.direct_executor());
+        let support = self
+            .execution_authority()
+            .direct_support()
+            .expect("bound direct execution authority carries installed support")
+            .clone();
         let resources = match admit_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
@@ -125,7 +124,13 @@ where
             Ok(resources) => resources,
             Err(denial) => return admission_denial_outcome(denial),
         };
-        let resource_attempt = WorthQueryDirectExecutionResourceAttempt::start(resources);
+        let resource_attempt = match workspace
+            .query_execution_runtime()
+            .start_direct_resource_attempt(self.execution_authority(), resources)
+        {
+            Ok(attempt) => attempt,
+            Err(denial) => return admission_denial_outcome(denial),
+        };
         let mut basis = operation_phase_basis(self.authority_proof()).clone();
         basis.resource_admission_identity =
             Some(resource_attempt.resources().identity().to_owned());
@@ -137,47 +142,11 @@ where
         TransitionOutcome::Success(WorthQueryAdmittedDirectOperation {
             bound: self,
             input,
+            executor,
             resource_attempt,
             phase_proof,
         })
     }
-}
-
-fn direct_support_snapshot<D, O, F, L: BasisOperationLane>(
-    bound: &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
-    executor: &WorthQueryExecutionResourceSupport,
-) -> WorthQueryExecutionResourceSupportSnapshot {
-    let semantics = bound.definition().semantics();
-    let mut graph_roles = semantics
-        .graph_reads
-        .roles()
-        .iter()
-        .map(|read| read.role.as_str())
-        .collect::<std::collections::BTreeSet<_>>();
-    if let crate::domain_installation::WorthQueryOperationTouchContract::Declared {
-        graph_roles: touch_roles,
-        ..
-    } = &semantics.touches
-    {
-        graph_roles.extend(touch_roles.iter().map(String::as_str));
-    }
-    WorthQueryExecutionResourceSupportSnapshot::new(
-        executor.clone(),
-        super::operation_conditional_supports(bound),
-        bound
-            .graph_participations()
-            .iter()
-            .filter(|participation| graph_roles.contains(participation.role.as_str()))
-            .map(|participation| {
-                (
-                    participation.role.clone(),
-                    participation.record.resource_support.clone(),
-                )
-            })
-            .collect(),
-        super::commit_supports_for_roles(bound, &graph_roles),
-        None,
-    )
 }
 
 fn direct_graph_evidence_can_realize(

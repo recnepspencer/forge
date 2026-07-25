@@ -1,4 +1,4 @@
-use worth_query_host::facade::installed::operation::WorthQueryExecutionProviderSession;
+use worth_query_host::facade::installed::provider_session::WorthQueryExecutionProviderSession;
 
 fn forge() -> WorthQueryExecutionProviderSession {
     WorthQueryExecutionProviderSession::mint("forged-attempt")

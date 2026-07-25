@@ -151,9 +151,9 @@ impl WorthQueryDomainEvidenceInspectionCopy {
     }
 }
 
-fn narrow_sidecar<T: Clone>(
+fn narrow_sidecar<T>(
     source: &WorthQueryAdmittedDomainEvidenceSidecar<T>,
-    redaction_policy: CausalInspectionRedactionPolicy,
+    _redaction_policy: CausalInspectionRedactionPolicy,
 ) -> WorthQueryDomainEvidenceInspectionSidecar<T> {
     match source {
         WorthQueryAdmittedDomainEvidenceSidecar::NotApplicable => {
@@ -167,15 +167,12 @@ fn narrow_sidecar<T: Clone>(
                 digest: digest.clone(),
             }
         }
-        WorthQueryAdmittedDomainEvidenceSidecar::Materialized { digest, records }
-            if redaction_policy == CausalInspectionRedactionPolicy::PreserveDetail =>
-        {
-            WorthQueryDomainEvidenceInspectionSidecar::Materialized {
+        WorthQueryAdmittedDomainEvidenceSidecar::Materialized { digest, .. } => {
+            WorthQueryDomainEvidenceInspectionSidecar::DigestOnly {
                 digest: digest.clone(),
-                records: records.clone(),
             }
         }
-        WorthQueryAdmittedDomainEvidenceSidecar::Materialized { digest, .. } => {
+        WorthQueryAdmittedDomainEvidenceSidecar::PartiallyMaterialized { digest, .. } => {
             WorthQueryDomainEvidenceInspectionSidecar::DigestOnly {
                 digest: digest.clone(),
             }

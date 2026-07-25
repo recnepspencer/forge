@@ -9,6 +9,9 @@ macro_rules! resource_family {
                 if value.trim().is_empty() {
                     return Err($empty);
                 }
+                if value.trim() != value || value.chars().any(char::is_control) {
+                    return Err("invalid-execution-resource-family");
+                }
                 Ok(Self(value))
             }
 
@@ -62,5 +65,16 @@ impl WorthQueryExecutionProviderRequirements {
 
     pub fn allocator(&self) -> &WorthQueryExecutionAllocatorFamily {
         &self.allocator
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WorthQueryExecutionProviderFamily;
+
+    #[test]
+    fn provider_families_reject_nonportable_boundaries() {
+        assert!(WorthQueryExecutionProviderFamily::new(" provider").is_err());
+        assert!(WorthQueryExecutionProviderFamily::new("provider\tfamily").is_err());
     }
 }

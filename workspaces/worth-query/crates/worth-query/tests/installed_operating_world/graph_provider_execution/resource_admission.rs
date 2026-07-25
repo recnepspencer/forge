@@ -120,5 +120,8 @@ fn mismatched_provider_resource_support() -> domain::WorthQueryExecutionResource
             domain::WorthQueryExecutionMode::Synchronous,
             domain::WorthQueryCancellationSafePointFamily::new("incompatible-safe-point").unwrap(),
         ),
+        std::sync::Arc::new(
+            domain::WorthQueryFixedExecutionCapacity::mint("mismatched-graph-provider", 8).unwrap(),
+        ),
     )
 }

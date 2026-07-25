@@ -7,6 +7,7 @@ mod exports_application;
 mod exports_certification;
 mod exports_comparison;
 mod exports_domain;
+mod exports_domain_artifacts;
 mod exports_domain_capabilities;
 mod exports_domain_evidence;
 mod exports_foundation;
@@ -196,6 +197,7 @@ pub mod workflow {
 /// and diagnostic authority.
 pub mod domain {
     pub use super::exports_domain::*;
+    pub use super::exports_domain_artifacts::*;
     pub use super::exports_domain_capabilities::*;
     pub use super::exports_domain_evidence::*;
 }

@@ -15,69 +15,96 @@ use crate::domain_computation::provider_session::{
 use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryGraphCallScope {
-    pub(super) scope_identity: Arc<str>,
-    pub(super) operation_identity: Arc<str>,
-    pub(super) binding_identity: Arc<str>,
+pub struct WorthQueryGraphProviderCallRequest {
+    kind: WorthQueryGraphProviderCallKind,
+    scope_identity: Arc<str>,
+    stage_identity: Option<Arc<str>>,
+    snapshot_identity: Arc<str>,
 }
 
-impl WorthQueryGraphCallScope {
-    pub fn new(
+impl WorthQueryGraphProviderCallRequest {
+    pub fn direct(
+        kind: WorthQueryGraphProviderCallKind,
         scope_identity: impl Into<Arc<str>>,
-        operation_identity: impl Into<Arc<str>>,
-        binding_identity: impl Into<Arc<str>>,
+        snapshot_identity: impl Into<Arc<str>>,
     ) -> Self {
         Self {
+            kind,
             scope_identity: scope_identity.into(),
-            operation_identity: operation_identity.into(),
-            binding_identity: binding_identity.into(),
+            stage_identity: None,
+            snapshot_identity: snapshot_identity.into(),
+        }
+    }
+
+    pub fn workflow_stage(
+        kind: WorthQueryGraphProviderCallKind,
+        scope_identity: impl Into<Arc<str>>,
+        stage_identity: impl Into<Arc<str>>,
+        snapshot_identity: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            kind,
+            scope_identity: scope_identity.into(),
+            stage_identity: Some(stage_identity.into()),
+            snapshot_identity: snapshot_identity.into(),
+        }
+    }
+
+    pub(in crate::domain_computation::provider_session) fn kind(
+        &self,
+    ) -> WorthQueryGraphProviderCallKind {
+        self.kind
+    }
+
+    pub(in crate::domain_computation::provider_session) fn stage_identity(&self) -> Option<&str> {
+        self.stage_identity.as_deref()
+    }
+
+    pub(in crate::domain_computation::provider_session) fn into_spec(
+        self,
+        binding: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
+        graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    ) -> WorthQueryGraphProviderCallSpec {
+        let scope = WorthQueryGraphCallScope {
+            scope_identity: self.scope_identity,
+            operation_identity: Arc::from(binding.operation_identity()),
+            binding_identity: Arc::from(binding.binding_identity()),
+            stage_identity: self.stage_identity,
+        };
+        WorthQueryGraphProviderCallSpec {
+            kind: self.kind,
+            scope,
+            read_binding: WorthQueryGraphCallReadBinding {
+                graph_role: Arc::from(graph.role()),
+                canonical_query_digest: Arc::from(binding.canonical_query_digest()),
+                basis_identity: Arc::from(binding.basis_identity()),
+                snapshot_identity: self.snapshot_identity,
+            },
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryGraphCallReadBinding {
+pub(in crate::domain_computation::provider_session) struct WorthQueryGraphCallScope {
+    pub(super) scope_identity: Arc<str>,
+    pub(super) operation_identity: Arc<str>,
+    pub(super) binding_identity: Arc<str>,
+    pub(super) stage_identity: Option<Arc<str>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation::provider_session) struct WorthQueryGraphCallReadBinding {
     graph_role: Arc<str>,
     canonical_query_digest: Arc<str>,
     basis_identity: Arc<str>,
     snapshot_identity: Arc<str>,
 }
 
-impl WorthQueryGraphCallReadBinding {
-    pub fn new(
-        graph_role: impl Into<Arc<str>>,
-        canonical_query_digest: impl Into<Arc<str>>,
-        basis_identity: impl Into<Arc<str>>,
-        snapshot_identity: impl Into<Arc<str>>,
-    ) -> Self {
-        Self {
-            graph_role: graph_role.into(),
-            canonical_query_digest: canonical_query_digest.into(),
-            basis_identity: basis_identity.into(),
-            snapshot_identity: snapshot_identity.into(),
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryGraphProviderCallSpec {
+pub(in crate::domain_computation::provider_session) struct WorthQueryGraphProviderCallSpec {
     kind: WorthQueryGraphProviderCallKind,
     scope: WorthQueryGraphCallScope,
     read_binding: WorthQueryGraphCallReadBinding,
-}
-
-impl WorthQueryGraphProviderCallSpec {
-    pub fn new(
-        kind: WorthQueryGraphProviderCallKind,
-        scope: WorthQueryGraphCallScope,
-        read_binding: WorthQueryGraphCallReadBinding,
-    ) -> Self {
-        Self {
-            kind,
-            scope,
-            read_binding,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -118,6 +145,10 @@ impl WorthQueryGraphProviderCall {
             format!("snapshot:{}", spec.read_binding.snapshot_identity),
             format!("kind:{}", spec.kind.as_str()),
             format!("scope:{}", spec.scope.scope_identity),
+            format!(
+                "stage:{}",
+                spec.scope.stage_identity.as_deref().unwrap_or("direct")
+            ),
             format!("resources:{}", execution_resources.identity()),
         ]));
         Ok(Self {

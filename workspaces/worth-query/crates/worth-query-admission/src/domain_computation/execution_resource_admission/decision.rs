@@ -8,16 +8,18 @@ pub enum WorthQueryExecutionResourceAdmissionDenialKind {
     InputContract,
     DirectExecutionContract,
     ResourceContract,
-    ExecutorSupportMissing,
     DifferentProviderRequired,
     DifferentAccessProductRequired,
     DifferentAllocatorRequired,
     ExecutionModeUnsupported,
     CancellationSafePointUnsupported,
     DegradationPostureUnsupported,
+    PartialEffectPostureUnsupported,
     AsyncExecutionRequired,
     Backpressured,
     ResourceCeilingExceeded,
+    ForeignExecutionRuntime,
+    ResourcePlanAuthorityMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

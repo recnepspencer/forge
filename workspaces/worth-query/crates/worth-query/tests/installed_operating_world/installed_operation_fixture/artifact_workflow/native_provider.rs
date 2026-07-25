@@ -24,7 +24,7 @@ impl NativeProviderMode {
             "native-short-chunks" => Self::ShortChunks,
             "native-provider-alignment" => Self::Misaligned,
             "native-session-mismatch" => Self::SessionMismatch,
-            "native-zero-progress" => Self::ZeroProgress,
+            "native-zero-progress" | "native-zero-projection-progress" => Self::ZeroProgress,
             "native-provider-panic" => Self::Panic,
             _ => Self::Standard,
         }

@@ -1,9 +1,10 @@
 use worth_query_host::facade::{
-    domain::WorthQueryExecutionStrategyContract,
-    installed::operation::{
+    admission::resource_admission::{
         WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionResourceAdmissionCounters,
-        WorthQueryExecutionResourceRequest, WorthQueryExecutionResourceSupportSnapshot,
+        WorthQueryExecutionResourceSupportSnapshot,
     },
+    declaration::domain_computation::WorthQueryExecutionResourceRequest,
+    domain::WorthQueryExecutionStrategyContract,
 };
 
 fn forge(
@@ -14,6 +15,8 @@ fn forge(
 ) -> WorthQueryAdmittedExecutionResourcePlan {
     WorthQueryAdmittedExecutionResourcePlan::new(
         "forged-plan".to_owned(),
+        "forged-binding",
+        "forged-contract".to_owned(),
         request,
         support,
         strategy,

@@ -9,6 +9,9 @@ impl WorthQueryExecutionStrategyName {
         if value.trim().is_empty() {
             return Err("empty-execution-strategy-name");
         }
+        if value.trim() != value || value.chars().any(char::is_control) {
+            return Err("invalid-execution-strategy-name");
+        }
         Ok(Self(value))
     }
 
@@ -47,5 +50,16 @@ impl WorthQueryExecutionStrategyContract {
 
     pub fn provider_requirements(&self) -> &WorthQueryExecutionProviderRequirements {
         &self.provider_requirements
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WorthQueryExecutionStrategyName;
+
+    #[test]
+    fn strategy_names_reject_nonportable_boundaries() {
+        assert!(WorthQueryExecutionStrategyName::new(" bounded").is_err());
+        assert!(WorthQueryExecutionStrategyName::new("bounded\nstrategy").is_err());
     }
 }

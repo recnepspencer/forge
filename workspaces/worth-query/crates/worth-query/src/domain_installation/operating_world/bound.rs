@@ -15,6 +15,9 @@ use super::super::{
     WorthQueryInstalledDomainOperation, WorthQueryInstalledDomainOperationExecutor,
     WorthQueryInstalledGraphParticipationRecord, WorthQueryPublishingOperation,
 };
+use super::execution_support::{
+    WorthQueryBoundExecutionProviders, WorthQueryBoundWorkflowParallelPosture,
+};
 
 type BoundOperationMarker<D, O, F> = fn() -> (D, O, F);
 
@@ -42,20 +45,13 @@ pub(crate) struct WorthQueryBoundAuthoritySet {
     pub(super) shape_proofs: super::authority_shape::WorthQueryBoundAuthorityShapeProofs,
 }
 
-pub(crate) struct WorthQueryBoundRuntimeProviders {
-    pub(crate) executor: Option<Arc<WorthQueryInstalledDomainOperationExecutor>>,
-    pub(crate) workflow_executor:
-        Option<Arc<super::super::WorthQueryInstalledWorkflowStageExecutor>>,
-    pub(crate) workflow_parallel_admission_provider:
-        Option<Arc<super::super::WorthQueryInstalledWorkflowParallelAdmissionProvider>>,
-    pub(crate) conditional_nodes: Vec<Arc<super::super::WorthQueryInstalledConditionalNode>>,
-}
-
 static NEXT_BOUND_CAPABILITY_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
 pub struct WorthQueryBoundDomainOperation<D, O, F, L: BasisOperationLane> {
     operation: WorthQueryInstalledDomainOperation<D, O, F>,
     basis: AdmittedBasisCapability<L>,
+    execution_authority:
+        worth_query_execution::facade::runtime::WorthQueryExecutionBoundOperationAuthority,
     graph_participations: Vec<WorthQueryBoundGraphParticipation>,
     required_domains: Vec<WorthQueryBoundRequiredDomain>,
     commit_posture: WorthQueryBoundCommitPosture,
@@ -66,10 +62,7 @@ pub struct WorthQueryBoundDomainOperation<D, O, F, L: BasisOperationLane> {
     _authority_shape_proofs: super::authority_shape::WorthQueryBoundAuthorityShapeProofs,
     consumer_support_profile: WorthQueryConsumerSupportProfile,
     consumer_contract_minted: Cell<bool>,
-    executor: Option<Arc<WorthQueryInstalledDomainOperationExecutor>>,
-    workflow_executor: Option<Arc<super::super::WorthQueryInstalledWorkflowStageExecutor>>,
-    workflow_parallel_admission_provider:
-        Option<Arc<super::super::WorthQueryInstalledWorkflowParallelAdmissionProvider>>,
+    execution_providers: WorthQueryBoundExecutionProviders,
     conditional_nodes: Vec<Arc<super::super::WorthQueryInstalledConditionalNode>>,
     _marker: PhantomData<BoundOperationMarker<D, O, F>>,
 }
@@ -78,9 +71,12 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
     pub(super) fn mint(
         operation: WorthQueryInstalledDomainOperation<D, O, F>,
         basis: AdmittedBasisCapability<L>,
+        execution_authority:
+            worth_query_execution::facade::runtime::WorthQueryExecutionBoundOperationAuthority,
         authorities: WorthQueryBoundAuthoritySet,
         consumer_support_profile: WorthQueryConsumerSupportProfile,
-        providers: WorthQueryBoundRuntimeProviders,
+        execution_providers: WorthQueryBoundExecutionProviders,
+        conditional_nodes: Vec<Arc<super::super::WorthQueryInstalledConditionalNode>>,
         binding_counters: super::WorthQueryOperationBindingCounters,
     ) -> Self {
         let required_domain_authority_identities = authorities
@@ -105,24 +101,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
             })
             .collect::<Vec<_>>();
         let capability_identity = NEXT_BOUND_CAPABILITY_IDENTITY.fetch_add(1, Ordering::Relaxed);
-        let binding_identity = crate::identity::hash_parts(&[
-            "worth_query_bound_operation_v1".into(),
-            format!("operation:{}", operation.definition().canonical_identity()),
-            format!("basis:{}", basis.capability_digest()),
-            format!(
-                "domain_authority:{}",
-                operation.domain_authority().authority_identity().as_str()
-            ),
-            format!("graph_authorities:{}", graph_authority_identities.join(",")),
-            format!(
-                "required_domains:{}",
-                required_domain_authority_identities.join(",")
-            ),
-            format!(
-                "conditional_lowering_count:{}",
-                providers.conditional_nodes.len()
-            ),
-        ]);
+        let binding_identity = execution_authority.binding_identity().to_owned();
         let authority_proof = mint_operation_phase_proof(
             binding_identity.clone(),
             None,
@@ -147,6 +126,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
         Self {
             operation,
             basis,
+            execution_authority,
             graph_participations: authorities.graph_participations,
             required_domains: authorities.required_domains,
             commit_posture: authorities.commit_posture,
@@ -157,10 +137,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
             _authority_shape_proofs: authorities.shape_proofs,
             consumer_support_profile,
             consumer_contract_minted: Cell::new(false),
-            executor: providers.executor,
-            workflow_executor: providers.workflow_executor,
-            workflow_parallel_admission_provider: providers.workflow_parallel_admission_provider,
-            conditional_nodes: providers.conditional_nodes,
+            execution_providers,
+            conditional_nodes,
             _marker: PhantomData,
         }
     }
@@ -185,6 +163,12 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
 
     pub fn binding_identity(&self) -> &str {
         &self.binding_identity
+    }
+
+    pub(crate) fn execution_authority(
+        &self,
+    ) -> &worth_query_execution::facade::runtime::WorthQueryExecutionBoundOperationAuthority {
+        &self.execution_authority
     }
 
     pub const fn binding_counters(&self) -> super::WorthQueryOperationBindingCounters {
@@ -236,19 +220,59 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundDomainOperation<D, O, F, L> 
     }
 
     pub(crate) fn executor(&self) -> Option<&Arc<WorthQueryInstalledDomainOperationExecutor>> {
-        self.executor.as_ref()
+        match &self.execution_providers {
+            WorthQueryBoundExecutionProviders::Direct { executor } => Some(executor),
+            WorthQueryBoundExecutionProviders::Workflow { .. } => None,
+        }
     }
 
     pub(crate) fn workflow_executor(
         &self,
     ) -> Option<&Arc<super::super::WorthQueryInstalledWorkflowStageExecutor>> {
-        self.workflow_executor.as_ref()
+        match &self.execution_providers {
+            WorthQueryBoundExecutionProviders::Direct { .. } => None,
+            WorthQueryBoundExecutionProviders::Workflow { executor, .. } => Some(executor),
+        }
     }
 
     pub(crate) fn workflow_parallel_admission_provider(
         &self,
     ) -> Option<&Arc<super::super::WorthQueryInstalledWorkflowParallelAdmissionProvider>> {
-        self.workflow_parallel_admission_provider.as_ref()
+        match &self.execution_providers {
+            WorthQueryBoundExecutionProviders::Workflow {
+                parallel: WorthQueryBoundWorkflowParallelPosture::Parallel(provider),
+                ..
+            } => Some(provider),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn direct_executor(&self) -> &Arc<WorthQueryInstalledDomainOperationExecutor> {
+        match &self.execution_providers {
+            WorthQueryBoundExecutionProviders::Direct { executor } => executor,
+            WorthQueryBoundExecutionProviders::Workflow { .. } => {
+                unreachable!("bound direct operation retained workflow providers")
+            }
+        }
+    }
+
+    pub(crate) fn workflow_providers(
+        &self,
+    ) -> (
+        &Arc<super::super::WorthQueryInstalledWorkflowGraph>,
+        &Arc<super::super::WorthQueryInstalledWorkflowStageExecutor>,
+        &WorthQueryBoundWorkflowParallelPosture,
+    ) {
+        match &self.execution_providers {
+            WorthQueryBoundExecutionProviders::Direct { .. } => {
+                unreachable!("bound workflow operation retained direct providers")
+            }
+            WorthQueryBoundExecutionProviders::Workflow {
+                graph,
+                executor,
+                parallel,
+            } => (graph, executor, parallel),
+        }
     }
 
     pub(crate) fn conditional_nodes(

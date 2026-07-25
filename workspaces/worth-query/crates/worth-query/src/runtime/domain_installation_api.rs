@@ -10,6 +10,18 @@ use crate::domain_installation::{
 use super::WorthQueryRuntime;
 
 impl WorthQueryRuntime {
+    pub(crate) fn query_execution_runtime(
+        &self,
+    ) -> &worth_query_execution::facade::runtime::WorthQueryExecutionRuntime {
+        &self.execution_runtime
+    }
+
+    pub(crate) fn query_execution_installation_authority(
+        &self,
+    ) -> &worth_query_execution::facade::runtime::WorthQueryExecutionInstallationAuthority {
+        &self.execution_installation_authority
+    }
+
     pub(crate) fn deliver_conditional_authoritative_change(
         &mut self,
         node: &crate::domain_installation::WorthQueryInstalledConditionalNode,
@@ -180,7 +192,6 @@ impl WorthQueryRuntime {
             handle.authority_arc(),
             resolved.authority,
             resolved.workflow_graph,
-            resolved.evidence_contract,
             graph_bindings,
             crate::domain_installation::WorthQueryInstalledDomainOperationLookupCounters {
                 authority_checks: 1,

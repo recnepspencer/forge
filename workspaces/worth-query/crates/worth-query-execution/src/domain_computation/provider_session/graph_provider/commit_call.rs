@@ -3,11 +3,11 @@ use std::sync::Arc;
 
 use worth_query_installation::facade::WorthQueryExecutionResourceEnvelope;
 
+use super::call::WorthQueryGraphCallScope;
 use super::call_identity::WorthQueryGraphCallAuthorityIdentity;
 use super::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphCallBindingDenial,
-    WorthQueryGraphCallScope, WorthQueryGraphProviderReceipt,
-    WorthQueryGraphReceiptAdmissionDenial,
+    WorthQueryGraphProviderReceipt, WorthQueryGraphReceiptAdmissionDenial,
 };
 use crate::domain_computation::provider_session::{
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
@@ -15,27 +15,69 @@ use crate::domain_computation::provider_session::{
 use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryGraphCommitCallSpec {
-    scope: WorthQueryGraphCallScope,
-    graph_roles: Vec<String>,
+pub struct WorthQueryGraphCommitCallRequest {
+    scope_identity: Arc<str>,
+    stage_identity: Option<Arc<str>>,
     commit_authority_identity: (u64, TypeId),
 }
 
-impl WorthQueryGraphCommitCallSpec {
-    pub fn new(
-        scope: WorthQueryGraphCallScope,
-        graph_roles: impl IntoIterator<Item = String>,
+impl WorthQueryGraphCommitCallRequest {
+    pub fn direct(
+        scope_identity: impl Into<Arc<str>>,
         commit_authority_identity: (u64, TypeId),
     ) -> Self {
-        let mut graph_roles: Vec<_> = graph_roles.into_iter().collect();
-        graph_roles.sort();
-        graph_roles.dedup();
         Self {
-            scope,
-            graph_roles,
+            scope_identity: scope_identity.into(),
+            stage_identity: None,
             commit_authority_identity,
         }
     }
+
+    pub fn workflow_stage(
+        scope_identity: impl Into<Arc<str>>,
+        stage_identity: impl Into<Arc<str>>,
+        commit_authority_identity: (u64, TypeId),
+    ) -> Self {
+        Self {
+            scope_identity: scope_identity.into(),
+            stage_identity: Some(stage_identity.into()),
+            commit_authority_identity,
+        }
+    }
+
+    pub(in crate::domain_computation::provider_session) fn stage_identity(&self) -> Option<&str> {
+        self.stage_identity.as_deref()
+    }
+
+    pub(in crate::domain_computation::provider_session) fn into_spec(
+        self,
+        binding: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
+        graph_authorities: &[&worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority],
+    ) -> WorthQueryGraphCommitCallSpec {
+        let mut graph_roles = graph_authorities
+            .iter()
+            .map(|authority| authority.role().to_owned())
+            .collect::<Vec<_>>();
+        graph_roles.sort();
+        graph_roles.dedup();
+        WorthQueryGraphCommitCallSpec {
+            scope: WorthQueryGraphCallScope {
+                scope_identity: self.scope_identity,
+                operation_identity: Arc::from(binding.operation_identity()),
+                binding_identity: Arc::from(binding.binding_identity()),
+                stage_identity: self.stage_identity,
+            },
+            graph_roles,
+            commit_authority_identity: self.commit_authority_identity,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation::provider_session) struct WorthQueryGraphCommitCallSpec {
+    scope: WorthQueryGraphCallScope,
+    graph_roles: Vec<String>,
+    commit_authority_identity: (u64, TypeId),
 }
 
 #[derive(Clone, Debug)]
@@ -69,6 +111,10 @@ impl WorthQueryGraphCommitCall {
             format!("binding:{}", spec.scope.binding_identity),
             format!("roles:{}", spec.graph_roles.join(",")),
             format!("scope:{}", spec.scope.scope_identity),
+            format!(
+                "stage:{}",
+                spec.scope.stage_identity.as_deref().unwrap_or("direct")
+            ),
             format!("resources:{}", execution_resources.identity()),
         ]));
         Ok(Self {

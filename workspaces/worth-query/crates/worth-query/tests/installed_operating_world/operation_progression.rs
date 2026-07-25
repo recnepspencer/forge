@@ -2,9 +2,11 @@ use worth_proof::TransitionOutcome;
 use worth_query::facade::{domain, installed, read};
 
 use super::installed_operation_fixture::{
-    foreign_material_workspace, missing_read_execution_workspace, workspace, CountVertices,
+    configured_runtime, missing_read_execution_workspace, workspace, CountVertices,
     CountVerticesInput, GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex,
 };
+
+mod failure_boundaries;
 
 #[test]
 fn public_bound_execution_projection_and_settlement_remain_one_chain() {
@@ -37,6 +39,7 @@ fn public_bound_execution_projection_and_settlement_remain_one_chain() {
             commit_authority_checks: 0,
             planning_steps: 1,
             authority_shape_admissions: 1,
+            execution_authority_admissions: 1,
             commit_posture_classifications: 1,
             executor_route_lookups: 1,
             workflow_executor_route_lookups: 1,
@@ -195,6 +198,43 @@ fn foreign_workspace_denies_before_graph_or_executor_work() {
 }
 
 #[test]
+fn admitted_direct_attempt_becomes_stale_before_any_execution_work() {
+    let mut workspace = configured_runtime()
+        .controlled_workspace("installed-post-admission-stale")
+        .unwrap();
+    let installed_domain = workspace.domain(GeometryDomain).unwrap();
+    let admitted = workspace
+        .observe_operating_world()
+        .unwrap()
+        .family(ReadFamily)
+        .bind(&installed_domain, ReadVertex)
+        .unwrap()
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap();
+
+    workspace.advance_domain_installation_generation().unwrap();
+
+    let denial = match admitted.execute(&mut workspace) {
+        TransitionOutcome::Stale(denial) => denial,
+        _ => panic!("admitted attempt crossed an installation generation"),
+    };
+    assert_eq!(
+        denial.kind(),
+        &domain::WorthQueryBoundExecutionDenialKind::RuntimeAuthority(
+            domain::WorthQueryDomainHandleDenialKind::StaleInstallationGeneration,
+        )
+    );
+    assert_eq!(denial.counters().runtime_authority_checks, 1);
+    assert_eq!(denial.counters().graph_provider_contacts, 0);
+    assert_eq!(denial.counters().executor_contacts, 0);
+    assert_eq!(denial.counters().conditional_request_admission_checks, 0);
+}
+
+#[test]
 fn equivalent_but_distinct_bound_contract_cannot_splice_the_chain() {
     let mut workspace = workspace("installed-progression-splice", false).unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
@@ -273,109 +313,4 @@ fn result_state_and_warning_postures_survive_through_settlement() {
         assert_eq!(settled.result_state(), state);
         assert_eq!(settled.warnings(), [warning]);
     }
-}
-
-#[test]
-fn ordinary_executor_failures_are_typed_and_must_be_declared() {
-    let declared = operation_failure(
-        "ordinary-declared-failure",
-        domain::WorthQueryOperationFailureClass::Dependency,
-    );
-    assert_eq!(
-        declared.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::Executor(
-            domain::WorthQueryOperationFailureClass::Dependency,
-        )
-    );
-    let undeclared = operation_failure(
-        "ordinary-undeclared-failure",
-        domain::WorthQueryOperationFailureClass::Unsupported,
-    );
-    assert_eq!(
-        undeclared.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::UndeclaredFailureClass(
-            domain::WorthQueryOperationFailureClass::Unsupported,
-        )
-    );
-}
-
-fn operation_failure(
-    name: &str,
-    class: domain::WorthQueryOperationFailureClass,
-) -> domain::WorthQueryBoundExecutionDenial {
-    let mut workspace = workspace(name, false).unwrap();
-    let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let bound = workspace
-        .observe_operating_world()
-        .unwrap()
-        .family(ReadFamily)
-        .bind(&installed_domain, ReadVertex)
-        .unwrap();
-    match bound
-        .admit_execution_resources(
-            ReadExecutionInput {
-                failure: Some(class),
-                ..Default::default()
-            },
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &workspace,
-        )
-        .unwrap()
-        .execute(&mut workspace)
-    {
-        TransitionOutcome::Failed(denial) => denial,
-        _ => panic!("deliberately failing executor did not produce an execution failure"),
-    }
-}
-
-#[test]
-fn unsupported_primary_read_basis_denies_before_execution_work() {
-    let workspace = workspace("installed-foreign-basis-material", false).unwrap();
-    let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let denial = match workspace
-        .observe_branch_operating_world(
-            worth_query::facade::installed::WorthQueryBranchHeadIdentity::new(
-                "branch:foreign-material",
-            )
-            .unwrap(),
-        )
-        .unwrap()
-        .family(ReadFamily)
-        .bind(&installed_domain, ReadVertex)
-    {
-        Ok(_) => panic!("unsupported primary-read basis unexpectedly bound"),
-        Err(denial) => denial,
-    };
-
-    assert_eq!(
-        denial.kind(),
-        domain::WorthQueryOperationBindingDenialKind::BasisExecutionUnsupported
-    );
-    assert_eq!(denial.counters().graph_provider_contacts, 0);
-    assert_eq!(denial.counters().planning_steps, 0);
-}
-
-#[test]
-fn same_shaped_read_from_a_foreign_runtime_cannot_publish() {
-    let mut workspace = foreign_material_workspace("foreign-runtime-material-owner").unwrap();
-    let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let executed = workspace
-        .observe_operating_world()
-        .unwrap()
-        .family(ReadFamily)
-        .bind(&installed_domain, ReadVertex)
-        .unwrap()
-        .admit_execution_resources(
-            ReadExecutionInput::default(),
-            crate::suite::installed_operation_fixture::execution_resource_request(),
-            &workspace,
-        )
-        .unwrap()
-        .execute(&mut workspace)
-        .unwrap();
-    assert_eq!(executed.counters().executor_contacts, 1);
-    assert!(matches!(
-        executed.publish(),
-        TransitionOutcome::Denied(domain::WorthQueryPublicationDenial::ExecutionMaterialMismatch)
-    ));
 }

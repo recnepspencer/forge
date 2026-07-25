@@ -87,7 +87,21 @@ where
         self,
         workspace: &mut WorthQueryWorkspace,
     ) -> WorthQueryBoundExecutionOutcome<D, O, F, L, O::Output> {
-        let mut counters = WorthQueryOperationExecutionCounters::default();
+        let mut counters = WorthQueryOperationExecutionCounters {
+            runtime_authority_checks: 1,
+            ..Default::default()
+        };
+        let witness =
+            crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness::from_authority(
+                std::sync::Arc::clone(self.bound.operation().domain_authority()),
+            );
+        if let Err(denial) = workspace.validate_installed_domain_witness::<D>(&witness) {
+            return TransitionOutcome::Stale(WorthQueryBoundExecutionDenial::new(
+                WorthQueryBoundExecutionDenialKind::RuntimeAuthority(denial.kind()),
+                format!("{denial:?}"),
+                counters,
+            ));
+        }
         let resource_evidence = self.resource_attempt.evidence().clone();
         let execution_snapshot = workspace.snapshot_identity();
         let execution_identity = format!(
@@ -152,38 +166,30 @@ where
             Ok(receipts) => receipts,
             Err(denial) => return TransitionOutcome::Denied(denial),
         };
-        let Some(executor) = self.bound.executor().cloned() else {
-            return TransitionOutcome::Failed(
-                WorthQueryBoundExecutionDenial::new(
-                    WorthQueryBoundExecutionDenialKind::ExecutorRegistrationMissing,
-                    "the bound direct operation no longer retains its admitted executor",
-                    counters,
-                )
-                .with_graph_receipts(graph_receipts),
-            );
-        };
         let context = WorthQueryOperationExecutionContext::new(
             self.bound.definition(),
             self.bound.binding_identity(),
             self.bound.basis().capability_digest(),
             self.bound.basis().normalized(),
-            executor.installed_read.as_ref(),
+            self.executor.installed_read.as_ref(),
             &graph_receipts,
             self.resource_attempt.resources(),
             self.resource_attempt.provider_session(),
         );
         counters.executor_contacts += 1;
-        let (material, primary_read_contacts) =
-            match executor.execute::<D, O, F>(self.input, &context, workspace) {
-                Ok(material) => material,
-                Err(failure) => {
-                    let kind = classify_executor_failure(&self.bound, failure.class().clone());
-                    return TransitionOutcome::Failed(
-                        WorthQueryBoundExecutionDenial::new(kind, failure.detail(), counters)
-                            .with_graph_receipts(graph_receipts),
-                    );
-                }
-            };
+        let (material, primary_read_contacts) = match self
+            .executor
+            .execute::<D, O, F>(self.input, &context, workspace)
+        {
+            Ok(material) => material,
+            Err(failure) => {
+                let kind = classify_executor_failure(&self.bound, failure.class().clone());
+                return TransitionOutcome::Failed(
+                    WorthQueryBoundExecutionDenial::new(kind, failure.detail(), counters)
+                        .with_graph_receipts(graph_receipts),
+                );
+            }
+        };
         counters.primary_read_contacts += primary_read_contacts;
         let (output, result_state, warnings, domain_evidence_material) = material.into_parts();
         counters.terminal_posture_checks += 1;
@@ -205,26 +211,29 @@ where
             );
         }
         let output_identity = output.operation_output_identity();
+        let evidence_binding = match self
+            .resource_attempt
+            .provider_session()
+            .bind_direct_domain_evidence(
+                execution_snapshot.evidence_identity().as_str(),
+                &output_identity,
+            ) {
+            Ok(binding) => binding,
+            Err(denial) => {
+                return TransitionOutcome::Denied(
+                    WorthQueryBoundExecutionDenial::new(
+                        WorthQueryBoundExecutionDenialKind::DomainEvidenceBinding(denial),
+                        "execution attempt could not bind domain evidence",
+                        counters,
+                    )
+                    .with_graph_receipts(graph_receipts),
+                )
+            }
+        };
         let domain_evidence =
             match super::admit_domain_evidence(super::WorthQueryDomainEvidenceAdmissionInput {
-                contract: self
-                    .bound
-                    .operation()
-                    .evidence_contract()
-                    .map(std::sync::Arc::as_ref),
                 material: domain_evidence_material,
-                binding: super::WorthQueryDomainEvidenceBindingParts {
-                    operation_identity: self.bound.definition().canonical_identity().to_owned(),
-                    binding_identity: self.bound.binding_identity().to_owned(),
-                    run_identity: None,
-                    stage_identity: None,
-                    basis_identity: self.bound.basis().capability_digest().to_owned(),
-                    execution_snapshot_identity: execution_snapshot
-                        .evidence_identity()
-                        .as_str()
-                        .to_owned(),
-                    output_occurrence_identity: output_identity.clone(),
-                },
+                binding: evidence_binding,
                 ledger: None,
             }) {
                 Ok(evidence) => evidence,

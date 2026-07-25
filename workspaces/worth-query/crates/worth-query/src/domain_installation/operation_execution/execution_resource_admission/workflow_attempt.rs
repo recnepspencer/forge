@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::basis_lifecycle::BasisOperationLane;
 use crate::domain_installation::operation_authority_chain::{
@@ -12,8 +12,8 @@ use super::{
     admit_execution_resource_plan, WorthQueryAdmittedWorkflowResourcePlan,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenial,
-    WorthQueryExecutionResourceAdmissionDenialKind as Kind, WorthQueryExecutionResourceSupport,
-    WorthQueryExecutionResourceSupportSnapshot, WorthQueryWorkflowExecutionResourceAttempt,
+    WorthQueryExecutionResourceAdmissionDenialKind as Kind,
+    WorthQueryWorkflowExecutionResourceAttempt,
 };
 
 pub type WorthQueryWorkflowResourceAdmissionOutcome<D, O, F, L> = TransitionOutcome<
@@ -27,6 +27,10 @@ pub type WorthQueryWorkflowResourceAdmissionOutcome<D, O, F, L> = TransitionOutc
 
 pub struct WorthQueryAdmittedWorkflowOperation<D, O, F, L: BasisOperationLane> {
     pub(crate) bound: crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
+    pub(crate) graph: std::sync::Arc<super::super::WorthQueryInstalledWorkflowGraph>,
+    pub(crate) executor: std::sync::Arc<super::super::WorthQueryInstalledWorkflowStageExecutor>,
+    pub(crate) parallel_posture:
+        crate::domain_installation::operating_world::WorthQueryBoundWorkflowParallelPosture,
     pub(crate) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     pub(crate) phase_proof: WorthQueryOperationPhaseProof<WorthQueryResourceAdmittedOperationPhase>,
 }
@@ -72,21 +76,15 @@ where
             );
             return runtime_denial(kind, denial);
         }
-        let Some(executor) = self.workflow_executor() else {
-            return TransitionOutcome::Failed(WorthQueryExecutionResourceAdmissionDenial::new(
-                Kind::ExecutorSupportMissing,
-                "bound workflow operation has no installed stage executor support snapshot",
-                counters,
-            ));
-        };
-        let support = WorthQueryExecutionResourceSupportSnapshot::new(
-            executor.resource_support.clone(),
-            super::operation_conditional_supports(&self),
-            Vec::new(),
-            Vec::new(),
-            self.workflow_parallel_admission_provider()
-                .map(|provider| provider.resource_support().clone()),
-        );
+        let (graph, executor, parallel_posture) = self.workflow_providers();
+        let graph = std::sync::Arc::clone(graph);
+        let executor = std::sync::Arc::clone(executor);
+        let parallel_posture = parallel_posture.clone();
+        let support = self
+            .execution_authority()
+            .workflow_operation_support()
+            .expect("bound workflow execution authority carries installed support")
+            .clone();
         let operation = match admit_execution_resource_plan(
             self.binding_identity(),
             &self.definition().semantics().resources,
@@ -100,14 +98,19 @@ where
         let stages = match lower_stages(
             &self,
             &request,
-            &executor.resource_support,
             WorthQueryExecutionResourceAdmissionCounters::default(),
         ) {
             Ok(stages) => stages,
             Err(denial) => return admission_denial_outcome(denial),
         };
-        let resources = WorthQueryAdmittedWorkflowResourcePlan::new(operation, stages);
-        let resource_attempt = WorthQueryWorkflowExecutionResourceAttempt::start(resources);
+        let resources = WorthQueryAdmittedWorkflowResourcePlan::assemble(operation, stages);
+        let resource_attempt = match workspace
+            .query_execution_runtime()
+            .start_workflow_resource_attempt(self.execution_authority(), resources)
+        {
+            Ok(attempt) => attempt,
+            Err(denial) => return admission_denial_outcome(denial),
+        };
         let mut basis = operation_phase_basis(self.authority_proof()).clone();
         basis.resource_admission_identity =
             Some(resource_attempt.resources().identity().to_owned());
@@ -118,6 +121,9 @@ where
         );
         TransitionOutcome::Success(WorthQueryAdmittedWorkflowOperation {
             bound: self,
+            graph,
+            executor,
+            parallel_posture,
             resource_attempt,
             phase_proof,
         })
@@ -127,7 +133,6 @@ where
 fn lower_stages<D, O, F, L: BasisOperationLane>(
     bound: &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
     request: &WorthQueryExecutionResourceRequest,
-    executor_support: &WorthQueryExecutionResourceSupport,
     counters: WorthQueryExecutionResourceAdmissionCounters,
 ) -> Result<
     BTreeMap<String, super::WorthQueryAdmittedExecutionResourcePlan>,
@@ -149,7 +154,11 @@ fn lower_stages<D, O, F, L: BasisOperationLane>(
         .stages()
         .iter()
         .map(|stage| {
-            let support = stage_support_snapshot(bound, stage, executor_support);
+            let support = bound
+                .execution_authority()
+                .workflow_stage_support(stage.identity())
+                .expect("bound workflow authority carries every installed stage support")
+                .clone();
             admit_execution_resource_plan(
                 &format!("{}:{}", bound.binding_identity(), stage.identity()),
                 &stage.semantics().resources,
@@ -160,43 +169,6 @@ fn lower_stages<D, O, F, L: BasisOperationLane>(
             .map(|plan| (stage.identity().to_owned(), plan))
         })
         .collect()
-}
-
-fn stage_support_snapshot<D, O, F, L: BasisOperationLane>(
-    bound: &crate::domain_installation::WorthQueryBoundDomainOperation<D, O, F, L>,
-    stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
-    executor_support: &WorthQueryExecutionResourceSupport,
-) -> WorthQueryExecutionResourceSupportSnapshot {
-    let roles = stage
-        .semantics()
-        .graph_read_roles
-        .iter()
-        .chain(&stage.semantics().touch_roles)
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
-    let touch_roles = stage
-        .semantics()
-        .touch_roles
-        .iter()
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
-    WorthQueryExecutionResourceSupportSnapshot::new(
-        executor_support.clone(),
-        super::stage_conditional_supports(bound, stage.identity()),
-        bound
-            .graph_participations()
-            .iter()
-            .filter(|participation| roles.contains(participation.role.as_str()))
-            .map(|participation| {
-                (
-                    participation.role.clone(),
-                    participation.record.resource_support.clone(),
-                )
-            })
-            .collect(),
-        super::commit_supports_for_roles(bound, &touch_roles),
-        None,
-    )
 }
 
 fn runtime_denial<T>(

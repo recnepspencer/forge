@@ -9,12 +9,9 @@ mod read_product;
 mod read_row;
 mod receipt;
 
-pub use call::{
-    WorthQueryGraphCallReadBinding, WorthQueryGraphCallScope, WorthQueryGraphProviderCall,
-    WorthQueryGraphProviderCallSpec,
-};
+pub use call::{WorthQueryGraphProviderCall, WorthQueryGraphProviderCallRequest};
 pub use call_kind::WorthQueryGraphProviderCallKind;
-pub use commit_call::{WorthQueryGraphCommitCall, WorthQueryGraphCommitCallSpec};
+pub use commit_call::{WorthQueryGraphCommitCall, WorthQueryGraphCommitCallRequest};
 pub use failure::{
     WorthQueryGraphCallBindingDenial, WorthQueryGraphProviderFailure,
     WorthQueryGraphReceiptAdmissionDenial,

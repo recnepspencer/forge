@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
@@ -6,7 +7,7 @@ use worth_query_installation::facade::{
     WorthQueryInstalledPackageIndexDenial, WorthQueryInstalledPackageIndexRelation,
 };
 
-use super::WorthQueryRuntimeAuthorityIdentity;
+use super::{WorthQueryExecutionRuntimeInstallation, WorthQueryRuntimeAuthorityIdentity};
 
 /// Execution-owned root for one installed Query operating world.
 ///
@@ -16,6 +17,7 @@ use super::WorthQueryRuntimeAuthorityIdentity;
 pub struct WorthQueryExecutionRuntime {
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     installed_packages: Arc<WorthQueryInstalledPackageIndex>,
+    current_generation: Arc<AtomicU64>,
 }
 
 /// Move-only construction authority for one execution runtime.
@@ -47,16 +49,19 @@ impl WorthQueryExecutionRuntimeInstaller {
         self,
         generation: WorthQueryInstallationGeneration,
         packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
-    ) -> Result<WorthQueryExecutionRuntime, WorthQueryInstalledPackageIndexDenial> {
+    ) -> Result<WorthQueryExecutionRuntimeInstallation, WorthQueryInstalledPackageIndexDenial> {
         let installed_packages = WorthQueryInstalledPackageIndex::build(
             self.installation_runtime,
             generation,
             packages,
         )?;
-        Ok(WorthQueryExecutionRuntime {
-            authority_identity: self.authority_identity,
-            installed_packages: Arc::new(installed_packages),
-        })
+        Ok(WorthQueryExecutionRuntimeInstallation::new(
+            WorthQueryExecutionRuntime {
+                authority_identity: self.authority_identity,
+                current_generation: Arc::new(AtomicU64::new(generation.ordinal())),
+                installed_packages: Arc::new(installed_packages),
+            },
+        ))
     }
 }
 
@@ -79,12 +84,18 @@ impl WorthQueryExecutionRuntime {
         Arc::clone(&self.installed_packages)
     }
 
+    pub(crate) fn retain_current_generation(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.current_generation)
+    }
+
     pub fn commit_successor_installation(
         &mut self,
         successor: Arc<WorthQueryInstalledPackageIndex>,
     ) -> Result<(), WorthQueryExecutionInstallationCommitDenial> {
         match self.installed_packages.relation_to(&successor) {
             WorthQueryInstalledPackageIndexRelation::ExactSuccessor => {
+                self.current_generation
+                    .store(successor.generation().ordinal(), Ordering::Release);
                 self.installed_packages = successor;
                 Ok(())
             }
@@ -105,6 +116,8 @@ impl WorthQueryExecutionRuntime {
     ) -> Result<(), WorthQueryExecutionInstallationCommitDenial> {
         match self.installed_packages.relation_to(&rebuilt) {
             WorthQueryInstalledPackageIndexRelation::EquivalentGeneration => {
+                self.current_generation
+                    .store(rebuilt.generation().ordinal(), Ordering::Release);
                 self.installed_packages = rebuilt;
                 Ok(())
             }

@@ -1,0 +1,13 @@
+error[E0624]: associated function `register` is private
+ --> tests/ui/installed_domain/artifact_native_access/direct_artifact_registration_is_private.rs:4:55
+  |
+4 |       let _register = WorthQueryMoveOnlyArtifactHandle::register;
+  |                                                         ^^^^^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/artifact_owner/production.rs
+  |
+  | /     pub(super) fn register(
+  | |         admission: WorthQueryArtifactProductionAdmission,
+  | |         prepared: WorthQueryPreparedArtifactResource,
+  | |     ) -> Result<Self, WorthQueryArtifactDenial> {
+  | |_______________________________________________- private associated function defined here

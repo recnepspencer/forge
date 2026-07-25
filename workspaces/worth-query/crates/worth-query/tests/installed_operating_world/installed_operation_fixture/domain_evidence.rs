@@ -13,10 +13,11 @@ mod workflow_workspace;
 #[path = "domain_evidence/workspace.rs"]
 mod workspace;
 
+pub use contract::EvidenceGovernance;
 pub use material::EvidenceScenario;
 pub use workflow_executor::EvidenceWorkflowMode;
 pub use workflow_workspace::{evidence_workflow_intent, evidence_workflow_workspace};
-pub use workspace::evidence_workspace;
+pub use workspace::{evidence_workspace, evidence_workspace_with_governance};
 
 #[derive(Clone, Copy, Debug)]
 pub struct EvidenceRead;

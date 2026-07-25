@@ -9,6 +9,10 @@ pub(super) fn assert_optional_counter_sidecar(
     assert_eq!(counters.len(), 1);
     let counter = &counters[0];
     assert_eq!(counter.schema().name().as_str(), "trace-events");
+    assert_eq!(
+        counter.provider_certification(),
+        Some("domain-evidence-provider-v1")
+    );
     assert_eq!(counter.initial(), 0);
     assert_eq!(counter.observed(), 9);
     assert_eq!(
@@ -61,6 +65,7 @@ fn assert_required_counters(counters: &[domain::WorthQueryAdmittedStructuralCoun
             ("bytes", (0, 128)),
             ("candidate-comparisons", (0, 6)),
             ("elements", (0, 4)),
+            ("operation-work-components", (0, 10)),
             ("work", (0, 10)),
         ])
     );

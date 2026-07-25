@@ -1,76 +1,142 @@
 ---
 name: qa-loop
-description: Review and correct completed WORTH implementation work against its governing specification and causally relevant engineering laws. Use after a coherent implementation slice is complete to find substantive defects, fix root causes, verify corrections, and repeat until the work is genuinely complete.
+description: Review and correct completed WORTH implementation work through a requirement-and-evidence closure ledger. Use after a coherent implementation phase or slice to audit specification fidelity and causally relevant risks, fix root causes, reopen affected guarantees, and continue until the implementation is genuinely proved.
 ---
 
 # QA Loop
 
-Attempt to falsify the implementation's claims. Report only evidence-backed
-defects; do not reward green checks or invent findings to appear rigorous.
+Attempt to falsify the implementation's claims. Treat the ledger as the
+authority for closure. Green tests, completed fixes, and finding counts do not
+define completion.
 
-## Establish authority
+## Establish scope
 
 Read the repository instructions, governing specification, changed files, and
-the coding laws relevant to the affected guarantees. Inspect adjacent producers,
-consumers, authority owners, persistence boundaries, and test support when they
-can invalidate the implementation's claims.
+causally relevant engineering laws. Inspect adjacent producers, consumers,
+authority owners, persistence boundaries, public facades, and test support
+where they can invalidate the implementation's guarantees.
+
+Freeze the source state from which the audit begins and preserve unrelated
+worktree changes.
+
+## Build the closure ledger
+
+Translate the scoped specification into logical guarantees. Use appropriate
+vertical guarantees rather than tiny implementation tasks or combinations of
+input dimensions.
+
+For each row, record:
+
+- a stable identifier
+- the exact closure claim
+- the evidence needed to prove it
+- the current result and evidence
+- `OPEN`, `PROVED`, `DEFECT`, `BLOCKED`, or justified `N/A`
+
+Start uncertain rows as `OPEN`. Existing tests are candidate evidence until
+their world, boundary, oracle, consequential state, and fault sensitivity have
+been inspected.
+
+The ledger enumerates guarantees, not review categories or test cases. One
+piece of evidence may prove several rows, and one row may require several forms
+of evidence.
 
 ## Build the risk map
 
-Identify:
-
-- what the implementation claims to accomplish
-- which invariants and authority boundaries it can affect
-- which failures would be expensive, silent, irreversible, or hard to detect
-- what evidence currently supports each material claim
-
-Apply review lenses by causal relevance, not uniformly:
+Choose review lenses according to the guarantees and failure surfaces
+represented in the ledger. Possible lenses include:
 
 - semantic and specification correctness
 - authority, security, privacy, and disclosure
-- architecture, lifecycle, state, and dependency direction
+- architecture, phase progression, lifecycle, and dependency direction
 - failure, cancellation, concurrency, recovery, and migration
 - performance and resource behavior
 - test and fixture honesty
 - composition and domain topology
 - public DX and operability
 
-Always classify security and performance relevance. Perform a deep pass only
-when the change exposes their corresponding threat or cost surface.
+For each possible lens, ask whether a defect in that category could plausibly
+invalidate an in-scope guarantee. Apply the lens deeply when it is causally
+relevant, lightly when only a boundary check is warranted, and omit it when it
+has no meaningful connection to the work.
 
-## Review
+Do not privilege any category or mechanically multiply categories across
+ledger rows. The implementation's actual claims and risks determine the
+review.
 
-Trace real execution and failure paths. Look for violated invariants,
-unearned authority, hidden effects, incomplete lifecycle behavior, dishonest
-fallbacks, stale derived state, incompatible evolution, resource escape,
-fixture theatre, and implementation that satisfies wording while defeating
-intent.
+## Plan proof economically
 
-Prefer the smallest decisive evidence: source tracing, type and dependency
-inspection, targeted execution, adversarial tests, structural counters, or
-repository enforcement. Passing tests are evidence only for claims they
-honestly establish.
+Reuse one causally valid canonical world with isolated semantic deltas. Group
+equivalent inputs by the production behavior they exercise.
 
-## Findings
+Prefer the cheapest honest proof:
 
-Report findings before summaries. For each finding state:
+- type and dependency enforcement for impossible structure
+- compile-fail evidence for inaccessible public authority
+- pure or property tests for broad validation spaces
+- one-axis metamorphic tests for causal behavior
+- targeted runtime tests for lifecycle and consequential state
+- pairwise cases where two axes genuinely interact
+- exhaustive matrices only for small, closed decision lattices
+- a small number of realistic integrated journeys for cross-phase composition
+- dedicated race tests only for real shared-state concurrency
 
-1. severity and affected guarantee
-2. concrete defect and evidence
-3. governing source or invariant
-4. required root-cause correction
-5. proof that would close the finding
+Test combinations only when production behavior couples the axes. Every added
+test must detect a distinct plausible fault. Consolidate redundant fixtures,
+scenarios, compiler sessions, and integration journeys.
 
-Do not report style preferences as correctness findings.
+## Discover before declaring closure
 
-## Correct and repeat
+Trace real execution, denial, failure, cancellation, and teardown paths across
+the whole ledger. Do not stop discovery after finding the first defect.
 
-Fix root causes, not symptoms. Search the affected semantic family for the same
-defect, update tests and fixtures when the proof was weak, and run verification
-proportional to the changed guarantees. Rebuild the risk map after material
-corrections and continue until no meaningful findings remain.
+Look for violated invariants, unearned authority, premature mutation, hidden
+effects, incomplete lifecycle behavior, dishonest fallback, stale derived
+state, incompatible evolution, resource escape, fixture theatre, and
+implementation that satisfies wording while defeating intent.
 
-Completion requires specification fidelity, preserved authority and
-correctness, honest relevant performance posture, credible test evidence,
-passing required enforcement, and no known in-scope defect hidden by the
-harness or review boundary.
+Record every finding against the ledger rows it invalidates. State:
+
+1. severity and affected guarantees
+2. the concrete defect and evidence
+3. the governing requirement or invariant
+4. the required root-cause correction
+5. the proof that would close it
+
+Do not report preferences or speculative concerns as defects.
+
+## Correct and reopen
+
+Fix root causes rather than padding tests or adding local guards around a
+broken authority model. Search the affected semantic family for the same
+defect.
+
+After a correction:
+
+- retain the finding as audit history
+- reopen every row whose evidence or assumptions changed
+- reopen causally downstream rows when phase progression changed
+- update fixtures and tests whose earlier proof became stale
+- rerun the affected evidence family
+- reassess the corrected production path directly
+
+Do not rerun the Cartesian product of the entire suite when only a bounded
+proof family was affected. Do not leave downstream guarantees proved merely
+because their old tests remain green.
+
+## Complete the loop
+
+Continue discovery, correction, reopening, and verification until every ledger
+row is resolved and no known in-scope defect remains.
+
+Before declaring completion:
+
+- verify the final source state, not an earlier snapshot
+- run the required functional, compiler, architectural, and repository checks
+- confirm relevant warm paths and test costs remain sane
+- preserve resolved findings and their closure evidence
+- record any unrelated repository failure as an explicit scoped caveat
+- ensure the ledger contains no stale `OPEN` or `DEFECT` rows
+
+Report closure from the ledger. Never infer closure from the absence of new
+findings in a single pass.

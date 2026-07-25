@@ -8,6 +8,29 @@ use super::{EvidenceFamily, EvidenceRead};
 
 pub(super) struct EvidenceArtifactFamily;
 
+#[derive(Clone, Copy)]
+pub struct EvidenceGovernance {
+    pub redaction: domain::WorthQueryArtifactRedactionPosture,
+    pub retention: RetentionDeliveryProfile,
+    pub decision_retention: RetentionDeliveryProfile,
+    pub secondary_decision_retention: Option<RetentionDeliveryProfile>,
+    pub deletion: domain::WorthQueryArtifactDeletionPosture,
+    pub legal_hold: domain::WorthQueryArtifactLegalHoldPosture,
+}
+
+impl EvidenceGovernance {
+    pub fn retained(redaction: domain::WorthQueryArtifactRedactionPosture) -> Self {
+        Self {
+            redaction,
+            retention: RetentionDeliveryProfile::Durable,
+            decision_retention: RetentionDeliveryProfile::Durable,
+            secondary_decision_retention: None,
+            deletion: domain::WorthQueryArtifactDeletionPosture::DomainControlled,
+            legal_hold: domain::WorthQueryArtifactLegalHoldPosture::RequiredWhenDirected,
+        }
+    }
+}
+
 impl domain::WorthQueryArtifactFamily for EvidenceArtifactFamily {
     const SEMANTIC_FAMILY: &'static str = "WORTH.tests.domain-evidence";
 }
@@ -15,7 +38,13 @@ impl domain::WorthQueryArtifactFamily for EvidenceArtifactFamily {
 pub(super) fn direct_package(
     redaction: domain::WorthQueryArtifactRedactionPosture,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
-    let contract = evidence_contract(redaction);
+    direct_package_with_governance(EvidenceGovernance::retained(redaction))
+}
+
+pub(super) fn direct_package_with_governance(
+    governance: EvidenceGovernance,
+) -> domain::WorthQueryDomainPackage<GeometryDomain> {
+    let contract = evidence_contract(governance);
     let mut semantics = semantic_closure(
         canonical_bundle("Vertex"),
         domain::WorthQuerySupportRequirement::Required,
@@ -50,7 +79,7 @@ pub(super) fn direct_package(
 pub(super) fn workflow_package(
     redaction: domain::WorthQueryArtifactRedactionPosture,
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
-    let contract = evidence_contract(redaction);
+    let contract = evidence_contract(EvidenceGovernance::retained(redaction));
     let stages = super::super::workflow::valid_stages()
         .into_iter()
         .map(|stage| {
@@ -107,9 +136,7 @@ pub(super) fn artifact_support() -> domain::WorthQueryArtifactInstallationSuppor
     )
 }
 
-fn evidence_contract(
-    redaction: domain::WorthQueryArtifactRedactionPosture,
-) -> domain::WorthQueryPortableArtifactContract {
+fn evidence_contract(governance: EvidenceGovernance) -> domain::WorthQueryPortableArtifactContract {
     domain::WorthQueryPortableArtifactContract::declare::<EvidenceArtifactFamily>(
         domain::WorthQueryArtifactSchemaVersion::new(1),
         domain::WorthQueryArtifactProtocolVersion::new(1),
@@ -169,14 +196,17 @@ fn evidence_contract(
     .carriage(domain::WorthQueryArtifactCarriageContract::move_only_provider_transfer())
     .lifecycle(domain::WorthQueryArtifactLifecycleContract::Retained)
     .counters(counter_contract())
-    .decisions(decision_contract())
+    .decisions(decision_contract(
+        governance.decision_retention,
+        governance.secondary_decision_retention,
+    ))
     .governance(domain::WorthQueryArtifactGovernanceContract::new(
         ["audit", "support"],
         domain::WorthQueryArtifactClassification::Restricted,
-        redaction,
-        RetentionDeliveryProfile::Durable,
-        domain::WorthQueryArtifactDeletionPosture::DomainControlled,
-        domain::WorthQueryArtifactLegalHoldPosture::RequiredWhenDirected,
+        governance.redaction,
+        governance.retention,
+        governance.deletion,
+        governance.legal_hold,
     ))
     .compatibility(domain::WorthQueryArtifactCompatibilityContract::new(
         domain::WorthQueryArtifactCompatibilityWindow::new(
@@ -219,10 +249,18 @@ fn counter_contract() -> domain::WorthQueryStructuralCounterContract {
             "work",
             domain::WorthQueryStructuralCounterRole::StructuralWork,
             domain::WorthQueryStructuralCounterUnit::Operations,
-            domain::WorthQueryStructuralCounterAggregation::SumOf(vec![
-                counter("elements"),
-                counter("candidate-comparisons"),
-            ]),
+            domain::WorthQueryStructuralCounterAggregation::SumOf(vec![counter(
+                "operation-work-components",
+            )]),
+            domain::WorthQueryStructuralCounterScope::ArtifactOccurrence,
+            domain::WorthQueryStructuralCounterResetBoundary::ArtifactOccurrence,
+            domain::WorthQueryStructuralCounterReplayPosture::Exact,
+        ),
+        counter_schema(
+            "operation-work-components",
+            domain::WorthQueryStructuralCounterRole::DomainWork,
+            domain::WorthQueryStructuralCounterUnit::Operations,
+            domain::WorthQueryStructuralCounterAggregation::Independent,
             domain::WorthQueryStructuralCounterScope::ArtifactOccurrence,
             domain::WorthQueryStructuralCounterResetBoundary::ArtifactOccurrence,
             domain::WorthQueryStructuralCounterReplayPosture::Exact,
@@ -272,12 +310,15 @@ fn optional_counter_schema() -> domain::WorthQueryStructuralCounterSchema {
         domain::WorthQueryStructuralCounterScope::ArtifactOccurrence,
         domain::WorthQueryStructuralCounterResetBoundary::ArtifactOccurrence,
         domain::WorthQueryStructuralCounterRequiredness::OptionalSidecar,
-        domain::WorthQueryStructuralCounterReplayPosture::NotCompared,
+        domain::WorthQueryStructuralCounterReplayPosture::ProviderCertified,
     )
 }
 
-fn decision_contract() -> domain::WorthQueryDecisionRecordContract {
-    domain::WorthQueryDecisionRecordContract::declared([domain::WorthQueryDecisionSchema::new(
+fn decision_contract(
+    retention: RetentionDeliveryProfile,
+    secondary_retention: Option<RetentionDeliveryProfile>,
+) -> domain::WorthQueryDecisionRecordContract {
+    let mut schemas = vec![domain::WorthQueryDecisionSchema::new(
         domain::WorthQueryDecisionIdentity::new(
             domain::WorthQueryDecisionKind::new("candidate-rejected").unwrap(),
             domain::WorthQueryDecisionReasonFamily::new("search-reason").unwrap(),
@@ -287,9 +328,25 @@ fn decision_contract() -> domain::WorthQueryDecisionRecordContract {
         domain::WorthQueryDecisionPayloadVersion::new(1),
         domain::WorthQueryDecisionGovernance::new(
             domain::WorthQueryArtifactClassification::Restricted,
-            RetentionDeliveryProfile::Durable,
+            retention,
         ),
-    )])
+    )];
+    if let Some(retention) = secondary_retention {
+        schemas.push(domain::WorthQueryDecisionSchema::new(
+            domain::WorthQueryDecisionIdentity::new(
+                domain::WorthQueryDecisionKind::new("candidate-selected").unwrap(),
+                domain::WorthQueryDecisionReasonFamily::new("selection-reason").unwrap(),
+                domain::WorthQueryArtifactKeyFamily::new("candidate").unwrap(),
+            ),
+            domain::WorthQueryDecisionCausalParentShape::RequiredSingle,
+            domain::WorthQueryDecisionPayloadVersion::new(1),
+            domain::WorthQueryDecisionGovernance::new(
+                domain::WorthQueryArtifactClassification::Restricted,
+                retention,
+            ),
+        ));
+    }
+    domain::WorthQueryDecisionRecordContract::declared(schemas)
 }
 
 fn counter(name: &str) -> FoundationalPerformanceCounterName {

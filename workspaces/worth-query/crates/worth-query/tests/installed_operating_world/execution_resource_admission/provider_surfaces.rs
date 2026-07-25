@@ -102,6 +102,10 @@ fn mismatched_fixture_support() -> domain::WorthQueryExecutionResourceSupport {
             domain::WorthQueryExecutionMode::Synchronous,
             domain::WorthQueryCancellationSafePointFamily::new("incompatible-safe-point").unwrap(),
         ),
+        std::sync::Arc::new(
+            domain::WorthQueryFixedExecutionCapacity::mint("mismatched-provider-surface", 8)
+                .unwrap(),
+        ),
     )
 }
 

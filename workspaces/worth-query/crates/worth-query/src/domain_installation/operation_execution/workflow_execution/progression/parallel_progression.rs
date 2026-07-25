@@ -5,7 +5,7 @@ use crate::basis_lifecycle::BasisOperationLane;
 use crate::runtime::WorthQueryWorkspace;
 use worth_proof::TransitionOutcome;
 
-use super::workflow_progression::WorthQueryWorkflowAdvanceStep;
+use super::workflow_progression_state::WorthQueryWorkflowAdvanceStep;
 use super::{
     WorthQueryWorkflowAdvanceDenial, WorthQueryWorkflowAdvanceDenialKind,
     WorthQueryWorkflowParallelAdmissionCall, WorthQueryWorkflowParallelAdmissionReceipt,
@@ -167,9 +167,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                     .shared_envelope(),
             },
         );
-        let provider = self.parallel_admission_provider.as_ref().ok_or_else(|| {
-            self.denial(WorthQueryWorkflowAdvanceDenialKind::ParallelProviderMissing)
-        })?;
+        let provider = match &self.parallel_posture {
+            crate::domain_installation::operating_world::WorthQueryBoundWorkflowParallelPosture::Parallel(provider) => provider,
+            crate::domain_installation::operating_world::WorthQueryBoundWorkflowParallelPosture::Sequential => {
+                unreachable!("an admitted parallel frontier carries its installed provider")
+            }
+        };
         self.counters.parallel_admission_checks += 1;
         let receipt = provider.admit(&call).map_err(|failure| {
             self.denial(WorthQueryWorkflowAdvanceDenialKind::ParallelProvider(

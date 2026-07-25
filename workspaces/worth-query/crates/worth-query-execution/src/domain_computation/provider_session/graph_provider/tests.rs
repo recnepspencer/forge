@@ -1,14 +1,25 @@
 use std::collections::BTreeMap;
 
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
+use worth_query_installation::facade::{
+    WorthQueryInstallationGeneration, WorthQueryInstalledGraphParticipationAuthority,
+};
 
 use super::{
-    WorthQueryGraphCallBindingDenial, WorthQueryGraphCallReadBinding, WorthQueryGraphCallScope,
-    WorthQueryGraphProviderCallKind, WorthQueryGraphProviderCallSpec, WorthQueryGraphReadMaterial,
-    WorthQueryGraphReadRow, WorthQueryGraphReceiptAdmissionDenial,
+    WorthQueryGraphCallBindingDenial, WorthQueryGraphProviderCallKind,
+    WorthQueryGraphProviderCallRequest, WorthQueryGraphReadMaterial, WorthQueryGraphReadRow,
+    WorthQueryGraphReceiptAdmissionDenial,
 };
+use crate::domain_computation::execution_runtime::WorthQueryExecutionRuntimeInstaller;
+use crate::domain_computation::operation_binding::direct_authority_with_graph;
 use crate::domain_computation::provider_session::tests::admitted_plan;
 use crate::domain_computation::provider_session::WorthQueryDirectExecutionResourceAttempt;
+
+struct GraphAttempt {
+    attempt: WorthQueryDirectExecutionResourceAttempt,
+    graph: WorthQueryInstalledGraphParticipationAuthority,
+    foreign_graph: WorthQueryInstalledGraphParticipationAuthority,
+}
 
 #[test]
 fn retained_graph_call_cannot_bind_a_later_call_receipt() {
@@ -138,7 +149,9 @@ fn graph_product_digest_changes_when_a_field_value_changes() {
 
 #[test]
 fn non_projection_call_cannot_seal_projection_material() {
-    let attempt = attempt();
+    let attempt = attempt_with_access(
+        worth_query_installation::facade::WorthQueryOperationGraphAccess::Observe,
+    );
     let call = call_with_kind(
         &attempt,
         "observe-cannot-project",
@@ -155,14 +168,16 @@ fn provider_session_rejects_resources_admitted_for_another_session() {
     let owner_attempt = attempt();
     let foreign_attempt = attempt();
     let denial = owner_attempt
+        .attempt
         .provider_session()
         .bind_graph_provider_call(
+            &owner_attempt.graph,
             call_spec(
                 "foreign-resource-attempt",
                 WorthQueryGraphProviderCallKind::Project,
             ),
-            foreign_attempt.evidence(),
-            foreign_attempt.resources().shared_envelope(),
+            foreign_attempt.attempt.evidence(),
+            foreign_attempt.attempt.resources().shared_envelope(),
         )
         .unwrap_err();
 
@@ -172,24 +187,72 @@ fn provider_session_rejects_resources_admitted_for_another_session() {
     );
 }
 
-fn call(
-    attempt: &WorthQueryDirectExecutionResourceAttempt,
-    scope: &str,
-) -> super::WorthQueryGraphProviderCall {
+#[test]
+fn provider_session_rejects_an_installed_but_undeclared_graph_authority() {
+    let attempt = attempt();
+    let denial = attempt
+        .attempt
+        .provider_session()
+        .bind_graph_provider_call(
+            &attempt.foreign_graph,
+            WorthQueryGraphProviderCallRequest::direct(
+                WorthQueryGraphProviderCallKind::Project,
+                "foreign-graph",
+                "snapshot",
+            ),
+            attempt.attempt.evidence(),
+            attempt.attempt.resources().shared_envelope(),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        denial,
+        WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch
+    );
+}
+
+#[test]
+fn direct_provider_session_rejects_a_caller_authored_workflow_stage() {
+    let attempt = attempt();
+    let denial = attempt
+        .attempt
+        .provider_session()
+        .bind_graph_provider_call(
+            &attempt.graph,
+            WorthQueryGraphProviderCallRequest::workflow_stage(
+                WorthQueryGraphProviderCallKind::Project,
+                "invented-stage",
+                "invented",
+                "snapshot",
+            ),
+            attempt.attempt.evidence(),
+            attempt.attempt.resources().shared_envelope(),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        denial,
+        WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch
+    );
+}
+
+fn call(attempt: &GraphAttempt, scope: &str) -> super::WorthQueryGraphProviderCall {
     call_with_kind(attempt, scope, WorthQueryGraphProviderCallKind::Project)
 }
 
 fn call_with_kind(
-    attempt: &WorthQueryDirectExecutionResourceAttempt,
+    attempt: &GraphAttempt,
     scope: &str,
     kind: WorthQueryGraphProviderCallKind,
 ) -> super::WorthQueryGraphProviderCall {
     attempt
+        .attempt
         .provider_session()
         .bind_graph_provider_call(
+            &attempt.graph,
             call_spec(scope, kind),
-            attempt.evidence(),
-            attempt.resources().shared_envelope(),
+            attempt.attempt.evidence(),
+            attempt.attempt.resources().shared_envelope(),
         )
         .unwrap()
 }
@@ -197,12 +260,8 @@ fn call_with_kind(
 fn call_spec(
     scope: &str,
     kind: WorthQueryGraphProviderCallKind,
-) -> WorthQueryGraphProviderCallSpec {
-    WorthQueryGraphProviderCallSpec::new(
-        kind,
-        WorthQueryGraphCallScope::new(scope, "operation", "binding"),
-        WorthQueryGraphCallReadBinding::new("remote", "query", "basis", "snapshot"),
-    )
+) -> WorthQueryGraphProviderCallRequest {
+    WorthQueryGraphProviderCallRequest::direct(kind, scope, "snapshot")
 }
 
 fn material(label: &str) -> WorthQueryGraphReadMaterial {
@@ -249,6 +308,48 @@ fn material_with_identity_value(value: &str) -> WorthQueryGraphReadMaterial {
     .unwrap()])
 }
 
-fn attempt() -> WorthQueryDirectExecutionResourceAttempt {
-    WorthQueryDirectExecutionResourceAttempt::start(admitted_plan("graph-provider", 8))
+fn attempt() -> GraphAttempt {
+    attempt_with_access(worth_query_installation::facade::WorthQueryOperationGraphAccess::Project)
+}
+
+fn attempt_with_access(
+    access: worth_query_installation::facade::WorthQueryOperationGraphAccess,
+) -> GraphAttempt {
+    let installer = WorthQueryExecutionRuntimeInstaller::new();
+    let graph = WorthQueryInstalledGraphParticipationAuthority::install(
+        installer.installation_runtime(),
+        "remote",
+        "test-graph-provider",
+        false,
+        Option::<String>::None,
+        std::sync::Arc::new(()),
+    )
+    .unwrap();
+    let foreign_graph = WorthQueryInstalledGraphParticipationAuthority::install(
+        installer.installation_runtime(),
+        "foreign",
+        "foreign-test-graph-provider",
+        false,
+        Option::<String>::None,
+        std::sync::Arc::new(()),
+    )
+    .unwrap();
+    let runtime = installer
+        .install(
+            WorthQueryInstallationGeneration::initial(),
+            std::iter::empty(),
+        )
+        .unwrap()
+        .into_parts()
+        .0;
+    let resources = admitted_plan("binding", 8);
+    let authority = direct_authority_with_graph(&runtime, &resources, &graph, access);
+    let reserved =
+        worth_query_admission::integration::reserve_execution_resource_plan(resources).unwrap();
+    let attempt = WorthQueryDirectExecutionResourceAttempt::start(reserved, &authority);
+    GraphAttempt {
+        attempt,
+        graph,
+        foreign_graph,
+    }
 }

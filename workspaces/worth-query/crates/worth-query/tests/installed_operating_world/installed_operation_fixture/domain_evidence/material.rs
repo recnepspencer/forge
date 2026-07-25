@@ -18,6 +18,13 @@ pub enum EvidenceScenario {
     MalformedOptionalCounter,
     LedgerRegression,
     ReplayCoreDrift,
+    MixedDecisionGovernance,
+    UndeclaredCounter,
+    DuplicateCounter,
+    ProviderCertificationMissing,
+    MissingDecisionSummary,
+    DuplicateDecisionSummary,
+    UndeclaredDecisionSummary,
 }
 
 pub(super) fn evidence_material(
@@ -78,6 +85,7 @@ fn evidence_material_with_window(
         candidate.initial,
         candidate.observed + 4 - u64::from(scenario == EvidenceScenario::ImpossibleAggregate),
     );
+    let work_components = CounterWindow::new(candidate.initial, candidate.observed + 4);
     let mut material = domain::WorthQueryDomainEvidenceMaterial::new()
         .counter(observation("bytes", 0, bytes_observed))
         .counter(observation("elements", 0, 4))
@@ -86,14 +94,38 @@ fn evidence_material_with_window(
             candidate.initial,
             candidate.observed,
         ))
-        .decision(domain::WorthQueryDecisionSummary::new(
-            decision_kind(),
-            domain::WorthQueryDecisionSummaryCounts::new(1, 1, 1, 0),
+        .counter(observation(
+            "operation-work-components",
+            work_components.initial,
+            work_components.observed,
         ))
         .candidate_search(candidate_summary(scenario))
         .transformation(transformation_summary(output_occurrence_identity, scenario));
+    if scenario != EvidenceScenario::MissingDecisionSummary {
+        material = material.decision(decision_summary(decision_kind()));
+    }
+    if scenario == EvidenceScenario::DuplicateDecisionSummary {
+        material = material.decision(decision_summary(decision_kind()));
+    }
+    if scenario == EvidenceScenario::UndeclaredDecisionSummary {
+        material = material.decision(decision_summary(
+            domain::WorthQueryDecisionKind::new("undeclared-decision").unwrap(),
+        ));
+    }
+    if scenario == EvidenceScenario::MixedDecisionGovernance {
+        material = material.decision(domain::WorthQueryDecisionSummary::new(
+            selected_decision_kind(),
+            domain::WorthQueryDecisionSummaryCounts::new(1, 1, 1, 0),
+        ));
+    }
     if scenario != EvidenceScenario::MissingRequiredCounter {
         material = material.counter(observation("work", work.initial, work.observed));
+    }
+    if scenario == EvidenceScenario::UndeclaredCounter {
+        material = material.counter(observation("undeclared-counter", 0, 1));
+    }
+    if scenario == EvidenceScenario::DuplicateCounter {
+        material = material.counter(observation("bytes", 0, bytes_observed));
     }
     if scenario != EvidenceScenario::OmitSidecars {
         let optional = if scenario == EvidenceScenario::MalformedOptionalCounter {
@@ -101,12 +133,14 @@ fn evidence_material_with_window(
         } else {
             CounterWindow::new(0, 9)
         };
+        let optional = observation("trace-events", optional.initial, optional.observed);
+        let optional = if scenario == EvidenceScenario::ProviderCertificationMissing {
+            optional
+        } else {
+            optional.with_provider_certification("domain-evidence-provider-v1")
+        };
         material = material
-            .counter(observation(
-                "trace-events",
-                optional.initial,
-                optional.observed,
-            ))
+            .counter(optional)
             .with_sidecar(sidecars(output_occurrence_identity, scenario));
     }
     material
@@ -220,21 +254,36 @@ fn sidecars(
             "output-secondary".to_owned(),
         ]
     };
-    domain::WorthQueryDomainEvidenceSidecar::new()
-        .decision_records([domain::WorthQueryDecisionRecord::from_parts(
+    let mut decision_records = vec![domain::WorthQueryDecisionRecord::from_parts(
+        domain::WorthQueryDecisionRecordParts {
+            kind: decision_kind(),
+            reason_family: "search-reason".into(),
+            artifact_key_family: "candidate".into(),
+            artifact_key: "candidate-1".into(),
+            causal_parent: domain::WorthQueryDecisionCausalParent::Single("candidate-root".into()),
+            payload_version: 1,
+            payload: "rejected-by-score".into(),
+            recovery_relevant: false,
+        },
+    )];
+    if scenario == EvidenceScenario::MixedDecisionGovernance {
+        decision_records.push(domain::WorthQueryDecisionRecord::from_parts(
             domain::WorthQueryDecisionRecordParts {
-                kind: decision_kind(),
-                reason_family: "search-reason".into(),
+                kind: selected_decision_kind(),
+                reason_family: "selection-reason".into(),
                 artifact_key_family: "candidate".into(),
-                artifact_key: "candidate-1".into(),
+                artifact_key: "candidate-2".into(),
                 causal_parent: domain::WorthQueryDecisionCausalParent::Single(
                     "candidate-root".into(),
                 ),
                 payload_version: 1,
-                payload: "rejected-by-score".into(),
+                payload: "selected-by-score".into(),
                 recovery_relevant: false,
             },
-        )])
+        ));
+    }
+    domain::WorthQueryDomainEvidenceSidecar::new()
+        .decision_records(decision_records)
         .candidate_records(candidate_records)
         .transformation_records([domain::WorthQueryTransformationRecord::new(
             "source-1",
@@ -254,6 +303,17 @@ fn observation(
 
 fn decision_kind() -> domain::WorthQueryDecisionKind {
     domain::WorthQueryDecisionKind::new("candidate-rejected").unwrap()
+}
+
+fn decision_summary(kind: domain::WorthQueryDecisionKind) -> domain::WorthQueryDecisionSummary {
+    domain::WorthQueryDecisionSummary::new(
+        kind,
+        domain::WorthQueryDecisionSummaryCounts::new(1, 1, 1, 0),
+    )
+}
+
+fn selected_decision_kind() -> domain::WorthQueryDecisionKind {
+    domain::WorthQueryDecisionKind::new("candidate-selected").unwrap()
 }
 
 fn counter(name: &str) -> FoundationalPerformanceCounterName {

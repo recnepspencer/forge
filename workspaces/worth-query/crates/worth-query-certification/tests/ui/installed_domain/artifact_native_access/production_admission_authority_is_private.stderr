@@ -1,0 +1,5 @@
+error[E0616]: field `authority` of struct `WorthQueryArtifactProductionAdmission` is private
+ --> tests/ui/installed_domain/artifact_native_access/production_admission_authority_is_private.rs:4:32
+  |
+4 |     let _authority = admission.authority;
+  |                                ^^^^^^^^^ private field

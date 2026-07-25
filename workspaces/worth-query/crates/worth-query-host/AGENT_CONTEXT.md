@@ -6,17 +6,17 @@ Canonical machine constitution: `tools/boundary-check/config/road1.toml`
 - Constitutional class: `framework/query-audience`
 - Domain noun: `host`
 - Crate root: `workspaces/worth-query/crates/worth-query-host`
-- Road 1 exemplar role: Query host audience facade over `worth-query`
+- Road 1 exemplar role: Query host audience facade over `worth-query-admission`, `worth-query-declaration`, `worth-query-execution`, `worth-query-installation`, `worth-query-publication`
 - Deferred next homes:
 
 - Public surface: facade-only
-- Facade exports: `domain, installed, runtime`
+- Facade exports: `admission, declaration, domain, installed, publication, runtime`
 - Owned internal modules: `none`
 - Allowed in-tree dependency bands: `none`
 
 Machine fences:
 - Framework Query audience facade (`host`); legal consuming bands: entry, cert.
-- May depend only on its configured authority packages: `worth-query`; must not depend on other audience facades.
+- May depend only on its configured authority packages: `worth-query-admission`, `worth-query-declaration`, `worth-query-execution`, `worth-query-installation`, `worth-query-publication`; must not depend on other audience facades.
 - Leaf re-export surface only; guidance: admission, lowering, and execution.
 
 Skeleton fence:

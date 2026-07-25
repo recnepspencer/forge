@@ -1,5 +1,15 @@
-error[E0599]: no method named `execute` found for struct `WorthQueryBoundDomainOperation<D, O, F, L>` in the current scope
-  --> tests/ui/installed_domain/resource_admission/raw_bound_cannot_execute.rs:14:19
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/resource_admission/raw_bound_cannot_execute.rs:12:51
    |
-14 |     let _ = bound.execute(workspace);
-   |                   ^^^^^^^ method not found in `WorthQueryBoundDomainOperation<D, O, F, ObservationLaneWitness>`
+12 |     let _ = runtime.start_direct_resource_attempt(raw_operation, resources);
+   |                     ----------------------------- ^^^^^^^^^^^^^ expected `WorthQueryExecutionBoundOperationAuthority`, found `WorthQueryInstalledDomainOperationAuthority`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+   = note: expected reference `&WorthQueryExecutionBoundOperationAuthority`
+              found reference `&WorthQueryInstalledDomainOperationAuthority`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/execution_resource_attempt.rs
+   |
+   |     pub fn start_direct_resource_attempt(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

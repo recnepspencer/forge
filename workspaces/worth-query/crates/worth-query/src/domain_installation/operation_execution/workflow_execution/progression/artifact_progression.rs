@@ -18,10 +18,21 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             Ok(admission) => admission,
             Err(denial) => return self.outcome_from_denial(denial),
         };
+        let admitted = match self.admit_artifact_stage(stage_identity, runtime_admission) {
+            Ok(admitted) => admitted,
+            Err(denial) => return self.outcome_from_denial(denial),
+        };
         let admission = match self.artifact_transfer_admission(stage_identity, predecessor_stage) {
             Ok(admission) => admission,
             Err(denial) => return self.outcome_from_denial(denial),
         };
+        if !self.predecessor_satisfies_artifact_contract(predecessor_stage, &admitted.stage) {
+            let denial = WorthQueryWorkflowAdvanceDenial::new(
+                WorthQueryWorkflowAdvanceDenialKind::InputContract,
+                self.counters,
+            );
+            return self.outcome_from_denial(denial);
+        }
         let input = match self.take_predecessor_artifact(predecessor_stage) {
             Ok(handle) => handle
                 .transfer(&admission)
@@ -29,12 +40,13 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             Err(denial) => return self.outcome_from_denial(denial),
         };
         match input {
-            Ok(input) => self.advance_with_runtime_admission(
-                stage_identity,
-                input,
-                workspace,
-                runtime_admission,
-            ),
+            Ok(input) => {
+                if let Err(denial) = self.validate_artifact_input(&admitted.stage, &input) {
+                    let denial = self.artifact_carriage_denial(denial);
+                    return self.outcome_from_denial(denial);
+                }
+                self.advance_with_admitted_stage(admitted, input, workspace)
+            }
             Err(denial) => {
                 let stop = self.artifact_carriage_denial(denial);
                 self.outcome_from_denial(stop)
@@ -53,10 +65,21 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             Ok(admission) => admission,
             Err(denial) => return self.outcome_from_denial(denial),
         };
+        let admitted = match self.admit_artifact_stage(stage_identity, runtime_admission) {
+            Ok(admitted) => admitted,
+            Err(denial) => return self.outcome_from_denial(denial),
+        };
         let admission = match self.artifact_transfer_admission(stage_identity, predecessor_stage) {
             Ok(admission) => admission,
             Err(denial) => return self.outcome_from_denial(denial),
         };
+        if !self.predecessor_satisfies_artifact_contract(predecessor_stage, &admitted.stage) {
+            let denial = WorthQueryWorkflowAdvanceDenial::new(
+                WorthQueryWorkflowAdvanceDenialKind::InputContract,
+                self.counters,
+            );
+            return self.outcome_from_denial(denial);
+        }
         let input = self
             .predecessor_artifact(predecessor_stage)
             .and_then(|handle| handle.lease_for_transfer(&admission, lease_role))
@@ -69,12 +92,13 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             }
         }
         match input {
-            Ok(input) => self.advance_with_runtime_admission(
-                stage_identity,
-                input,
-                workspace,
-                runtime_admission,
-            ),
+            Ok(input) => {
+                if let Err(denial) = self.validate_artifact_input(&admitted.stage, &input) {
+                    let denial = self.artifact_carriage_denial(denial);
+                    return self.outcome_from_denial(denial);
+                }
+                self.advance_with_admitted_stage(admitted, input, workspace)
+            }
             Err(denial) => {
                 let stop = self.artifact_carriage_denial(denial);
                 self.outcome_from_denial(stop)
@@ -105,29 +129,29 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 self.counters,
             ));
         }
-        let expected_contract = self
-            .graph
-            .artifact_contracts(stage_identity)
-            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::input)
-            .cloned()
-            .ok_or_else(|| {
+        self.artifact_authority
+            .transfer_admission(predecessor_stage, stage_identity)
+            .map_err(|denial| {
                 WorthQueryWorkflowAdvanceDenial::new(
-                    WorthQueryWorkflowAdvanceDenialKind::InputContract,
+                    WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(denial),
                     self.counters,
                 )
-            })?;
-        Ok(WorthQueryArtifactTransferAdmission::mint(
-            super::WorthQueryArtifactTransferAdmissionParts {
-                expected_contract,
-                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
-                operation_identity: self.bound.definition().canonical_identity().to_owned(),
-                binding_identity: self.bound.binding_identity().to_owned(),
-                run_identity: self.identity.clone(),
-                predecessor_stage: predecessor_stage.to_owned(),
-                consumer_stage: stage_identity.to_owned(),
-                basis_identity: self.bound.basis().capability_digest().to_owned(),
-            },
-        ))
+            })
+    }
+
+    fn predecessor_satisfies_artifact_contract(
+        &self,
+        predecessor_stage: &str,
+        stage: &worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    ) -> bool {
+        let worth_query_installation::facade::WorthQueryWorkflowValueContract::InstalledArtifact(
+            reference,
+        ) = &stage.semantics().input
+        else {
+            return false;
+        };
+        self.predecessor_artifact(predecessor_stage)
+            .is_ok_and(|handle| handle.contract_matches(reference))
     }
 
     fn predecessor_artifact(

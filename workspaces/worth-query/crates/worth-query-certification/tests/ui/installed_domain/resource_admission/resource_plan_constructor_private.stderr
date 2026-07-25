@@ -1,16 +1,16 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/installed_domain/resource_admission/resource_plan_constructor_private.rs:15:46
+  --> tests/ui/installed_domain/resource_admission/resource_plan_constructor_private.rs:16:46
    |
-15 |       WorthQueryAdmittedExecutionResourcePlan::new(
+16 |       WorthQueryAdmittedExecutionResourcePlan::new(
    |                                                ^^^ private associated function
    |
-  ::: $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/execution_resource_admission/evidence.rs
+  ::: $WORKSPACE/crates/worth-query-admission/src/domain_computation/execution_resource_admission/evidence.rs
    |
-   | /     pub(crate) fn new(
+   | /     pub(super) fn new(
    | |         identity: String,
-   | |         request: &WorthQueryExecutionResourceRequest,
-   | |         support_snapshot: WorthQueryExecutionResourceSupportSnapshot,
-   | |         strategy: WorthQueryExecutionStrategyContract,
+   | |         binding_identity: &str,
+   | |         contract_identity: String,
+...  |
    | |         counters: WorthQueryExecutionResourceAdmissionCounters,
    | |     ) -> Self {
    | |_____________- private associated function defined here

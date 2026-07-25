@@ -13,6 +13,7 @@ worth-query-admission = { path = "../worth-query-admission" }
 worth-query-installation = { path = "../worth-query-installation" }
 
 [dev-dependencies]
+stats_alloc = "0.1"
 worth-query-declaration = { path = "../worth-query-declaration" }
 
 [lints]

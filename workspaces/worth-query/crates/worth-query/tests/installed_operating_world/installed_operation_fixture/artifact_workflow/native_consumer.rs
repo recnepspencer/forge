@@ -1,9 +1,12 @@
+use std::cell::Cell;
+
 use worth_foundational::facade::AspectValue;
 use worth_query::facade::domain;
 
 use super::contract::{
     candidate_id, candidate_layout, candidate_score, candidate_token, foreign_candidate_layout,
 };
+use super::integrated_evidence::integrated_evidence;
 use super::native_observation::{
     ArtifactNativeCandidate, ArtifactNativeDenial, ArtifactNativeLane, ArtifactNativeObservation,
     ArtifactNativeSuccess, ArtifactNativeValues,
@@ -24,7 +27,7 @@ pub(super) fn execute_native_consumer(
         .artifact_reader(&transferred)
         .map_err(|denial| record_denial(probe, denial))?;
     let result = match mode {
-        "native-bulk" | "native-provider-panic" => consume_bulk_rows(reader),
+        "native-bulk" | "native-integrated" | "native-provider-panic" => consume_bulk_rows(reader),
         "native-field" => consume_field_slice(reader),
         "native-short-chunks" => consume_chunks(reader),
         "native-scalar" => consume_scalar_fallback(reader),
@@ -38,12 +41,18 @@ pub(super) fn execute_native_consumer(
         "native-scalar-amplification" => deny_scalar_amplification(reader),
         "native-provider-alignment" | "native-session-mismatch" => consume_bulk_rows(reader),
         "native-zero-progress" => deny_zero_progress(reader),
+        "native-zero-projection-progress" => deny_zero_projection_progress(reader),
         _ => panic!("unknown native artifact scenario: {mode}"),
     };
     match result {
         Ok(success) => {
+            let evidence = (mode == "native-integrated").then(|| integrated_evidence(&success));
             probe.observe_native_access(ArtifactNativeObservation::Success(success));
-            Ok(ready_material())
+            let material = ready_material();
+            Ok(match evidence {
+                Some(evidence) => material.with_domain_evidence(evidence),
+                None => material,
+            })
         }
         Err(denial) => Err(record_denial(probe, denial)),
     }
@@ -257,9 +266,38 @@ fn deny_zero_progress(reader: domain::WorthQueryStageArtifactReader<'_>) -> Nati
         [candidate_id(), candidate_score()],
         8,
     ))?;
-    match cursor.next(|_| ()) {
-        Err(denial) => Err(denial),
+    let callback_invoked = Cell::new(false);
+    match cursor.next(|_| callback_invoked.set(true)) {
+        Err(denial) => {
+            assert!(
+                !callback_invoked.get(),
+                "invalid nonterminal chunk reached the consumer callback"
+            );
+            Err(denial)
+        }
         Ok(_) => panic!("zero-progress provider returned a usable native chunk"),
+    }
+}
+
+fn deny_zero_projection_progress(
+    reader: domain::WorthQueryStageArtifactReader<'_>,
+) -> NativeResult {
+    let mut cursor =
+        reader.projected_chunks(domain::WorthQueryArtifactProjectedChunkRequest::new(
+            candidate_layout(),
+            "candidate-summary-v1",
+            8,
+        ))?;
+    let callback_invoked = Cell::new(false);
+    match cursor.next(|_| callback_invoked.set(true)) {
+        Err(denial) => {
+            assert!(
+                !callback_invoked.get(),
+                "invalid nonterminal projection reached the consumer callback"
+            );
+            Err(denial)
+        }
+        Ok(_) => panic!("zero-progress provider returned a usable projected chunk"),
     }
 }
 

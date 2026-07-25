@@ -23,13 +23,6 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
     provider_session: &'a super::WorthQueryExecutionProviderSession,
     query_authority: crate::identity_authority::QueryCanonicalAuthority,
     pub(super) identity_evolution_basis_identity: String,
-    pub(super) domain_authority:
-        std::sync::Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
-    pub(super) output_artifact_contract: Option<
-        std::sync::Arc<
-            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
-        >,
-    >,
     pub(super) artifact_access_authority:
         Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>>,
     pub(super) artifact_production_authority:
@@ -41,34 +34,6 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
         scope: WorthQueryWorkflowStageExecutionScope<'a>,
         authority: WorthQueryWorkflowStageExecutionAuthority<'a>,
     ) -> Self {
-        let artifact_production_authority =
-            authority.output_artifact_contract.as_ref().map(|contract| {
-                crate::domain_installation::WorthQueryArtifactProductionAuthority::mint(
-                    crate::domain_installation::WorthQueryArtifactProductionAuthorityParts {
-                        contract: std::sync::Arc::clone(contract),
-                        domain_authority: std::sync::Arc::clone(&authority.domain_authority),
-                        operation_identity: scope.operation_identity.to_owned(),
-                        binding_identity: scope.binding_identity.to_owned(),
-                        run_identity: scope.run_identity.to_owned(),
-                        stage_identity: scope.stage.identity().to_owned(),
-                        basis_identity: authority.identity_evolution_basis_identity.clone(),
-                    },
-                )
-            });
-        let artifact_access_authority =
-            authority.input_artifact_contract.as_ref().map(|contract| {
-                std::sync::Arc::new(
-                    crate::domain_installation::WorthQueryArtifactAccessAuthority {
-                        contract: std::sync::Arc::clone(contract),
-                        domain_authority: std::sync::Arc::clone(&authority.domain_authority),
-                        operation_identity: scope.operation_identity.to_owned(),
-                        binding_identity: scope.binding_identity.to_owned(),
-                        run_identity: scope.run_identity.to_owned(),
-                        stage_identity: scope.stage.identity().to_owned(),
-                        basis_identity: authority.identity_evolution_basis_identity.clone(),
-                    },
-                )
-            });
         Self {
             operation_identity: scope.operation_identity,
             binding_identity: scope.binding_identity,
@@ -89,10 +54,8 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             provider_session: authority.provider_session,
             query_authority: authority.query_authority,
             identity_evolution_basis_identity: authority.identity_evolution_basis_identity,
-            domain_authority: authority.domain_authority,
-            output_artifact_contract: authority.output_artifact_contract,
-            artifact_access_authority,
-            artifact_production_authority,
+            artifact_access_authority: authority.artifact_access_authority,
+            artifact_production_authority: authority.artifact_production_authority,
         }
     }
 

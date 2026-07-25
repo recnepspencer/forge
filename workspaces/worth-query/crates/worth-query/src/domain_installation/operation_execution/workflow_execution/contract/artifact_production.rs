@@ -19,9 +19,8 @@ impl WorthQueryWorkflowStageExecutionContext<'_> {
             )
         })?;
         Ok(
-            crate::domain_installation::WorthQueryArtifactProductionAdmission::mint(
-                std::sync::Arc::clone(authority),
-                evidence,
+            crate::domain_installation::WorthQueryArtifactProductionAuthority::admit(
+                authority, evidence,
             ),
         )
     }

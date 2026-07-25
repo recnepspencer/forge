@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `worth_query_host::facade::publication::domain_computation::WorthQueryDomainEvidenceBindingParts`
+ --> tests/ui/installed_domain/domain_evidence/evidence_binding_parts_are_private.rs:1:5
+  |
+1 | use worth_query_host::facade::publication::domain_computation::WorthQueryDomainEvidenceBindingParts;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------
+  |     |                                                          |
+  |     |                                                          help: a similar name exists in the module: `WorthQueryDomainEvidenceBinding`
+  |     no `WorthQueryDomainEvidenceBindingParts` in `facade::domain_computation`

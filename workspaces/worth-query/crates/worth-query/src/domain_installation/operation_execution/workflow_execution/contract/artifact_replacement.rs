@@ -10,13 +10,12 @@ impl WorthQueryWorkflowStageWorkspace<'_> {
         crate::domain_installation::WorthQueryReplacedArtifact,
         crate::domain_installation::WorthQueryArtifactReplacementStop,
     > {
-        let guarded = crate::domain_installation::WorthQueryGuardedArtifactResource::new(resource);
         if let Err(denial) = current.validate_replacement(&admission) {
             return Err(
                 crate::domain_installation::WorthQueryArtifactReplacementStop::new(denial, current),
             );
         }
-        let replacement = match self.register_guarded_artifact(admission, guarded) {
+        let replacement = match self.register_artifact_resource(admission, resource) {
             Ok(replacement) => replacement,
             Err(denial) => {
                 return Err(

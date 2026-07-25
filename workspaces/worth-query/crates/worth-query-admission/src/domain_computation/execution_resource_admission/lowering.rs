@@ -38,10 +38,18 @@ pub fn admit_execution_resource_plan(
         counters.support_snapshot_checks += 1;
         if support.supports(strategy) {
             let request_identity = request.canonical_identity();
-            let identity =
-                admitted_plan_identity(binding_identity, &request_identity, &support, strategy);
+            let contract_identity = contract.canonical_identity();
+            let identity = admitted_plan_identity(
+                binding_identity,
+                &contract_identity,
+                &request_identity,
+                &support,
+                strategy,
+            );
             return Ok(WorthQueryAdmittedExecutionResourcePlan::new(
                 identity,
+                binding_identity,
+                contract_identity,
                 request,
                 support,
                 (*strategy).clone(),
@@ -100,6 +108,13 @@ fn support_mismatch(
             Kind::DegradationPostureUnsupported,
             format!("{subject} does not support the strategy degradation posture"),
         )
+    } else if actual.envelope().partial_effect_posture()
+        != strategy.envelope().partial_effect_posture()
+    {
+        (
+            Kind::PartialEffectPostureUnsupported,
+            format!("{subject} does not support the strategy partial-effect posture"),
+        )
     } else {
         (
             Kind::Backpressured,
@@ -155,7 +170,22 @@ fn classify_request_mismatch(
             counters,
         );
     }
-    if degradation
+    let partial_effect = degradation
+        .into_iter()
+        .filter(|strategy| {
+            request
+                .partial_effect_postures()
+                .contains(&strategy.envelope().partial_effect_posture())
+        })
+        .collect::<Vec<_>>();
+    if partial_effect.is_empty() {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::PartialEffectPostureUnsupported,
+            "capacity-fitting strategies require an unapproved partial-effect posture",
+            counters,
+        );
+    }
+    if partial_effect
         .iter()
         .any(|strategy| strategy.envelope().mode() == WorthQueryExecutionMode::Asynchronous)
     {

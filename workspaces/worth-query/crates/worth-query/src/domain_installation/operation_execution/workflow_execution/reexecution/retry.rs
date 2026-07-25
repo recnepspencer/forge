@@ -3,7 +3,7 @@ use crate::domain_installation::WorthQueryConditionalProvenance;
 use crate::identity::hash_parts;
 use crate::runtime::WorthQueryWorkspace;
 
-use super::workflow_progression::WorthQueryWorkflowAdvanceStep;
+use super::workflow_progression_state::WorthQueryWorkflowAdvanceStep;
 use super::{
     WorthQueryWorkflowAdvanceDenial, WorthQueryWorkflowAdvanceDenialKind,
     WorthQueryWorkflowIntentValue, WorthQueryWorkflowRun,

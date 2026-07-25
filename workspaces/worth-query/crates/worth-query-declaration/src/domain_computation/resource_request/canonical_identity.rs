@@ -21,6 +21,9 @@ pub(super) fn canonical_resource_request_identity(
     for degradation in request.degradations() {
         hash(&mut hasher, degradation.as_str());
     }
+    for posture in request.partial_effect_postures() {
+        hash(&mut hasher, posture.as_str());
+    }
     hash(&mut hasher, request.cancellation_safe_point().as_str());
     format!("{:x}", hasher.finalize())
 }

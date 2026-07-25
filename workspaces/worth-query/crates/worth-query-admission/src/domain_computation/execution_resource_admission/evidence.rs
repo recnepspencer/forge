@@ -21,6 +21,8 @@ pub struct WorthQueryExecutionResourceAdmissionCounters {
     pub support_snapshot_checks: usize,
     pub strategy_checks: usize,
     pub envelope_dimension_checks: usize,
+    pub capacity_reservation_checks: usize,
+    pub capacity_reservations: usize,
     pub provider_session_mints: usize,
 }
 
@@ -33,6 +35,8 @@ impl WorthQueryExecutionResourceAdmissionCounters {
         self.support_snapshot_checks += other.support_snapshot_checks;
         self.strategy_checks += other.strategy_checks;
         self.envelope_dimension_checks += other.envelope_dimension_checks;
+        self.capacity_reservation_checks += other.capacity_reservation_checks;
+        self.capacity_reservations += other.capacity_reservations;
         self.provider_session_mints += other.provider_session_mints;
     }
 }
@@ -43,9 +47,11 @@ pub enum WorthQueryExecutionResourceAdmissionPosture {
     Degraded,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedExecutionResourcePlan {
     identity: Arc<str>,
+    binding_identity: Arc<str>,
+    contract_identity: Arc<str>,
     request: Arc<WorthQueryExecutionResourceRequest>,
     request_identity: Arc<str>,
     envelope_identity: Arc<str>,
@@ -59,6 +65,8 @@ pub struct WorthQueryAdmittedExecutionResourcePlan {
 impl WorthQueryAdmittedExecutionResourcePlan {
     pub(super) fn new(
         identity: String,
+        binding_identity: &str,
+        contract_identity: String,
         request: &WorthQueryExecutionResourceRequest,
         support_snapshot: WorthQueryExecutionResourceSupportSnapshot,
         strategy: WorthQueryExecutionStrategyContract,
@@ -74,6 +82,8 @@ impl WorthQueryAdmittedExecutionResourcePlan {
         };
         Self {
             identity: identity.into(),
+            binding_identity: binding_identity.into(),
+            contract_identity: contract_identity.into(),
             request: Arc::new(request.clone()),
             request_identity: request_identity.into(),
             envelope_identity,
@@ -87,6 +97,14 @@ impl WorthQueryAdmittedExecutionResourcePlan {
 
     pub fn identity(&self) -> &str {
         &self.identity
+    }
+
+    pub fn binding_identity(&self) -> &str {
+        &self.binding_identity
+    }
+
+    pub fn contract_identity(&self) -> &str {
+        &self.contract_identity
     }
 
     pub fn request_identity(&self) -> &str {
@@ -125,12 +143,20 @@ impl WorthQueryAdmittedExecutionResourcePlan {
         self.counters.provider_session_mints += 1;
     }
 
+    pub fn record_capacity_reservation_check(&mut self) {
+        self.counters.capacity_reservation_checks += 1;
+    }
+
+    pub fn record_capacity_reservation(&mut self) {
+        self.counters.capacity_reservations += 1;
+    }
+
     pub fn shared_envelope(&self) -> Arc<WorthQueryExecutionResourceEnvelope> {
         Arc::clone(&self.envelope)
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedWorkflowResourcePlan {
     operation: WorthQueryAdmittedExecutionResourcePlan,
     stages: BTreeMap<String, Arc<WorthQueryAdmittedExecutionResourcePlan>>,
@@ -139,7 +165,7 @@ pub struct WorthQueryAdmittedWorkflowResourcePlan {
 }
 
 impl WorthQueryAdmittedWorkflowResourcePlan {
-    pub fn new(
+    pub fn assemble(
         operation: WorthQueryAdmittedExecutionResourcePlan,
         stages: BTreeMap<String, WorthQueryAdmittedExecutionResourcePlan>,
     ) -> Self {
@@ -186,6 +212,16 @@ impl WorthQueryAdmittedWorkflowResourcePlan {
     pub fn record_provider_session_mint(&mut self) {
         self.operation.record_provider_session_mint();
         self.counters.provider_session_mints += 1;
+    }
+
+    pub fn record_capacity_reservation_check(&mut self) {
+        self.operation.record_capacity_reservation_check();
+        self.counters.capacity_reservation_checks += 1;
+    }
+
+    pub fn record_capacity_reservation(&mut self) {
+        self.operation.record_capacity_reservation();
+        self.counters.capacity_reservations += 1;
     }
 
     pub fn stages(&self) -> impl Iterator<Item = (&str, &WorthQueryAdmittedExecutionResourcePlan)> {

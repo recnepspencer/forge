@@ -92,13 +92,16 @@ fn aggregation_is_invalid(
     }
     sources.is_empty()
         || sources.iter().any(|source| {
+            let Some(source_row) = contract.row(source) else {
+                return true;
+            };
             source == row.name()
-                || contract.row(source).is_none()
+                || source_row.unit() != row.unit()
+                || source_row.scope() != row.scope()
+                || source_row.reset_boundary() != row.reset_boundary()
                 || (row.requiredness() == WorthQueryStructuralCounterRequiredness::RequiredCore
-                    && contract.row(source).is_some_and(|source| {
-                        source.requiredness()
-                            == WorthQueryStructuralCounterRequiredness::OptionalSidecar
-                    }))
+                    && source_row.requiredness()
+                        == WorthQueryStructuralCounterRequiredness::OptionalSidecar)
         })
 }
 
@@ -145,3 +148,6 @@ fn reaches<'a>(
 fn portable_identity(value: &str) -> bool {
     !value.trim().is_empty() && value.trim() == value && !value.chars().any(char::is_whitespace)
 }
+
+#[cfg(test)]
+mod tests;

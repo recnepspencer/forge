@@ -63,8 +63,6 @@ pub(crate) struct WorthQueryResolvedInstalledDomainOperation {
     pub(crate) authority: Arc<WorthQueryInstalledDomainOperationAuthority>,
     pub(crate) workflow_graph:
         Option<Arc<crate::domain_installation::WorthQueryInstalledWorkflowGraph>>,
-    pub(crate) evidence_contract:
-        Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
 }
 
 pub(super) struct InstalledGraphReadOperation {
@@ -153,7 +151,6 @@ impl WorthQueryInstalledDomainExecutionIndex {
             .map(|operation| WorthQueryResolvedInstalledDomainOperation {
                 authority: Arc::clone(&operation.authority),
                 workflow_graph: operation.workflow_graph.as_ref().map(Arc::clone),
-                evidence_contract: operation.evidence_contract.as_ref().map(Arc::clone),
             })
     }
 

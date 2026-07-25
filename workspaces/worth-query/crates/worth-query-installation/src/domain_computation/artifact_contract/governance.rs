@@ -8,6 +8,21 @@ pub enum WorthQueryArtifactClassification {
     Restricted,
 }
 
+impl WorthQueryArtifactClassification {
+    pub(crate) const fn can_contain(self, member: Self) -> bool {
+        classification_rank(self) >= classification_rank(member)
+    }
+}
+
+const fn classification_rank(classification: WorthQueryArtifactClassification) -> u8 {
+    match classification {
+        WorthQueryArtifactClassification::Public => 0,
+        WorthQueryArtifactClassification::Internal => 1,
+        WorthQueryArtifactClassification::Confidential => 2,
+        WorthQueryArtifactClassification::Restricted => 3,
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryArtifactRedactionPosture {
     NotRequired,

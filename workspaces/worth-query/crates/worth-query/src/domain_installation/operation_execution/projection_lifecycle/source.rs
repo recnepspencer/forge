@@ -93,7 +93,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryProjectionLifecycleSource<D, O, F
         checks: &mut usize,
     ) -> Option<crate::ordinary::read::WorthQueryReadDeclaration> {
         installed_read(
-            self.bound_operation().executor()?.installed_read.as_ref(),
+            self.bound_operation()
+                .direct_executor()
+                .installed_read
+                .as_ref(),
             self.consumer_contract(),
             checks,
         )

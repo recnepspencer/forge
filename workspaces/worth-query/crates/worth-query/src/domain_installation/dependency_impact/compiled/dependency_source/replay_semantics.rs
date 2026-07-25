@@ -92,15 +92,16 @@ fn realized_observation_semantics_eq(subject: &Source, candidate: &Source) -> Op
         ) => left_class == right_class && left_observations == right_observations,
         (
             Source::RealizedDirectOutput {
-                execution: left, ..
+                result_state: left_state,
+                output_identity: left_output,
+                ..
             },
             Source::RealizedDirectOutput {
-                execution: right, ..
+                result_state: right_state,
+                output_identity: right_output,
+                ..
             },
-        ) => {
-            left.result_state() == right.result_state()
-                && left.output_identity() == right.output_identity()
-        }
+        ) => left_state == right_state && left_output == right_output,
         _ if is_realized_workflow(source_kind(subject))
             && is_realized_workflow(source_kind(candidate)) =>
         {

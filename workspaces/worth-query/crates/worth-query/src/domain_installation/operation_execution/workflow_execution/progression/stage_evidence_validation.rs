@@ -51,28 +51,25 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             input.material.output.domain_evidence_occurrence_identity();
         let stage_counters = self.counters.delta_since(input.counters_before);
         self.validate_cost_contract(stage, stage_counters, &input)?;
-        let evidence_contract = self
-            .graph
-            .artifact_contracts(stage.identity())
-            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::evidence)
-            .cloned();
+        let evidence_binding = self
+            .resource_attempt
+            .provider_session()
+            .bind_workflow_stage_domain_evidence(
+                &self.identity,
+                stage.identity(),
+                input.execution_snapshot.evidence_identity().as_str(),
+                &output_occurrence_identity,
+            )
+            .map_err(|denial| {
+                input.denial(
+                    self.counters,
+                    WorthQueryWorkflowAdvanceDenialKind::DomainEvidenceBinding(denial),
+                )
+            })?;
         let domain_evidence =
             super::admit_domain_evidence(super::WorthQueryDomainEvidenceAdmissionInput {
-                contract: evidence_contract.as_deref(),
                 material: input.material.domain_evidence.take(),
-                binding: super::WorthQueryDomainEvidenceBindingParts {
-                    operation_identity: self.bound.definition().canonical_identity().to_owned(),
-                    binding_identity: self.bound.binding_identity().to_owned(),
-                    run_identity: Some(self.identity.clone()),
-                    stage_identity: Some(stage.identity().to_owned()),
-                    basis_identity: self.bound.basis().capability_digest().to_owned(),
-                    execution_snapshot_identity: input
-                        .execution_snapshot
-                        .evidence_identity()
-                        .as_str()
-                        .to_owned(),
-                    output_occurrence_identity,
-                },
+                binding: evidence_binding,
                 ledger: Some(&mut self.domain_evidence_ledger),
             })
             .map_err(|denial| {
@@ -291,30 +288,9 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 "artifact workflow output must be an owned managed handle",
             ));
         };
-        let expected_contract = self
-            .graph
-            .artifact_contracts(stage.identity())
-            .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::output)
-            .cloned()
-            .ok_or_else(|| {
-                crate::domain_installation::WorthQueryArtifactDenial::new(
-                    crate::domain_installation::WorthQueryArtifactDenialKind::ArtifactContractNotInstalled,
-                    None,
-                    "workflow stage has no installed artifact output authority",
-                )
-            })?;
-        let admission = crate::domain_installation::WorthQueryArtifactTransferAdmission::mint(
-            super::WorthQueryArtifactTransferAdmissionParts {
-                expected_contract,
-                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
-                operation_identity: self.bound.definition().canonical_identity().to_owned(),
-                binding_identity: self.bound.binding_identity().to_owned(),
-                run_identity: self.identity.clone(),
-                predecessor_stage: stage.identity().to_owned(),
-                consumer_stage: stage.identity().to_owned(),
-                basis_identity: self.bound.basis().capability_digest().to_owned(),
-            },
-        );
+        let admission = self
+            .artifact_authority
+            .output_validation_admission(stage.identity())?;
         handle.validate_output(&admission)
     }
 

@@ -61,6 +61,36 @@ fn dishonest_counter_search_and_loss_material_fail_receipt_admission_exactly() {
             EvidenceScenario::MalformedOptionalCounter,
             domain::WorthQueryDomainEvidenceAdmissionDenialKind::CounterMovedBackward,
         ),
+        (
+            "domain-evidence-undeclared-counter",
+            EvidenceScenario::UndeclaredCounter,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::UndeclaredCounter,
+        ),
+        (
+            "domain-evidence-duplicate-counter",
+            EvidenceScenario::DuplicateCounter,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::DuplicateCounter,
+        ),
+        (
+            "domain-evidence-missing-provider-certification",
+            EvidenceScenario::ProviderCertificationMissing,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::ProviderCertificationMissing,
+        ),
+        (
+            "domain-evidence-missing-decision-summary",
+            EvidenceScenario::MissingDecisionSummary,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::MissingDecisionSummary,
+        ),
+        (
+            "domain-evidence-duplicate-decision-summary",
+            EvidenceScenario::DuplicateDecisionSummary,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::DuplicateDecisionSummary,
+        ),
+        (
+            "domain-evidence-undeclared-decision-summary",
+            EvidenceScenario::UndeclaredDecisionSummary,
+            domain::WorthQueryDomainEvidenceAdmissionDenialKind::UndeclaredDecisionSummary,
+        ),
     ];
 
     for (name, scenario, expected) in cases {

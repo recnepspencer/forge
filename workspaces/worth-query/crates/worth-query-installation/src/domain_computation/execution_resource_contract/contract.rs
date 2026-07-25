@@ -34,7 +34,11 @@ impl WorthQueryExecutionResourceContract {
         validate_resource_contract(self)
     }
 
-    pub(crate) fn canonical_token(&self) -> String {
+    pub fn canonical_identity(&self) -> String {
         canonical_resource_contract_token(self)
+    }
+
+    pub(crate) fn canonical_token(&self) -> String {
+        self.canonical_identity()
     }
 }

@@ -19,6 +19,10 @@ impl FieldKey {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.0.capacity()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

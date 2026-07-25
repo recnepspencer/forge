@@ -10,6 +10,7 @@ members = [
     "crates/worth-query-installation",
     "crates/worth-query-admission",
     "crates/worth-query-execution",
+    "crates/worth-query-publication",
 ]
 default-members = [
     "crates/worth-query",
@@ -32,6 +33,7 @@ worth-query-declaration = { path = "crates/worth-query-declaration" }
 worth-query-installation = { path = "crates/worth-query-installation" }
 worth-query-admission = { path = "crates/worth-query-admission" }
 worth-query-execution = { path = "crates/worth-query-execution" }
+worth-query-publication = { path = "crates/worth-query-publication" }
 
 worth-foundational = { path = "../../crates/worth-foundational" }
 worth-proof = { path = "../../crates/worth-proof" }

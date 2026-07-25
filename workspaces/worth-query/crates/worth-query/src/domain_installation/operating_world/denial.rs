@@ -22,6 +22,7 @@ pub struct WorthQueryOperationBindingCounters {
     pub executor_route_lookups: usize,
     pub workflow_executor_route_lookups: usize,
     pub parallel_admission_route_lookups: usize,
+    pub execution_authority_admissions: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -39,6 +40,7 @@ pub enum WorthQueryOperationBindingDenialKind {
     IncoherentAuthoritySet,
     CommitAuthorityMismatch,
     CompensationUndeclared,
+    ExecutionAuthority,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

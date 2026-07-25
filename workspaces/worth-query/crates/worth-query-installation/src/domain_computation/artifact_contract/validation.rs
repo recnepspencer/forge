@@ -27,6 +27,7 @@ pub enum WorthQueryArtifactContractValidationDenialKind {
     InvalidCarriageContract,
     InvalidStructuralCounterContract,
     InvalidDecisionRecordContract,
+    DecisionGovernanceExceedsArtifact,
     InvalidStageRole,
     InvalidGovernanceContract,
     UnsupportedSchemaVersion,

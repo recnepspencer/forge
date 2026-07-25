@@ -911,6 +911,8 @@ pub struct WorthQueryRuntime {
     evidence_authority: WorthQueryRuntimeEvidenceAuthority,
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     execution_runtime: worth_query_execution::facade::runtime::WorthQueryExecutionRuntime,
+    execution_installation_authority:
+        worth_query_execution::facade::runtime::WorthQueryExecutionInstallationAuthority,
     domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
     domain_operation_executor_registry:
         crate::domain_installation::WorthQueryDomainOperationExecutorRegistry,

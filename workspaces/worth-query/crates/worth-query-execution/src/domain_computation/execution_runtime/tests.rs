@@ -3,6 +3,7 @@ use std::sync::Arc;
 use worth_query_installation::facade::WorthQueryInstallationGeneration;
 
 use super::{WorthQueryExecutionInstallationCommitDenial, WorthQueryExecutionRuntimeInstaller};
+use crate::domain_computation::operation_binding::WorthQueryInstalledDomainExecutionAuthority;
 
 fn empty_runtime() -> super::WorthQueryExecutionRuntime {
     WorthQueryExecutionRuntimeInstaller::new()
@@ -11,6 +12,8 @@ fn empty_runtime() -> super::WorthQueryExecutionRuntime {
             std::iter::empty(),
         )
         .unwrap()
+        .into_parts()
+        .0
 }
 
 #[test]
@@ -65,6 +68,24 @@ fn successor_commit_requires_the_current_owner_and_a_new_identity() {
     let successor_identity = successor.identity().to_string();
     runtime.commit_successor_installation(successor).unwrap();
     assert_eq!(runtime.installed_packages().identity(), successor_identity);
+}
+
+#[test]
+fn successor_commit_revokes_prior_installed_domain_execution_authority() {
+    let mut runtime = empty_runtime();
+    let authority = WorthQueryInstalledDomainExecutionAuthority::mint(
+        runtime.authority_identity(),
+        "test-domain",
+        runtime.installed_packages().generation(),
+        runtime.retain_current_generation(),
+    );
+
+    assert!(authority.is_current_installation_generation());
+
+    let successor = Arc::new(runtime.installed_packages().successor_generation());
+    runtime.commit_successor_installation(successor).unwrap();
+
+    assert!(!authority.is_current_installation_generation());
 }
 
 #[test]

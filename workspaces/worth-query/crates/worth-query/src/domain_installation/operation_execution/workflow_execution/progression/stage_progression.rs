@@ -2,14 +2,17 @@ use crate::basis_lifecycle::BasisOperationLane;
 use crate::runtime::WorthQueryWorkspace;
 
 use super::workflow_graph_execution::invoke_stage_graphs;
+use super::workflow_progression_state::{
+    WorthQueryExecutedWorkflowStage, WorthQueryStageConditionAdmission,
+    WorthQueryWorkflowAdvanceStep,
+};
 use super::workflow_stage_evidence_validation::WorthQueryWorkflowStageValidationInput;
 use super::{
-    WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowAdvanceDenial,
-    WorthQueryWorkflowAdvanceDenialKind, WorthQueryWorkflowRun,
+    WorthQueryAdmittedWorkflowStage, WorthQueryBoundGraphExecutionReceipt,
+    WorthQueryWorkflowAdvanceDenial, WorthQueryWorkflowAdvanceDenialKind, WorthQueryWorkflowRun,
     WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionContext,
-    WorthQueryWorkflowStageExecutionScope, WorthQueryWorkflowStageMaterialParts,
-    WorthQueryWorkflowStageReceipt, WorthQueryWorkflowStageRuntimeAdmission,
-    WorthQueryWorkflowValue,
+    WorthQueryWorkflowStageExecutionScope, WorthQueryWorkflowStageReceipt,
+    WorthQueryWorkflowStageRuntimeAdmission, WorthQueryWorkflowValue,
 };
 use worth_proof::TransitionOutcome;
 
@@ -21,22 +24,6 @@ pub type WorthQueryWorkflowAdvanceOutcome<D, O, F, L> = TransitionOutcome<
     WorthQueryWorkflowAdvanceDenial,
     WorthQueryWorkflowAdvanceDenial,
 >;
-
-pub(super) enum WorthQueryWorkflowAdvanceStep {
-    Advanced,
-    Deferred(Vec<crate::domain_installation::WorthQueryConditionalProvenance>),
-}
-
-enum WorthQueryStageConditionAdmission {
-    Admitted(Vec<crate::domain_installation::WorthQueryConditionalProvenance>),
-    Deferred(Vec<crate::domain_installation::WorthQueryConditionalProvenance>),
-}
-
-struct WorthQueryExecutedWorkflowStage {
-    predecessor_receipt_identities: Vec<String>,
-    material: WorthQueryWorkflowStageMaterialParts,
-    effect_workflow_binding: crate::workflow::WorkflowContextBinding,
-}
 
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
     pub fn advance(
@@ -150,11 +137,43 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         workspace: &mut WorthQueryWorkspace,
         runtime_admission: WorthQueryWorkflowStageRuntimeAdmission,
     ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
-        let counters_before = self.counters;
-        let stage = self.admit_stage(stage_identity, &input, runtime_admission)?;
+        let admitted = self.admit_stage(stage_identity, &input, runtime_admission)?;
+        self.advance_once_with_admitted_stage(admitted, input, workspace)
+    }
+
+    pub(super) fn advance_with_admitted_stage(
+        mut self,
+        admitted: WorthQueryAdmittedWorkflowStage,
+        input: WorthQueryWorkflowValue,
+        workspace: &mut WorthQueryWorkspace,
+    ) -> WorthQueryWorkflowAdvanceOutcome<D, O, F, L> {
+        match self.advance_once_with_admitted_stage(admitted, input, workspace) {
+            Ok(WorthQueryWorkflowAdvanceStep::Advanced) => TransitionOutcome::Success(self),
+            Ok(WorthQueryWorkflowAdvanceStep::Deferred(conditional)) => {
+                TransitionOutcome::Deferred(
+                    crate::domain_installation::WorthQueryDeferredWorkflowStage {
+                        run: self,
+                        conditional,
+                    },
+                )
+            }
+            Err(denial) => self.outcome_from_denial(denial),
+        }
+    }
+
+    fn advance_once_with_admitted_stage(
+        &mut self,
+        admitted: WorthQueryAdmittedWorkflowStage,
+        input: WorthQueryWorkflowValue,
+        workspace: &mut WorthQueryWorkspace,
+    ) -> Result<WorthQueryWorkflowAdvanceStep, WorthQueryWorkflowAdvanceDenial> {
+        let WorthQueryAdmittedWorkflowStage {
+            stage,
+            counters_before,
+        } = admitted;
         let (resources, resource_evidence) = self
             .resource_attempt
-            .stage_resources_and_evidence(stage_identity)
+            .stage_resources_and_evidence(stage.identity())
             .ok_or_else(|| {
                 WorthQueryWorkflowAdvanceDenial::new(
                     WorthQueryWorkflowAdvanceDenialKind::ResourceAdmissionMissing,
@@ -164,7 +183,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         let semantic_input = input.semantic_value();
         let graph_snapshot = workspace.snapshot_identity();
         let conditional = match self.admit_stage_condition(
-            stage_identity,
+            stage.identity(),
             &resources,
             &resource_evidence,
             &graph_snapshot,
@@ -264,10 +283,10 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             resources,
             resource_evidence,
             effect_workflow_binding.clone(),
-        );
+        )?;
         let material = self
             .executor
-            .execute(input, &context, &self.artifact_registry, workspace)
+            .execute(input, &context, workspace)
             .map_err(|failure| {
                 let class = failure.class().clone();
                 let kind = if stage.semantics().failure_classes.contains(&class) {
@@ -321,8 +340,26 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
         resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
         resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,
         effect_workflow_binding: crate::workflow::WorkflowContextBinding,
-    ) -> WorthQueryWorkflowStageExecutionContext<'a> {
-        WorthQueryWorkflowStageExecutionContext::new(
+    ) -> Result<WorthQueryWorkflowStageExecutionContext<'a>, WorthQueryWorkflowAdvanceDenial> {
+        let artifact_production_authority = self
+            .artifact_authority
+            .production_authority(stage.identity())
+            .map_err(|denial| {
+                WorthQueryWorkflowAdvanceDenial::new(
+                    WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(denial),
+                    self.counters,
+                )
+            })?;
+        let artifact_access_authority = self
+            .artifact_authority
+            .access_authority(stage.identity())
+            .map_err(|denial| {
+                WorthQueryWorkflowAdvanceDenial::new(
+                    WorthQueryWorkflowAdvanceDenialKind::ArtifactCarriage(denial),
+                    self.counters,
+                )
+            })?;
+        Ok(WorthQueryWorkflowStageExecutionContext::new(
             WorthQueryWorkflowStageExecutionScope {
                 operation_identity: self.bound.definition().canonical_identity(),
                 binding_identity: self.bound.binding_identity(),
@@ -351,18 +388,9 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                     .basis()
                     .capability_digest()
                     .to_owned(),
-                domain_authority: std::sync::Arc::clone(self.bound.operation().domain_authority()),
-                output_artifact_contract: self
-                    .graph
-                    .artifact_contracts(stage.identity())
-                    .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::output)
-                    .map(std::sync::Arc::clone),
-                input_artifact_contract: self
-                    .graph
-                    .artifact_contracts(stage.identity())
-                    .and_then(super::WorthQueryInstalledWorkflowArtifactContracts::input)
-                    .map(std::sync::Arc::clone),
+                artifact_access_authority,
+                artifact_production_authority,
             },
-        )
+        ))
     }
 }

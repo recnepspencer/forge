@@ -103,7 +103,8 @@ pub(crate) fn compile_direct_semantic_aspect_dependencies<D, O, F, L: BasisOpera
             WorthQuerySemanticAspectDependencyLocus::DirectOutput,
             WorthQuerySemanticDependencyRole::ProjectedValue,
             WorthQuerySemanticAspectDependencySource::RealizedDirectOutput {
-                execution: execution.clone(),
+                result_state: execution.result_state(),
+                output_identity: execution.output_identity().to_owned(),
                 publication: publication.clone(),
             },
         ));

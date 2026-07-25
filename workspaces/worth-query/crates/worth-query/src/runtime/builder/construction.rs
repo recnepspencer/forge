@@ -49,7 +49,7 @@ impl WorthQueryRuntimeBuilder {
                 stage: "graph_participation_installation",
                 message: format!("{:?}: {}", denial.kind(), denial.detail()),
             })?;
-        let execution_runtime = execution_runtime_installer
+        let execution_runtime_installation = execution_runtime_installer
             .install(
                 worth_query_installation::facade::WorthQueryInstallationGeneration::initial(),
                 installed_domain_artifacts
@@ -57,6 +57,8 @@ impl WorthQueryRuntimeBuilder {
                     .map(|artifact| artifact.portable_package.clone()),
             )
             .expect("locally admitted packages must build the execution installed index");
+        let (execution_runtime, execution_installation_authority) =
+            execution_runtime_installation.into_parts();
         let domain_installation_registry =
             crate::domain_installation::WorthQueryDomainInstallationRegistry::from_artifacts(
                 installed_domain_artifacts,
@@ -105,6 +107,7 @@ impl WorthQueryRuntimeBuilder {
             evidence_authority: WorthQueryRuntimeEvidenceAuthority::new(),
             authority_identity,
             execution_runtime,
+            execution_installation_authority,
             domain_installation_registry,
             domain_operation_executor_registry,
             workflow_stage_executor_registry,

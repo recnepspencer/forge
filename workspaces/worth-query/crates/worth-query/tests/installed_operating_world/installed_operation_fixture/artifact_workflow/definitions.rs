@@ -4,6 +4,7 @@ use worth_query::facade::domain;
 pub enum ArtifactWorkflowKind {
     Move,
     Lease,
+    Integrated,
 }
 
 pub fn workflow_definition(
@@ -13,22 +14,18 @@ pub fn workflow_definition(
     let artifact =
         || domain::WorthQueryWorkflowValueContract::installed_artifact(contract.reference());
     let stages = match kind {
-        ArtifactWorkflowKind::Move => vec![
-            stage(
-                "produce",
-                [],
-                false,
-                domain::WorthQueryWorkflowValueContract::Text,
-                artifact(),
-            ),
-            stage(
-                "consume",
-                ["produce"],
-                true,
-                artifact(),
-                domain::WorthQueryWorkflowValueContract::Text,
-            ),
-        ],
+        ArtifactWorkflowKind::Move => move_stages(artifact()),
+        ArtifactWorkflowKind::Integrated => {
+            let mut stages = move_stages(artifact());
+            let consumer = stages
+                .pop()
+                .expect("the move workflow ends with its consumer");
+            let mut semantics = consumer.semantics().clone();
+            semantics.evidence =
+                domain::WorthQueryDomainEvidenceContract::installed_artifact(contract.reference());
+            stages.push(consumer.with_semantics(semantics));
+            stages
+        }
         ArtifactWorkflowKind::Lease => vec![
             stage(
                 "produce",
@@ -54,6 +51,27 @@ pub fn workflow_definition(
         ],
     };
     domain::WorthQueryPortableWorkflowDefinition::new("produce", stages)
+}
+
+fn move_stages(
+    artifact: domain::WorthQueryWorkflowValueContract,
+) -> Vec<domain::WorthQueryPortableWorkflowStage> {
+    vec![
+        stage(
+            "produce",
+            [],
+            false,
+            domain::WorthQueryWorkflowValueContract::Text,
+            artifact.clone(),
+        ),
+        stage(
+            "consume",
+            ["produce"],
+            true,
+            artifact,
+            domain::WorthQueryWorkflowValueContract::Text,
+        ),
+    ]
 }
 
 fn stage(

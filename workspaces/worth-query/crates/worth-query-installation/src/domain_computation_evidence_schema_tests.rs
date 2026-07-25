@@ -31,7 +31,7 @@ fn counter_unit_aggregation_requiredness_and_replay_change_identity() {
     );
     let aggregation = identity(
         counters_with_domain_aggregation(WorthQueryStructuralCounterAggregation::MaximumOf(vec![
-            counter("elements"),
+            counter("source-comparisons"),
         ])),
         decisions(false, RetentionDeliveryProfile::Retained),
     );
@@ -175,6 +175,14 @@ fn contract(
     base_builder()
         .counters(counters)
         .decisions(decisions)
+        .governance(WorthQueryArtifactGovernanceContract::new(
+            ["internal"],
+            WorthQueryArtifactClassification::Restricted,
+            WorthQueryArtifactRedactionPosture::CanonicalProjectionOnly,
+            RetentionDeliveryProfile::Durable,
+            WorthQueryArtifactDeletionPosture::DeleteAfterRetention,
+            WorthQueryArtifactLegalHoldPosture::DomainControlled,
+        ))
         .compatibility(active_compatibility())
         .finish()
         .unwrap()
@@ -261,6 +269,14 @@ fn counters_with_domain_aggregation(
         WorthQueryStructuralCounterRequiredness::OptionalSidecar,
         WorthQueryStructuralCounterReplayPosture::NotCompared,
     );
+    rows.push(schema(
+        "source-comparisons",
+        WorthQueryStructuralCounterRole::DomainWork,
+        WorthQueryStructuralCounterUnit::Comparisons,
+        WorthQueryStructuralCounterAggregation::Independent,
+        WorthQueryStructuralCounterRequiredness::OptionalSidecar,
+        WorthQueryStructuralCounterReplayPosture::NotCompared,
+    ));
     WorthQueryStructuralCounterContract::declare(rows)
 }
 

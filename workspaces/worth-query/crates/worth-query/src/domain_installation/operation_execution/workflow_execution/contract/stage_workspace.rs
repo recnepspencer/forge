@@ -6,8 +6,6 @@ use super::WorthQueryWorkflowEffectEvidence;
 /// the stage context and therefore enforce declared reads and effects first.
 pub struct WorthQueryWorkflowStageWorkspace<'a> {
     pub(super) workspace: &'a mut WorthQueryWorkspace,
-    pub(super) artifact_registry:
-        &'a crate::domain_installation::WorthQueryWorkflowArtifactRegistry,
     pub(super) artifact_production_authority:
         Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
     pub(super) artifact_access_authority:
@@ -19,7 +17,6 @@ pub struct WorthQueryWorkflowStageWorkspace<'a> {
 impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
     pub(crate) fn new(
         workspace: &'a mut WorthQueryWorkspace,
-        artifact_registry: &'a crate::domain_installation::WorthQueryWorkflowArtifactRegistry,
         artifact_production_authority: Option<
             std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>,
         >,
@@ -29,7 +26,6 @@ impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
     ) -> Self {
         Self {
             workspace,
-            artifact_registry,
             artifact_production_authority,
             artifact_access_authority,
             installed_read_executions: 0,
@@ -69,14 +65,15 @@ impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
         crate::domain_installation::WorthQueryMoveOnlyArtifactHandle,
         crate::domain_installation::WorthQueryArtifactDenial,
     > {
-        let guarded = crate::domain_installation::WorthQueryGuardedArtifactResource::new(resource);
-        self.register_guarded_artifact(admission, guarded)
+        self.register_artifact_resource(admission, resource)
     }
 
-    pub(super) fn register_guarded_artifact(
+    pub(super) fn register_artifact_resource<
+        R: crate::domain_installation::WorthQueryArtifactProviderResource,
+    >(
         &self,
         admission: crate::domain_installation::WorthQueryArtifactProductionAdmission,
-        guarded: crate::domain_installation::WorthQueryGuardedArtifactResource,
+        resource: R,
     ) -> Result<
         crate::domain_installation::WorthQueryMoveOnlyArtifactHandle,
         crate::domain_installation::WorthQueryArtifactDenial,
@@ -91,16 +88,9 @@ impl<'a> WorthQueryWorkflowStageWorkspace<'a> {
                     "workflow stage has no artifact production authority",
                 )
             })?;
-        crate::domain_installation::WorthQueryArtifactProductionAuthority::validate_exact(
-            expected,
-            &admission.authority,
-        )?;
-        let handle = crate::domain_installation::WorthQueryMoveOnlyArtifactHandle::register(
-            admission,
-            guarded.prepare(),
-        )?;
-        self.artifact_registry.register(&handle);
-        Ok(handle)
+        crate::domain_installation::WorthQueryArtifactProductionAuthority::register_exact(
+            expected, admission, resource,
+        )
     }
 
     pub(crate) fn into_executed_effects(self) -> Vec<WorthQueryWorkflowEffectEvidence> {

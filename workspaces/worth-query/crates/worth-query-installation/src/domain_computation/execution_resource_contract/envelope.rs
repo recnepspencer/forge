@@ -1,7 +1,8 @@
 use worth_query_declaration::facade::domain_computation::{
     WorthQueryCancellationSafePointFamily, WorthQueryExecutionDegradation, WorthQueryExecutionMode,
-    WorthQueryExecutionResourceRequest, WorthQueryResourceDimension,
-    WorthQueryResourceLimitRequest, WorthQuerySemanticScaleAxis, WorthQuerySemanticScaleRequest,
+    WorthQueryExecutionResourceRequest, WorthQueryPartialEffectPosture,
+    WorthQueryResourceDimension, WorthQueryResourceLimitRequest, WorthQuerySemanticScaleAxis,
+    WorthQuerySemanticScaleRequest,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,6 +11,7 @@ pub struct WorthQueryExecutionResourceEnvelope {
     resource_ceilings: WorthQueryResourceLimitRequest,
     mode: WorthQueryExecutionMode,
     degradation: Option<WorthQueryExecutionDegradation>,
+    partial_effect_posture: WorthQueryPartialEffectPosture,
     cancellation_safe_point: WorthQueryCancellationSafePointFamily,
 }
 
@@ -26,6 +28,7 @@ impl WorthQueryExecutionResourceEnvelope {
             resource_ceilings,
             mode,
             degradation,
+            partial_effect_posture: WorthQueryPartialEffectPosture::EffectFree,
             cancellation_safe_point,
         }
     }
@@ -57,6 +60,14 @@ impl WorthQueryExecutionResourceEnvelope {
             .expect("installed resource envelope has every resource dimension")
     }
 
+    pub fn queue_depth_ceiling(&self) -> u64 {
+        self.resource_ceiling(WorthQueryResourceDimension::QueueDepth)
+    }
+
+    pub fn concurrency_width_ceiling(&self) -> u64 {
+        self.resource_ceiling(WorthQueryResourceDimension::ConcurrencyWidth)
+    }
+
     pub fn scale_ceilings(&self) -> &WorthQuerySemanticScaleRequest {
         &self.scale_ceilings
     }
@@ -71,6 +82,15 @@ impl WorthQueryExecutionResourceEnvelope {
 
     pub fn degradation(&self) -> Option<WorthQueryExecutionDegradation> {
         self.degradation
+    }
+
+    pub const fn partial_effect_posture(&self) -> WorthQueryPartialEffectPosture {
+        self.partial_effect_posture
+    }
+
+    pub fn with_partial_effect_posture(mut self, posture: WorthQueryPartialEffectPosture) -> Self {
+        self.partial_effect_posture = posture;
+        self
     }
 
     pub fn cancellation_safe_point(&self) -> &WorthQueryCancellationSafePointFamily {
@@ -90,6 +110,9 @@ impl WorthQueryExecutionResourceEnvelope {
             && self
                 .degradation
                 .is_none_or(|degradation| request.degradations().contains(&degradation))
+            && request
+                .partial_effect_postures()
+                .contains(&self.partial_effect_posture)
             && request.cancellation_safe_point() == self.cancellation_safe_point()
     }
 }

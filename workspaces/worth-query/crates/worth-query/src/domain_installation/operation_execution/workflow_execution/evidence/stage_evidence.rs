@@ -11,14 +11,11 @@ use super::{
 pub struct WorthQueryInstalledWorkflowGraph {
     definition: worth_query_installation::facade::WorthQueryPortableWorkflowDefinition,
     stage_index: BTreeMap<String, usize>,
-    artifact_contracts: BTreeMap<String, super::WorthQueryInstalledWorkflowArtifactContracts>,
 }
 
 impl WorthQueryInstalledWorkflowGraph {
     pub(crate) fn compile(
         operation: &worth_query_installation::facade::WorthQueryPortableDomainOperationDefinition,
-        owner: &str,
-        portable_index: &worth_query_installation::facade::WorthQueryInstalledPackageIndex,
     ) -> Option<Self> {
         match &operation.semantics().workflow {
             worth_query_installation::facade::WorthQueryOperationWorkflowContract::Declared(
@@ -31,15 +28,9 @@ impl WorthQueryInstalledWorkflowGraph {
                     .enumerate()
                     .map(|(index, stage)| (stage.identity().to_string(), index))
                     .collect();
-                let artifact_contracts = super::compile_workflow_artifact_contracts(
-                    owner,
-                    definition.stages(),
-                    portable_index,
-                );
                 Some(Self {
                     definition,
                     stage_index,
-                    artifact_contracts,
                 })
             }
             worth_query_installation::facade::WorthQueryOperationWorkflowContract::NotRequired => {
@@ -63,13 +54,6 @@ impl WorthQueryInstalledWorkflowGraph {
         self.stage_index
             .get(identity)
             .map(|index| &self.definition.stages()[*index])
-    }
-
-    pub(super) fn artifact_contracts(
-        &self,
-        stage_identity: &str,
-    ) -> Option<&super::WorthQueryInstalledWorkflowArtifactContracts> {
-        self.artifact_contracts.get(stage_identity)
     }
 }
 

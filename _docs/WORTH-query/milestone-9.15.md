@@ -808,17 +808,56 @@ and retained progress rather than live-query lifecycle labels reused by analogy.
 **Relevant subsystems**
 
 - `worth-query-execution` managed run owner
-- temporal/async result-state and continuation contracts
+- `worth-signal` resource-request generation, attempt, cancellation, retry,
+  timeout, wake, and backpressure authority
+- `worth-runtime-bridge` binding of Signal request identity to retained
+  lower-runtime execution basis
+- `worth-relational` and provider-owned snapshot retention or readmission
 - artifact owner and resource envelope
-- Store handoff for durable checkpoints
+- temporal/async result-state and continuation contracts
+- host-composed Store handoff for durable checkpoints, reload, and recovery
 
 **Relevant APIs**
 
 - stage executor context
-- cancellation token/probe
+- Signal-minted `ResourceRequestHandle`, `ResourceGeneration`,
+  `ResourceAttemptId`, cancellation outcome, and wake/retry evidence
+- bridge-minted admitted async request identity and execution-resume basis
+- Relational/provider-minted retained snapshot lease or fresh readmission
+  receipt
 - bounded chunk sink
-- run continuation and cleanup receipts
+- Query-minted yielded-run capability, resume admission, new attempt identity,
+  and cleanup receipts
 - convergence-epoch admission and progress evidence
+
+**Authority split**
+
+- Signal owns scheduling, cancellation truth, wake/retry/timeout progression,
+  request generation, and resource-attempt identity. Query consumes
+  Signal-minted evidence; it does not mint a parallel cancellation token,
+  scheduler, or retry state machine.
+- Relational and the physical provider own snapshot truth and whether the
+  retained or restored basis is still usable. A copied snapshot identifier,
+  public descriptor, or digest is not basis authority.
+- The runtime bridge owns the exact binding between the active Signal request,
+  lower-runtime route, truth-view basis, provider generation, and retained
+  branch posture. Existing subscription-resume authority may be reused only if
+  its contract is genuinely execution-generic; it may not be renamed or
+  wrapped into domain-computation authority by analogy.
+- Query owns the semantic run state machine, yielded-run capability, resume
+  eligibility, logical-run linkage, fresh attempt minting, public outcome, and
+  evidence carriage. Query does not reconstruct lower authority from
+  representations.
+- Store owns durable checkpoint bytes, WAL/journal order, restart survival,
+  corruption detection, reload, migration, transaction recovery, and
+  reconciliation persistence. The host composes Store restoration with the
+  lower-runtime and Query readmission sequence; Query gains no dependency on
+  Store.
+
+If Signal, Relational, the runtime bridge, or the provider does not yet expose
+the concrete authority required above, that missing lower-authority seam is a
+prerequisite of this phase. Query must not replace it with a local marker,
+copied identifier, digest comparison, or host assertion.
 
 **Required state machine**
 
@@ -832,9 +871,9 @@ AdmittedRun
      | Degraded
      | Failed
 
-Yielded
-  -> ResumptionAdmission
-  -> ResumedRun
+YieldedRun
+  -> RuntimeResumeReadmission
+  -> ResumedRunWithFreshAttempt
 
 Cancelled | Exhausted | Failed
   -> CleanupComplete
@@ -845,8 +884,51 @@ Cancelled | Exhausted | Failed
 Every transition records actual completed work, effects, owned/leased artifacts,
 scratch and retained bytes, provider session state, continuation/checkpoint
 identity where present, cleanup disposition, and recovery authority. Only a
-runtime-minted continuation bound to the same installed contract and admitted
-basis can resume.
+Query-minted yielded-run capability can request resume, and possession of that
+capability is necessary but not sufficient. Runtime resume requires fresh,
+concrete proof of all of the following before provider work:
+
+- the same installed operation and compatible artifact schema versions
+- the same logical run, semantic basis, resource envelope, and unfinished
+  terminal posture
+- an admitted Signal request generation and fresh resource-attempt identity
+- a bridge-minted execution-resume basis for the exact lower-runtime route and
+  branch posture
+- a Relational/provider-minted retained basis lease or fresh readmission
+  receipt
+- a provider-owned checkpoint/continuation handle whose provider generation
+  and retained resource posture still match
+
+Successful readmission mints a new execution attempt joined to the original
+logical run. It does not reuse the yielded attempt identity. Any mismatch
+denies before scheduling, allocation, provider restore, domain work, or effect
+application.
+
+Runtime-bound resume and durable restore are different lanes:
+
+```text
+SameRuntimeYield
+  -> QueryYieldedRunCapability
+  -> FreshLowerAuthorityBundle
+  -> QueryResumeReadmission
+  -> ResumedRunWithFreshAttempt
+
+QueryYieldedRunCapability
+  -> CheckpointExportHandoff
+  -> StoreOwnedDurableCheckpoint
+  -> HostOrchestratedRestore
+  -> RestoredLowerAuthorityBundle
+  -> QueryResumeReadmission
+  -> ResumedRunWithFreshAttempt
+```
+
+Phase 6 implements the first lane and the Query/provider contracts at the
+handoff boundaries of the second lane. It does not implement checkpoint
+serialization, persistence, WAL, restart reconstruction, cursor storage,
+payload migration, or recovery orchestration. Restored bytes, cursor position,
+or a serialized Query projection have zero resume authority until Store,
+Relational, Signal, the runtime bridge, and the provider have each restored or
+minted their own concrete authority and Query has admitted the complete bundle.
 
 An iterative domain operation may additionally advance:
 
@@ -868,11 +950,37 @@ checkpoint posture, and repeated-state/oscillation evidence. Each iteration is
 a bounded execution step; the domain supplies convergence meaning and Query
 governs only progression, accounting, cancellation, and retained evidence.
 
+**Implementation sequence within this phase**
+
+1. Close the permanent execution-authority destination required by Milestone
+   9.13.2 so `managed_run` and `convergence_epoch` live in
+   `worth-query-execution`, audience facades consume that authority, and no
+   managed lifecycle is born inside the shrinking monolith or a host facade.
+2. Close managed run progression through actual Signal, bridge, Relational,
+   provider, and artifact-owner boundaries: admission, running, cooperative
+   safe points, backpressure, yield, same-runtime readmission, fresh attempts,
+   terminal outcomes, cleanup, and the Store checkpoint handoff contract.
+3. Close convergence epochs as a consumer of the completed managed-run
+   lifecycle. Convergence adds installed iteration/comparator/incumbent and
+   oscillation semantics; it does not create a second scheduler, cancellation
+   lane, continuation authority, or resource owner.
+
+Each item is a coherent vertical slice and must leave its boundary usable and
+tested. The sequence is not permission to claim Phase 6 complete before all
+three items and their hostile evidence close.
+
 **Warnings**
 
 - Cancellation does not imply transaction abort unless the attempt phase proves
   abort completion.
 - A yielded checkpoint is not durable merely because it is serializable.
+- Query-local atomics, cancellation flags, wake loops, retry schedulers, or
+  copied Signal request fields are parallel authority and are prohibited.
+- A snapshot handle, branch identifier, provider cursor, digest, or stored
+  checkpoint payload is representation, not resume authority.
+- The live-subscription continuation and the legacy async materialization job
+  are not managed domain-run authority. Reuse requires a shared semantic
+  contract, not similar lifecycle labels.
 - Polling a token only before and after one unbounded domain callback does not
   satisfy cooperative cancellation.
 - Partial result delivery must not become authoritative publication.
@@ -886,12 +994,23 @@ governs only progression, accounting, cancellation, and retained evidence.
 **Test requirements**
 
 - Safe-point matrix: cancellation at every declared safe point produces the
-  exact state, cleanup, retained-artifact, and effect posture required there.
+  exact state, cleanup, retained-artifact, effect, Signal request-generation,
+  and provider-session posture required there from actual completed work.
 - Resume parity test: uninterrupted and repeatedly yielded/resumed runs converge
   on equivalent semantic result, footprint, invariant, and structural-counter
   evidence.
-- Stale continuation test: foreign runtime, provider, generation, basis,
-  resource envelope, artifact version, or completed attempt denies before work.
+- Lower-authority substitution matrix: foreign or stale Signal request
+  generation/attempt, bridge route/branch basis, Relational/provider basis
+  lease, provider generation/checkpoint handle, runtime, resource envelope,
+  artifact version, or completed attempt denies before work.
+- Representation non-authority test: copied snapshot identifiers, equal
+  digests, serialized continuation projections, Store-restored cursor bytes,
+  and host assertions cannot resume without the complete freshly admitted
+  lower-authority bundle.
+- Query/Store boundary test: the runtime-bound Query lane builds and executes
+  with no Store dependency, while a host-composed fake durable restore can enter
+  only through the same lower-authority readmission contract and gains no
+  alternate resume semantics.
 - Leak/backpressure test: stalled consumers and cancelled producers leave no
   unbounded queue, orphan arena, provider session, artifact owner, or promotable
   partial result.
@@ -907,11 +1026,22 @@ governs only progression, accounting, cancellation, and retained evidence.
 
 **Engineering decisions**
 
-- Query owns run/continuation authority and state transitions. Domains define
-  checkpoint semantic payloads; Store owns durable survival and reload.
+- Query owns semantic run/continuation authority and state transitions, but a
+  continuation cannot mint scheduling, truth-basis, route, provider, or durable
+  authority. Domains define checkpoint semantic payloads; providers define
+  physical checkpoint handles; Store owns durable survival and reload.
 - Providers report actual safe-point work and retained resource state.
 - Resumption is a new execution attempt joined to the original logical run, not
   identity reuse.
+- Same-runtime resume is Phase 6 product behavior. Durable restart is a Store
+  composition over the same Query readmission contract, not a Query-local
+  persistence implementation or a second state machine.
+- The host orders durable restoration: Store recovers and validates the
+  physical checkpoint; Relational readmits or retains the truth basis; Signal
+  mints a request generation and fresh attempt; the runtime bridge binds the
+  route and lower-runtime basis; the provider restores physical state and
+  returns its authority; Query then admits semantic resumption. Query never
+  accepts a raw stored cursor or digest as a shortcut.
 - Convergence is single-basis execution in this milestone. Rebase, participant
   roles, deferral, supersession, and durable decision recovery belong to the
   cross-runtime governed-resolution substrate.

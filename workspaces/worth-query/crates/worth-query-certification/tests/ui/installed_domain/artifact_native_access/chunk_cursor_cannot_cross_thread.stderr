@@ -11,18 +11,18 @@ error[E0277]: `Rc<()>` cannot be sent between threads safely
   = help: within `{closure@$DIR/tests/ui/installed_domain/artifact_native_access/chunk_cursor_cannot_cross_thread.rs:4:24: 4:31}`, the trait `Send` is not implemented for `Rc<()>`
 note: required because it appears within the type `PhantomData<Rc<()>>`
  --> $RUST/core/src/marker.rs
-note: required because it appears within the type `worth_query::domain_installation::operation_execution::artifact_owner::native_access::thread_bound::WorthQueryArtifactThreadBound`
- --> $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/artifact_owner/native_access/thread_bound.rs
+note: required because it appears within the type `worth_query_execution::domain_computation::artifact_owner::native_access::thread_bound::WorthQueryArtifactThreadBound`
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/artifact_owner/native_access/thread_bound.rs
   |
   | pub(super) struct WorthQueryArtifactThreadBound {
   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: required because it appears within the type `worth_query::domain_installation::operation_execution::artifact_owner::native_access::admission::WorthQueryArtifactNativeAccessAdmission<'_>`
- --> $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/artifact_owner/native_access/admission.rs
+note: required because it appears within the type `worth_query_execution::domain_computation::artifact_owner::native_access::admission::WorthQueryArtifactNativeAccessAdmission<'_>`
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/artifact_owner/native_access/admission.rs
   |
   | pub(crate) struct WorthQueryArtifactNativeAccessAdmission<'a> {
   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 note: required because it appears within the type `WorthQueryArtifactChunkCursor<'_>`
- --> $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/artifact_owner/native_access/chunk_cursor.rs
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/artifact_owner/native_access/chunk_cursor.rs
   |
   | pub struct WorthQueryArtifactChunkCursor<'a> {
   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

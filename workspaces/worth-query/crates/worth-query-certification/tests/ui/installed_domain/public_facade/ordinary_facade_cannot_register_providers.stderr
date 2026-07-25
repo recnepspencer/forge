@@ -9,11 +9,8 @@ help: a similar name exists in the module
 1 - use worth_query::facade::installed::conditional::WorthQueryConditionalNodeComputeProvider;
 1 + use worth_query::facade::installed::conditional::WorthQueryConditionalNodeRole;
   |
-help: consider importing one of these traits instead
+help: consider importing this trait instead
   |
 1 - use worth_query::facade::installed::conditional::WorthQueryConditionalNodeComputeProvider;
 1 + use worth_query::facade::domain::WorthQueryConditionalNodeComputeProvider;
-  |
-1 - use worth_query::facade::installed::conditional::WorthQueryConditionalNodeComputeProvider;
-1 + use worth_query_host::facade::domain::WorthQueryConditionalNodeComputeProvider;
   |

@@ -1,6 +1,7 @@
 use worth_query::facade::{domain, installed};
 
 mod attempt_evidence;
+mod live_saturation;
 mod provider_surfaces;
 mod rejection_order;
 mod strategy_lattice;
@@ -72,11 +73,17 @@ fn support_with_requirements(
     access: &str,
     allocator: &str,
 ) -> domain::WorthQueryExecutionResourceSupport {
+    let concurrent_attempt_limit =
+        usize::try_from(envelope.concurrency_width_ceiling()).unwrap_or(usize::MAX);
     domain::WorthQueryExecutionResourceSupport::new(
         domain::WorthQueryExecutionProviderFamily::new(provider).unwrap(),
         domain::WorthQueryExecutionAccessProductFamily::new(access).unwrap(),
         domain::WorthQueryExecutionAllocatorFamily::new(allocator).unwrap(),
         envelope,
+        std::sync::Arc::new(
+            domain::WorthQueryFixedExecutionCapacity::mint(provider, concurrent_attempt_limit)
+                .unwrap(),
+        ),
     )
 }
 

@@ -8,6 +8,7 @@ use super::WorthQueryExecutionResourceSupportSnapshot;
 
 pub(super) fn admitted_plan_identity(
     binding_identity: &str,
+    contract_identity: &str,
     request_identity: &str,
     support: &WorthQueryExecutionResourceSupportSnapshot,
     strategy: &WorthQueryExecutionStrategyContract,
@@ -16,6 +17,7 @@ pub(super) fn admitted_plan_identity(
     hash_parts(&[
         "worth_query_admitted_execution_resource_plan_v1".into(),
         format!("binding:{binding_identity}"),
+        format!("contract:{contract_identity}"),
         format!("request:{request_identity}"),
         format!("support:{}", support.identity()),
         format!("strategy:{}", strategy.name().as_str()),
@@ -33,6 +35,10 @@ pub(super) fn admitted_envelope_identity(envelope: &WorthQueryExecutionResourceE
             envelope
                 .degradation()
                 .map_or("complete", |degradation| degradation.as_str())
+        ),
+        format!(
+            "partial-effect:{}",
+            envelope.partial_effect_posture().as_str()
         ),
         format!(
             "scale:{}",

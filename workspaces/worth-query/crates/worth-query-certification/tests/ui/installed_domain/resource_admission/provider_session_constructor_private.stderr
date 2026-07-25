@@ -1,10 +1,29 @@
 error[E0624]: associated function `mint` is private
  --> tests/ui/installed_domain/resource_admission/provider_session_constructor_private.rs:4:41
   |
+4 |       WorthQueryExecutionProviderSession::mint("forged-attempt")
+  |                                           ^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/session_identity.rs
+  |
+  | /     pub(super) fn mint(
+  | |         attempt_identity: &str,
+  | |         binding_authority: &WorthQueryExecutionBoundOperationAuthority,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+ --> tests/ui/installed_domain/resource_admission/provider_session_constructor_private.rs:4:5
+  |
 4 |     WorthQueryExecutionProviderSession::mint("forged-attempt")
-  |                                         ^^^^ private associated function
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------ argument #2 of type `&WorthQueryExecutionBoundOperationAuthority` is missing
   |
- ::: $WORKSPACE/crates/worth-query/src/domain_installation/operation_execution/execution_resource_admission/provider_session.rs
+note: associated function defined here
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/session_identity.rs
   |
-  |     pub(crate) fn mint(attempt_identity: &str) -> Self {
-  |     -------------------------------------------------- private associated function defined here
+  |     pub(super) fn mint(
+  |                   ^^^^
+help: provide the argument
+  |
+4 |     WorthQueryExecutionProviderSession::mint("forged-attempt", /* &WorthQueryExecutionBoundOperationAuthority */)
+  |                                                              +++++++++++++++++++++++++++++++++++++++++++++++++++

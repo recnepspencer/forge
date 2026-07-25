@@ -38,6 +38,15 @@ pub(super) fn validate(
     {
         return Err(denial(contract, Kind::InvalidGovernanceContract));
     }
+    if contract.decisions.schemas().iter().any(|decision| {
+        !contract
+            .governance
+            .classification()
+            .can_contain(decision.classification())
+            || contract.governance.retention() < decision.retention()
+    }) {
+        return Err(denial(contract, Kind::DecisionGovernanceExceedsArtifact));
+    }
     Ok(())
 }
 
@@ -47,3 +56,6 @@ fn denial(
 ) -> WorthQueryArtifactContractValidationDenial {
     WorthQueryArtifactContractValidationDenial::new(kind, contract.family.as_str())
 }
+
+#[cfg(test)]
+mod tests;

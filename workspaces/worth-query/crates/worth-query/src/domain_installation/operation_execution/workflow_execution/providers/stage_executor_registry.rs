@@ -30,7 +30,6 @@ trait ErasedWorkflowStageExecutor: Send + Sync {
         &self,
         input: WorthQueryWorkflowValue,
         context: &WorthQueryWorkflowStageExecutionContext<'_>,
-        artifact_registry: &super::WorthQueryWorkflowArtifactRegistry,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryWorkflowStageMaterial, WorthQueryWorkflowStageExecutorFailure>;
 }
@@ -78,12 +77,10 @@ where
         &self,
         input: WorthQueryWorkflowValue,
         context: &WorthQueryWorkflowStageExecutionContext<'_>,
-        artifact_registry: &super::WorthQueryWorkflowArtifactRegistry,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryWorkflowStageMaterial, WorthQueryWorkflowStageExecutorFailure> {
         let mut workspace = WorthQueryWorkflowStageWorkspace::new(
             workspace,
-            artifact_registry,
             context.artifact_production_authority(),
             context.artifact_access_authority(),
         );
@@ -150,11 +147,9 @@ impl WorthQueryInstalledWorkflowStageExecutor {
         &self,
         input: WorthQueryWorkflowValue,
         context: &WorthQueryWorkflowStageExecutionContext<'_>,
-        artifact_registry: &super::WorthQueryWorkflowArtifactRegistry,
         workspace: &mut WorthQueryWorkspace,
     ) -> Result<WorthQueryWorkflowStageMaterial, WorthQueryWorkflowStageExecutorFailure> {
-        self.executor
-            .execute(input, context, artifact_registry, workspace)
+        self.executor.execute(input, context, workspace)
     }
 
     pub(crate) fn replay_comparator(&self) -> Option<Arc<dyn ErasedReplaySemanticComparator>> {

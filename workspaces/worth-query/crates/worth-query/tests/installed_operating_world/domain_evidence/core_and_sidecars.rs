@@ -7,7 +7,7 @@ use super::assertions::{
 use super::execution::{admitted_receipt, evidence, inspection};
 
 #[test]
-fn honest_evidence_preserves_governed_core_and_narrows_sidecars_across_copies() {
+fn honest_evidence_keeps_payload_in_its_owner_and_narrows_all_derived_copies() {
     let receipt = admitted_receipt(
         "domain-evidence-honest",
         EvidenceScenario::Honest,
@@ -20,7 +20,7 @@ fn honest_evidence_preserves_governed_core_and_narrows_sidecars_across_copies() 
         evidence,
         runtime::CausalInspectionRedactionPolicy::PreserveDetail,
     );
-    assert_preserved_copy(&preserved, evidence);
+    assert_non_owning_copy(&preserved, evidence);
 
     let digested = inspection(
         evidence,
@@ -70,18 +70,31 @@ fn assert_admitted_evidence(
     );
 }
 
-fn assert_preserved_copy(
+fn assert_non_owning_copy(
     preserved: &runtime::WorthQueryDomainEvidenceInspectionCopy,
     evidence: &domain::WorthQueryAdmittedDomainEvidence,
 ) {
     assert_eq!(preserved.core(), evidence.core());
     assert_eq!(preserved.governance(), evidence.governance());
-    assert_optional_counter_sidecar(preserved.counter_sidecar().records().unwrap());
-    assert_eq!(preserved.decision_sidecar().records().unwrap().len(), 1);
-    assert_eq!(preserved.candidate_sidecar().records().unwrap().len(), 2);
+    assert!(preserved.counter_sidecar().records().is_none());
+    assert!(preserved.decision_sidecar().records().is_none());
+    assert!(preserved.candidate_sidecar().records().is_none());
+    assert!(preserved.transformation_sidecar().records().is_none());
     assert_eq!(
-        preserved.transformation_sidecar().records().unwrap().len(),
-        1
+        preserved.counter_sidecar().digest(),
+        evidence.counter_sidecar().digest()
+    );
+    assert_eq!(
+        preserved.decision_sidecar().digest(),
+        evidence.decision_sidecar().digest()
+    );
+    assert_eq!(
+        preserved.candidate_sidecar().digest(),
+        evidence.candidate_sidecar().digest()
+    );
+    assert_eq!(
+        preserved.transformation_sidecar().digest(),
+        evidence.transformation_sidecar().digest()
     );
     assert_eq!(
         preserved.authority_posture(),

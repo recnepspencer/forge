@@ -291,11 +291,12 @@ internal_packages = [
   "worth-query-installation",
   "worth-query-admission",
   "worth-query-execution",
+  "worth-query-publication",
 ]
 
 [[rule_contracts.query_audience.facade_surfaces]]
 label = "worth-query-host::installed"
-source = "workspaces/worth-query/crates/worth-query/src/facade/exports_installed.rs"
+source = "workspaces/worth-query/crates/worth-query-host/src/facade.rs"
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-decl"
@@ -309,7 +310,13 @@ package = "worth-query-host"
 label = "host"
 allowed_bands = ["entry", "cert"]
 guidance = "admission, lowering, and execution"
-authority_packages = ["worth-query"]
+authority_packages = [
+  "worth-query-admission",
+  "worth-query-declaration",
+  "worth-query-execution",
+  "worth-query-installation",
+  "worth-query-publication",
+]
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-replay"

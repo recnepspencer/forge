@@ -12,18 +12,10 @@ pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
     pub(crate) provider_session: &'a super::WorthQueryExecutionProviderSession,
     pub(crate) query_authority: crate::identity_authority::QueryCanonicalAuthority,
     pub(crate) identity_evolution_basis_identity: String,
-    pub(crate) domain_authority:
-        std::sync::Arc<crate::domain_installation::WorthQueryInstalledDomainAuthority>,
-    pub(crate) output_artifact_contract: Option<
-        std::sync::Arc<
-            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
-        >,
-    >,
-    pub(crate) input_artifact_contract: Option<
-        std::sync::Arc<
-            worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority,
-        >,
-    >,
+    pub(crate) artifact_access_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>>,
+    pub(crate) artifact_production_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
 }
 
 pub(crate) struct WorthQueryWorkflowStageExecutionScope<'a> {

@@ -11,6 +11,7 @@ fn settled_cost_snapshot_exports_exact_distinct_domain_counter_rows() {
         ("domain.operation.bytes", 128),
         ("domain.operation.elements", 4),
         ("domain.operation.candidate-comparisons", 6),
+        ("domain.operation.operation-work-components", 10),
         ("domain.operation.work", 10),
     ] {
         let row = snapshot
@@ -30,7 +31,7 @@ fn settled_cost_snapshot_exports_exact_distinct_domain_counter_rows() {
         .filter(|row| row.name().starts_with("domain.operation."))
         .map(|row| row.name())
         .collect::<Vec<_>>();
-    assert_eq!(domain_names.len(), 4);
+    assert_eq!(domain_names.len(), 5);
     let mut unique = domain_names.clone();
     unique.sort_unstable();
     unique.dedup();

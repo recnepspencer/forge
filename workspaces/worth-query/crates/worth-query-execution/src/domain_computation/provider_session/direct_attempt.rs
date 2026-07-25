@@ -1,28 +1,36 @@
 use worth_query_admission::facade::resource_admission::WorthQueryAdmittedExecutionResourcePlan;
+use worth_query_admission::integration::WorthQueryCapacityReservedExecutionResourcePlan;
 
 use super::{WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence};
-
 pub struct WorthQueryDirectExecutionResourceAttempt {
-    resources: WorthQueryAdmittedExecutionResourcePlan,
+    reserved: WorthQueryCapacityReservedExecutionResourcePlan,
     provider_session: WorthQueryExecutionProviderSession,
     evidence: WorthQueryExecutionResourceAttemptEvidence,
 }
 
 impl WorthQueryDirectExecutionResourceAttempt {
-    pub fn start(mut resources: WorthQueryAdmittedExecutionResourcePlan) -> Self {
-        let provider_session = WorthQueryExecutionProviderSession::mint(resources.identity());
-        resources.record_provider_session_mint();
-        let evidence =
-            WorthQueryExecutionResourceAttemptEvidence::capture(&resources, &provider_session);
+    pub(crate) fn start(
+        mut reserved: WorthQueryCapacityReservedExecutionResourcePlan,
+        binding_authority: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
+    ) -> Self {
+        let provider_session = WorthQueryExecutionProviderSession::mint(
+            reserved.resources().identity(),
+            binding_authority,
+        );
+        reserved.resources_mut().record_provider_session_mint();
+        let evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
+            reserved.resources(),
+            &provider_session,
+        );
         Self {
-            resources,
+            reserved,
             provider_session,
             evidence,
         }
     }
 
     pub fn resources(&self) -> &WorthQueryAdmittedExecutionResourcePlan {
-        &self.resources
+        self.reserved.resources()
     }
 
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {

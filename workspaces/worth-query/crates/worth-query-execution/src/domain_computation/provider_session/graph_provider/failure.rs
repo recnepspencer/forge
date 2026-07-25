@@ -1,5 +1,6 @@
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryGraphCallBindingDenial {
+    BoundOperationAuthorityMismatch,
     CommitKindRequiresCommitCall,
     ForeignResourceAttempt,
 }
@@ -7,6 +8,9 @@ pub enum WorthQueryGraphCallBindingDenial {
 impl WorthQueryGraphCallBindingDenial {
     pub fn detail(&self) -> &'static str {
         match self {
+            Self::BoundOperationAuthorityMismatch => {
+                "graph call is outside the exact bound operation authority"
+            }
             Self::CommitKindRequiresCommitCall => {
                 "commit admission requires the graph commit-call authority"
             }

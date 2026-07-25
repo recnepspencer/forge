@@ -51,6 +51,7 @@ worth-server-client-generation = { path = "crates/worth-server-client-generation
 worth-query = { path = "workspaces/worth-query/crates/worth-query" }
 worth-query-decl = { path = "workspaces/worth-query/crates/worth-query-decl" }
 worth-query-host = { path = "workspaces/worth-query/crates/worth-query-host" }
+worth-query-publication = { path = "workspaces/worth-query/crates/worth-query-publication" }
 worth-query-replay = { path = "workspaces/worth-query/crates/worth-query-replay" }
 worth-schema-graph = { path = "cad/workspaces/worth-contracts/crates/worth-schema-graph" }
 worth-foundational = { path = "crates/worth-foundational" }

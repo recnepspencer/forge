@@ -31,9 +31,9 @@ pub use aftermath::{
     AftermathFamily, AftermathOriginal, ProvisionalWorkflow,
 };
 pub use artifact_workflow::{
-    artifact_controlled_workspace, artifact_lease_workspace, artifact_move_workspace,
-    artifact_workspace_without_support, bind_artifact_workflow, lease_intent,
-    lease_intent_with_mode, move_intent, ArtifactNativeDenial, ArtifactNativeLane,
+    artifact_controlled_workspace, artifact_integrated_workspace, artifact_lease_workspace,
+    artifact_move_workspace, artifact_workspace_without_support, bind_artifact_workflow,
+    lease_intent, lease_intent_with_mode, move_intent, ArtifactNativeDenial, ArtifactNativeLane,
     ArtifactNativeObservation, ArtifactNativeSuccess, ArtifactNativeValues, ArtifactProbe,
 };
 pub use conditional_workflow::{
@@ -56,8 +56,9 @@ pub(super) use correspondence_bridge::{
 };
 pub use count_vertices::{CountVertices, CountVerticesInput};
 pub use domain_evidence::{
-    evidence_workflow_intent, evidence_workflow_workspace, evidence_workspace, EvidenceFamily,
-    EvidenceRead, EvidenceScenario, EvidenceWorkflowMode,
+    evidence_workflow_intent, evidence_workflow_workspace, evidence_workspace,
+    evidence_workspace_with_governance, EvidenceFamily, EvidenceGovernance, EvidenceRead,
+    EvidenceScenario, EvidenceWorkflowMode,
 };
 pub(crate) use execution_resources::resource_admission_workspace;
 use executors::{

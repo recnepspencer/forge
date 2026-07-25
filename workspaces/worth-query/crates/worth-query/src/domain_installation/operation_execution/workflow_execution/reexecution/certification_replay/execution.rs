@@ -47,10 +47,7 @@ where
             WorthQueryCertificationReplayAdmissionDenial::IntentDoesNotMatchOriginalTrace,
         );
     }
-    let Some(comparator) = bound
-        .workflow_executor()
-        .and_then(|executor| executor.replay_comparator())
-    else {
+    let Some(comparator) = bound.workflow_providers().1.replay_comparator() else {
         return denied(WorthQueryCertificationReplayAdmissionDenial::ReplayComparatorUnavailable);
     };
     let admitted = match bound.admit_workflow_resources(resources, workspace) {

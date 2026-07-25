@@ -15,6 +15,8 @@ mod contract;
 mod definitions;
 #[path = "artifact_workflow/executor.rs"]
 mod executor;
+#[path = "artifact_workflow/integrated_evidence.rs"]
+mod integrated_evidence;
 #[path = "artifact_workflow/native_consumer.rs"]
 mod native_consumer;
 #[path = "artifact_workflow/native_observation.rs"]
@@ -42,6 +44,15 @@ pub fn artifact_move_workspace(
     worth_query::facade::consumer_kit::WorthQueryTestBackendError,
 > {
     artifact_workspace(name, ArtifactWorkflowKind::Move, true)
+}
+
+pub fn artifact_integrated_workspace(
+    name: &str,
+) -> Result<
+    (runtime::WorthQueryWorkspace, ArtifactProbe),
+    worth_query::facade::consumer_kit::WorthQueryTestBackendError,
+> {
+    artifact_workspace(name, ArtifactWorkflowKind::Integrated, true)
 }
 
 pub fn artifact_lease_workspace(
@@ -159,7 +170,7 @@ fn artifact_runtime_builder(
         ArtifactWorkflowExecutor::new(probe.clone()),
     );
     match kind {
-        ArtifactWorkflowKind::Move => builder,
+        ArtifactWorkflowKind::Move | ArtifactWorkflowKind::Integrated => builder,
         ArtifactWorkflowKind::Lease => builder.workflow_parallel_admission_provider(
             GeometryDomain,
             WorkflowRead,
