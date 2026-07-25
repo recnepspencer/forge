@@ -21,6 +21,40 @@ pub(crate) enum WorthUiPlanRegionDeltaDenial {
 }
 
 impl WorthUiPlanRegionDelta {
+    pub(crate) fn from_mounted(
+        plan_input: &WorthUiExecutionPlanInput,
+        artifact_digest: u64,
+        predecessor_plan_digest: u64,
+        allocation_identity_digest: u64,
+    ) -> Result<Self, WorthUiPlanRegionDeltaDenial> {
+        let mut candidate_identities = BTreeSet::new();
+        let mut mutations = Vec::new();
+        let ordinary_bundles = ordinary_owner_bundles(plan_input);
+        let ordinary_identities = ordinary_bundles
+            .values()
+            .flat_map(|schemas| schemas.iter().map(|schema| schema.identity().clone()))
+            .collect::<BTreeSet<_>>();
+        for (root, schemas) in ordinary_bundles {
+            mutations.push(WorthUiPlanRegionMutation::OwnerBundle { root, schemas });
+        }
+        for input in plan_input.node_inputs() {
+            if !candidate_identities.insert(input.identity_basis()) {
+                return Err(WorthUiPlanRegionDeltaDenial::DuplicateCandidateRegion);
+            }
+            let schema = WorthUiPlanRegionSchema::from_node_input(input.clone());
+            if !ordinary_identities.contains(schema.identity()) {
+                mutations.push(WorthUiPlanRegionMutation::Upsert(schema));
+            }
+        }
+        Ok(Self {
+            predecessor_artifact_digest: artifact_digest,
+            predecessor_plan_digest,
+            candidate_artifact_digest: artifact_digest,
+            allocation_identity_digest,
+            mutations,
+        })
+    }
+
     pub(crate) fn from_replacement(
         node_plan: &WorthUiNodeReplacementPlan,
         plan_input: &WorthUiExecutionPlanInput,

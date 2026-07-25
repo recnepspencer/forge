@@ -30,6 +30,10 @@ impl UiAllocationReceiptLedger {
         )
     }
 
+    pub(crate) fn active_catalog_is_empty(&self) -> bool {
+        self.state.borrow().committed_by_scope.is_empty()
+    }
+
     pub(super) fn prepare_selected_mode(
         &self,
         mode: super::replan_commit_mode::UiAllocationReplanCommitMode<'_>,

@@ -4,6 +4,8 @@ use crate::runtime::{
     WorthUiPlanLoweringDenial, WorthUiPlanNodeInput, WorthUiRuntimeFrameEpoch,
 };
 
+mod mounted;
+
 #[derive(Debug)]
 pub(crate) enum WorthUiExecutionPlanLoweringAuthorityDenial {
     CandidateGraphAuthorityMismatch,
@@ -31,6 +33,10 @@ pub(crate) struct WorthUiExecutionPlanLoweringAuthority {
 #[derive(Debug)]
 enum WorthUiExecutionPlanLoweringSource {
     Launch(crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit),
+    Mounted {
+        basis: Box<crate::runtime::WorthUiMountedAllocationActivationBasis>,
+        committed_input: Box<UiCommittedAllocationLoweringInput>,
+    },
     Replacement {
         pending_activation: Box<WorthUiPendingActivation>,
         committed_input: Option<Box<UiCommittedAllocationLoweringInput>>,
@@ -214,6 +220,9 @@ impl WorthUiExecutionPlanLoweringAuthority {
     pub(crate) fn finish_launch(self) {
         match self.source {
             WorthUiExecutionPlanLoweringSource::Launch(commit) => drop(commit),
+            WorthUiExecutionPlanLoweringSource::Mounted { .. } => {
+                panic!("mounted lowering authority cannot complete launch")
+            }
             WorthUiExecutionPlanLoweringSource::Replacement { .. } => {
                 panic!("replacement lowering authority cannot complete launch")
             }

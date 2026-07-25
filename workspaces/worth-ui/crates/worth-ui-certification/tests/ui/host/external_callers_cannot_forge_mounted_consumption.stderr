@@ -5,6 +5,18 @@ error[E0433]: failed to resolve: could not find `UiMountedPresentationAuthority`
 error: cannot construct `UiMountedFrameConsumptionView<'_>` with struct literal syntax due to private fields
  --> tests/ui/host/external_callers_cannot_forge_mounted_consumption.rs
 
+error[E0599]: no method named `application_authority` found for reference `&UiMountedFrameConsumptionView<'_>` in the current scope
+ --> tests/ui/host/external_callers_cannot_forge_mounted_consumption.rs
+
+error[E0599]: no method named `graph_authority` found for reference `&UiMountedFrameConsumptionView<'_>` in the current scope
+ --> tests/ui/host/external_callers_cannot_forge_mounted_consumption.rs
+
+error[E0599]: no method named `query_authority` found for reference `&UiMountedFrameConsumptionView<'_>` in the current scope
+ --> tests/ui/host/external_callers_cannot_forge_mounted_consumption.rs
+
+error[E0599]: no method named `publication_authority` found for reference `&UiMountedFrameConsumptionView<'_>` in the current scope
+ --> tests/ui/host/external_callers_cannot_forge_mounted_consumption.rs
+
 error[E0599]: no method named `clone` found for struct `UiHostPresentationCompletionToken` in the current scope
  --> tests/ui/host/external_callers_cannot_forge_mounted_consumption.rs
 

@@ -1,0 +1,329 @@
+use std::collections::BTreeSet;
+
+use worth_ui_host_contract::{UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity};
+use worth_ui_inspection::UiEvidenceAuthorityGeneration;
+
+use super::{
+    mounted_allocation_denial::map_initial_activation_denial, WorthUiActiveApplicationSession,
+    WorthUiMountedAllocationEstablishmentDenial, WorthUiMountedAllocationRuntimeStage,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiMountedAllocationMeasurementRequest {
+    evidence_family: UiMeasurementEvidenceFamily,
+    need: crate::host::UiHostMeasurementNeed,
+    normalization_context: crate::host::UiHostMeasurementNormalizationContext,
+}
+
+#[derive(Debug)]
+pub struct WorthUiMountedAllocationEstablishmentReceipt {
+    committed: crate::runtime::UiCommittedAllocationReplan,
+}
+
+struct MountedAllocationCandidate {
+    declaration: crate::declaration::UiDeclarationIdentity,
+    node: crate::graph::UiGraphNodeIdentity,
+    selected: crate::obligations::selection::UiSelectedObligationSet,
+    transition: crate::graph::UiGraphMountEligibilityTransition,
+    policy: crate::declaration::UiDeclaredMeasurementPolicyPosture,
+}
+
+impl UiMountedAllocationMeasurementRequest {
+    pub fn new(
+        evidence_family: UiMeasurementEvidenceFamily,
+        need: crate::host::UiHostMeasurementNeed,
+        normalization_context: crate::host::UiHostMeasurementNormalizationContext,
+    ) -> Self {
+        Self {
+            evidence_family,
+            need,
+            normalization_context,
+        }
+    }
+}
+
+impl WorthUiMountedAllocationEstablishmentReceipt {
+    pub fn committed(&self) -> &crate::runtime::UiCommittedAllocationReplan {
+        &self.committed
+    }
+}
+
+impl WorthUiActiveApplicationSession {
+    pub fn establish_mounted_allocation_catalog(
+        &mut self,
+        request_identity_start: u64,
+        requests: impl Into<Box<[UiMountedAllocationMeasurementRequest]>>,
+    ) -> Result<
+        WorthUiMountedAllocationEstablishmentReceipt,
+        WorthUiMountedAllocationEstablishmentDenial,
+    > {
+        if self.mounted_presentation.has_active_attempt() {
+            return Err(WorthUiMountedAllocationEstablishmentDenial::PresentationInFlight);
+        }
+        let candidates = self.mounted_allocation_candidates()?;
+        let transitions = candidates
+            .iter()
+            .map(|candidate| candidate.transition)
+            .collect();
+        let graph_commit = self
+            .app
+            .graph()
+            .commit_mount_eligibility_admissions(transitions)
+            .map_err(WorthUiMountedAllocationEstablishmentDenial::GraphMountEligibility)?;
+        let graph_successor = self
+            .app
+            .prepare_graph_successor(graph_commit)
+            .map_err(|_| WorthUiMountedAllocationEstablishmentDenial::StaleGraphSuccessor)?;
+        let entries = self.collect_mounted_measurement_entries(
+            graph_successor.graph_snapshot(),
+            &candidates,
+            request_identity_start,
+            &requests.into(),
+        )?;
+        let admitted = graph_successor
+            .graph_snapshot()
+            .admit_allocation_catalog_basis_set(entries)
+            .map_err(WorthUiMountedAllocationEstablishmentDenial::CatalogAdmission)?;
+        let boundary = self
+            .runtime
+            .execute_framework_turn(|_| {})
+            .into_execution()
+            .map_err(|_| {
+                WorthUiMountedAllocationEstablishmentDenial::Runtime(
+                    WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
+                )
+            })?
+            .into_activation_boundary();
+        let committed = self
+            .runtime
+            .activate_initial_mounted_allocation_catalog(
+                &mut self.app,
+                graph_successor,
+                admitted,
+                boundary,
+            )
+            .map_err(map_initial_activation_denial)?;
+        Ok(WorthUiMountedAllocationEstablishmentReceipt { committed })
+    }
+
+    fn mounted_allocation_candidates(
+        &self,
+    ) -> Result<Vec<MountedAllocationCandidate>, WorthUiMountedAllocationEstablishmentDenial> {
+        let mut candidates = Vec::new();
+        for node in self.app.graph().node_identities() {
+            let record = self
+                .app
+                .graph()
+                .lookup()
+                .graph_node(node)
+                .expect("active graph node remains addressable");
+            let declaration = record.value().declaration_identity().clone();
+            let Some(policy) = self
+                .app
+                .declaration_artifacts()
+                .iter()
+                .find(|artifact| artifact.identity() == &declaration)
+                .and_then(|artifact| artifact.graph_handoff().ok())
+                .and_then(|handoff| handoff.measurement_policy().admitted().cloned())
+            else {
+                continue;
+            };
+            let handle = self
+                .mounted_graph_node(node)
+                .map_err(WorthUiMountedAllocationEstablishmentDenial::MountedIdentity)?;
+            let mounted = self
+                .mounted_instances_for(handle)
+                .map_err(WorthUiMountedAllocationEstablishmentDenial::MountedIdentity)?;
+            if mounted.is_empty() {
+                return Err(
+                    WorthUiMountedAllocationEstablishmentDenial::MissingMountedInstance(node),
+                );
+            }
+            let touch = self.try_query_touch_for_node(node).map_err(|_| {
+                WorthUiMountedAllocationEstablishmentDenial::Runtime(
+                    WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
+                )
+            })?;
+            let selected = self.admission().select_obligations(&touch);
+            let prior = record
+                .value()
+                .participation_posture()
+                .axis(crate::graph::UiGraphParticipationAxis::Mounted);
+            let transition = self
+                .app
+                .graph()
+                .mount_eligibility_transition_for_node(
+                    node,
+                    prior,
+                    crate::graph::UiGraphAxisParticipation::runtime_mutation(
+                        crate::graph::UiGraphParticipationStatus::Admitted,
+                    ),
+                )
+                .ok_or(WorthUiMountedAllocationEstablishmentDenial::Runtime(
+                    WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
+                ))?;
+            candidates.push(MountedAllocationCandidate {
+                declaration,
+                node,
+                selected,
+                transition,
+                policy,
+            });
+        }
+        if candidates.is_empty() {
+            Err(WorthUiMountedAllocationEstablishmentDenial::NoAllocationPlanningNodes)
+        } else {
+            Ok(candidates)
+        }
+    }
+
+    fn collect_mounted_measurement_entries(
+        &self,
+        graph: &crate::graph::UiGraphSnapshot,
+        candidates: &[MountedAllocationCandidate],
+        request_identity_start: u64,
+        requests: &[UiMountedAllocationMeasurementRequest],
+    ) -> Result<
+        Vec<(
+            crate::evidence::UiMeasurementBasis,
+            crate::obligations::selection::UiSelectedObligationSet,
+        )>,
+        WorthUiMountedAllocationEstablishmentDenial,
+    > {
+        let capability = self.host_session.measurement_capability();
+        let collector = self.runtime.host_measurement_collector();
+        let generation = UiEvidenceAuthorityGeneration::new(graph.generation().as_u64());
+        let mut entries = Vec::with_capacity(candidates.len());
+        let mut request_ordinal = 0_u64;
+        for candidate in candidates {
+            let mut inputs = vec![
+                crate::evidence::MeasurementEvidenceInput::host_capability_report(
+                    capability.capability_report(),
+                ),
+            ];
+            for family in required_host_families(&candidate.policy) {
+                let request = requests
+                    .iter()
+                    .find(|request| request.evidence_family == family)
+                    .ok_or(
+                        WorthUiMountedAllocationEstablishmentDenial::MissingMeasurementRequest(
+                            family,
+                        ),
+                    )?;
+                let identity = request_identity_start
+                    .checked_add(request_ordinal)
+                    .ok_or(
+                        WorthUiMountedAllocationEstablishmentDenial::MeasurementRequestIdentityExhausted,
+                    )?;
+                request_ordinal = request_ordinal.checked_add(1).ok_or(
+                    WorthUiMountedAllocationEstablishmentDenial::MeasurementRequestIdentityExhausted,
+                )?;
+                let result = collector
+                    .collect(
+                        capability.adapter(),
+                        crate::host::UiHostMeasurementCollectionInput {
+                            identity: UiMeasurementRequestIdentity::new(identity),
+                            evidence_family: request.evidence_family,
+                            need: request.need.clone(),
+                            capability_report: capability.capability_report(),
+                            evidence_generation: generation,
+                            normalization_context: request.normalization_context,
+                        },
+                    )
+                    .map_err(WorthUiMountedAllocationEstablishmentDenial::HostMeasurement)?;
+                inputs.push(
+                    crate::evidence::MeasurementEvidenceInput::host_measurement_result(&result),
+                );
+            }
+            let basis = crate::evidence::admit_measurement_basis(
+                candidate.declaration.clone(),
+                candidate.node,
+                graph.world_profile().clone(),
+                generation,
+                &candidate.policy,
+                &inputs,
+            );
+            if let Some(denial) = basis.denial_posture().cloned() {
+                return Err(
+                    WorthUiMountedAllocationEstablishmentDenial::MeasurementBasis {
+                        node: candidate.node,
+                        denial,
+                    },
+                );
+            }
+            entries.push((basis, candidate.selected.clone()));
+        }
+        disjoint_partition(graph, entries)
+    }
+}
+
+fn required_host_families(
+    policy: &crate::declaration::UiDeclaredMeasurementPolicyPosture,
+) -> BTreeSet<UiMeasurementEvidenceFamily> {
+    let mut families = BTreeSet::new();
+    if policy.requires_viewport_extent_observation() {
+        families.insert(UiMeasurementEvidenceFamily::ViewportExtent);
+    }
+    if policy.requires_portal_anchor_observation() {
+        families.insert(UiMeasurementEvidenceFamily::PortalAnchorRect);
+    }
+    for requirement in policy.evidence_requirements() {
+        match requirement {
+            crate::declaration::UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics => {
+                families.insert(UiMeasurementEvidenceFamily::FontMetrics);
+            }
+            crate::declaration::UiDeclaredMeasurementEvidenceRequirement::ScrollContentExtent => {
+                families.insert(UiMeasurementEvidenceFamily::ScrollContainerViewport);
+            }
+            crate::declaration::UiDeclaredMeasurementEvidenceRequirement::PortalAnchorMetrics => {
+                families.insert(UiMeasurementEvidenceFamily::PortalAnchorRect);
+            }
+        }
+    }
+    families
+}
+
+fn disjoint_partition(
+    graph: &crate::graph::UiGraphSnapshot,
+    mut remaining: Vec<(
+        crate::evidence::UiMeasurementBasis,
+        crate::obligations::selection::UiSelectedObligationSet,
+    )>,
+) -> Result<
+    Vec<(
+        crate::evidence::UiMeasurementBasis,
+        crate::obligations::selection::UiSelectedObligationSet,
+    )>,
+    WorthUiMountedAllocationEstablishmentDenial,
+> {
+    let mut uncovered = graph
+        .allocation_planning_node_identities()
+        .collect::<BTreeSet<_>>();
+    let mut partition = Vec::new();
+    while !uncovered.is_empty() {
+        let chosen = remaining
+            .iter()
+            .enumerate()
+            .filter_map(|(index, (basis, selected))| {
+                let neighborhood = basis.admit_allocation_neighborhood(graph, selected).ok()?;
+                let covered = neighborhood
+                    .members()
+                    .iter()
+                    .map(|member| member.graph_node_identity())
+                    .collect::<BTreeSet<_>>();
+                covered
+                    .iter()
+                    .all(|identity| uncovered.contains(identity))
+                    .then_some((index, covered))
+            })
+            .max_by_key(|(_, covered)| covered.len())
+            .ok_or(WorthUiMountedAllocationEstablishmentDenial::Runtime(
+                WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
+            ))?;
+        for identity in chosen.1 {
+            uncovered.remove(&identity);
+        }
+        partition.push(remaining.swap_remove(chosen.0));
+    }
+    Ok(partition)
+}

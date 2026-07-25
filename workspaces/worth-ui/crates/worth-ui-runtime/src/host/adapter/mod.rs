@@ -1,4 +1,5 @@
 mod headless_host;
+mod headless_measurement;
 mod headless_recorder;
 mod headless_transcript;
 mod headless_translation;
@@ -6,7 +7,6 @@ mod headless_translation;
 mod headless_translation_effect_tests;
 mod operational_contract;
 mod session_authority;
-mod session_release;
 
 pub use headless_host::WorthUiHeadlessHost;
 pub use headless_recorder::WorthUiHeadlessRecorder;
@@ -18,6 +18,6 @@ pub use headless_transcript::{
 };
 pub use operational_contract::{WorthUiHostAdapter, WorthUiOperationalHostAdapter};
 pub use session_authority::UiHostAdapterSessionAuthority;
-pub use session_release::{
+pub use worth_ui_host_contract::{
     UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
 };

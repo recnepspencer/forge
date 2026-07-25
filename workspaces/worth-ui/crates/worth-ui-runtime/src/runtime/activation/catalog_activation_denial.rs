@@ -1,5 +1,10 @@
 #[derive(Debug)]
 pub enum WorthUiAllocationCatalogActivationDenial {
+    InitialCatalogAlreadyEstablished,
+    InitialGraphAuthorityMismatch,
+    InitialNeighborhood(crate::graph::UiAllocationNeighborhoodDenial),
+    InitialCatalogPlanning(crate::runtime::UiAllocationActivationCatalogDenial),
+    InitialReceiptCommit(Box<crate::runtime::UiAllocationReceiptCommitOutcome>),
     Preparation(WorthUiAllocationCatalogPreparationStage),
     AllocationDelta(crate::runtime::UiAllocationCatalogDeltaClosureDenial),
     PlanInput(crate::runtime::WorthUiPlanLoweringDenial),

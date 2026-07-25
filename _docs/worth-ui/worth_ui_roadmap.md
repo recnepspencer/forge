@@ -1133,6 +1133,67 @@ presentation is followed by the matching infallible runtime publication.
 - host cannot decide visible/disabled/valid/layout meaning or recover Query,
   graph, plan, allocation, or publication authority from its sealed view
 
+### Milestone 3.10.1: DSL Ownership, Runtime Subsystem Boundaries, and Facade Closure
+
+Detailed spec: [milestone-3.10.1.md](./milestone-3.10.1.md)
+
+This corrective gate follows mounted-receipt and host-contract closure and
+precedes visual snapshots. It aligns physical and public topology with the
+already-declared architecture before later milestones harden the wrong source
+owner, broaden a runtime macro-boundary, or consume transitional phase APIs.
+
+**Must ship**
+
+- `worth-ui-dsl` as the sole production owner of authored syntax, source AST,
+  language legality, source diagnostics, semantic normalization, and
+  authored-to-canonical lowering
+- one sealed semantic handoff shared by file-authored and Rust-authored
+  composition before runtime preparation
+- explicit runtime subsystem state, transition, failure, cost, dependency, and
+  future-insertion contracts; crate splits only where autonomous authority and
+  lifecycle justify them
+- one ordinary product lifecycle centered on `execute_mounted_frame(...)`,
+  with advanced continuation or recovery reachable only through typed handles
+  returned by that path
+- removal of loose-source runtime preparation, public midpoint lifecycle
+  entry, broad intermediate re-exports, and predecessor compatibility routes
+- mechanical DSL/runtime ownership, runtime-topology, public-surface,
+  callable-entry, reachability, line-cap, and compile-contract enforcement
+- real filesystem, Rust-authored, headless, egui, replacement, denial,
+  publication, inspection, allocation, and build-cost certification through the
+  condensed public path
+
+**Must preserve**
+
+- all Milestone 3.10 mounted identity, receipt, host-mechanics, effect,
+  publication, reconciliation, predecessor-preservation, and cost semantics
+- runtime ownership of active application, graph, planning, allocation,
+  execution, mounted publication, and operational inspection truth
+- filesystem/watcher mechanics with their mechanism owner rather than the DSL
+- Query-free applications without dummy Query or advanced-lifecycle ceremony
+- one canonical runtime-to-host presentation path and the existing
+  consolidated test/compile topology
+- Milestone 3.11 ownership of visual snapshots, Milestone 3.12 ownership of
+  semantic observation admission, and Milestones 3.17 and 3.18 ownership of
+  new language features
+
+**Acceptance evidence**
+
+- runtime contains no production parser, source AST, authored-language legality
+  owner, semantic source lowerer, or callable facade presenting those powers
+- equivalent real-file and Rust-authored applications cross one DSL-owned
+  sealed handoff and enter one runtime preparation path
+- ordinary downstream code can execute and inspect the complete mounted
+  lifecycle without importing or constructing intermediate runtime phases
+- predecessor aliases, forwarding wrappers, feature-hidden routes, and
+  support-only production constructors fail mechanical and hostile compile
+  checks
+- future snapshot, rebind, expression, and module changes each have one
+  unambiguous insertion owner without reverse dependencies
+- poisoned DSL paths remain untouched during steady frames, and comparable
+  allocator/counter/build evidence proves the migration added no hidden source
+  work or build-topology expansion
+
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
 This slice makes screenshots, hit testing, and visible-region targeting

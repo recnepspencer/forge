@@ -1,6 +1,5 @@
 use crate::evidence::UiMeasurementBasis;
 use crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection;
-use crate::runtime::WorthUiPendingActivation;
 
 #[derive(Clone, Debug)]
 pub(crate) struct WorthUiAllocationPlanningAdmission {
@@ -12,17 +11,6 @@ pub(crate) struct WorthUiAllocationPlanningAdmission {
 impl WorthUiAllocationPlanningAdmission {
     pub(crate) fn constraint_basis(&self) -> &crate::graph::UiAdmittedAllocationConstraintBasis {
         &self.constraint_basis
-    }
-
-    pub(crate) fn from_pending_activation(
-        pending_activation: &WorthUiPendingActivation,
-        constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
-    ) -> Self {
-        Self {
-            constraint_basis,
-            portal_allocation_input: None,
-            projection: pending_activation.allocation_planning_projection().clone(),
-        }
     }
 
     pub(crate) fn from_projection(

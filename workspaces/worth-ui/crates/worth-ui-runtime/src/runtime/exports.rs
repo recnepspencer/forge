@@ -72,9 +72,10 @@ pub use super::invalidation_narrowing::UiAdmittedPortalMovement;
 #[cfg(test)]
 pub use super::invalidation_narrowing::UiScrollBindingCatalogCounters;
 pub use super::invalidation_narrowing::{
-    UiAllocationInvalidationNarrowingDenial, UiAllocationInvalidationNarrowingRejection,
-    UiAllocationInvalidationTarget, UiNarrowedAllocationFramePlan, UiScrollCatalogSwapEvidence,
-    UiScrollOwnerAcquisitionDenial, UiScrollOwnerCatalogDenialReport, UiScrollOwnerCatalogReceipt,
+    UiAllocationActivationCatalogDenial, UiAllocationInvalidationNarrowingDenial,
+    UiAllocationInvalidationNarrowingRejection, UiAllocationInvalidationTarget,
+    UiNarrowedAllocationFramePlan, UiScrollCatalogSwapEvidence, UiScrollOwnerAcquisitionDenial,
+    UiScrollOwnerCatalogDenialReport, UiScrollOwnerCatalogReceipt,
 };
 pub(crate) use super::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 pub use super::planning::allocation_planning::{

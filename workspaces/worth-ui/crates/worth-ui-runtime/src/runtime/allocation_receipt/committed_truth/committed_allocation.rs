@@ -43,4 +43,8 @@ impl UiCommittedAllocation {
     pub(crate) fn planning_basis(&self) -> &WorthUiAllocationPlanningBasis {
         &self.basis
     }
+
+    pub(crate) fn planning_projection(&self) -> &WorthUiAllocationPlanningProjection {
+        &self.planning_projection
+    }
 }

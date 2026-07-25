@@ -131,6 +131,9 @@ error: cannot construct `UiMountedNodeReceipt` with struct literal syntax due to
 error: cannot construct `UiProjectedMountedFrameCandidate` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs
 
+error: cannot construct `UiMountedFramePublicationReceipt` with struct literal syntax due to private fields
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs
+
 error[E0616]: field `capability_snapshot` of struct `WorthUiPreparedApplicationAuthority` is private
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/prepared_application_constituent_cannot_be_replaced.rs
 

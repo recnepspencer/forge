@@ -1,7 +1,10 @@
 use std::borrow::{Borrow, Cow};
 
-use super::construct_verified_planning_input_handoff;
 use super::WorthUiAllocationReplanDenial;
+use super::{
+    construct_verified_planning_input_handoff,
+    construct_verified_planning_input_handoff_from_projection,
+};
 use crate::evidence::{UiConstraintPropagationDenial, UiMeasurementBasis};
 use crate::runtime::planning::allocation_planning::WorthUiAllocationPlanner;
 use crate::runtime::planning::UiAllocationCandidateMintAuthority;
@@ -76,6 +79,33 @@ pub(crate) fn plan_allocation_for_pending_activation<P: Borrow<WorthUiPendingAct
     }
 }
 
+pub(crate) fn plan_allocation_for_projection(
+    projection: &crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection,
+    measurement_basis: &UiMeasurementBasis,
+    allocation_neighborhood: &crate::evidence::UiAllocationNeighborhood,
+) -> UiAllocationCandidate {
+    match classify_constraint_set_admission(measurement_basis, allocation_neighborhood) {
+        ConstraintSetAdmissionDecision::Denied(constraint_set_denial) => {
+            build_constraint_set_denial_planning(
+                measurement_basis,
+                allocation_neighborhood,
+                constraint_set_denial,
+            )
+        }
+        ConstraintSetAdmissionDecision::Admitted(constraint_basis) => {
+            let handoff = construct_verified_planning_input_handoff_from_projection(
+                projection,
+                constraint_basis,
+            )
+            .expect("constraint admission must preserve graph-planning alignment");
+            UiAllocationCandidate::from_planning(
+                WorthUiAllocationPlanner::plan(handoff.into_admission()),
+                UiAllocationCandidateMintAuthority::new(),
+            )
+        }
+    }
+}
+
 pub(crate) fn replan_admitted_candidate(
     selected: &crate::graph::UiAdmittedReplanNeighborhood,
 ) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
@@ -136,8 +166,11 @@ fn replan_admitted_candidate_with_sources(
         WorthUiAllocationPlanner::plan(admission),
         UiAllocationCandidateMintAuthority::new(),
     );
-    let (impact, narrowing) = selected.replacement_lineage();
-    candidate.seal_replan_successor(impact, narrowing);
+    if let Some((impact, narrowing)) = selected.replacement_lineage() {
+        candidate.seal_replan_successor(impact, narrowing);
+    } else {
+        candidate.seal_catalog_successor();
+    }
     Ok(candidate)
 }
 
@@ -207,8 +240,11 @@ pub(crate) fn replan_selected_candidates_with_resize(
     let mut candidates = replan_selected_candidates(selection)?;
     for (candidate, selected) in candidates.iter_mut().zip(selection.ordered_neighborhoods()) {
         candidate.seal_resize_basis(basis.clone());
-        let (impact, narrowing) = selected.replacement_lineage();
-        candidate.seal_replan_successor(impact, narrowing);
+        if let Some((impact, narrowing)) = selected.replacement_lineage() {
+            candidate.seal_replan_successor(impact, narrowing);
+        } else {
+            candidate.seal_catalog_successor();
+        }
     }
     Ok(candidates)
 }

@@ -36,11 +36,11 @@ mod geometry_evidence;
 mod ledger_denial;
 #[path = "ledger_lifecycle/ledger_state.rs"]
 mod ledger_state;
-#[path = "ledger_lifecycle/mounted_projection_catalog.rs"]
+#[path = "ledger_lifecycle/mounted_projection/catalog.rs"]
 mod mounted_projection_catalog;
-#[path = "ledger_lifecycle/mounted_projection_journal.rs"]
+#[path = "ledger_lifecycle/mounted_projection/journal.rs"]
 mod mounted_projection_journal;
-#[path = "ledger_lifecycle/mounted_projection_row.rs"]
+#[path = "ledger_lifecycle/mounted_projection/row.rs"]
 mod mounted_projection_row;
 #[path = "transaction/prepared_portal_commit.rs"]
 mod prepared_portal_commit;

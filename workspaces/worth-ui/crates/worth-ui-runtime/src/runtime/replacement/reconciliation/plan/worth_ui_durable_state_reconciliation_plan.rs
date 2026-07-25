@@ -17,6 +17,20 @@ pub struct WorthUiDurableStateReconciliationPlan {
 }
 
 impl WorthUiDurableStateReconciliationPlan {
+    pub(crate) fn initial_mounted(
+        artifact_digest: u64,
+        durable_resize_inputs: Vec<WorthUiDurableResizeInputDisposition>,
+        counters: WorthUiDurableStateReconciliationCounters,
+    ) -> Self {
+        Self::new_with_durable_resize_inputs(
+            artifact_digest,
+            artifact_digest,
+            Vec::new(),
+            durable_resize_inputs,
+            counters,
+        )
+    }
+
     pub fn allocation_durable_semantic_state(
         &self,
     ) -> crate::runtime::UiAllocationDurableSemanticState {
@@ -61,10 +75,14 @@ impl WorthUiDurableStateReconciliationPlan {
                 .then_with(|| left.family_id().cmp(right.family_id()))
                 .then_with(|| left.identity_digest().cmp(&right.identity_digest()))
         });
-        let authority_generation = durable_resize_dispositions.iter().fold(
-            active_artifact_digest.rotate_left(7) ^ candidate_artifact_digest.rotate_left(19),
-            |digest, input| digest ^ input.identity_digest().rotate_left(23),
-        );
+        let basis_digest =
+            crate::runtime::replacement::reconciliation::basis_digest::reconciliation_basis_digest(
+                active_artifact_digest,
+                candidate_artifact_digest,
+                &receipts,
+                &durable_resize_dispositions,
+            );
+        let authority_generation = basis_digest.rotate_left(17) ^ 0x6475_7261_626c_6501;
         let admitted_durable_resize_inputs = durable_resize_dispositions
             .iter()
             .filter(|input| {
@@ -75,12 +93,6 @@ impl WorthUiDurableStateReconciliationPlan {
                 WorthUiAdmittedDurableResizeInput::from_reconciliation(input, authority_generation)
             })
             .collect();
-        let basis_digest =
-            crate::runtime::replacement::reconciliation::basis_digest::reconciliation_basis_digest(
-                active_artifact_digest,
-                candidate_artifact_digest,
-                &receipts,
-            );
         Self {
             active_artifact_digest,
             candidate_artifact_digest,
@@ -152,5 +164,48 @@ impl WorthUiDurableStateReconciliationPlan {
 
     pub fn counters(&self) -> WorthUiDurableStateReconciliationCounters {
         self.counters
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime::replacement::reconciliation::plan::WorthUiDurableResizeInputDispositionInput;
+
+    #[test]
+    fn durable_resize_shape_changes_reconciliation_basis_and_authority_generation() {
+        let first = WorthUiDurableStateReconciliationPlan::initial_mounted(
+            41,
+            vec![resize_disposition(101)],
+            WorthUiDurableStateReconciliationCounters::default(),
+        );
+        let second = WorthUiDurableStateReconciliationPlan::initial_mounted(
+            41,
+            vec![resize_disposition(202)],
+            WorthUiDurableStateReconciliationCounters::default(),
+        );
+
+        assert_ne!(first.basis_digest(), second.basis_digest());
+        assert_ne!(first.authority_generation(), second.authority_generation());
+        assert_eq!(
+            first.durable_resize_inputs()[0].authority_generation(),
+            first.authority_generation()
+        );
+    }
+
+    fn resize_disposition(resize_shape_digest: u64) -> WorthUiDurableResizeInputDisposition {
+        WorthUiDurableResizeInputDisposition::new(WorthUiDurableResizeInputDispositionInput {
+            identity_basis: "workspace.splitter".to_owned(),
+            authored_provenance_digest: Some(17),
+            family_id: WorthUiDurableStateFamilyId::SplitterPosition,
+            transition: crate::runtime::WorthUiNodeLifecycleTransition::Create,
+            resize_permission: crate::capability::MosaicResizePermission::UserResizable,
+            resize_contract_id: crate::capability::MosaicSizingContractId::new(
+                "workspace.sizing.splitter",
+            )
+            .expect("test sizing contract is valid"),
+            resize_shape_digest,
+            posture: WorthUiDurableResizeInputPosture::AdmittedPlanningTimeOnly,
+        })
     }
 }

@@ -4,12 +4,14 @@ use crate::runtime::{
     WorthUiRuntimeHandleAllocation,
 };
 
+mod mounted;
+
 #[derive(Debug, PartialEq)]
 pub(super) struct UiCommittedAllocationValidation {
     attempt_identity: super::UiCommittedAllocationActivationIdentity,
     activation_counters: super::UiCommittedAllocationActivationCounters,
     committed: crate::runtime::UiCommittedAllocationReplan,
-    pending_activation: WorthUiPendingActivation,
+    activation_basis: UiCommittedAllocationValidationBasis,
     candidate_execution_plan_digest: WorthUiExecutionPlanDigest,
     handle_allocation_basis_digest: u64,
     node_classification_count: usize,
@@ -22,6 +24,12 @@ pub(super) struct UiCommittedAllocationValidation {
     ledger_transition: crate::runtime::allocation_receipt::UiAllocationCatalogLedgerTransition,
     catalog_transition:
         crate::runtime::invalidation_narrowing::UiAllocationNeighborhoodCatalogTransition,
+}
+
+#[derive(Debug, PartialEq)]
+enum UiCommittedAllocationValidationBasis {
+    Replacement(Box<WorthUiPendingActivation>),
+    Mounted(Box<crate::runtime::WorthUiMountedAllocationActivationBasis>),
 }
 
 impl UiCommittedAllocationValidation {
@@ -117,7 +125,9 @@ impl UiCommittedAllocationValidation {
             attempt_identity,
             activation_counters,
             committed,
-            pending_activation,
+            activation_basis: UiCommittedAllocationValidationBasis::Replacement(Box::new(
+                pending_activation,
+            )),
             candidate_execution_plan_digest: facts.candidate_execution_plan_digest,
             handle_allocation_basis_digest: facts.handle_allocation_basis_digest,
             node_classification_count: facts.node_classification_count,
@@ -195,19 +205,34 @@ impl UiCommittedAllocationValidation {
     }
 
     pub fn readiness_frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
-        self.pending_activation.frame_epoch()
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Replacement(pending) => pending.frame_epoch(),
+            UiCommittedAllocationValidationBasis::Mounted(basis) => {
+                basis.projection().frame_epoch()
+            }
+        }
     }
 
     pub fn active_artifact_digest(&self) -> u64 {
-        self.pending_activation
-            .staged_replacement()
-            .active_artifact_digest()
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Replacement(pending) => {
+                pending.staged_replacement().active_artifact_digest()
+            }
+            UiCommittedAllocationValidationBasis::Mounted(basis) => {
+                basis.projection().candidate_artifact_digest()
+            }
+        }
     }
 
     pub fn candidate_artifact_digest(&self) -> u64 {
-        self.pending_activation
-            .staged_replacement()
-            .candidate_artifact_digest()
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Replacement(pending) => {
+                pending.staged_replacement().candidate_artifact_digest()
+            }
+            UiCommittedAllocationValidationBasis::Mounted(basis) => {
+                basis.projection().candidate_artifact_digest()
+            }
+        }
     }
 
     pub fn candidate_execution_plan_digest(&self) -> u64 {
@@ -231,19 +256,27 @@ impl UiCommittedAllocationValidation {
     }
 
     pub fn reconciliation_receipt_count(&self) -> usize {
-        self.pending_activation
-            .staged_replacement()
-            .reconciliation_plan()
-            .receipts()
-            .len()
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Replacement(pending) => pending
+                .staged_replacement()
+                .reconciliation_plan()
+                .receipts()
+                .len(),
+            UiCommittedAllocationValidationBasis::Mounted(basis) => {
+                basis.reconciliation().receipts().len()
+            }
+        }
     }
 
     pub fn query_rebind_entry_count(&self) -> usize {
-        self.pending_activation
-            .staged_replacement()
-            .query_rebind_plan()
-            .entries()
-            .len()
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Replacement(pending) => pending
+                .staged_replacement()
+                .query_rebind_plan()
+                .entries()
+                .len(),
+            UiCommittedAllocationValidationBasis::Mounted(_) => 0,
+        }
     }
 
     pub fn query_rebind_basis_digest(&self) -> u64 {
@@ -262,8 +295,40 @@ impl UiCommittedAllocationValidation {
         self.counters
     }
 
-    pub(crate) fn pending_activation(&self) -> &WorthUiPendingActivation {
-        &self.pending_activation
+    pub(crate) fn candidate_application_authority(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority
+    {
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Replacement(pending) => {
+                pending.candidate_application_authority()
+            }
+            UiCommittedAllocationValidationBasis::Mounted(basis) => {
+                basis.candidate_application_authority()
+            }
+        }
+    }
+
+    pub(crate) fn successor_active_artifact(
+        &self,
+        active: &crate::runtime::active::WorthUiActiveRuntimeState,
+    ) -> crate::runtime::active::WorthUiActiveArtifact {
+        match &self.activation_basis {
+            UiCommittedAllocationValidationBasis::Mounted(_) => active.active_artifact().clone(),
+            UiCommittedAllocationValidationBasis::Replacement(pending) => {
+                let artifact_bundle = pending
+                    .staged_replacement()
+                    .admitted_candidate()
+                    .artifact_bundle();
+                crate::runtime::active::WorthUiActiveArtifact::new_with_dependency_report(
+                    artifact_bundle.artifact_authority(),
+                    artifact_bundle.artifact_digest(),
+                    artifact_bundle
+                        .dependency_metadata()
+                        .dependency_report_authority(),
+                )
+            }
+        }
     }
 
     pub(crate) fn allocation_catalog_transition(

@@ -14,6 +14,7 @@ pub(super) struct PreparedActiveSuccessor {
 
 impl PreparedActiveSuccessor {
     pub(super) fn prepare(
+        active: &WorthUiActiveRuntimeState,
         ready: super::UiCommittedAllocationValidation,
         candidate_bundle: crate::runtime::active::WorthUiSealedExecutionPlanBundle,
         snapshot_digest: CapabilitySnapshotDigest,
@@ -21,24 +22,12 @@ impl PreparedActiveSuccessor {
         if candidate_bundle.digest().raw() != ready.candidate_execution_plan_digest()
             || candidate_bundle.generation_identity()
                 != ready
-                    .pending_activation()
                     .candidate_application_authority()
                     .generation_identity()
         {
             return Err(());
         }
-        let artifact_bundle = ready
-            .pending_activation()
-            .staged_replacement()
-            .admitted_candidate()
-            .artifact_bundle();
-        let active_artifact = WorthUiActiveArtifact::new_with_dependency_report(
-            artifact_bundle.artifact_authority(),
-            artifact_bundle.artifact_digest(),
-            artifact_bundle
-                .dependency_metadata()
-                .dependency_report_authority(),
-        );
+        let active_artifact = ready.successor_active_artifact(active);
         let committed = ready.committed().clone();
         Ok(Self {
             active_artifact,

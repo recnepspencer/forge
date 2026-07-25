@@ -1,3 +1,5 @@
+//! Bounded exact-delta history for mounted allocation projections.
+
 use std::collections::VecDeque;
 
 const MOUNTED_PROJECTION_DELTA_HISTORY_LIMIT: usize = 32;

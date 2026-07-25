@@ -58,6 +58,16 @@ pub(crate) fn construct_verified_planning_input_handoff(
     pending_activation: &WorthUiPendingActivation,
     constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
 ) -> Result<WorthUiVerifiedPlanningInputHandoff, WorthUiPlanningInputHandoffDenial> {
+    construct_verified_planning_input_handoff_from_projection(
+        pending_activation.allocation_planning_projection(),
+        constraint_basis,
+    )
+}
+
+pub(crate) fn construct_verified_planning_input_handoff_from_projection(
+    projection: &crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection,
+    constraint_basis: crate::graph::UiAdmittedAllocationConstraintBasis,
+) -> Result<WorthUiVerifiedPlanningInputHandoff, WorthUiPlanningInputHandoffDenial> {
     let measurement_basis = constraint_basis.measurement_basis();
     let allocation_neighborhood = constraint_basis.neighborhood();
     let constraint_set = constraint_basis.constraint_set();
@@ -68,9 +78,10 @@ pub(crate) fn construct_verified_planning_input_handoff(
     )?;
     Ok(WorthUiVerifiedPlanningInputHandoff {
         _witness: witness,
-        admission: WorthUiAllocationPlanningAdmission::from_pending_activation(
-            pending_activation,
+        admission: WorthUiAllocationPlanningAdmission::from_projection(
+            projection.clone(),
             constraint_basis,
+            None,
         ),
     })
 }

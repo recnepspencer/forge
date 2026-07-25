@@ -1089,6 +1089,25 @@ host capability requirements
 Mounted receipts are not widgets. They are runtime-owned facts the host
 consumes.
 
+All ordinary, preview, and replacement contributions enter one
+`UiPreparedMountedFrame`. The public visible-frame path is
+`WorthUiActiveApplicationSession::execute_mounted_frame`; a lane receipt,
+preview projection, or graph-node receipt is never independently presentable.
+The frame becomes current only after every required surface completes and the
+runtime publishes the prepared tuple.
+
+Keep these identities separate:
+
+```text
+semantic surface
+host surface binding generation
+mounted instance and mount incarnation
+frame-scoped node receipt
+mounted frame
+presentation attempt
+publication receipt
+```
+
 The host adapter should be replaceable without changing UI meaning.
 
 Mistakes to avoid:
@@ -1148,6 +1167,18 @@ motion projection receipts
 
 Host observations must return through typed observation lanes. They are not
 permission to mutate runtime structure directly.
+
+Solicited measurement uses a separate request-response exchange. The runtime
+issues the request identity and evidence family; the adapter returns mechanics
+for that exact request. An unsolicited observation report cannot satisfy a
+measurement request, and admitted measurement evidence cannot be replayed as a
+general observation.
+
+Presentation is not assumed atomic at the native boundary. A rejection before
+effects preserves the current publication. Partial or lost completion makes
+the runtime/host truth split explicit and blocks affected bindings. Recovery
+requires fresh bindings and complete re-presentation of the current published
+frame; matching pixels, logs, or per-surface success cannot clear the block.
 
 Mistakes to avoid:
 
@@ -1504,6 +1535,16 @@ cross-runtime causal inspection
 
 Do not use logs as the public inspection surface. Logs are presentation.
 Inspection is artifact-backed explanation.
+
+For mounted work, use `inspect_mounted_identity()` and
+`current_mounted_publication()` to relate semantic surfaces, binding
+generations, mounted instances, node receipts, frames, and predecessors.
+Inspection values are terminal evidence: they cannot be passed back into frame
+assembly, host admission, recovery, or publication.
+
+Adapter transcripts, filesystem/watcher receipts, authored expectations, and
+current mounted inspection are different evidence sources. Do not compare one
+production projection against another and call that an independent oracle.
 
 ---
 

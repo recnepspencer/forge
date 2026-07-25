@@ -16,6 +16,10 @@ use worth_ui_query_binding::{
     WorthUiInstalledLiveQueryView, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
 };
 
+#[path = "mixed_real_lifecycle/hostile_mounted_journey.rs"]
+mod hostile_mounted_journey;
+#[path = "mixed_real_lifecycle/mounted_successor.rs"]
+mod mounted_successor;
 mod query_patch;
 
 use super::scenario::{

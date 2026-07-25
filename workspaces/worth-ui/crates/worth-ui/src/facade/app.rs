@@ -14,7 +14,11 @@ pub use worth_ui_runtime::facade::application::{
     WorthUiVirtualizedPlanSummaryDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
     WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
-pub use worth_ui_runtime::facade::entry::WorthUiQueryViewRegistrationError;
+pub use worth_ui_runtime::facade::entry::{
+    UiMountedAllocationMeasurementRequest, WorthUiMountedAllocationEstablishmentDenial,
+    WorthUiMountedAllocationEstablishmentReceipt, WorthUiMountedAllocationRuntimeStage,
+    WorthUiQueryViewRegistrationError,
+};
 pub use worth_ui_runtime::facade::lifecycle::{
     WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
 };

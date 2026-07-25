@@ -42,6 +42,14 @@ impl WorthUiAllocationPlanningProjection {
     pub(crate) fn graph_authority_identity(&self) -> crate::graph::UiGraphAuthorityIdentity {
         self.graph_authority_identity
     }
+
+    pub(crate) fn frame_epoch(&self) -> WorthUiRuntimeFrameEpoch {
+        self.frame_epoch
+    }
+
+    pub(crate) fn candidate_artifact_digest(&self) -> u64 {
+        self.candidate_artifact_digest
+    }
 }
 
 impl PartialEq for WorthUiAllocationPlanningProjection {

@@ -32,12 +32,17 @@ pub(crate) use execution_plan_lowering_authority::{
     WorthUiExecutionPlanLoweringFacts,
 };
 pub(crate) use execution_plan_lowering_identity::WorthUiExecutionPlanLoweringIdentity;
-pub(crate) use input_handoff::construct_verified_planning_input_handoff;
+pub(crate) use input_handoff::{
+    construct_verified_planning_input_handoff,
+    construct_verified_planning_input_handoff_from_projection,
+};
 
 pub(crate) use allocation_replan_denial::WorthUiAllocationReplanDenial;
 pub(crate) use measurement_basis::collect_planning_measurement_basis;
-pub(crate) use plan_allocation::plan_allocation_for_pending_activation;
 pub(crate) use plan_allocation::replan_selected_candidates_with_portal;
 pub(crate) use plan_allocation::replan_selected_candidates_with_resize;
+pub(crate) use plan_allocation::{
+    plan_allocation_for_pending_activation, plan_allocation_for_projection,
+};
 pub(crate) use transitions::construct_planning_lane_input;
 pub use transitions::{WorthUiPlanningLaneAdmissionDenial, WorthUiPlanningLaneInput};

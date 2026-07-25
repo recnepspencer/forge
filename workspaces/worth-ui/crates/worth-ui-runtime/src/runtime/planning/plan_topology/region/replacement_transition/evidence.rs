@@ -18,10 +18,12 @@ impl WorthUiPlanRegionalEvidence {
         successor: &WorthUiPlanRegionSuccessor,
     ) -> Self {
         let transitions = successor.evidence().to_vec();
+        let regional_delta = authority.region_delta();
         Self {
-            predecessor_artifact_digest: authority.plan_input().basis().prior_artifact_digest(),
-            predecessor_plan_digest: authority
-                .region_delta()
+            predecessor_artifact_digest: regional_delta
+                .map(super::WorthUiPlanRegionDelta::predecessor_artifact_digest)
+                .or_else(|| authority.plan_input().basis().prior_artifact_digest()),
+            predecessor_plan_digest: regional_delta
                 .map(super::WorthUiPlanRegionDelta::predecessor_plan_digest),
             candidate_artifact_digest: authority.plan_input().basis().candidate_artifact_digest(),
             allocation_identity_digest: authority.allocation_identity_digest(),

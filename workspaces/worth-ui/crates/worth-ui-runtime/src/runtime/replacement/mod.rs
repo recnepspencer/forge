@@ -1,6 +1,7 @@
 //! Replacement lane — admit → compare → classify → narrow → match → reconcile → rebind → lowering input.
 
 pub mod admission;
+mod artifact_durable_state_definition;
 pub mod candidate;
 pub mod equivalence;
 #[cfg(test)]

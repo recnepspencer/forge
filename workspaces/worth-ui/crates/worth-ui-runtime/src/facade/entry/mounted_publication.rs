@@ -304,7 +304,7 @@ impl WorthUiMountedPublicationAuthority<'_> {
                     .mounted_publication_reservations
                     .remove(&attempt)
                     .expect("every presented attempt has a pre-effect publication reservation");
-                let receipt = reservation.commit_presented(presented, &mut self.mounted_identity);
+                let receipt = reservation.commit_presented(presented, self.mounted_identity);
                 UiMountedFrameOutcome::Published(receipt)
             }
             UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {

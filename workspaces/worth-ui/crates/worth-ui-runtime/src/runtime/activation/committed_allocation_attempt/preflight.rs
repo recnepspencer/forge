@@ -75,7 +75,7 @@ pub(super) fn preflight_committed_allocation(
         .regional_evidence()
         .clone();
     let payload =
-        PreparedActiveSuccessor::prepare(ready, candidate_bundle, active.snapshot_digest())
+        PreparedActiveSuccessor::prepare(active, ready, candidate_bundle, active.snapshot_digest())
             .map_err(
                 |_| UiCommittedAllocationPreflightDenial::CandidatePlanDigestMismatch {
                     counters: Box::new(counters),

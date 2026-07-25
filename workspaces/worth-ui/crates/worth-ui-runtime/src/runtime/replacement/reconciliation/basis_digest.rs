@@ -1,12 +1,14 @@
 use crate::runtime::{
-    WorthUiDurableStateFamilyId, WorthUiDurableStateReconciliationOutcome,
-    WorthUiDurableStateReconciliationReceipt, WorthUiNodeLifecycleTransition,
+    WorthUiDurableResizeInputDisposition, WorthUiDurableStateFamilyId,
+    WorthUiDurableStateReconciliationOutcome, WorthUiDurableStateReconciliationReceipt,
+    WorthUiNodeLifecycleTransition,
 };
 
 pub(crate) fn reconciliation_basis_digest(
     active_artifact_digest: u64,
     candidate_artifact_digest: u64,
     receipts: &[WorthUiDurableStateReconciliationReceipt],
+    durable_resize_dispositions: &[WorthUiDurableResizeInputDisposition],
 ) -> u64 {
     let mut fold = WorthUiReconciliationDigestFold::new(0x7265_636f_6e5f_0011);
     fold.fold_u64(active_artifact_digest);
@@ -26,6 +28,10 @@ pub(crate) fn reconciliation_basis_digest(
             fold_outcome(&mut fold, replacement.outcome());
             fold.fold_text(replacement.reason());
         }
+    }
+    fold.fold_usize(durable_resize_dispositions.len());
+    for disposition in durable_resize_dispositions {
+        fold.fold_u64(disposition.identity_digest());
     }
     fold.finish()
 }

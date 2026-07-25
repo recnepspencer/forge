@@ -34,8 +34,8 @@ pub struct UiAdmittedReplanNeighborhood {
     widen_reason: Option<UiReplanWidenReason>,
     allocation_plan: crate::runtime::UiAdmittedAllocationPlanReference,
     neighborhood_footprint: std::rc::Rc<super::super::UiGraphNeighborhoodFootprint>,
-    replacement_impact: std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>,
-    impact_narrowing: std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>,
+    replacement_impact: Option<std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>>,
+    impact_narrowing: Option<std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>>,
     root_target: bool,
 }
 
@@ -73,7 +73,7 @@ pub enum UiReplanLocalityDenial {
     ForbiddenRootFallback,
     UnsupportedWideningFamily,
     MissingAdmittedCandidate,
-    MissingReplacementImpact,
+    IncompleteReplacementLineage,
     AdmittedGenerationSetChanged,
     OverlappingNeighborhoods { left: u16, right: u16 },
     OverlappingNeighborhoodSupersessionRequired,
@@ -87,8 +87,7 @@ impl UiAdmittedReplanNeighborhood {
     pub(in crate::graph::allocation_neighborhood) fn primary(
         target: &crate::graph::UiAdmittedAllocationInvalidationTarget,
     ) -> Result<Self, UiReplanLocalityDenial> {
-        let (replacement_impact, impact_narrowing) =
-            super::replan_locality::retain_replacement_lineage(target)?;
+        let replacement_lineage = super::replan_locality::retain_replacement_lineage(target)?;
         Ok(Self {
             identity: target.neighborhood_identity().clone(),
             locality: UiReplanLocalityProof::from_target(target)?,
@@ -98,8 +97,10 @@ impl UiAdmittedReplanNeighborhood {
                 .cloned()
                 .ok_or(UiReplanLocalityDenial::MissingAdmittedCandidate)?,
             neighborhood_footprint: target.neighborhood_footprint(),
-            replacement_impact,
-            impact_narrowing,
+            replacement_impact: replacement_lineage
+                .as_ref()
+                .map(|(impact, _)| impact.clone()),
+            impact_narrowing: replacement_lineage.map(|(_, narrowing)| narrowing),
             root_target: target.disposition()
                 == crate::graph::UiGraphReplanTargetDisposition::RootPrimaryEligible,
         })
@@ -108,8 +109,7 @@ impl UiAdmittedReplanNeighborhood {
         target: &crate::graph::UiAdmittedAllocationInvalidationTarget,
         reason: UiReplanWidenReason,
     ) -> Result<Self, UiReplanLocalityDenial> {
-        let (replacement_impact, impact_narrowing) =
-            super::replan_locality::retain_replacement_lineage(target)?;
+        let replacement_lineage = super::replan_locality::retain_replacement_lineage(target)?;
         Ok(Self {
             identity: target.neighborhood_identity().clone(),
             locality: UiReplanLocalityProof::from_target(target)?,
@@ -119,8 +119,10 @@ impl UiAdmittedReplanNeighborhood {
                 .cloned()
                 .ok_or(UiReplanLocalityDenial::MissingAdmittedCandidate)?,
             neighborhood_footprint: target.neighborhood_footprint(),
-            replacement_impact,
-            impact_narrowing,
+            replacement_impact: replacement_lineage
+                .as_ref()
+                .map(|(impact, _)| impact.clone()),
+            impact_narrowing: replacement_lineage.map(|(_, narrowing)| narrowing),
             root_target: target.disposition()
                 == crate::graph::UiGraphReplanTargetDisposition::RootPrimaryEligible,
         })
@@ -139,14 +141,14 @@ impl UiAdmittedReplanNeighborhood {
     }
     pub(crate) fn replacement_lineage(
         &self,
-    ) -> (
+    ) -> Option<(
         std::rc::Rc<crate::runtime::WorthUiReplacementImpactClassification>,
         std::rc::Rc<crate::runtime::WorthUiRuntimeImpactNarrowing>,
-    ) {
-        (
-            std::rc::Rc::clone(&self.replacement_impact),
-            std::rc::Rc::clone(&self.impact_narrowing),
-        )
+    )> {
+        self.replacement_impact
+            .as_ref()
+            .zip(self.impact_narrowing.as_ref())
+            .map(|(impact, narrowing)| (std::rc::Rc::clone(impact), std::rc::Rc::clone(narrowing)))
     }
     pub fn planning_identity_digest(&self) -> u64 {
         self.allocation_plan.planning_identity_digest()

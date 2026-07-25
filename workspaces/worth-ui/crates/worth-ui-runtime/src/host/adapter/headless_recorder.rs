@@ -4,19 +4,18 @@ use std::rc::Rc;
 
 use worth_ui_host_contract::{
     UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiHostPresentationCostInput,
-    UiHostPresentationCostReport, UiHostProtocolNegotiation, UiHostSurfacePresentationDenial,
-    UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
-    UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects,
-    UiMountedEffectFamily, UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion,
-    WorthUiHostCapability, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiMeasurementHostAdapter,
+    UiHostPresentationCostReport, UiHostProtocolNegotiation, UiHostSessionReleaseOutcome,
+    UiHostSessionReleaseReceipt, UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
+    UiHostSurfacePresentationOutcome, UiHostSurfaceRegistrationDenial,
+    UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects, UiMountedEffectFamily,
+    UiMountedFrameConsumptionView, UiMountedSurfacePresentationCompletion,
+    UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
 
+use super::headless_measurement::UiHeadlessMeasurementEnvironment;
 use super::headless_translation::translate_headless_frame;
-use super::{
-    UiHeadlessMountedFrameTranscript, UiHeadlessRecorderCapacity, UiHostAdapterSessionAuthority,
-    UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, WorthUiOperationalHostAdapter,
-};
+use super::{UiHeadlessMountedFrameTranscript, UiHeadlessRecorderCapacity};
 
 #[derive(Clone)]
 pub struct WorthUiHeadlessRecorder {
@@ -25,6 +24,7 @@ pub struct WorthUiHeadlessRecorder {
 
 struct WorthUiHeadlessRecorderState {
     capacity: UiHeadlessRecorderCapacity,
+    measurement: UiHeadlessMeasurementEnvironment,
     registrations:
         BTreeMap<worth_ui_host_contract::UiHostSurfaceIdentity, UiHostSurfaceRegistrationRequest>,
     transcripts: VecDeque<UiHeadlessMountedFrameTranscript>,
@@ -32,9 +32,30 @@ struct WorthUiHeadlessRecorderState {
 
 impl WorthUiHeadlessRecorder {
     pub fn new(capacity: UiHeadlessRecorderCapacity) -> Self {
+        Self::with_measurement_environment(
+            capacity,
+            UiHeadlessMeasurementEnvironment::unsupported(),
+        )
+    }
+
+    pub fn with_viewport_extent(
+        capacity: UiHeadlessRecorderCapacity,
+        viewport: UiViewportExtentObservation,
+    ) -> Self {
+        Self::with_measurement_environment(
+            capacity,
+            UiHeadlessMeasurementEnvironment::fixed_viewport(viewport),
+        )
+    }
+
+    fn with_measurement_environment(
+        capacity: UiHeadlessRecorderCapacity,
+        measurement: UiHeadlessMeasurementEnvironment,
+    ) -> Self {
         Self {
             state: Rc::new(RefCell::new(WorthUiHeadlessRecorderState {
                 capacity,
+                measurement,
                 registrations: BTreeMap::new(),
                 transcripts: VecDeque::new(),
             })),
@@ -51,18 +72,16 @@ impl WorthUiHeadlessRecorder {
 
     fn validate_registration(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         request: UiHostSurfaceRegistrationRequest,
     ) -> Result<(), UiHostSurfaceRegistrationDenial> {
-        let agreement = match self.operational_protocol_contract().negotiate() {
+        let agreement = match self.mechanical_protocol_contract().negotiate() {
             UiHostProtocolNegotiation::Compatible(agreement) => agreement,
             UiHostProtocolNegotiation::Incompatible(_) => {
                 return Err(UiHostSurfaceRegistrationDenial::ForeignRegistration);
             }
         };
-        let capabilities = self.operational_capability_report();
-        if request.host_session_identity() != authority.host_session_identity()
-            || request.protocol() != agreement
+        let capabilities = self.mechanical_capability_report();
+        if request.protocol() != agreement
             || request.capability_generation().as_u64() == 0
             || request.capability_profile_digest() != capabilities.profile_identity_digest()
         {
@@ -92,14 +111,14 @@ impl WorthUiHeadlessRecorder {
                 ),
             );
         }
-        let live_protocol = match self.operational_protocol_contract().negotiate() {
+        let live_protocol = match self.mechanical_protocol_contract().negotiate() {
             UiHostProtocolNegotiation::Compatible(agreement) => agreement,
             UiHostProtocolNegotiation::Incompatible(denial) => {
                 return Err(UiHostSurfacePresentationDenial::Protocol(denial));
             }
         };
         let live_profile = self
-            .operational_capability_report()
+            .mechanical_capability_report()
             .profile_identity_digest();
         let state = self.state.borrow();
         if state.transcripts.len() >= state.capacity.retained_frames() {
@@ -148,27 +167,37 @@ impl Default for WorthUiHeadlessRecorder {
 impl WorthUiMeasurementHostAdapter for WorthUiHeadlessRecorder {
     fn observe_measurement(
         &self,
-        _request: &UiHostMeasurementRequest,
+        request: &UiHostMeasurementRequest,
     ) -> UiHostMeasurementObservationValue {
-        unreachable!("headless recorder advertises no native measurement capabilities")
+        self.state.borrow().measurement.observe(request)
     }
 }
 
-impl WorthUiOperationalHostAdapter for WorthUiHeadlessRecorder {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
+impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
+    fn mechanical_host_contract(&self) -> WorthUiHostContract {
         WorthUiHostContract::headless()
     }
 
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![WorthUiHostCapability::MountedFrameRecording])
+    fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
+        let mut capabilities = vec![WorthUiHostCapability::MountedFrameRecording];
+        self.state
+            .borrow()
+            .measurement
+            .append_capabilities(&mut capabilities);
+        WorthUiHostCapabilityReport::available(capabilities)
     }
 
-    fn register_surface(
+    fn mechanical_measurement_environment_report(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
+    ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
+        self.state.borrow().measurement.report()
+    }
+
+    fn perform_surface_registration(
+        &self,
         request: UiHostSurfaceRegistrationRequest,
     ) -> worth_ui_host_contract::UiHostSurfaceRegistrationOutcome {
-        if let Err(denial) = self.validate_registration(authority, request) {
+        if let Err(denial) = self.validate_registration(request) {
             return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(
                 denial,
             );
@@ -182,16 +211,10 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessRecorder {
         )
     }
 
-    fn deregister_surface(
+    fn perform_surface_deregistration(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         request: UiHostSurfaceRegistrationRequest,
     ) -> worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome {
-        if request.host_session_identity() != authority.host_session_identity() {
-            return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
-                UiHostSurfaceRegistrationDenial::ForeignRegistration,
-            );
-        }
         let mut state = self.state.borrow_mut();
         if state.registrations.get(&request.host_surface_identity()) != Some(&request) {
             return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::RejectedBeforeEffects(
@@ -207,16 +230,10 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessRecorder {
         )
     }
 
-    fn present_mounted_surface(
+    fn perform_mounted_surface_presentation(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
         view: &UiMountedFrameConsumptionView<'_>,
     ) -> UiHostSurfacePresentationOutcome {
-        if !authority.admits_mounted_presentation(view) {
-            return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
-                UiHostSurfacePresentationDenial::SurfaceBindingChanged,
-            );
-        }
         let capacity = match self.validate_presented_view(view) {
             Ok(capacity) => capacity,
             Err(denial) => {
@@ -243,17 +260,17 @@ impl WorthUiOperationalHostAdapter for WorthUiHeadlessRecorder {
         ))
     }
 
-    fn release_host_session(
+    fn release_mechanical_host_session(
         &self,
-        authority: &UiHostAdapterSessionAuthority,
+        host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut state = self.state.borrow_mut();
         let retained_before = state.registrations.len();
-        state.registrations.retain(|_, request| {
-            request.host_session_identity() != authority.host_session_identity()
-        });
+        state
+            .registrations
+            .retain(|_, request| request.host_session_identity() != host_session_identity);
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
+            host_session_identity,
             retained_before - state.registrations.len(),
         ))
     }

@@ -1,6 +1,7 @@
 use worth_ui::facade::app::WorthUiPreparedApplicationAuthority;
 use worth_ui::facade::mounted::{
-    UiMountedNodeReceipt, UiMountedProjectionView, UiProjectedMountedFrameCandidate,
+    UiMountedFramePublicationReceipt, UiMountedNodeReceipt, UiMountedProjectionView,
+    UiProjectedMountedFrameCandidate,
 };
 
 fn extract(authority: WorthUiPreparedApplicationAuthority) {
@@ -25,6 +26,10 @@ fn forge_node_receipt() -> UiMountedNodeReceipt {
 
 fn forge_projected_candidate() -> UiProjectedMountedFrameCandidate {
     UiProjectedMountedFrameCandidate {}
+}
+
+fn forge_current_mounted_frame() -> UiMountedFramePublicationReceipt {
+    UiMountedFramePublicationReceipt {}
 }
 
 fn main() {}

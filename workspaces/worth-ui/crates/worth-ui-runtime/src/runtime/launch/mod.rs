@@ -4,7 +4,11 @@ mod build_active_state;
 mod launch_request;
 mod launch_transition;
 mod lifecycle_state;
+mod mounted_allocation_transition;
 mod planning_transition;
+pub(crate) use mounted_allocation_transition::{
+    WorthUiInitialMountedCatalogPreparationDenial, WorthUiMountedAllocationActivationBasis,
+};
 pub(crate) use planning_transition::UiAllocationCatalogMintAuthority;
 pub(crate) use planning_transition::UiAllocationCatalogPreparationDenial;
 mod preservation;

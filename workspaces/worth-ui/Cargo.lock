@@ -1691,7 +1691,6 @@ version = "0.1.0"
 dependencies = [
  "egui",
  "worth-ui-host-contract",
- "worth-ui-runtime",
 ]
 
 [[package]]

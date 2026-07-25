@@ -31,4 +31,6 @@ pub use plan::{
     WorthUiDurableStateReconciliationDenial, WorthUiDurableStateReconciliationPlan,
     WorthUiDurableStateReconciliationReceipt,
 };
-pub(crate) use planner::WorthUiDurableStateReconciliationPlanner;
+pub(crate) use planner::{
+    WorthUiDurableStateReconciliationPlanner, WorthUiInitialMountedReconciliationPlanner,
+};

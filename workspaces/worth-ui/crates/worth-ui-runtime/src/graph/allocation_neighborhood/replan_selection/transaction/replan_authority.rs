@@ -170,16 +170,6 @@ impl UiAdmittedAllocationInvalidationTarget {
         self.graph_membership_probes = probes;
         self
     }
-    pub(crate) fn replacement_impact(
-        &self,
-    ) -> Option<&crate::runtime::WorthUiReplacementImpactClassification> {
-        self.replacement_impact.as_deref()
-    }
-    pub(crate) fn impact_narrowing(
-        &self,
-    ) -> Option<&crate::runtime::WorthUiRuntimeImpactNarrowing> {
-        self.impact_narrowing.as_deref()
-    }
     pub(crate) fn graph_consequence(&self) -> super::UiReplanWidenReason {
         self.consequence
     }
