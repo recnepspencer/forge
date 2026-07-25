@@ -8,6 +8,7 @@ use super::outcome::{UiMountedSurfacePresentationReceipt, UiMountedSurfacePresen
 
 pub struct UiMountedPresentationAdmission {
     pub(super) frame: UiPreparedMountedFrame,
+    pub(super) retention: super::super::retention::UiMountedRetentionReservation,
     pub(super) attempt: UiMountedPresentationAttemptIdentity,
     pub(super) deadline: UiPresentationDeadline,
     lease: UiPresentationAdmissionLease,
@@ -38,6 +39,7 @@ pub struct UiMountedPresentationInFlight {
 
 pub(super) struct UiMountedPresentationInFlightState {
     pub(super) frame: UiPreparedMountedFrame,
+    pub(super) retention: super::super::retention::UiMountedRetentionReservation,
     pub(super) attempt: UiMountedPresentationAttemptIdentity,
     pub(super) deadline: UiPresentationDeadline,
     pub(super) pending: Vec<UiPendingMountedSurface>,
@@ -70,13 +72,15 @@ pub enum UiMountedPresentationCompletionDenial {
 
 impl UiMountedPresentationAdmission {
     pub(super) fn new(
-        frame: UiPreparedMountedFrame,
+        prepared: super::super::retention::UiRetentionPreparedMountedFrame,
         attempt: UiMountedPresentationAttemptIdentity,
         deadline: UiPresentationDeadline,
         active: Rc<RefCell<BTreeSet<UiMountedPresentationAttemptIdentity>>>,
     ) -> Self {
+        let (frame, retention) = prepared.into_parts();
         Self {
             frame,
+            retention,
             attempt,
             deadline,
             lease: UiPresentationAdmissionLease {
@@ -142,12 +146,14 @@ impl UiMountedPresentationAttempt {
         mut self,
     ) -> (
         UiPreparedMountedFrame,
+        super::super::retention::UiMountedRetentionReservation,
         UiMountedPresentationAttemptIdentity,
         UiPresentationDeadline,
     ) {
         self.admission.lease.release_on_drop = false;
         (
             self.admission.frame,
+            self.admission.retention,
             self.admission.attempt,
             self.admission.deadline,
         )

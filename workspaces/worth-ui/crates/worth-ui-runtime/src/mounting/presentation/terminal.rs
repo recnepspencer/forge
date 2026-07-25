@@ -11,8 +11,10 @@ use super::outcome::{
 pub(super) fn rejected_outcome(
     attempt: UiMountedPresentationAttemptIdentity,
     frame: super::super::UiPreparedMountedFrame,
+    retention: super::super::retention::UiMountedRetentionReservation,
     rejections: Vec<UiMountedSurfacePresentationRejection>,
 ) -> UiMountedPresentationOutcome {
+    drop(retention);
     UiMountedPresentationOutcome::RejectedBeforeEffects(UiMountedRejectedFrame::new(
         attempt, frame, rejections,
     ))

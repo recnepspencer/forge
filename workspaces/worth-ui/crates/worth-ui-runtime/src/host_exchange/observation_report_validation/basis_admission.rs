@@ -16,13 +16,13 @@ struct UiPresentedBasisCoordinates {
 impl UiBasisAdmittedObservationBatch {
     pub(super) fn admit(
         batch: UiSequenceCoveredObservationBatch,
-        identity: &crate::mounting::UiMountedIdentityState,
+        retention: &crate::mounting::UiMountedFrameRetentionCoordinator,
         host_session: u64,
     ) -> Result<Self, UiHostObservationReportDenial> {
         if batch.core().host_session() != host_session {
             return Err(UiHostObservationReportDenial::ForeignHostSession);
         }
-        let relation = classify_basis(&batch, identity)?;
+        let relation = classify_basis(&batch, retention)?;
         Ok(Self { batch, relation })
     }
 
@@ -38,14 +38,14 @@ impl UiBasisAdmittedObservationBatch {
 
 fn classify_basis(
     batch: &UiSequenceCoveredObservationBatch,
-    identity: &crate::mounting::UiMountedIdentityState,
+    retention: &crate::mounting::UiMountedFrameRetentionCoordinator,
 ) -> Result<UiHostObservationFrameRelation, UiHostObservationReportDenial> {
     let core = batch.core();
     let mut relation = None;
     for report in batch.reports() {
         let mounted = report.mounted_basis();
         let next = classify_presented_basis(
-            identity,
+            retention,
             UiPresentedBasisCoordinates {
                 frame: core.frame(),
                 binding: core.binding(),
@@ -61,7 +61,7 @@ fn classify_basis(
     match relation {
         Some(relation) => Ok(relation),
         None => classify_presented_basis(
-            identity,
+            retention,
             UiPresentedBasisCoordinates {
                 frame: core.frame(),
                 binding: core.binding(),
@@ -73,10 +73,10 @@ fn classify_basis(
 }
 
 fn classify_presented_basis(
-    identity: &crate::mounting::UiMountedIdentityState,
+    retention: &crate::mounting::UiMountedFrameRetentionCoordinator,
     coordinates: UiPresentedBasisCoordinates,
 ) -> Result<UiHostObservationFrameRelation, UiHostObservationReportDenial> {
-    match identity.classify_presented_frame_basis(
+    match retention.classify(
         coordinates.frame,
         coordinates.binding,
         coordinates.instance,

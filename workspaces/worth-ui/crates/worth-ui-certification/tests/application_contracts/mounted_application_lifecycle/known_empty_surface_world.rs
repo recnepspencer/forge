@@ -42,6 +42,23 @@ where
     scenario.prepare_application_with_host(submission, host)
 }
 
+pub(crate) fn mounted_application_with_host_and_retention_budget<Host>(
+    label: &str,
+    host: Host,
+    retention_budget: worth_ui::facade::mounted::UiMountedFrameRetentionBudget,
+) -> worth_ui::facade::app::WorthUiApp
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    let scenario = FilesystemApplicationLifecycleScenario::new(label);
+    let submission = mounted_submission(
+        label,
+        &FilesystemApplicationLifecycleScenario::ordinary_execution_source_text(),
+        &scenario,
+    );
+    scenario.prepare_application_with_host_and_retention_budget(submission, host, retention_budget)
+}
+
 fn mounted_submission(
     label: &str,
     source: &str,

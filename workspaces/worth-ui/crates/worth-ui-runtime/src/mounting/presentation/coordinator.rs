@@ -57,16 +57,16 @@ impl UiMountedPresentationCoordinator {
         authority: UiMountedHostPresentationAuthority<'_>,
         now: u64,
     ) -> UiMountedPresentationOutcome {
-        let (frame, attempt, deadline) = attempt.into_parts();
+        let (frame, retention, attempt, deadline) = attempt.into_parts();
         if deadline.expired_at(now) {
             self.active.borrow_mut().remove(&attempt);
             let rejections = frame_rejections(
                 &frame,
                 worth_ui_host_contract::UiHostSurfacePresentationDenial::DeadlineExpired,
             );
-            return rejected_outcome(attempt, frame, rejections);
+            return rejected_outcome(attempt, frame, retention, rejections);
         }
-        self.present_all(frame, attempt, deadline, host, authority)
+        self.present_all(frame, retention, attempt, deadline, host, authority)
     }
 
     pub fn reconcile(
@@ -112,6 +112,7 @@ impl UiMountedPresentationCoordinator {
     fn present_all(
         &mut self,
         frame: super::super::UiPreparedMountedFrame,
+        retention: super::super::retention::UiMountedRetentionReservation,
         attempt: UiMountedPresentationAttemptIdentity,
         deadline: UiPresentationDeadline,
         host: UiHostEffectPort<'_>,
@@ -119,7 +120,7 @@ impl UiMountedPresentationCoordinator {
     ) -> UiMountedPresentationOutcome {
         if let Err(rejections) = validate_before_effects(&frame, host.adapter(), authority) {
             self.active.borrow_mut().remove(&attempt);
-            return rejected_outcome(attempt, frame, rejections);
+            return rejected_outcome(attempt, frame, retention, rejections);
         }
         let mut pending = Vec::new();
         let mut rejected = Vec::new();
@@ -146,7 +147,7 @@ impl UiMountedPresentationCoordinator {
                     let mut affected = aggregate_affected(&completed, &pending, &rejected);
                     affected.push(requirement.binding());
                     settlement::cancel_all(pending, host);
-                    return self.indeterminate(frame, attempt, affected);
+                    return self.indeterminate(frame, retention, attempt, affected);
                 }
                 UiHostSurfacePresentationOutcome::InFlight(token) => {
                     pending.push(super::state::UiPendingMountedSurface {
@@ -159,7 +160,7 @@ impl UiMountedPresentationCoordinator {
                         let mut affected = aggregate_affected(&completed, &pending, &rejected);
                         affected.push(requirement.binding());
                         settlement::cancel_all(pending, host);
-                        return self.indeterminate(frame, attempt, affected);
+                        return self.indeterminate(frame, retention, attempt, affected);
                     }
                     let (effects, adapter_cost) = completion.into_parts();
                     completed.push(UiMountedSurfacePresentationReceipt::new(
@@ -170,12 +171,15 @@ impl UiMountedPresentationCoordinator {
                 }
             }
         }
-        self.finish_or_wait(frame, attempt, deadline, pending, rejected, completed, host)
+        self.finish_or_wait(
+            frame, retention, attempt, deadline, pending, rejected, completed, host,
+        )
     }
 
     fn finish_or_wait(
         &mut self,
         frame: super::super::UiPreparedMountedFrame,
+        retention: super::super::retention::UiMountedRetentionReservation,
         attempt: UiMountedPresentationAttemptIdentity,
         deadline: UiPresentationDeadline,
         pending: Vec<super::state::UiPendingMountedSurface>,
@@ -190,11 +194,12 @@ impl UiMountedPresentationCoordinator {
                     Err(_) => {
                         let affected = aggregate_affected(&completed, &pending, &rejected);
                         settlement::cancel_all(pending, host);
-                        return self.indeterminate(frame, attempt, affected);
+                        return self.indeterminate(frame, retention, attempt, affected);
                     }
                 };
             let state = super::state::UiMountedPresentationInFlightState {
                 frame,
+                retention,
                 attempt,
                 deadline,
                 pending,
@@ -207,11 +212,11 @@ impl UiMountedPresentationCoordinator {
         }
         if completed.is_empty() {
             self.active.borrow_mut().remove(&attempt);
-            return rejected_outcome(attempt, frame, rejected);
+            return rejected_outcome(attempt, frame, retention, rejected);
         }
         if !rejected.is_empty() {
             let affected = aggregate_affected(&completed, &[], &rejected);
-            return self.indeterminate(frame, attempt, affected);
+            return self.indeterminate(frame, retention, attempt, affected);
         }
         self.active.borrow_mut().remove(&attempt);
         completed.sort_by_key(UiMountedSurfacePresentationReceipt::binding);
@@ -228,11 +233,12 @@ impl UiMountedPresentationCoordinator {
                     .iter()
                     .map(|surface| surface.requirement().binding())
                     .collect();
-                return self.indeterminate(frame, attempt, affected);
+                return self.indeterminate(frame, retention, attempt, affected);
             }
         };
         UiMountedPresentationOutcome::Presented(UiMountedPresentedFrame::new(
             frame,
+            retention,
             receipt,
             UiMountedPresentationWitness::new(attempt),
         ))
@@ -241,6 +247,7 @@ impl UiMountedPresentationCoordinator {
     fn indeterminate(
         &mut self,
         frame: super::super::UiPreparedMountedFrame,
+        retention: super::super::retention::UiMountedRetentionReservation,
         attempt: UiMountedPresentationAttemptIdentity,
         affected: Vec<UiSurfaceBindingGeneration>,
     ) -> UiMountedPresentationOutcome {
@@ -254,6 +261,7 @@ impl UiMountedPresentationCoordinator {
                 .requirement();
             self.host_truth.block_presentation(requirement);
         }
+        drop(retention);
         let report = UiPresentationIndeterminateReport::new(attempt, affected);
         UiMountedPresentationOutcome::PresentationIndeterminate(UiMountedIndeterminateFrame::new(
             frame, report,

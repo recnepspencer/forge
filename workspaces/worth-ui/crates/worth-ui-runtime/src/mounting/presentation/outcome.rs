@@ -45,6 +45,7 @@ pub struct UiPresentationIndeterminateReport {
 
 pub struct UiMountedPresentedFrame {
     frame: UiPreparedMountedFrame,
+    retention: super::super::retention::UiMountedRetentionReservation,
     receipt: UiMountedPresentationReceipt,
     witness: UiMountedPresentationWitness,
 }
@@ -198,11 +199,13 @@ impl UiPresentationIndeterminateReport {
 impl UiMountedPresentedFrame {
     pub(super) fn new(
         frame: UiPreparedMountedFrame,
+        retention: super::super::retention::UiMountedRetentionReservation,
         receipt: UiMountedPresentationReceipt,
         witness: UiMountedPresentationWitness,
     ) -> Self {
         Self {
             frame,
+            retention,
             receipt,
             witness,
         }
@@ -220,8 +223,13 @@ impl UiMountedPresentedFrame {
         &self.witness
     }
 
-    pub(crate) fn into_frame(self) -> UiPreparedMountedFrame {
-        self.frame
+    pub(crate) fn into_publication_parts(
+        self,
+    ) -> (
+        UiPreparedMountedFrame,
+        super::super::retention::UiMountedRetentionReservation,
+    ) {
+        (self.frame, self.retention)
     }
 }
 

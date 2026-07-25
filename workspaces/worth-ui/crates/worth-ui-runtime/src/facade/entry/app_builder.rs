@@ -73,7 +73,19 @@ impl WorthUiBuilder {
     where
         Host: WorthUiOperationalHostAdapter + 'static,
     {
+        let retention_budget = self.host_session_plan.mounted_frame_retention_budget();
         self.host_session_plan = WorthUiHostSessionPlan::prepare(host);
+        self.host_session_plan
+            .set_mounted_frame_retention_budget(retention_budget);
+        self
+    }
+
+    pub fn with_mounted_frame_retention_budget(
+        mut self,
+        budget: crate::mounting::UiMountedFrameRetentionBudget,
+    ) -> Self {
+        self.host_session_plan
+            .set_mounted_frame_retention_budget(budget);
         self
     }
 

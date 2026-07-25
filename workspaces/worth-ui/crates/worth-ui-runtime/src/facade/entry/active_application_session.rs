@@ -17,6 +17,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) runtime: WorthUiRuntime,
     pub(super) host_session: crate::facade::WorthUiHostSessionAuthority,
     pub(super) mounted_identity: crate::mounting::UiMountedIdentityState,
+    pub(super) mounted_retention: crate::mounting::UiMountedFrameRetentionCoordinator,
     pub(super) mounted_presentation: crate::mounting::UiMountedPresentationCoordinator,
     pub(super) mounted_publication_reservations: std::collections::BTreeMap<
         worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
@@ -46,6 +47,7 @@ impl WorthUiActiveApplicationSession {
     ) -> Result<Self, crate::runtime::WorthUiRuntimeLaunchDenial> {
         let identity =
             WorthUiActiveApplicationSessionIdentity::from_host_session(host_session.identity());
+        let mounted_frame_retention_budget = app.mounted_frame_retention_budget();
         let mounted_identity = crate::mounting::UiMountedIdentityState::new(
             host_session.identity(),
         )
@@ -56,6 +58,9 @@ impl WorthUiActiveApplicationSession {
             runtime,
             host_session,
             mounted_identity,
+            mounted_retention: crate::mounting::UiMountedFrameRetentionCoordinator::with_budget(
+                mounted_frame_retention_budget,
+            ),
             mounted_presentation: crate::mounting::UiMountedPresentationCoordinator::default(),
             mounted_publication_reservations: std::collections::BTreeMap::new(),
             mounted_reconciliation_reservations: std::collections::BTreeMap::new(),
@@ -126,6 +131,7 @@ impl WorthUiActiveApplicationSession {
             host_session_identity,
             completion,
             mounted_identity: &mut self.mounted_identity,
+            mounted_retention: &mut self.mounted_retention,
             host_session: &self.host_session,
             mounted_presentation: &mut self.mounted_presentation,
             mounted_publication_reservations: &mut self.mounted_publication_reservations,

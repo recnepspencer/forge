@@ -14,9 +14,24 @@ impl WorthUiActiveApplicationSession {
         now: u64,
     ) -> UiMountedFrameOutcome {
         let capability_report = self.host_session.capability_report().clone();
+        let admitted = match self.mounted_identity.admit_prepared_frame_authority(frame) {
+            Ok(admitted) => admitted,
+            Err(rejection) => {
+                self.host_observations
+                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
+                return UiMountedFrameOutcome::AdmissionDenied(rejection);
+            }
+        };
+        let retained = match self.mounted_retention.prepare_publication(admitted) {
+            Ok(retained) => retained,
+            Err(rejection) => {
+                self.host_observations
+                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
+                return UiMountedFrameOutcome::RetentionDenied(rejection);
+            }
+        };
         let admission = match self.mounted_presentation.admit_current(
-            &self.mounted_identity,
-            frame,
+            retained,
             &capability_report,
             deadline,
             now,
@@ -71,8 +86,12 @@ impl WorthUiActiveApplicationSession {
             self.host_session.protocol(),
             &capability_report,
         )?;
+        let retained = match self.mounted_retention.prepare_reconciliation(frame) {
+            Ok(retained) => retained,
+            Err(rejection) => return Ok(UiMountedFrameOutcome::RetentionDenied(rejection)),
+        };
         let admission = match self.mounted_presentation.admit_reconciliation(
-            frame,
+            retained,
             replacements,
             &capability_report,
             deadline,

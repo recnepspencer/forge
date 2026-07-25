@@ -14,6 +14,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             host_session_identity,
             completion,
             mounted_identity,
+            mounted_retention,
             host_session,
             mounted_presentation,
             mounted_publication_reservations,
@@ -29,6 +30,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 ports: WorthUiMountedPreviewPorts {
                     host_session,
                     identity: mounted_identity,
+                    retention: mounted_retention,
                     presentation: mounted_presentation,
                     reservations: mounted_publication_reservations,
                     observations: host_observations,
@@ -41,6 +43,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 host_session_identity,
                 completion: *completion,
                 mounted_identity,
+                mounted_retention,
                 host_session,
                 mounted_presentation,
                 mounted_publication_reservations,

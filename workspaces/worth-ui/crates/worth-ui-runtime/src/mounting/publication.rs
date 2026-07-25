@@ -18,13 +18,11 @@ struct UiMountedFramePublicationReceiptInner {
 
 pub struct UiMountedFramePublicationCandidate {
     receipt: UiMountedFramePublicationReceipt,
-    presented_basis: super::retention::UiPreparedPresentedFrameBasis,
 }
 
 pub(crate) struct UiMountedFrameReconciliationCandidate {
     replacements: Box<[super::UiMountedSurfaceReconciliationBinding]>,
     receipt: UiMountedFramePublicationReceipt,
-    presented_basis: super::retention::UiPreparedPresentedFrameBasis,
 }
 
 pub enum UiMountedFrameOutcome {
@@ -34,6 +32,7 @@ pub enum UiMountedFrameOutcome {
     RejectedBeforeEffects(super::UiMountedRejectedFrame),
     InFlight(super::UiMountedPresentationInFlight),
     PresentationIndeterminate(super::UiMountedIndeterminateFrame),
+    RetentionDenied(super::UiMountedFrameRetentionRejection),
     AdmissionDenied(super::UiMountedPresentationAdmissionRejection),
     CompletionDenied(super::UiMountedPresentationCompletionDenial),
 }
@@ -63,15 +62,9 @@ impl UiMountedFrameReconciliationCandidate {
                 cost: std::cell::Cell::new(admission.frame().cost_report()),
             }),
         };
-        let presented_basis = super::retention::UiMountedPresentedFrameRetention::prepare(
-            receipt.frame(),
-            receipt.bindings(),
-            admission.frame().presented_receipt_basis().clone(),
-        );
         Self {
             replacements: replacements.to_vec().into_boxed_slice(),
             receipt,
-            presented_basis,
         }
     }
 
@@ -84,13 +77,11 @@ impl UiMountedFrameReconciliationCandidate {
         presented: super::UiMountedPresentedFrame,
         state: &mut super::UiMountedIdentityState,
     ) -> UiMountedFramePublicationReceipt {
-        let Self {
-            receipt,
-            presented_basis,
-            ..
-        } = self;
+        let Self { receipt, .. } = self;
         receipt.finalize_cost(presented.receipt().cost_report());
-        state.publish_reconciled_frame(presented.into_frame(), receipt.clone(), presented_basis);
+        let (frame, reservation) = presented.into_publication_parts();
+        state.publish_reconciled_frame(frame, receipt.clone());
+        reservation.commit();
         receipt
     }
 }
@@ -123,15 +114,7 @@ impl UiMountedFramePublicationCandidate {
                 cost: std::cell::Cell::new(admission.frame().cost_report()),
             }),
         };
-        let presented_basis = super::retention::UiMountedPresentedFrameRetention::prepare(
-            admission.frame().canonical_core().frame(),
-            receipt.bindings(),
-            admission.frame().presented_receipt_basis().clone(),
-        );
-        Self {
-            receipt,
-            presented_basis,
-        }
+        Self { receipt }
     }
 
     pub(crate) fn commit_presented(
@@ -139,12 +122,11 @@ impl UiMountedFramePublicationCandidate {
         presented: super::UiMountedPresentedFrame,
         state: &mut super::UiMountedIdentityState,
     ) -> UiMountedFramePublicationReceipt {
-        let Self {
-            receipt,
-            presented_basis,
-        } = self;
+        let Self { receipt } = self;
         receipt.finalize_cost(presented.receipt().cost_report());
-        state.publish_presented_frame(presented.into_frame(), receipt.clone(), presented_basis);
+        let (frame, reservation) = presented.into_publication_parts();
+        state.publish_presented_frame(frame, receipt.clone());
+        reservation.commit();
         receipt
     }
 }
@@ -199,6 +181,12 @@ impl UiMountedFrameOutcome {
                     .frame()
                     .cost_report()
                     .reclassified(super::UiMountWorkClass::IndeterminatePresentation),
+            ),
+            Self::RetentionDenied(rejection) => Some(
+                rejection
+                    .frame()
+                    .cost_report()
+                    .reclassified(super::UiMountWorkClass::RejectedPreparation),
             ),
             Self::AdmissionDenied(rejection) => Some(
                 rejection

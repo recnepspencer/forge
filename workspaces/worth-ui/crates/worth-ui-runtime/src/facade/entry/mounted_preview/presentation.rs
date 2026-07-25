@@ -3,7 +3,8 @@ use worth_ui_host_contract::UiPresentationDeadline;
 use super::{
     WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
     WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
-    WorthUiMountedPreviewPorts, WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
+    WorthUiMountedPreviewPorts, WorthUiMountedPreviewRetentionRejection,
+    WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
 };
 
 impl<'session> WorthUiPreparedMountedPreview<'session> {
@@ -23,14 +24,8 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
             ports,
         } = self;
         let capabilities = ports.host_session.capability_report().clone();
-        let admission = match ports.presentation.admit_current(
-            ports.identity,
-            frame,
-            &capabilities,
-            deadline,
-            now,
-        ) {
-            Ok(admission) => admission,
+        let admitted = match ports.identity.admit_prepared_frame_authority(frame) {
+            Ok(admitted) => admitted,
             Err(rejection) => {
                 ports
                     .observations
@@ -48,6 +43,48 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                 );
             }
         };
+        let retained = match ports.retention.prepare_publication(admitted) {
+            Ok(retained) => retained,
+            Err(rejection) => {
+                ports
+                    .observations
+                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
+                return WorthUiMountedPreviewOutcome::RetentionDenied(
+                    WorthUiMountedPreviewRetentionRejection {
+                        denial: rejection.denial(),
+                        preview: WorthUiPreparedMountedPreview {
+                            frame: rejection.into_frame(),
+                            transition,
+                            planning_counters,
+                            ports,
+                        },
+                    },
+                );
+            }
+        };
+        let admission =
+            match ports
+                .presentation
+                .admit_current(retained, &capabilities, deadline, now)
+            {
+                Ok(admission) => admission,
+                Err(rejection) => {
+                    ports
+                        .observations
+                        .record_never_presented_frame(rejection.frame().canonical_core().frame());
+                    return WorthUiMountedPreviewOutcome::AdmissionDenied(
+                        WorthUiMountedPreviewAdmissionRejection {
+                            denial: rejection.denial(),
+                            preview: WorthUiPreparedMountedPreview {
+                                frame: rejection.into_frame(),
+                                transition,
+                                planning_counters,
+                                ports,
+                            },
+                        },
+                    );
+                }
+            };
         let reservation = crate::mounting::UiMountedFramePublicationCandidate::reserve(
             &admission,
             ports.identity.view().current_frame(),

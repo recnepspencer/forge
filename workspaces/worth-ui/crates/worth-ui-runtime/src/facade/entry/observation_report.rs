@@ -16,7 +16,7 @@ impl WorthUiActiveApplicationSession {
             crate::host_exchange::observation_report_validation::UiHostObservationValidationContext {
                 host_session: self.host_session.identity().as_u64(),
                 protocol: self.host_session.protocol(),
-                identity: &self.mounted_identity,
+                retention: &self.mounted_retention,
                 presentation: &self.mounted_presentation,
             },
         )

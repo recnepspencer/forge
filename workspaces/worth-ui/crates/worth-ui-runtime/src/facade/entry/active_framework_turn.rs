@@ -18,6 +18,8 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     pub(super) completion: WorthUiFrameworkTurnCompletion<'session>,
     pub(super) mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
+    pub(super) mounted_retention:
+        &'session mut crate::mounting::UiMountedFrameRetentionCoordinator,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) mounted_presentation:
         &'session mut crate::mounting::UiMountedPresentationCoordinator,
@@ -59,6 +61,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             host_session_identity,
             completion,
             mounted_identity,
+            mounted_retention,
             host_session,
             mounted_presentation,
             mounted_publication_reservations,
@@ -84,6 +87,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 host_session_identity,
                 completion: *completion,
                 mounted_identity,
+                mounted_retention,
                 host_session,
                 mounted_presentation,
                 mounted_publication_reservations,

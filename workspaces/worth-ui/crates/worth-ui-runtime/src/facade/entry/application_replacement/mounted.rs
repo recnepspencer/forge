@@ -1,34 +1,18 @@
 use super::{
     WorthUiActiveApplicationSession, WorthUiApplicationCutoverDenial,
-    WorthUiApplicationCutoverReceipt, WorthUiApplicationSemanticNoOpReceipt,
     WorthUiPendingApplicationCutover, WorthUiPreparedApplicationActivation,
     WorthUiPreparedApplicationCutoverOutcome,
 };
 
-pub struct WorthUiPreparedMountedApplicationReplacement<'session> {
-    session: &'session mut WorthUiActiveApplicationSession,
-    application: Box<WorthUiPreparedApplicationActivation>,
-    mounted_successor: crate::mounting::UiMountedIdentityState,
-    frame: crate::mounting::UiPreparedMountedFrame,
-}
+mod admission;
+mod outcome;
 
-pub struct WorthUiMountedApplicationReplacementInFlight<'session> {
-    session: &'session mut WorthUiActiveApplicationSession,
-    application: Box<WorthUiPreparedApplicationActivation>,
-    mounted_successor: crate::mounting::UiMountedIdentityState,
-    publication: crate::mounting::UiMountedFramePublicationCandidate,
-    handle: crate::mounting::UiMountedPresentationInFlight,
-}
-
-pub struct WorthUiMountedReplacementAdmissionDenial<'session> {
-    denial: crate::mounting::UiMountedPresentationAdmissionDenial,
-    replacement: Box<WorthUiPreparedMountedApplicationReplacement<'session>>,
-}
-
-pub struct WorthUiMountedReplacementCompletionDenial<'session> {
-    denial: crate::mounting::UiMountedPresentationCompletionDenial,
-    in_flight: WorthUiMountedApplicationReplacementInFlight<'session>,
-}
+pub use outcome::{
+    WorthUiMountedApplicationReplacementInFlight, WorthUiMountedApplicationReplacementOutcome,
+    WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
+    WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
+    WorthUiPreparedMountedApplicationReplacement,
+};
 
 struct WorthUiPresentedApplicationReplacement<'session> {
     state: WorthUiMountedReplacementPublicationState<'session>,
@@ -40,23 +24,6 @@ struct WorthUiMountedReplacementPublicationState<'session> {
     application: Box<WorthUiPreparedApplicationActivation>,
     mounted_successor: crate::mounting::UiMountedIdentityState,
     publication: crate::mounting::UiMountedFramePublicationCandidate,
-}
-
-pub enum WorthUiMountedReplacementPreparationOutcome<'session> {
-    SemanticNoOp(Box<WorthUiApplicationSemanticNoOpReceipt>),
-    Prepared(Box<WorthUiPreparedMountedApplicationReplacement<'session>>),
-}
-
-pub enum WorthUiMountedApplicationReplacementOutcome<'session> {
-    Published {
-        application: WorthUiApplicationCutoverReceipt,
-        mounted: crate::mounting::UiMountedFramePublicationReceipt,
-    },
-    RejectedBeforeEffects(Box<WorthUiPreparedMountedApplicationReplacement<'session>>),
-    InFlight(WorthUiMountedApplicationReplacementInFlight<'session>),
-    PresentationIndeterminate(crate::mounting::UiMountedIndeterminateFrame),
-    AdmissionDenied(WorthUiMountedReplacementAdmissionDenial<'session>),
-    CompletionDenied(WorthUiMountedReplacementCompletionDenial<'session>),
 }
 
 impl WorthUiActiveApplicationSession {
@@ -172,54 +139,31 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
             mounted_successor,
             frame,
         } = *self;
-        let capability_report = session.host_session.capability_report().clone();
-        let admission = match session.mounted_presentation.admit_current(
-            &mounted_successor,
-            frame,
-            &capability_report,
+        let admitted = match admission::prepare_replacement_presentation(
+            admission::WorthUiMountedReplacementAdmissionInput {
+                session,
+                application,
+                mounted_successor,
+                frame,
+            },
             deadline,
             now,
         ) {
-            Ok(admission) => admission,
-            Err(rejection) => {
-                let denial = rejection.denial();
-                session
-                    .host_observations
-                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                return WorthUiMountedApplicationReplacementOutcome::AdmissionDenied(
-                    WorthUiMountedReplacementAdmissionDenial {
-                        denial,
-                        replacement: Box::new(Self {
-                            session,
-                            application,
-                            mounted_successor,
-                            frame: rejection.into_frame(),
-                        }),
-                    },
-                );
-            }
+            Ok(admitted) => admitted,
+            Err(outcome) => return outcome,
         };
-        let publication = crate::mounting::UiMountedFramePublicationCandidate::reserve(
-            &admission,
-            session.mounted_identity.view().current_frame(),
-        );
-        let outcome = session.mounted_presentation.present(
+        let (state, admission, capability_report) = admitted.into_parts();
+        let outcome = state.session.mounted_presentation.present(
             admission.into_attempt(),
-            session.host_session.effect_port(),
+            state.session.host_session.effect_port(),
             crate::mounting::UiMountedHostPresentationAuthority::new(
-                session.host_session.identity().as_u64(),
-                session.host_session.protocol(),
+                state.session.host_session.identity().as_u64(),
+                state.session.host_session.protocol(),
                 &capability_report,
-                session.host_session.mounted_presentation_lease(),
+                state.session.host_session.mounted_presentation_lease(),
             ),
             now,
         );
-        let state = WorthUiMountedReplacementPublicationState {
-            session,
-            application,
-            mounted_successor,
-            publication,
-        };
         Self::finish(state, outcome, publish)
     }
 
@@ -358,25 +302,5 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
                 WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(frame)
             }
         }
-    }
-}
-
-impl<'session> WorthUiMountedReplacementAdmissionDenial<'session> {
-    pub fn denial(&self) -> crate::mounting::UiMountedPresentationAdmissionDenial {
-        self.denial
-    }
-
-    pub fn into_replacement(self) -> Box<WorthUiPreparedMountedApplicationReplacement<'session>> {
-        self.replacement
-    }
-}
-
-impl<'session> WorthUiMountedReplacementCompletionDenial<'session> {
-    pub fn denial(&self) -> crate::mounting::UiMountedPresentationCompletionDenial {
-        self.denial
-    }
-
-    pub fn into_in_flight(self) -> WorthUiMountedApplicationReplacementInFlight<'session> {
-        self.in_flight
     }
 }

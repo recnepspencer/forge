@@ -63,6 +63,14 @@ impl WorthUiApp {
         self.prepared.generation_identity()
     }
 
+    pub(super) fn mounted_frame_retention_budget(
+        &self,
+    ) -> crate::mounting::UiMountedFrameRetentionBudget {
+        self.prepared
+            .host_session_plan()
+            .mounted_frame_retention_budget()
+    }
+
     /// Borrow the sealed prepared authority without transferring any
     /// independently launchable constituent.
     pub fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {

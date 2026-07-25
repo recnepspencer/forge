@@ -92,6 +92,13 @@ impl<K: Ord + Clone, V> UiPersistentOrdMap<K, V> {
         UiPersistentOrdMapIter::new(self.root.as_deref())
     }
 
+    pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {
+        let value_allocation = std::mem::size_of::<V>()
+            .checked_add(2usize.checked_mul(std::mem::size_of::<usize>())?)?;
+        let bytes_per_entry = std::mem::size_of::<Node<K, V>>().checked_add(value_allocation)?;
+        self.len().checked_mul(bytes_per_entry)
+    }
+
     #[cfg(test)]
     pub(crate) fn root_is_shared_with(&self, other: &Self) -> bool {
         match (&self.root, &other.root) {

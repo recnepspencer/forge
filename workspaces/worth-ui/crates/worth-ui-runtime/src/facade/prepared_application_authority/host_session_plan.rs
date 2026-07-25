@@ -14,6 +14,7 @@ pub struct WorthUiHostSessionPlan {
     contract: WorthUiHostContract,
     protocol_contract: worth_ui_host_contract::UiHostProtocolContract,
     capability_report: WorthUiHostCapabilityReport,
+    mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
     adapter: Rc<dyn WorthUiOperationalHostAdapter>,
 }
 
@@ -31,8 +32,22 @@ impl WorthUiHostSessionPlan {
             contract,
             protocol_contract,
             capability_report,
+            mounted_frame_retention_budget: Default::default(),
             adapter: Rc::new(adapter),
         }
+    }
+
+    pub(crate) fn set_mounted_frame_retention_budget(
+        &mut self,
+        budget: crate::mounting::UiMountedFrameRetentionBudget,
+    ) {
+        self.mounted_frame_retention_budget = budget;
+    }
+
+    pub(crate) fn mounted_frame_retention_budget(
+        &self,
+    ) -> crate::mounting::UiMountedFrameRetentionBudget {
+        self.mounted_frame_retention_budget
     }
 
     pub fn host_kind(&self) -> WorthUiHostKind {
@@ -59,6 +74,10 @@ impl fmt::Debug for WorthUiHostSessionPlan {
             .field("contract", &self.contract)
             .field("protocol_contract", &self.protocol_contract)
             .field("capability_report", &self.capability_report)
+            .field(
+                "mounted_frame_retention_budget",
+                &self.mounted_frame_retention_budget,
+            )
             .finish_non_exhaustive()
     }
 }
@@ -68,6 +87,7 @@ impl PartialEq for WorthUiHostSessionPlan {
         self.contract == other.contract
             && self.protocol_contract == other.protocol_contract
             && self.capability_report == other.capability_report
+            && self.mounted_frame_retention_budget == other.mounted_frame_retention_budget
     }
 }
 

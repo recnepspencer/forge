@@ -46,6 +46,11 @@ impl UiMountedNodeReceiptBasis {
             .map(|instance| (instance, self.issuer.receipt_for(instance)))
     }
 
+    pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(self.presented_instances.retained_structural_bytes()?)
+    }
+
     pub(crate) fn remove(&mut self, mounted_instance: UiMountedInstanceIdentity) {
         self.presented_instances.remove_with_work(&mounted_instance);
     }

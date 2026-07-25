@@ -135,6 +135,22 @@ impl FilesystemApplicationLifecycleScenario {
             .expect("filesystem-authored scenario application should prepare")
     }
 
+    pub fn prepare_application_with_host_and_retention_budget<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+        retention_budget: worth_ui::facade::mounted::UiMountedFrameRetentionBudget,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        application_builder_with_host(&self.query, host)
+            .with_mounted_frame_retention_budget(retention_budget)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored scenario application should prepare")
+    }
+
     pub fn prepare_preview_application_with_host<Host>(
         &self,
         submission: WorthUiWatchedCandidateSubmission,

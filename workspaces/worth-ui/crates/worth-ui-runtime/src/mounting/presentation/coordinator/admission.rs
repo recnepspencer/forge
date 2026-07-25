@@ -13,19 +13,17 @@ use super::UiMountedPresentationCoordinator;
 impl UiMountedPresentationCoordinator {
     pub(crate) fn admit_current(
         &mut self,
-        identity: &super::super::super::UiMountedIdentityState,
-        frame: super::super::super::UiPreparedMountedFrame,
+        frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
         now: u64,
     ) -> Result<UiMountedPresentationAdmission, UiMountedPresentationAdmissionRejection> {
-        let frame = identity.admit_prepared_frame_authority(frame)?;
         self.admit(frame, capability_report, deadline, now)
     }
 
     fn admit(
         &mut self,
-        frame: super::super::super::UiAuthorityAdmittedMountedFrame,
+        frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
         now: u64,
@@ -35,7 +33,7 @@ impl UiMountedPresentationCoordinator {
 
     pub(crate) fn admit_reconciliation(
         &mut self,
-        frame: super::super::super::UiAuthorityAdmittedMountedFrame,
+        frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
         replacements: &[UiMountedSurfaceReconciliationBinding],
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
@@ -46,13 +44,12 @@ impl UiMountedPresentationCoordinator {
 
     fn admit_for(
         &mut self,
-        frame: super::super::super::UiAuthorityAdmittedMountedFrame,
+        frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
         capability_report: &WorthUiHostCapabilityReport,
         deadline: UiPresentationDeadline,
         now: u64,
         reconciliation: Option<&[UiMountedSurfaceReconciliationBinding]>,
     ) -> Result<UiMountedPresentationAdmission, UiMountedPresentationAdmissionRejection> {
-        let frame = frame.into_frame();
         if self.shutting_down {
             return Err(rejected(
                 frame,
@@ -71,7 +68,7 @@ impl UiMountedPresentationCoordinator {
                 UiMountedPresentationAdmissionDenial::CapacityExceeded,
             ));
         }
-        if !self.admits_binding_purpose(&frame, reconciliation) {
+        if !self.admits_binding_purpose(frame.frame(), reconciliation) {
             return Err(rejected(
                 frame,
                 UiMountedPresentationAdmissionDenial::ReconciliationBasisMismatch,
@@ -82,12 +79,12 @@ impl UiMountedPresentationCoordinator {
 
     fn validate_surface_requirements(
         &mut self,
-        frame: super::super::super::UiPreparedMountedFrame,
+        frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
         capability_report: &WorthUiHostCapabilityReport,
         reconciliation: Option<&[UiMountedSurfaceReconciliationBinding]>,
         deadline: UiPresentationDeadline,
     ) -> Result<UiMountedPresentationAdmission, UiMountedPresentationAdmissionRejection> {
-        for surface in frame.surfaces() {
+        for surface in frame.frame().surfaces() {
             let requirement = surface.requirement();
             let denial = if reconciliation.is_none()
                 && self
@@ -127,7 +124,7 @@ impl UiMountedPresentationCoordinator {
 
     fn reserve_attempt(
         &mut self,
-        frame: super::super::super::UiPreparedMountedFrame,
+        frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
         deadline: UiPresentationDeadline,
     ) -> Result<UiMountedPresentationAdmission, UiMountedPresentationAdmissionRejection> {
         let attempt = match UiMountedPresentationAttemptIdentity::mint_unbound() {
@@ -161,8 +158,10 @@ impl UiMountedPresentationCoordinator {
 }
 
 fn rejected(
-    frame: super::super::super::UiPreparedMountedFrame,
+    frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
     denial: UiMountedPresentationAdmissionDenial,
 ) -> UiMountedPresentationAdmissionRejection {
+    let (frame, retention) = frame.into_parts();
+    drop(retention);
     UiMountedPresentationAdmissionRejection::new(frame, denial)
 }

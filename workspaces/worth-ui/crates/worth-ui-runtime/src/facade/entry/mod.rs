@@ -36,14 +36,15 @@ pub use application_replacement::{
     WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementOutcome, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
-    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
-    WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope,
+    WorthUiMountedReplacementRetentionDenial, WorthUiPendingApplicationCutover,
+    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
 pub use mounted_preview::{
     WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
     WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
-    WorthUiPendingMountedPreview, WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
+    WorthUiMountedPreviewRetentionRejection, WorthUiPendingMountedPreview,
+    WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
 };

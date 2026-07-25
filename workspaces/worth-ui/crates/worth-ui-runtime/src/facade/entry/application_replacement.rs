@@ -19,7 +19,8 @@ pub use candidate::{WorthUiReplacementCandidateSummary, WorthUiReplacementPlanne
 pub use mounted::{
     WorthUiMountedApplicationReplacementInFlight, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
-    WorthUiMountedReplacementPreparationOutcome, WorthUiPreparedMountedApplicationReplacement,
+    WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
+    WorthUiPreparedMountedApplicationReplacement,
 };
 pub use publication_observation::WorthUiApplicationPublicationObservation;
 

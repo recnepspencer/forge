@@ -8,7 +8,6 @@ use crate::mounting::{
     UiMountedFrameIdentityView, UiMountedFramePublicationReceipt, UiMountedFrameReuseContract,
     UiMountedFrameReuseWitness, UiMountedGraphNodeHandle, UiMountedIdentityDenial,
     UiMountedIdentityView, UiMountedInstanceIdentityView, UiPreparedMountedFrame,
-    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation,
 };
 
 impl UiMountedIdentityState {
@@ -85,7 +84,6 @@ impl UiMountedIdentityState {
         &mut self,
         frame: UiPreparedMountedFrame,
         receipt: UiMountedFramePublicationReceipt,
-        presented_basis: super::super::retention::UiPreparedPresentedFrameBasis,
     ) {
         let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
         self.current_manifest = Some(manifest);
@@ -94,7 +92,6 @@ impl UiMountedIdentityState {
         let frame = identity_candidate.frame();
         let committed = self.commit_projection_changes(&projection_changes);
         debug_assert!(committed);
-        self.presented_frames.publish(presented_basis);
         self.current_frame = Some(frame);
         self.current_receipt_basis = Some(identity_candidate.receipt_basis);
         self.current_projection = Some(projection);
@@ -106,7 +103,6 @@ impl UiMountedIdentityState {
         &mut self,
         frame: UiPreparedMountedFrame,
         receipt: UiMountedFramePublicationReceipt,
-        presented_basis: super::super::retention::UiPreparedPresentedFrameBasis,
     ) {
         debug_assert_eq!(self.current_frame, Some(frame.canonical_core().frame()));
         let (candidate, manifest, core, reuse_contract) = frame.into_publication_parts();
@@ -116,7 +112,6 @@ impl UiMountedIdentityState {
         let frame = identity_candidate.frame();
         let committed = self.commit_projection_changes(&projection_changes);
         debug_assert!(committed);
-        self.presented_frames.reconcile_current(presented_basis);
         self.current_frame = Some(frame);
         self.current_receipt_basis = Some(identity_candidate.receipt_basis);
         self.current_projection = Some(projection);
@@ -300,17 +295,6 @@ impl UiMountedIdentityState {
         (current == receipt)
             .then_some(())
             .ok_or(UiMountedIdentityDenial::NodeReceiptNotCurrent)
-    }
-
-    pub(crate) fn classify_presented_frame_basis(
-        &self,
-        frame: UiMountedFrameIdentity,
-        binding: UiSurfaceBindingGeneration,
-        mounted_instance: Option<UiMountedInstanceIdentity>,
-        node_receipt: Option<UiMountedNodeReceiptIdentity>,
-    ) -> Result<UiPresentedFrameBasisRelation, UiPresentedFrameBasisDenial> {
-        self.presented_frames
-            .classify(frame, binding, mounted_instance, node_receipt)
     }
 
     pub(crate) fn view(&self) -> UiMountedIdentityView {

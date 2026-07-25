@@ -3,8 +3,8 @@ use worth_ui_host_contract::UiPresentationDeadline;
 use super::{
     WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
     WorthUiMountedPreviewOutcome, WorthUiMountedPreviewPreparationDenial,
-    WorthUiMountedPreviewPreparationRejection, WorthUiPreparedMountedPreview,
-    WorthUiResolvedMountedPreview,
+    WorthUiMountedPreviewPreparationRejection, WorthUiMountedPreviewRetentionRejection,
+    WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
 };
 
 impl WorthUiResolvedMountedPreview {
@@ -42,6 +42,22 @@ impl<'session> WorthUiMountedPreviewPreparationRejection<'session> {
 
 impl<'session> WorthUiMountedPreviewAdmissionRejection<'session> {
     pub fn denial(&self) -> crate::mounting::UiMountedPresentationAdmissionDenial {
+        self.denial
+    }
+    pub fn retry(
+        self,
+        deadline: UiPresentationDeadline,
+        now: u64,
+    ) -> WorthUiMountedPreviewOutcome<'session> {
+        self.preview.present(deadline, now)
+    }
+    pub fn supersede(self) -> WorthUiResolvedMountedPreview {
+        self.preview.supersede()
+    }
+}
+
+impl<'session> WorthUiMountedPreviewRetentionRejection<'session> {
+    pub fn denial(&self) -> crate::mounting::UiMountedFrameRetentionDenial {
         self.denial
     }
     pub fn retry(

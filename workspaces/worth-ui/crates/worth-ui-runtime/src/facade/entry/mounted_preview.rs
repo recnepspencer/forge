@@ -31,6 +31,11 @@ pub struct WorthUiMountedPreviewAdmissionRejection<'session> {
     preview: WorthUiPreparedMountedPreview<'session>,
 }
 
+pub struct WorthUiMountedPreviewRetentionRejection<'session> {
+    denial: crate::mounting::UiMountedFrameRetentionDenial,
+    preview: WorthUiPreparedMountedPreview<'session>,
+}
+
 pub struct WorthUiMountedPreviewInFlight<'session> {
     handle: crate::mounting::UiMountedPresentationInFlight,
     before: crate::runtime::UiAllocationTruthRevision,
@@ -47,6 +52,7 @@ pub struct WorthUiMountedPreviewCompletionRejection<'session> {
 struct WorthUiMountedPreviewPorts<'session> {
     host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     identity: &'session mut crate::mounting::UiMountedIdentityState,
+    retention: &'session mut crate::mounting::UiMountedFrameRetentionCoordinator,
     presentation: &'session mut crate::mounting::UiMountedPresentationCoordinator,
     reservations: &'session mut std::collections::BTreeMap<
         UiMountedPresentationAttemptIdentity,
@@ -80,6 +86,7 @@ pub struct WorthUiResolvedMountedPreview {
 pub enum WorthUiMountedPreviewOutcome<'session> {
     Resolved(WorthUiResolvedMountedPreview),
     InFlight(WorthUiMountedPreviewInFlight<'session>),
+    RetentionDenied(WorthUiMountedPreviewRetentionRejection<'session>),
     AdmissionDenied(WorthUiMountedPreviewAdmissionRejection<'session>),
     CompletionDenied(WorthUiMountedPreviewCompletionRejection<'session>),
 }

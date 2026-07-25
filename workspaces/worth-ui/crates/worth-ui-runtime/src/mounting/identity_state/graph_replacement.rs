@@ -41,7 +41,6 @@ impl UiMountedIdentityState {
             current_core: None,
             current_publication: None,
             current_reuse_contract: None,
-            presented_frames: self.presented_frames.inherited_by_replacement(),
             pending_projection_changes,
             semantic_revision,
             binding_revision: self.binding_revision,

@@ -66,6 +66,10 @@ impl<K: Ord + Clone> UiPersistentOrdSet<K> {
     pub(crate) fn iter(&self) -> impl Iterator<Item = &K> {
         self.entries.iter().map(|(value, ())| value)
     }
+
+    pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {
+        self.entries.retained_structural_bytes()
+    }
 }
 
 #[cfg(test)]
