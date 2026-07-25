@@ -103,12 +103,7 @@ fn interruption_boundary_rejects_foreign_authority() {
 fn target_publication_interruption_rejects_a_different_physical_execution() {
     let authority = current_authority("store.migration.execution.binding", "current");
     let declared = rollback_declaration();
-    let first = migration_execution_request_for_publication(
-        declared,
-        &authority,
-        "migration-publication-first",
-        2_101,
-    );
+    let first = migration_execution_request_for_publication(declared, &authority, 2_101);
     let mut publication =
         worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             first.publication_source_root(),
@@ -119,12 +114,7 @@ fn target_publication_interruption_rejects_a_different_physical_execution() {
         .into_published()
         .expect("first physical migration must publish")
         .interruption_state();
-    let different = migration_execution_request_for_publication(
-        declared,
-        &authority,
-        "migration-publication-different",
-        2_102,
-    );
+    let different = migration_execution_request_for_publication(declared, &authority, 2_102);
 
     assert!(matches!(
         different.resume_or_rollback(interruption).into_result(),

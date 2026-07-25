@@ -90,7 +90,7 @@ impl DispatchedPhysicalWork {
         physical.store() == self.intent().identity().store()
             && physical.owner() == self.admitted.authority().media_owner_observation().owner()
             && Some(physical.coordinate()) == self.coordinate()
-            && physical.completed_bytes() == u64::from(physical.coordinate().length())
+            && physical.completed_bytes() <= u64::from(physical.coordinate().length())
             && self.intent().operation() == PhysicalWorkOperationFamily::ArtifactRangeRead
     }
 

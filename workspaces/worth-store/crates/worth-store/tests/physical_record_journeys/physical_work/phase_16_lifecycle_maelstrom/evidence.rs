@@ -18,7 +18,7 @@ const SEED: u64 = 0x0c50_116a;
 const SCHEDULE: &str =
     "read-patch,policy-denial,predispatch-cancel,reverse-read-completion,clock-retry,writeback,capacity-siege,dispatched-close,fresh-reopen";
 const SOURCE_MANIFEST_SCHEMA: &str = "worth.store.c5_1.phase16-a.source-manifest.v1";
-const SOURCE_FILES: [(&str, &[u8]); 13] = [
+const SOURCE_FILES: [(&str, &[u8]); 15] = [
     (
         "../phase_16_lifecycle_maelstrom.rs",
         include_bytes!("../phase_16_lifecycle_maelstrom.rs"),
@@ -36,6 +36,14 @@ const SOURCE_FILES: [(&str, &[u8]); 13] = [
     ("fresh_process.rs", include_bytes!("fresh_process.rs")),
     ("joined_execution.rs", include_bytes!("joined_execution.rs")),
     ("mutant_report.rs", include_bytes!("mutant_report.rs")),
+    (
+        "mutant_report/campaign_source.rs",
+        include_bytes!("mutant_report/campaign_source.rs"),
+    ),
+    (
+        "mutant_report/decoding.rs",
+        include_bytes!("mutant_report/decoding.rs"),
+    ),
     ("shutdown_trace.rs", include_bytes!("shutdown_trace.rs")),
     ("terminal_labels.rs", include_bytes!("terminal_labels.rs")),
     (
@@ -112,7 +120,10 @@ pub(super) fn finish(
         )
         .unwrap();
     if sealing {
-        assert_eq!(evidence.mutants().len(), 26);
+        assert_eq!(
+            evidence.mutants().len(),
+            mutant_report::complete_mutant_count()
+        );
         assert!(
             evidence.verdict().accepted(),
             "sealing Courtroom A must produce accepted physical-work evidence: {:?}",

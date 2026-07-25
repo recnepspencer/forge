@@ -11,19 +11,9 @@ use super::{
 #[test]
 fn rollback_replay_classifies_each_execution_boundary() {
     let authority = current_authority("store.rollback.interruption", "current");
-    let source = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-replay",
-        2_301,
-    );
+    let source = rollback_execution_request_for_publication(declaration(), &authority, 2_301);
     let source_state = source.interruption_state();
-    let replay = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-replay",
-        2_301,
-    );
+    let replay = rollback_execution_request_for_publication(declaration(), &authority, 2_301);
     assert_eq!(
         replay.classify_interruption(source_state).into_result(),
         Ok(LayoutRollbackInterruptionPosture::ResumeFromSource)
@@ -48,12 +38,7 @@ fn rollback_replay_classifies_each_execution_boundary() {
 #[test]
 fn rollback_replay_rejects_a_different_physical_execution() {
     let authority = current_authority("store.rollback.execution.binding", "current");
-    let first = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-publication-first",
-        2_311,
-    );
+    let first = rollback_execution_request_for_publication(declaration(), &authority, 2_311);
     let mut publication =
         worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             first.publication_source_root(),
@@ -64,12 +49,7 @@ fn rollback_replay_rejects_a_different_physical_execution() {
         .into_published()
         .expect("first rollback must publish")
         .interruption_state();
-    let different = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-publication-different",
-        2_312,
-    );
+    let different = rollback_execution_request_for_publication(declaration(), &authority, 2_312);
 
     assert!(matches!(
         different.classify_interruption(state).into_result(),
@@ -80,19 +60,9 @@ fn rollback_replay_rejects_a_different_physical_execution() {
 #[test]
 fn rollback_interruption_owner_declares_exactly_ordinary_cases() {
     let authority = current_authority("store.rollback.interruption.cases", "current");
-    let request = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-case-inventory",
-        2_321,
-    );
+    let request = rollback_execution_request_for_publication(declaration(), &authority, 2_321);
     let source_state = request.interruption_state();
-    let matching = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-case-inventory",
-        2_321,
-    );
+    let matching = rollback_execution_request_for_publication(declaration(), &authority, 2_321);
     let mut publication =
         worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
             request.publication_source_root(),
@@ -103,12 +73,7 @@ fn rollback_interruption_owner_declares_exactly_ordinary_cases() {
         .into_published()
         .unwrap()
         .interruption_state();
-    let different = rollback_execution_request_for_publication(
-        declaration(),
-        &authority,
-        "rollback-case-inventory-other",
-        2_322,
-    );
+    let different = rollback_execution_request_for_publication(declaration(), &authority, 2_322);
 
     let observed = [
         matching.classify_interruption(source_state).case_id(),

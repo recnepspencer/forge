@@ -1,6 +1,6 @@
 use super::support::{admitted_witness, authenticity_physical_identity};
 use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
-    crc32c, with_pre_decode_admission, CountingSemanticDecoder,
+    crc32c, current_frame_bytes, with_pre_decode_admission, CountingSemanticDecoder,
 };
 use crate::courtroom::harness::test_support::authenticity_integrity_test_support::{
     admitted_scope, admitted_scope_with_requirement, policy_lane_observation, PolicyWitnessPosture,
@@ -28,7 +28,9 @@ fn admitted_authenticity_result_preserves_separate_integrity_and_authenticity_co
                     validation,
                     witness,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"checksum-valid-auth-ok")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"checksum-valid-auth-ok",
+                    ))),
                 ))
                 .unwrap();
             let physical_identity =

@@ -51,10 +51,17 @@ pub(super) fn run(
         timing::SiegePhase::PostbuildBinaryBinding,
         binding.postbuild_binary_binding(),
     );
+    timings.record(
+        timing::SiegePhase::PostbuildSourceBinding,
+        binding.postbuild_source_binding(),
+    );
     let observations = execution::observe(&world, &binaries, &mut timings)?;
 
     let started = Instant::now();
-    binaries.verify_unchanged()?;
+    binaries.verify_source_unchanged()?;
+    timings.record(timing::SiegePhase::FinalSourceBinding, started.elapsed());
+    let started = Instant::now();
+    binaries.verify_executables_unchanged()?;
     timings.record(
         timing::SiegePhase::ExecutableVerification,
         started.elapsed(),

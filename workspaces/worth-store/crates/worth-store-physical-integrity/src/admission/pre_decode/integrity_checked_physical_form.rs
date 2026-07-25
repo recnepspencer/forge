@@ -46,6 +46,10 @@ impl<'lease> IntegrityCheckedPage<'lease> {
         self.view
     }
 
+    pub fn checked_payload_bytes(&self) -> &'lease [u8] {
+        checked_payload_bytes(self.view, self.witness)
+    }
+
     pub const fn physical_witness(&self) -> PhysicalHeaderDecodeWitness {
         self.witness
     }
@@ -62,8 +66,8 @@ impl<'lease> IntegrityCheckedPage<'lease> {
         &self.evidence
     }
 
-    pub const fn logical_decode_gate(&self) -> LogicalDecodeGate<'lease> {
-        LogicalDecodeGate::new(self.view.as_bytes(), self.witness, self.counters)
+    pub fn logical_decode_gate(&self) -> LogicalDecodeGate<'lease> {
+        LogicalDecodeGate::new(self.checked_payload_bytes(), self.witness, self.counters)
     }
 }
 
@@ -103,6 +107,10 @@ impl<'lease> IntegrityCheckedFrame<'lease> {
         self.view
     }
 
+    pub fn checked_payload_bytes(&self) -> &'lease [u8] {
+        checked_payload_bytes(self.view, self.witness)
+    }
+
     pub const fn physical_witness(&self) -> PhysicalHeaderDecodeWitness {
         self.witness
     }
@@ -119,7 +127,16 @@ impl<'lease> IntegrityCheckedFrame<'lease> {
         &self.evidence
     }
 
-    pub const fn logical_decode_gate(&self) -> LogicalDecodeGate<'lease> {
-        LogicalDecodeGate::new(self.view.as_bytes(), self.witness, self.counters)
+    pub fn logical_decode_gate(&self) -> LogicalDecodeGate<'lease> {
+        LogicalDecodeGate::new(self.checked_payload_bytes(), self.witness, self.counters)
     }
+}
+
+fn checked_payload_bytes<'lease>(
+    view: ProtectedPhysicalByteView<'lease>,
+    witness: PhysicalHeaderDecodeWitness,
+) -> &'lease [u8] {
+    let start = witness.payload_offset();
+    let end = start + witness.payload_length() as usize;
+    &view.as_bytes()[start..end]
 }

@@ -140,12 +140,12 @@ impl RecordPublicationDirector {
         let admitted = batch
             .admit(self.access)
             .map_err(RecordAppendError::Denied)?;
-        let reader = crate::physical_runtime::record_serving::access::manifest_routing::ManifestReader::with_loader(
-            runtime.executor.record_serving_media(),
-            self.frame_ports.loader(),
+        let reader = crate::physical_runtime::record_serving::access::manifest_routing::ManifestReader::serving(
+            self.frame_ports.clone(),
+            self.planning_source.clone(),
             self.format,
             self.access,
-            &current_root,
+            current_root.clone(),
         );
         let classified = classify_batch(&reader, placement, admitted)?;
         let shape = classified.identity_reservation_shape()?;
@@ -177,7 +177,8 @@ impl RecordPublicationDirector {
                 current_free_space: &current_free_space,
                 frontier: &mut candidate_frontier,
                 placement,
-                frame_load: self.frame_ports.loader(),
+                frame_ports: self.frame_ports.clone(),
+                source: self.planning_source.clone(),
             },
             classified,
             allow_published_reuse,
@@ -250,7 +251,8 @@ impl RecordPublicationDirector {
             .clone();
         let (plan, free_space) = plan.rebase(RootRebaseContext {
             media: runtime.executor.record_serving_media(),
-            frame_load: self.frame_ports.loader(),
+            frame_ports: self.frame_ports.clone(),
+            source: self.planning_source.clone(),
             format: self.format,
             access: self.access,
             current_root: &state.current_root,

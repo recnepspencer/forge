@@ -52,12 +52,19 @@ pub(super) fn run(
         timing::CampaignPhase::PostbuildBinaryBinding,
         binding.postbuild_binary_binding(),
     );
+    timings.record_campaign(
+        timing::CampaignPhase::PostbuildSourceBinding,
+        binding.postbuild_source_binding(),
+    );
     let started = Instant::now();
     let rerun = super::run_provenance::rerun("b", target_root, mutant_report, report)?;
     timings.record_campaign(timing::CampaignPhase::RunProvenance, started.elapsed());
     let cases = scenario::run_all(&world, &binaries, &rerun, &mut timings)?;
     let started = Instant::now();
-    binaries.verify_unchanged()?;
+    binaries.verify_source_unchanged()?;
+    timings.record_campaign(timing::CampaignPhase::FinalSourceBinding, started.elapsed());
+    let started = Instant::now();
+    binaries.verify_executables_unchanged()?;
     timings.record_campaign(
         timing::CampaignPhase::ExecutableVerification,
         started.elapsed(),

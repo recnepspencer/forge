@@ -26,6 +26,7 @@ pub enum RecordAppendDenial {
     PublicationAuthorityReleased,
     PublicationAdmissionStopped,
     PhysicalWorkUnavailable(Box<super::super::PhysicalRecordMutationFailureEvidence>),
+    PhysicalReadWorkUnavailable(super::super::RecordReadWorkDenial),
     CatalogReplacementEligibilityMismatch,
     PlacementFormatMismatch,
     ManifestCapacityMigrationRequired,

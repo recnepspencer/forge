@@ -8,18 +8,21 @@ use std::{
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use super::evidence::MutationObservation;
+use super::{evidence::MutationObservation, source_inventory::MutationSourceBinding};
 
 #[cfg(feature = "physical-work-evidence")]
 mod reader;
 
-pub(crate) const MUTATION_EVIDENCE_REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v1";
+pub(crate) const MUTATION_EVIDENCE_REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v2";
+const ARTIFACT_OWNER_SCHEMA: &str = "worth.store.c5_1.mutation-artifacts.v1";
+const LEGACY_REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v1";
 const ARTIFACT_OWNER_MARKER: &str = ".worth-store-mutation-evidence-owner";
 static SESSION_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Serialize)]
 struct MutationEvidenceReport<'evidence> {
     schema: &'static str,
+    source: &'evidence MutationSourceBinding,
     observations: &'evidence [MutationObservation],
 }
 
@@ -27,13 +30,14 @@ pub(super) struct MutationEvidenceSession {
     report: PathBuf,
     staging: PathBuf,
     published_artifacts: PathBuf,
+    source: MutationSourceBinding,
     seen: BTreeSet<u8>,
     artifacts_moved: bool,
     published: bool,
 }
 
 impl MutationEvidenceSession {
-    pub(super) fn begin(path: &Path) -> Result<Self, String> {
+    pub(super) fn begin(path: &Path, source: MutationSourceBinding) -> Result<Self, String> {
         let report = normalized_report(path)?;
         let published_artifacts = published_artifact_directory(&report)?;
         validate_owned_artifacts(&published_artifacts, &report)?;
@@ -55,6 +59,7 @@ impl MutationEvidenceSession {
             report,
             staging,
             published_artifacts,
+            source,
             seen: BTreeSet::new(),
             artifacts_moved: false,
             published: false,
@@ -102,7 +107,14 @@ impl MutationEvidenceSession {
         Ok(())
     }
 
-    pub(super) fn publish(mut self, observations: &[MutationObservation]) -> Result<(), String> {
+    pub(super) fn publish(
+        mut self,
+        observations: &[MutationObservation],
+        current_source: &MutationSourceBinding,
+    ) -> Result<(), String> {
+        if &self.source != current_source {
+            return Err("mutation campaign source changed before publication".into());
+        }
         let observation_ids = observations
             .iter()
             .map(|observation| observation.id)
@@ -113,7 +125,7 @@ impl MutationEvidenceSession {
         let pending = self.staging.join("report.pending.json");
         let mut file = std::fs::File::create(&pending)
             .map_err(|error| format!("cannot create {}: {error}", pending.display()))?;
-        file.write_all(&encode(observations)?)
+        file.write_all(&encode(&self.source, observations)?)
             .map_err(|error| format!("cannot write {}: {error}", pending.display()))?;
         file.sync_all()
             .map_err(|error| format!("cannot synchronize {}: {error}", pending.display()))?;
@@ -150,9 +162,13 @@ impl Drop for MutationEvidenceSession {
     }
 }
 
-fn encode(observations: &[MutationObservation]) -> Result<Vec<u8>, String> {
+fn encode(
+    source: &MutationSourceBinding,
+    observations: &[MutationObservation],
+) -> Result<Vec<u8>, String> {
     serde_json::to_vec_pretty(&MutationEvidenceReport {
         schema: MUTATION_EVIDENCE_REPORT_SCHEMA,
+        source,
         observations,
     })
     .map_err(|error| format!("cannot encode mutation report: {error}"))
@@ -249,7 +265,7 @@ fn validate_owned_artifacts(artifacts: &Path, report: &Path) -> Result<(), Strin
                         artifacts.display()
                     )
                 })?;
-            if marker == owner_marker(report) {
+            if marker == owner_marker(report) || marker == legacy_owner_marker(report) {
                 Ok(())
             } else {
                 Err(format!(
@@ -278,7 +294,11 @@ fn remove_owned_artifacts(artifacts: &Path) -> Result<(), String> {
 }
 
 fn owner_marker(report: &Path) -> String {
-    format!("{MUTATION_EVIDENCE_REPORT_SCHEMA}\n{}\n", report.display())
+    format!("{ARTIFACT_OWNER_SCHEMA}\n{}\n", report.display())
+}
+
+fn legacy_owner_marker(report: &Path) -> String {
+    format!("{LEGACY_REPORT_SCHEMA}\n{}\n", report.display())
 }
 
 fn hash_file(path: &Path) -> Result<String, String> {

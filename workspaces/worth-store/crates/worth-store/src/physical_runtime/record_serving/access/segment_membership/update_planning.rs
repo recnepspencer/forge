@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::{
     durable_artifact_checksum, DurablePhysicalRootManifest, PhysicalSegmentMembershipBlock,
     RecordArtifactFile, RecordSegmentPageManifestEntry, SegmentManifestBlockReference,
@@ -10,7 +9,7 @@ use worth_store_physical_format::{
 use super::SegmentMembershipReader;
 use crate::physical_runtime::record_serving::{
     access::manifest_routing::{ManifestDiscoveryCounterSnapshot, ManifestLookupFailure},
-    residency::frame_ports::FrameLoadPort,
+    residency::{frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
 };
 
@@ -22,9 +21,8 @@ pub(in crate::physical_runtime::record_serving) struct SegmentMembershipPublicat
 }
 
 pub(in crate::physical_runtime::record_serving) struct SegmentMembershipUpdateContext<'plan> {
-    pub(in crate::physical_runtime::record_serving) media: &'plan QualifiedFilesystemMedia,
-    pub(in crate::physical_runtime::record_serving) frame_load:
-        &'plan (dyn FrameLoadPort + Send + Sync),
+    pub(in crate::physical_runtime::record_serving) frame_ports: RecordFramePorts,
+    pub(in crate::physical_runtime::record_serving) source: CanonicalFrameReadSource,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current: &'plan DurablePhysicalRootManifest,
@@ -37,8 +35,8 @@ pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updat
     updates: BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
 ) -> Result<SegmentMembershipPublicationPlan, ManifestLookupFailure> {
     let SegmentMembershipUpdateContext {
-        media,
-        frame_load,
+        frame_ports,
+        source,
         format,
         access,
         current,
@@ -52,7 +50,8 @@ pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updat
     {
         return Err(ManifestLookupFailure::Damaged);
     }
-    let reader = SegmentMembershipReader::with_loader(media, frame_load, format, access, current);
+    let reader =
+        SegmentMembershipReader::serving(frame_ports, source, format, access, current.clone());
     let mut planner = SegmentMembershipUpdatePlanner {
         reader: &reader,
         current,

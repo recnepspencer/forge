@@ -217,7 +217,7 @@ fn ordinary_lookup_coverage_is_derived_from_lower_owned_sources() {
 #[test]
 fn persisted_lsm_membership_cannot_be_readmitted_under_another_store_family() {
     let replacement =
-        worth_store_test_support::harness::execute_baseline_lsm_membership_replacement_fixture();
+        crate::strategy::tests_support::certification_published_lsm_membership_replacement();
     let (foreign_family, _) = crate::strategy::tests_support::admit_strategy_scope(
         worth_store_contracts::DurableArtifactFamilyId::PublicationWalIntent,
         worth_store_security::StoreKeyScope::WalCheckpointEnvelope,

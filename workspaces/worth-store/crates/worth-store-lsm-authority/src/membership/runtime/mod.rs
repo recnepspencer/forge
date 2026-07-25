@@ -1,3 +1,5 @@
+#[cfg(feature = "certification-test-authority")]
+mod certification_authority;
 mod compaction_selection;
 mod persistence;
 mod published_lookup;
@@ -30,6 +32,9 @@ pub use state::{
     LsmMembershipDenial, LsmMembershipReopenCounters, LsmMembershipReplayPosture,
     LsmMembershipSession,
 };
+
+#[cfg(feature = "certification-test-authority")]
+pub use certification_authority::issue_published_lsm_membership_for_certification;
 
 pub(super) fn owner_cases() -> impl Iterator<Item = super::LsmMembershipOwnerCaseDeclaration> {
     reopen::owner_cases()

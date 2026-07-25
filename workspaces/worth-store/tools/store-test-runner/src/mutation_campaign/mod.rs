@@ -4,6 +4,7 @@ mod execution;
 mod process_execution;
 mod report;
 mod sandbox;
+mod source_inventory;
 
 use std::path::Path;
 
@@ -79,10 +80,13 @@ pub(super) fn run(
         }
         return Ok(());
     }
-    let mut evidence_session = request
-        .report
-        .map(report::MutationEvidenceSession::begin)
-        .transpose()?;
+    let mut evidence_session = match request.report {
+        Some(path) => Some(report::MutationEvidenceSession::begin(
+            path,
+            source_inventory::bind(workspace_root)?,
+        )?),
+        None => None,
+    };
     let sandbox = sandbox::MutationSandbox::create(workspace_root)?;
     let mut observations = Vec::new();
     for mutation in mutations
@@ -99,7 +103,8 @@ pub(super) fn run(
         observations.push(observation);
     }
     if let Some(session) = evidence_session {
-        session.publish(&observations)?;
+        let current_source = source_inventory::bind(workspace_root)?;
+        session.publish(&observations, &current_source)?;
         let path = request.report.unwrap();
         println!("mutation report: {}", path.display());
     }

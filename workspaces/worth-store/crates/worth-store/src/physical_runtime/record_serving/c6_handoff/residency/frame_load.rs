@@ -45,8 +45,10 @@ pub enum C6PhysicalFrameWorkFailure {
     SchedulerRejected,
     CommandRejected,
     Backend(worth_store_physical_backend::ArtifactTreeFailure),
+    Terminal(crate::physical_runtime::PhysicalWorkTerminalCause),
     SchedulerSettlementRejected,
     SettlementMismatch,
+    ProjectionFailureUnavailable,
 }
 
 impl C6PhysicalResidencyWork {
@@ -138,6 +140,12 @@ impl C6PhysicalFrameLease {
         self.frame.work_trace().last()
     }
 
+    /// Reports that semantic validation rejected bytes from this admitted
+    /// physical projection and consumes its one-shot Signal invalidation.
+    pub fn reject_projection_failure(self) {
+        self.frame.reject_projection_failure();
+    }
+
     pub(super) const fn handoff_identity(&self) -> C6PhysicalWorkHandoffIdentity {
         self.handoff
     }
@@ -185,10 +193,14 @@ impl From<CanonicalRecordReadFailure> for C6PhysicalFrameWorkFailure {
             CanonicalRecordReadFailure::Scheduler(_) => Self::SchedulerRejected,
             CanonicalRecordReadFailure::Command(_) => Self::CommandRejected,
             CanonicalRecordReadFailure::Backend(failure) => Self::Backend(failure),
+            CanonicalRecordReadFailure::Terminal(cause) => Self::Terminal(cause),
             CanonicalRecordReadFailure::SchedulerSettlementRejected => {
                 Self::SchedulerSettlementRejected
             }
             CanonicalRecordReadFailure::SettlementMismatch => Self::SettlementMismatch,
+            CanonicalRecordReadFailure::ProjectionFailureUnavailable => {
+                Self::ProjectionFailureUnavailable
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-use crate::{AdmittedRecoveryIntegrityInput, RecoveryMemoryEnvelope};
+use crate::{AdmittedRecoveryIntegrityInput, RecoveryMemoryAllocation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryEntryCounters {
@@ -12,12 +12,12 @@ pub struct RecoveryEntryCounters {
 impl RecoveryEntryCounters {
     pub(crate) fn from_entry_inputs(
         integrity_readiness: &AdmittedRecoveryIntegrityInput,
-        memory_envelope: RecoveryMemoryEnvelope,
+        memory_allocation: &RecoveryMemoryAllocation,
     ) -> Self {
         Self {
             vetted_record_count: integrity_readiness.counters().vetted_record_count(),
             recovery_blocking_count: integrity_readiness.counters().recovery_blocking_count(),
-            memory_envelope_admissions: memory_envelope.counters().admitted(),
+            memory_envelope_admissions: memory_allocation.counters().admitted(),
             replay_plans_started: 0,
             source_precedence_choices: 0,
         }

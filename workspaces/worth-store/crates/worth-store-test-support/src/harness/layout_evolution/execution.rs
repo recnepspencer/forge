@@ -24,30 +24,27 @@ fn observe_migration() -> Vec<OwnerCaseObservation<LayoutMigrationExecutionCaseI
     let published = execute_migration_request(
         LayoutMigrationExecutionRequest::new(
             world::migration_plan(declaration, &authority),
-            world::publication_plan(&authority, "migration-published", 12_001),
+            world::publication_plan(&authority, 12_001),
         ),
         None,
     );
     let store_mismatch = execute_migration_request(
         LayoutMigrationExecutionRequest::new(
             world::migration_plan(declaration, &authority),
-            world::publication_plan(&foreign, "migration-store-mismatch", 12_002),
+            world::publication_plan(&foreign, 12_002),
         ),
         None,
     );
+    let prior_inputs = world::physical_inputs(&authority, 12_003);
+    let prior_publication = publication::publish_inputs(&prior_inputs);
     let source_mismatch = execute_migration_request(
         LayoutMigrationExecutionRequest::new(
             world::migration_plan(declaration, &authority),
-            world::successor_publication_plan(
-                &world::physical_inputs(&authority, "migration-source-prior", 12_003),
-                &authority,
-                "migration-source-mismatch",
-                12_004,
-            ),
+            world::successor_publication_plan(&prior_publication, &authority, 12_004),
         ),
         None,
     );
-    let stale_inputs = world::physical_inputs(&authority, "migration-runtime-stale", 12_005);
+    let stale_inputs = world::physical_inputs(&authority, 12_005);
     let physical_denial = execute_migration_request(
         LayoutMigrationExecutionRequest::new(
             world::migration_plan(declaration, &authority),
@@ -77,44 +74,20 @@ fn observe_rollback() -> Vec<OwnerCaseObservation<LayoutRollbackExecutionCaseId>
     let authority = world::authority("store.layout_evolution.rollback_execution");
     let foreign = world::authority("store.layout_evolution.rollback_execution.foreign");
 
-    let published = rollback_request(
-        declaration,
-        &authority,
-        "rollback-base-published",
-        "rollback-published",
-        12_101,
-    );
-    let store_mismatch = rollback_request(
-        declaration,
-        &authority,
-        "rollback-base-store",
-        "rollback-store-mismatch",
-        12_102,
-    );
-    let source_mismatch = rollback_request(
-        declaration,
-        &authority,
-        "rollback-base-source",
-        "rollback-source-mismatch",
-        12_103,
-    );
-    let physical_denial = rollback_request(
-        declaration,
-        &authority,
-        "rollback-base-physical",
-        "rollback-physical-denial",
-        12_104,
-    );
+    let published = rollback_request(declaration, &authority, 12_101);
+    let store_mismatch = rollback_request(declaration, &authority, 12_102);
+    let source_mismatch = rollback_request(declaration, &authority, 12_103);
+    let physical_denial = rollback_request(declaration, &authority, 12_104);
 
     let published = execute_rollback_request(published.0, None);
     let store_mismatch = LayoutRollbackExecutionRequest::new(
         store_mismatch.1,
-        world::publication_plan(&foreign, "rollback-foreign", 12_105),
+        world::publication_plan(&foreign, 12_105),
     );
     let store_mismatch = execute_rollback_request(store_mismatch, None);
     let source_mismatch = LayoutRollbackExecutionRequest::new(
         source_mismatch.1,
-        world::publication_plan(&authority, "rollback-old-source", 12_106),
+        world::publication_plan(&authority, 12_106),
     );
     let source_mismatch = execute_rollback_request(source_mismatch, None);
     let stale_current = physical_denial.2.old_root;
@@ -129,8 +102,6 @@ fn observe_rollback() -> Vec<OwnerCaseObservation<LayoutRollbackExecutionCaseId>
 fn rollback_request(
     declaration: worth_store_layout_indexes::evolution::migration::LayoutEvolutionDeclaration,
     authority: &worth_store_authority::StoreCurrentAuthorityWitness,
-    migration_digest: &str,
-    rollback_digest: &str,
     generation: u64,
 ) -> (
     LayoutRollbackExecutionRequest,
@@ -138,7 +109,7 @@ fn rollback_request(
     publication::PublicationInputs,
 ) {
     let (migrated, inputs) =
-        world::execute_migration_with_inputs(declaration, authority, migration_digest, generation);
+        world::execute_migration_with_inputs(declaration, authority, generation);
     let target = migrated.target_binding().clone();
     let plan = layout_rollback_operation()
         .plan(
@@ -148,7 +119,7 @@ fn rollback_request(
         .into_ready()
         .unwrap();
     let publication =
-        world::successor_publication_plan(&inputs, authority, rollback_digest, generation + 1);
+        world::successor_publication_plan(migrated.publication(), authority, generation + 1);
     (
         LayoutRollbackExecutionRequest::new(plan.clone(), publication),
         plan,

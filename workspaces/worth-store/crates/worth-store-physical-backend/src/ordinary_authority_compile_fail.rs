@@ -21,3 +21,10 @@
 //! let _forged =
 //!     PhysicalBackendCapabilityAdmissionAuthority::store_owned().admit_backend_capability(request);
 //! ```
+//! Raw backend queue authority is private to scheduled media execution:
+//! ```compile_fail
+//! use worth_store_physical_backend::{
+//!     BackendQueueExecutionAuthority, BackendQueueExecutionCompletionBuilder,
+//!     BackendQueueExecutionSession, BackendQueueExecutionTicket,
+//! };
+//! ```

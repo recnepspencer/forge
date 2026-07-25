@@ -2,8 +2,8 @@ use std::sync::{Arc, Condvar, Mutex, Weak};
 
 use crate::physical_runtime::{
     record_serving::ServingHealth, LifecycleGeneration, PhysicalExecutorCommand,
-    PhysicalWorkBatchDenial, PhysicalWorkExecutionBatchOutcome, PhysicalWorkExecutionOutcome,
-    PhysicalWorkPreEffectDenial,
+    PhysicalWorkAspectDelta, PhysicalWorkBatchDenial, PhysicalWorkExecutionBatchOutcome,
+    PhysicalWorkExecutionOutcome, PhysicalWorkPreEffectDenial,
 };
 
 use super::{PhysicalWorkExecutor, PhysicalWorkSignalOwner};
@@ -24,6 +24,12 @@ pub struct PhysicalWorkExecution {
     runtime: Weak<PhysicalStoreWorkRuntime>,
     gate: Arc<PhysicalExecutionGate>,
     generation: LifecycleGeneration,
+}
+
+#[derive(Debug)]
+pub(in crate::physical_runtime) struct PhysicalProjectionFailureCapability {
+    runtime: Weak<PhysicalStoreWorkRuntime>,
+    delta: PhysicalWorkAspectDelta,
 }
 
 struct PhysicalExecutionGate {
@@ -109,6 +115,16 @@ impl PhysicalStoreWorkRuntime {
 }
 
 impl PhysicalWorkExecution {
+    pub(in crate::physical_runtime) fn bind_projection_failure(
+        &self,
+        delta: PhysicalWorkAspectDelta,
+    ) -> PhysicalProjectionFailureCapability {
+        PhysicalProjectionFailureCapability {
+            runtime: self.runtime.clone(),
+            delta,
+        }
+    }
+
     pub fn execute_physical_work(
         &self,
         command: PhysicalExecutorCommand,
@@ -167,6 +183,18 @@ impl PhysicalWorkExecution {
         Ok(PhysicalExecutionCall {
             gate: Arc::clone(&self.gate),
         })
+    }
+}
+
+impl PhysicalProjectionFailureCapability {
+    pub(in crate::physical_runtime) fn consume(self) {
+        let Some(runtime) = self.runtime.upgrade() else {
+            return;
+        };
+        if runtime.signal.apply_delta(self.delta).is_err() {
+            runtime.signal.revoke_derived_admission();
+        }
+        runtime.health.revoke();
     }
 }
 

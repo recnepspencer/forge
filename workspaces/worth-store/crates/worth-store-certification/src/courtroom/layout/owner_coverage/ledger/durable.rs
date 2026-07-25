@@ -80,9 +80,11 @@ impl LayoutOwnerObservationLedger {
         &mut self,
         observed: worth_store_physical_isolation::CompactionOwnerCaseObservation,
     ) {
+        let (_, owner_case, _) =
+            worth_store_layout_indexes::compaction_projection::observe_physical_cutover(&observed);
         self.record(
             super::LayoutOwnerFamily::PhysicalCompaction,
-            observed.id().name(),
+            owner_case.name(),
         );
     }
 }

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::{
     durable_artifact_checksum, DurableFreeSpaceManifestHeader, FreeSpaceBlockReference,
     FreeSpaceKey, PhysicalFreeSpaceMembershipBlock, RecordArtifactFile,
@@ -35,8 +34,8 @@ pub(in crate::physical_runtime::record_serving) struct FreeSpaceSuccessorRequest
 }
 
 pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
-    media: &QualifiedFilesystemMedia,
-    frame_load: &(dyn super::super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    frame_ports: super::super::super::residency::frame_ports::RecordFramePorts,
+    source: super::super::super::residency::frame_loading::CanonicalFrameReadSource,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
     current: &DurableFreeSpaceManifestHeader,
@@ -47,7 +46,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
     {
         return Err(ManifestLookupFailure::Damaged);
     }
-    let reader = FreeSpaceReader::with_loader(media, frame_load, format, access, current);
+    let reader = FreeSpaceReader::serving(frame_ports, source, format, access, current);
     let mut planner = FreeSpacePlanner {
         reader: &reader,
         generation: request.generation,

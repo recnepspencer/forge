@@ -1,135 +1,95 @@
 use worth_store_buffer_pool::{
-    AdmittedBackgroundEnvelope, AllocationScope, BackgroundEnvelopeCounterSnapshot,
-    BackgroundWorkClass,
+    OperationAllocationGrant, OperationAllocationObservation, OperationAllocationScope,
+    PhysicalResidencyCounters,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct CompactionPlanningMemoryEnvelope {
-    envelope: AdmittedBackgroundEnvelope,
+    allocation: OperationAllocationGrant,
 }
 
 impl CompactionPlanningMemoryEnvelope {
-    pub fn from_admitted(
-        envelope: AdmittedBackgroundEnvelope,
+    pub fn from_allocation_grant(
+        allocation: OperationAllocationGrant,
     ) -> Result<Self, MaintenanceMemoryEnvelopeDenial> {
-        require_class(envelope, BackgroundWorkClass::CompactionPlanning)
-            .map(|envelope| Self { envelope })
+        require_maintenance_scope(allocation).map(|allocation| Self { allocation })
     }
 
-    pub const fn allocation_scope(self) -> AllocationScope {
-        self.envelope.allocation_scope()
+    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+        self.allocation.scope()
     }
 
-    pub const fn resident_frames(self) -> u32 {
-        self.envelope.resident_frames()
+    pub const fn allocation_bytes(&self) -> u64 {
+        self.allocation.bytes()
     }
 
-    pub const fn resident_bytes(self) -> u64 {
-        self.envelope.resident_bytes()
+    pub fn allocation_observation(&self) -> OperationAllocationObservation {
+        self.allocation.observation()
     }
 
-    pub const fn pinned_pages(self) -> u32 {
-        self.envelope.pinned_pages()
+    pub fn counters(&self) -> PhysicalResidencyCounters {
+        self.allocation.observation().counters()
     }
 
-    pub const fn allocation_bytes(self) -> u64 {
-        self.envelope.allocation_bytes()
-    }
-
-    pub const fn copied_bytes(self) -> u64 {
-        self.envelope.copied_bytes()
-    }
-
-    pub const fn streaming_window_bytes(self) -> u64 {
-        self.envelope.streaming_window_bytes()
-    }
-
-    pub const fn counters(self) -> BackgroundEnvelopeCounterSnapshot {
-        self.envelope.counters()
-    }
-
-    pub const fn proves_compaction_validity(self) -> bool {
+    pub const fn proves_compaction_validity(&self) -> bool {
         false
     }
 
-    pub const fn proves_retained_truth_preservation(self) -> bool {
+    pub const fn proves_retained_truth_preservation(&self) -> bool {
         false
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct ImportExportMemoryEnvelope {
-    envelope: AdmittedBackgroundEnvelope,
+    allocation: OperationAllocationGrant,
 }
 
 impl ImportExportMemoryEnvelope {
-    pub fn from_admitted(
-        envelope: AdmittedBackgroundEnvelope,
+    pub fn from_allocation_grant(
+        allocation: OperationAllocationGrant,
     ) -> Result<Self, MaintenanceMemoryEnvelopeDenial> {
-        require_class(envelope, BackgroundWorkClass::ImportExport).map(|envelope| Self { envelope })
+        require_maintenance_scope(allocation).map(|allocation| Self { allocation })
     }
 
-    pub const fn allocation_scope(self) -> AllocationScope {
-        self.envelope.allocation_scope()
+    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+        self.allocation.scope()
     }
 
-    pub const fn resident_frames(self) -> u32 {
-        self.envelope.resident_frames()
+    pub const fn allocation_bytes(&self) -> u64 {
+        self.allocation.bytes()
     }
 
-    pub const fn resident_bytes(self) -> u64 {
-        self.envelope.resident_bytes()
+    pub fn allocation_observation(&self) -> OperationAllocationObservation {
+        self.allocation.observation()
     }
 
-    pub const fn pinned_pages(self) -> u32 {
-        self.envelope.pinned_pages()
+    pub fn counters(&self) -> PhysicalResidencyCounters {
+        self.allocation.observation().counters()
     }
 
-    pub const fn allocation_bytes(self) -> u64 {
-        self.envelope.allocation_bytes()
-    }
-
-    pub const fn copied_bytes(self) -> u64 {
-        self.envelope.copied_bytes()
-    }
-
-    pub const fn streaming_window_bytes(self) -> u64 {
-        self.envelope.streaming_window_bytes()
-    }
-
-    pub const fn counters(self) -> BackgroundEnvelopeCounterSnapshot {
-        self.envelope.counters()
-    }
-
-    pub const fn proves_import_export_semantic_correctness(self) -> bool {
+    pub const fn proves_import_export_semantic_correctness(&self) -> bool {
         false
     }
 
-    pub const fn proves_replication_correctness(self) -> bool {
+    pub const fn proves_replication_correctness(&self) -> bool {
         false
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaintenanceMemoryEnvelopeDenial {
-    WrongBackgroundEnvelopeClass {
-        expected: BackgroundWorkClass,
-        actual: BackgroundWorkClass,
-    },
+    WrongAllocationScope { actual: OperationAllocationScope },
 }
 
-fn require_class(
-    envelope: AdmittedBackgroundEnvelope,
-    expected: BackgroundWorkClass,
-) -> Result<AdmittedBackgroundEnvelope, MaintenanceMemoryEnvelopeDenial> {
-    if envelope.work_class() == expected {
-        Ok(envelope)
+fn require_maintenance_scope(
+    allocation: OperationAllocationGrant,
+) -> Result<OperationAllocationGrant, MaintenanceMemoryEnvelopeDenial> {
+    if allocation.scope() == OperationAllocationScope::Maintenance {
+        Ok(allocation)
     } else {
-        Err(
-            MaintenanceMemoryEnvelopeDenial::WrongBackgroundEnvelopeClass {
-                expected,
-                actual: envelope.work_class(),
-            },
-        )
+        Err(MaintenanceMemoryEnvelopeDenial::WrongAllocationScope {
+            actual: allocation.scope(),
+        })
     }
 }

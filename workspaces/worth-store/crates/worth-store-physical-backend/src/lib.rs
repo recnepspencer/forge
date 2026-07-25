@@ -290,4 +290,5 @@ pub mod ordinary_authority_compile_fail;
 mod placement_observation;
 mod recovery_staging;
 mod storage_boundary_control;
+pub(crate) use execution::queue::BackendQueueExecutionAuthority;
 pub use facade::*;

@@ -129,7 +129,7 @@ impl ArtifactTreeMedia<'_> {
         };
         match super::super::artifact_tree_effects::artifact_file_length(self.owner, &file) {
             Ok(length) if end <= length => {}
-            Ok(_) => return denied(ArtifactTreeFailureKind::AccessLimitExceeded),
+            Ok(_) => return denied(ArtifactTreeFailureKind::Damaged),
             Err(failure) => return ArtifactRangeReadOutcome::DeniedBeforeEffect(failure),
         }
         if let Err(error) = file.seek(SeekFrom::Start(coordinate.offset())) {
@@ -139,15 +139,16 @@ impl ArtifactTreeMedia<'_> {
             ));
         }
         match super::exact_read_effect::execute(self.owner, &mut file, target) {
-            super::exact_read_effect::ExactReadEffect::Completed(operation) => {
-                ArtifactRangeReadOutcome::Completed(CompletedArtifactRangeRead {
-                    owner: self.owner.identity(),
-                    store: self.store,
-                    coordinate,
-                    completed_bytes: target.len() as u64,
-                    operation,
-                })
-            }
+            super::exact_read_effect::ExactReadEffect::Completed {
+                operation,
+                completed_bytes,
+            } => ArtifactRangeReadOutcome::Completed(CompletedArtifactRangeRead {
+                owner: self.owner.identity(),
+                store: self.store,
+                coordinate,
+                completed_bytes,
+                operation,
+            }),
             super::exact_read_effect::ExactReadEffect::DeniedBeforeEffect(failure) => {
                 ArtifactRangeReadOutcome::DeniedBeforeEffect(failure)
             }

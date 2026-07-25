@@ -1,7 +1,6 @@
 use std::sync::{Arc, Weak};
 
 use worth_proof::TransitionOutcome;
-use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::ArtifactTreeFailure;
 use worth_store_physical_format::RecordFrameCoordinate;
 
@@ -14,10 +13,13 @@ use crate::physical_runtime::{
     PhysicalReadSubmission, PhysicalReadWorkRequest, PhysicalSchedulerDemand,
     PhysicalSchedulerDenial, PhysicalWorkAdmission, PhysicalWorkExecution, PhysicalWorkIdentity,
     PhysicalWorkPreEffectDenial, PhysicalWorkReadiness, PhysicalWorkScope,
-    PhysicalWorkSettlementEvidence,
+    PhysicalWorkSubmissionReceipt, ReadyPhysicalWork, ResourceAdmittedPhysicalWork,
 };
 
-use super::{RecordReadPartition, RecordWorkAdmission};
+use super::{
+    PreparedCanonicalMetadataRead, PreparedCanonicalRecordRead, RecordReadPartition,
+    RecordWorkAdmission,
+};
 
 #[derive(Clone)]
 pub(in crate::physical_runtime) struct CanonicalRecordReadPort {
@@ -29,16 +31,9 @@ pub(in crate::physical_runtime) struct CanonicalRecordReadPort {
     record: Arc<RecordWorkAdmission>,
 }
 
-pub(in crate::physical_runtime) struct PreparedCanonicalRecordRead {
-    execution: PhysicalWorkExecution,
+struct PreparedPhysicalCommand {
     command: PhysicalExecutorCommand,
-    identity: PhysicalWorkIdentity,
-}
-
-struct PreparedCanonicalMetadataRead {
-    execution: PhysicalWorkExecution,
-    command: PhysicalExecutorCommand,
-    identity: PhysicalWorkIdentity,
+    projection_failure: Option<crate::physical_runtime::PhysicalWorkAspectDelta>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,17 +47,45 @@ pub(in crate::physical_runtime) enum CanonicalRecordReadFailure {
     Scheduler(PhysicalSchedulerDenial),
     Command(PhysicalExecutorCommandDenial),
     Backend(ArtifactTreeFailure),
+    Terminal(crate::physical_runtime::PhysicalWorkTerminalCause),
     SchedulerSettlementRejected,
     SettlementMismatch,
+    ProjectionFailureUnavailable,
+}
+
+impl CanonicalRecordReadFailure {
+    pub(in crate::physical_runtime::record_serving) const fn work_denial(
+        self,
+    ) -> Option<super::RecordReadWorkDenial> {
+        let denial = match self {
+            Self::RuntimeReleased => super::RecordReadWorkDenial::RuntimeReleased,
+            Self::InvalidCoordinate => super::RecordReadWorkDenial::InvalidCoordinate,
+            Self::SubmissionRejected => super::RecordReadWorkDenial::SubmissionRejected,
+            Self::PreEffect(_) => super::RecordReadWorkDenial::AdmissionRejected,
+            Self::DependencyBlocked => super::RecordReadWorkDenial::DependencyBlocked,
+            Self::SchedulerReservation(_) => {
+                super::RecordReadWorkDenial::SchedulerReservationRejected
+            }
+            Self::Scheduler(_) => super::RecordReadWorkDenial::SchedulerRejected,
+            Self::Command(_) => super::RecordReadWorkDenial::CommandRejected,
+            Self::Backend(_) | Self::Terminal(_) => return None,
+            Self::SchedulerSettlementRejected => {
+                super::RecordReadWorkDenial::SchedulerSettlementRejected
+            }
+            Self::SettlementMismatch => super::RecordReadWorkDenial::SettlementMismatch,
+            Self::ProjectionFailureUnavailable => super::RecordReadWorkDenial::AdmissionRejected,
+        };
+        Some(denial)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime) struct CanonicalMetadataReadFailure {
+pub(in crate::physical_runtime) struct CanonicalRecordReadFailureEvidence {
     failure: CanonicalRecordReadFailure,
     identity: Option<PhysicalWorkIdentity>,
 }
 
-impl CanonicalMetadataReadFailure {
+impl CanonicalRecordReadFailureEvidence {
     const fn before_work(failure: CanonicalRecordReadFailure) -> Self {
         Self {
             failure,
@@ -70,7 +93,7 @@ impl CanonicalMetadataReadFailure {
         }
     }
 
-    const fn during_work(
+    pub(super) const fn during_work(
         failure: CanonicalRecordReadFailure,
         identity: PhysicalWorkIdentity,
     ) -> Self {
@@ -111,11 +134,12 @@ impl CanonicalRecordReadPort {
         &self,
         coordinate: RecordFrameCoordinate,
         partition: RecordReadPartition,
-    ) -> Result<PreparedCanonicalRecordRead, CanonicalRecordReadFailure> {
-        let runtime = self
-            .runtime
-            .upgrade()
-            .ok_or(CanonicalRecordReadFailure::RuntimeReleased)?;
+    ) -> Result<PreparedCanonicalRecordRead, CanonicalRecordReadFailureEvidence> {
+        let runtime = self.runtime.upgrade().ok_or_else(|| {
+            CanonicalRecordReadFailureEvidence::before_work(
+                CanonicalRecordReadFailure::RuntimeReleased,
+            )
+        })?;
         let request = PhysicalReadWorkRequest::new(
             PhysicalWorkScope::one(coordinate),
             self.record.read_basis(partition),
@@ -124,73 +148,49 @@ impl CanonicalRecordReadPort {
         .expect("record coordinates, read basis, and security are admitted together");
         let receipt = match self.submission.submit(request).into_raw() {
             TransitionOutcome::Success(receipt) => receipt,
-            _ => return Err(CanonicalRecordReadFailure::SubmissionRejected),
-        };
-        let admitted = PhysicalWorkAdmission::admit(
-            &runtime.submission,
-            receipt,
-            &self.physical,
-            &runtime.health,
-        )
-        .map_err(CanonicalRecordReadFailure::PreEffect)?;
-        let ready = match runtime
-            .signal
-            .request(admitted)
-            .map_err(CanonicalRecordReadFailure::PreEffect)?
-        {
-            PhysicalWorkReadiness::Ready(ready) => ready,
-            PhysicalWorkReadiness::Blocked(_) => {
-                return Err(CanonicalRecordReadFailure::DependencyBlocked)
+            _ => {
+                return Err(CanonicalRecordReadFailureEvidence::before_work(
+                    CanonicalRecordReadFailure::SubmissionRejected,
+                ))
             }
         };
-        let (reservation, backend) = self
-            .scheduler
-            .record_read(
-                self.record.scheduler_security(),
-                u64::from(coordinate.length()),
-            )
-            .map_err(CanonicalRecordReadFailure::SchedulerReservation)?;
-        let demand = PhysicalSchedulerDemand::foreground(ready, reservation, None)
-            .map_err(CanonicalRecordReadFailure::Scheduler)?;
-        PhysicalWorkAdmission::require_current(
-            &runtime.submission,
-            demand.intent(),
-            &runtime.health,
-        )
-        .map_err(CanonicalRecordReadFailure::PreEffect)?;
-        let policy = super::record_queue_policy::admit_record_queue_policy(&demand.queue_work());
-        let work = crate::physical_runtime::PhysicalWorkScheduler::admit(demand, &backend, policy)
-            .map_err(CanonicalRecordReadFailure::Scheduler)?;
-        let identity = work.intent().identity();
-        let command =
-            PhysicalExecutorCommand::read(work).map_err(CanonicalRecordReadFailure::Command)?;
+        let (ready, identity) = admit_ready(&runtime, receipt, &self.physical)?;
+        let prepared = self.prepare_range_command(&runtime, ready, identity, coordinate)?;
+        let (command, projection_failure) = require_projection_failure(prepared, identity)?;
         drop(runtime);
-        Ok(PreparedCanonicalRecordRead {
-            execution: self.execution.clone(),
+        Ok(PreparedCanonicalRecordRead::new(
+            self.execution.clone(),
             command,
             identity,
-        })
+            self.execution.bind_projection_failure(projection_failure),
+        ))
     }
 
     pub(in crate::physical_runtime) fn file_length(
         &self,
         artifact: worth_store_physical_format::RecordArtifactFile,
         partition: RecordReadPartition,
-    ) -> Result<(u64, PhysicalWorkIdentity), CanonicalMetadataReadFailure> {
-        self.prepare_metadata(artifact, partition)
-            .map_err(CanonicalMetadataReadFailure::before_work)?
-            .execute()
+    ) -> Result<
+        (
+            u64,
+            PhysicalWorkIdentity,
+            crate::physical_runtime::instance::PhysicalProjectionFailureCapability,
+        ),
+        CanonicalRecordReadFailureEvidence,
+    > {
+        self.prepare_metadata(artifact, partition)?.execute()
     }
 
     fn prepare_metadata(
         &self,
         artifact: worth_store_physical_format::RecordArtifactFile,
         partition: RecordReadPartition,
-    ) -> Result<PreparedCanonicalMetadataRead, CanonicalRecordReadFailure> {
-        let runtime = self
-            .runtime
-            .upgrade()
-            .ok_or(CanonicalRecordReadFailure::RuntimeReleased)?;
+    ) -> Result<PreparedCanonicalMetadataRead, CanonicalRecordReadFailureEvidence> {
+        let runtime = self.runtime.upgrade().ok_or_else(|| {
+            CanonicalRecordReadFailureEvidence::before_work(
+                CanonicalRecordReadFailure::RuntimeReleased,
+            )
+        })?;
         let request = PhysicalMetadataReadWorkRequest::new(
             artifact,
             self.record.read_basis(partition),
@@ -199,101 +199,141 @@ impl CanonicalRecordReadPort {
         .expect("record artifact metadata, read basis, and security are admitted together");
         let receipt = match self.submission.submit_metadata(request).into_raw() {
             TransitionOutcome::Success(receipt) => receipt,
-            _ => return Err(CanonicalRecordReadFailure::SubmissionRejected),
-        };
-        let admitted = PhysicalWorkAdmission::admit(
-            &runtime.submission,
-            receipt,
-            &self.physical,
-            &runtime.health,
-        )
-        .map_err(CanonicalRecordReadFailure::PreEffect)?;
-        let ready = match runtime
-            .signal
-            .request(admitted)
-            .map_err(CanonicalRecordReadFailure::PreEffect)?
-        {
-            PhysicalWorkReadiness::Ready(ready) => ready,
-            PhysicalWorkReadiness::Blocked(_) => {
-                return Err(CanonicalRecordReadFailure::DependencyBlocked)
+            _ => {
+                return Err(CanonicalRecordReadFailureEvidence::before_work(
+                    CanonicalRecordReadFailure::SubmissionRejected,
+                ))
             }
         };
+        let (ready, identity) = admit_ready(&runtime, receipt, &self.physical)?;
+        let prepared = self.prepare_metadata_command(&runtime, ready, identity)?;
+        let (command, projection_failure) = require_projection_failure(prepared, identity)?;
+        Ok(PreparedCanonicalMetadataRead::new(
+            self.execution.clone(),
+            command,
+            identity,
+            self.execution.bind_projection_failure(projection_failure),
+        ))
+    }
+
+    fn prepare_range_command(
+        &self,
+        runtime: &PhysicalStoreWorkRuntime,
+        ready: ReadyPhysicalWork,
+        identity: PhysicalWorkIdentity,
+        coordinate: RecordFrameCoordinate,
+    ) -> Result<PreparedPhysicalCommand, CanonicalRecordReadFailureEvidence> {
+        let (reservation, backend) = self
+            .scheduler
+            .record_read(
+                self.record.scheduler_security(),
+                u64::from(coordinate.length()),
+            )
+            .map_err(CanonicalRecordReadFailure::SchedulerReservation)
+            .map_err(|failure| {
+                CanonicalRecordReadFailureEvidence::during_work(failure, identity)
+            })?;
+        prepare_command(runtime, ready, identity, reservation, backend, |work| {
+            PhysicalExecutorCommand::read(work)
+        })
+    }
+
+    fn prepare_metadata_command(
+        &self,
+        runtime: &PhysicalStoreWorkRuntime,
+        ready: ReadyPhysicalWork,
+        identity: PhysicalWorkIdentity,
+    ) -> Result<PreparedPhysicalCommand, CanonicalRecordReadFailureEvidence> {
         let (reservation, backend) = self
             .scheduler
             .record_metadata(self.record.scheduler_security())
-            .map_err(CanonicalRecordReadFailure::SchedulerReservation)?;
-        let demand = PhysicalSchedulerDemand::foreground(ready, reservation, None)
-            .map_err(CanonicalRecordReadFailure::Scheduler)?;
-        PhysicalWorkAdmission::require_current(
-            &runtime.submission,
-            demand.intent(),
-            &runtime.health,
-        )
-        .map_err(CanonicalRecordReadFailure::PreEffect)?;
-        let policy = super::record_queue_policy::admit_record_queue_policy(&demand.queue_work());
-        let work = crate::physical_runtime::PhysicalWorkScheduler::admit(demand, &backend, policy)
-            .map_err(CanonicalRecordReadFailure::Scheduler)?;
-        let identity = work.intent().identity();
-        let command =
-            PhysicalExecutorCommand::metadata(work).map_err(CanonicalRecordReadFailure::Command)?;
-        Ok(PreparedCanonicalMetadataRead {
-            execution: self.execution.clone(),
-            command,
-            identity,
+            .map_err(CanonicalRecordReadFailure::SchedulerReservation)
+            .map_err(|failure| {
+                CanonicalRecordReadFailureEvidence::during_work(failure, identity)
+            })?;
+        prepare_command(runtime, ready, identity, reservation, backend, |work| {
+            PhysicalExecutorCommand::metadata(work)
         })
     }
 }
 
-impl PreparedCanonicalMetadataRead {
-    fn execute(self) -> Result<(u64, PhysicalWorkIdentity), CanonicalMetadataReadFailure> {
-        let identity = self.identity;
-        let outcome = self
-            .execution
-            .execute_physical_work(self.command)
+fn require_projection_failure(
+    prepared: PreparedPhysicalCommand,
+    identity: PhysicalWorkIdentity,
+) -> Result<
+    (
+        PhysicalExecutorCommand,
+        crate::physical_runtime::PhysicalWorkAspectDelta,
+    ),
+    CanonicalRecordReadFailureEvidence,
+> {
+    let projection_failure = prepared.projection_failure.ok_or_else(|| {
+        CanonicalRecordReadFailureEvidence::during_work(
+            CanonicalRecordReadFailure::ProjectionFailureUnavailable,
+            identity,
+        )
+    })?;
+    Ok((prepared.command, projection_failure))
+}
+
+fn admit_ready(
+    runtime: &PhysicalStoreWorkRuntime,
+    receipt: PhysicalWorkSubmissionReceipt,
+    physical: &PhysicalWorkAdmissionAuthority,
+) -> Result<(ReadyPhysicalWork, PhysicalWorkIdentity), CanonicalRecordReadFailureEvidence> {
+    let identity = receipt.identity();
+    let admitted =
+        PhysicalWorkAdmission::admit(&runtime.submission, receipt, physical, &runtime.health)
             .map_err(CanonicalRecordReadFailure::PreEffect)
-            .map_err(|failure| CanonicalMetadataReadFailure::during_work(failure, identity))?;
-        let result = match outcome.into_settled().into_evidence() {
-            PhysicalWorkSettlementEvidence::Metadata {
-                physical,
-                scheduler: QueueExecutionOutcome::Executed(_),
-            } => Ok((physical.file_length(), identity)),
-            PhysicalWorkSettlementEvidence::Metadata { .. } => {
-                Err(CanonicalRecordReadFailure::SchedulerSettlementRejected)
-            }
-            PhysicalWorkSettlementEvidence::NoEffect(evidence) => {
-                Err(CanonicalRecordReadFailure::Backend(evidence.failure()))
-            }
-            _ => Err(CanonicalRecordReadFailure::SettlementMismatch),
-        };
-        result.map_err(|failure| CanonicalMetadataReadFailure::during_work(failure, identity))
+            .map_err(|failure| {
+                CanonicalRecordReadFailureEvidence::during_work(failure, identity)
+            })?;
+    match runtime
+        .signal
+        .request(admitted)
+        .map_err(CanonicalRecordReadFailure::PreEffect)
+        .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?
+    {
+        PhysicalWorkReadiness::Ready(ready) => Ok((ready, identity)),
+        PhysicalWorkReadiness::Blocked(_) => Err(CanonicalRecordReadFailureEvidence::during_work(
+            CanonicalRecordReadFailure::DependencyBlocked,
+            identity,
+        )),
     }
 }
 
-impl PreparedCanonicalRecordRead {
-    pub(in crate::physical_runtime) const fn identity(&self) -> PhysicalWorkIdentity {
-        self.identity
-    }
-
-    pub(in crate::physical_runtime) fn execute(
-        self,
-    ) -> Result<Box<[u8]>, CanonicalRecordReadFailure> {
-        let outcome = self
-            .execution
-            .execute_physical_work(self.command)
-            .map_err(CanonicalRecordReadFailure::PreEffect)?;
-        match outcome.into_settled().into_evidence() {
-            PhysicalWorkSettlementEvidence::Read {
-                bytes,
-                scheduler: QueueExecutionOutcome::Executed(_),
-                ..
-            } => Ok(bytes),
-            PhysicalWorkSettlementEvidence::Read { .. } => {
-                Err(CanonicalRecordReadFailure::SchedulerSettlementRejected)
-            }
-            PhysicalWorkSettlementEvidence::NoEffect(evidence) => {
-                Err(CanonicalRecordReadFailure::Backend(evidence.failure()))
-            }
-            _ => Err(CanonicalRecordReadFailure::SettlementMismatch),
-        }
-    }
+fn prepare_command(
+    runtime: &PhysicalStoreWorkRuntime,
+    ready: ReadyPhysicalWork,
+    identity: PhysicalWorkIdentity,
+    reservation:
+        worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundReservation,
+    backend: worth_store_io_scheduler::IoSchedulerBackendCapabilityAdmission,
+    build: impl FnOnce(
+        ResourceAdmittedPhysicalWork,
+    ) -> Result<PhysicalExecutorCommand, PhysicalExecutorCommandDenial>,
+) -> Result<PreparedPhysicalCommand, CanonicalRecordReadFailureEvidence> {
+    let demand = PhysicalSchedulerDemand::foreground(ready, reservation, None)
+        .map_err(CanonicalRecordReadFailure::Scheduler)
+        .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;
+    PhysicalWorkAdmission::require_current(&runtime.submission, demand.intent(), &runtime.health)
+        .map_err(CanonicalRecordReadFailure::PreEffect)
+        .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;
+    let policy = super::record_queue_policy::admit_record_queue_policy(&demand.queue_work());
+    let work = crate::physical_runtime::PhysicalWorkScheduler::admit(demand, &backend, policy)
+        .map_err(CanonicalRecordReadFailure::Scheduler)
+        .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;
+    debug_assert_eq!(work.intent().identity(), identity);
+    let projection_failure = runtime
+        .signal
+        .admit_projection_failure(&work)
+        .map_err(|_| CanonicalRecordReadFailure::ProjectionFailureUnavailable)
+        .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;
+    let command = build(work)
+        .map_err(CanonicalRecordReadFailure::Command)
+        .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;
+    Ok(PreparedPhysicalCommand {
+        command,
+        projection_failure,
+    })
 }

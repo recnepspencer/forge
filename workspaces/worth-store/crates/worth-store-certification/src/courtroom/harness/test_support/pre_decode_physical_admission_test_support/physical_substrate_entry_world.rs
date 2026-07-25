@@ -8,7 +8,7 @@ use super::super::{
 };
 use super::{
     checksum_fixture::checksum_declaration,
-    physical_substrate_witness_world::{current_validation, frame_witness},
+    physical_substrate_witness_world::{current_frame_bytes, current_validation, frame_witness},
 };
 use crate::{
     BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
@@ -30,23 +30,15 @@ pub(crate) fn with_pre_decode_admission(
         PhysicalHeaderDecodeWitness,
     ),
 ) {
-    with_entry_seed(payload, |seed| {
+    let protected_bytes = current_frame_bytes(payload);
+    with_entry_seed(&protected_bytes, |seed| {
         let admission = pre_decode_admission_from_seed(seed);
         run(admission, current_validation(), frame_witness(payload));
     });
 }
 
-pub(crate) fn with_pre_decode_seed(
-    payload: &[u8],
-    run: impl FnOnce(PhysicalIntegrityAdmission<'_>),
-) {
-    with_entry_seed(payload, |seed| {
-        run(pre_decode_admission_from_seed(seed));
-    });
-}
-
 pub(crate) fn with_entry_seed(
-    payload: &[u8],
+    protected_bytes: &[u8],
     run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>),
 ) {
     let model_payload =
@@ -57,7 +49,7 @@ pub(crate) fn with_entry_seed(
         .unwrap();
     let entry = IntegrityEntryAdmission::from_integrity_model_payload(model_payload).unwrap();
     let mut table = resident_frame_table();
-    let frame = admit_payload_frame(&mut table, 7, 2, payload);
+    let frame = admit_payload_frame(&mut table, 7, 2, protected_bytes);
     let page = table.lease_page(frame.resident_frame_token()).unwrap();
     let pinned = page.pin().unwrap();
     let view = pinned.view().unwrap();

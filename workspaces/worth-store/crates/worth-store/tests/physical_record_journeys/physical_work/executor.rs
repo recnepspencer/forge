@@ -183,7 +183,8 @@ fn signal_timeout_uses_deterministic_clock_and_proves_no_dispatch() {
     assert!(timeout.signal().timed_out_request().is_some());
     assert_eq!(
         timeout.obligation(),
-        PhysicalEffectObligation::NotDispatched
+        PhysicalEffectObligation::NotDispatched,
+        "C5_PREDICATE:store-local-async-registry: local timeout state overrode Signal's effect obligation"
     );
     assert!(matches!(
         serving.execute_physical_work(command),

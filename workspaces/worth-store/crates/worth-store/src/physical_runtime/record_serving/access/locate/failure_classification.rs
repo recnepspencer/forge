@@ -10,11 +10,7 @@ pub(in crate::physical_runtime::record_serving) fn read_failure(
     failure: FrameLoadFailure,
 ) -> RecordReadDenial {
     match failure.kind() {
-        FrameLoadFailureKind::Backend(failure)
-            if failure.kind() == ArtifactTreeFailureKind::Absent =>
-        {
-            RecordReadDenial::ArtifactUnavailable
-        }
+        FrameLoadFailureKind::Backend(failure) => backend_denial(failure),
         FrameLoadFailureKind::Residency(reason) => RecordReadDenial::ResidencyUnavailable(reason),
         FrameLoadFailureKind::Work(failure) => work_denial(failure),
         _ => RecordReadDenial::ArtifactDamaged,
@@ -24,31 +20,47 @@ pub(in crate::physical_runtime::record_serving) fn read_failure(
 fn work_denial(
     failure: crate::physical_runtime::record_serving::CanonicalRecordReadFailure,
 ) -> RecordReadDenial {
-    use crate::physical_runtime::record_serving::CanonicalRecordReadFailure;
-    let work = match failure {
-        CanonicalRecordReadFailure::RuntimeReleased => RecordReadWorkDenial::RuntimeReleased,
-        CanonicalRecordReadFailure::InvalidCoordinate => RecordReadWorkDenial::InvalidCoordinate,
-        CanonicalRecordReadFailure::SubmissionRejected => RecordReadWorkDenial::SubmissionRejected,
-        CanonicalRecordReadFailure::PreEffect(_) => RecordReadWorkDenial::AdmissionRejected,
-        CanonicalRecordReadFailure::DependencyBlocked => RecordReadWorkDenial::DependencyBlocked,
-        CanonicalRecordReadFailure::SchedulerReservation(_) => {
-            RecordReadWorkDenial::SchedulerReservationRejected
+    match failure {
+        crate::physical_runtime::record_serving::CanonicalRecordReadFailure::Backend(failure) => {
+            backend_denial(failure)
         }
-        CanonicalRecordReadFailure::Scheduler(_) => RecordReadWorkDenial::SchedulerRejected,
-        CanonicalRecordReadFailure::Command(_) => RecordReadWorkDenial::CommandRejected,
-        CanonicalRecordReadFailure::Backend(failure) => {
-            return if failure.kind() == ArtifactTreeFailureKind::Absent {
-                RecordReadDenial::ArtifactUnavailable
-            } else {
-                RecordReadDenial::ArtifactDamaged
-            };
+        crate::physical_runtime::record_serving::CanonicalRecordReadFailure::Terminal(cause) => {
+            terminal_denial(cause)
         }
-        CanonicalRecordReadFailure::SchedulerSettlementRejected => {
-            RecordReadWorkDenial::SchedulerSettlementRejected
+        _ => RecordReadDenial::PhysicalWork(
+            failure
+                .work_denial()
+                .expect("non-backend canonical failures have work denials"),
+        ),
+    }
+}
+
+fn terminal_denial(cause: crate::physical_runtime::PhysicalWorkTerminalCause) -> RecordReadDenial {
+    match cause {
+        crate::physical_runtime::PhysicalWorkTerminalCause::Backend(failure) => {
+            backend_denial(failure)
         }
-        CanonicalRecordReadFailure::SettlementMismatch => RecordReadWorkDenial::SettlementMismatch,
-    };
-    RecordReadDenial::PhysicalWork(work)
+        crate::physical_runtime::PhysicalWorkTerminalCause::IncompleteRead { .. } => {
+            RecordReadDenial::ArtifactDamaged
+        }
+        crate::physical_runtime::PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect => {
+            RecordReadDenial::PhysicalWork(RecordReadWorkDenial::SchedulerSettlementRejected)
+        }
+        crate::physical_runtime::PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(
+            reason,
+        ) => RecordReadDenial::ResidencyUnavailable(reason),
+    }
+}
+
+fn backend_denial(failure: worth_store_physical_backend::ArtifactTreeFailure) -> RecordReadDenial {
+    match failure.kind() {
+        ArtifactTreeFailureKind::Absent => RecordReadDenial::ArtifactUnavailable,
+        ArtifactTreeFailureKind::AccessLimitExceeded => RecordReadDenial::AccessLimitExceeded,
+        ArtifactTreeFailureKind::DeniedBeforeEffect => {
+            RecordReadDenial::BackendUnavailable(failure)
+        }
+        _ => RecordReadDenial::ArtifactDamaged,
+    }
 }
 
 pub(in crate::physical_runtime::record_serving) fn manifest_failure(

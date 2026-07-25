@@ -241,6 +241,12 @@ impl PhysicalSignalGraph {
         &mut self,
         identity: crate::physical_runtime::PhysicalWorkIdentity,
     ) {
+        if let Some(signal) = self.locality.signal(identity) {
+            let _ = self.runtime.cancel_resource_request(
+                signal,
+                worth_signal::facade::ResourceCancellationReason::RuntimePolicy,
+            );
+        }
         if let Some(dependency) = self.locality.release_identity(identity) {
             self.retire_publication_dependency(dependency);
         }

@@ -8,16 +8,21 @@ use worth_store::physical_runtime::{
     PhysicalWorkMutantSubject, PhysicalWorkSourceBinding,
 };
 
+mod campaign_source;
+mod decoding;
+
 const REPORT_ENV: &str = "WORTH_STORE_C5_1_MUTANT_REPORT";
-const REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v1";
+const REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v2";
+const ARTIFACT_OWNER_SCHEMA: &str = "worth.store.c5_1.mutation-artifacts.v1";
+const ARTIFACT_OWNER_MARKER: &str = ".worth-store-mutation-evidence-owner";
 const FIRST_MUTANT: u8 = 15;
-const LAST_COURTROOM_A_MUTANT: u8 = 41;
 const LAST_MUTANT: u8 = 43;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct MutationReport {
     schema: String,
+    source: campaign_source::MutationSourceBinding,
     observations: Vec<MutationObservation>,
 }
 
@@ -45,6 +50,7 @@ struct MutantExpectation {
 }
 
 struct ArtifactPolicy {
+    report: PathBuf,
     parent: PathBuf,
     directory_prefix: String,
 }
@@ -66,30 +72,25 @@ fn decode_file(
         .map_err(|error| format!("cannot locate report {}: {error}", path.display()))?;
     let bytes = std::fs::read(&canonical)
         .map_err(|error| format!("cannot read report {}: {error}", canonical.display()))?;
+    decoding::require_supported_schema(&bytes, REPORT_SCHEMA)?;
     let report: MutationReport = serde_json::from_slice(&bytes)
         .map_err(|error| format!("cannot decode mutation report: {error}"))?;
-    if report.schema != REPORT_SCHEMA {
-        return Err(format!(
-            "unsupported mutation report schema `{}`",
-            report.schema
-        ));
-    }
+    debug_assert_eq!(report.schema, REPORT_SCHEMA);
     validate_campaign_shape(&report.observations)?;
+    campaign_source::validate(&report.source, workspace)?;
     let policy = ArtifactPolicy::for_report(&canonical)?;
-    let mut courtroom_a = Vec::new();
+    let mut localizations = Vec::with_capacity(complete_mutant_count());
     for observation in report.observations {
         let id = observation.id;
         let expected = expectation(id);
         let localization = validate_observation(observation, expected, workspace, &policy)?;
-        if courtroom_a_owns(id) {
-            courtroom_a.push(localization);
-        }
+        localizations.push(localization);
     }
-    Ok(courtroom_a)
+    Ok(localizations)
 }
 
 fn validate_campaign_shape(observations: &[MutationObservation]) -> Result<(), String> {
-    let expected_count = usize::from(LAST_MUTANT - FIRST_MUTANT + 1);
+    let expected_count = complete_mutant_count();
     if observations.len() != expected_count {
         return Err(format!(
             "mutation report requires {expected_count} observations, found {}",
@@ -105,6 +106,10 @@ fn validate_campaign_shape(observations: &[MutationObservation]) -> Result<(), S
         }
     }
     Ok(())
+}
+
+pub(super) fn complete_mutant_count() -> usize {
+    usize::from(LAST_MUTANT - FIRST_MUTANT + 1)
 }
 
 fn validate_observation(
@@ -194,6 +199,7 @@ impl ArtifactPolicy {
             .and_then(|value| value.to_str())
             .ok_or_else(|| "mutation report filename must be Unicode".to_owned())?;
         Ok(Self {
+            report: report.to_path_buf(),
             parent,
             directory_prefix: format!("{name}.artifacts."),
         })
@@ -225,6 +231,12 @@ impl ArtifactPolicy {
         {
             return Err("mutant binary escaped its report artifact directory".into());
         }
+        let marker = std::fs::read_to_string(directory.join(ARTIFACT_OWNER_MARKER))
+            .map_err(|_| "mutant binary artifact directory omitted its owner marker".to_owned())?;
+        let expected = format!("{ARTIFACT_OWNER_SCHEMA}\n{}\n", self.report.display());
+        if marker != expected {
+            return Err("mutant binary artifact directory has foreign ownership".into());
+        }
         Ok(canonical)
     }
 }
@@ -237,15 +249,11 @@ fn expectation(id: u8) -> MutantExpectation {
     }
 }
 
-const fn courtroom_a_owns(id: u8) -> bool {
-    id <= LAST_COURTROOM_A_MUTANT
-}
-
 fn predicate(id: u8) -> &'static str {
     match id {
         15 => "settlement",
         16 => "scheduler-admission",
-        17 => "backend-dispatch",
+        17 => "backend-receipt",
         18 => "derived-completion",
         19 => "post-dispatch-cancellation",
         20 => "stale-generation",
@@ -260,7 +268,7 @@ fn predicate(id: u8) -> &'static str {
         31 => "raw-signal-slot-authority",
         32 => "foundational-mask-substitution",
         33 => "aspect-partition-broadening",
-        34 => "branch-writer-registry",
+        34 => "global-mutation-lock",
         35 => "branch-label-disjointness",
         36 => "signal-evaluation-effect",
         37 => "generic-signal-settlement",
@@ -276,15 +284,26 @@ fn predicate(id: u8) -> &'static str {
 
 fn source(id: u8) -> &'static str {
     match id {
-        15..=18 => "crates/worth-store/src/physical_runtime/work/observation/causal.rs",
-        19 | 27 => "crates/worth-store/src/physical_runtime/instance/work_lifecycle.rs",
+        15 => "crates/worth-store/src/physical_runtime/work/execution/settlement.rs",
+        16 => {
+            "crates/worth-store-io-scheduler/src/queue_execution/admission/request.rs"
+        }
+        17 => "crates/worth-store/src/physical_runtime/work/progression/settlement.rs",
+        18 => {
+            "crates/worth-store/src/physical_runtime/instance/signal_owner/lifecycle_join.rs"
+        }
+        19 | 24 | 25 | 27 => {
+            "crates/worth-store/src/physical_runtime/instance/work_lifecycle.rs"
+        }
         20 => "crates/worth-store/src/physical_runtime/record_serving/lifecycle/serving_runtime/physical_work/batch_execution.rs",
         21 => "crates/worth-store/src/physical_runtime/record_serving/lifecycle/serving_health.rs",
         22 => "crates/worth-store/src/physical_runtime/instance/signal_owner/reconciliation.rs",
-        23..=26 | 34 => "crates/worth-store/src/physical_runtime/instance/work_runtime.rs",
+        23 => "crates/worth-store/src/physical_runtime/work/submission/capacity_lease.rs",
+        34 => "crates/worth-store/src/physical_runtime/instance/work_runtime.rs",
         28 | 29 => "crates/worth-store/src/physical_runtime/record_serving/admission/open.rs",
-        30 => "crates/worth-store/src/physical_runtime/instance/signal_owner/mod.rs",
-        31 | 32 => "crates/worth-store/src/physical_runtime/work/profile/aspect_bindings.rs",
+        26 | 30 => "crates/worth-store/src/physical_runtime/instance/signal_owner/mod.rs",
+        31 => "crates/worth-store/src/physical_runtime/work/profile/aspect_bindings.rs",
+        32 => "crates/worth-store/src/physical_runtime/work/profile/declaration.rs",
         33 | 35 => "crates/worth-store/src/physical_runtime/work/concurrency_scope.rs",
         36 => "crates/worth-store/src/physical_runtime/instance/signal_owner/graph.rs",
         37 => "crates/worth-store/src/physical_runtime/instance/signal_owner/lifecycle_join.rs",
@@ -302,13 +321,18 @@ fn source(id: u8) -> &'static str {
 
 fn scenario(id: u8) -> &'static str {
     match id {
-        15..=18 => "physical_work::publication_work_trace::successful_publication_exposes_each_causal_work_identity_once",
+        15 => "physical_work::authority_mutants::physical_settlement_requires_backend_and_scheduler_evidence",
+        16 => "queue_execution::tests::admission_lowering::grouping_mismatch_is_a_typed_admission_denial",
+        17 => "physical_work::authority_mutants::backend_receipts_cannot_settle_foreign_dispatched_work",
+        18 => "physical_work::authority_mutants::derived_completion_must_join_the_real_signal_request",
         19 => "physical_work::post_dispatch_cancellation::cancellation_after_backend_dispatch_retains_terminal_settlement_obligation",
         20 => "physical_work::execution_capability::stale_execution_capability_cannot_cross_the_real_effect_boundary",
         21 => "physical_work::failure::partial_write_retains_exact_prefix_and_revokes_serving_health",
-        22 => "physical_work::authority_sealing::derived_reconciliation::derived_reconciliation_cannot_reacquire_physical_effect_authority",
+        22 => "physical_work::failure::derived_reconciliation::later_batch_panic_retains_earlier_settlement_without_repeating_media",
         23 => "physical_work::authority_sealing::duplicate_runtime::a_second_pending_work_registry_is_forbidden",
-        24..=26 => "physical_work::authority_sealing::duplicate_runtime::store_local_async_registries_are_forbidden",
+        24 => "physical_work::executor::signal_timeout_uses_deterministic_clock_and_proves_no_dispatch",
+        25 => "physical_work::failure::pre_effect_backend_denial_is_the_only_retryable_physical_failure",
+        26 => "physical_work::capacity::dropped_ready_work_releases_signal_and_command_capacity_one_before_close",
         27 => "physical_work::authority_sealing::duplicate_runtime::a_second_physical_lifecycle_is_forbidden",
         28 => "physical_work::authority_sealing::reopen_boundary::reopen_cannot_consume_serialized_signal_state",
         29 => "physical_work::authority_sealing::reopen_boundary::ordinary_physical_work_cannot_add_an_internal_json_carrier",
@@ -316,15 +340,14 @@ fn scenario(id: u8) -> &'static str {
         31 => "physical_work::authority_sealing::semantic_boundary::raw_signal_slots_cannot_become_semantic_authority",
         32 => "physical_work::authority_sealing::semantic_boundary::foundational_masks_cannot_substitute_for_native_bindings",
         33 => "physical_work::authority_sealing::semantic_boundary::callers_cannot_broaden_aspect_or_partition_scope",
-        34 => "physical_work::authority_sealing::branch_boundary::store_cannot_own_a_branch_writer_registry",
-        35 => "physical_work::authority_sealing::branch_boundary::branch_labels_cannot_define_physical_disjointness",
+        34 | 35 => "physical_work::concurrency::independent_mutation_capabilities_execute_without_a_global_runtime_borrow",
         36 => "physical_work::authority_mutants::signal_evaluation_is_filesystem_effect_free",
         37 => "physical_work::authority_mutants::generic_signal_completion_cannot_upgrade_proven_no_effect",
         38 => "physical_work::authority_mutants::scheduler_counters_cannot_settle_cross_bound_backend_receipts",
         39 | 40 => "physical_work::authority_mutants::one_canonical_write_requires_one_backend_effect",
         41 => "physical_work::publication_signal_progression::root_publication_waits_for_settled_child_signal_completion_without_repeating_media",
         42 => "physical_runtime::record_serving::residency::candidate_frame_residency::tests::exact_receipt::foreign_real_receipt_cannot_clean_dirty_writeback",
-        43 => "physical_runtime::record_serving::c6_handoff::residency::tests::c6_handoff_carries_no_local_scheduler_or_pending_registry",
+        43 => "physical_work::c6_handoff::c6_handoff_joins_submission_writeback_and_lifecycle_fencing",
         _ => unreachable!("campaign shape validates the mutant range"),
     }
 }

@@ -32,8 +32,9 @@ struct RuntimeScaleWorld {
 }
 
 struct LiveScaleMeasurements {
-    media_before: MediaCounterSnapshot,
-    media_after: MediaCounterSnapshot,
+    media_before_point: MediaCounterSnapshot,
+    media_after_point: MediaCounterSnapshot,
+    media_after_scan: MediaCounterSnapshot,
     residency_before_point: PhysicalResidencyCounters,
     residency_after_point: PhysicalResidencyCounters,
     residency_after_scan: PhysicalResidencyCounters,
@@ -57,20 +58,21 @@ impl LiveScaleMeasurements {
                 .residency_after_point
                 .faults()
                 .saturating_sub(self.residency_before_point.faults()),
-            open_reads: self
-                .media_after
+            point_media_reads: self
+                .media_after_point
                 .completed_operations_for(MediaOperationRole::PositionedRead)
                 .saturating_sub(
-                    self.media_before
+                    self.media_before_point
                         .completed_operations_for(MediaOperationRole::PositionedRead),
                 ),
-            open_bytes: self
-                .media_after
+            point_media_bytes: self
+                .media_after_point
                 .completed_bytes_for(MediaOperationRole::PositionedRead)
                 .saturating_sub(
-                    self.media_before
+                    self.media_before_point
                         .completed_bytes_for(MediaOperationRole::PositionedRead),
                 ),
+            point_manifest_bytes: self.point.manifest_bytes(),
             scan_records: self.scan.records(),
             scan_payload_bytes: self.scan.payload_bytes(),
             scan_blocks: self.scan.manifest_blocks(),
@@ -80,6 +82,21 @@ impl LiveScaleMeasurements {
                 .residency_after_scan
                 .faults()
                 .saturating_sub(self.residency_after_point.faults()),
+            scan_media_reads: self
+                .media_after_scan
+                .completed_operations_for(MediaOperationRole::PositionedRead)
+                .saturating_sub(
+                    self.media_after_point
+                        .completed_operations_for(MediaOperationRole::PositionedRead),
+                ),
+            scan_media_bytes: self
+                .media_after_scan
+                .completed_bytes_for(MediaOperationRole::PositionedRead)
+                .saturating_sub(
+                    self.media_after_point
+                        .completed_bytes_for(MediaOperationRole::PositionedRead),
+                ),
+            scan_manifest_bytes: self.scan.manifest_bytes(),
             signal_clock_advance: self.signal_clock_advance,
             signal_invalidation_delta: self.signal_invalidation_delta,
             point_allocations: 0,
@@ -160,12 +177,10 @@ fn observe_runtime_world(
     seeded: &SeededScaleWorld,
     changed_access: AdmittedRecordAccessPolicy,
 ) -> RuntimeScaleWorld {
-    let opening = super::super::media(&seeded.root);
-    let before = opening.media_counters();
     let serving = super::super::success(
-        opening.open_record_store(PhysicalRecordOpen::new(seeded.format, changed_access)),
+        super::super::media(&seeded.root)
+            .open_record_store(PhysicalRecordOpen::new(seeded.format, changed_access)),
     );
-    let after = serving.media_counters();
     assert_eq!(
         serving
             .records()
@@ -174,7 +189,7 @@ fn observe_runtime_world(
             .unwrap(),
         seeded.last
     );
-    let measurements = observe_live_reads(&serving, seeded.last, before, after);
+    let measurements = observe_live_reads(&serving, seeded.last);
     let walk = worth_store_offline_verifier::walk_current_durable_record_manifest(
         &seeded.root,
         seeded.format.declaration(),
@@ -199,29 +214,35 @@ fn observe_runtime_world(
 fn observe_live_reads(
     serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
     last: PhysicalRecordId,
-    media_before: MediaCounterSnapshot,
-    media_after: MediaCounterSnapshot,
 ) -> LiveScaleMeasurements {
+    let media_before_point = serving.media_counters();
     let residency_before_point = serving.residency_counters();
     let signal_before = serving.physical_signal_observation().unwrap();
-    let point = serving
+    let session = serving
         .records()
         .open(
             last,
             RecordReadLimits::new(RecordByteLimit::new(100).unwrap()),
         )
-        .unwrap()
-        .observation();
+        .unwrap();
+    let (bytes, point) = super::super::read_record(session, 100);
+    assert_eq!(
+        bytes,
+        vec![(last.ordinal().saturating_sub(1) % 251) as u8; 100]
+    );
+    let media_after_point = serving.media_counters();
     let residency_after_point = serving.residency_counters();
     let scan = super::super::scale_support::complete_scan(serving, 7, 16_384);
+    let media_after_scan = serving.media_counters();
     let residency_after_scan = serving.residency_counters();
     await_signal_cleanup(serving);
     let signal_after = serving.physical_signal_observation().unwrap();
     assert_eq!(signal_after.active_locality_count(), 0);
     assert_eq!(signal_after.active_in_flight_count(), 0);
     LiveScaleMeasurements {
-        media_before,
-        media_after,
+        media_before_point,
+        media_after_point,
+        media_after_scan,
         residency_before_point,
         residency_after_point,
         residency_after_scan,

@@ -4,21 +4,25 @@ use crate::physical_runtime::PhysicalWorkSettlementEvidence;
 
 use super::{
     CanonicalCandidateFrameWrite, CanonicalRecordMutationFailure, CanonicalRecordMutationKind,
-    PreparedCanonicalRecordMutation,
+    CanonicalRecordMutationSettlement, PreparedCanonicalRecordMutation,
 };
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "settled physical-effect proof stays inline so canonical mutation completion adds no post-effect heap allocation"
+)]
 pub(in crate::physical_runtime) enum CanonicalRecordMutationCompletion {
     CandidateFrame(CanonicalCandidateFrameWrite),
-    PublicationEffect(crate::physical_runtime::PhysicalWorkIdentity),
+    PublicationEffect(CanonicalRecordMutationSettlement),
 }
 
 impl CanonicalRecordMutationCompletion {
-    pub(in crate::physical_runtime::record_serving) const fn identity(
+    pub(in crate::physical_runtime::record_serving) const fn settlement(
         &self,
-    ) -> crate::physical_runtime::PhysicalWorkIdentity {
+    ) -> CanonicalRecordMutationSettlement {
         match self {
-            Self::CandidateFrame(completed) => completed.identity,
-            Self::PublicationEffect(identity) => *identity,
+            Self::CandidateFrame(completed) => completed.settlement,
+            Self::PublicationEffect(settlement) => *settlement,
         }
     }
 }
@@ -32,19 +36,21 @@ impl PreparedCanonicalRecordMutation {
             .execution
             .execute_physical_work(self.command)
             .map_err(|failure| CanonicalRecordMutationFailure::pre_effect(identity, failure))?;
+        let settled = outcome.into_settled();
+        let settlement = CanonicalRecordMutationSettlement::from_settled(&settled);
         classify(
             self.expected,
-            self.identity,
             self.target,
-            outcome.into_settled().into_evidence(),
+            settlement,
+            settled.into_evidence(),
         )
     }
 }
 
 fn classify(
     expected: CanonicalRecordMutationKind,
-    identity: crate::physical_runtime::PhysicalWorkIdentity,
     target: crate::physical_runtime::PhysicalWorkRecoveryTarget,
+    settlement: CanonicalRecordMutationSettlement,
     evidence: PhysicalWorkSettlementEvidence,
 ) -> Result<CanonicalRecordMutationCompletion, CanonicalRecordMutationFailure> {
     match (expected, evidence) {
@@ -58,7 +64,7 @@ fn classify(
             CanonicalCandidateFrameWrite {
                 physical: super::super::residency::candidate_frame_residency::
                     CandidateFramePhysicalWrite::completed(physical.into_write()),
-                identity,
+                settlement,
             },
         )),
         (
@@ -71,7 +77,7 @@ fn classify(
             CanonicalCandidateFrameWrite {
                 physical: super::super::residency::candidate_frame_residency::
                     CandidateFramePhysicalWrite::completed(physical),
-                identity,
+                settlement,
             },
         )),
         (
@@ -80,17 +86,23 @@ fn classify(
                 physical: _,
                 scheduler: QueueExecutionOutcome::Executed(_),
             },
-        ) => Ok(CanonicalRecordMutationCompletion::PublicationEffect(identity)),
+        ) => Ok(CanonicalRecordMutationCompletion::PublicationEffect(
+            settlement,
+        )),
         (_, PhysicalWorkSettlementEvidence::NoEffect(evidence)) => {
             Err(CanonicalRecordMutationFailure::backend(
-                identity,
+                settlement,
                 target,
                 evidence.failure(),
             ))
         }
         (_, PhysicalWorkSettlementEvidence::TerminalFailure(failure)) => {
-            Err(CanonicalRecordMutationFailure::terminal(failure))
+            Err(CanonicalRecordMutationFailure::terminal(
+                settlement, failure,
+            ))
         }
-        _ => Err(CanonicalRecordMutationFailure::settlement_mismatch(identity)),
+        _ => Err(CanonicalRecordMutationFailure::settlement_mismatch(
+            settlement,
+        )),
     }
 }

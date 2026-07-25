@@ -1,4 +1,4 @@
-use worth_store_physical_integrity::ProtectedPhysicalByteView;
+use worth_store_physical_integrity::IntegrityCheckedFrame;
 
 use super::{
     PartialPublicationClassification, PartialPublicationPersistedBytes,
@@ -19,11 +19,12 @@ pub struct PartialPublicationBeforeWalReplayRead {
 struct BeforeWalReplayReadSeal;
 
 impl PartialPublicationBeforeWalReplayRead {
-    pub fn from_protected_physical_bytes(
-        protected_bytes: ProtectedPhysicalByteView<'_>,
+    pub fn from_integrity_checked_frame(
+        checked_frame: IntegrityCheckedFrame<'_>,
     ) -> Result<Self, PartialPublicationReplayReadDenial> {
-        let persisted_bytes =
-            PartialPublicationPersistedBytes::from_replay_read_bytes(protected_bytes.as_bytes());
+        let persisted_bytes = PartialPublicationPersistedBytes::from_replay_read_bytes(
+            checked_frame.checked_payload_bytes(),
+        );
         let classification = PartialPublicationClassification::classify_observations(
             super::PartialPublicationObservationSet::new()
                 .with_persisted_bytes(persisted_bytes.clone()),

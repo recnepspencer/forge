@@ -1,34 +1,42 @@
+use super::wal_tail as wal_only_tail_fixture;
+#[cfg(feature = "certification-world")]
 use super::{
     dirty_publication as dirty_publication_paths, source_precedence as source_precedence_fixture,
-    wal_durability as wal_durability_paths, wal_tail as wal_only_tail_fixture,
+    wal_durability as wal_durability_paths,
 };
 
+#[cfg(feature = "certification-world")]
 use worth_store_physical_backend::PosixFileFsyncDirFsyncProfile;
+#[cfg(feature = "certification-world")]
+use worth_store_physical_format::PhysicalReference;
 use worth_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReference,
-    PhysicalSegmentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalSegmentId,
 };
 use worth_store_physical_integrity::{
     ManifestIntegrityAuthority, ManifestIntegrityInspectionRequest,
 };
 use worth_store_recovery_physics::{
-    AdmittedRecoverySource, DirtyPublicationEvidence, LogSequenceNumber, PageFlushRecoveryReceipt,
-    PageLsn, PageRedoDigestState, PageRedoEligibility, RecoverySourceCandidate,
-    RecoverySourcePrecedenceGraph, RedoApplicationCursor, RedoApplicationPageFact,
+    AdmittedRecoverySource, LogSequenceNumber, PageLsn, PageRedoDigestState, PageRedoEligibility,
+    RecoveryCandidateDiscoveryTrace, RedoApplicationCursor, RedoApplicationPageFact,
     RedoRecordGrammar, RedoRecordGrammarDenial, RedoRecordGrammarDenialKind,
     RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding, RedoRecordMaterializedForm,
-    RedoRecordOperationForm, RedoRecordTargetGeneration, StalePageRecoveryClassification,
-    WalBeforeDataOrderingProof, WalPrefixIntegrityObservation, WalPrefixObservationScan,
-    WalSegmentGeneration, WalValidPrefix,
+    RedoRecordOperationForm, RedoRecordTargetGeneration, WalLsnRange,
+    WalPrefixIntegrityObservation, WalPrefixObservationScan, WalSegmentGeneration, WalValidPrefix,
+};
+#[cfg(feature = "certification-world")]
+use worth_store_recovery_physics::{
+    DirtyPublicationEvidence, PageFlushRecoveryReceipt, RecoverySourceCandidate,
+    RecoverySourcePrecedenceGraph, StalePageRecoveryClassification, WalBeforeDataOrderingProof,
 };
 
+#[cfg(feature = "certification-world")]
 use dirty_publication_paths::scheduled_dirty_publication_for_page;
+#[cfg(feature = "certification-world")]
 use source_precedence_fixture::{
     checkpoint_base, checkpoint_base_for_root, wal_only_tail, wal_tail_for_checkpoint,
 };
+#[cfg(feature = "certification-world")]
 use wal_durability_paths::completed_posix_receipt_for_range;
-
-pub use source_precedence_fixture::{trace, wal_range};
 
 pub fn assert_grammar_denial(
     result: Result<RedoRecordGrammar, RedoRecordGrammarDenial>,
@@ -37,11 +45,13 @@ pub fn assert_grammar_denial(
     assert_eq!(result.unwrap_err().kind(), kind);
 }
 
+#[cfg(feature = "certification-world")]
 pub fn checkpoint_plus_tail_source(start: u64, end: u64) -> AdmittedRecoverySource {
     let (checkpoint, receipt) = checkpoint_base(10, start, start - 1, 1);
     checkpoint_plus_tail_source_from_basis(checkpoint, receipt, end)
 }
 
+#[cfg(feature = "certification-world")]
 pub fn checkpoint_plus_tail_source_for_root(
     start: u64,
     end: u64,
@@ -51,6 +61,7 @@ pub fn checkpoint_plus_tail_source_for_root(
     checkpoint_plus_tail_source_from_basis(checkpoint, receipt, end)
 }
 
+#[cfg(feature = "certification-world")]
 fn checkpoint_plus_tail_source_from_basis(
     checkpoint: worth_store_recovery_physics::CheckpointBaseAdmission,
     receipt: worth_store_recovery_physics::CheckpointCutoverReceipt,
@@ -64,12 +75,21 @@ fn checkpoint_plus_tail_source_from_basis(
         .admit_sources()
 }
 
+#[cfg(feature = "certification-world")]
 pub fn wal_only_source(start: u64, end: u64) -> AdmittedRecoverySource {
     RecoverySourcePrecedenceGraph::new("strict-test-profile")
         .discover(RecoverySourceCandidate::wal_tail(wal_only_tail(
             start, end, 1,
         )))
         .admit_sources()
+}
+
+pub fn trace(label: &str, order: u64) -> RecoveryCandidateDiscoveryTrace {
+    RecoveryCandidateDiscoveryTrace::new("strict-test-profile", label, order)
+}
+
+pub fn wal_range(start: u64, end: u64) -> WalLsnRange {
+    WalLsnRange::new(lsn(start), lsn(end)).unwrap()
 }
 
 pub fn valid_prefix<const N: usize>(
@@ -83,10 +103,12 @@ pub fn valid_prefix<const N: usize>(
         .unwrap()
 }
 
+#[cfg(feature = "certification-world")]
 pub fn redo_eligibility(current_lsn: u64, redo_lsn: u64) -> PageRedoEligibility {
     redo_eligibility_for_page(current_lsn, redo_lsn, 2)
 }
 
+#[cfg(feature = "certification-world")]
 pub fn redo_eligibility_for_page(
     current_lsn: u64,
     redo_lsn: u64,
@@ -102,6 +124,7 @@ pub fn redo_eligibility_for_page(
     )
 }
 
+#[cfg(feature = "certification-world")]
 pub fn flush_receipt_for_page(redo_lsn: u64, page_value: u64) -> PageFlushRecoveryReceipt {
     let ack = worth_store_recovery_physics::DurableAckReceipt::acknowledge(
         worth_store_recovery_physics::AcknowledgmentPrecondition::from_append_receipt(

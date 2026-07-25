@@ -17,9 +17,9 @@ use worth_store::physical_runtime::{
     PhysicalWorkSignalFamilySet, ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{
-    ArtifactRangeWriteDurabilityRequirement, CertificationMediaFaultAuthority,
-    FilesystemAccessPosture, MediaFaultDirective, MediaFaultRule, MediaOperationRole,
-    MediaPauseGate,
+    ArtifactRangeWriteDurabilityRequirement, CertificationMediaFaultActivation,
+    CertificationMediaFaultAuthority, FilesystemAccessPosture, MediaFaultDirective, MediaFaultRule,
+    MediaOperationRole, MediaPauseGate,
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 use worth_store_security::StoreAuthorityBoundSecurityScopeReceipt;
@@ -35,6 +35,7 @@ pub(super) struct MaelstromPauseGates {
     pub first_read: MediaPauseGate,
     pub second_read: MediaPauseGate,
     pub close_read: MediaPauseGate,
+    pub close_read_activation: CertificationMediaFaultActivation,
     pub first_append: MediaPauseGate,
     pub second_append: MediaPauseGate,
 }
@@ -279,6 +280,7 @@ fn faulted_admission(
         first_read: authority.pause_gate(),
         second_read: authority.pause_gate(),
         close_read: authority.pause_gate(),
+        close_read_activation: authority.one_shot_activation(),
         first_append: authority.pause_gate(),
         second_append: authority.pause_gate(),
     };
@@ -315,10 +317,10 @@ fn read_fault_rules(
         authority
             .rule(
                 MediaOperationRole::PositionedRead,
-                after_open + 4,
+                1,
                 MediaFaultDirective::PauseBefore(gates.close_read.clone()),
             )
-            .for_identified_operation_ordinal(),
+            .for_next_identified_operation_after_activation(gates.close_read_activation.clone()),
     ]
 }
 

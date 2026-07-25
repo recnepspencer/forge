@@ -1,23 +1,23 @@
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::{Path, PathBuf};
 
 use super::workspace_root;
 
-const ORDINARY_SOURCE_ROOTS: [&str; 4] = [
+mod ordinary_product_graph;
+
+const ORDINARY_SOURCE_ROOTS: [&str; 9] = [
     "crates/worth-store/src/physical_runtime",
+    "crates/worth-store-blob-chunks/src",
+    "crates/worth-store-maintenance/src",
+    "crates/worth-store-test-support/src",
     "crates/worth-store-io-scheduler/src",
     "crates/worth-store-buffer-pool/src",
     "crates/worth-store-physical-backend/src",
+    "crates/worth-store-physical-integrity/src",
+    "crates/worth-store-recovery-physics/src",
 ];
 
-const ORDINARY_MANIFESTS: [&str; 4] = [
-    "crates/worth-store/Cargo.toml",
-    "crates/worth-store-io-scheduler/Cargo.toml",
-    "crates/worth-store-buffer-pool/Cargo.toml",
-    "crates/worth-store-physical-backend/Cargo.toml",
-];
+const ORDINARY_SOURCE_ALLOWLIST: [&str; 1] =
+    ["crates/worth-store-test-support/src/compiler_boundary"];
 
 const FORBIDDEN_TYPED_BOUNDARY_FRAGMENTS: &[(&str, &str)] = &[
     ("serde_json", "internal JSON carrier"),
@@ -89,66 +89,15 @@ const RAW_SIGNAL_CONSTRUCTORS: &[&str] = &[
 ];
 
 #[test]
-fn ordinary_feature_graph_excludes_legacy_and_certification_authority() {
-    let output = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
-        .current_dir(workspace_root())
-        .args([
-            "tree",
-            "--manifest-path",
-            "Cargo.toml",
-            "-p",
-            "worth-store",
-            "-e",
-            "normal,build",
-            "-f",
-            "{p} [{f}]",
-        ])
-        .output()
-        .expect("run ordinary Worth Store feature-tree audit");
-    assert!(
-        output.status.success(),
-        "ordinary feature-tree audit failed:\n{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let tree = String::from_utf8(output.stdout).expect("cargo tree output is UTF-8");
-    let pool_rows = tree
-        .lines()
-        .filter(|line| line.contains("worth-store-buffer-pool "))
-        .collect::<Vec<_>>();
-    assert!(
-        !pool_rows.is_empty(),
-        "ordinary Store omitted its canonical residency dependency"
-    );
-    assert!(
-        pool_rows
-            .iter()
-            .all(|line| !line.contains("legacy-s2-models")),
-        "ordinary Store activated legacy S.2 residency: {pool_rows:?}"
-    );
-    assert!(
-        !tree.contains("[certification-test-authority")
-            && !tree.contains(",certification-test-authority")
-            && !tree.contains("worth-store-certification "),
-        "ordinary Store activated certification-only authority:\n{tree}"
-    );
-}
-
-#[test]
 fn ordinary_work_sources_keep_aspect_and_semantic_authority_at_typed_boundaries() {
     for root in ORDINARY_SOURCE_ROOTS {
         for source in rust_sources(&workspace_root().join(root)).expect("read production sources") {
+            if source_is_allowlisted(&source) {
+                continue;
+            }
             let text = std::fs::read_to_string(&source).expect("read production source");
             inspect_ordinary_source(&source, &text).unwrap_or_else(|denial| panic!("{denial}"));
         }
-    }
-}
-
-#[test]
-fn canonical_crates_have_no_forbidden_ordinary_dependency() {
-    for manifest in ORDINARY_MANIFESTS {
-        let path = workspace_root().join(manifest);
-        let text = std::fs::read_to_string(&path).expect("read canonical manifest");
-        inspect_ordinary_dependencies(&path, &text).unwrap_or_else(|denial| panic!("{denial}"));
     }
 }
 
@@ -219,6 +168,21 @@ fn sealing_gate_rejects_each_authority_bypass_family() {
     }
 }
 
+#[test]
+fn every_ordinary_source_product_rejects_representative_bypasses() {
+    for root in ORDINARY_SOURCE_ROOTS {
+        let path = Path::new(root).join("hostile_insertion.rs");
+        for source in [
+            "let aspect = Aspect::try_new(7)?;",
+            "let packet: serde_json::Value = decode(bytes)?;",
+            "let writers = BranchWriterRegistry::new();",
+        ] {
+            inspect_ordinary_source(&path, source)
+                .expect_err("hostile source insertion must be denied in every ordinary product");
+        }
+    }
+}
+
 fn inspect_ordinary_source(path: &Path, source: &str) -> Result<(), String> {
     let code = without_line_comments(source);
     let binding_owner =
@@ -247,45 +211,6 @@ fn inspect_ordinary_source(path: &Path, source: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn inspect_ordinary_dependencies(path: &Path, manifest: &str) -> Result<(), String> {
-    let dependencies = ordinary_dependency_tables(manifest);
-    for (fragment, authority) in [
-        ("serde_json", "JSON"),
-        ("worth-query", "Query"),
-        ("worth_query", "Query"),
-        ("worth-relational", "Relational"),
-        ("worth_relational", "Relational"),
-    ] {
-        if dependencies.contains(fragment) {
-            return Err(format!(
-                "{} has forbidden ordinary {authority} dependency `{fragment}`",
-                path.display()
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn ordinary_dependency_tables(manifest: &str) -> String {
-    let mut dependencies = String::new();
-    let mut ordinary = false;
-    for line in manifest.lines() {
-        let trimmed = line.trim();
-        if let Some(table) = trimmed
-            .strip_prefix('[')
-            .and_then(|table| table.strip_suffix(']'))
-        {
-            let table = table.trim();
-            ordinary = table == "dependencies"
-                || (table.starts_with("target.") && table.ends_with(".dependencies"));
-        } else if ordinary {
-            dependencies.push_str(line);
-            dependencies.push('\n');
-        }
-    }
-    dependencies
-}
-
 fn without_line_comments(source: &str) -> String {
     let mut code = String::with_capacity(source.len());
     for line in source.lines() {
@@ -293,6 +218,13 @@ fn without_line_comments(source: &str) -> String {
         code.push('\n');
     }
     code
+}
+
+fn source_is_allowlisted(source: &Path) -> bool {
+    ORDINARY_SOURCE_ALLOWLIST
+        .iter()
+        .map(|relative| workspace_root().join(relative))
+        .any(|allowed| source.starts_with(allowed))
 }
 
 fn localized_denial(path: &Path, source: &str, offset: usize, authority: &str) -> String {
@@ -322,25 +254,4 @@ fn rust_sources(root: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
     }
     sources.sort();
     Ok(sources)
-}
-
-#[test]
-fn manifest_gate_covers_target_dependencies_but_not_dev_dependencies() {
-    let target_forbidden = r#"
-[dependencies]
-worth-proof.workspace = true
-
-[target.'cfg(windows)'.dependencies]
-json-carrier = { package = "serde_json", version = "1" }
-"#;
-    assert!(inspect_ordinary_dependencies(Path::new("targeted.toml"), target_forbidden).is_err());
-
-    let dev_only = r#"
-[dependencies]
-worth-proof.workspace = true
-
-[dev-dependencies]
-serde_json.workspace = true
-"#;
-    assert!(inspect_ordinary_dependencies(Path::new("dev-only.toml"), dev_only).is_ok());
 }

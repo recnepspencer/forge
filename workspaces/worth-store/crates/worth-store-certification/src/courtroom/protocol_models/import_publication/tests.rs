@@ -30,7 +30,6 @@ fn real_import_owner_outcomes_map_to_pending_and_durable_actions() {
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
     let inputs = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "formal-import-publication-root",
         93,
     );
     let plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&inputs);

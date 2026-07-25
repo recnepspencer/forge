@@ -164,21 +164,38 @@ impl PhysicalWorkSignalOwner {
         &self,
         settled: &crate::physical_runtime::SettledPhysicalWork,
     ) -> Result<(), PhysicalSignalDeltaApplicationFailure> {
-        let Some(fact) = settled.intent().semantic_basis().projection_fact() else {
+        let Some(delta) =
+            self.projection_failure_delta(settled.intent(), settled.signal_binding())?
+        else {
             return Ok(());
+        };
+        self.apply_delta(delta)
+    }
+
+    pub(in crate::physical_runtime) fn admit_projection_failure(
+        &self,
+        work: &crate::physical_runtime::ResourceAdmittedPhysicalWork,
+    ) -> Result<Option<PhysicalWorkAspectDelta>, PhysicalSignalDeltaApplicationFailure> {
+        self.projection_failure_delta(work.intent(), work.consumer_handle().route())
+    }
+
+    fn projection_failure_delta(
+        &self,
+        intent: &crate::physical_runtime::PhysicalWorkIntent,
+        signal_binding: PhysicalSignalAspectBindingDigest,
+    ) -> Result<Option<PhysicalWorkAspectDelta>, PhysicalSignalDeltaApplicationFailure> {
+        let Some(fact) = intent.semantic_basis().projection_fact() else {
+            return Ok(None);
         };
         let binding = self
             .bindings
-            .binding_for_identity(settled.intent().semantic_basis().aspect_identity())
-            .filter(|binding| binding.digest() == settled.signal_binding())
+            .binding_for_identity(intent.semantic_basis().aspect_identity())
+            .filter(|binding| binding.digest() == signal_binding)
             .ok_or(PhysicalSignalDeltaApplicationFailure::BindingNotInstalled)?;
-        let delta = PhysicalWorkAspectDelta::from_boundary_fact(
-            binding,
-            fact,
-            settled.intent().scope().clone(),
-        )
-        .map_err(PhysicalSignalDeltaApplicationFailure::SemanticBasisRejected)?;
-        self.apply_delta(delta)
+        let delta =
+            PhysicalWorkAspectDelta::from_boundary_fact(binding, fact, intent.scope().clone())
+                .map_err(PhysicalSignalDeltaApplicationFailure::SemanticBasisRejected)?;
+        Ok(Some(delta))
     }
 
     pub(in crate::physical_runtime) fn revoke_derived_admission(&self) {

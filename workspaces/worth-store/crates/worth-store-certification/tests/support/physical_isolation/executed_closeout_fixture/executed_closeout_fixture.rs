@@ -1,7 +1,7 @@
 use crate::checkpoint_read_fixture as checkpoint_read;
 
 use super::plan_admission::{admit_plan, protected_set};
-use super::publication_support::{publication_inputs_with_new_root_digest, publish_copy_on_write};
+use super::publication_support::{publication_inputs_with_root_generation, publish_copy_on_write};
 use super::reclaim_support::ReclaimFixture;
 use super::source_precedence_fixture;
 use super::support::{
@@ -77,7 +77,7 @@ fn admitted_compaction_surfaces() -> (
     worth_store_physical_isolation::PhysicalPublicationReceipt,
     ReadDuringCompactionVerdict,
 ) {
-    let inputs = publication_inputs_with_new_root_digest("s5-phase15-new-root", 701);
+    let inputs = publication_inputs_with_root_generation(701);
     let old_authority = physical_authority_from_complete_closeout();
     let protected_reference = current_generation_page_reference(701);
     let old_plan = admit_plan(
@@ -109,6 +109,9 @@ fn admitted_compaction_surfaces() -> (
         inputs.new_validation,
         None,
     );
+    let new_authority =
+        worth_store_physical_isolation::admit_post_publication_read_stability_authority(&receipt)
+            .unwrap();
     let publication =
         worth_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
             CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
@@ -125,7 +128,7 @@ fn admitted_compaction_surfaces() -> (
     )
     .complete();
     let post_plan = admit_plan(
-        &inputs.new_authority,
+        &new_authority,
         inputs.new_root,
         protected_set([current_generation_page_reference(702)], 4),
         8,

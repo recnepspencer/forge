@@ -17,9 +17,11 @@ use super::{
 mod admission;
 mod publication_dependency;
 mod settlement;
+mod settlement_fact;
 
 pub(in crate::physical_runtime::record_serving) use publication_dependency::PreparedCatalogReplacement;
 pub(in crate::physical_runtime) use settlement::CanonicalRecordMutationCompletion;
+pub(in crate::physical_runtime) use settlement_fact::CanonicalRecordMutationSettlement;
 
 #[derive(Clone)]
 pub(in crate::physical_runtime) struct CanonicalRecordMutationPort {
@@ -55,7 +57,7 @@ pub(in crate::physical_runtime::record_serving) enum CanonicalRecordPublicationE
 
 pub(in crate::physical_runtime) struct CanonicalCandidateFrameWrite {
     physical: CandidateFramePhysicalWrite,
-    identity: PhysicalWorkIdentity,
+    settlement: CanonicalRecordMutationSettlement,
 }
 
 pub(in crate::physical_runtime) struct CanonicalRecordMutationFailure {
@@ -113,7 +115,7 @@ impl CanonicalCandidateFrameWrite {
     pub(in crate::physical_runtime::record_serving) fn into_physical(
         self,
     ) -> CandidateFramePhysicalWrite {
-        self.physical.bind_work(self.identity)
+        self.physical.bind_settlement(self.settlement)
     }
 }
 
@@ -213,39 +215,60 @@ impl CanonicalRecordMutationFailure {
     }
 
     pub(in crate::physical_runtime) fn backend(
-        identity: PhysicalWorkIdentity,
+        settlement: CanonicalRecordMutationSettlement,
         target: crate::physical_runtime::PhysicalWorkRecoveryTarget,
         failure: worth_store_physical_backend::ArtifactTreeFailure,
     ) -> Self {
-        let mut failure = Self::identified(
-            identity,
-            PhysicalRecordMutationFailureCause::Backend(failure),
-        );
-        failure.evidence.recovery_target = Some(target);
-        failure
-    }
-
-    pub(in crate::physical_runtime) fn terminal(failure: PhysicalWorkTerminalFailure) -> Self {
         Self {
             evidence: PhysicalRecordMutationFailureEvidence {
-                identity: Some(failure.identity()),
-                cause: PhysicalRecordMutationFailureCause::Terminal(failure.cause()),
-                effect_fate: failure.effect_fate(),
-                recovery_target: Some(failure.target()),
-                recovery: Some(failure.recovery()),
-                backend_operation: Some(failure.backend_operation()),
+                identity: Some(settlement.identity()),
+                cause: PhysicalRecordMutationFailureCause::Backend(failure),
+                effect_fate: settlement.effect_fate(),
+                recovery_target: Some(target),
+                recovery: Some(settlement.recovery()),
+                backend_operation: settlement
+                    .effect()
+                    .map(crate::physical_runtime::PhysicalEffectIdentity::backend_operation),
             },
         }
     }
 
-    pub(in crate::physical_runtime) fn settlement_mismatch(identity: PhysicalWorkIdentity) -> Self {
-        let mut failure = Self::identified(
-            identity,
-            PhysicalRecordMutationFailureCause::SettlementMismatch,
-        );
-        failure.evidence.effect_fate =
-            crate::physical_runtime::PhysicalWorkEffectFate::StaleOrForeignOutcome;
-        failure
+    pub(in crate::physical_runtime) fn terminal(
+        settlement: CanonicalRecordMutationSettlement,
+        failure: PhysicalWorkTerminalFailure,
+    ) -> Self {
+        debug_assert_eq!(settlement.identity(), failure.identity());
+        Self {
+            evidence: PhysicalRecordMutationFailureEvidence {
+                identity: Some(settlement.identity()),
+                cause: PhysicalRecordMutationFailureCause::Terminal(failure.cause()),
+                effect_fate: settlement.effect_fate(),
+                recovery_target: Some(failure.target()),
+                recovery: Some(settlement.recovery()),
+                backend_operation: settlement
+                    .effect()
+                    .map(crate::physical_runtime::PhysicalEffectIdentity::backend_operation),
+            },
+        }
+    }
+
+    pub(in crate::physical_runtime) fn settlement_mismatch(
+        settlement: CanonicalRecordMutationSettlement,
+    ) -> Self {
+        Self {
+            evidence: PhysicalRecordMutationFailureEvidence {
+                identity: Some(settlement.identity()),
+                cause: PhysicalRecordMutationFailureCause::SettlementMismatch,
+                effect_fate: crate::physical_runtime::PhysicalWorkEffectFate::StaleOrForeignOutcome,
+                recovery_target: None,
+                recovery: Some(
+                    crate::physical_runtime::PhysicalWorkRecoveryDisposition::InspectionRequired,
+                ),
+                backend_operation: settlement
+                    .effect()
+                    .map(crate::physical_runtime::PhysicalEffectIdentity::backend_operation),
+            },
+        }
     }
 
     pub(in crate::physical_runtime::record_serving) fn evidence(

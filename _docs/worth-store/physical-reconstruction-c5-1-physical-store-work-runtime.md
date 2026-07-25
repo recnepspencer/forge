@@ -2028,17 +2028,18 @@ expose only the typed seams required for C.6 buffer-pool completion.
   sealing lane. A slower lane must not become an implicit prerequisite of a
   faster lane.
 - Courtrooms B and C must record source inventory, pre-build source binding,
-  post-build binary binding, each child/scenario stage, executable
-  re-verification, report encoding, cold binary build, and total campaign wall
-  time separately. Missing or duplicate timing phases invalidate report
-  publication.
+  post-build binary binding, post-build source binding, each child/scenario
+  stage, final source binding, executable re-verification, report encoding,
+  cold binary build, and total campaign wall time separately. Missing or
+  duplicate timing phases invalidate report publication.
 - Runner-controlled timing budgets are: mutation-evidence validation at most
   30,000 ms; world construction at most 1,000 ms; source inventory at most
   5,000 ms; pre-build source binding at most 2,000 ms; post-build binary
-  binding at most 3,000 ms; each child or scenario stage at most 5,000 ms;
-  executable re-verification at most 1,000 ms; report encoding at most 500 ms;
-  and total runner-controlled work at most 30,000 ms. Courtroom B additionally
-  limits its 25 scenario stages to 15,000 ms in aggregate.
+  binding at most 3,000 ms; post-build source binding at most 2,000 ms; each
+  child or scenario stage at most 5,000 ms; final source binding at most 2,000
+  ms; executable re-verification at most 1,000 ms; report encoding at most 500
+  ms; and total runner-controlled work at most 30,000 ms. Courtroom B
+  additionally limits its 25 scenario stages to 15,000 ms in aggregate.
 - Cold Cargo binary construction is reported but excluded from the
   runner-controlled aggregate because toolchain and host cache posture are not
   courtroom work. Campaign wall time remains reported so exclusion cannot hide
@@ -2060,7 +2061,7 @@ expose only the typed seams required for C.6 buffer-pool completion.
   mutation generation are sealing evidence. Both lanes remain required, but
   they are not charged to every local edit.
 - Complete retained-mutant verification remains mandatory for each standalone
-  courtroom report even when it is cold and expensive. The report binds 28
+  courtroom report even when it is cold and expensive. The report binds 29
   distinct executed binaries; cache reuse may improve a later run but cannot
   replace cryptographic validation or be claimed as a cold-path result.
 - C.6 may add residency policy and frame lifecycle only by implementing the

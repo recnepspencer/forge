@@ -1,7 +1,7 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
-    CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
-    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    ArtifactTreeFailureKind, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
+    CompletedArtifactRangeWrite, IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
 };
 
 use super::{
@@ -171,33 +171,28 @@ pub(super) fn health_revocation(
     evidence: &PhysicalWorkSettlementEvidence,
 ) -> Option<PhysicalWorkHealthRevocation> {
     let fate = evidence.fate();
-    (matches!(
-        fate,
-        PhysicalWorkEffectFate::Indeterminate
-            | PhysicalWorkEffectFate::WrittenButSchedulerRejected
-            | PhysicalWorkEffectFate::StaleOrForeignOutcome
-    ) || matches!(evidence, PhysicalWorkSettlementEvidence::TerminalFailure(_))
-        || failed_projection_invalidates_physical_truth(dispatched, evidence))
-    .then_some(PhysicalWorkHealthRevocation {
+    requires_health_revocation(evidence, fate).then_some(PhysicalWorkHealthRevocation {
         identity: dispatched.intent().identity(),
         fate,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
     })
 }
 
-fn failed_projection_invalidates_physical_truth(
-    dispatched: &DispatchedPhysicalWork,
+fn requires_health_revocation(
     evidence: &PhysicalWorkSettlementEvidence,
+    fate: PhysicalWorkEffectFate,
 ) -> bool {
-    if dispatched
-        .intent()
-        .semantic_basis()
-        .projection_fact()
-        .is_none()
-    {
-        return false;
-    }
-    matches!(evidence, PhysicalWorkSettlementEvidence::NoEffect(_))
+    matches!(
+        fate,
+        PhysicalWorkEffectFate::Indeterminate
+            | PhysicalWorkEffectFate::WrittenButSchedulerRejected
+            | PhysicalWorkEffectFate::StaleOrForeignOutcome
+    ) || matches!(evidence, PhysicalWorkSettlementEvidence::TerminalFailure(_))
+        || matches!(
+            evidence,
+            PhysicalWorkSettlementEvidence::NoEffect(evidence)
+                if evidence.failure().kind() == ArtifactTreeFailureKind::Damaged
+        )
 }
 
 fn classify_completed_write(

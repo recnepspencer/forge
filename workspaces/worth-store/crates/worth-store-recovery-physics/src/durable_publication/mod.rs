@@ -14,10 +14,10 @@ pub use source_precedence::{
 };
 pub use wal_publication::DurableWalPublication;
 
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 mod test_support;
 
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 pub use test_support::certified_durable_wal_publication_for_test;
 
 #[cfg(all(test, feature = "certification-test-authority"))]

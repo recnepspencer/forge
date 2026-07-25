@@ -81,7 +81,64 @@ fn generic_signal_completion_cannot_upgrade_proven_no_effect() {
 }
 
 #[test]
+fn physical_settlement_requires_backend_and_scheduler_evidence() {
+    let root = tempfile::tempdir().unwrap();
+    let (profile, _, request) = work_fixture();
+    let serving = serving_from_initialization_with_work_profile(root.path(), profile);
+    let admitted = admitted_write(&serving, request);
+    let command = PhysicalExecutorCommand::exact_write(admitted, b"settled1".as_slice()).unwrap();
+
+    let outcome = serving
+        .execute_physical_work(command)
+        .expect("the canonical write must reach physical settlement");
+
+    assert_eq!(
+        outcome.settled().evidence().fate(),
+        PhysicalWorkEffectFate::WriteCompleted,
+        "C5_PREDICATE:settlement: completed backend and scheduler evidence must produce exact physical settlement"
+    );
+    assert_eq!(outcome.signal(), PhysicalSignalSettlementOutcome::Committed);
+    serving.close();
+}
+
+#[test]
+fn derived_completion_must_join_the_real_signal_request() {
+    let root = tempfile::tempdir().unwrap();
+    let (profile, _, request) = work_fixture();
+    let serving = serving_from_initialization_with_work_profile(root.path(), profile);
+    let admitted = admitted_write(&serving, request);
+    let command = PhysicalExecutorCommand::exact_write(admitted, b"derived1".as_slice()).unwrap();
+
+    let outcome = serving
+        .execute_physical_work(command)
+        .expect("the canonical write must reach physical settlement");
+
+    assert_eq!(outcome.signal(), PhysicalSignalSettlementOutcome::Committed);
+    let signal = serving.physical_signal_observation().unwrap();
+    assert_eq!(
+        signal.active_locality_count(),
+        0,
+        "C5_PREDICATE:derived-completion: reported completion must retire Signal locality"
+    );
+    assert_eq!(
+        signal.active_in_flight_count(),
+        0,
+        "C5_PREDICATE:derived-completion: reported completion must retire the Signal request"
+    );
+    serving.close();
+}
+
+#[test]
+fn backend_receipts_cannot_settle_foreign_dispatched_work() {
+    assert_cross_bound_receipts_are_rejected("backend-receipt");
+}
+
+#[test]
 fn scheduler_counters_cannot_settle_cross_bound_backend_receipts() {
+    assert_cross_bound_receipts_are_rejected("scheduler-counter-settlement");
+}
+
+fn assert_cross_bound_receipts_are_rejected(predicate: &str) {
     let root = tempfile::tempdir().unwrap();
     let (profile, first_request, second_request) = disjoint_mutation_fixture();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
@@ -102,7 +159,7 @@ fn scheduler_counters_cannot_settle_cross_bound_backend_receipts() {
             PhysicalWorkEffectFate::StaleOrForeignOutcome,
             PhysicalWorkEffectFate::StaleOrForeignOutcome,
         ],
-        "C5_PREDICATE:scheduler-counter-settlement: scheduler counters settled foreign backend receipts"
+        "C5_PREDICATE:{predicate}: foreign backend receipts settled unrelated dispatched work"
     );
     assert_eq!(
         serving

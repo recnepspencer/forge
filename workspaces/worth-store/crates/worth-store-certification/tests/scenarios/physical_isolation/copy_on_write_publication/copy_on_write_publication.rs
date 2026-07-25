@@ -351,7 +351,7 @@ fn copy_on_write_validation_rejects_roots_issued_by_different_stores() {
     let current = publication_inputs();
     let foreign_identity =
         worth_store_test_support::harness::layout::foreign_layout_physical_store_identity();
-    let foreign = publication_inputs_for_store(&foreign_identity, "foreign-root", 713);
+    let foreign = publication_inputs_for_store(&foreign_identity, 713);
     let intent = PhysicalPublicationIntent::copy_on_write_root_manifest(
         current.old_candidate,
         foreign.new_candidate,

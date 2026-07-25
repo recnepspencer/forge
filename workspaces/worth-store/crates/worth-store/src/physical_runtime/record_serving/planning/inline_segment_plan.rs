@@ -104,8 +104,10 @@ pub(in crate::physical_runtime::record_serving) struct InlineSegmentPlanningCont
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
     pub(in crate::physical_runtime::record_serving) placements:
         &'plan mut BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
-    pub(in crate::physical_runtime::record_serving) frame_load:
-        &'plan (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    pub(in crate::physical_runtime::record_serving) frame_ports:
+        super::super::residency::frame_ports::RecordFramePorts,
+    pub(in crate::physical_runtime::record_serving) source:
+        super::super::residency::frame_loading::CanonicalFrameReadSource,
     pub(in crate::physical_runtime::record_serving) allow_published_reuse: bool,
 }
 
@@ -130,20 +132,28 @@ pub(in crate::physical_runtime::record_serving) fn plan_inline_segments(
         frontier,
         placement,
         placements,
-        frame_load,
+        frame_ports,
+        source,
         allow_published_reuse,
     } = context;
-    let artifacts = ServingRecordArtifacts::new(media, frame_load);
+    let artifacts = ServingRecordArtifacts::serving(media, frame_ports.clone(), source.clone());
     let last_inline = if allow_published_reuse {
-        last_inline_placement(media, frame_load, format, access, current_root, placement)?
+        last_inline_placement(
+            frame_ports.clone(),
+            source.clone(),
+            format,
+            access,
+            current_root,
+            placement,
+        )?
     } else {
         None
     };
     let (mut active, mut peak_read_width) = if allow_published_reuse {
         load_reusable_segment(
             ReusableSegmentContext {
-                media,
-                frame_load,
+                frame_ports,
+                source,
                 format,
                 access,
                 current_root,

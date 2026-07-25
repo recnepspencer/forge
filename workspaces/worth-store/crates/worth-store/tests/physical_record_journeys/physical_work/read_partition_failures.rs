@@ -39,7 +39,7 @@ struct RouteTarget {
 }
 
 #[test]
-fn every_native_read_route_invalidates_exactly_once_without_retry_or_signal_residue() {
+fn every_transient_read_route_preserves_truth_then_allows_same_runtime_retry() {
     let mut targets = calibrate(Workload::Ordinary);
     targets.extend(calibrate(Workload::Scan));
     assert_eq!(
@@ -150,7 +150,14 @@ fn exercise(target: RouteTarget) {
     let after_media = serving.media_counters();
     assert_failed_media_accounting(target, before_media, after_media);
     assert_failed_route(target, &serving, causal_start, before_invalidation);
-    assert!(serving.close_plan().execute().requires_inspection());
+    retry(&serving, record, target.workload).unwrap_or_else(|failure| {
+        panic!(
+            "{:?} transient denial must allow same-runtime retry: {failure}",
+            target.route
+        )
+    });
+    await_signal_cleanup(&serving);
+    assert!(!serving.close_plan().execute().requires_inspection());
 }
 
 fn assert_failed_media_accounting(
@@ -212,8 +219,8 @@ fn assert_failed_route(
 ) {
     assert_eq!(
         signal(serving).aspect_invalidation_count(),
-        invalidations_before + 1,
-        "{:?} must invalidate exactly one dependency",
+        invalidations_before,
+        "{:?} transient denial must not invalidate physical truth",
         target.route
     );
     let records = serving.physical_work_observer().causal().records();
@@ -254,6 +261,36 @@ fn run(serving: &ServingPhysicalRuntime, record: PhysicalRecordId, workload: Wor
     match workload {
         Workload::Ordinary => run_ordinary(serving, record),
         Workload::Scan => run_scan(serving),
+    }
+}
+
+fn retry(
+    serving: &ServingPhysicalRuntime,
+    record: PhysicalRecordId,
+    workload: Workload,
+) -> Result<(), String> {
+    match workload {
+        Workload::Ordinary => run_ordinary(serving, record)
+            .then_some(())
+            .ok_or_else(|| "ordinary read did not return the expected payload".to_owned()),
+        Workload::Scan => {
+            let mut scan = serving
+                .records()
+                .scan(
+                    RecordScanRequest::from_start()
+                        .with_batch_limit(RecordCountLimit::new(1).unwrap()),
+                )
+                .map_err(|failure| format!("scan admission failed: {failure:?}"))?;
+            let mut scratch = vec![0_u8; PAYLOAD.len()];
+            loop {
+                match scan.read_next_into(&mut scratch) {
+                    Ok(RecordScanOutcome::Batch(batch)) if batch.is_complete() => return Ok(()),
+                    Ok(RecordScanOutcome::Batch(_)) => {}
+                    Ok(RecordScanOutcome::Completed(_)) => return Ok(()),
+                    Err(failure) => return Err(format!("scan progression failed: {failure:?}")),
+                }
+            }
+        }
     }
 }
 

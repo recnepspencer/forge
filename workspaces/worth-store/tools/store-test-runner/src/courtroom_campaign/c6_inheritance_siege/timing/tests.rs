@@ -1,8 +1,13 @@
 use std::time::Duration;
 
+use crate::courtroom_campaign::report_publication::CourtroomReportSession;
+
 use super::{
-    C6SiegeTimings, SiegePhase, POSTBUILD_BINARY_BINDING_BUDGET_MS,
-    PREBUILD_SOURCE_BINDING_BUDGET_MS, SOURCE_INVENTORY_BUDGET_MS,
+    C6SiegeTimings, SiegePhase, CHILD_STAGE_BUDGET_MS, EXECUTABLE_VERIFICATION_BUDGET_MS,
+    FINAL_SOURCE_BINDING_BUDGET_MS, MUTATION_EVIDENCE_BUDGET_MS,
+    POSTBUILD_BINARY_BINDING_BUDGET_MS, POSTBUILD_SOURCE_BINDING_BUDGET_MS,
+    PREBUILD_SOURCE_BINDING_BUDGET_MS, REPORT_ENCODING_BUDGET_MS, SOURCE_INVENTORY_BUDGET_MS,
+    WORLD_BUDGET_MS,
 };
 
 #[test]
@@ -14,27 +19,14 @@ fn cold_build_is_the_only_exclusion_from_completed_campaign_budget() {
             .unwrap(),
         5_000
     );
-    assert!(timings
-        .validate_completed_campaign(Duration::from_secs(631))
-        .is_err());
+    assert_postpublication_rejection(&timings, Duration::from_secs(631), "runner-controlled work");
 }
 
 #[test]
-fn each_child_stage_has_an_independent_five_second_budget() {
-    for phase in [
-        SiegePhase::SiegeWriter,
-        SiegePhase::OfflineObserver,
-        SiegePhase::FreshReopener,
-    ] {
-        let mut timings = complete_timings();
-        phase_mut(&mut timings, phase).elapsed_ms = 5_001;
-        assert!(timings.validate_runtime_budget().is_err(), "{phase:?}");
-    }
-}
-
-#[test]
-fn each_binding_stage_has_an_independent_workload_budget() {
+fn runtime_budget_rejects_each_enforced_stage_for_its_own_cause() {
     for (phase, budget) in [
+        (SiegePhase::MutationEvidence, MUTATION_EVIDENCE_BUDGET_MS),
+        (SiegePhase::World, WORLD_BUDGET_MS),
         (SiegePhase::SourceInventory, SOURCE_INVENTORY_BUDGET_MS),
         (
             SiegePhase::PrebuildSourceBinding,
@@ -44,10 +36,30 @@ fn each_binding_stage_has_an_independent_workload_budget() {
             SiegePhase::PostbuildBinaryBinding,
             POSTBUILD_BINARY_BINDING_BUDGET_MS,
         ),
+        (
+            SiegePhase::PostbuildSourceBinding,
+            POSTBUILD_SOURCE_BINDING_BUDGET_MS,
+        ),
+        (SiegePhase::SiegeWriter, CHILD_STAGE_BUDGET_MS),
+        (SiegePhase::OfflineObserver, CHILD_STAGE_BUDGET_MS),
+        (SiegePhase::FreshReopener, CHILD_STAGE_BUDGET_MS),
+        (
+            SiegePhase::FinalSourceBinding,
+            FINAL_SOURCE_BINDING_BUDGET_MS,
+        ),
+        (
+            SiegePhase::ExecutableVerification,
+            EXECUTABLE_VERIFICATION_BUDGET_MS,
+        ),
     ] {
-        let mut timings = complete_timings();
+        let mut timings = runtime_timings();
         phase_mut(&mut timings, phase).elapsed_ms = budget + 1;
-        assert!(timings.validate_runtime_budget().is_err(), "{phase:?}");
+        assert_prepublication_rejection(
+            &timings,
+            false,
+            phase.label(),
+            "courtroom-c-stage-budget.json",
+        );
     }
 }
 
@@ -72,16 +84,29 @@ fn missing_substituted_and_duplicate_phases_are_rejected() {
 #[test]
 fn report_encoding_and_completed_wall_are_independently_bounded() {
     let mut timings = complete_timings();
-    phase_mut(&mut timings, SiegePhase::ReportEncoding).elapsed_ms = 501;
-    assert!(timings.validate_complete_budget().is_err());
+    phase_mut(&mut timings, SiegePhase::ReportEncoding).elapsed_ms = REPORT_ENCODING_BUDGET_MS + 1;
+    assert_prepublication_rejection(
+        &timings,
+        true,
+        SiegePhase::ReportEncoding.label(),
+        "courtroom-c-report-encoding.json",
+    );
 
     let timings = complete_timings();
-    assert!(timings
-        .validate_completed_campaign(Duration::from_secs(599))
-        .is_err());
+    assert_postpublication_rejection(
+        &timings,
+        Duration::from_secs(599),
+        "cold-build timing exceeded",
+    );
 }
 
-fn complete_timings() -> C6SiegeTimings {
+#[test]
+fn timing_fixtures_are_valid_before_hostile_deltas() {
+    assert!(runtime_timings().validate_runtime_budget().is_ok());
+    assert!(complete_timings().validate_complete_budget().is_ok());
+}
+
+fn runtime_timings() -> C6SiegeTimings {
     let mut timings = C6SiegeTimings::new();
     for phase in SiegePhase::BEFORE_REPORT {
         let elapsed = match phase {
@@ -91,6 +116,11 @@ fn complete_timings() -> C6SiegeTimings {
         };
         timings.record(phase, elapsed);
     }
+    timings
+}
+
+fn complete_timings() -> C6SiegeTimings {
+    let mut timings = runtime_timings();
     timings.record(SiegePhase::ReportEncoding, Duration::from_millis(1));
     timings
 }
@@ -101,4 +131,49 @@ fn phase_mut(timings: &mut C6SiegeTimings, identity: SiegePhase) -> &mut super::
         .iter_mut()
         .find(|phase| phase.identity == identity)
         .unwrap()
+}
+
+fn assert_prepublication_rejection(
+    timings: &C6SiegeTimings,
+    complete: bool,
+    expected_cause: &str,
+    report_name: &str,
+) {
+    let temporary = tempfile::tempdir().unwrap();
+    let report = temporary.path().join(report_name);
+    std::fs::write(&report, b"stale success").unwrap();
+    let session = CourtroomReportSession::begin(&report).unwrap();
+    let result = if complete {
+        timings.validate_complete_budget()
+    } else {
+        timings.validate_runtime_budget()
+    };
+    let error = result.expect_err("hostile timing must reject report publication");
+    assert!(error.contains(expected_cause), "{error}");
+    drop(session);
+    assert_no_report_artifact(temporary.path());
+}
+
+fn assert_postpublication_rejection(
+    timings: &C6SiegeTimings,
+    completed_wall: Duration,
+    expected_cause: &str,
+) {
+    let temporary = tempfile::tempdir().unwrap();
+    let report = temporary.path().join("courtroom-c-total-budget.json");
+    let publication = CourtroomReportSession::begin(&report)
+        .unwrap()
+        .publish(b"{\"accepted\":true}")
+        .unwrap();
+    assert!(report.exists());
+    let error = timings
+        .validate_completed_campaign(completed_wall)
+        .expect_err("hostile completed wall must reject report publication");
+    assert!(error.contains(expected_cause), "{error}");
+    drop(publication);
+    assert_no_report_artifact(temporary.path());
+}
+
+fn assert_no_report_artifact(directory: &std::path::Path) {
+    assert_eq!(std::fs::read_dir(directory).unwrap().count(), 0);
 }

@@ -98,7 +98,7 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
         &mut self,
         artifact: RecordArtifactFile,
     ) -> Result<
-        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationSettlement,
         super::super::CanonicalRecordMutationFailure,
     > {
         self.record_publication(self.mutation.prepare_publication_effect(
@@ -112,7 +112,7 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
         &mut self,
         artifact: RecordArtifactFile,
     ) -> Result<
-        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationSettlement,
         super::super::CanonicalRecordMutationFailure,
     > {
         self.record_publication(self.mutation.prepare_publication_effect(
@@ -125,7 +125,7 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
     pub(in crate::physical_runtime::record_serving) fn synchronize_record_family(
         &mut self,
     ) -> Result<
-        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationSettlement,
         super::super::CanonicalRecordMutationFailure,
     > {
         self.record_publication(self.mutation.prepare_publication_effect(
@@ -136,37 +136,37 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
     }
 
     fn record_candidate(&mut self, physical: &CandidateFramePhysicalWrite) {
-        self.work.record(
-            self.stage,
-            physical
-                .work()
-                .expect("canonical candidate writes carry physical work identity"),
-        );
+        let settlement = physical
+            .settlement()
+            .expect("canonical candidate writes carry physical settlement");
+        self.work
+            .record_settled(self.stage, settlement.identity(), settlement.publication());
     }
 
     fn record_publication(
         &mut self,
         prepared: super::super::PreparedCanonicalRecordMutation,
     ) -> Result<
-        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationSettlement,
         super::super::CanonicalRecordMutationFailure,
     > {
-        let identity = publication_effect(prepared)?;
-        self.work.record(self.stage, identity);
-        Ok(identity)
+        let settlement = publication_effect(prepared)?;
+        self.work
+            .record_settled(self.stage, settlement.identity(), settlement.publication());
+        Ok(settlement)
     }
 }
 
 fn candidate_frame(
     completion: super::super::CanonicalRecordMutationCompletion,
 ) -> Result<CandidateFramePhysicalWrite, super::super::CanonicalRecordMutationFailure> {
-    let identity = completion.identity();
+    let settlement = completion.settlement();
     match completion {
         super::super::CanonicalRecordMutationCompletion::CandidateFrame(completed) => {
             Ok(completed.into_physical())
         }
         super::super::CanonicalRecordMutationCompletion::PublicationEffect(_) => {
-            Err(super::super::CanonicalRecordMutationFailure::settlement_mismatch(identity))
+            Err(super::super::CanonicalRecordMutationFailure::settlement_mismatch(settlement))
         }
     }
 }
@@ -174,17 +174,17 @@ fn candidate_frame(
 fn publication_effect(
     prepared: super::super::PreparedCanonicalRecordMutation,
 ) -> Result<
-    crate::physical_runtime::PhysicalWorkIdentity,
+    super::super::CanonicalRecordMutationSettlement,
     super::super::CanonicalRecordMutationFailure,
 > {
     let completion = prepared.execute()?;
-    let identity = completion.identity();
+    let settlement = completion.settlement();
     match completion {
-        super::super::CanonicalRecordMutationCompletion::PublicationEffect(identity) => {
-            Ok(identity)
+        super::super::CanonicalRecordMutationCompletion::PublicationEffect(settlement) => {
+            Ok(settlement)
         }
         super::super::CanonicalRecordMutationCompletion::CandidateFrame(_) => {
-            Err(super::super::CanonicalRecordMutationFailure::settlement_mismatch(identity))
+            Err(super::super::CanonicalRecordMutationFailure::settlement_mismatch(settlement))
         }
     }
 }

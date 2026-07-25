@@ -1,4 +1,3 @@
-use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::{
     DurableFreeSpaceManifestHeader, DurableInlineRecordPlacement, DurablePhysicalRootManifest,
     FreeSpaceKey, PhysicalGeneration, PhysicalGenerationAuthority, RecordAllocationClass,
@@ -10,9 +9,10 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct ReusableSegmentContext<'plan> {
-    pub(in crate::physical_runtime::record_serving) media: &'plan QualifiedFilesystemMedia,
-    pub(in crate::physical_runtime::record_serving) frame_load:
-        &'plan (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    pub(in crate::physical_runtime::record_serving) frame_ports:
+        super::super::residency::frame_ports::RecordFramePorts,
+    pub(in crate::physical_runtime::record_serving) source:
+        super::super::residency::frame_loading::CanonicalFrameReadSource,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access:
         super::super::AdmittedRecordAccessPolicy,
@@ -28,8 +28,8 @@ pub(in crate::physical_runtime::record_serving) fn load_reusable_segment(
     last: Option<DurableInlineRecordPlacement>,
 ) -> Result<(Option<PlanningSegment>, usize), RecordAppendError> {
     let ReusableSegmentContext {
-        media,
-        frame_load,
+        frame_ports,
+        source,
         format,
         access,
         current_root,
@@ -41,12 +41,12 @@ pub(in crate::physical_runtime::record_serving) fn load_reusable_segment(
     };
     let mut discovery =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
-    let page = super::super::access::segment_membership::SegmentMembershipReader::with_loader(
-        media,
-        frame_load,
+    let page = super::super::access::segment_membership::SegmentMembershipReader::serving(
+        frame_ports.clone(),
+        source.clone(),
         format,
         access,
-        current_root,
+        current_root.clone(),
     )
     .locate(last.segment(), last.page(), &mut discovery)
     .map_err(|_| RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged))?
@@ -62,9 +62,9 @@ pub(in crate::physical_runtime::record_serving) fn load_reusable_segment(
         .expect("published segment identity is nonzero");
     let mut free_discovery =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
-    let Some(free) = super::super::planning::free_space_routing::FreeSpaceReader::with_loader(
-        media,
-        frame_load,
+    let Some(free) = super::super::planning::free_space_routing::FreeSpaceReader::serving(
+        frame_ports,
+        source,
         format,
         access,
         current_free_space,

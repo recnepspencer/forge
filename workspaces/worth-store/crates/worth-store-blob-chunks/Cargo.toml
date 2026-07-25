@@ -8,6 +8,7 @@ description = "Roadmap 2 S.7 native content-addressed blob and object chunk stor
 
 [features]
 certification-test-authority = [
+    "worth-store-buffer-pool/legacy-s2-models",
     "worth-store-io-scheduler/certification-test-authority",
     "worth-store-physical-backend/certification-test-authority",
     "worth-store-physical-integrity/test-support",
@@ -15,6 +16,7 @@ certification-test-authority = [
     "worth-store-reclaim-policy/certification-test-authority",
     "worth-store-recovery-physics/certification-test-authority",
     "worth-store-tiering/certification-test-authority",
+    "worth-store-test-support/physical-compaction-fixtures",
 ]
 
 [dependencies]
@@ -23,7 +25,7 @@ worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
 worth-store-budgets.workspace = true
-worth-store-buffer-pool = { workspace = true, features = ["legacy-s2-models"] }
+worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-authority.workspace = true
 worth-store-io-scheduler.workspace = true

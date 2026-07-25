@@ -6,9 +6,11 @@ pub(in crate::courtroom_campaign) enum SiegePhase {
     SourceInventory,
     PrebuildSourceBinding,
     PostbuildBinaryBinding,
+    PostbuildSourceBinding,
     SiegeWriter,
     OfflineObserver,
     FreshReopener,
+    FinalSourceBinding,
     ExecutableVerification,
     RunProvenance,
     OracleVerification,
@@ -17,16 +19,18 @@ pub(in crate::courtroom_campaign) enum SiegePhase {
 }
 
 impl SiegePhase {
-    pub(super) const BEFORE_REPORT: [Self; 13] = [
+    pub(super) const BEFORE_REPORT: [Self; 15] = [
         Self::MutationEvidence,
         Self::World,
         Self::BinaryBuild,
         Self::SourceInventory,
         Self::PrebuildSourceBinding,
         Self::PostbuildBinaryBinding,
+        Self::PostbuildSourceBinding,
         Self::SiegeWriter,
         Self::OfflineObserver,
         Self::FreshReopener,
+        Self::FinalSourceBinding,
         Self::ExecutableVerification,
         Self::RunProvenance,
         Self::OracleVerification,
@@ -41,9 +45,11 @@ impl SiegePhase {
             Self::SourceInventory => "source-inventory",
             Self::PrebuildSourceBinding => "prebuild-source-binding",
             Self::PostbuildBinaryBinding => "postbuild-binary-binding",
+            Self::PostbuildSourceBinding => "postbuild-source-binding",
             Self::SiegeWriter => "siege-writer",
             Self::OfflineObserver => "offline-observer",
             Self::FreshReopener => "fresh-reopener",
+            Self::FinalSourceBinding => "final-source-binding",
             Self::ExecutableVerification => "executable-verification",
             Self::RunProvenance => "run-provenance",
             Self::OracleVerification => "oracle-verification",

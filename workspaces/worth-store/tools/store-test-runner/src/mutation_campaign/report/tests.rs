@@ -1,19 +1,26 @@
 use sha2::{Digest, Sha256};
 
 use super::{
-    published_artifact_directory, MutationEvidenceReport, MutationEvidenceSession,
-    ARTIFACT_OWNER_MARKER, MUTATION_EVIDENCE_REPORT_SCHEMA,
+    legacy_owner_marker, normalized_report, published_artifact_directory, MutationEvidenceReport,
+    MutationEvidenceSession, ARTIFACT_OWNER_MARKER, MUTATION_EVIDENCE_REPORT_SCHEMA,
 };
-use crate::mutation_campaign::evidence::MutationObservation;
+use crate::mutation_campaign::{
+    evidence::MutationObservation, source_inventory::MutationSourceBinding,
+};
 
 #[test]
 fn report_schema_is_versioned_and_c5_1_specific() {
     let encoded = serde_json::to_value(MutationEvidenceReport {
         schema: MUTATION_EVIDENCE_REPORT_SCHEMA,
+        source: &source_binding(),
         observations: &[],
     })
     .unwrap();
-    assert_eq!(encoded["schema"], "worth.store.c5_1.mutation-evidence.v1");
+    assert_eq!(encoded["schema"], "worth.store.c5_1.mutation-evidence.v2");
+    assert_eq!(
+        encoded["source"]["binding"],
+        "worth.store.c5_1.mutation-source-closure.v1"
+    );
     assert_eq!(encoded["observations"], serde_json::json!([]));
 }
 
@@ -27,7 +34,8 @@ fn session_retains_distinct_binaries_and_publishes_report_last() {
     std::fs::write(&first, b"first mutant").unwrap();
     std::fs::write(&second, b"second mutant").unwrap();
 
-    let mut session = MutationEvidenceSession::begin(&report).unwrap();
+    let source = source_binding();
+    let mut session = MutationEvidenceSession::begin(&report, source.clone()).unwrap();
     assert!(!report.exists(), "old success report must be invalidated");
     let mut observations = vec![observation(15, &first), observation(16, &second)];
     for observation in &mut observations {
@@ -40,7 +48,7 @@ fn session_retains_distinct_binaries_and_publishes_report_last() {
     assert!(observations
         .iter()
         .all(|observation| !std::path::Path::new(&observation.binary_binding).exists()));
-    session.publish(&observations).unwrap();
+    session.publish(&observations, &source).unwrap();
 
     let encoded: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&report).unwrap()).unwrap();
@@ -92,7 +100,7 @@ fn abandoned_session_leaves_neither_report_nor_staged_binaries() {
     let staging;
     let published;
     {
-        let mut session = MutationEvidenceSession::begin(&report).unwrap();
+        let mut session = MutationEvidenceSession::begin(&report, source_binding()).unwrap();
         staging = session.staging.clone();
         published = session.published_artifacts.clone();
         let mut observation = observation(15, &binary);
@@ -106,6 +114,50 @@ fn abandoned_session_leaves_neither_report_nor_staged_binaries() {
 }
 
 #[test]
+fn source_drift_rejects_publication_and_removes_staged_evidence() {
+    let temporary = tempfile::tempdir().unwrap();
+    let report = temporary.path().join("phase16.json");
+    let binary = temporary.path().join("mutant.exe");
+    std::fs::write(&binary, b"mutant").unwrap();
+    let source = source_binding();
+    let mut session = MutationEvidenceSession::begin(&report, source.clone()).unwrap();
+    let staging = session.staging.clone();
+    let mut observations = vec![observation(15, &binary)];
+    session.retain_binary(&mut observations[0]).unwrap();
+    let mut changed = source;
+    changed.sha256 = "55".repeat(32);
+
+    let error = session.publish(&observations, &changed).unwrap_err();
+
+    assert!(
+        error.contains("source changed before publication"),
+        "{error}"
+    );
+    assert!(!report.exists());
+    assert!(!staging.exists());
+}
+
+#[test]
+fn legacy_owned_artifacts_are_migrated_without_accepting_unmarked_data() {
+    let temporary = tempfile::tempdir().unwrap();
+    let report = temporary.path().join("phase16.json");
+    let artifacts = published_artifact_directory(&report).unwrap();
+    let normalized = normalized_report(&report).unwrap();
+    std::fs::create_dir(&artifacts).unwrap();
+    std::fs::write(
+        artifacts.join(ARTIFACT_OWNER_MARKER),
+        legacy_owner_marker(&normalized),
+    )
+    .unwrap();
+    std::fs::write(artifacts.join("legacy-mutant.exe"), b"legacy").unwrap();
+
+    let session = MutationEvidenceSession::begin(&report, source_binding()).unwrap();
+
+    assert!(!artifacts.exists());
+    drop(session);
+}
+
+#[test]
 fn unmarked_artifact_directory_is_never_replaced() {
     let temporary = tempfile::tempdir().unwrap();
     let report = temporary.path().join("phase16.json");
@@ -113,18 +165,26 @@ fn unmarked_artifact_directory_is_never_replaced() {
     std::fs::create_dir(&artifacts).unwrap();
     std::fs::write(artifacts.join("user-data"), b"retain").unwrap();
 
-    assert!(MutationEvidenceSession::begin(&report).is_err());
+    assert!(MutationEvidenceSession::begin(&report, source_binding()).is_err());
     assert!(artifacts.join("user-data").is_file());
     assert!(!artifacts.join(ARTIFACT_OWNER_MARKER).exists());
 }
 
 fn publish_one(report: &std::path::Path, binary: &std::path::Path) -> std::path::PathBuf {
-    let mut session = MutationEvidenceSession::begin(report).unwrap();
+    let source = source_binding();
+    let mut session = MutationEvidenceSession::begin(report, source.clone()).unwrap();
     let mut observations = vec![observation(15, binary)];
     session.retain_binary(&mut observations[0]).unwrap();
     let binding = std::path::PathBuf::from(&observations[0].binary_binding);
-    session.publish(&observations).unwrap();
+    session.publish(&observations, &source).unwrap();
     binding
+}
+
+fn source_binding() -> MutationSourceBinding {
+    MutationSourceBinding {
+        binding: "worth.store.c5_1.mutation-source-closure.v1".into(),
+        sha256: "44".repeat(32),
+    }
 }
 
 fn observation(id: u8, binary: &std::path::Path) -> MutationObservation {

@@ -1,6 +1,6 @@
 use crate::offline_verifier::ReopenedRuntimeBoundaryTranscript;
 use crate::{
-    CheckpointBaseAdmission, RecoveryMemoryEnvelope, RecoveryRedoPlan, RedoApplicationCursor,
+    CheckpointBaseAdmission, RecoveryMemoryAllocation, RecoveryRedoPlan, RedoApplicationCursor,
     RedoExecutionReceipt, RedoPlanningDenial, WalTailRedoSource,
 };
 use crate::{
@@ -52,24 +52,24 @@ impl AdmittedRecoveryWorkBounds {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct BoundedRecoveryPlan {
     checkpoint: CheckpointBaseAdmission,
     tail: WalTailRedoSource,
     redo_plan: RecoveryRedoPlan,
     evidence: RecoveryWorkBudgetEvidence,
-    memory_envelope: RecoveryMemoryEnvelope,
+    memory_allocation: RecoveryMemoryAllocation,
     store_footprint: RecoveryStoreFootprint,
     work_bounds: AdmittedRecoveryWorkBounds,
 }
 
 impl BoundedRecoveryPlan {
-    pub(crate) const fn new(
+    pub(crate) fn new(
         checkpoint: CheckpointBaseAdmission,
         tail: WalTailRedoSource,
         redo_plan: RecoveryRedoPlan,
         evidence: RecoveryWorkBudgetEvidence,
-        memory_envelope: RecoveryMemoryEnvelope,
+        memory_allocation: RecoveryMemoryAllocation,
         store_footprint: RecoveryStoreFootprint,
         work_bounds: AdmittedRecoveryWorkBounds,
     ) -> Self {
@@ -78,7 +78,7 @@ impl BoundedRecoveryPlan {
             tail,
             redo_plan,
             evidence,
-            memory_envelope,
+            memory_allocation,
             store_footprint,
             work_bounds,
         }
@@ -92,7 +92,7 @@ impl BoundedRecoveryPlan {
         let counters = RecoveryCounterSnapshot::from_execution(
             &execution,
             self.evidence,
-            self.memory_envelope,
+            &self.memory_allocation,
             self.store_footprint,
         );
         Ok(BoundedRecoveryReceipt {

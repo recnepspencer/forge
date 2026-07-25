@@ -15,7 +15,7 @@ fn authority_may_advance_during_staging_but_not_after_cutover_authorization() {
         .unwrap();
     let advanced = crate::backup::export::current_authority("advanced-during-staging");
     let store = PhysicalStoreIdentity::from_aspect_identity(advanced.identity().clone());
-    let roots = publication_inputs_for_store(&store, "advanced-current-root", 121);
+    let roots = publication_inputs_for_store(&store, 121);
     let publication_directory = tempfile::tempdir().unwrap();
     let frontier =
         crate::RecoveryAuthorityFrontier::observed(&advanced, 10, 12, 21, 20, 19, [0xc1; 32])

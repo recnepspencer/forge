@@ -135,7 +135,10 @@ fn prove_exact_writeback(
         .admit_dirty_frame(&ready_write, lease, EXPECTED_WRITEBACK.to_vec())
         .unwrap();
     assert_eq!(dirty.identity(), ready_write.intent().identity());
-    let reservation = residency.reserve_writeback(&ready_write, &dirty).unwrap();
+    let reservation = residency.reserve_writeback(&ready_write, &dirty).expect(
+        "C5_PREDICATE:c6-local-scheduler canonical C.6 writeback progression \
+             cannot be intercepted by a C.6-local pending registry",
+    );
     assert_eq!(reservation.identity(), ready_write.intent().identity());
     let prepared = residency
         .prepare_writeback(ready_write, reservation, 7, writeback_shape())

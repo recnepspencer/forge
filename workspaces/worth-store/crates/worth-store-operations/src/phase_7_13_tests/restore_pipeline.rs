@@ -73,7 +73,7 @@ fn published_restore_reopens_after_crash_then_readmits_and_certifies_the_drill()
         .post_verify(verification_budget())
         .expect("first fresh-process-equivalent verification");
     let store = PhysicalStoreIdentity::from_aspect_identity(world.authority.identity().clone());
-    let roots = publication_inputs_for_store(&store, "restore-cutover", 71);
+    let roots = publication_inputs_for_store(&store, 71);
     let publication_directory = tempfile::tempdir().expect("publication directory");
     let frontier = crate::RecoveryAuthorityFrontier::observed(
         &world.authority,

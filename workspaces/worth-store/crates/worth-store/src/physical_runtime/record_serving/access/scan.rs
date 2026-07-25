@@ -1,9 +1,9 @@
 use worth_store_physical_format::CurrentPhysicalRecordPlacement;
 
 use super::super::{
-    access::manifest_routing::{ManifestRangeCursor, ManifestReader},
-    access::scan_observation::{manifest_error, manifest_snapshot, scan_error},
-    access::scan_readmission::{cursor_for, readmit_cursor, ExternalRecordScanCursor},
+    access::manifest_routing::{ManifestLookupFailure, ManifestRangeCursor},
+    access::scan_observation::manifest_error,
+    access::scan_readmission::{cursor_for, ExternalRecordScanCursor},
     CompletedRecordScan, PhysicalRecordId, PhysicalRecordReader, RecordByteLimit, RecordCountLimit,
     RecordReadLimits, RecordReadObservation, RecordScanCounterSnapshot, RecordScanError,
 };
@@ -12,6 +12,10 @@ use super::super::{
 mod batch;
 #[path = "scan/batch_collection.rs"]
 mod batch_collection;
+#[path = "scan/request_admission.rs"]
+mod request_admission;
+#[path = "scan/start_position.rs"]
+mod start_position;
 pub use batch::{RecordScanBatch, RecordScanOutcome, ScannedPhysicalRecord};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -71,84 +75,19 @@ impl PhysicalRecordReader {
         mut self,
         request: RecordScanRequest,
     ) -> Result<PhysicalRecordScanSession, RecordScanError> {
-        let runtime = self
-            .runtime
-            .upgrade()
-            .ok_or_else(|| scan_error(RecordScanDenial::ServingRequiresInspection))?;
-        runtime
-            .health
-            .permit()
-            .map_err(|_| scan_error(RecordScanDenial::ServingRequiresInspection))?;
-        let requested = request
-            .batch_limit
-            .unwrap_or(self.access.scan_limit())
-            .get();
-        if requested > self.access.scan_limit().get() {
-            return Err(scan_error(RecordScanDenial::BatchLimitExceeded));
-        }
-        let operation_bytes = u64::from(self.format.declaration().page_size().bytes())
-            .saturating_add(
-                u64::from(requested)
-                    .saturating_mul(std::mem::size_of::<ScannedPhysicalRecord>() as u64),
-            );
-        let allocation = self
-            .frame_ports
-            .begin_operation(
-                worth_store_buffer_pool::OperationAllocationScope::ForegroundRead,
-                operation_bytes,
-            )
-            .map_err(|reason| {
-                scan_error(RecordScanDenial::RecordRead(
-                    super::super::RecordReadDenial::ResidencyUnavailable(reason),
-                ))
-            })?;
-        self.source = self.source.for_scan();
-        let manifest = ManifestReader::serving(
-            self.frame_ports.clone(),
-            self.source.clone(),
-            self.format,
-            self.access,
-            self.current_root.clone(),
-        );
-        let mut cursor = ManifestRangeCursor::new(manifest);
-        let first = readmit_cursor(&self, request.cursor)?;
-        let positioned = cursor
-            .seek(self.current_root.routing_root(), first)
-            .map_err(|_| {
-                let error = manifest_error(&cursor, RecordScanDenial::ManifestUnavailable);
-                runtime.health.observe_scan_denial(error.denial);
-                error
-            })?;
-        if first.is_some() && !positioned {
-            return Err(manifest_error(
-                &cursor,
-                RecordScanDenial::CursorPositionNotFound,
-            ));
-        }
-        if let Some(expected) = first {
-            let found = cursor.next().map_err(|_| {
-                let error = manifest_error(&cursor, RecordScanDenial::ManifestUnavailable);
-                runtime.health.observe_scan_denial(error.denial);
-                error
-            })?;
-            if found.map(|placement| placement.record()) != Some(expected) {
-                return Err(manifest_error(
-                    &cursor,
-                    RecordScanDenial::CursorPositionNotFound,
-                ));
-            }
-        }
-        let total = manifest_snapshot(cursor.counters());
+        let admission = request_admission::admit_scan_request(&mut self, request)?;
+        let positioned =
+            start_position::position_scan_start(&self, admission.first, &admission.runtime)?;
         let lifecycle = self.lifecycle.scan_session();
         Ok(PhysicalRecordScanSession {
             reader: self,
-            cursor,
+            cursor: positioned.cursor,
             pending: None,
-            batch_limit: requested as usize,
-            complete: !positioned && first.is_none(),
-            total,
+            batch_limit: admission.batch_limit,
+            complete: positioned.complete,
+            total: positioned.observation,
             _lifecycle: lifecycle,
-            _allocation: allocation,
+            _allocation: admission.allocation,
         })
     }
 }
@@ -184,11 +123,9 @@ impl PhysicalRecordScanSession {
         let next = self.cursor.next();
         let after = self.cursor.counters();
         self.total.observe_manifest_delta(before, after);
-        next.map_err(|_| {
-            let error = RecordScanError {
-                denial: RecordScanDenial::ManifestUnavailable,
-                observation: self.total,
-            };
+        next.map_err(|failure| {
+            let mut error = scan_manifest_error(&self.cursor, failure);
+            error.observation = self.total;
             if let Some(runtime) = self.reader.runtime.upgrade() {
                 runtime.health.observe_scan_denial(error.denial);
             }
@@ -199,4 +136,16 @@ impl PhysicalRecordScanSession {
     fn observe_record_read(&mut self, observation: RecordReadObservation) {
         self.total.observe_record_read(observation);
     }
+}
+
+fn scan_manifest_error(
+    cursor: &ManifestRangeCursor<'_>,
+    failure: ManifestLookupFailure,
+) -> RecordScanError {
+    manifest_error(
+        cursor,
+        RecordScanDenial::RecordRead(super::locate::failure_classification::manifest_failure(
+            failure,
+        )),
+    )
 }

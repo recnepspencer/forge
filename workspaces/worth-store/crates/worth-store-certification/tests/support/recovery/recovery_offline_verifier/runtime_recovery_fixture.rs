@@ -10,7 +10,7 @@ use worth_store_recovery_physics::{
     WalTailReplayBudget,
 };
 
-use memory_budget_fixture::recovery_memory_envelope;
+use memory_budget_fixture::recovery_memory_allocation;
 use redo_replay_fixture::{cursor, frame, grammar_for, page_lsn, redo_eligibility, valid_prefix};
 use source_precedence_fixture::{checkpoint_base, wal_tail_for_checkpoint};
 
@@ -51,7 +51,7 @@ fn bounded_recovery_plan_fixture() -> worth_store_recovery_physics::BoundedRecov
         WalTailReplayBudget::max_frames(4)
             .with_max_scanned_segments(2)
             .with_max_page_redos(4),
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
     )
     .with_max_memory_envelope_bytes(128)
     .with_max_allocation_bytes(128)
@@ -73,7 +73,7 @@ fn bounded_recovery_plan_fixture() -> worth_store_recovery_physics::BoundedRecov
         WalTailReplayBudget::max_frames(4)
             .with_max_scanned_segments(2)
             .with_max_page_redos(4),
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
     )
     .with_max_memory_envelope_bytes(128)
     .with_max_allocation_bytes(128)

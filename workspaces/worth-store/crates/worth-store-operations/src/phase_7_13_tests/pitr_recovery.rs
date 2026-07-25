@@ -114,7 +114,6 @@ fn exact_frontier_pitr_executes_only_after_a_durable_source_lease() {
     );
     let roots = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "pitr-full-cutover",
         101,
     );
     let publication_directory = tempfile::tempdir().unwrap();

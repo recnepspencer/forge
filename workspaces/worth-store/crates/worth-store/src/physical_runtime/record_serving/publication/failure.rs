@@ -141,10 +141,7 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_physical_work(
             },
             current_effect_fate,
             world_fate: UnpublishedRecordWorldFate::InspectionRequired,
-            work: plan
-                .work
-                .clone()
-                .including(stage, failure.evidence().identity()),
+            work: plan.work.clone().including(stage, failure.evidence()),
         },
     )
 }
@@ -181,9 +178,7 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_prepared_physical
             plan,
             before,
             residue,
-            plan.work
-                .clone()
-                .including(stage, failure.evidence().identity()),
+            plan.work.clone().including(stage, failure.evidence()),
         ),
     ))
 }
@@ -205,9 +200,7 @@ pub(in crate::physical_runtime::record_serving) fn indeterminate_physical_work(
             plan,
             before,
             super::super::RecordPublicationResidueObservation::from_failed_plan(plan, stage),
-            plan.work
-                .clone()
-                .including(stage, failure.evidence().identity()),
+            plan.work.clone().including(stage, failure.evidence()),
         ),
     ))
 }

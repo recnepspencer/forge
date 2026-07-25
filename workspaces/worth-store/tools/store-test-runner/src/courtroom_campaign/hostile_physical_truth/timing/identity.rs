@@ -8,7 +8,9 @@ pub(in crate::courtroom_campaign) enum CampaignPhase {
     SourceInventory,
     PrebuildSourceBinding,
     PostbuildBinaryBinding,
+    PostbuildSourceBinding,
     RunProvenance,
+    FinalSourceBinding,
     ExecutableVerification,
     CampaignVerification,
     CampaignBeforeReport,
@@ -16,14 +18,16 @@ pub(in crate::courtroom_campaign) enum CampaignPhase {
 }
 
 impl CampaignPhase {
-    pub(super) const BEFORE_REPORT: [Self; 10] = [
+    pub(super) const BEFORE_REPORT: [Self; 12] = [
         Self::MutationEvidence,
         Self::World,
         Self::BinaryBuild,
         Self::SourceInventory,
         Self::PrebuildSourceBinding,
         Self::PostbuildBinaryBinding,
+        Self::PostbuildSourceBinding,
         Self::RunProvenance,
+        Self::FinalSourceBinding,
         Self::ExecutableVerification,
         Self::CampaignVerification,
         Self::CampaignBeforeReport,
@@ -37,7 +41,9 @@ impl CampaignPhase {
             Self::SourceInventory => "source-inventory",
             Self::PrebuildSourceBinding => "prebuild-source-binding",
             Self::PostbuildBinaryBinding => "postbuild-binary-binding",
+            Self::PostbuildSourceBinding => "postbuild-source-binding",
             Self::RunProvenance => "run-provenance",
+            Self::FinalSourceBinding => "final-source-binding",
             Self::ExecutableVerification => "executable-verification",
             Self::CampaignVerification => "campaign-verification",
             Self::CampaignBeforeReport => "campaign-before-report",

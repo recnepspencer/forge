@@ -8,11 +8,14 @@ use worth_store_physical_format::{
 use super::super::super::access::manifest_routing::{
     ManifestDiscoveryCounterSnapshot, ManifestLookupFailure,
 };
-use super::super::super::residency::serving_artifacts::ServingRecordArtifacts;
+use super::super::super::residency::{
+    frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts,
+    record_frame_reader::RecordFrameReader,
+};
 use super::super::super::{AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy};
 
 pub(in crate::physical_runtime::record_serving) struct FreeSpaceReader<'media> {
-    artifacts: ServingRecordArtifacts<'media>,
+    artifacts: RecordFrameReader<'media>,
     pub(super) format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
     pub(super) header: &'media DurableFreeSpaceManifestHeader,
@@ -29,7 +32,22 @@ impl<'media> FreeSpaceReader<'media> {
         header: &'media DurableFreeSpaceManifestHeader,
     ) -> Self {
         Self {
-            artifacts: ServingRecordArtifacts::new(media, loader),
+            artifacts: RecordFrameReader::bootstrap(media, loader),
+            format,
+            access,
+            header,
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn serving(
+        frame_ports: RecordFramePorts,
+        source: CanonicalFrameReadSource,
+        format: AdmittedPhysicalRecordFormat,
+        access: AdmittedRecordAccessPolicy,
+        header: &'media DurableFreeSpaceManifestHeader,
+    ) -> Self {
+        Self {
+            artifacts: RecordFrameReader::serving(frame_ports, source),
             format,
             access,
             header,
@@ -102,13 +120,19 @@ impl<'media> FreeSpaceReader<'media> {
         counters.observe_block(bytes.len(), bytes.work_trace());
         let checksum = durable_artifact_checksum(&bytes);
         let (block, found_format) =
-            PhysicalFreeSpaceMembershipBlock::decode(&bytes, self.header.node_capacity())
-                .map_err(|_| ManifestLookupFailure::Damaged)?;
+            match PhysicalFreeSpaceMembershipBlock::decode(&bytes, self.header.node_capacity()) {
+                Ok(decoded) => decoded,
+                Err(_) => {
+                    bytes.reject_projection_failure();
+                    return Err(ManifestLookupFailure::Damaged);
+                }
+            };
         if found_format != self.format.declaration()
             || block.tree_identity() != self.header.tree_identity()
             || block.level() != reference.level()
             || block.reference(checksum) != reference
         {
+            bytes.reject_projection_failure();
             return Err(ManifestLookupFailure::Damaged);
         }
         Ok(block)

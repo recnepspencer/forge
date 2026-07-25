@@ -25,16 +25,6 @@ impl BlobCompactionAuthority {
         Self { current_authority }
     }
 
-    #[cfg(test)]
-    pub(crate) fn store_owned() -> Self {
-        Self::from_current_store_authority(
-            crate::lifecycle::generation_registry_test_support::current_authority(
-                "phase18.compaction-authority",
-                "compaction",
-            ),
-        )
-    }
-
     pub fn plan_compaction(
         &self,
         intent: BlobCompactionIntent,

@@ -4,7 +4,7 @@ use worth_store_recovery_physics::{
 
 use super::s4_recovery_handoff_fixture::intact_payload;
 use super::s4_recovery_readiness_fixture::{
-    physical_authority, physical_integrity_model_payload, recovery_memory_envelope,
+    physical_authority, physical_integrity_model_payload, recovery_memory_allocation,
 };
 
 pub fn admitted_recovery_entry(label: &str) -> RecoveryEntryAdmission {
@@ -26,7 +26,7 @@ fn admit_recovery_entry_from_recovery_handoff(
     .expect("test support recovery model admits the S4 algorithm input");
     let decision = RecoveryEntryAdmission::admit(
         integrity_input,
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
         physical_authority(),
     );
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {

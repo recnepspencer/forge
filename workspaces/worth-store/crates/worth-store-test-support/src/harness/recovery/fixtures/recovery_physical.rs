@@ -13,21 +13,53 @@ use worth_store_physical_format::{
 };
 use worth_store_physical_integrity::ProtectedPhysicalByteView;
 
-pub(super) fn with_protected_payload_view(
+pub(super) fn with_protected_page_view(
     payload: &[u8],
+    cell: PageGenerationCell,
+    run: impl FnOnce(ProtectedPhysicalByteView<'_>, PhysicalHeaderDecodeWitness),
+) {
+    let page = page_bytes(cell, payload);
+    let witness = header_authority()
+        .decode_page_header(cell, &page, PhysicalPageKind::DataPage)
+        .unwrap()
+        .witness();
+    with_protected_physical_bytes(&page, cell.owner().page_id().unwrap().get(), |protected| {
+        run(protected, witness);
+    });
+}
+
+pub(super) fn with_protected_frame_view(
+    payload: &[u8],
+    validation: PhysicalReferenceValidationWitness,
+    run: impl FnOnce(ProtectedPhysicalByteView<'_>, PhysicalHeaderDecodeWitness),
+) {
+    let frame = frame_bytes(slot_cell_for_owner(validation.owner()), payload);
+    let witness = header_authority()
+        .decode_frame_header(validation, &frame, PhysicalFrameKind::RecordFrame)
+        .unwrap()
+        .witness();
+    with_protected_physical_bytes(
+        &frame,
+        validation.owner().page_id().unwrap().get(),
+        |protected| run(protected, witness),
+    );
+}
+
+fn with_protected_physical_bytes(
+    bytes: &[u8],
+    page: u64,
     run: impl FnOnce(ProtectedPhysicalByteView<'_>),
 ) {
-    let frame = frame_bytes(slot_cell(1, 2, 3, 7), payload);
     let store = physical_residency_store();
     let pool = PhysicalResidencyPool::open(
         store,
         PhysicalResidencyLimits::new(8192, 4, 1, 512, 1).unwrap(),
     )
     .unwrap();
-    let key = PhysicalFrameKey::new(store, frame_coordinate(2, frame.len()));
+    let key = PhysicalFrameKey::new(store, frame_coordinate(page, bytes.len()));
     let lease = pool
         .load(key, |target| {
-            target.copy_from_slice(&frame);
+            target.copy_from_slice(bytes);
             Ok::<_, std::convert::Infallible>(())
         })
         .unwrap();
@@ -85,30 +117,6 @@ pub(super) fn validation(
     references
         .validate_page_slot(references.admit_page_slot(cell), cell)
         .unwrap()
-}
-
-pub(super) fn page_witness(
-    payload: &[u8],
-    cell: PageGenerationCell,
-) -> PhysicalHeaderDecodeWitness {
-    header_authority()
-        .decode_page_header(cell, &page_bytes(cell, payload), PhysicalPageKind::DataPage)
-        .unwrap()
-        .witness()
-}
-
-pub(super) fn frame_witness(
-    payload: &[u8],
-    validation: PhysicalReferenceValidationWitness,
-) -> PhysicalHeaderDecodeWitness {
-    header_authority()
-        .decode_frame_header(
-            validation,
-            &frame_bytes(slot_cell_for_owner(validation.owner()), payload),
-            PhysicalFrameKind::RecordFrame,
-        )
-        .unwrap()
-        .witness()
 }
 
 pub(super) fn page_cell(segment: u64, page: u64, generation: u64) -> PageGenerationCell {

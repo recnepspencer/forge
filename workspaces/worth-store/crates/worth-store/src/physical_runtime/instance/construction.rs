@@ -122,6 +122,13 @@ impl PhysicalStoreInstanceParts {
             health,
             recovery,
         );
+        let planning_read = crate::physical_runtime::record_serving::CanonicalRecordReadPort::new(
+            &work_runtime,
+            lifecycle_generation,
+            work_admission,
+            scheduler_admission.clone(),
+            std::sync::Arc::clone(&record_work),
+        );
         let mutation = CanonicalRecordMutationPort::new(
             &work_runtime,
             lifecycle_generation,
@@ -131,6 +138,7 @@ impl PhysicalStoreInstanceParts {
         );
         let publication = RecordPublicationDirector::new(
             &work_runtime,
+            planning_read,
             mutation,
             RecordPublicationFoundation {
                 format: bootstrap.format,

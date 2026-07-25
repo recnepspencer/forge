@@ -1,6 +1,6 @@
-use worth_store_budgets::{AllocationEnvelopeSet, CounterEvidenceStrength};
-use worth_store_buffer_pool::AllocationReceipt;
+use worth_store_budgets::CounterEvidenceStrength;
 
+use super::super::super::allocation::AdmittedBlobStreamingAllocation;
 use super::super::frontier::BlobStreamingContentFrontier;
 use super::super::types::BlobStreamingIngest;
 use super::performance::counter_backed_streaming_performance_receipt;
@@ -12,8 +12,7 @@ use crate::{
 
 pub(crate) fn emit_ingest_receipt(
     sequence: AdmittedBlobChunkSequence,
-    allocation: AllocationReceipt,
-    envelopes: AllocationEnvelopeSet,
+    allocation: AdmittedBlobStreamingAllocation,
     window: BlobStreamingWindow,
     counter_strength: CounterEvidenceStrength,
     counters: BlobStreamingIngestCounterSnapshot,
@@ -21,8 +20,7 @@ pub(crate) fn emit_ingest_receipt(
     let frontier = BlobStreamingContentFrontier::from_sequence(&sequence);
     let resumability = BlobStreamingResumePosture::from_frontier(&frontier);
     let residency = BlobStreamingResidencyProof::from_executed_streaming_session(
-        allocation,
-        envelopes,
+        &allocation,
         counters.peak_resident_bytes(),
         window,
         counter_strength,

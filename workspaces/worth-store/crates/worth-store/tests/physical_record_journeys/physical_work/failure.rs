@@ -52,7 +52,14 @@ fn pre_effect_backend_denial_is_the_only_retryable_physical_failure() {
         .unwrap();
     serving.timeout_physical_work(consumer).unwrap();
     let settled = outcome.into_settled();
-    let retry = match serving.schedule_physical_work_retry(&settled).unwrap() {
+    let retry = match serving
+        .schedule_physical_work_retry(&settled)
+        .unwrap_or_else(|denial| {
+            panic!(
+                "C5_PREDICATE:store-local-async-registry: local retry state overrode Signal scheduling: {denial:?}"
+            )
+        })
+    {
         PhysicalWorkRetryScheduleOutcome::Scheduled(retry) => retry,
         PhysicalWorkRetryScheduleOutcome::Denied(report) => {
             panic!("pre-effect retry should schedule: {report:?}")

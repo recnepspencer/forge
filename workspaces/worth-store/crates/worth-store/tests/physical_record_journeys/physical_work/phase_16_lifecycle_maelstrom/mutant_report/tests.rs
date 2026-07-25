@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use sha2::{Digest, Sha256};
 
 use super::{
-    courtroom_a_owns, expectation, validate_campaign_shape, validate_observation, ArtifactPolicy,
-    MutationObservation, FIRST_MUTANT, LAST_COURTROOM_A_MUTANT, LAST_MUTANT,
+    complete_mutant_count, expectation, validate_campaign_shape, validate_observation,
+    ArtifactPolicy, MutationObservation, ARTIFACT_OWNER_MARKER, ARTIFACT_OWNER_SCHEMA,
+    FIRST_MUTANT, LAST_MUTANT,
 };
 
 #[test]
@@ -13,20 +14,13 @@ fn campaign_shape_requires_every_phase_16_mutant_including_c_only_rows() {
         .map(empty_observation)
         .collect::<Vec<_>>();
     assert!(validate_campaign_shape(&observations).is_ok());
-    assert_eq!(observations.len(), 29);
+    assert_eq!(observations.len(), complete_mutant_count());
+    assert_eq!(complete_mutant_count(), 29);
     observations.swap(26, 27);
     assert!(validate_campaign_shape(&observations).is_err());
     observations.swap(26, 27);
     observations.pop();
     assert!(validate_campaign_shape(&observations).is_err());
-}
-
-#[test]
-fn courtroom_a_projects_only_its_localizations_after_full_campaign_validation() {
-    assert!(courtroom_a_owns(FIRST_MUTANT));
-    assert!(courtroom_a_owns(LAST_COURTROOM_A_MUTANT));
-    assert!(!courtroom_a_owns(LAST_COURTROOM_A_MUTANT + 1));
-    assert!(!courtroom_a_owns(LAST_MUTANT));
 }
 
 #[test]
@@ -84,6 +78,11 @@ impl Fixture {
         let report = temporary.path().join("phase16.json");
         let artifacts = temporary.path().join("phase16.json.artifacts.1.1");
         std::fs::create_dir(&artifacts).unwrap();
+        std::fs::write(
+            artifacts.join(ARTIFACT_OWNER_MARKER),
+            format!("{ARTIFACT_OWNER_SCHEMA}\n{}\n", report.display()),
+        )
+        .unwrap();
         let binary = artifacts.join("mutant-15.exe");
         std::fs::write(&binary, Self::BINARY).unwrap();
         let policy = ArtifactPolicy::for_report(&report).unwrap();

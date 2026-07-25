@@ -31,7 +31,7 @@ pub(crate) fn frame_witness(payload: &[u8]) -> PhysicalHeaderDecodeWitness {
     header_authority()
         .decode_frame_header(
             current_validation(),
-            &crate::physical_fixture_encoding::record_frame_bytes(slot_cell(7), payload),
+            &current_frame_bytes(payload),
             PhysicalFrameKind::RecordFrame,
         )
         .unwrap()
@@ -42,11 +42,29 @@ pub(crate) fn page_witness(payload: &[u8]) -> PhysicalHeaderDecodeWitness {
     header_authority()
         .decode_page_header(
             current_page_cell(),
-            &crate::physical_fixture_encoding::data_page_bytes(current_page_cell(), payload),
+            &current_page_bytes(payload),
             PhysicalPageKind::DataPage,
         )
         .unwrap()
         .witness()
+}
+
+pub(crate) fn current_frame_bytes(payload: &[u8]) -> Vec<u8> {
+    crate::physical_fixture_encoding::record_frame_bytes(slot_cell(7), payload)
+}
+
+pub(crate) fn current_frame_bytes_with_declared_payload(
+    actual_payload: &[u8],
+    declared_payload: &[u8],
+) -> Vec<u8> {
+    let mut bytes = current_frame_bytes(declared_payload);
+    bytes.truncate(bytes.len() - declared_payload.len());
+    bytes.extend_from_slice(actual_payload);
+    bytes
+}
+
+pub(crate) fn current_page_bytes(payload: &[u8]) -> Vec<u8> {
+    crate::physical_fixture_encoding::data_page_bytes(current_page_cell(), payload)
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {

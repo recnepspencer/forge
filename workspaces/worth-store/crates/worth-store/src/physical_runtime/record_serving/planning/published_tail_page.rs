@@ -34,9 +34,9 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
         segment: last.segment().get(),
         generation: page_entry.data_generation(),
     };
-    if artifacts.file_length(source).map_err(layout_failure)?
-        != u64::from(page_entry.data_page_count()) * u64::from(page_bytes)
-    {
+    let source_length = artifacts.file_length(source).map_err(layout_failure)?;
+    if source_length.bytes() != u64::from(page_entry.data_page_count()) * u64::from(page_bytes) {
+        source_length.reject_structural_damage();
         return Err(RecordAppendError::Denied(
             RecordAppendDenial::PublishedLayoutDamaged,
         ));
@@ -55,9 +55,17 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
         ))
     })?;
     page.extend_from_slice(&resident);
-    let geometry = inspect_inline_page(format.declaration(), &page)
-        .map_err(|_| RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged))?;
+    let geometry = match inspect_inline_page(format.declaration(), &page) {
+        Ok(geometry) => geometry,
+        Err(_) => {
+            resident.reject_projection_failure();
+            return Err(RecordAppendError::Denied(
+                RecordAppendDenial::PublishedLayoutDamaged,
+            ));
+        }
+    };
     if geometry.page_cell() != last.page_cell() {
+        resident.reject_projection_failure();
         return Err(RecordAppendError::Denied(
             RecordAppendDenial::PublishedLayoutDamaged,
         ));

@@ -49,7 +49,8 @@ fn workspace_serde_json_dependency_is_terminal_only() {
         workspace_file("workspaces/worth-store/crates/worth-store-certification/Cargo.toml");
 
     assert!(!workspace_manifest.contains("serde_json"));
-    assert!(!facade_manifest.contains("serde_json"));
+    assert_manifest_dep_section_lacks_serde_json(&facade_manifest);
+    assert_manifest_dev_dep_section_contains_serde_json(&facade_manifest);
     assert!(aspect_native_manifest.contains("serde_json ="));
     assert_manifest_dep_section_lacks_serde_json(&certification_manifest);
     assert_manifest_dev_dep_section_contains_serde_json(&certification_manifest);

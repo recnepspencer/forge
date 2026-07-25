@@ -7,7 +7,8 @@ use worth_store_physical_format::{DurableFreeSpaceManifestHeader, DurablePhysica
 use crate::physical_runtime::instance::PhysicalStoreWorkRuntime;
 
 use super::super::{
-    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, CanonicalRecordMutationPort,
+    residency::frame_loading::CanonicalFrameReadSource, AdmittedPhysicalRecordFormat,
+    AdmittedRecordAccessPolicy, CanonicalRecordMutationPort, CanonicalRecordReadPort,
     RecordAllocationFrontier, RecordFramePorts, RecordPublicationResidueObservation,
 };
 
@@ -19,6 +20,7 @@ pub use submission::{PhysicalRecordSubmission, PreparedRecordAppend};
 
 pub(in crate::physical_runtime) struct RecordPublicationDirector {
     runtime: Weak<PhysicalStoreWorkRuntime>,
+    planning_source: CanonicalFrameReadSource,
     mutation: CanonicalRecordMutationPort,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
@@ -68,11 +70,13 @@ struct RecordPublicationCall {
 impl RecordPublicationDirector {
     pub(in crate::physical_runtime) fn new(
         runtime: &Arc<PhysicalStoreWorkRuntime>,
+        planning_read: CanonicalRecordReadPort,
         mutation: CanonicalRecordMutationPort,
         foundation: RecordPublicationFoundation,
     ) -> Arc<Self> {
         Arc::new(Self {
             runtime: Arc::downgrade(runtime),
+            planning_source: CanonicalFrameReadSource::new(planning_read),
             mutation,
             format: foundation.format,
             access: foundation.access,

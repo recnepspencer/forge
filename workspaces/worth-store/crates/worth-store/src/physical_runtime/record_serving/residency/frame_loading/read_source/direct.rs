@@ -54,10 +54,17 @@ impl PreparedFrameRead for DirectPreparedFrameRead<'_> {
         None
     }
 
-    fn execute(self: Box<Self>, target: &mut [u8]) -> Result<(), FrameReadSourceFailure> {
+    fn execute(
+        self: Box<Self>,
+        target: &mut [u8],
+    ) -> Result<
+        Option<crate::physical_runtime::instance::PhysicalProjectionFailureCapability>,
+        FrameReadSourceFailure,
+    > {
         crate::physical_runtime::record_serving::residency::artifact_tree::
             PhysicalRecordArtifactTree::new(self.media)
             .read_exact_at(self.artifact, self.offset, target)
-            .map_err(FrameReadSourceFailure::Backend)
+            .map_err(FrameReadSourceFailure::Backend)?;
+        Ok(None)
     }
 }

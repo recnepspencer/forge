@@ -13,7 +13,7 @@ use worth_store_security::{
     StoreKeyScope, StoreTenantScope,
 };
 use worth_store_test_support::harness::physical_isolation::publication::{
-    admitted_copy_on_write_plan, publication_inputs_for_store,
+    admitted_copy_on_write_plan, publication_inputs_for_store, publish_inputs,
     successor_publication_inputs_for_store, PublicationInputs,
 };
 use worth_store_test_support::{admitted_layout_bootstrap_catalog, SecurityScopeFixtureAuthority};
@@ -29,6 +29,13 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
 }
 
 fn execute_mutation_admission(ledger: &mut LayoutOwnerObservationLedger) {
+    record_lsm_mutation_admission(ledger);
+    record_copy_on_write_mutation_admissions(ledger);
+    let outcome = layout_mutation_admission().deny_in_place_reachable_overwrite();
+    ledger.record_layout_mutation_admission(outcome.owner_case_observation());
+}
+
+fn record_lsm_mutation_admission(ledger: &mut LayoutOwnerObservationLedger) {
     let wal = wal_security();
     let lsm = layout_lsm_maintenance()
         .admit_run_publication(LsmRunPublicationAdmissionRequest::new(
@@ -41,12 +48,14 @@ fn execute_mutation_admission(ledger: &mut LayoutOwnerObservationLedger) {
         .expect("ordinary LSM publication must admit");
     let outcome = layout_mutation_admission().admit_lsm_append(lsm);
     ledger.record_layout_mutation_admission(outcome.owner_case_observation());
+}
 
+fn record_copy_on_write_mutation_admissions(ledger: &mut LayoutOwnerObservationLedger) {
     let strategy = btree_strategy(
         IndexMaintenanceMode::SynchronousExact,
         PhysicalMutationShape::PointRewrite,
     );
-    let matching_inputs = inputs("layout-owner-cow", 811);
+    let matching_inputs = inputs(811);
     let materialization = source_materialization(
         strategy.admitted_strategy().admitted_family(),
         &matching_inputs,
@@ -70,7 +79,18 @@ fn execute_mutation_admission(ledger: &mut LayoutOwnerObservationLedger) {
         &page_security(),
     );
 
-    let wrong_security = security_scope(
+    record_wrong_security_admission(ledger, &strategy, &matching_inputs, &materialization);
+    record_foreign_store_admission(ledger, &strategy);
+    record_stale_source_admission(ledger, strategy, &matching_inputs, &materialization);
+}
+
+fn record_wrong_security_admission(
+    ledger: &mut LayoutOwnerObservationLedger,
+    strategy: &worth_store_layout_indexes::LayoutStrategyRegistrySnapshot,
+    inputs: &PublicationInputs,
+    materialization: &worth_store_layout_indexes::AdmittedLayoutMaterialization,
+) {
+    let security = security_scope(
         SecurityScopeFixtureAuthority::Current,
         StoreKeyScope::ArtifactEnvelope,
         StoreTenantScope::TenantPhysicalBoundary,
@@ -79,17 +99,15 @@ fn execute_mutation_admission(ledger: &mut LayoutOwnerObservationLedger) {
         ),
         StoreCustodyPosture::InternalStoreCustody,
     );
-    record_copy_on_write_admission(
-        ledger,
-        strategy.clone(),
-        &matching_inputs,
-        &materialization,
-        &wrong_security,
-    );
+    record_copy_on_write_admission(ledger, strategy.clone(), inputs, materialization, &security);
+}
 
+fn record_foreign_store_admission(
+    ledger: &mut LayoutOwnerObservationLedger,
+    strategy: &worth_store_layout_indexes::LayoutStrategyRegistrySnapshot,
+) {
     let foreign_inputs = publication_inputs_for_store(
         &worth_store_test_support::foreign_layout_physical_store_identity(),
-        "layout-owner-cow-foreign",
         812,
     );
     let foreign_materialization = source_materialization(
@@ -103,23 +121,27 @@ fn execute_mutation_admission(ledger: &mut LayoutOwnerObservationLedger) {
         &foreign_materialization,
         &page_security(),
     );
+}
 
+fn record_stale_source_admission(
+    ledger: &mut LayoutOwnerObservationLedger,
+    strategy: worth_store_layout_indexes::LayoutStrategyRegistrySnapshot,
+    matching_inputs: &PublicationInputs,
+    materialization: &worth_store_layout_indexes::AdmittedLayoutMaterialization,
+) {
+    let matching_publication = publish_inputs(matching_inputs);
     let stale_inputs = successor_publication_inputs_for_store(
-        &matching_inputs,
+        &matching_publication,
         &PhysicalStoreIdentity::physical_format_default(),
-        "layout-owner-cow-stale",
         813,
     );
     record_copy_on_write_admission(
         ledger,
         strategy,
         &stale_inputs,
-        &materialization,
+        materialization,
         &page_security(),
     );
-
-    let outcome = layout_mutation_admission().deny_in_place_reachable_overwrite();
-    ledger.record_layout_mutation_admission(outcome.owner_case_observation());
 }
 
 fn record_copy_on_write_admission(
@@ -140,12 +162,7 @@ fn record_copy_on_write_admission(
 }
 
 fn execute_copy_on_write_and_exact_publication(ledger: &mut LayoutOwnerObservationLedger) {
-    let exact = executed_btree_mutation(
-        IndexMaintenanceMode::SynchronousExact,
-        "layout-owner-exact",
-        901,
-        Some(ledger),
-    );
+    let exact = executed_btree_mutation(IndexMaintenanceMode::SynchronousExact, 901, Some(ledger));
     let catalog = admitted_layout_bootstrap_catalog();
     let exact_materialization = publication_materialization(&catalog, &exact);
     let outcome = layout_exact_publication().observe_btree(ExactBTreePublicationRequest::new(
@@ -161,12 +178,7 @@ fn execute_copy_on_write_and_exact_publication(ledger: &mut LayoutOwnerObservati
     ));
     ledger.record_live_exact_maintenance(live.owner_case_observation());
 
-    let lagged = executed_btree_mutation(
-        IndexMaintenanceMode::AsynchronousLagged,
-        "layout-owner-lagged",
-        902,
-        None,
-    );
+    let lagged = executed_btree_mutation(IndexMaintenanceMode::AsynchronousLagged, 902, None);
     let lagged_materialization = publication_materialization(&catalog, &lagged);
     let outcome = layout_exact_publication().observe_btree(ExactBTreePublicationRequest::new(
         &lagged,
@@ -194,12 +206,7 @@ fn execute_copy_on_write_and_exact_publication(ledger: &mut LayoutOwnerObservati
     ));
     ledger.record_exact_btree_publication(outcome.owner_case_observation());
 
-    let other = executed_btree_mutation(
-        IndexMaintenanceMode::SynchronousExact,
-        "layout-owner-other",
-        903,
-        None,
-    );
+    let other = executed_btree_mutation(IndexMaintenanceMode::SynchronousExact, 903, None);
     let other_materialization = publication_materialization(&catalog, &other);
     let outcome = layout_exact_publication().observe_btree(ExactBTreePublicationRequest::new(
         &exact,
@@ -210,13 +217,12 @@ fn execute_copy_on_write_and_exact_publication(ledger: &mut LayoutOwnerObservati
 
 fn executed_btree_mutation(
     mode: IndexMaintenanceMode,
-    digest: &str,
     generation: u64,
     mut ledger: Option<&mut LayoutOwnerObservationLedger>,
 ) -> worth_store_layout_indexes::CopyOnWriteLayoutMutationReceipt {
     let strategy = btree_strategy(mode, PhysicalMutationShape::PointRewrite);
     let family = strategy.admitted_strategy().admitted_family();
-    let inputs = inputs(digest, generation);
+    let inputs = inputs(generation);
     let materialization = source_materialization(family, &inputs);
     let plan = layout_mutation_admission()
         .admit_copy_on_write(CopyOnWriteLayoutMutationRequest::new(
@@ -274,10 +280,9 @@ fn publication_materialization(
         .expect("published root must materialize")
 }
 
-fn inputs(digest: &str, generation: u64) -> PublicationInputs {
+fn inputs(generation: u64) -> PublicationInputs {
     publication_inputs_for_store(
         &PhysicalStoreIdentity::physical_format_default(),
-        digest,
         generation,
     )
 }

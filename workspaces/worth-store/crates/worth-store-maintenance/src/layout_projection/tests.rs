@@ -1,71 +1,101 @@
 use worth_store_buffer_pool::{
-    AllocationAdmission, AllocationByteBudget, AllocationEnvelopeDeclaration,
-    BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest, BackgroundWorkBudgetSnapshot,
-    FixedMetadataReservation,
+    OperationAllocationScope, PhysicalResidencyLimits, PhysicalResidencyPool,
+};
+use worth_store_physical_format::store_namespace::{
+    ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
 };
 
-use crate::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
+use crate::{
+    CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope, MaintenanceMemoryEnvelopeDenial,
+};
 
 #[test]
-fn maintenance_queue_layout_preserves_declared_budget_from_compaction_envelope() {
-    let envelope = admitted_background_envelope(BackgroundEnvelopeRequest::compaction_planning());
-    let report = CompactionPlanningMemoryEnvelope::from_admitted(envelope)
-        .expect("compaction planning envelope should admit")
+fn compaction_layout_retains_and_releases_canonical_maintenance_allocation() {
+    let pool = maintenance_pool(0x51);
+    let allocation = pool
+        .begin_operation(OperationAllocationScope::Maintenance, 128)
+        .expect("compaction allocation should admit");
+    let report = CompactionPlanningMemoryEnvelope::from_allocation_grant(allocation)
+        .expect("maintenance allocation should authorize compaction planning")
         .project_maintenance_queue_layout();
 
     assert_eq!(report.family_id().label(), "maintenance_queue_declaration");
-    assert_eq!(report.declared_budget().resident_frames(), 2);
-    assert_eq!(report.declared_budget().resident_bytes(), 256);
-    assert_eq!(report.declared_budget().pinned_pages(), 1);
-    assert_eq!(report.declared_budget().allocation_bytes(), 128);
-    assert_eq!(report.exact_counters().allocation_bytes_admitted(), 128);
-}
-
-#[test]
-fn maintenance_queue_layout_preserves_declared_budget_from_import_export_envelope() {
-    let envelope = admitted_background_envelope(BackgroundEnvelopeRequest::import_export());
-    let report = ImportExportMemoryEnvelope::from_admitted(envelope)
-        .expect("import-export envelope should admit")
-        .project_maintenance_queue_layout();
-
-    assert_eq!(report.family_id().label(), "maintenance_queue_declaration");
-    assert_eq!(report.declared_budget().resident_frames(), 2);
-    assert_eq!(report.declared_budget().resident_bytes(), 256);
-    assert_eq!(report.declared_budget().allocation_bytes(), 128);
-    assert_eq!(report.exact_counters().allocation_bytes_admitted(), 128);
-}
-
-fn admitted_background_envelope(
-    builder: worth_store_buffer_pool::BackgroundEnvelopeRequestBuilder,
-) -> worth_store_buffer_pool::AdmittedBackgroundEnvelope {
-    let request = builder
-        .resident_frames(2)
-        .resident_bytes(256)
-        .pin_pages_for_bounded_step(1)
-        .allocation_bytes(128)
-        .finish();
-    let mut admission = BackgroundEnvelopeAdmission::new();
-    let mut allocation = AllocationAdmission::from_declaration(
-        AllocationEnvelopeDeclaration::declare()
-            .foreground(bytes(512))
-            .maintenance(bytes(512))
-            .recovery(bytes(512))
-            .scrub(bytes(512))
-            .import_export(bytes(512))
-            .streaming(bytes(512))
-            .fixed_metadata(FixedMetadataReservation::constant_bytes(64).unwrap())
-            .seal()
-            .unwrap(),
+    assert_eq!(
+        report.allocation_scope(),
+        OperationAllocationScope::Maintenance
     );
-    admission
-        .admit(
-            request,
-            BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16),
-            &mut allocation,
-        )
-        .expect("background envelope should admit on the real production path")
+    assert_eq!(report.declared_budget().allocation_bytes(), 128);
+    assert_eq!(
+        report
+            .exact_counters()
+            .active_operation_bytes_for(OperationAllocationScope::Maintenance),
+        128
+    );
+
+    drop(report);
+    assert_eq!(
+        pool.counters()
+            .active_operation_bytes_for(OperationAllocationScope::Maintenance),
+        0
+    );
+    assert!(!pool.close().requires_inspection());
 }
 
-fn bytes(bytes: u64) -> AllocationByteBudget {
-    AllocationByteBudget::bytes(bytes).unwrap()
+#[test]
+fn import_export_layout_retains_and_releases_canonical_maintenance_allocation() {
+    let pool = maintenance_pool(0x52);
+    let allocation = pool
+        .begin_operation(OperationAllocationScope::Maintenance, 96)
+        .expect("import-export allocation should admit");
+    let report = ImportExportMemoryEnvelope::from_allocation_grant(allocation)
+        .expect("maintenance allocation should authorize import-export work")
+        .project_maintenance_queue_layout();
+
+    assert_eq!(report.family_id().label(), "maintenance_queue_declaration");
+    assert_eq!(
+        report.allocation_scope(),
+        OperationAllocationScope::Maintenance
+    );
+    assert_eq!(report.declared_budget().allocation_bytes(), 96);
+    assert_eq!(
+        report
+            .exact_counters()
+            .peak_operation_bytes_for(OperationAllocationScope::Maintenance),
+        96
+    );
+
+    drop(report);
+    assert_eq!(pool.counters().active_operation_bytes(), 0);
+    assert!(!pool.close().requires_inspection());
+}
+
+#[test]
+fn maintenance_envelope_rejects_and_releases_wrong_scope() {
+    let pool = maintenance_pool(0x53);
+    let allocation = pool
+        .begin_operation(OperationAllocationScope::ForegroundRead, 64)
+        .expect("foreground allocation should admit before semantic rejection");
+    let denial = CompactionPlanningMemoryEnvelope::from_allocation_grant(allocation)
+        .expect_err("foreground allocation cannot authorize maintenance");
+
+    assert_eq!(
+        denial,
+        MaintenanceMemoryEnvelopeDenial::WrongAllocationScope {
+            actual: OperationAllocationScope::ForegroundRead,
+        }
+    );
+    assert_eq!(pool.counters().active_operation_bytes(), 0);
+    assert!(!pool.close().requires_inspection());
+}
+
+fn maintenance_pool(identity_byte: u8) -> PhysicalResidencyPool {
+    let identity = StoreNamespaceIdentityRecord::new(
+        StoreNamespaceVersion::CURRENT,
+        ProposedStoreIdentity::from_nonzero_bytes([identity_byte; 16])
+            .expect("maintenance fixture Store identity is nonzero"),
+    )
+    .published_identity();
+    let limits = PhysicalResidencyLimits::new(512, 1, 1, 512, 1)
+        .expect("maintenance fixture limits are bounded");
+    PhysicalResidencyPool::open(identity, limits).expect("maintenance fixture pool should open")
 }

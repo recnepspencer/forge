@@ -126,13 +126,19 @@ impl<'media> SegmentMembershipReader<'media> {
         counters.observe_block(bytes.len(), bytes.work_trace());
         let checksum = durable_artifact_checksum(&bytes);
         let (block, found_format) =
-            PhysicalSegmentMembershipBlock::decode(&bytes, self.root.node_capacity())
-                .map_err(|_| ManifestLookupFailure::Damaged)?;
+            match PhysicalSegmentMembershipBlock::decode(&bytes, self.root.node_capacity()) {
+                Ok(decoded) => decoded,
+                Err(_) => {
+                    bytes.reject_projection_failure();
+                    return Err(ManifestLookupFailure::Damaged);
+                }
+            };
         if found_format != self.format.declaration()
             || block.tree_identity() != self.root.tree_identity()
             || block.level() != reference.level()
             || block.reference(checksum) != reference
         {
+            bytes.reject_projection_failure();
             return Err(ManifestLookupFailure::Damaged);
         }
         Ok(block)

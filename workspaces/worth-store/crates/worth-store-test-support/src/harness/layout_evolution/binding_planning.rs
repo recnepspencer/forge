@@ -31,35 +31,35 @@ fn observe_binding() -> Vec<OwnerCaseObservation<LayoutBindingAdmissionCaseId>> 
         world::admitted_family(declaration.family_declaration(), &authority),
         authority.clone(),
         world::compatibility(declaration),
-        world::physical_inputs(&authority, "binding-admitted", 11_001).old_candidate,
+        world::physical_inputs(&authority, 11_001).old_candidate,
     );
     let family_mismatch = world::binding_outcome(
         declaration,
         world::admitted_family(world::other_declared_family(), &authority),
         authority.clone(),
         world::compatibility(declaration),
-        world::physical_inputs(&authority, "binding-family", 11_002).old_candidate,
+        world::physical_inputs(&authority, 11_002).old_candidate,
     );
     let store_mismatch = world::binding_outcome(
         declaration,
         world::admitted_family(declaration.family_declaration(), &authority),
         foreign_authority.clone(),
         world::compatibility(declaration),
-        world::physical_inputs(&foreign_authority, "binding-store", 11_003).old_candidate,
+        world::physical_inputs(&foreign_authority, 11_003).old_candidate,
     );
     let physical_source_mismatch = world::binding_outcome(
         declaration,
         world::admitted_family(declaration.family_declaration(), &authority),
         authority.clone(),
         world::compatibility(declaration),
-        world::physical_inputs(&foreign_authority, "binding-physical", 11_004).old_candidate,
+        world::physical_inputs(&foreign_authority, 11_004).old_candidate,
     );
     let compatibility_mismatch = world::binding_outcome(
         declaration,
         world::admitted_family(declaration.family_declaration(), &authority),
         authority.clone(),
         world::foreign_compatibility(),
-        world::physical_inputs(&authority, "binding-compatibility", 11_005).old_candidate,
+        world::physical_inputs(&authority, 11_005).old_candidate,
     );
 
     [
@@ -108,7 +108,7 @@ fn observe_rollback_planning() -> Vec<OwnerCaseObservation<RollbackPlanningCaseI
     let declaration = world::declaration(LayoutInterruptionPolicy::ResumeDeclaredMigration);
     let authority = world::authority("store.layout_evolution.rollback_planning");
     let replacement = world::authority("store.layout_evolution.rollback_planning.rebind");
-    let migrated = world::execute_migration(declaration, &authority, "rollback-plan", 11_101);
+    let migrated = world::execute_migration(declaration, &authority, 11_101);
     let target = migrated.target_binding().clone();
 
     let ready = layout_rollback_operation().plan(
@@ -119,12 +119,7 @@ fn observe_rollback_planning() -> Vec<OwnerCaseObservation<RollbackPlanningCaseI
         world::other_declared_family(),
         LayoutInterruptionPolicy::ResumeDeclaredMigration,
     );
-    let foreign_migrated = world::execute_migration(
-        foreign_declaration,
-        &authority,
-        "rollback-plan-foreign",
-        11_102,
-    );
+    let foreign_migrated = world::execute_migration(foreign_declaration, &authority, 11_102);
     let foreign = foreign_migrated.target_binding().clone();
     let denied = layout_rollback_operation().plan(
         LayoutRollbackRequest::new(declaration, foreign.clone(), foreign.admitted_family()),

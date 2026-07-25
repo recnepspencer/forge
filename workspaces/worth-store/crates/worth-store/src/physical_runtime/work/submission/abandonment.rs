@@ -158,10 +158,10 @@ impl PhysicalWorkAbandonment {
     }
 
     pub(in crate::physical_runtime) fn complete(mut self) {
-        self.finish(false);
+        self.finish(false, true);
     }
 
-    fn release_command(&self, revoke_signal: bool) {
+    fn release_command(&self, revoke_signal: bool, signal_joined: bool) {
         let Some(state) = self.state.upgrade() else {
             return;
         };
@@ -169,20 +169,20 @@ impl PhysicalWorkAbandonment {
             state.signal_admission.revoke();
         }
         if self.release.complete_abandonment() {
-            state.release_abandoned(self.identity);
+            state.release_abandoned(self.identity, signal_joined);
         }
     }
 
-    fn finish(&mut self, revoke_signal: bool) {
+    fn finish(&mut self, revoke_signal: bool, signal_joined: bool) {
         if self.completed {
             return;
         }
         let Some(queue) = self.queue.upgrade() else {
-            self.release_command(revoke_signal);
+            self.release_command(revoke_signal, signal_joined);
             self.completed = true;
             return;
         };
-        queue.complete_one_after(|| self.release_command(revoke_signal));
+        queue.complete_one_after(|| self.release_command(revoke_signal, signal_joined));
         self.completed = true;
     }
 }
@@ -192,7 +192,7 @@ impl Drop for PhysicalWorkAbandonment {
         if self.completed {
             return;
         }
-        self.finish(true);
+        self.finish(true, false);
     }
 }
 
@@ -218,7 +218,7 @@ impl PhysicalWorkAbandonmentQueue {
 }
 
 impl PhysicalSubmissionState {
-    pub(super) fn release_abandoned(&self, identity: PhysicalWorkIdentity) {
+    pub(super) fn release_abandoned(&self, identity: PhysicalWorkIdentity, signal_joined: bool) {
         let Some(released) = self.commands.release(identity) else {
             return;
         };
@@ -241,7 +241,11 @@ impl PhysicalSubmissionState {
             self.terminal_ledger.record(
                 crate::physical_runtime::work::PhysicalWorkTerminalEvent::ReleasedBeforeDispatch {
                     identity,
-                    consumer: released.consumer,
+                    consumer: if signal_joined {
+                        None
+                    } else {
+                        released.consumer
+                    },
                 },
             );
         }

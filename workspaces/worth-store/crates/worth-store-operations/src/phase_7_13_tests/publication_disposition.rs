@@ -167,7 +167,7 @@ fn published_restore(case: &str) -> PublishedRestoreCase {
         .post_verify(verification_budget())
         .expect("independent staged verification");
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
-    let roots = publication_inputs_for_store(&store, case, 91);
+    let roots = publication_inputs_for_store(&store, 91);
     let publication_directory = tempfile::tempdir().unwrap();
     let frontier =
         crate::RecoveryAuthorityFrontier::observed(&authority, 10, 12, 15, 14, 13, [0x81; 32])

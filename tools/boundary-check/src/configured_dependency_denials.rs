@@ -59,7 +59,10 @@ fn diagnostics_for_target_allowlist_package<'a>(
         .governed_source_prefixes
         .iter()
         .any(|prefix| package_name.starts_with(prefix))
-        || rule.allowed_sources.iter().any(|source| source == package_name)
+        || rule
+            .allowed_sources
+            .iter()
+            .any(|source| source == package_name)
     {
         return Vec::new();
     }

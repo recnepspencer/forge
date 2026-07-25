@@ -110,6 +110,21 @@ impl WalTailRedoSource {
         }
     }
 
+    pub fn from_reopened_checkpoint(
+        checkpoint: &super::CheckpointBaseAdmission,
+        proof: WalOnlyTailProof,
+        trace: RecoveryCandidateDiscoveryTrace,
+    ) -> Option<Self> {
+        if proof.lsn_range().start() != checkpoint.covered_lsn_range().end_exclusive() {
+            return None;
+        }
+        Some(Self {
+            checkpoint_id: Some(checkpoint.checkpoint_id().clone()),
+            lsn_range: proof.lsn_range(),
+            trace,
+        })
+    }
+
     pub const fn checkpoint_id(&self) -> Option<&CheckpointId> {
         self.checkpoint_id.as_ref()
     }

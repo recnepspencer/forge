@@ -72,15 +72,10 @@ pub(super) fn current_security_scope() -> worth_store_security::StoreAdmittedSec
 
 pub(super) fn executed_btree_mutation(
     mode: IndexMaintenanceMode,
-    operation_digest: &str,
     generation: u64,
 ) -> crate::CopyOnWriteLayoutMutationReceipt {
     let strategy = btree_strategy_with_mode(PhysicalMutationShape::PointRewrite, mode);
-    let inputs = publication_inputs_for_store(
-        &strategy_test_store_identity(),
-        operation_digest,
-        generation,
-    );
+    let inputs = publication_inputs_for_store(&strategy_test_store_identity(), generation);
     let source_materialization =
         source_materialization(strategy.admitted_strategy().admitted_family(), &inputs);
     let plan = layout_mutation_admission()

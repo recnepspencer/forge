@@ -10,6 +10,11 @@ use super::super::{
 
 #[test]
 fn later_batch_panic_retains_earlier_settlement_without_repeating_media() {
+    let retry_probe = std::env::temp_dir().join(format!(
+        "worth-c5-physical-effect-retry-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&retry_probe);
     let root = tempdir().unwrap();
     let (profile, first_request, second_request) = disjoint_mutation_fixture();
     serving_from_initialization_with_work_profile(root.path(), profile.clone()).close();
@@ -86,6 +91,10 @@ fn later_batch_panic_retains_earlier_settlement_without_repeating_media() {
             - before.attempts_for(MediaOperationRole::PositionedWrite),
         2,
         "C5_PREDICATE:physical-effect-no-retry: derived reconciliation must never repeat either filesystem effect"
+    );
+    assert!(
+        !retry_probe.exists(),
+        "C5_PREDICATE:physical-effect-no-retry: derived reconciliation reacquired filesystem effect authority"
     );
     assert_eq!(
         closed.shutdown().signal(),

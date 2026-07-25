@@ -36,6 +36,22 @@ impl CheckpointBaseAdmission {
         })
     }
 
+    pub(crate) fn from_reopened_artifact(
+        checkpoint_id: CheckpointId,
+        root_reference: PhysicalReference,
+        covered_lsn_range: WalLsnRange,
+        trace: RecoveryCandidateDiscoveryTrace,
+        counters: CheckpointRecoveryCounterSnapshot,
+    ) -> Self {
+        Self {
+            checkpoint_id,
+            root_reference,
+            covered_lsn_range,
+            trace,
+            counters,
+        }
+    }
+
     pub fn checkpoint_id(&self) -> &CheckpointId {
         &self.checkpoint_id
     }

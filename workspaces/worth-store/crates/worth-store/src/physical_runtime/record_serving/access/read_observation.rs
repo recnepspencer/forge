@@ -186,6 +186,7 @@ pub enum RecordReadDenial {
     AccessLimitExceeded,
     ArtifactUnavailable,
     ArtifactDamaged,
+    BackendUnavailable(worth_store_physical_backend::ArtifactTreeFailure),
     PhysicalWork(RecordReadWorkDenial),
     FormatMismatch,
     ResidencyUnavailable(worth_store_buffer_pool::PhysicalResidencyDenial),

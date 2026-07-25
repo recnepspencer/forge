@@ -91,7 +91,7 @@ pub struct PhysicalEffectIdentity {
 }
 
 impl PhysicalEffectIdentity {
-    pub(in crate::physical_runtime::work) const fn new(
+    pub(in crate::physical_runtime) const fn new(
         work: PhysicalWorkIdentity,
         backend_operation: MediaOperationIdentity,
     ) -> Self {

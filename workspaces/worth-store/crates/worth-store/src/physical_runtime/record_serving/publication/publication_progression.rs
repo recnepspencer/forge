@@ -92,7 +92,7 @@ fn replace_catalog(
     synchronized: CatalogCandidateSynchronized,
     before: MediaCounterSnapshot,
 ) -> Result<CatalogReplaced, RecordAppendError> {
-    let identity = replacement.execute(eligibility).map_err(|failure| {
+    let settlement = replacement.execute(eligibility).map_err(|failure| {
         if failure.effect_fate() == crate::physical_runtime::PhysicalWorkEffectFate::Indeterminate {
             indeterminate_physical_work(
                 media,
@@ -112,8 +112,11 @@ fn replace_catalog(
         }
     })?;
     let mut plan = synchronized.into_plan();
-    plan.work
-        .record(RecordPublicationStage::CatalogReplacement, identity);
+    plan.work.record_settled(
+        RecordPublicationStage::CatalogReplacement,
+        settlement.identity(),
+        settlement.publication(),
+    );
     Ok(CatalogReplaced(plan))
 }
 

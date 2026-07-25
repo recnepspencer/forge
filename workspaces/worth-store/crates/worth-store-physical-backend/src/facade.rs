@@ -49,15 +49,11 @@ pub use crate::durability_profile::{
 };
 pub use crate::execution::queue::{
     preserve_secure_io_for_backend_completion, BackendQueueExecutionAdaptation,
-    BackendQueueExecutionAuthority, BackendQueueExecutionBackpressure,
-    BackendQueueExecutionBudgetBinding, BackendQueueExecutionCompletion,
-    BackendQueueExecutionCompletionBuilder, BackendQueueExecutionObservedCounters,
-    BackendQueueExecutionPlanBinding, BackendQueueExecutionPosture,
-    BackendQueueExecutionPostureDenial, BackendQueueExecutionReplayBinding,
-    BackendQueueExecutionRunError, BackendQueueExecutionSession, BackendQueueExecutionTicket,
-    BackendQueueExecutionTicketDenial, BackendQueueSpeculativeScope,
+    BackendQueueExecutionBackpressure, BackendQueueExecutionBudgetBinding,
+    BackendQueueExecutionCompletion, BackendQueueExecutionPlanBinding,
+    BackendQueueExecutionPosture, BackendQueueExecutionPostureDenial,
+    BackendQueueExecutionReplayBinding, BackendQueueSpeculativeScope,
     BackendSecureIoPreservationDenial, BackendSecureIoPreservationReceipt, BackendSecureIoScope,
-    StoreOwnedBackendQueueExecution,
 };
 #[cfg(feature = "store-runtime-owner")]
 #[doc(hidden)]
@@ -65,7 +61,8 @@ pub use crate::filesystem_media::qualify_filesystem_media;
 #[cfg(feature = "certification-test-authority")]
 pub use crate::filesystem_media::{
     certification_media_fault_authority, CertificationConfinementEffect,
-    CertificationMediaFaultAuthority,
+    CertificationMediaFaultActivation, CertificationMediaFaultAuthority,
+    MediaFaultActivationDenial,
 };
 pub use crate::filesystem_media::{
     filesystem_media_build_identity, AdmittedFilesystemMedia, AdmittedStoreNamespace,

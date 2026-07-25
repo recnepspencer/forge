@@ -171,7 +171,11 @@ fn dropped_ready_work_releases_signal_and_command_capacity_one_before_close() {
     for _ in 0..8 {
         let receipt = success(serving.physical_read_submission().submit(request.clone()));
         let admitted = serving.admit_physical_work(receipt).unwrap();
-        let ready = match serving.request_physical_work(admitted).unwrap() {
+        let ready = match serving.request_physical_work(admitted).unwrap_or_else(|denial| {
+            panic!(
+                "C5_PREDICATE:store-local-async-registry: local policy state overrode Signal admission: {denial:?}"
+            )
+        }) {
             PhysicalWorkReadiness::Ready(ready) => ready,
             PhysicalWorkReadiness::Blocked(_) => panic!("clean dependency should be ready"),
         };

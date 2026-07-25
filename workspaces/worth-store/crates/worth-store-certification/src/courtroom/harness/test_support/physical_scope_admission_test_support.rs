@@ -20,17 +20,17 @@ pub(crate) fn with_checked_frame(
     validation: PhysicalReferenceValidationWitness,
     run: impl FnOnce(IntegrityCheckedFrame<'_>),
 ) {
-    with_entry_seed(payload, |seed| {
+    let (kind, protected_bytes, witness) = frame_fixture(payload, validation);
+    with_entry_seed(&protected_bytes, |seed| {
         let declaration =
             checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
-        let (kind, witness) = frame_fixture(payload, validation);
         let checked = admission
             .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
                 validation,
                 witness,
                 kind,
-                DeclaredPhysicalChecksum::new(crc32c(payload)),
+                DeclaredPhysicalChecksum::new(crc32c(&protected_bytes)),
             ))
             .unwrap();
         run(checked);
@@ -42,16 +42,17 @@ pub(crate) fn with_checked_page(
     cell: PageGenerationCell,
     run: impl FnOnce(IntegrityCheckedPage<'_>),
 ) {
-    with_entry_seed(payload, |seed| {
+    let (protected_bytes, witness) = page_fixture(payload, cell);
+    with_entry_seed(&protected_bytes, |seed| {
         let declaration =
             checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
         let checked = admission
             .admit_page(PhysicalIntegrityAdmissionRequest::page(
                 cell,
-                page_witness(payload, cell),
+                witness,
                 PhysicalPageKind::DataPage,
-                DeclaredPhysicalChecksum::new(crc32c(payload)),
+                DeclaredPhysicalChecksum::new(crc32c(&protected_bytes)),
             ))
             .unwrap();
         run(checked);
@@ -230,7 +231,7 @@ pub(crate) fn free_space_slot_admission(
 fn frame_fixture(
     payload: &[u8],
     validation: PhysicalReferenceValidationWitness,
-) -> (PhysicalFrameKind, PhysicalHeaderDecodeWitness) {
+) -> (PhysicalFrameKind, Vec<u8>, PhysicalHeaderDecodeWitness) {
     let owner = validation.owner();
     let (kind, bytes) = match owner.domain() {
         PhysicalCellReuseDomain::SlotAllocation => {
@@ -262,18 +263,19 @@ fn frame_fixture(
         .decode_frame_header(validation, &bytes, kind)
         .unwrap()
         .witness();
-    (kind, witness)
+    (kind, bytes, witness)
 }
 
-fn page_witness(payload: &[u8], cell: PageGenerationCell) -> PhysicalHeaderDecodeWitness {
-    header_authority()
-        .decode_page_header(
-            cell,
-            &crate::physical_fixture_encoding::data_page_bytes(cell, payload),
-            PhysicalPageKind::DataPage,
-        )
+fn page_fixture(
+    payload: &[u8],
+    cell: PageGenerationCell,
+) -> (Vec<u8>, PhysicalHeaderDecodeWitness) {
+    let bytes = crate::physical_fixture_encoding::data_page_bytes(cell, payload);
+    let witness = header_authority()
+        .decode_page_header(cell, &bytes, PhysicalPageKind::DataPage)
         .unwrap()
-        .witness()
+        .witness();
+    (bytes, witness)
 }
 
 fn header_authority() -> PhysicalHeaderAuthority {

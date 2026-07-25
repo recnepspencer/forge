@@ -31,6 +31,14 @@ pub fn admit_post_compaction_read_stability_authority(
     ))
 }
 
+pub fn admit_post_publication_read_stability_authority(
+    receipt: &crate::PhysicalPublicationReceipt,
+) -> Result<PhysicalReadStabilityAuthority, core::convert::Infallible> {
+    Ok(PhysicalReadStabilityAuthority::from_current_root(
+        receipt.new_root(),
+    ))
+}
+
 impl PhysicalReadStabilityAuthority {
     fn from_entry(entry: &PhysicalIsolationEntryAdmission) -> Self {
         Self {

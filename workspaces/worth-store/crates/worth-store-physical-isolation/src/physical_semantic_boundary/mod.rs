@@ -15,7 +15,8 @@ pub use denial::{
 pub use foundational_roles::PhysicalSemanticBoundaryRoleEvidence;
 pub use physical_read_stability_authority::{
     admit_physical_read_stability_authority, admit_post_compaction_read_stability_authority,
-    PhysicalReadStabilityAuthority, PhysicalReadStabilityCorrelationBasis,
+    admit_post_publication_read_stability_authority, PhysicalReadStabilityAuthority,
+    PhysicalReadStabilityCorrelationBasis,
 };
 pub use semantic_visibility_reference::{
     SemanticVisibilityReference, SemanticVisibilityReferenceKind,

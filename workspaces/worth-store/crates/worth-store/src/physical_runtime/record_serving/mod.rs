@@ -2,6 +2,7 @@ mod access;
 mod access_policy;
 mod admission;
 mod c6_handoff;
+mod canonical_read_execution;
 mod evidence;
 mod identity;
 mod lifecycle;
@@ -58,6 +59,8 @@ pub use c6_handoff::{
     C6PhysicalWritebackTransitionFailure, C6PreparedPhysicalWriteback,
     C6RetryablePhysicalWriteback,
 };
+use canonical_read_execution::PreparedCanonicalMetadataRead;
+pub(in crate::physical_runtime) use canonical_read_execution::PreparedCanonicalRecordRead;
 #[cfg(feature = "certification-test-authority")]
 pub use evidence::canonical_evidence::{
     lower_offline_record_publication_canonical_basis, lower_record_publication_canonical_basis,
@@ -112,7 +115,7 @@ pub(in crate::physical_runtime::record_serving) use mutation_work_port::Canonica
 pub(in crate::physical_runtime::record_serving) use mutation_work_port::PreparedCatalogReplacement;
 pub(in crate::physical_runtime) use mutation_work_port::{
     CanonicalRecordMutationCompletion, CanonicalRecordMutationFailure, CanonicalRecordMutationPort,
-    PreparedCanonicalRecordMutation,
+    CanonicalRecordMutationSettlement, PreparedCanonicalRecordMutation,
 };
 pub use mutation_work_port::{
     PhysicalRecordMutationFailureCause, PhysicalRecordMutationFailureEvidence,
@@ -139,13 +142,13 @@ pub use publication::streaming::{
 pub use publication::RecordPublicationStage;
 pub use publication::{
     PhysicalRecordSubmission, PreparedRecordAppend, RecordPublicationWorkEffect,
-    RecordPublicationWorkTrace,
+    RecordPublicationWorkSettlement, RecordPublicationWorkTrace,
 };
 pub(in crate::physical_runtime) use publication::{
     RecordPublicationDirector, RecordPublicationFoundation,
 };
 pub(in crate::physical_runtime) use read_work_port::{
-    CanonicalRecordReadFailure, CanonicalRecordReadPort, PreparedCanonicalRecordRead,
+    CanonicalRecordReadFailure, CanonicalRecordReadPort,
 };
 pub(in crate::physical_runtime) use record_work_admission::{
     RecordReadPartition, RecordWorkAdmission,

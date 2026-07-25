@@ -5,9 +5,13 @@ use std::{
 };
 
 use worth_store::physical_runtime::{
-    PhysicalWorkEffectFate, PhysicalWorkRecoveryDisposition, RecordAppendBatch, RecordAppendError,
+    PhysicalSignalSettlementOutcome, PhysicalWorkEffectFate, PhysicalWorkOperationFamily,
+    PhysicalWorkRecoveryDisposition, RecordAppendBatch, RecordAppendDenial, RecordAppendError,
     RecordPublicationRecoveryBasis, RecordPublicationStage, RecordStreamFailureKind,
     RecordWriteSource, RecordWriteSourceError, UnpublishedRecordBatchCause,
+};
+use worth_store_physical_backend::{
+    ArtifactTreeFailureKind, MediaCounterSnapshot, MediaFaultDirective, MediaOperationRole,
 };
 
 use super::{configuration, serving_from_initialization};
@@ -72,16 +76,30 @@ fn successful_publication_exposes_each_causal_work_identity_once() {
     );
     let mut saw_publication = false;
     let mut signal_requests = BTreeSet::new();
-    for identity in &work {
+    for effect in effects {
+        let identity = effect.identity();
         let matches = publication_causal
             .iter()
-            .filter(|record| record.identity() == *identity)
+            .filter(|record| record.identity() == identity)
             .collect::<Vec<_>>();
         assert_eq!(
             matches.len(),
             1,
             "C5_PREDICATE:settlement: each publication effect needs one causal settlement"
         );
+        let settlement = effect
+            .settlement()
+            .expect("successful publication outcomes retain canonical settlement");
+        assert_eq!(
+            settlement.effect().map(|effect| effect.work()),
+            Some(identity)
+        );
+        assert_eq!(
+            settlement.effect().map(|effect| effect.backend_operation()),
+            matches[0].backend_operation()
+        );
+        assert_eq!(settlement.effect_fate(), matches[0].effect_fate());
+        assert_eq!(settlement.recovery(), matches[0].recovery());
         assert!(
             signal_requests.insert(matches[0].signal_request()),
             "C5_PREDICATE:signal-readiness: each effect needs its own Signal request"
@@ -117,6 +135,164 @@ fn successful_publication_exposes_each_causal_work_identity_once() {
     }
     assert!(saw_publication);
     assert!(!serving.close_plan().execute().requires_inspection());
+}
+
+#[test]
+fn reopened_append_planning_reads_enter_canonical_work_topology() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("planning-read-store");
+    let (_, placement, _) = configuration();
+    let initial = serving_from_initialization(&root);
+    initial
+        .record_submission()
+        .append_batch(
+            RecordAppendBatch::try_from_iter([b"published inline tail".as_slice()]).unwrap(),
+            placement,
+        )
+        .unwrap();
+    initial.close();
+
+    let serving = super::super::serving_from_open(&root);
+    let causal_before = serving.physical_work_observer().causal().records().len();
+    let media_before = serving.media_counters();
+    serving
+        .record_submission()
+        .append_batch(
+            RecordAppendBatch::try_from_iter([b"reuse the published tail".as_slice()]).unwrap(),
+            placement,
+        )
+        .unwrap();
+    let media_after = serving.media_counters();
+    let causal = serving.physical_work_observer().causal().records();
+    let planning_reads = causal[causal_before..]
+        .iter()
+        .filter(|record| {
+            matches!(
+                record.operation(),
+                PhysicalWorkOperationFamily::ArtifactMetadataRead
+                    | PhysicalWorkOperationFamily::ArtifactRangeRead
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        !planning_reads.is_empty(),
+        "ordinary append planning must expose canonical read work"
+    );
+    let positioned_reads = media_delta(
+        media_before,
+        media_after,
+        MediaOperationRole::PositionedRead,
+    );
+    assert!(
+        positioned_reads > 0,
+        "the reopened planning world must reach real media"
+    );
+    assert!(
+        planning_reads
+            .iter()
+            .filter(|record| record.backend_operation().is_some())
+            .count() as u64
+            >= positioned_reads,
+        "every planning media read must have a causal canonical read owner"
+    );
+    assert!(planning_reads.iter().all(|record| {
+        record.identity().store() == serving.store_identity()
+            && record.derived_completion() == Some(PhysicalSignalSettlementOutcome::Committed)
+            && record.recovery() == PhysicalWorkRecoveryDisposition::NoEffect
+    }));
+    let signal = serving.physical_signal_observation().unwrap();
+    assert_eq!(signal.active_locality_count(), 0);
+    assert_eq!(signal.active_in_flight_count(), 0);
+    assert!(!serving.close_plan().execute().requires_inspection());
+}
+
+#[test]
+fn denied_planning_read_preserves_health_and_allows_same_runtime_append_retry() {
+    let parent = tempfile::tempdir().unwrap();
+    let root = parent.path().join("planning-read-retry-store");
+    let (_, placement, _) = configuration();
+    let initial = serving_from_initialization(&root);
+    initial
+        .record_submission()
+        .append_batch(
+            RecordAppendBatch::try_from_iter([b"published planning basis".as_slice()]).unwrap(),
+            placement,
+        )
+        .unwrap();
+    initial.close();
+
+    let calibration = super::super::serving_from_open(&root);
+    let bootstrap_reads = calibration
+        .media_counters()
+        .identified_operation_attempts_for(MediaOperationRole::PositionedRead);
+    calibration.close();
+
+    let serving = super::fault_fixture::serving_from_open_with_identified_positioned_read_fault(
+        &root,
+        bootstrap_reads + 1,
+        MediaFaultDirective::FailBefore {
+            kind: std::io::ErrorKind::Other,
+            raw_os_error: None,
+        },
+    );
+    let causal_start = serving.physical_work_observer().causal().records().len();
+    let media_before = serving.media_counters();
+    let error = serving
+        .record_submission()
+        .append_batch(
+            RecordAppendBatch::try_from_iter([b"transient planning denial".as_slice()]).unwrap(),
+            placement,
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
+            if failure.kind() == ArtifactTreeFailureKind::DeniedBeforeEffect
+    ));
+    let media_after = serving.media_counters();
+    assert_eq!(
+        media_after.fault_matches(),
+        media_before.fault_matches() + 1
+    );
+    assert_eq!(
+        media_after.denied_before_effect_for(MediaOperationRole::PositionedRead),
+        media_before.denied_before_effect_for(MediaOperationRole::PositionedRead) + 1
+    );
+    let causal = serving.physical_work_observer().causal().records();
+    let failed_reads = causal[causal_start..]
+        .iter()
+        .filter(|record| {
+            record.operation() == PhysicalWorkOperationFamily::ArtifactRangeRead
+                && record.effect_fate() == PhysicalWorkEffectFate::ProvenNoEffect
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(failed_reads.len(), 1);
+    assert_eq!(failed_reads[0].identity().store(), serving.store_identity());
+    assert_eq!(failed_reads[0].backend_operation(), None);
+    assert_eq!(
+        failed_reads[0].recovery(),
+        PhysicalWorkRecoveryDisposition::NoEffect
+    );
+    let signal = serving.physical_signal_observation().unwrap();
+    assert_eq!(signal.active_locality_count(), 0);
+    assert_eq!(signal.active_in_flight_count(), 0);
+
+    serving
+        .record_submission()
+        .append_batch(
+            RecordAppendBatch::try_from_iter([b"successful planning retry".as_slice()]).unwrap(),
+            placement,
+        )
+        .expect("a transient planning denial must not revoke healthy Store truth");
+    assert!(!serving.close_plan().execute().requires_inspection());
+}
+
+fn media_delta(
+    before: MediaCounterSnapshot,
+    after: MediaCounterSnapshot,
+    role: MediaOperationRole,
+) -> u64 {
+    after.attempts_for(role) - before.attempts_for(role)
 }
 
 #[test]

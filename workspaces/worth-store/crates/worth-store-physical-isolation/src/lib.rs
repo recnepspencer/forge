@@ -180,6 +180,7 @@ pub use physical_read_plan::{
 };
 pub use physical_semantic_boundary::{
     admit_physical_read_stability_authority, admit_post_compaction_read_stability_authority,
+    admit_post_publication_read_stability_authority,
     correlate_semantic_visibility_with_physical_snapshot,
     deny_semantic_visibility_as_physical_stability, PhysicalReadStabilityAuthority,
     PhysicalReadStabilityCorrelationBasis, PhysicalSemanticBoundaryDenial,
@@ -198,8 +199,9 @@ pub use publication::{
     PhysicalPublicationReleasePosture, PhysicalRootPublicationAttempt,
     PhysicalRootPublicationRuntime, PublicationCrashRecoveryOutcome, PublicationEpochPair,
     PublicationEpochReadiness, PublicationLatchReadiness, PublicationRootCandidate,
-    PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication, ReleasedOldReachability,
-    RootPublicationEpoch, RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
+    PublicationRootSuccessorOwner, PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication,
+    ReleasedOldReachability, RootPublicationEpoch, RootSwapOrderingContract,
+    ValidatedPhysicalPublicationIntent,
 };
 pub use readiness::interference::{
     BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,

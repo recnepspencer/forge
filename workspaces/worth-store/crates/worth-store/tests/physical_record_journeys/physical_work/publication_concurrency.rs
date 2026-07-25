@@ -145,13 +145,14 @@ fn disjoint_payload_writes_overlap_while_root_cutover_orders_both_batches() {
     let mut generations = [left.root_generation(), right.root_generation()];
     generations.sort_unstable();
     assert_eq!(generations, [3, 4]);
+    let left_record = left.record_id(0).unwrap();
+    let right_record = right.record_id(0).unwrap();
     assert_eq!(
         serving.media_counters().replacements() - replacements_before,
         2
     );
 
-    for (published, expected) in [(left, LEFT), (right, RIGHT)] {
-        let record = published.record_id(0).unwrap();
+    for (record, expected) in [(left_record, LEFT), (right_record, RIGHT)] {
         let session = serving
             .records()
             .open(
@@ -171,6 +172,29 @@ fn disjoint_payload_writes_overlap_while_root_cutover_orders_both_batches() {
         "stable-root reads and successful publication must not manufacture dependency changes"
     );
     assert!(!serving.close_plan().execute().requires_inspection());
+
+    let reopened = super::super::serving_from_open(&root);
+    for (record, expected) in [(seed, SEED), (left_record, LEFT), (right_record, RIGHT)] {
+        let session = reopened
+            .records()
+            .open(
+                record,
+                RecordReadLimits::new(RecordByteLimit::new(expected.len() as u32).unwrap()),
+            )
+            .unwrap();
+        assert_eq!(read_record(session, expected.len()).0, expected);
+    }
+    let scanned = scan_records(&reopened);
+    assert_eq!(scanned.len(), 3);
+    for (record, expected) in [(seed, SEED), (left_record, LEFT), (right_record, RIGHT)] {
+        assert!(
+            scanned
+                .iter()
+                .any(|(found, payload)| *found == record && payload == expected),
+            "fresh reopen scan omitted record {record:?}"
+        );
+    }
+    assert!(!reopened.close_plan().execute().requires_inspection());
 }
 
 #[test]
@@ -335,6 +359,33 @@ fn scan_record_count(serving: &worth_store::physical_runtime::ServingPhysicalRun
         match scan.read_next_into(&mut scratch).unwrap() {
             RecordScanOutcome::Batch(batch) => count += batch.records().len(),
             RecordScanOutcome::Completed(_) => return count,
+        }
+    }
+}
+
+fn scan_records(
+    serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
+) -> Vec<(worth_store::physical_runtime::PhysicalRecordId, Vec<u8>)> {
+    let mut scan = serving
+        .records()
+        .scan(RecordScanRequest::from_start())
+        .unwrap();
+    let mut scratch = [0_u8; 256];
+    let mut records = Vec::new();
+    loop {
+        match scan.read_next_into(&mut scratch).unwrap() {
+            RecordScanOutcome::Batch(batch) => {
+                records.extend(batch.records().iter().enumerate().map(|(index, record)| {
+                    (
+                        record.record_id(),
+                        batch
+                            .payload(index)
+                            .expect("small concurrency payloads are inline")
+                            .to_vec(),
+                    )
+                }));
+            }
+            RecordScanOutcome::Completed(_) => return records,
         }
     }
 }

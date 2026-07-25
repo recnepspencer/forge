@@ -65,7 +65,12 @@ impl FrameReadSource for CanonicalFrameReadSource {
         self.port
             .prepare(coordinate, self.range_partition(artifact))
             .map(|prepared| Box::new(prepared) as Box<dyn PreparedFrameRead>)
-            .map_err(|failure| FrameReadSourceFailure::work(failure, FrameWorkTrace::default()))
+            .map_err(|failure| {
+                FrameReadSourceFailure::work(
+                    failure.failure(),
+                    FrameWorkTrace::one(failure.identity()),
+                )
+            })
     }
 
     fn file_length(
@@ -74,8 +79,12 @@ impl FrameReadSource for CanonicalFrameReadSource {
     ) -> Result<ObservedArtifactLength, FrameReadSourceFailure> {
         self.port
             .file_length(artifact, self.metadata_partition(artifact))
-            .map(|(bytes, work)| {
-                ObservedArtifactLength::new(bytes, FrameWorkTrace::one(Some(work)))
+            .map(|(bytes, work, projection_failure)| {
+                ObservedArtifactLength::admitted(
+                    bytes,
+                    FrameWorkTrace::one(Some(work)),
+                    projection_failure,
+                )
             })
             .map_err(|failure| {
                 FrameReadSourceFailure::work(
@@ -91,17 +100,25 @@ impl PreparedFrameRead for PreparedCanonicalRecordRead {
         Some(self.identity())
     }
 
-    fn execute(self: Box<Self>, target: &mut [u8]) -> Result<(), FrameReadSourceFailure> {
-        let bytes = (*self)
-            .execute()
-            .map_err(|failure| FrameReadSourceFailure::work(failure, FrameWorkTrace::none()))?;
+    fn execute(
+        self: Box<Self>,
+        target: &mut [u8],
+    ) -> Result<
+        Option<crate::physical_runtime::instance::PhysicalProjectionFailureCapability>,
+        FrameReadSourceFailure,
+    > {
+        let identity = (*self).identity();
+        let (bytes, projection_failure) = (*self).execute().map_err(|failure| {
+            FrameReadSourceFailure::work(failure, FrameWorkTrace::one(Some(identity)))
+        })?;
         if bytes.len() != target.len() {
+            projection_failure.consume();
             return Err(FrameReadSourceFailure::work(
                 CanonicalRecordReadFailure::SettlementMismatch,
-                FrameWorkTrace::default(),
+                FrameWorkTrace::one(Some(identity)),
             ));
         }
         target.copy_from_slice(&bytes);
-        Ok(())
+        Ok(Some(projection_failure))
     }
 }

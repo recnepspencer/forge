@@ -14,6 +14,8 @@ const WORLD_CREATION_BUDGET_MS: u64 = 1_000;
 const SOURCE_INVENTORY_BUDGET_MS: u64 = 5_000;
 const PREBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const POSTBUILD_BINARY_BINDING_BUDGET_MS: u64 = 3_000;
+const POSTBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
+const FINAL_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const EXECUTABLE_VERIFICATION_BUDGET_MS: u64 = 1_000;
 const SCENARIO_STAGE_BUDGET_MS: u64 = 5_000;
 const SCENARIO_TOTAL_BUDGET_MS: u64 = 15_000;
@@ -98,6 +100,14 @@ impl CampaignTimings {
                 POSTBUILD_BINARY_BINDING_BUDGET_MS,
             ),
             (
+                CampaignPhase::PostbuildSourceBinding,
+                POSTBUILD_SOURCE_BINDING_BUDGET_MS,
+            ),
+            (
+                CampaignPhase::FinalSourceBinding,
+                FINAL_SOURCE_BINDING_BUDGET_MS,
+            ),
+            (
                 CampaignPhase::ExecutableVerification,
                 EXECUTABLE_VERIFICATION_BUDGET_MS,
             ),
@@ -137,15 +147,21 @@ impl CampaignTimings {
     }
 
     fn validate_scenario_budgets(&self) -> Result<(), String> {
-        let scenario = self
+        let bounded = self.phases.iter().filter(|phase| {
+            matches!(
+                phase.identity,
+                TimingIdentity::Scenario { .. } | TimingIdentity::CaseVerification(_)
+            )
+        });
+        for phase in bounded {
+            require_within(phase, SCENARIO_STAGE_BUDGET_MS)?;
+        }
+        let scenario_stages = self
             .phases
             .iter()
             .filter(|phase| matches!(phase.identity, TimingIdentity::Scenario { .. }))
             .collect::<Vec<_>>();
-        for phase in &scenario {
-            require_within(phase, SCENARIO_STAGE_BUDGET_MS)?;
-        }
-        let total = scenario
+        let total = scenario_stages
             .iter()
             .fold(0_u64, |sum, phase| sum.saturating_add(phase.elapsed_ms()));
         if total > SCENARIO_TOTAL_BUDGET_MS {

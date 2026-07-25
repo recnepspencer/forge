@@ -1,11 +1,13 @@
 use super::support::{
-    admit_background, admit_entry, class_request, damaged_integrity_model_input,
-    intact_integrity_model_input, physical_authority, recovery_blocking_quarantine_binding,
-    recovery_blocking_wal_damage_map, recovery_memory_envelope,
+    admit_entry, damaged_integrity_model_input, intact_integrity_model_input, physical_authority,
+    recovery_blocking_quarantine_binding, recovery_blocking_wal_damage_map,
+    recovery_memory_allocation,
 };
-use worth_store_buffer_pool::{BackgroundEnvelopeAdmission, BackgroundWorkClass};
+use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::operation_allocation;
+use worth_store_buffer_pool::{OperationAllocationScope, PhysicalResidencyDenial};
 use worth_store_recovery_physics::{
     IntegrityHandoffPayload, RecoveryEntryAdmission, RecoveryEntryAdmissionDecision,
+    RecoveryMemoryAllocation, RecoveryMemoryAllocationDenial,
 };
 
 #[test]
@@ -28,39 +30,23 @@ fn intact_integrity_model_input_and_recovery_envelope_produce_stable_entry_ident
 }
 
 #[test]
-fn recovery_entry_rejects_wrong_or_unbounded_recovery_envelopes_before_admission() {
-    let compaction = admit_background(class_request(BackgroundWorkClass::CompactionPlanning));
-    let denial = worth_store_recovery_physics::RecoveryMemoryEnvelope::from_admitted(compaction)
-        .unwrap_err();
+fn recovery_entry_rejects_wrong_scope_or_over_budget_allocation_before_admission() {
+    let maintenance = operation_allocation(OperationAllocationScope::Maintenance, 128)
+        .expect("bounded maintenance allocation should admit");
+    let denial = RecoveryMemoryAllocation::from_allocation_grant(maintenance).unwrap_err();
 
     assert_eq!(
         denial,
-        worth_store_recovery_physics::RecoveryMemoryEnvelopeDenial::WrongBackgroundEnvelopeClass {
-            expected: BackgroundWorkClass::RecoveryPlanning,
-            actual: BackgroundWorkClass::CompactionPlanning,
+        RecoveryMemoryAllocationDenial::WrongAllocationScope {
+            actual: OperationAllocationScope::Maintenance,
         }
     );
 
-    let mut admission = BackgroundEnvelopeAdmission::new();
-    let mut allocation = super::support::allocation_admission();
-    let unbounded = admission
-        .admit(
-            worth_store_buffer_pool::BackgroundEnvelopeRequest::recovery_planning()
-                .resident_frames(1)
-                .resident_bytes(128)
-                .whole_object_memory_bytes(4096)
-                .allocation_bytes(128)
-                .finish(),
-            super::support::permissive_budget(),
-            &mut allocation,
-        )
-        .unwrap_err();
-
+    let over_budget = operation_allocation(OperationAllocationScope::Recovery, 513).unwrap_err();
     assert_eq!(
-        unbounded.work_class(),
-        BackgroundWorkClass::RecoveryPlanning
+        over_budget,
+        PhysicalResidencyDenial::OperationBudgetExceeded
     );
-    assert_eq!(unbounded.counters().admitted(), 0);
 }
 
 #[test]
@@ -68,7 +54,7 @@ fn recovery_blocking_damage_blocks_before_replay_or_source_precedence() {
     let model_input = damaged_integrity_model_input();
     let decision = RecoveryEntryAdmission::admit(
         model_input,
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
         physical_authority(),
     );
 
@@ -115,7 +101,7 @@ fn quarantine_summary_preserves_its_damage_case_across_mixed_recovery_blockers()
 
     let RecoveryEntryAdmissionDecision::Blocked(blocked) = RecoveryEntryAdmission::admit(
         model_input,
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
         physical_authority(),
     ) else {
         panic!("mixed blockers should still block before replay planning");

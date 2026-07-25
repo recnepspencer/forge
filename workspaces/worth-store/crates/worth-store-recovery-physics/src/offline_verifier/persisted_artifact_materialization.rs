@@ -51,14 +51,40 @@ impl PersistedRecoveryArtifactMaterialization {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckpointManifestMaterialization {
     record_id: String,
-    root: String,
-    frontier_lsn: u64,
+    root_reference: u64,
+    root_generation: u64,
+    covered_lsn_start: u64,
+    covered_lsn_end: u64,
     source_profile: String,
     source_candidate_count: usize,
     memory_envelope_bytes: u64,
     memory_envelope_frames: u32,
     allocation_bytes: u64,
     total_store_pages: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CheckpointManifestRecoveryBasisMaterialization {
+    root_reference: u64,
+    root_generation: u64,
+    covered_lsn_start: u64,
+    covered_lsn_end: u64,
+}
+
+impl CheckpointManifestRecoveryBasisMaterialization {
+    pub const fn new(
+        root_reference: u64,
+        root_generation: u64,
+        covered_lsn_start: u64,
+        covered_lsn_end: u64,
+    ) -> Self {
+        Self {
+            root_reference,
+            root_generation,
+            covered_lsn_start,
+            covered_lsn_end,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,15 +129,16 @@ impl CheckpointManifestBudgetMaterialization {
 impl CheckpointManifestMaterialization {
     pub fn new(
         record_id: impl Into<String>,
-        root: impl Into<String>,
-        frontier_lsn: u64,
+        basis: CheckpointManifestRecoveryBasisMaterialization,
         source: CheckpointManifestSourceMaterialization,
         budget: CheckpointManifestBudgetMaterialization,
     ) -> Self {
         Self {
             record_id: record_id.into(),
-            root: root.into(),
-            frontier_lsn,
+            root_reference: basis.root_reference,
+            root_generation: basis.root_generation,
+            covered_lsn_start: basis.covered_lsn_start,
+            covered_lsn_end: basis.covered_lsn_end,
             source_profile: source.profile,
             source_candidate_count: source.candidate_count,
             memory_envelope_bytes: budget.memory_envelope_bytes,
@@ -127,9 +154,11 @@ impl CheckpointManifestMaterialization {
         RecoveryPersistedRecord::from_persisted_bytes(
             self.record_id,
             format!(
-                "checkpoint:root={};frontier={};source_profile={};source_candidates={};memory_bytes={};memory_frames={};allocation_bytes={};total_store_pages={}",
-                self.root,
-                self.frontier_lsn,
+                "checkpoint:root_reference={};root_generation={};covered_start={};covered_end={};source_profile={};source_candidates={};memory_bytes={};memory_frames={};allocation_bytes={};total_store_pages={}",
+                self.root_reference,
+                self.root_generation,
+                self.covered_lsn_start,
+                self.covered_lsn_end,
                 self.source_profile,
                 self.source_candidate_count,
                 self.memory_envelope_bytes,

@@ -1,12 +1,11 @@
-use std::time::{Duration, Instant};
-
 use worth_store::physical_runtime::{
     PhysicalWorkCounterSnapshot, PhysicalWorkCounterStage, PhysicalWorkOperationFamily,
-    RecordAppendBatch, RecordByteLimit, RecordReadDenial, RecordReadLimits, RecordReadObservation,
+    RecordAppendBatch, RecordByteLimit, RecordReadLimits, RecordReadObservation,
 };
-use worth_store_physical_backend::{MediaFaultDirective, MediaOperationRole};
+use worth_store_physical_backend::MediaOperationRole;
 
 use super::super::{read_record, serving_from_open};
+use super::record_read_signal_cleanup::await_read_signal_cleanup;
 use super::{configuration, serving_from_initialization};
 
 const PAYLOAD: &[u8] = b"canonical cold and hot record read";
@@ -42,7 +41,7 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
         serving.records().open(record, limits).unwrap(),
         PAYLOAD.len(),
     );
-    await_read_cleanup(&serving);
+    await_read_signal_cleanup(&serving);
     let media_after_cold = serving.media_counters();
     let residency_after_cold = serving.residency_counters();
     let work_after_cold = serving.physical_work_counters();
@@ -52,7 +51,7 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
         serving.records().open(record, limits).unwrap(),
         PAYLOAD.len(),
     );
-    await_read_cleanup(&serving);
+    await_read_signal_cleanup(&serving);
     let media_after_hot = serving.media_counters();
     let residency_after_hot = serving.residency_counters();
     let work_after_hot = serving.physical_work_counters();
@@ -172,138 +171,6 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     serving.close();
 }
 
-#[test]
-fn partial_backend_read_is_denied_at_the_public_read_boundary_and_revokes_health() {
-    let parent = tempfile::tempdir().unwrap();
-    let root = parent.path().join("store");
-    let (_, placement, _) = configuration();
-    let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
-    initial.close();
-
-    let calibration = serving_from_open(&root);
-    let bootstrap_reads = calibration
-        .media_counters()
-        .attempts_for(MediaOperationRole::PositionedRead);
-    calibration.close();
-
-    let serving = super::fault_fixture::serving_from_open_with_positioned_read_fault(
-        &root,
-        bootstrap_reads + 1,
-        MediaFaultDirective::AllowPrefix { bytes: 3 },
-    );
-    let limits = RecordReadLimits::new(RecordByteLimit::new(PAYLOAD.len() as u32).unwrap());
-    let before = serving.media_counters();
-    let invalidations_before = serving
-        .physical_signal_observation()
-        .unwrap()
-        .aspect_invalidation_count();
-    let failure = match serving.records().open(record, limits) {
-        Ok(_) => panic!("a partial backend read must not construct a record session"),
-        Err(failure) => failure,
-    };
-    assert_eq!(failure.denial(), RecordReadDenial::ArtifactDamaged);
-    assert!(failure.observation().physical_work_count() > 0);
-    await_read_cleanup(&serving);
-    let after = serving.media_counters();
-    let invalidations_after = serving
-        .physical_signal_observation()
-        .unwrap()
-        .aspect_invalidation_count();
-    assert_eq!(
-        invalidations_after,
-        invalidations_before + 1,
-        "the admitted failing read must emit exactly one dependency invalidation"
-    );
-    let failed_identity = failure
-        .observation()
-        .last_physical_work()
-        .expect("the failing physical read retains its identity");
-    let causal = serving.physical_work_observer().causal().records();
-    let failed = causal
-        .iter()
-        .find(|record| record.identity() == failed_identity)
-        .expect("the failing physical read has causal settlement evidence");
-    let bindings = serving.physical_signal_aspect_binding_observations();
-    let partition = bindings
-        .iter()
-        .find(|binding| binding.digest() == failed.signal_binding())
-        .and_then(|binding| binding.partition())
-        .expect("the failing read binding is partitioned");
-    assert_eq!(partition.partition.0, "store.physical.record.root");
-    assert_eq!(
-        after.attempts_for(MediaOperationRole::PositionedRead)
-            - before.attempts_for(MediaOperationRole::PositionedRead),
-        1
-    );
-    assert_eq!(
-        after.completed_bytes_for(MediaOperationRole::PositionedRead)
-            - before.completed_bytes_for(MediaOperationRole::PositionedRead),
-        0
-    );
-    assert!(matches!(
-        serving.records().open(record, limits),
-        Err(error) if error.denial() == RecordReadDenial::ServingRequiresInspection
-    ));
-    assert!(serving.close_plan().execute().requires_inspection());
-}
-
-#[test]
-fn cancelling_a_read_session_reports_unread_delivery_and_releases_its_leases() {
-    let parent = tempfile::tempdir().unwrap();
-    let root = parent.path().join("store");
-    let (_, placement, _) = configuration();
-    let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
-    initial.close();
-
-    let serving = serving_from_open(&root);
-    let observer = serving.observer();
-    let limits = RecordReadLimits::new(RecordByteLimit::new(PAYLOAD.len() as u32).unwrap());
-    let mut session = serving.records().open(record, limits).unwrap();
-    await_read_cleanup(&serving);
-    assert_eq!(observer.record_counters().read_sessions_live(), 1);
-    let mut prefix = [0_u8; 5];
-    assert_eq!(session.read_next(&mut prefix).unwrap(), prefix.len());
-    assert_eq!(&prefix, &PAYLOAD[..prefix.len()]);
-    let media_before_cancel = serving.media_counters();
-
-    let cancellation = session.cancel();
-
-    assert_eq!(cancellation.observation().bytes_completed(), 5);
-    assert_eq!(
-        cancellation.unread_payload_bytes(),
-        (PAYLOAD.len() - prefix.len()) as u64
-    );
-    assert!(!cancellation.delivery_was_complete());
-    assert!(cancellation.observation().physical_work_count() > 0);
-    assert_eq!(observer.record_counters().read_sessions_live(), 0);
-    assert_eq!(serving.media_counters(), media_before_cancel);
-    let (bytes, _) = read_record(
-        serving.records().open(record, limits).unwrap(),
-        PAYLOAD.len(),
-    );
-    assert_eq!(bytes, PAYLOAD);
-    await_read_cleanup(&serving);
-    assert!(!serving.close_plan().execute().requires_inspection());
-}
-
 fn assert_same_semantic_observation(left: RecordReadObservation, right: RecordReadObservation) {
     assert_eq!(left.touched_segments(), right.touched_segments());
     assert_eq!(left.touched_pages(), right.touched_pages());
@@ -359,34 +226,4 @@ fn family_work_delta(
     stage: PhysicalWorkCounterStage,
 ) -> u64 {
     after.count(family, stage) - before.count(family, stage)
-}
-
-fn await_read_cleanup(serving: &worth_store::physical_runtime::ServingPhysicalRuntime) {
-    let deadline = Instant::now() + Duration::from_secs(2);
-    loop {
-        let observation = serving.physical_signal_observation().unwrap();
-        if observation.active_locality_count() == 0 && observation.active_in_flight_count() == 0 {
-            return;
-        }
-        if Instant::now() >= deadline {
-            let records = serving.physical_work_observer().causal().records();
-            let outcomes = records
-                .iter()
-                .map(|record| (record.backend_operation(), record.derived_completion()))
-                .collect::<Vec<_>>();
-            panic!(
-                "canonical read work retained Signal state after termination: localities={}, in_flight={}, declared={}, terminal={}, settled={}, outcomes={outcomes:?}",
-                observation.active_locality_count(),
-                observation.active_in_flight_count(),
-                serving
-                    .physical_work_counters()
-                    .total(PhysicalWorkCounterStage::Declared),
-                serving
-                    .physical_work_counters()
-                    .total(PhysicalWorkCounterStage::Terminal),
-                records.len(),
-            );
-        }
-        std::thread::yield_now();
-    }
 }

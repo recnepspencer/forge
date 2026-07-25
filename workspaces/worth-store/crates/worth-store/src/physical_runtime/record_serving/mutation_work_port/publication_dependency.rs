@@ -74,7 +74,7 @@ impl PreparedCatalogReplacement {
     pub(in crate::physical_runtime::record_serving) fn execute(
         self,
         eligibility: super::super::publication::CatalogReplacementEligibility,
-    ) -> Result<PhysicalWorkIdentity, CanonicalRecordMutationFailure> {
+    ) -> Result<super::CanonicalRecordMutationSettlement, CanonicalRecordMutationFailure> {
         let Self {
             runtime,
             execution,
@@ -128,10 +128,13 @@ impl PreparedCatalogReplacement {
             ),
         }
         .execute()?;
+        let settlement = completion.settlement();
         match completion {
-            super::CanonicalRecordMutationCompletion::PublicationEffect(identity) => Ok(identity),
+            super::CanonicalRecordMutationCompletion::PublicationEffect(settlement) => {
+                Ok(settlement)
+            }
             super::CanonicalRecordMutationCompletion::CandidateFrame(_) => Err(
-                CanonicalRecordMutationFailure::settlement_mismatch(identity),
+                CanonicalRecordMutationFailure::settlement_mismatch(settlement),
             ),
         }
     }

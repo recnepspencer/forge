@@ -40,5 +40,5 @@ pub use termination::{
 pub(in crate::physical_runtime) use work_lifecycle::PhysicalWorkLifecycle;
 pub use work_runtime::PhysicalWorkExecution;
 pub(in crate::physical_runtime) use work_runtime::{
-    PhysicalExecutionCall, PhysicalStoreWorkRuntime,
+    PhysicalExecutionCall, PhysicalProjectionFailureCapability, PhysicalStoreWorkRuntime,
 };

@@ -18,6 +18,7 @@ mod directory_listing;
 mod directory_synchronization;
 mod durable_deletion;
 mod failure_context;
+mod fault_activation;
 mod fault_interposition;
 mod fault_schedule;
 #[cfg(any(test, feature = "certification-test-authority"))]
@@ -110,6 +111,8 @@ pub use durable_deletion::{
 pub use failure_context::{
     MediaCausalBoundary, MediaFailureContext, MediaOsCode, MediaOsCodeFamily, MediaPathRole,
 };
+#[cfg(any(test, feature = "certification-test-authority"))]
+pub use fault_activation::{CertificationMediaFaultActivation, MediaFaultActivationDenial};
 pub use fault_schedule::{
     MediaFaultDirective, MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial,
 };

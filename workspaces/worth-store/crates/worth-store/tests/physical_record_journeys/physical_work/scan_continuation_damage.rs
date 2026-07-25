@@ -5,9 +5,9 @@ use std::{
 
 use worth_store::physical_runtime::{
     PhysicalSignalAspectBindingDigest, PhysicalSignalAspectBindingObservation,
-    PhysicalWorkEffectFate, PhysicalWorkOperationFamily, RecordAppendBatch, RecordAppendDenial,
-    RecordAppendError, RecordCountLimit, RecordReadDenial, RecordScanDenial, RecordScanOutcome,
-    RecordScanRequest, ServingPhysicalRuntime,
+    PhysicalWorkEffectFate, PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition,
+    RecordAppendBatch, RecordAppendDenial, RecordAppendError, RecordCountLimit, RecordReadDenial,
+    RecordScanDenial, RecordScanOutcome, RecordScanRequest, ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{MediaCounterSnapshot, MediaFaultDirective, MediaOperationRole};
 
@@ -43,10 +43,7 @@ fn open_faulted(calibration: ScanCalibration) -> (tempfile::TempDir, ServingPhys
     let serving = super::fault_fixture::serving_from_open_with_identified_positioned_read_fault(
         &root,
         calibration.after_scan_admission + 1,
-        MediaFaultDirective::FailBefore {
-            kind: std::io::ErrorKind::Other,
-            raw_os_error: None,
-        },
+        MediaFaultDirective::AllowPrefix { bytes: 3 },
     );
     assert_eq!(
         identified_reads(&serving),
@@ -105,11 +102,16 @@ fn assert_failed_effect(
     assert_eq!(after.attempts_for(role) - before.attempts_for(role), 1);
     assert_eq!(
         after.denied_before_effect_for(role) - before.denied_before_effect_for(role),
-        1
+        0
     );
     assert_eq!(
         after.completed_operations_for(role) - before.completed_operations_for(role),
-        0
+        0,
+        "a retained three-byte prefix is a real effect, not a completed exact read"
+    );
+    assert_eq!(
+        after.completed_bytes_for(role) - before.completed_bytes_for(role),
+        3
     );
     assert_eq!(
         signal(serving).aspect_invalidation_count(),
@@ -123,10 +125,15 @@ fn assert_failed_scan_route(serving: &ServingPhysicalRuntime, causal_start: usiz
         .iter()
         .filter(|record| {
             record.operation() == PhysicalWorkOperationFamily::ArtifactRangeRead
-                && record.effect_fate() == PhysicalWorkEffectFate::ProvenNoEffect
+                && record.effect_fate() == PhysicalWorkEffectFate::ReadIncomplete
         })
         .collect::<Vec<_>>();
     assert_eq!(failed.len(), 1);
+    assert!(failed[0].backend_operation().is_some());
+    assert_eq!(
+        failed[0].recovery(),
+        PhysicalWorkRecoveryDisposition::InspectionRequired
+    );
     assert_eq!(
         partition_for(failed[0].signal_binding(), serving),
         SCAN_PARTITION

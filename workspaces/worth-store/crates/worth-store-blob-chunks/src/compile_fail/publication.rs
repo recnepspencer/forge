@@ -158,7 +158,7 @@
 //!
 //! let raw: &[u8] = b"worth-store.partial-publication.v1\nbefore-wal-append\ncopied";
 //! let protected = ProtectedPhysicalByteView { bytes: raw };
-//! let _read = PartialPublicationBeforeWalReplayRead::from_protected_physical_bytes(protected);
+//! let _read = PartialPublicationBeforeWalReplayRead::from_integrity_checked_frame(protected);
 //! ```
 //! Copied crash-edge representation cannot mint replayed crash-edge authority:
 //! ```compile_fail

@@ -53,13 +53,14 @@ impl WalFrameIntegrityAuthority {
                 basis,
             ));
         }
+        let payload = frame.checked_payload_bytes();
         reject_payload_length_mismatch(
             frame.physical_witness().payload_length() as usize,
-            frame.checked_bytes().len_bytes(),
+            payload.len(),
             counters,
             &basis,
         )?;
-        inspect_tail_evidence(frame.checked_bytes().as_bytes(), counters, basis)
+        inspect_tail_evidence(payload, counters, basis)
     }
 
     pub fn inspect_checkpoint_adjacent(

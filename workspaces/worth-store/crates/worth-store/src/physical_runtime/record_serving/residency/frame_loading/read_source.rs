@@ -27,22 +27,49 @@ pub(in crate::physical_runtime::record_serving) trait FrameReadSource {
     ) -> Result<ObservedArtifactLength, FrameReadSourceFailure>;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug)]
 pub(in crate::physical_runtime::record_serving) struct ObservedArtifactLength {
     bytes: u64,
     work: FrameWorkTrace,
+    projection_failure:
+        Option<crate::physical_runtime::instance::PhysicalProjectionFailureCapability>,
 }
 
 impl ObservedArtifactLength {
     const fn new(bytes: u64, work: FrameWorkTrace) -> Self {
-        Self { bytes, work }
+        Self {
+            bytes,
+            work,
+            projection_failure: None,
+        }
     }
 
-    pub(in crate::physical_runtime::record_serving) const fn bytes(self) -> u64 {
+    const fn admitted(
+        bytes: u64,
+        work: FrameWorkTrace,
+        projection_failure: crate::physical_runtime::instance::PhysicalProjectionFailureCapability,
+    ) -> Self {
+        Self {
+            bytes,
+            work,
+            projection_failure: Some(projection_failure),
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) const fn bytes(&self) -> u64 {
         self.bytes
     }
 
-    pub(in crate::physical_runtime::record_serving) const fn work_trace(self) -> FrameWorkTrace {
+    pub(in crate::physical_runtime::record_serving) const fn work_trace(&self) -> FrameWorkTrace {
+        self.work
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn reject_structural_damage(
+        mut self,
+    ) -> FrameWorkTrace {
+        if let Some(projection_failure) = self.projection_failure.take() {
+            projection_failure.consume();
+        }
         self.work
     }
 }
@@ -50,7 +77,13 @@ impl ObservedArtifactLength {
 pub(in crate::physical_runtime::record_serving) trait PreparedFrameRead {
     fn identity(&self) -> Option<PhysicalWorkIdentity>;
 
-    fn execute(self: Box<Self>, target: &mut [u8]) -> Result<(), FrameReadSourceFailure>;
+    fn execute(
+        self: Box<Self>,
+        target: &mut [u8],
+    ) -> Result<
+        Option<crate::physical_runtime::instance::PhysicalProjectionFailureCapability>,
+        FrameReadSourceFailure,
+    >;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

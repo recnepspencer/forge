@@ -68,9 +68,9 @@ pub(super) fn inspect_wal_payload_for_owner(
     let checked = integrity_admission
         .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
             reference,
-            wal_header_witness(&frame_bytes(cell, payload), reference),
+            wal_header_witness(&frame, reference),
             PhysicalFrameKind::RecordFrame,
-            DeclaredPhysicalChecksum::new(crc32c(payload).into()),
+            DeclaredPhysicalChecksum::new(crc32c(&frame).into()),
         ))
         .unwrap();
     let scoped = PhysicalScopeAdmission::admit_frame(
@@ -268,4 +268,34 @@ fn frame_coordinate(owner: PhysicalGenerationOwner, frame_bytes: usize) -> Recor
         u32::try_from(frame_bytes).expect("fixture frame length fits the physical coordinate"),
     )
     .unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{inspect_wal_payload, intact_wal_payload, torn_wal_payload, wal_payload};
+    use worth_store_recovery_physics::{LogSequenceNumber, WalLsnRange};
+
+    #[test]
+    fn intact_wal_frame_checksum_covers_header_and_payload() {
+        let range = range();
+        let inspection = inspect_wal_payload(&intact_wal_payload(range));
+
+        assert!(
+            inspection.is_ok(),
+            "intact WAL frame should admit: {inspection:?}"
+        );
+    }
+
+    #[test]
+    fn damaged_and_torn_wal_frames_remain_denied() {
+        let range = range();
+
+        assert!(inspect_wal_payload(&wal_payload(range, 0, "checksum-fail")).is_err());
+        assert!(inspect_wal_payload(&torn_wal_payload(range)).is_err());
+    }
+
+    fn range() -> WalLsnRange {
+        WalLsnRange::new(LogSequenceNumber::new(40), LogSequenceNumber::new(50))
+            .expect("test WAL range is ordered")
+    }
 }

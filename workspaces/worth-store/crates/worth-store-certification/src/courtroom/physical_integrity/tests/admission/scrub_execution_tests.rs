@@ -22,7 +22,7 @@ fn online_and_offline_scrub_converge_on_overlapping_integrity_evidence() {
     with_scrub_budget(|budget| {
         with_checked_frame(b"same-window", validation(1, 2, 3, 7), |checked| {
             let protected = checked.checked_bytes();
-            let persisted_windows = persisted_scrub_fixture_windows(b"same-window");
+            let persisted_windows = persisted_scrub_fixture_windows(protected.as_bytes());
             let online = ScrubPlan::build(ScrubPlanRequest::online(
                 vec![ScrubWindow::online_from_protected_view(
                     ordinal(0),

@@ -67,6 +67,7 @@ fn independent_mutation_capabilities_execute_without_a_global_runtime_borrow() {
             .concurrency_scope()
             .relation(&second.concurrency_scope()),
         worth_store::physical_runtime::PhysicalWorkConcurrencyRelation::DisjointArtifacts,
+        "C5_PREDICATE:branch-label-disjointness exact physical coordinates, not label-like digests, must determine concurrency",
     );
     let first = PhysicalExecutorCommand::exact_write(first, b"thread01".as_slice()).unwrap();
     let second = PhysicalExecutorCommand::exact_write(second, b"thread02".as_slice()).unwrap();
@@ -108,7 +109,7 @@ fn independent_mutation_capabilities_execute_without_a_global_runtime_borrow() {
     );
     assert!(
         overlapped,
-        "both disjoint target effects must reach the backend while the other is paused"
+        "C5_PREDICATE:global-mutation-lock both disjoint target effects must reach the backend while the other is paused"
     );
     assert_eq!(
         serving
@@ -185,8 +186,14 @@ fn close_waits_for_a_dispatched_execution_capability_before_disposal() {
             std::thread::yield_now();
         }
         assert!(progress.reached(PhysicalStoreClosePhase::AdmissionStopped));
-        assert!(!progress.reached(PhysicalStoreClosePhase::DispatchSettlementComplete));
-        assert!(!progress.reached(PhysicalStoreClosePhase::SignalDisposed));
+        assert!(
+            !progress.reached(PhysicalStoreClosePhase::DispatchSettlementComplete),
+            "C5_PREDICATE:duplicate-work-registry: close used a registry disjoint from active execution"
+        );
+        assert!(
+            !progress.reached(PhysicalStoreClosePhase::SignalDisposed),
+            "C5_PREDICATE:duplicate-work-registry: Signal disposed before the canonical execution registry drained"
+        );
         gate.release();
         (effect.join().unwrap().unwrap(), closing.join().unwrap())
     });

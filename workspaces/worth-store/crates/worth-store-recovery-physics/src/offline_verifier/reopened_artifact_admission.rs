@@ -1,14 +1,19 @@
 use worth_store_physical_backend::BackendDurabilityProfileId;
 use worth_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalSegmentId,
+    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceAuthority,
+    PhysicalRootReference, PhysicalSegmentId,
 };
 
 use crate::{
-    LogSequenceNumber, PageLsn, PageRedoDigestState, PageRedoEligibility, RedoApplicationCursor,
-    RedoApplicationPageFact, RedoPlanningDenial,
+    CheckpointBaseAdmission, CheckpointId, CheckpointRecoveryCounterSnapshot, LogSequenceNumber,
+    PageLsn, PageRedoDigestState, PageRedoEligibility, RecoveryCandidateDiscoveryTrace,
+    RedoApplicationCursor, RedoApplicationPageFact, RedoPlanningDenial, WalLsnRange,
 };
 
-use super::physical_record_grammar::{CheckpointPageImageRecord, PersistedPhysicalRecord};
+use super::decoded_recovery_record_set::DecodedRecoveryRecords;
+use super::physical_record_grammar::{
+    CheckpointManifestRecord, CheckpointPageImageRecord, PersistedPhysicalRecord,
+};
 use super::{
     OfflineRecoveryVerificationReport, OfflineRecoveryVerifierConclusion,
     PersistedRecoveryArtifactDigest, PersistedRecoveryArtifacts, RecoveryProfileId,
@@ -21,6 +26,7 @@ pub struct ReopenedRecoveryArtifactAdmission {
     report: OfflineRecoveryVerificationReport,
     artifact_digest: PersistedRecoveryArtifactDigest,
     recovery_profile: RecoveryProfileId,
+    checkpoint_base: CheckpointBaseAdmission,
     replay_cursor: RedoApplicationCursor,
     inspected_records: usize,
     inspected_bytes: usize,
@@ -35,6 +41,8 @@ impl ReopenedRecoveryArtifactAdmission {
         let artifact_digest = PersistedRecoveryArtifactDigest::from_artifacts(artifacts);
         require_matching_digest(&report, &artifact_digest)?;
         require_offline_only_report(&report)?;
+        let decoded = DecodedRecoveryRecords::from_artifacts(artifacts);
+        let checkpoint_base = reopened_checkpoint_base(&decoded)?;
         let replay_cursor = replay_cursor_from_reopened_artifacts(artifacts)?;
         Ok(Self {
             recovery_profile: report.recovery_profile().clone(),
@@ -42,6 +50,7 @@ impl ReopenedRecoveryArtifactAdmission {
             inspected_bytes: report.inspected_bytes(),
             report,
             artifact_digest,
+            checkpoint_base,
             replay_cursor,
         })
     }
@@ -62,6 +71,10 @@ impl ReopenedRecoveryArtifactAdmission {
         &self.replay_cursor
     }
 
+    pub const fn checkpoint_base(&self) -> &CheckpointBaseAdmission {
+        &self.checkpoint_base
+    }
+
     pub const fn inspected_records(&self) -> usize {
         self.inspected_records
     }
@@ -69,6 +82,61 @@ impl ReopenedRecoveryArtifactAdmission {
     pub const fn inspected_bytes(&self) -> usize {
         self.inspected_bytes
     }
+}
+
+fn reopened_checkpoint_base(
+    decoded: &DecodedRecoveryRecords<'_>,
+) -> Result<CheckpointBaseAdmission, ReopenedRecoveryArtifactAdmissionDenial> {
+    let checkpoint = decoded
+        .checkpoint()
+        .ok_or(ReopenedRecoveryArtifactAdmissionDenial::MissingCheckpointManifest)?;
+    let root_reference = reopened_root_reference(checkpoint)?;
+    let covered_lsn_range = WalLsnRange::new(
+        LogSequenceNumber::new(checkpoint.covered_lsn_start),
+        LogSequenceNumber::new(checkpoint.covered_lsn_end),
+    )
+    .map_err(|_| ReopenedRecoveryArtifactAdmissionDenial::InvalidCheckpointCoverage)?;
+    let checkpoint_id = CheckpointId::from_basis(format!(
+        "reopened-checkpoint:{}:{}:{}:{}:{}",
+        checkpoint.root_reference,
+        checkpoint.root_generation,
+        checkpoint.covered_lsn_start,
+        checkpoint.covered_lsn_end,
+        checkpoint.source_profile
+    ));
+    let trace = RecoveryCandidateDiscoveryTrace::new(
+        checkpoint.source_profile.clone(),
+        "reopened-checkpoint-base",
+        1,
+    );
+    let counters = CheckpointRecoveryCounterSnapshot::new()
+        .with_candidate()
+        .with_locator_check()
+        .with_manifest_validation()
+        .with_integrity_damage_check();
+    Ok(CheckpointBaseAdmission::from_reopened_artifact(
+        checkpoint_id,
+        root_reference,
+        covered_lsn_range,
+        trace,
+        counters,
+    ))
+}
+
+fn reopened_root_reference(
+    checkpoint: &CheckpointManifestRecord,
+) -> Result<worth_store_physical_format::PhysicalReference, ReopenedRecoveryArtifactAdmissionDenial>
+{
+    let root = PhysicalRootReference::from_raw(checkpoint.root_reference)
+        .map_err(|_| ReopenedRecoveryArtifactAdmissionDenial::InvalidCheckpointRootReference)?;
+    let generation = PhysicalGeneration::from_raw(checkpoint.root_generation)
+        .map_err(|_| ReopenedRecoveryArtifactAdmissionDenial::InvalidCheckpointRootGeneration)?;
+    let cell = PhysicalGenerationAuthority::for_canonical_physical_format()
+        .root_publication_cell(root)
+        .with_root_publication_generation(generation);
+    Ok(PhysicalReferenceAuthority::for_canonical_physical_format()
+        .admit_root_publication(cell)
+        .reference())
 }
 
 fn require_verified_report(
@@ -182,6 +250,10 @@ pub enum ReopenedRecoveryArtifactAdmissionDenial {
     VerifierConclusionMismatch,
     ArtifactDigestMismatch,
     LiveRuntimeStateReuse,
+    MissingCheckpointManifest,
+    InvalidCheckpointRootReference,
+    InvalidCheckpointRootGeneration,
+    InvalidCheckpointCoverage,
     MissingCheckpointPageImage,
     InvalidPhysicalPageIdentity,
     ReplayCursorDenied(Box<RedoPlanningDenial>),

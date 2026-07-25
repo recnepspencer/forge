@@ -31,11 +31,12 @@ worth-store-aspect-native = { path = "../worth-store-aspect-native" }
 worth-store-blob-chunks = { path = "../worth-store-blob-chunks", features = ["certification-test-authority"] }
 worth-store-budgets = { path = "../worth-store-budgets" }
 worth-store-io-scheduler = { path = "../worth-store-io-scheduler", features = ["certification-test-authority"] }
+worth-store-lsm-authority = { path = "../worth-store-lsm-authority", features = ["certification-test-authority"] }
 worth-store-physical-format = { path = "../worth-store-physical-format" }
 worth-store-physical-isolation = { path = "../worth-store-physical-isolation", features = ["phase20-layout-rule-construction"] }
 worth-store-recovery-physics = { path = "../worth-store-recovery-physics", features = ["phase21-layout-rule-construction", "phase22-layout-rule-construction"] }
 worth-store-security = { path = "../worth-store-security", features = ["certification-test-authority"] }
-worth-store-test-support = { path = "../worth-store-test-support", default-features = false, features = ["boundary-fixtures"] }
+worth-store-test-support = { path = "../worth-store-test-support", default-features = false, features = ["physical-isolation-fixtures"] }
 worth-store-wal = { path = "../worth-store-wal", features = ["certification-authority"] }
 
 [lints]

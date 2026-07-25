@@ -1,15 +1,12 @@
-use worth_store_budgets::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationScope, CounterEvidenceStrength,
-    FixedMetadataReservation,
-};
-use worth_store_buffer_pool::{AllocationAdmission, AllocationReceipt, AllocationRequest};
+use worth_store_budgets::CounterEvidenceStrength;
+use worth_store_buffer_pool::OperationAllocationGrant;
 use worth_store_io_scheduler::{
     blob_ingest_background_capacity_for_certification_test, BackgroundResourceBudget, QueueSlot,
 };
 use worth_store_physical_backend::BlobBackendChunkWriteSession;
 use worth_store_security::StoreTenantScope;
 
-use crate::test_support::{blob_scope, physical_payload_for_bytes};
+use crate::test_support::{blob_allocation_grant, blob_scope, physical_payload_for_bytes};
 use crate::{
     BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission, BlobStreamingChunkWriter,
     BlobStreamingIngest, BlobStreamingIngestDenial, BlobStreamingIngestRequest,
@@ -21,7 +18,7 @@ pub(super) fn run_ingest(
     frames: Vec<BlobStreamingSourceFrame>,
     window_bytes: u64,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    run_ingest_with_window_and_envelope(
+    run_ingest_with_window_and_allocation(
         frames,
         window_bytes,
         window_bytes,
@@ -32,34 +29,32 @@ pub(super) fn run_ingest(
 pub(super) fn run_ingest_with_counter_strength(
     strength: CounterEvidenceStrength,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    run_ingest_with_window_and_envelope(source_frames(3, 4), 4, 4, strength)
+    run_ingest_with_window_and_allocation(source_frames(3, 4), 4, 4, strength)
 }
 
-pub(super) fn run_ingest_with_envelope(
-    envelope_bytes: u64,
+pub(super) fn run_ingest_with_allocation(
+    allocation_bytes: u64,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    run_ingest_with_window_and_envelope(
+    run_ingest_with_window_and_allocation(
         source_frames(3, 4),
         4,
-        envelope_bytes,
+        allocation_bytes,
         CounterEvidenceStrength::Exact,
     )
 }
 
-fn run_ingest_with_window_and_envelope(
+fn run_ingest_with_window_and_allocation(
     frames: Vec<BlobStreamingSourceFrame>,
     window_bytes: u64,
-    envelope_bytes: u64,
+    allocation_bytes: u64,
     strength: CounterEvidenceStrength,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
     let window = BlobStreamingWindow::bounded(window_bytes)?;
-    let (allocation, envelopes) = allocation_receipt_and_envelope(envelope_bytes);
     BlobStreamingIngest::run_bounded(
         request(),
         crate::BlobStreamingIngestExecution::new(
             window,
-            allocation,
-            envelopes,
+            blob_allocation_grant(allocation_bytes),
             pressure_admission(),
             strength,
         ),
@@ -71,13 +66,11 @@ fn run_ingest_with_window_and_envelope(
 pub(super) fn run_ingest_with_pressure(
     pressure: BlobStreamingPressureAdmission,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    let (allocation, envelopes) = allocation_receipt_and_envelope(4);
     BlobStreamingIngest::run_bounded(
         request(),
         crate::BlobStreamingIngestExecution::new(
             BlobStreamingWindow::bounded(4).unwrap(),
-            allocation,
-            envelopes,
+            blob_allocation_grant(4),
             pressure,
             CounterEvidenceStrength::Exact,
         ),
@@ -117,24 +110,8 @@ pub(super) fn source_frame(bytes: &[u8], window_bytes: u64) -> BlobStreamingSour
     .expect("bounded source frame should admit")
 }
 
-pub(super) fn allocation_receipt_and_envelope(
-    envelope_bytes: u64,
-) -> (
-    AllocationReceipt,
-    worth_store_budgets::AllocationEnvelopeSet,
-) {
-    let envelopes = allocation_envelope(envelope_bytes);
-    let mut admission = AllocationAdmission::from_declaration(envelopes);
-    let grant = admission
-        .admit(
-            AllocationRequest::streaming_window(AllocationScope::Streaming, envelope_bytes)
-                .unwrap(),
-        )
-        .expect("streaming allocation should admit");
-    let receipt = admission
-        .record_allocation(grant)
-        .expect("streaming allocation should record");
-    (receipt, envelopes)
+pub(super) fn allocation_grant(bytes: u64) -> OperationAllocationGrant {
+    blob_allocation_grant(bytes)
 }
 
 pub(super) fn pressure_admission() -> BlobStreamingPressureAdmission {
@@ -148,22 +125,6 @@ pub(super) fn pressure_admission() -> BlobStreamingPressureAdmission {
 
 pub(super) fn background_budget() -> BackgroundResourceBudget {
     BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap())
-}
-
-pub(super) fn allocation_envelope(
-    streaming_bytes: u64,
-) -> worth_store_budgets::AllocationEnvelopeSet {
-    let budget = AllocationByteBudget::bytes(64).unwrap();
-    AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(AllocationByteBudget::bytes(streaming_bytes).unwrap())
-        .fixed_metadata(FixedMetadataReservation::constant_bytes(16).unwrap())
-        .seal()
-        .unwrap()
 }
 
 fn rule() -> BlobChunkingRuleAdmission {

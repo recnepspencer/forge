@@ -13,7 +13,9 @@ const WORLD_BUDGET_MS: u64 = 1_000;
 const SOURCE_INVENTORY_BUDGET_MS: u64 = 5_000;
 const PREBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const POSTBUILD_BINARY_BINDING_BUDGET_MS: u64 = 3_000;
+const POSTBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const CHILD_STAGE_BUDGET_MS: u64 = 5_000;
+const FINAL_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const EXECUTABLE_VERIFICATION_BUDGET_MS: u64 = 1_000;
 const REPORT_ENCODING_BUDGET_MS: u64 = 500;
 const RUNNER_CONTROLLED_TOTAL_BUDGET_MS: u64 = 30_000;
@@ -82,9 +84,17 @@ impl C6SiegeTimings {
                 SiegePhase::PostbuildBinaryBinding,
                 POSTBUILD_BINARY_BINDING_BUDGET_MS,
             ),
+            (
+                SiegePhase::PostbuildSourceBinding,
+                POSTBUILD_SOURCE_BINDING_BUDGET_MS,
+            ),
             (SiegePhase::SiegeWriter, CHILD_STAGE_BUDGET_MS),
             (SiegePhase::OfflineObserver, CHILD_STAGE_BUDGET_MS),
             (SiegePhase::FreshReopener, CHILD_STAGE_BUDGET_MS),
+            (
+                SiegePhase::FinalSourceBinding,
+                FINAL_SOURCE_BINDING_BUDGET_MS,
+            ),
             (
                 SiegePhase::ExecutableVerification,
                 EXECUTABLE_VERIFICATION_BUDGET_MS,

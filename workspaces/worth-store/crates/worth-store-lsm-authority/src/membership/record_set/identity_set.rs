@@ -33,4 +33,17 @@ impl LsmCompactionRecordIdentitySet {
     pub const fn in_replay_order(self) -> [BlobWalRecordIdentity; 3] {
         [self.value, self.generation, self.tombstone]
     }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::membership) const fn issued_for_certification(
+        value: BlobWalRecordIdentity,
+        generation: BlobWalRecordIdentity,
+        tombstone: BlobWalRecordIdentity,
+    ) -> Self {
+        Self {
+            value,
+            generation,
+            tombstone,
+        }
+    }
 }

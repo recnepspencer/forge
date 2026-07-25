@@ -2,7 +2,7 @@ use crate::{
     IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, RecoveryCorruptionReadmissionHandoff,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum RecoveryEntryAdmissionDecision {
     Admitted(Box<crate::RecoveryEntryAdmission>),
     Blocked(RecoveryEntryBlockedByIntegrityDamage),
@@ -67,8 +67,5 @@ impl RecoveryEntryAdmissionDenial {
 pub enum RecoveryEntryAdmissionDenialKind {
     IntegrityReadinessClaimsRecovery,
     RawBytesCrossedIntegrityBoundary,
-    RecoveryMemoryEnvelopeClaimsWalRecovery,
-    RecoveryMemoryEnvelopeClaimsCheckpointSafety,
-    RecoveryMemoryEnvelopeClaimsRepairBehavior,
     MissingPhysicalAuthorityRecap,
 }

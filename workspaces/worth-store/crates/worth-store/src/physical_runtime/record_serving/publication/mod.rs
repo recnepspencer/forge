@@ -34,4 +34,6 @@ pub(in crate::physical_runtime::record_serving) use plan::{
 };
 pub(in crate::physical_runtime::record_serving) use replacement_eligibility::CatalogReplacementEligibility;
 pub use stage::RecordPublicationStage;
-pub use work_trace::{RecordPublicationWorkEffect, RecordPublicationWorkTrace};
+pub use work_trace::{
+    RecordPublicationWorkEffect, RecordPublicationWorkSettlement, RecordPublicationWorkTrace,
+};

@@ -24,6 +24,7 @@ pub(super) struct ExecutableBindingTimings {
     source_inventory: Duration,
     prebuild_source_binding: Duration,
     postbuild_binary_binding: Duration,
+    postbuild_source_binding: Duration,
 }
 
 impl BoundBinary {
@@ -87,9 +88,11 @@ impl BuiltCourtroomExecutables {
         let runner = bind_current_binary()?;
         let writer = bind_binary(&target, "physical_store_work_courtroom")?;
         let observer = bind_binary(&target, "physical_store_offline_observer")?;
+        let postbuild_binary_binding_elapsed = binding_started.elapsed();
+        let binding_started = Instant::now();
         let source_after_build = source_inventory.bind()?;
         let source = require_stable_source(source_before_build, source_after_build)?;
-        let postbuild_binary_binding_elapsed = binding_started.elapsed();
+        let postbuild_source_binding_elapsed = binding_started.elapsed();
         Ok(Self {
             source_inventory,
             source,
@@ -101,6 +104,7 @@ impl BuiltCourtroomExecutables {
                 source_inventory: source_inventory_elapsed,
                 prebuild_source_binding: prebuild_source_binding_elapsed,
                 postbuild_binary_binding: postbuild_binary_binding_elapsed,
+                postbuild_source_binding: postbuild_source_binding_elapsed,
             },
         })
     }
@@ -125,8 +129,11 @@ impl BuiltCourtroomExecutables {
         &self.observer
     }
 
-    pub(super) fn verify_unchanged(&self) -> Result<(), String> {
-        require_campaign_source(&self.source, self.source_inventory.bind()?)?;
+    pub(super) fn verify_source_unchanged(&self) -> Result<(), String> {
+        require_campaign_source(&self.source, self.source_inventory.bind()?)
+    }
+
+    pub(super) fn verify_executables_unchanged(&self) -> Result<(), String> {
         self.runner.verify_unchanged()?;
         self.writer.verify_unchanged()?;
         self.observer.verify_unchanged()
@@ -152,6 +159,10 @@ impl ExecutableBindingTimings {
 
     pub(super) const fn postbuild_binary_binding(self) -> Duration {
         self.postbuild_binary_binding
+    }
+
+    pub(super) const fn postbuild_source_binding(self) -> Duration {
+        self.postbuild_source_binding
     }
 }
 

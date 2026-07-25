@@ -37,6 +37,8 @@ pub struct MediaFaultRule {
     pub(super) identified_operation: Option<bool>,
     pub(super) identified_operation_ordinal: Option<u64>,
     pub(super) runtime_incarnation: Option<u64>,
+    pub(super) any_ordinal_after_activation: bool,
+    pub(super) activation: Option<super::fault_activation::CertificationMediaFaultActivation>,
 }
 
 impl MediaFaultRule {
@@ -56,6 +58,8 @@ impl MediaFaultRule {
             identified_operation: None,
             identified_operation_ordinal: None,
             runtime_incarnation: None,
+            any_ordinal_after_activation: false,
+            activation: None,
         }
     }
 
@@ -99,12 +103,25 @@ impl MediaFaultRule {
         self
     }
 
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn for_next_identified_operation_after_activation(
+        mut self,
+        activation: super::fault_activation::CertificationMediaFaultActivation,
+    ) -> Self {
+        self.identified_operation = Some(true);
+        self.identified_operation_ordinal = None;
+        self.any_ordinal_after_activation = true;
+        self.activation = Some(activation);
+        self
+    }
+
     pub(super) fn matches(&self, context: super::MediaOperationContext) -> bool {
-        let ordinal_matches = self.identified_operation_ordinal.map_or_else(
-            || self.ordinal == context.role_ordinal(),
-            |ordinal| context.identified_operation_ordinal() == Some(ordinal),
-        );
-        self.role == context.role()
+        let ordinal_matches = self.any_ordinal_after_activation
+            || self.identified_operation_ordinal.map_or_else(
+                || self.ordinal == context.role_ordinal(),
+                |ordinal| context.identified_operation_ordinal() == Some(ordinal),
+            );
+        let structural_match = self.role == context.role()
             && ordinal_matches
             && self
                 .owner
@@ -120,7 +137,11 @@ impl MediaFaultRule {
                 .is_none_or(|identified| context.operation().is_some() == identified)
             && self
                 .runtime_incarnation
-                .is_none_or(|runtime| context.runtime_incarnation() == Some(runtime))
+                .is_none_or(|runtime| context.runtime_incarnation() == Some(runtime));
+        structural_match
+            && self.activation.as_ref().is_none_or(
+                super::fault_activation::CertificationMediaFaultActivation::consume_if_armed,
+            )
     }
 }
 
@@ -152,13 +173,15 @@ impl MediaFaultSchedule {
             }
             if rules[..index].iter().any(|prior| {
                 prior.role == rule.role
-                    && prior.ordinal == rule.ordinal
+                    && same_ordinal_selector(prior, rule)
                     && prior.owner == rule.owner
                     && prior.store == rule.store
                     && prior.operation == rule.operation
                     && prior.identified_operation == rule.identified_operation
                     && prior.identified_operation_ordinal == rule.identified_operation_ordinal
                     && prior.runtime_incarnation == rule.runtime_incarnation
+                    && prior.any_ordinal_after_activation == rule.any_ordinal_after_activation
+                    && same_activation(prior.activation.as_ref(), rule.activation.as_ref())
             }) {
                 return Err(MediaFaultScheduleDenial::DuplicateSemanticMatch);
             }
@@ -173,5 +196,24 @@ impl MediaFaultSchedule {
     pub fn pause_before_lease_release(mut self, gate: MediaPauseGate) -> Self {
         self.lease_release_pause = Some(gate);
         self
+    }
+}
+
+fn same_ordinal_selector(left: &MediaFaultRule, right: &MediaFaultRule) -> bool {
+    if left.any_ordinal_after_activation || right.any_ordinal_after_activation {
+        left.any_ordinal_after_activation == right.any_ordinal_after_activation
+    } else {
+        left.ordinal == right.ordinal
+    }
+}
+
+fn same_activation(
+    left: Option<&super::fault_activation::CertificationMediaFaultActivation>,
+    right: Option<&super::fault_activation::CertificationMediaFaultActivation>,
+) -> bool {
+    match (left, right) {
+        (None, None) => true,
+        (Some(left), Some(right)) => left.same_activation(right),
+        _ => false,
     }
 }

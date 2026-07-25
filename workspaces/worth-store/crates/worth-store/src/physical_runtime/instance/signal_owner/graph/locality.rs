@@ -132,6 +132,10 @@ impl PhysicalSignalLocalityIndex {
             .and_then(|entry| entry.publication_dependency.as_ref())
     }
 
+    pub(super) fn signal(&self, identity: PhysicalWorkIdentity) -> Option<ResourceRequestHandle> {
+        self.entries.get(&identity).and_then(|entry| entry.signal)
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(super) fn publication_dependency_observations(
         &self,

@@ -1,4 +1,5 @@
 use crate::courtroom::harness::test_support::integrity_handoff_test_support::intact_integrity_model_input;
+use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::recovery_memory_allocation;
 use worth_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };
@@ -8,18 +9,13 @@ use worth_store_aspect_native::{
     StorePhysicalBoundaryWitness,
 };
 use worth_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
-use worth_store_buffer_pool::{
-    AdmittedBackgroundEnvelope, AllocationAdmission, AllocationByteBudget,
-    AllocationEnvelopeDeclaration, BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest,
-    BackgroundWorkBudgetSnapshot, FixedMetadataReservation,
-};
 use worth_store_contracts::PhysicalAuthorityRecap;
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
 use worth_store_recovery_physics::{
     RecoveryCheckpointRecordSecurityMetadataEnvelope, RecoveryEntryAdmission,
-    RecoveryEntryAdmissionDecision, RecoveryMemoryEnvelope, RecoveryReplayEntryGate,
-    RecoveryRootSecurityMetadataEnvelope, RecoverySecurityScopePropagation,
-    RecoverySecurityScopePropagationInput, RecoveryWalRecordSecurityMetadataEnvelope,
+    RecoveryEntryAdmissionDecision, RecoveryReplayEntryGate, RecoveryRootSecurityMetadataEnvelope,
+    RecoverySecurityScopePropagation, RecoverySecurityScopePropagationInput,
+    RecoveryWalRecordSecurityMetadataEnvelope,
 };
 use worth_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreCustodyPosture,
@@ -212,45 +208,13 @@ fn checkpoint_record(
 fn admit_entry(identity: &str) -> RecoveryEntryAdmission {
     let decision = RecoveryEntryAdmission::admit(
         intact_integrity_model_input(identity),
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
         physical_authority(),
     );
     let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
         panic!("intact typed S.3/S.2/S.1 evidence admits recovery entry");
     };
     *admission
-}
-
-fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
-    RecoveryMemoryEnvelope::from_admitted(admit_background()).unwrap()
-}
-
-fn admit_background() -> AdmittedBackgroundEnvelope {
-    let mut admission = BackgroundEnvelopeAdmission::new();
-    let mut allocation = AllocationAdmission::from_declaration(
-        AllocationEnvelopeDeclaration::declare()
-            .foreground(bytes(512))
-            .maintenance(bytes(512))
-            .recovery(bytes(512))
-            .scrub(bytes(512))
-            .import_export(bytes(512))
-            .streaming(bytes(512))
-            .fixed_metadata(FixedMetadataReservation::constant_bytes(64).unwrap())
-            .seal()
-            .unwrap(),
-    );
-    admission
-        .admit(
-            BackgroundEnvelopeRequest::recovery_planning()
-                .resident_frames(1)
-                .resident_bytes(128)
-                .pin_pages_for_bounded_step(1)
-                .allocation_bytes(128)
-                .finish(),
-            BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16),
-            &mut allocation,
-        )
-        .unwrap()
 }
 
 fn physical_authority() -> PhysicalAuthorityRecap {
@@ -325,8 +289,4 @@ fn validated_scalar_value(
         TransitionOutcome::Success(value) => value,
         outcome => panic!("validation should succeed: {outcome:?}"),
     }
-}
-
-fn bytes(bytes: u64) -> AllocationByteBudget {
-    AllocationByteBudget::bytes(bytes).unwrap()
 }

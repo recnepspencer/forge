@@ -11,9 +11,9 @@ use worth_store_offline_verifier::OfflineCustodyCapsuleObservation;
 use worth_store_physical_format::PhysicalStoreIdentity;
 use worth_store_recovery_physics::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
-    CheckpointManifestSourceMaterialization, CheckpointPageImageMaterialization,
-    PersistedRecoveryArtifactMaterialization, RecoveryOfflineVerifier, RecoveryProfileId,
-    WalRedoFrameMaterialization,
+    CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
+    CheckpointPageImageMaterialization, PersistedRecoveryArtifactMaterialization,
+    RecoveryOfflineVerifier, RecoveryProfileId, WalRedoFrameMaterialization,
 };
 use worth_store_security::{
     admit_store_security_scope, StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
@@ -46,7 +46,6 @@ fn import_publication_is_bound_to_the_exact_physical_owner_outcome() {
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
     let inputs = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "restore-publication-root",
         41,
     );
     let plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&inputs);
@@ -85,8 +84,8 @@ fn another_physical_publication_cannot_complete_import_readiness() {
     .into_materialized()
     .unwrap();
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
-    let expected = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(&store, "restore-expected", 42);
-    let substituted = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(&store, "restore-substituted", 43);
+    let expected = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(&store, 42);
+    let substituted = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(&store, 43);
     let expected_plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&expected);
     let readiness =
         crate::admit_import_publication_readiness(materialization, &expected_plan, &authority)
@@ -280,10 +279,9 @@ fn reopened_artifact(
         recovery_profile.clone(),
         CheckpointManifestMaterialization::new(
             format!("checkpoint-{seed}"),
-            format!("root-{seed}"),
-            19,
+            CheckpointManifestRecoveryBasisMaterialization::new(1, 1, 10, 20),
             CheckpointManifestSourceMaterialization::new("checkpoint", 1),
-            CheckpointManifestBudgetMaterialization::new(4096, 1, 4096, 1),
+            CheckpointManifestBudgetMaterialization::new(4096, 0, 4096, 1),
         ),
         WalRedoFrameMaterialization::new(
             format!("wal-{seed}"),

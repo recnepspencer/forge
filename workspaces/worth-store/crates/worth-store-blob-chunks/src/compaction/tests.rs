@@ -1,17 +1,18 @@
 use super::test_support::{
-    active_read_hold, compacted_rewritten_publication, intent, intent_without_reachability,
-    mismatched_read_hold, mismatched_verdict_for_rewrite, pacing, physical_interlock_denial,
-    quarantine_guard, rewritten_publication_with_bytes, stale_dedupe_reference, unavailable_cold,
-    verdict_for_plan, verdict_for_rewrite, verified_read_for_rewritten,
+    active_read_hold, authority, compacted_rewritten_publication, intent,
+    intent_without_reachability, mismatched_read_hold, mismatched_verdict_for_rewrite, pacing,
+    physical_interlock_denial, quarantine_guard, rewritten_publication_with_bytes,
+    stale_dedupe_reference, unavailable_cold, verdict_for_plan, verdict_for_rewrite,
+    verified_read_for_rewritten,
 };
 use crate::{
-    BlobCompactionAuthority, BlobCompactionDenial, BlobCompactionEquivalence,
-    BlobCompactionPacingAdmission, BlobCompactionRestartOutcome,
+    BlobCompactionDenial, BlobCompactionEquivalence, BlobCompactionPacingAdmission,
+    BlobCompactionRestartOutcome,
 };
 
 #[test]
 fn compaction_plan_admits_blob_owned_rewrite_basis() {
-    let plan = BlobCompactionAuthority::store_owned()
+    let plan = authority("phase18-plan")
         .plan_compaction(intent("phase18-plan").with_pacing_admission(pacing()))
         .expect("compaction plan should admit");
 
@@ -24,31 +25,31 @@ fn compaction_plan_admits_blob_owned_rewrite_basis() {
 #[test]
 fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
     assert!(matches!(
-        BlobCompactionAuthority::store_owned()
+        authority("phase18-no-reachability")
             .plan_compaction(intent_without_reachability("phase18-no-reachability")),
         Err(BlobCompactionDenial::MissingReachabilityProof { .. })
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned()
+        authority("phase18-active-read")
             .plan_compaction(intent("phase18-active-read").with_read_hold(active_read_hold())),
         Err(BlobCompactionDenial::ActiveReadHold { .. })
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned()
+        authority("phase18-wrong-read")
             .plan_compaction(intent("phase18-wrong-read").with_read_hold(mismatched_read_hold())),
         Err(BlobCompactionDenial::ReadHoldPlanMismatch { .. })
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned()
+        authority("phase18-cold")
             .plan_compaction(intent("phase18-cold").with_cold_readiness(unavailable_cold())),
         Err(BlobCompactionDenial::UnavailableColdChunk { .. })
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned().plan_compaction(
+        authority("phase18-pacing").plan_compaction(
             intent("phase18-pacing")
                 .with_pacing_admission(BlobCompactionPacingAdmission::Unsupported)
         ),
@@ -56,7 +57,7 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned().plan_compaction(
+        authority("phase18-quarantine").plan_compaction(
             intent("phase18-quarantine")
                 .with_quarantine_holds([quarantine_guard("phase18-quarantine")])
         ),
@@ -64,7 +65,7 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned().plan_compaction(
+        authority("phase18-physical-denial").plan_compaction(
             intent("phase18-physical-denial")
                 .with_physical_interlock_denial(physical_interlock_denial())
         ),
@@ -72,7 +73,7 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
     ));
 
     assert!(matches!(
-        BlobCompactionAuthority::store_owned().plan_compaction(
+        authority("phase18-stale-dedupe").plan_compaction(
             intent("phase18-stale-dedupe")
                 .with_dedupe_references([stale_dedupe_reference("phase18-stale-dedupe")])
         ),
@@ -82,7 +83,7 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
 
 #[test]
 fn compacted_and_uncompacted_roots_preserve_blob_generation_basis() {
-    let plan = BlobCompactionAuthority::store_owned()
+    let plan = authority("phase18-equivalence")
         .plan_compaction(intent("phase18-equivalence"))
         .expect("compaction plan should admit");
     let rewritten = compacted_rewritten_publication("phase18-equivalence");
@@ -138,7 +139,7 @@ fn compacted_and_uncompacted_roots_preserve_blob_generation_basis() {
 
 #[test]
 fn wrong_rewritten_basis_denies_equivalence_before_publication() {
-    let plan = BlobCompactionAuthority::store_owned()
+    let plan = authority("phase18-wrong-equivalence")
         .plan_compaction(intent("phase18-wrong-equivalence"))
         .expect("compaction plan should admit");
     let rewritten =
@@ -153,7 +154,7 @@ fn wrong_rewritten_basis_denies_equivalence_before_publication() {
 
 #[test]
 fn admitted_compaction_executes_and_publishes_through_lower_physical_verdict() {
-    let authority = BlobCompactionAuthority::store_owned();
+    let authority = authority("phase18-execute-publish");
     let plan = authority
         .plan_compaction(intent("phase18-execute-publish"))
         .expect("compaction plan should admit");
@@ -187,7 +188,7 @@ fn admitted_compaction_executes_and_publishes_through_lower_physical_verdict() {
 
 #[test]
 fn same_plan_wrong_lower_verdict_cannot_publish_rewritten_root() {
-    let authority = BlobCompactionAuthority::store_owned();
+    let authority = authority("phase18-wrong-lower-verdict");
     let plan = authority
         .plan_compaction(intent("phase18-wrong-lower-verdict"))
         .expect("plan should admit");
@@ -209,7 +210,7 @@ fn same_plan_wrong_lower_verdict_cannot_publish_rewritten_root() {
 
 #[test]
 fn copied_equivalence_from_same_old_root_cannot_execute_another_plan() {
-    let authority = BlobCompactionAuthority::store_owned();
+    let authority = authority("phase18-copied-equivalence");
     let equivalence_plan = authority
         .plan_compaction(intent("phase18-copied-equivalence-a"))
         .expect("source plan should admit");
@@ -237,7 +238,7 @@ fn copied_equivalence_from_same_old_root_cannot_execute_another_plan() {
 
 #[test]
 fn restart_outcomes_do_not_publish_mixed_chunk_tree_state() {
-    let plan = BlobCompactionAuthority::store_owned()
+    let plan = authority("phase18-restart")
         .plan_compaction(intent("phase18-restart"))
         .expect("compaction plan should admit");
     let rollback = BlobCompactionRestartOutcome::roll_back(&plan);

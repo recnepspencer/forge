@@ -188,7 +188,6 @@ fn authority_quarantine_repair_preserves_owner_meaning_across_artifact_consequen
     );
     let roots = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "authority-quarantine-cutover",
         91,
     );
     let publication_directory = tempfile::tempdir().unwrap();

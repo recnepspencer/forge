@@ -101,12 +101,11 @@ pub(in crate::physical_runtime::record_serving) fn readmit_locator_detailed(
     .locate(record.persisted(), &mut counters);
     observation.observe_manifest(counters);
     let found = found.map_err(|reason| {
-        runtime
-            .health
-            .observe_read_denial(super::super::RecordReadDenial::ArtifactUnavailable);
+        let read_denial = super::locate::failure_classification::manifest_failure(reason);
+        runtime.health.observe_read_denial(read_denial);
         failure(
             PhysicalLocatorReadmissionDenial::CurrentRootUnavailable,
-            super::locate::failure_classification::manifest_failure(reason),
+            read_denial,
             observation,
         )
     })?;

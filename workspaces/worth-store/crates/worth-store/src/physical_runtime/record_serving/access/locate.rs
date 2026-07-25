@@ -23,6 +23,10 @@ mod session;
 pub use cancellation::RecordReadCancellation;
 use failure_classification::manifest_failure;
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "inline frame authority stays move-owned to avoid a heap allocation on every ordinary inline record read"
+)]
 enum ReadPlacement {
     Inline {
         frame: LoadedPhysicalFrame,

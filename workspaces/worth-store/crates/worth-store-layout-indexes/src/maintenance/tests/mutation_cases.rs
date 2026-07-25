@@ -7,7 +7,7 @@ use worth_store_security::{
     StoreTenantScope,
 };
 use worth_store_test_support::harness::physical_isolation::publication::{
-    admitted_copy_on_write_plan, publication_inputs, publication_inputs_for_store,
+    admitted_copy_on_write_plan, publication_inputs, publication_inputs_for_store, publish_inputs,
     successor_publication_inputs_for_store,
 };
 use worth_store_wal::StoreWalRecordIdentity;
@@ -48,8 +48,7 @@ fn mutation_admission_declares_exactly_the_cases_ordinary_owners_observe() {
     );
 
     let strategy = btree_strategy(PhysicalMutationShape::PointRewrite);
-    let matching_inputs =
-        publication_inputs_for_store(&strategy_test_store_identity(), "layout-cow", 811);
+    let matching_inputs = publication_inputs_for_store(&strategy_test_store_identity(), 811);
     let matching_materialization = source_materialization(
         strategy.admitted_strategy().admitted_family(),
         &matching_inputs,
@@ -121,10 +120,10 @@ fn mutation_admission_declares_exactly_the_cases_ordinary_owners_observe() {
     ));
     observed.insert(authority_denial.case_id().as_str());
 
+    let matching_publication = publish_inputs(&matching_inputs);
     let stale_source = successor_publication_inputs_for_store(
-        &matching_inputs,
+        &matching_publication,
         &strategy_test_store_identity(),
-        "layout-cow-stale-source",
         812,
     );
     let stale_denial =
@@ -160,8 +159,7 @@ fn copy_on_write_mutation_executes_the_admitted_physical_publication() {
     let strategy = btree_strategy(PhysicalMutationShape::PointRewrite);
     let current_security = current_security_scope();
     let family = strategy.admitted_strategy().admitted_family();
-    let inputs =
-        publication_inputs_for_store(&strategy_test_store_identity(), "layout-cow-execution", 813);
+    let inputs = publication_inputs_for_store(&strategy_test_store_identity(), 813);
     let source_materialization = source_materialization(family, &inputs);
     let plan = layout_mutation_admission()
         .admit_copy_on_write(CopyOnWriteLayoutMutationRequest::new(
@@ -230,11 +228,8 @@ fn non_exact_maintenance_modes_cannot_publish_exact_btree_authority() {
     {
         let strategy = btree_strategy_with_mode(PhysicalMutationShape::PointRewrite, mode);
         let family = strategy.admitted_strategy().admitted_family();
-        let inputs = publication_inputs_for_store(
-            &strategy_test_store_identity(),
-            &format!("layout-cow-non-exact-{index}"),
-            900 + index as u64,
-        );
+        let inputs =
+            publication_inputs_for_store(&strategy_test_store_identity(), 900 + index as u64);
         let source_materialization = source_materialization(family, &inputs);
         let plan = layout_mutation_admission()
             .admit_copy_on_write(CopyOnWriteLayoutMutationRequest::new(
@@ -282,11 +277,7 @@ fn non_exact_maintenance_modes_cannot_publish_exact_btree_authority() {
 #[test]
 fn copy_on_write_mutation_rejects_cross_tenant_and_cross_key_scope() {
     let strategy = btree_strategy(PhysicalMutationShape::PointRewrite);
-    let inputs = publication_inputs_for_store(
-        &strategy_test_store_identity(),
-        "layout-cow-security-substitution",
-        971,
-    );
+    let inputs = publication_inputs_for_store(&strategy_test_store_identity(), 971);
     let source_materialization =
         source_materialization(strategy.admitted_strategy().admitted_family(), &inputs);
 

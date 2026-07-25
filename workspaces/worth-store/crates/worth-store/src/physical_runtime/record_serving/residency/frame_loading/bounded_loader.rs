@@ -35,6 +35,7 @@ impl FrameLoadPort for BoundedFrameLoader {
         )?;
         let key = PhysicalFrameKey::new(self.pool.store_identity(), coordinate);
         let mut work = FrameWorkTrace::none();
+        let mut projection_failure = None;
         let mut prepared = match work_admission {
             FrameReadWorkAdmission::EveryAccess => {
                 let prepared =
@@ -56,7 +57,8 @@ impl FrameLoadPort for BoundedFrameLoader {
                     None => source.prepare_exact(artifact, offset, length)?,
                 };
                 work = FrameWorkTrace::one(prepared.identity());
-                prepared.execute(target)
+                projection_failure = prepared.execute(target)?;
+                Ok(())
             })
             .map_err(|failure| match failure {
                 PhysicalFrameLoadError::Residency(reason) => {
@@ -66,7 +68,13 @@ impl FrameLoadPort for BoundedFrameLoader {
                     frame_source_failure(reason).with_work(work)
                 }
             })?;
-        LoadedPhysicalFrame::bind(self.pool.store_identity(), coordinate, lease, work)
+        LoadedPhysicalFrame::bind(
+            self.pool.store_identity(),
+            coordinate,
+            lease,
+            work,
+            projection_failure,
+        )
     }
 
     fn load_bounded(
@@ -81,13 +89,15 @@ impl FrameLoadPort for BoundedFrameLoader {
             || length.bytes() > u64::from(limit)
             || length.bytes() > u64::from(u32::MAX)
         {
+            let work = length.reject_structural_damage();
             return Err(
-                FrameLoadFailure::new(FrameLoadFailureKind::AccessLimitExceeded)
-                    .with_work(length.work_trace()),
+                FrameLoadFailure::new(FrameLoadFailureKind::AccessLimitExceeded).with_work(work),
             );
         }
-        self.load_exact(source, artifact, 0, length.bytes() as u32, work_admission)
-            .map(|frame| frame.preceded_by(length.work_trace()))
+        let bytes = length.bytes();
+        let work = length.work_trace();
+        self.load_exact(source, artifact, 0, bytes as u32, work_admission)
+            .map(|frame| frame.preceded_by(work))
     }
 
     fn file_length(

@@ -10,13 +10,20 @@ use super::{
 use crate::mutation_campaign::{
     catalog::{physical_work_mutations, ControlledMutation},
     evidence::{self, MutationObservation},
+    source_inventory::{self, MutationSourceBinding},
 };
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PublishedMutationEvidenceReport {
     schema: String,
+    source: MutationSourceBinding,
     observations: Vec<MutationObservation>,
+}
+
+#[derive(Deserialize)]
+struct PublishedMutationEvidenceReportHeader {
+    schema: String,
 }
 
 pub(super) fn load_physical_work_evidence(
@@ -31,15 +38,19 @@ pub(super) fn load_physical_work_evidence(
     })?;
     let bytes = std::fs::read(&report)
         .map_err(|error| format!("cannot read mutation report {}: {error}", report.display()))?;
-    let published: PublishedMutationEvidenceReport = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("cannot decode mutation report: {error}"))?;
-    if published.schema != MUTATION_EVIDENCE_REPORT_SCHEMA {
+    let header: PublishedMutationEvidenceReportHeader = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("cannot decode mutation report header: {error}"))?;
+    if header.schema != MUTATION_EVIDENCE_REPORT_SCHEMA {
         return Err(format!(
             "unsupported mutation report schema `{}`",
-            published.schema
+            header.schema
         ));
     }
+    let published: PublishedMutationEvidenceReport = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("cannot decode mutation report: {error}"))?;
+    debug_assert_eq!(published.schema, MUTATION_EVIDENCE_REPORT_SCHEMA);
     validate_shape(&published.observations)?;
+    validate_campaign_source(&published.source, workspace)?;
     let artifacts = PublishedArtifactPolicy::for_report(&report)?;
     published
         .observations
@@ -49,6 +60,24 @@ pub(super) fn load_physical_work_evidence(
             validate_observation(observation, expected, workspace, &artifacts)
         })
         .collect()
+}
+
+fn validate_campaign_source(
+    expected: &MutationSourceBinding,
+    workspace: &Path,
+) -> Result<(), String> {
+    let current = source_inventory::bind(workspace)?;
+    require_campaign_source(expected, &current)
+}
+
+fn require_campaign_source(
+    expected: &MutationSourceBinding,
+    current: &MutationSourceBinding,
+) -> Result<(), String> {
+    if expected != current {
+        return Err("mutation campaign source is stale".into());
+    }
+    Ok(())
 }
 
 fn validate_shape(observations: &[MutationObservation]) -> Result<(), String> {
@@ -162,7 +191,10 @@ impl PublishedArtifactPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{load_physical_work_evidence, PublishedArtifactPolicy};
+    use super::{
+        load_physical_work_evidence, require_campaign_source, MutationSourceBinding,
+        PublishedArtifactPolicy,
+    };
 
     #[test]
     fn report_requires_the_complete_physical_work_campaign() {
@@ -170,11 +202,30 @@ mod tests {
         let report = temporary.path().join("mutants.json");
         std::fs::write(
             &report,
-            br#"{"schema":"worth.store.c5_1.mutation-evidence.v1","observations":[]}"#,
+            br#"{"schema":"worth.store.c5_1.mutation-evidence.v2","source":{"binding":"worth.store.c5_1.mutation-source-closure.v1","sha256":"1111111111111111111111111111111111111111111111111111111111111111"},"observations":[]}"#,
         )
         .unwrap();
         let error = load_physical_work_evidence(&report, temporary.path()).unwrap_err();
         assert!(error.contains("requires 29 observations"), "{error}");
+    }
+
+    #[test]
+    fn legacy_schema_is_classified_before_v2_body_decoding() {
+        let temporary = tempfile::tempdir().unwrap();
+        let report = temporary.path().join("mutants.json");
+        std::fs::write(
+            &report,
+            br#"{"schema":"worth.store.c5_1.mutation-evidence.v1","observations":[]}"#,
+        )
+        .unwrap();
+
+        let error = load_physical_work_evidence(&report, temporary.path()).unwrap_err();
+
+        assert!(
+            error.contains("unsupported mutation report schema"),
+            "{error}"
+        );
+        assert!(!error.contains("missing field"), "{error}");
     }
 
     #[test]
@@ -188,7 +239,7 @@ mod tests {
             directory.join(".worth-store-mutation-evidence-owner"),
             format!(
                 "{}\n{}\n",
-                super::MUTATION_EVIDENCE_REPORT_SCHEMA,
+                super::super::ARTIFACT_OWNER_SCHEMA,
                 report.canonicalize().unwrap().display()
             ),
         )
@@ -197,5 +248,22 @@ mod tests {
         std::fs::write(&outside, b"outside").unwrap();
         let policy = PublishedArtifactPolicy::for_report(&report.canonicalize().unwrap()).unwrap();
         assert!(policy.resolve(outside.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn report_reader_rejects_same_length_source_closure_drift() {
+        let expected = MutationSourceBinding {
+            binding: "worth.store.c5_1.mutation-source-closure.v1".into(),
+            sha256: "11".repeat(32),
+        };
+        let current = MutationSourceBinding {
+            binding: expected.binding.clone(),
+            sha256: "22".repeat(32),
+        };
+
+        assert_eq!(
+            require_campaign_source(&expected, &current).unwrap_err(),
+            "mutation campaign source is stale"
+        );
     }
 }

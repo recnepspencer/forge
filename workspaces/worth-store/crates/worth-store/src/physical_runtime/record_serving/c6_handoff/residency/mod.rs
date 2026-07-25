@@ -15,8 +15,6 @@ use crate::physical_runtime::record_serving::{
 
 mod dirty_frame;
 mod frame_load;
-#[cfg(test)]
-mod tests;
 mod writeback;
 
 pub use dirty_frame::C6AdmittedDirtyFrame;

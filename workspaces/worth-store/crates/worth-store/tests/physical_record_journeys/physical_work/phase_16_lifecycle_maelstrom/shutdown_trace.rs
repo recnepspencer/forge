@@ -42,6 +42,7 @@ pub(super) fn close_and_finish(
     drop(abandoned);
     assert!(signal_gate.await_arrivals(1));
     let close = world.serving.close_plan();
+    world.gates.close_read_activation.arm().unwrap();
     let (closed, close_read) = execute_dispatched_close(
         close,
         close_execution,
@@ -50,6 +51,7 @@ pub(super) fn close_and_finish(
         signal_gate,
         hot_pin,
     );
+    assert!(world.gates.close_read_activation.is_consumed());
     assert_eq!(
         close_read.settled().evidence().fate(),
         PhysicalWorkEffectFate::ReadCompleted
@@ -102,6 +104,10 @@ fn execute_dispatched_close(
     std::thread::scope(|scope| {
         let effect = scope.spawn(move || execution.execute_physical_work(command));
         wait_until(|| media_gate.reached_context().is_some());
+        let gated_operation = media_gate
+            .reached_context()
+            .and_then(|context| context.operation())
+            .expect("dispatched close gate must bind an identified operation");
         let closing = scope.spawn(move || close.execute());
         wait_until(|| progress.reached(PhysicalStoreClosePhase::AdmissionStopped));
         assert!(matches!(
@@ -117,7 +123,17 @@ fn execute_dispatched_close(
         assert!(!progress.reached(PhysicalStoreClosePhase::MediaReleased));
         media_gate.release();
         signal_gate.release();
-        (closing.join().unwrap(), effect.join().unwrap().unwrap())
+        let closed = closing.join().unwrap();
+        let effect = effect.join().unwrap().unwrap();
+        assert_eq!(
+            effect
+                .settled()
+                .effect_identity()
+                .expect("dispatched close read must retain its backend identity")
+                .backend_operation(),
+            gated_operation
+        );
+        (closed, effect)
     })
 }
 

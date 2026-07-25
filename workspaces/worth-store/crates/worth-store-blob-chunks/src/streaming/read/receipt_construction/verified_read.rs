@@ -2,13 +2,14 @@ use super::super::types::BlobStreamingVerifiedRead;
 use super::performance::counter_backed_streaming_read_performance_receipt;
 use crate::{
     BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial, BlobStreamingReadRequest,
-    LogicalContentDigest,
+    BlobStreamingReadResidencyProof, LogicalContentDigest,
 };
 
 pub(crate) fn assemble_verified_read(
     request: &BlobStreamingReadRequest,
     digest: LogicalContentDigest,
     counters: BlobStreamingReadCounterSnapshot,
+    residency: BlobStreamingReadResidencyProof,
 ) -> Result<BlobStreamingVerifiedRead, BlobStreamingReadDenial> {
     let performance = counter_backed_streaming_read_performance_receipt(counters);
     Ok(BlobStreamingVerifiedRead {
@@ -16,6 +17,7 @@ pub(crate) fn assemble_verified_read(
         generation: request.generation(),
         chunk_tree_root: request.chunk_tree_root().clone(),
         logical_content_digest: digest,
+        residency,
         counters,
         performance,
     })

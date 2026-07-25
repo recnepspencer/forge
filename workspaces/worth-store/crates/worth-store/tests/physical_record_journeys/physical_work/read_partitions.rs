@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use worth_store::physical_runtime::{
-    PhysicalSignalAspectBindingObservation, PhysicalWorkCausalRecord, RecordAppendBatch,
-    RecordByteLimit, RecordReadLimits,
+    PhysicalSignalAspectBindingObservation, PhysicalWorkCausalRecord, PhysicalWorkSignalFamily,
+    RecordAppendBatch, RecordByteLimit, RecordReadLimits,
 };
 
 use super::super::{read_record, scan_journeys::collect_scan, serving_from_open};
@@ -34,13 +34,13 @@ fn ordinary_read_and_scan_select_their_exact_store_native_signal_partitions() {
     let serving = serving_from_open(&root);
     let bindings = serving.physical_signal_aspect_binding_observations();
     assert_eq!(
-        record_partitions(&bindings),
-        BTreeSet::from([
+        read_binding_partitions(&bindings),
+        vec![
             ARTIFACT.to_owned(),
             FRAME.to_owned(),
             ROOT.to_owned(),
             SCAN.to_owned(),
-        ]),
+        ],
         "the frozen runtime must install exactly the four bounded read dependencies"
     );
 
@@ -72,13 +72,23 @@ fn ordinary_read_and_scan_select_their_exact_store_native_signal_partitions() {
     serving.close();
 }
 
-fn record_partitions(bindings: &[PhysicalSignalAspectBindingObservation]) -> BTreeSet<String> {
-    bindings
+fn read_binding_partitions(bindings: &[PhysicalSignalAspectBindingObservation]) -> Vec<String> {
+    let mut partitions = bindings
         .iter()
-        .filter_map(|binding| binding.partition())
-        .map(|partition| partition.partition.0.clone())
-        .filter(|partition| matches!(partition.as_str(), ROOT | ARTIFACT | FRAME | SCAN))
-        .collect()
+        .filter(|binding| {
+            binding
+                .families()
+                .contains(PhysicalWorkSignalFamily::ReadFault)
+        })
+        .map(|binding| {
+            binding
+                .partition()
+                .map(|partition| partition.partition.0.clone())
+                .unwrap_or_else(|| "<unpartitioned>".to_owned())
+        })
+        .collect::<Vec<_>>();
+    partitions.sort();
+    partitions
 }
 
 fn causal_partitions(

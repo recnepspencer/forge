@@ -116,7 +116,7 @@ impl Drop for PhysicalWorkCapacityLease {
         };
         let Some(registration) = state.commands.signal_registration(self.identity) else {
             if self.release.claim_release() {
-                state.release_abandoned(self.identity);
+                state.release_abandoned(self.identity, false);
             }
             return;
         };

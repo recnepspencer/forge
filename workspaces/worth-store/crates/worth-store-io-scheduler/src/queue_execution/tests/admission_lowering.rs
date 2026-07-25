@@ -134,11 +134,15 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
         grouping_for(reservation.security_scope_identity()).with_different_durability_for_test(),
     );
     let backend = backend_for(&work);
+    let secure_io = secure_io_for_work(&work, &backend);
+    let work = work.with_secure_io_scope(secure_io);
     let policy = policy_receipt(&work);
 
     let denial =
         admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .expect_err("durability mismatch must not silently batch");
+            .expect_err(
+                "C5_PREDICATE:scheduler-admission: durability mismatch must not silently admit",
+            );
 
     assert_eq!(
         denial,

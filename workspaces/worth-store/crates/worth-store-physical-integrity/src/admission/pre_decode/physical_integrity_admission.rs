@@ -265,28 +265,39 @@ fn reject_truncated_page(
     lease: IntegrityInspectionLease<'_>,
     witness: PhysicalHeaderDecodeWitness,
 ) -> Result<(), PreDecodePhysicalDenial> {
-    if lease.protected_bytes().len_bytes() < witness.payload_length() as usize {
-        return Err(PreDecodePhysicalDenial::new(
-            PreDecodePhysicalDenialKind::TruncatedPhysicalPage,
-            lease.protected_bytes(),
-        )
-        .with_locality(witness.owner()));
-    }
-    Ok(())
+    reject_invalid_extent(
+        lease,
+        witness,
+        PreDecodePhysicalDenialKind::TruncatedPhysicalPage,
+    )
 }
 
 fn reject_truncated_frame(
     lease: IntegrityInspectionLease<'_>,
     witness: PhysicalHeaderDecodeWitness,
 ) -> Result<(), PreDecodePhysicalDenial> {
-    if lease.protected_bytes().len_bytes() < witness.payload_length() as usize {
-        return Err(PreDecodePhysicalDenial::new(
-            PreDecodePhysicalDenialKind::TruncatedPhysicalFrame,
-            lease.protected_bytes(),
-        )
-        .with_locality(witness.owner()));
-    }
-    Ok(())
+    reject_invalid_extent(
+        lease,
+        witness,
+        PreDecodePhysicalDenialKind::TruncatedPhysicalFrame,
+    )
+}
+
+fn reject_invalid_extent(
+    lease: IntegrityInspectionLease<'_>,
+    witness: PhysicalHeaderDecodeWitness,
+    truncated: PreDecodePhysicalDenialKind,
+) -> Result<(), PreDecodePhysicalDenial> {
+    let expected = witness
+        .payload_offset()
+        .checked_add(witness.payload_length() as usize);
+    let actual = lease.protected_bytes().len_bytes();
+    let kind = match expected {
+        Some(expected) if actual == expected => return Ok(()),
+        Some(expected) if actual > expected => PreDecodePhysicalDenialKind::PhysicalHeaderDenied,
+        _ => truncated,
+    };
+    Err(PreDecodePhysicalDenial::new(kind, lease.protected_bytes()).with_locality(witness.owner()))
 }
 
 fn require_matching_checksum(

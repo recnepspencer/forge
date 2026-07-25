@@ -191,8 +191,7 @@ pub(crate) fn persisted_lsm_materialization(
     crate::AdmittedLayoutMaterialization,
     crate::BaselineLsmLookupSource,
 ) {
-    let replacement =
-        worth_store_test_support::harness::execute_baseline_lsm_membership_replacement_fixture();
+    let replacement = certification_published_lsm_membership_replacement();
     let source = crate::lsm_strategy()
         .readmit_lookup_source(family, &replacement)
         .expect("persisted LSM membership must readmit under its exact Store family");
@@ -200,6 +199,21 @@ pub(crate) fn persisted_lsm_materialization(
         .admit_lsm_lookup_materialization(family, catalog, &source)
         .expect("persisted LSM owner source must admit exact materialization");
     (materialization, source)
+}
+
+pub(crate) fn certification_published_lsm_membership_replacement(
+) -> worth_store_lsm_authority::PublishedLsmMembershipReplacement {
+    let security =
+        worth_store_security::admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
+    let metadata = worth_store_wal::WalSecurityMetadataCarrier::for_wal_record(
+        security.witnesses(),
+        StoreKeyVersionPosture::Current,
+        worth_store_security::StoreLegacySecurityPosture::NativeScoped,
+    );
+    let key =
+        worth_store_lsm_authority::LsmMembershipKey::admit(metadata, b"certification-layout-index")
+            .expect("certification LSM key is canonical");
+    worth_store_lsm_authority::issue_published_lsm_membership_for_certification(key)
 }
 
 pub(crate) fn admitted_page_key_bytes(segment: u64, page: u64) -> CanonicalKeyBytes {

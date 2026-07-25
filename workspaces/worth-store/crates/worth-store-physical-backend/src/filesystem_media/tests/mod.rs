@@ -6,6 +6,7 @@ mod artifact_publication_effect;
 mod capability_profile;
 mod capability_qualification;
 mod fault_interposition;
+mod fault_schedule_validation;
 mod fault_selector;
 mod filesystem_effects;
 mod mutation_ownership;

@@ -6,6 +6,7 @@ mod classification;
 #[cfg(feature = "physical-work-evidence")]
 mod courtroom_campaign;
 mod execution;
+mod local_source_fingerprint;
 mod mutation_campaign;
 #[cfg(feature = "physical-work-evidence")]
 pub mod physical_work_evidence;

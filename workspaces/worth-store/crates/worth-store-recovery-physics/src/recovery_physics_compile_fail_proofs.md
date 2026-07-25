@@ -116,10 +116,10 @@ if it were recovery readiness:
 
 ```compile_fail
 use worth_store_readiness::ProtectedIntegrityViewCapability;
-use worth_store_recovery_physics::{RecoveryEntryAdmission, RecoveryMemoryEnvelope};
+use worth_store_recovery_physics::{RecoveryEntryAdmission, RecoveryMemoryAllocation};
 
 let protected_view: ProtectedIntegrityViewCapability = todo!();
-let memory: RecoveryMemoryEnvelope = todo!();
+let memory: RecoveryMemoryAllocation = todo!();
 let physical_authority = todo!();
 let _entry = RecoveryEntryAdmission::admit(protected_view, memory, physical_authority);
 ```

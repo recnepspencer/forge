@@ -45,6 +45,9 @@ fn read_during_compaction_verdict_rejects_unbound_read_receipts() {
         inputs.new_validation,
         None,
     );
+    let new_authority =
+        worth_store_physical_isolation::admit_post_publication_read_stability_authority(&receipt)
+            .unwrap();
     let publication =
         worth_store_physical_isolation::CompactionRewritePublication::publish_rewrite(
             CompactionCutoverDelta::lower(plan, inputs.new_root).unwrap(),
@@ -64,7 +67,7 @@ fn read_during_compaction_verdict_rejects_unbound_read_receipts() {
         current_generation_page_reference(702),
     );
     let post_read = execute_read(
-        &inputs.new_authority,
+        &new_authority,
         inputs.new_root,
         current_generation_page_reference(702),
     );

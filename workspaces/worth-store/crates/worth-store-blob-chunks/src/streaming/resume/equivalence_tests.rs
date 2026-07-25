@@ -1,16 +1,12 @@
-use worth_store_budgets::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationScope, CounterEvidenceStrength,
-    FixedMetadataReservation,
-};
-use worth_store_buffer_pool::{AllocationAdmission, AllocationReceipt, AllocationRequest};
+use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::{
     blob_ingest_background_capacity_for_certification_test, BackgroundResourceBudget, QueueSlot,
 };
 use worth_store_physical_backend::BlobBackendChunkWriteSession;
 use worth_store_security::StoreTenantScope;
 
-use crate::test_support::blob_scope;
 use crate::test_support::physical_payload_for_bytes;
+use crate::test_support::{blob_allocation_grant, blob_scope};
 use crate::{
     BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission, BlobStreamingChunkWriter,
     BlobStreamingIngest, BlobStreamingIngestDenial, BlobStreamingIngestRequest,
@@ -19,7 +15,7 @@ use crate::{
 };
 
 #[test]
-fn full_residency_proof_is_stable_across_bounded_source_window_sizes() {
+fn semantic_result_and_bounded_residency_are_stable_across_source_window_sizes() {
     let small = run_ingest(source_frames(3, 4), 4, 8).unwrap();
     let large = run_ingest(source_frames(5, 8), 8, 8).unwrap();
 
@@ -27,7 +23,19 @@ fn full_residency_proof_is_stable_across_bounded_source_window_sizes() {
         small.sequence().chunk_identity_summary(),
         large.sequence().chunk_identity_summary()
     );
-    assert_eq!(small.residency(), large.residency());
+    assert_eq!(
+        small.residency().allocation_bytes(),
+        large.residency().allocation_bytes()
+    );
+    assert_eq!(
+        small.residency().peak_resident_bytes(),
+        large.residency().peak_resident_bytes()
+    );
+    assert_ne!(
+        small.residency().allocation().allocation().pool(),
+        large.residency().allocation().allocation().pool(),
+        "independent streaming sessions must retain distinct pool provenance"
+    );
     assert_eq!(
         small.frontier().chunk_tree_root(),
         large.frontier().chunk_tree_root()
@@ -53,15 +61,13 @@ fn full_residency_proof_is_stable_across_bounded_source_window_sizes() {
 fn run_ingest(
     frames: Vec<BlobStreamingSourceFrame>,
     window_bytes: u64,
-    envelope_bytes: u64,
+    allocation_bytes: u64,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    let (allocation, envelopes) = allocation_receipt_and_envelope(envelope_bytes);
     BlobStreamingIngest::run_bounded(
         request(),
         crate::BlobStreamingIngestExecution::new(
             BlobStreamingWindow::bounded(window_bytes)?,
-            allocation,
-            envelopes,
+            blob_allocation_grant(allocation_bytes),
             pressure_admission(),
             CounterEvidenceStrength::Exact,
         ),
@@ -93,40 +99,6 @@ fn source_frames(frame_bytes: usize, window_bytes: u64) -> Vec<BlobStreamingSour
             .expect("bounded source frame should admit")
         })
         .collect()
-}
-
-fn allocation_receipt_and_envelope(
-    envelope_bytes: u64,
-) -> (
-    AllocationReceipt,
-    worth_store_budgets::AllocationEnvelopeSet,
-) {
-    let envelopes = allocation_envelope(envelope_bytes);
-    let mut admission = AllocationAdmission::from_declaration(envelopes);
-    let grant = admission
-        .admit(
-            AllocationRequest::streaming_window(AllocationScope::Streaming, envelope_bytes)
-                .unwrap(),
-        )
-        .expect("streaming allocation should admit");
-    let receipt = admission
-        .record_allocation(grant)
-        .expect("streaming allocation should record");
-    (receipt, envelopes)
-}
-
-fn allocation_envelope(streaming_bytes: u64) -> worth_store_budgets::AllocationEnvelopeSet {
-    let budget = AllocationByteBudget::bytes(64).unwrap();
-    AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(AllocationByteBudget::bytes(streaming_bytes).unwrap())
-        .fixed_metadata(FixedMetadataReservation::constant_bytes(16).unwrap())
-        .seal()
-        .unwrap()
 }
 
 fn pressure_admission() -> BlobStreamingPressureAdmission {

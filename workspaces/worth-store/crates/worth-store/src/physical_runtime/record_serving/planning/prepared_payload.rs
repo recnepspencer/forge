@@ -53,7 +53,8 @@ pub(in crate::physical_runtime::record_serving) fn prepare_payload_plan(
         current_free_space,
         frontier,
         placement,
-        frame_load,
+        frame_ports,
+        source,
     } = context;
     let mut data = Vec::new();
     let mut payload_manifests = Vec::new();
@@ -68,7 +69,8 @@ pub(in crate::physical_runtime::record_serving) fn prepare_payload_plan(
             frontier,
             placement,
             placements: &mut placements,
-            frame_load,
+            frame_ports,
+            source,
             allow_published_reuse,
         },
         classified.inline,

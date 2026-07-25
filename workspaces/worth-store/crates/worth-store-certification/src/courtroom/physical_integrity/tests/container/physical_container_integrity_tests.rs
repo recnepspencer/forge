@@ -1,6 +1,6 @@
 use crate::{
     courtroom::harness::test_support::physical_container_integrity_test_support::{
-        frame_start, inspect_extent_report, inspect_frame_with_witness_payload,
+        deny_frame_with_witness_payload_mismatch, frame_start, inspect_extent_report,
         inspect_page_denial, inspect_page_report, page_payload_with_record,
     },
     courtroom::harness::test_support::physical_scope_admission_test_support::{
@@ -11,7 +11,7 @@ use crate::{
 use worth_store_physical_format::PhysicalReferenceScope;
 use worth_store_physical_integrity::{
     PhysicalBoundaryLocalization, PhysicalContainerIntegrity, PhysicalContainerIntegrityDenialKind,
-    PhysicalScopeAdmission, ScopedPhysicalValidatorInput,
+    PhysicalScopeAdmission, PreDecodePhysicalDenialKind, ScopedPhysicalValidatorInput,
 };
 
 #[test]
@@ -195,15 +195,16 @@ fn container_facade_rejects_scope_admitted_wrong_family_inputs() {
 }
 
 #[test]
-fn top_level_frame_length_mismatch_denies_as_torn_or_malformed() {
-    let malformed = inspect_frame_with_witness_payload(b"frame-body-extra", b"frame-body");
+fn top_level_frame_length_mismatch_denies_at_pre_decode_header_gate() {
+    let denial = deny_frame_with_witness_payload_mismatch(b"frame-body-extra", b"frame-body");
     assert_eq!(
-        malformed.kind(),
-        PhysicalContainerIntegrityDenialKind::MalformedFrame
+        denial.kind(),
+        PreDecodePhysicalDenialKind::PhysicalHeaderDenied
     );
+    assert_eq!(denial.counters().checksum_execution_count(), 0);
     assert_eq!(
-        malformed.localization(),
-        PhysicalBoundaryLocalization::FrameBody
+        denial.counters().skipped_logical_decode().skipped_count(),
+        1
     );
 }
 

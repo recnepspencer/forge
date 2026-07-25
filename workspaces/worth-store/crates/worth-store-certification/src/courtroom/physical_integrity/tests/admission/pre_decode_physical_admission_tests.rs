@@ -1,8 +1,9 @@
 use crate::courtroom::harness::test_support::pre_decode_physical_admission_test_support::{
     admit_checked_frame, assert_localized_pre_decode_denial,
     assert_localized_pre_decode_denial_counters, assert_pre_decode_denial_counters, crc32c,
-    current_page_cell, deny_checked_frame, frame_witness, page_witness, stale_validation,
-    with_entry_seed, with_pre_decode_admission, with_pre_decode_seed, CountingSemanticDecoder,
+    current_frame_bytes, current_page_bytes, current_page_cell, deny_checked_frame, frame_witness,
+    page_witness, stale_validation, with_entry_seed, with_pre_decode_admission,
+    CountingSemanticDecoder,
 };
 use worth_store_physical_format::{PhysicalFrameKind, PhysicalPageKind};
 use worth_store_physical_integrity::{
@@ -19,7 +20,7 @@ fn intact_physical_bytes_replay_to_same_checked_form_and_gate_identity() {
     assert_eq!(first.checked_bytes, second.checked_bytes);
     assert_eq!(
         first.checked_byte_count,
-        b"stable-physical-payload".len() as u64
+        current_frame_bytes(b"stable-physical-payload").len() as u64
     );
     assert_eq!(second.checked_byte_count, first.checked_byte_count);
     assert_eq!(first.checksum_executions, 1);
@@ -30,22 +31,25 @@ fn intact_physical_bytes_replay_to_same_checked_form_and_gate_identity() {
 
 #[test]
 fn damaged_and_mismatched_bytes_skip_logical_decode_with_exact_counters() {
-    with_pre_decode_seed(
-        b"page-poisoned",
-        |admission: PhysicalIntegrityAdmission<'_>| {
-            let denial = admission
-                .admit_page(PhysicalIntegrityAdmissionRequest::page(
-                    current_page_cell(),
-                    page_witness(b"page-poisoned"),
-                    PhysicalPageKind::DataPage,
-                    DeclaredPhysicalChecksum::new(crc32c(b"page-expected")),
-                ))
-                .unwrap_err();
+    let protected_page = current_page_bytes(b"page-poisoned");
+    with_entry_seed(&protected_page, |seed| {
+        let declaration = crate::courtroom::harness::test_support::
+                pre_decode_physical_admission_test_support::checksum_declaration()
+                .admit_for_physical_integrity_entry(seed.entry_witness());
+        let admission: PhysicalIntegrityAdmission<'_> =
+            seed.with_checksum_declaration(declaration).unwrap();
+        let denial = admission
+            .admit_page(PhysicalIntegrityAdmissionRequest::page(
+                current_page_cell(),
+                page_witness(b"page-poisoned"),
+                PhysicalPageKind::DataPage,
+                DeclaredPhysicalChecksum::new(crc32c(&current_page_bytes(b"page-expected"))),
+            ))
+            .unwrap_err();
 
-            assert_eq!(denial.kind(), PreDecodePhysicalDenialKind::ChecksumMismatch);
-            assert_localized_pre_decode_denial_counters(denial, b"page-poisoned".len() as u64, 1);
-        },
-    );
+        assert_eq!(denial.kind(), PreDecodePhysicalDenialKind::ChecksumMismatch);
+        assert_localized_pre_decode_denial_counters(denial, protected_page.len() as u64, 1);
+    });
 
     assert_localized_pre_decode_denial(deny_checked_frame(
         b"poisoned-but-parseable",
@@ -67,7 +71,7 @@ fn truncated_frames_skip_logical_decode_with_exact_counters() {
                 validation,
                 frame_witness(b"abc-but-witness-expects-more"),
                 PhysicalFrameKind::RecordFrame,
-                DeclaredPhysicalChecksum::new(crc32c(b"abc")),
+                DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(b"abc"))),
             ))
             .unwrap_err();
 
@@ -75,7 +79,11 @@ fn truncated_frames_skip_logical_decode_with_exact_counters() {
             denial.kind(),
             PreDecodePhysicalDenialKind::TruncatedPhysicalFrame
         );
-        assert_localized_pre_decode_denial_counters(denial, b"abc".len() as u64, 0);
+        assert_localized_pre_decode_denial_counters(
+            denial,
+            current_frame_bytes(b"abc").len() as u64,
+            0,
+        );
     });
 }
 
@@ -109,12 +117,16 @@ fn stale_generation_denies_before_logical_decode() {
                 stale_validation,
                 witness,
                 PhysicalFrameKind::RecordFrame,
-                DeclaredPhysicalChecksum::new(crc32c(b"stale-generation")),
+                DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(b"stale-generation"))),
             ))
             .unwrap_err();
 
         assert_eq!(denial.kind(), PreDecodePhysicalDenialKind::StaleGeneration);
-        assert_localized_pre_decode_denial_counters(denial, b"stale-generation".len() as u64, 0);
+        assert_localized_pre_decode_denial_counters(
+            denial,
+            current_frame_bytes(b"stale-generation").len() as u64,
+            0,
+        );
     });
 }
 
@@ -140,7 +152,9 @@ fn poisoned_parseable_input_never_invokes_semantic_decoder_or_constructor() {
                     validation,
                     witness,
                     PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(b"{\"looks\":\"semantic\"}")),
+                    DeclaredPhysicalChecksum::new(crc32c(&current_frame_bytes(
+                        b"{\"looks\":\"semantic\"}",
+                    ))),
                 ))
                 .unwrap();
             decoder.decode(checked.logical_decode_gate());

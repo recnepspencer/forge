@@ -10,7 +10,7 @@ use worth_store_contracts::{
 use worth_store_physical_format::store_namespace::{
     ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
 };
-use worth_store_recovery_physics::RecoveryMemoryEnvelope;
+use worth_store_recovery_physics::RecoveryMemoryAllocation;
 
 pub(super) fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPayload {
     PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
@@ -26,7 +26,7 @@ pub(super) fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPa
     )
 }
 
-pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
+pub(super) fn recovery_memory_allocation() -> RecoveryMemoryAllocation {
     let pool = PhysicalResidencyPool::open(
         StoreNamespaceIdentityRecord::new(
             StoreNamespaceVersion::CURRENT,
@@ -39,7 +39,7 @@ pub(super) fn recovery_memory_envelope() -> RecoveryMemoryEnvelope {
     let allocation = pool
         .begin_operation(OperationAllocationScope::Recovery, 128)
         .unwrap();
-    RecoveryMemoryEnvelope::from_allocation_grant(&allocation, 1).unwrap()
+    RecoveryMemoryAllocation::from_allocation_grant(allocation).unwrap()
 }
 
 pub(super) fn physical_authority() -> PhysicalAuthorityRecap {

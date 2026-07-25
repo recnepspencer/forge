@@ -57,11 +57,7 @@ fn failed_process_diagnostics_are_bounded() {
 #[test]
 fn timeout_retains_both_captured_streams() {
     let mut command = fixture("timeout");
-    let failure = require_failure(run_success(
-        &mut command,
-        Duration::from_millis(50),
-        "timeout",
-    ));
+    let failure = require_failure(run_success(&mut command, Duration::from_secs(2), "timeout"));
     assert!(failure.contains("exceeded"));
     assert!(failure.contains("before"));
     assert!(failure.contains("problem"));

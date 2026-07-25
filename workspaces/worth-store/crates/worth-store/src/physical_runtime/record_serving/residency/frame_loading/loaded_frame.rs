@@ -9,6 +9,8 @@ use crate::physical_runtime::record_serving::residency::frame_work_trace::FrameW
 pub(in crate::physical_runtime::record_serving) struct LoadedPhysicalFrame {
     lease: PhysicalFrameLease,
     work: FrameWorkTrace,
+    projection_failure:
+        Option<crate::physical_runtime::instance::PhysicalProjectionFailureCapability>,
 }
 
 impl LoadedPhysicalFrame {
@@ -17,14 +19,24 @@ impl LoadedPhysicalFrame {
         coordinate: RecordFrameCoordinate,
         lease: PhysicalFrameLease,
         work: FrameWorkTrace,
+        projection_failure: Option<
+            crate::physical_runtime::instance::PhysicalProjectionFailureCapability,
+        >,
     ) -> Result<Self, FrameLoadFailure> {
         if lease.key() != PhysicalFrameKey::new(store, coordinate) {
+            if let Some(projection_failure) = projection_failure {
+                projection_failure.consume();
+            }
             return Err(
                 FrameLoadFailure::new(FrameLoadFailureKind::ReturnedFrameIdentityMismatch)
                     .with_work(work),
             );
         }
-        Ok(Self { lease, work })
+        Ok(Self {
+            lease,
+            work,
+            projection_failure,
+        })
     }
 
     pub(in crate::physical_runtime::record_serving) const fn work_trace(&self) -> FrameWorkTrace {
@@ -34,6 +46,12 @@ impl LoadedPhysicalFrame {
     pub(super) fn preceded_by(mut self, work: FrameWorkTrace) -> Self {
         self.work = work.then(self.work);
         self
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn reject_projection_failure(mut self) {
+        if let Some(projection_failure) = self.projection_failure.take() {
+            projection_failure.consume();
+        }
     }
 
     pub(in crate::physical_runtime::record_serving) fn copy_range_into(

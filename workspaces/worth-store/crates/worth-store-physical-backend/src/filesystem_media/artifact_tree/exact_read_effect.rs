@@ -1,10 +1,13 @@
-use std::io::Read;
+use std::io::{ErrorKind, Read};
 
 use super::{ArtifactTreeFailure, ArtifactTreeFailureKind};
 use crate::filesystem_media::{FilesystemMediaOwner, MediaOperationIdentity, MediaOperationRole};
 
 pub(super) enum ExactReadEffect {
-    Completed(MediaOperationIdentity),
+    Completed {
+        operation: MediaOperationIdentity,
+        completed_bytes: u64,
+    },
     DeniedBeforeEffect(ArtifactTreeFailure),
 }
 
@@ -30,23 +33,68 @@ pub(super) fn execute(
             &error,
         ));
     }
-    if attempt.transfer_limit(requested) != requested {
-        attempt.denied();
-        return ExactReadEffect::DeniedBeforeEffect(ArtifactTreeFailure::structural(
-            ArtifactTreeFailureKind::AccessLimitExceeded,
-        ));
-    }
-    match file.read_exact(target) {
-        Ok(()) => {
-            attempt.completed(requested);
-            ExactReadEffect::Completed(operation)
+    let admitted = attempt.transfer_limit(requested);
+    match read_admitted(file, &mut target[..admitted as usize]) {
+        AdmittedRead::Completed => {
+            if admitted == requested {
+                attempt.completed(admitted);
+            } else {
+                attempt.partial(admitted);
+            }
+            ExactReadEffect::Completed {
+                operation,
+                completed_bytes: admitted,
+            }
         }
-        Err(error) => {
+        AdmittedRead::Interrupted {
+            completed_bytes: 0,
+            error,
+        } => {
             attempt.denied();
             ExactReadEffect::DeniedBeforeEffect(ArtifactTreeFailure::io(
                 ArtifactTreeFailureKind::Damaged,
                 &error,
             ))
         }
+        AdmittedRead::Interrupted {
+            completed_bytes, ..
+        } => {
+            attempt.partial(completed_bytes);
+            ExactReadEffect::Completed {
+                operation,
+                completed_bytes,
+            }
+        }
     }
+}
+
+enum AdmittedRead {
+    Completed,
+    Interrupted {
+        completed_bytes: u64,
+        error: std::io::Error,
+    },
+}
+
+fn read_admitted(file: &mut cap_std::fs::File, target: &mut [u8]) -> AdmittedRead {
+    let mut completed = 0;
+    while completed < target.len() {
+        match file.read(&mut target[completed..]) {
+            Ok(0) => {
+                return AdmittedRead::Interrupted {
+                    completed_bytes: completed as u64,
+                    error: std::io::Error::from(ErrorKind::UnexpectedEof),
+                };
+            }
+            Ok(read) => completed += read,
+            Err(error) if error.kind() == ErrorKind::Interrupted => {}
+            Err(error) => {
+                return AdmittedRead::Interrupted {
+                    completed_bytes: completed as u64,
+                    error,
+                };
+            }
+        }
+    }
+    AdmittedRead::Completed
 }

@@ -1,8 +1,4 @@
-use worth_store_budgets::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationScope, CounterEvidenceStrength,
-    FixedMetadataReservation,
-};
-use worth_store_buffer_pool::{AllocationAdmission, AllocationRequest};
+use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::{
     blob_ingest_background_capacity_for_certification_test, BackgroundResourceBudget, QueueSlot,
 };
@@ -11,7 +7,9 @@ use worth_store_security::StoreTenantScope;
 
 use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::test_support::physical_payload_for_bytes;
-use crate::test_support::{admitted_multichunk_sequence_for_scope, blob_scope};
+use crate::test_support::{
+    admitted_multichunk_sequence_for_scope, blob_allocation_grant, blob_scope,
+};
 use crate::{
     run_resumable_streaming_ingest, BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission,
     BlobResumeSessionAdmitted, BlobResumeSessionDeclaration, BlobResumeStoreAuthority,
@@ -24,12 +22,6 @@ use crate::{
 fn public_streaming_ingest_requires_and_records_resume_session_admission() {
     let session = admitted_resume_session();
     let resume_admission = BlobStreamingResumeAdmission::from_admitted_resume_session(&session);
-    let envelopes = allocation_envelope();
-    let mut allocation = AllocationAdmission::from_declaration(envelopes);
-    let grant = allocation
-        .admit(AllocationRequest::streaming_window(AllocationScope::Streaming, 4).unwrap())
-        .unwrap();
-    let allocation = allocation.record_allocation(grant).unwrap();
     let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
@@ -42,8 +34,7 @@ fn public_streaming_ingest_requires_and_records_resume_session_admission() {
         resume_admission,
         crate::BlobStreamingIngestExecution::new(
             BlobStreamingWindow::bounded(4).unwrap(),
-            allocation,
-            envelopes,
+            blob_allocation_grant(4),
             pressure,
             CounterEvidenceStrength::Exact,
         ),
@@ -62,12 +53,6 @@ fn public_streaming_ingest_requires_and_records_resume_session_admission() {
 fn public_streaming_ingest_denies_request_not_bound_to_resume_session() {
     let session = admitted_resume_session();
     let resume_admission = BlobStreamingResumeAdmission::from_admitted_resume_session(&session);
-    let envelopes = allocation_envelope();
-    let mut allocation = AllocationAdmission::from_declaration(envelopes);
-    let grant = allocation
-        .admit(AllocationRequest::streaming_window(AllocationScope::Streaming, 4).unwrap())
-        .unwrap();
-    let allocation = allocation.record_allocation(grant).unwrap();
     let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
         1,
@@ -80,8 +65,7 @@ fn public_streaming_ingest_denies_request_not_bound_to_resume_session() {
         resume_admission,
         crate::BlobStreamingIngestExecution::new(
             BlobStreamingWindow::bounded(4).unwrap(),
-            allocation,
-            envelopes,
+            blob_allocation_grant(4),
             pressure,
             CounterEvidenceStrength::Exact,
         ),
@@ -144,20 +128,6 @@ fn source_frames() -> Vec<BlobStreamingSourceFrame> {
             .unwrap()
         })
         .collect()
-}
-
-fn allocation_envelope() -> worth_store_budgets::AllocationEnvelopeSet {
-    let budget = AllocationByteBudget::bytes(64).unwrap();
-    AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(AllocationByteBudget::bytes(4).unwrap())
-        .fixed_metadata(FixedMetadataReservation::constant_bytes(16).unwrap())
-        .seal()
-        .unwrap()
 }
 
 fn background_budget() -> BackgroundResourceBudget {

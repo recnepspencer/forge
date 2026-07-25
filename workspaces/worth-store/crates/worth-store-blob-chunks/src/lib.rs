@@ -21,7 +21,7 @@ mod backup_verification;
 mod capsule_readiness;
 mod chunk_identity;
 mod chunk_integrity;
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 mod closeout_bundle;
 mod compaction;
 mod compile_fail;
@@ -30,9 +30,9 @@ mod dedupe;
 mod export_bundle;
 mod exports;
 mod handoffs;
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 mod harness_execution;
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 mod heavy_fixture;
 mod import_readmission;
 mod layout_projection;
@@ -51,10 +51,11 @@ pub use backup_verification::{
     BlobBackupChunkArtifact, BoundedBlobBackupDenial, BoundedBlobBackupObservation,
     BoundedBlobBackupVerificationRequest,
 };
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 pub use closeout_bundle::ExecutedBlobLifecycleEvidenceBundle;
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-test-authority"))]
 pub(crate) use compaction::test_support::{
+    authority as phase25_compaction_authority,
     compacted_rewritten_publication as phase25_compacted_rewritten_publication,
     intent as phase25_compaction_intent,
     verified_read_for_rewritten as phase25_verified_read_for_rewritten,
@@ -62,7 +63,7 @@ pub(crate) use compaction::test_support::{
 #[cfg(test)]
 pub use exports::hostile_lane::*;
 pub use exports::*;
-#[cfg(any(test, feature = "certification-test-authority"))]
+#[cfg(feature = "certification-test-authority")]
 pub use heavy_fixture::*;
 pub use layout_projection::{
     reject_chunk_tree_root_as_blob_object_layout_authority,
@@ -74,9 +75,9 @@ pub use layout_projection::{
     ReachabilityLayoutReport, ReclaimLayoutReport, RetentionLayoutReport,
     StoredChunkLookupLayoutReport, StreamingLayoutReport, StreamingResumeLayoutReport,
 };
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-test-authority"))]
 pub(crate) use publication::test_support::publish_generation_with_bytes_and_chunk_size;
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-test-authority"))]
 pub(crate) use retention_reclaim::test_support::reclaim_fixture as phase25_reclaim_fixture;
 #[cfg(test)]
 pub(crate) use streaming::layout_runtime_case;

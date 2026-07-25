@@ -4,7 +4,7 @@ use crate::physical_runtime::record_serving::RecordAppendDenial;
 
 pub(in crate::physical_runtime::record_serving) struct CandidateFramePhysicalWrite {
     receipt: Option<CompletedArtifactRangeWrite>,
-    work: Option<crate::physical_runtime::PhysicalWorkIdentity>,
+    settlement: Option<crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement>,
 }
 
 impl CandidateFramePhysicalWrite {
@@ -13,15 +13,15 @@ impl CandidateFramePhysicalWrite {
     ) -> Self {
         Self {
             receipt: Some(receipt),
-            work: None,
+            settlement: None,
         }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn bind_work(
+    pub(in crate::physical_runtime::record_serving) fn bind_settlement(
         mut self,
-        work: crate::physical_runtime::PhysicalWorkIdentity,
+        settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
     ) -> Self {
-        self.work = Some(work);
+        self.settlement = Some(settlement);
         self
     }
 
@@ -34,14 +34,23 @@ impl CandidateFramePhysicalWrite {
     pub(in crate::physical_runtime::record_serving) const fn work(
         &self,
     ) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
-        self.work
+        match self.settlement {
+            Some(settlement) => Some(settlement.identity()),
+            None => None,
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) const fn settlement(
+        &self,
+    ) -> Option<crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement> {
+        self.settlement
     }
 
     #[cfg(test)]
     pub(super) fn for_contract_test() -> Self {
         Self {
             receipt: None,
-            work: None,
+            settlement: None,
         }
     }
 }

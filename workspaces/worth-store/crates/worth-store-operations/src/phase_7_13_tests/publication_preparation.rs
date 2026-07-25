@@ -21,7 +21,7 @@ fn prepared_publication_can_abandon_only_before_a_durable_locator_exists() {
         ))
         .expect("independent staged verification");
     let store = PhysicalStoreIdentity::from_aspect_identity(world.authority.identity().clone());
-    let roots = publication_inputs_for_store(&store, "prepared-abandonment", 81);
+    let roots = publication_inputs_for_store(&store, 81);
     let publication_directory = tempfile::tempdir().unwrap();
     let old_root = roots.old_candidate.root();
     let frontier = crate::RecoveryAuthorityFrontier::observed(

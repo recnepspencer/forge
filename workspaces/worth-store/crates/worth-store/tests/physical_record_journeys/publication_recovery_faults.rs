@@ -97,16 +97,18 @@ fn record_barrier_fault_is_not_laundered_as_recovery_journal_failure() {
             placement,
         )
         .unwrap_err();
-    let RecordAppendError::Unpublished(failure) = &error else {
+    let RecordAppendError::Unpublished(batch_failure) = &error else {
         panic!("C5_PREDICATE:publication-durability {error:?}");
     };
     assert_eq!(
-        failure.effect_fate(),
+        batch_failure.effect_fate(),
         worth_store::physical_runtime::UnpublishedRecordEffectFate::EffectPossible,
         "the completed candidate write must contribute to aggregate publication fate"
     );
-    let worth_store::physical_runtime::UnpublishedRecordBatchCause::PhysicalWork { stage, failure } =
-        failure.cause()
+    let worth_store::physical_runtime::UnpublishedRecordBatchCause::PhysicalWork {
+        stage,
+        failure: work_failure,
+    } = batch_failure.cause()
     else {
         panic!("C5_PREDICATE:publication-durability {error:?}");
     };
@@ -114,17 +116,19 @@ fn record_barrier_fault_is_not_laundered_as_recovery_journal_failure() {
         *stage,
         worth_store::physical_runtime::RecordPublicationStage::DataSynchronization
     );
-    assert!(failure.identity().is_some());
+    let identity = work_failure
+        .identity()
+        .expect("settled failure retains physical work identity");
     assert!(matches!(
-        failure.cause(),
+        work_failure.cause(),
         worth_store::physical_runtime::PhysicalRecordMutationFailureCause::Backend(_)
     ));
     assert_eq!(
-        failure.effect_fate(),
+        work_failure.effect_fate(),
         worth_store::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect
     );
     assert_eq!(
-        failure.recovery_target(),
+        work_failure.recovery_target(),
         Some(
             worth_store::physical_runtime::PhysicalWorkRecoveryTarget::ArtifactFileSynchronization(
                 worth_store_physical_format::RecordArtifactFile::Segment {
@@ -134,8 +138,29 @@ fn record_barrier_fault_is_not_laundered_as_recovery_journal_failure() {
             ),
         ),
     );
-    assert!(failure.recovery().is_none());
-    assert!(failure.backend_operation().is_none());
+    assert_eq!(
+        work_failure.recovery(),
+        Some(worth_store::physical_runtime::PhysicalWorkRecoveryDisposition::ContinueSettlement)
+    );
+    assert!(work_failure.backend_operation().is_none());
+    let traced = batch_failure
+        .physical_work()
+        .effects()
+        .iter()
+        .find(|effect| effect.identity() == identity)
+        .expect("publication failure trace retains settled work");
+    let settlement = traced
+        .settlement()
+        .expect("settled failure trace retains canonical settlement");
+    let causal = serving.physical_work_observer().causal().records();
+    let matching_causal = causal
+        .iter()
+        .filter(|record| record.identity() == identity)
+        .collect::<Vec<_>>();
+    assert_eq!(matching_causal.len(), 1);
+    assert_eq!(settlement.effect(), None);
+    assert_eq!(settlement.effect_fate(), matching_causal[0].effect_fate());
+    assert_eq!(settlement.recovery(), matching_causal[0].recovery());
     let after = serving.media_counters();
     assert_eq!(after.replacements(), before.replacements());
     assert_eq!(after.fault_matches(), before.fault_matches() + 1);

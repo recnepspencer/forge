@@ -185,7 +185,7 @@ fn recovery_budget() -> worth_store_recovery_physics::RecoveryBudget {
         WalTailReplayBudget::max_frames(32)
             .with_max_scanned_segments(4)
             .with_max_page_redos(32),
-        recovery_memory_envelope(),
+        recovery_memory_allocation(),
     )
     .with_store_footprint(RecoveryStoreFootprint::admitted_persisted_pages(64))
     .with_checkpoint_discovery_candidates(4)

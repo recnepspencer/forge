@@ -1,29 +1,29 @@
 use crate::{
     classify_recovery_entry_inputs, AdmittedRecoveryIntegrityInput, RecoveryEntryAdmissionDecision,
     RecoveryEntryAdmissionDenial, RecoveryEntryBasis, RecoveryEntryCounters, RecoveryEntryIdentity,
-    RecoveryEntryInputClassification, RecoveryMemoryEnvelope,
+    RecoveryEntryInputClassification, RecoveryMemoryAllocation, RecoveryMemoryObservation,
 };
 use worth_store_contracts::PhysicalAuthorityRecap;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct RecoveryEntryAdmission {
     entry_identity: RecoveryEntryIdentity,
     recovery_basis: RecoveryEntryBasis,
     counters: RecoveryEntryCounters,
     integrity_readiness: AdmittedRecoveryIntegrityInput,
-    memory_envelope: RecoveryMemoryEnvelope,
+    memory_allocation: RecoveryMemoryAllocation,
     physical_authority: PhysicalAuthorityRecap,
 }
 
 impl RecoveryEntryAdmission {
     pub fn admit(
         integrity_readiness: AdmittedRecoveryIntegrityInput,
-        memory_envelope: RecoveryMemoryEnvelope,
+        memory_allocation: RecoveryMemoryAllocation,
         physical_authority: PhysicalAuthorityRecap,
     ) -> RecoveryEntryAdmissionDecision {
         match classify_recovery_entry_inputs(
             &integrity_readiness,
-            memory_envelope,
+            &memory_allocation,
             physical_authority,
         ) {
             RecoveryEntryInputClassification::Admissible(basis, counters) => {
@@ -32,7 +32,7 @@ impl RecoveryEntryAdmission {
                     recovery_basis: *basis,
                     counters,
                     integrity_readiness,
-                    memory_envelope,
+                    memory_allocation,
                     physical_authority,
                 }))
             }
@@ -61,8 +61,8 @@ impl RecoveryEntryAdmission {
         &self.integrity_readiness
     }
 
-    pub const fn memory_envelope(&self) -> RecoveryMemoryEnvelope {
-        self.memory_envelope
+    pub const fn memory_allocation(&self) -> RecoveryMemoryObservation {
+        self.memory_allocation.observation()
     }
 
     pub const fn physical_authority(&self) -> PhysicalAuthorityRecap {

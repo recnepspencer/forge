@@ -41,7 +41,6 @@ fn execute_crash_and_denial(generation: u64) -> [Vec<ImportPublicationAction>; 2
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
     let inputs = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "protocol-import-expected-root",
         generation,
     );
     let plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&inputs);
@@ -67,7 +66,6 @@ fn execute_crash_and_denial(generation: u64) -> [Vec<ImportPublicationAction>; 2
 
     let substituted = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "protocol-import-substituted-root",
         generation.saturating_add(1),
     );
     let substituted_publication = worth_store_test_support::harness::physical_isolation::publish_in_temporary_store(
@@ -97,7 +95,6 @@ fn execute_durable_publication() -> Vec<ImportPublicationAction> {
     let store = PhysicalStoreIdentity::from_aspect_identity(authority.identity().clone());
     let inputs = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
         &store,
-        "protocol-import-durable-root",
         95,
     );
     let plan = worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(&inputs);
