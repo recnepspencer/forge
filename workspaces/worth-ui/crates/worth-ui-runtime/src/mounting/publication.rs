@@ -78,7 +78,7 @@ impl UiMountedFrameReconciliationCandidate {
         state: &mut super::UiMountedIdentityState,
     ) -> UiMountedFramePublicationReceipt {
         let Self { receipt, .. } = self;
-        let mount_cost = presented.receipt().cost_report();
+        let mount_cost = retained_publication_cost(presented.receipt().cost_report());
         receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
         state.publish_reconciled_frame(frame, receipt.clone());
@@ -124,7 +124,7 @@ impl UiMountedFramePublicationCandidate {
         state: &mut super::UiMountedIdentityState,
     ) -> UiMountedFramePublicationReceipt {
         let Self { receipt } = self;
-        let mount_cost = presented.receipt().cost_report();
+        let mount_cost = retained_publication_cost(presented.receipt().cost_report());
         receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
         state.publish_presented_frame(frame, receipt.clone());
@@ -166,35 +166,34 @@ impl UiMountedFramePublicationReceipt {
     }
 }
 
+fn retained_publication_cost(cost: super::UiMountCostReport) -> super::UiMountCostReport {
+    cost.with_retained(1)
+        .expect("one published current frame fits retained cost accounting")
+}
+
 impl UiMountedFrameOutcome {
     pub fn cost_report(&self) -> Option<super::UiMountCostReport> {
         match self {
             Self::Published(receipt) | Self::Reconciled(receipt) => Some(receipt.cost_report()),
             Self::Unchanged(_) => Some(super::UiMountCostReport::unchanged_reuse()),
-            Self::RejectedBeforeEffects(frame) => Some(
-                frame
-                    .frame()
-                    .cost_report()
-                    .reclassified(super::UiMountWorkClass::RejectedPresentation),
-            ),
+            Self::RejectedBeforeEffects(frame) => Some(frame.cost_report()),
             Self::InFlight(frame) => Some(frame.cost_report()),
-            Self::PresentationIndeterminate(frame) => Some(
-                frame
-                    .frame()
-                    .cost_report()
-                    .reclassified(super::UiMountWorkClass::IndeterminatePresentation),
-            ),
+            Self::PresentationIndeterminate(frame) => Some(frame.cost_report()),
             Self::RetentionDenied(rejection) => Some(
                 rejection
                     .frame()
                     .cost_report()
-                    .reclassified(super::UiMountWorkClass::RejectedPreparation),
+                    .reclassified(super::UiMountWorkClass::RejectedPreparation)
+                    .with_rejected(1)
+                    .expect("one rejected retained frame fits cost accounting"),
             ),
             Self::AdmissionDenied(rejection) => Some(
                 rejection
                     .frame()
                     .cost_report()
-                    .reclassified(super::UiMountWorkClass::RejectedPresentation),
+                    .reclassified(super::UiMountWorkClass::RejectedPresentation)
+                    .with_rejected(1)
+                    .expect("one rejected presentation frame fits cost accounting"),
             ),
             Self::CompletionDenied(_) => None,
         }

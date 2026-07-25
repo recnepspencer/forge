@@ -35,6 +35,11 @@ fn coalescible_overflow_retains_one_survivor_with_explicit_loss() {
         UiHostObservationDisposition::Retained
     );
     assert_eq!(world.session.retained_host_observation_report_count(), 1);
+    let work = world.session.host_observation_work_report();
+    assert_eq!(work.raw_entries_handled(), 1);
+    assert_eq!(work.validated_entries(), 1);
+    assert_eq!(work.retained_entries(), 1);
+    assert_eq!(work.overflowed_entries(), 64);
 }
 
 #[test]
@@ -75,6 +80,11 @@ fn complete_range_overflow_retains_nothing_and_advances_the_source() {
         )),
         UiHostObservationReportOutcome::Validated(_)
     ));
+    let work = world.session.host_observation_work_report();
+    assert_eq!(work.batches_handled(), 2);
+    assert_eq!(work.raw_entries_handled(), 1);
+    assert_eq!(work.validated_entries(), 1);
+    assert_eq!(work.overflowed_entries(), 4);
 }
 
 #[test]
@@ -96,6 +106,10 @@ fn lossless_overflow_denies_without_retaining_partial_input() {
         ))
     );
     assert_eq!(world.session.retained_host_observation_report_count(), 0);
+    let work = world.session.host_observation_work_report();
+    assert_eq!(work.raw_entries_handled(), 1);
+    assert_eq!(work.denied_entries(), 1);
+    assert_eq!(work.overflowed_entries(), 1);
 }
 
 fn keyboard(sequence: u64) -> UiHostObservationPayload {

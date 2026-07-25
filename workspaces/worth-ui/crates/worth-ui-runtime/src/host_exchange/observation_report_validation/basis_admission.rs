@@ -4,6 +4,7 @@ use super::{UiHostObservationFrameRelation, UiHostObservationReportDenial};
 pub(super) struct UiBasisAdmittedObservationBatch {
     batch: UiSequenceCoveredObservationBatch,
     relation: UiHostObservationFrameRelation,
+    observation_basis: crate::mounting::UiMountedObservationBasisLease,
 }
 
 struct UiPresentedBasisCoordinates {
@@ -18,12 +19,23 @@ impl UiBasisAdmittedObservationBatch {
         batch: UiSequenceCoveredObservationBatch,
         retention: &crate::mounting::UiMountedFrameRetentionCoordinator,
         host_session: u64,
+        existing_basis: Option<crate::mounting::UiMountedObservationBasisLease>,
     ) -> Result<Self, UiHostObservationReportDenial> {
         if batch.core().host_session() != host_session {
             return Err(UiHostObservationReportDenial::ForeignHostSession);
         }
         let relation = classify_basis(&batch, retention)?;
-        Ok(Self { batch, relation })
+        let observation_basis = match existing_basis {
+            Some(existing) => existing,
+            None => retention
+                .acquire_observation_basis(batch.core().frame())
+                .map_err(map_retention_denial)?,
+        };
+        Ok(Self {
+            batch,
+            relation,
+            observation_basis,
+        })
     }
 
     pub(super) fn into_parts(
@@ -31,8 +43,37 @@ impl UiBasisAdmittedObservationBatch {
     ) -> (
         UiSequenceCoveredObservationBatch,
         UiHostObservationFrameRelation,
+        crate::mounting::UiMountedObservationBasisLease,
     ) {
-        (self.batch, self.relation)
+        (self.batch, self.relation, self.observation_basis)
+    }
+}
+
+fn map_retention_denial(
+    denial: crate::mounting::UiMountedObservationBasisRetentionDenial,
+) -> UiHostObservationReportDenial {
+    match denial {
+        crate::mounting::UiMountedObservationBasisRetentionDenial::FrameTransitionInFlight => {
+            UiHostObservationReportDenial::FrameTransitionInFlight
+        }
+        crate::mounting::UiMountedObservationBasisRetentionDenial::UnknownFrame => {
+            UiHostObservationReportDenial::UnknownFrame
+        }
+        crate::mounting::UiMountedObservationBasisRetentionDenial::ExpiredFrame => {
+            UiHostObservationReportDenial::ExpiredFrame
+        }
+        crate::mounting::UiMountedObservationBasisRetentionDenial::CapacityExceeded {
+            required_leases,
+            required_structural_bytes,
+            budget,
+        } => UiHostObservationReportDenial::ObservationBasisCapacityExceeded {
+            required_leases,
+            required_structural_bytes,
+            budget,
+        },
+        crate::mounting::UiMountedObservationBasisRetentionDenial::AccountingOverflow => {
+            UiHostObservationReportDenial::ObservationBasisAccountingOverflow
+        }
     }
 }
 

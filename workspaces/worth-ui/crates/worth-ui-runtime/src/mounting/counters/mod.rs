@@ -212,6 +212,21 @@ impl UiMountCostReport {
         self
     }
 
+    pub(crate) fn with_retained(mut self, count: usize) -> Result<Self, UiMountCostOverflow> {
+        add(&mut self.named.retained, count)?;
+        Ok(self)
+    }
+
+    pub(crate) fn with_rejected(mut self, count: usize) -> Result<Self, UiMountCostOverflow> {
+        add(&mut self.named.rejected, count)?;
+        Ok(self)
+    }
+
+    pub(crate) fn with_cost_overflow(mut self) -> Result<Self, UiMountCostOverflow> {
+        add_u64(&mut self.named.overflowed, 1)?;
+        Ok(self)
+    }
+
     pub(crate) fn unchanged_reuse() -> Self {
         let mut report = UiMountStageCounters::begin(UiMountWorkClass::UnchangedReuse).finish();
         report.named.reused = 1;

@@ -3,7 +3,7 @@ use std::rc::{Rc, Weak};
 
 use worth_ui_host_contract::UiMountedFrameIdentity;
 
-use super::coordinator::UiMountedFrameRetentionAuthority;
+use super::authority::UiMountedFrameRetentionAuthority;
 use super::UiMountedRetentionClass;
 
 pub struct UiMountedRetentionLease {
@@ -12,7 +12,7 @@ pub struct UiMountedRetentionLease {
 
 #[derive(Clone)]
 pub(crate) struct UiMountedObservationBasisLease {
-    pin: UiMountedRetentionPin,
+    _pin: UiMountedRetentionPin,
 }
 
 #[derive(Clone)]
@@ -28,7 +28,7 @@ struct UiMountedRetentionPinRelease {
 }
 
 impl UiMountedRetentionLease {
-    pub(crate) fn new(
+    pub(super) fn from_reserved(
         authority: &Rc<RefCell<UiMountedFrameRetentionAuthority>>,
         frame: UiMountedFrameIdentity,
         structural_bytes: usize,
@@ -53,13 +53,13 @@ impl UiMountedRetentionLease {
 }
 
 impl UiMountedObservationBasisLease {
-    pub(crate) fn new(
+    pub(super) fn from_reserved(
         authority: &Rc<RefCell<UiMountedFrameRetentionAuthority>>,
         frame: UiMountedFrameIdentity,
         structural_bytes: usize,
     ) -> Self {
         Self {
-            pin: UiMountedRetentionPin::new(
+            _pin: UiMountedRetentionPin::new(
                 authority,
                 frame,
                 UiMountedRetentionClass::ObservationBasis,

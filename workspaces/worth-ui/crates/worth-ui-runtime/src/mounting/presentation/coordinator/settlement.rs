@@ -8,6 +8,7 @@ use super::super::state::{
     UiMountedPresentationCompletionDenial, UiMountedPresentationInFlight,
     UiMountedPresentationInFlightState, UiPendingMountedSurface,
 };
+use super::super::terminal::UiIndeterminatePresentationEvidence;
 use super::super::terminal::{aggregate_affected, completion_satisfies, rejected_outcome};
 use super::UiMountedPresentationCoordinator;
 use crate::facade::UiHostEffectPort;
@@ -45,7 +46,12 @@ impl UiMountedPresentationCoordinator {
                 .collect::<Vec<_>>();
             let effects_may_have_begun = cancel_all(pending, host);
             if effects_may_have_begun || !completed.is_empty() {
-                return Ok(self.indeterminate(frame, retention, attempt, affected));
+                return Ok(self.indeterminate(
+                    frame,
+                    retention,
+                    attempt,
+                    UiIndeterminatePresentationEvidence::new(affected, completed),
+                ));
             }
             self.active.borrow_mut().remove(&attempt);
             let mut rejections = rejected;
@@ -71,7 +77,12 @@ impl UiMountedPresentationCoordinator {
                     let mut affected = aggregate_affected(&completed, &remaining, &rejected);
                     affected.push(binding);
                     cancel_all(remaining, host);
-                    return Ok(self.indeterminate(frame, retention, attempt, affected));
+                    return Ok(self.indeterminate(
+                        frame,
+                        retention,
+                        attempt,
+                        UiIndeterminatePresentationEvidence::new(affected, completed),
+                    ));
                 }
                 UiHostSurfaceInFlightCompletion::Presented(completion) => {
                     let surface = frame
@@ -84,7 +95,10 @@ impl UiMountedPresentationCoordinator {
                         let mut affected = aggregate_affected(&completed, &remaining, &rejected);
                         affected.push(binding);
                         cancel_all(remaining, host);
-                        return Ok(self.indeterminate(frame, retention, attempt, affected));
+                        let evidence =
+                            UiIndeterminatePresentationEvidence::new(affected, completed)
+                                .with_additional_adapter_cost(completion.cost());
+                        return Ok(self.indeterminate(frame, retention, attempt, evidence));
                     }
                     let (effects, adapter_cost) = completion.into_parts();
                     completed.push(UiMountedSurfacePresentationReceipt::new(
@@ -181,7 +195,12 @@ impl UiMountedPresentationCoordinator {
             .collect::<Vec<_>>();
         let effects_may_have_begun = cancel_all(pending, host);
         if effects_may_have_begun || !completed.is_empty() {
-            return self.indeterminate(frame, retention, attempt, affected);
+            return self.indeterminate(
+                frame,
+                retention,
+                attempt,
+                UiIndeterminatePresentationEvidence::new(affected, completed),
+            );
         }
         self.active.borrow_mut().remove(&attempt);
         let mut rejections = rejected;

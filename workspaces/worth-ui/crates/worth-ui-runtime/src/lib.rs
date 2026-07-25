@@ -6,6 +6,7 @@ pub mod facade;
 mod graph;
 pub(crate) mod host;
 mod host_exchange;
+mod inspection;
 mod lifecycle;
 mod mounting;
 mod obligations;

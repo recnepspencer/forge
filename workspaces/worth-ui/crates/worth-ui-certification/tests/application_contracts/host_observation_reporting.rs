@@ -107,6 +107,10 @@ fn individual_and_host_coalesced_batches_share_terminal_mechanics_and_exact_repl
         }
     );
     assert_eq!(batched.session.retained_host_observation_report_count(), 1);
+    let work = batched.session.host_observation_work_report();
+    assert_eq!(work.raw_entries_handled(), 1);
+    assert_eq!(work.validated_entries(), 1);
+    assert_eq!(work.coalesced_entries(), 4);
 }
 
 #[test]

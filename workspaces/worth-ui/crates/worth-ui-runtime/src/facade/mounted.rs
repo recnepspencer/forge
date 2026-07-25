@@ -1,5 +1,11 @@
 //! Mounted identity and surface-binding observations.
 
+pub use crate::inspection::mounted_frame::{
+    UiMountedInspectedFrame, UiMountedInspectionOmission, UiMountedInspectionReceipt,
+    UiMountedInspectionRelation, UiMountedInspectionRequest, UiMountedInspectionTarget,
+    UiMountedRetentionClassReport, UiMountedRetentionEvictionPosture,
+    UiMountedRetentionQueueBudget, UiMountedRetentionReport,
+};
 pub use crate::mounting::{
     UiHostPresentationReconciliation, UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity,
     UiHostSurfacePresentationMode, UiMountCostReport, UiMountIncarnation, UiMountNamedCounters,
@@ -21,7 +27,7 @@ pub use crate::mounting::{
     UiMountedPresentationShutdownReport, UiMountedPresentationWitness, UiMountedPresentedFrame,
     UiMountedProjectionAudience, UiMountedProjectionDenial, UiMountedProjectionFrame,
     UiMountedPublicationLeaseDenial, UiMountedRejectedFrame, UiMountedRetentionClass,
-    UiMountedRetentionClassBudget, UiMountedSurfacePresentationReceipt,
+    UiMountedRetentionClassBudget, UiMountedRetentionLease, UiMountedSurfacePresentationReceipt,
     UiMountedSurfacePresentationRejection, UiMountedSurfaceReceipt,
     UiMountedSurfaceReconciliationBinding, UiPreparedMountedFrame,
     UiPresentationIndeterminateReport, UiProjectedMountedFrameCandidate, UiSemanticSurfaceIdentity,

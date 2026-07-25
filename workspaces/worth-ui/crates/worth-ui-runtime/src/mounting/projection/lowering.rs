@@ -325,6 +325,7 @@ fn build_delta_projection(
         .checked_add(allocation_affected.index_entries_touched())
         .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
     let mut changed_projected = 0usize;
+    let mut changed_projected_outside_changed_surfaces = 0usize;
     let mut membership_changed = false;
     for instance in &retired {
         membership_changed |= semantic.contains(*instance);
@@ -337,12 +338,16 @@ fn build_delta_projection(
             .filter(|view| requested_surfaces.contains(&view.basis().semantic_surface_identity()))
         {
             Some(view) => {
+                let belongs_to_changed_surface =
+                    changed_surfaces.contains(&view.basis().semantic_surface_identity());
                 let node = lowering.lower(&view)?.materialize();
                 index_entries = index_entries
                     .checked_add(2)
                     .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
                 index_entries = add_mutation_work(index_entries, semantic.insert_node(node))?;
                 changed_projected += 1;
+                changed_projected_outside_changed_surfaces +=
+                    usize::from(!belongs_to_changed_surface);
                 membership_changed |= !previously_projected;
             }
             None => {
@@ -367,8 +372,10 @@ fn build_delta_projection(
     } else {
         0
     };
-    let affected_surface_pairs =
-        semantic.surface_instance_count(&changed_surfaces) + changed_projected;
+    let affected_surface_pairs = semantic
+        .surface_instance_count(&changed_surfaces)
+        .checked_add(changed_projected_outside_changed_surfaces)
+        .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
     let reused = semantic.node_count().saturating_sub(changed_projected);
     Ok(Some(UiMountedProjectionBuild {
         semantic,

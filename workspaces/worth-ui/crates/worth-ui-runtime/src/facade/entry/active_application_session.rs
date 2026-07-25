@@ -48,6 +48,7 @@ impl WorthUiActiveApplicationSession {
         let identity =
             WorthUiActiveApplicationSessionIdentity::from_host_session(host_session.identity());
         let mounted_frame_retention_budget = app.mounted_frame_retention_budget();
+        let host_observation_capacity = app.host_observation_capacity();
         let mounted_identity = crate::mounting::UiMountedIdentityState::new(
             host_session.identity(),
         )
@@ -64,7 +65,10 @@ impl WorthUiActiveApplicationSession {
             mounted_presentation: crate::mounting::UiMountedPresentationCoordinator::default(),
             mounted_publication_reservations: std::collections::BTreeMap::new(),
             mounted_reconciliation_reservations: std::collections::BTreeMap::new(),
-            host_observations: Default::default(),
+            host_observations:
+                crate::host_exchange::observation_report_validation::UiHostObservationReportValidation::new(
+                    host_observation_capacity,
+                ),
             host_measurements: Default::default(),
         })
     }

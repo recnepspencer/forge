@@ -71,6 +71,14 @@ impl WorthUiApp {
             .mounted_frame_retention_budget()
     }
 
+    pub(super) fn host_observation_capacity(
+        &self,
+    ) -> crate::host_exchange::observation_report_validation::UiHostObservationCapacity {
+        self.prepared
+            .host_session_plan()
+            .host_observation_capacity()
+    }
+
     /// Borrow the sealed prepared authority without transferring any
     /// independently launchable constituent.
     pub fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
