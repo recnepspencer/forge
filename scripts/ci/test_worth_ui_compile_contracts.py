@@ -22,7 +22,13 @@ class WorthUiCompileContractRunnerTests(TestCase):
                 "code": {"code": "E0451"},
                 "message": "field `sealed` is private",
                 "spans": [{"file_name": str(source), "is_primary": True}],
-                "children": [{"level": "help", "message": "use the public constructor"}],
+                "children": [
+                    {"level": "help", "message": "use the public constructor"},
+                    {
+                        "level": "note",
+                        "message": "private fields `one` and `two` that were not provided",
+                    },
+                ],
             }
         ]
 
@@ -31,6 +37,7 @@ class WorthUiCompileContractRunnerTests(TestCase):
         self.assertIn("error[E0451]: field `sealed` is private", rendered)
         self.assertIn("$WORKSPACE/crates/worth-ui/tests/ui/example/fail.rs", rendered)
         self.assertIn("help: use the public constructor", rendered)
+        self.assertNotIn("private fields `one` and `two`", rendered)
 
     def test_included_source_without_a_primary_error_is_observable(self) -> None:
         with TemporaryDirectory() as temporary:

@@ -26,6 +26,8 @@ use super::mounted_protocol_model::ModelPublicationWorld;
 mod exact_reuse;
 #[path = "mounted_publication/retention.rs"]
 mod retention;
+#[path = "mounted_publication/retention_saturation.rs"]
+mod retention_saturation;
 
 #[test]
 fn accepted_frame_owns_the_successor_slot_until_terminal_publication() {

@@ -1,56 +1,22 @@
 use worth_ui_host_contract::{
-    UiMountedAccessibilityProjection, UiMountedClipProjection, UiMountedClipTable,
-    UiMountedDiagnosticProjection, UiMountedLayerProjection, UiMountedLayerReference,
-    UiMountedLayerRow, UiMountedLayerTable, UiMountedNodeProjectionView,
-    UiMountedNodeProjectionViewInput, UiMountedOmissionReason, UiMountedPaintBatchReference,
-    UiMountedPaintBatchRow, UiMountedPaintBatchTable, UiMountedPaintPrimitiveKind,
-    UiMountedPaintProjection, UiMountedParticipationStatus, UiMountedPreviewProjection,
-    UiMountedProjectionAudience, UiMountedProjectionView, UiMountedProjectionViewInput,
-    UiMountedRealtimeBatchRow, UiMountedRealtimeBatchTable, UiMountedResourceEntry,
-    UiMountedResourceKind, UiMountedResourceReference, UiMountedResourceTable,
-    UiMountedSpatialBatchRow, UiMountedSpatialBatchTable, UiSemanticSurfaceIdentity,
-    UiSurfaceBindingGeneration,
+    UiMountedClipProjection, UiMountedLayerProjection, UiMountedLayerReference, UiMountedLayerRow,
+    UiMountedPaintBatchReference, UiMountedPaintBatchRow, UiMountedPaintPrimitiveKind,
+    UiMountedRealtimeBatchRow, UiMountedResourceEntry, UiMountedResourceKind,
+    UiMountedResourceReference, UiMountedSpatialBatchRow, UiSurfaceBindingGeneration,
 };
 
-use super::{UiMountedNodeReceipt, UiMountedProjectionDenial};
+use super::UiMountedProjectionDenial;
+
+mod semantic_projection;
+mod view;
+
+pub(super) use semantic_projection::{
+    UiMountedProjectionNodeRecord, UiMountedProjectionSurface, UiMountedSemanticProjection,
+};
+use view::UiMountedPaintSelector;
 
 const TABLE_LIMIT: usize = 2_048;
 const RESOURCE_LIMIT: usize = 1_024;
-
-#[derive(Clone)]
-pub(super) struct UiMountedProjectionNodeRecord {
-    pub receipt: UiMountedNodeReceipt,
-    pub plan_index: Option<u32>,
-}
-
-#[derive(Clone, Copy)]
-pub(super) struct UiMountedProjectionSurface {
-    pub surface: UiSemanticSurfaceIdentity,
-    pub binding: UiSurfaceBindingGeneration,
-    pub audience: UiMountedProjectionAudience,
-}
-
-#[derive(Clone)]
-pub(super) struct UiMountedSemanticProjection {
-    nodes: crate::runtime::persistent_index::UiPersistentOrdMap<
-        worth_ui_host_contract::UiMountedInstanceIdentity,
-        UiMountedProjectionNodeRecord,
-    >,
-    order: std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
-    membership: crate::runtime::persistent_index::UiPersistentOrdSet<
-        worth_ui_host_contract::UiMountedInstanceIdentity,
-    >,
-    semantic_surfaces:
-        crate::runtime::persistent_index::UiPersistentOrdSet<UiSemanticSurfaceIdentity>,
-    binding_by_surface: crate::runtime::persistent_index::UiPersistentOrdMap<
-        UiSemanticSurfaceIdentity,
-        UiSurfaceBindingGeneration,
-    >,
-    surfaces: crate::runtime::persistent_index::UiPersistentOrdMap<
-        UiSurfaceBindingGeneration,
-        UiMountedProjectionSurface,
-    >,
-}
 
 #[derive(Clone)]
 pub struct UiMountedProjectionFrame {
@@ -70,18 +36,6 @@ pub struct UiMountedProjectionFrame {
     paint_selectors: Vec<UiMountedPaintSelector>,
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     counters: super::super::UiMountStageCounters,
-}
-
-#[derive(Clone)]
-enum UiMountedPaintSelector {
-    Ordinary {
-        receipt: crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
-        batch: UiMountedPaintBatchReference,
-    },
-    PlanIndexes {
-        indexes: Box<[u32]>,
-        batch: UiMountedPaintBatchReference,
-    },
 }
 
 impl UiMountedProjectionFrame {
@@ -227,38 +181,6 @@ impl UiMountedProjectionFrame {
         Ok(())
     }
 
-    pub fn view_for(
-        &self,
-        binding: UiSurfaceBindingGeneration,
-    ) -> Result<UiMountedProjectionView, UiMountedProjectionDenial> {
-        let surface = self
-            .semantic
-            .surfaces
-            .get(&binding)
-            .copied()
-            .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
-        let nodes = self
-            .semantic
-            .order
-            .iter()
-            .filter_map(|instance| self.semantic.nodes.get(instance))
-            .filter(|node| node.receipt.semantic_surface() == surface.surface)
-            .map(|node| self.audience_node_view(node, surface.audience))
-            .collect();
-        Ok(UiMountedProjectionView::new(UiMountedProjectionViewInput {
-            frame: self.frame,
-            surface: surface.surface,
-            binding,
-            nodes,
-            clips: UiMountedClipTable::produced(Vec::new()),
-            layers: UiMountedLayerTable::produced(self.layers.clone()),
-            paint_batches: UiMountedPaintBatchTable::new(self.paint_batches.clone()),
-            spatial_batches: UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
-            realtime_batches: UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
-            resources: UiMountedResourceTable::new(self.resources.clone()),
-        }))
-    }
-
     pub(crate) fn rebound(
         &self,
         replacements: &[(
@@ -382,203 +304,6 @@ impl UiMountedProjectionFrame {
             .replace_rows::<Row>(count)
             .map_err(|_| UiMountedProjectionDenial::CostCounterOverflow)
     }
-
-    fn audience_node_view(
-        &self,
-        node: &UiMountedProjectionNodeRecord,
-        audience: UiMountedProjectionAudience,
-    ) -> UiMountedNodeProjectionView {
-        let receipt = &node.receipt;
-        let accessibility = if audience.accessibility_disclosed() {
-            receipt.accessibility()
-        } else {
-            UiMountedAccessibilityProjection::Omitted(
-                UiMountedOmissionReason::SurfacePolicyWithheld,
-            )
-        };
-        let diagnostic = if audience.diagnostics_disclosed() {
-            receipt.diagnostic()
-        } else {
-            UiMountedDiagnosticProjection::Omitted(UiMountedOmissionReason::SurfacePolicyWithheld)
-        };
-        UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
-            mounted_instance: receipt.mounted_instance(),
-            node_receipt: self
-                .receipt_basis
-                .receipt_for(receipt.mounted_instance())
-                .expect("projected semantic nodes belong to the frame receipt basis"),
-            role: receipt.role(),
-            participation: receipt.participation(),
-            allocation: receipt.allocation(),
-            preview: self.preview_for(receipt),
-            paint: self.paint_for(node),
-            accessibility,
-            motion: receipt.motion(),
-            diagnostic,
-        })
-    }
-
-    fn paint_for(&self, node: &UiMountedProjectionNodeRecord) -> UiMountedPaintProjection {
-        if node.receipt.participation().paint().status() != UiMountedParticipationStatus::Admitted {
-            return UiMountedPaintProjection::Omitted(
-                UiMountedOmissionReason::NotProducedByExecutedLane,
-            );
-        }
-        self.paint_selectors
-            .iter()
-            .rev()
-            .find_map(|selector| selector.batch_for(node.plan_index))
-            .map_or_else(
-                || {
-                    UiMountedPaintProjection::Omitted(
-                        UiMountedOmissionReason::NotProducedByExecutedLane,
-                    )
-                },
-                UiMountedPaintProjection::Batch,
-            )
-    }
-
-    fn preview_for(&self, receipt: &UiMountedNodeReceipt) -> UiMountedPreviewProjection {
-        self.preview
-            .filter(|preview| preview.mounted_instance == receipt.mounted_instance())
-            .map_or_else(
-                || {
-                    UiMountedPreviewProjection::Omitted(
-                        UiMountedOmissionReason::NotProducedByExecutedLane,
-                    )
-                },
-                |preview| {
-                    UiMountedPreviewProjection::resize(
-                        preview.frame_epoch,
-                        preview.extent_subpixels,
-                        preview.candidate_count,
-                        preview.all_candidates_admitted,
-                    )
-                },
-            )
-    }
-}
-
-impl UiMountedSemanticProjection {
-    pub(super) fn initial(
-        nodes: Vec<UiMountedProjectionNodeRecord>,
-        surfaces: Vec<UiMountedProjectionSurface>,
-    ) -> Self {
-        let order = nodes
-            .iter()
-            .map(|record| record.receipt.mounted_instance())
-            .collect::<Vec<_>>();
-        let mut node_index = crate::runtime::persistent_index::UiPersistentOrdMap::default();
-        let mut membership = crate::runtime::persistent_index::UiPersistentOrdSet::default();
-        for node in nodes {
-            let instance = node.receipt.mounted_instance();
-            node_index.insert(instance, node);
-            membership.insert(instance);
-        }
-        let mut surface_index = crate::runtime::persistent_index::UiPersistentOrdMap::default();
-        let mut binding_by_surface =
-            crate::runtime::persistent_index::UiPersistentOrdMap::default();
-        let mut semantic_surfaces = crate::runtime::persistent_index::UiPersistentOrdSet::default();
-        for surface in surfaces {
-            semantic_surfaces.insert(surface.surface);
-            binding_by_surface.insert(surface.surface, surface.binding);
-            surface_index.insert(surface.binding, surface);
-        }
-        Self {
-            nodes: node_index,
-            order: order.into(),
-            membership,
-            semantic_surfaces,
-            binding_by_surface,
-            surfaces: surface_index,
-        }
-    }
-
-    pub(super) fn membership(
-        &self,
-    ) -> crate::runtime::persistent_index::UiPersistentOrdSet<
-        worth_ui_host_contract::UiMountedInstanceIdentity,
-    > {
-        self.membership.clone()
-    }
-
-    pub(super) fn supports_surfaces(&self, surfaces: &[UiSemanticSurfaceIdentity]) -> bool {
-        surfaces.len() == self.semantic_surfaces.len()
-            && surfaces
-                .iter()
-                .all(|surface| self.semantic_surfaces.contains_with_probes(surface).0)
-    }
-
-    pub(super) fn contains(
-        &self,
-        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-    ) -> bool {
-        self.membership.contains_with_probes(&instance).0
-    }
-
-    pub(super) fn insert_node(
-        &mut self,
-        node: UiMountedProjectionNodeRecord,
-    ) -> crate::runtime::persistent_index::UiPersistentIndexMutationWork {
-        let instance = node.receipt.mounted_instance();
-        self.membership.insert(instance);
-        self.nodes.insert_with_work(instance, node)
-    }
-
-    pub(super) fn remove_node(
-        &mut self,
-        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-    ) -> crate::runtime::persistent_index::UiPersistentIndexMutationWork {
-        self.membership.remove_with_work(&instance);
-        self.nodes.remove_with_work(&instance).1
-    }
-
-    pub(super) fn replace_order(
-        &mut self,
-        order: Vec<worth_ui_host_contract::UiMountedInstanceIdentity>,
-    ) {
-        self.order = order.into();
-    }
-
-    pub(super) fn replace_surface(
-        &mut self,
-        surface: UiMountedProjectionSurface,
-    ) -> crate::runtime::persistent_index::UiPersistentIndexMutationWork {
-        if let Some(previous) = self.binding_by_surface.get(&surface.surface).copied() {
-            self.surfaces.remove(&previous);
-        }
-        self.semantic_surfaces.insert(surface.surface);
-        self.binding_by_surface
-            .insert(surface.surface, surface.binding);
-        self.surfaces.insert_with_work(surface.binding, surface)
-    }
-
-    pub(super) fn remove_surface(
-        &mut self,
-        surface: UiSemanticSurfaceIdentity,
-    ) -> crate::runtime::persistent_index::UiPersistentIndexMutationWork {
-        self.semantic_surfaces.remove_with_work(&surface);
-        let binding = self.binding_by_surface.get(&surface).copied();
-        self.binding_by_surface.remove(&surface);
-        binding.map_or_else(Default::default, |binding| {
-            self.surfaces.remove_with_work(&binding).1
-        })
-    }
-
-    pub(super) fn node_count(&self) -> usize {
-        self.nodes.len()
-    }
-
-    pub(super) fn surface_instance_count(&self, surfaces: &[UiSemanticSurfaceIdentity]) -> usize {
-        self.order
-            .iter()
-            .filter(|instance| {
-                self.nodes
-                    .get(instance)
-                    .is_some_and(|node| surfaces.contains(&node.receipt.semantic_surface()))
-            })
-            .count()
-    }
 }
 
 fn require_once(recorded: &mut bool) -> Result<(), UiMountedProjectionDenial> {
@@ -587,17 +312,4 @@ fn require_once(recorded: &mut bool) -> Result<(), UiMountedProjectionDenial> {
     }
     *recorded = true;
     Ok(())
-}
-
-impl UiMountedPaintSelector {
-    fn batch_for(&self, plan_index: Option<u32>) -> Option<UiMountedPaintBatchReference> {
-        let plan_index = plan_index?;
-        match self {
-            Self::Ordinary { receipt, batch } => receipt
-                .touch()
-                .names_plan_index(plan_index)
-                .then_some(*batch),
-            Self::PlanIndexes { indexes, batch } => indexes.contains(&plan_index).then_some(*batch),
-        }
-    }
 }
