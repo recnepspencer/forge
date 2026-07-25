@@ -65,7 +65,7 @@ fn certification_replay_preserves_policy_counter_and_proof_topology() {
 
 fn certified_latency_evidence(queue_depth: u32) -> S6LatencyInterferenceEvidence {
     let plan = admitted_read_ahead_plan();
-    let replay_identity = plan.replay_identity();
+    let replay_identity = plan.replay_identity().clone();
     let lane = plan.work().class();
     let completion = completion_for(&plan, queue_depth);
     let outcome = execute_ready_queue_plan(plan, completion);
@@ -114,12 +114,11 @@ fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
     )
     .expect("read-ahead secure-I/O should admit");
     let work = work.with_secure_io_scope(secure_io);
+    let policy =
+        worth_store_io_scheduler::admit_queue_policy_receipt(work.clone(), policy_receipt(budget))
+            .expect("policy receipt should bind the exact queue work");
     admit_queue_execution_plan(
-        worth_store_io_scheduler::QueueExecutionAdmissionRequest::new(
-            work,
-            &backend,
-            policy_receipt(budget),
-        ),
+        worth_store_io_scheduler::QueueExecutionAdmissionRequest::new(work, &backend, policy),
     )
     .expect("queue work should admit")
 }
@@ -205,7 +204,7 @@ fn policy_receipt(budget: BackgroundResourceBudget) -> FoundationalPolicyAdmissi
         .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
         .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(FoundationalPerformanceWorkClass::ValidationPlanning)
+        .include_work(FoundationalPerformanceWorkClass::AuthoritativeRead)
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
         .expect("policy claim should build");

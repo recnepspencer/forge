@@ -14,7 +14,7 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
@@ -23,7 +23,7 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
         .collect::<Vec<_>>();
     let before = serving.media_counters();
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter(records.iter()).unwrap(),
             placement,
@@ -111,13 +111,13 @@ fn multi_block_manifest_lookup_has_logarithmic_path_and_exact_parity() {
         .manifest_capacity(ManifestEntryCapacity::new(2).unwrap())
         .admit(format)
         .unwrap();
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let payloads = (0_u8..9).map(|value| vec![value; 100]).collect::<Vec<_>>();
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
             placement,
@@ -165,12 +165,12 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
             placement,
@@ -182,7 +182,7 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     .unwrap();
     let old_offset = old_page[88..92].to_vec();
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"gamma".as_slice(), b"delta".as_slice()]).unwrap(),
             placement,

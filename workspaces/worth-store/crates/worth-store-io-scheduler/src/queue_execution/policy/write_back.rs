@@ -12,7 +12,7 @@ pub struct QueueWriteBackBasis {
 }
 
 impl QueueWriteBackBasis {
-    pub const fn from_grouping(grouping: QueueGroupingBasis, admitted_windows: u64) -> Self {
+    pub fn from_grouping(grouping: &QueueGroupingBasis, admitted_windows: u64) -> Self {
         Self {
             security_scope_identity: grouping.security_scope_identity(),
             tenant_scope: grouping.tenant_scope(),

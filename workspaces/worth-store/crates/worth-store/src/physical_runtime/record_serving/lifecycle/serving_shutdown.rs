@@ -67,6 +67,8 @@ pub struct ServingShutdownOutcome<Terminal> {
     residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
     work: crate::physical_runtime::PhysicalWorkShutdownObservation,
     signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
+    signal_summary: Option<worth_signal::facade::ResourceRuntimeSummary>,
+    signal_cancellation_failures: u64,
 }
 
 impl<Terminal> ServingShutdownOutcome<Terminal> {
@@ -76,6 +78,8 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
         residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
         work: crate::physical_runtime::PhysicalWorkShutdownObservation,
         signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
+        signal_summary: Option<worth_signal::facade::ResourceRuntimeSummary>,
+        signal_cancellation_failures: u64,
     ) -> Self {
         Self {
             media,
@@ -83,6 +87,8 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
             residency,
             work,
             signal,
+            signal_summary,
+            signal_cancellation_failures,
         }
     }
 
@@ -108,5 +114,13 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
 
     pub const fn signal(&self) -> crate::physical_runtime::PhysicalSignalShutdownOutcome {
         self.signal
+    }
+
+    pub const fn signal_summary(&self) -> Option<worth_signal::facade::ResourceRuntimeSummary> {
+        self.signal_summary
+    }
+
+    pub const fn signal_cancellation_failures(&self) -> u64 {
+        self.signal_cancellation_failures
     }
 }

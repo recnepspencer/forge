@@ -1,9 +1,8 @@
 use worth_store_security::StoreAuthorityBoundSecurityScopeReceipt;
 
 use super::{
-    PhysicalSignalAspectBindingDigest, PhysicalWorkDurabilityRequirement,
-    PhysicalWorkEffectClass, PhysicalWorkGeneration, PhysicalWorkIntent,
-    PhysicalWorkOperationFamily,
+    PhysicalSignalAspectBindingDigest, PhysicalWorkDurabilityRequirement, PhysicalWorkEffectClass,
+    PhysicalWorkGeneration, PhysicalWorkIntent, PhysicalWorkOperationFamily,
 };
 
 /// Borrow-free proof that admission is being performed by the live owner of
@@ -12,6 +11,7 @@ use super::{
 /// Construction requires the qualified media object and is confined to the
 /// physical composition root. The proof grants no effect method; it only
 /// supplies the exact physical owner facts that admission must bind.
+#[derive(Clone, Copy)]
 pub(in crate::physical_runtime) struct PhysicalWorkAdmissionAuthority {
     store: worth_store_physical_format::store_namespace::StableStoreIdentity,
     runtime: crate::physical_runtime::RuntimeIdentity,
@@ -88,9 +88,7 @@ impl AdmittedPhysicalWorkAuthority {
         }
     }
 
-    pub const fn store(
-        &self,
-    ) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
+    pub const fn store(&self) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
         self.store
     }
 

@@ -4453,6 +4453,7 @@ impl ResourceRuntimeState {
         );
         let admitted = AdmittedResourceCompletion::new(
             validated.handle(),
+            validated.attempt(),
             in_flight.node(),
             in_flight.descriptor_id(),
             completion_ordinal,

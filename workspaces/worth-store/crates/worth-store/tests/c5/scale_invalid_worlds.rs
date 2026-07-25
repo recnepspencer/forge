@@ -16,6 +16,21 @@ pub(super) struct InvalidScaleWorlds {
     pub(super) residue_excluded: bool,
 }
 
+impl InvalidScaleWorlds {
+    pub(super) fn count(&self) -> u8 {
+        [
+            self.missing_catalog_refused,
+            self.checksum_damage_refused,
+            self.stale_manifest_refused,
+            self.format_drift_refused,
+            self.residue_excluded,
+        ]
+        .into_iter()
+        .filter(|passed| *passed)
+        .count() as u8
+    }
+}
+
 pub(super) fn exercise(
     source: &Path,
     format: AdmittedPhysicalRecordFormat,
@@ -152,14 +167,14 @@ fn unpublished_residue(
     let candidate = world.join("staging/records/bootstrap-deadbeefdeadbeef.candidate");
     let candidate_bytes = std::fs::copy(&catalog, &candidate).unwrap();
     assert_eq!(candidate_bytes, std::fs::metadata(catalog).unwrap().len());
-    let mut reopened = super::success(
+    let reopened = super::success(
         super::media(&world).open_record_store(PhysicalRecordOpen::new(format, access)),
     );
     let excluded = reopened.observed_staging_residue()
         && reopened.publication_residue().staging_catalog_candidate()
         && reopened.observed_non_authoritative_residue()
         && matches!(
-            reopened.records_mut().append_batch(
+            reopened.record_submission().append_batch(
                 RecordAppendBatch::try_from_iter([b"blocked".as_slice()]).unwrap(),
                 placement,
             ),

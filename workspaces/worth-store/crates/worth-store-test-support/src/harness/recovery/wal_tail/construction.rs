@@ -1,20 +1,22 @@
-use worth_store_buffer_pool::{
-    BufferPoolBudget, DirtyPageBudget, PinnedPageBudget, ResidentFrameLoadRequest,
-    ResidentFrameTable, ResidentFrameTableCapacity, ResidentMemoryBudget, S2PhysicalResidencyEntry,
-};
+use worth_store_buffer_pool::{PhysicalFrameKey, PhysicalResidencyLimits, PhysicalResidencyPool};
 use worth_store_contracts::{
     BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
     IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
-    PhysicalIntegrityReadinessPayload, PhysicalSubstrateReadinessSnapshot,
-    ProtectedIntegrityViewCapability, ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
+    PhysicalIntegrityReadinessPayload, ProtectedIntegrityViewCapability,
+    ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use worth_store_physical_format::{
+    store_namespace::{
+        ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
+        StoreNamespaceVersion,
+    },
     CheckpointAdjacencyPosture, ChecksumCoverageMap, ManifestMembershipProof,
     PhysicalBinaryEncodingWitness, PhysicalFormatDeclaration, PhysicalFrameKind,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalGenerationOwner,
     PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalReferenceScope, PhysicalReferenceValidationWitness,
-    PhysicalRootReference, PhysicalSegmentId, RootManifestIntegrityPosture, SlotGenerationCell,
+    PhysicalRootReference, PhysicalSegmentId, RecordArtifactFile, RecordFrameCoordinate,
+    RootManifestIntegrityPosture, SlotGenerationCell,
 };
 use worth_store_physical_integrity::{
     ChecksumAlgorithmClaim, ChecksumScopeDeclaration, DeclaredPhysicalChecksum,
@@ -37,11 +39,21 @@ pub(super) fn inspect_wal_payload_for_owner(
 ) -> Result<WalFrameIntegrityReport, WalFrameDamageDenial> {
     let cell = wal_slot_cell_for_owner(owner);
     let reference = wal_reference_for_cell(cell);
-    let mut table = resident_frame_table();
-    let admission = admit_wal_payload_frame(&mut table, payload, reference);
-    let lease = table.lease_page(admission.resident_frame_token()).unwrap();
-    let pinned = lease.pin().unwrap();
-    let protected = ProtectedPhysicalByteView::from_pinned_frame(&pinned.view().unwrap());
+    let frame = frame_bytes(cell, payload);
+    let store = physical_residency_store();
+    let pool = PhysicalResidencyPool::open(
+        store,
+        PhysicalResidencyLimits::new(8192, 2, 1, 1024, 1).unwrap(),
+    )
+    .unwrap();
+    let key = PhysicalFrameKey::new(store, frame_coordinate(owner, frame.len()));
+    let lease = pool
+        .load(key, |target| {
+            target.copy_from_slice(&frame);
+            Ok::<_, std::convert::Infallible>(())
+        })
+        .unwrap();
+    let protected = ProtectedPhysicalByteView::from_physical_frame(&lease);
     let entry =
         IntegrityEntryAdmission::from_integrity_model_payload(physical_integrity_model_payload())
             .unwrap();
@@ -101,39 +113,6 @@ pub(super) fn wal_payload(range: WalLsnRange, declared_extra: usize, status: &st
     format!("WALF|crc32c|{declared_len}|{status}|{body}").into_bytes()
 }
 
-fn admit_wal_payload_frame(
-    table: &mut ResidentFrameTable,
-    payload: &[u8],
-    reference: PhysicalReferenceValidationWitness,
-) -> worth_store_buffer_pool::ResidentFrameAdmission {
-    let frame = frame_bytes(wal_slot_cell_for_owner(reference.owner()), payload);
-    let request = ResidentFrameLoadRequest::from_physical_format_physical_frame(
-        reference,
-        wal_header_witness(&frame, reference),
-    )
-    .unwrap();
-    let payload = physical_header()
-        .payload_view(&frame, request.header())
-        .unwrap();
-    table.admit_resident_frame_bytes(request, payload).unwrap()
-}
-
-fn resident_frame_table() -> ResidentFrameTable {
-    let budget = BufferPoolBudget::declare(
-        ResidentMemoryBudget::bytes(8192).unwrap(),
-        PinnedPageBudget::pages(2).unwrap(),
-        DirtyPageBudget::pages(1).unwrap(),
-    );
-    let entry = S2PhysicalResidencyEntry::from_physical_substrate_snapshot(
-        physical_substrate_model_snapshot(),
-    )
-    .unwrap()
-    .with_budget(budget)
-    .admit()
-    .unwrap();
-    ResidentFrameTable::open(entry, ResidentFrameTableCapacity::frames(1).unwrap()).unwrap()
-}
-
 pub fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPayload {
     PhysicalIntegrityReadinessPayload::from_physical_substrate_closeout_evidence(
         ProtectedIntegrityViewCapability::protected_views(1).unwrap(),
@@ -146,10 +125,6 @@ pub fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPayload {
         PhysicalAuthorityRecap::from_physical_format_authority(4, 2, 2).unwrap(),
         BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
     )
-}
-
-fn physical_substrate_model_snapshot() -> PhysicalSubstrateReadinessSnapshot {
-    PhysicalSubstrateReadinessSnapshot::from_exact_counts(true, 4, 2, 2, 3, 1, 9)
 }
 
 fn manifest_membership_for_scope(
@@ -270,4 +245,27 @@ fn slot(value: u16) -> PhysicalRecordSlot {
 
 fn generation(value: u64) -> PhysicalGeneration {
     PhysicalGeneration::from_raw(value).unwrap()
+}
+
+fn physical_residency_store() -> StableStoreIdentity {
+    StoreNamespaceIdentityRecord::new(
+        StoreNamespaceVersion::CURRENT,
+        ProposedStoreIdentity::from_nonzero_bytes([0x54; 16]).unwrap(),
+    )
+    .published_identity()
+}
+
+fn frame_coordinate(owner: PhysicalGenerationOwner, frame_bytes: usize) -> RecordFrameCoordinate {
+    RecordFrameCoordinate::new(
+        RecordArtifactFile::Segment {
+            segment: owner
+                .segment_id()
+                .expect("WAL frame owner has a segment")
+                .get(),
+            generation: owner.generation().get(),
+        },
+        0,
+        u32::try_from(frame_bytes).expect("fixture frame length fits the physical coordinate"),
+    )
+    .unwrap()
 }

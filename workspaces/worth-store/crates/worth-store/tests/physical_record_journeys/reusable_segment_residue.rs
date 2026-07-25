@@ -15,12 +15,12 @@ fn fresh_open_detects_failed_reusable_segment_cow_and_blocks_writes() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = configuration();
-    let mut seeded = success(
+    let seeded = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     seeded
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"published".as_slice()]).unwrap(),
             placement,
@@ -54,9 +54,8 @@ fn fresh_open_detects_failed_reusable_segment_cow_and_blocks_writes() {
         TransitionOutcome::Success(media) => media,
         _ => panic!("fault schedule must admit"),
     };
-    let mut faulted =
-        success(faulted_media.open_record_store(PhysicalRecordOpen::new(format, access)));
-    let failure = match faulted.records_mut().append_batch(
+    let faulted = success(faulted_media.open_record_store(PhysicalRecordOpen::new(format, access)));
+    let failure = match faulted.record_submission().append_batch(
         RecordAppendBatch::try_from_iter([b"candidate".as_slice()]).unwrap(),
         placement,
     ) {
@@ -70,11 +69,11 @@ fn fresh_open_detects_failed_reusable_segment_cow_and_blocks_writes() {
         .join("families/records/segments/segment-0000000000000001-0000000000000002.pages")
         .is_file());
 
-    let mut reopened = serving_from_open(&root);
+    let reopened = serving_from_open(&root);
     assert!(reopened.observed_non_authoritative_residue());
     assert!(reopened.publication_residue().reusable_segment_artifacts());
     assert!(matches!(
-        reopened.records_mut().append_batch(
+        reopened.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"blocked".as_slice()]).unwrap(),
             placement,
         ),

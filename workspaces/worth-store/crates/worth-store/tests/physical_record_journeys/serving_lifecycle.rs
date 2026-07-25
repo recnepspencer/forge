@@ -97,13 +97,13 @@ fn record_owner_propagates_through_every_lifecycle_boundary() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("close-store");
     let (_, placement, _) = configuration();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let observer = serving.observer();
     let clone = observer.clone();
     assert_eq!(observer.record_counters().owner_live(), 1);
 
     let record = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"lifecycle".as_slice()]).unwrap(),
             placement,
@@ -111,7 +111,6 @@ fn record_owner_propagates_through_every_lifecycle_boundary() {
         .unwrap()
         .record_id(0)
         .unwrap();
-    assert_eq!(observer.record_counters().writers_live(), 0);
     {
         let reader = serving.records();
         assert_eq!(observer.record_counters().readers_live(), 1);
@@ -247,12 +246,12 @@ fn record_observation_snapshot_has_one_acquisition_time_basis() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("observation-store");
     let (_, placement, _) = configuration();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let before = serving.observer();
     let before_snapshot = before.acquisition_snapshot().unwrap();
 
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"coherent".as_slice()]).unwrap(),
             placement,
@@ -298,9 +297,9 @@ fn physical_residency_serves_real_reads_and_candidate_writes() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"direct".as_slice()]).unwrap(),
             placement,
@@ -322,7 +321,7 @@ fn physical_residency_serves_real_reads_and_candidate_writes() {
     assert_eq!(&bytes, b"direct");
     drop(read);
     let second = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"wrapped".as_slice()]).unwrap(),
             placement,

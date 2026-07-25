@@ -1,21 +1,34 @@
 use std::sync::Arc;
 
+use worth_signal::facade::specialist::EvaluationOutput;
 use worth_signal::facade::{
-    AspectVersion, NodeEvaluationResult, ResourceRequestHandle, RuntimeClockBasis, SignalError,
-    SignalGraph, SignalRuntime,
+    AspectVersion, EvaluationContext, NodeEvaluationResult, NodeId, ResourceRequestHandle,
+    RuntimeClockBasis, SignalError, SignalGraph, SignalRuntime,
 };
 
 use crate::physical_runtime::work::{
     AdmittedPhysicalWork, BlockedPhysicalWork, InstalledPhysicalSignalTopology,
     PendingPhysicalSignalTopology, PhysicalSignalAspectBindingDigest,
-    PhysicalSignalAspectBindingSet, PhysicalSignalReadinessEvidence, PhysicalWorkAspectDelta,
-    PhysicalWorkPreEffectDenial, PhysicalWorkReadiness, ReadyPhysicalWork,
+    PhysicalSignalAspectBindingSet, PhysicalSignalReadinessEvidence, PhysicalWorkPreEffectDenial,
+    PhysicalWorkReadiness, ReadyPhysicalWork,
 };
 
-use super::{
-    route::PhysicalSignalRouteCommand, PhysicalSignalAdmissionStatus,
-    PhysicalSignalConstructionFailure, PhysicalSignalDeltaApplicationFailure,
-};
+use super::PhysicalSignalConstructionFailure;
+
+mod abandonment;
+mod command;
+mod completion;
+mod delta;
+mod locality;
+mod observation;
+mod publication_dependency;
+mod request_cleanup;
+
+pub(super) use abandonment::PhysicalSignalAbandonmentFailure;
+use locality::PhysicalSignalLocalityIndex;
+pub(in crate::physical_runtime::instance::signal_owner) use observation::PhysicalSignalGraphObservation;
+#[cfg(feature = "certification-test-authority")]
+pub use publication_dependency::PhysicalPublicationDependencyObservation;
 
 struct PhysicalSignalContext {
     version: u64,
@@ -26,6 +39,8 @@ pub(super) struct PhysicalSignalGraph {
     runtime: SignalRuntime<(), (), (), PhysicalSignalContext, ()>,
     topology: InstalledPhysicalSignalTopology,
     context: PhysicalSignalContext,
+    locality: PhysicalSignalLocalityIndex,
+    healthy: bool,
 }
 
 impl PhysicalSignalGraph {
@@ -39,11 +54,14 @@ impl PhysicalSignalGraph {
         let topology = pending
             .attach(&mut runtime)
             .map_err(|_| PhysicalSignalConstructionFailure::CapabilityDeclarationRejected)?;
+        let locality = PhysicalSignalLocalityIndex::bounded(bindings.capacity().commands());
         let mut owner = Self {
             bindings,
             runtime,
             topology,
             context: PhysicalSignalContext { version: 0 },
+            locality,
+            healthy: true,
         };
         owner
             .evaluate_dirty()
@@ -55,73 +73,6 @@ impl PhysicalSignalGraph {
         self.runtime.clock_basis()
     }
 
-    pub(super) fn apply_command(
-        &mut self,
-        route_slot: usize,
-        command: PhysicalSignalRouteCommand,
-        admission: &PhysicalSignalAdmissionStatus,
-    ) -> bool {
-        let Some(route) = self
-            .bindings
-            .binding_for_slot(route_slot)
-            .map(|binding| binding.digest())
-        else {
-            return false;
-        };
-        match command {
-            PhysicalSignalRouteCommand::Apply(delta, reply) => {
-                let _ = reply.send(self.apply_delta(route, &delta));
-            }
-            PhysicalSignalRouteCommand::Request(admitted, reply) => {
-                let _ = reply.send(self.request(route, admitted));
-            }
-            PhysicalSignalRouteCommand::Revalidate(admitted, active, reply) => {
-                let _ = reply.send(self.revalidate(route, admitted, active));
-            }
-            #[cfg(feature = "certification-test-authority")]
-            PhysicalSignalRouteCommand::FailForCertification(reply) => {
-                admission.revoke();
-                let _ = reply.send(());
-                return false;
-            }
-        }
-        true
-    }
-
-    fn apply_delta(
-        &mut self,
-        route: PhysicalSignalAspectBindingDigest,
-        delta: &PhysicalWorkAspectDelta,
-    ) -> Result<(), PhysicalSignalDeltaApplicationFailure> {
-        let slot = delta.signal_aspect().index();
-        let source = self
-            .bindings
-            .binding_for_slot(slot)
-            .filter(|binding| binding.digest() == route && binding.digest() == delta.binding())
-            .and_then(|_| self.topology.source_for_slot(slot))
-            .ok_or(PhysicalSignalDeltaApplicationFailure::BindingNotInstalled)?;
-        self.context.version = self
-            .context
-            .version
-            .checked_add(1)
-            .ok_or(PhysicalSignalDeltaApplicationFailure::VersionExhausted)?;
-        self.runtime
-            .transaction(&mut self.context, |transaction| {
-                if delta.regions().is_empty() {
-                    transaction.mark_changed(source, delta.signal_aspect())
-                } else {
-                    transaction.mark_changed_with_regions(
-                        source,
-                        delta.signal_aspect(),
-                        delta.regions(),
-                    )
-                }
-            })
-            .map_err(|_| PhysicalSignalDeltaApplicationFailure::SignalMutationRejected)?;
-        self.evaluate_dirty()
-            .map_err(|_| PhysicalSignalDeltaApplicationFailure::SignalEvaluationRejected)
-    }
-
     fn request(
         &mut self,
         route: PhysicalSignalAspectBindingDigest,
@@ -130,11 +81,23 @@ impl PhysicalSignalGraph {
         let capability = self
             .topology
             .capability(route, admitted.signal_family())
+            .cloned()
             .ok_or(PhysicalWorkPreEffectDenial::CapabilityAbsent)?;
+        if !self.locality.register(&admitted) {
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        }
+        let identity = admitted.intent().identity();
+        if !admitted.register_signal_locality(route) {
+            self.release_identity(identity);
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        }
         let report = self
             .runtime
             .admit_async_node_request(capability.request_intent_requiring_clean_dependencies())
-            .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?;
+            .map_err(|_| {
+                self.release_identity(identity);
+                PhysicalWorkPreEffectDenial::SignalOwnerUnavailable
+            })?;
         let classification = report.classification();
         let Some(resource) = report.resource_admission() else {
             return Ok(PhysicalWorkReadiness::Blocked(BlockedPhysicalWork::new(
@@ -144,11 +107,16 @@ impl PhysicalSignalGraph {
             )));
         };
         let request = resource.admitted_request();
+        if !self.locality.bind(identity, request.handle()) {
+            self.cancel_unbound_request(identity, request.handle());
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        }
         Ok(PhysicalWorkReadiness::Ready(ReadyPhysicalWork::new(
             admitted,
             PhysicalSignalReadinessEvidence {
                 signal_request: request.handle(),
-                revalidated_from: None,
+                supersession: None,
+                replaces: None,
                 attempt: request.attempt(),
                 capability_registry: capability.registry_digest().clone(),
                 capability_bundle: capability.bundle_digest().clone(),
@@ -157,22 +125,49 @@ impl PhysicalSignalGraph {
         )))
     }
 
-    fn revalidate(
+    fn revalidate_ready(
+        &mut self,
+        route: PhysicalSignalAspectBindingDigest,
+        ready: ReadyPhysicalWork,
+    ) -> Result<PhysicalWorkReadiness, PhysicalWorkPreEffectDenial> {
+        if !self.locality.invalidated(ready.intent().identity()) {
+            return Ok(PhysicalWorkReadiness::Ready(ready));
+        }
+        let (admitted, active) = ready.into_signal_parts();
+        self.revalidate_signal(route, admitted, active)
+    }
+
+    fn revalidate_signal(
         &mut self,
         route: PhysicalSignalAspectBindingDigest,
         admitted: AdmittedPhysicalWork,
         active: ResourceRequestHandle,
     ) -> Result<PhysicalWorkReadiness, PhysicalWorkPreEffectDenial> {
-        let capability = self
+        if !self.locality.register(&admitted) {
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        }
+        let identity = admitted.intent().identity();
+        if !admitted.register_signal_locality(route) {
+            self.release_identity(identity);
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        }
+        let Some(capability) = self
             .topology
             .capability(route, admitted.signal_family())
-            .ok_or(PhysicalWorkPreEffectDenial::CapabilityAbsent)?;
-        let report = self
-            .runtime
-            .revalidate_async_node(
-                capability.revalidation_intent_requiring_clean_dependencies(active),
-            )
-            .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?;
+            .cloned()
+        else {
+            self.release_identity(identity);
+            return Err(PhysicalWorkPreEffectDenial::CapabilityAbsent);
+        };
+        let report = match self.runtime.revalidate_async_node(
+            capability.revalidation_intent_requiring_clean_dependencies(active),
+        ) {
+            Ok(report) => report,
+            Err(_) => {
+                self.release_identity(identity);
+                return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+            }
+        };
         let classification = report.classification();
         let Some(resource) = report.resource_revalidation() else {
             return Ok(PhysicalWorkReadiness::Blocked(
@@ -184,21 +179,34 @@ impl PhysicalSignalGraph {
                 ),
             ));
         };
-        let revalidation = resource
-            .admitted_revalidation()
-            .ok_or(PhysicalWorkPreEffectDenial::DependencyBlocked)?;
+        let Some(revalidation) = resource.admitted_revalidation() else {
+            return Ok(PhysicalWorkReadiness::Blocked(
+                BlockedPhysicalWork::from_revalidation(
+                    admitted,
+                    classification.class(),
+                    classification.condition_block_class(),
+                    active,
+                ),
+            ));
+        };
         let request = revalidation.admitted_request();
-        let supersession = revalidation
+        let Some(supersession) = revalidation
             .supersession_record()
-            .filter(|record| {
-                record.previous() == active && record.replacing() == request.handle()
-            })
-            .ok_or(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?;
+            .filter(|record| record.previous() == active && record.replacing() == request.handle())
+        else {
+            self.cancel_unbound_request(identity, request.handle());
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        };
+        if !self.locality.bind(identity, request.handle()) {
+            self.cancel_unbound_request(identity, request.handle());
+            return Err(PhysicalWorkPreEffectDenial::SignalOwnerUnavailable);
+        }
         Ok(PhysicalWorkReadiness::Ready(ReadyPhysicalWork::new(
             admitted,
             PhysicalSignalReadinessEvidence {
                 signal_request: request.handle(),
-                revalidated_from: Some(supersession.previous()),
+                supersession: Some(supersession.clone()),
+                replaces: Some(active),
                 attempt: request.attempt(),
                 capability_registry: capability.registry_digest().clone(),
                 capability_bundle: capability.bundle_digest().clone(),
@@ -212,41 +220,89 @@ impl PhysicalSignalGraph {
         let bindings = &self.bindings;
         let version = self.context.version;
         self.runtime.evaluate_dirty(&self.context, &|view| {
-            if let Some(binding) = bindings.bindings().iter().enumerate().find_map(
-                |(slot, binding)| {
-                    (topology.source_for_slot(slot) == Some(view.node())).then_some(binding)
-                },
-            ) {
-                return Ok(view.finish(NodeEvaluationResult::from_version(
-                    AspectVersion::from_updates([(binding.signal_aspect(), version)]),
-                )));
-            }
-            if let (Some(route), Some(family)) = (
-                topology.route_for_node(view.node()),
-                topology.family_for_node(view.node()),
-            ) {
-                if let Some(binding) = bindings
-                    .bindings()
-                    .iter()
-                    .find(|binding| binding.digest() == route && binding.serves_family(family))
-                {
-                    let slot = binding.signal_aspect().index();
-                    let source = topology
-                        .source_for_slot(slot)
-                        .expect("installed binding and source slots remain aligned");
-                    if let Some(partition) = binding.partition() {
-                        let _ = view.read_partitioned_aspect_version(
-                            source,
-                            binding.signal_aspect(),
-                            partition.clone(),
-                        )?;
-                    } else {
-                        let _ = view.read_aspect_version(source, binding.signal_aspect())?;
-                    }
-                }
-            }
-            Ok(view.finish(NodeEvaluationResult::from_version(AspectVersion::zero())))
+            evaluate_physical_signal_node(topology, bindings, version, view)
         })?;
         Ok(())
     }
+
+    fn evaluate_target(&mut self, node: NodeId) -> Result<(), SignalError> {
+        let topology = &self.topology;
+        let bindings = &self.bindings;
+        let version = self.context.version;
+        self.runtime
+            .target(node)
+            .read(&self.context, &|view| {
+                evaluate_physical_signal_node(topology, bindings, version, view)
+            })
+            .map(|_| ())
+    }
+
+    pub(super) fn release_identity(
+        &mut self,
+        identity: crate::physical_runtime::PhysicalWorkIdentity,
+    ) {
+        if let Some(dependency) = self.locality.release_identity(identity) {
+            self.retire_publication_dependency(dependency);
+        }
+    }
+
+    pub(super) fn release_signal(&mut self, signal: ResourceRequestHandle) {
+        if let Some(dependency) = self.locality.release_signal(signal) {
+            self.retire_publication_dependency(dependency);
+        }
+    }
+
+    pub(super) fn release_envelope(
+        &mut self,
+        envelope: &worth_signal::facade::RawCompletionEnvelope,
+    ) {
+        if let Some(dependency) = self.locality.release_envelope(envelope) {
+            self.retire_publication_dependency(dependency);
+        }
+    }
+}
+
+fn evaluate_physical_signal_node(
+    topology: &InstalledPhysicalSignalTopology,
+    bindings: &PhysicalSignalAspectBindingSet,
+    version: u64,
+    view: &mut EvaluationContext<'_, PhysicalSignalContext>,
+) -> Result<EvaluationOutput, SignalError> {
+    if let Some(binding) = bindings
+        .bindings()
+        .iter()
+        .enumerate()
+        .find_map(|(slot, binding)| {
+            (topology.source_for_slot(slot) == Some(view.node())).then_some(binding)
+        })
+    {
+        return Ok(view.finish(NodeEvaluationResult::from_version(
+            AspectVersion::from_updates([(binding.signal_aspect(), version)]),
+        )));
+    }
+    if let (Some(route), Some(family)) = (
+        topology.route_for_node(view.node()),
+        topology.family_for_node(view.node()),
+    ) {
+        if let Some(binding) = bindings
+            .bindings()
+            .iter()
+            .find(|binding| binding.digest() == route && binding.serves_family(family))
+        {
+            let slot = binding.signal_aspect().index();
+            let source = topology
+                .source_for_slot(slot)
+                .expect("installed binding and source slots remain aligned");
+            if let Some(partition) = binding.partition() {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    binding.signal_aspect(),
+                    partition.clone(),
+                )?;
+            } else {
+                let _ = view.read_aspect_version(source, binding.signal_aspect())?;
+            }
+        }
+    }
+    Ok(view.finish(NodeEvaluationResult::from_version(AspectVersion::zero())))
 }

@@ -61,7 +61,7 @@ impl PhysicalResidencyPool {
                     evictable_head: None,
                     evictable_tail: None,
                     loading_frames: 0,
-                    candidate_publication_active: false,
+                    active_candidate_publications: 0,
                     accepting: true,
                     closed: false,
                 }),

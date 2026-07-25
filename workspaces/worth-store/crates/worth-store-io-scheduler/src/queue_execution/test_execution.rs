@@ -1,9 +1,10 @@
 use super::execution::submitted_units;
 use super::{
     ExecutedQueueEvidence, QueueBackpressureCause, QueueExecutionBackpressured,
-    QueueExecutionCounterSnapshot, QueueExecutionDenied, QueueExecutionObservation,
-    QueueExecutionOutcome, QueueExecutionReadyPlan, QueueExecutionViolation,
-    QueueExecutionViolationCause, QueueReadAheadBasis, QueueWriteBackBasis,
+    QueueExecutionCounterBasis, QueueExecutionCounterSnapshot, QueueExecutionDenied,
+    QueueExecutionObservation, QueueExecutionOutcome, QueueExecutionReadyPlan,
+    QueueExecutionUnitCounts, QueueExecutionViolation, QueueExecutionViolationCause,
+    QueueReadAheadBasis, QueueWriteBackBasis,
 };
 
 pub(crate) fn execute_admitted_queue_plan(
@@ -70,15 +71,10 @@ pub(crate) fn execute_admitted_queue_plan(
     }
     QueueExecutionOutcome::Executed(ExecutedQueueEvidence {
         counters: QueueExecutionCounterSnapshot::executed(
-            submitted,
-            submitted,
-            observation.queue_depth_sample,
-            observation.grouped_writes,
-            observation.read_ahead_units,
-            observation.write_back_units,
-            observation.mechanical_retries,
-            observation.partial_read_events,
-            observation.short_write_events,
+            QueueExecutionCounterBasis::from_observation(
+                QueueExecutionUnitCounts::all_admitted(submitted),
+                observation,
+            ),
         ),
         plan: plan.execute_proof(),
         secondary_plan: None,
@@ -149,16 +145,10 @@ fn violation(
     QueueExecutionOutcome::Violation(QueueExecutionViolation {
         cause: QueueExecutionViolationCause::ExecutionReclassifiedWork,
         counters: QueueExecutionCounterSnapshot::violation_observed(
-            submitted,
-            submitted,
-            observation.queue_depth_sample,
-            observation.grouped_writes,
-            observation.read_ahead_units,
-            observation.write_back_units,
-            observation.mechanical_retries,
-            observation.partial_read_events,
-            observation.short_write_events,
-            observation.foreground_wait_events,
+            QueueExecutionCounterBasis::from_observation(
+                QueueExecutionUnitCounts::all_admitted(submitted),
+                observation,
+            ),
             observation.backpressure_cause,
         ),
         plan: plan.execute_proof(),
@@ -174,7 +164,17 @@ fn denied(
 ) -> QueueExecutionOutcome {
     QueueExecutionOutcome::Denied(QueueExecutionDenied {
         counters: QueueExecutionCounterSnapshot::denied(
-            submitted, admitted, 0, submitted, 0, 0, 0, 0, cause,
+            QueueExecutionCounterBasis::from_observation(
+                QueueExecutionUnitCounts {
+                    submitted,
+                    admitted,
+                },
+                QueueExecutionObservation {
+                    read_ahead_units: submitted,
+                    ..QueueExecutionObservation::empty()
+                },
+            ),
+            cause,
         ),
         cause,
         plan: plan.execute_proof(),
@@ -190,17 +190,11 @@ fn backpressured(
 ) -> QueueExecutionOutcome {
     QueueExecutionOutcome::Backpressured(QueueExecutionBackpressured {
         counters: QueueExecutionCounterSnapshot::backpressured(
-            submitted,
-            submitted,
-            observation.queue_depth_sample,
-            observation.grouped_writes,
-            observation.read_ahead_units,
-            observation.write_back_units,
-            observation.mechanical_retries,
-            observation.partial_read_events,
-            observation.short_write_events,
+            QueueExecutionCounterBasis::from_observation(
+                QueueExecutionUnitCounts::all_admitted(submitted),
+                observation,
+            ),
             cause,
-            observation.foreground_wait_events,
         ),
         cause,
         plan: plan.execute_proof(),

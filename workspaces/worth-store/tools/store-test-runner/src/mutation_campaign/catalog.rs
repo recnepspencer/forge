@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+mod phase_16;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ControlledMutation {
     pub(super) id: u8,
@@ -13,20 +15,30 @@ pub(super) struct ControlledMutation {
 }
 
 impl ControlledMutation {
+    pub(super) fn source_occurrences(&self, source: &str) -> usize {
+        let lf = source.matches(self.needle).count();
+        let crlf_needle = self.needle.replace('\n', "\r\n");
+        if crlf_needle == self.needle {
+            lf
+        } else {
+            lf + source.matches(&crlf_needle).count()
+        }
+    }
+
     pub(super) fn source_needle(&self, source: &str) -> Cow<'static, str> {
-        source_line_ending(self.needle, source)
+        if source.contains(self.needle) {
+            Cow::Borrowed(self.needle)
+        } else {
+            Cow::Owned(self.needle.replace('\n', "\r\n"))
+        }
     }
 
     pub(super) fn source_replacement(&self, source: &str) -> Cow<'static, str> {
-        source_line_ending(self.replacement, source)
-    }
-}
-
-fn source_line_ending(template: &'static str, source: &str) -> Cow<'static, str> {
-    if source.contains("\r\n") {
-        Cow::Owned(template.replace('\n', "\r\n"))
-    } else {
-        Cow::Borrowed(template)
+        if self.source_needle(source).contains("\r\n") {
+            Cow::Owned(self.replacement.replace('\n', "\r\n"))
+        } else {
+            Cow::Borrowed(self.replacement)
+        }
     }
 }
 
@@ -37,7 +49,19 @@ pub(super) enum MutationTarget {
 }
 
 pub(super) fn mutations() -> &'static [ControlledMutation] {
-    MUTATIONS
+    static ALL: std::sync::OnceLock<Box<[ControlledMutation]>> = std::sync::OnceLock::new();
+    ALL.get_or_init(|| {
+        MUTATIONS
+            .iter()
+            .chain(phase_16::MUTATIONS)
+            .copied()
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
+    })
+}
+
+pub(super) const fn physical_work_mutations() -> &'static [ControlledMutation] {
+    phase_16::MUTATIONS
 }
 
 macro_rules! mutation {
@@ -60,12 +84,12 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         1,
         "publication-durability",
-        "crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs",
-        ".synchronize_artifact(artifact)\n            .and_then(|()| artifacts.synchronize_artifact_parent(artifact))",
-        ".synchronize_artifact_parent(artifact)",
+        "crates/worth-store/src/physical_runtime/record_serving/publication/manifest_progression.rs",
+        "stage\n        .synchronize_artifact(artifact)\n        .and_then(|_| stage.synchronize_artifact_parent(artifact))",
+        "stage.synchronize_artifact_parent(artifact)",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_faults::publication_barrier_omission_is_observable"
+        "publication_recovery_faults::manifest_sync_failure_cannot_erase_the_accepted_candidate_write"
     ),
     mutation!(
         2,
@@ -100,7 +124,7 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         5,
         "identity-placement-seam",
-        "crates/worth-store/src/physical_runtime/record_serving/planning/inline_segment_plan.rs",
+        "crates/worth-store/src/physical_runtime/record_serving/planning/inline_segment_plan/page_allocation.rs",
         "DurableInlineRecordPlacement::new(\n                        input.record,",
         "DurableInlineRecordPlacement::new(\n                        PersistedRecordIdentity::new([slot.get() as u8; 16], u64::from(slot.get())).unwrap(),",
         "worth-store",
@@ -110,7 +134,7 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         6,
         "page-layout",
-        "crates/worth-store/src/physical_runtime/record_serving/planning/inline_segment_plan.rs",
+        "crates/worth-store/src/physical_runtime/record_serving/planning/inline_segment_plan/page_allocation.rs",
         "descriptor.slot(),\n            )\n            .with_slot_generation",
         "PhysicalRecordSlot::from_raw(descriptor.slot().get().saturating_add(1)).unwrap(),\n            )\n            .with_slot_generation",
         "worth-store",
@@ -142,7 +166,7 @@ const MUTATIONS: &[ControlledMutation] = &[
         "independent-decision-path",
         "crates/worth-store/src/physical_runtime/record_serving/admission/open.rs",
         "let generation = bootstrap.current_root.generation().get();",
-        "let catalog_generation = bootstrap.current_root.generation().get();\n    let successor = catalog_generation.saturating_add(1);\n    let generation = if PhysicalRecordArtifacts::new(media).read_bounded(RecordArtifactFile::RootManifest { generation: successor }, limits.current_root_bytes().get()).is_ok() { successor } else { catalog_generation };",
+        "let catalog_generation = bootstrap.current_root.generation().get();\n    let successor = catalog_generation.saturating_add(1);\n    let generation = if ServingRecordArtifacts::new(media, loader).load_bounded(RecordArtifactFile::RootManifest { generation: successor }, limits.current_root_bytes().get()).is_ok() { successor } else { catalog_generation };",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
         "publication_failure_topology::publication_cutover_never_invents_current_truth"
@@ -190,9 +214,9 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         14,
         "publication-ownership",
-        "crates/worth-store/src/physical_runtime/record_serving/residency/candidate_frame_residency.rs",
-        "let physical =\n            store_write(resident.bytes()).map_err(CandidateFrameWriteFailure::Backend)?;\n        let completion = resident\n            .publish_clean(&physical)\n            .map_err(CandidateFrameWriteFailure::Residency)?;",
-        "let detached = resident.bytes().to_vec();\n        let physical = CandidateFramePhysicalWrite::for_contract_test();\n        let completion = resident\n            .publish_clean(&physical)\n            .map_err(CandidateFrameWriteFailure::Residency)?;\n        store_write(&detached).map_err(CandidateFrameWriteFailure::Backend)?;",
+        "crates/worth-store/src/physical_runtime/record_serving/residency/candidate_frame_residency/write_progression.rs",
+        "let physical = match store_write(resident.bytes()) {\n            Ok(physical) => physical,\n            Err(failure) => {\n                if failure.effect_fate()\n                    == crate::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect\n                {\n                    resident\n                        .discard()\n                        .map_err(CandidateFrameWriteFailure::Residency)?;\n                }\n                return Err(CandidateFrameWriteFailure::Effect(failure));\n            }\n        };\n        let completion = resident\n            .publish_clean(&physical)\n            .map_err(CandidateFrameWriteFailure::Residency)?;",
+        "let detached = resident.bytes().to_vec();\n        let physical = CandidateFramePhysicalWrite::for_contract_test();\n        let completion = resident\n            .publish_clean(&physical)\n            .map_err(CandidateFrameWriteFailure::Residency)?;\n        store_write(&detached).map_err(CandidateFrameWriteFailure::Effect)?;",
         "worth-store",
         MutationTarget::Library,
         "physical_runtime::record_serving::residency::candidate_frame_residency::tests::publication_ownership::residency_covers_store_write"
@@ -221,9 +245,8 @@ mod tests {
             let source = workspace.join(mutation.source);
             let contents = std::fs::read_to_string(&source)
                 .unwrap_or_else(|error| panic!("cannot read {}: {error}", source.display()));
-            let needle = mutation.source_needle(&contents);
             assert_eq!(
-                contents.matches(needle.as_ref()).count(),
+                mutation.source_occurrences(&contents),
                 1,
                 "mutant {} must bind exactly once in {}",
                 mutation.id,
@@ -256,5 +279,26 @@ mod tests {
             mutation.replacement.matches('\n').count()
         );
         assert!(!crlf_replacement.replace("\r\n", "").contains('\n'));
+    }
+
+    #[test]
+    fn mutation_source_binding_uses_the_matched_seams_line_ending_in_a_mixed_file() {
+        let mutation = &mutations()[0];
+        let mixed_source = format!("{}\r\nmixed trailer", mutation.needle);
+
+        assert_eq!(mutation.source_needle(&mixed_source), mutation.needle);
+        assert_eq!(
+            mutation.source_replacement(&mixed_source),
+            mutation.replacement
+        );
+    }
+
+    #[test]
+    fn mutation_source_binding_rejects_the_same_seam_in_both_line_endings() {
+        let mutation = &mutations()[0];
+        let crlf = mutation.needle.replace('\n', "\r\n");
+        let mixed_duplicate = format!("{}\r\n{crlf}", mutation.needle);
+
+        assert_eq!(mutation.source_occurrences(&mixed_duplicate), 2);
     }
 }

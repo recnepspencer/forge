@@ -4,7 +4,7 @@ use super::{
 };
 use sha2::{Digest, Sha256};
 
-const PROFILE_DOMAIN: &[u8] = b"worth-store.physical-signal-profile.v2";
+const PROFILE_DOMAIN: &[u8] = b"worth-store.physical-signal-profile.v3";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicalSignalProfileIdentity(pub(super) [u8; 32]);
@@ -16,18 +16,15 @@ impl PhysicalSignalProfileIdentity {
 }
 
 pub(super) fn profile_identity(
-    security_authority: Option<[u8; 32]>,
+    security_authorities: &[[u8; 32]],
     aspects: &[PhysicalSignalAspectDeclaration],
     capacity: PhysicalWorkCapacity,
 ) -> PhysicalSignalProfileIdentity {
     let mut digest = Sha256::new();
     digest.update(PROFILE_DOMAIN);
-    match security_authority {
-        Some(authority) => {
-            digest.update([1]);
-            digest.update(authority);
-        }
-        None => digest.update([0]),
+    digest.update((security_authorities.len() as u64).to_le_bytes());
+    for authority in security_authorities {
+        digest.update(authority);
     }
     digest.update((PHYSICAL_ASYNC_CAPABILITIES.len() as u64).to_le_bytes());
     for capability in PHYSICAL_ASYNC_CAPABILITIES {
@@ -46,6 +43,7 @@ pub(super) fn profile_identity(
         capacity.total_scope_members(),
         capacity.semantic_bytes_per_work(),
         capacity.total_semantic_bytes(),
+        capacity.terminal_evidence(),
     ] {
         digest.update((value as u128).to_le_bytes());
     }

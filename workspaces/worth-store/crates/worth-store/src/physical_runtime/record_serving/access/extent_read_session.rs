@@ -5,13 +5,10 @@ use worth_store_physical_format::{
     EXTENT_CHUNK_METADATA_BYTES,
 };
 
-use super::super::{
-    residency::serving_artifacts::ServingRecordArtifacts, RecordReadObservation,
-    RecordStreamFailure, RecordStreamFailureKind,
-};
+use super::super::{RecordReadObservation, RecordStreamFailure, RecordStreamFailureKind};
 
-pub(in crate::physical_runtime::record_serving) struct ExtentReadState<'runtime> {
-    artifacts: ServingRecordArtifacts<'runtime>,
+pub(in crate::physical_runtime::record_serving) struct ExtentReadState {
+    artifacts: super::super::residency::record_frame_reader::RecordFrameReader<'static>,
     artifact: RecordArtifactFile,
     manifest: DurableExtentManifest,
     format: PhysicalRecordFormatDeclaration,
@@ -23,9 +20,9 @@ pub(in crate::physical_runtime::record_serving) struct ExtentReadState<'runtime>
     payload_offset: usize,
 }
 
-impl<'runtime> ExtentReadState<'runtime> {
+impl ExtentReadState {
     pub(in crate::physical_runtime::record_serving) fn new(
-        artifacts: ServingRecordArtifacts<'runtime>,
+        artifacts: super::super::residency::record_frame_reader::RecordFrameReader<'static>,
         artifact: RecordArtifactFile,
         manifest: DurableExtentManifest,
         format: PhysicalRecordFormatDeclaration,
@@ -77,12 +74,14 @@ impl<'runtime> ExtentReadState<'runtime> {
         let frame = self
             .artifacts
             .load_exact(self.artifact, self.artifact_offset, frame_bytes as u32)
-            .map_err(|_| {
+            .map_err(|failure| {
+                observation.observe_physical_work(failure.work_trace());
                 RecordStreamFailure::during_read(
                     RecordStreamFailureKind::ArtifactDamaged,
                     completed,
                 )
             })?;
+        observation.observe_physical_work(frame.work_trace());
         observation.observe_transfer(frame.len());
         let coordinate = ExtentChunkCoordinate::new(
             self.manifest.record(),

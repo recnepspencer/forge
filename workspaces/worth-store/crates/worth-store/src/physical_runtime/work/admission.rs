@@ -1,9 +1,8 @@
 use crate::physical_runtime::{lifecycle::ObservedLifecyclePhase, record_serving::ServingHealth};
 
 use super::{
-    submission::PhysicalWorkSubmissionOwner, AdmittedPhysicalWork,
-    AdmittedPhysicalWorkAuthority, PhysicalWorkAdmissionAuthority, PhysicalWorkIntent,
-    PhysicalWorkSubmissionReceipt,
+    submission::PhysicalWorkSubmissionOwner, AdmittedPhysicalWork, AdmittedPhysicalWorkAuthority,
+    PhysicalWorkAdmissionAuthority, PhysicalWorkIntent, PhysicalWorkSubmissionReceipt,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,6 +17,9 @@ pub enum PhysicalWorkPreEffectDenial {
     CommandAbsent,
     SignalOwnerUnavailable,
     PhysicalAuthorityMismatch,
+    ConsumerCancelled,
+    RecoveryJournalUnavailable,
+    AdmissionStopped,
 }
 
 pub struct PhysicalWorkAdmission;
@@ -82,7 +84,8 @@ const fn signal_family(
     operation: super::PhysicalWorkOperationFamily,
 ) -> super::PhysicalWorkSignalFamily {
     match operation {
-        super::PhysicalWorkOperationFamily::ArtifactRangeRead => {
+        super::PhysicalWorkOperationFamily::ArtifactMetadataRead
+        | super::PhysicalWorkOperationFamily::ArtifactRangeRead => {
             super::PhysicalWorkSignalFamily::ReadFault
         }
         super::PhysicalWorkOperationFamily::ArtifactRangeWrite => {
@@ -102,6 +105,9 @@ fn require_current_identity(
 ) -> Result<(), PhysicalWorkPreEffectDenial> {
     if identity.store() != state.store() {
         return Err(PhysicalWorkPreEffectDenial::ForeignStore);
+    }
+    if !state.accepts_work() {
+        return Err(PhysicalWorkPreEffectDenial::AdmissionStopped);
     }
     if identity.runtime() != state.runtime() {
         return Err(PhysicalWorkPreEffectDenial::ForeignRuntime);

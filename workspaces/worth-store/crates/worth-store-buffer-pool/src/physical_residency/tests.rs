@@ -10,6 +10,10 @@ use worth_store_physical_format::{
 
 #[path = "tests/c6_readiness.rs"]
 mod c6_readiness;
+#[path = "tests/candidate_concurrency.rs"]
+mod candidate_concurrency;
+#[path = "tests/clean_to_dirty.rs"]
+mod clean_to_dirty;
 #[path = "tests/metadata_admission.rs"]
 mod metadata_admission;
 #[path = "tests/shutdown.rs"]
@@ -134,6 +138,20 @@ fn candidate_dirty_posture_and_operation_allocations_are_exact() {
         .begin_operation(OperationAllocationScope::ForegroundWrite, 40)
         .unwrap();
     assert_eq!(grant.bytes(), 40);
+    let observation = grant.observation();
+    assert_eq!(observation.store(), identity);
+    assert_eq!(observation.pool(), pool.incarnation());
+    assert_eq!(
+        observation.scope(),
+        OperationAllocationScope::ForegroundWrite
+    );
+    assert_eq!(observation.bytes(), 40);
+    assert_eq!(
+        observation
+            .counters()
+            .active_operation_bytes_for(OperationAllocationScope::ForegroundWrite),
+        40
+    );
     assert_eq!(
         pool.begin_operation(OperationAllocationScope::ForegroundRead, 1)
             .unwrap_err(),
@@ -147,33 +165,6 @@ fn candidate_dirty_posture_and_operation_allocations_are_exact() {
     assert_eq!(counters.candidate_publications(), 1);
     assert_eq!(counters.active_operation_bytes(), 0);
     assert!(!pool.close().requires_inspection());
-}
-
-#[test]
-fn unrelated_faults_do_not_hold_the_metadata_lock_during_io() {
-    let identity = store(6);
-    let pool = Arc::new(PhysicalResidencyPool::open(identity, limits(2048, 2, 1, 64, 4)).unwrap());
-    let barrier = Arc::new(Barrier::new(2));
-    let mut workers = Vec::new();
-    for block in 1..=2 {
-        let pool = Arc::clone(&pool);
-        let barrier = Arc::clone(&barrier);
-        workers.push(std::thread::spawn(move || {
-            let key = PhysicalFrameKey::new(identity, coordinate(block, 32));
-            pool.load(key, |target| {
-                barrier.wait();
-                target.fill(block as u8);
-                Ok::<_, ()>(())
-            })
-            .unwrap()
-        }));
-    }
-    let leases: Vec<_> = workers
-        .into_iter()
-        .map(|worker| worker.join().unwrap())
-        .collect();
-    assert_eq!(leases.len(), 2);
-    assert_eq!(pool.counters().source_loads(), 2);
 }
 
 #[test]

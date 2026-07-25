@@ -106,6 +106,7 @@ pub struct PublishedRecordBatch {
     root_generation: u64,
     publication_identity: u64,
     observation: RecordAppendObservation,
+    work: super::RecordPublicationWorkTrace,
     counters_before: MediaCounterSnapshot,
     counters_after: MediaCounterSnapshot,
 }
@@ -126,6 +127,9 @@ impl PublishedRecordBatch {
     pub const fn observation(&self) -> RecordAppendObservation {
         self.observation
     }
+    pub const fn physical_work(&self) -> &super::RecordPublicationWorkTrace {
+        &self.work
+    }
     pub const fn media_counters_before(&self) -> MediaCounterSnapshot {
         self.counters_before
     }
@@ -137,6 +141,7 @@ impl PublishedRecordBatch {
         root_generation: u64,
         publication_identity: u64,
         observation: PublicationObservation,
+        work: super::RecordPublicationWorkTrace,
         counters_before: MediaCounterSnapshot,
         counters_after: MediaCounterSnapshot,
     ) -> Self {
@@ -148,6 +153,7 @@ impl PublishedRecordBatch {
             root_generation,
             publication_identity,
             observation: RecordAppendObservation { value: observation },
+            work,
             counters_before,
             counters_after,
         }

@@ -601,6 +601,8 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
+ "worth-store",
 ]
 
 [[package]]
@@ -1200,6 +1202,7 @@ dependencies = [
  "worth-proof",
  "worth-signal",
  "worth-store-aspect-native",
+ "worth-store-authority",
  "worth-store-buffer-pool",
  "worth-store-certification",
  "worth-store-contracts",

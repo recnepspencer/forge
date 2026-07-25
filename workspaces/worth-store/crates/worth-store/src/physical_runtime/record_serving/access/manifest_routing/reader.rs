@@ -5,23 +5,27 @@ use worth_store_physical_format::{
 };
 
 use crate::physical_runtime::record_serving::{
-    residency::serving_artifacts::ServingRecordArtifacts, AdmittedPhysicalRecordFormat,
-    AdmittedRecordAccessPolicy,
+    residency::{
+        frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts,
+        record_frame_reader::RecordFrameReader,
+    },
+    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
 };
 
 use super::ManifestDiscoveryCounterSnapshot;
 
 pub(in crate::physical_runtime::record_serving) struct ManifestReader<'media> {
-    artifacts: ServingRecordArtifacts<'media>,
+    artifacts: RecordFrameReader<'media>,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
-    root: &'media DurablePhysicalRootManifest,
+    root: DurablePhysicalRootManifest,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime::record_serving) enum ManifestLookupFailure {
     Backend(ArtifactTreeFailure),
     Residency(worth_store_buffer_pool::PhysicalResidencyDenial),
+    Frame(crate::physical_runtime::record_serving::residency::frame_loading::FrameLoadFailureKind),
     Damaged,
 }
 
@@ -36,7 +40,22 @@ impl<'media> ManifestReader<'media> {
         root: &'media DurablePhysicalRootManifest,
     ) -> Self {
         Self {
-            artifacts: ServingRecordArtifacts::new(media, loader),
+            artifacts: RecordFrameReader::bootstrap(media, loader),
+            format,
+            access,
+            root: root.clone(),
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn serving(
+        frame_ports: RecordFramePorts,
+        source: CanonicalFrameReadSource,
+        format: AdmittedPhysicalRecordFormat,
+        access: AdmittedRecordAccessPolicy,
+        root: DurablePhysicalRootManifest,
+    ) -> ManifestReader<'static> {
+        ManifestReader {
+            artifacts: RecordFrameReader::serving(frame_ports, source),
             format,
             access,
             root,
@@ -103,12 +122,15 @@ impl<'media> ManifestReader<'media> {
                 },
                 limit,
             )
-            .map_err(|failure| match failure {
-                crate::physical_runtime::record_serving::residency::frame_loading::FrameLoadFailure::Backend(reason) => ManifestLookupFailure::Backend(reason),
-                crate::physical_runtime::record_serving::residency::frame_loading::FrameLoadFailure::Residency(reason) => ManifestLookupFailure::Residency(reason),
-                _ => ManifestLookupFailure::Damaged,
+            .map_err(|failure| {
+                counters.observe_failed_work(failure.work_trace());
+                match failure.kind() {
+                    crate::physical_runtime::record_serving::residency::frame_loading::FrameLoadFailureKind::Backend(reason) => ManifestLookupFailure::Backend(reason),
+                    crate::physical_runtime::record_serving::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => ManifestLookupFailure::Residency(reason),
+                    kind => ManifestLookupFailure::Frame(kind),
+                }
             })?;
-        counters.observe_block(bytes.len());
+        counters.observe_block(bytes.len(), bytes.work_trace());
         let checksum = durable_artifact_checksum(&bytes);
         let (block, found_format) =
             PhysicalRootRoutingBlock::decode(&bytes, self.root.node_capacity())

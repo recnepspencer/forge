@@ -72,11 +72,19 @@ pub use allocation::{
     MediaAllocationResult, MediaPhysicalAllocationPosture,
 };
 pub use artifact_tree::{
-    ArtifactRangeWriteDurability, ArtifactRangeWriteDurabilityRequirement,
-    ArtifactRangeWriteOutcome, ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFailureKind,
-    ArtifactTreeFile, ArtifactTreeMedia, ArtifactTreeNewFile, ArtifactTreePathDenial,
-    CompletedArtifactRangeWrite, CompletedScheduledArtifactRangeWrite,
-    IndeterminateArtifactRangeWrite, ScheduledArtifactRangeWriteOutcome,
+    ArtifactNewWriteOutcome, ArtifactRangeReadOutcome, ArtifactRangeWriteDurability,
+    ArtifactRangeWriteDurabilityRequirement, ArtifactRangeWriteOutcome, ArtifactTreeDirectory,
+    ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile, ArtifactTreeMedia,
+    ArtifactTreeNewFile, ArtifactTreePathDenial, ArtifactTreePublicationEffect,
+    ArtifactTreePublicationEffectOutcome, CompletedArtifactMetadataRead, CompletedArtifactNewWrite,
+    CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactMetadataRead,
+    CompletedScheduledArtifactNewWrite, CompletedScheduledArtifactRangeRead,
+    CompletedScheduledArtifactRangeWrite, CompletedScheduledArtifactTreePublicationEffect,
+    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    IndeterminateArtifactTreePublicationEffect, ScheduledArtifactMetadataReadOutcome,
+    ScheduledArtifactNewWriteOutcome, ScheduledArtifactRangeReadOutcome,
+    ScheduledArtifactRangeWriteOutcome, ScheduledArtifactTreePublicationEffectOutcome,
 };
 pub use capability_profile::{
     CapabilityProfileError, CapabilitySupport, FilesystemBackendProfile, FilesystemLocation,

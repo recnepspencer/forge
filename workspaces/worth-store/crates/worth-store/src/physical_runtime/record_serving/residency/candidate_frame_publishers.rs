@@ -22,8 +22,11 @@ pub(in crate::physical_runtime::record_serving) struct CandidateFrameCounterCell
     declared_bytes: AtomicU64,
     retained_frames: AtomicU64,
     retained_bytes: AtomicU64,
+    #[cfg(feature = "certification-test-authority")]
+    reject_next_publication: std::sync::atomic::AtomicBool,
 }
 
+#[derive(Clone)]
 pub(in crate::physical_runtime::record_serving) struct BoundedCandidateFramePublisher {
     pool: PhysicalResidencyPool,
     counters: Arc<CandidateFrameCounterCells>,
@@ -124,6 +127,8 @@ impl CandidateFrameResidencySession for BoundedCandidateFrameSession {
             role,
             coordinate,
             resident,
+            #[cfg(feature = "certification-test-authority")]
+            counters: Arc::clone(&self.counters),
         }))
     }
 
@@ -147,6 +152,8 @@ struct BoundedResidentCandidateFrame {
     role: CandidateFrameRole,
     coordinate: CandidateFrameCoordinate,
     resident: DirtyPhysicalFrame,
+    #[cfg(feature = "certification-test-authority")]
+    counters: Arc<CandidateFrameCounterCells>,
 }
 
 impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
@@ -160,15 +167,32 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
         self.resident.bytes()
     }
 
+    fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial> {
+        self.resident
+            .discard_candidate()
+            .map_err(RecordAppendDenial::ResidencyUnavailable)
+    }
+
     fn publish_clean(
         self: Box<Self>,
         physical: &CandidateFramePhysicalWrite,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
+        physical
+            .work()
+            .ok_or(RecordAppendDenial::ResidencyUnavailable(
+                worth_store_buffer_pool::PhysicalResidencyDenial::WriteBackReceiptMismatch,
+            ))?;
         let receipt = physical
             .receipt()
             .ok_or(RecordAppendDenial::ResidencyUnavailable(
                 worth_store_buffer_pool::PhysicalResidencyDenial::WriteBackReceiptMismatch,
             ))?;
+        #[cfg(feature = "certification-test-authority")]
+        if self.counters.take_reject_next_publication() {
+            return Err(RecordAppendDenial::ResidencyUnavailable(
+                worth_store_buffer_pool::PhysicalResidencyDenial::CandidatePublicationActive,
+            ));
+        }
         let bytes = self.resident.bytes().len() as u64;
         self.resident
             .publish_clean(receipt)
@@ -178,6 +202,16 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
 }
 
 impl CandidateFrameCounterCells {
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn reject_next_publication(&self) {
+        self.reject_next_publication.store(true, Ordering::Release);
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    fn take_reject_next_publication(&self) -> bool {
+        self.reject_next_publication.swap(false, Ordering::AcqRel)
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn submissions(&self) -> u64 {
         self.submissions.load(Ordering::Acquire)

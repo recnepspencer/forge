@@ -1,32 +1,40 @@
 use sha2::{Digest, Sha256};
 use worth_signal::facade::{
-    AsyncNodeCapabilityDeclaration, ResourceCancellationPolicyDeclaration,
-    ResourceDiagnosticsPolicyDeclaration, ResourceLifecyclePolicyDeclaration,
-    ResourceObservationPolicyDeclaration, ResourceOutputContinuityPolicyDeclaration,
+    AsyncNodeCapabilityDeclaration, AsyncNodePayloadContract, AsyncNodePayloadContractId, NodeId,
+    ResourceCancellationPolicyDeclaration, ResourceDiagnosticsPolicyDeclaration,
+    ResourceLifecyclePolicyDeclaration, ResourceObservationPolicyDeclaration,
+    ResourceOutputContinuityPolicyDeclaration, ResourcePolicyDigest,
     ResourceReplayPolicyDeclaration, ResourceRetentionPolicyDeclaration,
     ResourceRetryPolicyDeclaration, ResourceRevalidationPolicyDeclaration,
     ResourceStaleAfterPolicyDeclaration, ResourceSupersessionPolicyDeclaration,
-    ResourceTimeoutPolicyDeclaration,
+    ResourceTimeoutPolicyDeclaration, TemporalDuration,
 };
 
 /// The complete Signal policy posture installed for physical work capabilities.
 ///
-/// Lowering and identity bytes intentionally live together so a policy change
-/// cannot hide behind Signal defaults or a serialization-derived fingerprint.
-pub(in crate::physical_runtime::work) struct PhysicalSignalPolicySelection;
+/// Lowering and identity intentionally share the same selected declaration.
+pub(in crate::physical_runtime) struct PhysicalSignalPolicySelection;
 
 impl PhysicalSignalPolicySelection {
-    pub(in crate::physical_runtime::work) fn apply(
+    pub(in crate::physical_runtime) fn apply(
         declaration: AsyncNodeCapabilityDeclaration,
     ) -> AsyncNodeCapabilityDeclaration {
         declaration
             .with_lifecycle_policy(ResourceLifecyclePolicyDeclaration::default())
-            .with_retry_policy(ResourceRetryPolicyDeclaration::Disabled)
-            .with_timeout_policy(ResourceTimeoutPolicyDeclaration::Disabled)
-            .with_cancellation_policy(ResourceCancellationPolicyDeclaration::RuntimeDenialOnly)
+            .with_retry_policy(ResourceRetryPolicyDeclaration::FixedDelay {
+                delay: TemporalDuration::temporal_duration(1)
+                    .expect("physical retry delay is positive"),
+            })
+            .with_timeout_policy(ResourceTimeoutPolicyDeclaration::PerAttemptTimeout {
+                timeout: TemporalDuration::temporal_duration(1_000)
+                    .expect("physical attempt timeout is positive"),
+            })
+            .with_cancellation_policy(
+                ResourceCancellationPolicyDeclaration::BestEffortHostSignalAndRuntimeDenial,
+            )
             .with_stale_after_policy(ResourceStaleAfterPolicyDeclaration::Disabled)
             .with_supersession_policy(
-                ResourceSupersessionPolicyDeclaration::NewGenerationSupersedesPrior,
+                ResourceSupersessionPolicyDeclaration::OverlappingGenerationRetainsOldHostWork,
             )
             .with_revalidation_policy(
                 ResourceRevalidationPolicyDeclaration::ExplicitOrDependencyChangeOrActiveHandleForced,
@@ -41,20 +49,42 @@ impl PhysicalSignalPolicySelection {
     }
 
     pub(in crate::physical_runtime::work) fn update_profile_identity(digest: &mut Sha256) {
-        digest.update(b"worth-store.physical-signal-policy-selection.v1");
-        digest.update([
-            1, // unrequested lifecycle
-            1, // retry disabled
-            1, // timeout disabled
-            1, // runtime-denial-only cancellation
-            1, // stale-after disabled
-            1, // new generation supersedes prior
-            6, // dependency change or active-handle forced revalidation
-            1, // lifecycle-only observation
-            1, // lifecycle/output separation
-            3, // terminal summaries only
-            1, // retained diagnostics only
-            9, // deny replay on unknown or missing policy
-        ]);
+        let bundle = Self::canonical_bundle_digest();
+        let canonical = bundle.as_str().as_bytes();
+        digest.update(b"worth-store.physical-signal-policy-selection.v4");
+        digest.update((canonical.len() as u64).to_le_bytes());
+        digest.update(canonical);
+    }
+
+    fn canonical_bundle_digest() -> ResourcePolicyDigest {
+        let template = AsyncNodeCapabilityDeclaration::new(
+            NodeId::new(0, 0),
+            AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(0)),
+        );
+        let selected = Self::apply(template);
+        let lowered = selected
+            .canonical_policy_bundle()
+            .expect("the frozen physical Signal policy selection must resolve");
+        lowered.bundle_digest().clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn profile_identity_consumes_the_digest_of_the_applied_signal_policy() {
+        let declaration = AsyncNodeCapabilityDeclaration::new(
+            NodeId::new(7, 0),
+            AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(17)),
+        );
+        let applied = PhysicalSignalPolicySelection::apply(declaration);
+        let actual = applied.canonical_policy_bundle().unwrap();
+
+        assert_eq!(
+            PhysicalSignalPolicySelection::canonical_bundle_digest(),
+            actual.bundle_digest().clone()
+        );
     }
 }

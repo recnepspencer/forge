@@ -20,14 +20,14 @@ fn runtime_and_offline_topology_have_canonical_parity() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, _) = configuration();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let inline = (0..70).map(|ordinal| vec![ordinal as u8; 257]);
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(RecordAppendBatch::try_from_iter(inline).unwrap(), placement)
         .unwrap();
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([vec![0x91; 20_000]]).unwrap(),
             placement,
@@ -84,9 +84,9 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"counter receipt".as_slice()]).unwrap(),
             placement,
@@ -108,8 +108,8 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
             allocated_segments: 1,
             allocated_extents: 0,
             transfer: transfer_expectation(8, 16_384, 1, 15, 16_384),
-            file_barriers: 7,
-            directory_barriers: 7,
+            file_barriers: 29,
+            directory_barriers: 52,
             catalog_replacements: 1,
         }),
         append_summary,

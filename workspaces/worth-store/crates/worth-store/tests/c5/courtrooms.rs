@@ -92,11 +92,8 @@ fn record_world_survives_fresh_processes() {
     let placement_identity_set = placement_identities(&walk);
     assert_eq!(placement_identity_set, locator_identity_set);
     assert_ne!(writer_completion.positioned_writes, 0);
-    assert!(writer_completion.positioned_writes >= writer_completion.file_barriers);
-    assert_eq!(
-        writer_completion.file_barriers,
-        writer_completion.directory_barriers,
-    );
+    assert!(writer_completion.file_barriers >= writer_completion.positioned_writes);
+    assert!(writer_completion.directory_barriers >= writer_completion.file_barriers);
     assert_eq!(writer_completion.catalog_replacements, 4);
     let extent_placements = walk
         .placements()
@@ -162,14 +159,14 @@ fn record_world_survives_fresh_processes() {
             writer_completion.positioned_writes != 0,
         ),
         ScenarioPredicate::equality(
-            "writer_write_per_file_minimum",
+            "writer_file_barrier_per_write_minimum",
             true,
-            writer_completion.positioned_writes >= writer_completion.file_barriers,
+            writer_completion.file_barriers >= writer_completion.positioned_writes,
         ),
         ScenarioPredicate::equality(
-            "writer_directory_barrier_per_file_barrier",
-            writer_completion.file_barriers,
-            writer_completion.directory_barriers,
+            "writer_directory_barrier_per_file_minimum",
+            true,
+            writer_completion.directory_barriers >= writer_completion.file_barriers,
         ),
         ScenarioPredicate::equality(
             "writer_catalog_replacement_per_batch",

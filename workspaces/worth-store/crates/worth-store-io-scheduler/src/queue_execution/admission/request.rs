@@ -1,6 +1,4 @@
-use worth_foundational::{
-    FoundationalPerformanceBudgetKind, FoundationalPolicyAdmissionReceipt,
-};
+use worth_foundational::{FoundationalPerformanceBudgetKind, FoundationalPolicyAdmissionReceipt};
 
 use crate::{IoResourceUnitKind, IoSchedulerBackendCapabilityAdmission};
 use crate::{
@@ -37,9 +35,11 @@ pub fn admit_queue_execution_plan(
     request: QueueExecutionAdmissionRequest<'_>,
 ) -> Result<QueueExecutionReadyPlan, QueueExecutionAdmissionDenial> {
     if request.policy_receipt.work() != request.work {
-        return Err(QueueExecutionAdmissionDenial::PolicyReceiptContextMismatch {
-            expected_work: super::policy_receipt::expected_work_class(request.work),
-        });
+        return Err(
+            QueueExecutionAdmissionDenial::PolicyReceiptContextMismatch {
+                expected_work: super::policy_receipt::expected_work_class(&request.work),
+            },
+        );
     }
     let budget = request.work.requested_budget();
     if budget.is_empty() {
@@ -48,6 +48,7 @@ pub fn admit_queue_execution_plan(
     let grouping_basis = request
         .work
         .grouping_basis()
+        .cloned()
         .ok_or(QueueExecutionAdmissionDenial::MissingGroupingBasis)?;
     let security_identity = request.work.security_scope_identity();
     if grouping_basis.security_scope_identity() != request.work.security_scope_identity() {

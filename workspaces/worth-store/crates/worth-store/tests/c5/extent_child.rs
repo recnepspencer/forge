@@ -12,13 +12,13 @@ use super::{configuration, serving_from_initialization, serving_from_open};
 pub(super) fn allocation_writer(root: &Path, logical_bytes: &str) {
     let logical_bytes = logical_bytes.parse().unwrap();
     let (_, placement, _) = configuration();
-    let mut serving = serving_from_initialization(root);
+    let serving = serving_from_initialization(root);
     let batch = RecordAppendBatch::builder()
         .push_source(super::stream_fixture::PatternSource::exact(logical_bytes))
         .build()
         .unwrap();
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(batch, placement)
         .unwrap();
     println!(

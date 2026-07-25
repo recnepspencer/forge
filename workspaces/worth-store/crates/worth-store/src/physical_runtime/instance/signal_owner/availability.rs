@@ -24,7 +24,7 @@ impl PhysicalSignalAdmissionStatus {
         self.available.load(Ordering::Acquire)
     }
 
-    pub(super) fn revoke(&self) {
+    pub(in crate::physical_runtime) fn revoke(&self) {
         self.available.store(false, Ordering::Release);
     }
 }

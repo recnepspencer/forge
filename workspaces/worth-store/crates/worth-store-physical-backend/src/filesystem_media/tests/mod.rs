@@ -1,9 +1,12 @@
 mod admission_fault_interposition;
 mod allocation_probe;
 mod artifact_mutation_coordination;
+mod artifact_new_write;
+mod artifact_publication_effect;
 mod capability_profile;
 mod capability_qualification;
 mod fault_interposition;
+mod fault_selector;
 mod filesystem_effects;
 mod mutation_ownership;
 mod mutation_ownership_process;

@@ -45,6 +45,7 @@ pub(super) fn directive_matches_role(
         ),
         MediaFaultDirective::FailBefore { .. }
         | MediaFaultDirective::PauseBefore(_)
-        | MediaFaultDirective::PauseAfter(_) => true,
+        | MediaFaultDirective::PauseAfter(_)
+        | MediaFaultDirective::PanicAfter => true,
     }
 }

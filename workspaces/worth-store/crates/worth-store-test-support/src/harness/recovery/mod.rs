@@ -2,6 +2,7 @@ pub mod checkpoint_basis;
 pub mod checkpoint_durability;
 #[cfg(feature = "certification-world")]
 pub mod checkpoint_publication;
+#[cfg(feature = "certification-world")]
 pub mod closeout;
 #[cfg(feature = "certification-world")]
 pub mod compaction_mutation;
@@ -11,8 +12,11 @@ pub mod compaction_observation;
 pub mod counter_evidence;
 #[cfg(feature = "certification-world")]
 pub mod coverage;
+#[cfg(feature = "certification-world")]
 pub mod dirty_publication;
+#[cfg(feature = "certification-world")]
 pub mod memory_budget;
+#[cfg(feature = "certification-world")]
 pub mod redo_replay;
 mod reopened_artifact;
 #[cfg(feature = "certification-world")]

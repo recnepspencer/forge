@@ -28,6 +28,11 @@ pub struct RecordReadObservation {
     pub(in crate::physical_runtime::record_serving) manifest_blocks: u64,
     pub(in crate::physical_runtime::record_serving) manifest_comparisons: u64,
     pub(in crate::physical_runtime::record_serving) manifest_bytes: u64,
+    pub(in crate::physical_runtime::record_serving) physical_work_count: u64,
+    pub(in crate::physical_runtime::record_serving) first_physical_work:
+        Option<crate::physical_runtime::PhysicalWorkIdentity>,
+    pub(in crate::physical_runtime::record_serving) last_physical_work:
+        Option<crate::physical_runtime::PhysicalWorkIdentity>,
 }
 
 impl RecordReadObservation {
@@ -79,6 +84,17 @@ impl RecordReadObservation {
     pub const fn manifest_bytes(self) -> u64 {
         self.manifest_bytes
     }
+    pub const fn physical_work_count(self) -> u64 {
+        self.physical_work_count
+    }
+    pub const fn first_physical_work(
+        self,
+    ) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
+        self.first_physical_work
+    }
+    pub const fn last_physical_work(self) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
+        self.last_physical_work
+    }
 
     pub(in crate::physical_runtime::record_serving) fn observe_manifest(
         &mut self,
@@ -89,6 +105,11 @@ impl RecordReadObservation {
             .manifest_comparisons
             .saturating_add(snapshot.comparisons());
         self.manifest_bytes = self.manifest_bytes.saturating_add(snapshot.bytes_read());
+        self.physical_work_count = self
+            .physical_work_count
+            .saturating_add(snapshot.work_count());
+        self.first_physical_work = self.first_physical_work.or(snapshot.first_work());
+        self.last_physical_work = snapshot.last_work().or(self.last_physical_work);
     }
 
     pub(in crate::physical_runtime::record_serving) fn observe_manifest_block(
@@ -113,6 +134,15 @@ impl RecordReadObservation {
     pub(in crate::physical_runtime::record_serving) fn observe_transfer(&mut self, bytes: usize) {
         self.transfer_count = self.transfer_count.saturating_add(1);
         self.peak_transfer_width = self.peak_transfer_width.max(bytes as u64);
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn observe_physical_work(
+        &mut self,
+        work: super::super::residency::frame_work_trace::FrameWorkTrace,
+    ) {
+        self.physical_work_count = self.physical_work_count.saturating_add(work.count());
+        self.first_physical_work = self.first_physical_work.or(work.first());
+        self.last_physical_work = work.last().or(self.last_physical_work);
     }
 
     pub(in crate::physical_runtime::record_serving) fn observe_copy(&mut self, bytes: usize) {
@@ -149,15 +179,31 @@ impl RecordReadError {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordReadDenial {
+    ServingRequiresInspection,
     StoreIdentityMismatch,
     RecordNotFound,
     CallerLimitExceeded,
     AccessLimitExceeded,
     ArtifactUnavailable,
     ArtifactDamaged,
+    PhysicalWork(RecordReadWorkDenial),
     FormatMismatch,
     ResidencyUnavailable(worth_store_buffer_pool::PhysicalResidencyDenial),
     StalePlacement(StalePhysicalRecordPlacement),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RecordReadWorkDenial {
+    RuntimeReleased,
+    InvalidCoordinate,
+    SubmissionRejected,
+    AdmissionRejected,
+    DependencyBlocked,
+    SchedulerReservationRejected,
+    SchedulerRejected,
+    CommandRejected,
+    SchedulerSettlementRejected,
+    SettlementMismatch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

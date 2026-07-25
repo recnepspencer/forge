@@ -18,6 +18,16 @@ impl MutationSandbox {
         }
         let workspace = root.join("workspaces/worth-store");
         copy_tree(workspace_root, &workspace)?;
+        exclude_orchestrator_member(&workspace)?;
+        copy_sibling_workspaces(
+            workspace_root
+                .parent()
+                .ok_or_else(|| "Worth Store workspace has no workspace parent".to_owned())?,
+            &root.join("workspaces"),
+            workspace_root
+                .file_name()
+                .ok_or_else(|| "Worth Store workspace has no directory name".to_owned())?,
+        )?;
         copy_tree(&forge_root.join("crates"), &root.join("crates"))?;
         std::fs::copy(forge_root.join("Cargo.toml"), root.join("Cargo.toml"))
             .map_err(|error| format!("cannot copy forge workspace manifest: {error}"))?;
@@ -44,6 +54,63 @@ impl Drop for MutationSandbox {
             let _ = verified_cleanup(&self.root);
         }
     }
+}
+
+fn copy_sibling_workspaces(
+    source: &Path,
+    destination: &Path,
+    current: &std::ffi::OsStr,
+) -> Result<(), String> {
+    for entry in std::fs::read_dir(source).map_err(|error| {
+        format!(
+            "cannot list sibling workspaces {}: {error}",
+            source.display()
+        )
+    })? {
+        let entry = entry.map_err(|error| format!("cannot read sibling workspace: {error}"))?;
+        let file_type = entry.file_type().map_err(|error| {
+            format!(
+                "cannot inspect sibling workspace {}: {error}",
+                entry.path().display()
+            )
+        })?;
+        if file_type.is_dir() && entry.file_name() != current {
+            copy_tree(&entry.path(), &destination.join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
+fn exclude_orchestrator_member(workspace: &Path) -> Result<(), String> {
+    let manifest = workspace.join("Cargo.toml");
+    let source = std::fs::read_to_string(&manifest).map_err(|error| {
+        format!(
+            "cannot read sandbox manifest {}: {error}",
+            manifest.display()
+        )
+    })?;
+    let narrowed = without_orchestrator_member(&source)?;
+    std::fs::write(&manifest, narrowed).map_err(|error| {
+        format!(
+            "cannot narrow sandbox manifest {}: {error}",
+            manifest.display()
+        )
+    })
+}
+
+fn without_orchestrator_member(manifest: &str) -> Result<String, String> {
+    let newline = if manifest.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let member = format!("    \"tools/store-test-runner\",{newline}");
+    if manifest.matches(&member).count() != 1 {
+        return Err(
+            "Worth Store workspace must contain exactly one store-test-runner member".into(),
+        );
+    }
+    Ok(manifest.replacen(&member, "", 1))
 }
 
 fn verified_cleanup(root: &Path) -> Result<(), String> {
@@ -87,4 +154,28 @@ fn copy_tree(source: &Path, destination: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::without_orchestrator_member;
+
+    #[test]
+    fn sandbox_workspace_excludes_only_the_orchestration_runner() {
+        let manifest = "[workspace]\nmembers = [\n    \"crates/worth-store\",\n    \
+                        \"tools/store-test-runner\",\n]\n";
+        let narrowed = without_orchestrator_member(manifest).unwrap();
+        assert!(narrowed.contains("\"crates/worth-store\""));
+        assert!(!narrowed.contains("store-test-runner"));
+
+        let crlf = manifest.replace('\n', "\r\n");
+        let narrowed = without_orchestrator_member(&crlf).unwrap();
+        assert!(narrowed.contains("\r\n"));
+        assert!(!narrowed.contains("store-test-runner"));
+    }
+
+    #[test]
+    fn sandbox_narrowing_denies_manifest_drift() {
+        assert!(without_orchestrator_member("[workspace]\nmembers = []\n").is_err());
+    }
 }

@@ -10,12 +10,6 @@ impl PoolInner {
             if !state.accepting {
                 return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
             }
-            if state.candidate_publication_active {
-                return Err(Self::deny(
-                    &mut state,
-                    PhysicalResidencyDenial::CandidatePublicationActive,
-                ));
-            }
             match state.frames.get(&key.coordinate).map(|entry| &entry.state) {
                 Some(FrameState::Loading | FrameState::CandidateReserved) => {
                     state = self

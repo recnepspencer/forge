@@ -11,26 +11,65 @@ pub(super) fn execute(
     sandbox: &MutationSandbox,
     mutation: &ControlledMutation,
 ) -> Result<MutationObservation, String> {
-    let source = sandbox.workspace().join(mutation.source);
-    let original = std::fs::read_to_string(&source)
-        .map_err(|error| format!("cannot read mutation source {}: {error}", source.display()))?;
-    let needle = mutation.source_needle(&original);
-    let replacement = mutation.source_replacement(&original);
-    let occurrences = original.matches(needle.as_ref()).count();
-    if occurrences != 1 {
-        return Err(format!(
-            "mutant {} requires one exact source seam in {}, found {occurrences}",
-            mutation.id,
-            source.display()
-        ));
-    }
-    let mutated = original.replacen(needle.as_ref(), replacement.as_ref(), 1);
-    std::fs::write(&source, &mutated)
-        .map_err(|error| format!("cannot install mutant {}: {error}", mutation.id))?;
+    let prepared = PreparedMutation::new(sandbox, mutation)?;
+    prepared.install(mutation)?;
     let result = run_test(sandbox, mutation);
-    std::fs::write(&source, &original)
-        .map_err(|error| format!("cannot restore mutant {} source: {error}", mutation.id))?;
-    let output = result?;
+    prepared.restore(mutation)?;
+    let failure = classify_failure(result?, mutation)?;
+    build_observation(&prepared, mutation, failure)
+}
+
+struct PreparedMutation {
+    source: PathBuf,
+    original: String,
+    mutated: String,
+}
+
+impl PreparedMutation {
+    fn new(sandbox: &MutationSandbox, mutation: &ControlledMutation) -> Result<Self, String> {
+        let source = sandbox.workspace().join(mutation.source);
+        let original = std::fs::read_to_string(&source).map_err(|error| {
+            format!("cannot read mutation source {}: {error}", source.display())
+        })?;
+        let occurrences = mutation.source_occurrences(&original);
+        if occurrences != 1 {
+            return Err(format!(
+                "mutant {} requires one exact source seam in {}, found {occurrences}",
+                mutation.id,
+                source.display()
+            ));
+        }
+        let needle = mutation.source_needle(&original);
+        let replacement = mutation.source_replacement(&original);
+        let mutated = original.replacen(needle.as_ref(), replacement.as_ref(), 1);
+        Ok(Self {
+            source,
+            original,
+            mutated,
+        })
+    }
+
+    fn install(&self, mutation: &ControlledMutation) -> Result<(), String> {
+        std::fs::write(&self.source, &self.mutated)
+            .map_err(|error| format!("cannot install mutant {}: {error}", mutation.id))
+    }
+
+    fn restore(&self, mutation: &ControlledMutation) -> Result<(), String> {
+        std::fs::write(&self.source, &self.original)
+            .map_err(|error| format!("cannot restore mutant {} source: {error}", mutation.id))
+    }
+}
+
+struct ControlledFailure {
+    combined: String,
+    binary: PathBuf,
+    predicate: String,
+}
+
+fn classify_failure(
+    output: std::process::Output,
+    mutation: &ControlledMutation,
+) -> Result<ControlledFailure, String> {
     let combined = format!(
         "{}\n{}",
         String::from_utf8_lossy(&output.stdout),
@@ -67,25 +106,37 @@ pub(super) fn execute(
             mutation.id
         )
     })?;
-    let actual_failing_predicate = actual_failing_predicate(&combined, mutation.id)?;
-    if actual_failing_predicate != mutation.predicate {
+    let predicate = actual_failing_predicate(&combined, mutation.id)?;
+    if predicate != mutation.predicate {
         return Err(format!(
-            "mutant {} failed predicate `{actual_failing_predicate}` instead of `{}`",
+            "mutant {} failed predicate `{predicate}` instead of `{}`",
             mutation.id, mutation.predicate
         ));
     }
+    Ok(ControlledFailure {
+        combined,
+        binary,
+        predicate,
+    })
+}
+
+fn build_observation(
+    prepared: &PreparedMutation,
+    mutation: &ControlledMutation,
+    failure: ControlledFailure,
+) -> Result<MutationObservation, String> {
     Ok(MutationObservation {
         id: mutation.id,
-        source_binding: mutation.source,
-        source_sha256: hash(original.as_bytes()),
-        mutant_sha256: hash(mutated.as_bytes()),
-        binary_binding: binary.display().to_string(),
-        binary_sha256: hash_file(&binary)?,
-        profile_binding: "test",
-        scenario_binding: mutation.selector,
-        expected_failing_predicate: mutation.predicate,
-        actual_failing_predicate,
-        localization: panic_localization(&combined),
+        source_binding: mutation.source.to_owned(),
+        source_sha256: hash(prepared.original.as_bytes()),
+        mutant_sha256: hash(prepared.mutated.as_bytes()),
+        binary_binding: failure.binary.display().to_string(),
+        binary_sha256: hash_file(&failure.binary)?,
+        profile_binding: "test".to_owned(),
+        scenario_binding: mutation.selector.to_owned(),
+        expected_failing_predicate: mutation.predicate.to_owned(),
+        actual_failing_predicate: failure.predicate,
+        localization: panic_localization(&failure.combined),
     })
 }
 
@@ -95,7 +146,11 @@ fn actual_failing_predicate(output: &str, mutant: u8) -> Result<String, String> 
         .map(|(offset, marker)| {
             output[offset + marker.len()..]
                 .chars()
-                .take_while(|character| character.is_ascii_lowercase() || *character == '-')
+                .take_while(|character| {
+                    character.is_ascii_lowercase()
+                        || character.is_ascii_digit()
+                        || *character == '-'
+                })
                 .collect::<String>()
         })
         .filter(|predicate| !predicate.is_empty())
@@ -140,9 +195,7 @@ fn run_test(
         ])
         .current_dir(sandbox.workspace())
         .env("CARGO_TARGET_DIR", sandbox.target());
-    command
-        .output()
-        .map_err(|error| format!("cannot execute mutant {}: {error}", mutation.id))
+    super::process_execution::run(&mut command, mutation.id)
 }
 
 fn test_binary(output: &[u8]) -> Option<PathBuf> {
@@ -205,6 +258,10 @@ mod tests {
             6,
         )
         .is_err());
+        assert_eq!(
+            actual_failing_predicate("panic: C5_PREDICATE:c6-local-scheduler", 43).unwrap(),
+            "c6-local-scheduler"
+        );
     }
 
     #[test]

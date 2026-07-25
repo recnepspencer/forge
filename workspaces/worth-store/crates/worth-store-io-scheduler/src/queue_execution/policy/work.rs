@@ -27,7 +27,7 @@ pub enum QueueWorkClass {
     Background(BackgroundIoPressureClass),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueueWorkDeclaration {
     class: QueueWorkClass,
     backend_requirement: IoSchedulerBackendCapabilityRequirement,
@@ -94,7 +94,7 @@ impl QueueWorkDeclaration {
         }
     }
 
-    pub(crate) const fn with_grouping_basis(mut self, grouping_basis: QueueGroupingBasis) -> Self {
+    pub(crate) fn with_grouping_basis(mut self, grouping_basis: QueueGroupingBasis) -> Self {
         self.grouping_basis = Some(grouping_basis);
         self
     }
@@ -112,39 +112,41 @@ impl QueueWorkDeclaration {
         self
     }
 
-    pub const fn class(self) -> QueueWorkClass {
+    pub const fn class(&self) -> QueueWorkClass {
         self.class
     }
 
-    pub const fn backend_requirement(self) -> IoSchedulerBackendCapabilityRequirement {
+    pub const fn backend_requirement(&self) -> IoSchedulerBackendCapabilityRequirement {
         self.backend_requirement
     }
 
-    pub const fn security_scope_identity(self) -> worth_store_security::StoreSecurityScopeIdentity {
+    pub const fn security_scope_identity(
+        &self,
+    ) -> worth_store_security::StoreSecurityScopeIdentity {
         self.security_scope_identity
     }
 
-    pub const fn durability_class(self) -> QueueDurabilityClass {
+    pub const fn durability_class(&self) -> QueueDurabilityClass {
         self.durability_class
     }
 
-    pub const fn requested_budget(self) -> BackgroundResourceBudget {
+    pub const fn requested_budget(&self) -> BackgroundResourceBudget {
         self.requested_budget
     }
 
-    pub const fn foreground_reservation(self) -> Option<ForegroundReservationReceipt> {
+    pub const fn foreground_reservation(&self) -> Option<ForegroundReservationReceipt> {
         self.foreground_reservation
     }
 
-    pub const fn grouping_basis(self) -> Option<QueueGroupingBasis> {
-        self.grouping_basis
+    pub fn grouping_basis(&self) -> Option<&QueueGroupingBasis> {
+        self.grouping_basis.as_ref()
     }
 
-    pub const fn secure_io(self) -> Option<SecureIoPreservationReceipt> {
+    pub const fn secure_io(&self) -> Option<SecureIoPreservationReceipt> {
         self.secure_io
     }
 
-    pub const fn buffer_pool_declaration(self) -> Option<BufferPoolQueueExecutionDeclaration> {
+    pub const fn buffer_pool_declaration(&self) -> Option<BufferPoolQueueExecutionDeclaration> {
         self.buffer_pool_declaration
     }
 }

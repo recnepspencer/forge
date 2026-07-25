@@ -7,13 +7,15 @@ use super::*;
 use crate::physical_runtime::record_serving::residency::candidate_frame_publishers::{
     BoundedCandidateFramePublisher, CandidateFrameCounterCells,
 };
-use worth_store_buffer_pool::{
-    PhysicalResidencyDenial, PhysicalResidencyLimits, PhysicalResidencyPool,
-};
+use worth_store_buffer_pool::{PhysicalResidencyLimits, PhysicalResidencyPool};
 use worth_store_physical_format::store_namespace::{
     ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
 };
 
+#[path = "tests/effect_fate_cleanup.rs"]
+mod effect_fate_cleanup;
+#[path = "tests/exact_receipt.rs"]
+mod exact_receipt;
 #[path = "tests/publication_ownership.rs"]
 mod publication_ownership;
 
@@ -54,45 +56,6 @@ fn declared_inline_frames(frames: &[(u64, u32)]) -> CandidateFrameSet {
 }
 
 #[test]
-fn canonical_residency_refuses_to_clean_without_a_physical_receipt() {
-    let store = StoreNamespaceIdentityRecord::new(
-        StoreNamespaceVersion::CURRENT,
-        ProposedStoreIdentity::from_nonzero_bytes([19; 16]).unwrap(),
-    )
-    .published_identity();
-    let limits =
-        PhysicalResidencyLimits::new_with_metadata_budget(4096, 4096, 2, 2, 64, 4).unwrap();
-    let pool = PhysicalResidencyPool::open(store, limits).unwrap();
-    let publisher = BoundedCandidateFramePublisher::new(
-        pool.clone(),
-        Arc::new(CandidateFrameCounterCells::default()),
-    );
-    let mut session =
-        StoreCandidateFramePublicationSession::begin(&publisher, declared_inline_frames(&[(0, 3)]))
-            .unwrap();
-
-    let failure = session
-        .write_frame(
-            CandidateFrame::new(
-                CandidateFrameRole::InlinePage,
-                segment_coordinate(0),
-                vec![1, 2, 3],
-            ),
-            &mut |_| Ok(CandidateFramePhysicalWrite::for_contract_test()),
-        )
-        .unwrap_err();
-
-    assert!(matches!(
-        failure,
-        CandidateFrameWriteFailure::Residency(RecordAppendDenial::ResidencyUnavailable(
-            PhysicalResidencyDenial::WriteBackReceiptMismatch
-        ))
-    ));
-    assert_eq!(pool.counters().dirty_frames(), 1);
-    assert!(pool.close().requires_inspection());
-}
-
-#[test]
 fn store_writes_each_coordinate_and_requires_the_complete_declaration() {
     let mut session = session(
         CandidateFrameSet::new(
@@ -124,7 +87,7 @@ fn store_writes_each_coordinate_and_requires_the_complete_declaration() {
             ),
             &mut |bytes| {
                 written.extend_from_slice(bytes);
-                Ok(CandidateFramePhysicalWrite::for_contract_test())
+                Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test())
             },
         )
         .unwrap();
@@ -142,7 +105,7 @@ fn store_writes_each_coordinate_and_requires_the_complete_declaration() {
             ),
             &mut |bytes| {
                 written.extend_from_slice(bytes);
-                Ok(CandidateFramePhysicalWrite::for_contract_test())
+                Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test())
             },
         )
         .unwrap();
@@ -163,7 +126,7 @@ fn declaration_and_coordinate_violations_precede_store_writes() {
             ),
             &mut |_| {
                 writes += 1;
-                Ok(CandidateFramePhysicalWrite::for_contract_test())
+                Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test())
             },
         )
         .unwrap_err();
@@ -181,7 +144,7 @@ fn declaration_and_coordinate_violations_precede_store_writes() {
             ),
             &mut |_| {
                 writes += 1;
-                Ok(CandidateFramePhysicalWrite::for_contract_test())
+                Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test())
             },
         )
         .unwrap_err();
@@ -212,7 +175,7 @@ fn residency_can_keep_identified_dirty_frames_until_session_release() {
                 segment_coordinate(64),
                 vec![7],
             ),
-            &mut |_| Ok(CandidateFramePhysicalWrite::for_contract_test()),
+            &mut |_| Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test()),
         )
         .unwrap();
     assert!(completion.into_reusable_bytes().is_none());
@@ -241,7 +204,7 @@ fn retained_bytes_must_still_be_the_declared_candidate_before_any_store_effect()
             ),
             &mut |_| {
                 writes += 1;
-                Ok(CandidateFramePhysicalWrite::for_contract_test())
+                Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test())
             },
         )
         .unwrap_err();
@@ -297,11 +260,14 @@ impl ResidentCandidateFrame for MutatingResident {
     fn bytes(&self) -> &[u8] {
         self.0.bytes()
     }
+    fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial> {
+        Ok(())
+    }
     fn publish_clean(
         self: Box<Self>,
         _physical: &CandidateFramePhysicalWrite,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
-        Ok(CandidateFrameWriteCompletion::retained(
+        Ok(CandidateFrameWriteCompletion::for_contract_test(
             self.0.bytes().len() as u64,
         ))
     }
@@ -369,6 +335,10 @@ impl ResidentCandidateFrame for RetainingResidentFrame {
         self.frame.as_ref().unwrap().bytes()
     }
 
+    fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial> {
+        Ok(())
+    }
+
     fn publish_clean(
         mut self: Box<Self>,
         _physical: &CandidateFramePhysicalWrite,
@@ -376,7 +346,7 @@ impl ResidentCandidateFrame for RetainingResidentFrame {
         let frame = self.frame.take().unwrap();
         let bytes = frame.bytes().len() as u64;
         self.retained.lock().unwrap().push(frame);
-        Ok(CandidateFrameWriteCompletion::retained(bytes))
+        Ok(CandidateFrameWriteCompletion::for_contract_test(bytes))
     }
 }
 

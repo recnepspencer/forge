@@ -11,6 +11,8 @@ use std::{
 };
 use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
 
+mod candidate_admission;
+mod dirty_transition;
 mod eviction_order;
 mod frame_admission;
 mod identity_transition;
@@ -78,7 +80,7 @@ struct PoolState {
     evictable_head: Option<RecordFrameCoordinate>,
     evictable_tail: Option<RecordFrameCoordinate>,
     loading_frames: u32,
-    candidate_publication_active: bool,
+    active_candidate_publications: u32,
     accepting: bool,
     closed: bool,
 }
@@ -124,6 +126,10 @@ impl PoolInner {
 
     pub(crate) const fn incarnation(&self) -> PhysicalResidencyIncarnation {
         self.incarnation
+    }
+
+    pub(crate) fn counters(&self) -> PhysicalResidencyCounters {
+        self.lock().counters
     }
 
     fn lock(&self) -> MutexGuard<'_, PoolState> {

@@ -1,5 +1,5 @@
-use worth_store_physical_format::RecordFrameCoordinate;
 use sha2::{Digest, Sha256};
+use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
 use super::PhysicalWorkDeclarationDenial;
 
@@ -13,11 +13,18 @@ pub struct PhysicalWorkScope {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum PhysicalWorkScopeMembers {
+    Artifact(RecordArtifactFile),
     One(RecordFrameCoordinate),
     Batch(Box<[RecordFrameCoordinate]>),
 }
 
 impl PhysicalWorkScope {
+    pub fn artifact(artifact: RecordArtifactFile) -> Self {
+        Self {
+            members: PhysicalWorkScopeMembers::Artifact(artifact),
+        }
+    }
+
     pub fn one(coordinate: RecordFrameCoordinate) -> Self {
         Self {
             members: PhysicalWorkScopeMembers::One(coordinate),
@@ -49,15 +56,38 @@ impl PhysicalWorkScope {
 
     pub fn coordinates(&self) -> &[RecordFrameCoordinate] {
         match &self.members {
+            PhysicalWorkScopeMembers::Artifact(_) => &[],
             PhysicalWorkScopeMembers::One(coordinate) => std::slice::from_ref(coordinate),
             PhysicalWorkScopeMembers::Batch(coordinates) => coordinates,
+        }
+    }
+
+    pub const fn artifact_target(&self) -> Option<RecordArtifactFile> {
+        match &self.members {
+            PhysicalWorkScopeMembers::Artifact(artifact) => Some(*artifact),
+            PhysicalWorkScopeMembers::One(_) | PhysicalWorkScopeMembers::Batch(_) => None,
+        }
+    }
+
+    pub const fn member_count(&self) -> usize {
+        match &self.members {
+            PhysicalWorkScopeMembers::Artifact(_) | PhysicalWorkScopeMembers::One(_) => 1,
+            PhysicalWorkScopeMembers::Batch(coordinates) => coordinates.len(),
         }
     }
 
     pub(in crate::physical_runtime::work) fn stable_digest(&self) -> [u8; 32] {
         let mut digest = Sha256::new();
         digest.update(b"worth-store.physical-work-scope.v1");
-        digest.update((self.coordinates().len() as u64).to_le_bytes());
+        digest.update((self.member_count() as u64).to_le_bytes());
+        if let PhysicalWorkScopeMembers::Artifact(artifact) = &self.members {
+            digest.update(b"artifact");
+            let name = artifact.file_name();
+            digest.update((name.len() as u64).to_le_bytes());
+            digest.update(name.as_bytes());
+            return digest.finalize().into();
+        }
+        digest.update(b"ranges");
         for coordinate in self.coordinates() {
             let artifact = coordinate.artifact().file_name();
             digest.update((artifact.len() as u64).to_le_bytes());

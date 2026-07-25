@@ -66,8 +66,8 @@ impl LatencyEnvelopeAssessment {
         self.status
     }
 
-    pub const fn replay_identity(&self) -> QueueExecutionReplayIdentity {
-        self.replay_identity
+    pub fn replay_identity(&self) -> QueueExecutionReplayIdentity {
+        self.replay_identity.clone()
     }
 
     pub const fn replay_scope(&self) -> InterferenceReplayScope {
@@ -87,18 +87,22 @@ fn queue_replay_and_counters(
     outcome: &QueueExecutionOutcome,
 ) -> (QueueExecutionReplayIdentity, QueueExecutionCounterSnapshot) {
     match outcome {
-        QueueExecutionOutcome::Executed(evidence) => {
-            (evidence.plan().replay_identity(), evidence.counters())
-        }
-        QueueExecutionOutcome::Backpressured(evidence) => {
-            (evidence.plan().replay_identity(), evidence.counters())
-        }
-        QueueExecutionOutcome::Denied(evidence) => {
-            (evidence.plan().replay_identity(), evidence.counters())
-        }
-        QueueExecutionOutcome::Violation(evidence) => {
-            (evidence.plan().replay_identity(), evidence.counters())
-        }
+        QueueExecutionOutcome::Executed(evidence) => (
+            evidence.plan().replay_identity().clone(),
+            evidence.counters(),
+        ),
+        QueueExecutionOutcome::Backpressured(evidence) => (
+            evidence.plan().replay_identity().clone(),
+            evidence.counters(),
+        ),
+        QueueExecutionOutcome::Denied(evidence) => (
+            evidence.plan().replay_identity().clone(),
+            evidence.counters(),
+        ),
+        QueueExecutionOutcome::Violation(evidence) => (
+            evidence.plan().replay_identity().clone(),
+            evidence.counters(),
+        ),
     }
 }
 

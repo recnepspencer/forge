@@ -129,12 +129,14 @@ fn queue_outcome() -> QueueExecutionOutcome {
     )
     .unwrap();
     work = work.with_secure_io_scope(secure_io);
-    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
-        policy_receipt(budget),
-    ))
-    .unwrap();
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
+        work.clone(),
+        policy_receipt(budget, FoundationalPerformanceWorkClass::AuthoritativeRead),
+    )
+    .expect("policy receipt should bind the exact queue work");
+    let plan =
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+            .unwrap();
     let posture = BackendQueueExecutionPosture::from_admitted_capability(
         &witness,
         BackendQueueExecutionAdaptation::None,
@@ -186,7 +188,10 @@ fn background_pacing_outcome() -> BackgroundPacingOutcome {
             &foreground,
             &backend,
             &readiness,
-            policy_receipt(requested),
+            policy_receipt(
+                requested,
+                FoundationalPerformanceWorkClass::ValidationPlanning,
+            ),
         )
         .with_idle_available(admitted)
         .with_policy_admitted(requested)
@@ -278,6 +283,7 @@ fn point_read_budget() -> BackgroundResourceBudget {
 
 fn policy_receipt(
     budget: BackgroundResourceBudget,
+    work_class: FoundationalPerformanceWorkClass,
 ) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
     let claim = performance()
         .claim()
@@ -289,7 +295,7 @@ fn policy_receipt(
         .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
         .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(FoundationalPerformanceWorkClass::ValidationPlanning)
+        .include_work(work_class)
         .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
         .finish()
         .unwrap();

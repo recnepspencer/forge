@@ -10,7 +10,7 @@ use super::super::planning::free_space_routing::{
     plan_free_space_successor, FreeSpacePublicationPlan, FreeSpaceSuccessorRequest, FreeSpaceUpdate,
 };
 use super::super::{
-    planning::inline_segment_plan::WorkingSegment, AdmittedPhysicalRecordFormat,
+    planning::inline_segment_plan::InlineSegmentAllocation, AdmittedPhysicalRecordFormat,
     AdmittedRecordAccessPolicy, RecordAllocationFrontier, RecordAppendDenial, RecordAppendError,
 };
 
@@ -28,7 +28,7 @@ pub(in crate::physical_runtime::record_serving) struct FreeSpaceProjectionContex
 
 pub(in crate::physical_runtime::record_serving) fn project_successor_free_space(
     context: FreeSpaceProjectionContext<'_>,
-    touched_segments: &[WorkingSegment],
+    touched_segments: &[InlineSegmentAllocation],
 ) -> Result<FreeSpacePublicationPlan, RecordAppendError> {
     let FreeSpaceProjectionContext {
         media,
@@ -44,17 +44,17 @@ pub(in crate::physical_runtime::record_serving) fn project_successor_free_space(
     for segment in touched_segments {
         let key = FreeSpaceKey::new(
             RecordAllocationClass::InlinePage,
-            segment.segment.segment_id().get(),
+            segment.segment().segment_id().get(),
         )
         .ok_or_else(damaged)?;
-        let update = if segment.used_pages < segment.page_capacity {
+        let update = if segment.used_pages() < segment.page_capacity() {
             FreeSpaceUpdate::Available(
                 RecordFreeSpaceManifestEntry::new(
                     RecordAllocationClass::InlinePage,
-                    segment.segment.segment_id().get(),
-                    u64::from(segment.used_pages + 1),
-                    u64::from(segment.page_capacity - segment.used_pages),
-                    segment.segment.generation().get(),
+                    segment.segment().segment_id().get(),
+                    u64::from(segment.used_pages() + 1),
+                    u64::from(segment.page_capacity() - segment.used_pages()),
+                    segment.segment().generation().get(),
                 )
                 .ok_or_else(damaged)?,
             )

@@ -197,4 +197,54 @@ impl ForegroundResourceBudget {
     pub const fn reclaim_permits(self) -> u64 {
         self.reclaim_permits
     }
+
+    pub(crate) fn checked_sub(self, reserved: Self) -> Option<Self> {
+        Some(Self {
+            queue_slots: self.queue_slots.checked_sub(reserved.queue_slots)?,
+            bandwidth_tokens: self
+                .bandwidth_tokens
+                .checked_sub(reserved.bandwidth_tokens)?,
+            flush_permits: self.flush_permits.checked_sub(reserved.flush_permits)?,
+            sync_debt: self.sync_debt.checked_sub(reserved.sync_debt)?,
+            read_ahead_window: self
+                .read_ahead_window
+                .checked_sub(reserved.read_ahead_window)?,
+            write_back_window: self
+                .write_back_window
+                .checked_sub(reserved.write_back_window)?,
+            dirty_page_budget: self
+                .dirty_page_budget
+                .checked_sub(reserved.dirty_page_budget)?,
+            worker_permits: self.worker_permits.checked_sub(reserved.worker_permits)?,
+            cache_residency_hints: self
+                .cache_residency_hints
+                .checked_sub(reserved.cache_residency_hints)?,
+            reclaim_permits: self.reclaim_permits.checked_sub(reserved.reclaim_permits)?,
+        })
+    }
+
+    pub(crate) fn checked_add(self, released: Self) -> Option<Self> {
+        Some(Self {
+            queue_slots: self.queue_slots.checked_add(released.queue_slots)?,
+            bandwidth_tokens: self
+                .bandwidth_tokens
+                .checked_add(released.bandwidth_tokens)?,
+            flush_permits: self.flush_permits.checked_add(released.flush_permits)?,
+            sync_debt: self.sync_debt.checked_add(released.sync_debt)?,
+            read_ahead_window: self
+                .read_ahead_window
+                .checked_add(released.read_ahead_window)?,
+            write_back_window: self
+                .write_back_window
+                .checked_add(released.write_back_window)?,
+            dirty_page_budget: self
+                .dirty_page_budget
+                .checked_add(released.dirty_page_budget)?,
+            worker_permits: self.worker_permits.checked_add(released.worker_permits)?,
+            cache_residency_hints: self
+                .cache_residency_hints
+                .checked_add(released.cache_residency_hints)?,
+            reclaim_permits: self.reclaim_permits.checked_add(released.reclaim_permits)?,
+        })
+    }
 }

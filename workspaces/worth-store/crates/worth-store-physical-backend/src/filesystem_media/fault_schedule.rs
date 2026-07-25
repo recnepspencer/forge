@@ -22,6 +22,7 @@ pub enum MediaFaultDirective {
     },
     PauseBefore(MediaPauseGate),
     PauseAfter(MediaPauseGate),
+    PanicAfter,
     InterruptReplacementObservation,
 }
 
@@ -33,6 +34,8 @@ pub struct MediaFaultRule {
     pub(super) owner: Option<super::MediaOwnerIdentity>,
     pub(super) store: Option<worth_store_physical_format::store_namespace::StableStoreIdentity>,
     pub(super) operation: Option<super::MediaOperationIdentity>,
+    pub(super) identified_operation: Option<bool>,
+    pub(super) identified_operation_ordinal: Option<u64>,
     pub(super) runtime_incarnation: Option<u64>,
 }
 
@@ -50,6 +53,8 @@ impl MediaFaultRule {
             owner: None,
             store: None,
             operation: None,
+            identified_operation: None,
+            identified_operation_ordinal: None,
             runtime_incarnation: None,
         }
     }
@@ -76,14 +81,31 @@ impl MediaFaultRule {
     }
 
     #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn for_identified_operation(mut self) -> Self {
+        self.identified_operation = Some(true);
+        self
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn for_identified_operation_ordinal(mut self) -> Self {
+        self.identified_operation = Some(true);
+        self.identified_operation_ordinal = Some(self.ordinal);
+        self
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub fn for_runtime_incarnation(mut self, runtime_incarnation: u64) -> Self {
         self.runtime_incarnation = Some(runtime_incarnation);
         self
     }
 
     pub(super) fn matches(&self, context: super::MediaOperationContext) -> bool {
+        let ordinal_matches = self.identified_operation_ordinal.map_or_else(
+            || self.ordinal == context.role_ordinal(),
+            |ordinal| context.identified_operation_ordinal() == Some(ordinal),
+        );
         self.role == context.role()
-            && self.ordinal == context.role_ordinal()
+            && ordinal_matches
             && self
                 .owner
                 .is_none_or(|owner| context.owner() == Some(owner))
@@ -93,6 +115,9 @@ impl MediaFaultRule {
             && self
                 .operation
                 .is_none_or(|operation| context.operation() == Some(operation))
+            && self
+                .identified_operation
+                .is_none_or(|identified| context.operation().is_some() == identified)
             && self
                 .runtime_incarnation
                 .is_none_or(|runtime| context.runtime_incarnation() == Some(runtime))
@@ -131,6 +156,8 @@ impl MediaFaultSchedule {
                     && prior.owner == rule.owner
                     && prior.store == rule.store
                     && prior.operation == rule.operation
+                    && prior.identified_operation == rule.identified_operation
+                    && prior.identified_operation_ordinal == rule.identified_operation_ordinal
                     && prior.runtime_incarnation == rule.runtime_incarnation
             }) {
                 return Err(MediaFaultScheduleDenial::DuplicateSemanticMatch);

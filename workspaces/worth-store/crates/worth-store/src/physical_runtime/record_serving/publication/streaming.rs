@@ -12,6 +12,7 @@ pub trait RecordWriteSource: Send {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordStreamFailureKind {
+    ServingRequiresInspection,
     ProducerRejected,
     SourceEndedEarly,
     SourceExceededDeclaredLength,

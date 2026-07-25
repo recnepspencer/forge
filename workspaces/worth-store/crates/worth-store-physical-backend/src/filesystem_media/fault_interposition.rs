@@ -12,6 +12,7 @@ pub(super) struct MediaFaultInterposer {
     schedule: MediaFaultSchedule,
     counters: Arc<MediaCounterCells>,
     role_ordinals: Mutex<[u64; MediaOperationRole::ALL.len()]>,
+    identified_role_ordinals: Mutex<[u64; MediaOperationRole::ALL.len()]>,
     owner: OnceLock<super::MediaOwnerIdentity>,
     runtime_incarnation: OnceLock<u64>,
     store: OnceLock<worth_store_physical_format::store_namespace::StableStoreIdentity>,
@@ -23,6 +24,7 @@ impl MediaFaultInterposer {
             schedule,
             counters,
             role_ordinals: Mutex::new([0; MediaOperationRole::ALL.len()]),
+            identified_role_ordinals: Mutex::new([0; MediaOperationRole::ALL.len()]),
             owner: OnceLock::new(),
             runtime_incarnation: OnceLock::new(),
             store: OnceLock::new(),
@@ -67,7 +69,19 @@ impl MediaFaultInterposer {
             requested_bytes,
             coordinates,
             ordinal,
+            if coordinates.operation_identity().is_some() {
+                let mut ordinals = self
+                    .identified_role_ordinals
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                let slot = &mut ordinals[role.index()];
+                *slot = slot.saturating_add(1);
+                Some(*slot)
+            } else {
+                None
+            },
         );
+        self.counters.observe_operation_context(context);
         let directive = self
             .schedule
             .rules
@@ -229,6 +243,10 @@ impl MediaBoundaryAttempt<'_> {
     }
 
     fn after_boundary(&self) {
+        assert!(
+            !matches!(self.directive, Some(MediaFaultDirective::PanicAfter)),
+            "certification panic after completed media effect"
+        );
         if let Some(
             MediaFaultDirective::PauseAfter(gate)
             | MediaFaultDirective::AllowPrefixThenPause { gate, .. },

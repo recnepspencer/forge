@@ -14,6 +14,31 @@ pub struct PhysicalReadWorkRequest {
     pub(super) security: StoreAuthorityBoundSecurityScopeReceipt,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalMetadataReadWorkRequest {
+    pub(super) scope: PhysicalWorkScope,
+    pub(super) semantic_basis: PhysicalWorkSemanticBasis,
+    pub(super) security: StoreAuthorityBoundSecurityScopeReceipt,
+}
+
+impl PhysicalMetadataReadWorkRequest {
+    pub fn new(
+        artifact: worth_store_physical_format::RecordArtifactFile,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        if semantic_basis.posture() != PhysicalWorkSemanticPosture::Projection {
+            return Err(PhysicalWorkSubmissionDenial::SemanticPostureMismatch);
+        }
+        require_security_witness(&semantic_basis, security)?;
+        Ok(Self {
+            scope: PhysicalWorkScope::artifact(artifact),
+            semantic_basis,
+            security,
+        })
+    }
+}
+
 impl PhysicalReadWorkRequest {
     pub fn new(
         scope: PhysicalWorkScope,

@@ -12,13 +12,13 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
     let records = super::courtroom_oracle::read(&oracle);
     assert_eq!(records.len(), 1_402);
     let (format, placement, access) = super::scenario_configuration::courtroom_configuration();
-    let mut serving = super::success(
+    let serving = super::success(
         super::media(root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let counters_before_workload = serving.media_counters();
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([payload(records[0])]).unwrap(),
             placement,
@@ -27,11 +27,11 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
     let first_id = first.record_id(0).unwrap();
     let inline = records[1..1_400].iter().copied().map(payload);
     let inline = serving
-        .records_mut()
+        .record_submission()
         .append_batch(RecordAppendBatch::try_from_iter(inline).unwrap(), placement)
         .unwrap();
     let boundary = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([payload(records[1_400])]).unwrap(),
             placement,
@@ -39,7 +39,7 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
         .unwrap();
     let large = records[1_401];
     let large = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::builder()
                 .push_source(super::stream_fixture::RepeatedByteSource::new(

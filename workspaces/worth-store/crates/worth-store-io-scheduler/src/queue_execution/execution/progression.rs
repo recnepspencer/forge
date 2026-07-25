@@ -12,7 +12,7 @@ pub struct QueueExecutionLoweringAuthority {
     _sealed: (),
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct QueueExecutionProofBasis {
     replay_identity: QueueExecutionReplayIdentity,
 }
@@ -50,10 +50,12 @@ pub(crate) type QueueExecutedRecipe = ExecutedRecipe<
 pub(crate) fn ready_queue_execution_proof(
     replay_identity: QueueExecutionReplayIdentity,
 ) -> QueueReadyRecipe {
-    let basis = QueueExecutionProofBasis { replay_identity };
+    let basis = QueueExecutionProofBasis {
+        replay_identity: replay_identity.clone(),
+    };
     let resolved = ResolveRecipeTransition
         .transition(
-            Recipe::new(replay_identity),
+            Recipe::new(replay_identity.clone()),
             RecipeResolutionContext::new(
                 basis,
                 AuthorityWitness::from_authority_marker(QueueExecutionResolutionAuthority),

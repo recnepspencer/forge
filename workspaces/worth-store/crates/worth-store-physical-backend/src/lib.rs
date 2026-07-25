@@ -23,29 +23,6 @@
 //!     kind: todo!(),
 //! };
 //! ```
-//! Certified backend evidence cannot be selected by public enum wrapping:
-//! ```ignore
-//! use worth_store_physical_backend::BackendCapabilityEvidenceBasis;
-//! let _forged = BackendCapabilityEvidenceBasis::certified_backend_profile();
-//! ```
-//! Ordinary callers cannot assemble externally-guaranteed runtime authority from
-//! public support and media declarations:
-//! ```ignore
-//! use worth_store_physical_backend::{
-//!     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis,
-//!     BackendCapabilitySupportSet, BackendMediaAssumptionSet, BackendRebindTriggers,
-//!     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
-//! };
-//! let request = BackendCapabilityAdmissionRequest::new(
-//!     BackendTargetProfile::PosixFileFsyncDirSync,
-//!     BackendCapabilityEvidenceBasis::externally_guaranteed(1),
-//!     BackendCapabilitySupportSet::all_supported(),
-//!     BackendMediaAssumptionSet::platform_file_defaults(),
-//!     BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
-//! );
-//! let _forged =
-//!     PhysicalBackendCapabilityAdmissionAuthority::store_owned().admit_backend_capability(request);
-//! ```
 //! Raw probe rows or terminal projections cannot stand in for Store-owned
 //! capability evidence at the public admission boundary:
 //! ```compile_fail
@@ -308,6 +285,8 @@ mod offline_media;
 mod operation;
 mod operation_boundary;
 mod operational_control;
+#[cfg(not(feature = "certification-test-authority"))]
+pub mod ordinary_authority_compile_fail;
 mod placement_observation;
 mod recovery_staging;
 mod storage_boundary_control;

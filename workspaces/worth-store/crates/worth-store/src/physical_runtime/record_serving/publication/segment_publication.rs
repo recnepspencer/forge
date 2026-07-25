@@ -4,11 +4,10 @@ use worth_store_physical_format::{
 };
 
 use super::super::publication::append_observation::PublicationObservation;
-use super::super::publication::{classify_first_write, CandidateDataWriteFailure};
-use super::super::residency::publication_artifacts::{
-    classify_candidate_write, PublicationRecordArtifacts,
-};
+use super::super::publication::CandidateDataWriteFailure;
+use super::super::residency::publication_artifacts::PublicationRecordArtifacts;
 use super::super::{AdmittedPhysicalRecordFormat, RecordAppendDenial};
+use super::RecordPublicationStage;
 
 pub(in crate::physical_runtime::record_serving) struct SegmentDataPlan {
     pub(in crate::physical_runtime::record_serving) artifact: RecordArtifactFile,
@@ -28,10 +27,10 @@ pub(in crate::physical_runtime::record_serving) fn write_segment(
     plan: &mut SegmentDataPlan,
     residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
     observation: &mut PublicationObservation,
+    work: &mut super::RecordPublicationWorkTrace,
 ) -> Result<(), CandidateDataWriteFailure> {
-    let mut writer = artifacts
-        .create_new_file(plan.artifact)
-        .map_err(classify_first_write)?;
+    let mut stage = artifacts.at(RecordPublicationStage::CandidateDataWrite, work);
+    let mut completed_bytes = 0_u64;
     for page in &mut plan.pages {
         let records = page
             .records
@@ -51,7 +50,7 @@ pub(in crate::physical_runtime::record_serving) fn write_segment(
         for (_, _, bytes) in &page.records {
             observation.observe_copy(bytes.len());
         }
-        let offset = writer.completed_bytes();
+        let offset = completed_bytes;
         let coordinate = super::super::residency::frame_ports::CandidateFrameCoordinate::new(
             plan.artifact,
             offset,
@@ -62,19 +61,19 @@ pub(in crate::physical_runtime::record_serving) fn write_segment(
             u32::try_from(candidate.len()).expect("page frames are u32-bounded"),
         )
         .expect("page frames are nonempty and offset-bounded");
-        let resident = residency
-            .write_frame(
-                super::super::residency::frame_ports::CandidateFrame::new(
-                    super::super::residency::frame_ports::CandidateFrameRole::InlinePage,
-                    coordinate,
-                    candidate,
-                ),
-                &mut |bytes| {
-                    classify_candidate_write(writer.write_exact_chunk(physical_coordinate, bytes))
-                },
-            )
-            .map_err(CandidateDataWriteFailure::from_frame_write)?;
+        let frame = super::super::residency::frame_ports::CandidateFrame::new(
+            super::super::residency::frame_ports::CandidateFrameRole::InlinePage,
+            coordinate,
+            candidate,
+        );
+        let resident = if offset == 0 {
+            stage.write_new_candidate(residency, frame, plan.artifact)
+        } else {
+            stage.append_candidate(residency, frame, physical_coordinate)
+        }
+        .map_err(CandidateDataWriteFailure::from_frame_write)?;
         observation.observe_transfer(resident.frame_bytes() as usize);
+        completed_bytes = completed_bytes.saturating_add(resident.frame_bytes());
     }
     Ok(())
 }

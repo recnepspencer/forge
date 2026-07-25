@@ -18,7 +18,7 @@ use crate::{
 fn queue_execution_assessment_reports_exact_strength_for_every_counter_row() {
     let plan = admitted_plan();
     let claim = LatencyEnvelopeClaim::for_queue_execution(
-        plan.replay_identity(),
+        plan.replay_identity().clone(),
         "s6-profile/posix-file",
         plan.work().class(),
     )
@@ -50,7 +50,7 @@ fn queue_execution_assessment_reports_exact_strength_for_every_counter_row() {
 fn sampled_counter_cannot_satisfy_exact_latency_claim() {
     let plan = admitted_plan();
     let claim = LatencyEnvelopeClaim::for_queue_execution(
-        plan.replay_identity(),
+        plan.replay_identity().clone(),
         "s6-profile/posix-file",
         plan.work().class(),
     )
@@ -79,7 +79,7 @@ fn sampled_counter_cannot_satisfy_exact_latency_claim() {
 fn post_admission_latency_violation_has_causal_attribution() {
     let plan = admitted_plan();
     let claim = LatencyEnvelopeClaim::for_queue_execution(
-        plan.replay_identity(),
+        plan.replay_identity().clone(),
         "s6-profile/posix-file",
         plan.work().class(),
     )
@@ -143,7 +143,7 @@ fn backend_contradiction_is_typed_post_admission_violation() {
         binding.grouped_writes(),
     );
     let claim = LatencyEnvelopeClaim::for_queue_execution(
-        plan.replay_identity(),
+        plan.replay_identity().clone(),
         "s6-profile/posix-file",
         plan.work().class(),
     )
@@ -201,7 +201,7 @@ fn repeated_queue_assessment_preserves_counter_topology_deterministically() {
 fn deterministic_assessment() -> LatencyEnvelopeAssessment {
     let plan = admitted_plan();
     let claim = LatencyEnvelopeClaim::for_queue_execution(
-        plan.replay_identity(),
+        plan.replay_identity().clone(),
         "s6-profile/posix-file",
         plan.work().class(),
     )

@@ -30,7 +30,7 @@ pub enum IoSchedulerSecurityScopeAdmissionDenial {
     },
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct IoSchedulerSecurityScopeAdmission {
     permission: SchedulerSecurityScopeCapability,
     receipt: StoreSecurityScopeAdmissionReceipt,

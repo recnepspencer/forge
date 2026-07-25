@@ -215,6 +215,31 @@ pub(super) fn synchronize_file(
     file: &cap_std::fs::File,
 ) -> Result<(), ArtifactTreeFailure> {
     let attempt = begin(owner, MediaOperationRole::SynchronizeFileState, 0);
+    synchronize_file_with_attempt(owner, file, attempt)
+}
+
+pub(super) fn synchronize_file_for_operation(
+    owner: &FilesystemMediaOwner,
+    file: &cap_std::fs::File,
+    operation: super::MediaOperationIdentity,
+) -> Result<(), ArtifactTreeFailure> {
+    let attempt = owner.boundary().begin_operation(
+        MediaOperationRole::SynchronizeFileState,
+        0,
+        super::MediaOperationCoordinates::for_path(
+            operation,
+            super::MediaPathRole::ArtifactOwned,
+            None,
+        ),
+    );
+    synchronize_file_with_attempt(owner, file, attempt)
+}
+
+fn synchronize_file_with_attempt(
+    owner: &FilesystemMediaOwner,
+    file: &cap_std::fs::File,
+    attempt: super::fault_interposition::MediaBoundaryAttempt<'_>,
+) -> Result<(), ArtifactTreeFailure> {
     if let Some(error) = attempt
         .fail_before_error()
         .or_else(|| attempt.barrier_error())
@@ -284,6 +309,27 @@ pub(super) fn begin(
     bytes: u64,
 ) -> super::fault_interposition::MediaBoundaryAttempt<'_> {
     owner.boundary().begin(role, bytes)
+}
+
+pub(super) fn begin_identified(
+    owner: &FilesystemMediaOwner,
+    role: MediaOperationRole,
+    bytes: u64,
+) -> Option<(
+    super::MediaOperationIdentity,
+    super::fault_interposition::MediaBoundaryAttempt<'_>,
+)> {
+    let operation = owner.issue_operation_identity()?;
+    let attempt = owner.boundary().begin_operation(
+        role,
+        bytes,
+        super::MediaOperationCoordinates::for_path(
+            operation,
+            super::MediaPathRole::ArtifactOwned,
+            None,
+        ),
+    );
+    Some((operation, attempt))
 }
 
 fn denied(error: &std::io::Error) -> ArtifactTreeFailure {

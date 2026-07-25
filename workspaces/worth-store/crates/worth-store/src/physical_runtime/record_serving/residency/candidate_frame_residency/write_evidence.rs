@@ -1,9 +1,10 @@
-use worth_store_physical_backend::{ArtifactTreeFailure, CompletedArtifactRangeWrite};
+use worth_store_physical_backend::CompletedArtifactRangeWrite;
 
 use crate::physical_runtime::record_serving::RecordAppendDenial;
 
 pub(in crate::physical_runtime::record_serving) struct CandidateFramePhysicalWrite {
     receipt: Option<CompletedArtifactRangeWrite>,
+    work: Option<crate::physical_runtime::PhysicalWorkIdentity>,
 }
 
 impl CandidateFramePhysicalWrite {
@@ -12,7 +13,16 @@ impl CandidateFramePhysicalWrite {
     ) -> Self {
         Self {
             receipt: Some(receipt),
+            work: None,
         }
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn bind_work(
+        mut self,
+        work: crate::physical_runtime::PhysicalWorkIdentity,
+    ) -> Self {
+        self.work = Some(work);
+        self
     }
 
     pub(in crate::physical_runtime::record_serving) fn receipt(
@@ -21,9 +31,18 @@ impl CandidateFramePhysicalWrite {
         self.receipt.as_ref()
     }
 
+    pub(in crate::physical_runtime::record_serving) const fn work(
+        &self,
+    ) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
+        self.work
+    }
+
     #[cfg(test)]
     pub(super) fn for_contract_test() -> Self {
-        Self { receipt: None }
+        Self {
+            receipt: None,
+            work: None,
+        }
     }
 }
 
@@ -50,6 +69,14 @@ impl CandidateFrameWriteCompletion {
     ) -> Option<Vec<u8>> {
         self.reusable_bytes
     }
+
+    #[cfg(test)]
+    pub(super) fn for_contract_test(frame_bytes: u64) -> Self {
+        Self {
+            frame_bytes,
+            reusable_bytes: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,8 +93,8 @@ pub enum CandidateFrameContractViolation {
 }
 
 #[derive(Debug)]
-pub(in crate::physical_runtime::record_serving) enum CandidateFrameWriteFailure {
+pub(in crate::physical_runtime::record_serving) enum CandidateFrameWriteFailure<EffectFailure> {
     Contract(CandidateFrameContractViolation),
-    Backend(ArtifactTreeFailure),
+    Effect(EffectFailure),
     Residency(RecordAppendDenial),
 }

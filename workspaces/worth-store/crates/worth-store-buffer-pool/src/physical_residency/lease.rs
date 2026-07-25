@@ -1,7 +1,4 @@
-use super::{
-    OperationAllocationScope, PhysicalFrameKey, PhysicalResidencyDenial,
-    PhysicalResidencyIncarnation,
-};
+use super::{PhysicalFrameKey, PhysicalResidencyDenial, PhysicalResidencyIncarnation};
 use crate::physical_residency::pool::PoolInner;
 use crate::SpeculativePhysicalWorkKind;
 use sha2::{Digest, Sha256};
@@ -27,6 +24,25 @@ impl PhysicalFrameLease {
         );
         target.copy_from_slice(&self.bytes[range]);
         self.owner.record_copy(target.len() as u64);
+    }
+
+    pub fn replace_with_dirty_candidate(
+        mut self,
+        bytes: Vec<u8>,
+    ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
+        if bytes.len() != self.key.coordinate().length() as usize {
+            return Err(self
+                .owner
+                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
+        }
+        let replacement = Arc::new(bytes);
+        self.owner.replace_clean_lease_with_dirty(
+            self.key,
+            &self.bytes,
+            Arc::clone(&replacement),
+        )?;
+        self.bytes = replacement;
+        Ok(DirtyPhysicalFrame { lease: Some(self) })
     }
 }
 
@@ -135,6 +151,11 @@ impl DirtyPhysicalFrame {
         Ok(lease)
     }
 
+    pub fn discard_candidate(mut self) -> Result<(), PhysicalResidencyDenial> {
+        let lease = self.lease.take().expect("dirty frame lease is present");
+        lease.owner.discard_dirty_candidate(lease.key)
+    }
+
     #[cfg(test)]
     pub(crate) fn publish_clean_for_pool_test(
         mut self,
@@ -142,28 +163,6 @@ impl DirtyPhysicalFrame {
         let lease = self.lease.take().expect("dirty frame lease is present");
         lease.owner.publish_clean(lease.key)?;
         Ok(lease)
-    }
-}
-
-#[derive(Debug)]
-pub struct OperationAllocationGrant {
-    pub(crate) owner: Arc<PoolInner>,
-    pub(crate) scope: OperationAllocationScope,
-    pub(crate) bytes: u64,
-}
-
-impl OperationAllocationGrant {
-    pub const fn bytes(&self) -> u64 {
-        self.bytes
-    }
-    pub const fn scope(&self) -> OperationAllocationScope {
-        self.scope
-    }
-}
-
-impl Drop for OperationAllocationGrant {
-    fn drop(&mut self) {
-        self.owner.release_operation(self.scope, self.bytes);
     }
 }
 

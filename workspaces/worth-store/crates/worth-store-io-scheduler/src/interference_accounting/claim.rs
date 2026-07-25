@@ -118,8 +118,8 @@ impl LatencyEnvelopeClaim {
         self.lane
     }
 
-    pub const fn replay_identity(&self) -> QueueExecutionReplayIdentity {
-        self.replay_identity
+    pub fn replay_identity(&self) -> QueueExecutionReplayIdentity {
+        self.replay_identity.clone()
     }
 
     pub const fn max_interference_events(&self) -> Option<u64> {

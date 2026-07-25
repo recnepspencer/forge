@@ -1,68 +1,277 @@
+use std::marker::PhantomData;
+use std::sync::Arc;
+
 use crate::physical_runtime::{
-    record_serving::{RecordServingTerminalObservation, ServingShutdownOutcome},
-    AbortedRuntime, ClosedRuntime, MediaShutdownOutcome,
+    lifecycle::LifecycleTerminationGuard,
+    record_serving::{
+        RecordFramePorts, RecordPublicationResidueObservation, RecordServingOwner,
+        RecordServingTerminalObservation, ServingHealth, ServingShutdownOutcome,
+    },
+    runtime::PhysicalRuntimeCore,
+    work::{PhysicalWorkSafeCancellation, PhysicalWorkShutdownObservation, PhysicalWorkStopKind},
+    AbortedRuntime, ClosedRuntime, MediaShutdownOutcome, PhysicalSignalShutdownOutcome,
 };
 
-use super::PhysicalStoreInstanceParts;
-use crate::physical_runtime::work::{PhysicalWorkStopKind, PhysicalWorkSubmissionOwner};
+use super::{
+    PhysicalStoreCloseProgressOwner, PhysicalStoreInstanceParts, PhysicalStoreWorkRuntime,
+    PhysicalWorkExecutor, PhysicalWorkSignalOwner,
+};
+
+struct AdmissionStopped;
+struct SafeCancellationComplete;
+struct DispatchSettlementComplete;
+struct SignalDisposed;
+struct ResidencyClosed;
+
+struct ShutdownProtocol<State, Terminate> {
+    termination: LifecycleTerminationGuard,
+    signal_owner: Option<PhysicalWorkSignalOwner>,
+    executor: Option<PhysicalWorkExecutor>,
+    core: PhysicalRuntimeCore,
+    record_owner: RecordServingOwner,
+    publication_residue: RecordPublicationResidueObservation,
+    health: Option<ServingHealth>,
+    frame_ports: Option<RecordFramePorts>,
+    work_runtime: Option<Arc<PhysicalStoreWorkRuntime>>,
+    work_cancellation: Option<PhysicalWorkSafeCancellation>,
+    work: Option<PhysicalWorkShutdownObservation>,
+    stop: PhysicalWorkStopKind,
+    signal_cancellation_failures: u64,
+    signal_summary: Option<worth_signal::facade::ResourceRuntimeSummary>,
+    signal: Option<PhysicalSignalShutdownOutcome>,
+    residency: Option<worth_store_buffer_pool::PhysicalResidencyShutdown>,
+    terminate_core: Option<Terminate>,
+    progress: PhysicalStoreCloseProgressOwner,
+    state: PhantomData<State>,
+}
 
 impl PhysicalStoreInstanceParts {
-    pub(in crate::physical_runtime) fn close(self) -> ServingShutdownOutcome<ClosedRuntime> {
-        self.shutdown(PhysicalWorkStopKind::Close, |core| core.close())
-    }
-
-    pub(in crate::physical_runtime) fn abort(self) -> ServingShutdownOutcome<AbortedRuntime> {
-        self.shutdown(PhysicalWorkStopKind::Abort, |core| core.abort())
-    }
-
-    fn shutdown<Terminal>(
+    pub(in crate::physical_runtime) fn close(
         self,
-        work_stop: PhysicalWorkStopKind,
-        terminate_core: impl FnOnce(crate::physical_runtime::runtime::PhysicalRuntimeCore) -> Terminal,
-    ) -> ServingShutdownOutcome<Terminal> {
-        let Self {
-            termination,
-            work_admission: _work_admission,
-            work_submission,
-            signal_owner,
-            scheduler_admission: _scheduler_admission,
-            executor,
-            core,
-            record_owner,
-            format: _,
-            access: _,
-            current_root: _,
-            free_space: _,
-            allocation_frontier: _,
-            publication_residue,
-            health,
-            frame_ports,
-        } = self;
+        progress: PhysicalStoreCloseProgressOwner,
+    ) -> ServingShutdownOutcome<ClosedRuntime> {
+        self.shutdown(PhysicalWorkStopKind::Close, |core| core.close(), progress)
+    }
 
-        let work = stop_and_release_work_submission(work_submission, work_stop);
-        let signal = signal_owner.dispose();
-        let residency = frame_ports.close();
-        drop(termination);
-        let record_counters = record_owner.into_terminal_snapshot();
-        let records = RecordServingTerminalObservation::new(
-            health.requires_inspection()
-                || !publication_residue.is_empty()
-                || residency.requires_inspection(),
-            publication_residue,
-            record_counters,
-        );
-        let media_release = executor.into_media().close();
-        let media = MediaShutdownOutcome::new(terminate_core(core), media_release);
+    pub(in crate::physical_runtime) fn abort(
+        self,
+        progress: PhysicalStoreCloseProgressOwner,
+    ) -> ServingShutdownOutcome<AbortedRuntime> {
+        self.shutdown(PhysicalWorkStopKind::Abort, |core| core.abort(), progress)
+    }
 
-        ServingShutdownOutcome::new(media, records, residency, work, signal)
+    fn shutdown<Terminal, Terminate>(
+        self,
+        stop: PhysicalWorkStopKind,
+        terminate_core: Terminate,
+        progress: PhysicalStoreCloseProgressOwner,
+    ) -> ServingShutdownOutcome<Terminal>
+    where
+        Terminate: FnOnce(PhysicalRuntimeCore) -> Terminal,
+    {
+        ShutdownProtocol::stop_admission(self, stop, terminate_core, progress)
+            .cancel_safe_work()
+            .classify_dispatch_settlement()
+            .dispose_signal()
+            .close_residency()
+            .release_media()
     }
 }
 
-fn stop_and_release_work_submission(
-    work_submission: PhysicalWorkSubmissionOwner,
-    stop: PhysicalWorkStopKind,
-) -> crate::physical_runtime::PhysicalWorkShutdownObservation {
-    let observation = work_submission.stop(stop);
-    drop(work_submission);
-    observation
+impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
+    fn stop_admission(
+        parts: PhysicalStoreInstanceParts,
+        stop: PhysicalWorkStopKind,
+        terminate_core: Terminate,
+        progress: PhysicalStoreCloseProgressOwner,
+    ) -> Self {
+        let PhysicalStoreInstanceParts {
+            termination,
+            work_admission: _work_admission,
+            work_runtime,
+            scheduler_admission: _scheduler_admission,
+            record_work: _record_work,
+            core,
+            record_owner,
+            format: _format,
+            access: _access,
+            publication,
+            frame_ports,
+        } = parts;
+        let publication =
+            crate::physical_runtime::record_serving::RecordPublicationDirector::stop_and_extract(
+                publication,
+            );
+        let publication_residue = publication.residue;
+        work_runtime.stop_execution_admission();
+        let protocol = Self {
+            termination,
+            signal_owner: None,
+            executor: None,
+            core,
+            record_owner,
+            publication_residue,
+            health: None,
+            frame_ports: Some(frame_ports),
+            work_runtime: Some(work_runtime),
+            work_cancellation: None,
+            work: None,
+            stop,
+            signal_cancellation_failures: 0,
+            signal_summary: None,
+            signal: None,
+            residency: None,
+            terminate_core: Some(terminate_core),
+            progress,
+            state: PhantomData,
+        };
+        protocol
+            .progress
+            .record(super::PhysicalStoreClosePhase::AdmissionStopped);
+        protocol
+    }
+
+    fn cancel_safe_work(mut self) -> ShutdownProtocol<SafeCancellationComplete, Terminate> {
+        let work_runtime = self.work_runtime.as_ref().expect("phase owns work runtime");
+        work_runtime.await_execution_calls();
+        let cancellation = work_runtime.submission.cancel_safe_work(self.stop);
+        let signal_owner = &work_runtime.signal;
+        for consumer in cancellation.cancellation_candidates().iter().copied() {
+            if signal_owner.cancel(consumer).is_err() {
+                self.signal_cancellation_failures =
+                    self.signal_cancellation_failures.saturating_add(1);
+            }
+        }
+        self.work_cancellation = Some(cancellation);
+        self.progress
+            .record(super::PhysicalStoreClosePhase::SafeCancellationComplete);
+        self.transition()
+    }
+}
+
+impl<Terminate> ShutdownProtocol<SafeCancellationComplete, Terminate> {
+    fn classify_dispatch_settlement(
+        mut self,
+    ) -> ShutdownProtocol<DispatchSettlementComplete, Terminate> {
+        let work_runtime = self.work_runtime.take().expect("phase owns work runtime");
+        work_runtime.reconcile_signal_derivation();
+        self.work = Some(
+            work_runtime.submission.settle_dispatches(
+                self.work_cancellation
+                    .take()
+                    .expect("safe cancellation phase completed"),
+            ),
+        );
+        let runtime = Arc::try_unwrap(work_runtime)
+            .unwrap_or_else(|_| unreachable!("execution gate excludes remaining strong owners"));
+        let PhysicalStoreWorkRuntime {
+            submission,
+            signal,
+            executor,
+            health,
+            recovery: _recovery,
+            ..
+        } = runtime;
+        self.signal_summary = signal.runtime_summary().ok();
+        drop(submission);
+        self.signal_owner = Some(signal);
+        self.executor = Some(executor);
+        self.health = Some(health);
+        self.progress
+            .record(super::PhysicalStoreClosePhase::DispatchSettlementComplete);
+        self.transition()
+    }
+}
+
+impl<Terminate> ShutdownProtocol<DispatchSettlementComplete, Terminate> {
+    fn dispose_signal(mut self) -> ShutdownProtocol<SignalDisposed, Terminate> {
+        self.signal = Some(
+            self.signal_owner
+                .take()
+                .expect("phase owns Signal")
+                .dispose(),
+        );
+        self.progress
+            .record(super::PhysicalStoreClosePhase::SignalDisposed);
+        self.transition()
+    }
+}
+
+impl<Terminate> ShutdownProtocol<SignalDisposed, Terminate> {
+    fn close_residency(mut self) -> ShutdownProtocol<ResidencyClosed, Terminate> {
+        self.residency = Some(
+            self.frame_ports
+                .take()
+                .expect("phase owns residency")
+                .close(),
+        );
+        self.progress
+            .record(super::PhysicalStoreClosePhase::ResidencyClosed);
+        self.transition()
+    }
+}
+
+impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
+    fn release_media<Terminal>(self) -> ServingShutdownOutcome<Terminal>
+    where
+        Terminate: FnOnce(PhysicalRuntimeCore) -> Terminal,
+    {
+        drop(self.termination);
+        let residency = self.residency.expect("residency phase completed");
+        let record_counters = self.record_owner.into_terminal_snapshot();
+        let records = RecordServingTerminalObservation::new(
+            self.health
+                .as_ref()
+                .expect("phase owns serving health")
+                .requires_inspection()
+                || !self.publication_residue.is_empty()
+                || residency.requires_inspection(),
+            self.publication_residue,
+            record_counters,
+        );
+        let media_release = self
+            .executor
+            .expect("phase owns physical executor")
+            .into_media()
+            .close();
+        let terminal = self.terminate_core.expect("terminal action retained")(self.core);
+        let media = MediaShutdownOutcome::new(terminal, media_release);
+        self.progress
+            .record(super::PhysicalStoreClosePhase::MediaReleased);
+        ServingShutdownOutcome::new(
+            media,
+            records,
+            residency,
+            self.work.expect("dispatch settlement phase completed"),
+            self.signal.expect("Signal phase completed"),
+            self.signal_summary,
+            self.signal_cancellation_failures,
+        )
+    }
+}
+
+impl<State, Terminate> ShutdownProtocol<State, Terminate> {
+    fn transition<Next>(self) -> ShutdownProtocol<Next, Terminate> {
+        ShutdownProtocol {
+            termination: self.termination,
+            signal_owner: self.signal_owner,
+            executor: self.executor,
+            core: self.core,
+            record_owner: self.record_owner,
+            publication_residue: self.publication_residue,
+            health: self.health,
+            frame_ports: self.frame_ports,
+            work_runtime: self.work_runtime,
+            work_cancellation: self.work_cancellation,
+            work: self.work,
+            stop: self.stop,
+            signal_cancellation_failures: self.signal_cancellation_failures,
+            signal_summary: self.signal_summary,
+            signal: self.signal,
+            residency: self.residency,
+            terminate_core: self.terminate_core,
+            progress: self.progress,
+            state: PhantomData,
+        }
+    }
 }

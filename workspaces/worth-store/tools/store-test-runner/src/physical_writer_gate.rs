@@ -167,10 +167,10 @@ fn c5_record_path_has_no_heap_replay_offline_or_raw_filesystem_substitute() {
     let frame_ports = std::fs::read_to_string(frame_ports).expect("read C.6 frame port seam");
     inspect_candidate_publication_port(&frame_ports).unwrap_or_else(|failure| panic!("{failure}"));
 
-    let publication = root.join("publication/orchestration.rs");
+    let publication = root.join("publication/director/execution.rs");
     let publication = std::fs::read_to_string(publication).expect("read Store publication owner");
     assert!(
-        publication.contains("publication_progression::execute("),
+        publication.contains("publication_progression::execute_prepared_root("),
         "Store must retain current-truth publication after the C.6 candidate seam"
     );
 }

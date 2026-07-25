@@ -23,9 +23,9 @@ fn permissive_access_policy_cannot_expand_fixed_page_reads() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
-    let mut serving = serving_from_initialization(&root);
+    let serving = serving_from_initialization(&root);
     let record_id = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"bounded".as_slice()]).unwrap(),
             placement,

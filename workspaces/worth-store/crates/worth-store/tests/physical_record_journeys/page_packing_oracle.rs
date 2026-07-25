@@ -14,14 +14,14 @@ fn batch_packing_matches_an_independent_page_oracle() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let payloads = [b"abc".as_slice(), b"12345".as_slice(), b"".as_slice()];
     let before = serving.media_counters();
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter(payloads).unwrap(),
             placement,
@@ -102,12 +102,12 @@ fn inline_source_and_delivery_copies_are_counted_at_the_actual_copy_seams() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::builder()
                 .push_source(PatternSource::exact(13))
@@ -138,13 +138,13 @@ fn pre_effect_inline_source_failure_keeps_the_writer_usable() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let before = serving.media_counters();
     let error = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::builder()
                 .push_source(PatternSource::truncated(13, 7))
@@ -160,7 +160,7 @@ fn pre_effect_inline_source_failure_keeps_the_writer_usable() {
         before.attempts_for(MediaOperationRole::PositionedWrite)
     );
     assert!(serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"still-usable".as_slice()]).unwrap(),
             placement,
@@ -198,12 +198,12 @@ fn published_tail_is_validated_before_an_inline_producer_is_consumed() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"old".as_slice()]).unwrap(),
             placement,
@@ -220,7 +220,7 @@ fn published_tail_is_validated_before_an_inline_producer_is_consumed() {
 
     let reads = Arc::new(AtomicUsize::new(0));
     let error = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::builder()
                 .push_source(CountedSource {

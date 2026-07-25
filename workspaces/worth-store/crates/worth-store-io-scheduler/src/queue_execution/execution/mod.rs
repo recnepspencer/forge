@@ -1,4 +1,5 @@
 mod accessors;
+mod adjudication;
 mod backend_completion;
 pub(crate) mod completion;
 mod outcome;
@@ -7,9 +8,9 @@ mod progression;
 
 use super::*;
 
-pub use backend_completion::{execute_grouped_ready_queue_plans, execute_ready_queue_plan};
 #[cfg(test)]
-pub(crate) use outcome::submitted_units;
+pub(crate) use adjudication::submitted_units;
+pub use backend_completion::{execute_grouped_ready_queue_plans, execute_ready_queue_plan};
 pub use outcome::{
     ExecutedQueueEvidence, QueueExecutionBackpressured, QueueExecutionDenied,
     QueueExecutionOutcome, QueueExecutionViolation, QueueExecutionViolationCause,

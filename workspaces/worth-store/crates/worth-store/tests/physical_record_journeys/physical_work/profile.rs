@@ -10,7 +10,7 @@ use worth_store::physical_runtime::{
 
 use super::fixture::{
     admitted_contract, alternative_physical_witness, security_scope, security_scope_from_authority,
-    serving_from_initialization_with_work_profile,
+    serving_from_initialization_with_work_profile, EXPECTED_NATIVE_RECORD_BINDING_COUNT,
 };
 
 #[test]
@@ -141,11 +141,13 @@ fn work_family_scope_is_canonical_and_empty_scope_is_rejected() {
     assert!(matches!(
         PhysicalWorkProfileDeclaration::from_signal_aspects(
             security,
-            [PhysicalSignalAspectDeclaration::new(
-                admission,
-                PhysicalSignalAspectRole::Dependency,
-            )
-            .for_families(PhysicalWorkSignalFamilySet::none())],
+            [
+                PhysicalSignalAspectDeclaration::new(
+                    admission,
+                    PhysicalSignalAspectRole::Dependency,
+                )
+                .for_families(PhysicalWorkSignalFamilySet::none())
+            ],
         ),
         Err(worth_store::physical_runtime::PhysicalWorkProfileDenial::WorkFamilySetEmpty)
     ));
@@ -154,24 +156,30 @@ fn work_family_scope_is_canonical_and_empty_scope_is_rejected() {
 #[test]
 fn partitioned_dependency_profile_initializes_the_real_signal_owner() {
     let root = tempdir().unwrap();
-    let (_, _, admission, witness) = admitted_contract(1);
+    let (_, identity, admission, witness) = admitted_contract(1);
     let profile = PhysicalWorkProfileDeclaration::from_signal_aspects(
         security_scope(witness),
-        [PhysicalSignalAspectDeclaration::new(
-            admission,
-            PhysicalSignalAspectRole::Dependency,
-        )
-        .with_partition(PartitionSubscription::whole_partition("artifact-7"))],
+        [
+            PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::Dependency)
+                .with_partition(PartitionSubscription::whole_partition("artifact-7")),
+        ],
     )
     .unwrap();
+    let declared_binding_count = u16::try_from(profile.contract_count()).unwrap();
+    let route = PhysicalSignalAspectBindingSet::from_profile(profile.clone())
+        .binding_for_identity(&identity)
+        .unwrap()
+        .digest();
 
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
+    let observation = serving.physical_signal_observation().unwrap();
+    let installed_binding_count = declared_binding_count + EXPECTED_NATIVE_RECORD_BINDING_COUNT;
+    assert_eq!(observation.aspect_binding_count(), installed_binding_count);
+    assert_eq!(observation.locality_owner_count(), installed_binding_count);
     assert_eq!(
-        serving
-            .physical_signal_observation()
-            .unwrap()
-            .aspect_binding_count(),
-        1
+        serving.certification_physical_signal_route_depth(route),
+        Some(0),
+        "partitioned caller binding must retain its route through native installation"
     );
     serving.close();
 }
@@ -253,10 +261,7 @@ fn signal_aspect_capacity_denial_stops_consuming_the_profile_source() {
             });
 
     assert!(matches!(
-        PhysicalWorkProfileDeclaration::new(
-            security_scope(witness),
-            hostile_unbounded_source,
-        ),
+        PhysicalWorkProfileDeclaration::new(security_scope(witness), hostile_unbounded_source,),
         Err(worth_store::physical_runtime::PhysicalWorkProfileDenial::SignalAspectCapacityExceeded)
     ));
 }

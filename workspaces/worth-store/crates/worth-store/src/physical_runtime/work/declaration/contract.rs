@@ -2,6 +2,7 @@ use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkOperationFamily {
+    ArtifactMetadataRead,
     ArtifactRangeRead,
     ArtifactRangeWrite,
     ArtifactPublication,

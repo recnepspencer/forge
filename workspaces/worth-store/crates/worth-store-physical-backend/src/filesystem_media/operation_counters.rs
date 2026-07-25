@@ -52,6 +52,7 @@ pub(super) struct MediaCounterCells {
     fault_matches: AtomicU64,
     fault_match_state: Mutex<FaultMatchState>,
     role_attempts: [AtomicU64; super::MediaOperationRole::ALL.len()],
+    role_identified_operation_attempts: [AtomicU64; super::MediaOperationRole::ALL.len()],
     role_completed_operations: [AtomicU64; super::MediaOperationRole::ALL.len()],
     role_denied_before_effect: [AtomicU64; super::MediaOperationRole::ALL.len()],
     role_partial_effects: [AtomicU64; super::MediaOperationRole::ALL.len()],
@@ -77,6 +78,15 @@ impl MediaCounterCells {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if state.first.is_none() {
             state.first = Some(context);
+        }
+    }
+
+    pub(super) fn observe_operation_context(&self, context: super::MediaOperationContext) {
+        if let Some(ordinal) = context.identified_operation_ordinal() {
+            retain_max(
+                &self.role_identified_operation_attempts[context.role().index()],
+                ordinal,
+            );
         }
     }
 
@@ -210,6 +220,8 @@ impl MediaCounterCells {
         let role_attempts = std::array::from_fn(|index| load(&self.role_attempts[index]));
         let role_completed_operations =
             std::array::from_fn(|index| load(&self.role_completed_operations[index]));
+        let role_identified_operation_attempts =
+            std::array::from_fn(|index| load(&self.role_identified_operation_attempts[index]));
         let role_denied_before_effect =
             std::array::from_fn(|index| load(&self.role_denied_before_effect[index]));
         let role_partial_effects =
@@ -268,6 +280,7 @@ impl MediaCounterCells {
             first_fault_completed_bytes: fault_match.completed_bytes,
             saturated: false,
             role_attempts,
+            role_identified_operation_attempts,
             role_completed_operations,
             role_denied_before_effect,
             role_partial_effects,

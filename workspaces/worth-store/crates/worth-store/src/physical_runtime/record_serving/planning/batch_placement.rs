@@ -42,6 +42,43 @@ pub(in crate::physical_runtime::record_serving) struct ClassifiedBatch {
     pub(in crate::physical_runtime::record_serving) logical_bytes: u64,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(in crate::physical_runtime::record_serving) struct PhysicalIdentityReservationShape {
+    segments: u64,
+    pages: u64,
+    extents: u64,
+}
+
+impl ClassifiedBatch {
+    pub(in crate::physical_runtime::record_serving) fn identity_reservation_shape(
+        &self,
+    ) -> Result<PhysicalIdentityReservationShape, RecordAppendError> {
+        let inline = u64::try_from(self.inline.len()).map_err(|_| {
+            RecordAppendError::Denied(RecordAppendDenial::PhysicalIdentityExhausted)
+        })?;
+        let extents = u64::try_from(self.extents.len()).map_err(|_| {
+            RecordAppendError::Denied(RecordAppendDenial::PhysicalIdentityExhausted)
+        })?;
+        Ok(PhysicalIdentityReservationShape {
+            segments: inline,
+            pages: inline,
+            extents,
+        })
+    }
+}
+
+impl PhysicalIdentityReservationShape {
+    pub(in crate::physical_runtime::record_serving) const fn segments(self) -> u64 {
+        self.segments
+    }
+    pub(in crate::physical_runtime::record_serving) const fn pages(self) -> u64 {
+        self.pages
+    }
+    pub(in crate::physical_runtime::record_serving) const fn extents(self) -> u64 {
+        self.extents
+    }
+}
+
 pub(in crate::physical_runtime::record_serving) fn classify_batch(
     manifest: &super::super::access::manifest_routing::ManifestReader<'_>,
     placement: AdmittedRecordPlacementPolicy,

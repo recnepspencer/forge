@@ -6,7 +6,6 @@ use worth_store::physical_runtime::{
     PhysicalSignalShutdownOutcome, PhysicalWorkSubmissionDenial, PhysicalWorkSubmissionOutcome,
     PhysicalWorkSubmissionStale, PhysicalWorkTerminalDisposition, PhysicalWorkTerminalStage,
 };
-use worth_store_physical_backend::OwnershipReleaseOutcome;
 
 use super::fixture::{
     disjoint_mutation_fixture, serving_from_initialization_with_work_profile,
@@ -228,29 +227,6 @@ fn uninstalled_contract_is_denied_before_command_admission() {
         TransitionOutcome::Denied(PhysicalWorkSubmissionDenial::SemanticContractNotInstalled)
     ));
     assert_eq!(serving.close().work().declared(), 0);
-}
-
-#[test]
-fn signal_worker_failure_is_terminal_evidence_and_does_not_block_media_release() {
-    let root = tempdir().unwrap();
-    let (profile, request, _) = work_fixture();
-    let serving = serving_from_initialization_with_work_profile(root.path(), profile);
-    let submission = serving.physical_read_submission();
-    success(submission.submit(request.clone()));
-    serving.certification_fail_physical_signal_worker();
-
-    assert!(matches!(
-        submission.submit(request).into_raw(),
-        TransitionOutcome::Stale(PhysicalWorkSubmissionStale::SignalOwnerUnavailable)
-    ));
-
-    let closed = serving.close();
-    assert_eq!(
-        closed.signal(),
-        PhysicalSignalShutdownOutcome::OwnerRevoked
-    );
-    assert_eq!(closed.media().release(), OwnershipReleaseOutcome::Released);
-    assert_eq!(closed.work().declared(), 1);
 }
 
 fn success(

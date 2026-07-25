@@ -48,19 +48,19 @@ impl AdmittedQueueExecutionPlan {
         admitted_budget: BackgroundResourceBudget,
     ) -> Self {
         Self {
+            replay_identity: QueueExecutionReplayIdentity::new(&work, grouping_basis.clone()),
             work,
             backend_profile,
             backend_evidence_class,
             policy_receipt,
             grouping_basis,
-            replay_identity: QueueExecutionReplayIdentity::new(work, grouping_basis),
             admitted_budget,
             progression: QueueExecutionProgression::Lowered,
         }
     }
 
     pub fn into_execution_ready(self) -> QueueExecutionReadyPlan {
-        let replay_identity = self.replay_identity;
+        let replay_identity = self.replay_identity.clone();
         QueueExecutionReadyPlan {
             ready_proof: ready_queue_execution_proof(replay_identity),
             admitted: self,
@@ -68,8 +68,8 @@ impl AdmittedQueueExecutionPlan {
         }
     }
 
-    pub const fn work(&self) -> QueueWorkDeclaration {
-        self.work
+    pub fn work(&self) -> QueueWorkDeclaration {
+        self.work.clone()
     }
 
     pub const fn backend_profile(&self) -> BackendTargetProfile {
@@ -84,12 +84,12 @@ impl AdmittedQueueExecutionPlan {
         &self.policy_receipt
     }
 
-    pub const fn grouping_basis(&self) -> QueueGroupingBasis {
-        self.grouping_basis
+    pub const fn grouping_basis(&self) -> &QueueGroupingBasis {
+        &self.grouping_basis
     }
 
-    pub const fn replay_identity(&self) -> QueueExecutionReplayIdentity {
-        self.replay_identity
+    pub const fn replay_identity(&self) -> &QueueExecutionReplayIdentity {
+        &self.replay_identity
     }
 
     pub const fn admitted_budget(&self) -> BackgroundResourceBudget {
@@ -106,7 +106,7 @@ impl QueueExecutionReadyPlan {
         &self.admitted
     }
 
-    pub const fn work(&self) -> QueueWorkDeclaration {
+    pub fn work(&self) -> QueueWorkDeclaration {
         self.admitted.work()
     }
 
@@ -122,17 +122,18 @@ impl QueueExecutionReadyPlan {
         self.admitted.policy_receipt()
     }
 
-    pub const fn grouping_basis(&self) -> QueueGroupingBasis {
+    pub const fn grouping_basis(&self) -> &QueueGroupingBasis {
         self.admitted.grouping_basis()
     }
 
-    pub const fn replay_identity(&self) -> QueueExecutionReplayIdentity {
+    pub const fn replay_identity(&self) -> &QueueExecutionReplayIdentity {
         self.admitted.replay_identity()
     }
 
-    pub const fn backend_completion_binding(&self) -> QueueExecutionPlanBinding {
+    pub fn backend_completion_binding(&self) -> QueueExecutionPlanBinding {
         self.admitted
             .replay_identity()
+            .clone()
             .backend_completion_binding(self.backend_profile(), self.backend_evidence_class())
     }
 
@@ -158,7 +159,7 @@ impl QueueExecutedPlan {
         &self.admitted
     }
 
-    pub const fn work(&self) -> QueueWorkDeclaration {
+    pub fn work(&self) -> QueueWorkDeclaration {
         self.admitted.work()
     }
 
@@ -174,11 +175,11 @@ impl QueueExecutedPlan {
         self.admitted.policy_receipt()
     }
 
-    pub const fn grouping_basis(&self) -> QueueGroupingBasis {
+    pub const fn grouping_basis(&self) -> &QueueGroupingBasis {
         self.admitted.grouping_basis()
     }
 
-    pub const fn replay_identity(&self) -> QueueExecutionReplayIdentity {
+    pub const fn replay_identity(&self) -> &QueueExecutionReplayIdentity {
         self.admitted.replay_identity()
     }
 

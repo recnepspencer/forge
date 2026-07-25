@@ -38,3 +38,9 @@ impl PhysicalSignalWorkerWake {
         *signalled = false;
     }
 }
+
+impl crate::physical_runtime::work::PhysicalWorkAbandonmentWake for PhysicalSignalWorkerWake {
+    fn wake(&self) {
+        self.signal();
+    }
+}

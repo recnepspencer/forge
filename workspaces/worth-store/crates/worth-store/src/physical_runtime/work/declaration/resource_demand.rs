@@ -1,9 +1,7 @@
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 
-use super::{
-    PhysicalWorkDurabilityRequirement, PhysicalWorkOperationFamily, PhysicalWorkScope,
-};
+use super::{PhysicalWorkDurabilityRequirement, PhysicalWorkOperationFamily, PhysicalWorkScope};
 
 /// Store-owned demand retained before lowering into scheduler units.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,13 +16,10 @@ impl PhysicalWorkResourceDemand {
         operation: PhysicalWorkOperationFamily,
         durability: PhysicalWorkDurabilityRequirement,
     ) -> Self {
-        let members = scope.coordinates().len() as u64;
-        let bytes = scope
-            .coordinates()
-            .iter()
-            .fold(0_u64, |total, coordinate| {
-                total.saturating_add(u64::from(coordinate.length()))
-            });
+        let members = scope.member_count() as u64;
+        let bytes = scope.coordinates().iter().fold(0_u64, |total, coordinate| {
+            total.saturating_add(u64::from(coordinate.length()))
+        });
         let queue = QueueProducerResourceShape::new()
             .with_queue_slots(members)
             .with_worker_permits(members)

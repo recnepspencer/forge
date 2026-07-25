@@ -3,14 +3,14 @@ use worth_store_physical_format::RecordArtifactFile;
 
 use super::{
     artifact_tree::{PhysicalRecordArtifactTree, RecordFamilyInventory},
-    frame_loading::{DirectFrameReadSource, FrameLoadFailure, LoadedPhysicalFrame},
+    frame_loading::{FrameLoadFailure, LoadedPhysicalFrame},
     frame_ports::FrameLoadPort,
+    record_frame_reader::RecordFrameReader,
 };
 
 pub(in crate::physical_runtime::record_serving) struct ServingRecordArtifacts<'media> {
-    media: &'media QualifiedFilesystemMedia,
-    loader: &'media (dyn FrameLoadPort + Send + Sync),
     tree: PhysicalRecordArtifactTree<'media>,
+    reader: RecordFrameReader<'media>,
 }
 
 impl<'media> ServingRecordArtifacts<'media> {
@@ -19,9 +19,8 @@ impl<'media> ServingRecordArtifacts<'media> {
         loader: &'media (dyn FrameLoadPort + Send + Sync),
     ) -> Self {
         Self {
-            media,
-            loader,
             tree: PhysicalRecordArtifactTree::new(media),
+            reader: RecordFrameReader::bootstrap(media, loader),
         }
     }
 
@@ -48,8 +47,9 @@ impl<'media> ServingRecordArtifacts<'media> {
         &self,
         artifact: RecordArtifactFile,
     ) -> Result<u64, FrameLoadFailure> {
-        self.loader
-            .file_length(&DirectFrameReadSource::new(self.media), artifact)
+        self.reader
+            .file_length(artifact)
+            .map(|length| length.bytes())
     }
 
     pub(in crate::physical_runtime::record_serving) fn load_exact(
@@ -58,12 +58,7 @@ impl<'media> ServingRecordArtifacts<'media> {
         offset: u64,
         length: u32,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.loader.load_exact(
-            &DirectFrameReadSource::new(self.media),
-            artifact,
-            offset,
-            length,
-        )
+        self.reader.load_exact(artifact, offset, length)
     }
 
     pub(in crate::physical_runtime::record_serving) fn load_bounded(
@@ -71,7 +66,6 @@ impl<'media> ServingRecordArtifacts<'media> {
         artifact: RecordArtifactFile,
         limit: u32,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.loader
-            .load_bounded(&DirectFrameReadSource::new(self.media), artifact, limit)
+        self.reader.load_bounded(artifact, limit)
     }
 }

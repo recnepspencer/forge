@@ -7,7 +7,7 @@ error[E0308]: mismatched types
   |                        arguments to this method are incorrect
   |
 note: method defined here
- --> src/physical_runtime/work/submission/mod.rs
+ --> src/physical_runtime/work/submission/request.rs
   |
   |     pub fn submit(&self, request: PhysicalReadWorkRequest) -> PhysicalWorkSubmissionOutcome {
   |            ^^^^^^

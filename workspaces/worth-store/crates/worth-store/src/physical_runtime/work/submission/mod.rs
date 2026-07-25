@@ -1,12 +1,8 @@
-use std::{
-    num::NonZeroU64,
-    sync::{
-        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
-        Arc, Condvar, Mutex, Weak,
-    },
+use std::sync::{
+    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+    Arc, Condvar, Mutex,
 };
 
-use worth_proof::TransitionOutcome;
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 use crate::physical_runtime::{
@@ -17,37 +13,35 @@ use crate::physical_runtime::{
 use super::{
     command_storage::PhysicalCommandArena,
     observation::{PhysicalWorkAccounting, PhysicalWorkObservationOwner},
-    PhysicalMutationWorkRequest, PhysicalOperationIdentity, PhysicalReadWorkRequest,
     PhysicalSignalAspectBindingSet, PhysicalSignalProfileIdentity, PhysicalWorkCapacity,
-    PhysicalWorkDeclarationDenial, PhysicalWorkDurabilityRequirement, PhysicalWorkGeneration,
-    PhysicalWorkIdentity, PhysicalWorkIntent, PhysicalWorkIntentParts, PhysicalWorkObservation,
-    PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition, PhysicalWorkShutdownObservation,
-    PhysicalWorkTerminalDisposition,
+    PhysicalWorkDeclarationDenial, PhysicalWorkIdentity, PhysicalWorkIntent,
+    PhysicalWorkObservation,
 };
 
+mod abandonment;
+mod capacity_lease;
+mod effect_activity;
+mod in_flight_activity;
 mod outcome;
+mod request;
 mod reservation;
+mod shutdown;
 #[cfg(feature = "certification-test-authority")]
 mod yieldpoint;
 
+pub(in crate::physical_runtime) use abandonment::{
+    physical_work_abandonment_channel, PhysicalWorkAbandonmentInbox,
+    PhysicalWorkAbandonmentPublisher, PhysicalWorkAbandonmentWake,
+};
+pub(super) use capacity_lease::PhysicalWorkCapacityLease;
+pub(in crate::physical_runtime) use effect_activity::PhysicalEffectActivity;
 pub use outcome::{
     PhysicalWorkCapacityDimension, PhysicalWorkSubmissionDeferred, PhysicalWorkSubmissionDenial,
     PhysicalWorkSubmissionFailure, PhysicalWorkSubmissionOutcome, PhysicalWorkSubmissionReceipt,
     PhysicalWorkSubmissionStale,
 };
-pub(super) use reservation::PhysicalWorkCapacityLease;
-
-#[derive(Clone)]
-pub struct PhysicalReadSubmission {
-    shared: Weak<PhysicalSubmissionState>,
-    generation: LifecycleGeneration,
-}
-
-#[derive(Clone)]
-pub struct PhysicalMutationSubmission {
-    shared: Weak<PhysicalSubmissionState>,
-    generation: LifecycleGeneration,
-}
+pub use request::{PhysicalMutationSubmission, PhysicalReadSubmission};
+pub(in crate::physical_runtime) use shutdown::PhysicalWorkSafeCancellation;
 
 pub(in crate::physical_runtime) struct PhysicalWorkSubmissionOwner {
     shared: Arc<PhysicalSubmissionState>,
@@ -62,8 +56,10 @@ pub(in crate::physical_runtime) struct PhysicalWorkSubmissionFoundation {
     pub(in crate::physical_runtime) signal_profile: PhysicalSignalProfileIdentity,
     pub(in crate::physical_runtime) bindings: Arc<PhysicalSignalAspectBindingSet>,
     pub(in crate::physical_runtime) signal_admission: PhysicalSignalAdmissionStatus,
+    pub(in crate::physical_runtime) abandonment: PhysicalWorkAbandonmentPublisher,
 }
 
+#[derive(Clone, Copy)]
 pub(in crate::physical_runtime) enum PhysicalWorkStopKind {
     Close,
     Abort,
@@ -83,6 +79,7 @@ pub(super) struct PhysicalSubmissionState {
     capacity: PhysicalWorkCapacity,
     next_operation: AtomicU64,
     active_submissions: AtomicUsize,
+    active_effects: AtomicUsize,
     active_wait: Mutex<()>,
     active_changed: Condvar,
     reserved_commands: AtomicUsize,
@@ -90,12 +87,12 @@ pub(super) struct PhysicalSubmissionState {
     reserved_semantic_bytes: AtomicUsize,
     commands: PhysicalCommandArena,
     accounting: PhysicalWorkAccounting,
+    terminal_ledger: super::PhysicalWorkTerminalLedger,
+    abandonment: PhysicalWorkAbandonmentPublisher,
 }
 
 impl PhysicalWorkSubmissionOwner {
-    pub(in crate::physical_runtime) fn new(
-        foundation: PhysicalWorkSubmissionFoundation,
-    ) -> Self {
+    pub(in crate::physical_runtime) fn new(foundation: PhysicalWorkSubmissionFoundation) -> Self {
         let capacity = foundation.bindings.capacity();
         Self {
             shared: Arc::new(PhysicalSubmissionState {
@@ -111,6 +108,7 @@ impl PhysicalWorkSubmissionOwner {
                 capacity,
                 next_operation: AtomicU64::new(1),
                 active_submissions: AtomicUsize::new(0),
+                active_effects: AtomicUsize::new(0),
                 active_wait: Mutex::new(()),
                 active_changed: Condvar::new(),
                 reserved_commands: AtomicUsize::new(0),
@@ -118,8 +116,12 @@ impl PhysicalWorkSubmissionOwner {
                 reserved_semantic_bytes: AtomicUsize::new(0),
                 commands: PhysicalCommandArena::bounded(capacity.commands()),
                 accounting: PhysicalWorkAccounting::new(),
+                terminal_ledger: super::PhysicalWorkTerminalLedger::bounded(
+                    capacity.terminal_evidence(),
+                ),
+                abandonment: foundation.abandonment,
             }),
-            observation: PhysicalWorkObservationOwner::new(),
+            observation: PhysicalWorkObservationOwner::new(capacity.terminal_evidence()),
         }
     }
 
@@ -141,6 +143,76 @@ impl PhysicalWorkSubmissionOwner {
         self.observation.handle()
     }
 
+    pub(in crate::physical_runtime) fn counters(&self) -> super::PhysicalWorkCounterSnapshot {
+        self.shared
+            .commands
+            .active_counters(self.shared.accounting.terminal_by_family_and_pressure())
+    }
+
+    pub(in crate::physical_runtime) fn cancel_before_dispatch(
+        &self,
+        identity: PhysicalWorkIdentity,
+    ) -> bool {
+        let Some(released) = self.shared.commands.cancel_before_dispatch(identity) else {
+            return false;
+        };
+        self.shared
+            .release_capacity(released.scope_members, released.semantic_bytes);
+        self.shared
+            .accounting
+            .record_terminal(released.operation, released.pressure);
+        self.shared.terminal_ledger.record(
+            super::PhysicalWorkTerminalEvent::CancelledBeforeDispatch(identity),
+        );
+        true
+    }
+
+    pub(in crate::physical_runtime) fn mark_consumer_cancelled(
+        &self,
+        identity: PhysicalWorkIdentity,
+    ) -> bool {
+        self.shared.commands.mark_consumer_cancelled(identity)
+    }
+
+    pub(in crate::physical_runtime) fn record_derived_reconciliation_deferred(
+        &self,
+        identity: PhysicalWorkIdentity,
+    ) {
+        self.shared
+            .terminal_ledger
+            .record(super::PhysicalWorkTerminalEvent::DerivedReconciliationDeferred(identity));
+    }
+
+    pub(in crate::physical_runtime) fn record_settled_causality(
+        &self,
+        settled: &super::SettledPhysicalWork,
+    ) {
+        self.observation
+            .causal()
+            .record_settlement(settled, self.counters());
+    }
+
+    pub(in crate::physical_runtime) fn record_derived_completion_causality(
+        &self,
+        identity: PhysicalWorkIdentity,
+        outcome: crate::physical_runtime::PhysicalSignalSettlementOutcome,
+    ) {
+        self.observation
+            .causal()
+            .record_derived_completion(identity, outcome);
+    }
+
+    pub(in crate::physical_runtime) fn record_reconciled_derived_completion(
+        &self,
+        identity: PhysicalWorkIdentity,
+        outcome: crate::physical_runtime::PhysicalSignalSettlementOutcome,
+    ) {
+        self.record_derived_completion_causality(identity, outcome);
+        self.shared
+            .terminal_ledger
+            .resolve_derived_reconciliation(identity);
+    }
+
     pub(super) fn state(&self) -> &Arc<PhysicalSubmissionState> {
         &self.shared
     }
@@ -153,41 +225,13 @@ impl PhysicalWorkSubmissionOwner {
             .commands
             .pause_after_shard_lock_for_certification()
     }
-
-    pub(in crate::physical_runtime) fn stop(
-        &self,
-        kind: PhysicalWorkStopKind,
-    ) -> PhysicalWorkShutdownObservation {
-        self.shared.accepting.store(false, Ordering::Release);
-        self.shared.await_idle();
-        let disposition = match kind {
-            PhysicalWorkStopKind::Close => PhysicalWorkTerminalDisposition::ClosedBeforeReadiness,
-            PhysicalWorkStopKind::Abort => PhysicalWorkTerminalDisposition::AbortedBeforeReadiness,
-            PhysicalWorkStopKind::Drop => PhysicalWorkTerminalDisposition::DroppedBeforeReadiness,
-        };
-        let drained = self.shared.commands.drain_active();
-        for command in &drained {
-            if command.release.claim_release() {
-                self.shared
-                    .release_capacity(command.scope_members, command.semantic_bytes);
-            }
-        }
-        let observation = PhysicalWorkShutdownObservation::from_active(
-            self.shared.accounting.declared(),
-            self.shared.accounting.safe_pre_effect_terminal(),
-            drained
-                .into_iter()
-                .map(|command| (command.identity, command.stage)),
-            disposition,
-        );
-        if !self.shared.terminal_published.swap(true, Ordering::AcqRel) {
-            self.observation.publish(observation.clone());
-        }
-        observation
-    }
 }
 
 impl PhysicalSubmissionState {
+    pub(super) fn accepts_work(&self) -> bool {
+        self.accepting.load(Ordering::Acquire)
+    }
+
     pub(super) const fn store(&self) -> StableStoreIdentity {
         self.store
     }
@@ -223,165 +267,17 @@ impl PhysicalSubmissionState {
         identity: PhysicalWorkIdentity,
     ) -> Option<(PhysicalWorkIntent, PhysicalWorkCapacityLease)> {
         let admitted = self.commands.admit_declared(identity)?;
-        let lease =
-            PhysicalWorkCapacityLease::new(self, identity, admitted.release);
+        let lease = PhysicalWorkCapacityLease::new(self, identity, admitted.release);
         Some((admitted.intent, lease))
-    }
-
-    fn release_capacity(&self, scope_members: usize, semantic_bytes: usize) {
-        self.reserved_semantic_bytes
-            .fetch_sub(semantic_bytes, Ordering::AcqRel);
-        self.reserved_scope_members
-            .fetch_sub(scope_members, Ordering::AcqRel);
-        self.reserved_commands.fetch_sub(1, Ordering::AcqRel);
     }
 }
 
 impl Drop for PhysicalWorkSubmissionOwner {
     fn drop(&mut self) {
-        if self.shared.accepting.load(Ordering::Acquire) {
+        if !self.shared.terminal_published.load(Ordering::Acquire) {
             let _ = self.stop(PhysicalWorkStopKind::Drop);
         }
     }
-}
-
-impl PhysicalReadSubmission {
-    pub fn submit(&self, request: PhysicalReadWorkRequest) -> PhysicalWorkSubmissionOutcome {
-        submit(
-            &self.shared,
-            self.generation,
-            PhysicalWorkIntentRequest {
-                operation: PhysicalWorkOperationFamily::ArtifactRangeRead,
-                scope: request.scope,
-                semantic_basis: request.semantic_basis,
-                security: request.security,
-                effect: super::PhysicalWorkEffectClass::ReadOnly,
-                durability: PhysicalWorkDurabilityRequirement::ReadOnly,
-                recovery: PhysicalWorkRecoveryDisposition::NoEffect,
-            },
-        )
-    }
-}
-
-impl PhysicalMutationSubmission {
-    pub fn submit(&self, request: PhysicalMutationWorkRequest) -> PhysicalWorkSubmissionOutcome {
-        submit(
-            &self.shared,
-            self.generation,
-            PhysicalWorkIntentRequest {
-                operation: request.operation,
-                scope: request.scope,
-                semantic_basis: request.semantic_basis,
-                security: request.security,
-                effect: request.effect,
-                durability: PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
-                    request.durability,
-                ),
-                recovery: request.recovery,
-            },
-        )
-    }
-}
-
-struct PhysicalWorkIntentRequest {
-    operation: PhysicalWorkOperationFamily,
-    scope: super::PhysicalWorkScope,
-    semantic_basis: super::PhysicalWorkSemanticBasis,
-    security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
-    effect: super::PhysicalWorkEffectClass,
-    durability: PhysicalWorkDurabilityRequirement,
-    recovery: PhysicalWorkRecoveryDisposition,
-}
-
-fn submit(
-    weak: &Weak<PhysicalSubmissionState>,
-    generation: LifecycleGeneration,
-    request: PhysicalWorkIntentRequest,
-) -> PhysicalWorkSubmissionOutcome {
-    let Some(shared) = weak.upgrade() else {
-        return TransitionOutcome::stale(PhysicalWorkSubmissionStale::OwnerReleased).into();
-    };
-    let _activity = match shared.enter(generation) {
-        Ok(activity) => activity,
-        Err(stale) => return TransitionOutcome::stale(stale).into(),
-    };
-    if let Err(denial) = admit_submission_contracts(&shared, &request) {
-        return TransitionOutcome::denied(denial).into();
-    }
-    let scope_members = request.scope.coordinates().len();
-    let semantic_bytes = request.semantic_basis.semantic_byte_width();
-    let reservation = match shared.reserve(scope_members, semantic_bytes) {
-        Ok(reservation) => reservation,
-        Err(deferred) => return TransitionOutcome::deferred(deferred).into(),
-    };
-    let identity = match allocate_operation_identity(&shared) {
-        Ok(identity) => identity,
-        Err(failure) => return TransitionOutcome::failed(failure).into(),
-    };
-    let intent = match PhysicalWorkIntent::from_instance_owner(PhysicalWorkIntentParts {
-        identity,
-        operation: request.operation,
-        scope: request.scope,
-        semantic_basis: request.semantic_basis,
-        security: request.security,
-        effect: request.effect,
-        durability: request.durability,
-        signal_profile: shared.signal_profile,
-        recovery: request.recovery,
-    }) {
-        Ok(intent) => intent,
-        Err(denial) => {
-            return TransitionOutcome::denied(PhysicalWorkSubmissionDenial::Declaration(denial))
-                .into()
-        }
-    };
-    let reservation = reservation.commit();
-    shared.commands.push_declared(
-        intent,
-        reservation.scope_members,
-        reservation.semantic_bytes,
-    );
-    shared.accounting.record_declared();
-    TransitionOutcome::success(PhysicalWorkSubmissionReceipt {
-        identity,
-        signal_profile: shared.signal_profile,
-    })
-    .into()
-}
-
-fn admit_submission_contracts(
-    shared: &PhysicalSubmissionState,
-    request: &PhysicalWorkIntentRequest,
-) -> Result<(), PhysicalWorkSubmissionDenial> {
-    if !shared.bindings.admits(
-        request.semantic_basis.aspect_identity(),
-        request.semantic_basis.binding_stamp(),
-    ) {
-        return Err(PhysicalWorkSubmissionDenial::SemanticContractNotInstalled);
-    }
-    if !shared.bindings.admits_security(request.security) {
-        return Err(PhysicalWorkSubmissionDenial::SecurityAuthorityMismatch);
-    }
-    Ok(())
-}
-
-fn allocate_operation_identity(
-    shared: &PhysicalSubmissionState,
-) -> Result<PhysicalWorkIdentity, PhysicalWorkSubmissionFailure> {
-    let sequence = shared
-        .next_operation
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            value.checked_add(1)
-        })
-        .map_err(|_| PhysicalWorkSubmissionFailure::OperationIdentityExhausted)?;
-    let sequence = NonZeroU64::new(sequence)
-        .expect("physical operation sequence starts at one and only increments");
-    Ok(PhysicalWorkIdentity::from_instance_owner(
-        shared.store,
-        shared.runtime,
-        PhysicalWorkGeneration::from_lifecycle(shared.generation),
-        PhysicalOperationIdentity::from_owner_sequence(sequence),
-    ))
 }
 
 #[cfg(feature = "certification-test-authority")]

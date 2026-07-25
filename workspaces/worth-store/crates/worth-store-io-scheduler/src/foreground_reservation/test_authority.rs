@@ -103,6 +103,18 @@ pub fn admitted_secure_frame_read_reservation_for_certification_test(
     admitted_secure_frame_reservation_for_certification_test(lane)
 }
 
+pub fn admitted_buffered_file_read_reservation_for_certification_test(
+) -> ForegroundReservationReceipt {
+    let lane = ForegroundLaneDeclaration::buffered_file_internal_foreground_read()
+        .expect("buffered file internal read lane should be Store-owned")
+        .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
+            "certification-buffered-file-read",
+            2,
+        ))
+        .with_budget(point_read_budget());
+    admitted_reservation_for_certification_test(lane)
+}
+
 fn admitted_reservation_for_certification_test(
     lane: ForegroundLaneDeclaration,
 ) -> ForegroundReservationReceipt {

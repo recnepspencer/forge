@@ -37,13 +37,15 @@ fn secure_io_receipt_is_required_for_secure_queue_admission() {
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("buffer-pool producer should lower")
         .with_secure_io_scope(secure_io);
-
-    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
+        work.clone(),
         super::support::policy_receipt(budget),
-    ))
-    .expect("queue work should preserve admitted secure-I/O scope");
+    )
+    .expect("policy receipt should bind the exact queue work");
+
+    let plan =
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+            .expect("queue work should preserve admitted secure-I/O scope");
 
     assert_eq!(plan.work().secure_io(), Some(secure_io));
 }
@@ -59,13 +61,15 @@ fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
         IoSchedulerBackendCapabilityRequirement::DirectIo,
     )
     .expect("direct I/O backend should admit");
-
-    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
+        work.clone(),
         super::support::policy_receipt(budget),
-    ))
-    .expect_err("read-ahead must not admit without secure-I/O preservation");
+    )
+    .expect("policy receipt should bind the exact queue work");
+
+    let denial =
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+            .expect_err("read-ahead must not admit without secure-I/O preservation");
 
     assert_eq!(
         denial,
@@ -92,13 +96,15 @@ fn secure_io_receipt_operation_cannot_be_laundered() {
     let work = lower_buffer_pool_queue_declaration(producer, reservation)
         .expect("buffer-pool producer should lower")
         .with_secure_io_scope(secure_io);
-
-    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        &backend,
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
+        work.clone(),
         super::support::policy_receipt(budget),
-    ))
-    .expect_err("background receipt must not satisfy read-ahead work");
+    )
+    .expect("policy receipt should bind the exact queue work");
+
+    let denial =
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+            .expect_err("background receipt must not satisfy read-ahead work");
 
     assert_eq!(
         denial,

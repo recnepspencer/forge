@@ -35,7 +35,7 @@ fn residency_covers_store_write() {
                     dirty.load(Ordering::Acquire),
                     "C5_PREDICATE:publication-ownership store write escaped dirty residency"
                 );
-                Ok(CandidateFramePhysicalWrite::for_contract_test())
+                Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test())
             },
         )
         .unwrap();
@@ -101,12 +101,17 @@ impl ResidentCandidateFrame for PublicationOrderResident {
         self.frame.bytes()
     }
 
+    fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial> {
+        assert!(self.dirty.swap(false, Ordering::AcqRel));
+        Ok(())
+    }
+
     fn publish_clean(
         self: Box<Self>,
         _physical: &CandidateFramePhysicalWrite,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
         assert!(self.dirty.swap(false, Ordering::AcqRel));
-        Ok(CandidateFrameWriteCompletion::retained(
+        Ok(CandidateFrameWriteCompletion::for_contract_test(
             self.frame.bytes().len() as u64,
         ))
     }

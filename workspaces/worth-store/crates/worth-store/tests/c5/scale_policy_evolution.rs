@@ -13,11 +13,15 @@ pub(super) fn prove() {
     let format = format();
     let initial = placement(format, 4, 2, 50);
     let admitted_access = access(format, 11);
-    let mut serving = success(media(&root).initialize_record_store(
-        PhysicalRecordInitialization::new(format, initial, admitted_access),
-    ));
+    let serving = success(
+        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
+            format,
+            initial,
+            admitted_access,
+        )),
+    );
     let first = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter((0..25).map(|value| vec![value; 600])).unwrap(),
             initial,
@@ -31,7 +35,7 @@ pub(super) fn prove() {
         .media_counters()
         .attempts_for(MediaOperationRole::PositionedWrite);
     assert!(matches!(
-        serving.records_mut().append_batch(
+        serving.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"cost-visible migration".as_slice()]).unwrap(),
             wider,
         ),
@@ -46,7 +50,7 @@ pub(super) fn prove() {
         writes_before
     );
     serving
-        .records_mut()
+        .record_submission()
         .append_batch_reconstructing_manifest_capacity(
             RecordAppendBatch::try_from_iter((0..5).map(|value| vec![0x80 + value; 900])).unwrap(),
             wider,
@@ -61,7 +65,7 @@ pub(super) fn prove() {
 
     let narrower = placement(format, 2, 1, 60);
     serving
-        .records_mut()
+        .record_submission()
         .append_batch_reconstructing_manifest_capacity(
             RecordAppendBatch::try_from_iter((0..5).map(|value| vec![0xc0 + value; 700])).unwrap(),
             narrower,

@@ -2,6 +2,33 @@ use serde::{Deserialize, Serialize};
 
 use crate::classification::CiTestLane;
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum CourtroomSelection {
+    A,
+    B,
+    C,
+}
+
+impl CourtroomSelection {
+    pub(crate) fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "a" => Ok(Self::A),
+            "b" => Ok(Self::B),
+            "c" => Ok(Self::C),
+            _ => Err(format!("unknown courtroom `{value}`; expected `a|b|c`")),
+        }
+    }
+
+    pub(crate) const fn label(self) -> &'static str {
+        match self {
+            Self::A => "a",
+            Self::B => "b",
+            Self::C => "c",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub(crate) enum TestProduct {
@@ -11,6 +38,9 @@ pub(crate) enum TestProduct {
     Smoke,
     Ui,
     Mutants,
+    Courtrooms {
+        courtroom: CourtroomSelection,
+    },
     Ci {
         lane: CiTestLane,
         shard: Option<(usize, usize)>,
@@ -24,6 +54,7 @@ impl TestProduct {
             Self::Smoke => "smoke".into(),
             Self::Ui => "ui".into(),
             Self::Mutants => "mutants".into(),
+            Self::Courtrooms { courtroom } => format!("courtroom:{}", courtroom.label()),
             Self::Ci { lane, shard } => match shard {
                 Some((index, count)) => format!("ci:{lane}:{index}/{count}"),
                 None => format!("ci:{lane}"),

@@ -16,13 +16,13 @@ pub(in crate::physical_runtime::record_serving) fn admitted_generation(
 pub(in crate::physical_runtime::record_serving) fn layout_failure(
     failure: super::super::residency::frame_loading::FrameLoadFailure,
 ) -> RecordAppendError {
-    match failure {
-        super::super::residency::frame_loading::FrameLoadFailure::Backend(failure)
+    match failure.kind() {
+        super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure)
             if failure.kind() == ArtifactTreeFailureKind::DeniedBeforeEffect =>
         {
             RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
         }
-        super::super::residency::frame_loading::FrameLoadFailure::Residency(reason) => {
+        super::super::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => {
             RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason))
         }
         _ => RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged),
@@ -35,8 +35,13 @@ pub(in crate::physical_runtime::record_serving) fn manifest_lookup_failure(
     match failure {
         super::super::access::manifest_routing::ManifestLookupFailure::Backend(failure) => {
             layout_failure(
-                super::super::residency::frame_loading::FrameLoadFailure::Backend(failure),
+                super::super::residency::frame_loading::FrameLoadFailure::new(
+                    super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure),
+                ),
             )
+        }
+        super::super::access::manifest_routing::ManifestLookupFailure::Frame(kind) => {
+            layout_failure(super::super::residency::frame_loading::FrameLoadFailure::new(kind))
         }
         super::super::access::manifest_routing::ManifestLookupFailure::Damaged => {
             RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)

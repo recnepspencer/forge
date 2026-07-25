@@ -122,7 +122,7 @@ fn admitted_background_queue_plan(
     };
     let work = lower_background_queue_lease(admitted.lease());
     let policy = crate::admit_queue_policy_receipt(
-        work,
+        work.clone(),
         background_policy_receipt(work.requested_budget(), work.requested_budget()),
     )
     .expect("background policy receipt should bind exact work");

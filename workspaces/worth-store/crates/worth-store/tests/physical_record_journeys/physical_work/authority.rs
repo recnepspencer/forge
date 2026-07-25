@@ -100,12 +100,9 @@ fn installed_profile_rejects_an_exact_contract_from_another_physical_boundary() 
             .unwrap();
     let fact = projection_fact(&contract, identity, alternate_witness, "other-boundary");
     let basis = PhysicalWorkSemanticBasis::projection(fact, alternate).unwrap();
-    let request = PhysicalReadWorkRequest::new(
-        request_scope(),
-        basis,
-        security_scope(alternate_witness),
-    )
-    .unwrap();
+    let request =
+        PhysicalReadWorkRequest::new(request_scope(), basis, security_scope(alternate_witness))
+            .unwrap();
     let serving = serving_from_initialization_with_work_profile(
         root.path(),
         PhysicalWorkProfileDeclaration::new(security_scope(witness), [installed]).unwrap(),

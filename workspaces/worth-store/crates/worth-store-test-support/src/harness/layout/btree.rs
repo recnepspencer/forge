@@ -131,6 +131,7 @@ pub fn deterministic_btree_replay_world() -> DeterministicBTreeReplayWorld {
     deterministic_btree_replay_world_with_damage(BTreeFixtureDamage::None, None)
 }
 
+#[cfg(feature = "certification-world")]
 pub fn deterministic_admitted_btree_replay_physical_source(
 ) -> worth_store_recovery_physics::AdmittedBTreeReplayPhysicalSource {
     let world = deterministic_btree_replay_world();

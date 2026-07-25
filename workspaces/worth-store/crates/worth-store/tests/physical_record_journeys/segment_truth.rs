@@ -20,13 +20,13 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
         .manifest_capacity(ManifestEntryCapacity::new(16).unwrap())
         .admit(format)
         .unwrap();
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let payloads = [vec![1_u8; 4_000], vec![2_u8; 4_000], vec![3_u8; 4_000]];
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
             placement,
@@ -44,8 +44,7 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
     )
     .unwrap();
 
-    let mut reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
     assert!(matches!(
         reopened.records().open(
             first,
@@ -60,7 +59,7 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
     ));
     assert_eq!(
         reopened
-            .records_mut()
+            .record_submission()
             .append_batch(
                 RecordAppendBatch::try_from_iter([b"retry".as_slice()]).unwrap(),
                 placement,
@@ -79,12 +78,12 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = configuration();
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([b"published".as_slice()]).unwrap(),
             placement,
@@ -106,11 +105,10 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
         Err(worth_store_offline_verifier::OfflineDurableManifestDenial::InvalidTreeShape)
     );
 
-    let mut reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
     let before = reopened.media_counters();
     assert!(matches!(
-        reopened.records_mut().append_batch(
+        reopened.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"candidate".as_slice()]).unwrap(),
             placement,
         ),
@@ -125,7 +123,7 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
     );
     assert_eq!(
         reopened
-            .records_mut()
+            .record_submission()
             .append_batch(
                 RecordAppendBatch::try_from_iter([b"retry".as_slice()]).unwrap(),
                 placement,
@@ -161,12 +159,12 @@ enum RoutingCorruption {
 fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorruption) {
     let root = parent.join(format!("{corruption:?}"));
     let (format, placement, access) = configuration();
-    let mut serving = success(
+    let serving = success(
         media(&root)
             .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
     );
     let published = serving
-        .records_mut()
+        .record_submission()
         .append_batch(
             RecordAppendBatch::try_from_iter([
                 b"record-1".as_slice(),

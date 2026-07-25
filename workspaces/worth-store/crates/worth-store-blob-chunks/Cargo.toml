@@ -23,7 +23,7 @@ worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-aspect-native.workspace = true
 worth-store-budgets.workspace = true
-worth-store-buffer-pool.workspace = true
+worth-store-buffer-pool = { workspace = true, features = ["legacy-s2-models"] }
 worth-store-contracts.workspace = true
 worth-store-authority.workspace = true
 worth-store-io-scheduler.workspace = true

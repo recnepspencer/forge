@@ -46,11 +46,8 @@ impl PhysicalWorkIntent {
             parts.durability,
             parts.recovery,
         )?;
-        let resources = PhysicalWorkResourceDemand::derive(
-            &parts.scope,
-            parts.operation,
-            parts.durability,
-        );
+        let resources =
+            PhysicalWorkResourceDemand::derive(&parts.scope, parts.operation, parts.durability);
         Ok(Self {
             identity: parts.identity,
             operation: parts.operation,

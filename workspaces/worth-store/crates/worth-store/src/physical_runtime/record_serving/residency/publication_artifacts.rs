@@ -1,79 +1,190 @@
-use worth_store_physical_backend::{
-    ArtifactRangeWriteOutcome, ArtifactTreeFailure, QualifiedFilesystemMedia,
-};
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
-use super::artifact_tree::PhysicalRecordArtifactTree;
-use super::candidate_frame_residency::CandidateFramePhysicalWrite;
+use super::candidate_frame_residency::{
+    CandidateFrame, CandidateFramePhysicalWrite, CandidateFrameWriteCompletion,
+    CandidateFrameWriteFailure, StoreCandidateFramePublicationSession,
+};
 
-pub(in crate::physical_runtime::record_serving) struct PublicationRecordArtifacts<'media> {
-    tree: PhysicalRecordArtifactTree<'media>,
+pub(in crate::physical_runtime::record_serving) struct PublicationRecordArtifacts<'port> {
+    mutation: &'port super::super::CanonicalRecordMutationPort,
 }
 
-impl<'media> PublicationRecordArtifacts<'media> {
+pub(in crate::physical_runtime::record_serving) struct StagedPublicationRecordArtifacts<
+    'port,
+    'work,
+> {
+    mutation: &'port super::super::CanonicalRecordMutationPort,
+    stage: super::super::RecordPublicationStage,
+    work: &'work mut super::super::RecordPublicationWorkTrace,
+}
+
+impl<'port> PublicationRecordArtifacts<'port> {
     pub(in crate::physical_runtime::record_serving) fn new(
-        media: &'media QualifiedFilesystemMedia,
+        mutation: &'port super::super::CanonicalRecordMutationPort,
     ) -> Self {
-        Self {
-            tree: PhysicalRecordArtifactTree::new(media),
-        }
+        Self { mutation }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn write_new_frame(
+    pub(in crate::physical_runtime::record_serving) fn at<'work>(
         &self,
+        stage: super::super::RecordPublicationStage,
+        work: &'work mut super::super::RecordPublicationWorkTrace,
+    ) -> StagedPublicationRecordArtifacts<'port, 'work> {
+        StagedPublicationRecordArtifacts {
+            mutation: self.mutation,
+            stage,
+            work,
+        }
+    }
+}
+
+impl StagedPublicationRecordArtifacts<'_, '_> {
+    pub(in crate::physical_runtime::record_serving) fn write_new_candidate(
+        &mut self,
+        residency: &mut StoreCandidateFramePublicationSession,
+        frame: CandidateFrame,
+        artifact: RecordArtifactFile,
+    ) -> Result<
+        CandidateFrameWriteCompletion,
+        CandidateFrameWriteFailure<super::super::CanonicalRecordMutationFailure>,
+    > {
+        residency.write_frame(frame, &mut |bytes| self.write_new_frame(artifact, bytes))
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn append_candidate(
+        &mut self,
+        residency: &mut StoreCandidateFramePublicationSession,
+        frame: CandidateFrame,
+        coordinate: RecordFrameCoordinate,
+    ) -> Result<
+        CandidateFrameWriteCompletion,
+        CandidateFrameWriteFailure<super::super::CanonicalRecordMutationFailure>,
+    > {
+        residency.write_frame(frame, &mut |bytes| self.append_frame(coordinate, bytes))
+    }
+
+    fn write_new_frame(
+        &mut self,
         artifact: RecordArtifactFile,
         bytes: &[u8],
-    ) -> Result<CandidateFramePhysicalWrite, ArtifactTreeFailure> {
+    ) -> Result<CandidateFramePhysicalWrite, super::super::CanonicalRecordMutationFailure> {
         let length = u32::try_from(bytes.len()).expect("candidate frame length is u32-bounded");
         let coordinate = RecordFrameCoordinate::new(artifact, 0, length)
             .expect("candidate frames are nonempty and offset-bounded");
-        let mut file = self.tree.create_new_file(artifact)?;
-        classify_candidate_write(file.write_exact_chunk(coordinate, bytes))
+        let physical = candidate_frame(
+            self.mutation
+                .prepare_new_artifact(self.stage, coordinate, bytes)?
+                .execute()?,
+        )?;
+        self.record_candidate(&physical);
+        Ok(physical)
     }
 
-    pub(in crate::physical_runtime::record_serving) fn create_new_file(
-        &self,
-        artifact: RecordArtifactFile,
-    ) -> Result<worth_store_physical_backend::ArtifactTreeNewFile<'_>, ArtifactTreeFailure> {
-        self.tree.create_new_file(artifact)
+    fn append_frame(
+        &mut self,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+    ) -> Result<CandidateFramePhysicalWrite, super::super::CanonicalRecordMutationFailure> {
+        let physical = candidate_frame(
+            self.mutation
+                .prepare_extent_append(self.stage, coordinate, bytes)?
+                .execute()?,
+        )?;
+        self.record_candidate(&physical);
+        Ok(physical)
     }
 
     pub(in crate::physical_runtime::record_serving) fn synchronize_artifact(
-        &self,
+        &mut self,
         artifact: RecordArtifactFile,
-    ) -> Result<(), ArtifactTreeFailure> {
-        self.tree.synchronize_artifact(artifact)
+    ) -> Result<
+        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationFailure,
+    > {
+        self.record_publication(self.mutation.prepare_publication_effect(
+            self.stage,
+            artifact,
+            super::super::CanonicalRecordPublicationEffect::Artifact,
+        )?)
     }
 
     pub(in crate::physical_runtime::record_serving) fn synchronize_artifact_parent(
-        &self,
+        &mut self,
         artifact: RecordArtifactFile,
-    ) -> Result<(), ArtifactTreeFailure> {
-        self.tree.synchronize_artifact_parent(artifact)
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn replace_catalog(
-        &self,
-        candidate: RecordArtifactFile,
-    ) -> Result<(), ArtifactTreeFailure> {
-        self.tree.replace_catalog(candidate)
+    ) -> Result<
+        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationFailure,
+    > {
+        self.record_publication(self.mutation.prepare_publication_effect(
+            self.stage,
+            artifact,
+            super::super::CanonicalRecordPublicationEffect::ArtifactParent,
+        )?)
     }
 
     pub(in crate::physical_runtime::record_serving) fn synchronize_record_family(
-        &self,
-    ) -> Result<(), ArtifactTreeFailure> {
-        self.tree.synchronize_record_family()
+        &mut self,
+    ) -> Result<
+        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationFailure,
+    > {
+        self.record_publication(self.mutation.prepare_publication_effect(
+            self.stage,
+            RecordArtifactFile::BootstrapCatalog,
+            super::super::CanonicalRecordPublicationEffect::RecordFamily,
+        )?)
+    }
+
+    fn record_candidate(&mut self, physical: &CandidateFramePhysicalWrite) {
+        self.work.record(
+            self.stage,
+            physical
+                .work()
+                .expect("canonical candidate writes carry physical work identity"),
+        );
+    }
+
+    fn record_publication(
+        &mut self,
+        prepared: super::super::PreparedCanonicalRecordMutation,
+    ) -> Result<
+        crate::physical_runtime::PhysicalWorkIdentity,
+        super::super::CanonicalRecordMutationFailure,
+    > {
+        let identity = publication_effect(prepared)?;
+        self.work.record(self.stage, identity);
+        Ok(identity)
     }
 }
 
-pub(in crate::physical_runtime::record_serving) fn classify_candidate_write(
-    outcome: ArtifactRangeWriteOutcome,
-) -> Result<CandidateFramePhysicalWrite, ArtifactTreeFailure> {
-    match outcome {
-        ArtifactRangeWriteOutcome::Completed(receipt) => {
-            Ok(CandidateFramePhysicalWrite::completed(receipt))
+fn candidate_frame(
+    completion: super::super::CanonicalRecordMutationCompletion,
+) -> Result<CandidateFramePhysicalWrite, super::super::CanonicalRecordMutationFailure> {
+    let identity = completion.identity();
+    match completion {
+        super::super::CanonicalRecordMutationCompletion::CandidateFrame(completed) => {
+            Ok(completed.into_physical())
         }
-        ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure) => Err(failure),
-        ArtifactRangeWriteOutcome::Indeterminate(indeterminate) => Err(indeterminate.failure()),
+        super::super::CanonicalRecordMutationCompletion::PublicationEffect(_) => {
+            Err(super::super::CanonicalRecordMutationFailure::settlement_mismatch(identity))
+        }
+    }
+}
+
+fn publication_effect(
+    prepared: super::super::PreparedCanonicalRecordMutation,
+) -> Result<
+    crate::physical_runtime::PhysicalWorkIdentity,
+    super::super::CanonicalRecordMutationFailure,
+> {
+    let completion = prepared.execute()?;
+    let identity = completion.identity();
+    match completion {
+        super::super::CanonicalRecordMutationCompletion::PublicationEffect(identity) => {
+            Ok(identity)
+        }
+        super::super::CanonicalRecordMutationCompletion::CandidateFrame(_) => {
+            Err(super::super::CanonicalRecordMutationFailure::settlement_mismatch(identity))
+        }
     }
 }

@@ -1,26 +1,24 @@
 use tempfile::tempdir;
-use worth_foundational::{
-    performance, FoundationalPerformanceAccessPatternPosture, FoundationalPerformanceBoundary,
-    FoundationalPerformanceBreadthLocalityPosture, FoundationalPerformanceBudgetKind,
-    FoundationalPerformanceEvidenceStrength, FoundationalPerformanceExecutionTemperature,
-    FoundationalPerformanceFallbackDebtPosture, FoundationalPerformanceFreshnessRetentionPosture,
-    FoundationalPerformanceWorkClass,
-};
+use worth_foundational::FoundationalPerformanceWorkClass;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     PhysicalSchedulerDemand, PhysicalSchedulerDenial, PhysicalWorkOperationFamily,
     PhysicalWorkReadiness,
 };
 use worth_store_io_scheduler::{
-    foreground_reservation::{
-        admitted_page_write_reservation_for_certification_test, ForegroundIoLaneKind,
-    },
-    BackgroundResourceBudget, QueueDurabilityClass, QueueExecutionAdmissionDenial,
+    foreground_reservation::ForegroundIoLaneKind, QueueDurabilityClass,
+    QueueExecutionAdmissionDenial,
 };
 
 use super::fixture::{
     disjoint_mutation_fixture, serving_from_initialization_with_work_profile, work_fixture,
 };
+
+mod locality;
+mod policy_evidence;
+
+use policy_evidence::mismatched_policy_receipt;
+pub(crate) use policy_evidence::{exhausted_policy_receipt, policy_receipt, policy_receipt_for};
 
 #[test]
 fn ready_work_lowers_exact_budget_and_admits_without_effects() {
@@ -29,12 +27,9 @@ fn ready_work_lowers_exact_budget_and_admits_without_effects() {
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let before = serving.media_counters();
     let ready = ready_work(&serving, mutation_request);
-    let demand = PhysicalSchedulerDemand::foreground(
-        ready,
-        admitted_page_write_reservation_for_certification_test(),
-        None,
-    )
-    .unwrap();
+    let demand =
+        PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(&serving), None)
+            .unwrap();
     let work = demand.queue_work();
     assert_eq!(work.durability_class(), QueueDurabilityClass::BufferedWrite);
     assert_eq!(work.requested_budget().queue_slots(), 1);
@@ -70,12 +65,9 @@ fn budget_mismatch_preserves_the_scheduler_denial() {
     let (profile, _, mutation_request) = work_fixture();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let ready = ready_work(&serving, mutation_request);
-    let demand = PhysicalSchedulerDemand::foreground(
-        ready,
-        admitted_page_write_reservation_for_certification_test(),
-        None,
-    )
-    .unwrap();
+    let demand =
+        PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(&serving), None)
+            .unwrap();
     let work = demand.queue_work();
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
@@ -98,7 +90,7 @@ fn policy_receipt_for_planning_cannot_admit_authoritative_physical_io() {
     let root = tempdir().unwrap();
     let (profile, _, mutation_request) = work_fixture();
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
-    let demand = write_demand(ready_work(&serving, mutation_request));
+    let demand = write_demand(&serving, ready_work(&serving, mutation_request));
     let work = demand.queue_work();
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
@@ -131,11 +123,7 @@ fn operation_family_cannot_be_laundered_into_an_incompatible_lane() {
     let ready = ready_read_work(&serving, read_request);
 
     assert!(matches!(
-        PhysicalSchedulerDemand::foreground(
-            ready,
-            admitted_page_write_reservation_for_certification_test(),
-            None,
-        ),
+        PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(&serving), None,),
         Err(PhysicalSchedulerDenial::ForegroundLaneMismatch {
             operation: PhysicalWorkOperationFamily::ArtifactRangeRead,
             lane: ForegroundIoLaneKind::OrdinaryPageWrite,
@@ -154,9 +142,9 @@ fn disjoint_ready_work_admits_independently_and_a_denial_does_not_mutate_admitte
     let second = ready_work(&serving, second_request);
     let third = ready_work(&serving, third_request);
     let before_media = serving.media_counters();
-    let first_demand = write_demand(first);
-    let second_demand = write_demand(second);
-    let third_demand = write_demand(third);
+    let first_demand = write_demand(&serving, first);
+    let second_demand = write_demand(&serving, second);
+    let third_demand = write_demand(&serving, third);
     let budget = first_demand.queue_work().requested_budget();
     assert_eq!(second_demand.queue_work().requested_budget(), budget);
     assert_eq!(third_demand.queue_work().requested_budget(), budget);
@@ -236,7 +224,7 @@ fn a_scheduler_demand_cannot_cross_store_owners() {
     let (profile, _, mutation_request) = work_fixture();
     let first = serving_from_initialization_with_work_profile(first_root.path(), profile.clone());
     let second = serving_from_initialization_with_work_profile(second_root.path(), profile);
-    let demand = write_demand(ready_work(&first, mutation_request));
+    let demand = write_demand(&first, ready_work(&first, mutation_request));
     let work = demand.queue_work();
     let backend = second
         .admit_physical_scheduler_capability(work.backend_requirement())
@@ -258,18 +246,14 @@ fn a_scheduler_demand_cannot_cross_store_owners() {
     second.close();
 }
 
-fn write_demand(
+pub(super) fn write_demand(
+    serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
     ready: worth_store::physical_runtime::ReadyPhysicalWork,
 ) -> PhysicalSchedulerDemand {
-    PhysicalSchedulerDemand::foreground(
-        ready,
-        admitted_page_write_reservation_for_certification_test(),
-        None,
-    )
-    .unwrap()
+    PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(serving), None).unwrap()
 }
 
-fn ready_work(
+pub(crate) fn ready_work(
     serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
     request: worth_store::physical_runtime::PhysicalMutationWorkRequest,
 ) -> worth_store::physical_runtime::ReadyPhysicalWork {
@@ -293,7 +277,7 @@ fn ready_work(
     }
 }
 
-fn ready_read_work(
+pub(super) fn ready_read_work(
     serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
     request: worth_store::physical_runtime::PhysicalReadWorkRequest,
 ) -> worth_store::physical_runtime::ReadyPhysicalWork {
@@ -315,78 +299,4 @@ fn ready_read_work(
             )
         }
     }
-}
-
-fn policy_receipt(
-    budget: BackgroundResourceBudget,
-) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
-    policy_receipt_with_breadth_delta(budget, 0)
-}
-
-fn mismatched_policy_receipt(
-    budget: BackgroundResourceBudget,
-) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
-    policy_receipt_with_breadth_delta(budget, 1)
-}
-
-fn policy_receipt_with_breadth_delta(
-    budget: BackgroundResourceBudget,
-    breadth_delta: u32,
-) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
-    policy_receipt_for(
-        budget,
-        breadth_delta,
-        FoundationalPerformanceWorkClass::AuthoritativeMutation,
-    )
-}
-
-fn policy_receipt_for(
-    budget: BackgroundResourceBudget,
-    breadth_delta: u32,
-    work_class: FoundationalPerformanceWorkClass,
-) -> worth_foundational::FoundationalPolicyAdmissionReceipt {
-    let claim = performance()
-        .claim()
-        .policy_admission()
-        .boundary(FoundationalPerformanceBoundary::AuthoritativeExecution)
-        .evidence_strength(FoundationalPerformanceEvidenceStrength::RuntimePolicyAdmission)
-        .breadth_locality(FoundationalPerformanceBreadthLocalityPosture::DeltaBound)
-        .access_pattern(FoundationalPerformanceAccessPatternPosture::PointLookup)
-        .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
-        .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
-        .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
-        .include_work(work_class)
-        .exclude_work(FoundationalPerformanceWorkClass::SupportReportAssembly)
-        .finish()
-        .unwrap();
-    let amount = |kind| match kind {
-        FoundationalPerformanceBudgetKind::Breadth => {
-            (budget.queue_slots() + budget.worker_permits()) as u32 + breadth_delta
-        }
-        FoundationalPerformanceBudgetKind::Density => {
-            (budget.bandwidth_tokens() + budget.cache_residency_hints()) as u32
-        }
-        FoundationalPerformanceBudgetKind::Locality => {
-            (budget.read_ahead_window() + budget.write_back_window() + budget.reclaim_permits())
-                as u32
-        }
-        FoundationalPerformanceBudgetKind::FreshnessSensitive => 0,
-    };
-    let receipt = performance().policy_admission_receipt(claim);
-    [
-        FoundationalPerformanceBudgetKind::Breadth,
-        FoundationalPerformanceBudgetKind::Density,
-        FoundationalPerformanceBudgetKind::Locality,
-    ]
-    .into_iter()
-    .fold(receipt, |receipt, kind| {
-        let units = amount(kind);
-        if units == 0 {
-            receipt
-        } else {
-            receipt.budget_decision(kind, units, units)
-        }
-    })
-    .finish()
-    .unwrap()
 }

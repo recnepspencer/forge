@@ -10,8 +10,8 @@ use super::*;
 
 pub use backpressure::QueueBackpressureCause;
 pub use grouping::{
-    QueueGroupingBasis, QueueLocalityIdentity, QueueLocalityRelation, QueueRecoveryOrdering,
-    QueueWritebackPolicy,
+    QueueGroupingBasis, QueueLocalityIdentity, QueueLocalityRange, QueueLocalityRelation,
+    QueueRecoveryOrdering, QueueWritebackPolicy,
 };
 pub use physical_work::lower_physical_foreground_work;
 pub use producer_lowering::{lower_buffer_pool_queue_declaration, lower_wal_queue_declaration};
