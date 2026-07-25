@@ -172,8 +172,60 @@ impl UiMountedIdentityState {
         if !snapshot.matches(self.semantic_revision, self.binding_revision) {
             return false;
         }
-        self.pending_projection_changes = Default::default();
+        snapshot.commit_into(&mut self.pending_projection_changes);
         true
+    }
+
+    pub(crate) fn current_projection(&self) -> Option<&super::UiMountedProjectionFrame> {
+        self.current_projection.as_ref()
+    }
+
+    pub(crate) fn projection_instance(
+        &self,
+        identity: UiMountedInstanceIdentity,
+    ) -> Option<super::UiMountedInstanceIdentityView> {
+        self.instances
+            .get(&identity)
+            .map(|record| super::UiMountedInstanceIdentityView::new(identity, record.basis.clone()))
+    }
+
+    pub(crate) fn projection_instances(
+        &self,
+        surfaces: &[UiSemanticSurfaceIdentity],
+    ) -> Vec<super::UiMountedInstanceIdentityView> {
+        self.visible_order
+            .iter()
+            .filter_map(|identity| self.projection_instance(*identity))
+            .filter(|instance| surfaces.contains(&instance.basis().semantic_surface_identity()))
+            .collect()
+    }
+
+    pub(crate) fn projection_order(
+        &self,
+        surfaces: &[UiSemanticSurfaceIdentity],
+    ) -> Vec<UiMountedInstanceIdentity> {
+        self.visible_order
+            .iter()
+            .copied()
+            .filter(|identity| {
+                self.instances.get(identity).is_some_and(|record| {
+                    surfaces.contains(&record.basis.semantic_surface_identity())
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn projection_surface(
+        &self,
+        surface: UiSemanticSurfaceIdentity,
+    ) -> Option<(
+        super::UiSurfaceBindingIdentityView,
+        UiMountedProjectionAudience,
+    )> {
+        Some((
+            self.bindings.get(&surface)?.view,
+            self.semantic_surfaces.get(&surface).copied()?,
+        ))
     }
 }
 

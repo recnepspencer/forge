@@ -1,13 +1,11 @@
 use worth_ui_host_contract::{
     UiMountIncarnation, UiMountedAccessibilityProjection, UiMountedAllocationProjection,
     UiMountedDiagnosticProjection, UiMountedInstanceIdentity, UiMountedMechanicalRole,
-    UiMountedMotionProjection, UiMountedNodeReceiptIdentity, UiMountedPaintProjection,
-    UiMountedParticipation, UiMountedPreviewProjection, UiSemanticSurfaceIdentity,
+    UiMountedMotionProjection, UiMountedParticipation, UiSemanticSurfaceIdentity,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedNodeReceipt {
-    identity: UiMountedNodeReceiptIdentity,
     mounted_instance: UiMountedInstanceIdentity,
     graph_node: crate::graph::UiGraphNodeIdentity,
     semantic_surface: UiSemanticSurfaceIdentity,
@@ -16,15 +14,12 @@ pub struct UiMountedNodeReceipt {
     role: UiMountedMechanicalRole,
     participation: UiMountedParticipation,
     allocation: UiMountedAllocationProjection,
-    preview: UiMountedPreviewProjection,
-    paint: UiMountedPaintProjection,
     accessibility: UiMountedAccessibilityProjection,
     motion: UiMountedMotionProjection,
     diagnostic: UiMountedDiagnosticProjection,
 }
 
 pub(super) struct UiMountedNodeReceiptInput {
-    pub identity: UiMountedNodeReceiptIdentity,
     pub mounted_instance: UiMountedInstanceIdentity,
     pub graph_node: crate::graph::UiGraphNodeIdentity,
     pub semantic_surface: UiSemanticSurfaceIdentity,
@@ -43,7 +38,6 @@ impl UiMountedNodeReceipt {
         );
         let diagnostic = diagnostic_from_participation(input.participation.diagnostic().status());
         Self {
-            identity: input.identity,
             mounted_instance: input.mounted_instance,
             graph_node: input.graph_node,
             semantic_surface: input.semantic_surface,
@@ -52,12 +46,6 @@ impl UiMountedNodeReceipt {
             role: input.role,
             participation: input.participation,
             allocation: input.allocation,
-            preview: UiMountedPreviewProjection::Omitted(
-                worth_ui_host_contract::UiMountedOmissionReason::NotProducedByExecutedLane,
-            ),
-            paint: UiMountedPaintProjection::Omitted(
-                worth_ui_host_contract::UiMountedOmissionReason::NotProducedByExecutedLane,
-            ),
             accessibility,
             motion: UiMountedMotionProjection::Omitted(
                 worth_ui_host_contract::UiMountedOmissionReason::NotDefinedByCurrentRuntime,
@@ -66,9 +54,6 @@ impl UiMountedNodeReceipt {
         }
     }
 
-    pub fn identity(&self) -> UiMountedNodeReceiptIdentity {
-        self.identity
-    }
     pub fn mounted_instance(&self) -> UiMountedInstanceIdentity {
         self.mounted_instance
     }
@@ -93,12 +78,6 @@ impl UiMountedNodeReceipt {
     pub fn allocation(&self) -> UiMountedAllocationProjection {
         self.allocation
     }
-    pub fn preview(&self) -> UiMountedPreviewProjection {
-        self.preview
-    }
-    pub fn paint(&self) -> UiMountedPaintProjection {
-        self.paint
-    }
     pub fn accessibility(&self) -> UiMountedAccessibilityProjection {
         self.accessibility
     }
@@ -107,17 +86,6 @@ impl UiMountedNodeReceipt {
     }
     pub fn diagnostic(&self) -> UiMountedDiagnosticProjection {
         self.diagnostic
-    }
-
-    pub(super) fn attach_paint(
-        &mut self,
-        reference: worth_ui_host_contract::UiMountedPaintBatchReference,
-    ) {
-        self.paint = UiMountedPaintProjection::Batch(reference);
-    }
-
-    pub(super) fn attach_preview(&mut self, preview: UiMountedPreviewProjection) {
-        self.preview = preview;
     }
 }
 

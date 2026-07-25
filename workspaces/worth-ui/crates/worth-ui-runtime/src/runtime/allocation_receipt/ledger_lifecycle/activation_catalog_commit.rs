@@ -260,6 +260,9 @@ fn retain_only_active_catalog(
     replay_key: u64,
 ) {
     successor.committed_by_scope = Default::default();
+    successor
+        .mounted_projection_catalog
+        .replace_with(committed.receipts());
     for receipt in committed.receipts() {
         successor.committed_by_scope.insert(
             UiAllocationNeighborhoodScope::from_neighborhood(

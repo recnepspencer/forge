@@ -42,6 +42,8 @@ pub(crate) use allocation_receipt::project_allocation_preview;
 pub(crate) use allocation_receipt::UiAllocationTruthRevision;
 pub(crate) use allocation_receipt::UiCommittedAllocationCatalogActivationRow;
 pub(crate) use allocation_receipt::UiCommittedScrollActivationSource;
+pub(crate) use allocation_receipt::UiMountedAllocationProjectionCatalog;
+pub(crate) use allocation_receipt::UiMountedAllocationProjectionSource;
 pub use exports::*;
 
 #[cfg(test)]

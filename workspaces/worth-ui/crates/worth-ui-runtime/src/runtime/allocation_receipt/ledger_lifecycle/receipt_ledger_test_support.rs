@@ -118,6 +118,7 @@ impl super::UiAllocationReceiptLedger {
             }
         };
         state.committed_by_scope.insert(scope, receipt.clone());
+        state.mounted_projection_catalog.insert(receipt.clone());
         state.truth_revision = revision;
         super::UiAllocationReceiptCommitOutcome::Committed(Box::new(receipt))
     }

@@ -202,8 +202,10 @@ impl WorthUiPreparedApplicationActivation {
         self.prepared_transition().candidate_query_binding()
     }
 
-    pub(super) fn candidate_allocation_receipts(&self) -> Vec<crate::runtime::UiAllocationReceipt> {
-        self.prepared_transition().candidate_allocation_receipts()
+    pub(super) fn candidate_allocation_catalog(
+        &self,
+    ) -> crate::runtime::UiMountedAllocationProjectionCatalog {
+        self.prepared_transition().candidate_allocation_catalog()
     }
 
     pub(super) fn candidate_plan_digest(&self) -> u64 {

@@ -31,6 +31,10 @@ impl<K: Ord + Clone + PartialEq> PartialEq for UiPersistentOrdSet<K> {
 impl<K: Ord + Clone + Eq> Eq for UiPersistentOrdSet<K> {}
 
 impl<K: Ord + Clone> UiPersistentOrdSet<K> {
+    pub(crate) fn len(&self) -> usize {
+        self.entries.len()
+    }
+
     pub(crate) fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }

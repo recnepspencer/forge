@@ -23,6 +23,7 @@ pub use delta::UiMountedFrameDelta;
 pub use denial::UiMountedIdentityDenial;
 pub(crate) use frame_assembler::{
     UiMountedFrameAssembler, UiMountedFrameAssemblyInput, UiMountedLaneAssembly,
+    UiMountedPlanProjectionSource,
 };
 pub(crate) use host_truth::UiMountedHostTruthCoordinator;
 pub use identity::{UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMountedIdentityBasis};

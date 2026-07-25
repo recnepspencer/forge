@@ -36,6 +36,10 @@ mod geometry_evidence;
 mod ledger_denial;
 #[path = "ledger_lifecycle/ledger_state.rs"]
 mod ledger_state;
+#[path = "ledger_lifecycle/mounted_projection_catalog.rs"]
+mod mounted_projection_catalog;
+#[path = "ledger_lifecycle/mounted_projection_journal.rs"]
+mod mounted_projection_journal;
 #[path = "transaction/prepared_portal_commit.rs"]
 mod prepared_portal_commit;
 #[path = "transaction/prepared_replan.rs"]
@@ -137,6 +141,8 @@ pub use truth_revision::{
 
 pub(crate) use ledger_state::UiAllocationCatalogLedgerLineage;
 pub(crate) use ledger_state::UiAllocationCatalogLedgerTransition;
+pub(crate) use mounted_projection_catalog::UiMountedAllocationProjectionCatalog;
+pub(crate) use mounted_projection_journal::UiMountedAllocationProjectionSource;
 pub(in crate::runtime) use prepared_replan::{
     UiAllocationLedgerPreparation, UiPreparedAllocationLedgerTransition,
 };

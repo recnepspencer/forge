@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiMountedProjectionAudience, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiSurfaceBindingGeneration,
 };
 
 use super::{UiMountedIdentityFrameCandidate, UiMountedIdentityState};
@@ -133,10 +133,6 @@ impl UiMountedIdentityState {
         if replacements.is_empty() {
             return Err(UiMountedIdentityDenial::ReconciliationBasisMismatch);
         }
-        let projection_changes = self.projection_change_snapshot();
-        if projection_changes.has_semantic_changes() {
-            return Err(UiMountedIdentityDenial::ReconciliationBasisMismatch);
-        }
         let replacement_views = replacements
             .iter()
             .map(|replacement| {
@@ -147,10 +143,20 @@ impl UiMountedIdentityState {
                     .ok_or(UiMountedIdentityDenial::UnknownSurfaceBinding)
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let projection = self
+        let current_projection = self
             .current_projection
             .as_ref()
-            .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?
+            .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?;
+        let current_instances = current_projection.mounted_instances().collect::<Vec<_>>();
+        let reconciled_surfaces = replacement_views
+            .iter()
+            .map(|(_, replacement)| replacement.semantic_surface_identity())
+            .collect::<Vec<_>>();
+        let projection_changes = self
+            .projection_change_snapshot()
+            .for_reconciliation(&current_instances, &reconciled_surfaces)
+            .ok_or(UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
+        let projection = current_projection
             .rebound(&replacement_views)
             .map_err(|_| UiMountedIdentityDenial::ReconciliationBasisMismatch)?;
         let current_core = self
@@ -245,13 +251,6 @@ impl UiMountedIdentityState {
         let contract = self.current_reuse_contract.as_ref()?;
         (contract == witness.contract() && receipt == witness.publication())
             .then(|| receipt.clone())
-    }
-
-    pub(in crate::mounting) fn audience_for(
-        &self,
-        surface: UiSemanticSurfaceIdentity,
-    ) -> Option<UiMountedProjectionAudience> {
-        self.semantic_surfaces.get(&surface).copied()
     }
 
     pub(crate) fn instances_for(

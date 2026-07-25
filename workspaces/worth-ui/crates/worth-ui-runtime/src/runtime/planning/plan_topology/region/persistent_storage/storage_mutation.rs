@@ -72,6 +72,7 @@ impl WorthUiPlanRegionStore {
         self.family_index
             .remove(record.executable.family(), stable_slot, counters);
         self.replace_realtime_budget_index(stable_slot, exhausted, false, counters);
+        self.remove_mounted_projection_record(&record);
         if record.executable.is_root_shell() {
             self.root_shell_root = slot_set::remove(&self.root_shell_root, stable_slot, counters);
             self.root_shell_count -= 1;
@@ -138,22 +139,25 @@ impl WorthUiPlanRegionStore {
         counters: &mut WorthUiPlanRegionStorageCounters,
     ) {
         let stable_slot = record.handle.stable_slot();
+        let predecessor = slot_trie::lookup(&self.slot_root, stable_slot).cloned();
         let family = record.executable.family();
-        let predecessor_family = slot_trie::lookup(&self.slot_root, stable_slot)
+        let predecessor_family = predecessor
+            .as_ref()
             .map(|predecessor| predecessor.executable.family());
-        let predecessor_root_shell = slot_trie::lookup(&self.slot_root, stable_slot)
+        let predecessor_root_shell = predecessor
+            .as_ref()
             .is_some_and(|predecessor| predecessor.executable.is_root_shell());
-        let predecessor_realtime_exhausted = slot_trie::lookup(&self.slot_root, stable_slot)
-            .is_some_and(|predecessor| {
-                super::lane_contract::realtime_budget_exhausted(&predecessor.executable)
-            });
+        let predecessor_realtime_exhausted = predecessor.as_ref().is_some_and(|predecessor| {
+            super::lane_contract::realtime_budget_exhausted(&predecessor.executable)
+        });
         let successor_realtime_exhausted =
             super::lane_contract::realtime_budget_exhausted(&record.executable);
-        if let Some(predecessor) = slot_trie::lookup(&self.slot_root, stable_slot) {
+        if let Some(predecessor) = predecessor.as_ref() {
             let predecessor_digest = predecessor.semantic_digest();
             self.semantic_digest ^= predecessor_digest;
             self.family_index
                 .toggle_semantic_digest(predecessor.executable.family(), predecessor_digest);
+            self.remove_mounted_projection_record(predecessor);
         }
         let record_digest = record.semantic_digest();
         self.semantic_digest ^= record_digest;
@@ -185,6 +189,7 @@ impl WorthUiPlanRegionStore {
         );
         self.identity_root =
             identity_trie::insert(&self.identity_root, Rc::clone(&record), counters);
+        self.insert_mounted_projection_record(&record);
         self.slot_root = slot_trie::insert(&self.slot_root, record, counters);
     }
 
