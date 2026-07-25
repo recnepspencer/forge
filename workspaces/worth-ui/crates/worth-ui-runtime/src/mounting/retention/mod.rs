@@ -1,6 +1,7 @@
 mod authority;
 mod budget;
 mod coordinator;
+mod diagnostic_evidence;
 mod evidence;
 mod inspection_basis;
 mod lease;
@@ -15,15 +16,17 @@ pub use budget::{
     UiMountedFrameRetentionDenial, UiMountedRetentionClass, UiMountedRetentionClassBudget,
 };
 pub(crate) use coordinator::UiMountedFrameRetentionCoordinator;
+pub(crate) use diagnostic_evidence::UiRetainedMountedDiagnostics;
 pub(crate) use evidence::{
     UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiRetainedPresentedFrame,
 };
 pub(crate) use inspection_basis::{
+    UiMountedDiagnosticInspectionBasis, UiMountedDiagnosticInspectionDenial,
     UiMountedFrameInspectionBasis, UiMountedFrameInspectionDenial,
     UiMountedFrameInspectionSelection, UiMountedFrameInspectionTarget,
 };
-pub(crate) use lease::UiMountedObservationBasisLease;
 pub use lease::UiMountedRetentionLease;
+pub(crate) use lease::{UiMountedDiagnosticRetentionLease, UiMountedObservationBasisLease};
 pub(crate) use observation_basis::UiMountedObservationBasisRetentionDenial;
 pub use rejection::UiMountedFrameRetentionRejection;
 pub(crate) use reservation::{UiMountedRetentionReservation, UiRetentionPreparedMountedFrame};

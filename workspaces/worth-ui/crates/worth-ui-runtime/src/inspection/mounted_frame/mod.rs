@@ -3,8 +3,9 @@ mod request;
 mod retention_report;
 
 pub use receipt::{
-    UiMountedInspectedFrame, UiMountedInspectionOmission, UiMountedInspectionReceipt,
-    UiMountedInspectionRelation,
+    UiMountedDiagnosticInspection, UiMountedDiagnosticInspectionOmission,
+    UiMountedInspectedDiagnostics, UiMountedInspectedFrame, UiMountedInspectionOmission,
+    UiMountedInspectionReceipt, UiMountedInspectionRelation,
 };
 pub use request::{UiMountedInspectionRequest, UiMountedInspectionTarget};
 pub use retention_report::{

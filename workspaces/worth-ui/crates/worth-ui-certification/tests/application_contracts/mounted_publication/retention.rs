@@ -22,6 +22,8 @@ use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 
 #[path = "retention/byte_reserves.rs"]
 mod byte_reserves;
+#[path = "retention/diagnostic_pressure.rs"]
+mod diagnostic_pressure;
 
 #[test]
 fn retention_capacity_denies_the_frame_before_any_adapter_effect() {

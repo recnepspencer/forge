@@ -1,9 +1,10 @@
 //! Mounted identity and surface-binding observations.
 
 pub use crate::inspection::mounted_frame::{
-    UiMountedInspectedFrame, UiMountedInspectionOmission, UiMountedInspectionReceipt,
-    UiMountedInspectionRelation, UiMountedInspectionRequest, UiMountedInspectionTarget,
-    UiMountedRetentionClassReport, UiMountedRetentionEvictionPosture,
+    UiMountedDiagnosticInspection, UiMountedDiagnosticInspectionOmission,
+    UiMountedInspectedDiagnostics, UiMountedInspectedFrame, UiMountedInspectionOmission,
+    UiMountedInspectionReceipt, UiMountedInspectionRelation, UiMountedInspectionRequest,
+    UiMountedInspectionTarget, UiMountedRetentionClassReport, UiMountedRetentionEvictionPosture,
     UiMountedRetentionQueueBudget, UiMountedRetentionReport,
 };
 pub use crate::mounting::{

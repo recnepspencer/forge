@@ -1,7 +1,10 @@
 use std::rc::Rc;
 
 use super::authority::{UiMountedFrameRetentionAuthority, UiMountedRetainedFrameState};
-use super::{UiMountedFrameRetentionDenial, UiMountedRetentionClass, UiRetainedPresentedFrame};
+use super::{
+    UiMountedFrameRetentionDenial, UiMountedRetentionClass, UiRetainedMountedDiagnostics,
+    UiRetainedPresentedFrame,
+};
 
 pub(super) struct UiMountedSuccessorRetentionAdmission {
     successor: UiMountedRetainedFrameState,
@@ -63,12 +66,84 @@ pub(super) fn admit_successor(
         retain_current_as_predecessor(&mut successor, candidate)?;
         enforce_predecessor_budget(&mut successor, authority)?;
     }
+    retain_diagnostics(&mut successor, frame, authority)?;
     Ok(UiMountedSuccessorRetentionAdmission {
         successor,
         expected_revision: authority.revision,
         successor_revision,
         structural_bytes,
     })
+}
+
+fn retain_diagnostics(
+    state: &mut UiMountedRetainedFrameState,
+    frame: &super::super::UiPreparedMountedFrame,
+    authority: &UiMountedFrameRetentionAuthority,
+) -> Result<(), UiMountedFrameRetentionDenial> {
+    let Some(candidate) = UiRetainedMountedDiagnostics::prepare(frame).map(Rc::new) else {
+        return Ok(());
+    };
+    let frame = candidate.frame();
+    if state.diagnostics.get(&frame).is_some() {
+        if authority.diagnostic_is_pinned(frame) {
+            return Ok(());
+        }
+        remove_diagnostics(state, frame);
+    }
+    let Some(next_bytes) = state
+        .diagnostic_structural_bytes
+        .checked_add(candidate.structural_bytes())
+    else {
+        return Ok(());
+    };
+    state.diagnostics.insert(frame, candidate);
+    state.diagnostic_order.push_back(frame);
+    state.diagnostic_structural_bytes = next_bytes;
+    enforce_diagnostic_budget(state, authority);
+    Ok(())
+}
+
+fn enforce_diagnostic_budget(
+    state: &mut UiMountedRetainedFrameState,
+    authority: &UiMountedFrameRetentionAuthority,
+) {
+    let budget = authority.budget.diagnostic();
+    while !budget.admits(state.diagnostics.len(), state.diagnostic_structural_bytes) {
+        let Some(position) = state
+            .diagnostic_order
+            .iter()
+            .position(|frame| !authority.diagnostic_is_pinned(*frame))
+        else {
+            break;
+        };
+        let frame = state
+            .diagnostic_order
+            .remove(position)
+            .expect("selected diagnostic position exists");
+        remove_diagnostics(state, frame);
+    }
+}
+
+fn remove_diagnostics(
+    state: &mut UiMountedRetainedFrameState,
+    frame: worth_ui_host_contract::UiMountedFrameIdentity,
+) {
+    let Some(evidence) = state.diagnostics.get(&frame) else {
+        return;
+    };
+    let structural_bytes = evidence.structural_bytes();
+    state.diagnostics.remove(&frame);
+    state.diagnostic_structural_bytes = state
+        .diagnostic_structural_bytes
+        .checked_sub(structural_bytes)
+        .expect("diagnostic retention bytes include indexed evidence");
+    if let Some(position) = state
+        .diagnostic_order
+        .iter()
+        .position(|candidate| *candidate == frame)
+    {
+        state.diagnostic_order.remove(position);
+    }
 }
 
 fn prepare_candidate(

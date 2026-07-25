@@ -15,7 +15,30 @@ pub struct UiMountedInspectedFrame {
     retained_structural_bytes: usize,
     frame_index_probes: usize,
     instance_index_probes: usize,
+    diagnostics: UiMountedDiagnosticInspection,
     lease: crate::mounting::UiMountedRetentionLease,
+}
+
+pub enum UiMountedDiagnosticInspection {
+    NotRequested,
+    Available(Box<UiMountedInspectedDiagnostics>),
+    Omitted(UiMountedDiagnosticInspectionOmission),
+}
+
+pub struct UiMountedInspectedDiagnostics {
+    evidence: std::rc::Rc<crate::mounting::UiRetainedMountedDiagnostics>,
+    _lease: crate::mounting::UiMountedDiagnosticRetentionLease,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiMountedDiagnosticInspectionOmission {
+    NotRetained,
+    CapacityExceeded {
+        required_leases: usize,
+        required_structural_bytes: usize,
+        budget: crate::mounting::UiMountedRetentionClassBudget,
+    },
+    AccountingOverflow,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,6 +71,20 @@ pub enum UiMountedInspectionOmission {
 
 impl UiMountedInspectionReceipt {
     pub(crate) fn available(basis: crate::mounting::UiMountedFrameInspectionBasis) -> Self {
+        let diagnostics = match basis.diagnostics {
+            crate::mounting::UiMountedDiagnosticInspectionBasis::NotRequested => {
+                UiMountedDiagnosticInspection::NotRequested
+            }
+            crate::mounting::UiMountedDiagnosticInspectionBasis::Available { evidence, lease } => {
+                UiMountedDiagnosticInspection::Available(Box::new(UiMountedInspectedDiagnostics {
+                    evidence,
+                    _lease: lease,
+                }))
+            }
+            crate::mounting::UiMountedDiagnosticInspectionBasis::Omitted(denial) => {
+                UiMountedDiagnosticInspection::Omitted(denial.into())
+            }
+        };
         Self::Available(Box::new(UiMountedInspectedFrame {
             frame: basis.frame,
             relation: match basis.relation {
@@ -65,6 +102,7 @@ impl UiMountedInspectionReceipt {
             retained_structural_bytes: basis.retained_structural_bytes,
             frame_index_probes: basis.frame_index_probes,
             instance_index_probes: basis.instance_index_probes,
+            diagnostics,
             lease: basis.lease,
         }))
     }
@@ -143,12 +181,58 @@ impl UiMountedInspectedFrame {
         self.instance_index_probes
     }
 
+    pub const fn diagnostics(&self) -> &UiMountedDiagnosticInspection {
+        &self.diagnostics
+    }
+
     pub fn retention_lease(&self) -> &crate::mounting::UiMountedRetentionLease {
         &self.lease
     }
 
     pub fn into_retention_lease(self) -> crate::mounting::UiMountedRetentionLease {
         self.lease
+    }
+}
+
+impl UiMountedInspectedDiagnostics {
+    pub fn frame(&self) -> UiMountedFrameIdentity {
+        self.evidence.frame()
+    }
+
+    pub fn rows(
+        &self,
+    ) -> &[(
+        worth_ui_host_contract::UiSurfaceBindingGeneration,
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+        worth_ui_host_contract::UiMountedDiagnosticProjection,
+    )] {
+        self.evidence.rows()
+    }
+
+    pub fn retained_structural_bytes(&self) -> usize {
+        self.evidence.structural_bytes()
+    }
+}
+
+impl From<crate::mounting::UiMountedDiagnosticInspectionDenial>
+    for UiMountedDiagnosticInspectionOmission
+{
+    fn from(denial: crate::mounting::UiMountedDiagnosticInspectionDenial) -> Self {
+        match denial {
+            crate::mounting::UiMountedDiagnosticInspectionDenial::NotRetained => Self::NotRetained,
+            crate::mounting::UiMountedDiagnosticInspectionDenial::CapacityExceeded {
+                required_leases,
+                required_structural_bytes,
+                budget,
+            } => Self::CapacityExceeded {
+                required_leases,
+                required_structural_bytes,
+                budget,
+            },
+            crate::mounting::UiMountedDiagnosticInspectionDenial::AccountingOverflow => {
+                Self::AccountingOverflow
+            }
+        }
     }
 }
 
@@ -174,6 +258,21 @@ impl std::fmt::Debug for UiMountedInspectedFrame {
             .field("retained_structural_bytes", &self.retained_structural_bytes)
             .field("frame_index_probes", &self.frame_index_probes)
             .field("instance_index_probes", &self.instance_index_probes)
+            .field("diagnostics", &self.diagnostics)
             .finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Debug for UiMountedDiagnosticInspection {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotRequested => formatter.write_str("NotRequested"),
+            Self::Available(diagnostics) => formatter
+                .debug_struct("Available")
+                .field("frame", &diagnostics.frame())
+                .field("rows", &diagnostics.rows().len())
+                .finish(),
+            Self::Omitted(omission) => formatter.debug_tuple("Omitted").field(omission).finish(),
+        }
     }
 }

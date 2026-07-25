@@ -55,12 +55,7 @@ pub(crate) fn compose(
             mounted.predecessor_inspection,
             mounted.budget.predecessor_inspection(),
         ),
-        evidence_row(
-            crate::mounting::UiMountedRetentionClass::Diagnostic,
-            UiMountedRetentionEvictionPosture::OmittedByPolicy,
-            mounted.diagnostic,
-            mounted.budget.diagnostic(),
-        ),
+        diagnostic_row(mounted),
         quarantine_row(observations),
         evidence_row(
             crate::mounting::UiMountedRetentionClass::FutureSnapshot,
@@ -72,6 +67,23 @@ pub(crate) fn compose(
     UiMountedRetentionReport {
         classes: rows.into_boxed_slice(),
     }
+}
+
+fn diagnostic_row(
+    mounted: crate::mounting::UiMountedFrameRetentionSnapshot,
+) -> UiMountedRetentionClassReport {
+    let budget = mounted.budget.diagnostic();
+    let posture = if budget.frame_limit() == 0 || budget.structural_byte_limit() == 0 {
+        UiMountedRetentionEvictionPosture::OmittedByPolicy
+    } else {
+        UiMountedRetentionEvictionPosture::EvictableUnlessLeased
+    };
+    evidence_row(
+        crate::mounting::UiMountedRetentionClass::Diagnostic,
+        posture,
+        mounted.diagnostic,
+        budget,
+    )
 }
 
 fn observation_basis_row(

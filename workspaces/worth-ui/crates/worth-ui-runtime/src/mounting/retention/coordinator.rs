@@ -12,12 +12,14 @@ use super::authority::{
 };
 use super::successor_admission::admit_successor;
 use super::{
-    UiMountedFrameInspectionBasis, UiMountedFrameInspectionDenial,
-    UiMountedFrameInspectionSelection, UiMountedFrameInspectionTarget,
-    UiMountedFrameRetentionBudget, UiMountedFrameRetentionRejection,
-    UiMountedObservationBasisLease, UiMountedObservationBasisRetentionDenial,
-    UiMountedRetentionClass, UiMountedRetentionLease, UiPresentedFrameBasisDenial,
-    UiPresentedFrameBasisRelation, UiRetentionPreparedMountedFrame,
+    UiMountedDiagnosticInspectionBasis, UiMountedDiagnosticInspectionDenial,
+    UiMountedDiagnosticRetentionLease, UiMountedFrameInspectionBasis,
+    UiMountedFrameInspectionDenial, UiMountedFrameInspectionSelection,
+    UiMountedFrameInspectionTarget, UiMountedFrameRetentionBudget,
+    UiMountedFrameRetentionRejection, UiMountedObservationBasisLease,
+    UiMountedObservationBasisRetentionDenial, UiMountedRetentionClass, UiMountedRetentionLease,
+    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiRetainedMountedDiagnostics,
+    UiRetentionPreparedMountedFrame,
 };
 
 pub(crate) struct UiMountedFrameRetentionCoordinator {
@@ -175,6 +177,8 @@ impl UiMountedFrameRetentionCoordinator {
             retained_structural_bytes: evidence.structural_bytes(),
             frame_index_probes,
             instance_index_probes,
+            diagnostics_requested: selection.diagnostics,
+            diagnostics: authority.diagnostics(evidence.frame()),
         })
     }
 
@@ -190,6 +194,7 @@ impl UiMountedFrameRetentionCoordinator {
                 selected.retained_structural_bytes,
             )
             .map_err(map_inspection_pin_denial)?;
+        let diagnostics = self.reserve_diagnostic_lease(&selected);
         Ok(UiMountedFrameInspectionBasis {
             frame: selected.frame,
             relation: selected.relation,
@@ -200,12 +205,45 @@ impl UiMountedFrameRetentionCoordinator {
             retained_structural_bytes: selected.retained_structural_bytes,
             frame_index_probes: selected.frame_index_probes,
             instance_index_probes: selected.instance_index_probes,
+            diagnostics,
             lease: UiMountedRetentionLease::from_reserved(
                 &self.authority,
                 selected.frame,
                 selected.retained_structural_bytes,
             ),
         })
+    }
+
+    fn reserve_diagnostic_lease(
+        &self,
+        selected: &UiSelectedMountedFrameInspection,
+    ) -> UiMountedDiagnosticInspectionBasis {
+        if !selected.diagnostics_requested {
+            return UiMountedDiagnosticInspectionBasis::NotRequested;
+        }
+        let Some(evidence) = selected.diagnostics.clone() else {
+            return UiMountedDiagnosticInspectionBasis::Omitted(
+                UiMountedDiagnosticInspectionDenial::NotRetained,
+            );
+        };
+        let structural_bytes = evidence.structural_bytes();
+        match self.authority.borrow_mut().reserve_pin(
+            selected.frame,
+            UiMountedRetentionClass::Diagnostic,
+            structural_bytes,
+        ) {
+            Ok(()) => UiMountedDiagnosticInspectionBasis::Available {
+                evidence,
+                lease: UiMountedDiagnosticRetentionLease::from_reserved(
+                    &self.authority,
+                    selected.frame,
+                    structural_bytes,
+                ),
+            },
+            Err(denial) => {
+                UiMountedDiagnosticInspectionBasis::Omitted(map_diagnostic_pin_denial(denial))
+            }
+        }
     }
 }
 
@@ -225,6 +263,27 @@ struct UiSelectedMountedFrameInspection {
     retained_structural_bytes: usize,
     frame_index_probes: usize,
     instance_index_probes: usize,
+    diagnostics_requested: bool,
+    diagnostics: Option<Rc<UiRetainedMountedDiagnostics>>,
+}
+
+fn map_diagnostic_pin_denial(
+    denial: UiMountedRetentionPinAdmissionDenial,
+) -> UiMountedDiagnosticInspectionDenial {
+    match denial {
+        UiMountedRetentionPinAdmissionDenial::CapacityExceeded {
+            required_leases,
+            required_structural_bytes,
+            budget,
+        } => UiMountedDiagnosticInspectionDenial::CapacityExceeded {
+            required_leases,
+            required_structural_bytes,
+            budget,
+        },
+        UiMountedRetentionPinAdmissionDenial::AccountingOverflow => {
+            UiMountedDiagnosticInspectionDenial::AccountingOverflow
+        }
+    }
 }
 
 fn inspection_lookup<'a>(

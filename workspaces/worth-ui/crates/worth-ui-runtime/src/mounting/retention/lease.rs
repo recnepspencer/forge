@@ -10,6 +10,10 @@ pub struct UiMountedRetentionLease {
     pin: UiMountedRetentionPin,
 }
 
+pub(crate) struct UiMountedDiagnosticRetentionLease {
+    _pin: UiMountedRetentionPin,
+}
+
 #[derive(Clone)]
 pub(crate) struct UiMountedObservationBasisLease {
     _pin: UiMountedRetentionPin,
@@ -63,6 +67,23 @@ impl UiMountedObservationBasisLease {
                 authority,
                 frame,
                 UiMountedRetentionClass::ObservationBasis,
+                structural_bytes,
+            ),
+        }
+    }
+}
+
+impl UiMountedDiagnosticRetentionLease {
+    pub(super) fn from_reserved(
+        authority: &Rc<RefCell<UiMountedFrameRetentionAuthority>>,
+        frame: UiMountedFrameIdentity,
+        structural_bytes: usize,
+    ) -> Self {
+        Self {
+            _pin: UiMountedRetentionPin::new(
+                authority,
+                frame,
+                UiMountedRetentionClass::Diagnostic,
                 structural_bytes,
             ),
         }
