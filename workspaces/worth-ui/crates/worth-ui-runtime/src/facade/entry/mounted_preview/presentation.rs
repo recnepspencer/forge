@@ -30,7 +30,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                 ports
                     .observations
                     .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                return WorthUiMountedPreviewOutcome::AdmissionDenied(
+                return WorthUiMountedPreviewOutcome::AdmissionDenied(Box::new(
                     WorthUiMountedPreviewAdmissionRejection {
                         denial: rejection.denial(),
                         preview: WorthUiPreparedMountedPreview {
@@ -40,7 +40,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                             ports,
                         },
                     },
-                );
+                ));
             }
         };
         let retained = match ports.retention.prepare_publication(admitted) {
@@ -49,7 +49,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                 ports
                     .observations
                     .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                return WorthUiMountedPreviewOutcome::RetentionDenied(
+                return WorthUiMountedPreviewOutcome::RetentionDenied(Box::new(
                     WorthUiMountedPreviewRetentionRejection {
                         denial: rejection.denial(),
                         preview: WorthUiPreparedMountedPreview {
@@ -59,7 +59,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                             ports,
                         },
                     },
-                );
+                ));
             }
         };
         let admission =
@@ -72,7 +72,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                     ports
                         .observations
                         .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                    return WorthUiMountedPreviewOutcome::AdmissionDenied(
+                    return WorthUiMountedPreviewOutcome::AdmissionDenied(Box::new(
                         WorthUiMountedPreviewAdmissionRejection {
                             denial: rejection.denial(),
                             preview: WorthUiPreparedMountedPreview {
@@ -82,7 +82,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                                 ports,
                             },
                         },
-                    );
+                    ));
                 }
             };
         let reservation = crate::mounting::UiMountedFramePublicationCandidate::reserve(
@@ -120,14 +120,14 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
         &self.handle
     }
 
-    pub fn complete(self, now: u64) -> WorthUiMountedPreviewOutcome<'session> {
+    pub fn complete(self: Box<Self>, now: u64) -> WorthUiMountedPreviewOutcome<'session> {
         let Self {
             handle,
             before,
             transition,
             planning_counters,
             ports,
-        } = self;
+        } = *self;
         match ports
             .presentation
             .complete(handle.clone(), ports.host_session.effect_port(), now)
@@ -135,7 +135,7 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
             Ok(outcome) => {
                 finish_presentation(outcome, before, transition, planning_counters, ports)
             }
-            Err(denial) => WorthUiMountedPreviewOutcome::CompletionDenied(
+            Err(denial) => WorthUiMountedPreviewOutcome::CompletionDenied(Box::new(
                 WorthUiMountedPreviewCompletionRejection {
                     denial,
                     in_flight: WorthUiMountedPreviewInFlight {
@@ -146,7 +146,7 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
                         ports,
                     },
                 },
-            ),
+            )),
         }
     }
 }
@@ -166,24 +166,24 @@ fn finish_presentation<'session>(
                 .remove(&attempt)
                 .expect("preview presentation owns one reservation");
             let receipt = reservation.commit_presented(presented, ports.identity);
-            WorthUiMountedPreviewOutcome::Resolved(resolve_transition_from(
+            WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
                 WorthUiMountedPreviewDisposition::Published(receipt),
                 transition,
                 before,
                 planning_counters,
-            ))
+            )))
         }
         crate::mounting::UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
             ports.reservations.remove(&rejected.attempt());
             ports
                 .observations
                 .record_rejected_frame(rejected.frame().canonical_core().frame());
-            WorthUiMountedPreviewOutcome::Resolved(resolve_transition_from(
+            WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
                 WorthUiMountedPreviewDisposition::RejectedBeforeEffects(rejected),
                 transition,
                 before,
                 planning_counters,
-            ))
+            )))
         }
         crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(indeterminate) => {
             ports.reservations.remove(&indeterminate.report().attempt());
@@ -191,21 +191,21 @@ fn finish_presentation<'session>(
                 indeterminate.frame().canonical_core().frame(),
                 indeterminate.report().affected_bindings(),
             );
-            WorthUiMountedPreviewOutcome::Resolved(resolve_transition_from(
+            WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
                 WorthUiMountedPreviewDisposition::PresentationIndeterminate(indeterminate),
                 transition,
                 before,
                 planning_counters,
-            ))
+            )))
         }
         crate::mounting::UiMountedPresentationOutcome::InFlight(handle) => {
-            WorthUiMountedPreviewOutcome::InFlight(WorthUiMountedPreviewInFlight {
+            WorthUiMountedPreviewOutcome::InFlight(Box::new(WorthUiMountedPreviewInFlight {
                 handle,
                 before,
                 transition,
                 planning_counters,
                 ports,
-            })
+            }))
         }
     }
 }

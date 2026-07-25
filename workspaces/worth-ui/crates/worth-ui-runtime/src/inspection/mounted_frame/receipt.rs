@@ -1,7 +1,7 @@
 use worth_ui_host_contract::{UiMountedFrameIdentity, UiMountedNodeReceiptIdentity};
 
 pub enum UiMountedInspectionReceipt {
-    Available(UiMountedInspectedFrame),
+    Available(Box<UiMountedInspectedFrame>),
     Omitted(UiMountedInspectionOmission),
 }
 
@@ -48,7 +48,7 @@ pub enum UiMountedInspectionOmission {
 
 impl UiMountedInspectionReceipt {
     pub(crate) fn available(basis: crate::mounting::UiMountedFrameInspectionBasis) -> Self {
-        Self::Available(UiMountedInspectedFrame {
+        Self::Available(Box::new(UiMountedInspectedFrame {
             frame: basis.frame,
             relation: match basis.relation {
                 crate::mounting::UiPresentedFrameBasisRelation::Current => {
@@ -66,7 +66,7 @@ impl UiMountedInspectionReceipt {
             frame_index_probes: basis.frame_index_probes,
             instance_index_probes: basis.instance_index_probes,
             lease: basis.lease,
-        })
+        }))
     }
 
     pub(crate) fn omitted(denial: crate::mounting::UiMountedFrameInspectionDenial) -> Self {

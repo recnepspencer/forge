@@ -165,7 +165,7 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
 
 fn builder() -> WorthUiBuilder {
     WorthUi::app()
-        .with_host(MultiRemovalHost::default())
+        .with_host(MultiRemovalHost)
         .with_graph_world_profile(installed_query_world::settled_query_world_profile(
             worth_ui::facade::registry::ViewBindingId::new("multi.removal.filesystem").unwrap(),
             "worth-ui.phase14.filesystem.multi-removal",

@@ -251,7 +251,7 @@ fn canvas_builder_with_ordinary(count: usize) -> WorthUiBuilder {
 }
 
 fn unsupported_canvas_builder() -> WorthUiBuilder {
-    canvas_descriptor_builder().with_host(MissingHitTestHost::default())
+    canvas_descriptor_builder().with_host(MissingHitTestHost)
 }
 
 fn canvas_descriptor_builder() -> WorthUiBuilder {

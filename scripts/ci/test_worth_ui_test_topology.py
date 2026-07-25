@@ -379,12 +379,12 @@ def source_workspace(root: Path):
         "max_trybuild_sessions": 0,
     }
 
-
 if __name__ == "__main__":
     from test_worth_ui_compile_contracts import WorthUiCompileContractRunnerTests
     from test_worth_ui_query_lifetime_matrix import WorthUiQueryLifetimeMatrixTests
     from test_worth_ui_real_boundary_proof_ledger import WorthUiRealBoundaryProofLedgerTests
     from test_worth_ui_test_seam_inventory import WorthUiTestSeamInventoryTests
+    from test_worth_ui_test_cost_evidence import WorthUiTestCostEvidenceTests
     from test_worth_ui_timing_evidence import WorthUiTimingEvidenceTests
 
     suite = defaultTestLoader.loadTestsFromTestCase(WorthUiTestTopologySourceTests)
@@ -394,6 +394,7 @@ if __name__ == "__main__":
     suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiQueryLifetimeMatrixTests))
     suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiRealBoundaryProofLedgerTests))
     suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiTestSeamInventoryTests))
+    suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiTestCostEvidenceTests))
     suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiTimingEvidenceTests))
     result = TextTestRunner().run(suite)
     raise SystemExit(0 if result.wasSuccessful() else 1)

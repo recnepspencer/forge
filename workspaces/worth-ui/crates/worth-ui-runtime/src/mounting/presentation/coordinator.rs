@@ -38,6 +38,17 @@ pub struct UiMountedPresentationCoordinator {
     host_truth: crate::mounting::UiMountedHostTruthCoordinator,
 }
 
+struct UiMountedPresentationSettlement<'host> {
+    frame: super::super::UiPreparedMountedFrame,
+    retention: super::super::retention::UiMountedRetentionReservation,
+    attempt: UiMountedPresentationAttemptIdentity,
+    deadline: UiPresentationDeadline,
+    pending: Vec<super::state::UiPendingMountedSurface>,
+    rejected: Vec<UiMountedSurfacePresentationRejection>,
+    completed: Vec<UiMountedSurfacePresentationReceipt>,
+    host: UiHostEffectPort<'host>,
+}
+
 impl Default for UiMountedPresentationCoordinator {
     fn default() -> Self {
         Self {
@@ -180,22 +191,32 @@ impl UiMountedPresentationCoordinator {
                 }
             }
         }
-        self.finish_or_wait(
-            frame, retention, attempt, deadline, pending, rejected, completed, host,
-        )
+        self.finish_or_wait(UiMountedPresentationSettlement {
+            frame,
+            retention,
+            attempt,
+            deadline,
+            pending,
+            rejected,
+            completed,
+            host,
+        })
     }
 
     fn finish_or_wait(
         &mut self,
-        frame: super::super::UiPreparedMountedFrame,
-        retention: super::super::retention::UiMountedRetentionReservation,
-        attempt: UiMountedPresentationAttemptIdentity,
-        deadline: UiPresentationDeadline,
-        pending: Vec<super::state::UiPendingMountedSurface>,
-        rejected: Vec<UiMountedSurfacePresentationRejection>,
-        mut completed: Vec<UiMountedSurfacePresentationReceipt>,
-        host: UiHostEffectPort<'_>,
+        settlement: UiMountedPresentationSettlement<'_>,
     ) -> UiMountedPresentationOutcome {
+        let UiMountedPresentationSettlement {
+            frame,
+            retention,
+            attempt,
+            deadline,
+            pending,
+            rejected,
+            mut completed,
+            host,
+        } = settlement;
         if !pending.is_empty() {
             let cost =
                 match UiMountedPresentationReceipt::compose_cost(frame.cost_report(), &completed) {

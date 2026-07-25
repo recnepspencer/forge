@@ -13,7 +13,7 @@ mod view;
 pub(super) use semantic_projection::{
     UiMountedProjectionNodeRecord, UiMountedProjectionSurface, UiMountedSemanticProjection,
 };
-use view::UiMountedPaintSelector;
+use view::{UiMountedOrdinaryPaintSelector, UiMountedPlanIndexPaintSelector};
 
 const TABLE_LIMIT: usize = 2_048;
 const RESOURCE_LIMIT: usize = 1_024;
@@ -33,7 +33,8 @@ pub struct UiMountedProjectionFrame {
     virtualized_recorded: bool,
     canvas_recorded: bool,
     realtime_recorded: bool,
-    paint_selectors: Vec<UiMountedPaintSelector>,
+    ordinary_paint_selector: Option<UiMountedOrdinaryPaintSelector>,
+    plan_index_paint_selectors: Vec<UiMountedPlanIndexPaintSelector>,
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     counters: super::super::UiMountStageCounters,
 }
@@ -60,7 +61,8 @@ impl UiMountedProjectionFrame {
             virtualized_recorded: false,
             canvas_recorded: false,
             realtime_recorded: false,
-            paint_selectors: Vec::new(),
+            ordinary_paint_selector: None,
+            plan_index_paint_selectors: Vec::new(),
             preview: None,
             counters,
         }
@@ -93,10 +95,8 @@ impl UiMountedProjectionFrame {
             None,
             UiMountedPaintPrimitiveKind::FilledRect,
         )?;
-        self.paint_selectors.push(UiMountedPaintSelector::Ordinary {
-            receipt: receipt.clone(),
-            batch,
-        });
+        self.ordinary_paint_selector =
+            Some(UiMountedOrdinaryPaintSelector::new(receipt.clone(), batch));
         Ok(())
     }
 
@@ -248,11 +248,11 @@ impl UiMountedProjectionFrame {
         indexes: impl IntoIterator<Item = u32>,
         batch: UiMountedPaintBatchReference,
     ) {
-        self.paint_selectors
-            .push(UiMountedPaintSelector::PlanIndexes {
-                indexes: indexes.into_iter().collect(),
+        self.plan_index_paint_selectors
+            .push(UiMountedPlanIndexPaintSelector::new(
+                indexes.into_iter().collect(),
                 batch,
-            });
+            ));
     }
 
     fn push_layer(

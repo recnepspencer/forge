@@ -7,7 +7,8 @@ use worth_ui::facade::mounted::{
     UiSurfaceBindingGeneration,
 };
 use worth_ui::facade::observation_report::{
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
+    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
+    UiHostObservationReportOutcome,
 };
 
 use crate::host_observation_fixture::{batch, report, source};
@@ -18,6 +19,9 @@ use crate::mounted_application_lifecycle::known_empty_surface_world::{
 use crate::mounted_application_lifecycle::published_mounted_world::publish;
 use crate::mounted_host_protocol::scripted_host::presented_completion;
 use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
+
+#[path = "retention/byte_reserves.rs"]
+mod byte_reserves;
 
 #[test]
 fn retention_capacity_denies_the_frame_before_any_adapter_effect() {
@@ -244,16 +248,33 @@ fn retention_world(
 }
 
 fn one_predecessor_budget() -> UiMountedFrameRetentionBudget {
-    const LARGE: usize = 128 * 1024 * 1024;
+    retention_budget(
+        large_budget(),
+        large_budget(),
+        UiMountedRetentionClassBudget::new(8, 128 * 1024 * 1024),
+        UiMountedRetentionClassBudget::new(1, 128 * 1024 * 1024),
+    )
+}
+
+fn retention_budget(
+    current: UiMountedRetentionClassBudget,
+    in_flight: UiMountedRetentionClassBudget,
+    observation_basis: UiMountedRetentionClassBudget,
+    predecessor_inspection: UiMountedRetentionClassBudget,
+) -> UiMountedFrameRetentionBudget {
     UiMountedFrameRetentionBudget::new(UiMountedFrameRetentionBudgetInput {
-        current: UiMountedRetentionClassBudget::new(1, LARGE),
-        in_flight: UiMountedRetentionClassBudget::new(1, LARGE),
-        observation_basis: UiMountedRetentionClassBudget::new(8, LARGE),
-        predecessor_inspection: UiMountedRetentionClassBudget::new(1, LARGE),
+        current,
+        in_flight,
+        observation_basis,
+        predecessor_inspection,
         diagnostic: UiMountedRetentionClassBudget::new(0, 0),
         future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
         expired_identity_limit: 64,
     })
+}
+
+fn large_budget() -> UiMountedRetentionClassBudget {
+    UiMountedRetentionClassBudget::new(8, 128 * 1024 * 1024)
 }
 
 fn retain_keyboard_report(

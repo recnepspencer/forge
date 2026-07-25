@@ -44,11 +44,11 @@ pub enum WorthUiMountedApplicationReplacementOutcome<'session> {
         mounted: crate::mounting::UiMountedFramePublicationReceipt,
     },
     RejectedBeforeEffects(Box<WorthUiPreparedMountedApplicationReplacement<'session>>),
-    InFlight(WorthUiMountedApplicationReplacementInFlight<'session>),
-    PresentationIndeterminate(crate::mounting::UiMountedIndeterminateFrame),
+    InFlight(Box<WorthUiMountedApplicationReplacementInFlight<'session>>),
+    PresentationIndeterminate(Box<crate::mounting::UiMountedIndeterminateFrame>),
     RetentionDenied(WorthUiMountedReplacementRetentionDenial<'session>),
     AdmissionDenied(WorthUiMountedReplacementAdmissionDenial<'session>),
-    CompletionDenied(WorthUiMountedReplacementCompletionDenial<'session>),
+    CompletionDenied(Box<WorthUiMountedReplacementCompletionDenial<'session>>),
 }
 
 impl<'session> WorthUiMountedReplacementAdmissionDenial<'session> {
@@ -76,7 +76,9 @@ impl<'session> WorthUiMountedReplacementCompletionDenial<'session> {
         self.denial
     }
 
-    pub fn into_in_flight(self) -> WorthUiMountedApplicationReplacementInFlight<'session> {
+    pub fn into_in_flight(
+        self: Box<Self>,
+    ) -> WorthUiMountedApplicationReplacementInFlight<'session> {
         self.in_flight
     }
 }

@@ -45,7 +45,7 @@ impl WorthUiBuilder {
                 WorthUiDslPackage::empty(),
             ),
             host_session_plan: WorthUiHostSessionPlan::prepare(
-                crate::host::adapter::WorthUiHeadlessHost::default(),
+                crate::host::adapter::WorthUiHeadlessHost,
             ),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             runtime_instance_basis_admissions: Vec::new(),
