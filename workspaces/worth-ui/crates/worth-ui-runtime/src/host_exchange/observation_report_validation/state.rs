@@ -26,8 +26,14 @@ pub(super) struct UiHostObservationPartition {
 pub(super) struct UiRetainedHostObservationReport {
     pub(super) report: UiValidatedHostObservationReport,
     pub(super) relation: UiHostObservationFrameRelation,
+    pub(super) frame: UiMountedFrameIdentity,
     pub(super) coalescing_identity: Option<UiHostObservationCoalescingIdentity>,
     pub(super) encoded_len: usize,
+}
+
+pub(super) struct UiRetainedObservationBasis {
+    pub(super) retained_reports: usize,
+    pub(super) lease: crate::mounting::UiMountedObservationBasisLease,
 }
 
 #[derive(Clone, Copy)]
@@ -42,8 +48,11 @@ pub struct UiHostObservationReportValidation {
     pub(super) partitions: BTreeMap<UiSurfaceBindingGeneration, UiHostObservationPartition>,
     pub(super) global_reports: usize,
     pub(super) global_bytes: usize,
+    pub(super) work: super::UiHostObservationWorkReport,
+    pub(super) observation_bases: BTreeMap<UiMountedFrameIdentity, UiRetainedObservationBasis>,
     pub(super) quarantine: VecDeque<UiQuarantinedHostObservationBatch>,
     pub(super) quarantine_fingerprints: VecDeque<UiHostObservationBatchFingerprint>,
+    pub(super) quarantine_bytes: usize,
     rejected_frames: BTreeSet<UiMountedFrameIdentity>,
     rejected_order: VecDeque<UiMountedFrameIdentity>,
     never_presented_frames: BTreeSet<UiMountedFrameIdentity>,
@@ -67,8 +76,11 @@ impl UiHostObservationReportValidation {
             partitions: BTreeMap::new(),
             global_reports: 0,
             global_bytes: 0,
+            work: Default::default(),
+            observation_bases: BTreeMap::new(),
             quarantine: VecDeque::new(),
             quarantine_fingerprints: VecDeque::new(),
+            quarantine_bytes: 0,
             rejected_frames: BTreeSet::new(),
             rejected_order: VecDeque::new(),
             never_presented_frames: BTreeSet::new(),
@@ -131,8 +143,10 @@ impl UiHostObservationReportValidation {
         self.ingress.shutdown();
         self.shutdown = true;
         self.partitions.clear();
+        self.observation_bases.clear();
         self.quarantine.clear();
         self.quarantine_fingerprints.clear();
+        self.quarantine_bytes = 0;
         self.indeterminate_frames.clear();
         self.indeterminate_order.clear();
         self.global_reports = 0;
@@ -151,6 +165,36 @@ impl UiHostObservationReportValidation {
         self.quarantine.len()
     }
 
+    pub fn quarantined_byte_count(&self) -> usize {
+        self.quarantine_bytes
+    }
+
+    pub fn work_report(&self) -> super::UiHostObservationWorkReport {
+        self.work
+    }
+
+    pub(crate) fn retention_snapshot(&self) -> super::UiHostObservationRetentionSnapshot {
+        super::UiHostObservationRetentionSnapshot {
+            retained_reports: self.global_reports,
+            retained_bytes: self.global_bytes,
+            retained_report_limit: self.capacity.global_reports(),
+            retained_byte_limit: self.capacity.global_bytes(),
+            quarantined_batches: self.quarantine.len(),
+            quarantined_bytes: self.quarantine_bytes,
+            quarantine_count_limit: self.capacity.quarantined_batches(),
+            quarantine_byte_limit: self.capacity.quarantined_bytes(),
+        }
+    }
+
+    pub(super) fn observation_basis(
+        &self,
+        frame: UiMountedFrameIdentity,
+    ) -> Option<crate::mounting::UiMountedObservationBasisLease> {
+        self.observation_bases
+            .get(&frame)
+            .map(|basis| basis.lease.clone())
+    }
+
     pub(crate) fn ingress(&self) -> super::WorthUiHostObservationIngress {
         self.ingress.clone()
     }
@@ -158,6 +202,11 @@ impl UiHostObservationReportValidation {
     pub(crate) fn drain_ingress(&self) -> Vec<worth_ui_host_contract::UiHostObservationBatch> {
         self.ingress.drain()
     }
+}
+
+pub(super) const fn quarantine_entry_structural_bytes() -> usize {
+    std::mem::size_of::<UiQuarantinedHostObservationBatch>()
+        + std::mem::size_of::<UiHostObservationBatchFingerprint>()
 }
 
 impl UiHostObservationPartition {

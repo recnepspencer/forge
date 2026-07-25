@@ -2,8 +2,9 @@ pub use crate::host_exchange::observation_report_validation::{
     UiDuplicateHostObservationBatch, UiHostObservationBatchDisposition, UiHostObservationCapacity,
     UiHostObservationCapacityInput, UiHostObservationDisposition, UiHostObservationFrameRelation,
     UiHostObservationIngressDenial, UiHostObservationReportDenial, UiHostObservationReportOutcome,
-    UiQuarantinedHostObservationBatch, UiValidatedHostObservationBatch,
-    UiValidatedHostObservationReport, WorthUiHostObservationIngress,
+    UiHostObservationWorkReport, UiQuarantinedHostObservationBatch,
+    UiValidatedHostObservationBatch, UiValidatedHostObservationReport,
+    WorthUiHostObservationIngress,
 };
 pub use worth_ui_host_contract::{
     UiHostObservationBatch, UiHostObservationBatchConstructionDenial, UiHostObservationBatchInput,

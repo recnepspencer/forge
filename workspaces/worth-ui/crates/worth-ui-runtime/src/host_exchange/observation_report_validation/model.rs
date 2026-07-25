@@ -80,7 +80,16 @@ pub enum UiHostObservationReportDenial {
     NodeReceiptMismatch,
     LocalCapacityExceeded(UiHostObservationFamily),
     GlobalCapacityExceeded(UiHostObservationFamily),
-    QuarantineCapacityExceeded,
+    FrameTransitionInFlight,
+    ObservationBasisCapacityExceeded {
+        required_leases: usize,
+        required_structural_bytes: usize,
+        budget: crate::mounting::UiMountedRetentionClassBudget,
+    },
+    ObservationBasisAccountingOverflow,
+    QuarantineCountCapacityExceeded,
+    QuarantineByteCapacityExceeded,
+    QuarantineAccountingOverflow,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

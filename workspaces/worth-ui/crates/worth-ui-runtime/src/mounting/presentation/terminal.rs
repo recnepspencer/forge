@@ -4,9 +4,61 @@ use worth_ui_host_contract::{
 };
 
 use super::outcome::{
-    UiMountedPresentationOutcome, UiMountedRejectedFrame, UiMountedSurfacePresentationReceipt,
-    UiMountedSurfacePresentationRejection,
+    UiMountedPresentationOutcome, UiMountedPresentationReceipt, UiMountedRejectedFrame,
+    UiMountedSurfacePresentationReceipt, UiMountedSurfacePresentationRejection,
 };
+
+pub(super) struct UiIndeterminatePresentationEvidence {
+    affected: Vec<UiSurfaceBindingGeneration>,
+    completed: Vec<UiMountedSurfacePresentationReceipt>,
+    additional_adapter_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
+}
+
+impl UiIndeterminatePresentationEvidence {
+    pub(super) fn new(
+        affected: Vec<UiSurfaceBindingGeneration>,
+        completed: Vec<UiMountedSurfacePresentationReceipt>,
+    ) -> Self {
+        Self {
+            affected,
+            completed,
+            additional_adapter_cost: None,
+        }
+    }
+
+    pub(super) fn with_additional_adapter_cost(
+        mut self,
+        cost: worth_ui_host_contract::UiHostPresentationCostReport,
+    ) -> Self {
+        self.additional_adapter_cost = Some(cost);
+        self
+    }
+
+    pub(super) fn into_terminal_parts(
+        self,
+        mounting_cost: super::super::UiMountCostReport,
+    ) -> (
+        Vec<UiSurfaceBindingGeneration>,
+        super::super::UiMountCostReport,
+    ) {
+        let composed = UiMountedPresentationReceipt::compose_cost(mounting_cost, &self.completed)
+            .and_then(|cost| match self.additional_adapter_cost {
+                Some(additional) => cost.with_adapter(additional),
+                None => Ok(cost),
+            });
+        let cost = composed
+            .map(|cost| {
+                cost.reclassified(super::super::UiMountWorkClass::IndeterminatePresentation)
+            })
+            .unwrap_or_else(|_| {
+                mounting_cost
+                    .reclassified(super::super::UiMountWorkClass::IndeterminatePresentation)
+                    .with_cost_overflow()
+                    .expect("one cost overflow marker fits accounting")
+            });
+        (self.affected, cost)
+    }
+}
 
 pub(super) fn rejected_outcome(
     attempt: UiMountedPresentationAttemptIdentity,

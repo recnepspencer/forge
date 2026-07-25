@@ -5,6 +5,7 @@ pub struct UiHostObservationCapacity {
     global_reports: usize,
     global_bytes: usize,
     quarantined_batches: usize,
+    quarantined_bytes: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -14,6 +15,7 @@ pub struct UiHostObservationCapacityInput {
     pub global_reports: usize,
     pub global_bytes: usize,
     pub quarantined_batches: usize,
+    pub quarantined_bytes: usize,
 }
 
 impl Default for UiHostObservationCapacity {
@@ -24,6 +26,7 @@ impl Default for UiHostObservationCapacity {
             global_reports: 512,
             global_bytes: 128 * 1024,
             quarantined_batches: 32,
+            quarantined_bytes: 16 * 1024,
         }
     }
 }
@@ -36,6 +39,7 @@ impl UiHostObservationCapacity {
             global_reports: input.global_reports,
             global_bytes: input.global_bytes,
             quarantined_batches: input.quarantined_batches,
+            quarantined_bytes: input.quarantined_bytes,
         }
     }
 
@@ -57,5 +61,9 @@ impl UiHostObservationCapacity {
 
     pub(crate) const fn quarantined_batches(self) -> usize {
         self.quarantined_batches
+    }
+
+    pub(crate) const fn quarantined_bytes(self) -> usize {
+        self.quarantined_bytes
     }
 }

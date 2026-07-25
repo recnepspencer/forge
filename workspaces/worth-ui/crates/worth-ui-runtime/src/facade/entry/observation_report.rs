@@ -34,6 +34,16 @@ impl WorthUiActiveApplicationSession {
         self.host_observations.quarantined_batch_count()
     }
 
+    pub fn quarantined_host_observation_byte_count(&self) -> usize {
+        self.host_observations.quarantined_byte_count()
+    }
+
+    pub fn host_observation_work_report(
+        &self,
+    ) -> crate::facade::observation_report::UiHostObservationWorkReport {
+        self.host_observations.work_report()
+    }
+
     pub fn validate_enqueued_host_observation_batches(
         &mut self,
     ) -> Box<[crate::facade::observation_report::UiHostObservationReportOutcome]> {

@@ -74,9 +74,21 @@ impl WorthUiBuilder {
         Host: WorthUiOperationalHostAdapter + 'static,
     {
         let retention_budget = self.host_session_plan.mounted_frame_retention_budget();
+        let observation_capacity = self.host_session_plan.host_observation_capacity();
         self.host_session_plan = WorthUiHostSessionPlan::prepare(host);
         self.host_session_plan
             .set_mounted_frame_retention_budget(retention_budget);
+        self.host_session_plan
+            .set_host_observation_capacity(observation_capacity);
+        self
+    }
+
+    pub fn with_host_observation_capacity(
+        mut self,
+        capacity: crate::facade::observation_report::UiHostObservationCapacity,
+    ) -> Self {
+        self.host_session_plan
+            .set_host_observation_capacity(capacity);
         self
     }
 

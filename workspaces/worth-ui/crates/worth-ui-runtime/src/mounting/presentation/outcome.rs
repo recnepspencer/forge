@@ -54,11 +54,13 @@ pub struct UiMountedRejectedFrame {
     attempt: UiMountedPresentationAttemptIdentity,
     frame: UiPreparedMountedFrame,
     rejections: Box<[UiMountedSurfacePresentationRejection]>,
+    cost: super::super::UiMountCostReport,
 }
 
 pub struct UiMountedIndeterminateFrame {
     frame: UiPreparedMountedFrame,
     report: UiPresentationIndeterminateReport,
+    cost: super::super::UiMountCostReport,
 }
 
 pub enum UiMountedPresentationOutcome {
@@ -72,16 +74,15 @@ impl UiMountedPresentationReceipt {
     pub(super) fn new(
         attempt: UiMountedPresentationAttemptIdentity,
         frame: UiMountedFrameIdentity,
-        mounting_cost: super::super::UiMountCostReport,
+        cost: super::super::UiMountCostReport,
         surfaces: Vec<UiMountedSurfacePresentationReceipt>,
-    ) -> Result<Self, super::super::UiMountCostOverflow> {
-        let cost = Self::compose_cost(mounting_cost, &surfaces)?;
-        Ok(Self {
+    ) -> Self {
+        Self {
             attempt,
             frame,
             surfaces: surfaces.into_boxed_slice(),
             cost,
-        })
+        }
     }
 
     pub(super) fn compose_cost(
@@ -239,10 +240,16 @@ impl UiMountedRejectedFrame {
         frame: UiPreparedMountedFrame,
         rejections: Vec<UiMountedSurfacePresentationRejection>,
     ) -> Self {
+        let cost = frame
+            .cost_report()
+            .reclassified(super::super::UiMountWorkClass::RejectedPresentation)
+            .with_rejected(rejections.len())
+            .expect("bounded surface rejection rows fit cost accounting");
         Self {
             attempt,
             frame,
             rejections: rejections.into_boxed_slice(),
+            cost,
         }
     }
 
@@ -258,6 +265,10 @@ impl UiMountedRejectedFrame {
         &self.rejections
     }
 
+    pub fn cost_report(&self) -> super::super::UiMountCostReport {
+        self.cost
+    }
+
     pub(crate) fn into_frame(self) -> UiPreparedMountedFrame {
         self.frame
     }
@@ -267,8 +278,13 @@ impl UiMountedIndeterminateFrame {
     pub(super) fn new(
         frame: UiPreparedMountedFrame,
         report: UiPresentationIndeterminateReport,
+        cost: super::super::UiMountCostReport,
     ) -> Self {
-        Self { frame, report }
+        Self {
+            frame,
+            report,
+            cost,
+        }
     }
 
     pub fn frame(&self) -> &UiPreparedMountedFrame {
@@ -277,5 +293,9 @@ impl UiMountedIndeterminateFrame {
 
     pub fn report(&self) -> &UiPresentationIndeterminateReport {
         &self.report
+    }
+
+    pub fn cost_report(&self) -> super::super::UiMountCostReport {
+        self.cost
     }
 }

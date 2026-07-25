@@ -15,6 +15,8 @@ pub struct WorthUiHostSessionPlan {
     protocol_contract: worth_ui_host_contract::UiHostProtocolContract,
     capability_report: WorthUiHostCapabilityReport,
     mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
+    host_observation_capacity:
+        crate::host_exchange::observation_report_validation::UiHostObservationCapacity,
     adapter: Rc<dyn WorthUiOperationalHostAdapter>,
 }
 
@@ -33,6 +35,7 @@ impl WorthUiHostSessionPlan {
             protocol_contract,
             capability_report,
             mounted_frame_retention_budget: Default::default(),
+            host_observation_capacity: Default::default(),
             adapter: Rc::new(adapter),
         }
     }
@@ -48,6 +51,19 @@ impl WorthUiHostSessionPlan {
         &self,
     ) -> crate::mounting::UiMountedFrameRetentionBudget {
         self.mounted_frame_retention_budget
+    }
+
+    pub(crate) fn set_host_observation_capacity(
+        &mut self,
+        capacity: crate::host_exchange::observation_report_validation::UiHostObservationCapacity,
+    ) {
+        self.host_observation_capacity = capacity;
+    }
+
+    pub(crate) fn host_observation_capacity(
+        &self,
+    ) -> crate::host_exchange::observation_report_validation::UiHostObservationCapacity {
+        self.host_observation_capacity
     }
 
     pub fn host_kind(&self) -> WorthUiHostKind {
@@ -78,6 +94,7 @@ impl fmt::Debug for WorthUiHostSessionPlan {
                 "mounted_frame_retention_budget",
                 &self.mounted_frame_retention_budget,
             )
+            .field("host_observation_capacity", &self.host_observation_capacity)
             .finish_non_exhaustive()
     }
 }
@@ -88,6 +105,7 @@ impl PartialEq for WorthUiHostSessionPlan {
             && self.protocol_contract == other.protocol_contract
             && self.capability_report == other.capability_report
             && self.mounted_frame_retention_budget == other.mounted_frame_retention_budget
+            && self.host_observation_capacity == other.host_observation_capacity
     }
 }
 

@@ -1,8 +1,9 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct UiMountedRetentionUsageSnapshot {
     pub(crate) retained_items: usize,
-    pub(crate) structural_bytes: usize,
+    pub(crate) retained_structural_bytes: usize,
     pub(crate) active_leases: usize,
+    pub(crate) lease_charged_structural_bytes: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

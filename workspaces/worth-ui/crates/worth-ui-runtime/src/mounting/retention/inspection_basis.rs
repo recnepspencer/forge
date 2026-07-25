@@ -1,5 +1,17 @@
 use worth_ui_host_contract::{UiMountedFrameIdentity, UiMountedNodeReceiptIdentity};
 
+#[derive(Clone, Copy)]
+pub(crate) struct UiMountedFrameInspectionSelection {
+    pub(crate) target: UiMountedFrameInspectionTarget,
+    pub(crate) instance: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum UiMountedFrameInspectionTarget {
+    Current,
+    Frame(UiMountedFrameIdentity),
+}
+
 pub(crate) struct UiMountedFrameInspectionBasis {
     pub(crate) frame: UiMountedFrameIdentity,
     pub(crate) relation: super::UiPresentedFrameBasisRelation,
@@ -7,6 +19,7 @@ pub(crate) struct UiMountedFrameInspectionBasis {
     pub(crate) mounted_instance_count: usize,
     pub(crate) selected_node_receipt: Option<UiMountedNodeReceiptIdentity>,
     pub(crate) mount_cost: super::super::UiMountCostReport,
+    pub(crate) retained_structural_bytes: usize,
     pub(crate) frame_index_probes: usize,
     pub(crate) instance_index_probes: usize,
     pub(crate) lease: super::UiMountedRetentionLease,

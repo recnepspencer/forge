@@ -354,6 +354,14 @@ fn assert_rejected_with(
     expected: worth_ui_host_contract::UiHostSurfacePresentationDenial,
     surface_count: usize,
 ) {
+    let cost = outcome
+        .cost_report()
+        .expect("rejected frame owns terminal cost evidence");
+    assert_eq!(
+        cost.work_class(),
+        worth_ui::facade::mounted::UiMountWorkClass::RejectedPresentation
+    );
+    assert_eq!(cost.named().rejected(), surface_count as u64);
     let UiMountedFrameOutcome::RejectedBeforeEffects(rejected) = outcome else {
         panic!("late host drift must reject before effects");
     };

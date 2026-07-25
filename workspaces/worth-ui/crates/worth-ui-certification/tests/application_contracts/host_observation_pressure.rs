@@ -1,7 +1,9 @@
 use worth_ui::facade::measurement_exchange::{
     UiHostMeasurementCompletion, UiHostMeasurementOutcome,
 };
-use worth_ui::facade::mounted::{UiMountedFrameOutcome, UiPresentationDeadline};
+use worth_ui::facade::mounted::{
+    UiMountedFrameOutcome, UiMountedRetentionClass, UiPresentationDeadline,
+};
 use worth_ui::facade::observation_report::{
     UiHostObservationDisposition, UiHostObservationFamily, UiHostObservationFrameRelation,
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
@@ -15,6 +17,10 @@ use super::mounted_application_lifecycle::published_mounted_world::{
     multi_surface_observation_world, published_observation_world,
     published_observation_world_with_host,
 };
+
+mod arrival_schedule;
+mod observation_basis_ownership;
+mod quarantine_capacity;
 
 #[test]
 fn one_surface_partition_cannot_evict_another_surfaces_lossless_input() {
@@ -33,6 +39,15 @@ fn one_surface_partition_cannot_evict_another_surfaces_lossless_input() {
             UiHostObservationReportOutcome::Validated(_)
         ));
     }
+    assert_eq!(
+        isolated
+            .session
+            .mounted_retention_report()
+            .class(UiMountedRetentionClass::ObservationBasis)
+            .active_leases(),
+        1,
+        "report volume on one frame must share one mounted evidence pin"
+    );
     let right = batch(
         source(&isolated.session, right_binding, &right_basis),
         (1, 1),
@@ -84,6 +99,15 @@ fn assert_global_report_count_budget() {
         }
     }
     assert_eq!(world.session.retained_host_observation_report_count(), 512);
+    assert_eq!(
+        world
+            .session
+            .mounted_retention_report()
+            .class(UiMountedRetentionClass::ObservationBasis)
+            .active_leases(),
+        1,
+        "partitions on one frame share one mounted evidence pin"
+    );
 
     let (binding, basis) = world.surfaces[8];
     let denied = batch(
