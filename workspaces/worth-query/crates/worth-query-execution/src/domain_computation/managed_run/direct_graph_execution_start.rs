@@ -26,6 +26,10 @@ pub enum WorthQueryDirectGraphExecutionStartFailureKind {
     MissingInstalledProvider,
     ProviderSupportMismatch,
     ProviderStart,
+    ProviderStartPanicked,
+    ProviderStartContractDenied,
+    ProviderStartMemoryLeaked,
+    ProviderStartReleaseRecoveryRequired,
     InvalidStepContract,
     StepContract(super::WorthQueryManagedStepContractDenialKind),
 }
@@ -34,6 +38,10 @@ pub struct WorthQueryDirectGraphExecutionStartFailure {
     kind: WorthQueryDirectGraphExecutionStartFailureKind,
     detail: Arc<str>,
     running: WorthQueryRunningDirectRun,
+    provider_retained_bytes: u64,
+    provider_retained_allocation_count: u64,
+    provider_execution_release:
+        Option<crate::domain_computation::WorthQueryProviderExecutionReleaseEvidence>,
 }
 
 impl WorthQueryDirectGraphExecutionStartFailure {
@@ -47,6 +55,20 @@ impl WorthQueryDirectGraphExecutionStartFailure {
 
     pub fn into_running(self) -> WorthQueryRunningDirectRun {
         self.running
+    }
+
+    pub const fn provider_retained_bytes(&self) -> u64 {
+        self.provider_retained_bytes
+    }
+
+    pub const fn provider_retained_allocation_count(&self) -> u64 {
+        self.provider_retained_allocation_count
+    }
+
+    pub const fn provider_execution_release(
+        &self,
+    ) -> Option<&crate::domain_computation::WorthQueryProviderExecutionReleaseEvidence> {
+        self.provider_execution_release.as_ref()
     }
 }
 
@@ -144,13 +166,22 @@ impl WorthQueryReadyDirectGraphStart {
     ) -> Result<WorthQueryActiveDirectGraphExecution, WorthQueryDirectGraphExecutionStartFailure>
     {
         self.bound.running.provider_work_mut().begin_step_call();
-        let execution = match self.bound.anchor.begin(&self.bound.call) {
-            Ok(execution) => execution,
+        let started = match super::provider_start::start_managed_provider(
+            &self.bound.anchor,
+            &self.bound.call,
+            self.contract.installed().retained_bytes_ceiling(),
+        ) {
+            Ok(started) => started,
             Err(failure) => {
+                if let Some(release) = &failure.provider_execution_release {
+                    self.bound
+                        .running
+                        .provider_work_mut()
+                        .record_provider_execution_release(release);
+                }
                 self.bound.running.provider_work_mut().abandon();
-                return Err(start_failure(
-                    WorthQueryDirectGraphExecutionStartFailureKind::ProviderStart,
-                    failure.detail(),
+                return Err(provider_start_failure(
+                    failure,
                     self.bound.running,
                 ));
             }
@@ -159,10 +190,11 @@ impl WorthQueryReadyDirectGraphStart {
             self.bound.running,
             WorthQueryManagedGraphExecution::new(
                 self.bound.call,
-                execution,
+                started.execution,
                 self.bound.anchor,
                 self.contract,
                 None,
+                started.memory,
             ),
         ))
     }
@@ -177,6 +209,37 @@ fn start_failure(
         kind,
         detail: detail.into(),
         running,
+        provider_retained_bytes: 0,
+        provider_retained_allocation_count: 0,
+        provider_execution_release: None,
+    }
+}
+
+fn provider_start_failure(
+    failure: super::provider_start::WorthQueryManagedProviderStartFailure,
+    running: WorthQueryRunningDirectRun,
+) -> WorthQueryDirectGraphExecutionStartFailure {
+    use super::provider_start::WorthQueryManagedProviderStartFailureKind as Kind;
+    let kind = match failure.kind {
+        Kind::Rejected => WorthQueryDirectGraphExecutionStartFailureKind::ProviderStart,
+        Kind::Panicked => WorthQueryDirectGraphExecutionStartFailureKind::ProviderStartPanicked,
+        Kind::ContractDenied => {
+            WorthQueryDirectGraphExecutionStartFailureKind::ProviderStartContractDenied
+        }
+        Kind::MemoryLeaked => {
+            WorthQueryDirectGraphExecutionStartFailureKind::ProviderStartMemoryLeaked
+        }
+        Kind::ProviderExecutionReleaseRecoveryRequired => {
+            WorthQueryDirectGraphExecutionStartFailureKind::ProviderStartReleaseRecoveryRequired
+        }
+    };
+    WorthQueryDirectGraphExecutionStartFailure {
+        kind,
+        detail: failure.detail,
+        running,
+        provider_retained_bytes: failure.memory.retained_bytes(),
+        provider_retained_allocation_count: failure.memory.retained_allocation_count(),
+        provider_execution_release: failure.provider_execution_release,
     }
 }
 
@@ -188,5 +251,8 @@ fn step_contract_failure(
         kind: WorthQueryDirectGraphExecutionStartFailureKind::StepContract(denial.kind()),
         detail: Arc::from(denial.detail()),
         running,
+        provider_retained_bytes: 0,
+        provider_retained_allocation_count: 0,
+        provider_execution_release: None,
     }
 }

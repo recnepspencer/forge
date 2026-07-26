@@ -11,11 +11,13 @@ struct RepeatedYieldProvider {
 struct RepeatedYieldExecution {
     next_step: u8,
     step_count: u8,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 struct RepeatedYieldCheckpoint {
     next_step: u8,
     step_count: u8,
+    retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 impl WorthQueryGraphParticipationProvider<ManagedGraph> for RepeatedYieldProvider {
@@ -33,10 +35,12 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for RepeatedYieldProvide
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(RepeatedYieldExecution {
             next_step: 0,
             step_count: self.step_count,
+            retained: None,
         })
     }
 }
@@ -49,10 +53,13 @@ impl WorthQueryGraphProviderExecution for RepeatedYieldExecution {
         step.perform_work_unit(|| Ok(()))?;
         self.next_step = self.next_step.saturating_add(1);
         if self.next_step < self.step_count {
-            step.observe_retained_bytes(1).map_err(step_failure)?;
+            if self.retained.is_none() {
+                self.retained = Some(step.retain_bytes(1).map_err(step_failure)?);
+            }
             step.record_checkpoint_available().map_err(step_failure)?;
             return Ok(WorthQueryGraphProviderStepDisposition::continue_work());
         }
+        drop(self.retained.take());
         WorthQueryGraphProviderStepDisposition::complete("repeated-yield-parity-complete")
             .map_err(WorthQueryGraphProviderFailure::new)
     }
@@ -66,6 +73,10 @@ impl WorthQueryGraphProviderExecution for RepeatedYieldExecution {
         Ok(Box::new(RepeatedYieldCheckpoint {
             next_step: self.next_step,
             step_count: self.step_count,
+            retained: self
+                .retained
+                .take()
+                .expect("checkpointable execution retains governed memory"),
         }))
     }
 
@@ -76,16 +87,22 @@ impl WorthQueryGraphProviderExecution for RepeatedYieldExecution {
 
 impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for RepeatedYieldCheckpoint {
     fn retained_bytes(&self) -> u64 {
-        1
+        u64::try_from(self.retained.len()).unwrap()
     }
 
     fn restore(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Ok(Box::new(RepeatedYieldExecution {
             next_step: self.next_step,
             step_count: self.step_count,
+            retained: Some(
+                memory
+                    .rebind(&self.retained)
+                    .map_err(step_failure)?,
+            ),
         }))
     }
 }

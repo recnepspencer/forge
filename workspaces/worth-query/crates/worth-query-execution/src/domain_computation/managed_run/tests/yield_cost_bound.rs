@@ -13,6 +13,7 @@ struct YieldCostProvider {
 struct YieldCostExecution {
     suspension_count: Arc<AtomicUsize>,
     retained_probe_count: Arc<AtomicUsize>,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 impl WorthQueryGraphProviderExecution for YieldCostExecution {
@@ -21,7 +22,7 @@ impl WorthQueryGraphProviderExecution for YieldCostExecution {
         step: &mut WorthQueryGraphProviderStep,
     ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
         step.perform_work_unit(|| Ok(()))?;
-        step.observe_retained_bytes(3).map_err(step_failure)?;
+        self.retained = Some(step.retain_bytes(3).map_err(step_failure)?);
         step.record_checkpoint_available().map_err(step_failure)?;
         Ok(WorthQueryGraphProviderStepDisposition::continue_work())
     }
@@ -35,6 +36,10 @@ impl WorthQueryGraphProviderExecution for YieldCostExecution {
         self.suspension_count.fetch_add(1, Ordering::Relaxed);
         Ok(Box::new(YieldCostCheckpoint {
             retained_probe_count: Arc::clone(&self.retained_probe_count),
+            retained: self
+                .retained
+                .take()
+                .expect("yield cost execution transfers governed retained memory"),
         }))
     }
 
@@ -58,27 +63,31 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldCostProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(YieldCostExecution {
             suspension_count: Arc::clone(&self.suspension_count),
             retained_probe_count: Arc::clone(&self.retained_probe_count),
+            retained: None,
         })
     }
 }
 
 struct YieldCostCheckpoint {
     retained_probe_count: Arc<AtomicUsize>,
+    retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for YieldCostCheckpoint {
     fn retained_bytes(&self) -> u64 {
         self.retained_probe_count.fetch_add(1, Ordering::Relaxed);
-        3
+        u64::try_from(self.retained.len()).unwrap()
     }
 
     fn restore(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Err(WorthQueryGraphProviderFailure::new(
             "Phase 6.3 cost probe must never restore its checkpoint",

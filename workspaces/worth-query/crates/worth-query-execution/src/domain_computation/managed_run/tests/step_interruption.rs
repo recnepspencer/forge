@@ -69,6 +69,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CountingProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(CountingExecution {
             advances: Arc::clone(&self.advances),

@@ -44,6 +44,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CheckpointContinuity
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(CheckpointContinuityExecution { step_ordinal: 0 })
     }
@@ -124,6 +125,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for MultiCallArtifactPro
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(MultiCallArtifactExecution {
             produce: self.begin_ordinal.fetch_add(1, Ordering::AcqRel) == 0,

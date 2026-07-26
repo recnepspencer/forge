@@ -29,6 +29,10 @@ pub enum WorthQueryWorkflowGraphExecutionStartFailureKind {
     MissingInstalledProvider,
     ProviderSupportMismatch,
     ProviderStart,
+    ProviderStartPanicked,
+    ProviderStartContractDenied,
+    ProviderStartMemoryLeaked,
+    ProviderStartReleaseRecoveryRequired,
     InvalidStepContract,
     StepContract(super::WorthQueryManagedStepContractDenialKind),
     ArtifactAuthority,
@@ -38,6 +42,10 @@ pub struct WorthQueryWorkflowGraphExecutionStartFailure {
     kind: WorthQueryWorkflowGraphExecutionStartFailureKind,
     detail: Arc<str>,
     running: WorthQueryRunningWorkflowRun,
+    provider_retained_bytes: u64,
+    provider_retained_allocation_count: u64,
+    provider_execution_release:
+        Option<crate::domain_computation::WorthQueryProviderExecutionReleaseEvidence>,
 }
 
 impl WorthQueryWorkflowGraphExecutionStartFailure {
@@ -51,6 +59,20 @@ impl WorthQueryWorkflowGraphExecutionStartFailure {
 
     pub fn into_running(self) -> WorthQueryRunningWorkflowRun {
         self.running
+    }
+
+    pub const fn provider_retained_bytes(&self) -> u64 {
+        self.provider_retained_bytes
+    }
+
+    pub const fn provider_retained_allocation_count(&self) -> u64 {
+        self.provider_retained_allocation_count
+    }
+
+    pub const fn provider_execution_release(
+        &self,
+    ) -> Option<&crate::domain_computation::WorthQueryProviderExecutionReleaseEvidence> {
+        self.provider_execution_release.as_ref()
     }
 }
 
@@ -181,13 +203,22 @@ impl WorthQueryReadyWorkflowGraphStart {
     ) -> Result<WorthQueryActiveWorkflowGraphExecution, WorthQueryWorkflowGraphExecutionStartFailure>
     {
         self.bound.running.provider_work_mut().begin_step_call();
-        let execution = match self.bound.anchor.begin(&self.bound.call) {
-            Ok(execution) => execution,
+        let started = match super::provider_start::start_managed_provider(
+            &self.bound.anchor,
+            &self.bound.call,
+            self.contract.installed().retained_bytes_ceiling(),
+        ) {
+            Ok(started) => started,
             Err(failure) => {
+                if let Some(release) = &failure.provider_execution_release {
+                    self.bound
+                        .running
+                        .provider_work_mut()
+                        .record_provider_execution_release(release);
+                }
                 self.bound.running.provider_work_mut().abandon();
-                return Err(start_failure(
-                    WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStart,
-                    failure.detail(),
+                return Err(provider_start_failure(
+                    failure,
                     self.bound.running,
                 ));
             }
@@ -196,10 +227,11 @@ impl WorthQueryReadyWorkflowGraphStart {
             self.bound.running,
             WorthQueryManagedGraphExecution::new(
                 self.bound.call,
-                execution,
+                started.execution,
                 self.bound.anchor,
                 self.contract,
                 self.artifact_context,
+                started.memory,
             ),
         ))
     }
@@ -214,6 +246,37 @@ fn start_failure(
         kind,
         detail: detail.into(),
         running,
+        provider_retained_bytes: 0,
+        provider_retained_allocation_count: 0,
+        provider_execution_release: None,
+    }
+}
+
+fn provider_start_failure(
+    failure: super::provider_start::WorthQueryManagedProviderStartFailure,
+    running: WorthQueryRunningWorkflowRun,
+) -> WorthQueryWorkflowGraphExecutionStartFailure {
+    use super::provider_start::WorthQueryManagedProviderStartFailureKind as Kind;
+    let kind = match failure.kind {
+        Kind::Rejected => WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStart,
+        Kind::Panicked => WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStartPanicked,
+        Kind::ContractDenied => {
+            WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStartContractDenied
+        }
+        Kind::MemoryLeaked => {
+            WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStartMemoryLeaked
+        }
+        Kind::ProviderExecutionReleaseRecoveryRequired => {
+            WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStartReleaseRecoveryRequired
+        }
+    };
+    WorthQueryWorkflowGraphExecutionStartFailure {
+        kind,
+        detail: failure.detail,
+        running,
+        provider_retained_bytes: failure.memory.retained_bytes(),
+        provider_retained_allocation_count: failure.memory.retained_allocation_count(),
+        provider_execution_release: failure.provider_execution_release,
     }
 }
 
@@ -225,5 +288,8 @@ fn step_contract_failure(
         kind: WorthQueryWorkflowGraphExecutionStartFailureKind::StepContract(denial.kind()),
         detail: Arc::from(denial.detail()),
         running,
+        provider_retained_bytes: 0,
+        provider_retained_allocation_count: 0,
+        provider_execution_release: None,
     }
 }

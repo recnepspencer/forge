@@ -42,6 +42,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for MultiChunkProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(MultiChunkExecution {
             advances: Arc::clone(&self.advances),
@@ -186,6 +187,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for WideChunkProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(WideChunkExecution {
             advances: Arc::clone(&self.advances),
@@ -222,11 +224,11 @@ impl WorthQueryGraphProviderExecution for HostileExecution {
             }
             HostilePort::Scratch => {
                 step.perform_work_unit(|| Ok(()))?;
-                let _ = step.observe_scratch_bytes(9);
+                let _ = step.with_scratch_bytes(9, |_| Ok(()));
             }
             HostilePort::Retained => {
                 step.perform_work_unit(|| Ok(()))?;
-                let _ = step.observe_retained_bytes(4_097);
+                let _ = step.retain_bytes(4_097);
             }
             HostilePort::Checkpoint => {
                 step.perform_work_unit(|| Ok(()))?;
@@ -256,6 +258,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for HostileProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(HostileExecution(self.0))
     }

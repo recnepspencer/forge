@@ -19,6 +19,7 @@ pub trait WorthQueryGraphProviderCheckpoint: Send + 'static {
     fn restore(
         &self,
         call: &WorthQueryGraphProviderCall,
+        memory: &mut super::WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure>;
 
     fn export(&self) -> Result<WorthQueryProviderCheckpointExport, WorthQueryGraphProviderFailure> {
@@ -118,12 +119,15 @@ impl WorthQueryRetainedGraphProviderCheckpoint {
     pub(crate) fn invoke_restore(
         &self,
         call: &WorthQueryGraphProviderCall,
+        memory: &mut super::WorthQueryGraphProviderRestoreMemory,
     ) -> WorthQueryProviderCheckpointRestoreInvocation {
         let checkpoint = self
             .checkpoint
             .as_ref()
             .expect("retained checkpoint remains present until explicit release");
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| checkpoint.restore(call))) {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            checkpoint.restore(call, memory)
+        })) {
             Ok(result) => WorthQueryProviderCheckpointRestoreInvocation::Returned(result),
             Err(_) => WorthQueryProviderCheckpointRestoreInvocation::Panicked,
         }

@@ -34,6 +34,8 @@ pub use work_report::WorthQueryProviderWorkReport;
 mod tests;
 pub use bounded_step::{
     WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
+    WorthQueryGraphProviderExecutionStart,
+    WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
     WorthQueryGraphProviderStep, WorthQueryGraphProviderStepArtifactEvidence,
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,

@@ -43,6 +43,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CostSlopeProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(CostSlopeExecution {
             advances: Arc::clone(&self.advances),

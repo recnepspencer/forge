@@ -10,6 +10,7 @@ struct CheckpointArtifactProvider {
 struct CheckpointArtifactExecution {
     disposed: Arc<AtomicUsize>,
     artifact: Option<crate::domain_computation::WorthQueryMoveOnlyArtifactHandle>,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 impl WorthQueryGraphProviderExecution for CheckpointArtifactExecution {
@@ -18,7 +19,7 @@ impl WorthQueryGraphProviderExecution for CheckpointArtifactExecution {
         step: &mut WorthQueryGraphProviderStep,
     ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
         step.perform_work_unit(|| Ok(()))?;
-        step.observe_retained_bytes(5).map_err(step_failure)?;
+        self.retained = Some(step.retain_bytes(5).map_err(step_failure)?);
         self.artifact = Some(
             step.produce_artifact(
                 WorthQueryArtifactProductionEvidence::new(
@@ -44,6 +45,10 @@ impl WorthQueryGraphProviderExecution for CheckpointArtifactExecution {
                 .artifact
                 .take()
                 .expect("governed provider step produced its checkpoint artifact"),
+            retained: self
+                .retained
+                .take()
+                .expect("checkpoint carries governed provider memory"),
         }))
     }
 
@@ -67,27 +72,31 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CheckpointArtifactPr
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(CheckpointArtifactExecution {
             disposed: Arc::clone(&self.disposed),
             artifact: None,
+            retained: None,
         })
     }
 }
 
 struct CheckpointOwningArtifact {
     artifact: crate::domain_computation::WorthQueryMoveOnlyArtifactHandle,
+    retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for CheckpointOwningArtifact {
     fn retained_bytes(&self) -> u64 {
         let _ = &self.artifact;
-        5
+        u64::try_from(self.retained.len()).unwrap()
     }
 
     fn restore(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Err(WorthQueryGraphProviderFailure::new(
             "Phase 6.3 checkpoint-artifact proof must not restore",

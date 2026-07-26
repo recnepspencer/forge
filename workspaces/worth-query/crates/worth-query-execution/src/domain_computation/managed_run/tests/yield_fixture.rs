@@ -29,6 +29,23 @@ pub(super) enum YieldSuspension {
     Panic,
 }
 
+impl YieldSuspension {
+    fn governed_retained_bytes(self) -> usize {
+        let reported = match self {
+            Self::Checkpoint { retained_bytes }
+            | Self::CheckpointDropPanic { retained_bytes }
+            | Self::CheckpointRestoreFailure { retained_bytes }
+            | Self::CheckpointRestorePanic { retained_bytes }
+            | Self::CheckpointRestoreExecutionDropPanic { retained_bytes, .. } => retained_bytes,
+            Self::CheckpointProbePanic
+            | Self::CheckpointProbeAndDropPanic
+            | Self::Failure
+            | Self::Panic => 3,
+        };
+        usize::try_from(reported.min(3_000)).unwrap()
+    }
+}
+
 #[derive(Clone, Copy)]
 pub(super) struct YieldProvider {
     yield_installed: bool,
@@ -226,26 +243,31 @@ pub(super) struct YieldExecution {
     record_effect: bool,
     suspension: YieldSuspension,
     execution_drop_panics: bool,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 impl YieldExecution {
-    pub(super) const fn restored() -> Self {
+    pub(super) fn restored(retained: WorthQueryGraphProviderRetainedMemory) -> Self {
         Self {
             step_ordinal: 1,
             checkpoint_available: false,
             record_effect: false,
             suspension: YieldSuspension::Failure,
             execution_drop_panics: false,
+            retained: Some(retained),
         }
     }
 
-    pub(super) const fn restored_with_drop_panic() -> Self {
+    pub(super) fn restored_with_drop_panic(
+        retained: WorthQueryGraphProviderRetainedMemory,
+    ) -> Self {
         Self {
             step_ordinal: 1,
             checkpoint_available: false,
             record_effect: false,
             suspension: YieldSuspension::Failure,
             execution_drop_panics: true,
+            retained: Some(retained),
         }
     }
 }
@@ -270,7 +292,10 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
             if self.record_effect {
                 step.apply_effect(|| Ok(()))?;
             }
-            step.observe_retained_bytes(3).map_err(step_failure)?;
+            self.retained = Some(
+                step.retain_bytes(self.suspension.governed_retained_bytes())
+                    .map_err(step_failure)?,
+            );
             if self.checkpoint_available {
                 step.record_checkpoint_available().map_err(step_failure)?;
             }
@@ -289,20 +314,36 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
     > {
         match self.suspension {
             YieldSuspension::Checkpoint { retained_bytes } => {
-                Ok(Box::new(YieldCheckpoint { retained_bytes }))
+                Ok(Box::new(YieldCheckpoint {
+                    retained_bytes,
+                    retained: self.take_checkpoint_memory(),
+                }))
             }
-            YieldSuspension::CheckpointProbePanic => Ok(Box::new(PanicProbeCheckpoint)),
+            YieldSuspension::CheckpointProbePanic => Ok(Box::new(PanicProbeCheckpoint {
+                retained: self.take_checkpoint_memory(),
+            })),
             YieldSuspension::CheckpointDropPanic { retained_bytes } => {
-                Ok(Box::new(PanicDropCheckpoint { retained_bytes }))
+                Ok(Box::new(PanicDropCheckpoint {
+                    retained_bytes,
+                    retained: self.take_checkpoint_memory(),
+                }))
             }
             YieldSuspension::CheckpointProbeAndDropPanic => {
-                Ok(Box::new(PanicProbeAndDropCheckpoint))
+                Ok(Box::new(PanicProbeAndDropCheckpoint {
+                    retained: self.take_checkpoint_memory(),
+                }))
             }
             YieldSuspension::CheckpointRestoreFailure { retained_bytes } => {
-                Ok(Box::new(RestoreFailureCheckpoint { retained_bytes }))
+                Ok(Box::new(RestoreFailureCheckpoint {
+                    retained_bytes,
+                    retained: self.take_checkpoint_memory(),
+                }))
             }
             YieldSuspension::CheckpointRestorePanic { retained_bytes } => {
-                Ok(Box::new(RestorePanicCheckpoint { retained_bytes }))
+                Ok(Box::new(RestorePanicCheckpoint {
+                    retained_bytes,
+                    retained: self.take_checkpoint_memory(),
+                }))
             }
             YieldSuspension::CheckpointRestoreExecutionDropPanic {
                 retained_bytes,
@@ -310,6 +351,7 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
             } => Ok(Box::new(RestoreExecutionDropPanicCheckpoint {
                 retained_bytes,
                 checkpoint_drop_panics,
+                retained: self.take_checkpoint_memory(),
             })),
             YieldSuspension::Failure => Err(WorthQueryGraphProviderFailure::new(
                 "yield fixture suspension failed",
@@ -350,6 +392,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(YieldExecution {
             step_ordinal: 0,
@@ -357,7 +400,16 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldProvider {
             record_effect: self.record_effect,
             suspension: self.suspension,
             execution_drop_panics: self.execution_drop_panics,
+            retained: None,
         })
+    }
+}
+
+impl YieldExecution {
+    fn take_checkpoint_memory(&mut self) -> WorthQueryGraphProviderRetainedMemory {
+        self.retained
+            .take()
+            .expect("checkpointable execution transfers governed retained memory once")
     }
 }
 

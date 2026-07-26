@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::{
-    WorthQueryGraphProviderStepArtifactEvidence, WorthQueryGraphProviderStepDispositionKind,
-    WorthQueryGraphProviderStepFailureEvidence,
+    WorthQueryGraphProviderMemorySnapshot, WorthQueryGraphProviderStepArtifactEvidence,
+    WorthQueryGraphProviderStepDispositionKind, WorthQueryGraphProviderStepFailureEvidence,
 };
 use crate::domain_computation::WorthQueryGraphReadMaterial;
 
@@ -15,6 +15,8 @@ pub(crate) enum WorthQueryGraphProviderStepCompletion {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryGraphProviderStepRetainedEvidence {
+    provider_memory_arena_identity: u64,
+    provider_allocation_count: u64,
     provider_bytes: u64,
     projection_bytes: u64,
     artifact_bytes: u64,
@@ -22,10 +24,17 @@ pub struct WorthQueryGraphProviderStepRetainedEvidence {
 }
 
 impl WorthQueryGraphProviderStepRetainedEvidence {
-    pub(super) fn new(provider_bytes: u64, projection_bytes: usize, artifact_bytes: usize) -> Self {
+    pub(super) fn new(
+        provider_memory: WorthQueryGraphProviderMemorySnapshot,
+        projection_bytes: usize,
+        artifact_bytes: usize,
+    ) -> Self {
         let projection_bytes = u64::try_from(projection_bytes).unwrap_or(u64::MAX);
         let artifact_bytes = u64::try_from(artifact_bytes).unwrap_or(u64::MAX);
+        let provider_bytes = provider_memory.retained_bytes();
         Self {
+            provider_memory_arena_identity: provider_memory.arena_identity(),
+            provider_allocation_count: provider_memory.retained_allocation_count(),
             provider_bytes,
             projection_bytes,
             artifact_bytes,
@@ -33,6 +42,14 @@ impl WorthQueryGraphProviderStepRetainedEvidence {
                 .saturating_add(projection_bytes)
                 .saturating_add(artifact_bytes),
         }
+    }
+
+    pub const fn provider_memory_arena_identity(self) -> u64 {
+        self.provider_memory_arena_identity
+    }
+
+    pub const fn provider_allocation_count(self) -> u64 {
+        self.provider_allocation_count
     }
 
     pub const fn provider_bytes(self) -> u64 {

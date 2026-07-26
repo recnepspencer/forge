@@ -37,6 +37,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for FreezeProbeProvider 
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(FreezeProbeExecution {
             authority: Arc::clone(&self.authority),
@@ -110,6 +111,7 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for FreezeProb
     fn restore(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Err(WorthQueryGraphProviderFailure::new(
             "Phase 6.3 freeze probe must never restore",

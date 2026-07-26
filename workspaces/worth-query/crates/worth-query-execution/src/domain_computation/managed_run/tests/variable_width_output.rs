@@ -33,6 +33,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for VariableWidthProvide
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(VariableWidthExecution)
     }

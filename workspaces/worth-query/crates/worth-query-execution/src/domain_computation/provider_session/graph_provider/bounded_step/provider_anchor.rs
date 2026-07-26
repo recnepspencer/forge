@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport;
 
-use super::WorthQueryGraphProviderExecution;
+use super::{WorthQueryGraphProviderExecution, WorthQueryGraphProviderExecutionStart};
 use crate::domain_computation::{
     WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
     WorthQueryGraphProviderFailure,
@@ -14,7 +14,13 @@ trait WorthQueryErasedGraphParticipationProvider: Send + Sync {
     fn begin(
         &self,
         call: &WorthQueryGraphProviderCall,
+        start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure>;
+}
+
+pub(crate) enum WorthQueryGraphProviderStartInvocation {
+    Returned(Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure>),
+    Panicked,
 }
 
 static NEXT_GRAPH_PROVIDER_GENERATION: AtomicU64 = AtomicU64::new(1);
@@ -30,9 +36,10 @@ impl<G: 'static, P: WorthQueryGraphParticipationProvider<G>>
     fn begin(
         &self,
         call: &WorthQueryGraphProviderCall,
+        start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         self.provider
-            .begin(call)
+            .begin(call, start)
             .map(|execution| Box::new(execution) as Box<dyn WorthQueryGraphProviderExecution>)
     }
 }
@@ -105,8 +112,14 @@ impl WorthQueryGraphProviderAnchor {
     pub(crate) fn begin(
         &self,
         call: &WorthQueryGraphProviderCall,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
-        self.provider.begin(call)
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> WorthQueryGraphProviderStartInvocation {
+        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            self.provider.begin(call, start)
+        })) {
+            Ok(result) => WorthQueryGraphProviderStartInvocation::Returned(result),
+            Err(_) => WorthQueryGraphProviderStartInvocation::Panicked,
+        }
     }
 
     pub(crate) fn convergence_provider(

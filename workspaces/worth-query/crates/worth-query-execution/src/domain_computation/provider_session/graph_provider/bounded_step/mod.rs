@@ -5,7 +5,9 @@ mod checkpoint_release;
 mod checkpoint_restore;
 mod denial;
 mod disposition;
+mod execution_start;
 pub(crate) mod legacy_one_shot;
+mod memory;
 pub(crate) mod provider_anchor;
 mod provider_execution;
 mod provider_execution_owner;
@@ -26,6 +28,10 @@ pub use denial::{WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepD
 pub use disposition::{
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
 };
+pub use execution_start::WorthQueryGraphProviderExecutionStart;
+pub use memory::{
+    WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
+};
 pub use provider_execution::WorthQueryGraphProviderExecution;
 pub use provider_execution_release::{
     WorthQueryProviderExecutionDestructorDisposition,
@@ -42,6 +48,9 @@ pub use artifact_evidence::WorthQueryGraphProviderStepArtifactEvidence;
 pub(crate) use checkpoint::WorthQueryRetainedGraphProviderCheckpoint;
 pub(crate) use checkpoint_export::WorthQueryProviderCheckpointExportInvocation;
 pub(crate) use checkpoint_restore::WorthQueryProviderCheckpointRestoreInvocation;
+pub(crate) use memory::{
+    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderMemorySnapshot,
+};
 pub(crate) use provider_execution_owner::{
     WorthQueryOwnedGraphProviderExecution, WorthQueryProviderExecutionInvocation,
 };

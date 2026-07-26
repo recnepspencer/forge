@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::step_contract_admission::WorthQueryAdmittedManagedStepContract;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
     provider_anchor::WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStepArtifactContext,
-    WorthQueryGraphProviderStepCompletion, WorthQueryOwnedGraphProviderExecution,
-    WorthQueryProviderExecutionInvocation,
+    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderStepCompletion,
+    WorthQueryOwnedGraphProviderExecution, WorthQueryProviderExecutionInvocation,
 };
 use crate::domain_computation::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphProviderCall,
@@ -19,6 +19,7 @@ pub(super) struct WorthQueryManagedGraphExecution {
     pub(super) execution: WorthQueryOwnedGraphProviderExecution,
     pub(super) anchor: Arc<WorthQueryGraphProviderAnchor>,
     pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) memory: WorthQueryGraphProviderMemoryArena,
     pub(super) completed_work_units: u64,
     pub(super) applied_effect_count: u64,
     pub(super) peak_scratch_bytes: u64,
@@ -37,6 +38,7 @@ pub(super) struct WorthQueryRestoredManagedGraphExecutionParts {
     pub(super) execution: Box<dyn WorthQueryGraphProviderExecution>,
     pub(super) anchor: Arc<WorthQueryGraphProviderAnchor>,
     pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) memory: WorthQueryGraphProviderMemoryArena,
     pub(super) completed_work_units: u64,
     pub(super) applied_effect_count: u64,
     pub(super) peak_scratch_bytes: u64,
@@ -80,6 +82,7 @@ impl WorthQueryManagedGraphExecution {
         anchor: Arc<WorthQueryGraphProviderAnchor>,
         contract: WorthQueryAdmittedManagedStepContract,
         artifact_context: Option<WorthQueryGraphProviderStepArtifactContext>,
+        memory: WorthQueryGraphProviderMemoryArena,
     ) -> Self {
         let projection = (call.kind() == WorthQueryGraphProviderCallKind::Project)
             .then(|| WorthQueryGraphReadStreamAccumulator::new(&call));
@@ -88,6 +91,7 @@ impl WorthQueryManagedGraphExecution {
             execution: WorthQueryOwnedGraphProviderExecution::new(execution),
             anchor,
             contract,
+            memory,
             completed_work_units: 0,
             applied_effect_count: 0,
             peak_scratch_bytes: 0,
@@ -108,6 +112,7 @@ impl WorthQueryManagedGraphExecution {
             execution: WorthQueryOwnedGraphProviderExecution::new(parts.execution),
             anchor: parts.anchor,
             contract: parts.contract,
+            memory: parts.memory,
             completed_work_units: parts.completed_work_units,
             applied_effect_count: parts.applied_effect_count,
             peak_scratch_bytes: parts.peak_scratch_bytes,
@@ -141,6 +146,7 @@ impl WorthQueryManagedGraphExecution {
             self.call.kind(),
             self.contract.installed(),
             self.artifact_context.clone(),
+            self.memory.clone(),
         );
         let disposition = match self.execution.advance(&mut step) {
             WorthQueryProviderExecutionInvocation::Returned(Ok(disposition)) => disposition,

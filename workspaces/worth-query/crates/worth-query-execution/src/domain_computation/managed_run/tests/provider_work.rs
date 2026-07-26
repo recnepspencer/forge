@@ -4,6 +4,7 @@ struct TwoStepProvider;
 
 struct TwoStepExecution {
     phase: u8,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 impl WorthQueryGraphProviderExecution for TwoStepExecution {
@@ -17,12 +18,13 @@ impl WorthQueryGraphProviderExecution for TwoStepExecution {
                 for _ in 0..3 {
                     step.perform_work_unit(|| Ok(()))?;
                 }
-                step.observe_scratch_bytes(8).map_err(step_failure)?;
-                step.observe_retained_bytes(4).map_err(step_failure)?;
+                step.with_scratch_bytes(8, |_| Ok(()))?;
+                self.retained = Some(step.retain_bytes(4).map_err(step_failure)?);
                 Ok(WorthQueryGraphProviderStepDisposition::continue_work())
             }
             1 => {
                 self.phase = 2;
+                drop(self.retained.take());
                 for _ in 0..2 {
                     step.perform_work_unit(|| Ok(()))?;
                 }
@@ -57,14 +59,20 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for TwoStepProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(TwoStepExecution { phase: 0 })
+        Ok(TwoStepExecution {
+            phase: 0,
+            retained: None,
+        })
     }
 }
 
 struct FailingProvider;
 
-struct FailingExecution;
+struct FailingExecution {
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
+}
 
 impl WorthQueryGraphProviderExecution for FailingExecution {
     fn advance(
@@ -74,7 +82,7 @@ impl WorthQueryGraphProviderExecution for FailingExecution {
         for _ in 0..2 {
             step.perform_work_unit(|| Ok(()))?;
         }
-        step.observe_retained_bytes(4).map_err(step_failure)?;
+        self.retained = Some(step.retain_bytes(4).map_err(step_failure)?);
         Err(WorthQueryGraphProviderFailure::new(
             "provider failed after governed work",
         ))
@@ -100,8 +108,9 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for FailingProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(FailingExecution)
+        Ok(FailingExecution { retained: None })
     }
 }
 

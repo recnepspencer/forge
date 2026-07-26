@@ -6,8 +6,14 @@
 
 use std::sync::Arc;
 
-use super::provider_anchor::WorthQueryGraphProviderAnchor;
-use super::{WorthQueryGraphProviderStep, WorthQueryGraphProviderStepCompletion};
+use super::provider_anchor::{
+    WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStartInvocation,
+};
+use super::{
+    WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderMemoryArena,
+    WorthQueryGraphProviderStep, WorthQueryGraphProviderStepCompletion,
+    WorthQueryOwnedGraphProviderExecution,
+};
 use crate::domain_computation::{
     WorthQueryGraphProviderCall, WorthQueryGraphProviderCallKind, WorthQueryGraphProviderFailure,
     WorthQueryGraphProviderReceipt, WorthQueryGraphReadMaterial, WorthQueryProviderWorkReport,
@@ -22,13 +28,28 @@ pub fn execute_legacy_one_shot(
         .resource_envelope()
         .bounded_step_contract()
         .map_err(WorthQueryGraphProviderFailure::new)?;
-    let mut execution = anchor.begin(call)?;
+    let memory = WorthQueryGraphProviderMemoryArena::new(contract.retained_bytes_ceiling());
+    let mut start = WorthQueryGraphProviderExecutionStart::new(memory.clone());
+    let mut execution = match anchor.begin(call, &mut start) {
+        WorthQueryGraphProviderStartInvocation::Returned(Ok(execution)) => execution,
+        WorthQueryGraphProviderStartInvocation::Returned(Err(failure)) => return Err(failure),
+        WorthQueryGraphProviderStartInvocation::Panicked => {
+            return Err(WorthQueryGraphProviderFailure::new(
+                "legacy provider execution construction panicked",
+            ))
+        }
+    };
+    if let Err(denial) = start.finish() {
+        let _ = WorthQueryOwnedGraphProviderExecution::new(execution).release();
+        return Err(WorthQueryGraphProviderFailure::new(denial.detail()));
+    }
     let mut completed_work_units = 0u64;
     let mut applied_effect_count = 0u64;
     let mut peak_scratch_bytes = 0u64;
     let mut projection_rows = Vec::new();
     loop {
-        let mut step = WorthQueryGraphProviderStep::new(call.kind(), &contract, None);
+        let mut step =
+            WorthQueryGraphProviderStep::new(call.kind(), &contract, None, memory.clone());
         let disposition = match execution.advance(&mut step) {
             Ok(disposition) => disposition,
             Err(failure) => {

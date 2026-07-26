@@ -11,6 +11,8 @@ pub enum WorthQueryGraphProviderStepDenialKind {
     ChunkWidthExceeded,
     ScratchBudgetExceeded,
     RetainedBudgetExceeded,
+    MemoryAllocationFailed,
+    ForeignRetainedMemory,
     ArtifactAdmissionDenied,
     MultipleCheckpoints,
     NoProgress,

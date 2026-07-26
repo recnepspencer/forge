@@ -17,6 +17,7 @@ pub enum WorthQueryProviderCheckpointSuspensionFailureKind {
     ProviderRejected,
     ProviderPanicked,
     ProviderExecutionReleaseRecoveryRequired,
+    CheckpointMemoryMismatch,
     CheckpointRetention(WorthQueryProviderCheckpointRetentionFailureKind),
 }
 
@@ -93,6 +94,7 @@ fn split_managed_execution(
         execution,
         anchor,
         contract,
+        memory,
         completed_work_units,
         applied_effect_count,
         peak_scratch_bytes,
@@ -110,6 +112,7 @@ fn split_managed_execution(
             call,
             anchor,
             contract: contract.into_installed(),
+            memory,
             completed_work_units,
             applied_effect_count,
             peak_scratch_bytes,
@@ -157,6 +160,17 @@ fn retain_suspended_checkpoint(
 {
     let retained = WorthQueryRetainedManagedGraphExecution::new(parts, checkpoint);
     match retained {
+        Ok(retained)
+            if retained.checkpoint_evidence().retained_bytes()
+                <= retained.contract().retained_bytes_ceiling()
+                && retained.provider_memory_snapshot().retained_bytes()
+                    != retained.checkpoint_evidence().retained_bytes() =>
+        {
+            Err(checkpoint_memory_mismatch(
+                retained.release(),
+                provider_execution_release,
+            ))
+        }
         Ok(retained) if !provider_execution_release.recovery_required() => {
             Ok(WorthQueryManagedGraphSuspension {
                 retained,
@@ -171,6 +185,22 @@ fn retain_suspended_checkpoint(
             checkpoint_retention_failure,
             provider_execution_release,
         )),
+    }
+}
+
+fn checkpoint_memory_mismatch(
+    checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,
+    provider_execution_release: WorthQueryProviderExecutionReleaseEvidence,
+) -> WorthQueryProviderCheckpointSuspensionFailureEvidence {
+    WorthQueryProviderCheckpointSuspensionFailureEvidence {
+        kind: WorthQueryProviderCheckpointSuspensionFailureKind::CheckpointMemoryMismatch,
+        detail: Arc::from(
+            "provider checkpoint retained bytes differ from the governed execution-memory arena",
+        ),
+        provider_execution_release,
+        checkpoint_retention_failure: None,
+        checkpoint_release: Some(checkpoint_release),
+        checkpoint_retained_byte_probe_count: 1,
     }
 }
 

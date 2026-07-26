@@ -6,7 +6,8 @@ use super::managed_graph_execution::{
 use super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
     WorthQueryGraphProviderStepArtifactContext, WorthQueryOwnedGraphProviderExecution,
-    WorthQueryProviderCheckpointRestoreInvocation, WorthQueryProviderExecutionReleaseEvidence,
+    WorthQueryGraphProviderRestoreMemory, WorthQueryProviderCheckpointRestoreInvocation,
+    WorthQueryProviderExecutionReleaseEvidence,
 };
 use crate::domain_computation::{
     WorthQueryGraphProviderCall, WorthQueryProviderCheckpointEvidence,
@@ -71,7 +72,11 @@ pub(super) fn restore(
     fresh_call: WorthQueryGraphProviderCall,
     contract: super::step_contract_admission::WorthQueryAdmittedManagedStepContract,
 ) -> WorthQueryManagedGraphRestoreOutcome {
-    match retained.checkpoint.invoke_restore(&fresh_call) {
+    let mut memory = WorthQueryGraphProviderRestoreMemory::new(retained.memory.clone());
+    match retained
+        .checkpoint
+        .invoke_restore(&fresh_call, &mut memory)
+    {
         WorthQueryProviderCheckpointRestoreInvocation::Returned(Err(failure)) => {
             WorthQueryManagedGraphRestoreOutcome::Denied(WorthQueryManagedGraphRestoreDenied {
                 detail: Arc::from(failure.detail()),
@@ -163,6 +168,7 @@ fn finish_restore(
         call,
         checkpoint,
         contract: _,
+        memory,
         completed_work_units,
         applied_effect_count,
         peak_scratch_bytes,
@@ -197,6 +203,7 @@ fn finish_restore(
             execution: restored_execution.into_execution(),
             anchor,
             contract: admitted_contract,
+            memory,
             completed_work_units,
             applied_effect_count,
             peak_scratch_bytes,

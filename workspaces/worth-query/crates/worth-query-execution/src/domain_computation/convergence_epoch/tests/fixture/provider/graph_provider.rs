@@ -3,8 +3,10 @@ use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, Inte
 use crate::domain_computation::{
     WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
     WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
-    WorthQueryGraphProviderFailure, WorthQueryGraphProviderStep, WorthQueryGraphProviderStepDenial,
-    WorthQueryGraphProviderStepDisposition, WorthQueryGraphReadMaterial, WorthQueryGraphReadRow,
+    WorthQueryGraphProviderFailure, WorthQueryGraphProviderRestoreMemory,
+    WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStep,
+    WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDisposition,
+    WorthQueryGraphReadMaterial, WorthQueryGraphReadRow,
 };
 
 use super::convergence_provider::ConvergentProvider;
@@ -19,6 +21,7 @@ pub(in crate::domain_computation::convergence_epoch::tests::fixture) struct Comp
 {
     step_ordinal: u8,
     disposition: FixtureDisposition,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 impl WorthQueryGraphProviderExecution for CompletedGraphExecution {
@@ -35,7 +38,7 @@ impl WorthQueryGraphProviderExecution for CompletedGraphExecution {
             && self.step_ordinal == 0
         {
             self.step_ordinal = 1;
-            step.observe_retained_bytes(1).map_err(step_failure)?;
+            self.retained = Some(step.retain_bytes(1).map_err(step_failure)?);
             step.record_checkpoint_available().map_err(step_failure)?;
             return Ok(WorthQueryGraphProviderStepDisposition::continue_work());
         }
@@ -47,7 +50,14 @@ impl WorthQueryGraphProviderExecution for CompletedGraphExecution {
         &mut self,
     ) -> Result<Box<dyn WorthQueryGraphProviderCheckpoint>, WorthQueryGraphProviderFailure> {
         matches!(self.disposition, FixtureDisposition::YieldThenConverged)
-            .then_some(Box::new(ConvergenceCheckpoint) as Box<dyn WorthQueryGraphProviderCheckpoint>)
+            .then(|| {
+                Box::new(ConvergenceCheckpoint {
+                    retained: self
+                        .retained
+                        .take()
+                        .expect("yielding convergence execution retains governed memory"),
+                }) as Box<dyn WorthQueryGraphProviderCheckpoint>
+            })
             .ok_or_else(|| WorthQueryGraphProviderFailure::new("checkpoint not installed"))
     }
 
@@ -77,28 +87,34 @@ impl WorthQueryGraphParticipationProvider<FixtureGraph> for ConvergentProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut crate::domain_computation::WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(CompletedGraphExecution {
             step_ordinal: 0,
             disposition: self.disposition(),
+            retained: None,
         })
     }
 }
 
-struct ConvergenceCheckpoint;
+struct ConvergenceCheckpoint {
+    retained: WorthQueryGraphProviderRetainedMemory,
+}
 
 impl WorthQueryGraphProviderCheckpoint for ConvergenceCheckpoint {
     fn retained_bytes(&self) -> u64 {
-        1
+        u64::try_from(self.retained.len()).unwrap()
     }
 
     fn restore(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Ok(Box::new(CompletedGraphExecution {
             step_ordinal: 1,
             disposition: FixtureDisposition::YieldThenConverged,
+            retained: Some(memory.rebind(&self.retained).map_err(step_failure)?),
         }))
     }
 }

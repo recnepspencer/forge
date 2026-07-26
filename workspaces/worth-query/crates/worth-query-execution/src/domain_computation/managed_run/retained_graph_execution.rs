@@ -4,6 +4,7 @@ use worth_query_installation::facade::WorthQueryInstalledBoundedStepContract;
 
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
     provider_anchor::WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStepArtifactContext,
+    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderMemorySnapshot,
     WorthQueryRetainedGraphProviderCheckpoint,
 };
 use crate::domain_computation::{
@@ -16,6 +17,7 @@ pub(super) struct WorthQueryRetainedManagedGraphExecution {
     pub(super) call: WorthQueryGraphProviderCall,
     pub(super) checkpoint: WorthQueryRetainedGraphProviderCheckpoint,
     pub(super) contract: WorthQueryInstalledBoundedStepContract,
+    pub(super) memory: WorthQueryGraphProviderMemoryArena,
     pub(super) completed_work_units: u64,
     pub(super) applied_effect_count: u64,
     pub(super) peak_scratch_bytes: u64,
@@ -31,6 +33,7 @@ pub(super) struct WorthQueryRetainedManagedGraphExecutionParts {
     pub(super) call: WorthQueryGraphProviderCall,
     pub(super) anchor: Arc<WorthQueryGraphProviderAnchor>,
     pub(super) contract: WorthQueryInstalledBoundedStepContract,
+    pub(super) memory: WorthQueryGraphProviderMemoryArena,
     pub(super) completed_work_units: u64,
     pub(super) applied_effect_count: u64,
     pub(super) peak_scratch_bytes: u64,
@@ -57,6 +60,7 @@ impl WorthQueryRetainedManagedGraphExecution {
             call: parts.call,
             checkpoint,
             contract: parts.contract,
+            memory: parts.memory,
             completed_work_units: parts.completed_work_units,
             applied_effect_count: parts.applied_effect_count,
             peak_scratch_bytes: parts.peak_scratch_bytes,
@@ -73,6 +77,10 @@ impl WorthQueryRetainedManagedGraphExecution {
         self.checkpoint.evidence()
     }
 
+    pub(super) fn provider_memory_snapshot(&self) -> WorthQueryGraphProviderMemorySnapshot {
+        self.memory.snapshot()
+    }
+
     pub(super) fn contract(&self) -> &WorthQueryInstalledBoundedStepContract {
         &self.contract
     }
@@ -86,6 +94,7 @@ impl WorthQueryRetainedManagedGraphExecution {
             call,
             checkpoint,
             contract,
+            memory,
             completed_work_units,
             applied_effect_count,
             peak_scratch_bytes,
@@ -100,6 +109,7 @@ impl WorthQueryRetainedManagedGraphExecution {
         drop((
             call,
             contract,
+            memory,
             completed_work_units,
             applied_effect_count,
             peak_scratch_bytes,

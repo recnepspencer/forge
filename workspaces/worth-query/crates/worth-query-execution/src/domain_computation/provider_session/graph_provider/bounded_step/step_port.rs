@@ -1,12 +1,14 @@
 use worth_query_installation::facade::WorthQueryInstalledBoundedStepContract;
 
 use super::artifact_evidence::WorthQueryGraphProviderStepArtifacts;
+use super::memory::allocate_scratch_bytes;
 use super::step_budget::WorthQueryGraphProviderStepBudget;
 use super::step_state::WorthQueryGraphProviderStepState;
 use super::{
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
     WorthQueryGraphProviderStepFailureEvidence, WorthQueryGraphProviderStepReport,
+    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderRetainedMemory,
     WorthQueryGraphProviderStepRetainedEvidence,
 };
 use crate::domain_computation::{
@@ -25,6 +27,7 @@ pub struct WorthQueryGraphProviderStep {
     state: WorthQueryGraphProviderStepState,
     partial_effects_may_remain: bool,
     checkpoint_available: bool,
+    memory: WorthQueryGraphProviderMemoryArena,
 }
 
 impl WorthQueryGraphProviderStep {
@@ -32,6 +35,7 @@ impl WorthQueryGraphProviderStep {
         call_kind: WorthQueryGraphProviderCallKind,
         contract: &WorthQueryInstalledBoundedStepContract,
         artifact_context: Option<super::WorthQueryGraphProviderStepArtifactContext>,
+        memory: WorthQueryGraphProviderMemoryArena,
     ) -> Self {
         Self {
             call_kind,
@@ -43,6 +47,7 @@ impl WorthQueryGraphProviderStep {
             state: WorthQueryGraphProviderStepState::default(),
             partial_effects_may_remain: contract.partial_effects_may_remain(),
             checkpoint_available: false,
+            memory,
         }
     }
 
@@ -133,22 +138,40 @@ impl WorthQueryGraphProviderStep {
         Ok(())
     }
 
-    pub fn observe_scratch_bytes(
+    pub fn with_scratch_bytes<Output>(
         &mut self,
-        scratch_bytes: u64,
-    ) -> Result<(), WorthQueryGraphProviderStepDenial> {
-        self.state.ensure_active()?;
-        let observation = self.budget.observe_scratch(scratch_bytes);
-        self.state.admit(observation)
+        byte_count: usize,
+        operation: impl FnOnce(&mut [u8]) -> Result<Output, WorthQueryGraphProviderFailure>,
+    ) -> Result<Output, WorthQueryGraphProviderFailure> {
+        self.state
+            .ensure_active()
+            .map_err(step_denial_as_provider_failure)?;
+        let requested = u64::try_from(byte_count).unwrap_or(u64::MAX);
+        let validation = self.budget.validate_scratch(requested);
+        self.state
+            .admit(validation)
+            .map_err(step_denial_as_provider_failure)?;
+        let mut scratch: Vec<u8> = self
+            .state
+            .admit(allocate_scratch_bytes(byte_count))
+            .map_err(step_denial_as_provider_failure)?;
+        let actual = u64::try_from(scratch.capacity()).unwrap_or(u64::MAX);
+        let admission = self.budget.admit_scratch(actual);
+        self.state
+            .admit(admission)
+            .map_err(step_denial_as_provider_failure)?;
+        match operation(&mut scratch) {
+            Ok(output) => Ok(output),
+            Err(failure) => Err(self.state.reject_provider(failure)),
+        }
     }
 
-    pub fn observe_retained_bytes(
+    pub fn retain_bytes(
         &mut self,
-        retained_bytes: u64,
-    ) -> Result<(), WorthQueryGraphProviderStepDenial> {
+        byte_count: usize,
+    ) -> Result<WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStepDenial> {
         self.state.ensure_active()?;
-        let observation = self.budget.observe_retained(retained_bytes);
-        self.state.admit(observation)
+        self.state.admit(self.memory.retain_bytes(byte_count))
     }
 
     pub fn produce_artifact<R: WorthQueryArtifactProviderResource>(
@@ -192,6 +215,7 @@ impl WorthQueryGraphProviderStep {
         ),
     > {
         let artifacts = self.artifacts.finish();
+        let memory = self.memory.snapshot();
         let projection_retained_bytes = self.projection.as_ref().map_or(
             0,
             WorthQueryGraphReadMaterial::owned_allocation_capacity_bytes,
@@ -199,13 +223,23 @@ impl WorthQueryGraphProviderStep {
         if !self.state.has_failure() {
             let admission = self
                 .budget
-                .admit_retained_component(projection_retained_bytes);
+                .admit_retained_component(memory.retained_bytes());
             let _ = self.state.admit(admission);
         }
         if !self.state.has_failure() {
             let admission = self
                 .budget
-                .admit_retained_component(artifacts.retained_bytes());
+                .admit_retained_component(
+                    u64::try_from(projection_retained_bytes).unwrap_or(u64::MAX),
+                );
+            let _ = self.state.admit(admission);
+        }
+        if !self.state.has_failure() {
+            let admission = self
+                .budget
+                .admit_retained_component(
+                    u64::try_from(artifacts.retained_bytes()).unwrap_or(u64::MAX),
+                );
             let _ = self.state.admit(admission);
         }
         if !self.state.has_failure()
@@ -251,7 +285,7 @@ impl WorthQueryGraphProviderStep {
             self.applied_effect_count,
             self.budget.peak_scratch_bytes(),
             WorthQueryGraphProviderStepRetainedEvidence::new(
-                self.budget.provider_retained_bytes(),
+                memory,
                 projection_retained_bytes,
                 artifacts.retained_bytes(),
             ),
@@ -292,13 +326,14 @@ impl WorthQueryGraphProviderStep {
             0,
             WorthQueryGraphReadMaterial::owned_allocation_capacity_bytes,
         );
+        let memory = self.memory.snapshot();
         WorthQueryGraphProviderStepReport::failed(
             self.budget.completed_work_units(),
             self.attempted_effect_count,
             self.applied_effect_count,
             self.budget.peak_scratch_bytes(),
             WorthQueryGraphProviderStepRetainedEvidence::new(
-                self.budget.provider_retained_bytes(),
+                memory,
                 projection_retained_bytes,
                 artifacts.retained_bytes(),
             ),

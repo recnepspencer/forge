@@ -9,7 +9,6 @@ pub(super) struct WorthQueryGraphProviderStepBudget {
     scratch_bytes_ceiling: u64,
     retained_bytes_ceiling: u64,
     peak_scratch_bytes: u64,
-    provider_retained_bytes: u64,
     retained_bytes: u64,
 }
 
@@ -22,7 +21,6 @@ impl WorthQueryGraphProviderStepBudget {
             scratch_bytes_ceiling: contract.scratch_bytes_ceiling(),
             retained_bytes_ceiling: contract.retained_bytes_ceiling(),
             peak_scratch_bytes: 0,
-            provider_retained_bytes: 0,
             retained_bytes: 0,
         }
     }
@@ -60,8 +58,8 @@ impl WorthQueryGraphProviderStepBudget {
         Ok(())
     }
 
-    pub(super) fn observe_scratch(
-        &mut self,
+    pub(super) fn validate_scratch(
+        &self,
         scratch_bytes: u64,
     ) -> Result<(), WorthQueryGraphProviderStepDenial> {
         if scratch_bytes > self.scratch_bytes_ceiling {
@@ -70,30 +68,22 @@ impl WorthQueryGraphProviderStepBudget {
                 "provider step scratch exceeds the installed scratch budget",
             ));
         }
-        self.peak_scratch_bytes = self.peak_scratch_bytes.max(scratch_bytes);
         Ok(())
     }
 
-    pub(super) fn observe_retained(
+    pub(super) fn admit_scratch(
         &mut self,
-        retained_bytes: u64,
+        scratch_bytes: u64,
     ) -> Result<(), WorthQueryGraphProviderStepDenial> {
-        if retained_bytes > self.retained_bytes_ceiling {
-            return Err(WorthQueryGraphProviderStepDenial::new(
-                WorthQueryGraphProviderStepDenialKind::RetainedBudgetExceeded,
-                "provider step retained memory exceeds the installed retained budget",
-            ));
-        }
-        self.provider_retained_bytes = retained_bytes;
-        self.retained_bytes = retained_bytes;
+        self.validate_scratch(scratch_bytes)?;
+        self.peak_scratch_bytes = self.peak_scratch_bytes.max(scratch_bytes);
         Ok(())
     }
 
     pub(super) fn admit_retained_component(
         &mut self,
-        retained_bytes: usize,
+        retained_bytes: u64,
     ) -> Result<(), WorthQueryGraphProviderStepDenial> {
-        let retained_bytes = u64::try_from(retained_bytes).unwrap_or(u64::MAX);
         let total = self
             .retained_bytes
             .checked_add(retained_bytes)
@@ -121,7 +111,4 @@ impl WorthQueryGraphProviderStepBudget {
         self.peak_scratch_bytes
     }
 
-    pub(super) const fn provider_retained_bytes(&self) -> u64 {
-        self.provider_retained_bytes
-    }
 }

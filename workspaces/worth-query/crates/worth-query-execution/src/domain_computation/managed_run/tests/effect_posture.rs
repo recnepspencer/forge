@@ -71,6 +71,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for EffectProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(EffectExecution {
             applied_effects: Arc::clone(&self.applied_effects),

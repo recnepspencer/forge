@@ -73,6 +73,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for WorkflowStageProvide
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
+        _start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
         Ok(WorkflowStageExecution {
             behavior: self.behavior.clone(),

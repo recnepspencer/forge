@@ -1,6 +1,7 @@
 use super::{
     WorthQueryGraphCommitCall, WorthQueryGraphProviderCall, WorthQueryGraphProviderExecution,
-    WorthQueryGraphProviderFailure, WorthQueryGraphProviderReceipt,
+    WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
+    WorthQueryGraphProviderReceipt,
 };
 
 pub trait WorthQueryGraphParticipationProvider<G>: Send + Sync + 'static {
@@ -13,6 +14,7 @@ pub trait WorthQueryGraphParticipationProvider<G>: Send + Sync + 'static {
     fn begin(
         &self,
         call: &WorthQueryGraphProviderCall,
+        start: &mut WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure>;
 }
 
