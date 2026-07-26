@@ -40,7 +40,7 @@ pub(in crate::domain_computation::managed_run) fn readmit_direct(
     restore_direct(pending, bridge_runtime, counters)
 }
 
-pub(in crate::domain_computation::managed_run) fn restore_direct(
+pub(super) fn restore_direct(
     pending: WorthQueryDirectBridgeReadmissionPending,
     bridge_runtime: &RuntimeBridge,
     mut progress: WorthQueryReadmissionProgress,

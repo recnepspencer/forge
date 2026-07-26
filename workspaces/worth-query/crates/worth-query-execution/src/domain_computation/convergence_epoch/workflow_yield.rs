@@ -2,9 +2,9 @@ use super::{
     WorthQueryPendingWorkflowConvergenceIteration, WorthQueryStartedWorkflowConvergenceIteration,
 };
 use crate::domain_computation::{
-    WorthQueryWorkflowReadmissionCleanupRequired, WorthQueryWorkflowReadmissionDenied,
-    WorthQueryWorkflowReadmissionOutcome, WorthQueryWorkflowReadmissionRecoveryRequired,
-    WorthQueryWorkflowReadmissionTerminalRecovery,
+    WorthQueryReadmissionEvidence, WorthQueryWorkflowReadmissionCleanupRequired,
+    WorthQueryWorkflowReadmissionDenied, WorthQueryWorkflowReadmissionOutcome,
+    WorthQueryWorkflowReadmissionRecoveryRequired, WorthQueryWorkflowReadmissionTerminalRecovery,
     WorthQueryWorkflowReadmissionYieldReassemblyOutcome as ManagedYieldReassemblyOutcome,
     WorthQueryWorkflowReadmissionYieldReassemblyRecovery, WorthQueryWorkflowYieldDenied,
     WorthQueryWorkflowYieldOutcome, WorthQueryWorkflowYieldRecoveryRequired,
@@ -55,12 +55,16 @@ impl WorthQueryYieldedWorkflowConvergenceIteration {
             .readmit_same_runtime(query_runtime, bridge_runtime)
         {
             WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
+                let evidence = readmitted.readmission_evidence();
                 self.pending.core.counters_mut().resumed();
                 self.pending.expected_run_identity = readmitted.active().run_identity().into();
                 WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(
-                    WorthQueryStartedWorkflowConvergenceIteration {
-                        pending: self.pending,
-                        execution: readmitted.into_active(),
+                    WorthQueryReadmittedWorkflowConvergenceIteration {
+                        started: WorthQueryStartedWorkflowConvergenceIteration {
+                            pending: self.pending,
+                            execution: readmitted.into_active(),
+                        },
+                        evidence,
                     },
                 )
             }
@@ -97,12 +101,33 @@ impl WorthQueryYieldedWorkflowConvergenceIteration {
     }
 }
 
+#[must_use = "readmitted convergence iteration must continue through its started authority"]
+pub struct WorthQueryReadmittedWorkflowConvergenceIteration {
+    started: WorthQueryStartedWorkflowConvergenceIteration,
+    evidence: WorthQueryReadmissionEvidence,
+}
+
+impl WorthQueryReadmittedWorkflowConvergenceIteration {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
+    }
+
+    pub fn into_started(self) -> WorthQueryStartedWorkflowConvergenceIteration {
+        self.started
+    }
+}
+
+#[must_use = "convergence readmission denial retains the exact yielded iteration authority"]
 pub struct WorthQueryWorkflowConvergenceReadmissionDenied {
     pending: WorthQueryPendingWorkflowConvergenceIteration,
     denial: WorthQueryWorkflowReadmissionDenied,
 }
 
 impl WorthQueryWorkflowConvergenceReadmissionDenied {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.denial.readmission_evidence()
+    }
+
     pub fn managed_denial(&self) -> &WorthQueryWorkflowReadmissionDenied {
         &self.denial
     }
@@ -134,6 +159,10 @@ pub struct WorthQueryWorkflowConvergenceReadmissionTerminalRecovery {
 }
 
 impl WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.recovery.readmission_evidence()
+    }
+
     pub fn managed_recovery(&self) -> &WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
         &self.recovery
     }
@@ -141,9 +170,16 @@ impl WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
     pub fn retry_to_yielded(self) -> WorthQueryWorkflowConvergenceYieldReassemblyOutcome {
         let Self { pending, recovery } = self;
         match recovery.retry_to_yielded() {
-            ManagedYieldReassemblyOutcome::Yielded(yielded) => {
+            ManagedYieldReassemblyOutcome::Yielded(reassembled) => {
+                let evidence = reassembled.readmission_evidence();
                 WorthQueryWorkflowConvergenceYieldReassemblyOutcome::Yielded(
-                    WorthQueryYieldedWorkflowConvergenceIteration { pending, yielded },
+                    WorthQueryWorkflowConvergenceYieldReassembled {
+                        yielded: WorthQueryYieldedWorkflowConvergenceIteration {
+                            pending,
+                            yielded: reassembled.into_yielded(),
+                        },
+                        evidence,
+                    },
                 )
             }
             ManagedYieldReassemblyOutcome::RecoveryRequired(recovery) => {
@@ -166,6 +202,10 @@ impl WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
 }
 
 impl WorthQueryWorkflowConvergenceReadmissionTerminalRecovery {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.recovery.readmission_evidence()
+    }
+
     pub fn managed_recovery(&self) -> &WorthQueryWorkflowReadmissionTerminalRecovery {
         &self.recovery
     }
@@ -180,10 +220,27 @@ impl WorthQueryWorkflowConvergenceReadmissionTerminalRecovery {
 
 #[must_use = "convergence yield reassembly retains yielded or exact recovery authority"]
 pub enum WorthQueryWorkflowConvergenceYieldReassemblyOutcome {
-    Yielded(WorthQueryYieldedWorkflowConvergenceIteration),
+    Yielded(WorthQueryWorkflowConvergenceYieldReassembled),
     RecoveryRequired(WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery),
 }
 
+#[must_use = "reassembled convergence yield retains exact yielded authority and owner evidence"]
+pub struct WorthQueryWorkflowConvergenceYieldReassembled {
+    yielded: WorthQueryYieldedWorkflowConvergenceIteration,
+    evidence: WorthQueryReadmissionEvidence,
+}
+
+impl WorthQueryWorkflowConvergenceYieldReassembled {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
+    }
+
+    pub fn into_yielded(self) -> WorthQueryYieldedWorkflowConvergenceIteration {
+        self.yielded
+    }
+}
+
+#[must_use = "convergence readmission cleanup retains managed cleanup authority"]
 pub struct WorthQueryWorkflowConvergenceReadmissionCleanupRequired {
     pending: WorthQueryPendingWorkflowConvergenceIteration,
     cleanup: WorthQueryWorkflowReadmissionCleanupRequired,
@@ -204,8 +261,9 @@ impl WorthQueryWorkflowConvergenceReadmissionCleanupRequired {
     }
 }
 
+#[must_use = "convergence readmission outcomes retain started, yielded, or recovery authority"]
 pub enum WorthQueryWorkflowConvergenceReadmissionOutcome {
-    Readmitted(WorthQueryStartedWorkflowConvergenceIteration),
+    Readmitted(WorthQueryReadmittedWorkflowConvergenceIteration),
     Denied(WorthQueryWorkflowConvergenceReadmissionDenied),
     RecoveryRequired(WorthQueryWorkflowConvergenceReadmissionRecoveryRequired),
 }

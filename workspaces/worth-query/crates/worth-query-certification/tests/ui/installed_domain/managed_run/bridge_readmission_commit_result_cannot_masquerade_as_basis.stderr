@@ -1,0 +1,7 @@
+error[E0308]: mismatched types
+ --> tests/ui/installed_domain/managed_run/bridge_readmission_commit_result_cannot_masquerade_as_basis.rs:9:5
+  |
+8 | ) -> BridgeBoundExecutionBasis {
+  |      ------------------------- expected `BridgeBoundExecutionBasis` because of return type
+9 |     runtime.commit_yielded_execution_basis_readmission(pending)
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `BridgeBoundExecutionBasis`, found `BridgeExecutionBasisReadmissionCommitted`

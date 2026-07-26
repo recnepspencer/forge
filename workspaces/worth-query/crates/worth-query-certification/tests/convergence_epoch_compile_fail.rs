@@ -14,4 +14,7 @@ fn convergence_epoch_authority_boundaries_hold() {
     cases.compile_fail(
         "tests/ui/installed_domain/convergence_epoch/legacy_receipt_cannot_advance.rs",
     );
+    cases.compile_fail(
+        "tests/ui/installed_domain/convergence_epoch/readmission_outcome_must_be_resolved.rs",
+    );
 }

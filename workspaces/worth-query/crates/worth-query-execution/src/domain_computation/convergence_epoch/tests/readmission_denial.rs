@@ -49,11 +49,22 @@ fn denied_direct_readmission_rejoins_without_recounting_the_yield() {
         denied.managed_denial().kind(),
         WorthQueryDirectReadmissionDenialKind::ForeignQueryRuntime
     );
+    assert!(denied.readmission_evidence().bridge_counters().is_none());
     let started = match denied
         .into_yielded()
         .readmit_same_runtime(&runtime, &bridge)
     {
-        WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(started) => started,
+        WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(readmitted) => {
+            assert_eq!(
+                readmitted
+                    .readmission_evidence()
+                    .bridge_counters()
+                    .expect("owner readmission must carry Bridge evidence")
+                    .commit_count(),
+                1
+            );
+            readmitted.into_started()
+        }
         _ => panic!("owning Query runtime must readmit the retained direct convergence authority"),
     };
     let (pending, active) = started.into_parts();
@@ -114,11 +125,22 @@ fn denied_workflow_readmission_rejoins_without_recounting_the_yield() {
         denied.managed_denial().kind(),
         WorthQueryWorkflowReadmissionDenialKind::ForeignQueryRuntime
     );
+    assert!(denied.readmission_evidence().bridge_counters().is_none());
     let started = match denied
         .into_yielded()
         .readmit_same_runtime(&runtime, &bridge)
     {
-        WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(started) => started,
+        WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(readmitted) => {
+            assert_eq!(
+                readmitted
+                    .readmission_evidence()
+                    .bridge_counters()
+                    .expect("owner workflow readmission must carry Bridge evidence")
+                    .commit_count(),
+                1
+            );
+            readmitted.into_started()
+        }
         _ => {
             panic!("owning Query runtime must readmit the retained workflow convergence authority")
         }

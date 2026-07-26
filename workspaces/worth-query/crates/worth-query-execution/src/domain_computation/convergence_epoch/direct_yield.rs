@@ -8,7 +8,7 @@ use crate::domain_computation::{
     WorthQueryDirectReadmissionYieldReassemblyOutcome as ManagedYieldReassemblyOutcome,
     WorthQueryDirectReadmissionYieldReassemblyRecovery, WorthQueryDirectYieldDenied,
     WorthQueryDirectYieldOutcome, WorthQueryDirectYieldRecoveryRequired,
-    WorthQueryYieldedDirectRun,
+    WorthQueryReadmissionEvidence, WorthQueryYieldedDirectRun,
 };
 
 pub enum WorthQueryDirectConvergenceYieldOutcome {
@@ -55,12 +55,16 @@ impl WorthQueryYieldedDirectConvergenceIteration {
             .readmit_same_runtime(query_runtime, bridge_runtime)
         {
             WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
+                let evidence = readmitted.readmission_evidence();
                 self.pending.core.counters_mut().resumed();
                 self.pending.expected_run_identity = readmitted.active().run_identity().into();
                 WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(
-                    WorthQueryStartedDirectConvergenceIteration {
-                        pending: self.pending,
-                        execution: readmitted.into_active(),
+                    WorthQueryReadmittedDirectConvergenceIteration {
+                        started: WorthQueryStartedDirectConvergenceIteration {
+                            pending: self.pending,
+                            execution: readmitted.into_active(),
+                        },
+                        evidence,
                     },
                 )
             }
@@ -97,12 +101,33 @@ impl WorthQueryYieldedDirectConvergenceIteration {
     }
 }
 
+#[must_use = "readmitted convergence iteration must continue through its started authority"]
+pub struct WorthQueryReadmittedDirectConvergenceIteration {
+    started: WorthQueryStartedDirectConvergenceIteration,
+    evidence: WorthQueryReadmissionEvidence,
+}
+
+impl WorthQueryReadmittedDirectConvergenceIteration {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
+    }
+
+    pub fn into_started(self) -> WorthQueryStartedDirectConvergenceIteration {
+        self.started
+    }
+}
+
+#[must_use = "convergence readmission denial retains the exact yielded iteration authority"]
 pub struct WorthQueryDirectConvergenceReadmissionDenied {
     pending: WorthQueryPendingDirectConvergenceIteration,
     denial: WorthQueryDirectReadmissionDenied,
 }
 
 impl WorthQueryDirectConvergenceReadmissionDenied {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.denial.readmission_evidence()
+    }
+
     pub fn managed_denial(&self) -> &WorthQueryDirectReadmissionDenied {
         &self.denial
     }
@@ -134,6 +159,10 @@ pub struct WorthQueryDirectConvergenceReadmissionTerminalRecovery {
 }
 
 impl WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.recovery.readmission_evidence()
+    }
+
     pub fn managed_recovery(&self) -> &WorthQueryDirectReadmissionYieldReassemblyRecovery {
         &self.recovery
     }
@@ -141,9 +170,16 @@ impl WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery {
     pub fn retry_to_yielded(self) -> WorthQueryDirectConvergenceYieldReassemblyOutcome {
         let Self { pending, recovery } = self;
         match recovery.retry_to_yielded() {
-            ManagedYieldReassemblyOutcome::Yielded(yielded) => {
+            ManagedYieldReassemblyOutcome::Yielded(reassembled) => {
+                let evidence = reassembled.readmission_evidence();
                 WorthQueryDirectConvergenceYieldReassemblyOutcome::Yielded(
-                    WorthQueryYieldedDirectConvergenceIteration { pending, yielded },
+                    WorthQueryDirectConvergenceYieldReassembled {
+                        yielded: WorthQueryYieldedDirectConvergenceIteration {
+                            pending,
+                            yielded: reassembled.into_yielded(),
+                        },
+                        evidence,
+                    },
                 )
             }
             ManagedYieldReassemblyOutcome::RecoveryRequired(recovery) => {
@@ -166,6 +202,10 @@ impl WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery {
 }
 
 impl WorthQueryDirectConvergenceReadmissionTerminalRecovery {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.recovery.readmission_evidence()
+    }
+
     pub fn managed_recovery(&self) -> &WorthQueryDirectReadmissionTerminalRecovery {
         &self.recovery
     }
@@ -180,10 +220,27 @@ impl WorthQueryDirectConvergenceReadmissionTerminalRecovery {
 
 #[must_use = "convergence yield reassembly retains yielded or exact recovery authority"]
 pub enum WorthQueryDirectConvergenceYieldReassemblyOutcome {
-    Yielded(WorthQueryYieldedDirectConvergenceIteration),
+    Yielded(WorthQueryDirectConvergenceYieldReassembled),
     RecoveryRequired(WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery),
 }
 
+#[must_use = "reassembled convergence yield retains exact yielded authority and owner evidence"]
+pub struct WorthQueryDirectConvergenceYieldReassembled {
+    yielded: WorthQueryYieldedDirectConvergenceIteration,
+    evidence: WorthQueryReadmissionEvidence,
+}
+
+impl WorthQueryDirectConvergenceYieldReassembled {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
+    }
+
+    pub fn into_yielded(self) -> WorthQueryYieldedDirectConvergenceIteration {
+        self.yielded
+    }
+}
+
+#[must_use = "convergence readmission cleanup retains managed cleanup authority"]
 pub struct WorthQueryDirectConvergenceReadmissionCleanupRequired {
     pending: WorthQueryPendingDirectConvergenceIteration,
     cleanup: WorthQueryDirectReadmissionCleanupRequired,
@@ -204,8 +261,9 @@ impl WorthQueryDirectConvergenceReadmissionCleanupRequired {
     }
 }
 
+#[must_use = "convergence readmission outcomes retain started, yielded, or recovery authority"]
 pub enum WorthQueryDirectConvergenceReadmissionOutcome {
-    Readmitted(WorthQueryStartedDirectConvergenceIteration),
+    Readmitted(WorthQueryReadmittedDirectConvergenceIteration),
     Denied(WorthQueryDirectConvergenceReadmissionDenied),
     RecoveryRequired(WorthQueryDirectConvergenceReadmissionRecoveryRequired),
 }

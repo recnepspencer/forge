@@ -98,6 +98,7 @@ fn compatible_but_independently_minted_provider_support_denies_before_provider_s
         },
         false,
         independently_minted_support,
+        "managed-graph-binding",
     );
     let failure = match running.begin_graph_execution(
         &graph,

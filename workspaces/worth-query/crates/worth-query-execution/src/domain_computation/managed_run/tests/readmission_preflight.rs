@@ -15,10 +15,19 @@ fn foreign_bridge_denies_before_fresh_query_or_provider_work_and_preserves_retry
         denied.kind(),
         crate::domain_computation::WorthQueryDirectReadmissionDenialKind::BridgeReadmissionDenied
     );
-    assert_eq!(denied.counters().preflight_check_count(), 1);
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
+    let evidence = denied.readmission_evidence();
+    let counters = evidence.query_counters();
+    assert_eq!(counters.preflight_check_count(), 1);
+    assert_eq!(counters.fresh_resource_attempt_count(), 0);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
+    assert_eq!(counters.provider_restore_attempt_count(), 0);
+    let bridge_counters = evidence
+        .bridge_counters()
+        .expect("foreign Bridge denial must carry Bridge preflight evidence");
+    assert_eq!(bridge_counters.preflight_check_count(), 1);
+    assert_eq!(bridge_counters.signal_attempt_admission_count(), 0);
+    assert_eq!(bridge_counters.abort_count(), 0);
+    assert_eq!(bridge_counters.commit_count(), 0);
     let yielded = denied.into_yielded();
     assert_eq!(yielded.checkpoint().identity(), checkpoint);
     assert_eq!(yielded.resource_attempt_identity(), resource_attempt);
@@ -59,9 +68,12 @@ fn successor_installation_denies_stale_yield_before_any_fresh_authority() {
         denied.kind(),
         crate::domain_computation::WorthQueryDirectReadmissionDenialKind::StaleInstallationGeneration
     );
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
+    let evidence = denied.readmission_evidence();
+    let counters = evidence.query_counters();
+    assert_eq!(counters.fresh_resource_attempt_count(), 0);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
+    assert_eq!(counters.provider_restore_attempt_count(), 0);
+    assert!(evidence.bridge_counters().is_none());
     let yielded = denied.into_yielded();
     assert_eq!(yielded.checkpoint().identity(), checkpoint);
     assert_eq!(

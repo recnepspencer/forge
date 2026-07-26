@@ -11,7 +11,8 @@ mod provider_memory_cleanup;
 mod provider_support_affinity;
 mod provider_work;
 mod readmission_checkpoint_export;
-mod readmission_direct;
+pub(in crate::domain_computation::managed_run) mod readmission_direct;
+mod readmission_owner_evidence;
 mod readmission_parity;
 mod readmission_preflight;
 mod readmission_recovery_topology;
@@ -35,7 +36,7 @@ mod yield_checkpoint_fixture;
 mod yield_checkpoint_release;
 mod yield_cost_bound;
 mod yield_eligibility_workflow;
-mod yield_fixture;
+pub(in crate::domain_computation::managed_run) mod yield_fixture;
 mod yield_generation;
 mod yield_lifecycle_direct;
 mod yield_lifecycle_workflow;
@@ -161,10 +162,13 @@ fn managed_graph_run_with_provider_and_bridge<P>(
 where
     P: WorthQueryGraphParticipationProvider<ManagedGraph>,
 {
-    let (running, graph, bridge, _runtime) =
-        managed_graph_run_with_provider_and_admitted_support(access, provider, false, |support| {
-            support.clone()
-        });
+    let (running, graph, bridge, _runtime) = managed_graph_run_with_provider_and_admitted_support(
+        access,
+        provider,
+        false,
+        |support| support.clone(),
+        "managed-graph-binding",
+    );
     (running, graph, bridge)
 }
 
@@ -180,9 +184,29 @@ fn managed_graph_run_with_provider_and_runtime<P>(
 where
     P: WorthQueryGraphParticipationProvider<ManagedGraph>,
 {
-    managed_graph_run_with_provider_and_admitted_support(access, provider, false, |support| {
-        support.clone()
-    })
+    managed_graph_run_with_provider_and_runtime_binding(access, provider, "managed-graph-binding")
+}
+
+fn managed_graph_run_with_provider_and_runtime_binding<P>(
+    access: WorthQueryOperationGraphAccess,
+    provider: P,
+    binding_identity: &str,
+) -> (
+    WorthQueryRunningDirectRun,
+    WorthQueryInstalledGraphParticipationAuthority,
+    RuntimeBridge,
+    WorthQueryExecutionRuntime,
+)
+where
+    P: WorthQueryGraphParticipationProvider<ManagedGraph>,
+{
+    managed_graph_run_with_provider_and_admitted_support(
+        access,
+        provider,
+        false,
+        |support| support.clone(),
+        binding_identity,
+    )
 }
 
 fn managed_graph_effect_run_with_provider<P>(
@@ -199,6 +223,7 @@ where
         provider,
         true,
         |support| support.clone(),
+        "managed-graph-binding",
     );
     (running, graph)
 }
@@ -210,6 +235,7 @@ fn managed_graph_run_with_provider_and_admitted_support<P>(
     admitted_support: impl FnOnce(
         &worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport,
     ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport,
+    binding_identity: &str,
 ) -> (
     WorthQueryRunningDirectRun,
     WorthQueryInstalledGraphParticipationAuthority,
@@ -241,12 +267,8 @@ where
         .expect("managed graph runtime should install")
         .into_parts()
         .0;
-    let plan = admitted_plan_with_graph_support(
-        "managed-graph-binding",
-        8,
-        graph.role(),
-        provider_support,
-    );
+    let plan =
+        admitted_plan_with_graph_support(binding_identity, 8, graph.role(), provider_support);
     let operation = if touch {
         direct_authority_with_graph_effect(&runtime, &plan, &graph)
     } else {

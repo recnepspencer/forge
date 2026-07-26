@@ -7,10 +7,10 @@ use crate::domain_computation::{
     WorthQueryConverged, WorthQueryDirectConvergenceIterationOutcome,
     WorthQueryDirectConvergenceReadmissionOutcome, WorthQueryDirectConvergenceYieldOutcome,
     WorthQueryDirectGraphStepOutcome, WorthQueryGraphProviderCallKind,
-    WorthQueryManagedGraphCallRequest, WorthQueryWorkflowConvergenceCleanupOutcome,
-    WorthQueryWorkflowConvergenceIterationOutcome, WorthQueryWorkflowConvergenceReadmissionOutcome,
-    WorthQueryWorkflowConvergenceTerminal, WorthQueryWorkflowConvergenceYieldOutcome,
-    WorthQueryWorkflowGraphStepOutcome,
+    WorthQueryManagedGraphCallRequest, WorthQueryReadmissionEvidence,
+    WorthQueryWorkflowConvergenceCleanupOutcome, WorthQueryWorkflowConvergenceIterationOutcome,
+    WorthQueryWorkflowConvergenceReadmissionOutcome, WorthQueryWorkflowConvergenceTerminal,
+    WorthQueryWorkflowConvergenceYieldOutcome, WorthQueryWorkflowGraphStepOutcome,
 };
 
 #[test]
@@ -47,7 +47,10 @@ fn same_runtime_yield_and_resume_preserve_the_semantic_convergence_result() {
     };
     assert_eq!(yielded.yielded_run().checkpoint().retained_bytes(), 1);
     let resumed = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(started) => started,
+        WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(readmitted) => {
+            assert_committed_readmission_evidence(readmitted.readmission_evidence());
+            readmitted.into_started()
+        }
         _ => panic!("same-runtime convergence readmission must restore the provider"),
     };
     let (pending, active) = resumed.into_parts();
@@ -157,7 +160,10 @@ fn workflow_yield_and_resume_preserve_the_semantic_convergence_result() {
     };
     assert_eq!(yielded.yielded_run().checkpoint().retained_bytes(), 1);
     let resumed = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(started) => started,
+        WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(readmitted) => {
+            assert_committed_readmission_evidence(readmitted.readmission_evidence());
+            readmitted.into_started()
+        }
         _ => panic!("same-runtime workflow readmission must restore the provider"),
     };
     let (pending, active) = resumed.into_parts();
@@ -295,4 +301,13 @@ fn chunked_converged_terminal(
         WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal) => terminal,
         _ => panic!("chunk schedule must preserve convergence"),
     }
+}
+
+fn assert_committed_readmission_evidence(evidence: WorthQueryReadmissionEvidence) {
+    assert_eq!(evidence.query_counters().committed_attempt_count(), 1);
+    let bridge = evidence
+        .bridge_counters()
+        .expect("convergence readmission must carry Bridge owner evidence");
+    assert_eq!(bridge.abort_count(), 0);
+    assert_eq!(bridge.commit_count(), 1);
 }

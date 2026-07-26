@@ -112,7 +112,9 @@ impl YieldProvider {
         }
     }
 
-    pub(super) const fn checkpoint_restore_failure(retained_bytes: u64) -> Self {
+    pub(in crate::domain_computation::managed_run) const fn checkpoint_restore_failure(
+        retained_bytes: u64,
+    ) -> Self {
         Self {
             yield_installed: true,
             checkpoint_available: true,

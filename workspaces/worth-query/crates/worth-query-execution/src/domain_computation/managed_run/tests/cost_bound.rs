@@ -1,6 +1,6 @@
 use super::*;
 use crate::domain_computation::{
-    WorthQueryDirectReadmissionOutcome, WorthQueryReadmissionCounters,
+    WorthQueryDirectReadmissionOutcome, WorthQueryReadmissionEvidence,
     WorthQueryRunningWorkflowRun, WorthQueryWorkflowReadmissionOutcome,
 };
 
@@ -128,14 +128,14 @@ fn unrelated_artifact_run_in_runtime(
     (running, handle)
 }
 
-fn direct_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCounters {
+fn direct_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionEvidence {
     let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct();
     let (unrelated, disposed) = unrelated_authority(&runtime, unrelated_width);
     let readmitted = match yielded.readmit_same_runtime(&runtime, &bridge) {
         WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => readmitted,
         _ => panic!("direct cost target should readmit"),
     };
-    let counters = readmitted.readmission_evidence().counters();
+    let evidence = readmitted.readmission_evidence();
     let terminal = match readmitted.into_active().abandon() {
         WorthQueryDirectGraphStepOutcome::Failed(terminal) => terminal,
         _ => panic!("direct cost target should explicitly terminalize"),
@@ -144,10 +144,10 @@ fn direct_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCount
         .cleanup()
         .expect("direct cost target should clean up");
     assert_and_release_unrelated_authority(unrelated, &disposed, unrelated_width);
-    counters
+    evidence
 }
 
-fn workflow_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCounters {
+fn workflow_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionEvidence {
     let (yielded, bridge, runtime, old_producer) = super::readmission_workflow::yielded_workflow(
         super::yield_fixture::YieldProvider::installed(7),
     );
@@ -156,7 +156,7 @@ fn workflow_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCou
         WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => readmitted,
         _ => panic!("workflow cost target should readmit"),
     };
-    let counters = readmitted.readmission_evidence().counters();
+    let evidence = readmitted.readmission_evidence();
     drop(old_producer);
     let terminal = match readmitted.into_active().abandon() {
         WorthQueryWorkflowGraphStepOutcome::Failed(terminal) => terminal,
@@ -167,10 +167,10 @@ fn workflow_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCou
         _ => panic!("workflow cost target should clean up"),
     }
     assert_and_release_unrelated_authority(unrelated, &disposed, unrelated_width);
-    counters
+    evidence
 }
 
-fn denied_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCounters {
+fn denied_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionEvidence {
     let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct();
     let (unrelated, disposed) = unrelated_authority(&runtime, unrelated_width);
     let foreign = query_runtime();
@@ -178,10 +178,10 @@ fn denied_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCount
         WorthQueryDirectReadmissionOutcome::Denied(denial) => denial,
         _ => panic!("foreign Query runtime should deny readmission"),
     };
-    let counters = denial.counters();
+    let evidence = denial.readmission_evidence();
     complete_direct_yield_cleanup(denial.into_yielded());
     assert_and_release_unrelated_authority(unrelated, &disposed, unrelated_width);
-    counters
+    evidence
 }
 
 fn unrelated_authority(
@@ -212,7 +212,8 @@ fn assert_and_release_unrelated_authority<T>(
     assert_eq!(disposed.load(Ordering::Acquire), expected_width);
 }
 
-fn assert_exact_direct_readmission_work(counters: WorthQueryReadmissionCounters) {
+fn assert_exact_direct_readmission_work(evidence: WorthQueryReadmissionEvidence) {
+    let counters = evidence.query_counters();
     assert_eq!(counters.preflight_check_count(), 1);
     assert_eq!(counters.fresh_resource_attempt_count(), 1);
     assert_eq!(counters.bridge_readmission_attempt_count(), 1);
@@ -220,9 +221,11 @@ fn assert_exact_direct_readmission_work(counters: WorthQueryReadmissionCounters)
     assert_eq!(counters.artifact_generation_attempt_count(), 0);
     assert_eq!(counters.artifact_generation_commit_count(), 0);
     assert_eq!(counters.committed_attempt_count(), 1);
+    assert_exact_committed_bridge_readmission_work(evidence);
 }
 
-fn assert_exact_workflow_readmission_work(counters: WorthQueryReadmissionCounters) {
+fn assert_exact_workflow_readmission_work(evidence: WorthQueryReadmissionEvidence) {
+    let counters = evidence.query_counters();
     assert_eq!(counters.preflight_check_count(), 1);
     assert_eq!(counters.fresh_resource_attempt_count(), 1);
     assert_eq!(counters.bridge_readmission_attempt_count(), 1);
@@ -230,9 +233,11 @@ fn assert_exact_workflow_readmission_work(counters: WorthQueryReadmissionCounter
     assert_eq!(counters.artifact_generation_attempt_count(), 1);
     assert_eq!(counters.artifact_generation_commit_count(), 1);
     assert_eq!(counters.committed_attempt_count(), 1);
+    assert_exact_committed_bridge_readmission_work(evidence);
 }
 
-fn assert_exact_preflight_denial_work(counters: WorthQueryReadmissionCounters) {
+fn assert_exact_preflight_denial_work(evidence: WorthQueryReadmissionEvidence) {
+    let counters = evidence.query_counters();
     assert_eq!(counters.preflight_check_count(), 1);
     assert_eq!(counters.fresh_resource_attempt_count(), 0);
     assert_eq!(counters.bridge_readmission_attempt_count(), 0);
@@ -240,6 +245,20 @@ fn assert_exact_preflight_denial_work(counters: WorthQueryReadmissionCounters) {
     assert_eq!(counters.artifact_generation_attempt_count(), 0);
     assert_eq!(counters.artifact_generation_commit_count(), 0);
     assert_eq!(counters.committed_attempt_count(), 0);
+    assert!(evidence.bridge_counters().is_none());
+}
+
+fn assert_exact_committed_bridge_readmission_work(evidence: WorthQueryReadmissionEvidence) {
+    let counters = evidence
+        .bridge_counters()
+        .expect("successful readmission must carry Bridge owner evidence");
+    assert_eq!(counters.preflight_check_count(), 1);
+    assert_eq!(counters.reservation_check_count(), 1);
+    assert_eq!(counters.signal_attempt_admission_count(), 1);
+    assert_eq!(counters.signal_attempt_check_count(), 1);
+    assert_eq!(counters.signal_queue_binding_count(), 1);
+    assert_eq!(counters.abort_count(), 0);
+    assert_eq!(counters.commit_count(), 1);
 }
 
 pub(super) fn assert_exact_admission_work(counters: &super::super::WorthQueryManagedRunCounters) {

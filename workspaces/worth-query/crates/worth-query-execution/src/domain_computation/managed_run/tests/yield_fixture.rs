@@ -81,7 +81,7 @@ impl YieldSuspension {
 }
 
 #[derive(Clone)]
-pub(super) struct YieldProvider {
+pub(in crate::domain_computation::managed_run) struct YieldProvider {
     pub(super) yield_installed: bool,
     pub(super) checkpoint_available: bool,
     pub(super) record_effect: bool,

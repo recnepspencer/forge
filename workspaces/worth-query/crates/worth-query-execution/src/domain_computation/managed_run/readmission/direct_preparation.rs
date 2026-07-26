@@ -21,7 +21,7 @@ use crate::domain_computation::managed_run::WorthQueryYieldedDirectRun;
 use crate::domain_computation::provider_session::readmission::WorthQueryDirectResourceReadmissionPending;
 use crate::domain_computation::WorthQueryExecutionRuntime;
 
-pub(in crate::domain_computation::managed_run) fn prepare_direct_provider_restore(
+pub(super) fn prepare_direct_provider_restore(
     yielded: WorthQueryYieldedDirectRun,
     query_runtime: &WorthQueryExecutionRuntime,
     bridge_runtime: &RuntimeBridge,

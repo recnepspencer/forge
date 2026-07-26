@@ -44,8 +44,9 @@ pub use direct_yield::{
     WorthQueryDirectConvergenceReadmissionRecoveryRequired,
     WorthQueryDirectConvergenceReadmissionTerminalRecovery,
     WorthQueryDirectConvergenceReadmissionYieldReassemblyRecovery,
-    WorthQueryDirectConvergenceYieldOutcome, WorthQueryDirectConvergenceYieldReassemblyOutcome,
-    WorthQueryYieldedDirectConvergenceIteration,
+    WorthQueryDirectConvergenceYieldOutcome, WorthQueryDirectConvergenceYieldReassembled,
+    WorthQueryDirectConvergenceYieldReassemblyOutcome,
+    WorthQueryReadmittedDirectConvergenceIteration, WorthQueryYieldedDirectConvergenceIteration,
 };
 pub use domain_assessment::WorthQueryConvergenceAssessment;
 pub use domain_decision::{
@@ -87,13 +88,15 @@ pub use workflow_iteration::{
     WorthQueryWorkflowConvergenceIterationStartTermination,
 };
 pub use workflow_yield::{
+    WorthQueryReadmittedWorkflowConvergenceIteration,
     WorthQueryWorkflowConvergenceReadmissionCleanupRequired,
     WorthQueryWorkflowConvergenceReadmissionDenied,
     WorthQueryWorkflowConvergenceReadmissionOutcome,
     WorthQueryWorkflowConvergenceReadmissionRecoveryRequired,
     WorthQueryWorkflowConvergenceReadmissionTerminalRecovery,
     WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery,
-    WorthQueryWorkflowConvergenceYieldOutcome, WorthQueryWorkflowConvergenceYieldReassemblyOutcome,
+    WorthQueryWorkflowConvergenceYieldOutcome, WorthQueryWorkflowConvergenceYieldReassembled,
+    WorthQueryWorkflowConvergenceYieldReassemblyOutcome,
     WorthQueryYieldedWorkflowConvergenceIteration,
 };
 

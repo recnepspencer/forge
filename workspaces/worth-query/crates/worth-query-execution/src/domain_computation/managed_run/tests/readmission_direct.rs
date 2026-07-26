@@ -6,9 +6,20 @@ pub(super) fn yielded_direct() -> (
     RuntimeBridge,
     WorthQueryExecutionRuntime,
 ) {
-    let (running, graph, bridge, runtime) = managed_graph_run_with_provider_and_runtime(
+    yielded_direct_for_binding("managed-graph-binding")
+}
+
+pub(super) fn yielded_direct_for_binding(
+    binding_identity: &str,
+) -> (
+    crate::domain_computation::WorthQueryYieldedDirectRun,
+    RuntimeBridge,
+    WorthQueryExecutionRuntime,
+) {
+    let (running, graph, bridge, runtime) = managed_graph_run_with_provider_and_runtime_binding(
         WorthQueryOperationGraphAccess::Observe,
         YieldProvider::installed(5),
+        binding_identity,
     );
     let active = running
         .begin_graph_execution(
@@ -30,7 +41,7 @@ pub(super) fn yielded_direct() -> (
     (yielded, bridge, runtime)
 }
 
-pub(super) fn yielded_direct_with_provider(
+pub(in crate::domain_computation::managed_run) fn yielded_direct_with_provider(
     provider: YieldProvider,
 ) -> (
     crate::domain_computation::WorthQueryYieldedDirectRun,
@@ -71,12 +82,13 @@ fn direct_readmission_mints_fresh_attempts_and_transfers_capacity() {
     let bridge_basis = yielded.bridge().basis_identity().as_str().to_owned();
     let bridge_request = yielded.bridge_request_identity().to_owned();
     let reservation_count = yielded.retained_capacity_reservation_count();
-    let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
+    let readmitted = match yielded.readmit_same_runtime(&runtime, &bridge) {
         crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
-            readmitted.into_active()
+            readmitted
         }
         _ => panic!("same-runtime readmission should succeed"),
     };
+    let active = readmitted.into_active();
     assert_eq!(active.logical_run_identity(), logical);
     assert_ne!(active.run_identity(), managed_attempt);
     assert_ne!(active.resource_attempt_identity(), resource_attempt);
@@ -114,9 +126,12 @@ fn query_preflight_denial_returns_the_exact_yielded_capability_without_fresh_wor
         denied.kind(),
         crate::domain_computation::WorthQueryDirectReadmissionDenialKind::ForeignQueryRuntime
     );
-    assert_eq!(denied.counters().preflight_check_count(), 1);
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
+    let evidence = denied.readmission_evidence();
+    let counters = evidence.query_counters();
+    assert_eq!(counters.preflight_check_count(), 1);
+    assert_eq!(counters.fresh_resource_attempt_count(), 0);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
+    assert!(evidence.bridge_counters().is_none());
     let yielded = denied.into_yielded();
     assert_eq!(yielded.checkpoint().identity(), checkpoint);
     assert_eq!(yielded.resource_attempt_identity(), resource_attempt);
@@ -156,9 +171,18 @@ fn step_contract_mismatch_denies_before_resource_or_signal_authority() {
                     SafePointFamilyMismatch,
             )
     );
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
+    let evidence = denied.readmission_evidence();
+    let counters = evidence.query_counters();
+    assert_eq!(counters.fresh_resource_attempt_count(), 0);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
+    assert_eq!(counters.provider_restore_attempt_count(), 0);
+    let bridge_counters = evidence
+        .bridge_counters()
+        .expect("step-contract denial occurs after Bridge preflight");
+    assert_eq!(bridge_counters.preflight_check_count(), 1);
+    assert_eq!(bridge_counters.signal_attempt_admission_count(), 0);
+    assert_eq!(bridge_counters.abort_count(), 0);
+    assert_eq!(bridge_counters.commit_count(), 0);
     let yielded = denied.into_yielded();
     assert_eq!(yielded.checkpoint().identity(), checkpoint);
     complete_direct_yield_cleanup(yielded);
@@ -179,10 +203,17 @@ fn provider_restore_denial_preserves_the_exact_checkpoint_and_capacity_package()
         denied.kind(),
         crate::domain_computation::WorthQueryDirectReadmissionDenialKind::ProviderRestoreDenied
     );
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 1);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 1);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 1);
-    assert_eq!(denied.counters().committed_attempt_count(), 0);
+    let evidence = denied.readmission_evidence();
+    let counters = evidence.query_counters();
+    assert_eq!(counters.fresh_resource_attempt_count(), 1);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 1);
+    assert_eq!(counters.provider_restore_attempt_count(), 1);
+    assert_eq!(counters.committed_attempt_count(), 0);
+    let bridge_counters = evidence
+        .bridge_counters()
+        .expect("provider denial must carry final Bridge abort evidence");
+    assert_eq!(bridge_counters.abort_count(), 1);
+    assert_eq!(bridge_counters.commit_count(), 0);
     let yielded = denied.into_yielded();
     assert_eq!(yielded.checkpoint().identity(), checkpoint);
     assert_eq!(yielded.resource_attempt_identity(), resource_attempt);
@@ -205,8 +236,9 @@ fn provider_restore_panic_remains_typed_recovery_with_retained_authority() {
         recovery.kind(),
         crate::domain_computation::WorthQueryDirectReadmissionRecoveryKind::ProviderRestorePanicked
     );
-    assert_eq!(recovery.counters().provider_restore_attempt_count(), 1);
-    assert_eq!(recovery.counters().committed_attempt_count(), 0);
+    let counters = recovery.readmission_evidence().query_counters();
+    assert_eq!(counters.provider_restore_attempt_count(), 1);
+    assert_eq!(counters.committed_attempt_count(), 0);
     assert_eq!(
         recovery.posture(),
         crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::

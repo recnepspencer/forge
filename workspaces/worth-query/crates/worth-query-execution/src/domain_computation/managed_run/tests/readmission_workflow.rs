@@ -28,6 +28,18 @@ pub(super) fn yielded_workflow(
     WorthQueryExecutionRuntime,
     Arc<crate::domain_computation::WorthQueryArtifactProductionAuthority>,
 ) {
+    yielded_workflow_for_stage(provider, "producer")
+}
+
+pub(super) fn yielded_workflow_for_stage(
+    provider: YieldProvider,
+    stage_identity: &str,
+) -> (
+    crate::domain_computation::WorthQueryYieldedWorkflowRun,
+    RuntimeBridge,
+    WorthQueryExecutionRuntime,
+    Arc<crate::domain_computation::WorthQueryArtifactProductionAuthority>,
+) {
     let installer = WorthQueryExecutionRuntimeInstaller::new();
     let provider_anchor = Arc::new(
         crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor::install::<ManagedGraph, _>(
@@ -44,22 +56,23 @@ pub(super) fn yielded_workflow(
         super::workflow_provider_steps::installed_runtime(installer, "workflow readmission");
     let operation_resources =
         crate::domain_computation::provider_session::admitted_yield_plan("workflow-readmission", 8);
+    let stage_resource_identity = format!("workflow-readmission:{stage_identity}");
     let stage_resources = admitted_plan_with_graph_support(
-        "workflow-readmission:producer",
+        &stage_resource_identity,
         8,
         graph.role(),
         provider_support,
     );
     let resources = WorthQueryAdmittedWorkflowResourcePlan::assemble(
         operation_resources,
-        BTreeMap::from([("producer".to_owned(), stage_resources)]),
+        BTreeMap::from([(stage_identity.to_owned(), stage_resources)]),
     );
     let output =
         crate::domain_computation::artifact_owner::installed_artifact_contract_for_managed_run();
     let operation = workflow_authority_with_stage_graph_and_output_artifact(
         &runtime,
         &resources,
-        "producer",
+        stage_identity,
         &graph,
         WorthQueryOperationGraphAccess::Observe,
         output,
@@ -76,12 +89,12 @@ pub(super) fn yielded_workflow(
         .expect("workflow should start");
     let old_producer = running
         .artifacts()
-        .production_authority("producer")
+        .production_authority(stage_identity)
         .expect("producer stage should validate")
         .expect("producer stage should own output authority");
     let active = running
         .begin_stage_graph_execution(
-            "producer",
+            stage_identity,
             &graph,
             WorthQueryManagedGraphCallRequest::new(
                 WorthQueryGraphProviderCallKind::Observe,
@@ -111,12 +124,13 @@ fn workflow_readmission_rolls_generation_and_preserves_occurrence_state() {
     let old_artifacts = yielded.artifact_evidence();
     let old_provider_work = yielded.provider_work();
     let reservations = yielded.retained_capacity_reservation_count();
-    let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
+    let readmitted = match yielded.readmit_same_runtime(&runtime, &bridge) {
         crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
-            readmitted.into_active()
+            readmitted
         }
         _ => panic!("same-runtime workflow readmission should succeed"),
     };
+    let active = readmitted.into_active();
     assert_eq!(active.logical_run_identity(), logical);
     assert_ne!(active.run_identity(), old_managed_attempt);
     assert_ne!(active.resource_attempt_identity(), old_resource_attempt);
@@ -208,7 +222,8 @@ fn workflow_provider_restore_denial_keeps_frozen_generation_retryable() {
         denied.kind(),
         crate::domain_computation::WorthQueryWorkflowReadmissionDenialKind::ProviderRestoreDenied
     );
-    assert_eq!(denied.counters().artifact_generation_attempt_count(), 0);
+    let counters = denied.readmission_evidence().query_counters();
+    assert_eq!(counters.artifact_generation_attempt_count(), 0);
     let yielded = denied.into_yielded();
     assert_eq!(yielded.checkpoint().identity(), checkpoint);
     assert_eq!(
@@ -329,9 +344,12 @@ fn workflow_generation_mismatch_denies_before_fresh_authority_and_rolls_back_cle
         denied.kind(),
         crate::domain_computation::WorthQueryWorkflowReadmissionDenialKind::ArtifactGenerationMismatch
     );
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
+    let evidence = denied.readmission_evidence();
+    let counters = evidence.query_counters();
+    assert_eq!(counters.fresh_resource_attempt_count(), 0);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
+    assert_eq!(counters.provider_restore_attempt_count(), 0);
+    assert!(evidence.bridge_counters().is_none());
     drop(pending);
     let yielded = denied.into_yielded();
     assert_eq!(
