@@ -1,8 +1,9 @@
 use worth_foundational::facade::{AspectValue, CanonicalFieldPath, FieldKey, InternedString};
 
 use crate::domain_computation::{
-    WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
-    WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
+    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphParticipationProvider,
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderCheckpoint,
+    WorthQueryGraphProviderExecution, WorthQueryGraphProviderExecutionStart,
     WorthQueryGraphProviderFailure, WorthQueryGraphProviderRestoreMemory,
     WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStep,
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDisposition,
@@ -87,13 +88,19 @@ impl WorthQueryGraphParticipationProvider<FixtureGraph> for ConvergentProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut crate::domain_computation::WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(CompletedGraphExecution {
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = CompletedGraphExecution {
             step_ordinal: 0,
             disposition: self.disposition(),
             retained: None,
-        })
+        };
+        start
+            .admit_cooperative_execution(execution)
+            .map_err(step_failure)
     }
 }
 
@@ -110,12 +117,18 @@ impl WorthQueryGraphProviderCheckpoint for ConvergenceCheckpoint {
         &self,
         _call: &WorthQueryGraphProviderCall,
         memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
-        Ok(Box::new(CompletedGraphExecution {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = Box::new(CompletedGraphExecution {
             step_ordinal: 1,
             disposition: FixtureDisposition::YieldThenConverged,
             retained: Some(memory.rebind(&self.retained).map_err(step_failure)?),
-        }))
+        }) as Box<dyn WorthQueryGraphProviderExecution>;
+        memory
+            .admit_cooperative_execution(execution)
+            .map_err(step_failure)
     }
 }
 

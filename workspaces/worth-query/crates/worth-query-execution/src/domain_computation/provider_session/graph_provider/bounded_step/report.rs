@@ -96,17 +96,21 @@ pub struct WorthQueryGraphProviderStepReport {
     failure: Option<WorthQueryGraphProviderStepFailureEvidence>,
 }
 
+pub(crate) struct WorthQueryGraphProviderStepReportParts {
+    pub(crate) completed_work_units: u64,
+    pub(crate) attempted_effect_count: u64,
+    pub(crate) applied_effect_count: u64,
+    pub(crate) peak_scratch_bytes: u64,
+    pub(crate) retained: WorthQueryGraphProviderStepRetainedEvidence,
+    pub(crate) projection: Option<WorthQueryGraphReadMaterial>,
+    pub(crate) artifacts: WorthQueryGraphProviderStepArtifactEvidence,
+    pub(crate) checkpoint_available: bool,
+}
+
 impl WorthQueryGraphProviderStepReport {
     pub(super) fn from_disposition(
         disposition: super::WorthQueryGraphProviderStepDisposition,
-        completed_work_units: u64,
-        attempted_effect_count: u64,
-        applied_effect_count: u64,
-        peak_scratch_bytes: u64,
-        retained: WorthQueryGraphProviderStepRetainedEvidence,
-        projection: Option<WorthQueryGraphReadMaterial>,
-        artifacts: WorthQueryGraphProviderStepArtifactEvidence,
-        checkpoint_available: bool,
+        parts: WorthQueryGraphProviderStepReportParts,
     ) -> Self {
         let completion = match disposition.kind() {
             WorthQueryGraphProviderStepDispositionKind::Continue => {
@@ -116,44 +120,39 @@ impl WorthQueryGraphProviderStepReport {
                 WorthQueryGraphProviderStepCompletion::Complete
             }
         };
-        Self {
-            completion,
-            provider_receipt: disposition.into_provider_receipt(),
-            completed_work_units,
-            attempted_effect_count,
-            applied_effect_count,
-            peak_scratch_bytes,
-            retained,
-            projection,
-            artifacts,
-            checkpoint_available,
-            failure: None,
-        }
+        Self::from_parts(completion, disposition.into_provider_receipt(), parts, None)
     }
 
     pub(super) fn failed(
-        completed_work_units: u64,
-        attempted_effect_count: u64,
-        applied_effect_count: u64,
-        peak_scratch_bytes: u64,
-        retained: WorthQueryGraphProviderStepRetainedEvidence,
-        projection: Option<WorthQueryGraphReadMaterial>,
-        artifacts: WorthQueryGraphProviderStepArtifactEvidence,
-        checkpoint_available: bool,
+        parts: WorthQueryGraphProviderStepReportParts,
         failure: WorthQueryGraphProviderStepFailureEvidence,
     ) -> Self {
+        Self::from_parts(
+            WorthQueryGraphProviderStepCompletion::Failed,
+            None,
+            parts,
+            Some(failure),
+        )
+    }
+
+    fn from_parts(
+        completion: WorthQueryGraphProviderStepCompletion,
+        provider_receipt: Option<Arc<str>>,
+        parts: WorthQueryGraphProviderStepReportParts,
+        failure: Option<WorthQueryGraphProviderStepFailureEvidence>,
+    ) -> Self {
         Self {
-            completion: WorthQueryGraphProviderStepCompletion::Failed,
-            provider_receipt: None,
-            completed_work_units,
-            attempted_effect_count,
-            applied_effect_count,
-            peak_scratch_bytes,
-            retained,
-            projection,
-            artifacts,
-            checkpoint_available,
-            failure: Some(failure),
+            completion,
+            provider_receipt,
+            completed_work_units: parts.completed_work_units,
+            attempted_effect_count: parts.attempted_effect_count,
+            applied_effect_count: parts.applied_effect_count,
+            peak_scratch_bytes: parts.peak_scratch_bytes,
+            retained: parts.retained,
+            projection: parts.projection,
+            artifacts: parts.artifacts,
+            checkpoint_available: parts.checkpoint_available,
+            failure,
         }
     }
 

@@ -42,10 +42,8 @@ impl WorthQueryGraphProviderExecutionStart {
     pub fn admit_cooperative_execution<E>(
         &mut self,
         execution: E,
-    ) -> Result<
-        WorthQueryCooperativeGraphProviderExecution<E>,
-        WorthQueryGraphProviderStepDenial,
-    > {
+    ) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderStepDenial>
+    {
         if let Some(denial) = &self.denial {
             return Err(denial.clone());
         }
@@ -74,9 +72,9 @@ impl WorthQueryGraphProviderExecutionStart {
                 "cooperative provider execution belongs to another managed start",
             );
             self.denial = Some(denial.clone());
-            return Err(crate::domain_computation::WorthQueryGraphProviderFailure::new(
-                denial.detail(),
-            ));
+            return Err(
+                crate::domain_computation::WorthQueryGraphProviderFailure::new(denial.detail()),
+            );
         }
         Ok(admitted.into_execution())
     }

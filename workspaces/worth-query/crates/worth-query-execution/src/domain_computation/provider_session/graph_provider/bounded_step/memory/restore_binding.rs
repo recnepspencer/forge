@@ -38,10 +38,8 @@ impl WorthQueryGraphProviderRestoreMemory {
     pub fn admit_cooperative_execution<E>(
         &mut self,
         execution: E,
-    ) -> Result<
-        WorthQueryCooperativeGraphProviderExecution<E>,
-        WorthQueryGraphProviderStepDenial,
-    > {
+    ) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderStepDenial>
+    {
         if let Some(denial) = &self.denial {
             return Err(denial.clone());
         }
@@ -65,21 +63,23 @@ impl WorthQueryGraphProviderRestoreMemory {
         admitted: WorthQueryCooperativeGraphProviderExecution<E>,
     ) -> Result<E, crate::domain_computation::WorthQueryGraphProviderFailure> {
         if let Some(denial) = &self.denial {
-            return Err(crate::domain_computation::WorthQueryGraphProviderFailure::new(
-                denial.detail(),
-            ));
+            return Err(
+                crate::domain_computation::WorthQueryGraphProviderFailure::new(denial.detail()),
+            );
         }
         if admitted.arena_identity() != self.arena.snapshot().arena_identity() {
             self.denial = Some(WorthQueryGraphProviderStepDenial::new(
                 WorthQueryGraphProviderStepDenialKind::ForeignExecutionAdmission,
                 "cooperative provider execution belongs to another managed restore",
             ));
-            return Err(crate::domain_computation::WorthQueryGraphProviderFailure::new(
-                self.denial
-                    .as_ref()
-                    .expect("foreign restore admission latches a denial")
-                    .detail(),
-            ));
+            return Err(
+                crate::domain_computation::WorthQueryGraphProviderFailure::new(
+                    self.denial
+                        .as_ref()
+                        .expect("foreign restore admission latches a denial")
+                        .detail(),
+                ),
+            );
         }
         Ok(admitted.into_execution())
     }

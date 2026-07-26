@@ -123,10 +123,13 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
         Self::assert_graph_call_resources(call);
-        Ok(match call.kind() {
+        let execution = match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => {
                 Self::Execution::read(self.contact_label("observe", FailAt::Observe)?)
             }
@@ -147,7 +150,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
             domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
                 unreachable!("graph participation never receives commit admission")
             }
-        })
+        };
+        start
+            .admit_cooperative_execution(execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 
@@ -191,9 +197,12 @@ impl domain::WorthQueryGraphParticipationProvider<RemoteA> for ReceiptOnlyProvid
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
-        Ok(match call.kind() {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
+        let execution = match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),
             domain::WorthQueryGraphProviderCallKind::Project => {
                 Self::Execution::read("dishonest-projection-receipt")
@@ -204,6 +213,9 @@ impl domain::WorthQueryGraphParticipationProvider<RemoteA> for ReceiptOnlyProvid
             domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
                 unreachable!("graph participation never receives commit admission")
             }
-        })
+        };
+        start
+            .admit_cooperative_execution(execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }

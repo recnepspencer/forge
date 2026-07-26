@@ -9,7 +9,7 @@ use super::{
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
     WorthQueryGraphProviderStepFailureEvidence, WorthQueryGraphProviderStepReport,
-    WorthQueryGraphProviderStepRetainedEvidence,
+    WorthQueryGraphProviderStepReportParts, WorthQueryGraphProviderStepRetainedEvidence,
 };
 use crate::domain_computation::{
     WorthQueryArtifactProductionEvidence, WorthQueryArtifactProviderResource,
@@ -216,78 +216,24 @@ impl WorthQueryGraphProviderStep {
     > {
         let artifacts = self.artifacts.finish();
         let memory = self.memory.snapshot();
-        let projection_retained_bytes = self.projection.as_ref().map_or(
-            0,
-            WorthQueryGraphReadMaterial::owned_allocation_capacity_bytes,
+        let projection_retained_bytes = self.projection_retained_bytes();
+        self.admit_retained_evidence(
+            memory.retained_bytes(),
+            projection_retained_bytes,
+            artifacts.retained_bytes(),
         );
-        if !self.state.has_failure() {
-            let admission = self
-                .budget
-                .admit_retained_component(memory.retained_bytes());
-            let _ = self.state.admit(admission);
-        }
-        if !self.state.has_failure() {
-            let admission = self.budget.admit_retained_component(
-                u64::try_from(projection_retained_bytes).unwrap_or(u64::MAX),
-            );
-            let _ = self.state.admit(admission);
-        }
-        if !self.state.has_failure() {
-            let admission = self.budget.admit_retained_component(
-                u64::try_from(artifacts.retained_bytes()).unwrap_or(u64::MAX),
-            );
-            let _ = self.state.admit(admission);
-        }
-        if !self.state.has_failure()
-            && disposition.kind() == WorthQueryGraphProviderStepDispositionKind::Complete
-            && self.call_kind == WorthQueryGraphProviderCallKind::Project
-            && self.projection.is_none()
-        {
-            let denial = WorthQueryGraphProviderStepDenial::new(
-                WorthQueryGraphProviderStepDenialKind::MissingProjectionChunk,
-                "a completed graph projection must emit one explicit projection chunk",
-            );
-            self.state.deny(denial);
-        }
-        if !self.state.has_failure() && self.budget.completed_work_units() == 0 {
-            let denial = WorthQueryGraphProviderStepDenial::new(
-                WorthQueryGraphProviderStepDenialKind::NoProgress,
-                "provider step produced no successfully completed governed work",
-            );
-            self.state.deny(denial);
-        }
-        if self.state.has_failure() {
-            let governed_denial = self.state.governed_denial().cloned();
-            let provider_failure = self.state.provider_failure().cloned();
-            let denial = governed_denial.clone().unwrap_or_else(|| {
-                WorthQueryGraphProviderStepDenial::new(
-                    WorthQueryGraphProviderStepDenialKind::ProviderFailureLatched,
-                    "provider step retained a rejected governed operation",
-                )
-            });
-            let failure = WorthQueryGraphProviderStepFailureEvidence::returned(
-                governed_denial,
-                provider_failure,
-            );
+        self.validate_completion(&disposition);
+        if let Some((denial, failure)) = self.latched_failure() {
+            let parts = self.into_report_parts(artifacts, memory, projection_retained_bytes);
             return Err((
                 denial,
-                self.finish_failed_with_artifacts(artifacts, failure),
+                WorthQueryGraphProviderStepReport::failed(parts, failure),
             ));
         }
+        let parts = self.into_report_parts(artifacts, memory, projection_retained_bytes);
         Ok(WorthQueryGraphProviderStepReport::from_disposition(
             disposition,
-            self.budget.completed_work_units(),
-            self.attempted_effect_count,
-            self.applied_effect_count,
-            self.budget.peak_scratch_bytes(),
-            WorthQueryGraphProviderStepRetainedEvidence::new(
-                memory,
-                projection_retained_bytes,
-                artifacts.retained_bytes(),
-            ),
-            self.projection,
-            artifacts,
-            self.checkpoint_available,
+            parts,
         ))
     }
 
@@ -318,26 +264,99 @@ impl WorthQueryGraphProviderStep {
         artifacts: super::WorthQueryGraphProviderStepArtifactEvidence,
         failure: WorthQueryGraphProviderStepFailureEvidence,
     ) -> WorthQueryGraphProviderStepReport {
-        let projection_retained_bytes = self.projection.as_ref().map_or(
+        let projection_retained_bytes = self.projection_retained_bytes();
+        let memory = self.memory.snapshot();
+        let parts = self.into_report_parts(artifacts, memory, projection_retained_bytes);
+        WorthQueryGraphProviderStepReport::failed(parts, failure)
+    }
+
+    fn admit_retained_evidence(
+        &mut self,
+        provider_bytes: u64,
+        projection_bytes: usize,
+        artifact_bytes: usize,
+    ) {
+        self.admit_retained_component(provider_bytes);
+        self.admit_retained_component(u64::try_from(projection_bytes).unwrap_or(u64::MAX));
+        self.admit_retained_component(u64::try_from(artifact_bytes).unwrap_or(u64::MAX));
+    }
+
+    fn admit_retained_component(&mut self, retained_bytes: u64) {
+        if self.state.has_failure() {
+            return;
+        }
+        let admission = self.budget.admit_retained_component(retained_bytes);
+        let _ = self.state.admit(admission);
+    }
+
+    fn validate_completion(&mut self, disposition: &WorthQueryGraphProviderStepDisposition) {
+        if !self.state.has_failure()
+            && disposition.kind() == WorthQueryGraphProviderStepDispositionKind::Complete
+            && self.call_kind == WorthQueryGraphProviderCallKind::Project
+            && self.projection.is_none()
+        {
+            self.state.deny(WorthQueryGraphProviderStepDenial::new(
+                WorthQueryGraphProviderStepDenialKind::MissingProjectionChunk,
+                "a completed graph projection must emit one explicit projection chunk",
+            ));
+        }
+        if !self.state.has_failure() && self.budget.completed_work_units() == 0 {
+            self.state.deny(WorthQueryGraphProviderStepDenial::new(
+                WorthQueryGraphProviderStepDenialKind::NoProgress,
+                "provider step produced no successfully completed governed work",
+            ));
+        }
+    }
+
+    fn latched_failure(
+        &self,
+    ) -> Option<(
+        WorthQueryGraphProviderStepDenial,
+        WorthQueryGraphProviderStepFailureEvidence,
+    )> {
+        self.state.has_failure().then(|| {
+            let governed_denial = self.state.governed_denial().cloned();
+            let denial = governed_denial.clone().unwrap_or_else(|| {
+                WorthQueryGraphProviderStepDenial::new(
+                    WorthQueryGraphProviderStepDenialKind::ProviderFailureLatched,
+                    "provider step retained a rejected governed operation",
+                )
+            });
+            let failure = WorthQueryGraphProviderStepFailureEvidence::returned(
+                governed_denial,
+                self.state.provider_failure().cloned(),
+            );
+            (denial, failure)
+        })
+    }
+
+    fn projection_retained_bytes(&self) -> usize {
+        self.projection.as_ref().map_or(
             0,
             WorthQueryGraphReadMaterial::owned_allocation_capacity_bytes,
-        );
-        let memory = self.memory.snapshot();
-        WorthQueryGraphProviderStepReport::failed(
-            self.budget.completed_work_units(),
-            self.attempted_effect_count,
-            self.applied_effect_count,
-            self.budget.peak_scratch_bytes(),
-            WorthQueryGraphProviderStepRetainedEvidence::new(
+        )
+    }
+
+    fn into_report_parts(
+        self,
+        artifacts: super::WorthQueryGraphProviderStepArtifactEvidence,
+        memory: super::WorthQueryGraphProviderMemorySnapshot,
+        projection_retained_bytes: usize,
+    ) -> WorthQueryGraphProviderStepReportParts {
+        WorthQueryGraphProviderStepReportParts {
+            completed_work_units: self.budget.completed_work_units(),
+            attempted_effect_count: self.attempted_effect_count,
+            applied_effect_count: self.applied_effect_count,
+            peak_scratch_bytes: self.budget.peak_scratch_bytes(),
+            retained: WorthQueryGraphProviderStepRetainedEvidence::new(
                 memory,
                 projection_retained_bytes,
                 artifacts.retained_bytes(),
             ),
-            self.projection,
+            projection: self.projection,
             artifacts,
-            self.checkpoint_available,
-            failure,
-        )
+            checkpoint_available: self.checkpoint_available,
+        }
     }
 
     fn deny<Output>(

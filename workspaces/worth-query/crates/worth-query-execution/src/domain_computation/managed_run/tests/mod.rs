@@ -5,6 +5,7 @@ mod cost_bound;
 mod direct_lifecycle;
 mod effect_posture;
 mod provider_contract_violation;
+mod provider_execution_admission;
 mod provider_execution_release;
 mod provider_memory_cleanup;
 mod provider_support_affinity;

@@ -19,6 +19,9 @@ fn managed_run_authority_boundaries_hold() {
         "tests/ui/installed_domain/managed_run/execution_start_construction_is_private.rs",
     );
     cases.compile_fail(
+        "tests/ui/installed_domain/managed_run/provider_begin_cannot_return_raw_execution.rs",
+    );
+    cases.compile_fail(
         "tests/ui/installed_domain/managed_run/retained_memory_construction_is_private.rs",
     );
     cases.compile_fail("tests/ui/installed_domain/managed_run/retained_memory_is_move_only.rs");

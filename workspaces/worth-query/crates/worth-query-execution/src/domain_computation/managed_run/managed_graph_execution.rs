@@ -33,6 +33,15 @@ pub(super) struct WorthQueryManagedGraphExecution {
     last_retained: WorthQueryGraphProviderStepRetainedEvidence,
 }
 
+pub(super) struct WorthQueryManagedGraphExecutionStartParts {
+    pub(super) call: WorthQueryGraphProviderCall,
+    pub(super) execution: Box<dyn WorthQueryGraphProviderExecution>,
+    pub(super) anchor: Arc<WorthQueryGraphProviderAnchor>,
+    pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) artifact_context: Option<WorthQueryGraphProviderStepArtifactContext>,
+    pub(super) memory: WorthQueryGraphProviderMemoryArena,
+}
+
 pub(super) struct WorthQueryRestoredManagedGraphExecutionParts {
     pub(super) call: WorthQueryGraphProviderCall,
     pub(super) execution: Box<dyn WorthQueryGraphProviderExecution>,
@@ -76,28 +85,21 @@ impl WorthQueryManagedProviderStepEvidence {
 }
 
 impl WorthQueryManagedGraphExecution {
-    pub(super) fn new(
-        call: WorthQueryGraphProviderCall,
-        execution: Box<dyn WorthQueryGraphProviderExecution>,
-        anchor: Arc<WorthQueryGraphProviderAnchor>,
-        contract: WorthQueryAdmittedManagedStepContract,
-        artifact_context: Option<WorthQueryGraphProviderStepArtifactContext>,
-        memory: WorthQueryGraphProviderMemoryArena,
-    ) -> Self {
-        let projection = (call.kind() == WorthQueryGraphProviderCallKind::Project)
-            .then(|| WorthQueryGraphReadStreamAccumulator::new(&call));
+    pub(super) fn new(parts: WorthQueryManagedGraphExecutionStartParts) -> Self {
+        let projection = (parts.call.kind() == WorthQueryGraphProviderCallKind::Project)
+            .then(|| WorthQueryGraphReadStreamAccumulator::new(&parts.call));
         Self {
-            call,
-            execution: WorthQueryOwnedGraphProviderExecution::new(execution),
-            anchor,
-            contract,
-            memory,
+            call: parts.call,
+            execution: WorthQueryOwnedGraphProviderExecution::new(parts.execution),
+            anchor: parts.anchor,
+            contract: parts.contract,
+            memory: parts.memory,
             completed_work_units: 0,
             applied_effect_count: 0,
             peak_scratch_bytes: 0,
             retained_bytes: 0,
             projection,
-            artifact_context,
+            artifact_context: parts.artifact_context,
             produced_artifact_count: 0,
             retained_artifact_count: 0,
             disposed_artifact_count: 0,

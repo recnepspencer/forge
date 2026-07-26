@@ -1,0 +1,13 @@
+error[E0053]: method `begin` has an incompatible type for trait
+  --> tests/ui/installed_domain/managed_run/provider_begin_cannot_return_raw_execution.rs:39:10
+   |
+39 |     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
+   |          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthQueryCooperativeGraphProviderExecution<...>`, found `RawExecution`
+   |
+   = note: expected signature `fn(&RawProvider, &WorthQueryGraphProviderCall, &mut WorthQueryGraphProviderExecutionStart) -> Result<WorthQueryCooperativeGraphProviderExecution<RawExecution>, WorthQueryGraphProviderFailure>`
+              found signature `fn(&RawProvider, &WorthQueryGraphProviderCall, &mut WorthQueryGraphProviderExecutionStart) -> Result<RawExecution, WorthQueryGraphProviderFailure>`
+help: change the output type to match the trait
+   |
+39 -     ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
+39 +     ) -> Result<WorthQueryCooperativeGraphProviderExecution<RawExecution>, WorthQueryGraphProviderFailure> {
+   |

@@ -9,5 +9,6 @@ error[E0624]: associated function `register` is private
   | /     pub(super) fn register(
   | |         admission: WorthQueryArtifactProductionAdmission,
   | |         prepared: WorthQueryPreparedArtifactResource,
+  | |         occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
   | |     ) -> Result<Self, WorthQueryArtifactDenial> {
   | |_______________________________________________- private associated function defined here

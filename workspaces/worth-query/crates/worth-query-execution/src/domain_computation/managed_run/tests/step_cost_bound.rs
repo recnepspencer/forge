@@ -4,10 +4,12 @@ const UNRELATED_WIDTH: usize = 12;
 
 struct CostSlopeProvider {
     advances: Arc<AtomicUsize>,
+    chunk_count: usize,
 }
 
 struct CostSlopeExecution {
     advances: Arc<AtomicUsize>,
+    remaining_chunks: usize,
 }
 
 impl WorthQueryGraphProviderExecution for CostSlopeExecution {
@@ -19,8 +21,16 @@ impl WorthQueryGraphProviderExecution for CostSlopeExecution {
         step.perform_work_unit(|| Ok(()))?;
         step.emit_projection_chunk(graph_material())
             .map_err(step_failure)?;
-        WorthQueryGraphProviderStepDisposition::complete("cost-slope")
-            .map_err(WorthQueryGraphProviderFailure::new)
+        self.remaining_chunks = self
+            .remaining_chunks
+            .checked_sub(1)
+            .expect("cost provider cannot advance after its declared chunks");
+        if self.remaining_chunks == 0 {
+            WorthQueryGraphProviderStepDisposition::complete("cost-slope")
+                .map_err(WorthQueryGraphProviderFailure::new)
+        } else {
+            Ok(WorthQueryGraphProviderStepDisposition::continue_work())
+        }
     }
 
     fn dispose(&mut self) -> Result<(), WorthQueryGraphProviderFailure> {
@@ -52,6 +62,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CostSlopeProvider {
             start,
             CostSlopeExecution {
                 advances: Arc::clone(&self.advances),
+                remaining_chunks: self.chunk_count,
             },
         )
     }
@@ -59,6 +70,9 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CostSlopeProvider {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct StepCostEvidence {
+    issued_calls: usize,
+    admitted_receipts: usize,
+    completed_work_units: u64,
     provider_steps: usize,
     safe_point_lookups: usize,
     pressure_classifications: usize,
@@ -76,12 +90,51 @@ fn one_provider_step_has_constant_work_under_unrelated_authority_width() {
     assert_eq!(
         baseline,
         StepCostEvidence {
+            issued_calls: 1,
+            admitted_receipts: 1,
+            completed_work_units: 1,
             provider_steps: 1,
             safe_point_lookups: 3,
             pressure_classifications: 3,
             output_capacity_classifications: 1,
             queue_lookups: 2,
             queue_mutations: 2,
+            retained_bytes: 0,
+        }
+    );
+}
+
+#[test]
+fn admitted_chunk_count_has_only_the_declared_linear_step_cost() {
+    let one_chunk = execute_target_with_chunks(0, 1);
+    let four_chunks = execute_target_with_chunks(0, 4);
+    assert_eq!(
+        one_chunk,
+        StepCostEvidence {
+            issued_calls: 1,
+            admitted_receipts: 1,
+            completed_work_units: 1,
+            provider_steps: 1,
+            safe_point_lookups: 3,
+            pressure_classifications: 3,
+            output_capacity_classifications: 1,
+            queue_lookups: 2,
+            queue_mutations: 2,
+            retained_bytes: 0,
+        }
+    );
+    assert_eq!(
+        four_chunks,
+        StepCostEvidence {
+            issued_calls: 1,
+            admitted_receipts: 1,
+            completed_work_units: 4,
+            provider_steps: 4,
+            safe_point_lookups: 12,
+            pressure_classifications: 12,
+            output_capacity_classifications: 4,
+            queue_lookups: 8,
+            queue_mutations: 8,
             retained_bytes: 0,
         }
     );
@@ -114,12 +167,23 @@ fn isolated_provider_step_allocation_slope_probe() {
 }
 
 fn execute_target(unrelated_width: usize) -> StepCostEvidence {
-    let (active, unrelated, advances) = prepared_target(unrelated_width);
+    execute_target_with_chunks(unrelated_width, 1)
+}
+
+fn execute_target_with_chunks(
+    unrelated_width: usize,
+    admitted_chunk_count: usize,
+) -> StepCostEvidence {
+    let (active, unrelated, advances) = prepared_target(unrelated_width, admitted_chunk_count);
     let completion = complete_target(active);
-    assert_eq!(advances.load(Ordering::Relaxed), 1);
+    assert_eq!(advances.load(Ordering::Relaxed), admitted_chunk_count);
     let terminal = completion.into_running().completed().unwrap();
+    super::cost_bound::assert_exact_admission_work(terminal.counters());
     let work = terminal.provider_work();
     let evidence = StepCostEvidence {
+        issued_calls: work.issued_call_count(),
+        admitted_receipts: work.admitted_receipt_count(),
+        completed_work_units: work.completed_work_units(),
         provider_steps: work.provider_step_attempt_count(),
         safe_point_lookups: work.safe_point_request_lookup_count(),
         pressure_classifications: work.pressure_classification_count(),
@@ -134,7 +198,7 @@ fn execute_target(unrelated_width: usize) -> StepCostEvidence {
 }
 
 fn measured_target(unrelated_width: usize) -> stats_alloc::Stats {
-    let (active, unrelated, _) = prepared_target(unrelated_width);
+    let (active, unrelated, _) = prepared_target(unrelated_width, 1);
     let region = stats_alloc::Region::new(&stats_alloc::INSTRUMENTED_SYSTEM);
     let completion = complete_target(active);
     let stats = region.change();
@@ -150,6 +214,7 @@ fn measured_target(unrelated_width: usize) -> stats_alloc::Stats {
 
 fn prepared_target(
     unrelated_width: usize,
+    admitted_chunk_count: usize,
 ) -> (
     crate::domain_computation::WorthQueryActiveDirectGraphExecution,
     Vec<(
@@ -167,6 +232,7 @@ fn prepared_target(
         WorthQueryOperationGraphAccess::Project,
         CostSlopeProvider {
             advances: Arc::clone(&advances),
+            chunk_count: admitted_chunk_count,
         },
     );
     let active = running
@@ -184,13 +250,14 @@ fn prepared_target(
 fn complete_target(
     active: crate::domain_computation::WorthQueryActiveDirectGraphExecution,
 ) -> crate::domain_computation::WorthQueryCompletedDirectGraphExecution {
-    let pending = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::ChunkReady(pending) => pending,
-        _ => panic!("cost-slope provider did not expose its chunk"),
-    };
-    match pending.acknowledge() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("cost-slope provider did not complete after drain"),
+    let mut outcome = active.advance();
+    loop {
+        outcome = match outcome {
+            WorthQueryDirectGraphStepOutcome::ChunkReady(pending) => pending.acknowledge(),
+            WorthQueryDirectGraphStepOutcome::Continue(paused) => paused.advance(),
+            WorthQueryDirectGraphStepOutcome::Completed(completion) => return completion,
+            _ => panic!("cost-slope provider left the admitted chunk progression"),
+        };
     }
 }
 

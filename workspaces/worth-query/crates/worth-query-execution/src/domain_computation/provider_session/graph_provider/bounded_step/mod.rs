@@ -21,11 +21,11 @@ mod step_state;
 
 pub use checkpoint::{WorthQueryGraphProviderCheckpoint, WorthQueryProviderCheckpointEvidence};
 pub use checkpoint_export::WorthQueryProviderCheckpointExport;
-pub use cooperative_execution::WorthQueryCooperativeGraphProviderExecution;
 pub use checkpoint_release::{
     WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
     WorthQueryProviderCheckpointRetentionFailure, WorthQueryProviderCheckpointRetentionFailureKind,
 };
+pub use cooperative_execution::WorthQueryCooperativeGraphProviderExecution;
 pub use denial::{WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind};
 pub use disposition::{
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
@@ -54,7 +54,9 @@ pub(crate) use memory::{
 pub(crate) use provider_execution_owner::{
     WorthQueryOwnedGraphProviderExecution, WorthQueryProviderExecutionInvocation,
 };
-pub(crate) use report::WorthQueryGraphProviderStepCompletion;
+pub(crate) use report::{
+    WorthQueryGraphProviderStepCompletion, WorthQueryGraphProviderStepReportParts,
+};
 
 #[cfg(test)]
 mod provider_execution_release_tests;

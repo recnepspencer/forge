@@ -10,9 +10,13 @@ use worth_query_host::facade::{
         WorthQueryArtifactNativeAccessDenial, WorthQueryTransferredArtifactHandle,
         },
         provider_session::{
-            WorthQueryExecutionProviderSession, WorthQueryGraphProviderCheckpoint,
-            WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderRestoreMemory,
-            WorthQueryGraphProviderRetainedMemory, WorthQueryProviderCheckpointExport,
+            WorthQueryCooperativeGraphProviderExecution, WorthQueryExecutionProviderSession,
+            WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
+            WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
+            WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
+            WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
+            WorthQueryGraphProviderStep, WorthQueryGraphProviderStepDisposition,
+            WorthQueryProviderCheckpointExport,
         },
     },
     publication::domain_computation::WorthQueryDomainEvidenceMaterial,
@@ -61,6 +65,47 @@ fn carry_artifact_and_publication(
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {
     let _ = counters;
+}
+
+struct CompilePassGraph;
+struct CompilePassProvider;
+struct CompilePassExecution;
+
+impl WorthQueryGraphProviderExecution for CompilePassExecution {
+    fn advance(
+        &mut self,
+        _step: &mut WorthQueryGraphProviderStep,
+    ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
+        unimplemented!()
+    }
+
+    fn dispose(&mut self) -> Result<(), WorthQueryGraphProviderFailure> {
+        Ok(())
+    }
+}
+
+impl WorthQueryGraphParticipationProvider<CompilePassGraph> for CompilePassProvider {
+    type Execution = CompilePassExecution;
+
+    fn execution_resource_support(
+        &self,
+    ) -> worth_query_host::facade::admission::resource_admission::WorthQueryExecutionResourceSupport
+    {
+        unimplemented!()
+    }
+
+    fn begin(
+        &self,
+        _call: &WorthQueryGraphProviderCall,
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        start
+            .admit_cooperative_execution(CompilePassExecution)
+            .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
+    }
 }
 
 fn carry_provider_authoring_contract(

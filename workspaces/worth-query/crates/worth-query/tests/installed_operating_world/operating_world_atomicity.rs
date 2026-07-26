@@ -24,10 +24,13 @@ impl domain::WorthQueryGraphParticipationProvider<RemoteGraph> for UncontactedPr
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
         self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(match call.kind() {
+        let execution = match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),
             domain::WorthQueryGraphProviderCallKind::Project => Self::Execution::read("project"),
             domain::WorthQueryGraphProviderCallKind::TouchEffect => {
@@ -36,7 +39,10 @@ impl domain::WorthQueryGraphParticipationProvider<RemoteGraph> for UncontactedPr
             domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
                 unreachable!("graph participation never receives commit admission")
             }
-        })
+        };
+        start
+            .admit_cooperative_execution(execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 

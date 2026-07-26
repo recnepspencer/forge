@@ -207,12 +207,14 @@ impl WorthQueryReadyDirectGraphStart {
         Ok(WorthQueryActiveDirectGraphExecution::new(
             self.bound.running,
             WorthQueryManagedGraphExecution::new(
-                self.bound.call,
-                started.execution,
-                self.bound.anchor,
-                self.contract,
-                None,
-                started.memory,
+                super::managed_graph_execution::WorthQueryManagedGraphExecutionStartParts {
+                    call: self.bound.call,
+                    execution: started.execution,
+                    anchor: self.bound.anchor,
+                    contract: self.contract,
+                    artifact_context: None,
+                    memory: started.memory,
+                },
             ),
         ))
     }

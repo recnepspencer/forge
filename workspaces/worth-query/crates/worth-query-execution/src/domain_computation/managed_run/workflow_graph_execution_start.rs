@@ -244,12 +244,14 @@ impl WorthQueryReadyWorkflowGraphStart {
         Ok(WorthQueryActiveWorkflowGraphExecution::new(
             self.bound.running,
             WorthQueryManagedGraphExecution::new(
-                self.bound.call,
-                started.execution,
-                self.bound.anchor,
-                self.contract,
-                self.artifact_context,
-                started.memory,
+                super::managed_graph_execution::WorthQueryManagedGraphExecutionStartParts {
+                    call: self.bound.call,
+                    execution: started.execution,
+                    anchor: self.bound.anchor,
+                    contract: self.contract,
+                    artifact_context: self.artifact_context,
+                    memory: started.memory,
+                },
             ),
         ))
     }

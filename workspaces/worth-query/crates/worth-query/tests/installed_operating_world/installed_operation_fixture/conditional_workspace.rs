@@ -83,9 +83,12 @@ impl domain::WorthQueryGraphParticipationProvider<ConditionalModelGraph>
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
-        Ok(match call.kind() {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
+        let execution = match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => {
                 Self::Execution::read("conditional-model-observe")
             }
@@ -98,7 +101,10 @@ impl domain::WorthQueryGraphParticipationProvider<ConditionalModelGraph>
             domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
                 unreachable!("graph participation never receives commit admission")
             }
-        })
+        };
+        start
+            .admit_cooperative_execution(execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 

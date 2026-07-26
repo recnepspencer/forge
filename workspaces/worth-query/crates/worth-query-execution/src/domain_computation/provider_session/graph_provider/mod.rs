@@ -33,17 +33,17 @@ pub use work_report::WorthQueryProviderWorkReport;
 #[cfg(test)]
 mod tests;
 pub use bounded_step::{
-    WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
-    WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderRestoreMemory,
-    WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStep,
-    WorthQueryGraphProviderStepArtifactEvidence, WorthQueryGraphProviderStepDenial,
-    WorthQueryGraphProviderStepDenialKind, WorthQueryGraphProviderStepDisposition,
-    WorthQueryGraphProviderStepDispositionKind, WorthQueryGraphProviderStepFailureEvidence,
-    WorthQueryGraphProviderStepInvocationDisposition, WorthQueryGraphProviderStepReport,
-    WorthQueryGraphProviderStepRetainedEvidence, WorthQueryProviderCheckpointEvidence,
-    WorthQueryProviderCheckpointExport, WorthQueryProviderCheckpointReleaseDisposition,
-    WorthQueryProviderCheckpointReleaseEvidence, WorthQueryProviderCheckpointRetentionFailure,
-    WorthQueryProviderCheckpointRetentionFailureKind,
+    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphProviderCheckpoint,
+    WorthQueryGraphProviderExecution, WorthQueryGraphProviderExecutionStart,
+    WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
+    WorthQueryGraphProviderStep, WorthQueryGraphProviderStepArtifactEvidence,
+    WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
+    WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
+    WorthQueryGraphProviderStepFailureEvidence, WorthQueryGraphProviderStepInvocationDisposition,
+    WorthQueryGraphProviderStepReport, WorthQueryGraphProviderStepRetainedEvidence,
+    WorthQueryProviderCheckpointEvidence, WorthQueryProviderCheckpointExport,
+    WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
+    WorthQueryProviderCheckpointRetentionFailure, WorthQueryProviderCheckpointRetentionFailureKind,
     WorthQueryProviderExecutionDestructorDisposition,
     WorthQueryProviderExecutionDisposalDisposition, WorthQueryProviderExecutionReleaseEvidence,
 };

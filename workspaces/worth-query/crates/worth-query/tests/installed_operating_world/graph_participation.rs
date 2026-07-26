@@ -32,9 +32,12 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for CountingProvider {
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
-        Ok(match call.kind() {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
+        let execution = match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => {
                 Self::Execution::read(self.receipt_label("observe"))
             }
@@ -47,7 +50,10 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for CountingProvider {
             domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
                 unreachable!("graph participation never receives commit admission")
             }
-        })
+        };
+        start
+            .admit_cooperative_execution(execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 
