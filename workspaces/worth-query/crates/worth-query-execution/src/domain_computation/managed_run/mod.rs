@@ -53,11 +53,14 @@ mod yield_recovery_evidence;
 mod yield_transition_counters;
 
 pub use checkpoint_export::{
-    WorthQueryCheckpointExportHandoff, WorthQueryDirectCheckpointExportFailed,
-    WorthQueryDirectCheckpointExportOutcome, WorthQueryDirectCheckpointExportRecoveryRequired,
-    WorthQueryDirectCheckpointExported, WorthQueryWorkflowCheckpointExportFailed,
-    WorthQueryWorkflowCheckpointExportOutcome, WorthQueryWorkflowCheckpointExportRecoveryRequired,
-    WorthQueryWorkflowCheckpointExported,
+    WorthQueryCheckpointExportCost, WorthQueryCheckpointExportHandoff,
+    WorthQueryCheckpointExportRecoveryKind, WorthQueryCheckpointExportRecoveryPosture,
+    WorthQueryDirectCheckpointExportFailed, WorthQueryDirectCheckpointExportOutcome,
+    WorthQueryDirectCheckpointExportRecoveryRequired, WorthQueryDirectCheckpointExported,
+    WorthQueryWorkflowCheckpointExportFailed, WorthQueryWorkflowCheckpointExportOutcome,
+    WorthQueryWorkflowCheckpointExportRecoveryRequired, WorthQueryWorkflowCheckpointExported,
+    WORTH_QUERY_CHECKPOINT_EXPORT_PROTOCOL_IDENTITY,
+    WORTH_QUERY_CHECKPOINT_EXPORT_PROTOCOL_VERSION,
 };
 pub use counters::WorthQueryManagedRunCounters;
 pub use denial::{WorthQueryManagedRunDenial, WorthQueryManagedRunDenialKind};

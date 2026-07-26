@@ -1,6 +1,14 @@
 use super::yield_fixture::YieldExecution;
 use super::*;
-use crate::facade::provider_session::bounded_step::WorthQueryProviderCheckpointExport;
+use crate::facade::provider_session::bounded_step::{
+    WorthQueryProviderCheckpointExport, WorthQueryProviderCheckpointFormat,
+};
+use worth_foundational::facade::RetentionDeliveryProfile;
+use worth_query_installation::facade::{
+    WorthQueryArtifactClassification, WorthQueryArtifactDeletionPosture,
+    WorthQueryArtifactGovernanceContract, WorthQueryArtifactLegalHoldPosture,
+    WorthQueryArtifactRedactionPosture,
+};
 
 pub(super) struct YieldCheckpoint {
     pub(super) retained_bytes: u64,
@@ -320,9 +328,19 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for YieldCheck
 
     fn export(&self) -> Result<WorthQueryProviderCheckpointExport, WorthQueryGraphProviderFailure> {
         WorthQueryProviderCheckpointExport::new(
-            "worth-query-tests-yield",
-            1,
-            "worth-query-tests-yield-v1",
+            WorthQueryProviderCheckpointFormat::new(
+                "worth-query-tests-yield",
+                1,
+                "worth-query-tests-yield-v1",
+            )?,
+            WorthQueryArtifactGovernanceContract::new(
+                ["store-checkpoint-ingestion"],
+                WorthQueryArtifactClassification::Confidential,
+                WorthQueryArtifactRedactionPosture::DomainRedactorRequired,
+                RetentionDeliveryProfile::Durable,
+                WorthQueryArtifactDeletionPosture::ExternallyControlled,
+                WorthQueryArtifactLegalHoldPosture::DomainControlled,
+            ),
             format!("retained-bytes:{}", self.retained_bytes).into_bytes(),
         )
     }

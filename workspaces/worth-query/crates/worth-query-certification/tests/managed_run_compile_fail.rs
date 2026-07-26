@@ -53,4 +53,6 @@ fn managed_run_authority_boundaries_hold() {
     cases.compile_fail(
         "tests/ui/installed_domain/managed_run/partial_readmission_states_cannot_advance.rs",
     );
+    cases
+        .compile_fail("tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_resume.rs");
 }

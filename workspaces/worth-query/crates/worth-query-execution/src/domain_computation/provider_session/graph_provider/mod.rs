@@ -42,8 +42,9 @@ pub use bounded_step::{
     WorthQueryGraphProviderStepFailureEvidence, WorthQueryGraphProviderStepInvocationDisposition,
     WorthQueryGraphProviderStepReport, WorthQueryGraphProviderStepRetainedEvidence,
     WorthQueryProviderCheckpointEvidence, WorthQueryProviderCheckpointExport,
-    WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
-    WorthQueryProviderCheckpointRetentionFailure, WorthQueryProviderCheckpointRetentionFailureKind,
+    WorthQueryProviderCheckpointFormat, WorthQueryProviderCheckpointReleaseDisposition,
+    WorthQueryProviderCheckpointReleaseEvidence, WorthQueryProviderCheckpointRetentionFailure,
+    WorthQueryProviderCheckpointRetentionFailureKind,
     WorthQueryProviderExecutionDestructorDisposition,
     WorthQueryProviderExecutionDisposalDisposition, WorthQueryProviderExecutionReleaseEvidence,
 };

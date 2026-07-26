@@ -2,6 +2,16 @@ use std::collections::BTreeSet;
 
 use super::*;
 use crate::facade::provider_session::WorthQueryProviderWorkReport;
+use worth_query_admission::facade::resource_admission::{
+    WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionResourceAdmissionCounters,
+};
+use worth_query_admission::integration::{
+    admit_execution_resource_plan, reserve_execution_resource_plan,
+};
+use worth_query_installation::facade::{
+    WorthQueryExecutionProviderRequirements, WorthQueryExecutionResourceContract,
+    WorthQueryExecutionStrategyContract, WorthQueryExecutionStrategyName,
+};
 
 #[derive(Clone, Copy)]
 struct RepeatedYieldProvider {
@@ -127,6 +137,88 @@ fn repeated_readmission_matches_uninterrupted_semantics_and_structural_evidence(
     assert_eq!(resumed.work_report, uninterrupted.work_report);
     assert_eq!(resumed.provider_work, uninterrupted.provider_work);
     assert_eq!(resumed.run_counters, uninterrupted.run_counters);
+}
+
+#[test]
+fn readmission_transfers_saturated_capacity_without_a_second_reservation() {
+    let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct();
+    let mut saturation_holders = Vec::new();
+    for probe in (0..8).map(|_| readmit_capacity_probe(yielded.resource_attempt.resources())) {
+        let Some(reservation) = reserve_execution_resource_plan(probe) else {
+            break;
+        };
+        saturation_holders.push(reservation);
+    }
+    let saturation_probe = readmit_capacity_probe(yielded.resource_attempt.resources());
+    let active_probe = readmit_capacity_probe(yielded.resource_attempt.resources());
+    let released_probe = readmit_capacity_probe(yielded.resource_attempt.resources());
+    let retained_reservations = yielded.retained_capacity_reservation_count();
+
+    assert_eq!(
+        saturation_holders.len(),
+        7,
+        "the yielded run plus seven arrivals must fill the eight-slot pools"
+    );
+    assert!(
+        reserve_execution_resource_plan(saturation_probe).is_none(),
+        "arrival pressure must saturate every capacity pool"
+    );
+    let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
+        _ => panic!("same-runtime readmission must transfer retained capacity"),
+    };
+    assert_eq!(
+        active.retained_capacity_reservation_count(),
+        retained_reservations
+    );
+    assert!(
+        reserve_execution_resource_plan(active_probe).is_none(),
+        "readmission must not release or duplicate the retained reservation"
+    );
+
+    let completion = match active.advance() {
+        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
+        _ => panic!("restored provider should complete"),
+    };
+    let cleanup = completion
+        .into_running()
+        .completed()
+        .expect("completed execution should terminalize")
+        .cleanup()
+        .expect("completed readmitted run should clean up");
+    assert_eq!(
+        cleanup.attempt().capacity().released_reservation_count(),
+        retained_reservations
+    );
+
+    let released_capacity = reserve_execution_resource_plan(released_probe)
+        .expect("terminal cleanup must return one slot in every retained capacity pool");
+    drop(released_capacity);
+    drop(saturation_holders);
+}
+
+fn readmit_capacity_probe(
+    resources: &WorthQueryAdmittedExecutionResourcePlan,
+) -> WorthQueryAdmittedExecutionResourcePlan {
+    let executor = resources.support_snapshot().executor();
+    let strategy = WorthQueryExecutionStrategyContract::new(
+        WorthQueryExecutionStrategyName::new(resources.strategy().as_str()).unwrap(),
+        resources.envelope().clone(),
+        WorthQueryExecutionProviderRequirements::new(
+            executor.provider().clone(),
+            executor.access_product().clone(),
+            executor.allocator().clone(),
+        ),
+    );
+    let contract = WorthQueryExecutionResourceContract::declared([strategy]).unwrap();
+    admit_execution_resource_plan(
+        resources.binding_identity(),
+        &contract,
+        resources.request(),
+        resources.support_snapshot().clone(),
+        WorthQueryExecutionResourceAdmissionCounters::default(),
+    )
+    .expect("equivalent saturation probe should be independently admitted")
 }
 
 struct ParityEvidence {

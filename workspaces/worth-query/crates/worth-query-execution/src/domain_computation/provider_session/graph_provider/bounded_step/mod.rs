@@ -20,7 +20,9 @@ mod step_port;
 mod step_state;
 
 pub use checkpoint::{WorthQueryGraphProviderCheckpoint, WorthQueryProviderCheckpointEvidence};
-pub use checkpoint_export::WorthQueryProviderCheckpointExport;
+pub use checkpoint_export::{
+    WorthQueryProviderCheckpointExport, WorthQueryProviderCheckpointFormat,
+};
 pub use checkpoint_release::{
     WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
     WorthQueryProviderCheckpointRetentionFailure, WorthQueryProviderCheckpointRetentionFailureKind,

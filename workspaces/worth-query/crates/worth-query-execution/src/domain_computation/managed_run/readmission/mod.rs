@@ -36,6 +36,8 @@ pub use workflow_outcome::{
 };
 
 pub(super) use direct::readmit_direct;
+#[cfg(test)]
 pub(in crate::domain_computation::managed_run) use direct::restore_direct;
+#[cfg(test)]
 pub(in crate::domain_computation::managed_run) use direct_preparation::prepare_direct_provider_restore;
 pub(super) use workflow::readmit_workflow;
