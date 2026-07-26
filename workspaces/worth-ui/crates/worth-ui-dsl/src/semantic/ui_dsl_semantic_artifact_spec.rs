@@ -110,4 +110,10 @@ impl UiDslSemanticArtifactSpec {
             renderer_label: self.renderer_label,
         })
     }
+
+    /// Materializes semantic meaning without minting compiler or runtime
+    /// authority. Governed consumers still require a compiler lowering receipt.
+    pub fn into_semantic_artifact(self) -> UiDslSemanticArtifact {
+        self.into_artifact()
+    }
 }

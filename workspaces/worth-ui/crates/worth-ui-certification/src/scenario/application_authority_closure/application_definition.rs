@@ -1,8 +1,5 @@
-use worth_ui::facade::app::{WorthUi, WorthUiBuilder};
-use worth_ui::facade::graph::UiGraphWorldProfile;
-use worth_ui::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
-use worth_ui::facade::query_binding::WorthUiQueryViewRegistration;
-use worth_ui::facade::registry::{
+use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::declaration::{
     CommandDescriptor, CommandId, ComponentCanvasSpatialContract, ComponentChildPolicy,
     ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentRealtimeOverlayContract,
     ComponentRealtimeOverlayPriority, ComponentStateOwnership, MeasurementConstraint,
@@ -18,7 +15,11 @@ use worth_ui::facade::registry::{
     SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
     ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingId,
 };
+use worth_ui::facade::graph::UiGraphWorldProfile;
+use worth_ui::facade::query_binding::WorthUiQueryViewRegistration;
 use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
+use worth_ui_runtime::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
+use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 pub(crate) const CURRENT_COMPONENT: &str = "workspace.component.authority_current";
 pub(crate) const CANDIDATE_COMPONENT: &str = "workspace.component.authority_candidate";
@@ -42,14 +43,16 @@ pub(crate) const PREVIEW_SIZING: &str = "workspace.sizing.preview_splitter";
 pub(crate) const PREVIEW_STATE_SLOT: &str = "workspace.state.preview_splitter_position";
 pub(crate) const PREVIEW_SCROLL_STATE_SLOT: &str = "workspace.state.preview_scroll_position";
 
-pub(crate) fn application_builder(query: &WorthUiInstalledQueryTestFixture) -> WorthUiBuilder {
+pub(crate) fn application_builder(
+    query: &WorthUiInstalledQueryTestFixture,
+) -> WorthUiApplicationBuilder {
     application_builder_with_host(query, WorthUiHeadlessHost)
 }
 
 pub(crate) fn application_builder_with_host<Host>(
     query: &WorthUiInstalledQueryTestFixture,
     host: Host,
-) -> WorthUiBuilder
+) -> WorthUiApplicationBuilder
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
@@ -101,7 +104,7 @@ where
 pub(crate) fn cross_lane_application_builder_with_host<Host>(
     query: &WorthUiInstalledQueryTestFixture,
     host: Host,
-) -> WorthUiBuilder
+) -> WorthUiApplicationBuilder
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
@@ -128,7 +131,7 @@ where
 pub(crate) fn preview_application_builder_with_host<Host>(
     query: &WorthUiInstalledQueryTestFixture,
     host: Host,
-) -> WorthUiBuilder
+) -> WorthUiApplicationBuilder
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
@@ -138,14 +141,14 @@ where
 pub(crate) fn preview_cross_lane_application_builder_with_host<Host>(
     query: &WorthUiInstalledQueryTestFixture,
     host: Host,
-) -> WorthUiBuilder
+) -> WorthUiApplicationBuilder
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
     register_preview_contracts(cross_lane_application_builder_with_host(query, host))
 }
 
-fn register_preview_contracts(builder: WorthUiBuilder) -> WorthUiBuilder {
+fn register_preview_contracts(builder: WorthUiApplicationBuilder) -> WorthUiApplicationBuilder {
     builder
         .register_component(component(PREVIEW_COMPONENT))
         .register_surface(SurfaceDescriptor::new(
@@ -165,7 +168,7 @@ pub(crate) fn scaled_canvas_application_builder_with_host<Host>(
     query: &WorthUiInstalledQueryTestFixture,
     host: Host,
     canvas_count: usize,
-) -> WorthUiBuilder
+) -> WorthUiApplicationBuilder
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
@@ -184,7 +187,7 @@ where
 
 pub(super) fn application_builder_with_capability_drift(
     query: &WorthUiInstalledQueryTestFixture,
-) -> WorthUiBuilder {
+) -> WorthUiApplicationBuilder {
     application_builder(query)
         .register_component(component("workspace.component.authority_capability_drift"))
 }

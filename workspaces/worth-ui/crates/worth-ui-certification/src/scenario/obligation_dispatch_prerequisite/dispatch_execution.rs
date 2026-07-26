@@ -1,6 +1,6 @@
 //! Obligation selection, lowering, and verdict execution for one target.
 
-use worth_ui::facade::admission::UiAdmissionTarget;
+use worth_ui::facade::admission::{UiAdmissionTarget, WorthUiAdmissionExt};
 use worth_ui::facade::app::WorthUiApp;
 use worth_ui::facade::graph::UiGraphTouchDescriptor;
 use worth_ui_runtime::facade::obligations::{

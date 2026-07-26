@@ -5,12 +5,18 @@ use crate::facade::prepared_application_authority::WorthUiPreparedApplicationArt
 use crate::facade::WorthUi;
 use crate::runtime::tests::source_ingress_boundary_test_support::{
     lower_file_submission, lower_rust_submission, source_backed_package_component,
-    source_backed_package_region, source_backed_package_sizing,
 };
 use crate::runtime::tests::source_ingress_test_support::{
     file_import_provider, file_import_provider_for, rust_import_provider,
 };
-use crate::runtime::{WorthUiSourceProvider, WorthUiWatcherEvent};
+use crate::runtime::WorthUiWatcherEvent;
+
+#[path = "candidate_composition_preparation_test_support.rs"]
+mod candidate_composition_preparation_test_support;
+
+use candidate_composition_preparation_test_support::{
+    convergence_submissions, prepare_convergence_apps, prepare_file_authored_package_app,
+};
 
 #[test]
 fn file_watcher_uses_one_composition_pipeline_for_file_and_rust_inputs() {
@@ -37,66 +43,61 @@ fn file_watcher_uses_one_composition_pipeline_for_file_and_rust_inputs() {
 }
 
 #[test]
-fn equivalent_file_and_rust_compositions_prepare_equivalent_application_generations() {
-    let registered_builder = || {
-        WorthUi::app().register_component(source_backed_package_component(
-            "workspace.component.phase6_convergence",
-        ))
-    };
-    let snapshot = registered_builder()
-        .freeze()
-        .expect("convergence snapshot should prepare");
-    let file_submission = lower_file_submission(
-        WorthUiSourceProvider::in_memory("phase6-file").with_file(
-            "app/main.wui",
-            "component workspace.component.phase6_convergence {}",
-        ),
-        [WorthUiWatcherEvent::provider_revision("phase6-file")],
-        snapshot.capabilities(),
-    );
-    let rust_submission = lower_rust_submission(
-        WorthUiSourceProvider::rust_authored("phase6-rust").with_rust_authored_input(
-            crate::source::WorthUiRustAuthoredArtifactInput::from_modules([
-                crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
-                    .with_component("workspace.component.phase6_convergence"),
-            ]),
-        ),
-        [WorthUiWatcherEvent::provider_revision("phase6-rust")],
-        snapshot.capabilities(),
-    );
+fn equivalent_file_and_rust_compositions_share_semantic_basis_and_protocol() {
+    let (file_submission, rust_submission) = convergence_submissions();
 
     assert_eq!(
         file_submission.composition_basis(),
         rust_submission.composition_basis()
     );
-    let file_declaration_identity = file_submission
-        .composition_basis()
-        .declaration_source_identity()
-        .clone();
-    let rust_declaration_identity = rust_submission
-        .composition_basis()
-        .declaration_source_identity()
-        .clone();
-    let file_app = registered_builder()
-        .with_candidate_submission(file_submission)
-        .freeze()
-        .expect("file composition should prepare");
-    let rust_app = registered_builder()
-        .with_candidate_submission(rust_submission)
-        .freeze()
-        .expect("Rust composition should prepare");
+    assert_eq!(
+        file_submission
+            .composition_basis()
+            .semantic_handoff()
+            .identity(),
+        rust_submission
+            .composition_basis()
+            .semantic_handoff()
+            .identity()
+    );
+    assert_eq!(
+        file_submission
+            .composition_basis()
+            .semantic_handoff()
+            .protocol(),
+        rust_submission
+            .composition_basis()
+            .semantic_handoff()
+            .protocol()
+    );
+    assert_ne!(
+        file_submission
+            .composition_basis()
+            .semantic_handoff()
+            .authored_mode(),
+        rust_submission
+            .composition_basis()
+            .semantic_handoff()
+            .authored_mode()
+    );
+}
+
+#[test]
+fn equivalent_file_and_rust_compositions_prepare_equivalent_application_generations() {
+    let (file_submission, rust_submission) = convergence_submissions();
+    let (file_app, rust_app) = prepare_convergence_apps(file_submission, rust_submission);
 
     assert_eq!(
         file_app.generation_identity(),
         rust_app.generation_identity()
     );
     assert_eq!(
-        file_app.prepared_authority().declaration_source_identity(),
-        &file_declaration_identity
+        file_app.generation_identity().semantic_package_identity(),
+        file_app.prepared_authority().semantic_handoff().identity()
     );
     assert_eq!(
-        rust_app.prepared_authority().declaration_source_identity(),
-        &rust_declaration_identity
+        rust_app.generation_identity().semantic_package_identity(),
+        rust_app.prepared_authority().semantic_handoff().identity()
     );
     assert_eq!(
         file_app.prepared_authority().application_artifact_posture(),
@@ -109,7 +110,46 @@ fn equivalent_file_and_rust_compositions_prepare_equivalent_application_generati
 }
 
 #[test]
-fn canonical_artifact_drift_changes_prepared_identity_without_declaration_source_drift() {
+fn prepared_file_and_rust_compositions_retain_exact_handoff_evidence() {
+    let (file_submission, rust_submission) = convergence_submissions();
+    let file_declaration_identity = file_submission
+        .composition_basis()
+        .declaration_source_identity()
+        .clone();
+    let rust_declaration_identity = rust_submission
+        .composition_basis()
+        .declaration_source_identity()
+        .clone();
+    let file_handoff = file_submission
+        .composition_basis()
+        .semantic_handoff()
+        .clone();
+    let rust_handoff = rust_submission
+        .composition_basis()
+        .semantic_handoff()
+        .clone();
+    let (file_app, rust_app) = prepare_convergence_apps(file_submission, rust_submission);
+
+    assert_eq!(
+        file_app.prepared_authority().declaration_source_identity(),
+        &file_declaration_identity
+    );
+    assert_eq!(
+        rust_app.prepared_authority().declaration_source_identity(),
+        &rust_declaration_identity
+    );
+    assert_eq!(
+        file_app.prepared_authority().semantic_handoff(),
+        &file_handoff
+    );
+    assert_eq!(
+        rust_app.prepared_authority().semantic_handoff(),
+        &rust_handoff
+    );
+}
+
+#[test]
+fn import_drift_changes_exact_semantic_handoff_and_prepared_identity() {
     let snapshot = WorthUi::app()
         .freeze()
         .expect("source snapshot should prepare");
@@ -124,13 +164,23 @@ fn canonical_artifact_drift_changes_prepared_identity_without_declaration_source
         snapshot.capabilities(),
     );
 
-    assert_eq!(
+    assert_ne!(
         left_submission
             .composition_basis()
             .declaration_source_identity(),
         right_submission
             .composition_basis()
             .declaration_source_identity()
+    );
+    assert_ne!(
+        left_submission
+            .composition_basis()
+            .semantic_handoff()
+            .identity(),
+        right_submission
+            .composition_basis()
+            .semantic_handoff()
+            .identity()
     );
     assert_ne!(
         left_submission.composition_basis().candidate_basis(),
@@ -147,7 +197,7 @@ fn canonical_artifact_drift_changes_prepared_identity_without_declaration_source
         .expect("right composition should prepare");
 
     assert_eq!(left.capabilities().digest(), right.capabilities().digest());
-    assert_eq!(
+    assert_ne!(
         left.prepared_authority().declaration_source_identity(),
         right.prepared_authority().declaration_source_identity()
     );
@@ -210,56 +260,8 @@ fn candidate_snapshot_drift_returns_deterministic_preparation_denial_without_mut
 }
 
 #[test]
-fn file_authored_source_ingress_prepares_declarations_without_package_extraction() {
-    let registered_builder = || {
-        WorthUi::app()
-            .register_component(source_backed_package_component(
-                "workspace.component.workflow_editor",
-            ))
-            .register_component(source_backed_package_component(
-                "workspace.component.workflow_editor.peer_a",
-            ))
-            .register_component(source_backed_package_component(
-                "workspace.component.workflow_editor.peer_b",
-            ))
-            .register_mosaic_region_kind(source_backed_package_region())
-            .register_mosaic_sizing_contract(source_backed_package_sizing())
-    };
-    let snapshot = registered_builder()
-        .freeze()
-        .expect("application preparation should succeed");
-    let submission = lower_file_submission(
-        WorthUiSourceProvider::in_memory("source-backed-package").with_file(
-            "app/source_backed_package.wui",
-            r#"
-component workspace.component.workflow_editor {
-    region workspace.region.primary {
-        sizing workspace.sizing.mosaic_support;
-    }
-}
-
-component workspace.component.workflow_editor.peer_a {
-    region workspace.region.primary {
-        sizing workspace.sizing.mosaic_support;
-    }
-}
-component workspace.component.workflow_editor.peer_b {
-    region workspace.region.primary {
-        sizing workspace.sizing.mosaic_support;
-    }
-}
-"#,
-        ),
-        [WorthUiWatcherEvent::provider_revision(
-            "source-backed-package",
-        )],
-        snapshot.capabilities(),
-    );
-    let prepared = registered_builder()
-        .with_candidate_submission(submission)
-        .freeze()
-        .expect("the complete watched composition should prepare");
-
+fn file_authored_source_ingress_preserves_exact_declaration_positions() {
+    let prepared = prepare_file_authored_package_app();
     let mut observed = prepared
         .declaration_artifacts()
         .iter()
@@ -285,15 +287,22 @@ component workspace.component.workflow_editor.peer_b {
             ("app/source_backed_package.wui".to_owned(), 2),
         ]
     );
+}
+
+#[test]
+fn file_authored_source_ingress_preserves_structural_sizing_handoff() {
+    let prepared = prepare_file_authored_package_app();
+    let first_source_declaration = prepared
+        .declaration_artifacts()
+        .iter()
+        .find(|artifact| {
+            artifact.provenance().source_provenance().module_path()
+                == "app/source_backed_package.wui"
+        })
+        .expect("source-backed declaration should be present");
+
     assert_eq!(
-        prepared
-            .declaration_artifacts()
-            .iter()
-            .find(|artifact| {
-                artifact.provenance().source_provenance().module_path()
-                    == "app/source_backed_package.wui"
-            })
-            .expect("source-backed declaration should be present")
+        first_source_declaration
             .graph_handoff()
             .expect("source-backed declaration handoff remains admitted")
             .mosaic_sizing_contract_id()

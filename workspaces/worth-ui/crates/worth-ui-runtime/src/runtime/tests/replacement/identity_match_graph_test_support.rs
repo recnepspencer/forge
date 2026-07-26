@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
 use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate, launch_runtime};
@@ -15,7 +16,7 @@ use crate::source::{
     WorthUiArtifactModule, WorthUiArtifactNode, WorthUiArtifactSurfaceHandle,
     WorthUiArtifactSurfaceNode, WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
     WorthUiBoundSurfaceSemantics, WorthUiDurableStateEligibility, WorthUiMosaicMountFacts,
-    WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts, WorthUiSourceModuleId,
+    WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,
 };
 use crate::{capability::*, facade::WorthUiApp};
 

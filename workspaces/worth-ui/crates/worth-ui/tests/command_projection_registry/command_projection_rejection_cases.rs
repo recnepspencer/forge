@@ -1,10 +1,10 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         CommandCategory, CommandProjectionDescriptor, CommandProjectionGrouping,
         CommandProjectionMeaningOverride, CommandProjectionMosaicScope, CommandProjectionSurface,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::command_projection_assertions::assert_diagnostic_codes;

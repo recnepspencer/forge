@@ -1,20 +1,25 @@
 use worth_ui::facade::app::{
-    WorthUiApplicationReplacementPreparationDenial, WorthUiHostMeasurementSessionInput,
-    WorthUiPreparedApplicationGenerationIdentity,
-};
-use worth_ui::facade::host::{
-    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
+    WorthUiApplicationReplacementPreparationDenial, WorthUiPreparedApplicationGenerationIdentity,
 };
 use worth_ui::facade::inspection::{
     UiEvidenceAuthorityGeneration, UiInspectionDeclarationIdentity, UiInspectionQuery,
     UiInspectionScope, UiInspectionTarget,
 };
-use worth_ui::facade::runtime::WorthUiTransientInteractionState;
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity, UiViewportExtentRequest,
 };
 use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
+use worth_ui_runtime::facade::host::{
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext,
+};
+use worth_ui_runtime::facade::runtime_handoff::{
+    UiAllocationReplanTransactionOutcome, WorthUiTransientInteractionState,
+};
+use worth_ui_runtime::facade::WorthUiHostMeasurementSessionInput;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
+};
 
 use super::application_definition::{
     application_builder, application_builder_with_capability_drift, application_builder_with_host,
@@ -142,7 +147,7 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
     );
     assert!(matches!(
         cutover.publication().scheduler(),
-        worth_ui::facade::runtime::UiAllocationFrameDispatcherState::Open(_)
+        worth_ui_runtime::facade::execution::UiAllocationFrameDispatcherState::Open(_)
     ));
     assert_ne!(session.generation_identity(), &initial_generation);
     assert_eq!(session.host_session_identity(), host_session);
@@ -187,11 +192,9 @@ pub fn certify_application_authority_closure() -> ApplicationAuthorityClosureRep
         .replan_transaction()
         .expect("ordinary interaction should retain its allocation transaction");
     let receipts = match transaction {
-        worth_ui::facade::runtime::UiAllocationReplanTransactionOutcome::Committed(committed)
-        | worth_ui::facade::runtime::UiAllocationReplanTransactionOutcome::Replayed(committed) => {
-            committed.receipts()
-        }
-        worth_ui::facade::runtime::UiAllocationReplanTransactionOutcome::Denied(denial) => {
+        UiAllocationReplanTransactionOutcome::Committed(committed)
+        | UiAllocationReplanTransactionOutcome::Replayed(committed) => committed.receipts(),
+        UiAllocationReplanTransactionOutcome::Denied(denial) => {
             panic!("active allocation transaction should commit: {denial:?}")
         }
     };

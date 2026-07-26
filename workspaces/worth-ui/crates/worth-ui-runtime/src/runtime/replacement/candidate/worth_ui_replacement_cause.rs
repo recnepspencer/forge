@@ -1,5 +1,5 @@
 use crate::runtime::replacement::candidate::WorthUiCandidateProvenanceHandle;
-use crate::source::WorthUiSourceModuleId;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiReplacementCause {

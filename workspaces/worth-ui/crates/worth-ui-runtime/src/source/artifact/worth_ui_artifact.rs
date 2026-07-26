@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[cfg(test)]
 use crate::source::{
     WorthUiArtifactEquivalenceBasis, WorthUiArtifactEquivalenceComparator, WorthUiArtifactNode,
 };
-use crate::source::{WorthUiArtifactHandle, WorthUiArtifactModule, WorthUiSourceModuleId};
+use crate::source::{WorthUiArtifactHandle, WorthUiArtifactModule};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiArtifact {

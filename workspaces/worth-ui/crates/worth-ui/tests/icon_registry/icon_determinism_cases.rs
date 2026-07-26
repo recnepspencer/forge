@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{
+    declaration::{
         IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily,
         IconSourceDescriptor, IconThemePosture,
     },

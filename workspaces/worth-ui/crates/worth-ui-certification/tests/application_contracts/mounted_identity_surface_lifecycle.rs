@@ -1,11 +1,4 @@
-use worth_ui::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedIdentityDenial,
-    UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
-};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
 };
@@ -14,7 +7,18 @@ use worth_ui_host_contract::{
     UiHostSurfaceRegistrationRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
     WorthUiMeasurementHostAdapter,
 };
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiOperationalHostAdapter,
+};
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedIdentityDenial,
+    UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
+};
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiMountedIdentityCertificationExt,
+};
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     active_session, first_node, mounted_application_with_host, profile,
@@ -256,7 +260,7 @@ fn native_recovery_cannot_erase_same_binding_presentation_uncertainty() {
             .session
             .present_current_mounted_frame_for_reconciliation(
                 &[
-                    worth_ui::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
+                    worth_ui_runtime::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
                         world.binding,
                         replacement.binding_generation(),
                     )
@@ -292,7 +296,7 @@ fn assert_presentation_still_blocked(
 
 fn assert_binding_truth(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-    binding: worth_ui::facade::mounted::UiSurfaceBindingIdentityView,
+    binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingIdentityView,
 ) {
     let capability = session.host_measurement_capability();
     assert_eq!(

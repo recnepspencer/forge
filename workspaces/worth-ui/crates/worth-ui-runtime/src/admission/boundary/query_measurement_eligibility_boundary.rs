@@ -11,29 +11,6 @@ use crate::evidence::{consume_settled_query_measurement_fact, UiSettledQueryFact
 use super::UiAdmissionBoundary;
 
 impl<'a> UiAdmissionBoundary<'a> {
-    pub(crate) fn admit_query_measurement_eligibility_for_touch_from_readmitted_fact(
-        &self,
-        touch: &crate::obligations::touch::UiGraphTouchDescriptor,
-        view_binding_id: crate::capability::ViewBindingId,
-        readmitted: worth_ui_query_binding::WorthUiReadmittedSettledSnapshotFact<'_>,
-    ) -> Option<UiQueryMeasurementEligibility> {
-        let fact = readmitted.fact();
-        let target = crate::admission::UiAdmissionTarget::graph_node(
-            touch.target().graph_node_identity(),
-            crate::admission::UiAdmissionWorld::from_graph_world_profile(
-                touch.world().world_profile().clone(),
-            ),
-        );
-        let selected = self.select_obligations_for_target(touch, target);
-        let measurement_admission = self.admit_measurement_requirement(&selected)?;
-        self.admit_query_measurement_eligibility_from_settled_fact(
-            &selected,
-            &measurement_admission,
-            view_binding_id,
-            fact,
-        )
-    }
-
     pub(crate) fn admit_query_measurement_eligibility_from_settled_fact(
         &self,
         _selected: &crate::obligations::selection::UiSelectedObligationSet,

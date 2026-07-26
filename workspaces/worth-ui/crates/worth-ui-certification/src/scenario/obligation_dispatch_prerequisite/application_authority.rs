@@ -1,19 +1,23 @@
 //! Application authority used by obligation-dispatch prerequisite scenarios.
 
+use crate::{WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture};
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
+use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 use super::query_prerequisites::settled_query_world_profile;
 
 pub fn structural_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-dispatch.structural")
-                .with_semantic_artifact_spec(control_spec())
-                .with_semantic_artifact_spec(service_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-dispatch.structural",
+            )
+            .with_semantic_artifact_spec(control_spec())
+            .with_semantic_artifact_spec(service_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -25,9 +29,11 @@ pub fn query_touch_app() -> WorthUiApp {
             "snapshot:phase5-dispatch-prereq",
             ["worth-ui.phase5", "dispatch", "query-prereq"],
         ))
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-dispatch.query")
-                .with_semantic_artifact_spec(control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-dispatch.query",
+            )
+            .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -35,9 +41,11 @@ pub fn query_touch_app() -> WorthUiApp {
 
 pub fn service_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-dispatch.service")
-                .with_semantic_artifact_spec(service_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-dispatch.service",
+            )
+            .with_semantic_artifact_spec(service_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -45,9 +53,11 @@ pub fn service_touch_app() -> WorthUiApp {
 
 pub fn focus_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-dispatch.focus")
-                .with_semantic_artifact_spec(focus_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-dispatch.focus",
+            )
+            .with_semantic_artifact_spec(focus_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -55,9 +65,11 @@ pub fn focus_touch_app() -> WorthUiApp {
 
 pub fn motion_touch_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-dispatch.motion")
-                .with_semantic_artifact_spec(motion_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-dispatch.motion",
+            )
+            .with_semantic_artifact_spec(motion_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")

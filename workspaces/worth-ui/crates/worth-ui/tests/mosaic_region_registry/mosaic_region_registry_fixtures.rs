@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture,
     MosaicRegionKindDescriptor, MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole,
     MosaicScrollOwnership, MosaicSizingBehavior, SurfacePlacementClass,

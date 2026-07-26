@@ -13,6 +13,7 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) capability_snapshot: Rc<CapabilitySnapshot>,
     pub(crate) canonical_artifact: WorthUiPreparedApplicationArtifact,
     pub(crate) declaration_source_identity: WorthUiPreparedDeclarationSourceIdentity,
+    pub(crate) semantic_handoff: crate::runtime::WorthUiSemanticHandoffEvidence,
     pub(crate) declaration_artifacts: Vec<UiDeclarationArtifact>,
     pub(crate) graph_snapshot: UiGraphSnapshot,
     pub(crate) lifecycle: WorthUiFacadeLifecycleBootstrap,
@@ -33,6 +34,7 @@ pub struct WorthUiPreparedApplicationAuthority {
     capability_snapshot: Rc<CapabilitySnapshot>,
     canonical_artifact: WorthUiPreparedApplicationArtifact,
     declaration_source_identity: WorthUiPreparedDeclarationSourceIdentity,
+    semantic_handoff: crate::runtime::WorthUiSemanticHandoffEvidence,
     declaration_artifacts: Vec<UiDeclarationArtifact>,
     graph_snapshot: UiGraphSnapshot,
     lifecycle: WorthUiFacadeLifecycleBootstrap,
@@ -74,6 +76,7 @@ impl WorthUiPreparedApplicationAuthority {
             capability_snapshot,
             canonical_artifact,
             declaration_source_identity,
+            semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
             lifecycle,
@@ -90,19 +93,15 @@ impl WorthUiPreparedApplicationAuthority {
             capability_snapshot.digest(),
             canonical_artifact.identity(),
             declaration_source_identity.clone(),
+            semantic_handoff.identity().clone(),
             graph_snapshot.authority_digest(),
             &query_binding_plan,
             &host_session_plan,
         );
-        let source_artifact_authority = canonical_artifact
-            .runtime_artifact_authority()
-            .map(|(artifact, _)| artifact);
+        let source_artifact_authority = canonical_artifact.runtime_artifact_authority().0;
         let lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
             generation_identity.clone(),
-            match &canonical_artifact {
-                WorthUiPreparedApplicationArtifact::SourceBacked { basis, .. } => Some(*basis),
-                WorthUiPreparedApplicationArtifact::DeclarationAuthored(_) => None,
-            },
+            canonical_artifact.candidate_basis(),
             source_artifact_authority,
             graph_snapshot.authority_identity(),
             Rc::clone(&capability_snapshot),
@@ -115,6 +114,7 @@ impl WorthUiPreparedApplicationAuthority {
             capability_snapshot,
             canonical_artifact,
             declaration_source_identity,
+            semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
             lifecycle,
@@ -134,6 +134,10 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub fn declaration_source_identity(&self) -> &WorthUiPreparedDeclarationSourceIdentity {
         &self.declaration_source_identity
+    }
+
+    pub fn semantic_handoff(&self) -> &crate::runtime::WorthUiSemanticHandoffEvidence {
+        &self.semantic_handoff
     }
 
     pub fn application_artifact_posture(&self) -> WorthUiPreparedApplicationArtifactPosture {
@@ -166,6 +170,7 @@ impl WorthUiPreparedApplicationAuthority {
             self.capability_snapshot.digest(),
             self.canonical_artifact.identity(),
             self.declaration_source_identity.clone(),
+            self.semantic_handoff.identity().clone(),
             self.graph_snapshot.authority_digest(),
             &self.query_binding_plan,
             &self.host_session_plan,
@@ -173,9 +178,7 @@ impl WorthUiPreparedApplicationAuthority {
         self.lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
             self.generation_identity.clone(),
             self.source_backed_candidate_basis(),
-            self.canonical_artifact
-                .runtime_artifact_authority()
-                .map(|(artifact, _)| artifact),
+            self.canonical_artifact.runtime_artifact_authority().0,
             self.graph_snapshot.authority_identity(),
             Rc::clone(&self.capability_snapshot),
             self.query_binding_plan.clone(),
@@ -199,6 +202,7 @@ impl WorthUiPreparedApplicationAuthority {
             self.capability_snapshot.digest(),
             self.canonical_artifact.identity(),
             self.declaration_source_identity.clone(),
+            self.semantic_handoff.identity().clone(),
             graph_snapshot.authority_digest(),
             &self.query_binding_plan,
             &self.host_session_plan,
@@ -206,9 +210,7 @@ impl WorthUiPreparedApplicationAuthority {
         let lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
             generation_identity.clone(),
             self.source_backed_candidate_basis(),
-            self.canonical_artifact
-                .runtime_artifact_authority()
-                .map(|(artifact, _)| artifact),
+            self.canonical_artifact.runtime_artifact_authority().0,
             graph_snapshot.authority_identity(),
             Rc::clone(&self.capability_snapshot),
             self.query_binding_plan.clone(),
@@ -269,11 +271,8 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub(crate) fn source_backed_candidate_basis(
         &self,
-    ) -> Option<crate::runtime::WorthUiReplacementCandidateBasis> {
-        match &self.canonical_artifact {
-            WorthUiPreparedApplicationArtifact::SourceBacked { basis, .. } => Some(*basis),
-            WorthUiPreparedApplicationArtifact::DeclarationAuthored(_) => None,
-        }
+    ) -> crate::runtime::WorthUiReplacementCandidateBasis {
+        self.canonical_artifact.candidate_basis()
     }
 
     pub(crate) fn runtime_instance_basis_admissions(
@@ -293,10 +292,7 @@ impl WorthUiPreparedApplicationAuthority {
         diagnostic_policy: crate::runtime::WorthUiRuntimeDiagnosticPolicy,
     ) -> Result<super::WorthUiPreparedLaunchAdmission, crate::runtime::WorthUiRuntimeLaunchDenial>
     {
-        let (artifact, artifact_digest) =
-            self.canonical_artifact.runtime_artifact_authority().ok_or(
-                crate::runtime::WorthUiRuntimeLaunchDenial::PreparedApplicationHasNoRuntimeArtifact,
-            )?;
+        let (artifact, artifact_digest) = self.canonical_artifact.runtime_artifact_authority();
         let initial_allocation_commit = self.initial_allocation_commit(artifact_digest)?;
         Ok(super::WorthUiPreparedLaunchAdmission {
             lowering_authority: self.lowering_authority(),

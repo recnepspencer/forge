@@ -1,10 +1,11 @@
-use worth_ui::facade::mounted::{UiMountedFrameOutcome, UiPresentationDeadline};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatchDisposition, UiHostObservationDisposition, UiHostObservationFamily,
     UiHostObservationFrameRelation, UiHostObservationLoss, UiHostObservationPayload,
     UiHostObservationReport, UiHostObservationReportDenial, UiHostObservationReportOutcome,
     UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
 };
+use worth_ui_runtime::facade::mounted::{UiMountedFrameOutcome, UiPresentationDeadline};
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::host_observation_fixture::{batch, report, source};
@@ -255,7 +256,7 @@ fn assert_indeterminate_quarantine() {
     let frame = prepared(&mut world.session);
     let frame_identity = frame.canonical_core().frame();
     world.host.push_presentation(
-        worth_ui::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
+        worth_ui_runtime::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
     );
     assert!(matches!(
         world.session.present_prepared_mounted_frame(

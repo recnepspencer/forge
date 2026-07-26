@@ -1,6 +1,5 @@
-use crate::source::{
-    WorthUiArtifactInputProvenance, WorthUiArtifactInputResolver, WorthUiResolvedArtifactInputNode,
-};
+use crate::source::{WorthUiArtifactInputResolver, WorthUiResolvedArtifactInputNode};
+use worth_ui_dsl::WorthUiArtifactInputProvenance;
 
 use super::resolution_fixture_support::{admitted_app, standard_artifact_input};
 
@@ -28,11 +27,11 @@ fn same_artifact_input_and_same_snapshot_produce_equivalent_resolution() {
 fn reordered_module_iteration_produces_equivalent_resolution() {
     let app = admitted_app();
     let left = standard_artifact_input();
-    let right = crate::source::WorthUiRustAuthoredToArtifactInputLowerer::lower(
-        &crate::source::WorthUiRustAuthoredArtifactInput::from_modules([
-            crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/panels/inspector.wui")
+    let right = crate::source::test_compilation::compile_rust_authored(
+        &worth_ui_dsl::WorthUiRustAuthoredArtifactInput::from_modules([
+            worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/panels/inspector.wui")
                 .with_component("workspace.component.inspector_panel"),
-            crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+            worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_import("app/panels/inspector.wui")
                 .with_component("workspace.component.dashboard")
                 .with_surface("workspace.surface.inspector")

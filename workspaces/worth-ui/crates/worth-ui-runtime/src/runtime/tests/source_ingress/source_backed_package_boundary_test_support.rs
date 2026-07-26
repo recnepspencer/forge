@@ -58,7 +58,8 @@ pub(super) fn prepare_source_backed_submission(
         .expect("complete source-backed composition should prepare")
 }
 
-pub(super) fn two_component_source_backed_builder() -> crate::facade::entry::WorthUiBuilder {
+pub(super) fn two_component_source_backed_builder(
+) -> crate::facade::entry::WorthUiApplicationBuilder {
     WorthUi::app()
         .register_component(source_backed_boundary_component())
         .register_component(ComponentDescriptor::new(

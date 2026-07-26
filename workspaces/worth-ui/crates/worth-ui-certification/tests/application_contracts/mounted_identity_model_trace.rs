@@ -1,18 +1,19 @@
 use std::collections::BTreeMap;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     active_session, first_node, profile, registered_surface,
 };
 use super::mounted_protocol_model::{MountedIdentityModel, MountedIdentityModelOperation};
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiMountedInstanceIdentity, UiSurfaceBindingGeneration, UiSurfaceBindingIdentityView,
 };
 
 struct TraceEvidence<'a> {
     identities: &'a BTreeMap<u8, UiMountedInstanceIdentity>,
     bindings: &'a [UiSurfaceBindingGeneration],
-    frames: &'a [worth_ui::facade::mounted::UiMountedFrameIdentity],
+    frames: &'a [worth_ui_runtime::facade::mounted::UiMountedFrameIdentity],
     trace: &'static str,
 }
 
@@ -213,7 +214,7 @@ fn assert_agreement(
 fn evidence<'a>(
     identities: &'a BTreeMap<u8, UiMountedInstanceIdentity>,
     bindings: &'a [UiSurfaceBindingGeneration],
-    frames: &'a [worth_ui::facade::mounted::UiMountedFrameIdentity],
+    frames: &'a [worth_ui_runtime::facade::mounted::UiMountedFrameIdentity],
     trace: &'static str,
 ) -> TraceEvidence<'a> {
     TraceEvidence {

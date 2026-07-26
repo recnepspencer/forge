@@ -98,6 +98,7 @@ def cargo_check(cases: list[Case]) -> tuple[int, dict[str, list[dict[str, object
     command = [
         "cargo",
         "check",
+        "--keep-going",
         "--manifest-path",
         str(FIXTURE),
         "--message-format=json",

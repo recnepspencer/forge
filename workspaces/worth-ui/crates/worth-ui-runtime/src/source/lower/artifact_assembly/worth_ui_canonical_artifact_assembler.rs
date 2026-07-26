@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::declaration::authored_source_provenance_digest;
 use crate::source::{
@@ -9,7 +10,6 @@ use crate::source::{
     WorthUiArtifactNode, WorthUiArtifactSurfaceHandle, WorthUiArtifactSurfaceNode,
     WorthUiArtifactThemeTokenHandle, WorthUiArtifactThemeTokenNode,
     WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputNode,
-    WorthUiSourceModuleId,
 };
 
 use super::{
@@ -177,7 +177,7 @@ fn assemble_node(
     }
 }
 
-fn authored_provenance_digest(provenance: &crate::source::WorthUiArtifactInputProvenance) -> u64 {
+fn authored_provenance_digest(provenance: &worth_ui_dsl::WorthUiArtifactInputProvenance) -> u64 {
     authored_source_provenance_digest(provenance.module_path(), provenance.declaration_index())
 }
 

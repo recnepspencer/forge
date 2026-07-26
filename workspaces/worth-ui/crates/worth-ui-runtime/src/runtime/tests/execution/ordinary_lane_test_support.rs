@@ -12,7 +12,7 @@ use crate::runtime::{
     WorthUiOrdinaryLanePlanDenial, WorthUiPlanNodeInputFamily, WorthUiRuntime,
     WorthUiRuntimeHandleAllocation,
 };
-use crate::source::WorthUiRustAuthoredArtifactInputModule;
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 
 pub(super) fn ordinary_lane_fixture() -> (
     crate::runtime::WorthUiRuntimeFrameworkLoop,

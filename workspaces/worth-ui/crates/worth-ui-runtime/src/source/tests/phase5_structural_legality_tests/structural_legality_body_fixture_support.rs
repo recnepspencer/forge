@@ -1,15 +1,15 @@
 use crate::capability::CapabilitySnapshot;
-use crate::source::{
-    WorthUiArtifactInputBodyAtom, WorthUiArtifactInputResolver, WorthUiResolvedArtifactInput,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer,
+use crate::source::{WorthUiArtifactInputResolver, WorthUiResolvedArtifactInput};
+use worth_ui_dsl::{
+    WorthUiArtifactInputBodyAtom, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule,
 };
 
 pub(super) fn resolved_artifact_input_from_modules<const N: usize>(
     modules: [WorthUiRustAuthoredArtifactInputModule; N],
     snapshot: &CapabilitySnapshot,
 ) -> WorthUiResolvedArtifactInput {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot).expect("phase 4 resolution")
@@ -69,31 +69,6 @@ pub(super) fn invalid_sizing_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
         ident("workspace.state.primary_pinned"),
         WorthUiArtifactInputBodyAtom::Semicolon,
         WorthUiArtifactInputBodyAtom::RightBrace,
-    ]
-}
-
-pub(super) fn duplicate_and_invalid_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
-    vec![
-        ident("region"),
-        ident("workspace.region.primary"),
-        WorthUiArtifactInputBodyAtom::LeftBrace,
-        ident("sizing"),
-        ident("workspace.sizing.fill"),
-        WorthUiArtifactInputBodyAtom::Semicolon,
-        ident("sizing"),
-        ident("workspace.sizing.overlay"),
-        WorthUiArtifactInputBodyAtom::Semicolon,
-        WorthUiArtifactInputBodyAtom::RightBrace,
-    ]
-}
-
-pub(super) fn illegal_root_statement_body_atoms() -> Vec<WorthUiArtifactInputBodyAtom> {
-    vec![
-        ident("mount"),
-        ident("workspace.surface.main"),
-        ident("placement"),
-        ident("workspace.placement.primary"),
-        WorthUiArtifactInputBodyAtom::Semicolon,
     ]
 }
 

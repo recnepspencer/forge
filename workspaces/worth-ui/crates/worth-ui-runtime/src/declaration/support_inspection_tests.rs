@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::{
     UiInspectionQuery, UiInspectionScope, UiInspectionSupportStatus, UiInspectionTarget,
@@ -72,9 +73,11 @@ fn assert_app_freeze_measurement_posture(
     expected: UiDeclaredMeasurementPolicyPosture,
 ) {
     let app = crate::facade::WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.declaration-support.app")
-                .with_semantic_artifact_spec(spec),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.declaration-support.app",
+            )
+            .with_semantic_artifact_spec(spec),
         )
         .freeze()
         .expect("application preparation should succeed");

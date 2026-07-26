@@ -1,13 +1,14 @@
+use crate::capability::{
+    MosaicStatePersistencePolicy, MosaicStateReplacementRule, MosaicStateSlotKind,
+};
 use crate::runtime::{
-    WorthUiDurableStateFamilyHook, WorthUiDurableStateInventory,
-    WorthUiDurableStateReplacementPolicy, WorthUiIdentityMatchNodeKind,
-    WorthUiNodeLifecycleTransition, WorthUiNodeReplacementClassification,
-    WorthUiNodeReplacementCounters, WorthUiNodeReplacementPlan, WorthUiStatePersistencePosture,
+    WorthUiDurableStateInventory, WorthUiIdentityMatchNodeKind, WorthUiNodeLifecycleTransition,
+    WorthUiNodeReplacementClassification, WorthUiNodeReplacementCounters,
+    WorthUiNodeReplacementPlan,
 };
 
 use super::durable_state_inventory_test_support::{
-    custom_state_family_hook, deterministic_replacement_plan, platform_inventory,
-    reversed_platform_inventory,
+    admitted_state_inventory, deterministic_replacement_plan, platform_inventory, state_slot,
 };
 use super::identity_match_graph_test_support::{
     artifact_from_nodes, component_node, component_node_with_descriptor, identity_match_app,
@@ -34,9 +35,9 @@ pub(super) fn reversed_inventory_for(
     runtime: &crate::runtime::WorthUiRuntime,
     plan: &WorthUiNodeReplacementPlan,
 ) -> WorthUiDurableStateInventory {
-    reversed_platform_inventory(runtime)
+    platform_inventory(runtime)
         .build_for_replacement(plan)
-        .expect("reversed platform inventory builds")
+        .expect("production inventory replay builds")
 }
 
 pub(super) fn structural_replacement_inputs() -> (
@@ -248,69 +249,23 @@ pub(super) fn ambiguous_plan_with_inventory() -> (
     (runtime, plan, inventory)
 }
 
-pub(super) fn custom_lane_change_inventory(
-    runtime: &crate::runtime::WorthUiRuntime,
+pub(super) fn custom_inventory_for_rule(
     plan: &WorthUiNodeReplacementPlan,
+    replacement_rule: MosaicStateReplacementRule,
 ) -> WorthUiDurableStateInventory {
-    custom_inventory_for_policy(
-        runtime,
-        plan,
-        WorthUiDurableStateReplacementPolicy::ReconcileOnLaneChange,
-    )
+    admitted_state_inventory([state_slot(
+        "workspace.state.reconcile_cache",
+        MosaicStateSlotKind::active_stack_item(),
+        MosaicStatePersistencePolicy::restore_across_hot_reload(),
+        replacement_rule,
+    )])
+    .build_for_replacement(plan)
+    .expect("admitted custom inventory builds")
 }
 
-pub(super) fn custom_inventory_for_policy(
-    runtime: &crate::runtime::WorthUiRuntime,
-    plan: &WorthUiNodeReplacementPlan,
-    replacement_policy: WorthUiDurableStateReplacementPolicy,
-) -> WorthUiDurableStateInventory {
-    platform_inventory(runtime)
-        .register_family_hook(custom_reconcile_hook(replacement_policy))
-        .build_for_replacement(plan)
-        .expect("custom inventory builds")
-}
-
-pub(super) fn stale_inventory_for(
-    inventory: &WorthUiDurableStateInventory,
-) -> WorthUiDurableStateInventory {
-    WorthUiDurableStateInventory::new(
-        inventory.active_artifact_digest(),
-        inventory.candidate_artifact_digest() + 1,
-        inventory.families().to_vec(),
-        Vec::new(),
-        inventory.counters(),
-    )
-}
-
-pub(super) fn stale_active_inventory_for(
-    inventory: &WorthUiDurableStateInventory,
-) -> WorthUiDurableStateInventory {
-    WorthUiDurableStateInventory::new(
-        inventory.active_artifact_digest() + 1,
-        inventory.candidate_artifact_digest(),
-        inventory.families().to_vec(),
-        Vec::new(),
-        inventory.counters(),
-    )
-}
-
-pub(super) fn inventory_missing_scroll_family(
-    inventory: &WorthUiDurableStateInventory,
-) -> WorthUiDurableStateInventory {
-    WorthUiDurableStateInventory::new(
-        inventory.active_artifact_digest(),
-        inventory.candidate_artifact_digest(),
-        inventory
-            .families()
-            .iter()
-            .filter(|family| {
-                family.id() != &crate::runtime::WorthUiDurableStateFamilyId::ScrollAnchor
-            })
-            .cloned()
-            .collect(),
-        Vec::new(),
-        inventory.counters(),
-    )
+pub(super) fn inventory_from_foreign_replacement() -> WorthUiDurableStateInventory {
+    let (_, _, inventory) = drop_create_inputs();
+    inventory
 }
 
 fn plan_from_single_transition(
@@ -355,16 +310,5 @@ fn plan_from_single_transition(
             },
         )],
         counters,
-    )
-}
-
-fn custom_reconcile_hook(
-    replacement_policy: WorthUiDurableStateReplacementPolicy,
-) -> WorthUiDurableStateFamilyHook {
-    custom_state_family_hook(
-        "workspace.custom.reconcile-cache",
-        "workspace.custom.reconcile-cache",
-        replacement_policy,
-        WorthUiStatePersistencePosture::RuntimeOnly,
     )
 }

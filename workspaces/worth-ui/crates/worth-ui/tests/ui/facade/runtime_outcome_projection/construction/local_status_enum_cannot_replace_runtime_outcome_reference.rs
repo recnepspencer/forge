@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{RuntimeOutcomeFamily, RuntimeOutcomeProjectionDescriptor, RuntimeOutcomeProjectionId},
+    declaration::{RuntimeOutcomeFamily, RuntimeOutcomeProjectionDescriptor, RuntimeOutcomeProjectionId},
 };
 
 enum LocalStatus {

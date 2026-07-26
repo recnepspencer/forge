@@ -1,8 +1,10 @@
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostPresentationReconciliation, UiHostSurfacePresentationMode, UiMountedFrameOutcome,
-    UiMountedFrameRequest, UiMountedFrameReuse, UiMountedIdentityDenial,
-    UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
+    UiMountedFramePublicationReceipt, UiMountedFrameRequest, UiMountedFrameReuse,
+    UiMountedIdentityDenial, UiMountedPresentationAdmissionDenial, UiPresentationDeadline,
 };
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::{
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
@@ -85,7 +87,7 @@ fn published_predecessor_survives_indeterminacy_and_requires_exact_re_presentati
     let reconciled = session
         .present_current_mounted_frame_for_reconciliation(
             &[
-                worth_ui::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
+                worth_ui_runtime::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
                     affected_binding,
                     replacement.binding_generation(),
                 ),
@@ -151,7 +153,7 @@ fn multi_surface_reconciliation_re_presents_one_complete_current_frame() {
             )
             .unwrap();
         replacements.push(
-            worth_ui::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
+            worth_ui_runtime::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
                 *affected_binding,
                 replacement.binding_generation(),
             ),
@@ -209,7 +211,7 @@ fn incomplete_duplicate_and_cross_surface_reconciliation_sets_deny_before_effect
                     profile(u64::try_from(epoch + 30).unwrap()),
                 )
                 .unwrap();
-            worth_ui::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
+            worth_ui_runtime::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
                 *binding,
                 replacement.binding_generation(),
             )
@@ -240,7 +242,7 @@ fn incomplete_duplicate_and_cross_surface_reconciliation_sets_deny_before_effect
     assert!(matches!(
         session.present_current_mounted_frame_for_reconciliation(
             &[
-                worth_ui::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
+                worth_ui_runtime::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
                     affected[0],
                     replacements[1].replacement(),
                 )
@@ -321,7 +323,7 @@ fn verified_candidate_only_deregistration_closes_its_blocked_generation() {
         session
             .present_current_mounted_frame_for_reconciliation(
                 &[
-                    worth_ui::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
+                    worth_ui_runtime::facade::mounted::UiMountedSurfaceReconciliationBinding::new(
                         current_bindings[0],
                         current_replacement.binding_generation(),
                     )
@@ -361,14 +363,14 @@ fn verified_candidate_only_deregistration_closes_its_blocked_generation() {
 
 fn prepared_frame(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     prepared(session)
 }
 
 fn prepared_with_request(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     request: &UiMountedFrameRequest,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .unwrap()
@@ -390,9 +392,7 @@ fn classify_reuse(
         .classify_mounted_frame_reuse(request)
 }
 
-fn expect_published(
-    outcome: UiMountedFrameOutcome,
-) -> worth_ui::facade::mounted::UiMountedFramePublicationReceipt {
+fn expect_published(outcome: UiMountedFrameOutcome) -> UiMountedFramePublicationReceipt {
     match outcome {
         UiMountedFrameOutcome::Published(receipt) => receipt,
         _ => panic!("scripted predecessor presentation must publish"),

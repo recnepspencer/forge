@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 
 use crate::declaration::UiDeclarationIdentity;
@@ -82,7 +83,11 @@ fn control_identity(
     module_path: &'static str,
 ) -> UiDeclarationIdentity {
     WorthUi::app()
-        .with_dsl_package(control_package(package_name, semantic_key, module_path))
+        .with_rust_authored_declaration_fixture(control_package(
+            package_name,
+            semantic_key,
+            module_path,
+        ))
         .freeze()
         .expect("reference declaration should prepare")
         .declaration_artifacts()
@@ -94,11 +99,11 @@ fn control_identity(
 }
 
 fn freeze_denial<const N: usize>(
-    package: WorthUiDslPackage,
+    package: WorthUiRustAuthoredDeclarationFixture,
     admissions: [UiRuntimeInstanceBasisAdmission; N],
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
-        .with_dsl_package(package)
+        .with_rust_authored_declaration_fixture(package)
         .with_runtime_instance_basis_admissions(admissions)
         .freeze()
     {
@@ -122,8 +127,8 @@ fn control_package(
     package_name: &'static str,
     semantic_key: &'static str,
     module_path: &'static str,
-) -> WorthUiDslPackage {
-    WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(
+) -> WorthUiRustAuthoredDeclarationFixture {
+    WorthUiRustAuthoredDeclarationFixture::named(package_name).with_semantic_artifact_spec(
         UiDslSemanticArtifactSpec::new(
             UiDslSemanticKey::new(semantic_key),
             UiDslSemanticFamily::Control,

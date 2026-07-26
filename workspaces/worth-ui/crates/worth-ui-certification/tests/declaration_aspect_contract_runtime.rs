@@ -5,16 +5,19 @@ use worth_ui::facade::declaration::{
     UiAspectContractAdmissionDenial, UiAspectSemanticSlice, UiDeclarationArtifact,
     UiDeclarationGraphHandoffDenial,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
 fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect.coverage")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.coverage")
                 .with_semantic_artifact_spec(aspectful_control_spec()),
         )
         .freeze()
@@ -61,22 +64,26 @@ fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
 #[test]
 fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
     let baseline = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect.equivalence.baseline")
-                .with_semantic_artifact_spec(aspect_equivalence_spec(
-                    "Content.Text",
-                    " Interaction.Operability ",
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.aspect.equivalence.baseline",
+            )
+            .with_semantic_artifact_spec(aspect_equivalence_spec(
+                "Content.Text",
+                " Interaction.Operability ",
+            )),
         )
         .freeze()
         .expect("application preparation should succeed");
     let equivalent = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect.equivalence.equivalent")
-                .with_semantic_artifact_spec(aspect_equivalence_spec(
-                    " content.text ",
-                    "interaction.operability",
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.aspect.equivalence.equivalent",
+            )
+            .with_semantic_artifact_spec(aspect_equivalence_spec(
+                " content.text ",
+                "interaction.operability",
+            )),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -98,8 +105,8 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
 #[test]
 fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect.noise")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.noise")
                 .with_semantic_artifact_spec(noise_only_control_spec()),
         )
         .freeze()
@@ -139,9 +146,11 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
 #[test]
 fn unsupported_authored_aspects_deny_through_public_freeze_path() {
     let denial = match WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect.unsupported")
-                .with_semantic_artifact_spec(unsupported_aspect_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.aspect.unsupported",
+            )
+            .with_semantic_artifact_spec(unsupported_aspect_spec()),
         )
         .freeze()
     {

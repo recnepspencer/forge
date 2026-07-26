@@ -15,15 +15,10 @@ pub use outcome::{
 };
 
 struct WorthUiPresentedApplicationReplacement<'session> {
-    state: WorthUiMountedReplacementPublicationState<'session>,
-    presented: crate::mounting::UiMountedPresentedFrame,
-}
-
-struct WorthUiMountedReplacementPublicationState<'session> {
     session: &'session mut WorthUiActiveApplicationSession,
     application: Box<WorthUiPreparedApplicationActivation>,
-    mounted_successor: crate::mounting::UiMountedIdentityState,
-    publication: crate::mounting::UiMountedFramePublicationCandidate,
+    mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
+    mounted_receipt: crate::mounting::UiMountedFramePublicationReceipt,
 }
 
 impl WorthUiActiveApplicationSession {
@@ -52,8 +47,8 @@ impl WorthUiActiveApplicationSession {
             }
             WorthUiPreparedApplicationCutoverOutcome::Activation(application) => application,
         };
-        let mut mounted_successor = self
-            .mounted_identity
+        let mounted_successor = self
+            .mounted
             .prepare_graph_replacement_successor(crate::graph::UiGraphAuthority::new(
                 &candidate_graph,
             ))
@@ -61,7 +56,7 @@ impl WorthUiActiveApplicationSession {
         let capability_report = self.host_session.capability_report();
         let frame = super::mounted_frame::prepare_candidate_mounted_frame(
             &application,
-            &mut mounted_successor,
+            &mounted_successor,
             crate::graph::UiGraphAuthority::new(&candidate_graph),
             super::mounted_frame::UiMountedReplacementReuseBasis {
                 generation: candidate_generation,
@@ -152,72 +147,68 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
             Ok(admitted) => admitted,
             Err(outcome) => return *outcome,
         };
-        let (state, admission, capability_report) = admitted.into_parts();
-        let outcome = state.session.mounted_presentation.present(
-            admission.into_attempt(),
-            state.session.host_session.effect_port(),
-            crate::mounting::UiMountedHostPresentationAuthority::new(
-                state.session.host_session.identity().as_u64(),
-                state.session.host_session.protocol(),
-                &capability_report,
-                state.session.host_session.mounted_presentation_lease(),
-            ),
-            now,
-        );
-        Self::finish(state, outcome, publish)
+        let admission::WorthUiAdmittedMountedReplacement {
+            session,
+            application,
+            mounted,
+        } = admitted;
+        let outcome =
+            session
+                .mounted
+                .present_graph_replacement(&session.host_session, mounted, now);
+        Self::finish(session, application, outcome, publish)
     }
 
     fn finish(
-        state: WorthUiMountedReplacementPublicationState<'session>,
-        outcome: crate::mounting::UiMountedPresentationOutcome,
+        session: &'session mut WorthUiActiveApplicationSession,
+        application: Box<WorthUiPreparedApplicationActivation>,
+        outcome: crate::mounting::UiMountedGraphReplacementPresentation,
         publish: impl FnOnce(
             WorthUiPresentedApplicationReplacement<'session>,
         ) -> WorthUiMountedApplicationReplacementOutcome<'session>,
     ) -> WorthUiMountedApplicationReplacementOutcome<'session> {
-        let WorthUiMountedReplacementPublicationState {
-            session,
-            application,
-            mounted_successor,
-            publication,
-        } = state;
         match outcome {
-            crate::mounting::UiMountedPresentationOutcome::Presented(presented) => {
-                publish(WorthUiPresentedApplicationReplacement {
-                    state: WorthUiMountedReplacementPublicationState {
-                        session,
-                        application,
-                        mounted_successor,
-                        publication,
-                    },
-                    presented,
-                })
-            }
-            crate::mounting::UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
-                session
-                    .host_observations
-                    .record_rejected_frame(rejected.frame().canonical_core().frame());
+            crate::mounting::UiMountedGraphReplacementPresentation::Published {
+                successor,
+                receipt,
+            } => publish(WorthUiPresentedApplicationReplacement {
+                session,
+                application,
+                mounted_successor: successor,
+                mounted_receipt: receipt,
+            }),
+            crate::mounting::UiMountedGraphReplacementPresentation::RejectedBeforeEffects {
+                successor,
+                frame,
+                observation,
+            } => {
+                crate::facade::entry::mounted_publication::record_mounted_observation(
+                    &mut session.host_exchange,
+                    observation,
+                );
                 WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(Box::new(Self {
                     session,
                     application,
-                    mounted_successor,
-                    frame: rejected.into_frame(),
+                    mounted_successor: successor,
+                    frame,
                 }))
             }
-            crate::mounting::UiMountedPresentationOutcome::InFlight(handle) => {
+            crate::mounting::UiMountedGraphReplacementPresentation::InFlight(mounted) => {
                 WorthUiMountedApplicationReplacementOutcome::InFlight(Box::new(
                     WorthUiMountedApplicationReplacementInFlight {
                         session,
                         application,
-                        mounted_successor,
-                        publication,
-                        handle,
+                        mounted,
                     },
                 ))
             }
-            crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(frame) => {
-                session.host_observations.record_indeterminate_frame(
-                    frame.frame().canonical_core().frame(),
-                    frame.report().affected_bindings(),
+            crate::mounting::UiMountedGraphReplacementPresentation::PresentationIndeterminate {
+                frame,
+                observation,
+            } => {
+                crate::facade::entry::mounted_publication::record_mounted_observation(
+                    &mut session.host_exchange,
+                    observation,
                 );
                 WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(Box::new(
                     frame,
@@ -229,85 +220,69 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
 
 impl<'session> WorthUiPresentedApplicationReplacement<'session> {
     fn commit_once(self) -> WorthUiMountedApplicationReplacementOutcome<'session> {
-        let mut state = self.state;
-        let mounted = state
-            .publication
-            .commit_presented(self.presented, &mut state.mounted_successor);
-        let application = state
+        let application = self
             .session
-            .commit_application_activation(state.application, state.mounted_successor);
+            .commit_application_activation(self.application, self.mounted_successor);
         WorthUiMountedApplicationReplacementOutcome::Published {
             application,
-            mounted,
+            mounted: self.mounted_receipt,
         }
     }
 }
 
 impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
-    pub fn handle(&self) -> &crate::mounting::UiMountedPresentationInFlight {
-        &self.handle
+    pub fn attempt(&self) -> worth_ui_host_contract::UiMountedPresentationAttemptIdentity {
+        self.mounted.handle().attempt()
+    }
+
+    pub fn deadline(&self) -> worth_ui_host_contract::UiPresentationDeadline {
+        self.mounted.handle().deadline()
+    }
+
+    pub fn pending_bindings(
+        &self,
+    ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiSurfaceBindingGeneration> + '_
+    {
+        self.mounted.handle().pending_bindings()
+    }
+
+    pub fn cost_report(&self) -> crate::mounting::UiMountCostReport {
+        self.mounted.handle().cost_report()
     }
 
     pub fn complete(
-        mut self: Box<Self>,
+        self: Box<Self>,
         now: u64,
     ) -> WorthUiMountedApplicationReplacementOutcome<'session> {
-        let observed = self.handle.clone();
-        let outcome = self.session.mounted_presentation.complete(
-            observed,
-            self.session.host_session.effect_port(),
-            now,
-        );
+        let Self {
+            session,
+            application,
+            mounted,
+        } = *self;
+        let outcome =
+            session
+                .mounted
+                .complete_graph_replacement(&session.host_session, mounted, now);
         let outcome = match outcome {
             Ok(outcome) => outcome,
-            Err(denial) => {
+            Err(rejection) => {
                 return WorthUiMountedApplicationReplacementOutcome::CompletionDenied(Box::new(
                     WorthUiMountedReplacementCompletionDenial {
-                        denial,
-                        in_flight: *self,
+                        denial: rejection.denial,
+                        in_flight: WorthUiMountedApplicationReplacementInFlight {
+                            session,
+                            application,
+                            mounted: *rejection.in_flight,
+                        },
                     },
                 ));
             }
         };
-        match outcome {
-            crate::mounting::UiMountedPresentationOutcome::Presented(presented) => {
-                let receipt = self
-                    .publication
-                    .commit_presented(presented, &mut self.mounted_successor);
-                let application = self
-                    .session
-                    .commit_application_activation(self.application, self.mounted_successor);
-                WorthUiMountedApplicationReplacementOutcome::Published {
-                    application,
-                    mounted: receipt,
-                }
-            }
-            crate::mounting::UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
-                self.session
-                    .host_observations
-                    .record_rejected_frame(rejected.frame().canonical_core().frame());
-                WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(Box::new(
-                    WorthUiPreparedMountedApplicationReplacement {
-                        session: self.session,
-                        application: self.application,
-                        mounted_successor: self.mounted_successor,
-                        frame: rejected.into_frame(),
-                    },
-                ))
-            }
-            crate::mounting::UiMountedPresentationOutcome::InFlight(handle) => {
-                self.handle = handle;
-                WorthUiMountedApplicationReplacementOutcome::InFlight(self)
-            }
-            crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(frame) => {
-                self.session.host_observations.record_indeterminate_frame(
-                    frame.frame().canonical_core().frame(),
-                    frame.report().affected_bindings(),
-                );
-                WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(Box::new(
-                    frame,
-                ))
-            }
-        }
+        WorthUiPreparedMountedApplicationReplacement::finish(
+            session,
+            application,
+            outcome,
+            |presented| presented.commit_once(),
+        )
     }
 }

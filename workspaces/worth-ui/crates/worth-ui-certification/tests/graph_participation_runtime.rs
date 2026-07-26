@@ -5,9 +5,12 @@ use worth_ui::facade::graph::{
     UiGraphParticipationEvidenceHandle, UiGraphParticipationMutation,
     UiGraphParticipationReasonCode, UiGraphParticipationReasonSource, UiGraphParticipationStatus,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
@@ -297,11 +300,13 @@ fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclaration
 
 fn participation_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-participation")
-                .with_semantic_artifact_spec(slotted_control_spec())
-                .with_semantic_artifact_spec(region_spec())
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-participation",
+            )
+            .with_semantic_artifact_spec(slotted_control_spec())
+            .with_semantic_artifact_spec(region_spec())
+            .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")

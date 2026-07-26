@@ -6,9 +6,12 @@ use worth_ui::facade::inspection::{
     UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
     UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 
 use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
@@ -174,8 +177,8 @@ fn obligation_slice_replay_preserves_omission_detail_and_cost_posture() {
 
 fn declaration_lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.evidence-slice")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.evidence-slice")
                 .with_semantic_artifact_spec(
                     UiDslSemanticArtifactSpec::new(
                         UiDslSemanticKey::new("ui.workflow.editor"),

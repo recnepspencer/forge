@@ -1,4 +1,5 @@
-use crate::source::{WorthUiArtifactHandle, WorthUiRuntimeDependencyHook, WorthUiSourceModuleId};
+use crate::source::{WorthUiArtifactHandle, WorthUiRuntimeDependencyHook};
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum WorthUiArtifactDependencyEdgeKind {

@@ -1,14 +1,13 @@
+use crate::capability::MosaicStateReplacementRule;
 use crate::runtime::{
     WorthUiDurableStateFamilyId, WorthUiDurableStateReconciliationDenial,
-    WorthUiDurableStateReconciliationOutcome, WorthUiDurableStateReplacementPolicy,
-    WorthUiNodeLifecycleTransition,
+    WorthUiDurableStateReconciliationOutcome, WorthUiNodeLifecycleTransition,
 };
 
 use super::durable_state_reconciliation_test_support::{
-    ambiguous_plan_with_inventory, custom_inventory_for_policy, custom_lane_change_inventory,
-    deterministic_reconciliation_inputs, drop_create_inputs, inventory_missing_scroll_family,
-    lane_change_inputs, moved_scroll_anchor_inputs, rebind_plan_with_inventory,
-    reversed_inventory_for, stale_active_inventory_for, stale_inventory_for,
+    ambiguous_plan_with_inventory, custom_inventory_for_rule, deterministic_reconciliation_inputs,
+    drop_create_inputs, inventory_from_foreign_replacement, lane_change_inputs,
+    moved_scroll_anchor_inputs, rebind_plan_with_inventory, reversed_inventory_for,
     structural_replacement_inputs,
 };
 
@@ -191,36 +190,13 @@ fn selection_range_rejected_when_backing_collection_identity_changes() {
 }
 
 #[test]
-fn custom_reconciliation_hook_recreates_only_declared_lane_change_state() {
-    let (runtime, plan, _) = lane_change_inputs();
-    let inventory = custom_lane_change_inventory(&runtime, &plan);
-
-    let reconciliation = runtime
-        .reconcile_durable_state(&plan, &inventory)
-        .expect("custom lane reconciliation succeeds");
-    let custom_family = WorthUiDurableStateFamilyId::custom("workspace.custom.reconcile-cache");
-
-    assert_eq!(
-        reconciliation
-            .receipt_for("surface:stable", &custom_family)
-            .expect("custom receipt exists")
-            .outcome(),
-        WorthUiDurableStateReconciliationOutcome::Recreate
-    );
-    assert_eq!(reconciliation.counters().recreate_count(), 5);
-    assert_eq!(reconciliation.counters().drop_count(), 3);
-    assert_eq!(reconciliation.counters().carry_forward_count(), 0);
-}
-
-#[test]
-fn custom_reconciliation_hook_cannot_escape_declared_replacement_policy() {
+fn admitted_state_slot_cannot_escape_declared_replacement_rule() {
     let (runtime, plan, _) = structural_replacement_inputs();
-    let custom_family = WorthUiDurableStateFamilyId::custom("workspace.custom.reconcile-cache");
+    let custom_family = WorthUiDurableStateFamilyId::custom("workspace.state.reconcile_cache");
 
-    let drop_inventory = custom_inventory_for_policy(
-        &runtime,
+    let drop_inventory = custom_inventory_for_rule(
         &plan,
-        WorthUiDurableStateReplacementPolicy::DropOnReplacement,
+        MosaicStateReplacementRule::discard_when_owner_changes(),
     );
     let drop_reconciliation = runtime
         .reconcile_durable_state(&plan, &drop_inventory)
@@ -233,10 +209,9 @@ fn custom_reconciliation_hook_cannot_escape_declared_replacement_policy() {
         WorthUiDurableStateReconciliationOutcome::Drop
     );
 
-    let replace_inventory = custom_inventory_for_policy(
-        &runtime,
+    let replace_inventory = custom_inventory_for_rule(
         &plan,
-        WorthUiDurableStateReplacementPolicy::ReplaceOnReplacement,
+        MosaicStateReplacementRule::remap_when_runtime_supplies_alias(),
     );
     let replace_reconciliation = runtime
         .reconcile_durable_state(&plan, &replace_inventory)
@@ -251,74 +226,59 @@ fn custom_reconciliation_hook_cannot_escape_declared_replacement_policy() {
 }
 
 #[test]
-fn inventory_digest_mismatch_denies_before_reconciliation() {
-    let (runtime, plan, inventory) = deterministic_reconciliation_inputs();
-    let stale_inventory = stale_inventory_for(&inventory);
+fn admitted_family_contract_change_changes_reconciliation_authority_basis() {
+    let (runtime, plan, _) = structural_replacement_inputs();
+    let preserve_inventory = custom_inventory_for_rule(
+        &plan,
+        MosaicStateReplacementRule::preserve_when_owner_matches(),
+    );
+    let discard_inventory = custom_inventory_for_rule(
+        &plan,
+        MosaicStateReplacementRule::discard_when_owner_changes(),
+    );
 
-    let denial = runtime
-        .reconcile_durable_state(&plan, &stale_inventory)
-        .expect_err("stale inventory denies");
+    let preserve = runtime
+        .reconcile_durable_state(&plan, &preserve_inventory)
+        .expect("preserve contract reconciles");
+    let discard = runtime
+        .reconcile_durable_state(&plan, &discard_inventory)
+        .expect("discard contract reconciles");
+    let family_id = WorthUiDurableStateFamilyId::custom("workspace.state.reconcile_cache");
+    let preserve_receipt = preserve
+        .receipt_for("component:affected", &family_id)
+        .expect("preserve receipt exists");
+    let discard_receipt = discard
+        .receipt_for("component:affected", &family_id)
+        .expect("discard receipt exists");
 
-    match denial {
-        WorthUiDurableStateReconciliationDenial::InventoryDigestMismatch {
-            plan_candidate_artifact_digest,
-            inventory_candidate_artifact_digest,
-            counters,
-            ..
-        } => {
-            assert_ne!(
-                plan_candidate_artifact_digest,
-                inventory_candidate_artifact_digest
-            );
-            assert_eq!(counters.rejected_reconciliation_count(), 1);
-            assert_eq!(counters.receipt_count(), 0);
-        }
-        other => panic!("unexpected denial: {other:?}"),
-    }
+    assert_ne!(
+        preserve_receipt.family_contract_digest(),
+        discard_receipt.family_contract_digest()
+    );
+    assert_ne!(preserve.basis_digest(), discard.basis_digest());
 }
 
 #[test]
-fn active_inventory_digest_mismatch_denies_before_reconciliation() {
-    let (runtime, plan, inventory) = deterministic_reconciliation_inputs();
-    let stale_inventory = stale_active_inventory_for(&inventory);
+fn inventory_digest_mismatch_denies_before_reconciliation() {
+    let (runtime, plan, _) = deterministic_reconciliation_inputs();
+    let foreign_inventory = inventory_from_foreign_replacement();
 
     let denial = runtime
-        .reconcile_durable_state(&plan, &stale_inventory)
-        .expect_err("stale active inventory denies");
+        .reconcile_durable_state(&plan, &foreign_inventory)
+        .expect_err("foreign inventory denies");
 
     match denial {
         WorthUiDurableStateReconciliationDenial::InventoryDigestMismatch {
             plan_active_artifact_digest,
             inventory_active_artifact_digest,
+            plan_candidate_artifact_digest,
+            inventory_candidate_artifact_digest,
             counters,
-            ..
         } => {
-            assert_ne!(
-                plan_active_artifact_digest,
-                inventory_active_artifact_digest
+            assert!(
+                plan_active_artifact_digest != inventory_active_artifact_digest
+                    || plan_candidate_artifact_digest != inventory_candidate_artifact_digest
             );
-            assert_eq!(counters.rejected_reconciliation_count(), 1);
-            assert_eq!(counters.receipt_count(), 0);
-        }
-        other => panic!("unexpected denial: {other:?}"),
-    }
-}
-
-#[test]
-fn missing_platform_family_denies_before_receipt_construction() {
-    let (runtime, plan, inventory) = deterministic_reconciliation_inputs();
-    let incomplete_inventory = inventory_missing_scroll_family(&inventory);
-
-    let denial = runtime
-        .reconcile_durable_state(&plan, &incomplete_inventory)
-        .expect_err("missing inventory family denies");
-
-    match denial {
-        WorthUiDurableStateReconciliationDenial::MissingInventoryFamily {
-            family_id,
-            counters,
-        } => {
-            assert_eq!(family_id, WorthUiDurableStateFamilyId::ScrollAnchor);
             assert_eq!(counters.rejected_reconciliation_count(), 1);
             assert_eq!(counters.receipt_count(), 0);
         }

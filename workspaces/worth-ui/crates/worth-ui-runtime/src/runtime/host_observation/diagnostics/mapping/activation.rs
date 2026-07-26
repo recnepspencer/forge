@@ -72,30 +72,6 @@ fn reconciliation_digest(denial: &WorthUiDurableStateReconciliationDenial) -> u6
                 counters.rejected_reconciliation_count() as u64,
             ],
         ),
-        WorthUiDurableStateReconciliationDenial::MissingInventoryFamily {
-            family_id,
-            counters,
-        } => fold_all(
-            0xB4_00_00_03,
-            [
-                durable_state_family_digest(family_id),
-                counters.rejected_reconciliation_count() as u64,
-            ],
-        ),
-        WorthUiDurableStateReconciliationDenial::UnsupportedCustomTransition {
-            identity_basis,
-            family_id,
-            transition,
-            counters,
-        } => fold_all(
-            0xB4_00_00_04,
-            [
-                stable_text_digest(identity_basis),
-                durable_state_family_digest(family_id),
-                node_transition_digest(*transition),
-                counters.rejected_reconciliation_count() as u64,
-            ],
-        ),
     }
 }
 
@@ -122,31 +98,6 @@ fn activation_gate_digest(denial: &WorthUiActivationGateDenial) -> u64 {
             activation_gate_reason_digest(denial.reason()),
         ],
     )
-}
-
-fn durable_state_family_digest(family_id: &crate::runtime::WorthUiDurableStateFamilyId) -> u64 {
-    match family_id {
-        crate::runtime::WorthUiDurableStateFamilyId::FocusChain => 1,
-        crate::runtime::WorthUiDurableStateFamilyId::ScrollAnchor => 2,
-        crate::runtime::WorthUiDurableStateFamilyId::SelectionRange => 3,
-        crate::runtime::WorthUiDurableStateFamilyId::TextEditBuffer => 4,
-        crate::runtime::WorthUiDurableStateFamilyId::SplitterPosition => 5,
-        crate::runtime::WorthUiDurableStateFamilyId::TabState => 6,
-        crate::runtime::WorthUiDurableStateFamilyId::PanelVisibility => 7,
-        crate::runtime::WorthUiDurableStateFamilyId::Custom(id) => fold(8, stable_text_digest(id)),
-    }
-}
-
-fn node_transition_digest(transition: crate::runtime::WorthUiNodeLifecycleTransition) -> u64 {
-    match transition {
-        crate::runtime::WorthUiNodeLifecycleTransition::Preserve => 1,
-        crate::runtime::WorthUiNodeLifecycleTransition::Replace => 2,
-        crate::runtime::WorthUiNodeLifecycleTransition::Drop => 3,
-        crate::runtime::WorthUiNodeLifecycleTransition::Create => 4,
-        crate::runtime::WorthUiNodeLifecycleTransition::Move => 5,
-        crate::runtime::WorthUiNodeLifecycleTransition::Rebind => 6,
-        crate::runtime::WorthUiNodeLifecycleTransition::LaneChange => 7,
-    }
 }
 
 fn activation_staging_reason_digest(
@@ -182,14 +133,6 @@ fn activation_gate_reason_digest(reason: crate::runtime::WorthUiActivationGateDe
 
 fn fold_all<const N: usize>(seed: u64, values: [u64; N]) -> u64 {
     values.into_iter().fold(seed, fold)
-}
-
-fn stable_text_digest(text: &str) -> u64 {
-    text.as_bytes()
-        .iter()
-        .fold(0xCBF2_9CE4_8422_2325, |digest, byte| {
-            digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
-        })
 }
 
 fn fold(mut digest: u64, value: u64) -> u64 {

@@ -1,3 +1,6 @@
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 #[path = "fixtures/declaration_structural_semantics_test_support.rs"]
 mod declaration_structural_semantics_test_support;
 
@@ -14,7 +17,7 @@ use worth_ui::facade::declaration::{
     UiDeclarationRepetitionPosture, UiDeclarationSlotParticipationIntent,
     UiDeclarationStructuralRole, UiDeclarationStructuralSemanticsAdmissionDenial,
 };
-use worth_ui_dsl::{UiDslSemanticArtifactSpec, WorthUiDslPackage};
+use worth_ui_dsl::UiDslSemanticArtifactSpec;
 #[test]
 fn public_freeze_exposes_bootstrap_page_structural_intent_and_handoff() {
     let app = WorthUi::app()
@@ -53,8 +56,8 @@ fn public_freeze_exposes_bootstrap_page_structural_intent_and_handoff() {
 #[test]
 fn caller_authored_freeze_projects_structural_slot_participation_intent() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.slot")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.structural.slot")
                 .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
@@ -99,16 +102,20 @@ fn caller_authored_freeze_projects_structural_slot_participation_intent() {
 #[test]
 fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
     let baseline = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.localization")
-                .with_semantic_artifact_spec(slotted_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.structural.localization",
+            )
+            .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
     let changed = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.localization")
-                .with_semantic_artifact_spec(slotted_control_with_noise_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.structural.localization",
+            )
+            .with_semantic_artifact_spec(slotted_control_with_noise_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -151,13 +158,15 @@ fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
 #[test]
 fn every_admitted_structural_family_projects_declared_structural_intent() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.structural.families")
-                .with_semantic_artifact_spec(page_set_spec())
-                .with_semantic_artifact_spec(region_spec())
-                .with_semantic_artifact_spec(mosaic_spec())
-                .with_semantic_artifact_spec(local_composition_spec())
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.structural.families",
+            )
+            .with_semantic_artifact_spec(page_set_spec())
+            .with_semantic_artifact_spec(region_spec())
+            .with_semantic_artifact_spec(mosaic_spec())
+            .with_semantic_artifact_spec(local_composition_spec())
+            .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -273,7 +282,10 @@ fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
-        .with_dsl_package(WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(spec))
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(package_name)
+                .with_semantic_artifact_spec(spec),
+        )
         .freeze()
     {
         Ok(_) => panic!("invalid structural authority must deny application preparation"),

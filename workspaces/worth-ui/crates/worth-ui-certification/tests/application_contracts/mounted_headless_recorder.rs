@@ -1,15 +1,19 @@
 use worth_ui::facade::app::WorthUiVisibleRange;
-use worth_ui::facade::host::{
+use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
+use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::facade::host::{
     UiHeadlessNodePaintMechanic, UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder,
     WorthUiHostCapability, WorthUiOperationalHostAdapter,
 };
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedAllocationProjection,
     UiMountedEffectFamily, UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedOmissionReason,
     UiMountedParticipationStatus, UiPresentationDeadline,
 };
-use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
-use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
+};
 use worth_ui_test_support::{
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
@@ -60,10 +64,10 @@ fn real_wui_record_only_presentation_emits_post_translation_mechanics() {
 }
 
 fn assert_ordinary_transcript(
-    transcript: &worth_ui::facade::host::UiHeadlessMountedFrameTranscript,
-    publication: &worth_ui::facade::mounted::UiMountedFramePublicationReceipt,
-    binding: worth_ui::facade::mounted::UiSurfaceBindingGeneration,
-    mounted_instance: worth_ui::facade::mounted::UiMountedInstanceIdentity,
+    transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
+    publication: &worth_ui_runtime::facade::mounted::UiMountedFramePublicationReceipt,
+    binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
+    mounted_instance: worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity,
 ) {
     assert_eq!(transcript.mode(), UiHostSurfacePresentationMode::RecordOnly);
     assert_eq!(transcript.attempt(), publication.attempt());
@@ -89,7 +93,7 @@ fn assert_ordinary_transcript(
         .all(|pair| paint_order(&pair[0]) <= paint_order(&pair[1])));
     assert_eq!(
         transcript.unperformed_effects()[0],
-        worth_ui::facade::host::UiHeadlessUnperformedEffect::NativePaint {
+        worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::NativePaint {
             paint_batch_count: transcript.paint_batches().len() as u32,
             preview_node_count: 0,
         }
@@ -160,8 +164,8 @@ fn prepare_cross_lane(
     scenario: &mut FilesystemApplicationLifecycleScenario,
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) -> (
-    worth_ui::facade::mounted::UiPreparedMountedFrame,
-    worth_ui::facade::mounted::UiSurfaceBindingGeneration,
+    worth_ui_runtime::facade::mounted::UiPreparedMountedFrame,
+    worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
 ) {
     let surface = session.create_semantic_surface().unwrap();
     let binding = session
@@ -195,7 +199,7 @@ fn prepare_cross_lane(
 
 fn execute_cross_lane_frame(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")
@@ -209,19 +213,19 @@ fn execute_cross_lane_frame(
 }
 
 fn assert_exact_external_mechanics(
-    transcript: &worth_ui::facade::host::UiHeadlessMountedFrameTranscript,
+    transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
 ) {
     let effects = transcript.unperformed_effects();
     assert!(transcript.paint_batches().iter().any(|batch| {
         batch.primitive_kind()
-            == worth_ui::facade::mounted::UiMountedPaintPrimitiveKind::CanvasSpatialBatch
+            == worth_ui_runtime::facade::mounted::UiMountedPaintPrimitiveKind::CanvasSpatialBatch
     }));
     assert!(transcript.paint_batches().iter().any(|batch| {
         batch.primitive_kind()
-            == worth_ui::facade::mounted::UiMountedPaintPrimitiveKind::RealtimeBatch
+            == worth_ui_runtime::facade::mounted::UiMountedPaintPrimitiveKind::RealtimeBatch
     }));
     assert!(effects.contains(
-        &worth_ui::facade::host::UiHeadlessUnperformedEffect::CanvasSpatial {
+        &worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::CanvasSpatial {
             batch_index: 0,
             primitive_count: 64,
             hit_region_count: 0,
@@ -230,7 +234,7 @@ fn assert_exact_external_mechanics(
         }
     ));
     assert!(effects.contains(
-        &worth_ui::facade::host::UiHeadlessUnperformedEffect::Realtime {
+        &worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::Realtime {
             batch_index: 0,
             overlay_row_count: 2,
         }
@@ -239,7 +243,7 @@ fn assert_exact_external_mechanics(
 
 fn prepare(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")
@@ -258,12 +262,14 @@ fn assert_rejected(outcome: UiMountedFrameOutcome, expected: UiHostSurfacePresen
     assert_eq!(rejected.rejections()[0].denial(), expected);
 }
 
-fn paint_order(batch: &worth_ui::facade::host::UiHeadlessPaintBatchMechanic) -> (u8, u32, u16) {
+fn paint_order(
+    batch: &worth_ui_runtime::facade::host::UiHeadlessPaintBatchMechanic,
+) -> (u8, u32, u16) {
     match batch.layer() {
-        worth_ui::facade::host::UiHeadlessLayerMechanic::Ordered { semantic_order, .. } => {
-            (0, semantic_order, batch.batch_index())
-        }
-        worth_ui::facade::host::UiHeadlessLayerMechanic::Omitted(_) => {
+        worth_ui_runtime::facade::host::UiHeadlessLayerMechanic::Ordered {
+            semantic_order, ..
+        } => (0, semantic_order, batch.batch_index()),
+        worth_ui_runtime::facade::host::UiHeadlessLayerMechanic::Omitted(_) => {
             (1, u32::MAX, batch.batch_index())
         }
     }

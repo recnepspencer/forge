@@ -6,9 +6,12 @@ use worth_ui::facade::inspection::{
     UiInspectionObligationRelevanceDetail, UiInspectionQuery, UiInspectionRelevance,
     UiInspectionScope, UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 
 pub(super) fn app_generation(app: &WorthUiApp) -> UiEvidenceAuthorityGeneration {
@@ -28,19 +31,18 @@ pub(super) fn obligation_query(
 
 pub(super) fn graph_evidence_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.evidence.references")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.graph.evidence.reference"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/evidence_reference_runtime.wui",
-                            0,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:test")),
-                ),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.evidence.references",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.graph.evidence.reference"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored("app/evidence_reference_runtime.wui", 0),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:test")),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

@@ -1,9 +1,10 @@
 use crate::source::{
-    WorthUiArtifactIdentitySeed, WorthUiArtifactInputImportNode, WorthUiArtifactInputProvenance,
-    WorthUiBoundArtifactInputBindingNode, WorthUiBoundArtifactInputComponentNode,
-    WorthUiBoundArtifactInputSurfaceNode, WorthUiBoundArtifactInputThemeTokenNode,
-    WorthUiBoundViewBindingReference, WorthUiDurableStateEligibility,
+    WorthUiArtifactIdentitySeed, WorthUiBoundArtifactInputBindingNode,
+    WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputSurfaceNode,
+    WorthUiBoundArtifactInputThemeTokenNode, WorthUiBoundViewBindingReference,
+    WorthUiDurableStateEligibility, WorthUiRuntimeSemanticImport,
 };
+use worth_ui_dsl::WorthUiArtifactInputProvenance;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiIdentitySeededArtifactInputNode {
@@ -16,7 +17,7 @@ pub(crate) enum WorthUiIdentitySeededArtifactInputNode {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiIdentitySeededArtifactInputImportNode {
-    node: WorthUiArtifactInputImportNode,
+    node: WorthUiRuntimeSemanticImport,
     identity_seed: WorthUiArtifactIdentitySeed,
     durable_state_eligibility: WorthUiDurableStateEligibility,
 }
@@ -94,7 +95,7 @@ seeded_node_impl!(
 
 impl WorthUiIdentitySeededArtifactInputImportNode {
     pub(crate) fn new(
-        node: WorthUiArtifactInputImportNode,
+        node: WorthUiRuntimeSemanticImport,
         identity_seed: WorthUiArtifactIdentitySeed,
         durable_state_eligibility: WorthUiDurableStateEligibility,
     ) -> Self {
@@ -113,7 +114,7 @@ impl WorthUiIdentitySeededArtifactInputImportNode {
         &self.durable_state_eligibility
     }
 
-    pub(crate) fn target(&self) -> &crate::source::WorthUiArtifactInputReference {
+    pub(crate) fn target(&self) -> &worth_ui_dsl::WorthUiArtifactInputReference {
         self.node.target()
     }
 

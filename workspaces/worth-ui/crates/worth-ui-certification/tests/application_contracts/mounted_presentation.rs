@@ -1,3 +1,4 @@
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::{
@@ -14,7 +15,7 @@ use super::mounted_presentation_model_trace::assert_model_outcome;
 use super::mounted_protocol_model::{
     ModelCancellation, ModelCompletion, ModelPresentation, ModelSurfaceStart,
 };
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostPresentationReconciliation, UiHostSurfaceCancellationOutcome,
     UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedPresentationAdmissionDenial,
     UiPresentationDeadline,
@@ -73,7 +74,7 @@ fn synchronous_and_multi_in_flight_completion_converge_with_distinct_attempts() 
     assert!(matches!(
         session.complete_mounted_presentation(duplicate, 2),
         UiMountedFrameOutcome::CompletionDenied(
-            worth_ui::facade::mounted::UiMountedPresentationCompletionDenial::UnknownAttempt
+            worth_ui_runtime::facade::mounted::UiMountedPresentationCompletionDenial::UnknownAttempt
         )
     ));
 
@@ -241,7 +242,7 @@ fn shutdown_classifies_discarded_in_flight_observation_before_host_release() {
     assert_eq!(attempts.len(), 1);
     assert_eq!(
         attempts[0].disposition(),
-        worth_ui::facade::mounted::UiMountedPresentationShutdownDisposition::PresentationIndeterminate
+        worth_ui_runtime::facade::mounted::UiMountedPresentationShutdownDisposition::PresentationIndeterminate
     );
     assert_eq!(attempts[0].affected_bindings().len(), 1);
 }
@@ -257,7 +258,7 @@ fn protocol_and_capability_drift_deny_before_any_surface_effect() {
     assert!(matches!(
         launch,
         Err(
-            worth_ui::facade::runtime::WorthUiRuntimeLaunchDenial::HostProtocol(
+            worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial::HostProtocol(
                 worth_ui_host_contract::UiHostProtocolDenial::ForeignIdentity
             )
         )
@@ -335,7 +336,7 @@ fn adapter_overreported_effects_cannot_publish_as_exact_completion() {
 
 fn published(
     outcome: UiMountedFrameOutcome,
-) -> worth_ui::facade::mounted::UiMountedFramePublicationReceipt {
+) -> worth_ui_runtime::facade::mounted::UiMountedFramePublicationReceipt {
     match outcome {
         UiMountedFrameOutcome::Published(value) => value,
         _ => panic!("scripted complete presentation must converge"),
@@ -344,7 +345,7 @@ fn published(
 
 fn expect_in_flight(
     outcome: UiMountedFrameOutcome,
-) -> worth_ui::facade::mounted::UiMountedPresentationInFlight {
+) -> worth_ui_runtime::facade::mounted::UiMountedPresentationInFlight {
     match outcome {
         UiMountedFrameOutcome::InFlight(value) => value,
         _ => panic!("scripted pending presentation remains in flight"),
@@ -361,7 +362,7 @@ fn assert_rejected_with(
         .expect("rejected frame owns terminal cost evidence");
     assert_eq!(
         cost.work_class(),
-        worth_ui::facade::mounted::UiMountWorkClass::RejectedPresentation
+        worth_ui_runtime::facade::mounted::UiMountWorkClass::RejectedPresentation
     );
     assert_eq!(cost.named().rejected(), surface_count as u64);
     let UiMountedFrameOutcome::RejectedBeforeEffects(rejected) = outcome else {

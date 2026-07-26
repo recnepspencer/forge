@@ -6,9 +6,12 @@ use worth_ui::facade::inspection::{
     UiInspectionSupportPosture, UiInspectionSupportReason, UiInspectionSupportStatus,
     UiInspectionSupportWorld, UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 
 #[test]
@@ -364,9 +367,11 @@ fn cross_family_expansion_requires_named_family_or_link_kind() {
 
 fn declared_surface_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.inspection.relevance.declared")
-                .with_semantic_artifact_spec(declared_surface_region_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.inspection.relevance.declared",
+            )
+            .with_semantic_artifact_spec(declared_surface_region_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -374,7 +379,6 @@ fn declared_surface_app() -> WorthUiApp {
 
 fn empty_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(WorthUiDslPackage::empty())
         .freeze()
         .expect("application preparation should succeed")
 }

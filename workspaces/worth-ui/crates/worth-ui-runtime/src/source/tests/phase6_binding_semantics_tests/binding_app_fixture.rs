@@ -8,7 +8,7 @@ use crate::capability::{
     ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingId,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::source::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 use super::binding_query_fixture::standard_query_owned_view_binding_descriptor;
 

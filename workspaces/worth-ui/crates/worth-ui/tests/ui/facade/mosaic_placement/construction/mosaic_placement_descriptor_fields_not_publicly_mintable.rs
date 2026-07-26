@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{MosaicPlacementAction, MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId},
+    declaration::{MosaicPlacementAction, MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId},
 };
 
 fn main() {

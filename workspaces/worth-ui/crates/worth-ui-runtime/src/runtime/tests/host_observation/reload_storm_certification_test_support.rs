@@ -9,9 +9,8 @@ use crate::capability::{
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider};
-use crate::source::{
-    WorthUiArtifact, WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-};
+use crate::source::WorthUiArtifact;
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 pub(super) fn storm_app() -> WorthUiApp {
     impact_test_app()

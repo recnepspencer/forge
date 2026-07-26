@@ -1,5 +1,5 @@
 use super::*;
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiMountedDiagnosticInspection, UiMountedDiagnosticInspectionOmission,
     UiMountedRetentionEvictionPosture,
 };
@@ -57,7 +57,7 @@ fn diagnostic_pressure_omits_new_richness_while_a_real_lease_pins_the_budget() {
 
 fn inspected_with_diagnostics(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> Box<worth_ui::facade::mounted::UiMountedInspectedFrame> {
+) -> Box<worth_ui_runtime::facade::mounted::UiMountedInspectedFrame> {
     match session.inspect_mounted_frame(UiMountedInspectionRequest::current().with_diagnostics()) {
         UiMountedInspectionReceipt::Available(inspection) => inspection,
         other => panic!("current diagnostic inspection must retain its core frame: {other:?}"),
@@ -65,8 +65,8 @@ fn inspected_with_diagnostics(
 }
 
 fn available_diagnostics(
-    inspection: &worth_ui::facade::mounted::UiMountedInspectedFrame,
-) -> &worth_ui::facade::mounted::UiMountedInspectedDiagnostics {
+    inspection: &worth_ui_runtime::facade::mounted::UiMountedInspectedFrame,
+) -> &worth_ui_runtime::facade::mounted::UiMountedInspectedDiagnostics {
     match inspection.diagnostics() {
         UiMountedDiagnosticInspection::Available(diagnostics) => diagnostics,
         other => panic!("diagnostic richness must be retained: {other:?}"),

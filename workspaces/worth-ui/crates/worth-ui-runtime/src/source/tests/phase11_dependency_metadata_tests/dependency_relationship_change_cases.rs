@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 use std::path::Path;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::source::{
     WorthUiArtifactComponentHandle, WorthUiArtifactDependencyEdge,
     WorthUiArtifactDependencyEdgeKind, WorthUiArtifactDependencyGraph,
     WorthUiArtifactDependencyTarget, WorthUiArtifactHandle, WorthUiArtifactSubtreeDigest,
-    WorthUiArtifactSurfaceHandle, WorthUiSourceModuleId,
+    WorthUiArtifactSurfaceHandle,
 };
 
 use super::dependency_fixture_support::{

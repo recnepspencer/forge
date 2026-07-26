@@ -2,10 +2,10 @@ use crate::capability::{
     CapabilitySupportCatalog, CapabilitySupportKind, RegistrationCandidate, COMPONENT_FAMILY_NAME,
     SURFACE_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
-use crate::source::{
-    WorthUiArtifactInputProvenance, WorthUiArtifactInputResolver, WorthUiResolutionDiagnosticCode,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer,
+use crate::source::{WorthUiArtifactInputResolver, WorthUiResolutionDiagnosticCode};
+use worth_ui_dsl::{
+    WorthUiArtifactInputProvenance, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule,
 };
 
 use super::resolution_fixture_support::{
@@ -25,7 +25,7 @@ fn missing_or_deferred_capability_rejected_at_resolution_boundary() {
             ),
         ]),
     );
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_component("workspace.component.deferred")
@@ -72,7 +72,7 @@ fn unsupported_references_localize_to_phase_4_with_exact_codes() {
             ),
         ]),
     );
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_component("workspace.component.unsupported")
@@ -123,7 +123,7 @@ fn platform_internal_references_fail_here_and_never_silently_degrade() {
             ),
         ]),
     );
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_component("workspace.component.internal")
@@ -149,7 +149,7 @@ fn platform_internal_references_fail_here_and_never_silently_degrade() {
 
 #[test]
 fn invalid_reference_ids_fail_as_structured_resolution_diagnostics() {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_component("BadComponent")
@@ -192,7 +192,7 @@ fn mixed_success_and_failure_resolution_reports_are_deterministically_sorted() {
             ),
         ]),
     );
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/zeta.wui")
                 .with_surface("workspace.surface.missing_later"),
@@ -242,7 +242,7 @@ fn mixed_success_and_failure_resolution_reports_are_deterministically_sorted() {
 #[test]
 fn resolution_never_falls_back_to_mutable_builder_state() {
     let _unregistered_component = component_descriptor("workspace.component.only_in_scope");
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_component("workspace.component.only_in_scope"),
@@ -262,7 +262,7 @@ fn resolution_never_falls_back_to_mutable_builder_state() {
 #[test]
 fn resolution_does_not_scan_broad_registry_families_for_direct_lookup() {
     let app = admitted_app();
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_component("workspace.component.dashboard")

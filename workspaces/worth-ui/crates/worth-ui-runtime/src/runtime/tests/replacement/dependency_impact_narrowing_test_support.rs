@@ -11,9 +11,9 @@ use crate::runtime::{
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
     WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityLowerer,
 };
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 pub(super) fn query_bound_app() -> WorthUiApp {
     let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
@@ -81,7 +81,7 @@ pub(super) fn lower_rust_authored_artifact<const N: usize>(
     app: &WorthUiApp,
     modules: [WorthUiRustAuthoredArtifactInputModule; N],
 ) -> WorthUiArtifact {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved =

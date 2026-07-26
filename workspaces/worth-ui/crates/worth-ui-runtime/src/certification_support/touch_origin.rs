@@ -11,9 +11,9 @@ use crate::declaration::{
 use crate::evidence::{admit_measurement_basis, MeasurementEvidenceInput};
 use crate::facade::entry::WorthUiApp;
 use crate::runtime::{
-    WorthUiCandidateAdmission, WorthUiDiagnosticProjectionHook, WorthUiDurableStateFamily,
-    WorthUiExecutionPlanInspection, WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneFrameReceipt,
-    WorthUiReplacementCandidate, WorthUiRuntimeDiagnosticReport,
+    WorthUiCandidateAdmission, WorthUiDiagnosticProjectionHook, WorthUiExecutionPlanInspection,
+    WorthUiOrdinaryFrameTarget, WorthUiOrdinaryLaneFrameReceipt, WorthUiReplacementCandidate,
+    WorthUiRuntimeDiagnosticReport,
 };
 use worth_ui_host_contract::{
     WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
@@ -77,17 +77,11 @@ pub fn runtime_origin_fixture(
     let node_plan = runtime
         .classify_node_replacements(&impact, &narrowing, &identity_report)
         .expect("node replacement classification succeeds");
-    let inventory = runtime
-        .durable_state_inventory()
-        .register_platform_family(WorthUiDurableStateFamily::focus_chain())
-        .register_platform_family(WorthUiDurableStateFamily::scroll_anchor())
-        .register_platform_family(WorthUiDurableStateFamily::selection_range())
-        .register_platform_family(WorthUiDurableStateFamily::text_edit_buffer())
-        .register_platform_family(WorthUiDurableStateFamily::splitter_position())
-        .register_platform_family(WorthUiDurableStateFamily::tab_state())
-        .register_platform_family(WorthUiDurableStateFamily::panel_visibility())
-        .build_for_replacement(&node_plan)
-        .expect("durable state inventory succeeds");
+    let inventory = crate::runtime::WorthUiDurableStateInventory::assemble_for_replacement(
+        &node_plan,
+        app.capabilities().mosaic_state_slots(),
+    )
+    .expect("durable state inventory succeeds");
     let reconciliation = runtime
         .reconcile_durable_state(&node_plan, &inventory)
         .expect("durable state reconciliation succeeds");

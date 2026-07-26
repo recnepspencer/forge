@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenSource},
+    declaration::{ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenSource},
 };
 
 use super::theme_token_assertions::assert_registered_theme_token_ids;

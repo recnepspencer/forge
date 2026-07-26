@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -116,22 +117,24 @@ fn query_fact_touch_origins_deny_outside_query_world_before_touch_construction()
 fn touch_neighborhood_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.touch.measurement.neighborhood")
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.control.primary",
-                    "app/touch_neighborhood.wui",
-                    0,
-                    "control:primary",
-                    "touch:press",
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.control.sibling",
-                    "app/touch_neighborhood.wui",
-                    1,
-                    "control:sibling",
-                    "touch:press",
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.touch.measurement.neighborhood",
+            )
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.control.primary",
+                "app/touch_neighborhood.wui",
+                0,
+                "control:primary",
+                "touch:press",
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.control.sibling",
+                "app/touch_neighborhood.wui",
+                1,
+                "control:sibling",
+                "touch:press",
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")

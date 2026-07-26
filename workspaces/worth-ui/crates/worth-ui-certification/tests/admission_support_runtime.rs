@@ -1,3 +1,4 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::admission::{
     UiAdmissionFamily, UiAdmissionTarget, UiAdmissionWorld, UiSupportPosture, UiSupportReason,
 };
@@ -7,26 +8,33 @@ use worth_ui::facade::declaration::{
 };
 use worth_ui::facade::graph::{UiGraphSessionLabel, UiGraphWorldProfile};
 use worth_ui::facade::inspection::UiInspectionSupportPosture;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
 fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separate() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.admission.support")
-                .with_semantic_artifact_spec(supported_control_spec())
-                .with_semantic_artifact_spec(deferred_diagnostic_surface_spec())
-                .with_semantic_artifact_spec(diagnostic_only_surface_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.admission.support",
+            )
+            .with_semantic_artifact_spec(supported_control_spec())
+            .with_semantic_artifact_spec(deferred_diagnostic_surface_spec())
+            .with_semantic_artifact_spec(diagnostic_only_surface_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.admission.support.foreign")
-                .with_semantic_artifact_spec(foreign_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.admission.support.foreign",
+            )
+            .with_semantic_artifact_spec(foreign_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");

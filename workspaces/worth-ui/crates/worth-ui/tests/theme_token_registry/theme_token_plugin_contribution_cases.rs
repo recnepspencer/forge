@@ -1,7 +1,7 @@
 use worth_ui::facade::{
     app::WorthUi,
+    declaration::{ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenSource},
     diagnostics::CapabilityDiagnosticCode,
-    registry::{ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenSource},
 };
 
 use super::theme_token_assertions::{assert_diagnostic_codes, assert_registered_theme_token_ids};

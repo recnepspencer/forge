@@ -1,4 +1,3 @@
-pub use worth_ui_runtime::facade::inspection_bridge::UiInspectionFacadeObservation;
 pub use worth_ui_runtime::facade::registry::diagnostics::CapabilityIdError;
 pub use worth_ui_runtime::facade::registry::snapshot::FrozenCapabilityFamily;
 pub use worth_ui_runtime::facade::registry::support::{

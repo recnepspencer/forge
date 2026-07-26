@@ -72,7 +72,7 @@ impl WorthUiIdentitySeedLowerer {
 }
 
 fn lower_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     node: &WorthUiBoundArtifactInputNode,
     metrics: &mut WorthUiIdentitySeedingMetrics,
     authored_seed_registry: &mut BTreeMap<String, String>,
@@ -164,7 +164,7 @@ fn lower_node(
 }
 
 fn register_authored_seed_collision(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     authored_seed_registry: &mut BTreeMap<String, String>,
     diagnostics: &mut Vec<WorthUiIdentitySeedingDiagnostic>,
     node: &WorthUiIdentitySeededArtifactInputNode,

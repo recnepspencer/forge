@@ -10,7 +10,9 @@ pub(super) fn import_node(
             module_id.clone(),
             node_index,
         )),
-        WorthUiArtifactInputReference::new(target),
+        crate::source::test_compilation::semantic_import(target)
+            .target()
+            .clone(),
         0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",

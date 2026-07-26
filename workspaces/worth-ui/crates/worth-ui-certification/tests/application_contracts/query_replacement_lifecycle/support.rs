@@ -1,12 +1,8 @@
 use worth_query::facade::{domain, runtime};
 use worth_ui::facade::app::{
-    WorthUiActiveApplicationSession, WorthUiPreparedApplicationReplacement,
+    WorthUiActiveApplicationSession, WorthUiPreparedApplicationReplacement, WorthUiVisibleRange,
 };
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
-use worth_ui::facade::{
-    app::{WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange},
-    runtime::WorthUiFrameBoundary,
-};
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_query_binding::{
     WorthUiCollectionAllocationPolicy, WorthUiInstalledLiveQueryView,
@@ -15,6 +11,11 @@ use worth_ui_query_binding::{
     WorthUiOperationLiveRetirementCloseOutcome, WorthUiQueryAllocationDetail,
     WorthUiQueryConsumerRequirements, WorthUiQueryDenialPresentation,
     WorthUiQueryInspectionRelevance, WorthUiQueryViewShape,
+};
+use worth_ui_runtime::facade::application::WorthUiVirtualizedPlanSummaryRequest;
+use worth_ui_runtime::facade::execution::WorthUiFrameBoundary;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 pub(crate) fn prepare_catalog(

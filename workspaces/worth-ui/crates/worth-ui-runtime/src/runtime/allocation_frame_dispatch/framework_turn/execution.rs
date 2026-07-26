@@ -32,6 +32,31 @@ impl WorthUiFrameworkTurnExecution<'_> {
     }
 }
 
+pub(super) fn execute_no_ingress_framework_transition(
+    runtime: &mut WorthUiRuntime,
+    generation: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    predecessor_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,
+) -> super::WorthUiFrameworkTurnCompletion<'_> {
+    if runtime.active.generation_identity() != &generation {
+        return super::WorthUiFrameworkTurnCompletion::FrameworkTransitionExecutionDenied {
+            denial: super::UiFrameworkTransitionExecutionDenial::ActiveApplicationGenerationChanged,
+        };
+    }
+    if runtime.active.frame_epoch() != predecessor_epoch {
+        return super::WorthUiFrameworkTurnCompletion::FrameworkTransitionExecutionDenied {
+            denial: super::UiFrameworkTransitionExecutionDenial::ActiveFrameEpochChanged,
+        };
+    }
+    runtime
+        .query_binding
+        .publish_staged_operation_live_changes();
+    execute_family(
+        runtime,
+        UiFrameworkTransitionFamilyPlan::NoIngress,
+        super::UiFrameworkTransitionPlanningCounters::default(),
+    )
+}
+
 pub(super) fn execute_planned_framework_transition(
     runtime: &mut WorthUiRuntime,
     planned: UiPlannedFrameworkTransition,
@@ -48,26 +73,21 @@ pub(super) fn execute_planned_framework_transition(
             denial: super::UiFrameworkTransitionExecutionDenial::ActiveFrameEpochChanged,
         };
     }
-    match authority {
-        UiFrameworkTransitionAuthorityPlan::NoIngress => {}
-        UiFrameworkTransitionAuthorityPlan::AdmittedFrame {
-            frame_epoch_assignment,
-            source_order_transition,
-        } => {
-            if (*source_order_transition)
-                .commit(&mut runtime.allocation_source_order_ledger)
-                .is_err()
-            {
-                return super::WorthUiFrameworkTurnCompletion::FrameworkTransitionExecutionDenied {
-                    denial:
-                        super::UiFrameworkTransitionExecutionDenial::SourceOrderAuthorityChanged,
-                };
-            }
-            runtime
-                .active
-                .apply_allocation_frame_epoch_assignment(frame_epoch_assignment);
-        }
+    let UiFrameworkTransitionAuthorityPlan::AdmittedFrame {
+        frame_epoch_assignment,
+        source_order_transition,
+    } = authority;
+    if (*source_order_transition)
+        .commit(&mut runtime.allocation_source_order_ledger)
+        .is_err()
+    {
+        return super::WorthUiFrameworkTurnCompletion::FrameworkTransitionExecutionDenied {
+            denial: super::UiFrameworkTransitionExecutionDenial::SourceOrderAuthorityChanged,
+        };
     }
+    runtime
+        .active
+        .apply_allocation_frame_epoch_assignment(frame_epoch_assignment);
     runtime
         .query_binding
         .publish_staged_operation_live_changes();
@@ -87,19 +107,17 @@ pub(super) fn acknowledge_discarded_framework_transition(
     {
         return;
     }
-    if let UiFrameworkTransitionAuthorityPlan::AdmittedFrame {
+    let UiFrameworkTransitionAuthorityPlan::AdmittedFrame {
         frame_epoch_assignment,
         source_order_transition,
-    } = authority
+    } = authority;
+    if (*source_order_transition)
+        .commit(&mut runtime.allocation_source_order_ledger)
+        .is_ok()
     {
-        if (*source_order_transition)
-            .commit(&mut runtime.allocation_source_order_ledger)
-            .is_ok()
-        {
-            runtime
-                .active
-                .apply_allocation_frame_epoch_assignment(frame_epoch_assignment);
-        }
+        runtime
+            .active
+            .apply_allocation_frame_epoch_assignment(frame_epoch_assignment);
     }
     drop(family);
 }

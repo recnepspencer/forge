@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     MosaicPlacementAction, MosaicPlacementConflictBehavior, MosaicPlacementPersistence,
     MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId, MosaicPlacementReloadReconciliation,
     MosaicPlacementSource, MosaicPlacementTarget, MosaicRegionRole, MosaicStableIdentityBehavior,

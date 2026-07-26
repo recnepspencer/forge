@@ -1,8 +1,9 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInstanceIdentity,
     UiMountedNodeReceiptIdentity, UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::in_flight_presentation_world::{mounted_session, prepared};

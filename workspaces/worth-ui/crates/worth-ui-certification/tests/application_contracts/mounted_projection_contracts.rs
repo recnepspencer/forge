@@ -1,18 +1,22 @@
 use worth_ui::facade::app::WorthUiVisibleRange;
-use worth_ui::facade::host::WorthUiHeadlessHost;
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationMode, UiMountedAccessibilityProjection, UiMountedDiagnosticProjection,
-    UiMountedFrameRequest, UiMountedOmissionReason, UiMountedParticipation,
-    UiMountedParticipationFact, UiMountedParticipationStatus, UiMountedProjectionAudience,
-    UiPreparedMountedFrame, WorthUiHeadlessMountedResourceCache,
-};
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_host_contract::{UiMountedParticipationInput, WorthUiHeadlessMountedProjectionRecord};
 use worth_ui_host_egui::{
     WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache,
 };
+use worth_ui_runtime::facade::host::WorthUiHeadlessHost;
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiMountedAccessibilityProjection, UiMountedDiagnosticProjection,
+    UiMountedFrameRequest, UiMountedOmissionReason, UiMountedParticipation,
+    UiMountedParticipationFact, UiMountedParticipationStatus, UiMountedProjectionAudience,
+    UiPreparedMountedFrame, WorthUiHeadlessMountedResourceCache,
+};
 use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
+};
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::known_empty_surface_world::{
@@ -139,9 +143,9 @@ fn all_sealed_lanes_lower_to_specialized_tables_without_host_calls() {
 
 fn register(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    surface: worth_ui::facade::mounted::UiSemanticSurfaceIdentity,
+    surface: worth_ui_runtime::facade::mounted::UiSemanticSurfaceIdentity,
     epoch: u64,
-) -> worth_ui::facade::mounted::UiSurfaceBindingGeneration {
+) -> worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration {
     session
         .register_host_surface(
             surface,
@@ -153,7 +157,7 @@ fn register(
 }
 
 fn assert_adapter_participation(
-    view: &worth_ui::facade::mounted::UiMountedProjectionView,
+    view: &worth_ui_runtime::facade::mounted::UiMountedProjectionView,
     expected: UiMountedParticipation,
 ) {
     let headless = WorthUiHeadlessMountedProjectionRecord::observe(view);
@@ -209,7 +213,7 @@ fn cross_lane_session() -> (
 
 fn mount_every_graph_node(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    surface: worth_ui::facade::mounted::UiSemanticSurfaceIdentity,
+    surface: worth_ui_runtime::facade::mounted::UiSemanticSurfaceIdentity,
 ) {
     let nodes = session.graph().node_identities().collect::<Vec<_>>();
     for node in nodes {
@@ -249,8 +253,8 @@ fn canvas_candidate(
 
 fn projection_for(
     frame: &UiPreparedMountedFrame,
-    binding: worth_ui::facade::mounted::UiSurfaceBindingGeneration,
-) -> &worth_ui::facade::mounted::UiMountedProjectionView {
+    binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
+) -> &worth_ui_runtime::facade::mounted::UiMountedProjectionView {
     frame
         .surfaces()
         .iter()

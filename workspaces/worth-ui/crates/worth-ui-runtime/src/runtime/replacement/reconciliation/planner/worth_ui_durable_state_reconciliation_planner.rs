@@ -29,7 +29,6 @@ impl WorthUiDurableStateReconciliationPlanner {
         let mut counters = WorthUiDurableStateReconciliationCounters::default();
         reject_ambiguous_node_plan(node_plan, counters)?;
         reject_inventory_digest_mismatch(node_plan, inventory, counters)?;
-        reject_missing_platform_families(inventory, &mut counters)?;
 
         let mut receipts = Vec::new();
         let mut durable_resize_inputs = Vec::new();
@@ -96,24 +95,6 @@ fn reject_inventory_digest_mismatch(
             },
         )
     }
-}
-
-fn reject_missing_platform_families(
-    inventory: &WorthUiDurableStateInventory,
-    counters: &mut WorthUiDurableStateReconciliationCounters,
-) -> Result<(), WorthUiDurableStateReconciliationDenial> {
-    for family_id in WorthUiDurableStateFamilyId::reserved_platform_families() {
-        if inventory.family(family_id).is_none() {
-            counters.record_rejected_reconciliation();
-            return Err(
-                WorthUiDurableStateReconciliationDenial::MissingInventoryFamily {
-                    family_id: family_id.clone(),
-                    counters: Box::new(*counters),
-                },
-            );
-        }
-    }
-    Ok(())
 }
 
 fn reconcile_classification_family(
@@ -204,6 +185,7 @@ fn carry_receipt(
             family.id().clone(),
             classification.transition(),
         ),
+        family.contract_digest(),
     )
 }
 
@@ -213,13 +195,16 @@ fn replacement_receipt(
     counters: &mut WorthUiDurableStateReconciliationCounters,
 ) -> WorthUiDurableStateReconciliationReceipt {
     let (outcome, reason) = replacement_outcome(classification, family, counters);
-    WorthUiDurableStateReconciliationReceipt::from_replacement(WorthUiDurableStateReplacement::new(
-        classification.identity_basis().to_owned(),
-        family.id().clone(),
-        classification.transition(),
-        outcome,
-        reason,
-    ))
+    WorthUiDurableStateReconciliationReceipt::from_replacement(
+        WorthUiDurableStateReplacement::new(
+            classification.identity_basis().to_owned(),
+            family.id().clone(),
+            classification.transition(),
+            outcome,
+            reason,
+        ),
+        family.contract_digest(),
+    )
 }
 
 fn replacement_outcome(

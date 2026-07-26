@@ -9,15 +9,15 @@ mod filesystem;
 mod ordering_receipt;
 mod provider;
 mod revision;
-mod source_backed_declaration_projection;
-mod source_backed_dsl_package;
-mod source_backed_package_lowering;
+mod semantic_handoff_preparation;
 mod source_event_ingress;
 mod source_ingress_hook;
 
-pub use crate::source::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 pub(crate) use candidate_composition::WorthUiCandidatePreparationHandoff;
 pub use candidate_composition::{WorthUiCandidateComposition, WorthUiCandidateCompositionBasis};
+pub(crate) use candidate_submission::{
+    prepare_rust_authored_handoff, WorthUiAuthoredCompositionPreparationDenial,
+};
 pub use candidate_submission::{
     WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
 };
@@ -34,9 +34,13 @@ pub use filesystem::{
 pub use ordering_receipt::WorthUiCandidateOrderingReceipt;
 pub use provider::{WorthUiSourceProvider, WorthUiSourceProviderKind};
 pub use revision::WorthUiSourcePackageRevision;
-pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDeclarationClaims;
-pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDeclarationWitness;
-pub(crate) use source_backed_dsl_package::WorthUiSourceBackedDslPackage;
+use semantic_handoff_preparation::prepare_semantic_handoff;
+pub(crate) use semantic_handoff_preparation::WorthUiPreparedDeclarationMaterial;
+use semantic_handoff_preparation::WorthUiPreparedSemanticHandoffMaterial;
+pub use semantic_handoff_preparation::{
+    WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
+    WorthUiSemanticHandoffPreparationStop,
+};
 pub use source_event_ingress::{WorthUiSourceEventIngress, WorthUiSourceEventIngressSession};
 #[cfg(test)]
 pub use source_ingress_hook::WorthUiSourceIngressHook;

@@ -1,10 +1,12 @@
-use worth_ui::facade::host::{WorthUiHostCapability, WorthUiOperationalHostAdapter};
-use worth_ui::facade::mounted::{
+use worth_ui_host_egui::WorthUiHostEgui;
+use worth_ui_runtime::facade::host::{WorthUiHostCapability, WorthUiOperationalHostAdapter};
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedEffectFamily,
     UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedPaintProjection,
     UiMountedParticipationStatus, UiPresentationDeadline,
 };
-use worth_ui_host_egui::WorthUiHostEgui;
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::{
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
@@ -58,7 +60,7 @@ fn real_wui_no_effect_frame_publishes_without_synthetic_egui_shapes() {
     let shutdown = session.shutdown();
     assert!(matches!(
         shutdown.host_session_release(),
-        Some(worth_ui::facade::host::UiHostSessionReleaseOutcome::Released(receipt))
+        Some(worth_ui_runtime::facade::host::UiHostSessionReleaseOutcome::Released(receipt))
             if receipt.released_surface_count() == 1
     ));
     assert_eq!(host.registered_surface_count(), 0);
@@ -111,7 +113,9 @@ fn real_wui_record_only_mode_denies_before_egui_effects() {
     let _ = session.shutdown();
 }
 
-fn assert_no_native_effect_precondition(frame: &worth_ui::facade::mounted::UiPreparedMountedFrame) {
+fn assert_no_native_effect_precondition(
+    frame: &worth_ui_runtime::facade::mounted::UiPreparedMountedFrame,
+) {
     assert_eq!(frame.surfaces().len(), 1);
     let projection = frame.surfaces()[0].projection();
     assert!(projection
@@ -131,7 +135,7 @@ fn assert_no_native_effect_precondition(frame: &worth_ui::facade::mounted::UiPre
 
 fn prepare(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")

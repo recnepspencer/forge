@@ -2,9 +2,10 @@ use worth_ui::facade::app::{
     WorthUiActiveApplicationSession, WorthUiApp, WorthUiApplicationCutoverReceipt,
 };
 use worth_ui::facade::diagnostics::CapabilitySnapshot;
-use worth_ui::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui::facade::source::{WorthUiSettledSourceSnapshot, WorthUiWatchedCandidateSubmission};
 use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
+use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
 use super::application_authority_closure::application_definition::{
     application_builder, application_builder_with_host, cross_lane_application_builder_with_host,
@@ -14,7 +15,7 @@ use super::application_authority_closure::application_definition::{
     PREVIEW_SCROLL_STATE_SLOT, PREVIEW_SIZING, PREVIEW_STATE_SLOT, PREVIEW_SURFACE,
 };
 use super::application_authority_closure::authored_composition::{
-    file_source, query_rust_submission, rust_submission,
+    file_source, preview_cross_lane_rust_submission, query_rust_submission, rust_submission,
 };
 use super::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 
@@ -157,7 +158,7 @@ impl FilesystemApplicationLifecycleScenario {
         &self,
         submission: WorthUiWatchedCandidateSubmission,
         host: Host,
-        retention_budget: worth_ui::facade::mounted::UiMountedFrameRetentionBudget,
+        retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
     ) -> WorthUiApp
     where
         Host: WorthUiOperationalHostAdapter + 'static,
@@ -173,7 +174,7 @@ impl FilesystemApplicationLifecycleScenario {
         &self,
         submission: WorthUiWatchedCandidateSubmission,
         host: Host,
-        retention_budget: worth_ui::facade::mounted::UiMountedFrameRetentionBudget,
+        retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
         observation_capacity: worth_ui::facade::observation_report::UiHostObservationCapacity,
     ) -> WorthUiApp
     where
@@ -323,6 +324,12 @@ impl FilesystemApplicationLifecycleScenario {
             "filesystem-equivalent-query-rust",
             capabilities,
         )
+    }
+
+    pub fn preview_cross_lane_rust_submission(
+        capabilities: &CapabilitySnapshot,
+    ) -> WorthUiWatchedCandidateSubmission {
+        preview_cross_lane_rust_submission(capabilities)
     }
 
     pub fn lower_snapshot(

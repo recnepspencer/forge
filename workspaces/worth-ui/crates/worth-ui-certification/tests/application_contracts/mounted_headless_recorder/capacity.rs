@@ -1,4 +1,5 @@
 use super::*;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 #[test]
 fn stale_binding_native_mode_and_capacity_deny_without_recording() {
@@ -26,7 +27,7 @@ fn shutdown_releases_surface_capacity_for_reused_recorder() {
     let shutdown = first.shutdown();
     assert!(matches!(
         shutdown.host_session_release(),
-        Some(worth_ui::facade::host::UiHostSessionReleaseOutcome::Released(receipt))
+        Some(worth_ui_runtime::facade::host::UiHostSessionReleaseOutcome::Released(receipt))
             if receipt.released_surface_count() == 1
     ));
 
@@ -98,7 +99,7 @@ fn stale_binding_denies_at_runtime_authority_boundary() {
     match outcome {
         UiMountedFrameOutcome::AdmissionDenied(rejection) => assert_eq!(
             rejection.denial(),
-            worth_ui::facade::mounted::UiMountedPresentationAdmissionDenial::PreparedFrameBasisChanged
+            worth_ui_runtime::facade::mounted::UiMountedPresentationAdmissionDenial::PreparedFrameBasisChanged
         ),
         _ => panic!("stale binding basis must deny before host admission"),
     }

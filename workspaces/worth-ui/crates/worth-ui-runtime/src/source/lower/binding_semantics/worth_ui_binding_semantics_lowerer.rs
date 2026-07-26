@@ -56,7 +56,7 @@ impl WorthUiBindingSemanticsLowerer {
 }
 
 fn lower_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     node: &WorthUiLegallyStructuredArtifactInputNode,
     context: &mut WorthUiBindingSemanticsContext<'_>,
 ) -> Result<WorthUiBoundArtifactInputNode, Vec<WorthUiBindingDiagnostic>> {

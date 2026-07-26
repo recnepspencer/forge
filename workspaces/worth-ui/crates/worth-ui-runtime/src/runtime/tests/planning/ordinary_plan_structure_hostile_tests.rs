@@ -139,6 +139,7 @@ fn foreign_owner_and_family_state_succession_deny_during_meaning_construction() 
             WorthUiDurableStateFamilyId::ScrollAnchor,
             WorthUiNodeLifecycleTransition::Preserve,
         ),
+        crate::declaration::stable_text_digest("hostile.state.scroll.contract"),
     );
     assert_eq!(
         WorthUiStateSlotPlanMeaning::new(
@@ -155,6 +156,7 @@ fn foreign_owner_and_family_state_succession_deny_during_meaning_construction() 
             WorthUiDurableStateFamilyId::FocusChain,
             WorthUiNodeLifecycleTransition::Preserve,
         ),
+        crate::declaration::stable_text_digest("hostile.state.focus.contract"),
     );
     assert_eq!(
         WorthUiStateSlotPlanMeaning::new(

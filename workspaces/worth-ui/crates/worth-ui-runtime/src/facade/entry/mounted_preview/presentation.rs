@@ -23,87 +23,16 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
             planning_counters,
             ports,
         } = self;
-        let capabilities = ports.host_session.capability_report().clone();
-        let admitted = match ports.identity.admit_prepared_frame_authority(frame) {
-            Ok(admitted) => admitted,
-            Err(rejection) => {
-                ports
-                    .observations
-                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                return WorthUiMountedPreviewOutcome::AdmissionDenied(Box::new(
-                    WorthUiMountedPreviewAdmissionRejection {
-                        denial: rejection.denial(),
-                        preview: WorthUiPreparedMountedPreview {
-                            frame: rejection.into_frame(),
-                            transition,
-                            planning_counters,
-                            ports,
-                        },
-                    },
-                ));
-            }
-        };
-        let retained = match ports.retention.prepare_publication(admitted) {
-            Ok(retained) => retained,
-            Err(rejection) => {
-                ports
-                    .observations
-                    .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                return WorthUiMountedPreviewOutcome::RetentionDenied(Box::new(
-                    WorthUiMountedPreviewRetentionRejection {
-                        denial: rejection.denial(),
-                        preview: WorthUiPreparedMountedPreview {
-                            frame: rejection.into_frame(),
-                            transition,
-                            planning_counters,
-                            ports,
-                        },
-                    },
-                ));
-            }
-        };
-        let admission =
-            match ports
-                .presentation
-                .admit_current(retained, &capabilities, deadline, now)
-            {
-                Ok(admission) => admission,
-                Err(rejection) => {
-                    ports
-                        .observations
-                        .record_never_presented_frame(rejection.frame().canonical_core().frame());
-                    return WorthUiMountedPreviewOutcome::AdmissionDenied(Box::new(
-                        WorthUiMountedPreviewAdmissionRejection {
-                            denial: rejection.denial(),
-                            preview: WorthUiPreparedMountedPreview {
-                                frame: rejection.into_frame(),
-                                transition,
-                                planning_counters,
-                                ports,
-                            },
-                        },
-                    ));
-                }
-            };
-        let reservation = crate::mounting::UiMountedFramePublicationCandidate::reserve(
-            &admission,
-            ports.identity.view().current_frame(),
-        );
-        let attempt = admission.attempt();
-        assert!(ports.reservations.insert(attempt, reservation).is_none());
         let before = transition.preview().capture_isolation_basis();
-        let outcome = ports.presentation.present(
-            admission.into_attempt(),
-            ports.host_session.effect_port(),
-            crate::mounting::UiMountedHostPresentationAuthority::new(
-                ports.host_session.identity().as_u64(),
-                ports.host_session.protocol(),
-                &capabilities,
-                ports.host_session.mounted_presentation_lease(),
-            ),
-            now,
+        let publication =
+            ports
+                .mounted
+                .present_prepared_frame(ports.host_session, frame, deadline, now);
+        let outcome = super::super::mounted_publication::finish_mounted_transition(
+            ports.host_exchange,
+            publication,
         );
-        finish_presentation(outcome, before, transition, planning_counters, ports)
+        finish_preview_outcome(outcome, before, transition, planning_counters, ports)
     }
 
     pub fn supersede(self) -> WorthUiResolvedMountedPreview {
@@ -116,8 +45,23 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
 }
 
 impl<'session> WorthUiMountedPreviewInFlight<'session> {
-    pub fn handle(&self) -> &crate::mounting::UiMountedPresentationInFlight {
-        &self.handle
+    pub fn attempt(&self) -> worth_ui_host_contract::UiMountedPresentationAttemptIdentity {
+        self.handle.attempt()
+    }
+
+    pub fn deadline(&self) -> worth_ui_host_contract::UiPresentationDeadline {
+        self.handle.deadline()
+    }
+
+    pub fn pending_bindings(
+        &self,
+    ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiSurfaceBindingGeneration> + '_
+    {
+        self.handle.pending_bindings()
+    }
+
+    pub fn cost_report(&self) -> crate::mounting::UiMountCostReport {
+        self.handle.cost_report()
     }
 
     pub fn complete(self: Box<Self>, now: u64) -> WorthUiMountedPreviewOutcome<'session> {
@@ -128,14 +72,16 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
             planning_counters,
             ports,
         } = *self;
-        match ports
-            .presentation
-            .complete(handle.clone(), ports.host_session.effect_port(), now)
-        {
-            Ok(outcome) => {
-                finish_presentation(outcome, before, transition, planning_counters, ports)
-            }
-            Err(denial) => WorthUiMountedPreviewOutcome::CompletionDenied(Box::new(
+        let publication =
+            ports
+                .mounted
+                .complete_presentation(ports.host_session, handle.clone(), now);
+        let outcome = super::super::mounted_publication::finish_mounted_transition(
+            ports.host_exchange,
+            publication,
+        );
+        if let crate::mounting::UiMountedFrameOutcome::CompletionDenied(denial) = outcome {
+            return WorthUiMountedPreviewOutcome::CompletionDenied(Box::new(
                 WorthUiMountedPreviewCompletionRejection {
                     denial,
                     in_flight: WorthUiMountedPreviewInFlight {
@@ -146,59 +92,41 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
                         ports,
                     },
                 },
-            )),
+            ));
         }
+        finish_preview_outcome(outcome, before, transition, planning_counters, ports)
     }
 }
 
-fn finish_presentation<'session>(
-    outcome: crate::mounting::UiMountedPresentationOutcome,
+fn finish_preview_outcome<'session>(
+    outcome: crate::mounting::UiMountedFrameOutcome,
     before: crate::runtime::UiAllocationTruthRevision,
     transition: crate::runtime::UiPendingMountedPreviewTransition<'session>,
     planning_counters: crate::runtime::UiFrameworkTransitionPlanningCounters,
     ports: WorthUiMountedPreviewPorts<'session>,
 ) -> WorthUiMountedPreviewOutcome<'session> {
     match outcome {
-        crate::mounting::UiMountedPresentationOutcome::Presented(presented) => {
-            let attempt = presented.receipt().attempt();
-            let reservation = ports
-                .reservations
-                .remove(&attempt)
-                .expect("preview presentation owns one reservation");
-            let receipt = reservation.commit_presented(presented, ports.identity);
-            WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
-                WorthUiMountedPreviewDisposition::Published(receipt),
-                transition,
-                before,
-                planning_counters,
-            )))
-        }
-        crate::mounting::UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
-            ports.reservations.remove(&rejected.attempt());
-            ports
-                .observations
-                .record_rejected_frame(rejected.frame().canonical_core().frame());
-            WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
-                WorthUiMountedPreviewDisposition::RejectedBeforeEffects(rejected),
-                transition,
-                before,
-                planning_counters,
-            )))
-        }
-        crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(indeterminate) => {
-            ports.reservations.remove(&indeterminate.report().attempt());
-            ports.observations.record_indeterminate_frame(
-                indeterminate.frame().canonical_core().frame(),
-                indeterminate.report().affected_bindings(),
-            );
-            WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
+        crate::mounting::UiMountedFrameOutcome::Published(receipt) => resolved(
+            WorthUiMountedPreviewDisposition::Published(receipt),
+            transition,
+            before,
+            planning_counters,
+        ),
+        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => resolved(
+            WorthUiMountedPreviewDisposition::RejectedBeforeEffects(rejected),
+            transition,
+            before,
+            planning_counters,
+        ),
+        crate::mounting::UiMountedFrameOutcome::PresentationIndeterminate(indeterminate) => {
+            resolved(
                 WorthUiMountedPreviewDisposition::PresentationIndeterminate(indeterminate),
                 transition,
                 before,
                 planning_counters,
-            )))
+            )
         }
-        crate::mounting::UiMountedPresentationOutcome::InFlight(handle) => {
+        crate::mounting::UiMountedFrameOutcome::InFlight(handle) => {
             WorthUiMountedPreviewOutcome::InFlight(Box::new(WorthUiMountedPreviewInFlight {
                 handle,
                 before,
@@ -207,7 +135,52 @@ fn finish_presentation<'session>(
                 ports,
             }))
         }
+        crate::mounting::UiMountedFrameOutcome::AdmissionDenied(rejection) => {
+            WorthUiMountedPreviewOutcome::AdmissionDenied(Box::new(
+                WorthUiMountedPreviewAdmissionRejection {
+                    denial: rejection.denial(),
+                    preview: WorthUiPreparedMountedPreview {
+                        frame: rejection.into_frame(),
+                        transition,
+                        planning_counters,
+                        ports,
+                    },
+                },
+            ))
+        }
+        crate::mounting::UiMountedFrameOutcome::RetentionDenied(rejection) => {
+            WorthUiMountedPreviewOutcome::RetentionDenied(Box::new(
+                WorthUiMountedPreviewRetentionRejection {
+                    denial: rejection.denial(),
+                    preview: WorthUiPreparedMountedPreview {
+                        frame: rejection.into_frame(),
+                        transition,
+                        planning_counters,
+                        ports,
+                    },
+                },
+            ))
+        }
+        crate::mounting::UiMountedFrameOutcome::CompletionDenied(_)
+        | crate::mounting::UiMountedFrameOutcome::Reconciled(_)
+        | crate::mounting::UiMountedFrameOutcome::Unchanged(_) => {
+            unreachable!("preview publication only yields preview lifecycle outcomes")
+        }
     }
+}
+
+fn resolved<'session>(
+    disposition: WorthUiMountedPreviewDisposition,
+    transition: crate::runtime::UiPendingMountedPreviewTransition<'session>,
+    before: crate::runtime::UiAllocationTruthRevision,
+    planning_counters: crate::runtime::UiFrameworkTransitionPlanningCounters,
+) -> WorthUiMountedPreviewOutcome<'session> {
+    WorthUiMountedPreviewOutcome::Resolved(Box::new(resolve_transition_from(
+        disposition,
+        transition,
+        before,
+        planning_counters,
+    )))
 }
 
 pub(super) fn resolve_transition(

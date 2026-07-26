@@ -23,6 +23,9 @@ pub struct WorthUiReplacementPlannedCostEnvelope {
     artifact_comparisons: usize,
     impact_metadata_reads: usize,
     identity_node_visits: usize,
+    state_inventory_classifications: usize,
+    state_family_registrations: usize,
+    transient_state_drop_rules: usize,
     reconciliation_node_visits: usize,
     query_bindings_planned: usize,
 }
@@ -170,6 +173,7 @@ impl WorthUiLoweredApplicationReplacement {
         let admission = self.lowering.admitted().report().counters();
         let impact = self.lowering.narrowing().counters();
         let identity = self.lowering.identity_match_counters;
+        let inventory = self.lowering.inventory_counters;
         let reconciliation = self.lowering.reconciliation_plan().counters();
         WorthUiReplacementPlannedCostEnvelope {
             affected_handle_count: self.lowering.narrowing().affected_handle_count(),
@@ -187,6 +191,10 @@ impl WorthUiLoweredApplicationReplacement {
             identity_node_visits: identity.active_nodes_indexed()
                 + identity.candidate_nodes_indexed()
                 + identity.stable_seed_lookups(),
+            state_inventory_classifications: inventory.replacement_classification_count(),
+            state_family_registrations: inventory.registered_platform_family_count()
+                + inventory.registered_application_family_count(),
+            transient_state_drop_rules: inventory.transient_drop_policy_count(),
             reconciliation_node_visits: reconciliation.reconciled_node_count(),
             query_bindings_planned: self
                 .lowering
@@ -242,6 +250,15 @@ impl WorthUiReplacementPlannedCostEnvelope {
     }
     pub fn identity_node_visits(self) -> usize {
         self.identity_node_visits
+    }
+    pub fn state_inventory_classifications(self) -> usize {
+        self.state_inventory_classifications
+    }
+    pub fn state_family_registrations(self) -> usize {
+        self.state_family_registrations
+    }
+    pub fn transient_state_drop_rules(self) -> usize {
+        self.transient_state_drop_rules
     }
     pub fn reconciliation_node_visits(self) -> usize {
         self.reconciliation_node_visits

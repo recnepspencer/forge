@@ -1,4 +1,7 @@
 use std::collections::BTreeSet;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -8,14 +11,14 @@ use worth_ui::facade::graph::{
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
 fn aspect_indexes_are_many_to_many_and_graph_owned() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-aspects")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-aspects")
                 .with_semantic_artifact_spec(first_publishing_control_spec())
                 .with_semantic_artifact_spec(second_publishing_control_spec())
                 .with_semantic_artifact_spec(first_consuming_region_spec())

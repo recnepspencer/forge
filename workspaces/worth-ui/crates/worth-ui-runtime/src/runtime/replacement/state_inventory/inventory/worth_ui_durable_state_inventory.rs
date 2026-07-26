@@ -1,29 +1,18 @@
-use crate::runtime::{
-    WorthUiDurableStateFamily, WorthUiDurableStateFamilyId, WorthUiDurableStateInventoryCounters,
-    WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
-};
+use crate::runtime::{WorthUiDurableStateFamily, WorthUiDurableStateInventoryCounters};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiDurableStateInventory {
     active_artifact_digest: u64,
     candidate_artifact_digest: u64,
     families: Vec<WorthUiDurableStateFamily>,
-    transient_policies: Vec<(
-        WorthUiTransientInteractionState,
-        WorthUiTransientInteractionPolicy,
-    )>,
     counters: WorthUiDurableStateInventoryCounters,
 }
 
 impl WorthUiDurableStateInventory {
-    pub(crate) fn new(
+    pub(super) fn new(
         active_artifact_digest: u64,
         candidate_artifact_digest: u64,
         mut families: Vec<WorthUiDurableStateFamily>,
-        transient_policies: Vec<(
-            WorthUiTransientInteractionState,
-            WorthUiTransientInteractionPolicy,
-        )>,
         counters: WorthUiDurableStateInventoryCounters,
     ) -> Self {
         families.sort_by(|left, right| left.id().cmp(right.id()));
@@ -31,7 +20,6 @@ impl WorthUiDurableStateInventory {
             active_artifact_digest,
             candidate_artifact_digest,
             families,
-            transient_policies,
             counters,
         }
     }
@@ -48,25 +36,7 @@ impl WorthUiDurableStateInventory {
         &self.families
     }
 
-    pub fn family(
-        &self,
-        family_id: &WorthUiDurableStateFamilyId,
-    ) -> Option<&WorthUiDurableStateFamily> {
-        self.families.iter().find(|family| family.id() == family_id)
-    }
-
-    pub fn transient(
-        &self,
-        state: WorthUiTransientInteractionState,
-    ) -> WorthUiTransientInteractionPolicy {
-        self.transient_policies
-            .iter()
-            .find(|(stored_state, _)| *stored_state == state)
-            .map(|(_, policy)| *policy)
-            .unwrap_or_else(|| state.default_policy())
-    }
-
-    pub fn counters(&self) -> WorthUiDurableStateInventoryCounters {
+    pub(crate) fn counters(&self) -> WorthUiDurableStateInventoryCounters {
         self.counters
     }
 }

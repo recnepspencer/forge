@@ -11,12 +11,12 @@ impl WorthUiActiveApplicationSession {
     > {
         let (next_authority, candidate) =
             crate::facade::lifecycle::prepare_successor_application_authority(
-                self.app.prepared_authority(),
+                self.application.prepared_authority(),
                 submission,
             )
             .map_err(WorthUiApplicationReplacementPreparationDenial::Preparation)?;
         let admitted = crate::runtime::WorthUiCandidateAdmission::for_active_basis(
-            self.runtime.replacement_admission_basis(),
+            self.application.replacement_admission_basis(),
         )
         .admit(candidate)
         .map_err(WorthUiApplicationReplacementPreparationDenial::Admission)?;
@@ -47,17 +47,6 @@ impl WorthUiActiveApplicationSession {
         prepared: WorthUiPreparedApplicationReplacement,
     ) -> Result<WorthUiLoweredApplicationReplacement, WorthUiApplicationReplacementLoweringDenial>
     {
-        self.lower_prepared_replacement_with_state_hooks(prepared, |inventory| inventory)
-    }
-
-    pub fn lower_prepared_replacement_with_state_hooks(
-        &self,
-        prepared: WorthUiPreparedApplicationReplacement,
-        configure: impl FnOnce(
-            crate::runtime::WorthUiDurableStateInventoryBuilder,
-        ) -> crate::runtime::WorthUiDurableStateInventoryBuilder,
-    ) -> Result<WorthUiLoweredApplicationReplacement, WorthUiApplicationReplacementLoweringDenial>
-    {
         if !prepared.basis.admits_session(self.session_identity()) {
             return Err(
                 WorthUiApplicationReplacementLoweringDenial::ForeignActiveApplicationSession,
@@ -66,12 +55,11 @@ impl WorthUiActiveApplicationSession {
         let candidate_application_authority =
             prepared.next_app.prepared_authority().lowering_authority();
         let lowering = self
-            .runtime
+            .application
             .prepare_application_replacement_lowering(
                 prepared.admitted,
                 candidate_application_authority,
                 &prepared.candidate_query_binding,
-                configure,
             )
             .map_err(WorthUiApplicationReplacementLoweringDenial::Lowering)?;
         let reload_cost_seed = lowering.reload_cost_seed();
@@ -96,7 +84,7 @@ impl WorthUiActiveApplicationSession {
             );
         }
         let pending_activation = self
-            .runtime
+            .application
             .stage_replacement_activation_from_lowering(lowered.lowering)
             .map_err(WorthUiApplicationReplacementStagingDenial::Staging)?;
         Ok(WorthUiPendingApplicationCutover {

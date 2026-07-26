@@ -1,9 +1,11 @@
-use worth_ui::facade::host::WorthUiHeadlessHost;
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::host::WorthUiHeadlessHost;
+use worth_ui_runtime::facade::mounted::{
     UiMountedFrameCanonicalCore, UiMountedFrameManifest, UiMountedFramePreparationDenial,
     UiMountedFrameRequest, UiMountedLaneParticipation, UiRequiredLaneContributionStatus,
 };
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     first_node, mounted_application_with_host, profile, registered_surface,
@@ -55,7 +57,7 @@ fn missing_binding_denies_before_effects_and_preserves_known_predecessor() {
     session
         .register_host_surface(
             bound,
-            worth_ui::facade::mounted::UiHostSurfacePresentationMode::RecordOnly,
+            worth_ui_runtime::facade::mounted::UiHostSurfacePresentationMode::RecordOnly,
             profile(1),
         )
         .unwrap();
@@ -136,7 +138,7 @@ fn manifest_order_and_integrity_are_independent_of_completion_order() {
 fn prepare(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     request: UiMountedFrameRequest,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")

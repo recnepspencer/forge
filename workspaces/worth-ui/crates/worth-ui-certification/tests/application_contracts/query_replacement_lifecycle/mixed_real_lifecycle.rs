@@ -1,10 +1,11 @@
 use std::time::Duration;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
+};
 
 use worth_query::facade::runtime::WorthQueryWorkspace;
 use worth_ui::facade::app::{
-    WorthUiActiveApplicationSession, WorthUiApplicationReplacementOutcome,
-    WorthUiOrdinaryFrameTarget, WorthUiVirtualizedDataFrameTarget,
-    WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
+    WorthUiActiveApplicationSession, WorthUiApplicationReplacementOutcome, WorthUiVisibleRange,
 };
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
@@ -14,6 +15,10 @@ use worth_ui_certification::scenario::application_authority_closure::candidate_c
 use worth_ui_host_egui::WorthUiHostEgui;
 use worth_ui_query_binding::{
     WorthUiInstalledLiveQueryView, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+};
+use worth_ui_runtime::facade::application::{
+    WorthUiOrdinaryFrameTarget, WorthUiVirtualizedDataFrameTarget,
+    WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummaryRequest,
 };
 
 #[path = "mixed_real_lifecycle/hostile_mounted_journey.rs"]

@@ -6,82 +6,131 @@ use crate::facade::mounted::{
     UiSurfaceBindingGeneration, UiSurfaceBindingIdentityView, UiSurfaceBindingProfile,
 };
 
+/// SUPPORT AUTHORITY for constructing hostile mounted-identity worlds.
+pub trait WorthUiMountedIdentityCertificationExt {
+    fn create_semantic_surface(
+        &mut self,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial>;
+
+    fn create_semantic_surface_for(
+        &mut self,
+        audience: UiMountedProjectionAudience,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial>;
+
+    fn mounted_graph_node(
+        &self,
+        graph_node_identity: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<UiMountedGraphNodeHandle, UiMountedIdentityDenial>;
+
+    fn register_host_surface(
+        &mut self,
+        semantic_surface: UiSemanticSurfaceIdentity,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+    ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial>;
+
+    fn deregister_host_surface(
+        &mut self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial>;
+
+    fn rebind_host_surface(
+        &mut self,
+        binding: UiSurfaceBindingGeneration,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+    ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial>;
+
+    fn recover_indeterminate_host_surface(
+        &mut self,
+        semantic_surface: UiSemanticSurfaceIdentity,
+    ) -> Result<(), UiMountedIdentityDenial>;
+
+    fn mount_instance(
+        &mut self,
+        node: UiMountedGraphNodeHandle,
+        surface: UiSemanticSurfaceIdentity,
+    ) -> Result<UiMountedInstanceIdentity, UiMountedIdentityDenial>;
+
+    fn unmount_instance(
+        &mut self,
+        identity: UiMountedInstanceIdentity,
+    ) -> Result<(), UiMountedIdentityDenial>;
+
+    fn reorder_mounted_instances(
+        &mut self,
+        order: &[UiMountedInstanceIdentity],
+    ) -> Result<(), UiMountedIdentityDenial>;
+
+    fn mounted_instances_for(
+        &self,
+        node: UiMountedGraphNodeHandle,
+    ) -> Result<Box<[UiMountedInstanceIdentity]>, UiMountedIdentityDenial>;
+
+    fn advance_mounted_identity_frame(
+        &mut self,
+    ) -> Result<UiMountedFrameIdentity, UiMountedIdentityDenial>;
+
+    fn validate_current_surface_binding(
+        &self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> Result<(), UiMountedIdentityDenial>;
+
+    fn validate_current_mounted_frame(
+        &self,
+        frame: UiMountedFrameIdentity,
+    ) -> Result<(), UiMountedIdentityDenial>;
+
+    fn validate_current_mounted_node_receipt(
+        &self,
+        instance: UiMountedInstanceIdentity,
+        receipt: UiMountedNodeReceiptIdentity,
+    ) -> Result<(), UiMountedIdentityDenial>;
+
+    fn inspect_mounted_identity(&self) -> UiMountedIdentityView;
+}
+
 impl WorthUiActiveApplicationSession {
-    pub fn create_semantic_surface(
+    pub(crate) fn create_semantic_surface(
         &mut self,
     ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_identity.create_semantic_surface()
+        self.mounted.create_semantic_surface()
     }
 
-    pub fn create_semantic_surface_for(
+    pub(crate) fn create_semantic_surface_for(
         &mut self,
         audience: UiMountedProjectionAudience,
     ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_identity.create_semantic_surface_for(audience)
+        self.mounted.create_semantic_surface_for(audience)
     }
 
-    pub fn mounted_graph_node(
+    pub(crate) fn mounted_graph_node(
         &self,
         graph_node_identity: crate::graph::UiGraphNodeIdentity,
     ) -> Result<UiMountedGraphNodeHandle, UiMountedIdentityDenial> {
-        self.mounted_identity
-            .graph_node_handle(self.app.graph(), graph_node_identity)
+        self.mounted
+            .graph_node_handle(self.application.graph(), graph_node_identity)
     }
 
-    pub fn register_host_surface(
+    pub(crate) fn register_host_surface(
         &mut self,
         semantic_surface: UiSemanticSurfaceIdentity,
         mode: UiHostSurfacePresentationMode,
         profile: UiSurfaceBindingProfile,
     ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        let candidate = self.mounted_identity.prepare_surface_registration(
-            self.host_session.protocol(),
-            self.host_session.capability_report(),
-            semantic_surface,
-            mode,
-            profile,
-        )?;
-        let baseline = self
-            .mounted_presentation
-            .host_truth_mut()
-            .register_surface(self.host_session.effect_port(), candidate.request())?;
-        Ok(self
-            .mounted_identity
-            .commit_surface_registration(candidate, baseline))
+        self.mounted
+            .register_host_surface(&self.host_session, semantic_surface, mode, profile)
     }
 
-    pub fn deregister_host_surface(
+    pub(crate) fn deregister_host_surface(
         &mut self,
         binding: UiSurfaceBindingGeneration,
     ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        let requires_reconciliation = self
-            .mounted_presentation
-            .binding_requires_reconciliation(binding);
-        let required_by_current = self.mounted_identity.current_requires_binding(binding);
-        let has_published_predecessor = self.mounted_identity.publication_receipt().is_some();
-        let preserve_published_frame =
-            has_published_predecessor && (requires_reconciliation || !required_by_current);
-        let candidate = self
-            .mounted_identity
-            .prepare_surface_deregistration(binding, preserve_published_frame)?;
-        self.mounted_presentation
-            .host_truth_mut()
-            .deregister_surface(self.host_session.effect_port(), candidate.request())?;
-        let semantic_surface = self
-            .mounted_identity
-            .commit_surface_deregistration(candidate);
-        if has_published_predecessor && requires_reconciliation && !required_by_current {
-            self.mounted_presentation
-                .reconcile_candidate_only_deregistration(binding);
-        }
-        Ok(semantic_surface)
+        self.mounted
+            .deregister_host_surface(&self.host_session, binding)
     }
 
-    pub fn rebind_host_surface(
+    pub(crate) fn rebind_host_surface(
         &mut self,
         binding: UiSurfaceBindingGeneration,
         mode: UiHostSurfacePresentationMode,
@@ -91,86 +140,195 @@ impl WorthUiActiveApplicationSession {
         self.register_host_surface(semantic_surface, mode, profile)
     }
 
-    pub fn recover_indeterminate_host_surface(
+    pub(crate) fn recover_indeterminate_host_surface(
         &mut self,
         semantic_surface: UiSemanticSurfaceIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_presentation
-            .host_truth_mut()
-            .recover_surface_effect(self.host_session.effect_port(), semantic_surface)
+        self.mounted
+            .recover_indeterminate_host_surface(&self.host_session, semantic_surface)
     }
 
-    pub fn mount_instance(
+    pub(crate) fn mount_instance(
         &mut self,
         node: UiMountedGraphNodeHandle,
         surface: UiSemanticSurfaceIdentity,
     ) -> Result<UiMountedInstanceIdentity, UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_identity.mount(self.app.graph(), node, surface)
+        self.mounted
+            .mount_instance(self.application.graph(), node, surface)
     }
 
-    pub fn unmount_instance(
+    pub(crate) fn unmount_instance(
         &mut self,
         identity: UiMountedInstanceIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_identity.unmount(identity)
+        self.mounted.unmount_instance(identity)
     }
 
-    pub fn reorder_mounted_instances(
+    pub(crate) fn reorder_mounted_instances(
         &mut self,
         order: &[UiMountedInstanceIdentity],
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_identity.reorder(order)
+        self.mounted.reorder_mounted_instances(order)
     }
 
-    pub fn mounted_instances_for(
+    pub(crate) fn mounted_instances_for(
         &self,
         node: UiMountedGraphNodeHandle,
     ) -> Result<Box<[UiMountedInstanceIdentity]>, UiMountedIdentityDenial> {
-        self.mounted_identity.instances_for(node)
+        self.mounted.mounted_instances_for(node)
     }
 
-    pub fn advance_mounted_identity_frame(
+    pub(crate) fn advance_mounted_identity_frame(
         &mut self,
     ) -> Result<UiMountedFrameIdentity, UiMountedIdentityDenial> {
-        self.ensure_mounted_identity_mutation_available()?;
-        self.mounted_identity.advance_frame()
+        self.mounted.advance_frame()
     }
 
-    pub fn validate_current_surface_binding(
+    pub(crate) fn validate_current_surface_binding(
         &self,
         binding: UiSurfaceBindingGeneration,
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.mounted_identity.validate_binding(binding)
+        self.mounted.validate_binding(binding)
     }
 
-    pub fn validate_current_mounted_frame(
+    pub(crate) fn validate_current_mounted_frame(
         &self,
         frame: UiMountedFrameIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.mounted_identity.validate_current_frame(frame)
+        self.mounted.validate_current_frame(frame)
     }
 
-    pub fn validate_current_mounted_node_receipt(
+    pub(crate) fn validate_current_mounted_node_receipt(
         &self,
         instance: UiMountedInstanceIdentity,
         receipt: UiMountedNodeReceiptIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.mounted_identity
-            .validate_current_receipt(instance, receipt)
+        self.mounted.validate_current_receipt(instance, receipt)
     }
 
-    pub fn inspect_mounted_identity(&self) -> UiMountedIdentityView {
-        self.mounted_identity.view()
+    pub(crate) fn inspect_mounted_identity(&self) -> UiMountedIdentityView {
+        self.mounted.view()
+    }
+}
+
+impl WorthUiMountedIdentityCertificationExt for WorthUiActiveApplicationSession {
+    fn create_semantic_surface(
+        &mut self,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::create_semantic_surface(self)
     }
 
-    fn ensure_mounted_identity_mutation_available(&self) -> Result<(), UiMountedIdentityDenial> {
-        if self.mounted_presentation.has_active_attempt() {
-            return Err(UiMountedIdentityDenial::PresentationInFlight);
-        }
-        Ok(())
+    fn create_semantic_surface_for(
+        &mut self,
+        audience: UiMountedProjectionAudience,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::create_semantic_surface_for(self, audience)
+    }
+
+    fn mounted_graph_node(
+        &self,
+        graph_node_identity: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<UiMountedGraphNodeHandle, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::mounted_graph_node(self, graph_node_identity)
+    }
+
+    fn register_host_surface(
+        &mut self,
+        semantic_surface: UiSemanticSurfaceIdentity,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+    ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::register_host_surface(
+            self,
+            semantic_surface,
+            mode,
+            profile,
+        )
+    }
+
+    fn deregister_host_surface(
+        &mut self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::deregister_host_surface(self, binding)
+    }
+
+    fn rebind_host_surface(
+        &mut self,
+        binding: UiSurfaceBindingGeneration,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+    ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::rebind_host_surface(self, binding, mode, profile)
+    }
+
+    fn recover_indeterminate_host_surface(
+        &mut self,
+        semantic_surface: UiSemanticSurfaceIdentity,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::recover_indeterminate_host_surface(self, semantic_surface)
+    }
+
+    fn mount_instance(
+        &mut self,
+        node: UiMountedGraphNodeHandle,
+        surface: UiSemanticSurfaceIdentity,
+    ) -> Result<UiMountedInstanceIdentity, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::mount_instance(self, node, surface)
+    }
+
+    fn unmount_instance(
+        &mut self,
+        identity: UiMountedInstanceIdentity,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::unmount_instance(self, identity)
+    }
+
+    fn reorder_mounted_instances(
+        &mut self,
+        order: &[UiMountedInstanceIdentity],
+    ) -> Result<(), UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::reorder_mounted_instances(self, order)
+    }
+
+    fn mounted_instances_for(
+        &self,
+        node: UiMountedGraphNodeHandle,
+    ) -> Result<Box<[UiMountedInstanceIdentity]>, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::mounted_instances_for(self, node)
+    }
+
+    fn advance_mounted_identity_frame(
+        &mut self,
+    ) -> Result<UiMountedFrameIdentity, UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::advance_mounted_identity_frame(self)
+    }
+
+    fn validate_current_surface_binding(
+        &self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::validate_current_surface_binding(self, binding)
+    }
+
+    fn validate_current_mounted_frame(
+        &self,
+        frame: UiMountedFrameIdentity,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::validate_current_mounted_frame(self, frame)
+    }
+
+    fn validate_current_mounted_node_receipt(
+        &self,
+        instance: UiMountedInstanceIdentity,
+        receipt: UiMountedNodeReceiptIdentity,
+    ) -> Result<(), UiMountedIdentityDenial> {
+        WorthUiActiveApplicationSession::validate_current_mounted_node_receipt(
+            self, instance, receipt,
+        )
+    }
+
+    fn inspect_mounted_identity(&self) -> UiMountedIdentityView {
+        WorthUiActiveApplicationSession::inspect_mounted_identity(self)
     }
 }

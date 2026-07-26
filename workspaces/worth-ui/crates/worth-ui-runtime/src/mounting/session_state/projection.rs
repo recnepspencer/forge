@@ -1,0 +1,31 @@
+use super::WorthUiMountedSessionState;
+
+impl WorthUiMountedSessionState {
+    pub(crate) fn classify_frame_reuse(
+        &self,
+        contract: crate::mounting::UiMountedFrameReuseContract,
+    ) -> crate::mounting::UiMountedFrameReuse {
+        self.identity.classify_reuse(contract)
+    }
+
+    pub(crate) fn current_allocation_truth_revision(&self) -> Option<u64> {
+        self.identity.current_allocation_truth_revision()
+    }
+
+    pub(crate) fn seal_frame_reuse_contract(
+        &self,
+        basis: crate::mounting::UiMountedFrameReuseExternalBasis,
+    ) -> crate::mounting::UiMountedFrameReuseContract {
+        self.identity.seal_reuse_contract(basis)
+    }
+
+    pub(crate) fn begin_frame_assembly(
+        &self,
+        input: crate::mounting::UiMountedFrameAssemblyInput<'_, '_>,
+    ) -> Result<
+        crate::mounting::UiMountedFrameAssembler<'_>,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
+        crate::mounting::UiMountedFrameAssembler::begin(&self.identity, input)
+    }
+}

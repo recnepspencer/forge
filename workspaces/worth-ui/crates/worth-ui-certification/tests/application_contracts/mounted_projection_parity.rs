@@ -1,11 +1,15 @@
-use worth_ui::facade::host::WorthUiHeadlessRecorder;
-use worth_ui::facade::mounted::{
+use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
+use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_runtime::facade::mounted::{
     UiMountedAllocationProjection, UiMountedFrameOutcome, UiMountedFrameRequest,
     UiMountedOmissionReason, UiMountedParticipationStatus, UiPresentationDeadline,
 };
-use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
-use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
+};
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::known_empty_surface_world::{
@@ -24,7 +28,7 @@ struct AuthoredMountedOracle {
 
 struct ProjectedMountedOracle {
     authored: AuthoredMountedOracle,
-    cost: worth_ui::facade::mounted::UiMountCostReport,
+    cost: worth_ui_runtime::facade::mounted::UiMountCostReport,
     publication_transition_is_coherent: bool,
     mounted_identity_is_continuous: bool,
 }
@@ -75,8 +79,8 @@ fn file_and_rust_query_free_and_backed_worlds_match_one_mounted_contract() {
 }
 
 fn assert_ui_owned_cost_parity(
-    left: worth_ui::facade::mounted::UiMountCostReport,
-    right: worth_ui::facade::mounted::UiMountCostReport,
+    left: worth_ui_runtime::facade::mounted::UiMountCostReport,
+    right: worth_ui_runtime::facade::mounted::UiMountCostReport,
 ) {
     assert_eq!(
         left.initial_mounted_instances(),

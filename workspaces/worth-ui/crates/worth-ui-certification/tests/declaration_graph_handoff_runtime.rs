@@ -7,17 +7,19 @@ use worth_ui::facade::declaration::{
     UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture, WorthUiHostCapability,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, UiDslSupportToken,
-    WorthUiDslPackage,
 };
 
 #[test]
 fn public_freeze_derives_exact_graph_handoff_from_canonical_declaration_authority() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-handoff")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-handoff")
                 .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
@@ -65,16 +67,20 @@ fn public_freeze_derives_exact_graph_handoff_from_canonical_declaration_authorit
 #[test]
 fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
     let baseline = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-handoff.equivalence")
-                .with_semantic_artifact_spec(control_graph_input_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-handoff.equivalence",
+            )
+            .with_semantic_artifact_spec(control_graph_input_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
     let noisy = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-handoff.equivalence")
-                .with_semantic_artifact_spec(control_graph_input_with_noise_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-handoff.equivalence",
+            )
+            .with_semantic_artifact_spec(control_graph_input_with_noise_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -112,9 +118,11 @@ fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
 #[test]
 fn invalid_declared_posture_denies_before_graph_handoff_promotion() {
     let denial = match WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-handoff.denial")
-                .with_semantic_artifact_spec(invalid_graph_input_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-handoff.denial",
+            )
+            .with_semantic_artifact_spec(invalid_graph_input_spec()),
         )
         .freeze()
     {

@@ -1,4 +1,5 @@
 use std::{collections::BTreeMap, path::Path};
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::replacement::admission::{
@@ -13,9 +14,8 @@ use crate::runtime::{
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactDigestor, WorthUiArtifactEquivalenceBasis,
     WorthUiArtifactHandle, WorthUiArtifactIdentitySeed, WorthUiArtifactImportHandle,
-    WorthUiArtifactImportNode, WorthUiArtifactInputReference, WorthUiArtifactModule,
-    WorthUiArtifactNode, WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
-    WorthUiSourceModuleId,
+    WorthUiArtifactImportNode, WorthUiArtifactModule, WorthUiArtifactNode,
+    WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
 };
 
 mod candidate_admission_artifact_nodes;

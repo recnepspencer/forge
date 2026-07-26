@@ -3,6 +3,7 @@ use crate::runtime::{
     WorthUiSourceIngressDenialReason, WorthUiSourceProvider,
     WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
 };
+use worth_ui_dsl::WorthUiDslCompileDiagnosticCode;
 
 pub(crate) fn lower_file_submission<const N: usize>(
     provider: WorthUiSourceProvider,
@@ -32,12 +33,30 @@ pub(crate) fn assert_source_denial_reason(
     expected_reason: WorthUiSourceIngressDenialReason,
 ) {
     match denial {
+        WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report) => {
+            panic!("expected source ingress denial, got DSL report {report:?}");
+        }
         WorthUiWatchedCandidateSubmissionDenial::SourceIngress(source_denial) => {
             assert_eq!(source_denial.reason(), expected_reason);
+        }
+        WorthUiWatchedCandidateSubmissionDenial::RuntimePreparation(runtime_denial) => {
+            panic!("expected source ingress denial, got runtime preparation {runtime_denial:?}");
         }
         WorthUiWatchedCandidateSubmissionDenial::Candidate(candidate_denial) => {
             panic!("expected source ingress denial, got {candidate_denial:?}");
         }
+    }
+}
+
+pub(crate) fn assert_dsl_denial_code(
+    denial: WorthUiWatchedCandidateSubmissionDenial,
+    expected_code: WorthUiDslCompileDiagnosticCode,
+) {
+    match denial {
+        WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report) => {
+            assert_eq!(report.diagnostics()[0].identity().code(), expected_code);
+        }
+        other => panic!("expected DSL compilation denial, got {other:?}"),
     }
 }
 

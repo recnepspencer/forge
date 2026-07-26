@@ -1,28 +1,33 @@
 use worth_ui::facade::app::{
     WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
 };
+use worth_ui::facade::declaration::MosaicSizingContractId;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::graph::{
     UiGraphContainmentClaim, UiGraphInstantiationLocalDenialKind, UiGraphInstantiationPlan,
     UiGraphNodeIdentity, UiGraphParentResolutionClaim, UiGraphTopologyLocalDenial,
 };
-use worth_ui::facade::registry::MosaicSizingContractId;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
 fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.authority")
-                .with_semantic_artifact_spec(slotted_control_spec())
-                .with_semantic_artifact_spec(region_spec())
-                .with_semantic_artifact_spec(mosaic_spec())
-                .with_semantic_artifact_spec(page_set_spec())
-                .with_semantic_artifact_spec(local_composition_spec())
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.authority",
+            )
+            .with_semantic_artifact_spec(slotted_control_spec())
+            .with_semantic_artifact_spec(region_spec())
+            .with_semantic_artifact_spec(mosaic_spec())
+            .with_semantic_artifact_spec(page_set_spec())
+            .with_semantic_artifact_spec(local_composition_spec())
+            .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -181,9 +186,11 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
 #[test]
 fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.zero-root-denial")
-                .with_semantic_artifact_spec(slotted_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.zero-root-denial",
+            )
+            .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -214,10 +221,12 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
 #[test]
 fn public_freeze_returns_typed_root_cardinality_denial() {
     let denial = match WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.root-denial")
-                .with_semantic_artifact_spec(extra_root_page_spec())
-                .with_semantic_artifact_spec(slotted_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.root-denial",
+            )
+            .with_semantic_artifact_spec(extra_root_page_spec())
+            .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
     {

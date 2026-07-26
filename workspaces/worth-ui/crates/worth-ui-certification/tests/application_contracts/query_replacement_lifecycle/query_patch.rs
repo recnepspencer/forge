@@ -7,6 +7,7 @@ use worth_ui_query_binding::{
     WorthUiInstalledQueryBindingReference, WorthUiOperationLiveRefreshRequest,
     WorthUiOperationLiveSourceRefreshOutcome,
 };
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
 pub(super) fn apply_real_live_patch(
     session: &mut WorthUiActiveApplicationSession,

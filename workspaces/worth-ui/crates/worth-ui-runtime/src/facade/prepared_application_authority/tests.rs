@@ -5,7 +5,7 @@ use worth_ui_dsl::{
 
 use crate::capability::WorthUiQueryViewRegistration;
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationArtifactPosture;
-use crate::facade::{WorthUi, WorthUiDslPackage};
+use crate::facade::{WorthUi, WorthUiRustAuthoredDeclarationFixture};
 use crate::graph::{UiGraphSessionLabel, UiGraphWorldProfile};
 
 #[test]
@@ -41,7 +41,7 @@ fn declaration_and_graph_drift_change_prepared_generation_identity() {
     );
     assert_eq!(
         baseline.prepared_authority().application_artifact_posture(),
-        WorthUiPreparedApplicationArtifactPosture::DeclarationAuthored
+        WorthUiPreparedApplicationArtifactPosture::SourceBacked
     );
 }
 
@@ -129,9 +129,9 @@ fn every_prepared_derived_index_rebuilds_from_owned_authority() {
 fn app_with_package(
     package_name: &str,
     semantic_key: &str,
-) -> crate::facade::entry::WorthUiBuilder {
-    WorthUi::app().with_dsl_package(
-        WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(
+) -> crate::facade::entry::WorthUiApplicationBuilder {
+    WorthUi::app().with_rust_authored_declaration_fixture(
+        WorthUiRustAuthoredDeclarationFixture::named(package_name).with_semantic_artifact_spec(
             UiDslSemanticArtifactSpec::new(
                 UiDslSemanticKey::new(semantic_key),
                 UiDslSemanticFamily::Control,

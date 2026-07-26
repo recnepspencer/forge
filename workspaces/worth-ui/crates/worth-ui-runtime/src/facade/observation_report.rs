@@ -18,3 +18,72 @@ pub use worth_ui_host_contract::{
 pub use worth_ui_host_contract::{
     UiHostProtocolAgreement, UiHostProtocolContract, UiHostProtocolNegotiation,
 };
+
+/// Host-integrator access to raw observation ingress and structural validation.
+pub trait WorthUiHostObservationSessionExt {
+    fn host_observation_ingress(&self) -> WorthUiHostObservationIngress;
+
+    fn validate_host_observation_batch(
+        &mut self,
+        batch: UiHostObservationBatch,
+    ) -> UiHostObservationReportOutcome;
+
+    fn retained_host_observation_report_count(&self) -> usize;
+
+    fn retained_host_observation_byte_count(&self) -> usize;
+
+    fn quarantined_host_observation_batch_count(&self) -> usize;
+
+    fn quarantined_host_observation_byte_count(&self) -> usize;
+
+    fn host_observation_work_report(&self) -> UiHostObservationWorkReport;
+
+    fn validate_enqueued_host_observation_batches(
+        &mut self,
+    ) -> Box<[UiHostObservationReportOutcome]>;
+}
+
+impl WorthUiHostObservationSessionExt for crate::facade::WorthUiActiveApplicationSession {
+    fn host_observation_ingress(&self) -> WorthUiHostObservationIngress {
+        crate::facade::WorthUiActiveApplicationSession::host_observation_ingress(self)
+    }
+
+    fn validate_host_observation_batch(
+        &mut self,
+        batch: UiHostObservationBatch,
+    ) -> UiHostObservationReportOutcome {
+        crate::facade::WorthUiActiveApplicationSession::validate_host_observation_batch(self, batch)
+    }
+
+    fn retained_host_observation_report_count(&self) -> usize {
+        crate::facade::WorthUiActiveApplicationSession::retained_host_observation_report_count(self)
+    }
+
+    fn retained_host_observation_byte_count(&self) -> usize {
+        crate::facade::WorthUiActiveApplicationSession::retained_host_observation_byte_count(self)
+    }
+
+    fn quarantined_host_observation_batch_count(&self) -> usize {
+        crate::facade::WorthUiActiveApplicationSession::quarantined_host_observation_batch_count(
+            self,
+        )
+    }
+
+    fn quarantined_host_observation_byte_count(&self) -> usize {
+        crate::facade::WorthUiActiveApplicationSession::quarantined_host_observation_byte_count(
+            self,
+        )
+    }
+
+    fn host_observation_work_report(&self) -> UiHostObservationWorkReport {
+        crate::facade::WorthUiActiveApplicationSession::host_observation_work_report(self)
+    }
+
+    fn validate_enqueued_host_observation_batches(
+        &mut self,
+    ) -> Box<[UiHostObservationReportOutcome]> {
+        crate::facade::WorthUiActiveApplicationSession::validate_enqueued_host_observation_batches(
+            self,
+        )
+    }
+}

@@ -1,6 +1,7 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::query_binding::{
     WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryViewDefinition,
+    WorthUiQueryViewRegistrationError,
 };
 
 use super::view_binding_fixtures::{
@@ -33,7 +34,7 @@ fn duplicate_view_binding_id_rejected_before_snapshot_freeze() {
         Ok(_) => panic!("duplicate semantic identity should stop at Query registration"),
         Err(denial) => denial,
     };
-    let worth_ui::facade::app::WorthUiQueryViewRegistrationError::Binding(denial) = denial else {
+    let WorthUiQueryViewRegistrationError::Binding(denial) = denial else {
         panic!("duplicate valid identity should be a binding denial");
     };
     assert_eq!(
@@ -63,7 +64,7 @@ fn foreign_installed_domain_is_rejected_before_registry_mutation() {
         Ok(_) => panic!("foreign installed authority must stop before registry mutation"),
         Err(denial) => denial,
     };
-    let worth_ui::facade::app::WorthUiQueryViewRegistrationError::Binding(denial) = denial else {
+    let WorthUiQueryViewRegistrationError::Binding(denial) = denial else {
         panic!("valid foreign view identity should be a binding denial");
     };
     assert_eq!(

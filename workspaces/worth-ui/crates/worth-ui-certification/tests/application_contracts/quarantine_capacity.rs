@@ -1,11 +1,13 @@
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedFrameRetentionBudget,
-    UiMountedRetentionClass, UiPresentationDeadline, UiSurfaceBindingGeneration,
-};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationCapacity, UiHostObservationCapacityInput, UiHostObservationLoss,
     UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
 };
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedFrameRetentionBudget,
+    UiMountedRetentionClass, UiPresentationDeadline, UiSurfaceBindingGeneration,
+};
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use crate::host_observation_fixture::{batch, report, source};
@@ -127,7 +129,7 @@ fn indeterminate_world(
     let indeterminate = prepared(&mut session);
     let frame = indeterminate.canonical_core().frame();
     host.push_presentation(
-        worth_ui::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
+        worth_ui_runtime::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
     );
     assert!(matches!(
         session.present_prepared_mounted_frame(

@@ -87,7 +87,7 @@ mod tests {
 
     use super::admit_graph_handoffs;
     use crate::declaration::UiDeclarationArtifact;
-    use crate::facade::{WorthUi, WorthUiDslPackage};
+    use crate::facade::{WorthUi, WorthUiRustAuthoredDeclarationFixture};
     use crate::graph::{
         UiGraphInstantiationDenial, UiRepeatedInstanceBasisDenial, UiRepeatedInstanceBasisKind,
         UiRuntimeDataInstanceKeyToken, UiRuntimeInstanceBasisAdmission,
@@ -96,9 +96,11 @@ mod tests {
     #[test]
     fn runtime_data_basis_admits_only_through_internal_typed_boundary() {
         let app = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.runtime-basis")
-                    .with_semantic_artifact_spec(control_graph_input_spec()),
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named(
+                    "worth-ui.runtime.graph-instantiation.runtime-basis",
+                )
+                .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
             .expect("application preparation should succeed");
@@ -125,9 +127,11 @@ mod tests {
     #[test]
     fn position_based_runtime_basis_denies_before_graph_mutation() {
         let app = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.position")
-                    .with_semantic_artifact_spec(control_graph_input_spec()),
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named(
+                    "worth-ui.runtime.graph-instantiation.position",
+                )
+                .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
             .expect("application preparation should succeed");
@@ -146,9 +150,11 @@ mod tests {
     #[test]
     fn orphan_or_contradictory_runtime_basis_admission_denies_internal_plan_construction() {
         let app = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.orphan")
-                    .with_semantic_artifact_spec(control_graph_input_spec()),
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named(
+                    "worth-ui.runtime.graph-instantiation.orphan",
+                )
+                .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
             .expect("application preparation should succeed");
@@ -156,9 +162,11 @@ mod tests {
             .graph_handoff()
             .expect("control declaration should lower to graph handoff");
         let unrelated_app = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.orphan.other")
-                    .with_semantic_artifact_spec(other_control_spec()),
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named(
+                    "worth-ui.runtime.graph-instantiation.orphan.other",
+                )
+                .with_semantic_artifact_spec(other_control_spec()),
             )
             .freeze()
             .expect("application preparation should succeed");
@@ -193,18 +201,20 @@ mod tests {
     #[test]
     fn touch_and_measurement_posture_do_not_change_internal_graph_instantiation_outputs() {
         let baseline = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.invariance")
-                    .with_semantic_artifact_spec(
-                        control_graph_input_without_non_graph_obligations(),
-                    ),
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named(
+                    "worth-ui.runtime.graph-instantiation.invariance",
+                )
+                .with_semantic_artifact_spec(control_graph_input_without_non_graph_obligations()),
             )
             .freeze()
             .expect("application preparation should succeed");
         let enriched = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph-instantiation.invariance")
-                    .with_semantic_artifact_spec(control_graph_input_spec()),
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named(
+                    "worth-ui.runtime.graph-instantiation.invariance",
+                )
+                .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
             .expect("application preparation should succeed");

@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::UiInspectionAdmissionPosture;
 
@@ -16,8 +17,8 @@ use super::UiAdmissionBoundary;
 #[test]
 fn owner_boundary_can_prove_missing_declaration_artifact_denial() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.admission.denied")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.admission.denied")
                 .with_semantic_artifact_spec(admitted_control_spec()),
         )
         .freeze()

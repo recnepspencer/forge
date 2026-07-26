@@ -1,8 +1,8 @@
 use super::WorthUiActiveFrameworkTurnExecution;
 
-pub(crate) struct WorthUiActiveMountedProjectionFrame<'session> {
-    execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
-    assembler: crate::mounting::UiMountedFrameAssembler<'session>,
+pub(crate) struct WorthUiActiveMountedProjectionFrame<'frame, 'session> {
+    execution: &'frame crate::runtime::WorthUiFrameworkTurnExecution<'session>,
+    assembler: crate::mounting::UiMountedFrameAssembler<'frame>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,7 +27,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             .allocation_receipt_ledger
             .truth_revision()
             .revision();
-        self.mounted_identity.classify_reuse(self.reuse_contract(
+        self.mounted.classify_frame_reuse(self.reuse_contract(
             request,
             lanes,
             allocation_truth_revision,
@@ -35,7 +35,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
     }
 
     pub(crate) fn prepare_mounted_frame_internal(
-        self,
+        &self,
         request: crate::mounting::UiMountedFrameRequest,
     ) -> Result<
         crate::mounting::UiPreparedMountedFrame,
@@ -58,25 +58,24 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             .execution
             .runtime
             .allocation_receipt_ledger
-            .mounted_projection_source(self.mounted_identity.current_allocation_truth_revision());
+            .mounted_projection_source(self.mounted.current_allocation_truth_revision());
         let reuse_contract = self.reuse_contract(&request, lanes, allocation_truth_revision);
-        let assembler = crate::mounting::UiMountedFrameAssembler::begin(
-            self.mounted_identity,
-            crate::mounting::UiMountedFrameAssemblyInput {
-                graph: self.graph,
-                generation,
-                plan_digest,
-                plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
-                allocation_source,
-                allocation_truth_revision,
-                request,
-                lanes,
-                preview: None,
-                reuse_contract,
-            },
-        )?;
+        let assembler =
+            self.mounted
+                .begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
+                    graph: self.graph,
+                    generation,
+                    plan_digest,
+                    plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
+                    allocation_source,
+                    allocation_truth_revision,
+                    request,
+                    lanes,
+                    preview: None,
+                    reuse_contract,
+                })?;
         let mut projection = WorthUiActiveMountedProjectionFrame {
-            execution: self.execution,
+            execution: &self.execution,
             assembler,
         };
         if lanes.ordinary {
@@ -149,8 +148,8 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         lanes: crate::mounting::UiMountedLaneAssembly,
         allocation_truth_revision: u64,
     ) -> crate::mounting::UiMountedFrameReuseContract {
-        self.mounted_identity.seal_reuse_contract(
-            crate::mounting::UiMountedFrameReuseExternalBasis {
+        self.mounted
+            .seal_frame_reuse_contract(crate::mounting::UiMountedFrameReuseExternalBasis {
                 generation: self.generation_identity.clone(),
                 host_session: self.host_session_identity.as_u64(),
                 execution: crate::mounting::UiMountedFrameExecutionPosture::ActiveFrame {
@@ -163,8 +162,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
                 protocol: self.host_protocol,
                 capability_generation: self.host_capability_generation,
                 capability_profile_digest: self.host_capability_profile_digest,
-            },
-        )
+            })
     }
 }
 
@@ -194,7 +192,7 @@ fn mounted_lanes(
     }
 }
 
-impl WorthUiActiveMountedProjectionFrame<'_> {
+impl WorthUiActiveMountedProjectionFrame<'_, '_> {
     pub(crate) fn execute_ordinary(
         &mut self,
         target: crate::runtime::WorthUiOrdinaryFrameTarget,

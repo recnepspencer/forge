@@ -2,9 +2,8 @@ use crate::facade::WorthUi;
 use crate::runtime::WorthUiRuntimeLaunch;
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
-    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactInputReference,
-    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiSourceModuleId,
+    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
+    WorthUiArtifactNode, WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
 };
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -19,6 +18,7 @@ use worth_foundational::{
     FoundationalPerformanceSupportingEvidenceCode, FoundationalPerformanceSupportingEvidenceRow,
     FoundationalPerformanceWorkClass, RetentionDeliveryProfile, SupportPostureProfile,
 };
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 pub(super) fn foundational_frame_report(
     observed_frame_rows: u64,
@@ -108,7 +108,9 @@ fn artifact_from_import_target(target: &str) -> WorthUiArtifact {
     let module_id = module_id("app/main.wui");
     let node = WorthUiArtifactNode::Import(WorthUiArtifactImportNode::new(
         WorthUiArtifactHandle::Import(WorthUiArtifactImportHandle::new(module_id.clone(), 0)),
-        WorthUiArtifactInputReference::new(target),
+        crate::source::test_compilation::semantic_import(target)
+            .target()
+            .clone(),
         0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",

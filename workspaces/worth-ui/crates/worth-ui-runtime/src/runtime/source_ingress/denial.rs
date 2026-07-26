@@ -13,8 +13,6 @@ pub enum WorthUiSourceIngressDenialReason {
     OrderingReceiptDrift,
     UnsupportedHookOutput,
     NoCandidateMaterial,
-    SourcePackageRejected,
-    SourceParseRejected,
     ArtifactResolutionRejected,
     StructuralLegalityRejected,
     SourceBackedDeclarationProjectionRejected,

@@ -1,17 +1,22 @@
-use worth_ui::facade::app::{
-    UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionOutcome,
-    UiResizeLogicalExtent, UiResizePreviewSample, WorthUiFrameworkTurnCompletion,
-    WorthUiMountedPreviewDisposition, WorthUiMountedPreviewOutcome,
-    WorthUiMountedPreviewPreparationDenial,
-};
-use worth_ui::facade::host::WorthUiHeadlessRecorder;
-use worth_ui::facade::mounted::{
+use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_host_egui::WorthUiHostEgui;
+use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedEffectFamily,
     UiMountedLaneParticipation, UiMountedPreviewProjection, UiPresentationDeadline,
     UiRequiredLaneContributionStatus,
 };
-use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_host_egui::WorthUiHostEgui;
+use worth_ui_runtime::facade::runtime_handoff::{
+    UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionOutcome,
+    UiPreviewPaintIsolationOutcome, UiResizeLogicalExtent, UiResizePreviewSample,
+    WorthUiFrameworkTurnCompletion,
+};
+use worth_ui_runtime::facade::{
+    WorthUiMountedPreviewDisposition, WorthUiMountedPreviewOutcome,
+    WorthUiMountedPreviewPreparationDenial,
+};
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::adapter_projection_world::{
     cell_status, preview_application_from_sources, preview_application_with_host, preview_target,
@@ -72,7 +77,7 @@ fn real_wui_preview_records_and_publishes_through_the_mounted_contract() {
     };
     assert!(matches!(
         resolved.isolation(),
-        worth_ui::facade::app::UiPreviewPaintIsolationOutcome::Verified(_)
+        UiPreviewPaintIsolationOutcome::Verified(_)
     ));
     let transcripts = recorder.observed_transcripts();
     assert_eq!(transcripts.len(), 1);

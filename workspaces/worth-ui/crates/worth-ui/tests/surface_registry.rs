@@ -1,7 +1,7 @@
 use worth_ui::facade::{
     app::WorthUi,
+    declaration::{SurfaceDescriptor, SurfaceKind, SurfacePlacementClass, SurfaceStateClass},
     diagnostics::CapabilityDiagnosticCode,
-    registry::{SurfaceDescriptor, SurfaceKind, SurfacePlacementClass, SurfaceStateClass},
 };
 
 #[path = "surface_registry/adversarial_cases.rs"]

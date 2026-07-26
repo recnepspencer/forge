@@ -48,8 +48,21 @@ impl WorthUiMountedAllocationEstablishmentReceipt {
     }
 }
 
+/// SUPPORT AUTHORITY for certification worlds that establish allocation
+/// independently of the ordinary mounted-frame entry.
+pub trait WorthUiMountedAllocationCertificationExt {
+    fn establish_mounted_allocation_catalog(
+        &mut self,
+        request_identity_start: u64,
+        requests: impl Into<Box<[UiMountedAllocationMeasurementRequest]>>,
+    ) -> Result<
+        WorthUiMountedAllocationEstablishmentReceipt,
+        WorthUiMountedAllocationEstablishmentDenial,
+    >;
+}
+
 impl WorthUiActiveApplicationSession {
-    pub fn establish_mounted_allocation_catalog(
+    pub(crate) fn establish_mounted_allocation_catalog(
         &mut self,
         request_identity_start: u64,
         requests: impl Into<Box<[UiMountedAllocationMeasurementRequest]>>,
@@ -57,7 +70,7 @@ impl WorthUiActiveApplicationSession {
         WorthUiMountedAllocationEstablishmentReceipt,
         WorthUiMountedAllocationEstablishmentDenial,
     > {
-        if self.mounted_presentation.has_active_attempt() {
+        if self.mounted.has_active_presentation_attempt() {
             return Err(WorthUiMountedAllocationEstablishmentDenial::PresentationInFlight);
         }
         let candidates = self.mounted_allocation_candidates()?;
@@ -66,12 +79,12 @@ impl WorthUiActiveApplicationSession {
             .map(|candidate| candidate.transition)
             .collect();
         let graph_commit = self
-            .app
+            .application
             .graph()
             .commit_mount_eligibility_admissions(transitions)
             .map_err(WorthUiMountedAllocationEstablishmentDenial::GraphMountEligibility)?;
         let graph_successor = self
-            .app
+            .application
             .prepare_graph_successor(graph_commit)
             .map_err(|_| WorthUiMountedAllocationEstablishmentDenial::StaleGraphSuccessor)?;
         let entries = self.collect_mounted_measurement_entries(
@@ -85,23 +98,16 @@ impl WorthUiActiveApplicationSession {
             .admit_allocation_catalog_basis_set(entries)
             .map_err(WorthUiMountedAllocationEstablishmentDenial::CatalogAdmission)?;
         let boundary = self
-            .runtime
-            .execute_framework_turn(|_| {})
-            .into_execution()
+            .application
+            .prepare_empty_activation_boundary()
             .map_err(|_| {
                 WorthUiMountedAllocationEstablishmentDenial::Runtime(
                     WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
                 )
-            })?
-            .into_activation_boundary();
+            })?;
         let committed = self
-            .runtime
-            .activate_initial_mounted_allocation_catalog(
-                &mut self.app,
-                graph_successor,
-                admitted,
-                boundary,
-            )
+            .application
+            .activate_initial_mounted_allocation_catalog(graph_successor, admitted, boundary)
             .map_err(map_initial_activation_denial)?;
         Ok(WorthUiMountedAllocationEstablishmentReceipt { committed })
     }
@@ -110,22 +116,15 @@ impl WorthUiActiveApplicationSession {
         &self,
     ) -> Result<Vec<MountedAllocationCandidate>, WorthUiMountedAllocationEstablishmentDenial> {
         let mut candidates = Vec::new();
-        for node in self.app.graph().node_identities() {
+        for node in self.application.graph().node_identities() {
             let record = self
-                .app
+                .application
                 .graph()
                 .lookup()
                 .graph_node(node)
                 .expect("active graph node remains addressable");
             let declaration = record.value().declaration_identity().clone();
-            let Some(policy) = self
-                .app
-                .declaration_artifacts()
-                .iter()
-                .find(|artifact| artifact.identity() == &declaration)
-                .and_then(|artifact| artifact.graph_handoff().ok())
-                .and_then(|handoff| handoff.measurement_policy().admitted().cloned())
-            else {
+            let Some(policy) = self.application.measurement_policy_for(&declaration) else {
                 continue;
             };
             let handle = self
@@ -150,7 +149,7 @@ impl WorthUiActiveApplicationSession {
                 .participation_posture()
                 .axis(crate::graph::UiGraphParticipationAxis::Mounted);
             let transition = self
-                .app
+                .application
                 .graph()
                 .mount_eligibility_transition_for_node(
                     node,
@@ -191,7 +190,7 @@ impl WorthUiActiveApplicationSession {
         WorthUiMountedAllocationEstablishmentDenial,
     > {
         let capability = self.host_session.measurement_capability();
-        let collector = self.runtime.host_measurement_collector();
+        let collector = self.application.host_measurement_collector();
         let generation = UiEvidenceAuthorityGeneration::new(graph.generation().as_u64());
         let mut entries = Vec::with_capacity(candidates.len());
         let mut request_ordinal = 0_u64;
@@ -254,6 +253,23 @@ impl WorthUiActiveApplicationSession {
             entries.push((basis, candidate.selected.clone()));
         }
         disjoint_partition(graph, entries)
+    }
+}
+
+impl WorthUiMountedAllocationCertificationExt for WorthUiActiveApplicationSession {
+    fn establish_mounted_allocation_catalog(
+        &mut self,
+        request_identity_start: u64,
+        requests: impl Into<Box<[UiMountedAllocationMeasurementRequest]>>,
+    ) -> Result<
+        WorthUiMountedAllocationEstablishmentReceipt,
+        WorthUiMountedAllocationEstablishmentDenial,
+    > {
+        WorthUiActiveApplicationSession::establish_mounted_allocation_catalog(
+            self,
+            request_identity_start,
+            requests,
+        )
     }
 }
 

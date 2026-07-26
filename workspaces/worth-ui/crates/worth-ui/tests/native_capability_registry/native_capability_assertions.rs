@@ -1,7 +1,5 @@
-use worth_ui::facade::{
-    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
-    registry::FrozenNativeCapabilities,
-};
+use worth_ui::facade::diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic};
+use worth_ui_runtime::facade::registry::snapshot::FrozenNativeCapabilities;
 
 pub(crate) fn assert_registered_native_capability_ids(
     native_capabilities: &FrozenNativeCapabilities,

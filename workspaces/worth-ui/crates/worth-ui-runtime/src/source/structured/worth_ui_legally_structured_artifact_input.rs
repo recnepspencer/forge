@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[cfg(test)]
 use crate::source::WorthUiLegallyStructuredArtifactInputEquivalentShape;
-use crate::source::{WorthUiLegallyStructuredArtifactInputModule, WorthUiSourceModuleId};
+use crate::source::WorthUiLegallyStructuredArtifactInputModule;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiLegallyStructuredArtifactInput {

@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -258,7 +259,9 @@ fn admitted_planning_admissions_with_operators(
         world_profile
     });
     let package = operators.iter().enumerate().fold(
-        WorthUiDslPackage::named("worth-ui.runtime.allocation-planning.catalog"),
+        WorthUiRustAuthoredDeclarationFixture::named(
+            "worth-ui.runtime.allocation-planning.catalog",
+        ),
         |package, (ordinal, operator)| {
             package.with_semantic_artifact_spec(control_spec(
                 ordinal,
@@ -269,7 +272,7 @@ fn admitted_planning_admissions_with_operators(
     );
     let app = WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(package)
+        .with_rust_authored_declaration_fixture(package)
         .freeze()
         .expect("application preparation should succeed");
     let first_identity = app

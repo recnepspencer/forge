@@ -1,4 +1,4 @@
-use worth_ui_dsl::UiDslLoweringReceipt;
+use worth_ui_dsl::UiDslSemanticArtifact;
 
 use crate::declaration::{
     UiAspectContractAdmission, UiConsumedAspectContract, UiPublishedAspectContract,
@@ -11,8 +11,7 @@ pub struct UiAspectContract {
 }
 
 impl UiAspectContract {
-    pub(crate) fn admit(semantic_receipt: &UiDslLoweringReceipt) -> UiAspectContractAdmission {
-        let semantic_artifact = semantic_receipt.semantic_artifact();
+    pub(crate) fn admit(semantic_artifact: &UiDslSemanticArtifact) -> UiAspectContractAdmission {
         match (
             UiPublishedAspectContract::admit(semantic_artifact.published_aspects()),
             UiConsumedAspectContract::admit(semantic_artifact.consumed_aspects()),

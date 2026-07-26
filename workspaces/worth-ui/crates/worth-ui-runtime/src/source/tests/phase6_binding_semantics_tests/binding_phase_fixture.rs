@@ -1,9 +1,9 @@
 use crate::capability::CapabilitySnapshot;
 use crate::source::{
     WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer, WorthUiBoundArtifactInput,
-    WorthUiLegallyStructuredArtifactInput, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
+    WorthUiLegallyStructuredArtifactInput, WorthUiStructuralLegalityLowerer,
 };
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
 
 use super::binding_app_fixture::standard_artifact_input;
 
@@ -17,7 +17,7 @@ pub(super) fn legally_structured_artifact_input_for(
     snapshot: &CapabilitySnapshot,
     artifact_input: &WorthUiRustAuthoredArtifactInput,
 ) -> WorthUiLegallyStructuredArtifactInput {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(artifact_input);
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(artifact_input);
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("phase 4 resolution should succeed");
     WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)

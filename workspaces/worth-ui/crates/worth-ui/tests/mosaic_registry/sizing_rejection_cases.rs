@@ -1,11 +1,11 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         MosaicMeasurementAuthority, MosaicOverflowBehavior, MosaicParentGrowthBehavior,
         MosaicResizePermission, MosaicSizingPersistence, MosaicViewportConstraint,
         RawLayoutMeasurementForDiagnostics,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::sizing_assertions::assert_diagnostic_codes;
@@ -193,7 +193,7 @@ fn assert_raw_measurement_rejected(
 }
 
 fn assert_invalid_measurement_constraint_rejected(
-    descriptor: worth_ui::facade::registry::MosaicSizingContractDescriptor,
+    descriptor: worth_ui::facade::declaration::MosaicSizingContractDescriptor,
 ) {
     let report = WorthUi::app()
         .register_mosaic_sizing_contract(descriptor)
@@ -210,6 +210,6 @@ fn assert_invalid_measurement_constraint_rejected(
     );
 }
 
-fn sizing_kind() -> worth_ui::facade::registry::MosaicSizingKind {
-    worth_ui::facade::registry::MosaicSizingKind::bounded()
+fn sizing_kind() -> worth_ui::facade::declaration::MosaicSizingKind {
+    worth_ui::facade::declaration::MosaicSizingKind::bounded()
 }

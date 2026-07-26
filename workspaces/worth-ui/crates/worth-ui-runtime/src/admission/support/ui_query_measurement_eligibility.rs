@@ -106,42 +106,6 @@ impl UiQueryMeasurementEligibility {
         }
     }
 
-    pub fn target(&self) -> &UiAdmissionTarget {
-        &self.target
-    }
-
-    pub fn graph_node_identity(&self) -> UiGraphNodeIdentity {
-        self.graph_node_identity
-    }
-
-    pub fn declaration_identity(&self) -> Option<&UiDeclarationIdentity> {
-        self.declaration_identity.as_ref()
-    }
-
-    pub fn touch_identity_digest(&self) -> u64 {
-        self.touch_identity_digest
-    }
-
-    pub fn selected_measurement_obligation_identity_digest(&self) -> Option<u64> {
-        self.selected_measurement_obligation_identity_digest
-    }
-
-    pub fn selected_support_authority_generation(&self) -> UiEvidenceAuthorityGeneration {
-        self.selected_support_authority_generation
-    }
-
-    pub fn boundary_support_authority_generation(&self) -> UiEvidenceAuthorityGeneration {
-        self.boundary_support_authority_generation
-    }
-
-    pub fn required_fact_family_set_digest(&self) -> u64 {
-        self.required_fact_family_set_digest
-    }
-
-    pub fn required_families(&self) -> &[WorthUiQueryMeasurementFactFamily] {
-        &self.required_families
-    }
-
     pub fn projection_fact_receipt(&self) -> Option<&UiSettledQueryFactReceipt> {
         self.projection_fact_receipt.as_ref()
     }

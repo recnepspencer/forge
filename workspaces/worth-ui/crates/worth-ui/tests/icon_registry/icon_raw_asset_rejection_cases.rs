@@ -1,7 +1,7 @@
 use worth_ui::facade::{
     app::WorthUi,
+    declaration::{IconDescriptor, RawIconAssetReference},
     diagnostics::CapabilityDiagnosticCode,
-    registry::{IconDescriptor, RawIconAssetReference},
 };
 
 use super::icon_assertions::assert_diagnostic_codes;

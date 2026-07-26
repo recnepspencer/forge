@@ -4,10 +4,6 @@ use worth_ui::facade::app::WorthUiPreparedApplicationReplacement;
 use worth_ui::facade::graph::{
     UiGraphAxisParticipation, UiGraphParticipationAxis, UiGraphParticipationStatus,
 };
-use worth_ui::facade::host::{
-    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext,
-};
 use worth_ui::facade::inspection::UiEvidenceAuthorityGeneration;
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity, UiPortalAnchorRectRequest,
@@ -18,6 +14,11 @@ use worth_ui_runtime::facade::evidence::{
     UiMeasurementBasisCertificationHostRequest, UiMeasurementBasisCertificationScenario,
 };
 use worth_ui_runtime::facade::host::UiPortalAnchorCoordinateSpacePosture;
+use worth_ui_runtime::facade::host::{
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext,
+};
+use worth_ui_test_support::WorthUiActiveSessionCertificationExt;
 
 pub fn admit_candidate_catalog(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,

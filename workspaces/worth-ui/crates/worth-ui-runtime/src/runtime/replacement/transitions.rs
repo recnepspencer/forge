@@ -1,8 +1,9 @@
 use crate::runtime::{
-    WorthUiAdmittedReplacementCandidate, WorthUiDurableStateReconciliationPlan,
-    WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan, WorthUiQueryBindingComparison,
-    WorthUiQueryLiveRebindPlan, WorthUiReplacementImpactClassification,
-    WorthUiRuntimeArtifactComparison, WorthUiRuntimeImpactNarrowing,
+    WorthUiAdmittedReplacementCandidate, WorthUiDurableStateInventoryCounters,
+    WorthUiDurableStateReconciliationPlan, WorthUiIdentityMatchReport, WorthUiNodeReplacementPlan,
+    WorthUiQueryBindingComparison, WorthUiQueryLiveRebindPlan,
+    WorthUiReplacementImpactClassification, WorthUiRuntimeArtifactComparison,
+    WorthUiRuntimeImpactNarrowing,
 };
 
 /// Artifact comparison completed for an admitted replacement candidate.
@@ -88,6 +89,7 @@ pub struct WorthUiReplacementQueryComparisonReady {
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
     pub(crate) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
+    pub(crate) inventory_counters: WorthUiDurableStateInventoryCounters,
     pub(crate) query_comparison: WorthUiQueryBindingComparison,
     pub(crate) artifact_comparison_counters:
         crate::runtime::WorthUiRuntimeArtifactComparisonCounters,
@@ -104,6 +106,7 @@ pub struct WorthUiReplacementLoweringReady {
     pub(crate) narrowing: WorthUiRuntimeImpactNarrowing,
     pub(crate) node_plan: WorthUiNodeReplacementPlan,
     pub(crate) reconciliation_plan: WorthUiDurableStateReconciliationPlan,
+    pub(crate) inventory_counters: WorthUiDurableStateInventoryCounters,
     pub(crate) query_rebind_plan: WorthUiQueryLiveRebindPlan,
     pub(crate) artifact_comparison_counters:
         crate::runtime::WorthUiRuntimeArtifactComparisonCounters,

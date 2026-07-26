@@ -5,12 +5,25 @@ pub use crate::runtime::{
     WorthUiFilesystemSourceAcquisitionDenial, WorthUiFilesystemSourceProvider,
     WorthUiFilesystemSourceWatcher, WorthUiFilesystemWatcherBackend,
     WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherReadiness,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiReloadDebounce,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiFilesystemWatcherShutdownReceipt, WorthUiReloadDebounce, WorthUiSemanticHandoffEvidence,
+    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
     WorthUiSettledSourceSnapshot, WorthUiSourceEventIngress, WorthUiSourceEventIngressSession,
     WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
     WorthUiSourcePackageRevision, WorthUiSourceProvider, WorthUiSourceProviderKind,
     WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
     WorthUiWatcherEvent,
 };
-pub use crate::source::WorthUiArtifactInputBodyAtom;
+
+/// Application-author access to runtime-owned source event ingress.
+///
+/// Importing this trait from the source audience is required to open the
+/// ingress capability on an active application session.
+pub trait WorthUiSourceIngressExt {
+    fn source_event_ingress(&self, provider: WorthUiSourceProvider) -> WorthUiSourceEventIngress;
+}
+
+impl WorthUiSourceIngressExt for crate::facade::WorthUiActiveApplicationSession {
+    fn source_event_ingress(&self, provider: WorthUiSourceProvider) -> WorthUiSourceEventIngress {
+        crate::facade::WorthUiActiveApplicationSession::source_event_ingress(self, provider)
+    }
+}

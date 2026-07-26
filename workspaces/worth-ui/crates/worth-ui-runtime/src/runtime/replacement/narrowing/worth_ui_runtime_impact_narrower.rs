@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::runtime::{
     WorthUiAccessibilityInvalidation, WorthUiAdmittedReplacementCandidate,
@@ -10,7 +11,7 @@ use crate::runtime::{
 };
 use crate::source::{
     WorthUiArtifactHandle, WorthUiArtifactNodeKind, WorthUiArtifactSubtreeDigest,
-    WorthUiIncrementalInvalidationBasis, WorthUiSourceModuleId,
+    WorthUiIncrementalInvalidationBasis,
 };
 
 #[derive(Clone, Debug, Default)]

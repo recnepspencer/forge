@@ -1,0 +1,6 @@
+mod phase1_source_package_tests;
+mod phase2_parse_tests;
+mod phase3_artifact_input_tests;
+mod phase4_structural_legality_tests;
+mod phase5_diagnostic_identity_tests;
+mod phase6_semantic_package_identity_tests;

@@ -1,4 +1,7 @@
 use std::{collections::BTreeMap, path::Path};
+use worth_ui_dsl::{
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule, WorthUiSourceModuleId,
+};
 
 use crate::capability::{
     CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor, ComponentId,
@@ -14,13 +17,10 @@ use crate::runtime::{
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
-    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactInputReference,
-    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiBindingSemanticsLowerer,
-    WorthUiCanonicalArtifactAssembler, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiIdentitySeedLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiSourceModuleId,
-    WorthUiStructuralLegalityLowerer,
+    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
+    WorthUiArtifactNode, WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler,
+    WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
+    WorthUiIdentitySeedLowerer, WorthUiStructuralLegalityLowerer,
 };
 
 pub(super) fn admitted_candidate(
@@ -51,7 +51,7 @@ pub(super) fn artifact_from_modules<const N: usize>(
     app: &WorthUiApp,
     modules: [WorthUiRustAuthoredArtifactInputModule; N],
 ) -> WorthUiArtifact {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let snapshot = app.capabilities();
@@ -212,7 +212,9 @@ fn import_node(
             module_id.clone(),
             node_index,
         )),
-        WorthUiArtifactInputReference::new(target),
+        crate::source::test_compilation::semantic_import(target)
+            .target()
+            .clone(),
         0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",

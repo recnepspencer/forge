@@ -223,6 +223,7 @@ mod tests {
         UiDeclaredPostureContract, UiDeclaredPostureLane, UiDeclaredPosturePayload,
         UiStructuralDeclarationPayload,
     };
+    use crate::facade::WorthUiRustAuthoredDeclarationFixture;
     use crate::facade::{WorthUi, WorthUiApp};
     use crate::graph::{
         UiGraphGeneration, UiGraphInstantiationPlan, UiGraphWorldDifferenceKind,
@@ -230,7 +231,7 @@ mod tests {
     };
     use worth_ui_dsl::{
         UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-        UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+        UiDslSourceProvenance, UiDslStructuralToken,
     };
 
     use super::UiGraphSnapshot;
@@ -272,7 +273,7 @@ mod tests {
         let mut child = UiDslSemanticArtifactSpec::new(
             UiDslSemanticKey::new("ui.graph.snapshot.child"),
             UiDslSemanticFamily::Control,
-            UiDslSourceProvenance::file_authored("app/graph_snapshot_tests.wui", 1),
+            UiDslSourceProvenance::file_authored("app/graph_snapshot_tests.wui", 0),
         )
         .with_structural_token(UiDslStructuralToken::new("control:child"))
         .with_structural_token(UiDslStructuralToken::new("slot:footer"));
@@ -282,23 +283,8 @@ mod tests {
         }
 
         WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph.tests")
-                    .with_semantic_artifact_spec(
-                        UiDslSemanticArtifactSpec::new(
-                            UiDslSemanticKey::new("ui.graph.snapshot.successor"),
-                            UiDslSemanticFamily::Control,
-                            UiDslSourceProvenance::file_authored("app/graph_snapshot_tests.wui", 0),
-                        )
-                        .with_structural_token(UiDslStructuralToken::new("control:test"))
-                        .with_structural_token(UiDslStructuralToken::new("operator:stack"))
-                        .with_posture_token(UiDslPostureToken::new(
-                            "measurement:constraint:bounded",
-                        )),
-                    ),
-            )
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph.tests")
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.graph.tests")
                     .with_semantic_artifact_spec(child),
             )
             .freeze()
@@ -318,7 +304,7 @@ mod tests {
     }
 
     fn child_handoff(app: &WorthUiApp, child_bounded: bool) -> UiDeclarationGraphHandoff {
-        let artifact = artifact_from_file_provenance(app, "app/graph_snapshot_tests.wui", 1);
+        let artifact = artifact_from_file_provenance(app, "app/graph_snapshot_tests.wui", 0);
         let graph_handoff = artifact
             .graph_handoff()
             .expect("child declaration should lower to graph handoff");

@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::CommandId,
+    declaration::CommandId,
     support::{AdmittedCapability, CapabilitySupportPosture},
 };
 

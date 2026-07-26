@@ -100,10 +100,11 @@ The implemented application boundary is:
 ```text
 WorthUi::app()
 -> registration plus optional sealed candidate composition
--> WorthUiBuilder::freeze()
+-> WorthUiApplicationBuilder::freeze()
 -> WorthUiApp
 -> WorthUiApp::launch()
 -> WorthUiActiveApplicationSession
+-> WorthUiActiveApplicationSession::execute_mounted_frame(...)
 ```
 
 `freeze` is the only ordinary preparation lane and returns a typed denial. Its
@@ -118,10 +119,12 @@ replacement. Framework completions and active inspection receipts carry the
 same application-generation identity. Graph-bound allocation receipts carry
 the graph generation that admitted their neighborhood.
 
-File and Rust composition both enter through `facade::source` and converge as
-one `WorthUiWatchedCandidateSubmission`. The Rust lane uses native
-`WorthUiArtifactInputBodyAtom` values. Neither lane permits callers to extract
-an independently launchable artifact or declaration source.
+File composition enters through `facade::source` as one
+`WorthUiWatchedCandidateSubmission`. Typed Rust composition enters through
+`WorthUiApplicationBuilder::with_rust_authored_input(...)`. Both are compiled
+by `worth-ui-dsl` into the same sealed semantic package before runtime
+preparation. Neither lane permits callers to extract an independently
+launchable artifact or declaration source.
 
 Replacement remains session-owned:
 
@@ -144,6 +147,14 @@ cannot submit directly; observation capability comes from the active session.
 See [Application lifecycle](./application-lifecycle.md) for the public workflow,
 cost receipts, and typed outcomes. See `../AI_README.md` for the compact
 discovery guide and named facade entry points.
+
+## Runtime Ownership Map
+
+The mechanically enforced seven-owner map, allowed dependency direction, and
+future insertion points are maintained in
+[Runtime subsystems](./runtime-subsystems.md). This orientation explains the
+broader platform vocabulary; the subsystem map is the placement authority for
+new runtime work.
 
 Worth UI wants product code to express UI meaning once, keep that meaning
 canonically identified, and let the runtime lower it through typed public lanes

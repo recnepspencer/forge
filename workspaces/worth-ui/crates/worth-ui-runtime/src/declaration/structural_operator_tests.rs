@@ -1,7 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
     UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, UiDslSupportToken,
-    WorthUiDslPackage,
 };
 
 use crate::capability::MosaicSizingContractId;
@@ -25,7 +25,8 @@ fn semantic_spec() -> UiDslSemanticArtifactSpec {
 }
 
 fn lower(spec: UiDslSemanticArtifactSpec) -> crate::declaration::UiDeclarationArtifact {
-    let package = WorthUiDslPackage::named("worth-ui.runtime.declaration.operator-tests");
+    let package =
+        WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.declaration.operator-tests");
     let receipt = package.admit_semantic_artifact(spec);
 
     UiDeclarationLowering::lower(receipt)
@@ -90,7 +91,7 @@ fn contradictory_explicit_operator_claims_deny_before_handoff_derivation() {
     let expected_denial =
         UiDeclarationStructuralSemanticsAdmissionDenial::ContradictoryPlanningOperatorClaims {
             family: UiDeclarationFamilyKind::Control,
-            observed: vec!["operator:stack".to_owned(), "operator:row".to_owned()],
+            observed: vec!["operator:row".to_owned(), "operator:stack".to_owned()],
         };
 
     assert_eq!(

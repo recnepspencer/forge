@@ -4,9 +4,12 @@ use worth_ui::facade::inspection::{
     UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
     UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 const ALPHA_MODULE_PATH: &str = "app/aspect_slice_alpha.wui";
@@ -73,16 +76,18 @@ fn provenance_expanded_aspect_slices_keep_exact_public_shape_and_replay_stabilit
 
 fn aspect_slice_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect-evidence-slice")
-                .with_semantic_artifact_spec(
-                    control_spec("ui.aspect.alpha", ALPHA_MODULE_PATH, "control:alpha")
-                        .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT)),
-                )
-                .with_semantic_artifact_spec(
-                    control_spec("ui.aspect.beta", BETA_MODULE_PATH, "control:beta")
-                        .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT)),
-                ),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.aspect-evidence-slice",
+            )
+            .with_semantic_artifact_spec(
+                control_spec("ui.aspect.alpha", ALPHA_MODULE_PATH, "control:alpha")
+                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+            )
+            .with_semantic_artifact_spec(
+                control_spec("ui.aspect.beta", BETA_MODULE_PATH, "control:beta")
+                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

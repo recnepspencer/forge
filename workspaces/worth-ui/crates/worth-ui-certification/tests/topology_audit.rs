@@ -291,7 +291,6 @@ fn lifecycle_aggregate_audit_rejects_known_bad_default_and_option_fixture() {
 #[test]
 fn lifecycle_inventories_match_phase3_closure_inventory() {
     let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
         .freeze()
         .expect("application preparation should succeed");
     let expected = expected_phase3_lifecycle_subsystems();
@@ -366,7 +365,6 @@ fn lifecycle_inventories_match_phase3_closure_inventory() {
 #[test]
 fn facade_inspection_from_immutable_app_reference_uses_lifecycle_owned_support_posture() {
     let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
         .freeze()
         .expect("application preparation should succeed");
     let app_ref = &app;

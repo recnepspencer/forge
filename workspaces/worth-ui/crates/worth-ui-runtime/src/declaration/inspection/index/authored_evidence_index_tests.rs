@@ -11,7 +11,7 @@ use worth_ui_inspection::{
 
 use super::UiDeclarationAuthoredEvidenceIndex;
 use crate::declaration::UiDeclarationArtifact;
-use crate::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
+use crate::facade::{WorthUi, WorthUiApp, WorthUiRustAuthoredDeclarationFixture};
 use crate::graph::{UiRuntimeDataInstanceKeyToken, UiRuntimeInstanceBasisAdmission};
 
 #[test]
@@ -102,9 +102,11 @@ fn public_authored_lookup_omits_admission_ref_when_declaration_correspondence_is
 #[test]
 fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
     let mut app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.authored-evidence-index.rebuild")
-                .with_semantic_artifact_spec(control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.authored-evidence-index.rebuild",
+            )
+            .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -226,11 +228,12 @@ fn authored_provenance_query(
 }
 
 fn repeated_instance_app() -> WorthUiApp {
-    let dsl_package =
-        WorthUiDslPackage::named("worth-ui.runtime.authored-evidence-index.ambiguous")
-            .with_semantic_artifact_spec(control_spec());
+    let dsl_package = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.runtime.authored-evidence-index.ambiguous",
+    )
+    .with_semantic_artifact_spec(control_spec());
     let baseline = WorthUi::app()
-        .with_dsl_package(dsl_package.clone())
+        .with_rust_authored_declaration_fixture(dsl_package.clone())
         .freeze()
         .expect("application preparation should succeed");
     let control_handoff = control_artifact(&baseline)
@@ -243,7 +246,7 @@ fn repeated_instance_app() -> WorthUiApp {
     ];
 
     WorthUi::app()
-        .with_dsl_package(dsl_package)
+        .with_rust_authored_declaration_fixture(dsl_package)
         .with_runtime_instance_basis_admissions(runtime_bases)
         .freeze()
         .expect("typed repeated-instance input should prepare one complete app authority")

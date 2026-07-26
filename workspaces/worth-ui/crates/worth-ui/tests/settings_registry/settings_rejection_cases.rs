@@ -1,11 +1,11 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint,
         SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
         SettingValueSchema,
     },
+    diagnostics::CapabilityDiagnosticCode,
     support::ArbitraryKeyValueSettingBag,
 };
 

@@ -30,7 +30,7 @@ pub use active_framework_turn::{
     WorthUiMountedLaneProjectionDenial,
 };
 pub use app::{WorthUi, WorthUiApp};
-pub use app_builder::{WorthUiAppBuilder, WorthUiBuilder, WorthUiQueryViewRegistrationError};
+pub use app_builder::{WorthUiApplicationBuilder, WorthUiQueryViewRegistrationError};
 pub use application_replacement::{
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationCutoverRetry, WorthUiApplicationPublicationObservation,
@@ -48,10 +48,14 @@ pub use builder::CapabilityRegistrationBuilder;
 pub use mounted_allocation_denial::{
     WorthUiMountedAllocationEstablishmentDenial, WorthUiMountedAllocationRuntimeStage,
 };
+pub use mounted_allocation_establishment::WorthUiMountedAllocationCertificationExt;
 pub use mounted_allocation_establishment::{
     UiMountedAllocationMeasurementRequest, WorthUiMountedAllocationEstablishmentReceipt,
 };
-pub use mounted_frame_execution::WorthUiMountedFrameExecutionStop;
+pub use mounted_frame_execution::{
+    WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
+};
+pub use mounted_identity::WorthUiMountedIdentityCertificationExt;
 pub use mounted_preview::{
     WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
     WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,

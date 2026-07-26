@@ -4,10 +4,10 @@ use crate::source::{WorthUiBindingDiagnostic, WorthUiBoundQueryViewSemantics};
 use super::worth_ui_binding_semantics_context::WorthUiBindingSemanticsContext;
 
 pub(super) fn bind_query_view_semantics(
-    _module_id: &crate::source::WorthUiSourceModuleId,
+    _module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     entry: &FrozenViewBindingEntry,
     _semantic_locus: &str,
-    _provenance: &crate::source::WorthUiArtifactInputProvenance,
+    _provenance: &worth_ui_dsl::WorthUiArtifactInputProvenance,
     context: &mut WorthUiBindingSemanticsContext<'_>,
 ) -> Result<WorthUiBoundQueryViewSemantics, WorthUiBindingDiagnostic> {
     context.record_query_owned_semantic_check();

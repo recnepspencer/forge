@@ -5,9 +5,10 @@ use worth_ui::facade::graph::UiGraphWorldDifferenceKind;
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial, WorthUiReloadDebounce,
-    WorthUiSourceIngressDenialReason, WorthUiWatchedCandidateSubmissionDenial,
+    WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_dsl::{WorthUiDslCompileDiagnosticCode, WorthUiDslCompileReport};
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -57,15 +58,18 @@ fn native_watcher_preserves_active_generation_until_stable_replacement_activatio
         WorthUiFilesystemWatcherDenial::SettlementTimedOut { .. }
     ));
 
-    workspace.write("app/main.wui", "component workspace.component.broken {");
+    let malformed_source = "component workspace.component.broken {";
+    workspace.write("app/main.wui", malformed_source);
     let malformed = watcher
         .settle(SETTLEMENT_TIMEOUT)
         .expect("completed malformed bytes still form a stable filesystem snapshot");
+    let filesystem_report = dsl_compilation_report(
+        malformed.lower_to_candidate_submission(session.capabilities()),
+        "filesystem-authored malformed source",
+    );
     assert!(
-        malformed
-            .lower_to_candidate_submission(session.capabilities())
-            .is_err(),
-        "malformed source must fail canonical lowering"
+        !filesystem_report.diagnostics().is_empty(),
+        "malformed filesystem-authored source must retain its DSL diagnostics"
     );
     assert_eq!(session.generation_identity(), &initial_generation);
 
@@ -257,8 +261,9 @@ fn native_watcher_reconstructs_imported_module_churn_from_final_tree_truth() {
         .expect_err("a still-declared import cannot silently lose its target module");
     assert!(matches!(
         denial,
-        WorthUiWatchedCandidateSubmissionDenial::SourceIngress(source_denial)
-            if source_denial.reason() == WorthUiSourceIngressDenialReason::SourcePackageRejected
+        WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report)
+            if report.diagnostics()[0].identity().code()
+                == WorthUiDslCompileDiagnosticCode::UnknownImportTarget
     ));
     assert_eq!(session.generation_identity(), &active_generation);
 
@@ -315,4 +320,15 @@ fn assert_platform_backend(backend: WorthUiFilesystemWatcherBackend) {
         backend,
         WorthUiFilesystemWatcherBackend::ReadDirectoryChanges
     );
+}
+
+fn dsl_compilation_report(
+    result: Result<WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial>,
+    gateway: &str,
+) -> WorthUiDslCompileReport {
+    match result {
+        Err(WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report)) => report,
+        Err(other) => panic!("{gateway} stopped outside DSL compilation: {other:?}"),
+        Ok(_) => panic!("{gateway} unexpectedly produced a runtime candidate"),
+    }
 }

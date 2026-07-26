@@ -1,4 +1,4 @@
-use worth_ui_dsl::UiDslLoweringReceipt;
+use worth_ui_dsl::UiDslSemanticArtifact;
 use worth_ui_host_contract::WorthUiHostCapability;
 
 use crate::declaration::{UiDeclarationFamilyAdmission, UiDeclarationFamilyKind};
@@ -11,7 +11,7 @@ use super::{
 };
 
 pub(crate) fn admit_declared_posture_contract(
-    semantic_receipt: &UiDslLoweringReceipt,
+    semantic_artifact: &UiDslSemanticArtifact,
     family_admission: &UiDeclarationFamilyAdmission,
 ) -> UiDeclaredPostureAdmission {
     let family_kind = match family_admission.admitted_family() {
@@ -25,8 +25,7 @@ pub(crate) fn admit_declared_posture_contract(
         }
     };
 
-    let posture_tokens = semantic_receipt
-        .semantic_artifact()
+    let posture_tokens = semantic_artifact
         .posture_tokens()
         .iter()
         .map(|token| token.as_str())

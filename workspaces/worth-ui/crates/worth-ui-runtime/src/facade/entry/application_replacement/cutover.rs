@@ -7,11 +7,11 @@ struct WorthUiCutoverGenerationBasis {
     active: WorthUiPreparedApplicationGenerationIdentity,
 }
 
-struct WorthUiPreparedCutoverEvidence<'a> {
+struct WorthUiPreparedCutoverEvidence {
     generations: WorthUiCutoverGenerationBasis,
     reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
-    runtime: &'a crate::runtime::WorthUiRuntime,
-    host: &'a crate::facade::WorthUiHostSessionAuthority,
+    runtime_basis: crate::runtime::session::WorthUiRuntimePublicationBasis,
+    host_session: crate::facade::WorthUiHostSessionIdentity,
 }
 
 impl WorthUiActiveApplicationSession {
@@ -22,7 +22,7 @@ impl WorthUiActiveApplicationSession {
         boundary: crate::runtime::WorthUiFrameBoundary,
         lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
     ) -> Result<WorthUiApplicationReplacementOutcome, WorthUiApplicationCutoverDenial> {
-        if !self.mounted_identity.view().surface_bindings().is_empty() {
+        if !self.mounted.view().surface_bindings().is_empty() {
             return Err(
                 WorthUiApplicationCutoverDenial::MountedPresentationRequired {
                     retry: Box::new(WorthUiApplicationCutoverRetry {
@@ -46,7 +46,7 @@ impl WorthUiActiveApplicationSession {
             }
             WorthUiPreparedApplicationCutoverOutcome::Activation(activation) => {
                 let next_mounted = self
-                    .mounted_identity
+                    .mounted
                     .prepare_graph_replacement_successor(crate::graph::UiGraphAuthority::new(
                         &candidate_graph,
                     ))
@@ -66,7 +66,7 @@ impl WorthUiActiveApplicationSession {
         boundary: crate::runtime::WorthUiFrameBoundary,
         lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
     ) -> Result<WorthUiPreparedApplicationCutoverOutcome, WorthUiApplicationCutoverDenial> {
-        if self.mounted_presentation.has_active_attempt() {
+        if self.mounted.has_active_presentation_attempt() {
             return Err(WorthUiApplicationCutoverDenial::MountedPresentationInFlight);
         }
         if !pending.basis.admits_session(self.session_identity()) {
@@ -84,13 +84,14 @@ impl WorthUiActiveApplicationSession {
         }
         let generations = self.validate_cutover_generation_basis(&pending, &admitted_delta)?;
         let reload_cost_seed = pending.reload_cost_seed;
+        let active_graph = self.application.graph_snapshot().clone();
         let prepared =
-            self.runtime
-                .prepare_admitted_allocation_catalog_delta_with_query_binding(
+            self.application
+                .prepare_admitted_allocation_catalog_delta(
                     pending.pending_activation,
                     crate::runtime::UiAllocationCatalogDeltaActivationInput {
                         admitted_delta,
-                        active_graph: self.app.graph_snapshot().clone(),
+                        active_graph,
                         graph_changed_nodes: pending.candidate_graph_changed_nodes,
                         boundary,
                         lane_parity_report,
@@ -108,8 +109,8 @@ impl WorthUiActiveApplicationSession {
         let evidence = WorthUiPreparedCutoverEvidence {
             generations,
             reload_cost_seed,
-            runtime: &self.runtime,
-            host: &self.host_session,
+            runtime_basis: self.application.runtime_publication_basis(),
+            host_session: self.host_session.identity(),
         };
         match prepared.into_activation() {
             Err(receipt) => Ok(seal_semantic_no_op(evidence, receipt)),
@@ -149,7 +150,7 @@ impl WorthUiActiveApplicationSession {
     pub(super) fn commit_application_activation(
         &mut self,
         mut prepared: Box<WorthUiPreparedApplicationActivation>,
-        mounted_successor: crate::mounting::UiMountedIdentityState,
+        mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
     ) -> WorthUiApplicationCutoverReceipt {
         let transition = prepared
             .transition
@@ -161,8 +162,9 @@ impl WorthUiActiveApplicationSession {
                 unreachable!("prepared application transition cannot already be committed")
             }
         };
-        let publication = activation.commit_once(&mut self.runtime, &mut self.app);
-        self.mounted_identity = mounted_successor;
+        let publication = self.application.commit_application_activation(activation);
+        self.mounted
+            .commit_graph_replacement_successor(mounted_successor);
         let (plan_swap, query_retirement, plan_decision, allocation_catalog_successor) =
             publication.into_parts();
         prepared.transition = Some(WorthUiApplicationCutoverTransition::Committed {
@@ -187,7 +189,10 @@ impl WorthUiActiveApplicationSession {
         crate::runtime::WorthUiPendingActivation,
     ) {
         assert!(pending.basis.admits_session(self.session_identity()));
-        (self.runtime, pending.pending_activation)
+        (
+            self.application.into_runtime_for_test(),
+            pending.pending_activation,
+        )
     }
 }
 
@@ -232,7 +237,7 @@ impl WorthUiPreparedApplicationActivation {
 }
 
 fn seal_semantic_no_op(
-    evidence: WorthUiPreparedCutoverEvidence<'_>,
+    evidence: WorthUiPreparedCutoverEvidence,
     receipt: Box<crate::runtime::WorthUiSemanticNoOpReceipt>,
 ) -> WorthUiPreparedApplicationCutoverOutcome {
     let WorthUiPreparedCutoverEvidence {
@@ -258,7 +263,7 @@ fn seal_semantic_no_op(
 }
 
 fn seal_prepared_activation(
-    evidence: WorthUiPreparedCutoverEvidence<'_>,
+    evidence: WorthUiPreparedCutoverEvidence,
     activation: crate::runtime::WorthUiPreparedApplicationPlanSwap,
 ) -> WorthUiPreparedApplicationCutoverOutcome {
     let successor_runtime = activation.candidate_runtime_observation();
@@ -266,8 +271,8 @@ fn seal_prepared_activation(
         WorthUiApplicationPublicationPreparation {
             application_generation: evidence.generations.active.clone(),
             successor_runtime: successor_runtime.clone(),
-            runtime: evidence.runtime,
-            host: evidence.host,
+            runtime_basis: evidence.runtime_basis,
+            host_session: evidence.host_session,
             successor_scheduler: activation.candidate_scheduler_state(),
         },
     );
@@ -316,6 +321,6 @@ fn retryable_boundary_denial(
     if boundary.frame_epoch() > readiness_epoch {
         return Some(crate::runtime::WorthUiActivationGateDenialReason::FutureFrameEpochMismatch);
     }
-    (boundary.frame_epoch() != session.runtime.frame_epoch())
+    (boundary.frame_epoch() != session.application.frame_epoch())
         .then_some(crate::runtime::WorthUiActivationGateDenialReason::BoundaryFrameEpochMismatch)
 }

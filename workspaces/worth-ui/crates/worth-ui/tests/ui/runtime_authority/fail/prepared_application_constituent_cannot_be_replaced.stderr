@@ -1,5 +1,4 @@
-error[E0616]: field `capability_snapshot` of struct `WorthUiPreparedApplicationAuthority` is private
- --> tests/ui/runtime_authority/fail/prepared_application_constituent_cannot_be_replaced.rs:8:15
-  |
-8 |     authority.capability_snapshot = replacement;
-  |               ^^^^^^^^^^^^^^^^^^^ private field
+error[E0432]: unresolved import `worth_ui::facade::app::WorthUiPreparedApplicationAuthority`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/prepared_application_constituent_cannot_be_replaced.rs
+ help: a similar name exists in the module
+ help: consider importing this struct instead

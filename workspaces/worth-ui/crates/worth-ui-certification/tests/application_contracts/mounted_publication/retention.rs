@@ -1,4 +1,9 @@
-use worth_ui::facade::mounted::{
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
+use worth_ui::facade::observation_report::{
+    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
+    UiHostObservationReportOutcome,
+};
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountWorkClass, UiMountedFrameOutcome,
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
     UiMountedFrameRetentionDenial, UiMountedInspectionOmission, UiMountedInspectionReceipt,
@@ -6,10 +11,7 @@ use worth_ui::facade::mounted::{
     UiMountedRetentionClass, UiMountedRetentionClassBudget, UiPresentationDeadline,
     UiSurfaceBindingGeneration,
 };
-use worth_ui::facade::observation_report::{
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome,
-};
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use crate::host_observation_fixture::{batch, report, source};
@@ -150,7 +152,7 @@ fn inspection_cannot_open_a_late_pin_after_successor_admission() {
     let successor = prepared(&mut session);
     host.push_in_flight(
         vec![presented_completion()],
-        worth_ui::facade::mounted::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
+        worth_ui_runtime::facade::mounted::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
     );
     let in_flight = match session.present_prepared_mounted_frame(
         successor,
@@ -308,7 +310,7 @@ fn retain_keyboard_report(
 
 fn assert_expired(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-    frame: worth_ui::facade::mounted::UiMountedFrameIdentity,
+    frame: worth_ui_runtime::facade::mounted::UiMountedFrameIdentity,
 ) {
     assert!(matches!(
         session.inspect_mounted_frame(UiMountedInspectionRequest::frame(frame)),

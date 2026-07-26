@@ -1,5 +1,6 @@
 use worth_ui::facade::app::{WorthUiActiveApplicationSession, WorthUiApplicationCutoverDenial};
 use worth_ui::facade::graph::UiGraphWorldDifferenceKind;
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
 use super::authored_composition::candidate_file;
 use super::candidate_catalog::admit_candidate_catalog;

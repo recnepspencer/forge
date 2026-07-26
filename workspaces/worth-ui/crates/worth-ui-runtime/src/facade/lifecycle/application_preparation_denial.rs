@@ -11,6 +11,9 @@ pub enum WorthUiApplicationPreparationPhase {
 /// Phase-local denial from the single public application-preparation lane.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiApplicationPreparationDenial {
+    DslCompilation(worth_ui_dsl::WorthUiDslCompileReport),
+    RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
+    Candidate(crate::runtime::WorthUiReplacementCandidateDenial),
     CandidateSnapshotMismatch {
         candidate_snapshot_digest: u64,
         prepared_snapshot_digest: u64,
@@ -23,6 +26,9 @@ pub enum WorthUiApplicationPreparationDenial {
 impl WorthUiApplicationPreparationDenial {
     pub fn phase(&self) -> WorthUiApplicationPreparationPhase {
         match self {
+            Self::DslCompilation(_) | Self::RuntimePreparation(_) | Self::Candidate(_) => {
+                WorthUiApplicationPreparationPhase::CandidateBasis
+            }
             Self::CandidateSnapshotMismatch { .. } => {
                 WorthUiApplicationPreparationPhase::CandidateBasis
             }

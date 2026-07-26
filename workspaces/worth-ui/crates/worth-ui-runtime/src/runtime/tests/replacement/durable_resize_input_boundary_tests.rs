@@ -1,6 +1,5 @@
 use crate::runtime::{
-    WorthUiDurableResizeInputPosture, WorthUiDurableStateFamilyId,
-    WorthUiTransientInteractionPolicy, WorthUiTransientInteractionState,
+    WorthUiDurableResizeInputPosture, WorthUiDurableStateFamilyId, WorthUiTransientInteractionState,
 };
 
 use super::durable_state_inventory_test_support::platform_inventory;
@@ -17,10 +16,7 @@ use super::node_replacement_classification_test_support::{narrowing_for, no_op_i
 fn splitter_position_state_participates_only_through_admitted_runtime_resize_seam() {
     let (runtime, plan, inventory) = deterministic_reconciliation_inputs();
 
-    assert_eq!(
-        inventory.transient(WorthUiTransientInteractionState::DragCapture),
-        WorthUiTransientInteractionPolicy::Drop
-    );
+    assert!(WorthUiTransientInteractionState::DragCapture.drops_by_default());
 
     let reconciliation = runtime
         .reconcile_durable_state(&plan, &inventory)

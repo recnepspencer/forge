@@ -301,7 +301,7 @@ fn candidate_handle_at_node_index(
     node_index: usize,
 ) -> Option<WorthUiArtifactHandle> {
     let module_id =
-        crate::source::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(module_id))
+        worth_ui_dsl::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(module_id))
             .ok()?;
     admitted
         .artifact_bundle()

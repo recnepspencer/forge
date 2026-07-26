@@ -12,7 +12,7 @@ pub(super) struct UiMountedReplacementReuseBasis {
 
 pub(super) fn prepare_candidate_mounted_frame(
     application: &WorthUiPreparedApplicationActivation,
-    state: &mut crate::mounting::UiMountedIdentityState,
+    state: &crate::mounting::UiMountedGraphReplacementSuccessor,
     graph: crate::graph::UiGraphAuthority<'_>,
     reuse_basis: UiMountedReplacementReuseBasis,
     request: crate::mounting::UiMountedFrameRequest,
@@ -25,7 +25,7 @@ pub(super) fn prepare_candidate_mounted_frame(
         application.candidate_allocation_catalog(),
     );
     let reuse_contract =
-        state.seal_reuse_contract(crate::mounting::UiMountedFrameReuseExternalBasis {
+        state.seal_frame_reuse_contract(crate::mounting::UiMountedFrameReuseExternalBasis {
             generation: reuse_basis.generation.clone(),
             host_session: reuse_basis.host_session,
             execution: crate::mounting::UiMountedFrameExecutionPosture::ReplacementCandidate,
@@ -37,9 +37,8 @@ pub(super) fn prepare_candidate_mounted_frame(
             capability_generation: reuse_basis.capability_generation,
             capability_profile_digest: reuse_basis.capability_profile_digest,
         });
-    let mut assembler = crate::mounting::UiMountedFrameAssembler::begin(
-        state,
-        crate::mounting::UiMountedFrameAssemblyInput {
+    let mut assembler =
+        state.begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
             graph,
             generation: reuse_basis.generation,
             plan_digest: application.candidate_plan_digest(),
@@ -50,8 +49,7 @@ pub(super) fn prepare_candidate_mounted_frame(
             lanes,
             preview: None,
             reuse_contract,
-        },
-    )?;
+        })?;
     execute_candidate_lanes(application, &mut assembler, lanes, range)?;
     assembler.finish()
 }

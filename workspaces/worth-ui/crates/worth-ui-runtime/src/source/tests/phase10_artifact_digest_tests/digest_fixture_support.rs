@@ -1,9 +1,6 @@
 use crate::facade::WorthUiApp;
-use crate::source::{
-    WorthUiArtifact, WorthUiCanonicalArtifactAssembler, WorthUiParsedSourceToArtifactInputLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiSourcePackageLoader, WorthUiSourceParser,
-};
+use crate::source::{WorthUiArtifact, WorthUiCanonicalArtifactAssembler};
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 use super::super::phase7_identity_seeding_tests::identity_app_fixture::identity_test_app;
 use super::super::phase7_identity_seeding_tests::identity_fixture_support::{
@@ -25,7 +22,7 @@ pub(super) fn artifact_from_rust_modules_with_app<const N: usize>(
     app: WorthUiApp,
 ) -> WorthUiArtifact {
     let snapshot = app.capabilities();
-    let artifact_input = crate::source::WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
@@ -47,14 +44,10 @@ pub(super) fn artifact_from_file_sources(
 ) -> WorthUiArtifact {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let source_package = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_source("app/main.wui", main_module_source)
-        .register_module_with_source("app/panels/inspector.wui", inspector_module_source)
-        .compile()
-        .expect("file-authored package should compile");
-    let parsed_source_package =
-        WorthUiSourceParser::parse_package(&source_package).expect("source package should parse");
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package);
+    let artifact_input = crate::source::test_compilation::compile_source([
+        ("app/main.wui", main_module_source),
+        ("app/panels/inspector.wui", inspector_module_source),
+    ]);
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("phase 4 resolution should succeed");
     let structured = crate::source::WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)

@@ -1,8 +1,9 @@
 #![cfg(any(test, feature = "certification-support"))]
 
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 use crate::declaration::{
@@ -52,26 +53,28 @@ pub(crate) fn peer_app(
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.graph.allocation-constraint-equal-share")
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.root",
-                    0,
-                    operator_token,
-                    bounded_flags[0],
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.peer.a",
-                    1,
-                    operator_token,
-                    bounded_flags[1],
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.peer.b",
-                    2,
-                    operator_token,
-                    bounded_flags[2],
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.graph.allocation-constraint-equal-share",
+            )
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.root",
+                0,
+                operator_token,
+                bounded_flags[0],
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.peer.a",
+                1,
+                operator_token,
+                bounded_flags[1],
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.peer.b",
+                2,
+                operator_token,
+                bounded_flags[2],
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -84,32 +87,34 @@ pub(crate) fn three_peer_app(
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.graph.allocation-constraint-equal-share")
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.root",
-                    0,
-                    operator_token,
-                    bounded_flags[0],
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.peer.a",
-                    1,
-                    operator_token,
-                    bounded_flags[1],
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.peer.b",
-                    2,
-                    operator_token,
-                    bounded_flags[2],
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.peer.c",
-                    3,
-                    operator_token,
-                    bounded_flags[3],
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.graph.allocation-constraint-equal-share",
+            )
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.root",
+                0,
+                operator_token,
+                bounded_flags[0],
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.peer.a",
+                1,
+                operator_token,
+                bounded_flags[1],
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.peer.b",
+                2,
+                operator_token,
+                bounded_flags[2],
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.peer.c",
+                3,
+                operator_token,
+                bounded_flags[3],
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")

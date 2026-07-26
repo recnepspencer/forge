@@ -1,7 +1,5 @@
-use worth_ui::facade::{
-    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
-    registry::FrozenSettingCapabilities,
-};
+use worth_ui::facade::diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic};
+use worth_ui_runtime::facade::registry::snapshot::FrozenSettingCapabilities;
 
 pub(crate) fn assert_diagnostic_codes(
     diagnostics: &[CapabilityRegistrationDiagnostic],

@@ -3,6 +3,4 @@ pub enum WorthUiStateOwnershipClass {
     PlatformShell,
     NodeIdentity,
     ShellLocalInteraction,
-    CustomHook,
-    DomainTruth,
 }

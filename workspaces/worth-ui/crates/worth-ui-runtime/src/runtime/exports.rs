@@ -296,23 +296,24 @@ pub use super::host_observation::{
 };
 
 // --- source ingress ---
+pub(crate) use super::source_ingress::WorthUiPreparedDeclarationMaterial;
 #[cfg(test)]
 pub use super::source_ingress::WorthUiSourceIngressHook;
+pub(crate) use super::source_ingress::{
+    prepare_rust_authored_handoff, WorthUiAuthoredCompositionPreparationDenial,
+};
 pub use super::source_ingress::{
     WorthUiCandidateComposition, WorthUiCandidateCompositionBasis, WorthUiCandidateOrderingReceipt,
     WorthUiFilesystemSourceAcquisitionDenial, WorthUiFilesystemSourceProvider,
     WorthUiFilesystemSourceWatcher, WorthUiFilesystemWatcherBackend,
     WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherReadiness,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiReloadDebounce,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiFilesystemWatcherShutdownReceipt, WorthUiReloadDebounce, WorthUiSemanticHandoffEvidence,
+    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
     WorthUiSettledSourceSnapshot, WorthUiSourceEventIngress, WorthUiSourceEventIngressSession,
     WorthUiSourceIngressCounters, WorthUiSourceIngressDenial, WorthUiSourceIngressDenialReason,
     WorthUiSourcePackageRevision, WorthUiSourceProvider, WorthUiSourceProviderKind,
     WorthUiWatchedCandidateSubmission, WorthUiWatchedCandidateSubmissionDenial,
     WorthUiWatcherEvent,
-};
-pub(crate) use super::source_ingress::{
-    WorthUiSourceBackedDeclarationWitness, WorthUiSourceBackedDslPackage,
 };
 
 // --- measurement ---

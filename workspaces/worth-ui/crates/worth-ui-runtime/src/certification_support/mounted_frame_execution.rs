@@ -24,11 +24,6 @@ pub trait WorthUiMountedPublicationCertificationExt {
         deadline: worth_ui_host_contract::UiPresentationDeadline,
         now: u64,
     ) -> crate::mounting::UiMountedFrameOutcome;
-
-    fn reuse_current_mounted_frame(
-        &self,
-        witness: &crate::mounting::UiMountedFrameReuseWitness,
-    ) -> Option<crate::mounting::UiMountedFrameOutcome>;
 }
 
 impl<'session> WorthUiMountedFrameExecutionCertificationExt
@@ -60,12 +55,5 @@ impl WorthUiMountedPublicationCertificationExt for WorthUiActiveApplicationSessi
         now: u64,
     ) -> crate::mounting::UiMountedFrameOutcome {
         self.present_prepared_mounted_frame_internal(frame, deadline, now)
-    }
-
-    fn reuse_current_mounted_frame(
-        &self,
-        witness: &crate::mounting::UiMountedFrameReuseWitness,
-    ) -> Option<crate::mounting::UiMountedFrameOutcome> {
-        self.reuse_current_mounted_frame_internal(witness)
     }
 }

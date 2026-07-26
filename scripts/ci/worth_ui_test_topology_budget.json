@@ -174,8 +174,8 @@
     "worth-ui": {
       "inventory": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_cases.csv",
       "execution": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_execution.csv",
-      "inventory_count": 251,
-      "execution_count": 14,
+      "inventory_count": 257,
+      "execution_count": 24,
       "aggregation_groups": [
         {
           "name": "facade_construction",
@@ -221,8 +221,8 @@
     "worth-ui-certification": {
       "inventory": "workspaces/worth-ui/crates/worth-ui-certification/tests/suites/compile_contract_cases.csv",
       "execution": "workspaces/worth-ui/crates/worth-ui-certification/tests/suites/compile_contract_execution.csv",
-      "inventory_count": 63,
-      "execution_count": 7,
+      "inventory_count": 64,
+      "execution_count": 8,
       "aggregation_groups": [
         {
           "name": "declaration_and_admission",

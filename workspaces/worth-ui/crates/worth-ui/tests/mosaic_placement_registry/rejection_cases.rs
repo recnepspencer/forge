@@ -1,10 +1,10 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         MosaicPlacementAction, MosaicPlacementEligibility, MosaicPlacementSource,
         MosaicPlacementSupport, MosaicPlacementTarget, MosaicRegionRole, SurfacePlacementClass,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::mosaic_placement_registry_assertions::assert_diagnostic_codes;

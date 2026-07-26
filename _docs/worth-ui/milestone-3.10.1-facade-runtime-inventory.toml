@@ -1,0 +1,401 @@
+schema = "worth-ui.milestone-3.10.1.facade-runtime.v1"
+milestone = "3.10.1"
+phase = 2
+product_allowlist_policy = "Every public item in each listed facade file inherits that row's audience and disposition; the exact source fingerprint freezes the symbol set."
+certification_allowlist_policy = "Each certification group fingerprints relative POSIX paths in lexical order followed by exact source bytes, so nested public modules and re-exports cannot drift silently."
+canonical_product_entry = "WorthUiApplicationBuilder -> prepared application -> mounted application -> active session -> execute_mounted_frame"
+
+[[crate_boundary]]
+crate = "worth-ui-dsl"
+manifest = "crates/worth-ui-dsl/Cargo.toml"
+allowed_peer_dependencies = []
+authority = "pure authored meaning"
+forbidden_direction = "worth-ui-dsl -> worth-ui-runtime"
+
+[[crate_boundary]]
+crate = "worth-ui-runtime"
+manifest = "crates/worth-ui-runtime/Cargo.toml"
+allowed_peer_dependencies = ["worth-ui-dsl"]
+authority = "runtime admission and application lifecycle"
+forbidden_direction = "bidirectional dependency with worth-ui-dsl"
+
+[[surface]]
+file = "facade/mod.rs"
+audience = "product"
+responsibility = "named audience modules"
+disposition = "retain"
+fingerprint = "09795c3ad947f9dc"
+forbidden_shortcut = "add a broad prelude or wildcard export"
+
+[[surface]]
+file = "facade/app.rs"
+audience = "application-author"
+responsibility = "application construction and lifecycle"
+disposition = "retain"
+fingerprint = "fb9cadf2443bd5f2"
+forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
+
+[[surface]]
+file = "facade/mounted.rs"
+audience = "mounted-application"
+responsibility = "mounted application control"
+disposition = "removed"
+exit_phase = 5
+fingerprint = "5dfa0b39610a4bf2"
+forbidden_shortcut = "export storage tables, attempt records, or certification construction"
+
+[[surface]]
+file = "facade/runtime.rs"
+audience = "runtime-integrator"
+responsibility = "runtime execution contract"
+disposition = "removed"
+exit_phase = 5
+fingerprint = "40e5d7fb7e24a11f"
+forbidden_shortcut = "make internal lane execution a product entrypoint"
+
+[[surface]]
+file = "facade/inspection.rs"
+audience = "inspection-consumer"
+responsibility = "read-only inspection projections"
+disposition = "split"
+exit_phase = 5
+fingerprint = "453445943a5a2c64"
+forbidden_shortcut = "export certification-only reconstruction or mutable runtime authority"
+
+[[surface]]
+file = "facade/host.rs"
+audience = "host-adapter"
+responsibility = "host requests, outputs, and observation exchange"
+disposition = "removed"
+exit_phase = 5
+fingerprint = "aaaf3e8e6f84bb75"
+forbidden_shortcut = "export runtime storage owners"
+
+[[surface]]
+file = "facade/admission.rs"
+audience = "runtime-integrator"
+responsibility = "curated admission contract"
+disposition = "retain"
+fingerprint = "e2d751a984f14353"
+forbidden_shortcut = "expose admission implementation modules"
+
+[[surface]]
+file = "facade/declaration.rs"
+audience = "application-author"
+responsibility = "curated declaration contract"
+disposition = "retain"
+fingerprint = "4533c6a81c8bd93f"
+forbidden_shortcut = "reopen declaration source authority"
+
+[[surface]]
+file = "facade/diagnostics.rs"
+audience = "inspection-consumer"
+responsibility = "product diagnostics"
+disposition = "retain"
+fingerprint = "000a1d5f261204be"
+forbidden_shortcut = "export certification construction"
+
+[[surface]]
+file = "facade/graph.rs"
+audience = "runtime-integrator"
+responsibility = "curated graph contract"
+disposition = "retain"
+fingerprint = "6119f17fe3708a2b"
+forbidden_shortcut = "export graph storage mutation"
+
+[[surface]]
+file = "facade/measurement_exchange.rs"
+audience = "host-adapter"
+responsibility = "measurement exchange"
+disposition = "retain"
+fingerprint = "324f5a2024332837"
+forbidden_shortcut = "export host implementation details"
+
+[[surface]]
+file = "facade/obligations.rs"
+audience = "application-author"
+responsibility = "curated obligation contract"
+disposition = "retain"
+fingerprint = "7eb2723e1b782b82"
+forbidden_shortcut = "reopen obligation legality authority"
+
+[[surface]]
+file = "facade/observation_report.rs"
+audience = "inspection-consumer"
+responsibility = "observation reports"
+disposition = "retain"
+fingerprint = "d0181a64084ab5ac"
+forbidden_shortcut = "become a mutable runtime facade"
+
+[[surface]]
+file = "facade/query_binding.rs"
+audience = "application-author"
+responsibility = "query binding declarations"
+disposition = "retain"
+fingerprint = "b8ee193e20b25dd6"
+forbidden_shortcut = "recreate query-owned execution lanes"
+
+[[surface]]
+file = "facade/registry.rs"
+audience = "application-author"
+responsibility = "capability registry declarations and snapshots"
+disposition = "removed"
+exit_phase = 5
+fingerprint = "a3561ac3762116ab"
+forbidden_shortcut = "export mutable registry storage"
+
+[[surface]]
+file = "facade/source.rs"
+audience = "application-author"
+responsibility = "runtime source transport, watcher settlement, and candidate ingress"
+disposition = "retain"
+fingerprint = "92f304e3f11d0dca"
+forbidden_shortcut = "export parser, AST, or watcher internals"
+
+[[surface]]
+file = "facade/support.rs"
+audience = "runtime-integrator"
+responsibility = "runtime support posture"
+disposition = "retain"
+fingerprint = "e17ad288d6a7543b"
+forbidden_shortcut = "become a catch-all compatibility surface"
+
+[[certification_surface]]
+id = "certification-root"
+path = "lib.rs"
+match = "exact"
+expected_files = 1
+content_fingerprint = "8d19ce95691b55ff"
+audience = "certification-support"
+responsibility = "named certification allocation, scenario, and topology audiences"
+disposition = "retain"
+forbidden_shortcut = "re-export certification construction through worth-ui product facades"
+
+[[certification_surface]]
+id = "certification-rust-authored-declaration-fixture"
+path = "rust_authored_declaration_fixture.rs"
+match = "exact"
+expected_files = 1
+content_fingerprint = "68e60a8937cdec11"
+audience = "certification-support"
+responsibility = "compiler-backed Rust-authored declaration fixture and builder extension"
+disposition = "retain"
+forbidden_shortcut = "export fixture construction through worth-ui product facades"
+
+[[certification_surface]]
+id = "certification-allocation"
+path = "allocation"
+match = "directory"
+expected_files = 2
+content_fingerprint = "5d0ad9e5b5607e2c"
+audience = "certification-support"
+responsibility = "allocation certification reports and entrypoints"
+disposition = "retain"
+forbidden_shortcut = "make certification reports runtime lifecycle authority"
+
+[[certification_surface]]
+id = "certification-scenario"
+path = "scenario"
+match = "directory"
+expected_files = 17
+content_fingerprint = "b91f378492168cf9"
+audience = "certification-support"
+responsibility = "real-boundary certification scenario construction"
+disposition = "retain"
+forbidden_shortcut = "route scenario builders into the ordinary app facade"
+
+[[certification_surface]]
+id = "certification-topology"
+path = "topology"
+match = "directory"
+expected_files = 61
+content_fingerprint = "ddcb07c1102f6d03"
+audience = "certification-support"
+responsibility = "source, topology, public-surface, and authority audits"
+disposition = "retain"
+forbidden_shortcut = "treat audit helpers as product authority"
+
+[[lifecycle_entry]]
+symbol = "WorthUiApplicationBuilder"
+current_route = "facade/app.rs"
+audience = "application-author"
+authority_in = "authored application inputs"
+authority_out = "prepared application authority"
+disposition = "retain"
+
+[[lifecycle_entry]]
+symbol = "WorthUiApp::launch"
+current_route = "facade/app.rs"
+audience = "application-author"
+authority_in = "prepared application and sealed host plan"
+authority_out = "active application session"
+disposition = "retain"
+
+[[lifecycle_entry]]
+symbol = "WorthUiActiveApplicationSession::execute_mounted_frame"
+current_route = "facade/app.rs"
+audience = "application-author"
+authority_in = "active application authority"
+authority_out = "frame report"
+disposition = "retain"
+
+[[lifecycle_entry]]
+symbol = "WorthUiFrameworkTurnCertificationExt::execute_framework_turn"
+current_route = "worth-ui-test-support"
+audience = "certification-support"
+authority_in = "active application authority plus explicit support trait"
+authority_out = "framework turn report"
+disposition = "retain"
+
+[[predecessor_route]]
+route = "removed in Phase 3: facade/dsl.rs::WorthUiDslPackage"
+reason = "caller-assembled package was replaced by the sealed semantic handoff"
+exit_phase = 3
+
+[[predecessor_route]]
+route = "removed in Phase 6: inherent WorthUiActiveApplicationSession::execute_framework_turn"
+reason = "ordinary callers may enter only through execute_mounted_frame; certification uses the support trait"
+exit_phase = 6
+
+[[predecessor_route]]
+route = "facade/mounted.rs internal table and attempt exports"
+reason = "mounted audience can reach runtime storage vocabulary"
+exit_phase = 5
+
+[[predecessor_route]]
+route = "facade/runtime.rs lane-specific execution exports"
+reason = "runtime internals appear as product alternatives"
+exit_phase = 5
+
+[[predecessor_route]]
+route = "removed in Phase 6: WorthUiBuilder and WorthUiAppBuilder aliases"
+reason = "the application builder has exactly one canonical public name"
+exit_phase = 6
+
+[[future_insertion]]
+change = "new authored syntax"
+owner = "worth-ui-dsl/source"
+insertion = "tokenization -> parser -> authored legality -> normalization"
+forbidden_location = "runtime source ingress or watcher"
+
+[[future_insertion]]
+change = "new source transport"
+owner = "worth-ui-runtime/source_ingress"
+insertion = "provider observation before sealed DSL handoff"
+forbidden_location = "DSL grammar or legality"
+
+[[future_insertion]]
+change = "new runtime capability admission"
+owner = "worth-ui-runtime/admission"
+insertion = "after sealed DSL handoff and before prepared application"
+forbidden_location = "DSL parser"
+
+[[future_insertion]]
+change = "new inspection family"
+owner = "worth-ui-inspection"
+insertion = "read-only projection over runtime evidence"
+forbidden_location = "product runtime mutation facade"
+
+[[subsystem]]
+name = "admission"
+owner = "runtime admission"
+allowed_dependencies = ["capability", "declaration", "evidence", "facade", "graph", "obligations"]
+target = "worth-ui-runtime/admission"
+disposition = "retain"
+
+[[subsystem]]
+name = "capability"
+owner = "runtime capability registry"
+allowed_dependencies = []
+target = "worth-ui-runtime/capability"
+disposition = "retain"
+
+[[subsystem]]
+name = "declaration"
+owner = "authored declaration admission"
+allowed_dependencies = ["admission", "capability", "evidence", "facade", "graph"]
+target = "worth-ui-runtime/declaration"
+disposition = "retain"
+
+[[subsystem]]
+name = "evidence"
+owner = "runtime evidence"
+allowed_dependencies = ["capability", "declaration", "facade", "graph", "host", "runtime"]
+target = "worth-ui-runtime/evidence"
+disposition = "retain"
+
+[[subsystem]]
+name = "facade"
+owner = "runtime audience aggregation"
+allowed_dependencies = ["admission", "capability", "declaration", "evidence", "graph", "host", "host_exchange", "inspection", "lifecycle", "mounting", "obligations", "runtime", "source"]
+target = "split audience facades"
+disposition = "split"
+exit_phase = 5
+
+[[subsystem]]
+name = "graph"
+owner = "runtime graph"
+allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "obligations", "runtime"]
+target = "worth-ui-runtime/graph"
+disposition = "split"
+exit_phase = 5
+
+[[subsystem]]
+name = "host"
+owner = "host contract projection"
+allowed_dependencies = ["evidence"]
+target = "worth-ui-host-contract"
+disposition = "retain"
+
+[[subsystem]]
+name = "host_exchange"
+owner = "host/runtime exchange"
+allowed_dependencies = ["facade", "mounting", "runtime"]
+target = "worth-ui-runtime/host_exchange"
+disposition = "retain"
+
+[[subsystem]]
+name = "inspection"
+owner = "inspection bridge"
+allowed_dependencies = ["host_exchange", "mounting"]
+target = "worth-ui-inspection"
+disposition = "split"
+exit_phase = 5
+
+[[subsystem]]
+name = "lifecycle"
+owner = "lifecycle vocabulary"
+allowed_dependencies = []
+target = "worth-ui-runtime/lifecycle"
+disposition = "retain"
+
+[[subsystem]]
+name = "mounting"
+owner = "mounted application lifecycle"
+allowed_dependencies = ["declaration", "facade", "graph", "host", "inspection", "runtime"]
+target = "worth-ui-runtime/mounting"
+disposition = "split"
+exit_phase = 5
+
+[[subsystem]]
+name = "obligations"
+owner = "obligation resolution"
+allowed_dependencies = ["admission", "capability", "declaration", "evidence", "facade", "graph", "runtime"]
+target = "worth-ui-runtime/obligations"
+disposition = "retain"
+
+[[subsystem]]
+name = "runtime"
+owner = "active application execution"
+allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "graph", "host", "mounting", "obligations", "source"]
+target = "split runtime/application/replacement owners"
+disposition = "split"
+exit_phase = 5
+
+[[subsystem]]
+name = "source"
+owner = "mixed source and runtime pipeline"
+allowed_dependencies = ["capability", "declaration"]
+target = "worth-ui-dsl plus runtime admission"
+disposition = "split"
+exit_phase = 3

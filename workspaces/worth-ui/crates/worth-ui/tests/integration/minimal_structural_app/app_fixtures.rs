@@ -1,6 +1,6 @@
 use worth_ui::facade::{
-    app::{WorthUi, WorthUiAppBuilder},
-    registry::{
+    app::{WorthUi, WorthUiApplicationBuilder},
+    declaration::{
         CommandCategory, CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor,
         ComponentId, ComponentPropSchema, ComponentStateOwnership, IconAccessibilityPosture,
         IconDescriptor, IconFamily, IconId, IconSourceDescriptor, IconThemePosture,
@@ -24,7 +24,7 @@ use worth_ui::facade::{
     },
 };
 
-pub(crate) fn minimal_app_builder() -> WorthUiAppBuilder {
+pub(crate) fn minimal_app_builder() -> WorthUiApplicationBuilder {
     WorthUi::app()
         .register_command(minimal_command_descriptor())
         .register_component(minimal_component_descriptor())

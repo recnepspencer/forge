@@ -2,13 +2,14 @@ use crate::capability::{
     AdmittedCapability, ComponentDescriptor, ComponentId, FrozenThemeTokenEntry,
     FrozenViewBindingEntry, SurfaceDescriptor, SurfaceId, ThemeTokenId, ViewBindingId,
 };
-use crate::source::{
-    WorthUiArtifactInputBodyAtom, WorthUiArtifactInputImportNode, WorthUiArtifactInputProvenance,
-};
+use worth_ui_dsl::WorthUiArtifactInputProvenance;
+use worth_ui_dsl::WorthUiAuthoredStructuralBody;
+
+use crate::source::WorthUiRuntimeSemanticImport;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiResolvedArtifactInputNode {
-    Import(WorthUiArtifactInputImportNode),
+    Import(WorthUiRuntimeSemanticImport),
     Component(WorthUiResolvedArtifactInputComponentNode),
     Surface(WorthUiResolvedArtifactInputSurfaceNode),
     Binding(WorthUiResolvedArtifactInputBindingNode),
@@ -20,7 +21,7 @@ pub(crate) struct WorthUiResolvedArtifactInputComponentNode {
     component: AdmittedCapability<ComponentId>,
     descriptor: ComponentDescriptor,
     authored_identity: Option<String>,
-    body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+    structure: WorthUiAuthoredStructuralBody,
     provenance: WorthUiArtifactInputProvenance,
 }
 
@@ -29,7 +30,7 @@ pub(crate) struct WorthUiResolvedArtifactInputSurfaceNode {
     surface: AdmittedCapability<SurfaceId>,
     descriptor: SurfaceDescriptor,
     authored_identity: Option<String>,
-    body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+    structure: WorthUiAuthoredStructuralBody,
     provenance: WorthUiArtifactInputProvenance,
 }
 
@@ -38,7 +39,7 @@ pub(crate) struct WorthUiResolvedArtifactInputBindingNode {
     view_binding: AdmittedCapability<ViewBindingId>,
     entry: FrozenViewBindingEntry,
     authored_identity: Option<String>,
-    body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+    structure: WorthUiAuthoredStructuralBody,
     provenance: WorthUiArtifactInputProvenance,
 }
 
@@ -55,14 +56,14 @@ impl WorthUiResolvedArtifactInputComponentNode {
         component: AdmittedCapability<ComponentId>,
         descriptor: ComponentDescriptor,
         authored_identity: Option<String>,
-        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+        structure: WorthUiAuthoredStructuralBody,
         provenance: WorthUiArtifactInputProvenance,
     ) -> Self {
         Self {
             component,
             descriptor,
             authored_identity,
-            body_atoms,
+            structure,
             provenance,
         }
     }
@@ -75,8 +76,8 @@ impl WorthUiResolvedArtifactInputComponentNode {
         &self.descriptor
     }
 
-    pub(crate) fn body_atoms(&self) -> &[WorthUiArtifactInputBodyAtom] {
-        &self.body_atoms
+    pub(crate) fn structure(&self) -> &WorthUiAuthoredStructuralBody {
+        &self.structure
     }
 
     pub(crate) fn authored_identity(&self) -> Option<&str> {
@@ -93,14 +94,14 @@ impl WorthUiResolvedArtifactInputSurfaceNode {
         surface: AdmittedCapability<SurfaceId>,
         descriptor: SurfaceDescriptor,
         authored_identity: Option<String>,
-        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+        structure: WorthUiAuthoredStructuralBody,
         provenance: WorthUiArtifactInputProvenance,
     ) -> Self {
         Self {
             surface,
             descriptor,
             authored_identity,
-            body_atoms,
+            structure,
             provenance,
         }
     }
@@ -113,8 +114,8 @@ impl WorthUiResolvedArtifactInputSurfaceNode {
         &self.descriptor
     }
 
-    pub(crate) fn body_atoms(&self) -> &[WorthUiArtifactInputBodyAtom] {
-        &self.body_atoms
+    pub(crate) fn structure(&self) -> &WorthUiAuthoredStructuralBody {
+        &self.structure
     }
 
     pub(crate) fn authored_identity(&self) -> Option<&str> {
@@ -131,14 +132,14 @@ impl WorthUiResolvedArtifactInputBindingNode {
         view_binding: AdmittedCapability<ViewBindingId>,
         entry: FrozenViewBindingEntry,
         authored_identity: Option<String>,
-        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+        structure: WorthUiAuthoredStructuralBody,
         provenance: WorthUiArtifactInputProvenance,
     ) -> Self {
         Self {
             view_binding,
             entry,
             authored_identity,
-            body_atoms,
+            structure,
             provenance,
         }
     }
@@ -151,8 +152,8 @@ impl WorthUiResolvedArtifactInputBindingNode {
         &self.entry
     }
 
-    pub(crate) fn body_atoms(&self) -> &[WorthUiArtifactInputBodyAtom] {
-        &self.body_atoms
+    pub(crate) fn structure(&self) -> &WorthUiAuthoredStructuralBody {
+        &self.structure
     }
 
     pub(crate) fn authored_identity(&self) -> Option<&str> {

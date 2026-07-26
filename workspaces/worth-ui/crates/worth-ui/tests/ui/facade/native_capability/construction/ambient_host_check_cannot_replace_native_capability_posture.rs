@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{NativeCapabilityDescriptor, NativeCapabilityId},
+    declaration::{NativeCapabilityDescriptor, NativeCapabilityId},
     support::AmbientHostCheck,
 };
 

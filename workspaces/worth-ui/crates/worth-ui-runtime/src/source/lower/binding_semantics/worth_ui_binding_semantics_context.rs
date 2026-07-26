@@ -5,9 +5,9 @@ use crate::capability::{
     ThemeTokenId, ViewBindingId,
 };
 use crate::source::{
-    WorthUiArtifactInputProvenance, WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode,
-    WorthUiBindingSemanticsMetrics, WorthUiSourceModuleId,
+    WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsMetrics,
 };
+use worth_ui_dsl::{WorthUiArtifactInputProvenance, WorthUiSourceModuleId};
 
 pub(crate) type CommandResolution = (AdmittedCapability<CommandId>, CommandDescriptor);
 pub(crate) type CommandProjectionResolution = (

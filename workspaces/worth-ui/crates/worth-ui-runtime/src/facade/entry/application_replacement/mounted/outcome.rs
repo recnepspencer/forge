@@ -6,16 +6,14 @@ use super::super::{
 pub struct WorthUiPreparedMountedApplicationReplacement<'session> {
     pub(super) session: &'session mut WorthUiActiveApplicationSession,
     pub(super) application: Box<WorthUiPreparedApplicationActivation>,
-    pub(super) mounted_successor: crate::mounting::UiMountedIdentityState,
+    pub(super) mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
     pub(super) frame: crate::mounting::UiPreparedMountedFrame,
 }
 
 pub struct WorthUiMountedApplicationReplacementInFlight<'session> {
     pub(super) session: &'session mut WorthUiActiveApplicationSession,
     pub(super) application: Box<WorthUiPreparedApplicationActivation>,
-    pub(super) mounted_successor: crate::mounting::UiMountedIdentityState,
-    pub(super) publication: crate::mounting::UiMountedFramePublicationCandidate,
-    pub(super) handle: crate::mounting::UiMountedPresentationInFlight,
+    pub(super) mounted: crate::mounting::UiMountedGraphReplacementInFlight,
 }
 
 pub struct WorthUiMountedReplacementAdmissionDenial<'session> {

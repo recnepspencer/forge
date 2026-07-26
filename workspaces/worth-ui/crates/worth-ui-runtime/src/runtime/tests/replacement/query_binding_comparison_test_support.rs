@@ -5,8 +5,9 @@ use crate::runtime::tests::replacement_impact_test_support::{admitted_candidate,
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiNodeReplacementPlan, WorthUiRuntimeImpactNarrowing,
 };
-use crate::source::{WorthUiArtifact, WorthUiRustAuthoredArtifactInputModule};
+use crate::source::WorthUiArtifact;
 use std::sync::OnceLock;
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 
 static LIVE_QUERY_DOMAIN: OnceLock<worth_ui_query_binding::WorthUiInstalledQueryDomain> =
     OnceLock::new();

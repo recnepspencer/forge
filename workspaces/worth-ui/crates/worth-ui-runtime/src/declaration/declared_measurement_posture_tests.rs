@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 use crate::declaration::artifact::ui_declaration_lowering::UiDeclarationLowering;
@@ -13,7 +14,8 @@ use crate::declaration::{
 };
 
 fn lower(spec: UiDslSemanticArtifactSpec) -> crate::declaration::UiDeclarationArtifact {
-    let package = WorthUiDslPackage::named("worth-ui.runtime.declared-measurement.tests");
+    let package =
+        WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.declared-measurement.tests");
     UiDeclarationLowering::lower(package.admit_semantic_artifact(spec))
 }
 
@@ -151,7 +153,7 @@ fn unsupported_measurement_claims_deny_for_non_measurement_families() {
 }
 
 #[test]
-fn contradictory_same_axis_measurement_claims_deny_structurally() {
+fn duplicate_same_axis_measurement_claims_compile_to_one_canonical_meaning() {
     let duplicate_mode = lower(
         UiDslSemanticArtifactSpec::new(
             UiDslSemanticKey::new("workflow_editor.control.duplicate_mode"),
@@ -175,27 +177,26 @@ fn contradictory_same_axis_measurement_claims_deny_structurally() {
         .with_posture_token(UiDslPostureToken::new("measurement:font-metrics-required")),
     );
 
+    let duplicate_mode_policy = duplicate_mode
+        .declared_posture()
+        .expect("compiler-deduplicated mode should admit")
+        .measurement_policy()
+        .admitted()
+        .expect("control measurement lane should retain one mode");
+    let duplicate_evidence_policy = duplicate_evidence
+        .declared_posture()
+        .expect("compiler-deduplicated evidence should admit")
+        .measurement_policy()
+        .admitted()
+        .expect("control measurement lane should retain one evidence requirement");
+
     assert_eq!(
-        duplicate_mode.declared_posture(),
-        Err(&UiDeclaredPostureAdmissionDenial::ContradictoryLaneClaims {
-            family: UiDeclarationFamilyKind::Control,
-            lane: UiDeclaredPostureLaneKind::MeasurementPolicy,
-            observed: vec![
-                "measurement:mode:hug-height".to_owned(),
-                "measurement:mode:hug-height".to_owned(),
-            ],
-        }),
+        duplicate_mode_policy.mode(),
+        Some(UiDeclaredMeasurementMode::HugHeight)
     );
     assert_eq!(
-        duplicate_evidence.declared_posture(),
-        Err(&UiDeclaredPostureAdmissionDenial::ContradictoryLaneClaims {
-            family: UiDeclarationFamilyKind::Control,
-            lane: UiDeclaredPostureLaneKind::MeasurementPolicy,
-            observed: vec![
-                "measurement:font-metrics-required".to_owned(),
-                "measurement:font-metrics-required".to_owned(),
-            ],
-        }),
+        duplicate_evidence_policy.evidence_requirements(),
+        &[UiDeclaredMeasurementEvidenceRequirement::HostFontMetrics]
     );
 }
 
@@ -337,8 +338,8 @@ fn portal_shorthand_with_conflicting_basis_denies_before_planning() {
             family: UiDeclarationFamilyKind::Control,
             lane: UiDeclaredPostureLaneKind::MeasurementPolicy,
             observed: vec![
-                "measurement:portal-anchored".to_owned(),
                 "measurement:basis:scroll-viewport".to_owned(),
+                "measurement:portal-anchored".to_owned(),
             ],
         }),
     );

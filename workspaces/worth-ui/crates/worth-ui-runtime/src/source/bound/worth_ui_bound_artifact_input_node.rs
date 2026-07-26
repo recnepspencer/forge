@@ -3,13 +3,14 @@ use crate::capability::{
     SurfaceId, ThemeTokenId,
 };
 use crate::source::{
-    WorthUiArtifactInputImportNode, WorthUiArtifactInputProvenance, WorthUiBoundSurfaceSemantics,
-    WorthUiBoundThemeTokenSemantics, WorthUiBoundViewBindingReference, WorthUiMosaicStructureFacts,
+    WorthUiBoundSurfaceSemantics, WorthUiBoundThemeTokenSemantics,
+    WorthUiBoundViewBindingReference, WorthUiMosaicStructureFacts, WorthUiRuntimeSemanticImport,
 };
+use worth_ui_dsl::WorthUiArtifactInputProvenance;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiBoundArtifactInputNode {
-    Import(WorthUiArtifactInputImportNode),
+    Import(WorthUiRuntimeSemanticImport),
     Component(WorthUiBoundArtifactInputComponentNode),
     Surface(Box<WorthUiBoundArtifactInputSurfaceNode>),
     Binding(WorthUiBoundArtifactInputBindingNode),

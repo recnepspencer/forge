@@ -6,6 +6,8 @@ mod declared_posture;
 mod family;
 mod inspection;
 mod measurement_dependency;
+#[cfg(test)]
+mod rust_authored_declaration_fixture;
 mod structural_semantics;
 mod support;
 
@@ -54,6 +56,8 @@ pub(crate) use measurement_dependency::declared_query_measurement_dependencies;
 pub use measurement_dependency::{
     UiDeclaredMeasurementBasisRequirementSet, UiDeclaredMeasurementQueryDependencySet,
 };
+#[cfg(test)]
+pub(crate) use rust_authored_declaration_fixture::WorthUiRustAuthoredDeclarationFixture;
 pub use structural_semantics::{
     UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee,
     UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,

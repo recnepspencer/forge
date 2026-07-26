@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -285,8 +286,8 @@ fn planning_graph_fixture(label: &str, operator_token: &str) -> (WorthUiApp, UiG
     let (_, _, world_profile) = display_field_projection_context(label);
     let app = WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.allocation-planning")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.allocation-planning")
                 .with_semantic_artifact_spec(control_spec(
                     "allocation_planning.control.primary",
                     operator_token,

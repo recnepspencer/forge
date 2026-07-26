@@ -1,4 +1,7 @@
 use std::{collections::BTreeMap, path::Path};
+use worth_ui_dsl::{
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule, WorthUiSourceModuleId,
+};
 
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::replacement::candidate::rust_authored_replacement_candidate;
@@ -9,14 +12,10 @@ use crate::runtime::{
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
-    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactInputReference,
-    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiBindingSemanticsLowerer,
-    WorthUiCanonicalArtifactAssembler, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiIdentitySeedLowerer,
-    WorthUiParsedSourceToArtifactInputLowerer, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiSourceModuleId, WorthUiSourcePackageLoader, WorthUiSourceParser,
-    WorthUiStructuralLegalityLowerer,
+    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
+    WorthUiArtifactNode, WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler,
+    WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
+    WorthUiIdentitySeedLowerer, WorthUiStructuralLegalityLowerer,
 };
 
 #[test]
@@ -203,20 +202,14 @@ fn admitted_rust_candidate_from_artifact(
 }
 
 fn file_authored_import_artifact(target_module_path: &str) -> WorthUiArtifact {
-    let source_package = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_source("app/main.wui", format!(r#"import "{target_module_path}";"#))
-        .register_module_with_source(target_module_path, "")
-        .compile()
-        .expect("file-authored package compiles");
-    let parsed_source_package =
-        WorthUiSourceParser::parse_package(&source_package).expect("source package parses");
-    canonical_artifact_from_input(WorthUiParsedSourceToArtifactInputLowerer::lower(
-        &parsed_source_package,
-    ))
+    canonical_artifact_from_input(crate::source::test_compilation::compile_source([
+        ("app/main.wui", format!(r#"import "{target_module_path}";"#)),
+        (target_module_path, String::new()),
+    ]))
 }
 
 fn rust_authored_reordered_import_artifact(target_module_path: &str) -> WorthUiArtifact {
-    canonical_artifact_from_input(WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    canonical_artifact_from_input(crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new(target_module_path),
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
@@ -226,7 +219,7 @@ fn rust_authored_reordered_import_artifact(target_module_path: &str) -> WorthUiA
 }
 
 fn canonical_artifact_from_input(
-    artifact_input: crate::source::WorthUiArtifactInput,
+    artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
         .freeze()
@@ -287,7 +280,9 @@ fn import_node(
             module_id.clone(),
             node_index,
         )),
-        WorthUiArtifactInputReference::new(target),
+        crate::source::test_compilation::semantic_import(target)
+            .target()
+            .clone(),
         0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",

@@ -3,74 +3,75 @@ use crate::runtime::{
     WorthUiCandidateAuthoringLane, WorthUiReplacementCandidate, WorthUiReplacementCandidateBasis,
 };
 
-use super::WorthUiSourceBackedDslPackage;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum WorthUiCandidateDeclarationSource {
-    FileAuthored(WorthUiSourceBackedDslPackage),
-    RustAuthored(WorthUiSourceBackedDslPackage),
-}
+use super::{WorthUiPreparedDeclarationMaterial, WorthUiSemanticHandoffEvidence};
 
 /// Comparison evidence binding candidate artifact identity to the distinct
 /// declaration-source identity produced by the same structured input.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthUiCandidateCompositionBasis {
     candidate: WorthUiReplacementCandidateBasis,
     declaration_source: WorthUiPreparedDeclarationSourceIdentity,
+    semantic_handoff: WorthUiSemanticHandoffEvidence,
 }
+
+impl PartialEq for WorthUiCandidateCompositionBasis {
+    fn eq(&self, other: &Self) -> bool {
+        self.candidate == other.candidate
+            && self.declaration_source == other.declaration_source
+            && self.semantic_handoff.identity() == other.semantic_handoff.identity()
+            && self.semantic_handoff.protocol() == other.semantic_handoff.protocol()
+    }
+}
+
+impl Eq for WorthUiCandidateCompositionBasis {}
 
 /// Sealed pre-authority input. Artifact and declaration source can only move
 /// together into application preparation.
 #[derive(Debug, Eq, PartialEq)]
 pub struct WorthUiCandidateComposition {
     candidate: WorthUiReplacementCandidate,
-    declaration_source: WorthUiCandidateDeclarationSource,
+    declaration_material: WorthUiPreparedDeclarationMaterial,
+    semantic_handoff: WorthUiSemanticHandoffEvidence,
     basis: WorthUiCandidateCompositionBasis,
 }
 
 pub(crate) struct WorthUiCandidatePreparationHandoff {
     candidate: WorthUiReplacementCandidate,
-    declaration_source: WorthUiSourceBackedDslPackage,
-    declaration_source_identity: WorthUiPreparedDeclarationSourceIdentity,
+    declaration_material: WorthUiPreparedDeclarationMaterial,
+    semantic_handoff: WorthUiSemanticHandoffEvidence,
 }
 
 impl WorthUiCandidateComposition {
     pub(super) fn file_authored(
         candidate: WorthUiReplacementCandidate,
-        declaration_source: WorthUiSourceBackedDslPackage,
+        declaration_material: WorthUiPreparedDeclarationMaterial,
+        semantic_handoff: WorthUiSemanticHandoffEvidence,
     ) -> Self {
-        Self::new(
-            candidate,
-            WorthUiCandidateDeclarationSource::FileAuthored(declaration_source),
-        )
+        Self::new(candidate, declaration_material, semantic_handoff)
     }
 
     pub(super) fn rust_authored(
         candidate: WorthUiReplacementCandidate,
-        declaration_source: WorthUiSourceBackedDslPackage,
+        declaration_material: WorthUiPreparedDeclarationMaterial,
+        semantic_handoff: WorthUiSemanticHandoffEvidence,
     ) -> Self {
-        Self::new(
-            candidate,
-            WorthUiCandidateDeclarationSource::RustAuthored(declaration_source),
-        )
+        Self::new(candidate, declaration_material, semantic_handoff)
     }
 
     fn new(
         candidate: WorthUiReplacementCandidate,
-        declaration_source: WorthUiCandidateDeclarationSource,
+        declaration_material: WorthUiPreparedDeclarationMaterial,
+        semantic_handoff: WorthUiSemanticHandoffEvidence,
     ) -> Self {
-        let package = declaration_source.package();
-        let declaration_source_identity = WorthUiPreparedDeclarationSourceIdentity::derive(
-            package.dsl_package(),
-            Some(package.declaration_witness()),
-        );
         let basis = WorthUiCandidateCompositionBasis {
             candidate: candidate.basis(),
-            declaration_source: declaration_source_identity,
+            declaration_source: declaration_material.identity().clone(),
+            semantic_handoff: semantic_handoff.clone(),
         };
         Self {
             candidate,
-            declaration_source,
+            declaration_material,
+            semantic_handoff,
             basis,
         }
     }
@@ -90,8 +91,8 @@ impl WorthUiCandidateComposition {
     pub(super) fn into_preparation_handoff(self) -> WorthUiCandidatePreparationHandoff {
         WorthUiCandidatePreparationHandoff {
             candidate: self.candidate,
-            declaration_source: self.declaration_source.into_package(),
-            declaration_source_identity: self.basis.declaration_source,
+            declaration_material: self.declaration_material,
+            semantic_handoff: self.semantic_handoff,
         }
     }
 }
@@ -101,8 +102,8 @@ impl WorthUiCandidatePreparationHandoff {
         self,
     ) -> (
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationArtifact,
-        WorthUiSourceBackedDslPackage,
-        WorthUiPreparedDeclarationSourceIdentity,
+        WorthUiPreparedDeclarationMaterial,
+        WorthUiSemanticHandoffEvidence,
     ) {
         let canonical_artifact =
             crate::facade::prepared_application_authority::WorthUiPreparedApplicationArtifact::source_backed(
@@ -110,8 +111,8 @@ impl WorthUiCandidatePreparationHandoff {
             );
         (
             canonical_artifact,
-            self.declaration_source,
-            self.declaration_source_identity,
+            self.declaration_material,
+            self.semantic_handoff,
         )
     }
 
@@ -120,8 +121,8 @@ impl WorthUiCandidatePreparationHandoff {
     ) -> (
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationArtifact,
         WorthUiReplacementCandidate,
-        WorthUiSourceBackedDslPackage,
-        WorthUiPreparedDeclarationSourceIdentity,
+        WorthUiPreparedDeclarationMaterial,
+        WorthUiSemanticHandoffEvidence,
     ) {
         let canonical_artifact =
             crate::facade::prepared_application_authority::WorthUiPreparedApplicationArtifact::source_backed(
@@ -130,8 +131,8 @@ impl WorthUiCandidatePreparationHandoff {
         (
             canonical_artifact,
             self.candidate,
-            self.declaration_source,
-            self.declaration_source_identity,
+            self.declaration_material,
+            self.semantic_handoff,
         )
     }
 }
@@ -144,18 +145,8 @@ impl WorthUiCandidateCompositionBasis {
     pub fn declaration_source_identity(&self) -> &WorthUiPreparedDeclarationSourceIdentity {
         &self.declaration_source
     }
-}
 
-impl WorthUiCandidateDeclarationSource {
-    fn package(&self) -> &WorthUiSourceBackedDslPackage {
-        match self {
-            Self::FileAuthored(package) | Self::RustAuthored(package) => package,
-        }
-    }
-
-    fn into_package(self) -> WorthUiSourceBackedDslPackage {
-        match self {
-            Self::FileAuthored(package) | Self::RustAuthored(package) => package,
-        }
+    pub fn semantic_handoff(&self) -> &WorthUiSemanticHandoffEvidence {
+        &self.semantic_handoff
     }
 }

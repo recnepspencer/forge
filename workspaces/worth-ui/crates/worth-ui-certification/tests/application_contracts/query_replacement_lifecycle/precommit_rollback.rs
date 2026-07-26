@@ -1,12 +1,14 @@
-use worth_ui::facade::app::{
-    WorthUiApplicationCutoverDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
-};
+use worth_ui::facade::app::{WorthUiApplicationCutoverDenial, WorthUiVisibleRange};
 use worth_ui_query_binding::{
     WorthUiInstalledLiveQueryView, WorthUiInstalledQueryBindingReference, WorthUiQueryViewShape,
     WorthUiQueryWorkspaceExt,
 };
+use worth_ui_runtime::facade::application::WorthUiVirtualizedPlanSummaryRequest;
 use worth_ui_test_support::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
+};
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use super::scenario::{

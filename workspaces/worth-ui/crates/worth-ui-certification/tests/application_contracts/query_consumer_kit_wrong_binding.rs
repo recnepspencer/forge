@@ -1,4 +1,7 @@
 use worth_ui_query_binding::{WorthUiQueryViewShape, WorthUiQueryWorkspaceExt};
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
+};
 
 use crate::query_consumer_kit_application::file_authored_two_query_view_app;
 use crate::query_consumer_kit_workspace::{
@@ -56,7 +59,11 @@ fn settled_projection_cannot_enter_through_another_query_binding_link() {
 
     assert!(matches!(
         denial,
-        Some(worth_ui::facade::runtime::WorthUiQueryFrameIngressDenial::RetainedFact(_))
+        Some(
+            worth_ui_runtime::facade::runtime_handoff::WorthUiQueryFrameIngressDenial::RetainedFact(
+                _,
+            )
+        )
     ));
     let _shutdown = session.shutdown();
 }

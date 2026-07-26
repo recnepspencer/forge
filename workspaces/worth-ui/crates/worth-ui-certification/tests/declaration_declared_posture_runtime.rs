@@ -5,9 +5,12 @@ use worth_ui::facade::declaration::{
     UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind, UiDeclaredQueryBindingPosture,
     UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_host_contract::WorthUiHostCapability;
 use worth_ui_test_support::UiDeclaredMeasurementMode;
@@ -30,8 +33,8 @@ fn assert_applicability_vector(
 #[test]
 fn public_freeze_projects_declared_posture_contracts_from_declaration_authority() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declared-posture")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.declared-posture")
                 .with_semantic_artifact_spec(control_posture_spec()),
         )
         .freeze()
@@ -81,15 +84,17 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
         .expect("application preparation should succeed");
     let page = artifact_from_file_provenance(&page_app, "worth-ui.runtime.bootstrap", 0);
 
+    let control_fixture = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.declared-posture.classification",
+    )
+    .with_semantic_artifact_spec(classification_control_spec());
+    let control_provenance =
+        control_fixture.admitted_provenance_for("workflow_editor.inspector.save");
     let control_app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declared-posture.classification")
-                .with_semantic_artifact_spec(classification_control_spec()),
-        )
+        .with_rust_authored_declaration_fixture(control_fixture)
         .freeze()
         .expect("application preparation should succeed");
-    let control =
-        artifact_from_file_provenance(&control_app, "app/declared_posture_classification.wui", 1);
+    let control = artifact_from_compiler_provenance(&control_app, &control_provenance);
 
     assert_applicability_vector(
         page,
@@ -168,19 +173,21 @@ fn invalid_declared_posture_denies_before_runtime_or_host_promotion() {
 #[test]
 fn host_capability_requirements_appear_as_declared_posture_before_host_inference() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declared-posture.host")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("workflow_editor.inspector.name"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored("app/declared_posture_host.wui", 0),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:name"))
-                    .with_posture_token(UiDslPostureToken::new("touch:text-entry"))
-                    .with_posture_token(UiDslPostureToken::new("host-capability:text-input"))
-                    .with_posture_token(UiDslPostureToken::new("host-capability:ime")),
-                ),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.declared-posture.host",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("workflow_editor.inspector.name"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored("app/declared_posture_host.wui", 0),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:name"))
+                .with_posture_token(UiDslPostureToken::new("touch:text-entry"))
+                .with_posture_token(UiDslPostureToken::new("host-capability:text-input"))
+                .with_posture_token(UiDslPostureToken::new("host-capability:ime")),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -257,12 +264,26 @@ fn artifact_from_file_provenance<'a>(
         })
 }
 
+fn artifact_from_compiler_provenance<'a>(
+    app: &'a worth_ui::facade::app::WorthUiApp,
+    provenance: &UiDslSourceProvenance,
+) -> &'a UiDeclarationArtifact {
+    artifact_from_file_provenance(
+        app,
+        provenance.module_path(),
+        provenance.declaration_index(),
+    )
+}
+
 fn freeze_denial(
     package_name: &'static str,
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
-        .with_dsl_package(WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(spec))
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(package_name)
+                .with_semantic_artifact_spec(spec),
+        )
         .freeze()
     {
         Ok(_) => panic!("invalid declaration authority must deny application preparation"),

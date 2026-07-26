@@ -1,7 +1,5 @@
-use worth_ui::facade::{
-    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
-    registry::FrozenPluginSlotCapabilities,
-};
+use worth_ui::facade::diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic};
+use worth_ui_runtime::facade::registry::snapshot::FrozenPluginSlotCapabilities;
 
 pub(crate) fn assert_registered_plugin_slot_ids(
     slots: &FrozenPluginSlotCapabilities,

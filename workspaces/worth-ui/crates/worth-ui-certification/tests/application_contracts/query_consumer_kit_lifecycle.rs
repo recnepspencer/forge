@@ -1,10 +1,13 @@
 use worth_ui::facade::{
-    app::{WorthUi, WorthUiQueryViewRegistrationError},
-    query_binding::WorthUiQueryBindingRegistrationDenialKind,
+    app::WorthUi,
+    query_binding::{WorthUiQueryBindingRegistrationDenialKind, WorthUiQueryViewRegistrationError},
 };
 use worth_ui_dsl::UiDslSourceProvenance;
 use worth_ui_query_binding::{
     WorthUiQueryOperationAttemptDenial, WorthUiQueryViewShape, WorthUiQueryWorkspaceExt,
+};
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use crate::query_consumer_kit_application::{

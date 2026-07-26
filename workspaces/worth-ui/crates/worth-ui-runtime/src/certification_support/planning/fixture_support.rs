@@ -1,6 +1,6 @@
 use worth_ui_dsl::{
-    UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslPostureToken, UiDslSemanticFamily, UiDslSemanticKey, UiDslStructuralToken,
+    WorthUiSemanticArtifactDeclaration,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -15,8 +15,10 @@ use crate::graph::{UiGraphNodeIdentity, UiGraphSnapshot, UiGraphWorldProfile};
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityLowerer,
+};
+use worth_ui_dsl::{
+    WorthUiDslCompiler, WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
 
 pub(super) use super::fixture_host::{
@@ -102,9 +104,10 @@ pub(super) fn artifact_from_modules<const N: usize>(
     app: &WorthUiApp,
     modules: [WorthUiRustAuthoredArtifactInputModule; N],
 ) -> WorthUiArtifact {
-    let input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let input = WorthUiDslCompiler::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
-    );
+    )
+    .expect("suite source compiles");
     let snapshot = app.capabilities();
     let resolved =
         WorthUiArtifactInputResolver::resolve(&input, snapshot).expect("suite input resolves");
@@ -155,26 +158,25 @@ fn multi_control_app(
     bounded: bool,
     module_path: &str,
 ) -> WorthUiApp {
-    let mut package = WorthUiDslPackage::named("worth-ui.runtime.allocation-planning-suite");
+    let mut module = WorthUiRustAuthoredArtifactInputModule::new(format!("app/{module_path}"));
     for index in 0..nodes {
-        let mut spec = UiDslSemanticArtifactSpec::new(
+        let mut declaration = WorthUiSemanticArtifactDeclaration::new(
             UiDslSemanticKey::new(format!("planning.suite.node.{index}")),
             UiDslSemanticFamily::Control,
-            UiDslSourceProvenance::file_authored(format!("app/{module_path}"), index),
         )
         .with_structural_token(UiDslStructuralToken::new("control:primary"))
         .with_structural_token(UiDslStructuralToken::new("slot:footer"))
         .with_structural_token(UiDslStructuralToken::new(operator_token))
         .with_posture_token(UiDslPostureToken::new("touch:press"));
         if bounded {
-            spec =
-                spec.with_posture_token(UiDslPostureToken::new("measurement:constraint:bounded"));
+            declaration = declaration
+                .with_posture_token(UiDslPostureToken::new("measurement:constraint:bounded"));
         }
-        package = package.with_semantic_artifact_spec(spec);
+        module = module.with_semantic_declaration(declaration);
     }
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(package)
+        .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
         .expect("application preparation should succeed")
 }

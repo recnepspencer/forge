@@ -4,6 +4,7 @@ use worth_ui::facade::app::{
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 

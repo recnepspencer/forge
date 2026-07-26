@@ -1,6 +1,6 @@
 use super::activation_staging_test_support::activation_staging_inputs;
 use super::durable_state_reconciliation_test_support::{
-    deterministic_reconciliation_inputs, stale_inventory_for,
+    deterministic_reconciliation_inputs, inventory_from_foreign_replacement,
 };
 use super::query_binding_comparison_test_support::{
     phase11_pipeline, query_artifact, standard_query_app,
@@ -46,13 +46,13 @@ fn invalid_candidate_reload_preserves_previous_active_plan() {
 
 #[test]
 fn failed_reconciliation_preserves_prior_valid_runtime_state() {
-    let (runtime, plan, inventory) = deterministic_reconciliation_inputs();
+    let (runtime, plan, _) = deterministic_reconciliation_inputs();
     let active_before_failure = runtime.inspect_active();
     let last_valid_before_failure = runtime.last_valid();
-    let stale_inventory = stale_inventory_for(&inventory);
+    let foreign_inventory = inventory_from_foreign_replacement();
     let denial = runtime
-        .reconcile_durable_state(&plan, &stale_inventory)
-        .expect_err("stale inventory denies state reconciliation");
+        .reconcile_durable_state(&plan, &foreign_inventory)
+        .expect_err("foreign inventory denies state reconciliation");
 
     let failure = runtime.preserve_failed_reconciliation(&denial);
 

@@ -17,17 +17,9 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) active_plan_digest: u64,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     pub(super) completion: WorthUiFrameworkTurnCompletion<'session>,
-    pub(super) mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
-    pub(super) mounted_retention:
-        &'session mut crate::mounting::UiMountedFrameRetentionCoordinator,
+    pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
-    pub(super) mounted_presentation:
-        &'session mut crate::mounting::UiMountedPresentationCoordinator,
-    pub(super) mounted_publication_reservations: &'session mut std::collections::BTreeMap<
-        worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
-        crate::mounting::UiMountedFramePublicationCandidate,
-    >,
-    pub(super) host_observations: &'session mut crate::host_exchange::observation_report_validation::UiHostObservationReportValidation,
+    pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
 }
 
 /// Executable framework-turn authority lent by one active application session.
@@ -36,7 +28,9 @@ pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     pub(super) graph: crate::graph::UiGraphAuthority<'session>,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     pub(super) execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
-    pub(super) mounted_identity: &'session mut crate::mounting::UiMountedIdentityState,
+    pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
+    pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
+    pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
     pub(super) host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     pub(super) host_capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
@@ -61,12 +55,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             active_plan_digest,
             host_session_identity,
             completion,
-            mounted_identity,
-            mounted_retention,
+            mounted,
             host_session,
-            mounted_presentation,
-            mounted_publication_reservations,
-            host_observations,
+            host_exchange,
         } = self;
         let host_protocol = host_session.protocol();
         let capability_report = host_session.capability_report();
@@ -76,7 +67,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 graph,
                 host_session_identity,
                 execution,
-                mounted_identity,
+                mounted,
+                host_session,
+                host_exchange,
                 host_protocol,
                 host_capability_generation: capability_report.observation_generation(),
                 host_capability_profile_digest: capability_report.profile_identity_digest(),
@@ -87,32 +80,17 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 active_plan_digest,
                 host_session_identity,
                 completion: *completion,
-                mounted_identity,
-                mounted_retention,
+                mounted,
                 host_session,
-                mounted_presentation,
-                mounted_publication_reservations,
-                host_observations,
+                host_exchange,
             })),
         }
     }
 }
 
 impl WorthUiActiveFrameworkTurnExecution<'_> {
-    pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.generation_identity
-    }
-
-    pub fn activation_boundary(&self) -> &crate::runtime::WorthUiFrameBoundary {
-        self.execution.activation_boundary()
-    }
-
     pub fn into_activation_boundary(self) -> crate::runtime::WorthUiFrameBoundary {
         self.execution.into_activation_boundary()
-    }
-
-    pub fn planning_counters(&self) -> crate::runtime::UiFrameworkTransitionPlanningCounters {
-        self.execution.planning_counters()
     }
 
     pub fn execute_ordinary_frame(

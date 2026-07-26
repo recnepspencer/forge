@@ -5,16 +5,20 @@ use worth_ui::facade::graph::{
     UiGraphWorldProfile,
 };
 use worth_ui_certification::scenario::installed_query_world;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
+use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 pub fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-touch")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-touch")
                 .with_semantic_artifact_spec(control_spec())
                 .with_semantic_artifact_spec(region_spec())
                 .with_semantic_artifact_spec(mosaic_spec()),
@@ -77,7 +81,7 @@ pub fn query_snapshot_world_profile(
 ) -> UiGraphWorldProfile {
     let binding = schema_basis_parts.join(".").replace('-', "_");
     installed_query_world::settled_query_world_profile(
-        worth_ui::facade::registry::ViewBindingId::new(binding.clone()).unwrap(),
+        worth_ui::facade::declaration::ViewBindingId::new(binding.clone()).unwrap(),
         format!("{binding}.{snapshot_label}").replace('-', "_"),
     )
 }

@@ -4,9 +4,12 @@ use worth_ui::facade::inspection::{
     UiInspectionObligationRelevanceDetail, UiInspectionQuery, UiInspectionRelevance,
     UiInspectionScope, UiInspectionTarget, UiRelevanceFamily, UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
@@ -231,19 +234,21 @@ fn ai_harness_keeps_support_and_closure_reports_on_the_ordinary_surface() {
 
 fn ai_surface_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.ai-inspection-runtime")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.workflow.ai_inspection"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(AI_ARTIFACT_MODULE, 0),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:workflow"))
-                    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-                    .with_published_aspect(UiDslAspectName::new("content.text"))
-                    .with_consumed_aspect(UiDslAspectName::new("content.text")),
-                ),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.ai-inspection-runtime",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.workflow.ai_inspection"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored(AI_ARTIFACT_MODULE, 0),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:workflow"))
+                .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
+                .with_published_aspect(UiDslAspectName::new("content.text"))
+                .with_consumed_aspect(UiDslAspectName::new("content.text")),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

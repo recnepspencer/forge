@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     TaskPresentationCancellationPosture, TaskPresentationDescriptor,
     TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationId,
     TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,

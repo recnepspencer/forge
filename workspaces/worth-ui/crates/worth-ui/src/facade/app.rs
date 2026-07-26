@@ -1,61 +1,30 @@
 pub use worth_ui_runtime::facade::application::{
-    UiAllocationCatalogDeltaCounters, UiAllocationCatalogRowDisposition,
-    UiAllocationCatalogRowTransition, UiAllocationCatalogSuccessorReceipt,
-    WorthUiExecutablePlanDecision, WorthUiExecutablePlanDecisionKind,
-    WorthUiExecutablePlanEquivalenceDenial, WorthUiNoOpProvenancePosture, WorthUiNoOpQueryPosture,
-    WorthUiOrdinaryFrameTarget, WorthUiOrdinaryPlanAvailability, WorthUiOrdinaryPlanSummary,
-    WorthUiOrdinaryPlanSummaryDenial, WorthUiOrdinaryPlanSummaryRequest,
-    WorthUiOrdinarySummaryTarget, WorthUiOrdinaryTouchBreadth,
-    WorthUiPlanEquivalenceEvidenceReference, WorthUiPlanEquivalenceSummary,
-    WorthUiPlanRegionStorageCounters, WorthUiPlanRegionTransition, WorthUiReloadCostContext,
-    WorthUiReloadLoweringCounterReceipt, WorthUiReloadLoweringFoundationalEvidence,
-    WorthUiSemanticNoOpReceipt, WorthUiSemanticNoOpWork, WorthUiVirtualizedDataFrameTarget,
-    WorthUiVirtualizedPlanAvailability, WorthUiVirtualizedPlanSummary,
-    WorthUiVirtualizedPlanSummaryDenial, WorthUiVirtualizedPlanSummaryRequest, WorthUiVisibleRange,
-    WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
+    WorthUiVisibleRange, WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
 pub use worth_ui_runtime::facade::entry::{
-    UiMountedAllocationMeasurementRequest, WorthUiMountedAllocationEstablishmentDenial,
-    WorthUiMountedAllocationEstablishmentReceipt, WorthUiMountedAllocationRuntimeStage,
-    WorthUiQueryViewRegistrationError,
+    WorthUiApplicationCutoverRetry, WorthUiApplicationPublicationObservation,
 };
 pub use worth_ui_runtime::facade::lifecycle::{
     WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
 };
-pub use worth_ui_runtime::facade::prepared_application_authority::{
-    WorthUiHostSessionPlan, WorthUiPreparedApplicationArtifactPosture,
-    WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationGenerationIdentity,
-    WorthUiPreparedDeclarationSourceIdentity,
+pub use worth_ui_runtime::facade::mounted::{
+    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameRequest,
+    UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
+    UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
+    UiMountedPresentationInFlight, UiMountedRejectedFrame, UiPresentationDeadline,
 };
-pub use worth_ui_runtime::facade::runtime_handoff::{
-    UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionOutcome,
-    UiFrameworkTransitionPlanningDenial, UiPreviewPaintIsolationOutcome, UiResizeLogicalExtent,
-    UiResizePreviewSample, WorthUiFrameworkTurnCompletion, WorthUiMountedPreviewFollowOn,
-    WorthUiPendingMountedPreviewProjection,
-};
+pub use worth_ui_runtime::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 pub use worth_ui_runtime::facade::{
-    WorthUi, WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity,
-    WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
-    WorthUiActiveFrameworkTurnExecution, WorthUiActiveInspectionReceipt,
-    WorthUiActiveOrdinaryFrameCompletion, WorthUiActiveRealtimeFrameCompletion,
-    WorthUiActiveVirtualizedDataFrameCompletion, WorthUiAllocationCatalogActivationDenial,
-    WorthUiApp, WorthUiAppBuilder, WorthUiApplicationCutoverDenial,
-    WorthUiApplicationCutoverReceipt, WorthUiApplicationReplacementLoweringDenial,
-    WorthUiApplicationReplacementOutcome, WorthUiApplicationReplacementPreparationDenial,
-    WorthUiApplicationReplacementStagingDenial, WorthUiApplicationSemanticNoOpReceipt,
-    WorthUiBuilder, WorthUiCandidateInspectionReceipt, WorthUiHostMeasurementCapability,
-    WorthUiHostMeasurementSessionInput, WorthUiHostSessionIdentity,
+    WorthUi, WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity, WorthUiApp,
+    WorthUiApplicationBuilder, WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
+    WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
+    WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
+    WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,
     WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementOutcome, WorthUiMountedFrameExecutionStop,
-    WorthUiMountedLaneProjectionDenial, WorthUiMountedPreviewAdmissionRejection,
-    WorthUiMountedPreviewCompletionRejection, WorthUiMountedPreviewDisposition,
-    WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
-    WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
-    WorthUiMountedPreviewRetentionRejection, WorthUiMountedReplacementAdmissionDenial,
+    WorthUiMountedFrameFrameworkTransitionStop, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
     WorthUiMountedReplacementRetentionDenial, WorthUiPendingApplicationCutover,
-    WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
-    WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,
+    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
     WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
-    WorthUiResolvedMountedPreview,
 };

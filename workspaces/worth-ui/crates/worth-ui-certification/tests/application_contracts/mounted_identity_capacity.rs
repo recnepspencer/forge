@@ -1,4 +1,5 @@
-use worth_ui::facade::mounted::UiMountedIdentityDenial;
+use worth_ui_runtime::facade::mounted::UiMountedIdentityDenial;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     active_session, first_node, registered_surface,

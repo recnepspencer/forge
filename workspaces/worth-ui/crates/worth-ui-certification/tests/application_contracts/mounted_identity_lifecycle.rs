@@ -1,7 +1,8 @@
-use worth_ui::facade::mounted::{
+use worth_ui_host_contract::{UiMountedInstanceIdentity, UiSemanticSurfaceIdentity};
+use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedIdentityDenial, UiPresentationDeadline,
 };
-use worth_ui_host_contract::{UiMountedInstanceIdentity, UiSemanticSurfaceIdentity};
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::{
@@ -193,8 +194,8 @@ fn application_replacement_advances_the_world_and_preserves_uninterrupted_mounts
 
 pub(super) fn incarnation(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-    identity: worth_ui::facade::mounted::UiMountedInstanceIdentity,
-) -> worth_ui::facade::mounted::UiMountIncarnation {
+    identity: worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity,
+) -> worth_ui_runtime::facade::mounted::UiMountIncarnation {
     session
         .inspect_mounted_identity()
         .mounted_instances()
@@ -206,7 +207,7 @@ pub(super) fn incarnation(
 
 pub(super) fn receipt_ids(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> Vec<worth_ui::facade::mounted::UiMountedNodeReceiptIdentity> {
+) -> Vec<worth_ui_runtime::facade::mounted::UiMountedNodeReceiptIdentity> {
     session
         .inspect_mounted_identity()
         .frame_receipts()

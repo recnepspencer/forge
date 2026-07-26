@@ -9,7 +9,7 @@ use crate::runtime::planning::plan_topology::{
     WorthUiPlanRegionStore, WorthUiPlanRegionStoreDenial,
 };
 use crate::runtime::WorthUiPlanNodeInputFamily;
-use crate::source::WorthUiRustAuthoredArtifactInputModule;
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 
 const COMMAND_COUNT: usize = 64;
 const CHANGED_COMMAND: usize = 31;

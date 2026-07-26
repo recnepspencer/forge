@@ -2,8 +2,7 @@ use worth_foundational::facade::{AspectValue, CanonicalF32};
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, foundation::WorthQueryEntityIdentity, runtime};
 use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::host::WorthUiOperationalHostAdapter;
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
     MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
@@ -24,6 +23,8 @@ use worth_ui_query_binding::{
 use worth_ui_query_binding::{
     WorthUiAdmittedQueryBindingReference, WorthUiQueryBindingPlan, WorthUiQueryViewShape,
 };
+use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -236,9 +237,9 @@ fn builder(
     first: WorthUiInstalledQueryView,
     second: WorthUiInstalledQueryView,
     binding_reference: &WorthUiAdmittedQueryBindingReference,
-) -> worth_ui::facade::app::WorthUiBuilder {
+) -> worth_ui::facade::app::WorthUiApplicationBuilder {
     let graph_world = worth_ui::facade::graph::UiGraphWorldProfile::settled_query_binding(
-        worth_ui::facade::registry::ViewBindingId::new(FIRST_VIEW).unwrap(),
+        worth_ui::facade::declaration::ViewBindingId::new(FIRST_VIEW).unwrap(),
         binding_reference,
     );
     WorthUi::app()

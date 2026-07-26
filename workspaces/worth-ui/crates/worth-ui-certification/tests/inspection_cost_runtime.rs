@@ -5,9 +5,12 @@ use worth_ui::facade::inspection::{
     UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
     UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 use worth_ui_certification::scenario::obligation_dispatch_prerequisite as obligation_dispatch_prerequisite_support;
@@ -250,8 +253,8 @@ fn obligation_projection_count(
 
 fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.inspection-cost")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.inspection-cost")
                 .with_semantic_artifact_spec(
                     UiDslSemanticArtifactSpec::new(
                         UiDslSemanticKey::new("ui.workflow.cost"),
@@ -269,34 +272,30 @@ fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
 
 fn aspect_cost_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.inspection-cost.aspect")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.aspect.alpha"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/inspection_cost_aspect_alpha.wui",
-                            0,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:alpha"))
-                    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-                    .with_published_aspect(UiDslAspectName::new("content.text")),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.inspection-cost.aspect",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.aspect.alpha"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored("app/inspection_cost_aspect_alpha.wui", 0),
                 )
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.aspect.beta"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/inspection_cost_aspect_beta.wui",
-                            0,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:beta"))
-                    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-                    .with_published_aspect(UiDslAspectName::new("content.text")),
-                ),
+                .with_structural_token(UiDslStructuralToken::new("control:alpha"))
+                .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
+                .with_published_aspect(UiDslAspectName::new("content.text")),
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.aspect.beta"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored("app/inspection_cost_aspect_beta.wui", 0),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:beta"))
+                .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
+                .with_published_aspect(UiDslAspectName::new("content.text")),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

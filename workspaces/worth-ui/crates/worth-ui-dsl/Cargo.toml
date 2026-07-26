@@ -8,5 +8,9 @@ license.workspace = true
 name = "worth_ui_dsl"
 path = "src/lib.rs"
 
+[features]
+default = []
+certification-support = []
+
 [lints]
 workspace = true

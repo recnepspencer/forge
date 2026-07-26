@@ -2,14 +2,16 @@ use worth_ui::facade::app::{
     WorthUiMountedApplicationReplacementOutcome, WorthUiMountedReplacementPreparationOutcome,
 };
 use worth_ui::facade::graph::UiAdmittedAllocationCatalogDelta;
-use worth_ui::facade::mounted::{
-    UiHostSurfaceCancellationOutcome, UiMountedFrameOutcome, UiMountedFrameRequest,
-    UiMountedPresentationCompletionDenial, UiPresentationDeadline,
-};
-use worth_ui::facade::runtime::WorthUiFrameBoundary;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::facade::execution::WorthUiFrameBoundary;
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfaceCancellationOutcome, UiMountedFrameOutcome, UiMountedFrameRequest,
+    UiMountedPresentationCompletionDenial, UiPresentationDeadline,
+};
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -25,6 +27,8 @@ use super::mounted_protocol_model::ModelPublicationWorld;
 
 #[path = "mounted_publication/exact_reuse.rs"]
 mod exact_reuse;
+#[path = "mounted_publication/replacement_atomicity.rs"]
+mod replacement_atomicity;
 #[path = "mounted_publication/retention.rs"]
 mod retention;
 #[path = "mounted_publication/retention_saturation.rs"]
@@ -55,7 +59,7 @@ fn accepted_frame_owns_the_successor_slot_until_terminal_publication() {
     assert!(!model.successor_mutation_allowed());
     assert!(matches!(
         session.execute_framework_turn(|_| {}),
-        Err(worth_ui::facade::mounted::UiMountedPublicationLeaseDenial::PresentationInFlight)
+        Err(worth_ui_runtime::facade::mounted::UiMountedPublicationLeaseDenial::PresentationInFlight)
     ));
     let binding = session.inspect_mounted_identity().surface_bindings()[0];
     assert_eq!(
@@ -66,7 +70,7 @@ fn accepted_frame_owns_the_successor_slot_until_terminal_publication() {
                 profile(2),
             )
             .unwrap_err(),
-        worth_ui::facade::mounted::UiMountedIdentityDenial::PresentationInFlight
+        worth_ui_runtime::facade::mounted::UiMountedIdentityDenial::PresentationInFlight
     );
     let replacement_denial = match session.prepare_mounted_replacement(
         pending,
@@ -188,7 +192,8 @@ fn filesystem_replacement_publishes_real_candidate_lane_output_with_application(
         .lane_contributions()
         .iter()
         .any(|cell| {
-            cell.status() == worth_ui::facade::mounted::UiRequiredLaneContributionStatus::Admitted
+            cell.status()
+                == worth_ui_runtime::facade::mounted::UiRequiredLaneContributionStatus::Admitted
         }));
     let candidate_projection = prepared.frame().surfaces()[0].projection();
     assert!(
@@ -287,7 +292,7 @@ fn prepared_mounted_replacement_publication_performs_no_allocations() {
 
 fn published(
     outcome: UiMountedFrameOutcome,
-) -> worth_ui::facade::mounted::UiMountedFramePublicationReceipt {
+) -> worth_ui_runtime::facade::mounted::UiMountedFramePublicationReceipt {
     match outcome {
         UiMountedFrameOutcome::Published(receipt) => receipt,
         _ => panic!("scripted complete presentation publishes"),
@@ -296,7 +301,7 @@ fn published(
 
 fn in_flight(
     outcome: UiMountedFrameOutcome,
-) -> worth_ui::facade::mounted::UiMountedPresentationInFlight {
+) -> worth_ui_runtime::facade::mounted::UiMountedPresentationInFlight {
     match outcome {
         UiMountedFrameOutcome::InFlight(handle) => handle,
         _ => panic!("scripted pending presentation remains in flight"),

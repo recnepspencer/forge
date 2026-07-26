@@ -1,5 +1,5 @@
-use worth_ui::facade::mounted::{UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity};
 use worth_ui_host_contract::UiMountedNodeReceiptIssuer;
+use worth_ui_runtime::facade::mounted::{UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity};
 
 use super::*;
 

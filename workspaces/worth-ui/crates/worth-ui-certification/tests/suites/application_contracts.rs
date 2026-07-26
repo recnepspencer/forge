@@ -8,6 +8,8 @@ mod canvas_spatial_execution;
 mod canvas_spatial_replacement;
 #[path = "../application_contracts/cross_lane_bundle_execution.rs"]
 mod cross_lane_bundle_execution;
+#[path = "../application_contracts/documented_lifecycle_journey.rs"]
+mod documented_lifecycle_journey;
 #[path = "../application_contracts/executor_allocator_observation.rs"]
 mod executor_allocator_observation;
 #[path = "../facade_lifecycle_path_runtime.rs"]
@@ -80,6 +82,14 @@ mod mounted_protocol_model;
 mod mounted_publication;
 #[path = "../application_contracts/multi_removal_filesystem.rs"]
 mod multi_removal_filesystem;
+#[path = "../application_contracts/phase7_adapter_parity.rs"]
+mod phase7_adapter_parity;
+#[path = "../application_contracts/phase7_denial_preservation.rs"]
+mod phase7_denial_preservation;
+#[path = "../application_contracts/phase7_hot_frame_source_exclusion.rs"]
+mod phase7_hot_frame_source_exclusion;
+#[path = "../application_contracts/phase7_public_mounted_allocation.rs"]
+mod phase7_public_mounted_allocation;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
 #[path = "../application_contracts/query_consumer_kit_application.rs"]
@@ -100,6 +110,8 @@ mod query_consumer_kit_workspace;
 mod query_consumer_kit_wrong_binding;
 #[path = "../application_contracts/query_domain_certification_scenarios.rs"]
 mod query_domain_certification_scenarios;
+#[path = "../application_contracts/query_free_headless_app_journey.rs"]
+mod query_free_headless_app_journey;
 #[path = "../application_contracts/query_replacement_lifecycle.rs"]
 mod query_replacement_lifecycle;
 #[path = "../application_contracts/query_settlement_allocation_cost.rs"]
@@ -108,3 +120,7 @@ mod query_settlement_allocation_cost;
 mod realtime_overlay_execution;
 #[path = "../application_contracts/realtime_overlay_replacement.rs"]
 mod realtime_overlay_replacement;
+#[path = "../application_contracts/source_event_ingress_journey.rs"]
+mod source_event_ingress_journey;
+#[path = "../application_contracts/source_transport_diagnostic_parity.rs"]
+mod source_transport_diagnostic_parity;

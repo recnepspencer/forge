@@ -1,11 +1,11 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture,
         MosaicRegionKindDescriptor, MosaicRegionPersistence, MosaicRegionRole,
         MosaicScrollOwnership, MosaicSizingBehavior, SurfacePlacementClass,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 #[path = "mosaic_region_registry/mosaic_region_registry_assertions.rs"]

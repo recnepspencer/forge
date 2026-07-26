@@ -1,14 +1,16 @@
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationMode, UiMountedFrameRetentionBudget,
-    UiMountedFrameRetentionBudgetInput, UiMountedInspectionOmission, UiMountedInspectionReceipt,
-    UiMountedInspectionRequest, UiMountedInstanceIdentity, UiMountedRetentionClass,
-    UiMountedRetentionClassBudget, UiSurfaceBindingGeneration,
-};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationCapacity, UiHostObservationCapacityInput, UiHostObservationFamily,
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
     UiHostObservationReportOutcome,
 };
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiMountedFrameRetentionBudget,
+    UiMountedFrameRetentionBudgetInput, UiMountedInspectionOmission, UiMountedInspectionReceipt,
+    UiMountedInspectionRequest, UiMountedInstanceIdentity, UiMountedRetentionClass,
+    UiMountedRetentionClassBudget, UiSurfaceBindingGeneration,
+};
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use crate::host_observation_fixture::{batch, pointer, report, source};
 use crate::mounted_application_lifecycle::known_empty_surface_world::{

@@ -26,4 +26,5 @@ worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 
 [dev-dependencies]
+worth-ui-dsl = { path = "../worth-ui-dsl", features = ["certification-support"] }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }

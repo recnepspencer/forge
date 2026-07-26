@@ -1,5 +1,5 @@
-use worth_ui::facade::app::WorthUiAppBuilder;
+use worth_ui::facade::app::WorthUiApplicationBuilder;
 
 fn main() {
-    let _ = WorthUiAppBuilder::new();
+    let _ = WorthUiApplicationBuilder::new();
 }

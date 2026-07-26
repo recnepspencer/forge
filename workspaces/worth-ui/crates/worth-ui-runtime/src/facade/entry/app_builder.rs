@@ -14,7 +14,7 @@ use crate::facade::registry::descriptor::{
     TaskPresentationDescriptor, ThemeTokenDescriptor, WorthUiQueryViewRegistration,
 };
 use crate::facade::registry::diagnostics::CapabilityRegistrationReport;
-use crate::facade::{WorthUiApp, WorthUiDslPackage};
+use crate::facade::WorthUiApp;
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::WorthUiWatchedCandidateSubmission;
 
@@ -25,9 +25,9 @@ pub enum WorthUiQueryViewRegistrationError {
 }
 
 /// Builder for a Worth UI application definition.
-pub struct WorthUiBuilder {
+pub struct WorthUiApplicationBuilder {
     inner: CapabilityRegistrationBuilder,
-    preparation_source: WorthUiBuilderPreparationSource,
+    preparation_source: WorthUiApplicationBuilderPreparationSource,
     host_session_plan: WorthUiHostSessionPlan,
     graph_world_profile: UiGraphWorldProfile,
     runtime_instance_basis_admissions: Vec<crate::graph::UiRuntimeInstanceBasisAdmission>,
@@ -35,14 +35,12 @@ pub struct WorthUiBuilder {
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
 }
 
-pub type WorthUiAppBuilder = WorthUiBuilder;
-
-impl WorthUiBuilder {
+impl WorthUiApplicationBuilder {
     pub(crate) fn new() -> Self {
         Self {
             inner: CapabilityRegistrationBuilder::new(),
-            preparation_source: WorthUiBuilderPreparationSource::Declared(
-                WorthUiDslPackage::empty(),
+            preparation_source: WorthUiApplicationBuilderPreparationSource::RustAuthored(
+                worth_ui_dsl::WorthUiRustAuthoredArtifactInput::default(),
             ),
             host_session_plan: WorthUiHostSessionPlan::prepare(
                 crate::host::adapter::WorthUiHeadlessHost,
@@ -54,9 +52,20 @@ impl WorthUiBuilder {
         }
     }
 
-    pub fn with_dsl_package(mut self, dsl_package: WorthUiDslPackage) -> Self {
-        self.preparation_source = WorthUiBuilderPreparationSource::Declared(dsl_package);
+    pub fn with_rust_authored_input(
+        mut self,
+        input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+    ) -> Self {
+        self.preparation_source = WorthUiApplicationBuilderPreparationSource::RustAuthored(input);
         self
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_rust_authored_declaration_fixture(
+        self,
+        fixture: crate::facade::WorthUiRustAuthoredDeclarationFixture,
+    ) -> Self {
+        self.with_rust_authored_input(fixture.into_input())
     }
 
     /// Prepare the exact artifact/declaration composition admitted by watched
@@ -65,7 +74,8 @@ impl WorthUiBuilder {
         mut self,
         submission: WorthUiWatchedCandidateSubmission,
     ) -> Self {
-        self.preparation_source = WorthUiBuilderPreparationSource::Watched(Box::new(submission));
+        self.preparation_source =
+            WorthUiApplicationBuilderPreparationSource::Watched(Box::new(submission));
         self
     }
 
@@ -101,7 +111,10 @@ impl WorthUiBuilder {
         self
     }
 
-    pub fn with_graph_world_profile(mut self, graph_world_profile: UiGraphWorldProfile) -> Self {
+    pub(crate) fn with_graph_world_profile(
+        mut self,
+        graph_world_profile: UiGraphWorldProfile,
+    ) -> Self {
         self.graph_world_profile = graph_world_profile;
         self
     }
@@ -116,7 +129,7 @@ impl WorthUiBuilder {
     }
 
     #[cfg(test)]
-    pub fn with_measurement_inspection_evidence(
+    pub(crate) fn with_measurement_inspection_evidence(
         mut self,
         evidence: UiMeasurementInspectionEvidenceBundle,
     ) -> Self {
@@ -254,10 +267,10 @@ impl WorthUiBuilder {
             .freeze_with_registration_report()
             .into_accepted_snapshot();
         let preparation_source = match self.preparation_source {
-            WorthUiBuilderPreparationSource::Declared(dsl_package) => {
-                WorthUiApplicationPreparationSource::declared(dsl_package)
+            WorthUiApplicationBuilderPreparationSource::RustAuthored(input) => {
+                WorthUiApplicationPreparationSource::rust_authored(&input, &capability_snapshot)?
             }
-            WorthUiBuilderPreparationSource::Watched(submission) => {
+            WorthUiApplicationBuilderPreparationSource::Watched(submission) => {
                 WorthUiApplicationPreparationSource::watched_submission(
                     *submission,
                     capability_snapshot.digest(),
@@ -292,7 +305,7 @@ impl WorthUiBuilder {
     }
 }
 
-enum WorthUiBuilderPreparationSource {
-    Declared(WorthUiDslPackage),
+enum WorthUiApplicationBuilderPreparationSource {
+    RustAuthored(worth_ui_dsl::WorthUiRustAuthoredArtifactInput),
     Watched(Box<WorthUiWatchedCandidateSubmission>),
 }

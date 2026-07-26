@@ -1,5 +1,3 @@
-use worth_ui_host_contract::UiMountedPresentationAttemptIdentity;
-
 mod outcome;
 mod pending;
 mod presentation;
@@ -51,14 +49,8 @@ pub struct WorthUiMountedPreviewCompletionRejection<'session> {
 
 struct WorthUiMountedPreviewPorts<'session> {
     host_session: &'session crate::facade::WorthUiHostSessionAuthority,
-    identity: &'session mut crate::mounting::UiMountedIdentityState,
-    retention: &'session mut crate::mounting::UiMountedFrameRetentionCoordinator,
-    presentation: &'session mut crate::mounting::UiMountedPresentationCoordinator,
-    reservations: &'session mut std::collections::BTreeMap<
-        UiMountedPresentationAttemptIdentity,
-        crate::mounting::UiMountedFramePublicationCandidate,
-    >,
-    observations: &'session mut crate::host_exchange::observation_report_validation::UiHostObservationReportValidation,
+    mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
+    host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
 }
 
 #[derive(Debug, PartialEq)]

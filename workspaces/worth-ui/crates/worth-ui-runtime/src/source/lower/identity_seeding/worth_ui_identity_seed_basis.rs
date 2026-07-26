@@ -4,8 +4,9 @@ use crate::source::{
     WorthUiBoundArtifactInputComponentNode, WorthUiBoundArtifactInputSurfaceNode,
     WorthUiBoundArtifactInputThemeTokenNode, WorthUiDurableStateEligibility,
     WorthUiDurableStateIneligibilityReason, WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,
-    WorthUiSourceModuleId,
+    WorthUiRuntimeSemanticImport,
 };
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 pub(super) fn component_seed(
     module_id: &WorthUiSourceModuleId,
@@ -65,7 +66,7 @@ pub(super) fn token_seed(
 
 pub(super) fn import_seed(
     module_id: &WorthUiSourceModuleId,
-    import: &crate::source::WorthUiArtifactInputImportNode,
+    import: &WorthUiRuntimeSemanticImport,
 ) -> WorthUiArtifactIdentitySeed {
     WorthUiArtifactIdentitySeed::structural_fallback(format!(
         "import|module:{}|target:{}",

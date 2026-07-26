@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     MosaicRegionKindId, MosaicStateOwnerIdentity, MosaicStateOwnerScopeId,
     MosaicStatePersistencePolicy, MosaicStateReplacementRule, MosaicStateSlotDescriptor,
     MosaicStateSlotId, MosaicStateSlotKind, MosaicStateTruthPosture, SurfaceId,

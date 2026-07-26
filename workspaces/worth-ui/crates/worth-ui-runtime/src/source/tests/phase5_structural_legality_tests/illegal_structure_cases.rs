@@ -1,6 +1,5 @@
 use super::structural_legality_body_fixture_support::{
-    duplicate_and_invalid_body_atoms, illegal_region_child_mix_body_atoms,
-    illegal_root_statement_body_atoms, invalid_sizing_body_atoms,
+    illegal_region_child_mix_body_atoms, invalid_sizing_body_atoms,
     resolved_artifact_input_from_modules, standard_component_module,
 };
 use super::structural_legality_capability_fixture_support::{
@@ -11,10 +10,8 @@ use crate::capability::{
     CapabilitySupportKind, RegistrationCandidate, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
     MOSAIC_SIZING_CONTRACT_FAMILY_NAME,
 };
-use crate::source::{
-    WorthUiRustAuthoredArtifactInputModule, WorthUiStructuralLegalityDiagnosticCode,
-    WorthUiStructuralLegalityLowerer,
-};
+use crate::source::{WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityLowerer};
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 
 #[test]
 fn illegal_region_or_scroll_or_sizing_shape_rejected_before_artifact_assembly() {
@@ -98,53 +95,6 @@ fn platform_internal_references_fail_here_with_deterministic_sorted_report() {
     assert!(codes.contains(
         &WorthUiStructuralLegalityDiagnosticCode::PlatformInternalMosaicPlacementPolicyReference
     ));
-}
-
-#[test]
-fn duplicate_structural_declarations_sort_deterministically() {
-    let app = standard_app();
-    let snapshot = app.capabilities();
-    let resolved = resolved_artifact_input_from_modules(
-        [
-            WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_component_body_atoms(
-                "workspace.component.dashboard",
-                duplicate_and_invalid_body_atoms(),
-            ),
-        ],
-        snapshot,
-    );
-
-    let report = WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot).unwrap_err();
-    let codes: Vec<_> = report
-        .diagnostics()
-        .iter()
-        .map(|diagnostic| diagnostic.code())
-        .collect();
-    assert_eq!(
-        codes,
-        vec![WorthUiStructuralLegalityDiagnosticCode::DuplicateRegionSizingDeclaration]
-    );
-}
-
-#[test]
-fn illegal_root_structural_statement_rejected_with_exact_code() {
-    let app = standard_app();
-    let snapshot = app.capabilities();
-    let resolved = resolved_artifact_input_from_modules(
-        [
-            WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_component_body_atoms(
-                "workspace.component.dashboard",
-                illegal_root_statement_body_atoms(),
-            ),
-        ],
-        snapshot,
-    );
-
-    let report = WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot).unwrap_err();
-    assert_eq!(
-        report.diagnostics()[0].code(),
-        WorthUiStructuralLegalityDiagnosticCode::IllegalRootStructuralStatement
-    );
 }
 
 #[test]

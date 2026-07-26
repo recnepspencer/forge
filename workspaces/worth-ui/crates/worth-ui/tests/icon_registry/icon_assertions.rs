@@ -1,9 +1,7 @@
-use worth_ui::facade::{
-    diagnostics::{
-        CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, CapabilityRegistrationReport,
-    },
-    registry::FrozenIconCapabilities,
+use worth_ui::facade::diagnostics::{
+    CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic, CapabilityRegistrationReport,
 };
+use worth_ui_runtime::facade::registry::snapshot::FrozenIconCapabilities;
 
 pub(crate) fn assert_registered_icon_ids(registry: &FrozenIconCapabilities, expected_ids: &[&str]) {
     let actual_ids = registry

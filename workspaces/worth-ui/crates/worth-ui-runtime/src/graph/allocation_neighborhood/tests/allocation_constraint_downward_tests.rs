@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_host_contract::WorthUiHostCapabilityReport;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
@@ -177,18 +178,20 @@ fn child_posture_app(
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.graph.allocation-constraint.child-posture")
-                .with_semantic_artifact_spec(child_posture_spec(
-                    "workflow_editor.control.parent",
-                    0,
-                    true,
-                ))
-                .with_semantic_artifact_spec(child_posture_spec(
-                    "workflow_editor.control.child",
-                    1,
-                    child_bounded,
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.graph.allocation-constraint.child-posture",
+            )
+            .with_semantic_artifact_spec(child_posture_spec(
+                "workflow_editor.control.parent",
+                0,
+                true,
+            ))
+            .with_semantic_artifact_spec(child_posture_spec(
+                "workflow_editor.control.child",
+                1,
+                child_bounded,
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")

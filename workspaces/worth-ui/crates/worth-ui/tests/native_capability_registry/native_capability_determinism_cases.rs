@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{NativeCapabilityDescriptor, NativeCapabilityFamily, NativePlatformPosture},
+    declaration::{NativeCapabilityDescriptor, NativeCapabilityFamily, NativePlatformPosture},
 };
 
 use super::native_capability_assertions::assert_registered_native_capability_ids;

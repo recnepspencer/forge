@@ -4,6 +4,9 @@
 //! through `worth-ui-test-support` (feature `certification-support`). Production law is not defined here.
 
 mod activation_interruption;
+mod active_session_observation;
+mod application_builder;
+mod framework_turn_execution;
 mod layout_admission;
 mod mounted_frame_execution;
 mod planning;
@@ -17,10 +20,16 @@ pub use crate::admission::{
     UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
 pub use crate::declaration::UiDeclaredMeasurementMode;
+pub use crate::facade::entry::{
+    WorthUiMountedAllocationCertificationExt, WorthUiMountedIdentityCertificationExt,
+};
 pub(crate) use activation_interruption::interrupt_if_armed;
 pub use activation_interruption::{
     with_activation_precommit_interruption, WorthUiActivationPrecommitStage,
 };
+pub use active_session_observation::WorthUiActiveSessionCertificationExt;
+pub use application_builder::WorthUiApplicationBuilderCertificationExt;
+pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;
 pub use mounted_frame_execution::{

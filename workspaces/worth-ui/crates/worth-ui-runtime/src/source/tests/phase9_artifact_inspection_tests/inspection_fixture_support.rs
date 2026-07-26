@@ -2,10 +2,9 @@ use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactInspection,
     WorthUiArtifactInspectionBasis, WorthUiArtifactInspectionBasisBuilder,
     WorthUiArtifactInspectionDeriver, WorthUiArtifactInspectionMetrics, WorthUiArtifactNode,
-    WorthUiCanonicalArtifactAssembler, WorthUiParsedSourceToArtifactInputLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiSourcePackageLoader, WorthUiSourceParser,
+    WorthUiCanonicalArtifactAssembler,
 };
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 use super::super::phase7_identity_seeding_tests::identity_app_fixture::identity_test_app;
 use super::super::phase7_identity_seeding_tests::identity_fixture_support::{
@@ -49,14 +48,10 @@ pub(super) fn file_authored_inspection_subject(
 ) {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let source_package = WorthUiSourcePackageLoader::from_workspace_root(r"C:\workspace")
-        .register_module_with_source("app/main.wui", main_module_source)
-        .register_module_with_source("app/panels/inspector.wui", inspector_module_source)
-        .compile()
-        .expect("file-authored package should compile");
-    let parsed_source_package =
-        WorthUiSourceParser::parse_package(&source_package).expect("source package should parse");
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package);
+    let artifact_input = crate::source::test_compilation::compile_source([
+        ("app/main.wui", main_module_source),
+        ("app/panels/inspector.wui", inspector_module_source),
+    ]);
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("phase 4 resolution should succeed");
     let structured = crate::source::WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)
@@ -219,7 +214,7 @@ fn identity_seeded_from_rust_modules<const N: usize>(
 ) -> crate::source::WorthUiIdentitySeededArtifactInput {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let artifact_input = crate::source::WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
