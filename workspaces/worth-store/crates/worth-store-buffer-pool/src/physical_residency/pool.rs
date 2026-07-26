@@ -1,24 +1,34 @@
 use super::{
-    DirtyPhysicalFrame, OperationAllocationGrant, OperationAllocationScope,
-    PhysicalCandidateBatchReservation, PhysicalCandidateFrameReservation, PhysicalFrameLease,
-    PhysicalFrameLoadError, PhysicalResidencyCounters, PhysicalResidencyDenial,
-    PhysicalResidencyLimits, PhysicalResidencyShutdown, PhysicalWritebackClaim,
-    SpeculativeResidencyGrant,
+    DirtyPhysicalFrame, OperationAllocationGrant, PhysicalBoundedFrameAccess,
+    PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
+    PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
+    PhysicalCandidateFrameReservation, PhysicalFrameAccess, PhysicalFrameFaultOwner,
+    PhysicalFrameFaultWaiter, PhysicalFrameLease, PhysicalFrameLoadTerminal,
+    PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity, PhysicalOperationAllocationScope,
+    PhysicalResidencyAccounting, PhysicalResidencyAllocationEventObserver,
+    PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyDimension,
+    PhysicalResidencyLimits, PhysicalResidencyPressureDemand, PhysicalResidencyPressureDenial,
+    PhysicalResidencyShutdown, PhysicalWritebackClaim, SpeculativeResidencyGrant,
 };
 use std::{
     collections::HashMap,
     sync::{Arc, Condvar, Mutex, MutexGuard},
 };
-use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
+use worth_store_physical_format::{
+    store_namespace::StableStoreIdentity, RecordArtifactFile, RecordFrameCoordinate,
+};
 
+mod bounded_frame_admission;
 mod candidate_admission;
 mod dirty_transition;
-mod eviction_order;
+mod eviction;
 mod frame_admission;
+mod frame_table;
 mod identity_transition;
 mod operation_accounting;
 mod pin_lifecycle;
 mod public_api;
+mod writeback_claim;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicalFrameKey {
@@ -35,6 +45,81 @@ impl PhysicalFrameKey {
     }
     pub const fn coordinate(self) -> RecordFrameCoordinate {
         self.coordinate
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PhysicalCandidateFrameKey {
+    frame: PhysicalFrameKey,
+    coverage: PhysicalCandidateFrameCoverage,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum PhysicalCandidateFrameCoverage {
+    Fragment,
+    CompleteArtifact,
+}
+
+impl PhysicalCandidateFrameKey {
+    pub const fn fragment(frame: PhysicalFrameKey) -> Self {
+        Self {
+            frame,
+            coverage: PhysicalCandidateFrameCoverage::Fragment,
+        }
+    }
+
+    pub const fn complete_artifact(frame: PhysicalFrameKey) -> Option<Self> {
+        if frame.coordinate().offset() != 0 {
+            return None;
+        }
+        Some(Self {
+            frame,
+            coverage: PhysicalCandidateFrameCoverage::CompleteArtifact,
+        })
+    }
+
+    pub const fn frame_key(self) -> PhysicalFrameKey {
+        self.frame
+    }
+
+    const fn is_complete_artifact(self) -> bool {
+        matches!(
+            self.coverage,
+            PhysicalCandidateFrameCoverage::CompleteArtifact
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PhysicalBoundedFrameKey {
+    store: StableStoreIdentity,
+    artifact: RecordArtifactFile,
+    limit: std::num::NonZeroU32,
+}
+
+impl PhysicalBoundedFrameKey {
+    pub const fn new(
+        store: StableStoreIdentity,
+        artifact: RecordArtifactFile,
+        limit: std::num::NonZeroU32,
+    ) -> Self {
+        Self {
+            store,
+            artifact,
+            limit,
+        }
+    }
+
+    pub const fn store(self) -> StableStoreIdentity {
+        self.store
+    }
+
+    pub const fn artifact(self) -> RecordArtifactFile {
+        self.artifact
+    }
+
+    pub const fn limit(self) -> u32 {
+        self.limit.get()
     }
 }
 
@@ -68,18 +153,21 @@ pub(crate) struct PoolInner {
     store: StableStoreIdentity,
     incarnation: PhysicalResidencyIncarnation,
     limits: PhysicalResidencyLimits,
-    metadata_bytes: u64,
+    allocation_events: PhysicalResidencyAllocationEventObserver,
     state: Mutex<PoolState>,
     changed: Condvar,
+    #[cfg(test)]
+    bounded_join_waiters: std::sync::atomic::AtomicU32,
 }
 
 #[derive(Debug)]
 struct PoolState {
-    frames: HashMap<RecordFrameCoordinate, FrameEntry>,
-    counters: PhysicalResidencyCounters,
+    frames: frame_table::FrameTable,
+    accounting: PhysicalResidencyAccounting,
     evictable_head: Option<RecordFrameCoordinate>,
     evictable_tail: Option<RecordFrameCoordinate>,
     loading_frames: u32,
+    next_loading_ordinal: u64,
     active_candidate_publications: u32,
     accepting: bool,
     closed: bool,
@@ -95,6 +183,9 @@ struct FrameEntry {
     bytes: u64,
     older_evictable: Option<RecordFrameCoordinate>,
     newer_evictable: Option<RecordFrameCoordinate>,
+    loading_identity: Option<PhysicalFrameLoadingIdentity>,
+    loading_waiters: u32,
+    artifact_posture: FrameArtifactPosture,
 }
 
 impl FrameEntry {
@@ -103,12 +194,14 @@ impl FrameEntry {
             && !self.dirty
             && !self.writeback_claimed
             && matches!(&self.state, FrameState::Resident(_))
+            && self.loading_waiters == 0
     }
 }
 
 #[derive(Debug)]
 enum FrameState {
     Loading,
+    LoadFailed(PhysicalFrameLoadTerminal),
     CandidateReserved,
     Resident(Arc<Vec<u8>>),
 }
@@ -117,6 +210,13 @@ enum FrameState {
 enum FrameOrigin {
     Fault,
     Candidate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FrameArtifactPosture {
+    Fragment,
+    CompleteCandidate,
+    CompleteResident,
 }
 
 impl PoolInner {
@@ -128,8 +228,14 @@ impl PoolInner {
         self.incarnation
     }
 
+    #[cfg(test)]
+    pub(crate) fn bounded_join_waiters(&self) -> u32 {
+        self.bounded_join_waiters
+            .load(std::sync::atomic::Ordering::Acquire)
+    }
+
     pub(crate) fn counters(&self) -> PhysicalResidencyCounters {
-        self.lock().counters
+        self.lock().accounting.snapshot()
     }
 
     fn lock(&self) -> MutexGuard<'_, PoolState> {
@@ -148,62 +254,57 @@ impl PoolInner {
         Ok(())
     }
 
-    fn record_source_load(&self) {
-        self.lock().counters.source_loads += 1;
+    fn validate_bounded_key(
+        &self,
+        key: PhysicalBoundedFrameKey,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        if key.store != self.store {
+            return Err(PhysicalResidencyDenial::WrongStore);
+        }
+        if u64::from(key.limit()) > self.limits.resident_bytes() {
+            return Err(PhysicalResidencyDenial::FrameLargerThanResidentBudget);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn record_source_load(&self) {
+        self.lock().accounting.record_source_load();
     }
 
     pub(crate) fn record_denial(&self, denial: PhysicalResidencyDenial) -> PhysicalResidencyDenial {
         Self::deny(&mut self.lock(), denial)
     }
 
-    fn observe_admitted_peak(&self, state: &mut PoolState) {
-        let admitted = self
-            .metadata_bytes
-            .saturating_add(state.counters.resident_bytes)
-            .saturating_add(state.counters.active_operation_bytes);
-        state.counters.peak_admitted_bytes = state.counters.peak_admitted_bytes.max(admitted);
+    fn current_admitted_bytes(&self, state: &PoolState) -> u64 {
+        state.accounting.admitted_bytes()
+    }
+
+    fn pressure(
+        &self,
+        state: &mut PoolState,
+        demand: PhysicalResidencyPressureDemand,
+    ) -> PhysicalResidencyDenial {
+        state
+            .accounting
+            .deny_dimension(demand.dimension, demand.requested);
+        PhysicalResidencyDenial::Pressure(PhysicalResidencyPressureDenial::new(
+            self.store,
+            self.incarnation,
+            demand,
+        ))
     }
 
     fn deny(state: &mut PoolState, denial: PhysicalResidencyDenial) -> PhysicalResidencyDenial {
-        if !state.closed {
-            state.counters.denials += 1;
-        }
+        state.accounting.deny();
         denial
     }
 }
 
-struct LoadingReservation {
-    owner: Arc<PoolInner>,
-    key: PhysicalFrameKey,
-    armed: bool,
-}
-
-impl LoadingReservation {
-    fn new(owner: Arc<PoolInner>, key: PhysicalFrameKey) -> Self {
-        Self {
-            owner,
-            key,
-            armed: true,
-        }
-    }
-    fn disarm(&mut self) {
-        self.armed = false;
-    }
-}
-
-impl Drop for LoadingReservation {
-    fn drop(&mut self) {
-        if self.armed {
-            self.owner.cancel_loading(self.key);
-        }
-    }
-}
-
 impl PhysicalCandidateFrameReservation {
-    pub(crate) fn new(owner: Arc<PoolInner>, key: PhysicalFrameKey) -> Self {
+    pub(crate) fn new(owner: Arc<PoolInner>, candidate: PhysicalCandidateFrameKey) -> Self {
         Self {
             owner,
-            key,
+            candidate,
             armed: true,
         }
     }

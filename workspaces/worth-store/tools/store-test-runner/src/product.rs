@@ -100,7 +100,7 @@ pub(crate) fn smoke_cases() -> &'static [SmokeCase] {
         SmokeCase {
             package: "worth-store",
             target: "physical_record_journeys",
-            filter: "empty_bootstrap_create_and_reopen_converge",
+            filter: "baseline_admission::empty_bootstrap_create_and_reopen_converge",
         },
         SmokeCase {
             package: "worth-store",

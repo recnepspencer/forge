@@ -32,7 +32,7 @@ pub(super) fn admit_scan_request(
         return Err(scan_error(RecordScanDenial::BatchLimitExceeded));
     }
     let allocation = begin_scan_allocation(reader, requested)?;
-    reader.source = reader.source.clone().for_scan();
+    reader.residency = reader.residency.clone().for_scan();
     let first = readmit_cursor(reader, request.cursor)?;
     Ok(AdmittedScanRequest {
         runtime,
@@ -52,16 +52,15 @@ fn begin_scan_allocation(
                 .saturating_mul(std::mem::size_of::<super::ScannedPhysicalRecord>() as u64),
         );
     reader
-        .frame_ports
+        .residency
         .begin_operation(
-            worth_store_buffer_pool::OperationAllocationScope::ForegroundRead,
-            operation_bytes,
+            worth_store_buffer_pool::PhysicalOperationAllocationScope::ForegroundRead,
+            std::num::NonZeroU64::new(operation_bytes)
+                .expect("an admitted scan requests nonzero operation bytes"),
         )
         .map_err(|reason| {
             scan_error(RecordScanDenial::RecordRead(
-                crate::physical_runtime::record_serving::RecordReadDenial::ResidencyUnavailable(
-                    reason,
-                ),
+                crate::physical_runtime::record_serving::RecordReadDenial::from_residency(reason),
             ))
         })
 }

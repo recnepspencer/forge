@@ -17,6 +17,8 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct RuntimeTopologySource<'runtime> {
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'runtime worth_store_buffer_pool::OperationAllocationGrant,
     pub(in crate::physical_runtime::record_serving) media:
         &'runtime worth_store_physical_backend::QualifiedFilesystemMedia,
     pub(in crate::physical_runtime::record_serving) frame_load:
@@ -32,6 +34,7 @@ pub(in crate::physical_runtime::record_serving) fn observe_runtime_topology(
     source: RuntimeTopologySource<'_>,
 ) -> Result<PhysicalRecordPublicationSummary, RecordCanonicalObservationDenial> {
     let RuntimeTopologySource {
+        allocation,
         media,
         frame_load,
         format,
@@ -42,17 +45,19 @@ pub(in crate::physical_runtime::record_serving) fn observe_runtime_topology(
     let reader = ManifestReader::with_loader(media, frame_load, format, access, root);
     let mut cursor = ManifestRangeCursor::new(reader);
     cursor
-        .seek(root.routing_root(), None)
+        .seek(allocation, root.routing_root(), None)
         .map_err(|_| RecordCanonicalObservationDenial::ManifestUnavailable)?;
     let mut placements = Vec::new();
     while let Some(placement) = cursor
-        .next()
+        .next(allocation)
         .map_err(|_| RecordCanonicalObservationDenial::ManifestUnavailable)?
     {
         placements.push(runtime_placement(placement));
     }
-    let mut segment_pages = runtime_segment_pages(media, frame_load, format, access, root)?;
-    let mut free_space = runtime_free_space(media, frame_load, format, access, free_space)?;
+    let mut segment_pages =
+        runtime_segment_pages(allocation, media, frame_load, format, access, root)?;
+    let mut free_space =
+        runtime_free_space(allocation, media, frame_load, format, access, free_space)?;
     placements.sort_unstable();
     segment_pages.sort_unstable();
     free_space.sort_unstable();
@@ -70,6 +75,7 @@ pub(in crate::physical_runtime::record_serving) fn observe_runtime_topology(
 }
 
 fn runtime_segment_pages(
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     media: &worth_store_physical_backend::QualifiedFilesystemMedia,
     loader: &(dyn FrameLoadPort + Send + Sync),
     format: AdmittedPhysicalRecordFormat,
@@ -84,7 +90,7 @@ fn runtime_segment_pages(
     let mut result = Vec::new();
     while let Some(reference) = pending.pop() {
         match reader
-            .read_block(reference, &mut counters)
+            .read_block(allocation, reference, &mut counters)
             .map_err(|_| RecordCanonicalObservationDenial::ManifestUnavailable)?
         {
             PhysicalSegmentMembershipBlock::Leaf { entries, .. } => {
@@ -110,6 +116,7 @@ fn runtime_segment_page(entry: RecordSegmentPageManifestEntry) -> CanonicalSegme
 }
 
 fn runtime_free_space(
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     media: &worth_store_physical_backend::QualifiedFilesystemMedia,
     loader: &(dyn FrameLoadPort + Send + Sync),
     format: AdmittedPhysicalRecordFormat,
@@ -124,7 +131,7 @@ fn runtime_free_space(
     let mut result = Vec::new();
     while let Some(reference) = pending.pop() {
         match reader
-            .read_block(reference, &mut counters)
+            .read_block(allocation, reference, &mut counters)
             .map_err(|_| RecordCanonicalObservationDenial::ManifestUnavailable)?
         {
             PhysicalFreeSpaceMembershipBlock::Leaf { entries, .. } => {

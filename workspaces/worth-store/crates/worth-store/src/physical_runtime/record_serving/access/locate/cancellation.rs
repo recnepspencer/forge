@@ -10,10 +10,11 @@ pub struct RecordReadCancellation {
 impl RecordReadSession {
     /// Stops future delivery from this synchronous session.
     ///
-    /// Physical work started by an earlier `open` or `read_next` call is
-    /// already terminal when that call returns. Cancellation therefore
-    /// releases session-local residency/lifecycle leases and reports the
-    /// undelivered logical range; it does not claim to abort a media effect.
+    /// Physical work started by an earlier `open`, `read_next`, or
+    /// `next_chunk` call is already terminal when that call returns.
+    /// Cancellation therefore releases session-local residency/lifecycle
+    /// leases and reports the undelivered logical range; it does not claim to
+    /// abort a media effect.
     pub fn cancel(self) -> RecordReadCancellation {
         let observation = self.observation;
         let unread_payload_bytes = observation

@@ -1,5 +1,6 @@
 use super::super::write_progression::CandidateFrameEffectFailure;
 use super::*;
+use worth_store_buffer_pool::{PhysicalResidencyLimits, PhysicalResidencyPool};
 
 #[derive(Debug, PartialEq, Eq)]
 struct ProvenNoEffect;
@@ -22,9 +23,13 @@ impl CandidateFrameEffectFailure for EffectPossible {
 #[test]
 fn proven_no_effect_discards_the_resident_candidate_before_returning_failure() {
     let (pool, publisher) = pool_and_publisher(31);
-    let mut session =
-        StoreCandidateFramePublicationSession::begin(&publisher, declared_inline_frames(&[(0, 3)]))
-            .unwrap();
+    let allocation = publication_allocation(&pool);
+    let mut session = StoreCandidateFramePublicationSession::begin(
+        &publisher,
+        &allocation,
+        declared_inline_frames(&[(0, 3)]),
+    )
+    .unwrap();
 
     let failure = session
         .write_frame(
@@ -49,15 +54,20 @@ fn proven_no_effect_discards_the_resident_candidate_before_returning_failure() {
     assert_eq!(counters.candidate_frames(), 0);
     assert_eq!(counters.administrative_drains(), 1);
     drop(session);
+    drop(allocation);
     assert!(!pool.close().requires_inspection());
 }
 
 #[test]
 fn effect_possible_failure_retains_dirty_candidate_for_inspection() {
     let (pool, publisher) = pool_and_publisher(32);
-    let mut session =
-        StoreCandidateFramePublicationSession::begin(&publisher, declared_inline_frames(&[(0, 3)]))
-            .unwrap();
+    let allocation = publication_allocation(&pool);
+    let mut session = StoreCandidateFramePublicationSession::begin(
+        &publisher,
+        &allocation,
+        declared_inline_frames(&[(0, 3)]),
+    )
+    .unwrap();
 
     let failure = session
         .write_frame(
@@ -82,6 +92,7 @@ fn effect_possible_failure_retains_dirty_candidate_for_inspection() {
     assert_eq!(counters.candidate_frames(), 1);
     assert_eq!(counters.administrative_drains(), 0);
     drop(session);
+    drop(allocation);
     assert!(pool.close().requires_inspection());
 }
 
@@ -93,12 +104,51 @@ fn pool_and_publisher(
         ProposedStoreIdentity::from_nonzero_bytes([identity_byte; 16]).unwrap(),
     )
     .published_identity();
-    let limits =
-        PhysicalResidencyLimits::new_with_metadata_budget(4096, 4096, 2, 2, 64, 4).unwrap();
+    let limits = residency_limits();
     let pool = PhysicalResidencyPool::open(store, limits).unwrap();
     let publisher = BoundedCandidateFramePublisher::new(
         pool.clone(),
         Arc::new(CandidateFrameCounterCells::default()),
     );
     (pool, publisher)
+}
+
+fn residency_limits() -> PhysicalResidencyLimits {
+    use worth_store_buffer_pool::{
+        PhysicalOperationAllocationScope as Scope, PhysicalSpeculativeWorkKind as Speculation,
+    };
+
+    let operation =
+        PhysicalResidencyPool::candidate_batch_operation_bytes(std::num::NonZeroUsize::MIN)
+            .unwrap();
+    PhysicalResidencyLimits::builder()
+        .total_bytes(nonzero_bytes(12_288 + operation.get()))
+        .resident_bytes(nonzero_bytes(4096))
+        .metadata_bytes(nonzero_bytes(4096))
+        .frame_entries(nonzero_count(4))
+        .pinned_frames(nonzero_count(2))
+        .pin_leases(nonzero_count(2))
+        .dirty_frames(nonzero_count(2))
+        .dirty_replacement_bytes(nonzero_bytes(4096))
+        .operation_bytes(operation)
+        .scope_bytes(Scope::ForegroundRead, operation)
+        .scope_bytes(Scope::ForegroundWrite, operation)
+        .scope_bytes(Scope::Recovery, operation)
+        .scope_bytes(Scope::Scrub, operation)
+        .scope_bytes(Scope::Maintenance, operation)
+        .scope_bytes(Scope::Verification, operation)
+        .scope_bytes(Scope::Blob, operation)
+        .speculative_frames(Speculation::Prefetch, nonzero_count(2))
+        .speculative_frames(Speculation::ReadAhead, nonzero_count(2))
+        .speculative_frames(Speculation::WriteBehind, nonzero_count(2))
+        .admit(std::num::NonZeroU64::MIN)
+        .unwrap()
+}
+
+fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
+    std::num::NonZeroU64::new(value).unwrap()
+}
+
+fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
+    std::num::NonZeroU32::new(value).unwrap()
 }

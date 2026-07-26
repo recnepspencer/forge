@@ -1,7 +1,7 @@
 use worth_store_physical_backend::ArtifactTreeFailure;
 use worth_store_physical_format::RecordArtifactFile;
 
-use super::{FrameLoadFailure, FrameLoadFailureKind, LoadedPhysicalFrame};
+use super::{FrameLoadFailure, FrameLoadFailureKind, FrameLoadFaultCause, LoadedPhysicalFrame};
 use crate::physical_runtime::{
     record_serving::{residency::frame_work_trace::FrameWorkTrace, CanonicalRecordReadFailure},
     PhysicalWorkIdentity,
@@ -11,7 +11,7 @@ mod canonical;
 mod direct;
 
 pub(in crate::physical_runtime::record_serving) use canonical::CanonicalFrameReadSource;
-pub(in crate::physical_runtime::record_serving) use direct::DirectFrameReadSource;
+pub(in crate::physical_runtime::record_serving::residency) use direct::DirectFrameReadSource;
 
 pub(in crate::physical_runtime::record_serving) trait FrameReadSource {
     fn prepare_exact(
@@ -98,12 +98,6 @@ pub(in crate::physical_runtime::record_serving) struct FrameReadWorkFailure {
     work: FrameWorkTrace,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime::record_serving) enum FrameReadWorkAdmission {
-    EveryAccess,
-    ResidencyFaultOnly,
-}
-
 impl FrameReadSourceFailure {
     fn work(failure: CanonicalRecordReadFailure, work: FrameWorkTrace) -> Self {
         Self::Work(Box::new(FrameReadWorkFailure { failure, work }))
@@ -113,19 +107,19 @@ impl FrameReadSourceFailure {
 pub(in crate::physical_runtime::record_serving) trait FrameLoadPort {
     fn load_exact(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         source: &dyn FrameReadSource,
         artifact: RecordArtifactFile,
         offset: u64,
         length: u32,
-        work_admission: FrameReadWorkAdmission,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure>;
 
     fn load_bounded(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         source: &dyn FrameReadSource,
         artifact: RecordArtifactFile,
         limit: u32,
-        work_admission: FrameReadWorkAdmission,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure>;
 
     fn file_length(
@@ -142,7 +136,28 @@ pub(super) fn frame_source_failure(failure: FrameReadSourceFailure) -> FrameLoad
         }
         FrameReadSourceFailure::Work(failure) => {
             FrameLoadFailure::new(FrameLoadFailureKind::Work(failure.failure))
-                .with_work(failure.work)
+                .with_complete_work_trace(failure.work)
+        }
+    }
+}
+
+pub(super) fn frame_source_fault(
+    failure: FrameReadSourceFailure,
+    terminal: worth_store_buffer_pool::PhysicalFrameLoadTerminal,
+) -> FrameLoadFailure {
+    match failure {
+        FrameReadSourceFailure::Backend(failure) => {
+            FrameLoadFailure::new(FrameLoadFailureKind::FaultTerminated {
+                terminal,
+                cause: FrameLoadFaultCause::Backend(failure),
+            })
+        }
+        FrameReadSourceFailure::Work(failure) => {
+            FrameLoadFailure::new(FrameLoadFailureKind::FaultTerminated {
+                terminal,
+                cause: FrameLoadFaultCause::Work(failure.failure),
+            })
+            .with_complete_work_trace(failure.work)
         }
     }
 }

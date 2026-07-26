@@ -38,7 +38,7 @@ pub(super) fn synchronize_manifests(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
     mut synchronized: DataSynchronized,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<ManifestsSynchronized, RecordAppendError> {
     for index in 0..synchronized.0.manifests.len() {
@@ -59,7 +59,7 @@ fn synchronize_manifest_at(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
     plan: &mut PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
     index: usize,
 ) -> Result<(), RecordAppendError> {
@@ -77,7 +77,7 @@ fn synchronize_root(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
     plan: &mut PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<(), RecordAppendError> {
     let artifact = plan.root;
@@ -93,7 +93,7 @@ fn write_and_synchronize(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
     plan: &mut PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
     artifact: worth_store_physical_format::RecordArtifactFile,
     frame: CandidateFrame,
@@ -124,7 +124,7 @@ fn write_and_synchronize(
 
 fn execute_manifest_stage(
     artifacts: &PublicationRecordArtifacts<'_>,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     artifact: worth_store_physical_format::RecordArtifactFile,
     frame: CandidateFrame,
     work: &mut RecordPublicationWorkTrace,

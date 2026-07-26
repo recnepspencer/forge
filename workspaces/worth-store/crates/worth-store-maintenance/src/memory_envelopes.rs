@@ -1,5 +1,5 @@
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationObservation, OperationAllocationScope,
+    OperationAllocationGrant, OperationAllocationObservation, PhysicalOperationAllocationScope,
     PhysicalResidencyCounters,
 };
 
@@ -15,7 +15,7 @@ impl CompactionPlanningMemoryEnvelope {
         require_maintenance_scope(allocation).map(|allocation| Self { allocation })
     }
 
-    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+    pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
         self.allocation.scope()
     }
 
@@ -52,7 +52,7 @@ impl ImportExportMemoryEnvelope {
         require_maintenance_scope(allocation).map(|allocation| Self { allocation })
     }
 
-    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+    pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
         self.allocation.scope()
     }
 
@@ -79,13 +79,15 @@ impl ImportExportMemoryEnvelope {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MaintenanceMemoryEnvelopeDenial {
-    WrongAllocationScope { actual: OperationAllocationScope },
+    WrongAllocationScope {
+        actual: PhysicalOperationAllocationScope,
+    },
 }
 
 fn require_maintenance_scope(
     allocation: OperationAllocationGrant,
 ) -> Result<OperationAllocationGrant, MaintenanceMemoryEnvelopeDenial> {
-    if allocation.scope() == OperationAllocationScope::Maintenance {
+    if allocation.scope() == PhysicalOperationAllocationScope::Maintenance {
         Ok(allocation)
     } else {
         Err(MaintenanceMemoryEnvelopeDenial::WrongAllocationScope {

@@ -14,6 +14,7 @@ pub(in crate::physical_runtime::record_serving) struct LoadedPublishedTailPage {
 }
 
 pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     artifacts: &ServingRecordArtifacts<'_>,
     format: AdmittedPhysicalRecordFormat,
     last: DurableInlineRecordPlacement,
@@ -43,6 +44,7 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
     }
     let resident = artifacts
         .load_exact(
+            allocation,
             source,
             u64::from(page_entry.frame_index()) * u64::from(page_bytes),
             page_bytes,
@@ -50,7 +52,7 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
         .map_err(layout_failure)?;
     let mut page = Vec::new();
     page.try_reserve_exact(resident.len()).map_err(|_| {
-        RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(
+        RecordAppendError::Denied(RecordAppendDenial::from_residency(
             worth_store_buffer_pool::PhysicalResidencyDenial::AllocationFailed,
         ))
     })?;

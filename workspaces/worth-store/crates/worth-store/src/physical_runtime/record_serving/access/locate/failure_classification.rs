@@ -2,7 +2,9 @@ use worth_store_physical_backend::ArtifactTreeFailureKind;
 
 use super::super::super::{RecordReadDenial, RecordReadWorkDenial};
 use super::super::{
-    super::residency::frame_loading::{FrameLoadFailure, FrameLoadFailureKind},
+    super::residency::frame_loading::{
+        FrameLoadFailure, FrameLoadFailureKind, FrameLoadFaultCause,
+    },
     manifest_routing::ManifestLookupFailure,
 };
 
@@ -11,9 +13,21 @@ pub(in crate::physical_runtime::record_serving) fn read_failure(
 ) -> RecordReadDenial {
     match failure.kind() {
         FrameLoadFailureKind::Backend(failure) => backend_denial(failure),
-        FrameLoadFailureKind::Residency(reason) => RecordReadDenial::ResidencyUnavailable(reason),
+        FrameLoadFailureKind::Residency(reason) => RecordReadDenial::from_residency(reason),
         FrameLoadFailureKind::Work(failure) => work_denial(failure),
+        FrameLoadFailureKind::FaultTerminated { cause, .. } => fault_denial(cause),
+        FrameLoadFailureKind::CoalescedFault(terminal) => RecordReadDenial::from_residency(
+            worth_store_buffer_pool::PhysicalResidencyDenial::FrameLoadTerminated(terminal),
+        ),
         _ => RecordReadDenial::ArtifactDamaged,
+    }
+}
+
+fn fault_denial(cause: FrameLoadFaultCause) -> RecordReadDenial {
+    match cause {
+        FrameLoadFaultCause::Backend(failure) => backend_denial(failure),
+        FrameLoadFaultCause::Work(failure) => work_denial(failure),
+        FrameLoadFaultCause::Residency(reason) => RecordReadDenial::from_residency(reason),
     }
 }
 
@@ -48,7 +62,7 @@ fn terminal_denial(cause: crate::physical_runtime::PhysicalWorkTerminalCause) ->
         }
         crate::physical_runtime::PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(
             reason,
-        ) => RecordReadDenial::ResidencyUnavailable(reason),
+        ) => RecordReadDenial::from_residency(reason),
     }
 }
 
@@ -72,6 +86,6 @@ pub(in crate::physical_runtime::record_serving) fn manifest_failure(
         )),
         ManifestLookupFailure::Frame(kind) => read_failure(FrameLoadFailure::new(kind)),
         ManifestLookupFailure::Damaged => RecordReadDenial::ArtifactDamaged,
-        ManifestLookupFailure::Residency(reason) => RecordReadDenial::ResidencyUnavailable(reason),
+        ManifestLookupFailure::Residency(reason) => RecordReadDenial::from_residency(reason),
     }
 }

@@ -4,15 +4,24 @@ use super::*;
 fn exact_clean_lease_becomes_one_dirty_candidate_atomically() {
     let identity = store(91);
     let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
+    let allocation = allocation(&pool, READ_SCOPE);
     let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
-    let clean = pool
-        .load(key, |target| {
+    let clean = expect_fault(&pool, &allocation, key)
+        .load(|target| {
             target.copy_from_slice(&[1; 8]);
             Ok::<_, ()>(())
         })
         .unwrap();
 
-    let dirty = clean.replace_with_dirty_candidate(vec![2; 8]).unwrap();
+    let dirty = clean
+        .begin_dirty_replacement(&allocation)
+        .unwrap()
+        .replace(|source, target| {
+            assert_eq!(source, &[1; 8]);
+            target.copy_from_slice(&[2; 8]);
+            Ok::<_, ()>(())
+        })
+        .unwrap();
     assert_eq!(dirty.bytes(), &[2; 8]);
     assert_eq!(pool.counters().dirty_frames(), 1);
     assert_eq!(pool.counters().candidate_frames(), 1);
@@ -28,21 +37,18 @@ fn exact_clean_lease_becomes_one_dirty_candidate_atomically() {
 fn competing_pin_prevents_clean_to_dirty_transition() {
     let identity = store(92);
     let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
+    let allocation = allocation(&pool, READ_SCOPE);
     let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
-    let first = pool
-        .load(key, |target| {
+    let first = expect_fault(&pool, &allocation, key)
+        .load(|target| {
             target.copy_from_slice(&[1; 8]);
             Ok::<_, ()>(())
         })
         .unwrap();
-    let second = pool
-        .load(key, |_| -> Result<(), ()> {
-            panic!("resident frame must not refault")
-        })
-        .unwrap();
+    let second = expect_hit(&pool, &allocation, key);
 
     assert_eq!(
-        first.replace_with_dirty_candidate(vec![2; 8]).unwrap_err(),
+        first.begin_dirty_replacement(&allocation).unwrap_err(),
         PhysicalResidencyDenial::FramePinned
     );
     assert_eq!(second.as_ref(), &[1; 8]);

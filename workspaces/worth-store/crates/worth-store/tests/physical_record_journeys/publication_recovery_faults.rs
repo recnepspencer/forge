@@ -214,7 +214,7 @@ fn manifest_sync_failure_cannot_erase_the_accepted_candidate_write() {
         identified_synchronization_fault_schedule(&admission, prior_identified_syncs + 2);
     let serving = serving_with_schedule(&root, schedule);
     let (_, placement, _) = configuration();
-    let residency_before = serving.residency_counters();
+    let residency_before = serving.residency_observation().counters();
 
     let outcome = serving.record_submission().append_batch(
         RecordAppendBatch::try_from_iter([b"manifest-sync-fault".as_slice()]).unwrap(),
@@ -253,7 +253,7 @@ fn manifest_sync_failure_cannot_erase_the_accepted_candidate_write() {
         worth_store::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect
     );
 
-    let residency_after = serving.residency_counters();
+    let residency_after = serving.residency_observation().counters();
     assert_eq!(
         residency_after.candidate_publications(),
         residency_before.candidate_publications() + 2,

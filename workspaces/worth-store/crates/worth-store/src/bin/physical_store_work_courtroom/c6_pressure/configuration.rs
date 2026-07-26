@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use worth_store::physical_runtime::PhysicalRecordResidencyPolicy;
+use worth_store::physical_runtime::{
+    AdmittedPhysicalRecordFormat, PhysicalOperationAllocationScope, PhysicalRecordResidencyPolicy,
+    PhysicalRecordResidencyPolicyOutcome, PhysicalSpeculativeWorkKind,
+};
 
 use super::super::configuration::C6_PRESSURE_CONFIGURATION_SCHEMA;
 
@@ -57,8 +60,19 @@ impl C6PressureConfiguration {
         if self.pin_leases < 2 || self.pin_leases >= self.pinned_frames {
             return Err("C.6 pin leases must expose a bounded over-pin edge".to_owned());
         }
-        self.policy()
-            .ok_or_else(|| "C.6 residency policy is internally inconsistent".to_owned())?;
+        if [
+            self.resident_bytes,
+            self.metadata_bytes,
+            self.operation_bytes,
+        ]
+        .contains(&0)
+            || self.pinned_frames == 0
+            || self.pin_leases == 0
+            || self.dirty_frames == 0
+            || self.frame_entries == 0
+        {
+            return Err("C.6 residency policy dimensions must be nonzero".to_owned());
+        }
         Ok(())
     }
 
@@ -71,16 +85,40 @@ impl C6PressureConfiguration {
         Ok(bytes.into_boxed_slice())
     }
 
-    pub(super) fn policy(self) -> Option<PhysicalRecordResidencyPolicy> {
-        PhysicalRecordResidencyPolicy::new_with_metadata_budget(
-            self.resident_bytes,
-            self.metadata_bytes,
-            self.pinned_frames,
-            self.dirty_frames,
-            self.operation_bytes,
-            self.frame_entries,
-        )?
-        .with_pin_lease_limit(self.pin_leases)
+    pub(super) fn policy(
+        self,
+        format: AdmittedPhysicalRecordFormat,
+    ) -> PhysicalRecordResidencyPolicyOutcome {
+        use PhysicalOperationAllocationScope as Scope;
+        use PhysicalSpeculativeWorkKind as Speculation;
+
+        let total_bytes = self
+            .resident_bytes
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(self.metadata_bytes))
+            .and_then(|bytes| bytes.checked_add(self.operation_bytes))
+            .expect("validated C.6 policy total fits u64");
+        PhysicalRecordResidencyPolicy::builder()
+            .total_bytes(nonzero_bytes(total_bytes))
+            .resident_bytes(nonzero_bytes(self.resident_bytes))
+            .metadata_bytes(nonzero_bytes(self.metadata_bytes))
+            .frame_entries(nonzero_count(self.frame_entries))
+            .pinned_frames(nonzero_count(self.pinned_frames))
+            .pin_leases(nonzero_count(self.pin_leases))
+            .dirty_frames(nonzero_count(self.dirty_frames))
+            .dirty_replacement_bytes(nonzero_bytes(self.resident_bytes))
+            .operation_bytes(nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::ForegroundRead, nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::ForegroundWrite, nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::Recovery, nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::Scrub, nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::Maintenance, nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::Verification, nonzero_bytes(self.operation_bytes))
+            .scope_bytes(Scope::Blob, nonzero_bytes(self.operation_bytes))
+            .speculative_frames(Speculation::Prefetch, nonzero_count(self.pinned_frames))
+            .speculative_frames(Speculation::ReadAhead, nonzero_count(self.pinned_frames))
+            .speculative_frames(Speculation::WriteBehind, nonzero_count(self.dirty_frames))
+            .admit(format)
     }
 
     pub(super) const fn record_bytes(self) -> usize {
@@ -109,6 +147,14 @@ impl C6PressureConfiguration {
             .and_then(|bytes| bytes.checked_mul(self.record_count as u64))
             .ok_or_else(|| "C.6 oracle byte length overflowed".to_owned())
     }
+}
+
+fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
+    std::num::NonZeroU64::new(value).expect("validated C.6 byte dimensions are nonzero")
+}
+
+fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
+    std::num::NonZeroU32::new(value).expect("validated C.6 count dimensions are nonzero")
 }
 
 fn field<Value: std::str::FromStr>(

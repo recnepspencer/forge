@@ -16,7 +16,7 @@ pub(super) struct PreparedCatalogResidency {
 pub(super) fn validate_frame_set(
     media: &QualifiedFilesystemMedia,
     plan: &PublicationPlan,
-    residency: &StoreCandidateFramePublicationSession,
+    residency: &StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<ValidatedCatalogFrameSet, RecordAppendError> {
     residency.require_complete().map_err(|violation| {
@@ -36,7 +36,7 @@ pub(super) fn validate_frame_set(
 pub(super) fn prepare_residency(
     media: &QualifiedFilesystemMedia,
     plan: &PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<PreparedCatalogResidency, RecordAppendError> {
     residency.prepare_catalog_cutover().map_err(|violation| {

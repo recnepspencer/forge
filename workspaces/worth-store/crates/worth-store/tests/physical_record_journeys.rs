@@ -8,8 +8,6 @@ mod baseline_admission;
 mod batch_admission;
 #[path = "physical_record_journeys/bootstrap_faults.rs"]
 mod bootstrap_faults;
-#[path = "physical_record_journeys/c6_preparation.rs"]
-mod c6_preparation;
 #[path = "physical_record_journeys/child_process.rs"]
 mod child_process;
 #[path = "physical_record_journeys/close_phase_crash.rs"]
@@ -60,6 +58,10 @@ mod publication_recovery_faults;
 mod publication_reopener;
 #[path = "physical_record_journeys/read_boundaries.rs"]
 mod read_boundaries;
+#[path = "physical_record_journeys/record_chunk_views.rs"]
+mod record_chunk_views;
+#[path = "physical_record_journeys/residency_pressure_processes.rs"]
+mod residency_pressure_processes;
 #[path = "physical_record_journeys/residue_safety.rs"]
 mod residue_safety;
 #[path = "physical_record_journeys/reusable_segment_residue.rs"]
@@ -98,8 +100,8 @@ use worth_store::physical_runtime::{
     FilesystemMediaAdmission, ManifestEntryCapacity, MediaOwnedPhysicalRuntime,
     PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration, PhysicalRecordInitialization,
     PhysicalRecordOpen, PhysicalRecordPlacementPolicy, PhysicalRuntimeAdmission, PhysicalStore,
-    RecordReadObservation, RecordReadSession, RecordServingAdmissionOutcome,
-    ServingPhysicalRuntime,
+    RecordBootstrapDenial, RecordReadObservation, RecordReadSession, RecordServingAdmissionOutcome,
+    RecordStoreInitializationDenial, RecordStoreOpenDenial, ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::FilesystemAccessPosture;
 
@@ -145,10 +147,35 @@ fn serving_from_open(root: &Path) -> ServingPhysicalRuntime {
     success(media(root).open_record_store(PhysicalRecordOpen::new(format, access)))
 }
 
-fn success<Denial>(outcome: RecordServingAdmissionOutcome<Denial>) -> ServingPhysicalRuntime {
+trait BootstrapDenialReason {
+    fn reason(&self) -> RecordBootstrapDenial;
+}
+
+impl BootstrapDenialReason for RecordStoreInitializationDenial {
+    fn reason(&self) -> RecordBootstrapDenial {
+        self.reason()
+    }
+}
+
+impl BootstrapDenialReason for RecordStoreOpenDenial {
+    fn reason(&self) -> RecordBootstrapDenial {
+        self.reason()
+    }
+}
+
+fn success<Denial>(outcome: RecordServingAdmissionOutcome<Denial>) -> ServingPhysicalRuntime
+where
+    Denial: BootstrapDenialReason,
+{
     match outcome.into_raw() {
         TransitionOutcome::Success(serving) => serving,
-        _ => panic!("record-serving progression must succeed"),
+        TransitionOutcome::Denied(denial) => {
+            panic!(
+                "record-serving progression must succeed; denied by {:?}",
+                denial.reason()
+            )
+        }
+        _ => panic!("record-serving progression must succeed; non-denial outcome"),
     }
 }
 

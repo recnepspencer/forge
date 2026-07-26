@@ -118,8 +118,8 @@ fn project_free_space(
 ) -> Result<FreeSpacePublicationPlan, RecordAppendError> {
     project_successor_free_space(
         FreeSpaceProjectionContext {
-            frame_ports: context.frame_ports.clone(),
-            source: context.source.clone(),
+            allocation: context.allocation,
+            residency: context.residency.clone(),
             format: context.format,
             access: context.access,
             current: context.current_free_space,
@@ -138,8 +138,8 @@ fn project_segment_membership(
 ) -> Result<SegmentMembershipPublicationPlan, RecordAppendError> {
     plan_segment_membership_updates(
         SegmentMembershipUpdateContext {
-            frame_ports: context.frame_ports.clone(),
-            source: context.source.clone(),
+            allocation: context.allocation,
+            residency: context.residency.clone(),
             format: context.format,
             access: context.access,
             current: context.current_root,
@@ -156,14 +156,14 @@ fn project_record_manifest(
     projection: RootManifestProjection<'_>,
 ) -> Result<ProjectedRecordManifest, RecordAppendError> {
     let reader = ManifestReader::serving(
-        context.frame_ports.clone(),
-        context.source.clone(),
+        context.residency.clone(),
         context.format,
         context.access,
         context.current_root.clone(),
     );
     let projected = plan_manifest_updates(
         &reader,
+        context.allocation,
         context.current_root,
         RootManifestUpdateRequest {
             successor_generation: projection.generation,

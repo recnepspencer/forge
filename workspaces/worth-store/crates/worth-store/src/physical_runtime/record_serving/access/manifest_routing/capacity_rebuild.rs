@@ -17,6 +17,7 @@ pub(in crate::physical_runtime::record_serving) struct CapacityRebuild {
 
 pub(in crate::physical_runtime::record_serving) fn rebuild_capacity(
     reader: &ManifestReader<'_>,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     current_root: ManifestBlockReference,
     tree_identity: u64,
     generation: u64,
@@ -38,6 +39,7 @@ pub(in crate::physical_runtime::record_serving) fn rebuild_capacity(
     let mut inserted = 0_u64;
     walk_entries(
         reader,
+        allocation,
         current_root,
         &mut discovery,
         &mut updates,
@@ -60,13 +62,14 @@ pub(in crate::physical_runtime::record_serving) fn rebuild_capacity(
 
 fn walk_entries(
     reader: &ManifestReader<'_>,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     reference: ManifestBlockReference,
     discovery: &mut ManifestDiscoveryCounterSnapshot,
     updates: &mut BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
     inserted: &mut u64,
     writer: &mut StreamingTreeWriter,
 ) -> Result<(), ManifestLookupFailure> {
-    match reader.read_block(reference, discovery)? {
+    match reader.read_block(allocation, reference, discovery)? {
         PhysicalRootRoutingBlock::Leaf { entries, .. } => {
             for existing in entries {
                 while updates
@@ -84,7 +87,9 @@ fn walk_entries(
         }
         PhysicalRootRoutingBlock::Branch { children, .. } => {
             for child in children {
-                walk_entries(reader, child, discovery, updates, inserted, writer)?;
+                walk_entries(
+                    reader, allocation, child, discovery, updates, inserted, writer,
+                )?;
             }
             Ok(())
         }

@@ -31,13 +31,14 @@ fn c6_no_effect_writeback_retains_dirty_ownership_through_signal_retry() {
     );
     let handoff = serving.c6_physical_work_handoff();
     let residency = handoff.residency_work();
+    let residency_certification = serving.certification_physical_residency();
     let ready = ready_mutation(&handoff, mutation);
     let consumer = ready.consumer_handle();
     let identity = ready.intent().identity();
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();
     let before_bytes = artifact_range(root.path(), coordinate);
-    let dirty = dirty_frame(&residency, &ready, coordinate);
+    let dirty = dirty_frame(&residency, &residency_certification, &ready, coordinate);
     let admitted = initial_writeback(&residency, ready, dirty);
     let before = serving.media_counters();
 
@@ -148,12 +149,15 @@ fn successful_receipt(outcome: PhysicalWorkSubmissionOutcome) -> PhysicalWorkSub
 
 fn dirty_frame(
     residency: &C6PhysicalResidencyWork,
+    residency_certification: &worth_store::physical_runtime::PhysicalResidencyCertification,
     ready: &ReadyPhysicalWork,
     coordinate: RecordFrameCoordinate,
 ) -> C6AdmittedDirtyFrame {
-    let lease = residency.pin_exact(coordinate).unwrap();
+    let lease = residency_certification.pin_exact(coordinate).unwrap();
     residency
-        .admit_dirty_frame(ready, lease, EXPECTED_WRITEBACK.to_vec())
+        .admit_dirty_frame(ready, lease, |_, target| {
+            target.copy_from_slice(&EXPECTED_WRITEBACK);
+        })
         .unwrap()
 }
 

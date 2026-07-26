@@ -203,13 +203,13 @@ fn push_candidate_declaration(
 }
 
 fn frame_length_denial() -> RecordAppendDenial {
-    RecordAppendDenial::ResidencyUnavailable(
+    RecordAppendDenial::from_residency(
         worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
     )
 }
 
 fn allocation_denial() -> RecordAppendDenial {
-    RecordAppendDenial::ResidencyUnavailable(
+    RecordAppendDenial::from_residency(
         worth_store_buffer_pool::PhysicalResidencyDenial::AllocationFailed,
     )
 }

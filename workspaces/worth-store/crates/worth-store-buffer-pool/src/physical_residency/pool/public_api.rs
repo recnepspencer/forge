@@ -21,51 +21,45 @@ impl PhysicalResidencyPool {
         limits: PhysicalResidencyLimits,
     ) -> Result<Self, PhysicalResidencyDenial> {
         let frame_count = limits.frame_entries() as usize;
-        let metadata_per_entry = std::mem::size_of::<RecordFrameCoordinate>()
-            .saturating_add(std::mem::size_of::<FrameEntry>())
-            .saturating_add(32);
-        let minimum_metadata = frame_count
-            .checked_mul(metadata_per_entry)
+        let minimum_metadata = frame_table::FrameTable::minimum_metadata_bytes(frame_count)
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<PoolState>()))
             .ok_or(PhysicalResidencyDenial::MetadataBudgetExceeded)?
             as u64;
         if minimum_metadata > limits.metadata_bytes() {
             return Err(PhysicalResidencyDenial::MetadataBudgetExceeded);
         }
-        let mut frames = HashMap::new();
-        frames
-            .try_reserve(frame_count)
-            .map_err(|_| PhysicalResidencyDenial::AllocationFailed)?;
+        let frames = frame_table::FrameTable::open(frame_count)?;
         let metadata = frames
-            .capacity()
-            .checked_mul(metadata_per_entry)
+            .allocated_metadata_bytes()
             .and_then(|bytes| bytes.checked_add(std::mem::size_of::<PoolState>()))
             .ok_or(PhysicalResidencyDenial::MetadataBudgetExceeded)? as u64;
         if metadata > limits.metadata_bytes() {
             return Err(PhysicalResidencyDenial::MetadataBudgetExceeded);
         }
+        let incarnation = PhysicalResidencyIncarnation::next()
+            .ok_or(PhysicalResidencyDenial::AllocationFailed)?;
+        let (allocation_recorder, allocation_events) =
+            super::super::PhysicalResidencyAllocationEventRecorder::new(store, incarnation);
         Ok(Self {
             inner: Arc::new(PoolInner {
                 store,
-                incarnation: PhysicalResidencyIncarnation::next()
-                    .ok_or(PhysicalResidencyDenial::AllocationFailed)?,
+                incarnation,
                 limits,
-                metadata_bytes: metadata,
+                allocation_events,
                 state: Mutex::new(PoolState {
                     frames,
-                    counters: PhysicalResidencyCounters {
-                        metadata_bytes: metadata,
-                        peak_admitted_bytes: metadata,
-                        ..PhysicalResidencyCounters::default()
-                    },
+                    accounting: PhysicalResidencyAccounting::new(metadata, allocation_recorder),
                     evictable_head: None,
                     evictable_tail: None,
                     loading_frames: 0,
+                    next_loading_ordinal: 1,
                     active_candidate_publications: 0,
                     accepting: true,
                     closed: false,
                 }),
                 changed: Condvar::new(),
+                #[cfg(test)]
+                bounded_join_waiters: std::sync::atomic::AtomicU32::new(0),
             }),
         })
     }
@@ -78,58 +72,58 @@ impl PhysicalResidencyPool {
         self.inner.incarnation
     }
 
-    pub fn load<E, F>(
+    pub fn allocation_events(&self) -> PhysicalResidencyAllocationEventObserver {
+        self.inner.allocation_events.clone()
+    }
+
+    /// Verifies that `allocation` is live authority from this exact pool
+    /// incarnation without reserving residency or exposing its scope.
+    ///
+    /// Adapters should call this before performing their own allocation or
+    /// recording an attempted governed operation. Every pool admission still
+    /// validates the grant again at the actual allocation boundary.
+    pub fn validate_operation_allocation(
         &self,
+        allocation: &OperationAllocationGrant,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        self.allocation_scope(allocation).map(|_| ())
+    }
+
+    pub fn access_frame(
+        &self,
+        allocation: &OperationAllocationGrant,
         key: PhysicalFrameKey,
-        fill: F,
-    ) -> Result<PhysicalFrameLease, PhysicalFrameLoadError<E>>
-    where
-        F: FnOnce(&mut [u8]) -> Result<(), E>,
-    {
-        self.inner.validate_key(key).map_err(|reason| {
-            PhysicalFrameLoadError::Residency(self.inner.record_denial(reason))
-        })?;
-        loop {
-            if let Some(lease) = self
-                .inner
-                .try_pin_resident(key)
-                .map_err(PhysicalFrameLoadError::Residency)?
-            {
-                return Ok(lease);
-            }
-            match self.inner.reserve_loading(key) {
-                Ok(()) => break,
-                Err(PhysicalResidencyDenial::FrameAlreadyResident) => continue,
-                Err(reason) => return Err(PhysicalFrameLoadError::Residency(reason)),
-            }
-        }
-        let mut reservation = LoadingReservation::new(Arc::clone(&self.inner), key);
-        let length = key.coordinate.length() as usize;
-        let mut bytes = Vec::new();
-        if bytes.try_reserve_exact(length).is_err() {
-            return Err(PhysicalFrameLoadError::Residency(
-                self.inner
-                    .record_denial(PhysicalResidencyDenial::AllocationFailed),
-            ));
-        }
-        bytes.resize(length, 0);
-        if let Err(error) = fill(bytes.as_mut_slice()) {
-            return Err(PhysicalFrameLoadError::Source(error));
-        }
-        self.inner.record_source_load();
-        let lease = self
-            .inner
-            .finish_loading(key, Arc::new(bytes))
-            .map_err(PhysicalFrameLoadError::Residency)?;
-        reservation.disarm();
-        Ok(lease)
+    ) -> Result<PhysicalFrameAccess, PhysicalResidencyDenial> {
+        let scope = self
+            .allocation_scope(allocation)
+            .map_err(|reason| self.inner.record_denial(reason))?;
+        self.inner
+            .validate_key(key)
+            .map_err(|reason| self.inner.record_denial(reason))?;
+        self.inner.access_frame(scope, key)
+    }
+
+    pub fn access_bounded_frame(
+        &self,
+        allocation: &OperationAllocationGrant,
+        key: PhysicalBoundedFrameKey,
+    ) -> Result<PhysicalBoundedFrameAccess, PhysicalResidencyDenial> {
+        let scope = self
+            .allocation_scope(allocation)
+            .map_err(|reason| self.inner.record_denial(reason))?;
+        self.inner
+            .validate_bounded_key(key)
+            .map_err(|reason| self.inner.record_denial(reason))?;
+        self.inner.access_bounded_frame(scope, key)
     }
 
     pub fn admit_dirty(
         &self,
+        allocation: &OperationAllocationGrant,
         key: PhysicalFrameKey,
         bytes: Vec<u8>,
     ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
+        self.allocation_scope(allocation)?;
         self.inner
             .validate_key(key)
             .map_err(|reason| self.inner.record_denial(reason))?;
@@ -138,15 +132,50 @@ impl PhysicalResidencyPool {
                 .inner
                 .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
         }
-        let mut batch = self.reserve_candidate_frames(&[key])?;
-        batch.reserve_next(key)?.admit(bytes)
+        let candidate = PhysicalCandidateFrameKey::fragment(key);
+        let mut batch = self.reserve_candidate_frames(allocation, &[candidate])?;
+        batch.reserve_next(candidate)?.admit(bytes)
     }
 
-    pub fn reserve_candidate_frames(
+    pub fn reserve_candidate_frames<'grant>(
         &self,
-        keys: &[PhysicalFrameKey],
-    ) -> Result<PhysicalCandidateBatchReservation, PhysicalResidencyDenial> {
-        self.inner.reserve_candidate_frames(keys)
+        allocation: &'grant OperationAllocationGrant,
+        keys: &[PhysicalCandidateFrameKey],
+    ) -> Result<PhysicalCandidateBatchReservation<'grant>, PhysicalResidencyDenial> {
+        self.allocation_scope(allocation)?;
+        let candidate_count = std::num::NonZeroUsize::new(keys.len()).ok_or_else(|| {
+            self.inner
+                .record_denial(PhysicalResidencyDenial::EmptyCandidateBatch)
+        })?;
+        self.begin_candidate_batch(allocation, candidate_count)?
+            .reserve(keys)
+    }
+
+    pub fn begin_candidate_batch<'grant>(
+        &self,
+        allocation: &'grant OperationAllocationGrant,
+        candidate_count: std::num::NonZeroUsize,
+    ) -> Result<PhysicalCandidateBatchAdmission<'grant>, PhysicalResidencyDenial> {
+        self.allocation_scope(allocation)?;
+        let allocation_bytes = Self::candidate_batch_operation_bytes(candidate_count)
+            .ok_or_else(|| {
+                self.inner
+                    .record_denial(PhysicalResidencyDenial::AllocationFailed)
+            })?
+            .get();
+        self.inner.validate_candidate_projection_start()?;
+        let allocation_use = allocation.reserve_use(&self.inner, allocation_bytes)?;
+        Ok(PhysicalCandidateBatchAdmission {
+            owner: Arc::clone(&self.inner),
+            allocation_use,
+            candidate_count,
+        })
+    }
+
+    pub fn candidate_batch_operation_bytes(
+        candidate_count: std::num::NonZeroUsize,
+    ) -> Option<std::num::NonZeroU64> {
+        super::candidate_admission::candidate_batch_operation_bytes(candidate_count)
     }
 
     pub fn invalidate_clean(&self, key: PhysicalFrameKey) -> Result<(), PhysicalResidencyDenial> {
@@ -155,23 +184,26 @@ impl PhysicalResidencyPool {
 
     pub fn begin_operation(
         &self,
-        scope: OperationAllocationScope,
-        bytes: u64,
+        scope: PhysicalOperationAllocationScope,
+        bytes: std::num::NonZeroU64,
     ) -> Result<OperationAllocationGrant, PhysicalResidencyDenial> {
         self.inner.reserve_operation(scope, bytes)?;
         Ok(OperationAllocationGrant {
             owner: Arc::clone(&self.inner),
             scope,
-            bytes,
+            bytes: bytes.get(),
+            active_use_bytes: std::sync::atomic::AtomicU64::new(0),
         })
     }
 
     pub fn begin_speculative(
         &self,
-        kind: crate::SpeculativePhysicalWorkKind,
+        allocation: &OperationAllocationGrant,
+        kind: crate::PhysicalSpeculativeWorkKind,
         frames: u32,
     ) -> Result<SpeculativeResidencyGrant, PhysicalResidencyDenial> {
-        self.inner.reserve_speculative(kind, frames)?;
+        let scope = self.allocation_scope(allocation)?;
+        self.inner.reserve_speculative(scope, kind, frames)?;
         Ok(SpeculativeResidencyGrant {
             owner: Arc::clone(&self.inner),
             kind,
@@ -201,25 +233,20 @@ impl PhysicalResidencyPool {
     }
 
     pub fn counters(&self) -> PhysicalResidencyCounters {
-        self.inner.lock().counters
+        self.inner.lock().accounting.snapshot()
     }
 
     pub fn close(&self) -> PhysicalResidencyShutdown {
         let mut state = self.inner.lock();
         if state.closed {
-            return PhysicalResidencyShutdown::new(state.counters);
+            return PhysicalResidencyShutdown::new(state.accounting.snapshot());
         }
         state.accepting = false;
         self.inner.changed.notify_all();
-        while let Some(coordinate) = state.pop_oldest_evictable() {
-            if let Some(entry) = state.frames.remove(&coordinate) {
-                state.counters.resident_bytes -= entry.bytes;
-                state.counters.administrative_drains += 1;
-            }
-        }
+        state.drain_all_legal_clean_frames();
         state.closed = true;
         self.inner.changed.notify_all();
-        PhysicalResidencyShutdown::new(state.counters)
+        PhysicalResidencyShutdown::new(state.accounting.snapshot())
     }
 
     pub fn drain_unpinned_clean_frames(&self) -> u64 {
@@ -227,19 +254,13 @@ impl PhysicalResidencyPool {
         if !state.accepting {
             return 0;
         }
-        let mut drained = 0;
-        loop {
-            let coordinate = state.pop_oldest_evictable();
-            let Some(coordinate) = coordinate else { break };
-            if let Some(entry) = state.frames.remove(&coordinate) {
-                state.counters.resident_bytes -= entry.bytes;
-                if entry.origin == FrameOrigin::Candidate {
-                    state.counters.candidate_frames -= 1;
-                }
-                state.counters.administrative_drains += 1;
-                drained += 1;
-            }
-        }
-        drained
+        state.drain_all_legal_clean_frames()
+    }
+
+    fn allocation_scope(
+        &self,
+        allocation: &OperationAllocationGrant,
+    ) -> Result<PhysicalOperationAllocationScope, PhysicalResidencyDenial> {
+        allocation.scope_for(&self.inner)
     }
 }

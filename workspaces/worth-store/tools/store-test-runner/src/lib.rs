@@ -8,6 +8,8 @@ mod courtroom_campaign;
 mod execution;
 mod local_source_fingerprint;
 mod mutation_campaign;
+#[cfg(test)]
+mod physical_residency_boundary_gate;
 #[cfg(feature = "physical-work-evidence")]
 pub mod physical_work_evidence;
 #[cfg(test)]

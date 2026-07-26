@@ -1,4 +1,7 @@
-use worth_store_buffer_pool::{PhysicalFrameKey, PhysicalResidencyLimits, PhysicalResidencyPool};
+use worth_store_buffer_pool::{
+    PhysicalFrameAccess, PhysicalFrameKey, PhysicalOperationAllocationScope,
+    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalSpeculativeWorkKind,
+};
 use worth_store_physical_format::{
     store_namespace::{
         ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
@@ -51,14 +54,19 @@ fn with_protected_physical_bytes(
     run: impl FnOnce(ProtectedPhysicalByteView<'_>),
 ) {
     let store = physical_residency_store();
-    let pool = PhysicalResidencyPool::open(
-        store,
-        PhysicalResidencyLimits::new(8192, 4, 1, 512, 1).unwrap(),
-    )
-    .unwrap();
+    let pool = PhysicalResidencyPool::open(store, physical_residency_limits()).unwrap();
+    let allocation = pool
+        .begin_operation(
+            PhysicalOperationAllocationScope::Recovery,
+            std::num::NonZeroU64::MIN,
+        )
+        .unwrap();
     let key = PhysicalFrameKey::new(store, frame_coordinate(page, bytes.len()));
-    let lease = pool
-        .load(key, |target| {
+    let PhysicalFrameAccess::Fault(fault) = pool.access_frame(&allocation, key).unwrap() else {
+        panic!("a fresh recovery fixture pool must issue the sole frame fault");
+    };
+    let lease = fault
+        .load(|target| {
             target.copy_from_slice(bytes);
             Ok::<_, std::convert::Infallible>(())
         })
@@ -205,6 +213,42 @@ fn physical_residency_store() -> StableStoreIdentity {
         ProposedStoreIdentity::from_nonzero_bytes([0x52; 16]).unwrap(),
     )
     .published_identity()
+}
+
+fn physical_residency_limits() -> PhysicalResidencyLimits {
+    use PhysicalOperationAllocationScope as Scope;
+    use PhysicalSpeculativeWorkKind as Speculation;
+
+    PhysicalResidencyLimits::builder()
+        .total_bytes(nonzero_bytes(25_088))
+        .resident_bytes(nonzero_bytes(8192))
+        .metadata_bytes(nonzero_bytes(8192))
+        .frame_entries(nonzero_count(4))
+        .pinned_frames(nonzero_count(4))
+        .pin_leases(nonzero_count(4))
+        .dirty_frames(nonzero_count(1))
+        .dirty_replacement_bytes(nonzero_bytes(8192))
+        .operation_bytes(nonzero_bytes(512))
+        .scope_bytes(Scope::ForegroundRead, nonzero_bytes(512))
+        .scope_bytes(Scope::ForegroundWrite, nonzero_bytes(512))
+        .scope_bytes(Scope::Recovery, nonzero_bytes(512))
+        .scope_bytes(Scope::Scrub, nonzero_bytes(512))
+        .scope_bytes(Scope::Maintenance, nonzero_bytes(512))
+        .scope_bytes(Scope::Verification, nonzero_bytes(512))
+        .scope_bytes(Scope::Blob, nonzero_bytes(512))
+        .speculative_frames(Speculation::Prefetch, nonzero_count(4))
+        .speculative_frames(Speculation::ReadAhead, nonzero_count(4))
+        .speculative_frames(Speculation::WriteBehind, nonzero_count(1))
+        .admit(std::num::NonZeroU64::MIN)
+        .unwrap()
+}
+
+fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
+    std::num::NonZeroU64::new(value).unwrap()
+}
+
+fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
+    std::num::NonZeroU32::new(value).unwrap()
 }
 
 fn frame_coordinate(page: u64, frame_bytes: usize) -> RecordFrameCoordinate {

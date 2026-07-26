@@ -1,5 +1,5 @@
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationObservation, OperationAllocationScope,
+    OperationAllocationGrant, OperationAllocationObservation, PhysicalOperationAllocationScope,
 };
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub struct BlobStreamingAllocationObservation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BlobStreamingAllocationDenial {
     WrongScope {
-        actual: OperationAllocationScope,
+        actual: PhysicalOperationAllocationScope,
     },
     WindowExceedsAllocation {
         window_bytes: u64,
@@ -31,7 +31,7 @@ impl AdmittedBlobStreamingAllocation {
         window_bytes: u64,
     ) -> Result<Self, BlobStreamingAllocationDenial> {
         let allocation = grant.observation();
-        if allocation.scope() != OperationAllocationScope::Blob {
+        if allocation.scope() != PhysicalOperationAllocationScope::Blob {
             return Err(BlobStreamingAllocationDenial::WrongScope {
                 actual: allocation.scope(),
             });
@@ -44,7 +44,7 @@ impl AdmittedBlobStreamingAllocation {
         }
         if allocation
             .counters()
-            .active_operation_bytes_for(OperationAllocationScope::Blob)
+            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob)
             < allocation.bytes()
         {
             return Err(BlobStreamingAllocationDenial::CountersUnavailable);

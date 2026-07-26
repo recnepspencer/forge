@@ -1,11 +1,11 @@
 use crate::{
-    AllocationGrant, AllocationReceipt, PrefetchWindow, SpeculativePhysicalWorkKind,
+    AllocationGrant, AllocationReceipt, PhysicalSpeculativeWorkKind, PrefetchWindow,
     SpeculativeWorkCounterSnapshot,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SpeculativeWorkReplayIdentity {
-    kind: SpeculativePhysicalWorkKind,
+    kind: PhysicalSpeculativeWorkKind,
     resident_frames_requested: u32,
     dirty_pages_requested: u32,
     allocation_bytes_requested: u64,
@@ -15,7 +15,7 @@ pub struct SpeculativeWorkReplayIdentity {
 
 impl SpeculativeWorkReplayIdentity {
     pub(crate) const fn new(
-        kind: SpeculativePhysicalWorkKind,
+        kind: PhysicalSpeculativeWorkKind,
         resident_frames_requested: u32,
         dirty_pages_requested: u32,
         allocation_bytes_requested: u64,
@@ -32,7 +32,7 @@ impl SpeculativeWorkReplayIdentity {
         }
     }
 
-    pub const fn kind(self) -> SpeculativePhysicalWorkKind {
+    pub const fn kind(self) -> PhysicalSpeculativeWorkKind {
         self.kind
     }
 

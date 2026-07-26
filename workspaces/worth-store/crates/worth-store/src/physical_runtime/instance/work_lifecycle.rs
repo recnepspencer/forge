@@ -1,13 +1,15 @@
 use std::sync::{Arc, Weak};
 
+#[cfg(feature = "certification-test-authority")]
+use crate::physical_runtime::PhysicalWorkRecoveryLocator;
 use crate::physical_runtime::{
     work::PhysicalWorkAdmissionAuthority, AdmittedPhysicalWork, BlockedPhysicalWork,
     PhysicalEffectObligation, PhysicalMutationSubmission, PhysicalReadSubmission,
     PhysicalWorkAdmission, PhysicalWorkCancellationFailure, PhysicalWorkCancellationJoin,
     PhysicalWorkConsumerHandle, PhysicalWorkObservation, PhysicalWorkPreEffectDenial,
-    PhysicalWorkReadiness, PhysicalWorkRecoveryLocator, PhysicalWorkRetryAdmission,
-    PhysicalWorkRetryFailure, PhysicalWorkRetrySchedule, PhysicalWorkRetryScheduleOutcome,
-    PhysicalWorkSubmissionReceipt, PhysicalWorkTimeoutJoin, ReadyPhysicalWork, SettledPhysicalWork,
+    PhysicalWorkReadiness, PhysicalWorkRetryAdmission, PhysicalWorkRetryFailure,
+    PhysicalWorkRetrySchedule, PhysicalWorkRetryScheduleOutcome, PhysicalWorkSubmissionReceipt,
+    PhysicalWorkTimeoutJoin, ReadyPhysicalWork, SettledPhysicalWork,
 };
 
 use super::PhysicalStoreWorkRuntime;
@@ -213,6 +215,7 @@ impl PhysicalWorkLifecycle {
         Ok(PhysicalWorkTimeoutJoin::new(report, obligation))
     }
 
+    #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime) fn recovery_obligations(
         &self,
     ) -> Option<Box<[PhysicalWorkRecoveryLocator]>> {
@@ -221,6 +224,7 @@ impl PhysicalWorkLifecycle {
             .map(|runtime| runtime.recovery.obligations().to_vec().into_boxed_slice())
     }
 
+    #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime) fn recovery_evidence_damaged(&self) -> Option<bool> {
         self.runtime
             .upgrade()

@@ -4,7 +4,9 @@ use super::support::{
     recovery_memory_allocation,
 };
 use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::operation_allocation;
-use worth_store_buffer_pool::{OperationAllocationScope, PhysicalResidencyDenial};
+use worth_store_buffer_pool::{
+    PhysicalOperationAllocationScope, PhysicalResidencyDenial, PhysicalResidencyDimension,
+};
 use worth_store_recovery_physics::{
     IntegrityHandoffPayload, RecoveryEntryAdmission, RecoveryEntryAdmissionDecision,
     RecoveryMemoryAllocation, RecoveryMemoryAllocationDenial,
@@ -31,22 +33,31 @@ fn intact_integrity_model_input_and_recovery_envelope_produce_stable_entry_ident
 
 #[test]
 fn recovery_entry_rejects_wrong_scope_or_over_budget_allocation_before_admission() {
-    let maintenance = operation_allocation(OperationAllocationScope::Maintenance, 128)
+    let maintenance = operation_allocation(PhysicalOperationAllocationScope::Maintenance, 128)
         .expect("bounded maintenance allocation should admit");
     let denial = RecoveryMemoryAllocation::from_allocation_grant(maintenance).unwrap_err();
 
     assert_eq!(
         denial,
         RecoveryMemoryAllocationDenial::WrongAllocationScope {
-            actual: OperationAllocationScope::Maintenance,
+            actual: PhysicalOperationAllocationScope::Maintenance,
         }
     );
 
-    let over_budget = operation_allocation(OperationAllocationScope::Recovery, 513).unwrap_err();
+    let over_budget =
+        operation_allocation(PhysicalOperationAllocationScope::Recovery, 513).unwrap_err();
+    let PhysicalResidencyDenial::Pressure(pressure) = over_budget else {
+        panic!("operation overspend must return typed physical pressure");
+    };
     assert_eq!(
-        over_budget,
-        PhysicalResidencyDenial::OperationBudgetExceeded
+        pressure.dimension(),
+        PhysicalResidencyDimension::OperationScope(PhysicalOperationAllocationScope::Recovery,)
     );
+    assert_eq!(pressure.scope(), PhysicalOperationAllocationScope::Recovery);
+    assert_eq!(pressure.requested(), 513);
+    assert_eq!(pressure.current(), 0);
+    assert_eq!(pressure.limit(), 512);
+    assert!(!pressure.effect_may_have_started());
 }
 
 #[test]

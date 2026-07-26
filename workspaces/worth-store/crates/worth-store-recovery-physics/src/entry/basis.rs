@@ -1,14 +1,14 @@
 use crate::{
     AdmittedRecoveryIntegrityInput, PartialPublicationBeforeWalReplayRead, RecoveryMemoryAllocation,
 };
-use worth_store_buffer_pool::OperationAllocationScope;
+use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 use worth_store_contracts::{PhysicalAuthorityRecap, StableDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryBasis {
     integrity_handoff_identity: StableDigest,
     integrity_damage_basis: StableDigest,
-    memory_allocation_scope: OperationAllocationScope,
+    memory_allocation_scope: PhysicalOperationAllocationScope,
     memory_counters: crate::RecoveryMemoryCounterSnapshot,
     physical_reference_count: u32,
     header_decode_witness_count: u32,
@@ -45,7 +45,7 @@ impl RecoveryEntryBasis {
         &self.integrity_damage_basis
     }
 
-    pub const fn memory_allocation_scope(&self) -> OperationAllocationScope {
+    pub const fn memory_allocation_scope(&self) -> PhysicalOperationAllocationScope {
         self.memory_allocation_scope
     }
 

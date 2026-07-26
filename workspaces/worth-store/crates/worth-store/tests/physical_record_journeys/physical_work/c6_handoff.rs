@@ -3,16 +3,15 @@ use std::num::NonZeroU32;
 use sha2::{Digest, Sha256};
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    C6PhysicalFrameReadFailure, C6PhysicalFrameWorkFailure, C6PhysicalResidencyWork,
-    C6PhysicalWorkHandoff, C6PhysicalWorkHandoffFailure, PhysicalEffectObligation,
-    PhysicalMutationWorkRequest, PhysicalReadWorkRequest, PhysicalSignalSettlementOutcome,
-    PhysicalWorkArtifactBinding, PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomRunBinding,
-    PhysicalWorkEffectFate, PhysicalWorkEffectFateEvidence, PhysicalWorkEvidenceDigest,
-    PhysicalWorkExecutionContext, PhysicalWorkOracleEvidence, PhysicalWorkPreEffectDenial,
-    PhysicalWorkProcessEvidence, PhysicalWorkReadiness, PhysicalWorkRecoveryDisposition,
-    PhysicalWorkRunEnvironmentEvidence, PhysicalWorkSourceBinding, PhysicalWorkSubmissionOutcome,
-    PhysicalWorkSubmissionReceipt, PhysicalWorkSubmissionStale, ReadyPhysicalWork,
-    ServingPhysicalRuntime,
+    C6PhysicalWorkHandoff, C6PhysicalWorkHandoffFailure, CertificationFrameReadFailure,
+    CertificationFrameWorkFailure, PhysicalEffectObligation, PhysicalMutationWorkRequest,
+    PhysicalReadWorkRequest, PhysicalSignalSettlementOutcome, PhysicalWorkArtifactBinding,
+    PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomRunBinding, PhysicalWorkEffectFate,
+    PhysicalWorkEffectFateEvidence, PhysicalWorkEvidenceDigest, PhysicalWorkExecutionContext,
+    PhysicalWorkOracleEvidence, PhysicalWorkPreEffectDenial, PhysicalWorkProcessEvidence,
+    PhysicalWorkReadiness, PhysicalWorkRecoveryDisposition, PhysicalWorkRunEnvironmentEvidence,
+    PhysicalWorkSourceBinding, PhysicalWorkSubmissionOutcome, PhysicalWorkSubmissionReceipt,
+    PhysicalWorkSubmissionStale, ReadyPhysicalWork, ServingPhysicalRuntime,
 };
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_physical_backend::MediaOperationRole;
@@ -39,8 +38,14 @@ fn c6_handoff_joins_submission_writeback_and_lifecycle_fencing() {
 
     let mutation =
         prove_identity_and_cancellation(&serving, &handoff, read_request, mutation_request.clone());
-    let residency = prove_exact_writeback(&root, &serving, &handoff, mutation);
-    prove_close_fencing(serving, &handoff, &residency, mutation_request);
+    prove_exact_writeback(&root, &serving, &handoff, mutation);
+    let residency_certification = serving.certification_physical_residency();
+    prove_close_fencing(
+        serving,
+        &handoff,
+        &residency_certification,
+        mutation_request,
+    );
     prove_bound_courtroom_evidence(evidence_binding, handoff_identity, &root, environment);
 }
 
@@ -55,7 +60,7 @@ fn c6_dirty_admission_rejects_a_foreign_store_lease() {
         &parent.path().join("second"),
         second_profile,
     );
-    let first_residency = first.c6_physical_work_handoff().residency_work();
+    let first_residency = first.certification_physical_residency();
     let second_handoff = second.c6_physical_work_handoff();
     let second_residency = second_handoff.residency_work();
     let ready = ready_from_receipt(
@@ -71,7 +76,9 @@ fn c6_dirty_admission_rejects_a_foreign_store_lease() {
         .attempts_for(MediaOperationRole::PositionedWrite);
 
     assert!(matches!(
-        second_residency.admit_dirty_frame(&ready, foreign, bytes),
+        second_residency.admit_dirty_frame(&ready, foreign, move |_, target| {
+            target.copy_from_slice(&bytes);
+        }),
         Err(C6PhysicalWorkHandoffFailure::StaleOrForeignIdentity)
     ));
     assert_eq!(
@@ -125,14 +132,19 @@ fn prove_exact_writeback(
     serving: &ServingPhysicalRuntime,
     handoff: &C6PhysicalWorkHandoff,
     mutation: PhysicalWorkSubmissionReceipt,
-) -> C6PhysicalResidencyWork {
+) {
     let ready_write = ready_from_receipt(handoff, mutation);
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();
     let residency = handoff.residency_work();
-    let lease = residency.pin_exact(coordinate).unwrap();
+    let lease = serving
+        .certification_physical_residency()
+        .pin_exact(coordinate)
+        .unwrap();
     let dirty = residency
-        .admit_dirty_frame(&ready_write, lease, EXPECTED_WRITEBACK.to_vec())
+        .admit_dirty_frame(&ready_write, lease, |_, target| {
+            target.copy_from_slice(&EXPECTED_WRITEBACK);
+        })
         .unwrap();
     assert_eq!(dirty.identity(), ready_write.intent().identity());
     let reservation = residency.reserve_writeback(&ready_write, &dirty).expect(
@@ -177,13 +189,12 @@ fn prove_exact_writeback(
         &std::fs::read(root.join("families/records/bootstrap.catalog")).unwrap()[8..16],
         EXPECTED_WRITEBACK
     );
-    residency
 }
 
 fn prove_close_fencing(
     serving: ServingPhysicalRuntime,
     handoff: &C6PhysicalWorkHandoff,
-    residency: &C6PhysicalResidencyWork,
+    residency_certification: &worth_store::physical_runtime::PhysicalResidencyCertification,
     mutation_request: PhysicalMutationWorkRequest,
 ) {
     let stale_submission = handoff.mutation_submission();
@@ -200,11 +211,11 @@ fn prove_close_fencing(
         TransitionOutcome::Stale(PhysicalWorkSubmissionStale::OwnerReleased)
     ));
     assert!(matches!(
-        residency.pin_exact(
+        residency_certification.pin_exact(
             RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap()
         ),
-        Err(C6PhysicalFrameReadFailure::PhysicalWork(
-            C6PhysicalFrameWorkFailure::PreEffect(PhysicalWorkPreEffectDenial::AdmissionStopped)
+        Err(CertificationFrameReadFailure::PhysicalWork(
+            CertificationFrameWorkFailure::PreEffect(PhysicalWorkPreEffectDenial::AdmissionStopped)
         ))
     ));
     assert!(matches!(

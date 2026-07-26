@@ -27,7 +27,7 @@ pub(in crate::physical_runtime::record_serving) fn execute(
     media: &QualifiedFilesystemMedia,
     format: AdmittedPhysicalRecordFormat,
     mut plan: PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<PublicationPlan, RecordAppendError> {
     let artifacts = PublicationRecordArtifacts::new(mutation);
@@ -42,7 +42,7 @@ fn write_data(
     artifacts: &PublicationRecordArtifacts<'_>,
     format: AdmittedPhysicalRecordFormat,
     plan: &mut PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<(), RecordAppendError> {
     for index in 0..plan.data.len() {
@@ -176,7 +176,7 @@ fn write_payload_manifests(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
     plan: &mut PublicationPlan,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<(), RecordAppendError> {
     for index in 0..plan.payload_manifests.len() {
@@ -244,7 +244,7 @@ fn write_payload_manifests(
 
 fn execute_payload_manifest_stage(
     artifacts: &PublicationRecordArtifacts<'_>,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     artifact: worth_store_physical_format::RecordArtifactFile,
     bytes: Vec<u8>,
     work: &mut super::RecordPublicationWorkTrace,

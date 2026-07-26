@@ -2,9 +2,9 @@ use worth_store_physical_backend::QualifiedFilesystemMedia;
 
 use crate::physical_runtime::{
     record_serving::{
-        CanonicalRecordMutationPort, RecordAllocationFrontier, RecordFramePorts,
-        RecordPublicationDirector, RecordPublicationFoundation, RecordServingOwner,
-        RecordServingState, RecordWorkAdmission, ServingHealth,
+        CanonicalRecordMutationPort, RecordAllocationFrontier, RecordPublicationDirector,
+        RecordPublicationFoundation, RecordServingOwner, RecordServingState, RecordWorkAdmission,
+        ServingHealth,
     },
     runtime::PhysicalRuntimeCore,
     work::{
@@ -14,8 +14,9 @@ use crate::physical_runtime::{
 };
 
 use super::{
-    PhysicalSchedulerAdmissionOwner, PhysicalSignalConstructionFailure, PhysicalStoreInstanceParts,
-    PhysicalStoreWorkRuntime, PhysicalWorkExecutor, PhysicalWorkSignalOwner,
+    PhysicalResidencyOwner, PhysicalSchedulerAdmissionOwner, PhysicalSignalConstructionFailure,
+    PhysicalStoreInstanceParts, PhysicalStoreWorkRuntime, PhysicalWorkExecutor,
+    PhysicalWorkSignalOwner,
 };
 
 pub(in crate::physical_runtime) struct PhysicalStoreInstanceFoundation {
@@ -25,7 +26,7 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceFoundation {
     pub(in crate::physical_runtime) core: PhysicalRuntimeCore,
     pub(in crate::physical_runtime) bootstrap: RecordServingState,
     pub(in crate::physical_runtime) allocation_frontier: RecordAllocationFrontier,
-    pub(in crate::physical_runtime) frame_ports: RecordFramePorts,
+    pub(in crate::physical_runtime) residency: PhysicalResidencyOwner,
     pub(in crate::physical_runtime) work_profile:
         crate::physical_runtime::PhysicalWorkProfileDeclaration,
 }
@@ -34,7 +35,7 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceConstructionFailure 
     termination: crate::physical_runtime::lifecycle::LifecycleTerminationGuard,
     media: QualifiedFilesystemMedia,
     core: PhysicalRuntimeCore,
-    frame_ports: RecordFramePorts,
+    residency: PhysicalResidencyOwner,
     cause: PhysicalSignalConstructionFailure,
 }
 
@@ -48,9 +49,10 @@ impl PhysicalStoreInstanceParts {
             core,
             bootstrap,
             allocation_frontier,
-            frame_ports,
+            residency,
             work_profile,
         } = foundation;
+        let frame_ports = residency.ports().clone();
         let runtime_identity = core.runtime_identity();
         let lifecycle_generation = core.lifecycle_generation();
         let store_identity = media.store_identity();
@@ -62,7 +64,7 @@ impl PhysicalStoreInstanceParts {
                     termination,
                     media,
                     core,
-                    frame_ports,
+                    residency,
                     cause: PhysicalSignalConstructionFailure::ProfileRejected(denial),
                 })
             }
@@ -81,7 +83,7 @@ impl PhysicalStoreInstanceParts {
                         termination,
                         media,
                         core,
-                        frame_ports,
+                        residency,
                         cause,
                     })
                 }
@@ -104,7 +106,7 @@ impl PhysicalStoreInstanceParts {
                     termination,
                     media,
                     core,
-                    frame_ports,
+                    residency,
                     cause: PhysicalSignalConstructionFailure::SchedulerCapabilityRejected(denial),
                 })
             }
@@ -148,6 +150,7 @@ impl PhysicalStoreInstanceParts {
                 allocation_frontier,
                 residue: bootstrap.publication_residue,
                 frame_ports: frame_ports.clone(),
+                generation: lifecycle_generation,
             },
         );
 
@@ -162,7 +165,7 @@ impl PhysicalStoreInstanceParts {
             format: bootstrap.format,
             access: bootstrap.access,
             publication,
-            frame_ports,
+            residency,
         })
     }
 }
@@ -176,7 +179,7 @@ impl PhysicalStoreInstanceConstructionFailure {
         PhysicalSignalConstructionFailure,
     ) {
         let identity = self.core.runtime_identity();
-        let _residency = self.frame_ports.close();
+        let _residency = self.residency.close();
         drop(self.termination);
         let release = self.media.close();
         let terminal =

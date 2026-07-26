@@ -25,13 +25,14 @@ impl PhysicalRecordReader {
             .health
             .permit()
             .map_err(|_| RecordReadDenial::ServingRequiresInspection)?;
-        let artifacts = RecordFrameReader::serving(self.frame_ports.clone(), self.source.clone());
+        let artifacts = RecordFrameReader::serving(self.residency.clone());
         let admitted = manifest_admission::admit_extent_manifest(
             manifest_admission::ExtentManifestAdmission {
                 reader: self,
                 record,
                 placement,
                 observation,
+                allocation: &allocation,
                 artifacts: &artifacts,
             },
         )?;
@@ -43,6 +44,7 @@ impl PhysicalRecordReader {
                 admitted.manifest,
                 self.format.declaration(),
             ))),
+            identity: self.read_identity(record),
             observation: *observation,
             runtime: self.runtime.clone(),
             health_permit,

@@ -102,11 +102,19 @@ pub use page_lease::PageLease;
 pub use physical_entry_facts::S2PhysicalEntryFacts;
 pub use physical_residency::{
     DirtyPhysicalFrame, OperationAllocationGrant, OperationAllocationObservation,
-    OperationAllocationScope, PhysicalCandidateBatchReservation, PhysicalCandidateFrameReservation,
-    PhysicalFrameKey, PhysicalFrameLease, PhysicalFrameLoadError, PhysicalResidencyCounters,
-    PhysicalResidencyDenial, PhysicalResidencyIncarnation, PhysicalResidencyLimits,
-    PhysicalResidencyPool, PhysicalResidencyShutdown, PhysicalWritebackClaim,
-    SpeculativePhysicalWorkKind, SpeculativeResidencyGrant,
+    PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
+    PhysicalBoundedFrameKey, PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
+    PhysicalCandidateFrameKey, PhysicalCandidateFrameReservation, PhysicalDirtyReplacementError,
+    PhysicalDirtyReplacementReservation, PhysicalFrameAccess, PhysicalFrameFaultError,
+    PhysicalFrameFaultOwner, PhysicalFrameFaultWaiter, PhysicalFrameKey, PhysicalFrameLease,
+    PhysicalFrameLoadTerminal, PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity,
+    PhysicalOperationAllocationScope, PhysicalResidencyAllocationEventCounters,
+    PhysicalResidencyAllocationEventObserver, PhysicalResidencyAllocationEventSnapshot,
+    PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyDimension,
+    PhysicalResidencyIncarnation, PhysicalResidencyLimits, PhysicalResidencyLimitsAdmissionDenial,
+    PhysicalResidencyLimitsBuilder, PhysicalResidencyPool, PhysicalResidencyPressureDenial,
+    PhysicalResidencyShutdown, PhysicalSpeculativeWorkKind, PhysicalWritebackClaim,
+    SpeculativeResidencyGrant,
 };
 #[cfg(feature = "legacy-s2-models")]
 pub use pinned_frame_view::PinnedFrameView;

@@ -75,7 +75,15 @@ pub enum RecordBootstrapDenial {
     CurrentRootDamaged,
     FreeSpaceManifestDamaged,
     BackendUnavailable(ArtifactTreeFailure),
-    ResidencyUnavailable(worth_store_buffer_pool::PhysicalResidencyDenial),
+    ResidencyUnavailable(super::super::PhysicalRecordResidencyFailure),
+}
+
+impl RecordBootstrapDenial {
+    pub(in crate::physical_runtime::record_serving) fn from_residency(
+        denial: worth_store_buffer_pool::PhysicalResidencyDenial,
+    ) -> Self {
+        Self::ResidencyUnavailable(denial.into())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

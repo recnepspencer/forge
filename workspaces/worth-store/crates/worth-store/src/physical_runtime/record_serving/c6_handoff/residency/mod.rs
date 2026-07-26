@@ -9,18 +9,13 @@ use crate::physical_runtime::{
 
 use super::{C6PhysicalWorkHandoffFailure, C6PhysicalWorkHandoffIdentity};
 use crate::physical_runtime::record_serving::{
-    residency::{frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts},
-    CanonicalRecordReadPort, RecordWorkAdmission,
+    residency::frame_ports::RecordFramePorts, RecordWorkAdmission,
 };
 
 mod dirty_frame;
-mod frame_load;
 mod writeback;
 
 pub use dirty_frame::C6AdmittedDirtyFrame;
-pub use frame_load::{
-    C6PhysicalFrameLease, C6PhysicalFrameReadFailure, C6PhysicalFrameWorkFailure,
-};
 pub use writeback::{
     C6AdmittedPhysicalWriteback, C6PhysicalWorkSettlement, C6PhysicalWritebackExecution,
     C6PhysicalWritebackReservation, C6PhysicalWritebackTransitionFailure,
@@ -41,7 +36,6 @@ pub struct C6PhysicalResidencyWork {
     pub(super) scheduler: PhysicalSchedulerAdmissionOwner,
     pub(super) record: Arc<RecordWorkAdmission>,
     pub(super) frame_ports: RecordFramePorts,
-    pub(super) frame_source: CanonicalFrameReadSource,
 }
 
 impl C6PhysicalResidencyWork {
@@ -50,21 +44,13 @@ impl C6PhysicalResidencyWork {
         identity: C6PhysicalWorkHandoffIdentity,
     ) -> Self {
         let generation = parts.core.lifecycle_generation();
-        let frame_source = CanonicalFrameReadSource::new(CanonicalRecordReadPort::new(
-            &parts.work_runtime,
-            generation,
-            parts.work_admission,
-            parts.scheduler_admission.clone(),
-            Arc::clone(&parts.record_work),
-        ));
         Self {
             identity,
             runtime: Arc::downgrade(&parts.work_runtime),
             execution: PhysicalStoreWorkRuntime::execution(&parts.work_runtime, generation),
             scheduler: parts.scheduler_admission.clone(),
             record: Arc::clone(&parts.record_work),
-            frame_ports: parts.frame_ports.clone(),
-            frame_source,
+            frame_ports: parts.residency.ports().clone(),
         }
     }
 

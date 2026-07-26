@@ -162,9 +162,20 @@ fn parse_reads(lines: &[String]) -> Result<C6ReadObservation, String> {
 }
 
 fn parse_pins(lines: &[String]) -> Result<C6PinObservation, String> {
-    let value = fields(lines, "C5_1_C6_PINS ", 7)?;
-    if value[6] != "PinLeaseBudgetExceeded" {
-        return Err(format!("Courtroom C over-pin denial was `{}`", value[6]));
+    let value = fields(lines, "C5_1_C6_PINS ", 11)?;
+    if value[6] != "PinLeases" || value[7] != "ForegroundRead" {
+        return Err(format!(
+            "Courtroom C over-pin pressure was dimension `{}` scope `{}`",
+            value[6], value[7],
+        ));
+    }
+    let requested: u64 = number(value[8], "over-pin requested leases")?;
+    let admitted: u64 = number(value[9], "over-pin admitted leases")?;
+    let limit: u64 = number(value[10], "over-pin lease limit")?;
+    if requested != 1 || admitted != limit {
+        return Err(format!(
+            "Courtroom C over-pin pressure was requested={requested} admitted={admitted} limit={limit}",
+        ));
     }
     Ok(C6PinObservation {
         cold_work: number(value[1], "cold pin work")?,

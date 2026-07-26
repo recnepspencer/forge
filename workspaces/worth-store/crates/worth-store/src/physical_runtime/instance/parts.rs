@@ -1,14 +1,14 @@
 use crate::physical_runtime::{
     lifecycle::LifecycleTerminationGuard,
     record_serving::{
-        AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, RecordFramePorts,
-        RecordPublicationDirector, RecordServingOwner, RecordWorkAdmission,
+        AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, RecordPublicationDirector,
+        RecordServingOwner, RecordWorkAdmission,
     },
     runtime::PhysicalRuntimeCore,
     work::PhysicalWorkAdmissionAuthority,
 };
 
-use super::{PhysicalSchedulerAdmissionOwner, PhysicalStoreWorkRuntime};
+use super::{PhysicalResidencyOwner, PhysicalSchedulerAdmissionOwner, PhysicalStoreWorkRuntime};
 
 /// Exhaustive construction packet for the owners installed in record-serving.
 ///
@@ -26,5 +26,5 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceParts {
     pub(in crate::physical_runtime) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime) publication: std::sync::Arc<RecordPublicationDirector>,
-    pub(in crate::physical_runtime) frame_ports: RecordFramePorts,
+    pub(in crate::physical_runtime) residency: PhysicalResidencyOwner,
 }

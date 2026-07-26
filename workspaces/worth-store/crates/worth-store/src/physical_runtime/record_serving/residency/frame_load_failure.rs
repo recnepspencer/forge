@@ -9,9 +9,21 @@ pub(in crate::physical_runtime::record_serving) enum FrameLoadFailureKind {
     Backend(ArtifactTreeFailure),
     Work(CanonicalRecordReadFailure),
     Residency(PhysicalResidencyDenial),
+    FaultTerminated {
+        terminal: worth_store_buffer_pool::PhysicalFrameLoadTerminal,
+        cause: FrameLoadFaultCause,
+    },
     AccessLimitExceeded,
     InvalidCoordinate,
     ReturnedFrameIdentityMismatch,
+    CoalescedFault(worth_store_buffer_pool::PhysicalFrameLoadTerminal),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime::record_serving) enum FrameLoadFaultCause {
+    Backend(ArtifactTreeFailure),
+    Work(CanonicalRecordReadFailure),
+    Residency(PhysicalResidencyDenial),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,8 +42,13 @@ impl FrameLoadFailure {
         }
     }
 
-    pub(super) const fn with_work(mut self, work: FrameWorkTrace) -> Self {
+    pub(super) const fn preceded_by(mut self, work: FrameWorkTrace) -> Self {
         self.work = work.then(self.work);
+        self
+    }
+
+    pub(super) const fn with_complete_work_trace(mut self, work: FrameWorkTrace) -> Self {
+        self.work = work;
         self
     }
 

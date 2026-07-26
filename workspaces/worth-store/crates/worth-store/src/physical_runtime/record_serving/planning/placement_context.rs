@@ -6,6 +6,8 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct PlacementPlanningContext<'plan> {
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'plan worth_store_buffer_pool::OperationAllocationGrant,
     pub(in crate::physical_runtime::record_serving) media: &'plan QualifiedFilesystemMedia,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access:
@@ -16,8 +18,6 @@ pub(in crate::physical_runtime::record_serving) struct PlacementPlanningContext<
         &'plan DurableFreeSpaceManifestHeader,
     pub(in crate::physical_runtime::record_serving) frontier: &'plan mut RecordAllocationFrontier,
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
-    pub(in crate::physical_runtime::record_serving) frame_ports:
-        super::super::residency::frame_ports::RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source:
-        super::super::residency::frame_loading::CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) residency:
+        super::super::residency::ServingFrameResidency,
 }

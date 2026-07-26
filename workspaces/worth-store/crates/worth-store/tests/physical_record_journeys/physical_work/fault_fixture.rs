@@ -92,6 +92,43 @@ pub(super) fn serving_from_open_with_positioned_read_fault(
     super::super::success(media.open_record_store(PhysicalRecordOpen::new(format, access)))
 }
 
+pub(super) fn serving_from_open_with_paused_positioned_read_failure(
+    root: &Path,
+    ordinal: u64,
+) -> (
+    ServingPhysicalRuntime,
+    worth_store_physical_backend::MediaPauseGate,
+) {
+    let admission =
+        FilesystemMediaAdmission::production(FilesystemAccessPosture::CoordinatedServiceAccount);
+    let authority = admission.fault_schedule_authority();
+    let gate = authority.pause_gate();
+    let schedule = authority
+        .schedule(vec![authority.rule(
+            MediaOperationRole::PositionedRead,
+            ordinal,
+            MediaFaultDirective::PauseBeforeThenFailBefore {
+                gate: gate.clone(),
+                kind: std::io::ErrorKind::Other,
+                raw_os_error: None,
+            },
+        )])
+        .unwrap();
+    let runtime = PhysicalStore::admit(PhysicalRuntimeAdmission::new(root).unwrap()).unwrap();
+    let media = match runtime
+        .try_admit_filesystem_media(admission.with_fault_schedule(schedule))
+        .into_raw()
+    {
+        TransitionOutcome::Success(media) => media,
+        _ => panic!("paused failing media should admit"),
+    };
+    let (format, _, access) = super::super::configuration();
+    (
+        super::super::success(media.open_record_store(PhysicalRecordOpen::new(format, access))),
+        gate,
+    )
+}
+
 pub(super) fn serving_from_open_with_identified_positioned_read_fault(
     root: &Path,
     ordinal: u64,

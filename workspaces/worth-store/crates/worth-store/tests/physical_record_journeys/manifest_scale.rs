@@ -49,23 +49,26 @@ fn bounded_scale_identity_format_and_policy_courtroom() {
             && value.scan_records == u64::from(value.record_count)
             && value.scan_payload_bytes == u64::from(value.record_count) * 100
     }));
-    assert!(observations.iter().all(|value| {
-        value.point_work >= value.point_blocks + value.point_pages
-            && value.point_work
-                <= value
-                    .point_blocks
-                    .saturating_add(value.point_pages)
-                    .saturating_mul(2)
-            && value.point_faults <= value.point_work
-            && value.scan_work >= value.scan_frames
-            && value.scan_work <= value.scan_frames.saturating_mul(2)
-            && value.scan_faults <= value.scan_work
-            && value.signal_clock_advance == 0
-            && value.signal_invalidation_delta == 0
-    }));
+    prove_causal_work_and_resident_reuse(&observations);
 
     assert!(observations.iter().all(|value| value.invalid_worlds == 5));
     super::scale_policy_evolution::prove();
+}
+
+fn prove_causal_work_and_resident_reuse(observations: &[ScaleObservation]) {
+    assert!(observations.iter().all(|value| {
+        let point_frames = value.point_blocks.saturating_add(value.point_pages);
+        value.point_work == value.point_faults.saturating_mul(2)
+            && value.point_media_reads < point_frames
+            && value.scan_faults <= value.scan_work
+            && value.scan_work
+                <= value
+                    .scan_frames
+                    .saturating_add(value.scan_faults.saturating_mul(2))
+            && value.scan_media_reads < value.scan_frames
+            && value.signal_clock_advance == 0
+            && value.signal_invalidation_delta == 0
+    }));
 }
 
 #[derive(Clone, Copy)]

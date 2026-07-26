@@ -34,8 +34,8 @@ pub(in crate::physical_runtime::record_serving) struct FreeSpaceSuccessorRequest
 }
 
 pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
-    frame_ports: super::super::super::residency::frame_ports::RecordFramePorts,
-    source: super::super::super::residency::frame_loading::CanonicalFrameReadSource,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+    residency: super::super::super::residency::ServingFrameResidency,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
     current: &DurableFreeSpaceManifestHeader,
@@ -46,8 +46,9 @@ pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
     {
         return Err(ManifestLookupFailure::Damaged);
     }
-    let reader = FreeSpaceReader::serving(frame_ports, source, format, access, current);
+    let reader = FreeSpaceReader::serving(residency, format, access, current);
     let mut planner = FreeSpacePlanner {
+        allocation,
         reader: &reader,
         generation: request.generation,
         node_capacity: request.node_capacity,
@@ -92,6 +93,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_free_space_successor(
 }
 
 struct FreeSpacePlanner<'reader> {
+    allocation: &'reader worth_store_buffer_pool::OperationAllocationGrant,
     reader: &'reader FreeSpaceReader<'reader>,
     generation: u64,
     node_capacity: u16,
@@ -108,7 +110,10 @@ impl FreeSpacePlanner<'_> {
         reference: FreeSpaceBlockReference,
         updates: &BTreeMap<FreeSpaceKey, FreeSpaceUpdate>,
     ) -> Result<Vec<FreeSpaceBlockReference>, ManifestLookupFailure> {
-        match self.reader.read_block(reference, &mut self.discovery)? {
+        match self
+            .reader
+            .read_block(self.allocation, reference, &mut self.discovery)?
+        {
             PhysicalFreeSpaceMembershipBlock::Leaf { entries, .. } => {
                 let mut merged = entries
                     .into_iter()
@@ -133,7 +138,10 @@ impl FreeSpacePlanner<'_> {
         reference: FreeSpaceBlockReference,
         updates: &BTreeMap<FreeSpaceKey, FreeSpaceUpdate>,
     ) -> Result<Vec<FreeSpaceBlockReference>, ManifestLookupFailure> {
-        match self.reader.read_block(reference, &mut self.discovery)? {
+        match self
+            .reader
+            .read_block(self.allocation, reference, &mut self.discovery)?
+        {
             PhysicalFreeSpaceMembershipBlock::Leaf { entries, .. } => {
                 let mut merged = entries
                     .into_iter()

@@ -9,10 +9,10 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct ReusableSegmentContext<'plan> {
-    pub(in crate::physical_runtime::record_serving) frame_ports:
-        super::super::residency::frame_ports::RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source:
-        super::super::residency::frame_loading::CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'plan worth_store_buffer_pool::OperationAllocationGrant,
+    pub(in crate::physical_runtime::record_serving) residency:
+        super::super::residency::ServingFrameResidency,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access:
         super::super::AdmittedRecordAccessPolicy,
@@ -28,8 +28,8 @@ pub(in crate::physical_runtime::record_serving) fn load_reusable_segment(
     last: Option<DurableInlineRecordPlacement>,
 ) -> Result<(Option<PlanningSegment>, usize), RecordAppendError> {
     let ReusableSegmentContext {
-        frame_ports,
-        source,
+        allocation,
+        residency,
         format,
         access,
         current_root,
@@ -42,14 +42,13 @@ pub(in crate::physical_runtime::record_serving) fn load_reusable_segment(
     let mut discovery =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
     let page = super::super::access::segment_membership::SegmentMembershipReader::serving(
-        frame_ports.clone(),
-        source.clone(),
+        residency.clone(),
         format,
         access,
         current_root.clone(),
     )
-    .locate(last.segment(), last.page(), &mut discovery)
-    .map_err(|_| RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged))?
+    .locate(allocation, last.segment(), last.page(), &mut discovery)
+    .map_err(super::inline_plan_failure::manifest_lookup_failure)?
     .ok_or(RecordAppendError::Denied(
         RecordAppendDenial::PublishedLayoutDamaged,
     ))?;
@@ -63,14 +62,13 @@ pub(in crate::physical_runtime::record_serving) fn load_reusable_segment(
     let mut free_discovery =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
     let Some(free) = super::super::planning::free_space_routing::FreeSpaceReader::serving(
-        frame_ports,
-        source,
+        residency,
         format,
         access,
         current_free_space,
     )
-    .locate(key, &mut free_discovery)
-    .map_err(|_| RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged))?
+    .locate(allocation, key, &mut free_discovery)
+    .map_err(super::inline_plan_failure::manifest_lookup_failure)?
     else {
         return Ok((None, free_discovery.bytes_read() as usize));
     };

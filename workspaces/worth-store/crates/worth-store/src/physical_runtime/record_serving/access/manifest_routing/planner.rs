@@ -33,6 +33,7 @@ pub(in crate::physical_runtime::record_serving) struct RootManifestUpdateRequest
 
 pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
     reader: &ManifestReader<'_>,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     current: &DurablePhysicalRootManifest,
     request: RootManifestUpdateRequest,
 ) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
@@ -58,6 +59,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
         if let Some(current_root) = current.routing_root() {
             let rebuilt = super::capacity_rebuild::rebuild_capacity(
                 reader,
+                allocation,
                 current_root,
                 current.tree_identity(),
                 successor_generation,
@@ -93,6 +95,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
         }
     }
     let mut planner = UpdatePlanner {
+        allocation,
         reader,
         current,
         successor_generation,
@@ -141,6 +144,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
 }
 
 struct UpdatePlanner<'reader> {
+    allocation: &'reader worth_store_buffer_pool::OperationAllocationGrant,
     reader: &'reader ManifestReader<'reader>,
     current: &'reader DurablePhysicalRootManifest,
     successor_generation: u64,
@@ -157,7 +161,9 @@ impl UpdatePlanner<'_> {
         reference: ManifestBlockReference,
         updates: &BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
     ) -> Result<Vec<ManifestBlockReference>, ManifestLookupFailure> {
-        let block = self.reader.read_block(reference, &mut self.discovery)?;
+        let block = self
+            .reader
+            .read_block(self.allocation, reference, &mut self.discovery)?;
         match block {
             PhysicalRootRoutingBlock::Leaf { entries, .. } => {
                 let mut merged = entries

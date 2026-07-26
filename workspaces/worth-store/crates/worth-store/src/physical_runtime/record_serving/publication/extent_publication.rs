@@ -22,7 +22,7 @@ pub(in crate::physical_runtime::record_serving) fn write_extent(
     artifacts: &PublicationRecordArtifacts<'_>,
     format: AdmittedPhysicalRecordFormat,
     plan: &mut ExtentDataPlan,
-    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
+    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession<'_>,
     observation: &mut PublicationObservation,
     work: &mut super::RecordPublicationWorkTrace,
 ) -> Result<(), CandidateDataWriteFailure> {

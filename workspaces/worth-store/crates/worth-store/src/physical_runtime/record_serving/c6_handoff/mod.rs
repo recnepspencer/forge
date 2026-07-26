@@ -5,8 +5,7 @@ mod residency;
 pub use failure::C6PhysicalWorkHandoffFailure;
 pub use identity::C6PhysicalWorkHandoffIdentity;
 pub use residency::{
-    C6AdmittedDirtyFrame, C6AdmittedPhysicalWriteback, C6PhysicalFrameLease,
-    C6PhysicalFrameReadFailure, C6PhysicalFrameWorkFailure, C6PhysicalResidencyWork,
+    C6AdmittedDirtyFrame, C6AdmittedPhysicalWriteback, C6PhysicalResidencyWork,
     C6PhysicalWorkSettlement, C6PhysicalWritebackExecution, C6PhysicalWritebackReservation,
     C6PhysicalWritebackTransitionFailure, C6PreparedPhysicalWriteback,
     C6RetryablePhysicalWriteback,

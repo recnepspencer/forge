@@ -3,10 +3,9 @@ use std::path::PathBuf;
 use worth_store::physical_runtime::{
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
     ExternalPhysicalRecordLocator, PhysicalRecordId, PhysicalRecordInitialization,
-    PhysicalRecordOpen, RecordAppendBatch, RecordByteLimit, RecordReadLimits,
-    RecordReadObservation, RecordScanCounterSnapshot,
+    PhysicalRecordOpen, PhysicalResidencyCounterSnapshot, RecordAppendBatch, RecordByteLimit,
+    RecordReadLimits, RecordReadObservation, RecordScanCounterSnapshot,
 };
-use worth_store_buffer_pool::PhysicalResidencyCounters;
 use worth_store_offline_verifier::OfflineDurableManifestWalk;
 use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
 
@@ -35,9 +34,9 @@ struct LiveScaleMeasurements {
     media_before_point: MediaCounterSnapshot,
     media_after_point: MediaCounterSnapshot,
     media_after_scan: MediaCounterSnapshot,
-    residency_before_point: PhysicalResidencyCounters,
-    residency_after_point: PhysicalResidencyCounters,
-    residency_after_scan: PhysicalResidencyCounters,
+    residency_before_point: PhysicalResidencyCounterSnapshot,
+    residency_after_point: PhysicalResidencyCounterSnapshot,
+    residency_after_scan: PhysicalResidencyCounterSnapshot,
     point: RecordReadObservation,
     scan: RecordScanCounterSnapshot,
     signal_clock_advance: u64,
@@ -216,7 +215,7 @@ fn observe_live_reads(
     last: PhysicalRecordId,
 ) -> LiveScaleMeasurements {
     let media_before_point = serving.media_counters();
-    let residency_before_point = serving.residency_counters();
+    let residency_before_point = serving.residency_observation().counters();
     let signal_before = serving.physical_signal_observation().unwrap();
     let session = serving
         .records()
@@ -231,10 +230,10 @@ fn observe_live_reads(
         vec![(last.ordinal().saturating_sub(1) % 251) as u8; 100]
     );
     let media_after_point = serving.media_counters();
-    let residency_after_point = serving.residency_counters();
+    let residency_after_point = serving.residency_observation().counters();
     let scan = super::super::scale_support::complete_scan(serving, 7, 16_384);
     let media_after_scan = serving.media_counters();
-    let residency_after_scan = serving.residency_counters();
+    let residency_after_scan = serving.residency_observation().counters();
     await_signal_cleanup(serving);
     let signal_after = serving.physical_signal_observation().unwrap();
     assert_eq!(signal_after.active_locality_count(), 0);

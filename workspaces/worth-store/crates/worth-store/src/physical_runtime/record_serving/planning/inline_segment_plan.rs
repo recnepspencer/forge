@@ -14,7 +14,7 @@ use super::super::{
     planning::published_tail_page::load_published_tail_page,
     planning::reusable_inline_tail::last_inline_placement,
     publication::segment_publication::PageDataPlan,
-    residency::serving_artifacts::ServingRecordArtifacts,
+    residency::{serving_artifacts::ServingRecordArtifacts, ServingFrameResidency},
     AdmittedPhysicalRecordFormat, AdmittedRecordPlacementPolicy, RecordAllocationFrontier,
     RecordAppendDenial, RecordAppendError,
 };
@@ -92,6 +92,8 @@ pub(in crate::physical_runtime::record_serving) enum PlannedPageMembership {
 }
 
 pub(in crate::physical_runtime::record_serving) struct InlineSegmentPlanningContext<'plan> {
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'plan worth_store_buffer_pool::OperationAllocationGrant,
     pub(in crate::physical_runtime::record_serving) media: &'plan QualifiedFilesystemMedia,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access:
@@ -104,10 +106,7 @@ pub(in crate::physical_runtime::record_serving) struct InlineSegmentPlanningCont
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
     pub(in crate::physical_runtime::record_serving) placements:
         &'plan mut BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
-    pub(in crate::physical_runtime::record_serving) frame_ports:
-        super::super::residency::frame_ports::RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source:
-        super::super::residency::frame_loading::CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
     pub(in crate::physical_runtime::record_serving) allow_published_reuse: bool,
 }
 
@@ -124,6 +123,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_inline_segments(
         });
     }
     let InlineSegmentPlanningContext {
+        allocation,
         media,
         format,
         access,
@@ -132,15 +132,14 @@ pub(in crate::physical_runtime::record_serving) fn plan_inline_segments(
         frontier,
         placement,
         placements,
-        frame_ports,
-        source,
+        residency,
         allow_published_reuse,
     } = context;
-    let artifacts = ServingRecordArtifacts::serving(media, frame_ports.clone(), source.clone());
+    let artifacts = ServingRecordArtifacts::serving(media, residency.clone());
     let last_inline = if allow_published_reuse {
         last_inline_placement(
-            frame_ports.clone(),
-            source.clone(),
+            allocation,
+            residency.clone(),
             format,
             access,
             current_root,
@@ -152,8 +151,8 @@ pub(in crate::physical_runtime::record_serving) fn plan_inline_segments(
     let (mut active, mut peak_read_width) = if allow_published_reuse {
         load_reusable_segment(
             ReusableSegmentContext {
-                frame_ports,
-                source,
+                allocation,
+                residency,
                 format,
                 access,
                 current_root,
@@ -166,7 +165,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_inline_segments(
         (None, 0)
     };
     let loaded_tail = if let (Some(last), Some(segment)) = (last_inline, active.as_ref()) {
-        let loaded = load_published_tail_page(&artifacts, format, last, segment)?;
+        let loaded = load_published_tail_page(allocation, &artifacts, format, last, segment)?;
         peak_read_width = peak_read_width.max(loaded.page.len());
         Some(loaded)
     } else {

@@ -1,0 +1,98 @@
+use std::{collections::VecDeque, num::NonZeroUsize, sync::Arc};
+
+use crate::physical_residency::{
+    operation_allocation::OperationAllocationUse, pool::PoolInner, DirtyPhysicalFrame,
+    PhysicalCandidateFrameKey, PhysicalFrameKey, PhysicalResidencyDenial,
+};
+
+#[derive(Debug)]
+pub struct PhysicalCandidateBatchAdmission<'grant> {
+    pub(crate) owner: Arc<PoolInner>,
+    pub(crate) allocation_use: OperationAllocationUse<'grant>,
+    pub(crate) candidate_count: NonZeroUsize,
+}
+
+#[derive(Debug)]
+pub struct PhysicalCandidateBatchReservation<'grant> {
+    pub(crate) owner: Arc<PoolInner>,
+    pub(crate) keys: VecDeque<PhysicalCandidateFrameKey>,
+    pub(crate) allocation_use: OperationAllocationUse<'grant>,
+    pub(crate) armed: bool,
+}
+
+#[derive(Debug)]
+pub struct PhysicalCandidateFrameReservation {
+    pub(crate) owner: Arc<PoolInner>,
+    pub(crate) candidate: PhysicalCandidateFrameKey,
+    pub(crate) armed: bool,
+}
+
+impl<'grant> PhysicalCandidateBatchAdmission<'grant> {
+    pub fn reserve(
+        self,
+        keys: &[PhysicalCandidateFrameKey],
+    ) -> Result<PhysicalCandidateBatchReservation<'grant>, PhysicalResidencyDenial> {
+        let owner = Arc::clone(&self.owner);
+        owner.admit_candidate_batch(self, keys)
+    }
+
+    pub(crate) fn scope(&self) -> crate::PhysicalOperationAllocationScope {
+        self.allocation_use.scope()
+    }
+}
+
+impl PhysicalCandidateBatchReservation<'_> {
+    pub fn reserve_next(
+        &mut self,
+        candidate: PhysicalCandidateFrameKey,
+    ) -> Result<PhysicalCandidateFrameReservation, PhysicalResidencyDenial> {
+        let scope = self.allocation_use.scope();
+        if self.keys.front().copied() != Some(candidate) {
+            return Err(self
+                .owner
+                .record_denial(PhysicalResidencyDenial::CandidateSequenceConflict));
+        }
+        self.owner.reserve_next_candidate(scope, candidate)?;
+        self.keys.pop_front();
+        Ok(PhysicalCandidateFrameReservation::new(
+            Arc::clone(&self.owner),
+            candidate,
+        ))
+    }
+}
+
+impl Drop for PhysicalCandidateBatchReservation<'_> {
+    fn drop(&mut self) {
+        if self.armed {
+            self.owner.finish_candidate_batch();
+            self.armed = false;
+        }
+    }
+}
+
+impl PhysicalCandidateFrameReservation {
+    pub const fn key(&self) -> PhysicalFrameKey {
+        self.candidate.frame_key()
+    }
+
+    pub fn admit(mut self, bytes: Vec<u8>) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
+        let key = self.candidate.frame_key();
+        if bytes.len() != key.coordinate().length() as usize {
+            return Err(self
+                .owner
+                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
+        }
+        let bytes = Arc::new(bytes);
+        let frame = self.owner.finish_candidate(key, bytes)?;
+        self.armed = false;
+        Ok(frame)
+    }
+}
+
+impl Drop for PhysicalCandidateFrameReservation {
+    fn drop(&mut self) {
+        if self.armed {
+            self.owner.cancel_candidate(self.candidate.frame_key());
+        }
+    }
+}

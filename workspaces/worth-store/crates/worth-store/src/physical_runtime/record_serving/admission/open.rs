@@ -20,6 +20,7 @@ use super::super::{
 struct CurrentRootAdmission<'a> {
     media: &'a QualifiedFilesystemMedia,
     loader: &'a (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    allocation: &'a worth_store_buffer_pool::OperationAllocationGrant,
     limits: BootstrapCatalogReadLimits,
     generation: u64,
     expected_format: PhysicalRecordFormatDeclaration,
@@ -28,6 +29,7 @@ struct CurrentRootAdmission<'a> {
 pub(in crate::physical_runtime::record_serving) fn open(
     media: &QualifiedFilesystemMedia,
     loader: &(dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     request: PhysicalRecordOpen,
 ) -> Result<PhysicalRecordBootstrapOwner, BootstrapTransitionFailure> {
     if !request.access.admits(request.format) {
@@ -51,7 +53,11 @@ pub(in crate::physical_runtime::record_serving) fn open(
         RecordFamilyInventory::Published => {}
     }
     let catalog_bytes = artifacts
-        .load_bounded(RecordArtifactFile::BootstrapCatalog, limits.catalog_bytes())
+        .load_bounded(
+            allocation,
+            RecordArtifactFile::BootstrapCatalog,
+            limits.catalog_bytes(),
+        )
         .map_err(|failure| match failure.kind() {
             super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure)
                 if failure.kind() == ArtifactTreeFailureKind::Absent =>
@@ -59,9 +65,7 @@ pub(in crate::physical_runtime::record_serving) fn open(
                 BootstrapTransitionFailure::Denied(RecordBootstrapDenial::CatalogMissing)
             }
             super::super::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => {
-                BootstrapTransitionFailure::Denied(RecordBootstrapDenial::ResidencyUnavailable(
-                    reason,
-                ))
+                BootstrapTransitionFailure::Denied(RecordBootstrapDenial::from_residency(reason))
             }
             super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure) => {
                 match failure.kind() {
@@ -102,6 +106,7 @@ pub(in crate::physical_runtime::record_serving) fn open(
 pub(in crate::physical_runtime::record_serving) fn load_current_root(
     media: &QualifiedFilesystemMedia,
     loader: &(dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     bootstrap: PhysicalRecordBootstrapOwner,
 ) -> Result<RecordServingState, BootstrapTransitionFailure> {
     let limits = BootstrapCatalogReadLimits::for_format(bootstrap.format, bootstrap.access);
@@ -109,6 +114,7 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
     let admission = CurrentRootAdmission {
         media,
         loader,
+        allocation,
         limits,
         generation,
         expected_format: bootstrap.format.declaration(),
@@ -136,6 +142,7 @@ fn load_root_manifest(
 ) -> Result<DurablePhysicalRootManifest, BootstrapTransitionFailure> {
     let root_bytes = ServingRecordArtifacts::new(admission.media, admission.loader)
         .load_bounded(
+            admission.allocation,
             RecordArtifactFile::RootManifest {
                 generation: admission.generation,
             },
@@ -144,7 +151,7 @@ fn load_root_manifest(
         .map_err(|failure| {
             BootstrapTransitionFailure::Denied(match failure.kind() {
                 super::super::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => {
-                    RecordBootstrapDenial::ResidencyUnavailable(reason)
+                    RecordBootstrapDenial::from_residency(reason)
                 }
                 super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure) => {
                     match failure.kind() {
@@ -191,6 +198,7 @@ fn load_free_space_manifest(
 ) -> Result<DurableFreeSpaceManifestHeader, BootstrapTransitionFailure> {
     let free_space_bytes = ServingRecordArtifacts::new(admission.media, admission.loader)
         .load_bounded(
+            admission.allocation,
             RecordArtifactFile::FreeSpaceManifest {
                 generation: admission.generation,
             },
@@ -199,7 +207,7 @@ fn load_free_space_manifest(
         .map_err(|failure| {
             BootstrapTransitionFailure::Denied(match failure.kind() {
                 super::super::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => {
-                    RecordBootstrapDenial::ResidencyUnavailable(reason)
+                    RecordBootstrapDenial::from_residency(reason)
                 }
                 _ => RecordBootstrapDenial::FreeSpaceManifestDamaged,
             })

@@ -25,7 +25,7 @@ pub(in crate::physical_runtime::record_serving) fn write_segment(
     artifacts: &PublicationRecordArtifacts<'_>,
     format: AdmittedPhysicalRecordFormat,
     plan: &mut SegmentDataPlan,
-    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
+    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession<'_>,
     observation: &mut PublicationObservation,
     work: &mut super::RecordPublicationWorkTrace,
 ) -> Result<(), CandidateDataWriteFailure> {

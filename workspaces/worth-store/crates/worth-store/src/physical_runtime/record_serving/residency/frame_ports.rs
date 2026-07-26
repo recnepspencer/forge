@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationScope, PhysicalResidencyCounters,
+    OperationAllocationGrant, PhysicalOperationAllocationScope, PhysicalResidencyCounters,
     PhysicalResidencyDenial, PhysicalResidencyLimits, PhysicalResidencyPool,
     PhysicalResidencyShutdown, PhysicalWritebackClaim,
 };
@@ -29,7 +29,7 @@ pub(in crate::physical_runtime) struct RecordFramePorts {
 }
 
 impl RecordFramePorts {
-    pub(in crate::physical_runtime::record_serving) fn bounded(
+    pub(in crate::physical_runtime) fn bounded(
         store: StableStoreIdentity,
         limits: PhysicalResidencyLimits,
     ) -> Result<Self, PhysicalResidencyDenial> {
@@ -58,18 +58,21 @@ impl RecordFramePorts {
         &self.publisher
     }
 
-    pub(in crate::physical_runtime::record_serving) fn begin_operation(
+    pub(in crate::physical_runtime) fn begin_operation(
         &self,
-        scope: OperationAllocationScope,
-        bytes: u64,
+        scope: PhysicalOperationAllocationScope,
+        bytes: std::num::NonZeroU64,
     ) -> Result<OperationAllocationGrant, PhysicalResidencyDenial> {
         self.pool.begin_operation(scope, bytes)
     }
 
-    pub(in crate::physical_runtime::record_serving) fn counters(
-        &self,
-    ) -> PhysicalResidencyCounters {
+    pub(in crate::physical_runtime) fn counters(&self) -> PhysicalResidencyCounters {
         self.pool.counters()
+    }
+    pub(in crate::physical_runtime) fn allocation_events(
+        &self,
+    ) -> worth_store_buffer_pool::PhysicalResidencyAllocationEventObserver {
+        self.pool.allocation_events()
     }
     pub(in crate::physical_runtime) fn close(&self) -> PhysicalResidencyShutdown {
         self.pool.close()
@@ -115,7 +118,16 @@ impl RecordFramePorts {
     ) -> Result<(), PhysicalResidencyDenial> {
         let key =
             worth_store_buffer_pool::PhysicalFrameKey::new(self.pool.store_identity(), coordinate);
-        drop(self.pool.admit_dirty(key, bytes)?);
+        let allocation_bytes =
+            worth_store_buffer_pool::PhysicalResidencyPool::candidate_batch_operation_bytes(
+                std::num::NonZeroUsize::MIN,
+            )
+            .expect("one candidate batch has a representable operation demand");
+        let allocation = self.pool.begin_operation(
+            PhysicalOperationAllocationScope::ForegroundWrite,
+            allocation_bytes,
+        )?;
+        drop(self.pool.admit_dirty(&allocation, key, bytes)?);
         Ok(())
     }
 

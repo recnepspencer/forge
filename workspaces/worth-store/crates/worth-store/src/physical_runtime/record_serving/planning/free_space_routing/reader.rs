@@ -1,3 +1,4 @@
+#[cfg(feature = "certification-test-authority")]
 use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::{
     durable_artifact_checksum, DurableFreeSpaceManifestHeader, FreeSpaceBlockReference,
@@ -9,8 +10,7 @@ use super::super::super::access::manifest_routing::{
     ManifestDiscoveryCounterSnapshot, ManifestLookupFailure,
 };
 use super::super::super::residency::{
-    frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts,
-    record_frame_reader::RecordFrameReader,
+    record_frame_reader::RecordFrameReader, ServingFrameResidency,
 };
 use super::super::super::{AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy};
 
@@ -22,6 +22,7 @@ pub(in crate::physical_runtime::record_serving) struct FreeSpaceReader<'media> {
 }
 
 impl<'media> FreeSpaceReader<'media> {
+    #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn with_loader(
         media: &'media QualifiedFilesystemMedia,
         loader: &'media (dyn super::super::super::residency::frame_ports::FrameLoadPort
@@ -40,14 +41,13 @@ impl<'media> FreeSpaceReader<'media> {
     }
 
     pub(in crate::physical_runtime::record_serving) fn serving(
-        frame_ports: RecordFramePorts,
-        source: CanonicalFrameReadSource,
+        residency: ServingFrameResidency,
         format: AdmittedPhysicalRecordFormat,
         access: AdmittedRecordAccessPolicy,
         header: &'media DurableFreeSpaceManifestHeader,
     ) -> Self {
         Self {
-            artifacts: RecordFrameReader::serving(frame_ports, source),
+            artifacts: RecordFrameReader::serving(residency),
             format,
             access,
             header,
@@ -56,6 +56,7 @@ impl<'media> FreeSpaceReader<'media> {
 
     pub(in crate::physical_runtime::record_serving) fn locate(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         key: FreeSpaceKey,
         counters: &mut ManifestDiscoveryCounterSnapshot,
     ) -> Result<Option<RecordFreeSpaceManifestEntry>, ManifestLookupFailure> {
@@ -66,7 +67,7 @@ impl<'media> FreeSpaceReader<'media> {
             return Ok(None);
         }
         loop {
-            match self.read_block(reference, counters)? {
+            match self.read_block(allocation, reference, counters)? {
                 PhysicalFreeSpaceMembershipBlock::Leaf { entries, .. } => {
                     let (result, comparisons) =
                         super::super::super::access::counted_search::binary_search_by(
@@ -98,12 +99,14 @@ impl<'media> FreeSpaceReader<'media> {
 
     pub(in crate::physical_runtime::record_serving) fn read_block(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         reference: FreeSpaceBlockReference,
         counters: &mut ManifestDiscoveryCounterSnapshot,
     ) -> Result<PhysicalFreeSpaceMembershipBlock, ManifestLookupFailure> {
         let bytes = self
             .artifacts
             .load_bounded(
+                allocation,
                 RecordArtifactFile::FreeSpaceMembershipBlock {
                     generation: reference.generation(),
                     block: reference.block(),

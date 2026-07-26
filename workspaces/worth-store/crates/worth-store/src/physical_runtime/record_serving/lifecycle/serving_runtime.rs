@@ -67,12 +67,14 @@ impl ServingPhysicalRuntime {
             .counters()
     }
 
-    pub fn residency_counters(&self) -> worth_store_buffer_pool::PhysicalResidencyCounters {
-        self.parts.frame_ports.counters()
+    pub fn residency_observation(&self) -> super::super::PhysicalResidencyObservation {
+        self.parts
+            .residency
+            .observation(self.parts.core.lifecycle_generation())
     }
 
     pub fn drain_clean_residency(&self) -> u64 {
-        self.parts.frame_ports.drain_unpinned_clean_frames()
+        self.parts.residency.ports().drain_unpinned_clean_frames()
     }
 
     pub fn physical_residency_writeback_command(
@@ -99,7 +101,8 @@ impl ServingPhysicalRuntime {
         };
         let claim = self
             .parts
-            .frame_ports
+            .residency
+            .ports()
             .claim_writeback(*coordinate)
             .map_err(super::super::PhysicalScheduledWritebackAdmissionDenial::Residency)?;
         super::super::residency::scheduled_writeback::PhysicalScheduledWriteback::validate(
@@ -136,13 +139,17 @@ impl ServingPhysicalRuntime {
             format: self.parts.format,
             access: self.parts.access,
             current_root: self.parts.publication.current_root(),
+            generation: self.parts.core.lifecycle_generation(),
             runtime: std::sync::Arc::downgrade(&self.parts.work_runtime),
             lifecycle: self.parts.record_owner.reader(),
-            frame_ports: self.parts.frame_ports.clone(),
-            source: super::super::residency::frame_loading::CanonicalFrameReadSource::new(port),
+            residency: super::super::residency::ServingFrameResidency::new(
+                self.parts.residency.ports().clone(),
+                super::super::residency::frame_loading::CanonicalFrameReadSource::new(port),
+            ),
         }
     }
 
+    #[cfg(feature = "certification-test-authority")]
     pub fn c6_physical_work_handoff(&self) -> super::super::C6PhysicalWorkHandoff {
         super::super::C6PhysicalWorkHandoff::from_parts(&self.parts, self.records())
     }

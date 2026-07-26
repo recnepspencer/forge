@@ -1,134 +1,9 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PhysicalResidencyLimits {
-    pool_budget: crate::BufferPoolBudget,
-    metadata_bytes: u64,
-    pin_leases: u32,
-    operation_bytes: u64,
-    frame_entries: u32,
-    prefetch_frames: u32,
-    read_ahead_frames: u32,
-    write_back_frames: u32,
-}
+use std::num::{NonZeroU32, NonZeroU64};
 
-impl PhysicalResidencyLimits {
-    pub fn new(
-        resident_bytes: u64,
-        pinned_frames: u32,
-        dirty_frames: u32,
-        operation_bytes: u64,
-        frame_entries: u32,
-    ) -> Option<Self> {
-        let metadata_bytes = u64::from(frame_entries)
-            .checked_mul(512)?
-            .checked_add(4096)?;
-        Self::new_with_metadata_budget(
-            resident_bytes,
-            metadata_bytes,
-            pinned_frames,
-            dirty_frames,
-            operation_bytes,
-            frame_entries,
-        )
-    }
-
-    pub fn new_with_metadata_budget(
-        resident_bytes: u64,
-        metadata_bytes: u64,
-        pinned_frames: u32,
-        dirty_frames: u32,
-        operation_bytes: u64,
-        frame_entries: u32,
-    ) -> Option<Self> {
-        if resident_bytes == 0
-            || pinned_frames == 0
-            || metadata_bytes == 0
-            || dirty_frames == 0
-            || operation_bytes == 0
-            || frame_entries == 0
-        {
-            return None;
-        }
-        let resident = crate::ResidentMemoryBudget::bytes(resident_bytes).ok()?;
-        let pinned = crate::PinnedPageBudget::pages(pinned_frames).ok()?;
-        let dirty = crate::DirtyPageBudget::pages(dirty_frames).ok()?;
-        Some(Self {
-            pool_budget: crate::BufferPoolBudget::declare(resident, pinned, dirty),
-            metadata_bytes,
-            pin_leases: pinned_frames,
-            operation_bytes,
-            frame_entries,
-            prefetch_frames: pinned_frames,
-            read_ahead_frames: pinned_frames,
-            write_back_frames: dirty_frames,
-        })
-    }
-
-    pub const fn with_speculative_frame_limits(
-        mut self,
-        prefetch_frames: u32,
-        read_ahead_frames: u32,
-        write_back_frames: u32,
-    ) -> Option<Self> {
-        if prefetch_frames == 0 || read_ahead_frames == 0 || write_back_frames == 0 {
-            return None;
-        }
-        self.prefetch_frames = prefetch_frames;
-        self.read_ahead_frames = read_ahead_frames;
-        self.write_back_frames = write_back_frames;
-        Some(self)
-    }
-
-    pub const fn with_pin_lease_limit(mut self, pin_leases: u32) -> Option<Self> {
-        if pin_leases == 0 {
-            return None;
-        }
-        self.pin_leases = pin_leases;
-        Some(self)
-    }
-
-    pub const fn resident_bytes(self) -> u64 {
-        self.pool_budget.resident_memory().as_bytes()
-    }
-
-    pub const fn pool_budget(self) -> crate::BufferPoolBudget {
-        self.pool_budget
-    }
-
-    pub const fn metadata_bytes(self) -> u64 {
-        self.metadata_bytes
-    }
-
-    pub const fn pinned_frames(self) -> u32 {
-        self.pool_budget.pinned_pages().as_pages()
-    }
-
-    pub const fn dirty_frames(self) -> u32 {
-        self.pool_budget.dirty_pages().as_pages()
-    }
-
-    pub const fn operation_bytes(self) -> u64 {
-        self.operation_bytes
-    }
-
-    pub const fn frame_entries(self) -> u32 {
-        self.frame_entries
-    }
-    pub const fn pin_leases(self) -> u32 {
-        self.pin_leases
-    }
-    pub const fn prefetch_frames(self) -> u32 {
-        self.prefetch_frames
-    }
-    pub const fn read_ahead_frames(self) -> u32 {
-        self.read_ahead_frames
-    }
-    pub const fn write_back_frames(self) -> u32 {
-        self.write_back_frames
-    }
-}
+use super::{pressure::PhysicalResidencyLimitsBuilder, PhysicalSpeculativeWorkKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OperationAllocationScope {
+pub enum PhysicalOperationAllocationScope {
     ForegroundRead,
     ForegroundWrite,
     Recovery,
@@ -138,7 +13,7 @@ pub enum OperationAllocationScope {
     Blob,
 }
 
-impl OperationAllocationScope {
+impl PhysicalOperationAllocationScope {
     pub(crate) const fn index(self) -> usize {
         match self {
             Self::ForegroundRead => 0,
@@ -149,5 +24,137 @@ impl OperationAllocationScope {
             Self::Verification => 5,
             Self::Blob => 6,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalResidencyDimension {
+    TotalBytes,
+    ResidentBytes,
+    MetadataBytes,
+    FrameEntries,
+    PinnedFrames,
+    PinLeases,
+    DirtyFrames,
+    DirtyReplacementBytes,
+    OperationBytes,
+    OperationScope(PhysicalOperationAllocationScope),
+    SpeculativeFrames(PhysicalSpeculativeWorkKind),
+}
+
+impl PhysicalResidencyDimension {
+    pub(crate) const COUNT: usize = 19;
+
+    pub(crate) const fn index(self) -> usize {
+        match self {
+            Self::TotalBytes => 0,
+            Self::ResidentBytes => 1,
+            Self::MetadataBytes => 2,
+            Self::FrameEntries => 3,
+            Self::PinnedFrames => 4,
+            Self::PinLeases => 5,
+            Self::DirtyFrames => 6,
+            Self::DirtyReplacementBytes => 7,
+            Self::OperationBytes => 8,
+            Self::OperationScope(scope) => 9 + scope.index(),
+            Self::SpeculativeFrames(kind) => 16 + kind.index(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalResidencyLimitsAdmissionDenial {
+    Missing(PhysicalResidencyDimension),
+    CategoryExceedsTotal {
+        dimension: PhysicalResidencyDimension,
+        declared: u64,
+        total: u64,
+    },
+    ScopeExceedsOperation {
+        scope: PhysicalOperationAllocationScope,
+        declared: u64,
+        operation: u64,
+    },
+    CountExceedsFrameEntries {
+        dimension: PhysicalResidencyDimension,
+        declared: u32,
+        frame_entries: u32,
+    },
+    PageExceedsResidentBytes {
+        page: u64,
+        resident: u64,
+    },
+    PageExceedsOperationBytes {
+        page: u64,
+        operation: u64,
+    },
+    PageExceedsDirtyReplacementBytes {
+        page: u64,
+        dirty_replacement: u64,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalResidencyLimits {
+    pub(super) total_bytes: NonZeroU64,
+    pub(super) resident_bytes: NonZeroU64,
+    pub(super) metadata_bytes: NonZeroU64,
+    pub(super) frame_entries: NonZeroU32,
+    pub(super) pinned_frames: NonZeroU32,
+    pub(super) pin_leases: NonZeroU32,
+    pub(super) dirty_frames: NonZeroU32,
+    pub(super) dirty_replacement_bytes: NonZeroU64,
+    pub(super) operation_bytes: NonZeroU64,
+    pub(super) scope_bytes: [NonZeroU64; 7],
+    pub(super) speculative_frames: [NonZeroU32; 3],
+}
+
+impl PhysicalResidencyLimits {
+    pub fn builder() -> PhysicalResidencyLimitsBuilder {
+        PhysicalResidencyLimitsBuilder::default()
+    }
+
+    pub const fn total_bytes(self) -> u64 {
+        self.total_bytes.get()
+    }
+
+    pub const fn resident_bytes(self) -> u64 {
+        self.resident_bytes.get()
+    }
+
+    pub const fn metadata_bytes(self) -> u64 {
+        self.metadata_bytes.get()
+    }
+
+    pub const fn frame_entries(self) -> u32 {
+        self.frame_entries.get()
+    }
+
+    pub const fn pinned_frames(self) -> u32 {
+        self.pinned_frames.get()
+    }
+
+    pub const fn pin_leases(self) -> u32 {
+        self.pin_leases.get()
+    }
+
+    pub const fn dirty_frames(self) -> u32 {
+        self.dirty_frames.get()
+    }
+
+    pub const fn dirty_replacement_bytes(self) -> u64 {
+        self.dirty_replacement_bytes.get()
+    }
+
+    pub const fn operation_bytes(self) -> u64 {
+        self.operation_bytes.get()
+    }
+
+    pub const fn scope_bytes(self, scope: PhysicalOperationAllocationScope) -> u64 {
+        self.scope_bytes[scope.index()].get()
+    }
+
+    pub const fn speculative_frames(self, kind: PhysicalSpeculativeWorkKind) -> u32 {
+        self.speculative_frames[kind.index()].get()
     }
 }

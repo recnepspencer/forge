@@ -2,6 +2,7 @@ mod construction;
 mod executor;
 mod lifecycle;
 mod parts;
+mod residency_owner;
 mod scheduler_admission;
 mod signal_owner;
 mod termination;
@@ -15,6 +16,7 @@ pub use executor::{
     CertificationPhysicalExecutionCheckpoint, CertificationPhysicalExecutionPauseGate,
 };
 pub(in crate::physical_runtime) use parts::PhysicalStoreInstanceParts;
+pub(in crate::physical_runtime) use residency_owner::PhysicalResidencyOwner;
 pub(in crate::physical_runtime) use scheduler_admission::{
     PhysicalSchedulerAdmissionOwner, RecordSchedulerReservationDenial,
 };
@@ -38,7 +40,9 @@ pub use termination::{
     PhysicalStoreClosePhase, PhysicalStoreClosePlan,
 };
 pub(in crate::physical_runtime) use work_lifecycle::PhysicalWorkLifecycle;
+#[cfg(feature = "certification-test-authority")]
+pub(in crate::physical_runtime) use work_runtime::PhysicalExecutionCall;
 pub use work_runtime::PhysicalWorkExecution;
 pub(in crate::physical_runtime) use work_runtime::{
-    PhysicalExecutionCall, PhysicalProjectionFailureCapability, PhysicalStoreWorkRuntime,
+    PhysicalProjectionFailureCapability, PhysicalStoreWorkRuntime,
 };

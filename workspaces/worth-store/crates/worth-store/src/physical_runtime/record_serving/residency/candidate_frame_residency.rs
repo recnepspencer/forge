@@ -38,6 +38,10 @@ impl CandidateFrameDeclaration {
         self.coordinate
     }
 
+    pub(in crate::physical_runtime::record_serving) const fn role(self) -> CandidateFrameRole {
+        self.role
+    }
+
     pub(in crate::physical_runtime::record_serving) const fn length(self) -> u32 {
         self.length
     }
@@ -204,26 +208,39 @@ pub(in crate::physical_runtime::record_serving) trait ResidentCandidateFrame {
 }
 
 pub(in crate::physical_runtime::record_serving) trait CandidateFramePublicationPort {
-    fn begin(
+    fn begin<'allocation>(
         &self,
+        allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant,
         candidate: &CandidateFrameSet,
-    ) -> Result<Box<dyn CandidateFrameResidencySession>, RecordAppendDenial>;
+    ) -> Result<Box<dyn CandidateFrameResidencySession + 'allocation>, RecordAppendDenial>;
 }
 
-pub(in crate::physical_runtime::record_serving) struct StoreCandidateFramePublicationSession {
+impl CandidateFrameRole {
+    pub(in crate::physical_runtime::record_serving) const fn is_complete_artifact(self) -> bool {
+        matches!(
+            self,
+            Self::ManifestBlock | Self::RootManifest | Self::CatalogCandidate
+        )
+    }
+}
+
+pub(in crate::physical_runtime::record_serving) struct StoreCandidateFramePublicationSession<
+    'allocation,
+> {
     declaration: CandidateFrameSet,
     resident_frames: u64,
     resident_bytes: u64,
     next_declaration: usize,
-    residency: Box<dyn CandidateFrameResidencySession>,
+    residency: Box<dyn CandidateFrameResidencySession + 'allocation>,
 }
 
-impl StoreCandidateFramePublicationSession {
+impl<'allocation> StoreCandidateFramePublicationSession<'allocation> {
     pub(in crate::physical_runtime::record_serving) fn begin(
         port: &(dyn CandidateFramePublicationPort + Send + Sync),
+        allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant,
         declaration: CandidateFrameSet,
     ) -> Result<Self, RecordAppendDenial> {
-        let residency = port.begin(&declaration)?;
+        let residency = port.begin(allocation, &declaration)?;
         Ok(Self {
             declaration,
             resident_frames: 0,

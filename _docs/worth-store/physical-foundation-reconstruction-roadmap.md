@@ -1010,6 +1010,9 @@ quarantined.
 
 ## C.6: Buffer Pool And Bounded Physical Access Join
 
+Engineering spec:
+[physical-reconstruction-c6-buffer-pool-runtime-join.md](physical-reconstruction-c6-buffer-pool-runtime-join.md)
+
 ### Goal
 
 Make the C.5 file-backed store operate through the bounded buffer pool inside
@@ -1025,6 +1028,13 @@ memory and I/O resources, and its executor reaches the media port. Physical
 format owns decoding and the media port owns effects. None of those layers may
 settle another layer's authority. Stable semantic MVCC and Query residency
 remain outside Part I.
+
+Store uses `worth-proof` for residency-policy admission and retains the
+admitted policy at the physical-instance boundary. The lower pool imports
+neither `worth-proof` nor Signal; it reports physical state while Store's
+existing Signal path carries effectful work. Physical pressure is not a
+Foundational fact. C.6 Phase 5 introduces the dedicated Foundational
+frame-writeback basis above the pool boundary.
 
 ### Must Ship
 

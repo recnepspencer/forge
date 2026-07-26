@@ -2,10 +2,11 @@ use worth_store_physical_format::RecordFrameCoordinate;
 
 use crate::physical_runtime::{PhysicalWorkIdentity, ReadyPhysicalWork};
 
-use super::{C6PhysicalFrameLease, C6PhysicalResidencyWork};
+use super::C6PhysicalResidencyWork;
 use crate::physical_runtime::record_serving::c6_handoff::{
     C6PhysicalWorkHandoffFailure, C6PhysicalWorkHandoffIdentity,
 };
+use crate::physical_runtime::record_serving::residency::CertificationResidentFrame;
 
 #[derive(Debug)]
 #[must_use = "dirty admission must advance through canonical writeback or be explicitly discarded"]
@@ -30,22 +31,38 @@ pub(super) struct C6DirtyFrameBinding {
 }
 
 impl C6PhysicalResidencyWork {
-    pub fn admit_dirty_frame(
+    pub fn admit_dirty_frame<F>(
         &self,
         ready: &ReadyPhysicalWork,
-        lease: C6PhysicalFrameLease,
-        bytes: Vec<u8>,
-    ) -> Result<C6AdmittedDirtyFrame, C6PhysicalWorkHandoffFailure> {
+        lease: CertificationResidentFrame,
+        fill: F,
+    ) -> Result<C6AdmittedDirtyFrame, C6PhysicalWorkHandoffFailure>
+    where
+        F: FnOnce(&[u8], &mut [u8]),
+    {
         let coordinate = *self.require_writeback_intent(ready.intent())?;
         self.require_current(ready.intent())?;
-        if lease.handoff_identity() != self.identity || lease.coordinate() != coordinate {
+        if !lease.belongs_to(
+            self.identity.store(),
+            self.identity.runtime(),
+            self.identity.generation(),
+        ) || lease.coordinate() != coordinate
+        {
             return Err(C6PhysicalWorkHandoffFailure::StaleOrForeignIdentity);
         }
         let source_work_count = lease.physical_work_count();
         let first_source_work = lease.first_physical_work();
         let last_source_work = lease.last_physical_work();
+        let allocation = self
+            .frame_ports
+            .begin_operation(
+                worth_store_buffer_pool::PhysicalOperationAllocationScope::ForegroundWrite,
+                std::num::NonZeroU64::new(u64::from(coordinate.length()))
+                    .expect("a physical frame coordinate has nonzero length"),
+            )
+            .map_err(C6PhysicalWorkHandoffFailure::Residency)?;
         let (frame, _) = lease
-            .into_dirty_candidate(bytes)
+            .into_dirty_candidate(&allocation, fill)
             .map_err(C6PhysicalWorkHandoffFailure::Residency)?;
         Ok(C6AdmittedDirtyFrame {
             handoff: self.identity,

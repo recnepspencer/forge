@@ -31,7 +31,8 @@ pub enum RecordAppendDenial {
     PlacementFormatMismatch,
     ManifestCapacityMigrationRequired,
     PublishedLayoutDamaged,
-    ResidencyUnavailable(worth_store_buffer_pool::PhysicalResidencyDenial),
+    PhysicalPressure,
+    ResidencyUnavailable(super::super::PhysicalRecordResidencyFailure),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -43,9 +44,36 @@ pub(in crate::physical_runtime::record_serving) enum ManifestCapacityTransition 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordAppendError {
     Denied(RecordAppendDenial),
+    PhysicalPressure {
+        evidence: super::super::PhysicalRecordPressureEvidence,
+    },
     StreamFailed(RecordStreamFailure),
     Unpublished(UnpublishedRecordBatchFailure),
     Indeterminate(IndeterminateRecordPublication),
+}
+
+impl RecordAppendError {
+    pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
+        match self {
+            Self::PhysicalPressure { evidence } => Some(*evidence),
+            _ => None,
+        }
+    }
+
+    pub const fn pressure_denial(&self) -> Option<RecordAppendDenial> {
+        match self {
+            Self::PhysicalPressure { .. } => Some(RecordAppendDenial::PhysicalPressure),
+            _ => None,
+        }
+    }
+}
+
+impl RecordAppendDenial {
+    pub(in crate::physical_runtime::record_serving) fn from_residency(
+        denial: worth_store_buffer_pool::PhysicalResidencyDenial,
+    ) -> Self {
+        Self::ResidencyUnavailable(denial.into())
+    }
 }
 
 pub(in crate::physical_runtime::record_serving) fn next_nonzero_random(

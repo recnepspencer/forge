@@ -14,47 +14,6 @@ use crate::physical_runtime::{
 };
 
 #[test]
-fn canonical_residency_refuses_to_clean_without_a_physical_receipt() {
-    let store = StoreNamespaceIdentityRecord::new(
-        StoreNamespaceVersion::CURRENT,
-        ProposedStoreIdentity::from_nonzero_bytes([19; 16]).unwrap(),
-    )
-    .published_identity();
-    let pool = PhysicalResidencyPool::open(store, residency_limits()).unwrap();
-    let publisher = BoundedCandidateFramePublisher::new(
-        pool.clone(),
-        Arc::new(CandidateFrameCounterCells::default()),
-    );
-    let mut session =
-        StoreCandidateFramePublicationSession::begin(&publisher, declared_inline_frames(&[(0, 3)]))
-            .unwrap();
-
-    let failure = session
-        .write_frame(
-            CandidateFrame::new(
-                CandidateFrameRole::InlinePage,
-                segment_coordinate(0),
-                vec![1, 2, 3],
-            ),
-            &mut |_| Ok::<_, ()>(CandidateFramePhysicalWrite::for_contract_test()),
-        )
-        .unwrap_err();
-
-    assert!(matches!(
-        failure,
-        CandidateFrameWriteFailure::Residency(RecordAppendDenial::ResidencyUnavailable(
-            PhysicalResidencyDenial::WriteBackReceiptMismatch
-        ))
-    ));
-    assert_eq!(
-        pool.counters().dirty_frames(),
-        1,
-        "C5_PREDICATE:dirty-clean-without-exact-receipt missing receipt cleared dirty residency"
-    );
-    assert!(pool.close().requires_inspection());
-}
-
-#[test]
 fn foreign_real_receipt_cannot_clean_dirty_writeback() {
     let parent = tempfile::tempdir().unwrap();
     let owned = admit_store_media(&parent.path().join("store"));
@@ -69,8 +28,9 @@ fn foreign_real_receipt_cannot_clean_dirty_writeback() {
         outcome => panic!("real receipt write failed: {outcome:?}"),
     };
     let pool = PhysicalResidencyPool::open(media.store_identity(), residency_limits()).unwrap();
+    let allocation = publication_allocation(&pool);
     let key = PhysicalFrameKey::new(media.store_identity(), coordinate);
-    let dirty = pool.admit_dirty(key, vec![0x5A; 8]).unwrap();
+    let dirty = pool.admit_dirty(&allocation, key, vec![0x5A; 8]).unwrap();
     let claim = pool.claim_writeback(vec![key]).unwrap();
 
     let publication = claim.publish_clean(&receipt);
@@ -119,5 +79,41 @@ fn root_manifest_artifact(
 }
 
 fn residency_limits() -> PhysicalResidencyLimits {
-    PhysicalResidencyLimits::new_with_metadata_budget(4096, 4096, 3, 2, 64, 3).unwrap()
+    use worth_store_buffer_pool::{
+        PhysicalOperationAllocationScope as Scope, PhysicalSpeculativeWorkKind as Speculation,
+    };
+
+    let operation =
+        PhysicalResidencyPool::candidate_batch_operation_bytes(std::num::NonZeroUsize::MIN)
+            .unwrap();
+    PhysicalResidencyLimits::builder()
+        .total_bytes(nonzero_bytes(12_288 + operation.get()))
+        .resident_bytes(nonzero_bytes(4096))
+        .metadata_bytes(nonzero_bytes(4096))
+        .frame_entries(nonzero_count(3))
+        .pinned_frames(nonzero_count(3))
+        .pin_leases(nonzero_count(3))
+        .dirty_frames(nonzero_count(2))
+        .dirty_replacement_bytes(nonzero_bytes(4096))
+        .operation_bytes(operation)
+        .scope_bytes(Scope::ForegroundRead, operation)
+        .scope_bytes(Scope::ForegroundWrite, operation)
+        .scope_bytes(Scope::Recovery, operation)
+        .scope_bytes(Scope::Scrub, operation)
+        .scope_bytes(Scope::Maintenance, operation)
+        .scope_bytes(Scope::Verification, operation)
+        .scope_bytes(Scope::Blob, operation)
+        .speculative_frames(Speculation::Prefetch, nonzero_count(3))
+        .speculative_frames(Speculation::ReadAhead, nonzero_count(3))
+        .speculative_frames(Speculation::WriteBehind, nonzero_count(2))
+        .admit(std::num::NonZeroU64::MIN)
+        .unwrap()
+}
+
+fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
+    std::num::NonZeroU64::new(value).unwrap()
+}
+
+fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
+    std::num::NonZeroU32::new(value).unwrap()
 }

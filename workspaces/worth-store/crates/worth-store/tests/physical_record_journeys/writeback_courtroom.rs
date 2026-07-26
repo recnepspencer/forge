@@ -45,7 +45,7 @@ pub(super) fn writer(root: &Path) {
         outcome.settled().evidence().fate(),
         PhysicalWorkEffectFate::WriteCompleted
     );
-    assert_eq!(serving.residency_counters().dirty_frames(), 0);
+    assert_eq!(serving.residency_observation().counters().dirty_frames(), 0);
     println!("C6_WRITEBACK {}", hex(&Sha256::digest(bytes)));
     std::io::stdout().flush().unwrap();
     std::process::exit(0);

@@ -8,6 +8,11 @@ pub enum MediaFaultDirective {
         kind: std::io::ErrorKind,
         raw_os_error: Option<i32>,
     },
+    PauseBeforeThenFailBefore {
+        gate: MediaPauseGate,
+        kind: std::io::ErrorKind,
+        raw_os_error: Option<i32>,
+    },
     AllowPrefix {
         bytes: u64,
     },
@@ -199,6 +204,7 @@ impl MediaFaultSchedule {
     }
 }
 
+#[cfg(any(test, feature = "certification-test-authority"))]
 fn same_ordinal_selector(left: &MediaFaultRule, right: &MediaFaultRule) -> bool {
     if left.any_ordinal_after_activation || right.any_ordinal_after_activation {
         left.any_ordinal_after_activation == right.any_ordinal_after_activation
@@ -207,6 +213,7 @@ fn same_ordinal_selector(left: &MediaFaultRule, right: &MediaFaultRule) -> bool 
     }
 }
 
+#[cfg(any(test, feature = "certification-test-authority"))]
 fn same_activation(
     left: Option<&super::fault_activation::CertificationMediaFaultActivation>,
     right: Option<&super::fault_activation::CertificationMediaFaultActivation>,

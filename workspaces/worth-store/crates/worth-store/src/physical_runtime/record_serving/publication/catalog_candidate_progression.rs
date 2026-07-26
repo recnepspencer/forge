@@ -53,7 +53,7 @@ pub(super) fn synchronize_catalog_candidate(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
     synchronized: ManifestsSynchronized,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     before: MediaCounterSnapshot,
 ) -> Result<CatalogCandidateSynchronized, RecordAppendError> {
     let mut plan = synchronized.into_plan();
@@ -89,7 +89,7 @@ pub(super) fn synchronize_catalog_candidate(
 
 fn execute_catalog_candidate_stage(
     artifacts: &PublicationRecordArtifacts<'_>,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     candidate: RecordArtifactFile,
     bytes: Vec<u8>,
     work: &mut RecordPublicationWorkTrace,

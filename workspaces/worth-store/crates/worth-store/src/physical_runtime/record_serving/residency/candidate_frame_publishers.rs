@@ -4,8 +4,10 @@ use std::sync::{
 };
 
 use worth_store_buffer_pool::{
-    DirtyPhysicalFrame, PhysicalCandidateBatchReservation, PhysicalFrameKey, PhysicalResidencyPool,
+    DirtyPhysicalFrame, PhysicalCandidateBatchReservation, PhysicalCandidateFrameKey,
+    PhysicalFrameKey, PhysicalResidencyPool,
 };
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_physical_format::RecordFrameCoordinate;
 
 use super::super::RecordAppendDenial;
@@ -42,10 +44,21 @@ impl BoundedCandidateFramePublisher {
 }
 
 impl CandidateFramePublicationPort for BoundedCandidateFramePublisher {
-    fn begin(
+    fn begin<'allocation>(
         &self,
+        allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant,
         candidate: &CandidateFrameSet,
-    ) -> Result<Box<dyn CandidateFrameResidencySession>, RecordAppendDenial> {
+    ) -> Result<Box<dyn CandidateFrameResidencySession + 'allocation>, RecordAppendDenial> {
+        let candidate_count = std::num::NonZeroUsize::new(candidate.declarations().len())
+            .ok_or_else(|| {
+                RecordAppendDenial::from_residency(
+                    worth_store_buffer_pool::PhysicalResidencyDenial::EmptyCandidateBatch,
+                )
+            })?;
+        let admission = self
+            .pool
+            .begin_candidate_batch(allocation, candidate_count)
+            .map_err(RecordAppendDenial::from_residency)?;
         self.counters.submissions.fetch_add(1, Ordering::AcqRel);
         self.counters
             .declared_frames
@@ -56,29 +69,16 @@ impl CandidateFramePublicationPort for BoundedCandidateFramePublisher {
         let mut keys = Vec::new();
         keys.try_reserve_exact(candidate.declarations().len())
             .map_err(|_| {
-                RecordAppendDenial::ResidencyUnavailable(
+                RecordAppendDenial::from_residency(
                     worth_store_buffer_pool::PhysicalResidencyDenial::AllocationFailed,
                 )
             })?;
         for declaration in candidate.declarations() {
-            let coordinate = declaration.coordinate();
-            let physical_coordinate = RecordFrameCoordinate::new(
-                coordinate.artifact(),
-                coordinate.offset(),
-                declaration.length(),
-            )
-            .ok_or(RecordAppendDenial::ResidencyUnavailable(
-                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
-            ))?;
-            keys.push(PhysicalFrameKey::new(
-                self.pool.store_identity(),
-                physical_coordinate,
-            ));
+            keys.push(candidate_key(self.pool.store_identity(), *declaration)?);
         }
-        let reservations = self
-            .pool
-            .reserve_candidate_frames(&keys)
-            .map_err(RecordAppendDenial::ResidencyUnavailable)?;
+        let reservations = admission
+            .reserve(&keys)
+            .map_err(RecordAppendDenial::from_residency)?;
         Ok(Box::new(BoundedCandidateFrameSession {
             pool: self.pool.clone(),
             counters: Arc::clone(&self.counters),
@@ -87,13 +87,13 @@ impl CandidateFramePublicationPort for BoundedCandidateFramePublisher {
     }
 }
 
-struct BoundedCandidateFrameSession {
+struct BoundedCandidateFrameSession<'allocation> {
     pool: PhysicalResidencyPool,
     counters: Arc<CandidateFrameCounterCells>,
-    reservations: PhysicalCandidateBatchReservation,
+    reservations: PhysicalCandidateBatchReservation<'allocation>,
 }
 
-impl CandidateFrameResidencySession for BoundedCandidateFrameSession {
+impl CandidateFrameResidencySession for BoundedCandidateFrameSession<'_> {
     fn retain(
         &mut self,
         frame: CandidateFrame,
@@ -102,23 +102,32 @@ impl CandidateFrameResidencySession for BoundedCandidateFrameSession {
         let coordinate = frame.coordinate();
         let bytes = frame.into_bytes();
         let length = u32::try_from(bytes.len()).map_err(|_| {
-            RecordAppendDenial::ResidencyUnavailable(
+            RecordAppendDenial::from_residency(
                 worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
             )
         })?;
         let physical_coordinate =
             RecordFrameCoordinate::new(coordinate.artifact(), coordinate.offset(), length).ok_or(
-                RecordAppendDenial::ResidencyUnavailable(
+                RecordAppendDenial::from_residency(
                     worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
                 ),
             )?;
         let key = PhysicalFrameKey::new(self.pool.store_identity(), physical_coordinate);
+        let candidate = if role.is_complete_artifact() {
+            PhysicalCandidateFrameKey::complete_artifact(key).ok_or(
+                RecordAppendDenial::from_residency(
+                    worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+                ),
+            )?
+        } else {
+            PhysicalCandidateFrameKey::fragment(key)
+        };
         let resident = self
             .reservations
-            .reserve_next(key)
-            .map_err(RecordAppendDenial::ResidencyUnavailable)?
+            .reserve_next(candidate)
+            .map_err(RecordAppendDenial::from_residency)?
             .admit(bytes)
-            .map_err(RecordAppendDenial::ResidencyUnavailable)?;
+            .map_err(RecordAppendDenial::from_residency)?;
         self.counters.retained_frames.fetch_add(1, Ordering::AcqRel);
         self.counters
             .retained_bytes
@@ -138,13 +147,38 @@ impl CandidateFrameResidencySession for BoundedCandidateFrameSession {
         length: u32,
     ) -> Result<(), RecordAppendDenial> {
         let target = RecordFrameCoordinate::new(target.artifact(), target.offset(), length).ok_or(
-            RecordAppendDenial::ResidencyUnavailable(
+            RecordAppendDenial::from_residency(
                 worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
             ),
         )?;
         self.pool
             .invalidate_clean(PhysicalFrameKey::new(self.pool.store_identity(), target))
-            .map_err(RecordAppendDenial::ResidencyUnavailable)
+            .map_err(RecordAppendDenial::from_residency)
+    }
+}
+
+fn candidate_key(
+    store: StableStoreIdentity,
+    declaration: super::candidate_frame_residency::CandidateFrameDeclaration,
+) -> Result<PhysicalCandidateFrameKey, RecordAppendDenial> {
+    let coordinate = declaration.coordinate();
+    let physical_coordinate = RecordFrameCoordinate::new(
+        coordinate.artifact(),
+        coordinate.offset(),
+        declaration.length(),
+    )
+    .ok_or(RecordAppendDenial::from_residency(
+        worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+    ))?;
+    let frame = PhysicalFrameKey::new(store, physical_coordinate);
+    if declaration.role().is_complete_artifact() {
+        PhysicalCandidateFrameKey::complete_artifact(frame).ok_or(
+            RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+            ),
+        )
+    } else {
+        Ok(PhysicalCandidateFrameKey::fragment(frame))
     }
 }
 
@@ -170,33 +204,25 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
     fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial> {
         self.resident
             .discard_candidate()
-            .map_err(RecordAppendDenial::ResidencyUnavailable)
+            .map_err(RecordAppendDenial::from_residency)
     }
 
     fn publish_clean(
         self: Box<Self>,
         physical: &CandidateFramePhysicalWrite,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
-        physical
-            .work()
-            .ok_or(RecordAppendDenial::ResidencyUnavailable(
-                worth_store_buffer_pool::PhysicalResidencyDenial::WriteBackReceiptMismatch,
-            ))?;
-        let receipt = physical
-            .receipt()
-            .ok_or(RecordAppendDenial::ResidencyUnavailable(
-                worth_store_buffer_pool::PhysicalResidencyDenial::WriteBackReceiptMismatch,
-            ))?;
+        let _work = physical.work();
+        let receipt = physical.receipt();
         #[cfg(feature = "certification-test-authority")]
         if self.counters.take_reject_next_publication() {
-            return Err(RecordAppendDenial::ResidencyUnavailable(
+            return Err(RecordAppendDenial::from_residency(
                 worth_store_buffer_pool::PhysicalResidencyDenial::CandidatePublicationActive,
             ));
         }
         let bytes = self.resident.bytes().len() as u64;
         self.resident
             .publish_clean(receipt)
-            .map_err(RecordAppendDenial::ResidencyUnavailable)?;
+            .map_err(RecordAppendDenial::from_residency)?;
         Ok(CandidateFrameWriteCompletion::retained(bytes))
     }
 }
@@ -212,23 +238,23 @@ impl CandidateFrameCounterCells {
         self.reject_next_publication.swap(false, Ordering::AcqRel)
     }
 
-    #[cfg(feature = "certification-test-authority")]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(in crate::physical_runtime::record_serving) fn submissions(&self) -> u64 {
         self.submissions.load(Ordering::Acquire)
     }
-    #[cfg(feature = "certification-test-authority")]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(in crate::physical_runtime::record_serving) fn declared_frames(&self) -> u64 {
         self.declared_frames.load(Ordering::Acquire)
     }
-    #[cfg(feature = "certification-test-authority")]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(in crate::physical_runtime::record_serving) fn declared_bytes(&self) -> u64 {
         self.declared_bytes.load(Ordering::Acquire)
     }
-    #[cfg(feature = "certification-test-authority")]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(in crate::physical_runtime::record_serving) fn retained_frames(&self) -> u64 {
         self.retained_frames.load(Ordering::Acquire)
     }
-    #[cfg(feature = "certification-test-authority")]
+    #[cfg(any(test, feature = "certification-test-authority"))]
     pub(in crate::physical_runtime::record_serving) fn retained_bytes(&self) -> u64 {
         self.retained_bytes.load(Ordering::Acquire)
     }

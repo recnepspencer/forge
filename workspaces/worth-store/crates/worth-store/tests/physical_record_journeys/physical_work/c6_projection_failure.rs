@@ -15,8 +15,7 @@ fn c6_semantic_rejection_consumes_the_admitted_projection_failure_capability() {
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 8).unwrap();
     let frame = serving
-        .c6_physical_work_handoff()
-        .residency_work()
+        .certification_physical_residency()
         .pin_exact(coordinate)
         .unwrap();
     assert_eq!(frame.physical_work_count(), 1);

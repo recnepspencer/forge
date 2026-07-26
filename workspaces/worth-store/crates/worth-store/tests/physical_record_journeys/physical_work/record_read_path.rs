@@ -30,7 +30,7 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     let serving = serving_from_open(&root);
     let limits = RecordReadLimits::new(RecordByteLimit::new(PAYLOAD.len() as u32).unwrap());
     let media_before = serving.media_counters();
-    let residency_before = serving.residency_counters();
+    let residency_before = serving.residency_observation().counters();
     let work_before = serving.physical_work_counters();
     let invalidations_before = serving
         .physical_signal_observation()
@@ -43,7 +43,7 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     );
     await_read_signal_cleanup(&serving);
     let media_after_cold = serving.media_counters();
-    let residency_after_cold = serving.residency_counters();
+    let residency_after_cold = serving.residency_observation().counters();
     let work_after_cold = serving.physical_work_counters();
     let settled_after_cold = serving.physical_work_observer().causal().records();
 
@@ -53,7 +53,7 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     );
     await_read_signal_cleanup(&serving);
     let media_after_hot = serving.media_counters();
-    let residency_after_hot = serving.residency_counters();
+    let residency_after_hot = serving.residency_observation().counters();
     let work_after_hot = serving.physical_work_counters();
     let settled_after_hot = serving.physical_work_observer().causal().records();
     let invalidations_after = serving
@@ -64,7 +64,10 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     assert_eq!(cold_bytes, PAYLOAD);
     assert_eq!(hot_bytes, PAYLOAD);
     assert_same_semantic_observation(cold, hot);
-    assert!(cold.physical_work_count() > 0);
+    assert!(
+        cold.physical_work_count() > hot.physical_work_count(),
+        "cold fault work must remain visible beyond the hot-hit work"
+    );
     assert_ne!(cold.first_physical_work(), hot.first_physical_work());
     assert_ne!(cold.last_physical_work(), hot.last_physical_work());
     assert_eq!(
@@ -134,14 +137,15 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
             PhysicalWorkCounterStage::Terminal,
         ) > 0
     );
-    assert!(
+    assert_eq!(
         family_work_delta(
             work_after_cold,
             work_after_hot,
             PhysicalWorkOperationFamily::ArtifactRangeRead,
             PhysicalWorkCounterStage::Terminal,
-        ) > 0,
-        "hot range work must terminate before dispatch rather than disappear"
+        ),
+        0,
+        "a hot frame hit must create no source-range work or Signal authority"
     );
     assert!(
         family_work_delta(
@@ -187,7 +191,6 @@ fn assert_same_semantic_observation(left: RecordReadObservation, right: RecordRe
     assert_eq!(left.manifest_blocks(), right.manifest_blocks());
     assert_eq!(left.manifest_comparisons(), right.manifest_comparisons());
     assert_eq!(left.manifest_bytes(), right.manifest_bytes());
-    assert_eq!(left.physical_work_count(), right.physical_work_count());
 }
 
 fn media_delta(

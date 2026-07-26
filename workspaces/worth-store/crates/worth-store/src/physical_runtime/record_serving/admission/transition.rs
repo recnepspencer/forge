@@ -18,25 +18,25 @@ pub(in crate::physical_runtime) fn initialize(
     request: PhysicalRecordInitialization,
 ) -> RecordStoreInitializationOutcome {
     let work_profile = request.work_profile.clone();
-    if let Err(reason) = request
-        .residency
-        .preflight_format(request.format, request.access)
-    {
-        return TransitionOutcome::denied(RecordStoreInitializationDenial::new(
-            runtime,
-            super::super::RecordBootstrapDenial::ResidencyUnavailable(reason),
-        ))
-        .into();
-    }
-    let frame_ports = match super::super::residency::frame_ports::RecordFramePorts::bounded(
+    let residency = match crate::physical_runtime::instance::PhysicalResidencyOwner::admit(
         runtime.store_identity(),
-        request.residency.limits(),
+        request.residency,
     ) {
-        Ok(ports) => ports,
+        Ok(owner) => owner,
         Err(reason) => {
             return TransitionOutcome::denied(RecordStoreInitializationDenial::new(
                 runtime,
-                super::super::RecordBootstrapDenial::ResidencyUnavailable(reason),
+                super::super::RecordBootstrapDenial::from_residency(reason),
+            ))
+            .into();
+        }
+    };
+    let frame_ports = residency.ports().clone();
+    let bootstrap_allocation = match bootstrap_allocation(&frame_ports, request.format) {
+        Ok(allocation) => allocation,
+        Err(reason) => {
+            return TransitionOutcome::denied(RecordStoreInitializationDenial::new(
+                runtime, reason,
             ))
             .into();
         }
@@ -68,9 +68,10 @@ pub(in crate::physical_runtime) fn initialize(
     match record_open::load_current_root(
         runtime.record_serving_media(),
         frame_ports.loader(),
+        &bootstrap_allocation,
         bootstrap,
     ) {
-        Ok(state) => initialize_serving(runtime, state, frame_ports, work_profile),
+        Ok(state) => initialize_serving(runtime, state, residency, work_profile),
         Err(BootstrapTransitionFailure::Denied(reason)) => initialization_failed(
             runtime,
             RecordBootstrapFailure::PublishedRootReadmission(reason),
@@ -91,32 +92,30 @@ pub(in crate::physical_runtime) fn open(
     request: PhysicalRecordOpen,
 ) -> RecordStoreOpenOutcome {
     let work_profile = request.work_profile.clone();
-    if let Err(reason) = request
-        .residency
-        .preflight_format(request.format, request.access)
-    {
-        return TransitionOutcome::denied(RecordStoreOpenDenial::new(
-            runtime,
-            super::super::RecordBootstrapDenial::ResidencyUnavailable(reason),
-        ))
-        .into();
-    }
-    let frame_ports = match super::super::residency::frame_ports::RecordFramePorts::bounded(
+    let residency = match crate::physical_runtime::instance::PhysicalResidencyOwner::admit(
         runtime.store_identity(),
-        request.residency.limits(),
+        request.residency,
     ) {
-        Ok(ports) => ports,
+        Ok(owner) => owner,
         Err(reason) => {
             return TransitionOutcome::denied(RecordStoreOpenDenial::new(
                 runtime,
-                super::super::RecordBootstrapDenial::ResidencyUnavailable(reason),
+                super::super::RecordBootstrapDenial::from_residency(reason),
             ))
             .into();
+        }
+    };
+    let frame_ports = residency.ports().clone();
+    let bootstrap_allocation = match bootstrap_allocation(&frame_ports, request.format) {
+        Ok(allocation) => allocation,
+        Err(reason) => {
+            return TransitionOutcome::denied(RecordStoreOpenDenial::new(runtime, reason)).into();
         }
     };
     let bootstrap = match record_open::open(
         runtime.record_serving_media(),
         frame_ports.loader(),
+        &bootstrap_allocation,
         request,
     ) {
         Ok(bootstrap) => bootstrap,
@@ -125,17 +124,32 @@ pub(in crate::physical_runtime) fn open(
     match record_open::load_current_root(
         runtime.record_serving_media(),
         frame_ports.loader(),
+        &bootstrap_allocation,
         bootstrap,
     ) {
-        Ok(state) => open_serving(runtime, state, frame_ports, work_profile),
+        Ok(state) => open_serving(runtime, state, residency, work_profile),
         Err(failure) => open_failure(runtime, failure),
     }
+}
+
+fn bootstrap_allocation(
+    frame_ports: &super::super::residency::frame_ports::RecordFramePorts,
+    format: super::super::AdmittedPhysicalRecordFormat,
+) -> Result<worth_store_buffer_pool::OperationAllocationGrant, super::super::RecordBootstrapDenial>
+{
+    frame_ports
+        .begin_operation(
+            worth_store_buffer_pool::PhysicalOperationAllocationScope::Recovery,
+            std::num::NonZeroU64::new(u64::from(format.declaration().page_size().bytes()))
+                .expect("an admitted physical page size is nonzero"),
+        )
+        .map_err(super::super::RecordBootstrapDenial::from_residency)
 }
 
 fn initialize_serving(
     runtime: MediaOwnedPhysicalRuntime,
     state: super::super::RecordServingState,
-    frame_ports: super::super::residency::frame_ports::RecordFramePorts,
+    residency: crate::physical_runtime::instance::PhysicalResidencyOwner,
     work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
 ) -> RecordStoreInitializationOutcome {
     let frontier = RecordAllocationFrontier::new(&state.free_space);
@@ -147,7 +161,7 @@ fn initialize_serving(
         core,
         bootstrap: state,
         allocation_frontier: frontier,
-        frame_ports,
+        residency,
         work_profile,
     }) {
         Ok(serving) => TransitionOutcome::success(serving).into(),
@@ -158,7 +172,7 @@ fn initialize_serving(
 fn open_serving(
     runtime: MediaOwnedPhysicalRuntime,
     state: super::super::RecordServingState,
-    frame_ports: super::super::residency::frame_ports::RecordFramePorts,
+    residency: crate::physical_runtime::instance::PhysicalResidencyOwner,
     work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
 ) -> RecordStoreOpenOutcome {
     let frontier = RecordAllocationFrontier::new(&state.free_space);
@@ -170,7 +184,7 @@ fn open_serving(
         core,
         bootstrap: state,
         allocation_frontier: frontier,
-        frame_ports,
+        residency,
         work_profile,
     }) {
         Ok(serving) => TransitionOutcome::success(serving).into(),

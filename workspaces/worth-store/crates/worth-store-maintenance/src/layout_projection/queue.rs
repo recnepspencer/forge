@@ -1,4 +1,4 @@
-use worth_store_buffer_pool::{OperationAllocationScope, PhysicalResidencyCounters};
+use worth_store_buffer_pool::{PhysicalOperationAllocationScope, PhysicalResidencyCounters};
 use worth_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use worth_store_layout_indexes::observation::AccessShape;
 
@@ -76,7 +76,7 @@ impl MaintenanceQueueLayoutReport {
         self.queue_class
     }
 
-    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+    pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
         match &self.evidence {
             MaintenanceQueueLayoutEvidence::Compaction(envelope) => envelope.allocation_scope(),
             MaintenanceQueueLayoutEvidence::ImportExport(envelope) => envelope.allocation_scope(),

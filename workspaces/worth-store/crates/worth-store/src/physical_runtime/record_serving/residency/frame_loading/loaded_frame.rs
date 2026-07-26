@@ -1,6 +1,9 @@
+#[cfg(feature = "certification-test-authority")]
 use worth_store_buffer_pool::{
-    DirtyPhysicalFrame, PhysicalFrameKey, PhysicalFrameLease, PhysicalResidencyDenial,
+    DirtyPhysicalFrame, OperationAllocationGrant, PhysicalDirtyReplacementError,
+    PhysicalResidencyDenial,
 };
+use worth_store_buffer_pool::{PhysicalFrameKey, PhysicalFrameLease};
 use worth_store_physical_format::RecordFrameCoordinate;
 
 use super::{FrameLoadFailure, FrameLoadFailureKind};
@@ -29,7 +32,7 @@ impl LoadedPhysicalFrame {
             }
             return Err(
                 FrameLoadFailure::new(FrameLoadFailureKind::ReturnedFrameIdentityMismatch)
-                    .with_work(work),
+                    .with_complete_work_trace(work),
             );
         }
         Ok(Self {
@@ -43,9 +46,10 @@ impl LoadedPhysicalFrame {
         self.work
     }
 
-    pub(super) fn preceded_by(mut self, work: FrameWorkTrace) -> Self {
-        self.work = work.then(self.work);
-        self
+    pub(in crate::physical_runtime::record_serving) const fn coordinate(
+        &self,
+    ) -> RecordFrameCoordinate {
+        self.lease.key().coordinate()
     }
 
     pub(in crate::physical_runtime::record_serving) fn reject_projection_failure(mut self) {
@@ -62,13 +66,26 @@ impl LoadedPhysicalFrame {
         self.lease.copy_range_into(range, target);
     }
 
-    pub(in crate::physical_runtime::record_serving) fn replace_with_dirty_candidate(
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn fill_dirty_candidate<F>(
         self,
-        bytes: Vec<u8>,
-    ) -> Result<(DirtyPhysicalFrame, FrameWorkTrace), PhysicalResidencyDenial> {
+        allocation: &OperationAllocationGrant,
+        fill: F,
+    ) -> Result<(DirtyPhysicalFrame, FrameWorkTrace), PhysicalResidencyDenial>
+    where
+        F: FnOnce(&[u8], &mut [u8]),
+    {
         let work = self.work;
         self.lease
-            .replace_with_dirty_candidate(bytes)
+            .begin_dirty_replacement(allocation)?
+            .replace(|source, target| {
+                fill(source, target);
+                Ok::<_, std::convert::Infallible>(())
+            })
+            .map_err(|failure| match failure {
+                PhysicalDirtyReplacementError::Residency(reason) => reason,
+                PhysicalDirtyReplacementError::Fill(never) => match never {},
+            })
             .map(|dirty| (dirty, work))
     }
 }

@@ -4,6 +4,7 @@ pub(super) mod locate;
 pub(super) mod manifest_routing;
 pub(super) mod read_observation;
 pub(super) mod readmission;
+pub(super) mod record_chunk_view;
 pub(super) mod scan;
 pub(super) mod scan_observation;
 pub(super) mod scan_readmission;
