@@ -22,9 +22,23 @@ fn replay_comparator_must_be_installed_before_any_replay_can_execute() {
 fn ordinary_reexecution_uses_installed_intent_and_mints_a_distinct_run() {
     let mut workspace = workflow_workspace("ordinary-reexecution").unwrap();
     let original_bound = bind(&workspace);
-    let original = original_bound.reexecute(intent(), &mut workspace).unwrap();
+    let original = original_bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(intent(), &mut workspace)
+        .unwrap();
     let replay_bound = bind(&workspace);
-    let reexecuted = replay_bound.reexecute(intent(), &mut workspace).unwrap();
+    let reexecuted = replay_bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(intent(), &mut workspace)
+        .unwrap();
 
     assert_ne!(original.identity(), reexecuted.identity());
     assert_ne!(
@@ -47,6 +61,11 @@ fn ordinary_reexecution_uses_installed_intent_and_mints_a_distinct_run() {
 fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution() {
     let mut workspace = workflow_workspace("certification-replay").unwrap();
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
@@ -54,6 +73,7 @@ fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution
         &original,
         bind(&workspace),
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();
@@ -93,6 +113,7 @@ fn certification_replay_is_trace_bound_and_denies_foreign_basis_before_execution
         &original,
         foreign_bound,
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     );
     assert!(matches!(
@@ -137,6 +158,11 @@ fn certification_replay_localizes_realized_conditional_path_drift() {
     .unwrap();
     let mut workspace = conditional_workflow_workspace("conditional-replay", node).unwrap();
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
@@ -144,6 +170,7 @@ fn certification_replay_localizes_realized_conditional_path_drift() {
         &original,
         bind(&workspace),
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     );
     assert!(matches!(
@@ -161,6 +188,11 @@ fn historical_replay_resolves_owner_evidence_for_the_exact_basis_pair() {
     let mut workspace = workflow_workspace("historical-certification-replay").unwrap();
     let historical_context = worth_query::facade::history::at(&workspace);
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let historical_bound = bind(&workspace);
@@ -184,6 +216,7 @@ fn historical_replay_resolves_owner_evidence_for_the_exact_basis_pair() {
         &original,
         historical_bound,
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();
@@ -204,6 +237,11 @@ fn historical_replay_refuses_to_simulate_an_unowned_reconstruction_path() {
     let mut workspace = workflow_workspace("historical-reconstruction-denial").unwrap();
     let historical_context = worth_query::facade::history::at(&workspace);
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let bound = bind(&workspace);
@@ -231,6 +269,11 @@ fn historical_replay_denies_when_the_retained_execution_substrate_has_drifted() 
     let mut workspace = workflow_workspace("historical-replay-drift").unwrap();
     let historical_context = worth_query::facade::history::at(&workspace);
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let replay_bound = bind(&workspace);
@@ -253,6 +296,7 @@ fn historical_replay_denies_when_the_retained_execution_substrate_has_drifted() 
         &original,
         replay_bound,
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     );
     assert!(matches!(
@@ -267,6 +311,11 @@ fn historical_replay_denies_when_the_retained_execution_substrate_has_drifted() 
 fn retry_requires_installed_idempotence_and_never_reuses_attempt_identity() {
     let mut workspace = workflow_workspace("idempotent-stage-retry").unwrap();
     let run = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(

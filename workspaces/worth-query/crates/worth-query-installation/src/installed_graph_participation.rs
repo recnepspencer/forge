@@ -25,6 +25,8 @@ struct InstalledGraphParticipationCandidate {
     runtime_ordinal: u64,
     role: String,
     provider_identity: String,
+    commit_authority_required: bool,
+    commit_group_identity: Option<String>,
     authority_identity: String,
 }
 
@@ -60,10 +62,13 @@ impl WorthQueryInstalledGraphParticipationAuthority {
         runtime: &WorthQueryInstallationRuntimeIdentity,
         role: impl Into<String>,
         provider_identity: impl Into<String>,
+        commit_authority_required: bool,
+        commit_group_identity: Option<impl Into<String>>,
         provider_anchor: Arc<P>,
     ) -> Result<Self, &'static str> {
         let role = role.into();
         let provider_identity = provider_identity.into();
+        let commit_group_identity = commit_group_identity.map(Into::into);
         if role.trim().is_empty() || role.trim() != role {
             return Err("invalid-installed-graph-participation-role");
         }
@@ -78,11 +83,18 @@ impl WorthQueryInstalledGraphParticipationAuthority {
         hash.update(role.as_bytes());
         hash.update(provider_identity.len().to_le_bytes());
         hash.update(provider_identity.as_bytes());
+        hash.update([u8::from(commit_authority_required)]);
+        if let Some(identity) = &commit_group_identity {
+            hash.update(identity.len().to_le_bytes());
+            hash.update(identity.as_bytes());
+        }
         hash.update(pointer.to_le_bytes());
         let candidate = InstalledGraphParticipationCandidate {
             runtime_ordinal: runtime.ordinal(),
             role,
             provider_identity,
+            commit_authority_required,
+            commit_group_identity,
             authority_identity: format!("{:x}", hash.finalize()),
         };
         let resolved = Recipe::<Unresolved, _>::new(candidate).resolve_with_authority(
@@ -118,8 +130,21 @@ impl WorthQueryInstalledGraphParticipationAuthority {
         &self.recipe.payload().provider_identity
     }
 
+    pub fn commit_authority_required(&self) -> bool {
+        self.recipe.payload().commit_authority_required
+    }
+
+    pub fn commit_group_identity(&self) -> Option<&str> {
+        self.recipe.payload().commit_group_identity.as_deref()
+    }
+
     pub fn authority_identity(&self) -> &str {
         &self.recipe.payload().authority_identity
+    }
+
+    #[doc(hidden)]
+    pub fn retain_provider_anchor<P: Any + Send + Sync>(&self) -> Option<Arc<P>> {
+        Arc::clone(&self.provider_anchor).downcast::<P>().ok()
     }
 }
 
@@ -130,6 +155,11 @@ impl std::fmt::Debug for WorthQueryInstalledGraphParticipationAuthority {
             .field("runtime_ordinal", &self.runtime_ordinal())
             .field("role", &self.role())
             .field("provider_identity", &self.provider_identity())
+            .field(
+                "commit_authority_required",
+                &self.commit_authority_required(),
+            )
+            .field("commit_group_identity", &self.commit_group_identity())
             .field("authority_identity", &self.authority_identity())
             .finish_non_exhaustive()
     }

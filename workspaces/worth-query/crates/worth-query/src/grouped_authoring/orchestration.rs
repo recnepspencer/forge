@@ -82,10 +82,10 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
                 member_envelopes
                     .iter()
                     .map(|member| format!(
-                        "{}:{:?}:{}:{:?}",
+                        "{}:{:?}:{:?}:{:?}",
                         member.member_index(),
                         member.role(),
-                        format!("{:?}", member.aspect_record().coverage_basis()),
+                        member.aspect_record().coverage_basis(),
                         member.envelope().envelope_digest()
                     ))
                     .collect::<Vec<_>>()

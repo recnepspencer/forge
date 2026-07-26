@@ -59,6 +59,12 @@ pub(crate) struct WorthQueryInstalledDomainExecutionIndex {
     indexed_operation_lookups: AtomicUsize,
 }
 
+pub(crate) struct WorthQueryResolvedInstalledDomainOperation {
+    pub(crate) authority: Arc<WorthQueryInstalledDomainOperationAuthority>,
+    pub(crate) workflow_graph:
+        Option<Arc<crate::domain_installation::WorthQueryInstalledWorkflowGraph>>,
+}
+
 pub(super) struct InstalledGraphReadOperation {
     registration: WorthQueryGraphReadOperationRegistration,
     _installation_authority: WorthQueryInstalledOperationAuthority,
@@ -137,19 +143,14 @@ impl WorthQueryInstalledDomainExecutionIndex {
         domain_marker: TypeId,
         operation_marker: TypeId,
         family_marker: TypeId,
-    ) -> Option<(
-        Arc<WorthQueryInstalledDomainOperationAuthority>,
-        Option<Arc<crate::domain_installation::WorthQueryInstalledWorkflowGraph>>,
-    )> {
+    ) -> Option<WorthQueryResolvedInstalledDomainOperation> {
         self.indexed_operation_lookups
             .fetch_add(1, Ordering::Relaxed);
         self.domain_operations
             .get(&(domain_marker, operation_marker, family_marker))
-            .map(|operation| {
-                (
-                    Arc::clone(&operation.authority),
-                    operation.workflow_graph.as_ref().map(Arc::clone),
-                )
+            .map(|operation| WorthQueryResolvedInstalledDomainOperation {
+                authority: Arc::clone(&operation.authority),
+                workflow_graph: operation.workflow_graph.as_ref().map(Arc::clone),
             })
     }
 

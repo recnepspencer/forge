@@ -204,7 +204,9 @@ fn async_node_active_gate_legality_drift_revalidates_without_new_lineage_and_rep
     let baseline = runtime
         .async_node_gate_state_report(gate)
         .expect("baseline gate state should materialize");
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let mut ctx = ();
     let mut tx = runtime.begin(&mut ctx);

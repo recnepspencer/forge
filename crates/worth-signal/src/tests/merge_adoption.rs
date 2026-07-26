@@ -2088,7 +2088,9 @@ fn active_restore_reinstates_branch_merge_ledger_boundary_for_later_fast_forward
         })
         .unwrap();
 
-    let base_snapshot = runtime.capture_snapshot();
+    let base_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let main = runtime.observe().current_branch();
     let feature = runtime
         .create_branch("feature-active-restore-fast-forward")

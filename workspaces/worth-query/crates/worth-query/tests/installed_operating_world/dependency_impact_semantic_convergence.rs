@@ -12,6 +12,11 @@ fn certification_replay_compares_full_lineage_output_and_stage_evidence_semantic
     )
     .unwrap();
     let original = super::operation_lineage::bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(super::operation_lineage::intent(), &mut workspace)
         .unwrap();
     let replay = certification::replay_installed_workflow(
@@ -19,6 +24,7 @@ fn certification_replay_compares_full_lineage_output_and_stage_evidence_semantic
         &original,
         super::operation_lineage::bind(&workspace),
         super::operation_lineage::intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();

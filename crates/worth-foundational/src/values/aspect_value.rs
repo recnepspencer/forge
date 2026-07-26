@@ -105,4 +105,23 @@ impl AspectValue {
             Self::EntityRef(_) => 17,
         }
     }
+
+    /// Allocator capacity retained exclusively by this value, excluding its
+    /// inline `AspectValue` storage.
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        match self {
+            Self::Decimal(value) => value.0.capacity(),
+            Self::BigInt(value) => value.0.capacity(),
+            Self::Rational(value) => value
+                .numerator
+                .0
+                .capacity()
+                .saturating_add(value.denominator.0.capacity()),
+            Self::String(InternedString::Raw(value)) => value.capacity(),
+            _ => 0,
+        }
+    }
 }
+
+#[cfg(test)]
+mod tests;

@@ -19,6 +19,7 @@ dependencies = [
     "worth-foundational",
     "worth-proof",
     "worth-query",
+    "worth-query-execution",
     "worth-query-host",
     "worth-query-replay",
     "worth-relational",
@@ -32,7 +33,13 @@ dependencies = ["worth-query-declaration"]
 
 [[packages]]
 package = "worth-query-host"
-dependencies = ["worth-query"]
+dependencies = [
+    "worth-query-admission",
+    "worth-query-declaration",
+    "worth-query-execution",
+    "worth-query-installation",
+    "worth-query-publication",
+]
 
 [[packages]]
 package = "worth-query-replay"

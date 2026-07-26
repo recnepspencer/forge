@@ -9,7 +9,7 @@ pub(super) fn installed_conditional_operation<D: 'static, O: 'static, F: 'static
     let domain = domains
         .domain::<D>()
         .map_err(|_| WorthQueryConditionalNodeInstallationDenial::DomainNotInstalled)?;
-    let (authority, workflow) = domains
+    let resolved = domains
         .execution_index()
         .domain_operation_authority(
             std::any::TypeId::of::<D>(),
@@ -29,8 +29,8 @@ pub(super) fn installed_conditional_operation<D: 'static, O: 'static, F: 'static
     Ok(
         crate::domain_installation::WorthQueryInstalledDomainOperation::mint(
             domain.authority_arc(),
-            authority,
-            workflow,
+            resolved.authority,
+            resolved.workflow_graph,
             bindings,
             crate::domain_installation::WorthQueryInstalledDomainOperationLookupCounters {
                 authority_checks: 1,

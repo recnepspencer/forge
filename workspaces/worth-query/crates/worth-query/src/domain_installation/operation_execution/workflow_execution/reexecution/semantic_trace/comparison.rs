@@ -41,7 +41,7 @@ pub(crate) fn compare_exact_workflow_traces_counted(
             return (WorthQueryReplayComparison::Diverged(divergence), index + 1);
         }
     }
-    if original.publication != candidate.publication {
+    if !publication_semantics_eq(&original.publication, &candidate.publication) {
         return (
             WorthQueryReplayComparison::Diverged(D::Publication),
             original.stages.len(),
@@ -62,14 +62,16 @@ fn stage_divergence(
     let stage = original.stage_identity.clone();
     if original.predecessor_stage_identities != candidate.predecessor_stage_identities {
         Some(D::PredecessorTopology { stage })
-    } else if original.input != candidate.input {
+    } else if !original.input.semantic_replay_eq(&candidate.input) {
         Some(D::Input { stage })
-    } else if original.output != candidate.output {
+    } else if !original.output.semantic_replay_eq(&candidate.output) {
         Some(D::Output { stage })
     } else if original.result_state != candidate.result_state {
         Some(D::ResultState { stage })
     } else if !noise.diagnostic_warnings && original.warnings != candidate.warnings {
         Some(D::Diagnostic { stage })
+    } else if !domain_evidence_eq(&original.domain_evidence, &candidate.domain_evidence) {
+        Some(D::DomainEvidence { stage })
     } else if original.effects != candidate.effects {
         Some(D::Effect { stage })
     } else if original.invariants != candidate.invariants {
@@ -80,6 +82,32 @@ fn stage_divergence(
         Some(D::Lineage { stage })
     } else {
         None
+    }
+}
+
+fn domain_evidence_eq(
+    original: &Option<super::WorthQueryDomainEvidenceReplayMeaning>,
+    candidate: &Option<super::WorthQueryDomainEvidenceReplayMeaning>,
+) -> bool {
+    match (original, candidate) {
+        (None, None) => true,
+        (Some(original), Some(candidate)) => original.semantic_replay_eq(candidate),
+        _ => false,
+    }
+}
+
+fn publication_semantics_eq(
+    original: &Option<super::WorthQueryPublicationTraceMeaning>,
+    candidate: &Option<super::WorthQueryPublicationTraceMeaning>,
+) -> bool {
+    match (original, candidate) {
+        (None, None) => true,
+        (Some(left), Some(right)) => {
+            left.projection_role == right.projection_role
+                && left.stage_identity == right.stage_identity
+                && left.output.semantic_replay_eq(&right.output)
+        }
+        _ => false,
     }
 }
 

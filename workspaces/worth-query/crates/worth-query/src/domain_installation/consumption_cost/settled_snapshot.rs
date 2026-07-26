@@ -2,14 +2,14 @@ use worth_foundational::FoundationalPerformanceWorkClass;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryConsumptionCostRow {
-    name: &'static str,
+    name: String,
     work_class: FoundationalPerformanceWorkClass,
     observed_count: u64,
 }
 
 impl WorthQueryConsumptionCostRow {
-    pub const fn name(&self) -> &'static str {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub const fn work_class(&self) -> FoundationalPerformanceWorkClass {
@@ -42,7 +42,9 @@ impl WorthQueryConsumptionCostSnapshot {
         retain_lookup_rows(settled, &mut rows);
         retain_binding_rows(settled, &mut rows);
         retain_support_rows(settled, &mut rows);
+        retain_direct_resource_admission_rows(settled, &mut rows);
         retain_execution_rows(settled, &mut rows);
+        retain_direct_domain_evidence_rows(settled, &mut rows);
         retain_dependency_rows(settled, &mut rows);
         retain_native_binding_rows(settled, &mut rows);
         Self { rows }
@@ -55,7 +57,9 @@ impl WorthQueryConsumptionCostSnapshot {
         retain_workflow_lookup_rows(settled, &mut rows);
         retain_workflow_binding_rows(settled, &mut rows);
         retain_workflow_support_rows(settled, &mut rows);
+        retain_workflow_resource_admission_rows(settled, &mut rows);
         retain_workflow_execution_rows(settled, &mut rows);
+        retain_workflow_domain_evidence_rows(settled, &mut rows);
         if let Some(closure) = settled.trace().semantic_aspect_dependency_closure() {
             retain_dependency_counter_rows(closure.counters(), &mut rows);
         }
@@ -100,7 +104,7 @@ macro_rules! retain_rows {
     ($rows:expr, $prefix:literal, $class:expr, $counters:expr, [$($field:ident),+ $(,)?]) => {
         $(
             $rows.push(WorthQueryConsumptionCostRow {
-                name: concat!($prefix, ".", stringify!($field)),
+                name: concat!($prefix, ".", stringify!($field)).into(),
                 work_class: $class,
                 observed_count: $counters.$field as u64,
             });
@@ -109,12 +113,20 @@ macro_rules! retain_rows {
 }
 
 mod direct_rows;
+mod domain_evidence_rows;
+mod resource_admission_rows;
 mod workflow_rows;
 
 use direct_rows::{
     retain_binding_rows, retain_dependency_counter_rows, retain_dependency_rows,
     retain_execution_rows, retain_lookup_rows, retain_native_binding_counter_rows,
     retain_native_binding_rows, retain_support_rows,
+};
+use domain_evidence_rows::{
+    retain_direct_domain_evidence_rows, retain_workflow_domain_evidence_rows,
+};
+use resource_admission_rows::{
+    retain_direct_resource_admission_rows, retain_workflow_resource_admission_rows,
 };
 use workflow_rows::{
     retain_workflow_binding_rows, retain_workflow_execution_rows, retain_workflow_lookup_rows,

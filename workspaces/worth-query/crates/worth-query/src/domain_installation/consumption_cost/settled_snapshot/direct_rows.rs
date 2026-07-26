@@ -92,7 +92,6 @@ pub(super) fn retain_execution_rows<D, O, F, L: crate::basis_lifecycle::BasisOpe
         counters,
         [
             runtime_authority_checks,
-            input_contract_checks,
             graph_provider_contacts,
             primary_read_contacts,
             executor_contacts,

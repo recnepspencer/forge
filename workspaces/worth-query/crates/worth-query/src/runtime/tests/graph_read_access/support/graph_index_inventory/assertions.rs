@@ -29,11 +29,11 @@ pub fn missing_match_for_requirement<'a>(
         .expect("expected localized missing support match should exist")
 }
 
-pub fn support_match_for_kind<'a>(
-    matches: &'a [WorthQueryGraphIndexInventoryMatch],
+pub fn support_match_for_kind(
+    matches: &[WorthQueryGraphIndexInventoryMatch],
     requirement_kind: WorthQueryGraphReadAccessRequirementKind,
     posture: WorthQueryGraphIndexPosture,
-) -> &'a WorthQueryGraphIndexInventoryMatch {
+) -> &WorthQueryGraphIndexInventoryMatch {
     matches
         .iter()
         .find(|row| {

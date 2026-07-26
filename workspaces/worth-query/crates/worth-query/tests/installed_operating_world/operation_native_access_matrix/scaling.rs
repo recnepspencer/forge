@@ -55,7 +55,7 @@ fn native_access_work_is_invariant_to_unrelated_rows_facts_views_and_domains() {
 #[derive(Debug)]
 struct CaseCounters {
     journey: std::collections::BTreeMap<
-        &'static str,
+        String,
         (u64, worth_foundational::FoundationalPerformanceWorkClass),
     >,
     access: domain::WorthQueryNativeAccessCounters,
@@ -69,9 +69,11 @@ struct CaseCounters {
 
 fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: bool) -> CaseCounters {
     let mut workspace = matrix_workspace(name, rows, unrelated_world);
-    let unrelated_views = unrelated_world
-        .then(|| install_unrelated_views(&mut workspace, name))
-        .unwrap_or_default();
+    let unrelated_views = if unrelated_world {
+        install_unrelated_views(&mut workspace, name)
+    } else {
+        Default::default()
+    };
     assert_eq!(unrelated_views.len(), usize::from(unrelated_world) * 8);
     if unrelated_world {
         assert_unrelated_domains_installed(&workspace);
@@ -110,7 +112,13 @@ fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: boo
         })
         .collect::<Vec<_>>();
     let settled = bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -151,7 +159,12 @@ fn run_case(name: &str, rows: usize, unrelated_facts: bool, unrelated_world: boo
             .consumption_cost_snapshot()
             .rows()
             .iter()
-            .map(|row| (row.name(), (row.observed_count(), row.work_class())))
+            .map(|row| {
+                (
+                    row.name().to_owned(),
+                    (row.observed_count(), row.work_class()),
+                )
+            })
             .collect(),
         access,
         binding: settled.native_access_binding_counters().unwrap(),

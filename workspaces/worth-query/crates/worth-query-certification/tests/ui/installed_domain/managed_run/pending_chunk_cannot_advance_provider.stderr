@@ -1,0 +1,11 @@
+error[E0599]: no method named `advance` found for struct `WorthQueryPendingDirectGraphChunk` in the current scope
+ --> tests/ui/installed_domain/managed_run/pending_chunk_cannot_advance_provider.rs:6:21
+  |
+6 |     let _ = pending.advance();
+  |                     ^^^^^^^ method not found in `WorthQueryPendingDirectGraphChunk`
+
+error[E0599]: no method named `advance` found for struct `WorthQueryPendingWorkflowGraphChunk` in the current scope
+  --> tests/ui/installed_domain/managed_run/pending_chunk_cannot_advance_provider.rs:10:21
+   |
+10 |     let _ = pending.advance();
+   |                     ^^^^^^^ method not found in `WorthQueryPendingWorkflowGraphChunk`

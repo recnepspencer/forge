@@ -17,6 +17,10 @@ pub(super) struct DirectExecutionIdentityInput<'a> {
     pub(super) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
     pub(super) output_identity: &'a str,
     pub(super) conditional: &'a [WorthQueryConditionalProvenance],
+    pub(super) domain_evidence:
+        Option<&'a crate::domain_installation::WorthQueryAdmittedDomainEvidence>,
+    pub(super) execution_resources:
+        &'a crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 pub(super) fn direct_execution_receipt_identity(input: DirectExecutionIdentityInput<'_>) -> String {
@@ -33,8 +37,8 @@ pub(super) fn direct_execution_receipt_identity(input: DirectExecutionIdentityIn
                 (
                     "graph.projection",
                     receipt
-                        .projection()
-                        .map(|projection| projection.receipt().result_digest())
+                        .graph_read_product()
+                        .map(|projection| projection.result_digest())
                         .unwrap_or("not-projected")
                         .to_owned(),
                 ),
@@ -60,6 +64,14 @@ pub(super) fn direct_execution_receipt_identity(input: DirectExecutionIdentityIn
         format!("warnings:{warning_evidence}"),
         format!("graph_evidence:{graph_evidence}"),
         format!("output:{}", input.output_identity),
+        format!("resources:{}", input.execution_resources.identity()),
+        format!(
+            "domain_evidence:{}",
+            input
+                .domain_evidence
+                .map(crate::domain_installation::WorthQueryAdmittedDomainEvidence::identity)
+                .unwrap_or("not-required")
+        ),
         format!(
             "conditional:{}",
             canonical_indexed_operation_material(

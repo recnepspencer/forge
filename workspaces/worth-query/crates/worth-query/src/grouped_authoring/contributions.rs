@@ -193,7 +193,7 @@ fn lower_grouped_contributions_on_handle<
             handle,
             member.progression().clone(),
             member_contributions_for_member(&shared_contributions, &member_specific),
-            materialization_policy(materialization_profile.clone()),
+            materialization_policy(materialization_profile),
         );
         let context = WorthQueryGroupedContributionMemberContext::new(
             member.member_index(),

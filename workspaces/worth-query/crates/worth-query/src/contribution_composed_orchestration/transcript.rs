@@ -190,7 +190,7 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
             );
         }
     };
-    let intent_results = process_contributions::<D, I>(
+    let intent_results = process_contributions(
         declaration.target.clone(),
         declaration.declaration_aspect_record.clone(),
         contributions,

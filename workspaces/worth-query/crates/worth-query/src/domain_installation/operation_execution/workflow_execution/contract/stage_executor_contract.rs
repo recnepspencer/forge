@@ -13,14 +13,23 @@ pub enum WorthQueryWorkflowValue {
     EntityIdentity(String),
     CurrentEntityIdentity(crate::memory_workspace::WorthQueryEntityIdentity),
     Projection(Box<crate::ordinary::read::WorthQueryReadCompletion>),
+    InstalledArtifact(crate::domain_installation::WorthQueryMoveOnlyArtifactHandle),
+    TransferredArtifact(crate::domain_installation::WorthQueryTransferredArtifactHandle),
 }
 
 impl WorthQueryWorkflowValue {
     pub(crate) fn satisfies(
         &self,
-        contract: worth_query_installation::facade::WorthQueryWorkflowValueContract,
+        contract: &worth_query_installation::facade::WorthQueryWorkflowValueContract,
     ) -> bool {
         use worth_query_installation::facade::WorthQueryWorkflowValueContract as Contract;
+        if let Contract::InstalledArtifact(reference) = contract {
+            return match self {
+                Self::InstalledArtifact(handle) => handle.contract_matches(reference),
+                Self::TransferredArtifact(handle) => handle.contract_matches(reference),
+                _ => false,
+            };
+        }
         matches!(
             (self, contract),
             (Self::NotRequired, Contract::NotRequired)
@@ -34,22 +43,31 @@ impl WorthQueryWorkflowValue {
         )
     }
 
-    pub(crate) fn semantic_part(&self) -> String {
+    pub fn installed_artifact(
+        handle: crate::domain_installation::WorthQueryMoveOnlyArtifactHandle,
+    ) -> Self {
+        Self::InstalledArtifact(handle)
+    }
+
+    pub fn into_transferred_artifact(
+        self,
+    ) -> Result<
+        crate::domain_installation::WorthQueryTransferredArtifactHandle,
+        WorthQueryWorkflowValue,
+    > {
         match self {
-            Self::NotRequired => "not-required".into(),
-            Self::Bool(value) => format!("bool:{value}"),
-            Self::I64(value) => format!("i64:{value}"),
-            Self::U64(value) => format!("u64:{value}"),
-            Self::Text(value) => format!("text:{value}"),
-            Self::EntityIdentity(value) => format!("entity:{value}"),
-            Self::CurrentEntityIdentity(value) => {
-                format!("current-entity:{}", value.evidence_identity().as_str())
-            }
-            Self::Projection(completion) => format!(
-                "projection:{}:{}",
-                completion.result().receipt().canonical_query_digest(),
-                completion.result().receipt().result_digest(),
-            ),
+            Self::TransferredArtifact(handle) => Ok(handle),
+            value => Err(value),
+        }
+    }
+
+    pub(crate) fn into_move_only_artifact(
+        self,
+    ) -> Result<crate::domain_installation::WorthQueryMoveOnlyArtifactHandle, WorthQueryWorkflowValue>
+    {
+        match self {
+            Self::InstalledArtifact(handle) => Ok(handle),
+            value => Err(value),
         }
     }
 }
@@ -68,6 +86,7 @@ pub struct WorthQueryWorkflowStageMaterial {
     effects: Vec<WorthQueryWorkflowEffectEvidence>,
     executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
     lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    domain_evidence: Option<super::WorthQueryDomainEvidenceMaterial>,
 }
 
 pub(crate) struct WorthQueryWorkflowStageMaterialParts {
@@ -78,6 +97,7 @@ pub(crate) struct WorthQueryWorkflowStageMaterialParts {
     pub(crate) effects: Vec<WorthQueryWorkflowEffectEvidence>,
     pub(crate) executed_effects: Vec<WorthQueryWorkflowEffectEvidence>,
     pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    pub(crate) domain_evidence: Option<super::WorthQueryDomainEvidenceMaterial>,
 }
 
 impl WorthQueryWorkflowStageMaterial {
@@ -90,6 +110,7 @@ impl WorthQueryWorkflowStageMaterial {
             effects: Vec::new(),
             executed_effects: Vec::new(),
             lineage: Vec::new(),
+            domain_evidence: None,
         }
     }
 
@@ -118,6 +139,7 @@ impl WorthQueryWorkflowStageMaterial {
             effects: Vec::new(),
             executed_effects: Vec::new(),
             lineage: Vec::new(),
+            domain_evidence: None,
         }
     }
 
@@ -142,6 +164,14 @@ impl WorthQueryWorkflowStageMaterial {
         self
     }
 
+    pub fn with_domain_evidence(
+        mut self,
+        evidence: super::WorthQueryDomainEvidenceMaterial,
+    ) -> Self {
+        self.domain_evidence = Some(evidence);
+        self
+    }
+
     pub(crate) fn into_parts(self) -> WorthQueryWorkflowStageMaterialParts {
         WorthQueryWorkflowStageMaterialParts {
             output: self.output,
@@ -151,6 +181,7 @@ impl WorthQueryWorkflowStageMaterial {
             effects: self.effects,
             executed_effects: self.executed_effects,
             lineage: self.lineage,
+            domain_evidence: self.domain_evidence,
         }
     }
 
@@ -214,6 +245,10 @@ pub trait WorthQueryDomainWorkflowStageExecutor<D, O, F>: Send + Sync + 'static 
     ) -> Option<&crate::ordinary::read::WorthQueryReadDeclaration> {
         None
     }
+
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
 
     fn execute_stage(
         &self,

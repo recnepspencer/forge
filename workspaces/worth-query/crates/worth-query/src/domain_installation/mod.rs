@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod artifact_contract_package_tests;
 mod collection_delivery;
 mod collection_window;
 mod compatibility;
@@ -37,6 +39,9 @@ pub use operating_world::*;
 pub use operation_aftermath::*;
 pub(crate) use operation_authority_chain::WorthQueryOperationAuthorityBasis;
 pub use operation_execution::*;
+pub(crate) use operation_execution::{
+    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactRegistry,
+};
 pub use operation_lineage::*;
 pub use package_authority::*;
 pub use package_installation_error::WorthQueryDomainPackageInstallationError;

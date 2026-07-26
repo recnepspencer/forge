@@ -3,7 +3,9 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 
 use crate::identity::{AsyncInFlightRequestIdentityTag, AsyncRequestIdentityTag, BridgeIdentity};
-use worth_signal::facade::{InFlightResourceRequest, ResourceAttemptId, ResourceRequestHandle};
+use worth_signal::facade::{
+    AdmittedResourceRequest, InFlightResourceRequest, ResourceAttemptId, ResourceRequestHandle,
+};
 
 use super::super::LoweredBridgeAsyncSourceDeclaration;
 use super::binding::ValidatedBridgeAsyncRequestBasisBinding;
@@ -146,12 +148,12 @@ impl BridgeAsyncInFlightRequestIdentity {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedBridgeAsyncRequestIdentity {
+    bridge_runtime_key: u64,
     request_identity: BridgeAsyncRequestIdentity,
     lowered: LoweredBridgeAsyncSourceDeclaration,
     basis_binding: ValidatedBridgeAsyncRequestBasisBinding,
     family_admission: BridgeAsyncRequestFamilyAdmission,
-    request_handle: ResourceRequestHandle,
-    attempt: ResourceAttemptId,
+    signal_admission: AdmittedResourceRequest,
     request_intent_digest: Arc<str>,
     in_flight_identity: BridgeAsyncInFlightRequestIdentity,
     counters: BridgeAsyncRequestIdentityCounters,
@@ -161,12 +163,12 @@ pub struct AdmittedBridgeAsyncRequestIdentity {
 
 impl AdmittedBridgeAsyncRequestIdentity {
     pub(super) fn new(
+        bridge_runtime_key: u64,
         request_identity: BridgeAsyncRequestIdentity,
         lowered: LoweredBridgeAsyncSourceDeclaration,
         basis_binding: ValidatedBridgeAsyncRequestBasisBinding,
         family_admission: BridgeAsyncRequestFamilyAdmission,
-        request_handle: ResourceRequestHandle,
-        attempt: ResourceAttemptId,
+        signal_admission: AdmittedResourceRequest,
         request_intent_digest: Arc<str>,
         in_flight_identity: BridgeAsyncInFlightRequestIdentity,
         counters: BridgeAsyncRequestIdentityCounters,
@@ -174,18 +176,22 @@ impl AdmittedBridgeAsyncRequestIdentity {
         digest: Arc<str>,
     ) -> Self {
         Self {
+            bridge_runtime_key,
             request_identity,
             lowered,
             basis_binding,
             family_admission,
-            request_handle,
-            attempt,
+            signal_admission,
             request_intent_digest,
             in_flight_identity,
             counters,
             canonical_basis,
             digest,
         }
+    }
+
+    pub(crate) fn bridge_runtime_key(&self) -> u64 {
+        self.bridge_runtime_key
     }
 
     pub fn request_identity(&self) -> &BridgeAsyncRequestIdentity {
@@ -208,12 +214,21 @@ impl AdmittedBridgeAsyncRequestIdentity {
         self.family_admission.subscription_instance()
     }
 
+    pub(crate) fn subscription_instance_digest(&self) -> Option<&str> {
+        self.subscription_instance()
+            .map(|instance| instance.digest())
+    }
+
     pub fn request_handle(&self) -> ResourceRequestHandle {
-        self.request_handle
+        self.signal_admission.handle()
     }
 
     pub fn attempt(&self) -> ResourceAttemptId {
-        self.attempt
+        self.signal_admission.attempt()
+    }
+
+    pub(crate) fn signal_admission(&self) -> AdmittedResourceRequest {
+        self.signal_admission
     }
 
     pub fn request_intent_digest(&self) -> &str {

@@ -41,7 +41,7 @@ fn routed_surface_scan_targets_reconcile_remaining_phase_six_seam_files() {
             false,
         ),
         (
-            "crates/worth-query/src/basis_lifecycle/lower_runtime/mod.rs",
+            "crates/worth-query-admission/src/domain_computation/basis_lifecycle/lower_runtime/mod.rs",
             false,
         ),
         ("crates/worth-query/src/historical/bridge_lowering.rs", true),

@@ -102,10 +102,22 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
+
     fn compute(
         &self,
-        _context: &domain::WorthQueryConditionalComputeContext,
+        context: &domain::WorthQueryConditionalComputeContext,
     ) -> Result<worth_signal::facade::NodeEvaluationResult, String> {
+        assert_eq!(context.execution_resources().strategy(), "fixture-bounded");
+        assert_eq!(
+            context
+                .resource_envelope()
+                .cancellation_safe_point()
+                .as_str(),
+            "fixture-chunk-boundary"
+        );
         Ok(worth_signal::facade::NodeEvaluationResult::from_version(
             worth_signal::facade::AspectVersion::from_updates([(
                 worth_signal::facade::Aspect::new(0),

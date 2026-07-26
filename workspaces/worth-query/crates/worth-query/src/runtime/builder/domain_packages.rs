@@ -7,14 +7,28 @@ use super::WorthQueryRuntimeBuilder;
 
 impl WorthQueryRuntimeBuilder {
     pub fn domain_package<D: WorthQueryDomainEntryMarker + 'static>(
+        self,
+        package: WorthQueryDomainPackage<D>,
+    ) -> Result<Self, WorthQueryDomainPackageInstallationError> {
+        self.domain_package_with_artifact_support(
+            package,
+            crate::domain_installation::WorthQueryArtifactInstallationSupport::default(),
+        )
+    }
+
+    pub fn domain_package_with_artifact_support<D: WorthQueryDomainEntryMarker + 'static>(
         mut self,
         package: WorthQueryDomainPackage<D>,
+        artifact_support: crate::domain_installation::WorthQueryArtifactInstallationSupport,
     ) -> Result<Self, WorthQueryDomainPackageInstallationError> {
         let validated = package
             .validate()
             .map_err(WorthQueryDomainPackageInstallationError::Validation)?;
-        let admitted = crate::domain_installation::admit_domain_package(validated)
-            .map_err(WorthQueryDomainPackageInstallationError::Admission)?;
+        let admitted = crate::domain_installation::admit_domain_package_with_artifact_support(
+            validated,
+            &artifact_support,
+        )
+        .map_err(WorthQueryDomainPackageInstallationError::Admission)?;
         self.pending_domain_installations
             .install(admitted)
             .map_err(WorthQueryDomainPackageInstallationError::Installation)?;

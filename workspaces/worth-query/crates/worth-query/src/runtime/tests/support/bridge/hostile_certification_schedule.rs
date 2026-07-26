@@ -71,7 +71,7 @@ pub(in crate::runtime::tests) fn execute_runtime_hostile_schedule(
 pub(in crate::runtime::tests) fn replay_runtime_hostile_schedule(
 ) -> RuntimeHostileCertificationArtifact {
     let schedule = hostile_schedule();
-    let recorded_steps = schedule.steps.iter().copied().collect::<Vec<_>>();
+    let recorded_steps = schedule.steps.to_vec();
     run_hostile_schedule_steps(recorded_steps)
 }
 

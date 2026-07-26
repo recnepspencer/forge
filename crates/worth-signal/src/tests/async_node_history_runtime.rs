@@ -284,7 +284,9 @@ fn async_node_historical_parity_report_rejects_stale_handle_after_restore() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let mut runtime = TestRuntime::build(graph);
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let attached = runtime
         .attach_async_capability(async_node_capability_declaration(node))
         .expect("async capability should attach after snapshot");

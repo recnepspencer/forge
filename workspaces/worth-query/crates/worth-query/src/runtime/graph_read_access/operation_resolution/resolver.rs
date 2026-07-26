@@ -74,10 +74,8 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
         .cloned()
         .map(WorthQueryGraphReadResolvedOperation::built_in)
         .collect::<Vec<_>>();
-    if operations.is_empty() {
-        if !references.relations().is_empty() {
-            operations.push(WorthQueryGraphReadResolvedOperation::declaration_traversal());
-        }
+    if operations.is_empty() && !references.relations().is_empty() {
+        operations.push(WorthQueryGraphReadResolvedOperation::declaration_traversal());
     }
 
     WorthQueryGraphReadOperationOutcome::Resolved(WorthQueryGraphReadOperationResolution::new(

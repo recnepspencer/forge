@@ -25,6 +25,10 @@ pub mod diagnostics {
     pub use crate::diagnostics::*;
 }
 
+pub mod domain_computation {
+    pub use crate::domain_computation::*;
+}
+
 pub mod identity {
     pub use crate::identity::*;
 }

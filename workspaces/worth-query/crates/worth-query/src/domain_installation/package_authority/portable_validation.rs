@@ -1,7 +1,7 @@
 use worth_query_installation::facade::{
-    WorthQueryPortableDefinition, WorthQueryPortableDomainIdentity,
-    WorthQueryPortableDomainPackage, WorthQueryPortablePackageValidationDenial,
-    WorthQueryValidatedPortableDomainPackage,
+    WorthQueryPortableArtifactContract, WorthQueryPortableDefinition,
+    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
+    WorthQueryPortablePackageValidationDenial, WorthQueryValidatedPortableDomainPackage,
 };
 
 use crate::application::{
@@ -26,6 +26,7 @@ pub(super) struct WorthQueryPortablePackageDeclaration<'a, D> {
     pub(super) graph_read_operations: &'a [WorthQueryDomainGraphReadOperationDefinition],
     pub(super) declaration_families: &'a [WorthQueryDomainDeclarationFamilyDefinition],
     pub(super) domain_operations: &'a [WorthQueryDomainOperationDefinitionRecord],
+    pub(super) artifact_contracts: &'a [WorthQueryPortableArtifactContract],
     pub(super) contribution_policy: &'a [WorthQueryDeclarationEntryContributionCategoryFamily],
 }
 
@@ -75,6 +76,9 @@ where
     }
     for operation in package.domain_operations {
         portable = portable.domain_operation(operation.definition().clone());
+    }
+    for contract in package.artifact_contracts {
+        portable = portable.artifact_contract(contract.clone());
     }
     for category in package.contribution_policy {
         portable = portable.permits_contribution(category.as_str());

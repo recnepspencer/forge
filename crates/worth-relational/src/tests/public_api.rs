@@ -44,3 +44,92 @@ fn facade_namespaces_expose_domain_groupings() {
     let _projection_scope =
         <PublicApiProjection as facade::runtime::EntityRecordProjection>::projection_scope();
 }
+
+#[test]
+fn relational_owner_mints_move_only_execution_basis_lease() {
+    let mut runtime = public_api_runtime();
+    let committed =
+        crate::tests::support::create_entity_outcome(&mut runtime, "execution-basis-world");
+    let version_id = committed.snapshot.version_id;
+    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+
+    let lease = runtime
+        .snapshots()
+        .admit_execution_basis(version_id)
+        .expect("owned reconstructible version should admit an execution basis");
+    let handle = lease.snapshot_handle().clone();
+
+    assert_eq!(handle.version_id, version_id);
+    assert_eq!(lease.counters().version_availability_check_count(), 1);
+    assert_eq!(lease.counters().snapshot_identity_allocation_count(), 1);
+    assert_eq!(lease.counters().lease_registry_insert_count(), 1);
+    assert!(runtime.read_truth().read_snapshot(&handle).is_some());
+
+    let receipt = lease.release();
+    assert!(receipt.released());
+    assert!(runtime.read_truth().read_snapshot(&handle).is_none());
+}
+
+#[test]
+fn execution_basis_lease_drop_closes_snapshot_authority() {
+    let mut runtime = public_api_runtime();
+    let committed =
+        crate::tests::support::create_entity_outcome(&mut runtime, "drop-execution-basis");
+    let version_id = committed.snapshot.version_id;
+    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    let lease = runtime
+        .snapshots()
+        .admit_execution_basis(version_id)
+        .expect("reconstructible version should admit");
+    let handle = lease.snapshot_handle().clone();
+
+    drop(lease);
+
+    assert!(runtime.read_truth().read_snapshot(&handle).is_none());
+}
+
+#[test]
+fn independently_admitted_execution_bases_release_independently() {
+    let mut runtime = public_api_runtime();
+    let committed =
+        crate::tests::support::create_entity_outcome(&mut runtime, "shared-execution-version");
+    let version_id = committed.snapshot.version_id;
+    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    let first = runtime
+        .snapshots()
+        .admit_execution_basis(version_id)
+        .expect("first basis should admit");
+    let second = runtime
+        .snapshots()
+        .admit_execution_basis(version_id)
+        .expect("second basis should admit");
+    let first_handle = first.snapshot_handle().clone();
+    let second_handle = second.snapshot_handle().clone();
+
+    drop(first);
+    assert!(runtime.read_truth().read_snapshot(&first_handle).is_none());
+    assert!(runtime.read_truth().read_snapshot(&second_handle).is_some());
+    drop(second);
+    assert!(runtime.read_truth().read_snapshot(&second_handle).is_none());
+}
+
+#[test]
+fn unavailable_version_cannot_mint_execution_basis() {
+    let mut runtime = public_api_runtime();
+    let unavailable = facade::identity::VersionId(u64::MAX);
+    let denial = match runtime.snapshots().admit_execution_basis(unavailable) {
+        Ok(_) => panic!("unavailable version admitted an execution basis"),
+        Err(denial) => denial,
+    };
+    assert_eq!(
+        denial.kind(),
+        facade::runtime::RelationalExecutionBasisDenialKind::VersionUnavailable
+    );
+    assert_eq!(denial.counters().version_availability_check_count(), 1);
+    assert_eq!(denial.counters().snapshot_identity_allocation_count(), 0);
+    assert_eq!(denial.counters().lease_registry_insert_count(), 0);
+}
+
+fn public_api_runtime() -> facade::runtime::RelationalRuntime {
+    crate::tests::support::runtime_with_test_schema()
+}

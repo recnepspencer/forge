@@ -1,3 +1,4 @@
+mod artifact_owner;
 #[path = "graph_execution/provider_execution.rs"]
 mod bound_graph_execution;
 #[path = "workflow_execution/reexecution/certification_replay.rs"]
@@ -6,6 +7,9 @@ pub(crate) mod certification_replay;
 mod commit_execution;
 #[path = "direct_execution/consumption_progression.rs"]
 mod consumption_progression;
+mod domain_evidence;
+#[path = "execution_resource_admission/mod.rs"]
+mod execution_resource_admission;
 #[path = "workflow_execution/reexecution/historical_replay.rs"]
 pub(crate) mod historical_replay;
 #[path = "direct_execution/input_contract.rs"]
@@ -24,6 +28,12 @@ mod projection_sharing;
 mod provider;
 #[path = "direct_execution/executor_registry.rs"]
 mod registry;
+#[path = "workflow_execution/contract/artifact_production.rs"]
+mod workflow_artifact_production;
+#[path = "workflow_execution/progression/artifact_progression.rs"]
+mod workflow_artifact_progression;
+#[path = "workflow_execution/contract/artifact_replacement.rs"]
+mod workflow_artifact_replacement;
 #[path = "workflow_execution/progression/conditional_counters.rs"]
 mod workflow_conditional_counters;
 #[path = "workflow_execution/progression/conditional_stage_evaluation.rs"]
@@ -52,10 +62,14 @@ mod workflow_parallel_progression;
 mod workflow_parallel_provider;
 #[path = "workflow_execution/providers/parallel_admission_registry.rs"]
 mod workflow_parallel_registry;
+#[path = "workflow_execution/progression/predecessor_admission.rs"]
+mod workflow_predecessor_admission;
 #[path = "workflow_execution/contract/predecessor_receipt.rs"]
 mod workflow_predecessor_receipt;
 #[path = "workflow_execution/progression/stage_progression.rs"]
 mod workflow_progression;
+#[path = "workflow_execution/progression/stage_progression_state.rs"]
+mod workflow_progression_state;
 #[path = "workflow_execution/contract/stage_executor_contract.rs"]
 mod workflow_provider;
 #[path = "workflow_execution/progression/publication.rs"]
@@ -78,8 +92,14 @@ mod workflow_semantic_value;
 mod workflow_stage_admission;
 #[path = "workflow_execution/evidence/stage_denial.rs"]
 mod workflow_stage_denial;
+#[path = "workflow_execution/progression/stage_evidence_validation.rs"]
+mod workflow_stage_evidence_validation;
+#[path = "workflow_execution/contract/stage_execution_authority.rs"]
+mod workflow_stage_execution_authority;
 #[path = "workflow_execution/contract/stage_execution_context.rs"]
 mod workflow_stage_execution_context;
+#[path = "workflow_execution/contract/stage_lineage.rs"]
+mod workflow_stage_lineage;
 #[path = "workflow_execution/evidence/stage_receipt.rs"]
 mod workflow_stage_receipt;
 #[path = "workflow_execution/contract/stage_workspace.rs"]
@@ -89,7 +109,19 @@ mod workflow_start_evidence;
 #[path = "workflow_execution/evidence/trace.rs"]
 mod workflow_trace;
 
+pub use worth_query_execution::facade::provider_session::{
+    WorthQueryBoundGraphExecutionReceipt, WorthQueryExecutionGraphReadProduct,
+    WorthQueryLegacyProviderWorkClaim, WorthQueryProviderWorkReport,
+};
+
+pub use artifact_owner::*;
+pub(crate) use artifact_owner::{
+    WorthQueryArtifactProductionAuthority, WorthQueryWorkflowArtifactAuthority,
+    WorthQueryWorkflowArtifactRegistry,
+};
 pub use consumption_progression::*;
+pub use domain_evidence::*;
+pub use execution_resource_admission::*;
 pub use operation_input::*;
 pub use operation_output::*;
 pub use progression::*;
@@ -171,8 +203,15 @@ pub use workflow_retry::*;
 pub use workflow_run::*;
 pub use workflow_semantic_trace::*;
 pub use workflow_semantic_value::*;
+pub(crate) use workflow_stage_admission::{
+    WorthQueryAdmittedWorkflowStage, WorthQueryWorkflowStageRuntimeAdmission,
+};
 pub use workflow_stage_denial::*;
+pub(crate) use workflow_stage_execution_authority::{
+    WorthQueryWorkflowStageExecutionAuthority, WorthQueryWorkflowStageExecutionScope,
+};
 pub use workflow_stage_execution_context::*;
+pub use workflow_stage_lineage::*;
 pub use workflow_stage_workspace::*;
 pub use workflow_start_evidence::*;
 pub use workflow_trace::*;

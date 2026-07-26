@@ -200,7 +200,7 @@ pub(super) fn workflow_execution_descriptors(
                         .semantics()
                         .lowering
                         .deterministic,
-                    has_parallel_frontier: has_parallel_frontier(workflow),
+                    has_parallel_frontier: workflow.has_parallel_frontier(),
                     requires_installed_read: installed
                         .authority
                         .definition()
@@ -252,42 +252,4 @@ pub(super) fn workflow_execution_descriptors(
             })
         })
         .collect()
-}
-
-fn has_parallel_frontier(
-    workflow: &worth_query_installation::facade::WorthQueryPortableWorkflowDefinition,
-) -> bool {
-    let stages = workflow.stages();
-    stages.iter().enumerate().any(|(left_index, left)| {
-        stages.iter().skip(left_index + 1).any(|right| {
-            !depends_on(stages, left.identity(), right.identity())
-                && !depends_on(stages, right.identity(), left.identity())
-        })
-    })
-}
-
-fn depends_on(
-    stages: &[worth_query_installation::facade::WorthQueryPortableWorkflowStage],
-    stage_identity: &str,
-    possible_predecessor: &str,
-) -> bool {
-    let mut pending = vec![stage_identity];
-    let mut visited = std::collections::BTreeSet::new();
-    while let Some(identity) = pending.pop() {
-        if !visited.insert(identity) {
-            continue;
-        }
-        let Some(stage) = stages.iter().find(|stage| stage.identity() == identity) else {
-            continue;
-        };
-        if stage
-            .predecessors()
-            .iter()
-            .any(|predecessor| predecessor == possible_predecessor)
-        {
-            return true;
-        }
-        pending.extend(stage.predecessors().iter().map(String::as_str));
-    }
-    false
 }

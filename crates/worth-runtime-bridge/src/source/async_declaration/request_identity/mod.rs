@@ -2,6 +2,7 @@ mod admission;
 mod binding;
 mod counters;
 mod identity;
+mod identity_assembly;
 mod rejection;
 pub(crate) mod state;
 mod subscription_instance;
@@ -17,6 +18,7 @@ pub use identity::{
     BridgeAsyncRequestAdmissionRequest, BridgeAsyncRequestFamilyAdmission,
 };
 pub use rejection::{BridgeAsyncRequestIdentityRejection, BridgeAsyncRequestIdentityRejectionKind};
+pub(crate) use state::SignalRuntimeThreadAffinityError;
 pub use subscription_instance::{
     BridgeAsyncRequestSubscriptionInstance, BridgeAsyncRequestSubscriptionInstanceIdentity,
     BridgeAsyncRequestSubscriptionInstanceKind,

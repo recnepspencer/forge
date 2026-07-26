@@ -3,66 +3,13 @@ use std::sync::Arc;
 use worth_query::facade::domain;
 
 use super::installed_operation_fixture::{
-    configured_runtime_for_package, federated_package, federated_touch_package,
-    graph_projection_material, required_domain_runtime, workspace, FederatedRead, GeometryDomain,
-    ReadFamily, ReadVertex,
+    configured_runtime_for_package, configured_runtime_for_partial_effect_package,
+    federated_package, federated_touch_package, required_domain_runtime, workspace, FederatedRead,
+    GeometryDomain, ReadFamily, ReadVertex,
 };
 
-#[derive(Clone, Copy, Debug)]
-struct RemoteA;
-#[derive(Clone, Copy, Debug)]
-struct RemoteB;
-#[derive(Clone, Copy, Debug)]
-struct RemoteALookalike;
-#[derive(Clone, Copy, Debug)]
-struct SharedCommit;
-#[derive(Clone, Copy, Debug)]
-struct OtherCommit;
-
-struct Provider(Arc<AtomicUsize>);
-
-impl<G> domain::WorthQueryGraphParticipationProvider<G> for Provider {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed(self.receipt_label()))
-    }
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.projected(
-            "provider-projection",
-            graph_projection_material("operating-world-graph-projection"),
-        ))
-    }
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed(self.receipt_label()))
-    }
-}
-
-impl<C> domain::WorthQueryGraphCommitProvider<C> for Provider {
-    fn admit_commit(
-        &self,
-        call: &domain::WorthQueryGraphCommitCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        if call.graph_roles() != ["remote-a", "remote-b"] {
-            return Err(domain::WorthQueryGraphProviderFailure::new(
-                "commit provider did not receive the complete atomic graph group",
-            ));
-        }
-        Ok(call.completed(self.receipt_label()))
-    }
-}
+mod provider_fixture;
+use provider_fixture::*;
 
 #[test]
 fn required_domain_is_resolved_and_retained_by_the_bound_capability() {
@@ -109,13 +56,6 @@ fn missing_required_domain_denies_before_graph_or_execution_work() {
     assert_eq!(denial.counters().required_domain_lookups, 1);
     assert_eq!(denial.counters().graph_provider_contacts, 0);
     assert_eq!(denial.counters().planning_steps, 0);
-}
-
-impl Provider {
-    fn receipt_label(&self) -> &'static str {
-        self.0.fetch_add(1, Ordering::Relaxed);
-        "provider"
-    }
 }
 
 #[test]
@@ -173,16 +113,16 @@ fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
             .graph_participation(atomic_definition::<RemoteA>("remote-a"))
             .atomic_graph_participation_provider(
                 RemoteA,
-                Provider(Arc::clone(&contacts)),
+                Provider::effect_free(Arc::clone(&contacts)),
                 SharedCommit,
             )
             .graph_participation(atomic_definition::<RemoteB>("remote-b"))
             .atomic_graph_participation_provider(
                 RemoteB,
-                Provider(Arc::clone(&contacts)),
+                Provider::effect_free(Arc::clone(&contacts)),
                 SharedCommit,
             )
-            .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
+            .graph_commit_provider(SharedCommit, Provider::effect_free(Arc::clone(&contacts)))
             .workspace("operating-world-shared-commit")
             .unwrap();
     let domain = workspace.domain(GeometryDomain).unwrap();
@@ -207,16 +147,21 @@ fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
         ["remote-a", "remote-b"]
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
-    let executed = bound.execute((), &mut workspace).unwrap();
+    let executed = bound
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+        .unwrap();
     assert_eq!(executed.graph_receipts().len(), 2);
-    assert_eq!(
-        executed
-            .graph_receipts()
-            .iter()
-            .find(|receipt| receipt.role() == "remote-a")
-            .is_some_and(|receipt| receipt.has_projection_material()),
-        true
-    );
+    assert!(executed
+        .graph_receipts()
+        .iter()
+        .find(|receipt| receipt.role() == "remote-a")
+        .is_some_and(|receipt| receipt.has_projection_material()));
     assert_eq!(
         executed.warnings(),
         [domain::WorthQueryOperationExecutionWarning::Advisory(
@@ -230,24 +175,32 @@ fn read_only_operation_does_not_claim_or_contact_adapter_commit_authority() {
 #[test]
 fn independent_equal_role_providers_deny_before_provider_contact() {
     let contacts = Arc::new(AtomicUsize::new(0));
-    let workspace =
-        configured_runtime_for_package(federated_touch_package::<RemoteA, RemoteB>(false, true))
-            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
-            .atomic_graph_participation_provider(
-                RemoteA,
-                Provider(Arc::clone(&contacts)),
-                SharedCommit,
-            )
-            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
-            .atomic_graph_participation_provider(
-                RemoteB,
-                Provider(Arc::clone(&contacts)),
-                OtherCommit,
-            )
-            .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
-            .graph_commit_provider(OtherCommit, Provider(Arc::clone(&contacts)))
-            .workspace("operating-world-split-commit")
-            .unwrap();
+    let workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
+        RemoteA,
+        RemoteB,
+    >(false, true))
+    .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+    .atomic_graph_participation_provider(
+        RemoteA,
+        Provider::partial_effects(Arc::clone(&contacts)),
+        SharedCommit,
+    )
+    .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+    .atomic_graph_participation_provider(
+        RemoteB,
+        Provider::partial_effects(Arc::clone(&contacts)),
+        OtherCommit,
+    )
+    .graph_commit_provider(
+        SharedCommit,
+        Provider::partial_effects(Arc::clone(&contacts)),
+    )
+    .graph_commit_provider(
+        OtherCommit,
+        Provider::partial_effects(Arc::clone(&contacts)),
+    )
+    .workspace("operating-world-split-commit")
+    .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let denial = match workspace
         .prepare_mutation_operating_world()
@@ -271,24 +224,32 @@ fn independent_equal_role_providers_deny_before_provider_contact() {
 #[test]
 fn separately_committed_graphs_bind_only_with_declared_compensation() {
     let contacts = Arc::new(AtomicUsize::new(0));
-    let workspace =
-        configured_runtime_for_package(federated_touch_package::<RemoteA, RemoteB>(true, true))
-            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
-            .atomic_graph_participation_provider(
-                RemoteA,
-                Provider(Arc::clone(&contacts)),
-                SharedCommit,
-            )
-            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
-            .atomic_graph_participation_provider(
-                RemoteB,
-                Provider(Arc::clone(&contacts)),
-                OtherCommit,
-            )
-            .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
-            .graph_commit_provider(OtherCommit, Provider(Arc::clone(&contacts)))
-            .workspace("operating-world-compensated-commit")
-            .unwrap();
+    let workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
+        RemoteA,
+        RemoteB,
+    >(true, true))
+    .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+    .atomic_graph_participation_provider(
+        RemoteA,
+        Provider::partial_effects(Arc::clone(&contacts)),
+        SharedCommit,
+    )
+    .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+    .atomic_graph_participation_provider(
+        RemoteB,
+        Provider::partial_effects(Arc::clone(&contacts)),
+        OtherCommit,
+    )
+    .graph_commit_provider(
+        SharedCommit,
+        Provider::partial_effects(Arc::clone(&contacts)),
+    )
+    .graph_commit_provider(
+        OtherCommit,
+        Provider::partial_effects(Arc::clone(&contacts)),
+    )
+    .workspace("operating-world-compensated-commit")
+    .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
         .prepare_mutation_operating_world()
@@ -310,12 +271,16 @@ fn same_role_lookalike_cannot_replace_the_exact_attached_graph_marker() {
         .graph_participation(atomic_definition::<RemoteALookalike>("remote-a"))
         .atomic_graph_participation_provider(
             RemoteALookalike,
-            Provider(Arc::clone(&contacts)),
+            Provider::effect_free(Arc::clone(&contacts)),
             SharedCommit,
         )
         .graph_participation(atomic_definition::<RemoteB>("remote-b"))
-        .atomic_graph_participation_provider(RemoteB, Provider(Arc::clone(&contacts)), SharedCommit)
-        .graph_commit_provider(SharedCommit, Provider(Arc::clone(&contacts)))
+        .atomic_graph_participation_provider(
+            RemoteB,
+            Provider::effect_free(Arc::clone(&contacts)),
+            SharedCommit,
+        )
+        .graph_commit_provider(SharedCommit, Provider::effect_free(Arc::clone(&contacts)))
         .workspace("operating-world-graph-lookalike")
         .unwrap();
     let installed_domain = result.domain(GeometryDomain).unwrap();

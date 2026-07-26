@@ -2,11 +2,14 @@ pub(super) use super::conditional_node_contract::identity_contract;
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, runtime};
 mod aftermath;
+mod artifact_workflow;
 pub(crate) mod collection_impact;
 mod conditional_workflow;
 pub(crate) mod conditional_workspace;
 mod correspondence_bridge;
 mod count_vertices;
+mod domain_evidence;
+mod execution_resources;
 mod executors;
 mod federated_package;
 mod foreign_material;
@@ -27,6 +30,12 @@ pub use aftermath::{
     aftermath_workspace, provisional_workflow_workspace, AftermathCandidate, AftermathContract,
     AftermathFamily, AftermathOriginal, ProvisionalWorkflow,
 };
+pub use artifact_workflow::{
+    artifact_controlled_workspace, artifact_integrated_workspace, artifact_lease_workspace,
+    artifact_move_workspace, artifact_workspace_without_support, bind_artifact_workflow,
+    lease_intent, lease_intent_with_mode, move_intent, ArtifactNativeDenial, ArtifactNativeLane,
+    ArtifactNativeObservation, ArtifactNativeSuccess, ArtifactNativeValues, ArtifactProbe,
+};
 pub use conditional_workflow::{
     conditional_workflow_workspace, reverted_conditional_lineage_workflow_workspace,
 };
@@ -46,10 +55,15 @@ pub(super) use correspondence_bridge::{
     conditional_runtime_bridge_with_repeated_value_changes, correspondence_bridge,
 };
 pub use count_vertices::{CountVertices, CountVerticesInput};
-pub use executors::graph_projection_material;
+pub use domain_evidence::{
+    evidence_workflow_intent, evidence_workflow_workspace, evidence_workspace,
+    evidence_workspace_with_governance, EvidenceFamily, EvidenceGovernance, EvidenceRead,
+    EvidenceScenario, EvidenceWorkflowMode,
+};
+pub(crate) use execution_resources::resource_admission_workspace;
 use executors::{
-    CountVerticesExecutor, FederatedReadExecutor, ReadVertexExecutor,
-    UnderstatedFederatedReadExecutor,
+    CountVerticesExecutor, FederatedReadExecutor, PartialEffectFederatedReadExecutor,
+    ReadVertexExecutor, UnderstatedFederatedReadExecutor,
 };
 pub use federated_package::{
     federated_operation_contract_drift_package, federated_package, FederatedOperationContractDrift,
@@ -76,7 +90,10 @@ pub use operating_world_families::{
 };
 pub(super) use operation_semantics::{
     canonical_bundle, canonical_collection_bundle, canonical_ordered_collection_bundle,
-    operation_identity_contract, semantic_closure,
+    execution_resource_contract, execution_resource_request, execution_resource_support,
+    operation_identity_contract, partial_effect_execution_resource_contract,
+    partial_effect_execution_resource_request, partial_effect_execution_resource_support,
+    semantic_closure,
 };
 pub use read_operation_types::{
     FederatedRead, GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex, ReadVertexLookalike,
@@ -257,6 +274,17 @@ pub fn configured_runtime_for_understated_cost_package(
         FederatedRead,
         ReadFamily,
         UnderstatedFederatedReadExecutor,
+    )
+}
+
+pub fn configured_runtime_for_partial_effect_package(
+    package: domain::WorthQueryDomainPackage<GeometryDomain>,
+) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
+    configured_runtime_without_executors(package).domain_operation_executor(
+        GeometryDomain,
+        FederatedRead,
+        ReadFamily,
+        PartialEffectFederatedReadExecutor,
     )
 }
 

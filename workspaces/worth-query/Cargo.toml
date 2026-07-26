@@ -8,6 +8,9 @@ members = [
     "crates/worth-query-certification",
     "crates/worth-query-declaration",
     "crates/worth-query-installation",
+    "crates/worth-query-admission",
+    "crates/worth-query-execution",
+    "crates/worth-query-publication",
 ]
 default-members = [
     "crates/worth-query",
@@ -28,6 +31,9 @@ worth-query-replay = { path = "crates/worth-query-replay" }
 worth-query-certification = { path = "crates/worth-query-certification" }
 worth-query-declaration = { path = "crates/worth-query-declaration" }
 worth-query-installation = { path = "crates/worth-query-installation" }
+worth-query-admission = { path = "crates/worth-query-admission" }
+worth-query-execution = { path = "crates/worth-query-execution" }
+worth-query-publication = { path = "crates/worth-query-publication" }
 
 worth-foundational = { path = "../../crates/worth-foundational" }
 worth-proof = { path = "../../crates/worth-proof" }
@@ -51,6 +57,16 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 result_large_err = "allow"
+# Query's counters are phase-carried proof objects whose fields are incremented
+# where work occurs; forcing one initializer would hide that phase ownership.
+field_reassign_with_default = "allow"
+# Public outcome vocabulary intentionally retains domain qualifiers, and nested
+# topology may repeat the semantic root when the hierarchy owns distinct fates.
+enum_variant_names = "allow"
+module_inception = "allow"
+# Domain transition verbs such as `from_*` are not collection conversions and
+# may borrow the authority-bearing receiver that performs the transition.
+wrong_self_convention = "allow"
 
 [profile.dev]
 opt-level = 0

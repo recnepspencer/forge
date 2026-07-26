@@ -1060,10 +1060,10 @@ fn plan_declarative_request(
     schema_view: QuerySchemaView,
     basis_intent: ExecutionBasisIntent,
 ) -> Result<ViewShapePlanArtifact, DeclarativeLiveQueryError> {
-    let admitted = admit_view_shape(&canonical, request.view_shape().view_shape_descriptor())
+    let admitted = admit_view_shape(canonical, request.view_shape().view_shape_descriptor())
         .map_err(|error| DeclarativeLiveQueryError::ViewShape(format!("{error:?}")))?;
     let validated =
-        validate_canonical_bundle_for_admitted_view_shape(&canonical, schema_view, admitted)
+        validate_canonical_bundle_for_admitted_view_shape(canonical, schema_view, admitted)
             .map_err(|error| DeclarativeLiveQueryError::ViewShape(format!("{error:?}")))?;
     plan_admitted_view_shape(validated, basis_intent)
         .map_err(|error| DeclarativeLiveQueryError::ViewShape(format!("{error:?}")))

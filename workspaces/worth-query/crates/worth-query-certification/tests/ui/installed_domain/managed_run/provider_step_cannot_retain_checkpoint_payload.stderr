@@ -1,0 +1,5 @@
+error[E0599]: no method named `retain_checkpoint` found for mutable reference `&mut WorthQueryGraphProviderStep` in the current scope
+ --> tests/ui/installed_domain/managed_run/provider_step_cannot_retain_checkpoint_payload.rs:4:10
+  |
+4 |     step.retain_checkpoint(Box::new(vec![1_u8, 2, 3]));
+  |          ^^^^^^^^^^^^^^^^^ method not found in `&mut WorthQueryGraphProviderStep`

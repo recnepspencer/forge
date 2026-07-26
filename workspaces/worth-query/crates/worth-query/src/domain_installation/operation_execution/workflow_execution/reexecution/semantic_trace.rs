@@ -1,6 +1,7 @@
 use super::{
     WorthQueryCompletedWorkflowTrace, WorthQueryConditionalTraceMeaning,
-    WorthQueryWorkflowRunCounters, WorthQueryWorkflowSemanticValue, WorthQueryWorkflowStageWarning,
+    WorthQueryDomainEvidenceReplayMeaning, WorthQueryWorkflowRunCounters,
+    WorthQueryWorkflowSemanticValue, WorthQueryWorkflowStageWarning,
 };
 use crate::basis_lifecycle::BasisOperationLane;
 use crate::identity_evolution::InstalledIdentityEvolutionOutcome;
@@ -90,6 +91,7 @@ pub struct WorthQueryWorkflowStageTraceSemantics {
     invariants: Vec<WorthQueryInvariantTraceMeaning>,
     conditional_path: Vec<WorthQueryConditionalTraceMeaning>,
     lineage: Vec<WorthQueryLineageTraceMeaning>,
+    domain_evidence: Option<super::WorthQueryDomainEvidenceReplayMeaning>,
 }
 
 impl WorthQueryWorkflowStageTraceSemantics {
@@ -149,6 +151,7 @@ pub enum WorthQueryReplayDivergence {
     Output { stage: String },
     ResultState { stage: String },
     Diagnostic { stage: String },
+    DomainEvidence { stage: String },
     Effect { stage: String },
     Invariant { stage: String },
     ConditionalPath { stage: String },
@@ -224,7 +227,7 @@ fn stage_semantics(
         stage_identity: receipt.stage_identity().to_owned(),
         predecessor_stage_identities: receipt.predecessor_stage_identities().to_vec(),
         input: receipt.input().clone(),
-        output: receipt.output().semantic_value(),
+        output: receipt.output_semantics().clone(),
         result_state: receipt.result_state(),
         warnings: receipt.warnings().to_vec(),
         effects: receipt
@@ -239,6 +242,9 @@ fn stage_semantics(
             .map(super::workflow_conditional_trace::conditional_trace_meaning)
             .collect(),
         lineage: lineage_meanings(receipt, lineage_by_stage, &effect_index),
+        domain_evidence: receipt
+            .domain_evidence()
+            .map(super::WorthQueryAdmittedDomainEvidence::replay_meaning),
     }
 }
 

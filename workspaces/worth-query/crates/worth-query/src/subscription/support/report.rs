@@ -228,7 +228,7 @@ impl QuerySubscriptionSupportReportError {
     }
 
     pub fn message(&self) -> &str {
-        &self.message
+        self.message
     }
 
     pub fn failure_projection(

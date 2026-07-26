@@ -30,7 +30,9 @@ fn restore_branch_snapshot_uses_captured_branch_semantic_state_not_active_branch
         })
         .unwrap();
     let feature_counts = runtime.config().test_registry_counts();
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature_record = feature_snapshot
         .reconstructability
         .clone()
@@ -123,7 +125,9 @@ fn restore_snapshot_rejects_missing_reconstructability_proof_before_mutation() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let mut missing_proof = snapshot.clone();
     missing_proof.reconstructability = None;
 
@@ -157,7 +161,9 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
             Ok(())
         })
         .unwrap();
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime.switch_branch(sibling.clone()).unwrap();
     let sibling_node = keyed.node(&mut runtime);
@@ -169,7 +175,9 @@ fn restore_branch_snapshot_keeps_sibling_branch_keyed_bindings_isolated() {
             Ok(())
         })
         .unwrap();
-    let sibling_snapshot = runtime.capture_snapshot();
+    let sibling_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime.switch_branch(main).unwrap();
     runtime
@@ -219,7 +227,9 @@ fn branch_lifecycle_telemetry_distinguishes_fork_move_and_restore_packets() {
     assert_eq!(runtime.telemetry().transaction.move_transfer_count, 2);
     assert_eq!(runtime.telemetry().transaction.explicit_fork_count, 1);
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.restore_snapshot(&snapshot).unwrap();
 
     assert_eq!(runtime.telemetry().transaction.restore_transfer_count, 1);
@@ -242,7 +252,9 @@ fn inactive_branch_restore_does_not_count_as_active_restore_transfer() {
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.switch_branch(main).unwrap();
 
     let restore_before = runtime.telemetry().transaction.restore_transfer_count;

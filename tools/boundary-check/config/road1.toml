@@ -53,6 +53,38 @@ forbidden_target_prefixes = ["worth-store"]
 guidance = "generic Signal cannot import Store composition or Store-owned physical aspect vocabulary"
 
 [[dependency_denials]]
+workspace_manifest = "workspaces/worth-query/Cargo.toml"
+sources = []
+source_prefixes = ["worth-query"]
+forbidden_targets = []
+forbidden_target_prefixes = ["worth-store"]
+guidance = "Query defines checkpoint handoff and readmission contracts but cannot import Store persistence or reconstruction authority"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-store/crates/worth-store/src/physical_runtime/work"
+forbidden_identifiers = [
+  "serde_json",
+  "BranchAuthority",
+  "BranchHead",
+  "BranchHeadGeneration",
+  "BranchWriter",
+  "BranchWriterAuthority",
+  "Mvcc",
+  "MVCC",
+  "project_store_boundary_fact_to_terminal_json",
+  "readmit_external_terminal_projection_document_as_store_aspect_state",
+  "readmit_terminal_json_projection_as_store_aspect_state",
+  "StoreTerminalJsonProjection",
+  "StoreTerminalJsonReadmission",
+  "StoreTerminalJsonReadmissionOutcome",
+  "StoreTerminalProjectionDenial",
+  "StoreTerminalProjectionDisplayLabel",
+  "StoreTerminalProjectionDocumentBytes",
+  "StoreTerminalProjectionText",
+]
+guidance = "C5.1 physical work foundations must not import serialization shortcuts or future branch/MVCC authority"
+
+[[dependency_denials]]
 workspace_manifest = "workspaces/worth-ui/Cargo.toml"
 sources = ["worth-ui-dsl"]
 forbidden_targets = [
@@ -337,11 +369,17 @@ engine_package = "worth-query"
 certification_package = "worth-query-certification"
 certification_authority_packages = ["worth-query-host", "worth-query-replay"]
 certification_consumers = ["worth-ui-certification"]
-internal_packages = ["worth-query-declaration", "worth-query-installation"]
+internal_packages = [
+  "worth-query-declaration",
+  "worth-query-installation",
+  "worth-query-admission",
+  "worth-query-execution",
+  "worth-query-publication",
+]
 
 [[rule_contracts.query_audience.facade_surfaces]]
 label = "worth-query-host::installed"
-source = "workspaces/worth-query/crates/worth-query/src/facade/exports_installed.rs"
+source = "workspaces/worth-query/crates/worth-query-host/src/facade.rs"
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-decl"
@@ -355,7 +393,13 @@ package = "worth-query-host"
 label = "host"
 allowed_bands = ["entry", "cert"]
 guidance = "admission, lowering, and execution"
-authority_packages = ["worth-query"]
+authority_packages = [
+  "worth-query-admission",
+  "worth-query-declaration",
+  "worth-query-execution",
+  "worth-query-installation",
+  "worth-query-publication",
+]
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-replay"

@@ -41,11 +41,15 @@ where
     let snapshot_state = runtime
         .branches
         .snapshot_state(snapshot.meta.branch_id, snapshot.meta.snapshot_id)
-        .cloned()
         .ok_or(SignalBranchForkDenial::UnknownForkSnapshot {
             parent_branch_id: parent_branch.id,
             snapshot_id: snapshot.meta.snapshot_id,
         })?;
+    SignalRuntime::<D, I, E, Ctx, T>::ensure_managed_queue_branch_transfer_allowed(
+        snapshot_state.resource(),
+    )
+    .map_err(SignalRuntime::<D, I, E, Ctx, T>::branch_transfer_error_to_fork_denial)?;
+    let snapshot_state = snapshot_state.clone();
     let mut graph = snapshot.authority_graph();
     *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry.clone();
     for requirement in &reconstructability_proof.required_rebuild {

@@ -49,7 +49,14 @@ fn condition_only_suppression_has_zero_compute_delivery_and_delta() {
     .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     assert!(matches!(
-        bind_direct(&workspace, &installed).execute(ReadExecutionInput::default(), &mut workspace),
+        bind_direct(&workspace, &installed)
+            .admit_execution_resources(
+                ReadExecutionInput::default(),
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace
+            )
+            .unwrap()
+            .execute(&mut workspace),
         TransitionOutcome::Deferred(_)
     ));
     let TransitionOutcome::Success(_) = workspace

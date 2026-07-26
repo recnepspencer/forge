@@ -47,7 +47,9 @@ fn async_capable_node_public_rediscovery_after_restore_preserves_parity_and_expl
         88,
     );
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime
         .restore_snapshot(&snapshot)
         .expect("restore should preserve the already-attached capability lineage");
@@ -128,7 +130,9 @@ fn keyed_public_handles_fail_closed_after_restore_rebind_and_require_rediscovere
     let family = define_keyed_computation(&mut runtime, "async-public-restore", ());
     let keyed = family.keyed("left-wing");
     let _owner = keyed.node(&mut runtime);
-    let pre_attachment_snapshot = runtime.capture_snapshot();
+    let pre_attachment_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let payload_a = AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(101))
         .with_max_payload_bytes(1024);
@@ -155,7 +159,9 @@ fn keyed_public_handles_fail_closed_after_restore_rebind_and_require_rediscovere
         96,
     );
 
-    let attached_snapshot = runtime.capture_snapshot();
+    let attached_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime
         .restore_snapshot(&attached_snapshot)
         .expect("restoring attached keyed lineage should preserve public rediscovery");

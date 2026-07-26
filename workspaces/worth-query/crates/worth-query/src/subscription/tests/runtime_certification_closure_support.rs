@@ -278,6 +278,6 @@ pub(crate) fn runtime_backed_subscription_certification_summary(
             .lifecycle_certification_projection()
             .label()
             .to_string(),
-        coverage_resolution_posture: receipt.coverage_resolution_posture().clone(),
+        coverage_resolution_posture: *receipt.coverage_resolution_posture(),
     }
 }

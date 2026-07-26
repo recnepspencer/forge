@@ -40,6 +40,7 @@ where
 
 pub(crate) struct WorthQueryInstalledWorkflowParallelAdmissionProvider {
     provider: Arc<dyn ErasedParallelAdmissionProvider>,
+    resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
 
 impl WorthQueryInstalledWorkflowParallelAdmissionProvider {
@@ -49,11 +50,22 @@ impl WorthQueryInstalledWorkflowParallelAdmissionProvider {
     ) -> Result<FrontierRouteEvidenceReceipt, WorthQueryWorkflowParallelAdmissionFailure> {
         self.provider.admit(call)
     }
+
+    pub(crate) fn resource_support(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceSupport {
+        &self.resource_support
+    }
+}
+
+struct PendingParallelAdmissionProviderRegistration {
+    provider: Arc<dyn ErasedParallelAdmissionProvider>,
+    resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
 
 #[derive(Default)]
 pub(crate) struct WorthQueryPendingWorkflowParallelAdmissionProviders {
-    registrations: HashMap<(TypeId, TypeId, TypeId), Arc<dyn ErasedParallelAdmissionProvider>>,
+    registrations: HashMap<(TypeId, TypeId, TypeId), PendingParallelAdmissionProviderRegistration>,
     duplicate: bool,
 }
 
@@ -63,14 +75,18 @@ impl WorthQueryPendingWorkflowParallelAdmissionProviders {
         P: WorthQueryWorkflowParallelAdmissionProvider<D, O, F>,
     {
         let key = (TypeId::of::<D>(), TypeId::of::<O>(), TypeId::of::<F>());
+        let resource_support = provider.execution_resource_support();
         self.duplicate |= self
             .registrations
             .insert(
                 key,
-                Arc::new(TypedParallelAdmissionProvider::<D, O, F, P> {
-                    provider,
-                    marker: PhantomData,
-                }),
+                PendingParallelAdmissionProviderRegistration {
+                    provider: Arc::new(TypedParallelAdmissionProvider::<D, O, F, P> {
+                        provider,
+                        marker: PhantomData,
+                    }),
+                    resource_support,
+                },
             )
             .is_some();
         self
@@ -96,10 +112,13 @@ impl WorthQueryPendingWorkflowParallelAdmissionProviders {
             registrations: self
                 .registrations
                 .into_iter()
-                .map(|(key, provider)| {
+                .map(|(key, registration)| {
                     (
                         key,
-                        Arc::new(WorthQueryInstalledWorkflowParallelAdmissionProvider { provider }),
+                        Arc::new(WorthQueryInstalledWorkflowParallelAdmissionProvider {
+                            provider: registration.provider,
+                            resource_support: registration.resource_support,
+                        }),
                     )
                 })
                 .collect(),

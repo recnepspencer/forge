@@ -47,6 +47,7 @@ fn same_basis_label_cannot_readmit_foreign_capability_affinity() {
             basis_identity: "same-basis".into(),
             graph_authority_identities: vec!["graph".into()],
             required_domain_authority_identities: vec!["required".into()],
+            resource_admission_identity: None,
         }
     };
 

@@ -12,20 +12,35 @@ fn ordinary_publication_consumption_converges_without_receiving_replay_authority
     let original_bound = bind(&workspace);
     let (original_request, original_keys) =
         native_replay_request(original_bound.consumer_projection_contract().unwrap());
-    let original = original_bound.reexecute(intent(), &mut workspace).unwrap();
+    let original = original_bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(intent(), &mut workspace)
+        .unwrap();
     let replay_bound = bind(&workspace);
     let replay = certification::replay_installed_workflow(
         certification::issue_query_certification_replay_capability(),
         &original,
         replay_bound,
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();
     let ordinary_bound = bind(&workspace);
     let (ordinary_request, ordinary_keys) =
         native_replay_request(ordinary_bound.consumer_projection_contract().unwrap());
-    let ordinary = ordinary_bound.reexecute(intent(), &mut workspace).unwrap();
+    let ordinary = ordinary_bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .reexecute(intent(), &mut workspace)
+        .unwrap();
     assert_eq!(
         domain::compare_exact_workflow_traces(
             replay.replay_semantics(),

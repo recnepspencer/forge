@@ -254,13 +254,13 @@ fn digest_relational_rows(rows: &[WorthQueryDeclarationRelationalRoutingSupportR
             .iter()
             .map(|row| {
                 format!(
-                    "{}:{}:{:?}:{:?}:{}:{}:{}:{}",
+                    "{}:{}:{:?}:{:?}:{:?}:{:?}:{}:{}",
                     row.truth_claim().as_str(),
                     row.authority_family().as_str(),
                     row.required_aspect_slice(),
                     row.available_aspect_slice(),
-                    format!("{:?}", row.aspect_fit()),
-                    format!("{:?}", row.aspect_mismatch()),
+                    row.aspect_fit(),
+                    row.aspect_mismatch(),
                     row.status().as_str(),
                     row.reason()
                 )
@@ -275,16 +275,16 @@ fn digest_bridge_rows(rows: &[WorthQueryDeclarationBridgeRoutingSupportRow]) -> 
             .iter()
             .map(|row| {
                 format!(
-                    "{}:{}:{}:{:?}:{:?}:{}:{}:{:?}:{}:{}:{}",
+                    "{}:{}:{}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{}:{}",
                     row.continuation_mode().as_str(),
                     row.truth_context().as_str(),
                     row.family().as_str(),
                     row.required_aspect_slice(),
                     row.available_aspect_slice(),
-                    format!("{:?}", row.aspect_fit()),
-                    format!("{:?}", row.aspect_mismatch()),
+                    row.aspect_fit(),
+                    row.aspect_mismatch(),
                     row.mapped_aspect_slice(),
-                    format!("{:?}", row.mapping_fit()),
+                    row.mapping_fit(),
                     row.status().as_str(),
                     row.reason()
                 )
@@ -299,14 +299,14 @@ fn digest_signal_rows(rows: &[WorthQueryDeclarationSignalCompatibilitySupportRow
             .iter()
             .map(|row| {
                 format!(
-                    "{}:{}:{:?}:{:?}:{:?}:{}:{}:{}:{}",
+                    "{}:{}:{:?}:{:?}:{:?}:{:?}:{:?}:{}:{}",
                     row.execution_family().as_str(),
                     row.basis_family().as_str(),
                     row.required_dependency_aspects(),
                     row.produced_aspects(),
                     row.available_aspect_slice(),
-                    format!("{:?}", row.aspect_fit()),
-                    format!("{:?}", row.aspect_mismatch()),
+                    row.aspect_fit(),
+                    row.aspect_mismatch(),
                     row.status().as_str(),
                     row.reason()
                 )

@@ -74,28 +74,37 @@ fn conditional_model_graph_definition_with_identity(
 impl domain::WorthQueryGraphParticipationProvider<ConditionalModelGraph>
     for ConditionalModelGraphProvider
 {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("conditional-model-observe"))
+    type Execution = crate::suite::graph_provider_step::FixtureGraphProviderExecution;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
     }
 
-    fn project(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("conditional-model-project"))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("conditional-model-touch"))
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
+        let execution = match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => {
+                Self::Execution::read("conditional-model-observe")
+            }
+            domain::WorthQueryGraphProviderCallKind::Project => {
+                Self::Execution::read("conditional-model-project")
+            }
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("conditional-model-touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        };
+        start
+            .admit_cooperative_execution(|| execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 
@@ -212,7 +221,8 @@ fn conditional_package_with_access(
         ReadVertex,
         ReadFamily,
     >::new(base.identity().clone(), semantics);
-    let package = domain::WorthQueryDomainPackage::declare(
+
+    domain::WorthQueryDomainPackage::declare(
         GeometryDomain,
         domain::WorthQueryDomainIdentityDeclaration::new(
             domain::WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
@@ -221,8 +231,7 @@ fn conditional_package_with_access(
         ),
     )
     .operation(operation)
-    .operation_graph_participation::<ReadVertex, ReadFamily, ConditionalModelGraph>("model");
-    package
+    .operation_graph_participation::<ReadVertex, ReadFamily, ConditionalModelGraph>("model")
 }
 
 pub(crate) fn shared_signal_node_workspace(

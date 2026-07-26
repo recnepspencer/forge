@@ -78,8 +78,8 @@ impl WorthQueryInspectedArtifact {
     ) -> Self {
         Self {
             family: family.into(),
-            identity: identity.into(),
-            basis: basis.into(),
+            identity,
+            basis,
         }
     }
 

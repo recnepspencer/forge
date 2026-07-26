@@ -3,11 +3,15 @@ name = "worth-query-host"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Query host audience facade over worth-query."
+description = "Query host audience facade over the production authority graph."
 publish = false
 
 [dependencies]
-worth-query = { path = "../worth-query" }
+worth-query-admission = { path = "../worth-query-admission" }
+worth-query-declaration = { path = "../worth-query-declaration" }
+worth-query-execution = { path = "../worth-query-execution" }
+worth-query-installation = { path = "../worth-query-installation" }
+worth-query-publication = { path = "../worth-query-publication" }
 
 [lints]
 workspace = true

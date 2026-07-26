@@ -177,7 +177,7 @@ mod tests {
             WorthQueryDerivedMaterializationReceipt::test_only(
                 view_name,
                 crate::memory_workspace::admit_external_snapshot_label("snapshot-test"),
-                &format!("{view_name}-digest"),
+                format!("{view_name}-digest"),
             ),
         )
     }

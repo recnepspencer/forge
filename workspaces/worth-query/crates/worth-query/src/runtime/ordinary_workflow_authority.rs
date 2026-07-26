@@ -1,35 +1,14 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use super::{
     WorthQueryBackendMergeAuthority, WorthQueryEffectPolicy, WorthQueryInspection,
-    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeError,
-    WorthQueryRuntimeFacadeFamily, WorthQueryWriteCommand, WorthQueryWriteReceipt,
+    WorthQueryPreviewBasisAdmission, WorthQueryRuntime, WorthQueryRuntimeAuthorityIdentity,
+    WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily, WorthQueryWriteCommand,
+    WorthQueryWriteReceipt,
 };
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::session_label::WorthQuerySessionLabel;
-
-static NEXT_RUNTIME_AUTHORITY_IDENTITY: AtomicU64 = AtomicU64::new(1);
-
-/// Process-local identity for one concrete runtime authority owner.
-///
-/// This is intentionally not a workspace name or a consumer-authored digest.
-/// Only the runtime builder can mint it, so ordinary contexts cannot be moved
-/// between otherwise similar workspaces.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub(crate) struct WorthQueryRuntimeAuthorityIdentity(u64);
-
-impl WorthQueryRuntimeAuthorityIdentity {
-    pub(crate) fn mint() -> Self {
-        Self(NEXT_RUNTIME_AUTHORITY_IDENTITY.fetch_add(1, Ordering::Relaxed))
-    }
-
-    pub(crate) fn as_u64(self) -> u64 {
-        self.0
-    }
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthQueryOrdinaryAuthorityFamily {

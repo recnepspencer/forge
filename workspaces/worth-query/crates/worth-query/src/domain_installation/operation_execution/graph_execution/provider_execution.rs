@@ -1,20 +1,16 @@
 use crate::basis_lifecycle::BasisOperationLane;
 use crate::domain_installation::{
-    WorthQueryBoundCommitPosture, WorthQueryBoundDomainOperation, WorthQueryGraphProviderCallKind,
+    WorthQueryBoundCommitPosture, WorthQueryBoundDomainOperation,
+    WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
+    WorthQueryGraphProviderCallKind, WorthQueryGraphProviderCallRequest,
     WorthQueryOperationGraphAccess, WorthQueryOperationGraphParticipation,
     WorthQueryOperationTouchContract,
 };
+use worth_query_execution::facade::integration::legacy_provider_execution::execute_legacy_one_shot;
 
 use super::{
     WorthQueryBoundExecutionDenial, WorthQueryBoundExecutionDenialKind,
     WorthQueryBoundGraphExecutionReceipt, WorthQueryOperationExecutionCounters,
-};
-
-#[path = "provider_execution/projection_admission.rs"]
-mod projection_admission;
-
-use projection_admission::{
-    admit_graph_projection_material, graph_call_evidence_identity, GraphProjectionAdmission,
 };
 
 type BoundGraphParticipation =
@@ -28,21 +24,35 @@ struct BoundGraphInvocationPlan<'a> {
     commit_groups: Vec<(std::sync::Arc<InstalledGraphCommitAuthority>, Vec<String>)>,
 }
 
-pub(super) struct BoundGraphInvocationRequest<'a, D, O, F, L: BasisOperationLane> {
-    pub(super) bound: &'a WorthQueryBoundDomainOperation<D, O, F, L>,
+pub(super) struct BoundGraphInvocationRequest<'a> {
     pub(super) participation: &'a BoundGraphParticipation,
     pub(super) kind: WorthQueryGraphProviderCallKind,
     pub(super) scope_identity: &'a str,
+    pub(super) stage_identity: Option<&'a str>,
     pub(super) expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
+    pub(super) resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    pub(super) resource_evidence: &'a WorthQueryExecutionResourceAttemptEvidence,
+    pub(super) provider_session: &'a WorthQueryExecutionProviderSession,
 }
 
 pub(super) fn invoke_bound_graphs<D, O, F, L: BasisOperationLane>(
     bound: &WorthQueryBoundDomainOperation<D, O, F, L>,
+    resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &WorthQueryExecutionProviderSession,
     expected_snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
     counters: &mut WorthQueryOperationExecutionCounters,
 ) -> Result<Vec<WorthQueryBoundGraphExecutionReceipt>, WorthQueryBoundExecutionDenial> {
     let plan = plan_bound_graph_invocations(bound);
-    BoundGraphInvocation::new(bound, expected_snapshot, counters).execute(plan)
+    BoundGraphInvocation::new(
+        bound,
+        resources,
+        resource_evidence,
+        provider_session,
+        expected_snapshot,
+        counters,
+    )
+    .execute(plan)
 }
 
 fn plan_bound_graph_invocations<D, O, F, L: BasisOperationLane>(
@@ -95,6 +105,9 @@ fn plan_bound_graph_invocations<D, O, F, L: BasisOperationLane>(
 
 struct BoundGraphInvocation<'a, D, O, F, L: BasisOperationLane> {
     bound: &'a WorthQueryBoundDomainOperation<D, O, F, L>,
+    resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &'a WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &'a WorthQueryExecutionProviderSession,
     expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
     scope_identity: String,
     counters: &'a mut WorthQueryOperationExecutionCounters,
@@ -104,11 +117,17 @@ struct BoundGraphInvocation<'a, D, O, F, L: BasisOperationLane> {
 impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
     fn new(
         bound: &'a WorthQueryBoundDomainOperation<D, O, F, L>,
+        resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+        resource_evidence: &'a WorthQueryExecutionResourceAttemptEvidence,
+        provider_session: &'a WorthQueryExecutionProviderSession,
         expected_snapshot: &'a crate::memory_workspace::WorthQuerySnapshotIdentity,
         counters: &'a mut WorthQueryOperationExecutionCounters,
     ) -> Self {
         Self {
             bound,
+            resources,
+            resource_evidence,
+            provider_session,
             expected_snapshot,
             scope_identity: format!("direct-capability:{}", bound.capability_identity()),
             counters,
@@ -152,11 +171,14 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
         kind: WorthQueryGraphProviderCallKind,
     ) -> Result<(), WorthQueryBoundExecutionDenial> {
         let request = BoundGraphInvocationRequest {
-            bound: self.bound,
             participation,
             kind,
             scope_identity: &self.scope_identity,
+            stage_identity: None,
             expected_snapshot: self.expected_snapshot,
+            resources: self.resources,
+            resource_evidence: self.resource_evidence,
+            provider_session: self.provider_session,
         };
         let receipt = contact_graph(request, self.counters)
             .map_err(|denial| denial.with_graph_receipts(self.receipts.clone()))?;
@@ -177,16 +199,24 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
     fn contact_commit_group(
         &mut self,
         authority: std::sync::Arc<InstalledGraphCommitAuthority>,
-        roles: &mut Vec<String>,
+        roles: &mut [String],
     ) -> Result<(), WorthQueryBoundExecutionDenial> {
         roles.sort();
         self.counters.graph_provider_contacts += 1;
         let receipt = super::commit_execution::contact_commit_provider(
             &self.scope_identity,
-            self.bound.definition().canonical_identity(),
-            self.bound.binding_identity(),
+            None,
             &authority,
-            roles.clone(),
+            &self
+                .bound
+                .graph_participations()
+                .iter()
+                .filter(|participation| roles.contains(&participation.role))
+                .map(|participation| participation.record.installation_authority.as_ref())
+                .collect::<Vec<_>>(),
+            self.resources,
+            self.resource_evidence,
+            self.provider_session,
         )
         .map_err(|failure| {
             WorthQueryBoundExecutionDenial::new(
@@ -196,36 +226,24 @@ impl<'a, D, O, F, L: BasisOperationLane> BoundGraphInvocation<'a, D, O, F, L> {
             )
             .with_graph_receipts(self.receipts.clone())
         })?;
-        self.receipts.push(WorthQueryBoundGraphExecutionReceipt {
-            role: format!("commit({})", roles.join(",")),
-            kind: WorthQueryGraphProviderCallKind::CommitAdmission,
-            provider_receipt: receipt.provider_receipt().to_string(),
-            evidence_identity: crate::identity::hash_parts(&[
-                "worth_query_bound_graph_commit_evidence_v1".into(),
-                format!("operation:{}", self.bound.definition().canonical_identity()),
-                format!("binding:{}", self.bound.binding_identity()),
-                format!("scope:{}", self.scope_identity),
-                format!("roles:{}", roles.join(",")),
-            ]),
-            projection: None,
-            commit_authority_identity: Some(authority.identity()),
-            commit_graph_roles: std::mem::take(roles),
-        });
+        self.receipts.push(receipt);
         Ok(())
     }
 }
 
-pub(super) fn contact_graph<D, O, F, L: BasisOperationLane>(
-    request: BoundGraphInvocationRequest<'_, D, O, F, L>,
+pub(super) fn contact_graph(
+    request: BoundGraphInvocationRequest<'_>,
     counters: &mut WorthQueryOperationExecutionCounters,
 ) -> Result<WorthQueryBoundGraphExecutionReceipt, WorthQueryBoundExecutionDenial> {
+    let call = graph_provider_call(&request).map_err(|denial| {
+        WorthQueryBoundExecutionDenial::new(
+            WorthQueryBoundExecutionDenialKind::GraphProvider,
+            denial.detail(),
+            *counters,
+        )
+    })?;
     counters.graph_provider_contacts += 1;
-    let call = graph_provider_call(&request);
-    let receipt = request
-        .participation
-        .record
-        .provider
-        .call(request.kind, &call)
+    let receipt = execute_legacy_one_shot(request.participation.record.provider.as_ref(), &call)
         .map_err(|failure| {
             WorthQueryBoundExecutionDenial::new(
                 WorthQueryBoundExecutionDenialKind::GraphProvider,
@@ -233,60 +251,34 @@ pub(super) fn contact_graph<D, O, F, L: BasisOperationLane>(
                 *counters,
             )
         })?;
-    if !receipt.binds_call(call.call_identity()) {
-        return Err(WorthQueryBoundExecutionDenial::new(
+    call.admit_receipt(receipt).map_err(|denial| {
+        WorthQueryBoundExecutionDenial::new(
             WorthQueryBoundExecutionDenialKind::GraphProvider,
-            "graph provider returned a receipt minted for another Query call",
+            denial.detail(),
             *counters,
-        ));
-    }
-    let provider_receipt = receipt.provider_receipt().to_string();
-    let projection = receipt.into_projection();
-    let projection_admission = GraphProjectionAdmission {
-        bound: request.bound,
-        participation: request.participation,
-        kind: request.kind,
-        expected_snapshot: request.expected_snapshot,
-        scope_identity: request.scope_identity,
-    };
-    admit_graph_projection_material(&projection_admission, projection.as_deref(), *counters)?;
-    let evidence_identity =
-        graph_call_evidence_identity(&projection_admission, projection.as_deref());
-    Ok(WorthQueryBoundGraphExecutionReceipt {
-        role: request.participation.role.clone(),
-        kind: request.kind,
-        provider_receipt,
-        evidence_identity,
-        projection,
-        commit_authority_identity: None,
-        commit_graph_roles: Vec::new(),
+        )
     })
 }
 
-fn graph_provider_call<D, O, F, L: BasisOperationLane>(
-    request: &BoundGraphInvocationRequest<'_, D, O, F, L>,
-) -> crate::domain_installation::WorthQueryGraphProviderCall {
-    let expected_basis = request
-        .bound
-        .basis()
-        .normalized()
-        .lower_runtime_binding_digest()
-        .unwrap_or_else(|| request.bound.basis().capability_digest());
-    crate::domain_installation::WorthQueryGraphProviderCall::new(
-        request.scope_identity.into(),
-        request.kind,
-        request.bound.definition().canonical_identity().into(),
-        request.bound.binding_identity().into(),
-        request.participation.role.clone(),
-        request
-            .bound
-            .definition()
-            .semantics()
-            .canonical_query
-            .query()
-            .digest()
-            .as_str()
-            .into(),
-        expected_basis.into(),
+fn graph_provider_call(
+    request: &BoundGraphInvocationRequest<'_>,
+) -> Result<
+    crate::domain_installation::WorthQueryGraphProviderCall,
+    crate::domain_installation::WorthQueryGraphCallBindingDenial,
+> {
+    let call_request = match request.stage_identity {
+        Some(stage_identity) => WorthQueryGraphProviderCallRequest::workflow_stage(
+            request.kind,
+            request.scope_identity,
+            stage_identity,
+        ),
+        None => WorthQueryGraphProviderCallRequest::direct(request.kind, request.scope_identity),
+    }
+    .bind_execution_snapshot(request.expected_snapshot.evidence_identity().as_str());
+    request.provider_session.bind_graph_provider_call(
+        request.participation.record.installation_authority.as_ref(),
+        call_request,
+        request.resource_evidence,
+        request.resources.shared_envelope(),
     )
 }

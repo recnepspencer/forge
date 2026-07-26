@@ -276,7 +276,7 @@ fn graph_composition_lineage_entry_digest(
     identity = identity
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("prior_authority"),
-            &entry.prior_authoritative_identity().evidence_identity(),
+            entry.prior_authoritative_identity().evidence_identity(),
         )
         .field_evidence_identity_sequence(
             WorthQueryEvidenceTag::new("successor_authority"),
@@ -287,11 +287,11 @@ fn graph_composition_lineage_entry_digest(
         )
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("lineage"),
-            &entry.lineage_digest().evidence_identity(),
+            entry.lineage_digest().evidence_identity(),
         )
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("continuity_resolution"),
-            &entry.continuity_resolution_digest().evidence_identity(),
+            entry.continuity_resolution_digest().evidence_identity(),
         );
     identity.seal()
 }

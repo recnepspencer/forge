@@ -35,7 +35,14 @@ fn eligible_operation_condition_enters_the_run_before_any_stage_work() {
         .bind(&installed, WorkflowRead)
         .unwrap();
 
-    let run = bound.start_workflow(&mut workspace).unwrap();
+    let admitted = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap();
+    assert_eq!(admitted.resources().counters().runtime_authority_checks, 1);
+    let run = admitted.start_workflow(&mut workspace).unwrap();
 
     let context = captured.lock().unwrap().take().unwrap();
     assert_eq!(context.run_identity.as_deref(), Some(run.identity()));
@@ -46,7 +53,7 @@ fn eligible_operation_condition_enters_the_run_before_any_stage_work() {
         run.operation_conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::ComputedChanged
     );
-    assert_eq!(run.counters().runtime_authority_checks, 1);
+    assert_eq!(run.counters().runtime_authority_checks, 0);
     assert_eq!(run.counters().conditional_compute_contacts, 1);
     assert_eq!(run.counters().stage_admission_checks, 0);
     assert_eq!(run.counters().stage_executor_contacts, 0);
@@ -80,7 +87,14 @@ fn deferred_operation_condition_returns_fresh_retry_authority_and_zero_stage_wor
         .bind(&installed, WorkflowRead)
         .unwrap();
 
-    let TransitionOutcome::Deferred(first) = bound.start_workflow(&mut workspace) else {
+    let TransitionOutcome::Deferred(first) = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .start_workflow(&mut workspace)
+    else {
         panic!("the operation-level condition must defer workflow creation")
     };
     assert_zero_stage_work(first.counters());
@@ -127,7 +141,14 @@ fn ineligible_operation_condition_cannot_create_a_workflow_run() {
         .bind(&installed, WorkflowRead)
         .unwrap();
 
-    let TransitionOutcome::Deferred(stopped) = bound.start_workflow(&mut workspace) else {
+    let TransitionOutcome::Deferred(stopped) = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .start_workflow(&mut workspace)
+    else {
         panic!("a suppressed operation-level condition must not mint a workflow run")
     };
 
@@ -220,6 +241,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRe
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
+
     fn compute(
         &self,
         context: &domain::WorthQueryConditionalComputeContext,
@@ -261,6 +286,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRe
     type SemanticContract = ();
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
 
     fn compute(
         &self,

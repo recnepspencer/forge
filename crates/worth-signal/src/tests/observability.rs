@@ -1616,7 +1616,9 @@ fn branch_and_snapshot_churn_respect_retention_budget_under_all_tiers() {
         let feature = runtime
             .create_branch(format!("feature-retention-{}", policy.tier.label()))
             .unwrap();
-        let main_snapshot = runtime.capture_snapshot();
+        let main_snapshot = runtime
+            .capture_snapshot()
+            .expect("snapshot capture should succeed without managed queue bindings");
 
         runtime.switch_branch(feature.clone()).unwrap();
         runtime
@@ -1778,7 +1780,9 @@ fn long_session_branch_churn_with_mixed_reads_keeps_bounds_and_cold_work_honest(
 
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-long-session").unwrap();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime.switch_branch(feature.clone()).unwrap();
     runtime

@@ -96,10 +96,10 @@ pub(crate) fn runtime_backed_continuation_closure_summary(
             .basis_identity_digest()
             .to_string(),
         observed_basis_identity_digest: observed.basis_identity_digest().to_string(),
-        replay_recovery_stop_kind: replay_brief.stop_kind().clone(),
-        replay_recovery_action: replay_brief.recommended_action().clone(),
-        preview_recovery_stop_kind: preview_brief.stop_kind().clone(),
-        preview_recovery_action: preview_brief.recommended_action().clone(),
+        replay_recovery_stop_kind: replay_brief.stop_kind(),
+        replay_recovery_action: replay_brief.recommended_action(),
+        preview_recovery_stop_kind: preview_brief.stop_kind(),
+        preview_recovery_action: preview_brief.recommended_action(),
         stale_completion_stop_is_typed: matches!(
             stale_completion,
             WorthQueryContinuationExecutionOutcome::StaleCompletion(_)

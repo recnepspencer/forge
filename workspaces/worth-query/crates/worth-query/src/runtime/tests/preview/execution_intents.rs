@@ -54,7 +54,10 @@ fn preview_local_intent_is_policy_admitted_without_authoritative_execution() {
         assert!(!receipt.basis_evidence().is_empty());
         assert!(!receipt.admission_identity().as_str().is_empty());
         assert!(!receipt.receipt_digest().is_empty());
-        assert_eq!(preview.preview_intent_receipts(), [receipt.clone()]);
+        assert_eq!(
+            preview.preview_intent_receipts(),
+            std::slice::from_ref(&receipt)
+        );
         assert!(preview.preview_execution_evidence().iter().any(|evidence| {
             evidence.kind() == WorthQueryPreviewExecutionKind::PendingWriteIntent
                 && evidence.handle_name() == "preview-reconcile"

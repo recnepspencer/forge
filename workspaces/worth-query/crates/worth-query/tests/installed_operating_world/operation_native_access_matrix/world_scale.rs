@@ -64,6 +64,10 @@ macro_rules! executable_matrix_domain {
                 Some(matrix_read_declaration())
             }
 
+            fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+                super::super::installed_operation_fixture::execution_resource_support()
+            }
+
             fn execute(
                 &self,
                 _: (),

@@ -17,10 +17,7 @@ use super::support::{
     denied_result, evidence_from_admitted, failed_result, rebind_required_result,
     retained_after_admission_result, stale_result,
 };
-use crate::application::{
-    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker,
-};
+use crate::application::WorthQueryDeclarationEntryContributionCategoryFamily;
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
@@ -31,10 +28,7 @@ use crate::domain_capabilities::{
     WorthQueryRequestedDomainCapabilityContribution,
 };
 
-pub(crate) fn process_contributions<
-    D: WorthQueryDomainEntryMarker,
-    I: WorthQueryDeclarationInput<D>,
->(
+pub(crate) fn process_contributions(
     target: WorthQueryInstalledDeclarationContributionTarget,
     declaration_aspect_record: WorthQueryContributionComposedIntentAspectRecord,
     contributions: Vec<WorthQueryContributionIntent>,
@@ -45,7 +39,7 @@ pub(crate) fn process_contributions<
         .into_iter()
         .enumerate()
         .map(|(order_index, value)| {
-            process_intent::<D, I>(
+            process_intent(
                 order_index,
                 target.clone(),
                 declaration_aspect_record.clone(),
@@ -57,7 +51,7 @@ pub(crate) fn process_contributions<
         .collect()
 }
 
-fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>(
+fn process_intent(
     order_index: usize,
     target: WorthQueryInstalledDeclarationContributionTarget,
     declaration_aspect_record: WorthQueryContributionComposedIntentAspectRecord,
@@ -66,7 +60,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
     linked_artifacts: WorthQueryBindingLinkedArtifacts,
 ) -> WorthQueryContributionComposedIntentResult {
     match intent {
-        WorthQueryContributionIntent::Admission(value) => process_requested::<D, I, _>(
+        WorthQueryContributionIntent::Admission(value) => process_requested(
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::Admission,
             declaration_aspect_record,
@@ -74,7 +68,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             materialization_profile,
             linked_artifacts,
         ),
-        WorthQueryContributionIntent::Support(value) => process_requested::<D, I, _>(
+        WorthQueryContributionIntent::Support(value) => process_requested(
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::SupportTraceability,
             declaration_aspect_record,
@@ -82,7 +76,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             materialization_profile,
             linked_artifacts,
         ),
-        WorthQueryContributionIntent::Explanation(value) => process_requested::<D, I, _>(
+        WorthQueryContributionIntent::Explanation(value) => process_requested(
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection,
             declaration_aspect_record,
@@ -90,7 +84,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             materialization_profile,
             linked_artifacts,
         ),
-        WorthQueryContributionIntent::Workflow(value) => process_requested::<D, I, _>(
+        WorthQueryContributionIntent::Workflow(value) => process_requested(
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
             declaration_aspect_record,
@@ -98,7 +92,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
             materialization_profile,
             linked_artifacts,
         ),
-        WorthQueryContributionIntent::Continuity(value) => process_requested::<D, I, _>(
+        WorthQueryContributionIntent::Continuity(value) => process_requested(
             order_index,
             WorthQueryDeclarationEntryContributionCategoryFamily::ContinuityLineage,
             declaration_aspect_record,
@@ -109,7 +103,7 @@ fn process_intent<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<
     }
 }
 
-fn process_requested<D, I, P>(
+fn process_requested<P>(
     order_index: usize,
     category_family: WorthQueryDeclarationEntryContributionCategoryFamily,
     declaration_aspect_record: WorthQueryContributionComposedIntentAspectRecord,
@@ -121,8 +115,6 @@ fn process_requested<D, I, P>(
     _linked_artifacts: WorthQueryBindingLinkedArtifacts,
 ) -> WorthQueryContributionComposedIntentResult
 where
-    D: WorthQueryDomainEntryMarker,
-    I: WorthQueryDeclarationInput<D>,
     P: WorthQueryDomainCapabilityPayload,
     (P, WorthQueryInstalledDeclarationContributionTarget):
         crate::domain_capabilities::AllowedContributionBinding<

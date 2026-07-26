@@ -25,6 +25,18 @@ pub(crate) fn resolve_snapshot_handle(
         });
     }
 
+    if let Some(binding) = runtime
+        .visibility
+        .execution_basis_binding(handle.snapshot_id)
+    {
+        return Some(SnapshotHandle {
+            runtime_instance_id: runtime.runtime_instance_id(),
+            snapshot_id: handle.snapshot_id,
+            version_id: binding.version_id,
+            read_policy: binding.read_policy,
+        });
+    }
+
     let version_id = runtime.published_snapshot_version(handle.snapshot_id)?;
     let read_policy = runtime
         .visibility
@@ -54,6 +66,24 @@ pub(crate) fn resolve_snapshot_state(
             handle: resolved_handle,
             state,
             keeps_storage_pins: true,
+        });
+    }
+
+    if let Some(binding) = runtime
+        .visibility
+        .execution_basis_binding(handle.snapshot_id)
+    {
+        let resolved_handle = SnapshotHandle {
+            runtime_instance_id: runtime.runtime_instance_id(),
+            snapshot_id: handle.snapshot_id,
+            version_id: binding.version_id,
+            read_policy: binding.read_policy,
+        };
+        let state = reconstruct_state(runtime, binding.version_id, true)?;
+        return Some(ResolvedVisibilitySnapshot {
+            handle: resolved_handle,
+            state,
+            keeps_storage_pins: false,
         });
     }
 

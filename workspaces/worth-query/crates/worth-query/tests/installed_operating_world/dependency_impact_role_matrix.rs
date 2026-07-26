@@ -30,6 +30,11 @@ fn every_role_is_compiled_from_real_operation_or_execution_evidence() {
         .family(MutationFamily)
         .bind(&installed, WorkflowMutation)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &mutation,
+        )
+        .unwrap()
         .start_workflow(&mut mutation)
         .unwrap()
         .advance(
@@ -99,11 +104,23 @@ fn collection_roles_are_classified_from_real_bridge_and_structural_changes() {
     .unwrap();
     let installed = owner.domain(GeometryDomain).unwrap();
     let first = bind_collection(&owner, &installed)
-        .execute((), &mut owner)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &owner,
+        )
+        .unwrap()
+        .execute(&mut owner)
         .unwrap();
     drop(first);
-    let TransitionOutcome::Deferred(_) =
-        bind_collection(&owner, &installed).execute((), &mut owner)
+    let TransitionOutcome::Deferred(_) = bind_collection(&owner, &installed)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &owner,
+        )
+        .unwrap()
+        .execute(&mut owner)
     else {
         panic!("unchanged collection dependency should defer")
     };
@@ -194,7 +211,13 @@ fn settle_collection(
     let bound = bind_collection(workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute((), workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

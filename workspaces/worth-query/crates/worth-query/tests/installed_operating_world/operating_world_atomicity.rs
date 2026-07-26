@@ -15,42 +15,49 @@ struct SeparateCommit;
 struct UncontactedProvider(Arc<AtomicUsize>);
 
 impl domain::WorthQueryGraphParticipationProvider<RemoteGraph> for UncontactedProvider {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("observe"))
+    type Execution = super::graph_provider_step::FixtureGraphProviderExecution;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
     }
 
-    fn project(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
         self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("project"))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("touch"))
+        let execution = match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),
+            domain::WorthQueryGraphProviderCallKind::Project => Self::Execution::read("project"),
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        };
+        start
+            .admit_cooperative_execution(|| execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 
 impl domain::WorthQueryGraphCommitProvider<SeparateCommit> for UncontactedProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn admit_commit(
         &self,
         call: &domain::WorthQueryGraphCommitCall,
     ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
     {
         self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("commit"))
+        Ok(call.completed("commit", super::provider_commit_admission_work_report()))
     }
 }
 

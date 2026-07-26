@@ -214,6 +214,7 @@ fn semantics(native_revision: u64, root: &str) -> WorthQueryDomainOperationSeman
         required_capabilities: Vec::new(),
         required_domains: Vec::new(),
         workflow: WorthQueryOperationWorkflowContract::NotRequired,
+        evidence: WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes: Vec::new(),
         graph_reads: WorthQueryOperationGraphReadContract::NotRequired,
         touches: WorthQueryOperationTouchContract::NotRequired,
@@ -234,6 +235,7 @@ fn semantics(native_revision: u64, root: &str) -> WorthQueryDomainOperationSeman
             execution: WorthQueryOperationCostClass::Constant,
             result_width: WorthQueryOperationCostClass::Constant,
         },
+        resources: crate::domain_computation_workflow_test_support::resource_contract(),
         support: no_support(),
         lowering: WorthQueryOperationLoweringContract {
             family: "owner-comparison-test".into(),

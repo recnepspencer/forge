@@ -226,7 +226,7 @@ fn executor_lineage_must_exist_and_match_an_executable_installed_contract() {
     )
     .unwrap();
     assert!(matches!(
-        bind(&missing).reexecute(intent(), &mut missing),
+        bind(&missing).admit_workflow_resources(crate::suite::installed_operation_fixture::execution_resource_request(), &missing).unwrap().reexecute(intent(), &mut missing),
         TransitionOutcome::Denied(domain::WorthQueryWorkflowReexecutionStop::Completion(denial))
             if denial.kind() == domain::WorthQueryWorkflowCompletionDenialKind::LineageEvidence
                 && denial.executed_effects().len() == 1
@@ -240,7 +240,7 @@ fn executor_lineage_must_exist_and_match_an_executable_installed_contract() {
     )
     .unwrap();
     assert!(matches!(
-        bind(&preserve).reexecute(intent(), &mut preserve),
+        bind(&preserve).admit_workflow_resources(crate::suite::installed_operation_fixture::execution_resource_request(), &preserve).unwrap().reexecute(intent(), &mut preserve),
         TransitionOutcome::Denied(domain::WorthQueryWorkflowReexecutionStop::Advance(denial))
             if denial.kind() == &domain::WorthQueryWorkflowAdvanceDenialKind::LineageEvidence
     ));
@@ -335,7 +335,14 @@ pub(super) fn execute(
     ReadFamily,
     foundation::MutationPreparationLaneWitness,
 > {
-    bind(workspace).reexecute(intent(), workspace).unwrap()
+    bind(workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .reexecute(intent(), workspace)
+        .unwrap()
 }
 
 pub(super) fn bind(

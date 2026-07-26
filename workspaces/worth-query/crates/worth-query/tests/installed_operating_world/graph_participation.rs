@@ -23,28 +23,37 @@ struct CountingProvider {
 }
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for CountingProvider {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed(self.receipt_label("observe")))
+    type Execution = super::graph_provider_step::FixtureGraphProviderExecution;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
     }
 
-    fn project(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed(self.receipt_label("project")))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed(self.receipt_label("touch-effect")))
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
+        let execution = match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => {
+                Self::Execution::read(self.receipt_label("observe"))
+            }
+            domain::WorthQueryGraphProviderCallKind::Project => {
+                Self::Execution::read(self.receipt_label("project"))
+            }
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect(self.receipt_label("touch-effect"))
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        };
+        start
+            .admit_cooperative_execution(|| execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 
@@ -62,12 +71,19 @@ impl CountingProvider {
 }
 
 impl domain::WorthQueryGraphCommitProvider<AtomicCommit> for CountingProvider {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn admit_commit(
         &self,
         call: &domain::WorthQueryGraphCommitCall,
     ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
     {
-        Ok(call.completed(self.receipt_label("commit")))
+        Ok(call.completed(
+            self.receipt_label("commit"),
+            super::provider_commit_admission_work_report(),
+        ))
     }
 }
 

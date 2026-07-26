@@ -25,6 +25,12 @@ pub enum WorthQueryDomainPackageAdmissionDenialKind {
     DisabledConfiguration,
     DeferredOperatingRequirement,
     UnsupportedOperatingRequirement,
+    UnsupportedArtifactVersion,
+    RetiredArtifactVersion,
+    ArtifactMigrationRequired,
+    AmbiguousArtifactMigration,
+    DeferredArtifactComparator,
+    UnsupportedArtifactComparator,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -87,8 +93,19 @@ pub(crate) struct WorthQueryAdmittedDomainPackage<D: WorthQueryDomainEntryMarker
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
+#[cfg(test)]
 pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
     package: WorthQueryValidatedDomainPackage<D>,
+) -> Result<WorthQueryAdmittedDomainPackage<D>, WorthQueryDomainPackageAdmissionDenial> {
+    admit_domain_package_with_artifact_support(
+        package,
+        &super::WorthQueryArtifactInstallationSupport::default(),
+    )
+}
+
+pub(crate) fn admit_domain_package_with_artifact_support<D: WorthQueryDomainEntryMarker>(
+    package: WorthQueryValidatedDomainPackage<D>,
+    artifact_support: &super::WorthQueryArtifactInstallationSupport,
 ) -> Result<WorthQueryAdmittedDomainPackage<D>, WorthQueryDomainPackageAdmissionDenial> {
     let facade = WorthQueryApplicationFacade::runtime_backed_default();
     let support_matrix = facade.support_matrix();
@@ -100,6 +117,7 @@ pub(crate) fn admit_domain_package<D: WorthQueryDomainEntryMarker>(
         &package.required_configuration,
         &package.operating_requirements,
         &facade,
+        artifact_support,
     )?;
 
     let admission_identity =

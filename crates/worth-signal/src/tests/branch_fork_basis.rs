@@ -7,7 +7,9 @@ fn current_and_explicit_parent_head_forks_share_parent_basis_without_switching_a
     let graph = SignalGraph::new();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
-    let head_snapshot = runtime.capture_snapshot();
+    let head_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let parent = runtime.current_branch();
     let expected_parent_basis = runtime.current_branch_basis_artifact();
 
@@ -86,9 +88,13 @@ fn explicit_snapshot_fork_anchors_child_to_requested_snapshot_without_active_bra
     let graph = SignalGraph::new();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
-    let base_snapshot = runtime.capture_snapshot();
+    let base_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let parent = runtime.current_branch();
-    let newer_snapshot = runtime.capture_snapshot();
+    let newer_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let expected_snapshot_basis =
         match runtime.snapshot_branch_basis_artifact(parent.clone(), &base_snapshot) {
@@ -233,7 +239,9 @@ fn fork_denials_are_typed_and_leave_runtime_state_unchanged() {
     runtime
         .switch_branch(feature.clone())
         .expect("switching into feature branch should succeed");
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime
         .switch_branch(parent.clone())
         .expect("switching back to main should succeed");
@@ -314,7 +322,9 @@ fn snapshot_basis_request_requires_matching_snapshot_payload() {
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
     let parent = runtime.current_branch();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     match runtime.fork_branch(SignalBranchForkRequest::from_parent_branch_snapshot(
         "missing-payload",

@@ -65,6 +65,41 @@ impl WorthQueryPortableWorkflowDefinition {
     pub fn stages(&self) -> &[WorthQueryPortableWorkflowStage] {
         &self.stages
     }
+
+    pub fn has_parallel_frontier(&self) -> bool {
+        self.stages.iter().enumerate().any(|(left_index, left)| {
+            self.stages.iter().skip(left_index + 1).any(|right| {
+                !self.depends_on(left.identity(), right.identity())
+                    && !self.depends_on(right.identity(), left.identity())
+            })
+        })
+    }
+
+    fn depends_on(&self, stage_identity: &str, possible_predecessor: &str) -> bool {
+        let mut pending = vec![stage_identity];
+        let mut visited = std::collections::BTreeSet::new();
+        while let Some(identity) = pending.pop() {
+            if !visited.insert(identity) {
+                continue;
+            }
+            let Some(stage) = self
+                .stages
+                .iter()
+                .find(|stage| stage.identity() == identity)
+            else {
+                continue;
+            };
+            if stage
+                .predecessors()
+                .iter()
+                .any(|predecessor| predecessor == possible_predecessor)
+            {
+                return true;
+            }
+            pending.extend(stage.predecessors().iter().map(String::as_str));
+        }
+        false
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -135,12 +170,14 @@ impl WorthQueryPortableWorkflowStage {
 pub struct WorthQueryWorkflowStageSemantics {
     pub input: WorthQueryWorkflowValueContract,
     pub output: WorthQueryWorkflowValueContract,
+    pub evidence: super::WorthQueryDomainEvidenceContract,
     pub required_domain_roles: Vec<super::WorthQueryOperationRequiredDomainRole>,
     pub graph_read_roles: Vec<String>,
     pub touch_roles: Vec<String>,
     pub effect_roles: Vec<super::WorthQueryOperationEffectFamily>,
     pub invariant_roles: Vec<String>,
     pub cost_roles: Vec<WorthQueryWorkflowCostRole>,
+    pub resources: crate::domain_computation::WorthQueryWorkflowStageExecutionResourceContract,
     pub terminal_result_states: Vec<super::WorthQueryOperationResultState>,
     pub failure_classes: Vec<super::WorthQueryOperationFailureClass>,
     pub conditional_nodes: Vec<super::WorthQueryPortableConditionalNodeDeclaration>,
@@ -173,7 +210,7 @@ impl WorthQueryWorkflowCostRole {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum WorthQueryWorkflowValueContract {
     #[default]
     NotRequired,
@@ -183,4 +220,39 @@ pub enum WorthQueryWorkflowValueContract {
     Text,
     EntityIdentity,
     Projection,
+    InstalledArtifact(crate::domain_computation::WorthQueryArtifactContractReference),
+}
+
+impl WorthQueryWorkflowValueContract {
+    pub fn installed_artifact(
+        reference: crate::domain_computation::WorthQueryArtifactContractReference,
+    ) -> Self {
+        Self::InstalledArtifact(reference)
+    }
+
+    pub(crate) const fn canonical_kind(&self) -> &'static str {
+        match self {
+            Self::NotRequired => "not-required",
+            Self::Bool => "bool",
+            Self::I64 => "i64",
+            Self::U64 => "u64",
+            Self::Text => "text",
+            Self::EntityIdentity => "entity-identity",
+            Self::Projection => "projection",
+            Self::InstalledArtifact(_) => "installed-artifact",
+        }
+    }
+
+    pub(crate) fn canonical_token(&self) -> String {
+        match self {
+            Self::InstalledArtifact(reference) => format!(
+                "{}:{}:{}:{}",
+                self.canonical_kind(),
+                reference.family().as_str(),
+                reference.schema_version().get(),
+                reference.protocol_version().get()
+            ),
+            _ => self.canonical_kind().to_string(),
+        }
+    }
 }

@@ -86,7 +86,7 @@ fn main() -> Result<(), SignalError> {
 
     let snapshot = {
         let mut history = runtime.history();
-        history.snapshot()
+        history.snapshot()?
     };
 
     state.source_version += 1;

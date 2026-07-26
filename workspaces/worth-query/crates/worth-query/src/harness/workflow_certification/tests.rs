@@ -109,7 +109,7 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
     let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        &authority_binding_identity,
+        authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")
@@ -382,7 +382,7 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
     let authority_binding_identity = binding.basis_identity();
     let mutation_lowered = lower_mutation_intent_declaration(
         &mutation_declaration,
-        &authority_binding_identity,
+        authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")

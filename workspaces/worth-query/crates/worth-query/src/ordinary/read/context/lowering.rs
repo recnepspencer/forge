@@ -8,8 +8,8 @@ use crate::policy_narrowing::{
     narrow_policy_query, NarrowedPolicyQueryArtifact, PolicyNarrowingFailureClass,
 };
 use crate::relationship_proof::{
-    admit_relationship_proofs, RelationshipProofAdmission, RelationshipProofCounters,
-    RelationshipProofDescriptorSet, RelationshipProofError, RelationshipProofFailureClass,
+    admit_relationship_proofs, RelationshipProofAdmission, RelationshipProofDescriptorSet,
+    RelationshipProofError,
 };
 use crate::runtime::{
     admit_graph_read_access_authority, WorthQueryGraphReadAccessAuthorityContext,
@@ -212,12 +212,8 @@ fn validate_relationship_proof_topology(
         return Ok(());
     }
 
-    let mut proof_counters = RelationshipProofCounters::default();
-    proof_counters.deny();
-    Err(RelationshipProofError::new(
-        RelationshipProofFailureClass::QueryShapeMismatch,
+    Err(RelationshipProofError::query_shape_mismatch(
         "relationship proof direction and bounds must exactly cover the declared traversal",
-        proof_counters,
     ))
 }
 

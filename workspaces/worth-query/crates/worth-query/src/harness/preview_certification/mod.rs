@@ -716,6 +716,156 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
     }
 }
 
+fn canonical_row(
+    spec: &PreviewCanonicalRowSpec,
+    active_lane: &PreviewCertificationLane,
+    parity_lane: &PreviewCertificationLane,
+    promotable_lane: &PreviewCertificationLane,
+    promotion_parity_lane: &PreviewCertificationLane,
+    preview_live_lane: &PreviewCertificationLane,
+    parity_preview_live_lane: &PreviewCertificationLane,
+    preview_live_rebind_lane: &PreviewCertificationLane,
+) -> CanonicalCertificationRow<PreviewPerturbationClass, PreviewCertificationLane> {
+    let control_lane = match spec.row_name {
+        "preview-promotion-comparison-parity" | "preview-comparison-shape-proof-width" => {
+            promotion_parity_lane.clone()
+        }
+        "preview-live-admission-parity" | "preview-live-drift-explicitness" => {
+            preview_live_lane.clone()
+        }
+        "preview-workflow-foundation-admission"
+        | "preview-workflow-foundation-no-rescan"
+        | "preview-work-avoided-counter-parity" => promotable_lane.clone(),
+        _ => active_lane.clone(),
+    };
+    CanonicalCertificationRow {
+        row_name: spec.row_name,
+        perturbation_class: spec.perturbation_class,
+        hostile_expectation: spec.hostile_expectation,
+        parity_anchor: ParityAnchor::Control,
+        control_lane: control_lane.clone(),
+        hostile_lane: match spec.hostile_lane_selector {
+            row_catalog::PreviewLaneSelector::ParityExecution => parity_lane.clone(),
+            row_catalog::PreviewLaneSelector::PromotionEligibleExecution => promotable_lane.clone(),
+            row_catalog::PreviewLaneSelector::PromotionParity => promotion_parity_lane.clone(),
+            row_catalog::PreviewLaneSelector::PreviewLiveAdmission => {
+                parity_preview_live_lane.clone()
+            }
+            row_catalog::PreviewLaneSelector::PreviewLiveRebind => preview_live_rebind_lane.clone(),
+        },
+        parity_lane: control_lane,
+    }
+}
+
+fn rejection_row(
+    spec: &PreviewRejectionRowSpec,
+    active_lane: &PreviewCertificationLane,
+    parity_lane: &PreviewCertificationLane,
+    unsupported_preview_family: &PreviewBindingError,
+    invalid_basis: &PreviewBindingError,
+    stale_lifecycle: &PreviewBindingError,
+    discarded_lifecycle: &PreviewBindingError,
+    preview_live_drift_denied: &crate::preview::PreviewLiveDriftDenied,
+    preview_live_broad_fallback_denied: &crate::preview::PreviewLiveDriftDenied,
+    read_only_writeback_foundation_denied: &crate::preview::PreviewWorkflowFoundationError,
+    promotion_linkage_denied: &PreviewBindingError,
+    replay_linkage_denied: &PreviewBindingError,
+    shape_mismatch_denied: &PreviewComparisonError,
+    preview_live_lane: &PreviewCertificationLane,
+    parity_preview_live_lane: &PreviewCertificationLane,
+) -> RejectionCertificationRow<
+    PreviewPerturbationClass,
+    PreviewCertificationLane,
+    PreviewCertificationRejection,
+> {
+    let hostile_lane = match spec.runtime_failure_selector {
+        Some(row_catalog::PreviewRuntimeFailureSelector::UnsupportedPreviewFamily) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                unsupported_preview_family.failure_class(),
+                unsupported_preview_family.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::InvalidBasis) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                invalid_basis.failure_class(),
+                invalid_basis.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::BroadFallbackDenied) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                invalid_basis.failure_class(),
+                invalid_basis.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::StaleLifecycle) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                stale_lifecycle.failure_class(),
+                stale_lifecycle.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::DiscardedLifecycle) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                discarded_lifecycle.failure_class(),
+                discarded_lifecycle.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveDriftDenied) => {
+            PreviewCertificationRejection::from_preview_live_failure(
+                preview_live_drift_denied.error(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied) => {
+            PreviewCertificationRejection::from_preview_live_failure(
+                preview_live_broad_fallback_denied.error(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::WorkflowFoundationAuthorityDenied) => {
+            PreviewCertificationRejection::from_workflow_failure(
+                read_only_writeback_foundation_denied,
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::PromotionLinkageDenied) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                promotion_linkage_denied.failure_class(),
+                promotion_linkage_denied.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::ReplayLinkageDenied) => {
+            PreviewCertificationRejection::from_runtime_failure(
+                replay_linkage_denied.failure_class(),
+                replay_linkage_denied.counters(),
+            )
+        }
+        Some(row_catalog::PreviewRuntimeFailureSelector::ShapeMismatchDenied) => {
+            PreviewCertificationRejection::from_comparison_failure(shape_mismatch_denied)
+        }
+        None => panic!(
+            "preview rejection row {} has no runtime denial",
+            spec.row_name
+        ),
+    };
+
+    RejectionCertificationRow {
+        row_name: spec.row_name,
+        perturbation_class: spec.perturbation_class,
+        control_lane: match spec.runtime_failure_selector {
+            Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveDriftDenied)
+            | Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied) => {
+                preview_live_lane.clone()
+            }
+            _ => active_lane.clone(),
+        },
+        hostile_lane,
+        parity_lane: match spec.runtime_failure_selector {
+            Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveDriftDenied)
+            | Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied) => {
+                parity_preview_live_lane.clone()
+            }
+            _ => parity_lane.clone(),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -1061,11 +1211,10 @@ mod tests {
                 .zero_rediscovery_lane_count,
             artifact.bundle_completeness_report.supported_lane_count
         );
-        assert_eq!(
+        assert!(
             artifact
                 .bundle_completeness_report
-                .preview_live_composition_admitted_by_design,
-            true
+                .preview_live_composition_admitted_by_design
         );
         assert!(
             expected_preview_live_counters.preview_live_admission_count() > 0,
@@ -1201,155 +1350,5 @@ mod tests {
                 .preview_workflow_foundation_denial_count(),
             expected_execution_counters.preview_workflow_foundation_denial_count()
         );
-    }
-}
-
-fn canonical_row(
-    spec: &PreviewCanonicalRowSpec,
-    active_lane: &PreviewCertificationLane,
-    parity_lane: &PreviewCertificationLane,
-    promotable_lane: &PreviewCertificationLane,
-    promotion_parity_lane: &PreviewCertificationLane,
-    preview_live_lane: &PreviewCertificationLane,
-    parity_preview_live_lane: &PreviewCertificationLane,
-    preview_live_rebind_lane: &PreviewCertificationLane,
-) -> CanonicalCertificationRow<PreviewPerturbationClass, PreviewCertificationLane> {
-    let control_lane = match spec.row_name {
-        "preview-promotion-comparison-parity" | "preview-comparison-shape-proof-width" => {
-            promotion_parity_lane.clone()
-        }
-        "preview-live-admission-parity" | "preview-live-drift-explicitness" => {
-            preview_live_lane.clone()
-        }
-        "preview-workflow-foundation-admission"
-        | "preview-workflow-foundation-no-rescan"
-        | "preview-work-avoided-counter-parity" => promotable_lane.clone(),
-        _ => active_lane.clone(),
-    };
-    CanonicalCertificationRow {
-        row_name: spec.row_name,
-        perturbation_class: spec.perturbation_class,
-        hostile_expectation: spec.hostile_expectation,
-        parity_anchor: ParityAnchor::Control,
-        control_lane: control_lane.clone(),
-        hostile_lane: match spec.hostile_lane_selector {
-            row_catalog::PreviewLaneSelector::ParityExecution => parity_lane.clone(),
-            row_catalog::PreviewLaneSelector::PromotionEligibleExecution => promotable_lane.clone(),
-            row_catalog::PreviewLaneSelector::PromotionParity => promotion_parity_lane.clone(),
-            row_catalog::PreviewLaneSelector::PreviewLiveAdmission => {
-                parity_preview_live_lane.clone()
-            }
-            row_catalog::PreviewLaneSelector::PreviewLiveRebind => preview_live_rebind_lane.clone(),
-        },
-        parity_lane: control_lane,
-    }
-}
-
-fn rejection_row(
-    spec: &PreviewRejectionRowSpec,
-    active_lane: &PreviewCertificationLane,
-    parity_lane: &PreviewCertificationLane,
-    unsupported_preview_family: &PreviewBindingError,
-    invalid_basis: &PreviewBindingError,
-    stale_lifecycle: &PreviewBindingError,
-    discarded_lifecycle: &PreviewBindingError,
-    preview_live_drift_denied: &crate::preview::PreviewLiveDriftDenied,
-    preview_live_broad_fallback_denied: &crate::preview::PreviewLiveDriftDenied,
-    read_only_writeback_foundation_denied: &crate::preview::PreviewWorkflowFoundationError,
-    promotion_linkage_denied: &PreviewBindingError,
-    replay_linkage_denied: &PreviewBindingError,
-    shape_mismatch_denied: &PreviewComparisonError,
-    preview_live_lane: &PreviewCertificationLane,
-    parity_preview_live_lane: &PreviewCertificationLane,
-) -> RejectionCertificationRow<
-    PreviewPerturbationClass,
-    PreviewCertificationLane,
-    PreviewCertificationRejection,
-> {
-    let hostile_lane = match spec.runtime_failure_selector {
-        Some(row_catalog::PreviewRuntimeFailureSelector::UnsupportedPreviewFamily) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                unsupported_preview_family.failure_class(),
-                unsupported_preview_family.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::InvalidBasis) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                invalid_basis.failure_class(),
-                invalid_basis.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::BroadFallbackDenied) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                invalid_basis.failure_class(),
-                invalid_basis.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::StaleLifecycle) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                stale_lifecycle.failure_class(),
-                stale_lifecycle.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::DiscardedLifecycle) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                discarded_lifecycle.failure_class(),
-                discarded_lifecycle.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveDriftDenied) => {
-            PreviewCertificationRejection::from_preview_live_failure(
-                preview_live_drift_denied.error(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied) => {
-            PreviewCertificationRejection::from_preview_live_failure(
-                preview_live_broad_fallback_denied.error(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::WorkflowFoundationAuthorityDenied) => {
-            PreviewCertificationRejection::from_workflow_failure(
-                read_only_writeback_foundation_denied,
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::PromotionLinkageDenied) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                promotion_linkage_denied.failure_class(),
-                promotion_linkage_denied.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::ReplayLinkageDenied) => {
-            PreviewCertificationRejection::from_runtime_failure(
-                replay_linkage_denied.failure_class(),
-                replay_linkage_denied.counters(),
-            )
-        }
-        Some(row_catalog::PreviewRuntimeFailureSelector::ShapeMismatchDenied) => {
-            PreviewCertificationRejection::from_comparison_failure(shape_mismatch_denied)
-        }
-        None => panic!(
-            "preview rejection row {} has no runtime denial",
-            spec.row_name
-        ),
-    };
-
-    RejectionCertificationRow {
-        row_name: spec.row_name,
-        perturbation_class: spec.perturbation_class,
-        control_lane: match spec.runtime_failure_selector {
-            Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveDriftDenied)
-            | Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied) => {
-                preview_live_lane.clone()
-            }
-            _ => active_lane.clone(),
-        },
-        hostile_lane,
-        parity_lane: match spec.runtime_failure_selector {
-            Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveDriftDenied)
-            | Some(row_catalog::PreviewRuntimeFailureSelector::PreviewLiveBroadFallbackDenied) => {
-                parity_preview_live_lane.clone()
-            }
-            _ => parity_lane.clone(),
-        },
     }
 }

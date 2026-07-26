@@ -94,6 +94,22 @@ where
 {
     let scope = stage_identity.unwrap_or("operation");
     let execution_identity = format!("{}:{scope}", evaluation.operational_identity);
+    let (resources, resource_evidence) = match stage_identity {
+        Some(stage_identity) => (
+            evaluation
+                .source
+                .stage_resources(stage_identity)
+                .ok_or_else(|| missing_resource_evidence(evaluation.counters))?,
+            evaluation
+                .source
+                .stage_resource_evidence(stage_identity)
+                .ok_or_else(|| missing_resource_evidence(evaluation.counters))?,
+        ),
+        None => (
+            evaluation.source.operation_resources(),
+            evaluation.source.operation_resource_evidence(),
+        ),
+    };
     let mut operation_counters = WorthQueryOperationExecutionCounters::default();
     let outcome =
         crate::domain_installation::conditional_execution::evaluate_settled_projection_conditionals(
@@ -108,6 +124,8 @@ where
                 },
                 workflow_run_identity: evaluation.source.workflow_run_identity(),
                 attempt: evaluation.attempt,
+                resources,
+                resource_evidence,
                 counters: &mut operation_counters,
             },
         );
@@ -143,6 +161,17 @@ where
         }
     }
     Ok(())
+}
+
+fn missing_resource_evidence(
+    counters: &WorthQueryProjectionPromotionCounters,
+) -> WorthQueryLifecycleConditionalCoreStop {
+    WorthQueryLifecycleConditionalCoreStop {
+        class: WorthQueryLifecycleConditionalStopClass::Failed,
+        kind: WorthQueryProjectionPromotionDenialKind::ConditionalReentry,
+        detail: "retained conditional scope has no admitted execution resource evidence".into(),
+        counters: *counters,
+    }
 }
 
 fn lifecycle_identity<D, O, F, L: BasisOperationLane, S>(

@@ -25,9 +25,7 @@ pub(crate) fn bind_route_from_target_on_handle<
     request: WorthQueryResolveRouteFromTargetRequest<D, I>,
 ) -> WorthQueryBindingTranscript<crate::application::WorthQueryDeclarationRoutePlanInput<D, I>> {
     let (source, contract, allow_superset, partial_narrowing, route_intent) = request.into_parts();
-    let progressed = match source {
-        WorthQueryRouteResolverSubject::Progression(progressed) => progressed,
-    };
+    let WorthQueryRouteResolverSubject::Progression(progressed) = source;
     let binding_target = progressed.binding_target().into_erased_target();
     let linked = WorthQueryBindingLinkedArtifacts::new()
         .with_declaration_digest(format!(

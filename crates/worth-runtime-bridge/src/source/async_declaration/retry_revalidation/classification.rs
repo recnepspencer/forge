@@ -16,6 +16,7 @@ use super::rejection::{
     map_request_identity_rejection, rejected, BridgeAsyncForwardCausalityRejection,
     BridgeAsyncForwardCausalityRejectionKind,
 };
+use super::retry_finalization::{finalize_retry_lineage, BridgeAsyncRetryLineageCandidate};
 use crate::source::async_declaration::request_identity::state::BridgeSignalRuntime;
 
 pub fn admit_retry_lineage(
@@ -87,29 +88,30 @@ pub fn admit_retry_lineage(
         )
         .map_err(map_request_identity_rejection)?;
         let newer = admit_from_existing_signal_request(
+            prior.bridge_runtime_key(),
             runtime,
             retry_request,
             admitted_retry.admitted_request(),
             None,
         )
         .map_err(map_request_identity_rejection)?;
-        return finalize_retry_lineage(
+        finalize_retry_lineage(BridgeAsyncRetryLineageCandidate {
             prior,
             newer,
-            BridgeAsyncForwardCausalityClass::RetryAfterTimeout,
-            scheduled.reason(),
-            scheduled.retry_ordinal().get(),
-            admitted_retry.admitted_request().attempt().get(),
-            admitted_retry.ready_wake().id().get(),
-            scheduled.policy_decision_digest().as_str(),
-            request
+            class: BridgeAsyncForwardCausalityClass::RetryAfterTimeout,
+            retry_reason: scheduled.reason(),
+            retry_ordinal: scheduled.retry_ordinal().get(),
+            next_attempt: admitted_retry.admitted_request().attempt().get(),
+            ready_wake: admitted_retry.ready_wake().id().get(),
+            policy_digest: scheduled.policy_decision_digest().as_str(),
+            timeout_trigger: request
                 .timeout_report
                 .as_ref()
                 .and_then(|report| report.timed_out_request())
                 .map(|report| report.ready_wake().id().get().to_string())
                 .unwrap_or_else(|| "-".to_owned()),
-            "-".to_owned(),
-        );
+            cancellation_trigger: "-".to_owned(),
+        })
     } else {
         let cancelled = request
             .cancellation_report
@@ -133,103 +135,19 @@ pub fn admit_retry_lineage(
                 "cancellation-triggered retry requires one newer admitted request identity",
             )
         })?;
-        return finalize_retry_lineage(
+        finalize_retry_lineage(BridgeAsyncRetryLineageCandidate {
             prior,
             newer,
-            BridgeAsyncForwardCausalityClass::RetryAfterCancellation,
-            ResourceRetryReason::HostRequested,
-            0,
-            0,
-            0,
-            cancelled.policy_decision_digest().as_str(),
-            "-".to_owned(),
-            format!("{:?}", cancelled.reason()),
-        );
+            class: BridgeAsyncForwardCausalityClass::RetryAfterCancellation,
+            retry_reason: ResourceRetryReason::HostRequested,
+            retry_ordinal: 0,
+            next_attempt: 0,
+            ready_wake: 0,
+            policy_digest: cancelled.policy_decision_digest().as_str(),
+            timeout_trigger: "-".to_owned(),
+            cancellation_trigger: format!("{:?}", cancelled.reason()),
+        })
     }
-}
-
-fn finalize_retry_lineage(
-    prior: AdmittedBridgeAsyncRequestIdentity,
-    newer: AdmittedBridgeAsyncRequestIdentity,
-    class: BridgeAsyncForwardCausalityClass,
-    retry_reason: ResourceRetryReason,
-    retry_ordinal: u64,
-    next_attempt: u64,
-    ready_wake: u64,
-    policy_digest: &str,
-    timeout_trigger: String,
-    cancellation_trigger: String,
-) -> Result<BridgeAsyncRetryLineage, BridgeAsyncForwardCausalityRejection> {
-    if prior.lowered().declaration_identity() != newer.lowered().declaration_identity() {
-        return Err(rejected(
-            BridgeAsyncForwardCausalityRejectionKind::PriorAndNewerDeclarationMismatch,
-            "retry lineage must stay within one bridge async declaration identity",
-        ));
-    }
-    if prior.lowered().lowering_identity() != newer.lowered().lowering_identity() {
-        return Err(rejected(
-            BridgeAsyncForwardCausalityRejectionKind::PriorAndNewerLoweringMismatch,
-            "retry lineage must stay within one lowered bridge async source identity",
-        ));
-    }
-    if prior.family_admission() != newer.family_admission()
-        && !matches!(
-            (prior.family_admission(), newer.family_admission()),
-            (
-                BridgeAsyncRequestFamilyAdmission::SubscriptionBacked { .. },
-                BridgeAsyncRequestFamilyAdmission::SubscriptionBacked { .. }
-            )
-        )
-    {
-        return Err(rejected(
-            BridgeAsyncForwardCausalityRejectionKind::PriorAndNewerFamilyMismatch,
-            "retry lineage must stay within one bridge async family",
-        ));
-    }
-    if prior.basis_binding().truth_view_basis().digest()
-        != newer.basis_binding().truth_view_basis().digest()
-    {
-        return Err(rejected(
-            BridgeAsyncForwardCausalityRejectionKind::BasisDriftForbiddenForRetry,
-            "retry lineage cannot rebind to a different truth-view basis",
-        ));
-    }
-    if subscription_instance_digest(&prior) != subscription_instance_digest(&newer) {
-        return Err(rejected(
-            BridgeAsyncForwardCausalityRejectionKind::SubscriptionInstanceDriftForbiddenForRetry,
-            "retry lineage cannot drift subscription instance identity",
-        ));
-    }
-    let counters = match class {
-        BridgeAsyncForwardCausalityClass::RetryAfterTimeout => {
-            BridgeAsyncForwardCausalityCounters::one_retry_after_timeout()
-        }
-        BridgeAsyncForwardCausalityClass::RetryAfterCancellation => {
-            BridgeAsyncForwardCausalityCounters::one_retry_after_cancellation()
-        }
-        _ => unreachable!(),
-    };
-    Ok(BridgeAsyncRetryLineage::new(
-        prior.clone(),
-        newer.clone(),
-        class,
-        counters,
-        Arc::from(format!(
-            "bridge-async-forward-causality|class={class:?}|prior={}|newer={}|prior-basis={}|newer-basis={}|subscription-instance={}|retry-reason={:?}|retry-ordinal={}|next-attempt={}|ready-wake={}|policy={}|timeout-trigger={}|cancellation-trigger={}",
-            prior.request_identity().as_str(),
-            newer.request_identity().as_str(),
-            prior.basis_binding().truth_view_basis().digest(),
-            newer.basis_binding().truth_view_basis().digest(),
-            subscription_instance_digest(&prior).unwrap_or("-"),
-            retry_reason,
-            retry_ordinal,
-            next_attempt,
-            ready_wake,
-            policy_digest,
-            timeout_trigger,
-            cancellation_trigger,
-        )),
-    ))
 }
 
 pub fn admit_revalidation_lineage(
@@ -287,6 +205,7 @@ pub fn admit_revalidation_lineage(
     )
     .map_err(map_request_identity_rejection)?;
     let newer = admit_from_existing_signal_request(
+        prior.bridge_runtime_key(),
         runtime,
         rebind,
         admitted.admitted_request(),
@@ -318,8 +237,8 @@ pub fn admit_revalidation_lineage(
             newer.request_identity().as_str(),
             prior.basis_binding().truth_view_basis().digest(),
             newer.basis_binding().truth_view_basis().digest(),
-            subscription_instance_digest(&prior).unwrap_or("-"),
-            subscription_instance_digest(&newer).unwrap_or("-"),
+            prior.subscription_instance_digest().unwrap_or("-"),
+            newer.subscription_instance_digest().unwrap_or("-"),
             admitted.freshness_decision().class(),
             admitted.freshness_decision().freshness_digest(),
             admitted.expected_active().map(|handle| format!("{}#{}", handle.request_id().get(), handle.generation().get())).unwrap_or_else(|| "-".to_owned()),
@@ -384,17 +303,11 @@ fn classify_revalidation_class(
         }
         return Ok(BridgeAsyncForwardCausalityClass::RevalidationAfterTruthBasisDrift);
     }
-    if subscription_instance_digest(prior) != subscription_instance_digest(newer) {
+    if prior.subscription_instance_digest() != newer.subscription_instance_digest() {
         return Ok(BridgeAsyncForwardCausalityClass::RevalidationAfterSubscriptionInstanceDrift);
     }
     Err(rejected(
         BridgeAsyncForwardCausalityRejectionKind::BasisDriftRequiredForRevalidation,
         "revalidation lineage requires truth-view basis drift or subscription instance drift",
     ))
-}
-
-fn subscription_instance_digest(identity: &AdmittedBridgeAsyncRequestIdentity) -> Option<&str> {
-    identity
-        .subscription_instance()
-        .map(|instance| instance.digest())
 }

@@ -7,9 +7,14 @@ use worth_proof::{
 
 use crate::package::WorthQueryValidatedPortableDomainPackage;
 
+mod artifact_support;
 mod identity;
+mod meaning;
+mod requirements;
 
-use identity::{admission_identity, admission_meaning, WorthQueryInstallationAdmissionMeaning};
+pub use artifact_support::WorthQueryArtifactVersionSupport;
+use identity::admission_identity;
+use meaning::{admission_meaning, WorthQueryInstallationAdmissionMeaning};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstallationSupportStatus {
@@ -35,6 +40,8 @@ pub struct WorthQueryInstallationAdmissionProfile {
     capability_statuses: BTreeMap<String, WorthQueryInstallationSupportStatus>,
     configuration_statuses: BTreeMap<String, bool>,
     operating_statuses: BTreeMap<String, WorthQueryInstallationSupportStatus>,
+    artifact_version_statuses: BTreeMap<(String, u32, u32), WorthQueryArtifactVersionSupport>,
+    artifact_comparator_statuses: BTreeMap<String, WorthQueryInstallationSupportStatus>,
     conflicting_rows: BTreeSet<String>,
 }
 
@@ -49,6 +56,8 @@ impl WorthQueryInstallationAdmissionProfile {
             capability_statuses: BTreeMap::new(),
             configuration_statuses: BTreeMap::new(),
             operating_statuses: BTreeMap::new(),
+            artifact_version_statuses: BTreeMap::new(),
+            artifact_comparator_statuses: BTreeMap::new(),
             conflicting_rows: BTreeSet::new(),
         }
     }
@@ -102,85 +111,9 @@ impl WorthQueryInstallationAdmissionProfile {
         package: WorthQueryValidatedPortableDomainPackage,
     ) -> Result<WorthQueryAdmittedPortableDomainPackage, WorthQueryInstallationAdmissionDenial>
     {
-        if self.support_identity.trim().is_empty() {
-            return Err(WorthQueryInstallationAdmissionDenial {
-                kind: WorthQueryInstallationAdmissionDenialKind::InvalidSupportProfileIdentity,
-                subject: self.support_identity.clone(),
-            });
-        }
-        if self.configuration_identity.trim().is_empty() {
-            return Err(WorthQueryInstallationAdmissionDenial {
-                kind:
-                    WorthQueryInstallationAdmissionDenialKind::InvalidConfigurationProfileIdentity,
-                subject: self.configuration_identity.clone(),
-            });
-        }
-        if let Some(conflict) = self.conflicting_rows.first() {
-            return Err(WorthQueryInstallationAdmissionDenial {
-                kind: WorthQueryInstallationAdmissionDenialKind::ConflictingProfileRow,
-                subject: conflict.clone(),
-            });
-        }
-        for capability in package.capabilities() {
-            match self
-                .capability_statuses
-                .get(capability.as_str())
-                .copied()
-                .unwrap_or(WorthQueryInstallationSupportStatus::Unsupported)
-            {
-                WorthQueryInstallationSupportStatus::Admitted => {}
-                WorthQueryInstallationSupportStatus::Deferred => {
-                    return Err(WorthQueryInstallationAdmissionDenial {
-                        kind: WorthQueryInstallationAdmissionDenialKind::DeferredCapability,
-                        subject: capability.as_str().to_string(),
-                    });
-                }
-                WorthQueryInstallationSupportStatus::Unsupported => {
-                    return Err(WorthQueryInstallationAdmissionDenial {
-                        kind: WorthQueryInstallationAdmissionDenialKind::UnsupportedCapability,
-                        subject: capability.as_str().to_string(),
-                    });
-                }
-            }
-        }
-
-        for section in package.configuration() {
-            if !self
-                .configuration_statuses
-                .get(section.as_str())
-                .copied()
-                .unwrap_or(false)
-            {
-                return Err(WorthQueryInstallationAdmissionDenial {
-                    kind: WorthQueryInstallationAdmissionDenialKind::DisabledConfiguration,
-                    subject: section.as_str().to_string(),
-                });
-            }
-        }
-
-        for requirement in package.operating_requirements() {
-            match self
-                .operating_statuses
-                .get(requirement.as_str())
-                .copied()
-                .unwrap_or(WorthQueryInstallationSupportStatus::Unsupported)
-            {
-                WorthQueryInstallationSupportStatus::Admitted => {}
-                WorthQueryInstallationSupportStatus::Deferred => {
-                    return Err(WorthQueryInstallationAdmissionDenial {
-                        kind:
-                            WorthQueryInstallationAdmissionDenialKind::DeferredOperatingRequirement,
-                        subject: requirement.as_str().to_string(),
-                    });
-                }
-                WorthQueryInstallationSupportStatus::Unsupported => {
-                    return Err(WorthQueryInstallationAdmissionDenial {
-                        kind: WorthQueryInstallationAdmissionDenialKind::UnsupportedOperatingRequirement,
-                        subject: requirement.as_str().to_string(),
-                    });
-                }
-            }
-        }
+        self.validate_profile_identity_and_conflicts()?;
+        self.admit_declared_requirements(&package)?;
+        self.admit_artifact_contracts(&package)?;
 
         let admission_identity = admission_identity(&package, self);
         let admission_meaning = admission_meaning(&package, self);
@@ -273,20 +206,42 @@ pub enum WorthQueryInstallationAdmissionDenialKind {
     DisabledConfiguration,
     DeferredOperatingRequirement,
     UnsupportedOperatingRequirement,
+    UnsupportedArtifactVersion,
+    RetiredArtifactVersion,
+    ArtifactMigrationRequired,
+    AmbiguousArtifactMigration,
+    DeferredArtifactComparator,
+    UnsupportedArtifactComparator,
 }
 
-fn retain_profile_row<T: Copy + Eq>(
-    rows: &mut BTreeMap<String, T>,
+trait AdmissionProfileKey: Ord + Clone {
+    fn profile_subject(&self) -> String;
+}
+
+impl AdmissionProfileKey for String {
+    fn profile_subject(&self) -> String {
+        self.clone()
+    }
+}
+
+impl AdmissionProfileKey for (String, u32, u32) {
+    fn profile_subject(&self) -> String {
+        format!("{}:{}:{}", self.0, self.1, self.2)
+    }
+}
+
+fn retain_profile_row<K: AdmissionProfileKey, T: Clone + Eq>(
+    rows: &mut BTreeMap<K, T>,
     conflicts: &mut BTreeSet<String>,
     dimension: &str,
-    subject: String,
+    subject: K,
     value: T,
 ) {
     if rows
-        .insert(subject.clone(), value)
+        .insert(subject.clone(), value.clone())
         .is_some_and(|prior| prior != value)
     {
-        conflicts.insert(format!("{dimension}:{subject}"));
+        conflicts.insert(format!("{dimension}:{}", subject.profile_subject()));
     }
 }
 

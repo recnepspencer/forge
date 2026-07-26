@@ -205,10 +205,7 @@ fn lookup_declared_scalar(
                 source_family: contract.source_family(),
                 source_identity: compose_scoped_row_source_identity(
                     contract.source_identity(),
-                    row.identity()
-                        .evidence_identity()
-                        .reporting_projection()
-                        .as_ref(),
+                    row.identity().evidence_identity().reporting_projection(),
                 ),
                 field_key: field_path.terminal_projection_for_boundary().to_string(),
                 fact_kind: ProjectionFactKind::DerivedField,

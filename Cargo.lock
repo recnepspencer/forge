@@ -2133,12 +2133,25 @@ dependencies = [
  "syn 2.0.116",
  "worth-foundational",
  "worth-proof",
+ "worth-query-admission",
  "worth-query-declaration",
+ "worth-query-execution",
  "worth-query-installation",
+ "worth-query-publication",
  "worth-relational",
  "worth-runtime-bridge",
  "worth-schema-graph",
  "worth-signal",
+]
+
+[[package]]
+name = "worth-query-admission"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "worth-foundational",
+ "worth-query-declaration",
+ "worth-query-installation",
 ]
 
 [[package]]
@@ -2150,6 +2163,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-query-execution"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "stats_alloc",
+ "worth-foundational",
+ "worth-query-admission",
+ "worth-query-declaration",
+ "worth-query-installation",
+ "worth-relational",
+ "worth-runtime-bridge",
+]
+
+[[package]]
 name = "worth-query-installation"
 version = "0.1.0"
 dependencies = [
@@ -2157,6 +2184,16 @@ dependencies = [
  "worth-foundational",
  "worth-proof",
  "worth-query-declaration",
+]
+
+[[package]]
+name = "worth-query-publication"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+ "worth-foundational",
+ "worth-query-execution",
+ "worth-query-installation",
 ]
 
 [[package]]

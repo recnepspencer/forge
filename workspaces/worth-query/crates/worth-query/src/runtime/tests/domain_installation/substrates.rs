@@ -197,7 +197,8 @@ fn rebuilt_execution_index_reproduces_resolution_denial_and_diagnostic_identity(
         .unwrap()
         .admit_relation_reference("manager")
         .unwrap();
-    for support_family in ["WORTH.tests.missing-neighbors"] {
+    {
+        let support_family = "WORTH.tests.missing-neighbors";
         missing_declaration = missing_declaration
             .requires_support_family(support_family)
             .unwrap();

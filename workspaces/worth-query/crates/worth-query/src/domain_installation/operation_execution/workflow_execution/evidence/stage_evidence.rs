@@ -208,6 +208,7 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(super) predecessor_receipt_identities: Vec<String>,
     pub(super) input: WorthQueryWorkflowSemanticValue,
     pub(super) output: WorthQueryWorkflowValue,
+    pub(super) output_semantics: WorthQueryWorkflowSemanticValue,
     pub(super) result_state: Option<WorthQueryOperationResultState>,
     pub(super) warnings: Vec<WorthQueryWorkflowStageWarning>,
     pub(super) graph_receipts: Vec<WorthQueryBoundGraphExecutionReceipt>,
@@ -224,6 +225,11 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(super) execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
+    pub(super) execution_resources: super::WorthQueryExecutionResourceAttemptEvidence,
+    pub(super) artifact_provider_release: Option<
+        worth_query_execution::facade::domain_computation::WorthQueryArtifactProviderReleasePosture,
+    >,
 }
 
 #[derive(Debug)]
@@ -246,6 +252,9 @@ impl WorthQueryWorkflowStageReceipt {
     pub fn binding_identity(&self) -> &str {
         &self.binding_identity
     }
+    pub fn execution_resources(&self) -> &super::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
+    }
     pub fn stage_identity(&self) -> &str {
         &self.stage_identity
     }
@@ -263,6 +272,55 @@ impl WorthQueryWorkflowStageReceipt {
     }
     pub(crate) fn output(&self) -> &WorthQueryWorkflowValue {
         &self.output
+    }
+    pub(super) fn take_output(&mut self) -> WorthQueryWorkflowValue {
+        std::mem::replace(&mut self.output, WorthQueryWorkflowValue::NotRequired)
+    }
+    pub(super) fn restore_output(&mut self, output: WorthQueryWorkflowValue) {
+        debug_assert!(matches!(self.output, WorthQueryWorkflowValue::NotRequired));
+        self.output = output;
+    }
+    pub(super) fn set_artifact_disposition(
+        &mut self,
+        disposition: crate::domain_installation::WorthQueryArtifactDisposition,
+    ) {
+        self.output_semantics.set_artifact_disposition(disposition);
+    }
+    pub(super) fn cancel_artifact_output(&mut self) {
+        let output = self.take_output();
+        match output {
+            WorthQueryWorkflowValue::InstalledArtifact(handle) => {
+                let disposed = handle.cancel();
+                self.set_artifact_disposition(
+                    crate::domain_installation::WorthQueryArtifactDisposition::Cancelled,
+                );
+                self.artifact_provider_release = Some(disposed.provider_release());
+            }
+            output => self.restore_output(output),
+        }
+    }
+    pub(super) fn retire_artifact_output(&mut self) {
+        let output = self.take_output();
+        match output {
+            WorthQueryWorkflowValue::InstalledArtifact(handle) => {
+                let disposed = handle.retire_for_trace();
+                self.set_artifact_disposition(
+                    crate::domain_installation::WorthQueryArtifactDisposition::Released,
+                );
+                self.artifact_provider_release = Some(disposed.provider_release());
+            }
+            output => self.restore_output(output),
+        }
+    }
+    pub(crate) fn output_semantics(&self) -> &WorthQueryWorkflowSemanticValue {
+        &self.output_semantics
+    }
+    pub fn artifact_provider_release(
+        &self,
+    ) -> Option<
+        worth_query_execution::facade::domain_computation::WorthQueryArtifactProviderReleasePosture,
+    > {
+        self.artifact_provider_release
     }
     pub fn result_state(&self) -> Option<WorthQueryOperationResultState> {
         self.result_state
@@ -308,5 +366,8 @@ impl WorthQueryWorkflowStageReceipt {
         &self,
     ) -> &[crate::domain_installation::WorthQueryConditionalProvenance] {
         &self.conditional
+    }
+    pub fn domain_evidence(&self) -> Option<&super::WorthQueryAdmittedDomainEvidence> {
+        self.domain_evidence.as_ref()
     }
 }

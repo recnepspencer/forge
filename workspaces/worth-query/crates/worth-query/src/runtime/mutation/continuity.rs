@@ -227,9 +227,7 @@ impl WorthQueryContinuityMutationDenial {
             prior_authoritative_identity: intent.prior_authoritative_identity().clone(),
             successor_authoritative_identities: intent
                 .successor_authoritative_identities()
-                .iter()
-                .cloned()
-                .collect(),
+                .to_vec(),
             basis_binding_digest,
             reason,
             denial_digest,

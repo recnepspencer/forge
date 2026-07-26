@@ -18,6 +18,11 @@ fn admitted_parallel_frontier_retains_lower_proof_and_converges_with_serial_trac
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -80,6 +85,11 @@ fn nondeterministic_lowering_cannot_enter_parallel_progression() {
         .family(ReadFamily)
         .bind(&installed, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -133,6 +143,11 @@ fn lower_runtime_parallel_denial_stops_before_frontier_graph_or_executor_work() 
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
         .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -178,6 +193,11 @@ fn parallel_frontier_accepts_ready_incomparable_stages_with_distinct_predecessor
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
@@ -228,6 +248,11 @@ fn complete_serial_trace(name: &str) -> String {
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()

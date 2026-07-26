@@ -11,6 +11,9 @@ pub enum WorthQueryInstalledPackageIndexDenialKind {
     AuthorityMismatch,
     OperationNotInstalled,
     OperationSemanticsChanged,
+    ConflictingArtifactContract,
+    ArtifactContractNotInstalled,
+    ArtifactContractSemanticsChanged,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

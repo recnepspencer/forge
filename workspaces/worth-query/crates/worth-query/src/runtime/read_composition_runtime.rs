@@ -79,9 +79,9 @@ pub(super) fn classify_scope_shape_with_operators(
         .filter(|predicate| !is_identity_anchor_predicate(predicate))
         .count();
 
-    if built_in_operators.contains(&WorthQueryReadBuiltInOperator::FrontierSearch) {
-        WorthQueryReadScopeClass::ExplicitBroadSearch
-    } else if non_anchor_predicate_count > 0 {
+    if built_in_operators.contains(&WorthQueryReadBuiltInOperator::FrontierSearch)
+        || non_anchor_predicate_count > 0
+    {
         WorthQueryReadScopeClass::ExplicitBroadSearch
     } else if built_in_operators.contains(&WorthQueryReadBuiltInOperator::SuccessorWalk)
         || built_in_operators.contains(&WorthQueryReadBuiltInOperator::DirectEdge)

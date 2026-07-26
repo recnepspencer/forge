@@ -7,6 +7,21 @@ pub struct WorthQueryWorkflowParallelAdmissionCall {
     run_identity: String,
     basis_identity: String,
     frontier: Vec<WorthQueryWorkflowParallelFrontierStage>,
+    execution_resources: crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
+}
+
+pub(crate) struct WorthQueryWorkflowParallelAdmissionCallParts {
+    pub(crate) operation_identity: String,
+    pub(crate) binding_identity: String,
+    pub(crate) run_identity: String,
+    pub(crate) basis_identity: String,
+    pub(crate) frontier: Vec<WorthQueryWorkflowParallelFrontierStage>,
+    pub(crate) execution_resources:
+        crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence,
+    pub(crate) resource_envelope:
+        std::sync::Arc<worth_query_installation::facade::WorthQueryExecutionResourceEnvelope>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -59,19 +74,24 @@ impl WorthQueryWorkflowParallelFrontierStage {
 }
 
 impl WorthQueryWorkflowParallelAdmissionCall {
-    pub(super) fn new(
-        operation_identity: &str,
-        binding_identity: &str,
-        run_identity: &str,
-        basis_identity: &str,
-        frontier: Vec<WorthQueryWorkflowParallelFrontierStage>,
-    ) -> Self {
-        Self {
-            operation_identity: operation_identity.into(),
-            binding_identity: binding_identity.into(),
-            run_identity: run_identity.into(),
-            basis_identity: basis_identity.into(),
+    pub(super) fn new(parts: WorthQueryWorkflowParallelAdmissionCallParts) -> Self {
+        let WorthQueryWorkflowParallelAdmissionCallParts {
+            operation_identity,
+            binding_identity,
+            run_identity,
+            basis_identity,
             frontier,
+            execution_resources,
+            resource_envelope,
+        } = parts;
+        Self {
+            operation_identity,
+            binding_identity,
+            run_identity,
+            basis_identity,
+            frontier,
+            execution_resources,
+            resource_envelope,
         }
     }
 
@@ -94,6 +114,18 @@ impl WorthQueryWorkflowParallelAdmissionCall {
     pub fn frontier(&self) -> &[WorthQueryWorkflowParallelFrontierStage] {
         &self.frontier
     }
+
+    pub fn execution_resources(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        &self.execution_resources
+    }
+
+    pub fn resource_envelope(
+        &self,
+    ) -> &worth_query_installation::facade::WorthQueryExecutionResourceEnvelope {
+        &self.resource_envelope
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -114,6 +146,10 @@ impl WorthQueryWorkflowParallelAdmissionFailure {
 }
 
 pub trait WorthQueryWorkflowParallelAdmissionProvider<D, O, F>: Send + Sync + 'static {
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
+
     fn admit_parallel_frontier(
         &self,
         call: &WorthQueryWorkflowParallelAdmissionCall,
@@ -159,6 +195,7 @@ impl WorthQueryWorkflowParallelAdmissionReceipt {
                     .collect::<Vec<_>>()
                     .join("|")
             ),
+            format!("resources:{}", call.execution_resources.identity()),
             format!(
                 "lower_reason:{}",
                 lower_reason_material(lower_receipt.reason())

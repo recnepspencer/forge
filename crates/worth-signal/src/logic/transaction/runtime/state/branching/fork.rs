@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use worth_proof::TransitionOutcome;
 
+use crate::data::error::SignalError;
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId, SignalSnapshotV1};
 
 use super::super::runtime_state::{ExplicitBranchForkPacket, SignalRuntime};
@@ -87,6 +88,9 @@ pub enum SignalBranchForkDenial {
         parent_branch_id: SignalBranchId,
         snapshot_branch_id: SignalBranchId,
         snapshot_id: SignalSnapshotId,
+    },
+    ManagedQueueBranchTransferDenied {
+        bound_queue_count: u32,
     },
 }
 
@@ -263,7 +267,9 @@ where
                     parent_basis: self.current_branch_basis_artifact(),
                     created_branch_head_snapshot_id: parent_branch.head_snapshot_id,
                     requested_snapshot_basis: None,
-                    source_branch_state: self.capture_heavy_branch_state(),
+                    source_branch_state: self
+                        .capture_heavy_branch_state()
+                        .map_err(Self::branch_transfer_error_to_fork_denial)?,
                     parent_branch,
                 })
             }
@@ -345,13 +351,29 @@ where
         parent_branch: SignalBranchHandle,
     ) -> Result<BranchState<D, I, T>, SignalBranchForkDenial> {
         if parent_branch.id == self.graph.current_branch().id {
-            return Ok(self.capture_heavy_branch_state());
+            return self
+                .capture_heavy_branch_state()
+                .map_err(Self::branch_transfer_error_to_fork_denial);
         }
-        self.branches.branch_state(parent_branch.id).cloned().ok_or(
+        let state = self.branches.branch_state(parent_branch.id).ok_or(
             SignalBranchForkDenial::UnknownParentBranch {
                 parent_branch_id: parent_branch.id,
             },
-        )
+        )?;
+        Self::ensure_managed_queue_branch_transfer_allowed(state.resource())
+            .map_err(Self::branch_transfer_error_to_fork_denial)?;
+        Ok(state.clone())
+    }
+
+    pub(super) fn branch_transfer_error_to_fork_denial(
+        error: SignalError,
+    ) -> SignalBranchForkDenial {
+        match error {
+            SignalError::ManagedQueueBranchTransferDenied { bound_queue_count } => {
+                SignalBranchForkDenial::ManagedQueueBranchTransferDenied { bound_queue_count }
+            }
+            other => panic!("heavy branch capture returned an undeclared failure: {other}"),
+        }
     }
 }
 

@@ -8,12 +8,13 @@ use super::{
     WorthQueryWorkflowCompletionDenial, WorthQueryWorkflowOperation, WorthQueryWorkflowRunCounters,
     WorthQueryWorkflowStartDenial,
 };
+use crate::domain_installation::WorthQueryAdmittedWorkflowOperation;
 use crate::domain_installation::WorthQueryAftermathExecutionDenial;
-use crate::domain_installation::WorthQueryBoundDomainOperation;
 
 #[derive(Debug)]
 pub enum WorthQueryWorkflowReexecutionStop {
     IntentDoesNotMatchInstalledGraph,
+    ResourceAdmission(super::WorthQueryExecutionResourceAdmissionDenial),
     Start(WorthQueryWorkflowStartDenial),
     Advance(WorthQueryWorkflowAdvanceDenial),
     ConditionalDeferred {
@@ -38,6 +39,7 @@ impl WorthQueryWorkflowReexecutionStop {
             Self::Completion(denial) => denial.executed_effects(),
             Self::Aftermath(denial) => denial.partial_effects(),
             Self::IntentDoesNotMatchInstalledGraph
+            | Self::ResourceAdmission(_)
             | Self::Start(_)
             | Self::OperationConditionalDeferred { .. } => &[],
         }
@@ -54,7 +56,7 @@ pub type WorthQueryWorkflowReexecutionOutcome<D, O, F, L> = TransitionOutcome<
 >;
 
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane>
-    WorthQueryBoundDomainOperation<D, O, F, L>
+    WorthQueryAdmittedWorkflowOperation<D, O, F, L>
 where
     O: WorthQueryExecutableDomainOperation<D, F, Execution = WorthQueryWorkflowOperation>,
 {
@@ -96,11 +98,28 @@ where
             );
         }
         for stage in intent.stages() {
-            run = match run.advance(
-                stage.stage_identity(),
-                stage.input().runtime_value(),
-                workspace,
-            ) {
+            let advanced = match stage.input() {
+                super::WorthQueryWorkflowIntentValue::PredecessorArtifact { predecessor_stage } => {
+                    run.advance_with_artifact(stage.stage_identity(), predecessor_stage, workspace)
+                }
+                super::WorthQueryWorkflowIntentValue::PredecessorArtifactLease {
+                    predecessor_stage,
+                    lease_role,
+                } => run.advance_with_artifact_lease(
+                    stage.stage_identity(),
+                    predecessor_stage,
+                    lease_role.clone(),
+                    workspace,
+                ),
+                input => run.advance(
+                    stage.stage_identity(),
+                    input
+                        .runtime_value()
+                        .expect("non-artifact intent has a primitive runtime value"),
+                    workspace,
+                ),
+            };
+            run = match advanced {
                 TransitionOutcome::Success(run) => run,
                 TransitionOutcome::Denied(stop) => {
                     return TransitionOutcome::Denied(WorthQueryWorkflowReexecutionStop::Advance(

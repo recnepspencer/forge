@@ -59,7 +59,7 @@ where
         )
         .field_evidence_identity(WorthQueryEvidenceTag::new("target"), &target_identity)
         .field_evidence_identity(WorthQueryEvidenceTag::new("binding"), &binding_identity)
-        .field_evidence_identity(WorthQueryEvidenceTag::new("request"), &request_identity)
+        .field_evidence_identity(WorthQueryEvidenceTag::new("request"), request_identity)
         .field_evidence_identity(WorthQueryEvidenceTag::new("semantic"), &semantic_identity)
         .seal();
         Self {

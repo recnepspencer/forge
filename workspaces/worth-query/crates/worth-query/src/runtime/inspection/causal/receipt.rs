@@ -51,21 +51,21 @@ impl QueryObservationReceipt {
                 CausalEvidenceFamily::QueryMutationCausality,
                 causal_evidence_reference_identity_digest(
                     CausalEvidenceFamily::QueryMutationCausality,
-                    &causality_digest,
+                    causality_digest,
                 ),
             ));
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeRoute,
                 causal_evidence_reference_identity_digest(
                     CausalEvidenceFamily::BridgeRoute,
-                    &route_digest,
+                    route_digest,
                 ),
             ));
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::BridgeEvaluation,
                 causal_evidence_reference_identity_digest(
                     CausalEvidenceFamily::BridgeEvaluation,
-                    &evaluation_surface_digest,
+                    evaluation_surface_digest,
                 ),
             ));
         }
@@ -77,14 +77,14 @@ impl QueryObservationReceipt {
                 CausalEvidenceFamily::QueryMutationProvenance,
                 causal_evidence_reference_identity_digest(
                     CausalEvidenceFamily::QueryMutationProvenance,
-                    &feedback_provenance_digest,
+                    feedback_provenance_digest,
                 ),
             ));
             evidence_identities.push(CausalObservationEvidenceIdentity::new(
                 CausalEvidenceFamily::Provenance,
                 causal_evidence_reference_identity_digest(
                     CausalEvidenceFamily::Provenance,
-                    &execution_record_digest,
+                    execution_record_digest,
                 ),
             ));
         }
@@ -288,7 +288,7 @@ impl QueryObservationReceipt {
             ),
             query_identity: causal_observation_query_evidence_identity(
                 "preview_outcome",
-                &inspection.session_label().identity_digest(),
+                inspection.session_label().identity_digest(),
             ),
             basis_posture: CausalObservationBasisPosture::AuthorityLane(inspection.target_lane()),
             basis_identity: causal_observation_basis_evidence_identity(

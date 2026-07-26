@@ -5,6 +5,7 @@ pub enum WorthQueryWorkflowStartDenialKind {
     RuntimeAuthority(crate::domain_installation::WorthQueryDomainHandleDenialKind),
     WorkflowNotDeclared,
     StageExecutorMissing,
+    ArtifactAuthority(crate::domain_installation::WorthQueryArtifactDenial),
     ConditionalExecution(worth_runtime_bridge::facade::BridgeConditionalDenialKind),
     ConditionalReentry(crate::domain_installation::WorthQueryConditionalAdmissionDenial),
 }

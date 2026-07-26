@@ -131,7 +131,7 @@ fn execute_transcript(spec: TranscriptSpec) -> WorthQueryRuntimePublicApiTranscr
                     std::iter::once(live_field("identity.id")).chain(
                         spec.produced_aspects
                             .iter()
-                            .map(|aspect| live_field(*aspect)),
+                            .map(|aspect| live_field(aspect)),
                     ),
                 )
                 .order_by(live_field("identity.id"))

@@ -1,7 +1,8 @@
 use crate::runtime::WorthQueryGraphObligationDiagnosticMaterialization;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 pub enum WorthQueryGraphObligationArtifactPolicy {
+    #[default]
     BoundedEvidenceOnly,
     RichCapabilityGapDiagnostics,
 }
@@ -31,12 +32,6 @@ impl WorthQueryGraphObligationArtifactPolicy {
                 WorthQueryGraphObligationDiagnosticMaterialization::RichCapabilityGapDiagnostics
             }
         }
-    }
-}
-
-impl Default for WorthQueryGraphObligationArtifactPolicy {
-    fn default() -> Self {
-        Self::BoundedEvidenceOnly
     }
 }
 

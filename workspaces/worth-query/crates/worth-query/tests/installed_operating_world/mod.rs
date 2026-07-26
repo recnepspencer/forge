@@ -1,3 +1,9 @@
+mod artifact_native_access;
+mod artifact_native_access_causality;
+mod artifact_phase_journey;
+mod artifact_workflow_authority;
+mod artifact_workflow_lifecycle;
+mod artifact_workflow_replay;
 mod conditional_attempt_identity;
 mod conditional_execution;
 mod conditional_failure_accounting;
@@ -21,8 +27,12 @@ mod dependency_impact_retry;
 mod dependency_impact_role_matrix;
 mod dependency_impact_scale;
 mod dependency_impact_semantic_convergence;
+mod domain_evidence;
+mod execution_resource_admission;
 mod graph_participation;
 mod graph_provider_execution;
+mod graph_provider_step;
+mod graph_read_material;
 mod installed_operation_fixture;
 mod operating_world;
 mod operating_world_atomicity;
@@ -55,8 +65,14 @@ mod operation_sharing_admission;
 mod public_facade_dx;
 mod workflow_effect_execution;
 mod workflow_graph_installation;
+mod workflow_graph_projection;
 mod workflow_parallel_progression;
 mod workflow_progression;
 mod workflow_projection_lifecycle;
 mod workflow_projection_transition_authority;
 mod workflow_projection_transitions;
+
+fn provider_commit_admission_work_report(
+) -> worth_query::facade::domain::WorthQueryLegacyProviderWorkClaim {
+    worth_query::facade::domain::WorthQueryLegacyProviderWorkClaim::new(1, 0, 0, 0)
+}

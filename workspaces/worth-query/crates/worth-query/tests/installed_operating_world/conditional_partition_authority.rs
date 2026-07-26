@@ -61,31 +61,32 @@ fn partition_dependency_crosses_the_real_relational_source_and_signal_delivery_p
         )
         .unwrap();
     let (bridge, request) = correspondence_bridge(registration);
-    let mut graph_binding = bridge.bind_signal_graph(&mut signal_graph).unwrap();
+    {
+        let mut graph_binding = bridge.bind_signal_graph(&mut signal_graph).unwrap();
 
-    let TransitionOutcome::Success(correspondence) = operation.install_semantic_correspondence(
-        location,
-        0,
-        &graph_participation,
-        None,
-        &mut graph_binding,
-    ) else {
-        panic!("partition correspondence installs")
-    };
-    assert_eq!(
-        correspondence
-            .admission_counters()
-            .partition_widened_matches(),
-        1
-    );
-    let TransitionOutcome::Success(counters) =
-        correspondence.deliver_authoritative_change(&mut graph_binding, request)
-    else {
-        panic!("partition-scoped Relational publication delivers")
-    };
-    assert_eq!(counters.truth_targets_admitted(), 1);
-    assert_eq!(counters.signal_seeds_emitted(), 1);
-    drop(graph_binding);
+        let TransitionOutcome::Success(correspondence) = operation.install_semantic_correspondence(
+            location,
+            0,
+            &graph_participation,
+            None,
+            &mut graph_binding,
+        ) else {
+            panic!("partition correspondence installs")
+        };
+        assert_eq!(
+            correspondence
+                .admission_counters()
+                .partition_widened_matches(),
+            1
+        );
+        let TransitionOutcome::Success(counters) =
+            correspondence.deliver_authoritative_change(&mut graph_binding, request)
+        else {
+            panic!("partition-scoped Relational publication delivers")
+        };
+        assert_eq!(counters.truth_targets_admitted(), 1);
+        assert_eq!(counters.signal_seeds_emitted(), 1);
+    }
     assert_eq!(
         signal_graph
             .node_aspect_version(signal_node)

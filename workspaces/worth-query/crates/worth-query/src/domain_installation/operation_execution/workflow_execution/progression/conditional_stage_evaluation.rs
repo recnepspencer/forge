@@ -12,6 +12,8 @@ pub(super) fn evaluate<D: 'static, O: 'static, F: 'static, L: BasisOperationLane
     stage_identity: &str,
     run_identity: &str,
     attempt: u64,
+    resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &super::WorthQueryExecutionResourceAttemptEvidence,
     run_counters: &mut super::WorthQueryWorkflowRunCounters,
 ) -> Result<Vec<crate::domain_installation::WorthQueryConditionalProvenance>, ConditionalStageStop>
 {
@@ -33,6 +35,8 @@ pub(super) fn evaluate<D: 'static, O: 'static, F: 'static, L: BasisOperationLane
             ),
             workflow_run_identity: Some(run_identity),
             attempt,
+            resources,
+            resource_evidence,
             counters: &mut counters,
         },
     );

@@ -11,9 +11,15 @@ use super::{
 
 #[path = "workflow/definitions.rs"]
 mod definitions;
+#[path = "workflow/graph_projection.rs"]
+mod graph_projection;
+#[path = "workflow/resource_admission.rs"]
+mod resource_admission;
 pub(super) use definitions::valid_stages;
 pub use definitions::InvalidWorkflow;
 use definitions::{no_value, projection, stage, text, workflow_definition};
+pub use graph_projection::workflow_graph_projection_workspace;
+pub(crate) use resource_admission::workflow_workspace_with_parallel_provider;
 
 pub fn workflow_workspace(
     name: &str,

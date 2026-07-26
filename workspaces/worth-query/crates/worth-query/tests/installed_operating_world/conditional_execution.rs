@@ -13,7 +13,7 @@ use super::installed_operation_fixture::{
 };
 
 mod providers;
-use providers::CapturingCompute;
+use providers::{domain_condition_node, CapturingCompute, CountedCompute, StaticCondition};
 
 #[test]
 fn changed_signal_decision_reenters_before_the_ordinary_executor() {
@@ -33,7 +33,13 @@ fn changed_signal_decision_reenters_before_the_ordinary_executor() {
     let consumer = bound.consumer_projection_contract().unwrap();
 
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     assert_eq!(executed.conditional_provenance().len(), 1);
@@ -131,7 +137,13 @@ fn compute_receives_the_exact_bound_query_context() {
     );
 
     bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     let actual = captured.lock().unwrap().take().unwrap();
@@ -179,6 +191,11 @@ fn workflow_stage_retains_the_same_signal_decision_in_its_receipt() {
         .unwrap()
         .family(ReadFamily)
         .bind(&domain, WorkflowRead)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap();
@@ -242,8 +259,14 @@ fn suppressed_decision_runs_no_query_graph_or_domain_work() {
         .bind(&domain, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("suppressed Signal decision must remain a typed Query deferral")
     };
@@ -286,8 +309,14 @@ fn reverted_clean_retains_compute_cost_but_mints_no_query_consequence() {
         .bind(&domain, ReadVertex)
         .unwrap();
 
-    let TransitionOutcome::Deferred(deferred) =
-        bound.execute(ReadExecutionInput::default(), &mut workspace)
+    let TransitionOutcome::Deferred(deferred) = bound
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
     else {
         panic!("reverted-clean Signal decision must not invent Query output")
     };
@@ -301,70 +330,4 @@ fn reverted_clean_retains_compute_cost_but_mints_no_query_consequence() {
     assert_eq!(deferred.counters().conditional_semantic_changes, 0);
     assert_eq!(deferred.counters().graph_provider_contacts, 0);
     assert_eq!(deferred.counters().executor_contacts, 0);
-}
-
-struct StaticCondition(worth_signal::facade::InstalledSignalConditionDecision);
-
-impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for StaticCondition {
-    type SemanticContract = worth_signal::facade::InstalledSignalConditionDecision;
-
-    fn semantic_contract(&self) -> Self::SemanticContract {
-        self.0
-    }
-}
-
-impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for StaticCondition {
-    fn resolve(
-        &self,
-        _declaration: &domain::WorthQueryPortableConditionalNodeDeclaration,
-        _context: worth_runtime_bridge::facade::BridgeConditionalResolverContext,
-    ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
-        Ok(self.0)
-    }
-}
-
-struct CountedCompute {
-    contacts: Arc<AtomicUsize>,
-    version: u64,
-}
-
-impl CountedCompute {
-    fn new(contacts: Arc<AtomicUsize>, version: u64) -> Self {
-        Self { contacts, version }
-    }
-}
-
-impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex, ReadFamily>
-    for CountedCompute
-{
-    type SemanticContract = u64;
-
-    fn semantic_contract(&self) -> Self::SemanticContract {
-        self.version
-    }
-
-    fn compute(
-        &self,
-        _context: &domain::WorthQueryConditionalComputeContext,
-    ) -> Result<worth_signal::facade::NodeEvaluationResult, String> {
-        self.contacts.fetch_add(1, Ordering::SeqCst);
-        Ok(worth_signal::facade::NodeEvaluationResult::from_version(
-            worth_signal::facade::AspectVersion::from_updates([(
-                worth_signal::facade::Aspect::new(0),
-                self.version,
-            )]),
-        ))
-    }
-}
-
-fn domain_condition_node(identity: &str) -> domain::WorthQueryPortableConditionalNodeDeclaration {
-    conditional_node_result(
-        identity,
-        dependency(domain::WorthQuerySemanticLocality::SourceRecord),
-        domain::WorthQueryConditionalEvaluationCondition::domain_specific::<GeometryCondition>([])
-            .unwrap(),
-        domain::WorthQueryConditionalTrigger::DependencyChange,
-        domain::WorthQueryMaintenancePosture::LazyUntilObserved,
-    )
-    .unwrap()
 }

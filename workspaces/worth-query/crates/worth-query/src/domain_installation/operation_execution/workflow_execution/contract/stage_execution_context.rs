@@ -1,14 +1,16 @@
 use super::{
-    WorthQueryBoundGraphExecutionReceipt, WorthQueryWorkflowEffectEvidence,
-    WorthQueryWorkflowPredecessorReceipt, WorthQueryWorkflowStageEffectDenial,
-    WorthQueryWorkflowStageExecutorFailure, WorthQueryWorkflowStageReceipt,
-    WorthQueryWorkflowStageWorkspace,
+    workflow_stage_lineage::lineage_traversal, WorthQueryBoundGraphExecutionReceipt,
+    WorthQueryWorkflowEffectEvidence, WorthQueryWorkflowPredecessorReceipt,
+    WorthQueryWorkflowStageEffectDenial, WorthQueryWorkflowStageExecutionAuthority,
+    WorthQueryWorkflowStageExecutionScope, WorthQueryWorkflowStageExecutorFailure,
+    WorthQueryWorkflowStageLineageDenial, WorthQueryWorkflowStageWorkspace,
 };
 
 pub struct WorthQueryWorkflowStageExecutionContext<'a> {
-    operation_identity: &'a str,
-    run_identity: &'a str,
-    stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
+    pub(super) operation_identity: &'a str,
+    pub(super) binding_identity: &'a str,
+    pub(super) run_identity: &'a str,
+    pub(super) stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
     predecessor_receipts: Vec<WorthQueryWorkflowPredecessorReceipt<'a>>,
     effect_workflow_binding: crate::workflow::WorkflowContextBinding,
     basis: crate::basis_lifecycle::BasisFamily,
@@ -16,42 +18,29 @@ pub struct WorthQueryWorkflowStageExecutionContext<'a> {
     operation_graph_reads:
         &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
     graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
+    resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &'a super::WorthQueryExecutionProviderSession,
     query_authority: crate::identity_authority::QueryCanonicalAuthority,
-    identity_evolution_basis_identity: String,
-}
-
-pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
-    pub(crate) effect_workflow_binding: crate::workflow::WorkflowContextBinding,
-    pub(crate) basis: crate::basis_lifecycle::BasisFamily,
-    pub(crate) installed_read: Option<&'a crate::ordinary::read::WorthQueryReadDeclaration>,
-    pub(crate) operation_graph_reads:
-        &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
-    pub(crate) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
-    pub(crate) query_authority: crate::identity_authority::QueryCanonicalAuthority,
-    pub(crate) identity_evolution_basis_identity: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryWorkflowStageLineageDenial {
-    RuntimeMutationEvidenceRequired,
-    AuthoritativeContinuityEvidenceRequired,
-    IdentityEvolutionAdmission(crate::identity_evolution::IdentityEvolutionAdmissionError),
-    IdentityEvolutionOutcomeMismatch,
+    pub(super) identity_evolution_basis_identity: String,
+    pub(super) artifact_access_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>>,
+    pub(super) artifact_production_authority:
+        Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>,
 }
 
 impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     pub(crate) fn new(
-        operation_identity: &'a str,
-        run_identity: &'a str,
-        stage: &'a worth_query_installation::facade::WorthQueryPortableWorkflowStage,
-        predecessor_receipts: &'a [&'a WorthQueryWorkflowStageReceipt],
+        scope: WorthQueryWorkflowStageExecutionScope<'a>,
         authority: WorthQueryWorkflowStageExecutionAuthority<'a>,
     ) -> Self {
         Self {
-            operation_identity,
-            run_identity,
-            stage,
-            predecessor_receipts: predecessor_receipts
+            operation_identity: scope.operation_identity,
+            binding_identity: scope.binding_identity,
+            run_identity: scope.run_identity,
+            stage: scope.stage,
+            predecessor_receipts: scope
+                .predecessor_receipts
                 .iter()
                 .map(|receipt| WorthQueryWorkflowPredecessorReceipt::new(receipt))
                 .collect(),
@@ -60,16 +49,50 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
             installed_read: authority.installed_read,
             operation_graph_reads: authority.operation_graph_reads,
             graph_receipts: authority.graph_receipts,
+            resources: authority.resources,
+            resource_evidence: authority.resource_evidence,
+            provider_session: authority.provider_session,
             query_authority: authority.query_authority,
             identity_evolution_basis_identity: authority.identity_evolution_basis_identity,
+            artifact_access_authority: authority.artifact_access_authority,
+            artifact_production_authority: authority.artifact_production_authority,
         }
+    }
+
+    pub(crate) fn artifact_production_authority(
+        &self,
+    ) -> Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactProductionAuthority>>
+    {
+        self.artifact_production_authority
+            .as_ref()
+            .map(std::sync::Arc::clone)
+    }
+
+    pub(crate) fn artifact_access_authority(
+        &self,
+    ) -> Option<std::sync::Arc<crate::domain_installation::WorthQueryArtifactAccessAuthority>> {
+        self.artifact_access_authority
+            .as_ref()
+            .map(std::sync::Arc::clone)
     }
 
     pub fn operation_identity(&self) -> &str {
         self.operation_identity
     }
+    pub fn binding_identity(&self) -> &str {
+        self.binding_identity
+    }
     pub fn run_identity(&self) -> &str {
         self.run_identity
+    }
+    pub fn resources(&self) -> &super::WorthQueryAdmittedExecutionResourcePlan {
+        self.resources
+    }
+    pub fn resource_evidence(&self) -> &super::WorthQueryExecutionResourceAttemptEvidence {
+        self.resource_evidence
+    }
+    pub fn provider_session(&self) -> &super::WorthQueryExecutionProviderSession {
+        self.provider_session
     }
     pub fn stage(&self) -> &worth_query_installation::facade::WorthQueryPortableWorkflowStage {
         self.stage
@@ -77,10 +100,6 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
     pub fn predecessor_receipts(&self) -> &[WorthQueryWorkflowPredecessorReceipt<'a>] {
         &self.predecessor_receipts
     }
-    pub(crate) fn effect_workflow_binding(&self) -> &crate::workflow::WorkflowContextBinding {
-        &self.effect_workflow_binding
-    }
-
     pub fn execute_identity_evolution(
         &self,
         establishing_effect: &WorthQueryWorkflowEffectEvidence,
@@ -91,42 +110,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
         let mutation_receipt = establishing_effect
             .mutation_receipt()
             .ok_or(WorthQueryWorkflowStageLineageDenial::RuntimeMutationEvidenceRequired)?;
-        let continuity = mutation_receipt.continuity_mutation_evidence();
-        let (descriptor, lifecycle_target) = match mutation_receipt.mutation_family() {
-            crate::runtime::WorthQueryMutationFamily::Insert => {
-                let target = mutation_receipt.target_entity_identity().ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?;
-                (
-                    crate::identity_evolution::LineageTraversalDescriptor::generated_identity(
-                        target.evidence_identity().as_str().to_owned(),
-                    ),
-                    Some(target.clone()),
-                )
-            }
-            crate::runtime::WorthQueryMutationFamily::Delete => {
-                let target = mutation_receipt.target_entity_identity().ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?;
-                (
-                    crate::identity_evolution::LineageTraversalDescriptor::retired_identity(
-                        target.evidence_identity().as_str().to_owned(),
-                    ),
-                    Some(target.clone()),
-                )
-            }
-            crate::runtime::WorthQueryMutationFamily::Update => (
-                authoritative_continuity_descriptor(continuity.ok_or(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                )?)?,
-                None,
-            ),
-            crate::runtime::WorthQueryMutationFamily::Assertion => {
-                return Err(
-                    WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired,
-                );
-            }
-        };
+        let (descriptor, lifecycle_target) = lineage_traversal(mutation_receipt)?;
         let query =
             crate::identity_evolution::IdentityEvolutionQueryContext::installed_operation_lineage(
                 &self.query_authority,
@@ -141,7 +125,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                 .map_err(WorthQueryWorkflowStageLineageDenial::IdentityEvolutionAdmission)?;
         crate::identity_evolution::InstalledIdentityEvolutionOutcome::from_execution(
             artifact,
-            continuity.cloned(),
+            mutation_receipt.continuity_mutation_evidence().cloned(),
             lifecycle_target,
             crate::identity_evolution::InstalledIdentityEvolutionBinding {
                 operation_identity: self.operation_identity,
@@ -200,7 +184,10 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
         .ok_or(WorthQueryWorkflowStageLineageDenial::IdentityEvolutionOutcomeMismatch)
     }
 
-    pub fn graph_projection(&self, role: &str) -> Option<&crate::runtime::WorthQueryReadResult> {
+    pub fn graph_projection(
+        &self,
+        role: &str,
+    ) -> Option<&super::WorthQueryExecutionGraphReadProduct> {
         if !self
             .stage
             .semantics()
@@ -217,7 +204,7 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                     && receipt.kind()
                         == crate::domain_installation::WorthQueryGraphProviderCallKind::Project
             })
-            .and_then(WorthQueryBoundGraphExecutionReceipt::projection)
+            .and_then(WorthQueryBoundGraphExecutionReceipt::graph_read_product)
     }
 
     pub fn execute_mutation(
@@ -306,50 +293,5 @@ impl<'a> WorthQueryWorkflowStageExecutionContext<'a> {
                 && declared.participation
                     == worth_query_installation::facade::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph
         })
-    }
-}
-
-fn authoritative_continuity_descriptor(
-    continuity: &crate::runtime::WorthQueryContinuityMutationEvidence,
-) -> Result<
-    crate::identity_evolution::LineageTraversalDescriptor,
-    WorthQueryWorkflowStageLineageDenial,
-> {
-    use crate::runtime::WorthQueryContinuityOutcomeClass as Outcome;
-
-    let anchor = continuity
-        .prior_authoritative_identity()
-        .evidence_identity()
-        .as_str()
-        .to_owned();
-    let successors = continuity
-        .successor_authoritative_identities()
-        .iter()
-        .map(|identity| identity.evidence_identity().as_str().to_owned())
-        .collect::<Vec<_>>();
-    match continuity.outcome_class() {
-        Outcome::ContinuesAsSingleSuccessor => Ok(
-            crate::identity_evolution::LineageTraversalDescriptor::direct_successor_exact(
-                anchor,
-                successors[0].clone(),
-            ),
-        ),
-        Outcome::ContinuesAsSplitSuccessors => Ok(
-            crate::identity_evolution::LineageTraversalDescriptor::direct_split_successors_exact(
-                anchor, successors,
-            ),
-        ),
-        Outcome::ContinuesViaTruthLoweredCanonicalMergeSuccessor => Ok(
-            crate::identity_evolution::LineageTraversalDescriptor::direct_merge_successor_exact(
-                anchor,
-                successors[0].clone(),
-            ),
-        ),
-        Outcome::RejectedNoAuthoritativeSuccessor
-        | Outcome::RejectedAmbiguousSuccessor
-        | Outcome::RejectedUnsupportedContinuityClass
-        | Outcome::RejectedHistoricalResolutionFailure => {
-            Err(WorthQueryWorkflowStageLineageDenial::AuthoritativeContinuityEvidenceRequired)
-        }
     }
 }

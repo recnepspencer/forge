@@ -66,6 +66,17 @@ impl StructAspectValue {
     pub fn get(&self, key: &FieldKey) -> Option<&AspectValue> {
         self.fields.get(key)
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.fields
+            .iter()
+            .map(|(key, value)| {
+                std::mem::size_of::<(FieldKey, AspectValue)>()
+                    .saturating_add(key.owned_allocation_capacity_bytes())
+                    .saturating_add(value.owned_allocation_capacity_bytes())
+            })
+            .sum()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

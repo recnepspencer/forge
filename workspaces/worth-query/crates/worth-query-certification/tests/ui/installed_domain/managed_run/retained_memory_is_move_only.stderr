@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/installed_domain/managed_run/retained_memory_is_move_only.rs:6:5
+  |
+5 | ) -> WorthQueryGraphProviderRetainedMemory {
+  |      ------------------------------------- expected `WorthQueryGraphProviderRetainedMemory` because of return type
+6 |     memory.clone()
+  |     ^^^^^^^^^^^^^^ expected `WorthQueryGraphProviderRetainedMemory`, found `&WorthQueryGraphProviderRetainedMemory`
+  |
+note: `WorthQueryGraphProviderRetainedMemory` does not implement `Clone`, so `&WorthQueryGraphProviderRetainedMemory` was cloned instead
+ --> tests/ui/installed_domain/managed_run/retained_memory_is_move_only.rs:6:5
+  |
+6 |     memory.clone()
+  |     ^^^^^^

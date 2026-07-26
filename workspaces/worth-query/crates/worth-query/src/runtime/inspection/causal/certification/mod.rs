@@ -1,4 +1,5 @@
 mod artifacts;
+mod domain_evidence_bundle;
 mod error;
 mod failure_evidence;
 mod matrix;
@@ -14,6 +15,9 @@ pub use artifacts::{
     CausalInspectionCertificationLane, CausalInspectionCertificationScope,
     CausalInspectionPerformanceCertificationBundle, CausalInspectionScaleCounterSnapshot,
     CausalInspectionScaleFixtureSize,
+};
+pub use domain_evidence_bundle::{
+    WorthQueryDomainEvidenceCertificationBundle, WorthQueryDomainEvidenceCertificationSidecar,
 };
 pub use error::{CausalInspectionCertificationError, CausalInspectionCertificationErrorKind};
 pub use failure_evidence::{

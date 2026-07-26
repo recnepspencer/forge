@@ -311,7 +311,7 @@ impl WorthQueryRecoveryExplanation {
     }
 
     pub fn materialization(&self) -> WorthQueryRecoveryMaterialization {
-        WorthQueryRecoveryMaterialization::from_profile(self.profile.clone())
+        WorthQueryRecoveryMaterialization::from_profile(self.profile)
     }
 
     pub fn contribution_intent_descriptor(

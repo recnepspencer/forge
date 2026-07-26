@@ -15,6 +15,7 @@ worth-query-replay.workspace = true
 trybuild.workspace = true
 worth-foundational.workspace = true
 worth-query.workspace = true
+worth-query-execution = { path = "../worth-query-execution" }
 worth-proof.workspace = true
 worth-relational.workspace = true
 worth-runtime-bridge.workspace = true
@@ -23,6 +24,14 @@ worth-signal.workspace = true
 [[test]]
 name = "compile_certification"
 path = "tests/compile_certification.rs"
+
+[[test]]
+name = "managed_run_compile_fail"
+path = "tests/managed_run_compile_fail.rs"
+
+[[test]]
+name = "convergence_epoch_compile_fail"
+path = "tests/convergence_epoch_compile_fail.rs"
 
 [lints]
 workspace = true

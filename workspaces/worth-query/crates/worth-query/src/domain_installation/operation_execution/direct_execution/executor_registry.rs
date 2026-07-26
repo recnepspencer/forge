@@ -70,6 +70,7 @@ where
 pub(crate) struct WorthQueryInstalledDomainOperationExecutor {
     pub(crate) executor: Arc<dyn ErasedDomainOperationExecutor>,
     pub(crate) installed_read: Option<crate::ordinary::read::WorthQueryReadDeclaration>,
+    pub(crate) resource_support: super::WorthQueryExecutionResourceSupport,
 }
 
 impl WorthQueryInstalledDomainOperationExecutor {
@@ -110,6 +111,7 @@ struct PendingExecutor {
     execution_cost: crate::domain_installation::WorthQueryOperationCostClass,
     result_width_cost: crate::domain_installation::WorthQueryOperationCostClass,
     installed_read: Option<crate::ordinary::read::WorthQueryReadDeclaration>,
+    resource_support: super::WorthQueryExecutionResourceSupport,
 }
 
 #[derive(Default)]
@@ -126,6 +128,7 @@ impl WorthQueryPendingDomainOperationExecutors {
         E: WorthQueryDomainOperationExecutor<D, O, F>,
     {
         let key = (TypeId::of::<D>(), TypeId::of::<O>(), TypeId::of::<F>());
+        let resource_support = executor.execution_resource_support();
         let registration = PendingExecutor {
             installed_read: executor
                 .installed_read_declaration()
@@ -139,6 +142,7 @@ impl WorthQueryPendingDomainOperationExecutors {
             deterministic: E::DETERMINISTIC,
             execution_cost: E::EXECUTION_COST,
             result_width_cost: E::RESULT_WIDTH_COST,
+            resource_support,
         };
         self.invalid_publication_output |= registration.publishes
             && TypeId::of::<O::Output>()
@@ -232,6 +236,7 @@ impl WorthQueryPendingDomainOperationExecutors {
                         Arc::new(WorthQueryInstalledDomainOperationExecutor {
                             executor: value.executor,
                             installed_read: value.installed_read,
+                            resource_support: value.resource_support,
                         }),
                     )
                 })

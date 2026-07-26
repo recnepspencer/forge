@@ -8,6 +8,10 @@ pub(super) struct SerialParallelProvider;
 impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, WorkflowRead, ReadFamily>
     for WorkflowParallelProvider
 {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn admit_parallel_frontier(
         &self,
         call: &domain::WorthQueryWorkflowParallelAdmissionCall,
@@ -15,6 +19,11 @@ impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, Workflo
         worth_signal::facade::adapters::FrontierRouteEvidenceReceipt,
         domain::WorthQueryWorkflowParallelAdmissionFailure,
     > {
+        assert_eq!(call.execution_resources().strategy(), "fixture-bounded");
+        assert_eq!(
+            call.resource_envelope().cancellation_safe_point().as_str(),
+            "fixture-chunk-boundary"
+        );
         let frontier = call.frontier();
         if frontier
             .iter()
@@ -42,6 +51,10 @@ impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, Workflo
 impl domain::WorthQueryWorkflowParallelAdmissionProvider<GeometryDomain, WorkflowRead, ReadFamily>
     for SerialParallelProvider
 {
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn admit_parallel_frontier(
         &self,
         _call: &domain::WorthQueryWorkflowParallelAdmissionCall,

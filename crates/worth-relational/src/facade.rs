@@ -1,7 +1,6 @@
 //! Public API boundary for `worth-relational`.
 
 mod runtime_validation_exports;
-
 pub mod config {
     pub use crate::config::data::{
         AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CheckpointPolicy,
@@ -13,7 +12,6 @@ pub mod config {
         StorageLayoutConfig, VisibilityCachePolicy,
     };
 }
-
 pub mod grouped_truth {
     pub use crate::grouped_truth::{
         encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
@@ -24,7 +22,6 @@ pub mod grouped_truth {
         RelationalProjectedAspectValueSet, RelationalRowIdentity, RelationalRowSetDigest,
     };
 }
-
 pub mod commit_strategies {
     pub use crate::commit_strategies::data::{
         CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact,
@@ -248,6 +245,11 @@ pub mod runtime {
         RelationReadRecord, RelationalReadView, StorageStats,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
+    pub use crate::visibility::execution_basis::{
+        RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
+        RelationalExecutionBasisDenialKind, RelationalExecutionBasisIdentity,
+        RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
+    };
     pub use crate::visibility::materialization::read_records::{
         ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectRequirement,
         ProjectionAspectScope,

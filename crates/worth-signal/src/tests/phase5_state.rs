@@ -398,7 +398,9 @@ fn restore_branch_snapshot_rejects_cross_branch_payloads_and_keeps_catalog_consi
         .build();
     let feature = runtime.create_branch("feature-cross").unwrap();
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let err = runtime.restore_branch_snapshot(feature.clone(), &main_snapshot);
     assert!(
@@ -500,7 +502,9 @@ fn invalidation_emits_lineage_without_replacement_and_branch_restore_is_local() 
 
     let main_branch = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-b").unwrap();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.switch_branch(feature.clone()).unwrap();
 
     runtime
@@ -651,7 +655,9 @@ fn replay_slices_and_lineage_chains_are_branch_and_snapshot_queryable() {
         .unwrap();
 
     let main_branch = runtime.observe().current_branch();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let before_cursor = runtime
         .replay_for_branch(main_branch.id)
         .frames
@@ -841,11 +847,15 @@ fn branched_runtime_preserves_unique_branch_and_snapshot_ids() {
 
     runtime.switch_branch(feature.clone()).unwrap();
     let nested = runtime.create_branch("nested-runtime-ids").unwrap();
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime.switch_branch(main.clone()).unwrap();
     let sibling = runtime.create_branch("sibling-runtime-ids").unwrap();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     assert!(
         sibling.id > nested.id,
@@ -879,7 +889,9 @@ fn branch_switch_and_restore_churn_preserve_branch_local_heads_and_replay_isolat
 
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-churn").unwrap();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -1033,7 +1045,9 @@ fn snapshot_metadata_and_replay_ranges_are_inspectable_without_restore() {
         .map(|frame| frame.cursor)
         .expect("replay should exist after first transaction");
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     assert_eq!(snapshot.meta().snapshot_id, snapshot.snapshot_id());
     assert_eq!(snapshot.meta().branch_id, snapshot.branch_id());
     assert_eq!(
@@ -1278,7 +1292,9 @@ fn replay_and_lineage_overlap_stay_equivalent_across_runtime_policy_matrix() {
 
         let main = runtime.observe().current_branch();
         let feature = runtime.create_branch("feature-policy").unwrap();
-        let main_snapshot = runtime.capture_snapshot();
+        let main_snapshot = runtime
+            .capture_snapshot()
+            .expect("snapshot capture should succeed without managed queue bindings");
 
         runtime.switch_branch(feature.clone()).unwrap();
         runtime
@@ -1387,7 +1403,9 @@ fn snapshot_contract_accepts_matching_schema_and_rejects_profile_or_schema_misma
         })
         .unwrap();
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.restore_snapshot(&snapshot).unwrap();
     assert_eq!(
         runtime
@@ -1578,7 +1596,9 @@ fn snapshot_restore_preserves_advanced_reuse_history_truth() {
         })
         .unwrap();
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     mark_dirty(runtime.graph_mut(), alias_node, ASPECT_A).unwrap();
     runtime
@@ -2089,7 +2109,9 @@ fn restore_snapshot_with_active_policy_prunes_cold_richness_without_changing_ope
         .diagnostics_state_mut()
         .record_provenance_fact(ProvenanceFact::from_explanation(&explanation));
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     assert!(
         snapshot.diagnostics.explanation_facts.contains_key(&node),
         "captured snapshot should include retained explanation richness"
@@ -2305,7 +2327,9 @@ fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per
         })
         .unwrap();
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.restore_snapshot(&snapshot).unwrap();
     let compact_restores = runtime
         .graph()
@@ -2329,7 +2353,9 @@ fn snapshot_restore_lineage_defaults_to_compact_global_but_forensic_can_emit_per
         SignalRuntimePolicy::forensic()
             .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
     );
-    let forensic_snapshot = runtime.capture_snapshot();
+    let forensic_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.restore_snapshot(&forensic_snapshot).unwrap();
     let forensic_restores = runtime
         .graph()
@@ -2377,7 +2403,9 @@ fn branch_churn_respects_history_and_replay_budgets_under_tight_policy() {
 
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-budget").unwrap();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime.switch_branch(feature.clone()).unwrap();
     runtime

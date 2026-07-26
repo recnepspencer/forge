@@ -14,11 +14,34 @@ pub enum WorthQueryWorkflowIntentValue {
     Text(String),
     EntityIdentity(String),
     CurrentEntityIdentity(crate::memory_workspace::WorthQueryEntityIdentity),
+    PredecessorArtifact {
+        predecessor_stage: String,
+    },
+    PredecessorArtifactLease {
+        predecessor_stage: String,
+        lease_role: String,
+    },
 }
 
 impl WorthQueryWorkflowIntentValue {
-    pub(crate) fn runtime_value(&self) -> WorthQueryWorkflowValue {
-        match self {
+    pub fn predecessor_artifact(predecessor_stage: impl Into<String>) -> Self {
+        Self::PredecessorArtifact {
+            predecessor_stage: predecessor_stage.into(),
+        }
+    }
+
+    pub fn predecessor_artifact_lease(
+        predecessor_stage: impl Into<String>,
+        lease_role: impl Into<String>,
+    ) -> Self {
+        Self::PredecessorArtifactLease {
+            predecessor_stage: predecessor_stage.into(),
+            lease_role: lease_role.into(),
+        }
+    }
+
+    pub(crate) fn runtime_value(&self) -> Option<WorthQueryWorkflowValue> {
+        Some(match self {
             Self::NotRequired => WorthQueryWorkflowValue::NotRequired,
             Self::Bool(value) => WorthQueryWorkflowValue::Bool(*value),
             Self::I64(value) => WorthQueryWorkflowValue::I64(*value),
@@ -28,6 +51,26 @@ impl WorthQueryWorkflowIntentValue {
             Self::CurrentEntityIdentity(value) => {
                 WorthQueryWorkflowValue::CurrentEntityIdentity(value.clone())
             }
+            Self::PredecessorArtifact { .. } | Self::PredecessorArtifactLease { .. } => {
+                return None
+            }
+        })
+    }
+
+    pub(crate) fn semantically_matches(
+        &self,
+        value: &super::WorthQueryWorkflowSemanticValue,
+    ) -> bool {
+        match self {
+            Self::PredecessorArtifact { .. } | Self::PredecessorArtifactLease { .. } => {
+                matches!(
+                    value,
+                    super::WorthQueryWorkflowSemanticValue::InstalledArtifact(_)
+                )
+            }
+            _ => self
+                .runtime_value()
+                .is_some_and(|runtime| runtime.semantic_value() == *value),
         }
     }
 }

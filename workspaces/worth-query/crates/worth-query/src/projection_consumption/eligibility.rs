@@ -109,7 +109,7 @@ impl ProjectionConsumptionEligibilityTrace {
     }
 
     pub fn explanation(&self) -> &'static str {
-        &self.explanation
+        self.explanation
     }
 }
 

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/installed_domain/resource_admission/resource_plan_constructor_private.rs:16:46
+   |
+16 |       WorthQueryAdmittedExecutionResourcePlan::new(
+   |                                                ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-query-admission/src/domain_computation/execution_resource_admission/evidence.rs
+   |
+   | /     pub(super) fn new(
+   | |         identity: String,
+   | |         binding_identity: &str,
+   | |         contract_identity: String,
+...  |
+   | |         counters: WorthQueryExecutionResourceAdmissionCounters,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

@@ -13,6 +13,8 @@ pub enum WorthQueryWorkflowAdvanceDenialKind {
     RequiredCapability(String),
     RequiredDomain(String),
     InputContract,
+    ArtifactCarriage(crate::domain_installation::WorthQueryArtifactDenial),
+    ResourceAdmissionMissing,
     GraphProvider(String),
     StageExecutor {
         class: worth_query_installation::facade::WorthQueryOperationFailureClass,
@@ -26,9 +28,12 @@ pub enum WorthQueryWorkflowAdvanceDenialKind {
     CostContract,
     OutputContract,
     TerminalContract,
+    DomainEvidence(super::WorthQueryDomainEvidenceAdmissionDenialKind),
+    DomainEvidenceBinding(
+        worth_query_execution::facade::domain_computation::WorthQueryDomainEvidenceBindingDenial,
+    ),
     ParallelFrontierShape,
     NonDeterministicLowering,
-    ParallelProviderMissing,
     ParallelProvider(String),
     ParallelNotAdmitted(worth_signal::facade::adapters::FrontierRouteSerialFallbackReason),
     ConditionalExecution(worth_runtime_bridge::facade::BridgeConditionalDenialKind),

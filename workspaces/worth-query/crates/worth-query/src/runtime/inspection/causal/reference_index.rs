@@ -210,9 +210,7 @@ pub(in crate::runtime) fn causal_evidence_reference_index_record(
             expected_owner,
         ));
     }
-    let reference_digest = match reference_digest.into() {
-        CausalEvidenceReferenceInput::Typed(identity) => identity,
-    };
+    let CausalEvidenceReferenceInput::Typed(reference_digest) = reference_digest.into();
     Ok(CausalEvidenceReferenceIndexRecord::new(
         owner,
         family,

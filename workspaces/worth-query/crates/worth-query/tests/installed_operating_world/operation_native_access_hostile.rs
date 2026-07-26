@@ -39,7 +39,13 @@ fn direct_access_indexes_display_and_derived_values_across_committed_rows() {
     assert_eq!(keys.len(), 2);
 
     let settled = bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -176,7 +182,13 @@ fn capability_denial_retains_exact_native_source_and_projection_context() {
     let (_foreign_request, foreign_key) =
         native_id_request(foreign.consumer_projection_contract().unwrap());
     let settled = owner
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

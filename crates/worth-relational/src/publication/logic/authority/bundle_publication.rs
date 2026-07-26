@@ -69,10 +69,10 @@ impl<'runtime> PublicationAuthority<'runtime> {
         let snapshot_id = bundle.snapshot.snapshot_id;
         self.runtime.visibility.insert_published_handle(
             snapshot_id,
-            crate::logic::runtime::SnapshotHandleBinding {
+            crate::logic::runtime::SnapshotHandleBinding::new(
                 version_id,
-                read_policy: bundle.snapshot.read_policy,
-            },
+                bundle.snapshot.read_policy,
+            ),
         );
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.replace_latest_bundle(bundle);

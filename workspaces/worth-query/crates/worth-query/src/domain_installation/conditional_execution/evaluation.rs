@@ -28,6 +28,8 @@ pub(crate) struct WorthQueryConditionalEvaluationPass<'a> {
     pub(crate) scope: WorthQueryConditionalEvaluationScope<'a>,
     pub(crate) workflow_run_identity: Option<&'a str>,
     pub(crate) attempt: u64,
+    pub(crate) resources: &'a super::super::WorthQueryAdmittedExecutionResourcePlan,
+    pub(crate) resource_evidence: &'a super::super::WorthQueryExecutionResourceAttemptEvidence,
     pub(crate) counters: &'a mut super::super::WorthQueryOperationExecutionCounters,
 }
 
@@ -132,15 +134,18 @@ fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
     let authority = super::reentry::admit_conditional_authority(bound, node)
         .map_err(WorthQueryConditionalEvaluationStop::Reentry)?;
     let snapshot_identity = evaluation.snapshot.evidence_identity();
-    let mut context = WorthQueryConditionalComputeContext::new(
-        node.lowering.location().clone(),
-        bound.definition().canonical_identity().to_string(),
-        bound.binding_identity().to_string(),
-        bound.basis().capability_digest().to_string(),
-        evaluation.workflow_run_identity.map(str::to_string),
-        snapshot_identity.as_str().to_string(),
-        evaluation.attempt,
-    );
+    let mut context =
+        WorthQueryConditionalComputeContext::new(super::WorthQueryConditionalComputeContextParts {
+            location: node.lowering.location().clone(),
+            operation_identity: bound.definition().canonical_identity().to_string(),
+            binding_identity: bound.binding_identity().to_string(),
+            basis_identity: bound.basis().capability_digest().to_string(),
+            workflow_run_identity: evaluation.workflow_run_identity.map(str::to_string),
+            snapshot_identity: snapshot_identity.as_str().to_string(),
+            attempt: evaluation.attempt,
+            execution_resources: evaluation.resource_evidence.clone(),
+            resource_envelope: evaluation.resources.shared_envelope(),
+        });
     let bridge = evaluation
         .workspace
         .execute_installed_conditional(

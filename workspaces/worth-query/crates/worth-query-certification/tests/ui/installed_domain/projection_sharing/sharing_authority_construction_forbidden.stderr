@@ -4,7 +4,7 @@ error[E0432]: unresolved import `worth_query::facade::domain::WorthQueryAdmitted
 1 | use worth_query::facade::domain::WorthQueryAdmittedProjectionSharing;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-----------------------------------
   |     |                            |
-  |     |                            help: a similar name exists in the module: `WorthQueryAdmittedCollectionWindow`
+  |     |                            help: a similar name exists in the module: `WorthQueryArtifactProjectionSink`
   |     no `WorthQueryAdmittedProjectionSharing` in `facade::domain`
 
 error[E0603]: module `runtime` is private

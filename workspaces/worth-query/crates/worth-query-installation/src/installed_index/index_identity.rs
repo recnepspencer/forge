@@ -4,6 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::WorthQueryInstalledPackageRecord;
 use crate::canonical_hash_encoding::hash_text_field;
+use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::WorthQueryValidatedDomainOperation;
 use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
 use crate::package::{
@@ -34,6 +35,7 @@ pub(super) fn index_identity(
         WorthQueryPortableDefinition,
     >,
     domain_operations: &BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
+    artifact_contracts: &BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
 ) -> String {
     let mut hasher = Sha256::new();
     hash_text_field(&mut hasher, "runtime", &runtime.ordinal().to_string());
@@ -65,6 +67,21 @@ pub(super) fn index_identity(
             &mut hasher,
             "domain-operation-identity",
             operation.canonical_identity(),
+        );
+    }
+    for ((owner, family, schema, protocol), contract) in artifact_contracts {
+        hash_text_field(&mut hasher, "artifact-contract-owner", owner);
+        hash_text_field(&mut hasher, "artifact-contract-family", family);
+        hash_text_field(&mut hasher, "artifact-contract-schema", &schema.to_string());
+        hash_text_field(
+            &mut hasher,
+            "artifact-contract-protocol",
+            &protocol.to_string(),
+        );
+        hash_text_field(
+            &mut hasher,
+            "artifact-contract-identity",
+            contract.identity().as_str(),
         );
     }
     format!("{:x}", hasher.finalize())

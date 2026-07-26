@@ -1,0 +1,15 @@
+error[E0382]: use of moved value: `terminal`
+ --> tests/ui/installed_domain/managed_run/cleanup_is_move_only.rs:5:19
+  |
+3 | fn repeat_cleanup(terminal: WorthQueryDirectRunTerminal) {
+  |                   -------- move occurs because `terminal` has type `WorthQueryDirectRunTerminal`, which does not implement the `Copy` trait
+4 |     let _first = terminal.cleanup();
+  |                           --------- `terminal` moved due to this method call
+5 |     let _second = terminal.cleanup();
+  |                   ^^^^^^^^ value used here after move
+  |
+note: `WorthQueryDirectRunTerminal::cleanup` takes ownership of the receiver `self`, which moves `terminal`
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/managed_run/direct_terminal.rs
+  |
+  |         self,
+  |         ^^^^

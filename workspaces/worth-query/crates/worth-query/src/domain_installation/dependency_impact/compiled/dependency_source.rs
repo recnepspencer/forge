@@ -44,7 +44,8 @@ pub(crate) enum WorthQuerySemanticAspectDependencySource {
         observations: Vec<WorthQueryConditionalObservationEvidence>,
     },
     RealizedDirectOutput {
-        execution: crate::domain_installation::WorthQueryBoundExecutionReceipt,
+        result_state: crate::domain_installation::WorthQueryOperationResultState,
+        output_identity: String,
         publication: crate::domain_installation::WorthQueryDerivedPublicationReceipt,
     },
     RealizedWorkflowEffect(crate::domain_installation::WorthQueryWorkflowEffectEvidence),
@@ -101,7 +102,8 @@ pub enum WorthQuerySemanticAspectDependencyView<'a> {
         observations: &'a [WorthQueryConditionalObservationEvidence],
     },
     RealizedDirectOutput {
-        execution: &'a crate::domain_installation::WorthQueryBoundExecutionReceipt,
+        result_state: crate::domain_installation::WorthQueryOperationResultState,
+        output_identity: &'a str,
         publication: &'a crate::domain_installation::WorthQueryDerivedPublicationReceipt,
     },
     RealizedWorkflowEffect(&'a crate::domain_installation::WorthQueryWorkflowEffectEvidence),

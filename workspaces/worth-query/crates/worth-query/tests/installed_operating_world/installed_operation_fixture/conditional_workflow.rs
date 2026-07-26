@@ -234,6 +234,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRe
         self.0
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
+
     fn compute(
         &self,
         context: &domain::WorthQueryConditionalComputeContext,

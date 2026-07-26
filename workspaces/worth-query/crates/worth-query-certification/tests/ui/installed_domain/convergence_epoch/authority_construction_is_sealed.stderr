@@ -1,0 +1,111 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:25:38
+   |
+25 |       WorthQueryConvergenceAssessment::new(contract, receipt, 1, incumbents)
+   |                                        ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/domain_assessment.rs
+   |
+   | /     pub(crate) fn new(
+   | |         contract: &'a WorthQueryAdmittedConvergenceContract,
+   | |         receipt: &'a WorthQueryBoundGraphExecutionReceipt,
+   | |         iteration_ordinal: usize,
+   | |         incumbents: &'a [WorthQueryRetainedConvergenceCandidateEvidence],
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:32:39
+   |
+32 |       WorthQueryBoundConvergenceReport::new(
+   |                                         ^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/report.rs
+   |
+   | /     pub(super) fn new(
+   | |         evidence_identity: impl Into<Arc<str>>,
+   | |         provider_receipt_identity: impl Into<Arc<str>>,
+   | |         graph_evidence_identity: impl Into<Arc<str>>,
+...  |
+   | |         provider_work: WorthQueryProviderWorkReport,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0599]: no function or associated item named `new` found for struct `WorthQueryConvergenceDomainWorkEvidence` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:38:50
+   |
+38 |         WorthQueryConvergenceDomainWorkEvidence::new(1, 1, 1),
+   |                                                  ^^^ function or associated item not found in `WorthQueryConvergenceDomainWorkEvidence`
+   |
+help: there is a method `ne` with a similar name, but with different arguments
+  --> $RUST/core/src/cmp.rs
+
+error[E0599]: no method named `resolve_one_step` found for struct `WorthQueryIteratingDirectConvergenceEpoch` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:44:19
+   |
+44 |     let _ = epoch.resolve_one_step();
+   |                   ^^^^^^^^^^^^^^^^ method not found in `WorthQueryIteratingDirectConvergenceEpoch`
+
+error[E0599]: no method named `clone` found for struct `WorthQueryDirectConvergenceTerminal<State>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:48:31
+   |
+48 |     let _duplicate = terminal.clone();
+   |                               ^^^^^ method not found in `WorthQueryDirectConvergenceTerminal<WorthQueryConverged>`
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:58:73
+   |
+58 |     let _ = runtime.admit_direct_convergence_epoch(operation, contract, attempt, graph);
+   |                     ------------------------------                      ^^^^^^^ expected `WorthQueryAdmittedDirectRun`, found `WorthQueryDirectExecutionResourceAttempt`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/admission.rs
+   |
+   |     pub fn admit_direct_convergence_epoch(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:68:73
+   |
+68 |     let _ = runtime.admit_direct_convergence_epoch(operation, contract, yielded, graph);
+   |                     ------------------------------                      ^^^^^^^ expected `WorthQueryAdmittedDirectRun`, found `WorthQueryYieldedDirectRun`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/admission.rs
+   |
+   |     pub fn admit_direct_convergence_epoch(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:78:73
+   |
+78 |     let _ = runtime.admit_direct_convergence_epoch(operation, contract, basis, graph);
+   |                     ------------------------------                      ^^^^^ expected `WorthQueryAdmittedDirectRun`, found `AdmittedBasisCapability<...>`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+   = note: expected struct `WorthQueryAdmittedDirectRun`
+              found struct `AdmittedBasisCapability<ObservationLaneWitness>`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/admission.rs
+   |
+   |     pub fn admit_direct_convergence_epoch(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:88:73
+   |
+88 |     let _ = runtime.admit_direct_convergence_epoch(operation, contract, envelope, graph);
+   |                     ------------------------------                      ^^^^^^^^ expected `WorthQueryAdmittedDirectRun`, found `WorthQueryExecutionResourceEnvelope`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/admission.rs
+   |
+   |     pub fn admit_direct_convergence_epoch(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

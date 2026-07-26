@@ -1,0 +1,29 @@
+error[E0599]: no method named `publish` found for struct `WorthQueryDirectConvergenceTerminal<State>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_authority_cannot_escalate.rs:10:22
+   |
+10 |     let _ = terminal.publish();
+   |                      ^^^^^^^ method not found in `WorthQueryDirectConvergenceTerminal<WorthQueryConverged>`
+
+error[E0599]: no method named `resolve` found for struct `WorthQueryDirectConvergenceTerminal<State>` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_authority_cannot_escalate.rs:14:22
+   |
+14 |     let _ = terminal.resolve();
+   |                      ^^^^^^^ method not found in `WorthQueryDirectConvergenceTerminal<WorthQueryConverged>`
+
+error[E0599]: no method named `publish` found for reference `&WorthQueryRetainedConvergenceCandidateEvidence` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/terminal_authority_cannot_escalate.rs:18:23
+   |
+18 |     let _ = candidate.publish();
+   |                       ^^^^^^^ method not found in `&WorthQueryRetainedConvergenceCandidateEvidence`
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/terminal_authority_cannot_escalate.rs:26:18
+   |
+26 |         binding: candidate.domain_evidence().clone(),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `WorthQueryDomainEvidenceExecutionBinding`, found `&...`
+   |
+note: `WorthQueryDomainEvidenceExecutionBinding` does not implement `Clone`, so `&WorthQueryDomainEvidenceExecutionBinding` was cloned instead
+  --> tests/ui/installed_domain/convergence_epoch/terminal_authority_cannot_escalate.rs:26:18
+   |
+26 |         binding: candidate.domain_evidence().clone(),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^

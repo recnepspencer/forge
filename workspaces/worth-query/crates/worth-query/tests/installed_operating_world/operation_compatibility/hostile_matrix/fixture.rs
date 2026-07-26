@@ -37,6 +37,10 @@ impl
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::super::installed_operation_fixture::execution_resource_support()
+    }
+
     fn execute(
         &self,
         _: (),

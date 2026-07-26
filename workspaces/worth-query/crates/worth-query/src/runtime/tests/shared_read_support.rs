@@ -116,7 +116,7 @@ pub(super) fn declare_shared_read_derived(
 ) -> WorthQueryDerivedViewHandle<WorthQueryUnrefinedLiveShape> {
     let live: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
         .live_view_request(
-            &format!("tasks.{suffix}"),
+            format!("tasks.{suffix}"),
             task_live_request(),
             task_schema(),
         )

@@ -53,7 +53,9 @@ fn async_node_hierarchy_cancellation_propagates_and_replay_summary_restores_iden
     let baseline = runtime
         .async_node_hierarchy_replay_summary(parent)
         .expect("hierarchy replay summary should materialize");
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     assert_eq!(baseline.root_node(), parent);
     assert_eq!(baseline.hierarchy_nodes(), &[parent, child, grandchild]);
@@ -168,7 +170,9 @@ fn async_node_hierarchy_restore_is_branch_local_and_checkpoint_honest() {
     runtime
         .admit_async_node_request(AsyncNodeRequestIntent::new(grandchild))
         .expect("feature grandchild should admit");
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature_head_before_restore = runtime.observe().branch_head_snapshot_id(feature.id);
     let feature_before_restore = runtime
         .async_node_hierarchy_replay_summary(parent)
@@ -199,7 +203,9 @@ fn async_node_hierarchy_restore_is_branch_local_and_checkpoint_honest() {
     runtime
         .admit_async_node_request(AsyncNodeRequestIntent::new(grandchild))
         .expect("sibling grandchild should admit");
-    let sibling_snapshot = runtime.capture_snapshot();
+    let sibling_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let sibling_head_before_restore = runtime.observe().branch_head_snapshot_id(sibling.id);
     let sibling_before_restore = runtime
         .async_node_hierarchy_replay_summary(parent)

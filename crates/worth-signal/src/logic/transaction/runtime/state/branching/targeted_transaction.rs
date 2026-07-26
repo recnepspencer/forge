@@ -235,17 +235,28 @@ where
         };
         let active_branch_before = self.graph.current_branch();
         let target_branch_id = request.target_branch.id;
+        let target_state = self
+            .branches
+            .branch_state(target_branch_id)
+            .expect("validated targeted transaction must retain target branch state");
+        if let Err(error) = self.ensure_branch_state_managed_queue_transfer_allowed(target_state) {
+            return TransitionOutcome::failed(error);
+        }
         let target_packet = self
             .branches
             .take_stored_branch_transfer(target_branch_id)
             .expect("validated targeted transaction must own stored target state");
-        let active_state = self.take_heavy_active_branch_state();
+        let active_state = self
+            .take_heavy_active_branch_state()
+            .expect("managed-queue preflight must make active-state transfer infallible");
         self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(target_packet))
             .expect("validated targeted transaction transfer must preserve branch identity");
 
         let transaction_result = self.execute_branch_local_transaction(runtime_ctx, apply);
         let targeted_transaction_telemetry = self.telemetry.transaction;
-        let target_state = self.take_heavy_active_branch_state();
+        let target_state = self
+            .take_heavy_active_branch_state()
+            .expect("branch-local transaction cannot mint managed queue authority");
         self.branches.store_branch_state(target_state);
         self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
             AuthorityTransferPacket::new(active_branch_before.id, active_state),

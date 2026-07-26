@@ -12,6 +12,7 @@ pub enum WorthQueryPortableOperationDimension {
     Collection,
     RequiredCapabilities,
     RequiredDomains,
+    DomainEvidence,
     Conditional(WorthQueryOperationConditionalDimension),
     Workflow,
     GraphReads,

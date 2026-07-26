@@ -230,7 +230,7 @@ impl WorthQueryWorkflowLoweringSemantics {
                         )
                         .field_shape(
                             WorthQueryEvidenceTag::new("desired_aspect_fields"),
-                            &aspect_field_patch_identity_text(desired_aspect_fields),
+                            aspect_field_patch_identity_text(desired_aspect_fields),
                         ),
                 };
                 encoder.seal()

@@ -9,7 +9,9 @@ fn async_capable_node_handle_restored_before_attachment_fails_closed_and_cannot_
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let mut runtime = TestRuntime::build(graph);
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let declaration = async_node_capability_declaration(node);
     let handle = runtime
         .attach_async_capability(declaration.clone())
@@ -71,7 +73,9 @@ fn async_keyed_node_restore_rebind_rejects_old_lineage_and_requires_public_redis
         .build();
     let family = define_keyed_computation(&mut runtime, "async-restore-lineage", ());
     let keyed = family.keyed("left-wing");
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let payload_a = AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(61))
         .with_max_payload_bytes(1024);

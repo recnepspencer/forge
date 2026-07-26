@@ -40,7 +40,7 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
     let authority_binding_identity = binding.basis_identity();
     let lowered = lower_mutation_intent_declaration(
         &declaration,
-        &authority_binding_identity,
+        authority_binding_identity,
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_aspect_fields: single_native_string_aspect_field_patch("name", "name", "after")

@@ -1,0 +1,16 @@
+[package]
+name = "worth-query-admission"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Query basis, policy, support, and execution admission authority."
+publish = false
+
+[dependencies]
+sha2 = "0.10"
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-query-declaration = { path = "../worth-query-declaration" }
+worth-query-installation = { path = "../worth-query-installation" }
+
+[lints]
+workspace = true

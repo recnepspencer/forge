@@ -22,7 +22,13 @@ fn prior_generation_key_is_distinct_from_runtime_and_capability_drift() {
     let current = bind(&workspace, &current_domain);
     let (current_request, current_key) = native_id_request(&current);
     let settled = current
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()

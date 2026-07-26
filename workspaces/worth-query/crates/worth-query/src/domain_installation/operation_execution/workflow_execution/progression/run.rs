@@ -2,15 +2,16 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::basis_lifecycle::BasisOperationLane;
-use crate::identity::hash_parts;
 
-use super::{WorthQueryExecutableDomainOperation, WorthQueryWorkflowOperation};
 use super::{
-    WorthQueryInstalledWorkflowGraph, WorthQueryInstalledWorkflowParallelAdmissionProvider,
-    WorthQueryInstalledWorkflowStageExecutor, WorthQueryWorkflowRunCounters,
+    WorthQueryAdmittedWorkflowOperation, WorthQueryAdmittedWorkflowResourcePlan,
+    WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
+    WorthQueryInstalledWorkflowGraph, WorthQueryInstalledWorkflowStageExecutor,
+    WorthQueryWorkflowExecutionResourceAttempt, WorthQueryWorkflowRunCounters,
     WorthQueryWorkflowStageReceipt, WorthQueryWorkflowStartDenial,
     WorthQueryWorkflowStartDenialKind,
 };
+use super::{WorthQueryExecutableDomainOperation, WorthQueryWorkflowOperation};
 use crate::domain_installation::operation_authority_chain::{
     mint_operation_phase_proof, operation_phase_basis, WorthQueryOperationPhaseProof,
     WorthQueryWorkflowRunPhase,
@@ -61,23 +62,33 @@ pub struct WorthQueryWorkflowRun<D, O, F, L: BasisOperationLane> {
     pub(super) receipt_index: BTreeMap<String, usize>,
     pub(super) receipts: Vec<WorthQueryWorkflowStageReceipt>,
     pub(super) counters: WorthQueryWorkflowRunCounters,
-    pub(super) parallel_admission_provider:
-        Option<Arc<WorthQueryInstalledWorkflowParallelAdmissionProvider>>,
+    pub(super) parallel_posture:
+        crate::domain_installation::operating_world::WorthQueryBoundWorkflowParallelPosture,
     pub(super) active_parallel_admission:
         Option<Arc<super::WorthQueryWorkflowParallelAdmissionReceipt>>,
     pub(super) authority_proof: Arc<WorthQueryWorkflowRunAuthorityProof>,
     pub(super) operation_conditional:
         Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
+    pub(super) artifact_registry:
+        Arc<crate::domain_installation::WorthQueryWorkflowArtifactRegistry>,
+    pub(super) _artifact_registry_guard: WorthQueryWorkflowArtifactRegistryGuard,
+    pub(super) artifact_authority: crate::domain_installation::WorthQueryWorkflowArtifactAuthority,
+    pub(super) domain_evidence_ledger: super::WorthQueryDomainEvidenceAdmissionLedger,
+    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
 }
 
-struct DeclaredWorkflowRuntime {
-    graph: Arc<WorthQueryInstalledWorkflowGraph>,
-    executor: Arc<WorthQueryInstalledWorkflowStageExecutor>,
-    parallel_admission_provider: Option<Arc<WorthQueryInstalledWorkflowParallelAdmissionProvider>>,
+pub(super) struct WorthQueryWorkflowArtifactRegistryGuard(
+    Arc<crate::domain_installation::WorthQueryWorkflowArtifactRegistry>,
+);
+
+impl Drop for WorthQueryWorkflowArtifactRegistryGuard {
+    fn drop(&mut self) {
+        self.0.close_cancelled();
+    }
 }
 
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane>
-    WorthQueryBoundDomainOperation<D, O, F, L>
+    WorthQueryAdmittedWorkflowOperation<D, O, F, L>
 where
     O: WorthQueryExecutableDomainOperation<D, F, Execution = WorthQueryWorkflowOperation>,
 {
@@ -93,46 +104,36 @@ where
         workspace: &mut crate::runtime::WorthQueryWorkspace,
         attempt: u64,
     ) -> WorthQueryWorkflowStartOutcome<D, O, F, L> {
-        let mut counters = WorthQueryWorkflowRunCounters {
-            runtime_authority_checks: 1,
-            ..WorthQueryWorkflowRunCounters::default()
-        };
-        if let Err(kind) = self.admit_workflow_runtime_authority(workspace) {
-            let denial = WorthQueryWorkflowStartDenial::new(
-                WorthQueryWorkflowStartDenialKind::RuntimeAuthority(kind),
-                counters,
-            );
-            return match kind {
-                crate::domain_installation::WorthQueryDomainHandleDenialKind::StaleInstallationGeneration => {
+        let mut counters = WorthQueryWorkflowRunCounters::default();
+        let operation_resource_evidence = self.resource_attempt.evidence().clone();
+        let snapshot = workspace.snapshot_identity();
+        let artifact_authority = match self.resource_attempt.bind_workflow_artifacts() {
+            Ok(authority) => authority,
+            Err(denial) => {
+                let stale = denial.kind()
+                    == crate::domain_installation::WorthQueryArtifactDenialKind::StaleInstallationGeneration;
+                let denial = WorthQueryWorkflowStartDenial::new(
+                    WorthQueryWorkflowStartDenialKind::ArtifactAuthority(denial),
+                    counters,
+                );
+                return if stale {
                     TransitionOutcome::Stale(denial)
-                }
-                crate::domain_installation::WorthQueryDomainHandleDenialKind::PackageIdentityChanged => {
-                    TransitionOutcome::RebindRequired(denial)
-                }
-                crate::domain_installation::WorthQueryDomainHandleDenialKind::DomainNotInstalled
-                | crate::domain_installation::WorthQueryDomainHandleDenialKind::ForeignRuntime => {
+                } else {
                     TransitionOutcome::Denied(denial)
-                }
-            };
-        }
-        let declared_runtime = match self.declared_workflow_runtime() {
-            Ok(runtime) => runtime,
-            Err(kind) => {
-                return TransitionOutcome::Denied(WorthQueryWorkflowStartDenial::new(
-                    kind, counters,
-                ))
+                };
             }
         };
-        let snapshot = workspace.snapshot_identity();
-        let identity = self.workflow_run_identity(&snapshot, attempt);
+        let identity = artifact_authority.run_identity().to_owned();
         let operation_conditional =
             match super::workflow_conditional_start_evaluation::evaluate(
-                &self,
+                &self.bound,
                 super::workflow_conditional_start_evaluation::ConditionalWorkflowStartEvaluationPass {
                     workspace,
                     snapshot: &snapshot,
                     run_identity: &identity,
                     attempt,
+                    resources: self.resource_attempt.operation_resources(),
+                    resource_evidence: &operation_resource_evidence,
                     run_counters: &mut counters,
                 },
             ) {
@@ -140,7 +141,7 @@ where
                 Err(super::workflow_conditional_start_evaluation::ConditionalWorkflowStartStop::Deferred(conditional)) => {
                     return TransitionOutcome::Deferred(
                         crate::domain_installation::WorthQueryDeferredWorkflowStart {
-                            bound: self,
+                            admitted: self,
                             conditional,
                             counters,
                             run_identity: identity,
@@ -163,74 +164,35 @@ where
             };
         let proof = mint_operation_phase_proof(
             identity.clone(),
-            Some(self.authority_proof().payload().identity()),
-            operation_phase_basis(self.authority_proof()).clone(),
+            Some(self.phase_proof.payload().identity()),
+            operation_phase_basis(&self.phase_proof).clone(),
         );
         let authority_proof = Arc::new(WorthQueryWorkflowRunAuthorityProof {
-            domain_authority: Arc::clone(self.operation().domain_authority()),
+            domain_authority: Arc::clone(self.bound.operation().domain_authority()),
             proof,
         });
+        let artifact_registry = artifact_authority.registry();
+        let artifact_registry_guard =
+            WorthQueryWorkflowArtifactRegistryGuard(Arc::clone(&artifact_registry));
         TransitionOutcome::Success(WorthQueryWorkflowRun {
-            bound: self,
-            graph: declared_runtime.graph,
-            executor: declared_runtime.executor,
-            identity,
+            bound: self.bound,
+            graph: self.graph,
+            executor: self.executor,
+            identity: identity.clone(),
             completed: BTreeSet::new(),
             receipt_index: BTreeMap::new(),
             receipts: Vec::new(),
             counters,
-            parallel_admission_provider: declared_runtime.parallel_admission_provider,
+            parallel_posture: self.parallel_posture,
             active_parallel_admission: None,
             authority_proof,
             operation_conditional,
+            artifact_registry,
+            _artifact_registry_guard: artifact_registry_guard,
+            artifact_authority,
+            domain_evidence_ledger: super::WorthQueryDomainEvidenceAdmissionLedger::default(),
+            resource_attempt: self.resource_attempt,
         })
-    }
-
-    fn admit_workflow_runtime_authority(
-        &self,
-        workspace: &crate::runtime::WorthQueryWorkspace,
-    ) -> Result<(), crate::domain_installation::WorthQueryDomainHandleDenialKind> {
-        let witness =
-            crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness::from_authority(
-                Arc::clone(self.operation().domain_authority()),
-            );
-        workspace
-            .validate_installed_domain_witness::<D>(&witness)
-            .map_err(|denial| denial.kind())
-    }
-
-    fn declared_workflow_runtime(
-        &self,
-    ) -> Result<DeclaredWorkflowRuntime, WorthQueryWorkflowStartDenialKind> {
-        let graph = self
-            .operation()
-            .workflow_graph()
-            .cloned()
-            .ok_or(WorthQueryWorkflowStartDenialKind::WorkflowNotDeclared)?;
-        let executor = self
-            .workflow_executor()
-            .cloned()
-            .ok_or(WorthQueryWorkflowStartDenialKind::StageExecutorMissing)?;
-        Ok(DeclaredWorkflowRuntime {
-            graph,
-            executor,
-            parallel_admission_provider: self.workflow_parallel_admission_provider().cloned(),
-        })
-    }
-
-    fn workflow_run_identity(
-        &self,
-        snapshot: &crate::memory_workspace::WorthQuerySnapshotIdentity,
-        attempt: u64,
-    ) -> String {
-        hash_parts(&[
-            "worth_query_installed_workflow_run_v2".into(),
-            format!("binding:{}", self.binding_identity()),
-            format!("capability:{}", self.capability_identity()),
-            format!("operation:{}", self.definition().canonical_identity()),
-            format!("snapshot:{}", snapshot.evidence_identity().as_str()),
-            format!("attempt:{attempt}"),
-        ])
     }
 }
 
@@ -252,6 +214,15 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
     ) -> &[crate::domain_installation::WorthQueryConditionalProvenance] {
         &self.operation_conditional
     }
+    pub fn resources(&self) -> &WorthQueryAdmittedWorkflowResourcePlan {
+        self.resource_attempt.resources()
+    }
+    pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
+        self.resource_attempt.provider_session()
+    }
+    pub fn operation_resource_evidence(&self) -> &WorthQueryExecutionResourceAttemptEvidence {
+        self.resource_attempt.evidence()
+    }
 }
 
 impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane>
@@ -263,7 +234,7 @@ where
         self,
         workspace: &mut crate::runtime::WorthQueryWorkspace,
     ) -> WorthQueryWorkflowStartOutcome<D, O, F, L> {
-        self.bound
+        self.admitted
             .start_workflow_attempt(workspace, self.attempt + 1)
     }
 }

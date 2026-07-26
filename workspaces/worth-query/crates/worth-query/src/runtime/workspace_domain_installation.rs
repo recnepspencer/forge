@@ -1,6 +1,12 @@
 use super::WorthQueryWorkspace;
 
 impl WorthQueryWorkspace {
+    pub(crate) fn query_execution_runtime(
+        &self,
+    ) -> &worth_query_execution::facade::runtime::WorthQueryExecutionRuntime {
+        self.runtime.query_execution_runtime()
+    }
+
     pub(crate) fn operating_world<L: crate::basis_lifecycle::BasisOperationLane>(
         &self,
         entry: crate::domain_installation::WorthQueryOperatingWorldEntry<L>,

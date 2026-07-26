@@ -228,6 +228,7 @@ fn stage(
         input,
         output,
         graph_read_roles: reads_graph.then_some("model".into()).into_iter().collect(),
+        resources: super::installed_operation_fixture::execution_resource_contract(),
         terminal_result_states: terminal
             .then_some(domain::WorthQueryOperationResultState::Ready)
             .into_iter()

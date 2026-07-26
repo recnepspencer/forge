@@ -23,7 +23,13 @@ fn conditional_authority_keeps_query_and_installation_runtime_owners_distinct() 
     let installed = workspace.domain(GeometryDomain).unwrap();
 
     let executed = bind(&workspace, &installed)
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     assert_eq!(executed.conditional_provenance().len(), 1);
@@ -58,10 +64,22 @@ fn fresh_bound_capabilities_mint_distinct_signal_attempt_identities() {
     let installed = workspace.domain(GeometryDomain).unwrap();
 
     let first = bind(&workspace, &installed)
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     let second = bind(&workspace, &installed)
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
 
     assert_eq!(
@@ -105,7 +123,13 @@ fn live_promotion_mints_a_fresh_signal_decision_after_settlement() {
     let bound = bind(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let executed = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap();
     let execution_signal = executed.conditional_provenance()[0]
         .signal_projection()
@@ -204,7 +228,13 @@ fn stale_conditional_installation_stops_before_lowering_or_signal_work() {
     let bound = bind(&workspace, &installed);
     let consumer = bound.consumer_projection_contract().unwrap();
     let settled = bound
-        .execute(ReadExecutionInput::default(), &mut workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -224,7 +254,7 @@ fn stale_conditional_installation_stops_before_lowering_or_signal_work() {
     assert_eq!(stale.counters().planning_attempts, 0);
 }
 
-fn bind<'a>(
+fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) -> domain::WorthQueryBoundDomainOperation<
@@ -257,7 +287,13 @@ fn settle_bound(
 > {
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -289,6 +325,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
     type SemanticContract = ();
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
 
     fn compute(
         &self,

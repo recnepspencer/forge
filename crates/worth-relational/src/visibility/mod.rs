@@ -1,5 +1,6 @@
 pub(crate) mod authority;
 pub(crate) mod cache_state;
+pub(crate) mod execution_basis;
 pub(crate) mod materialization;
 pub(crate) mod pins;
 pub(crate) mod residency;

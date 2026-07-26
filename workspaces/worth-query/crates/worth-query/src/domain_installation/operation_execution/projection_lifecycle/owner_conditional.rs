@@ -41,6 +41,33 @@ pub(super) fn evaluate_owner_delivered_conditional<
     let attempt = NEXT_OWNER_DELIVERY_ATTEMPT.fetch_add(1, Ordering::Relaxed);
     let execution_identity = owner_execution_identity(delivery, &snapshot, attempt);
     let scope = owner_conditional_scope(location);
+    let (resources, resource_evidence) = match location {
+        worth_query_installation::facade::WorthQueryConditionalNodeLocation::Operation {
+            ..
+        } => (
+            source.operation_resources(),
+            source.operation_resource_evidence(),
+        ),
+        worth_query_installation::facade::WorthQueryConditionalNodeLocation::WorkflowStage {
+            stage_identity,
+            ..
+        } => (
+            source.stage_resources(stage_identity).ok_or_else(|| {
+                owner_reentry_stop(
+                    "owner conditional stage has no admitted resource plan",
+                    counters,
+                )
+            })?,
+            source
+                .stage_resource_evidence(stage_identity)
+                .ok_or_else(|| {
+                    owner_reentry_stop(
+                        "owner conditional stage has no admitted resource evidence",
+                        counters,
+                    )
+                })?,
+        ),
+    };
     let mut operation_counters = WorthQueryOperationExecutionCounters::default();
     let provenance =
         crate::domain_installation::conditional_execution::evaluate_owner_impact_conditionals(
@@ -53,6 +80,8 @@ pub(super) fn evaluate_owner_delivered_conditional<
                     scope,
                     workflow_run_identity: source.workflow_run_identity(),
                     attempt,
+                    resources,
+                    resource_evidence,
                     counters: &mut operation_counters,
                 },
                 location,

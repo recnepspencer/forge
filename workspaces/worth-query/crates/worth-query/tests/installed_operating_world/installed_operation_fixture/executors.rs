@@ -12,14 +12,6 @@ pub(super) use workflow::{
     MismatchedWorkflowDeterminismExecutor, MismatchedWorkflowStageExecutor, WorkflowStageExecutor,
 };
 
-pub fn graph_projection_material(label: &str) -> runtime::WorthQueryReadResult {
-    let mut projection_workspace =
-        super::workspace(label, false).expect("projection runtime installs");
-    execute_reconstructed_read_for_sabotage(&mut projection_workspace)
-        .expect("graph adapter projection executes through Query")
-        .into_result()
-}
-
 #[derive(Clone, Copy)]
 pub(super) struct ReadVertexExecutor;
 
@@ -32,6 +24,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, ReadVertex, ReadF
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
@@ -105,6 +101,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, CountVertices, Re
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
     }
@@ -139,6 +139,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, FederatedRead, Re
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
     }
@@ -152,20 +156,64 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, FederatedRead, Re
         domain::WorthQueryOperationExecutionMaterial<read::WorthQueryReadCompletion>,
         domain::WorthQueryOperationExecutorFailure,
     > {
-        let projected = context.graph_projection("remote-a").ok_or_else(|| {
-            domain::WorthQueryOperationExecutorFailure::new(
-                domain::WorthQueryOperationFailureClass::Dependency,
-                "the installed remote-a adapter supplied no projection",
-            )
-        })?;
-        Ok(domain::WorthQueryOperationExecutionMaterial::new(
-            context.execute_installed_read(workspace)?,
-            domain::WorthQueryOperationResultState::Ready,
-        )
-        .with_warning(domain::WorthQueryOperationExecutionWarning::Advisory(
-            format!("remote-a-projected-rows={}", projected.rows().len()),
-        )))
+        execute_federated_read(context, workspace)
     }
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct PartialEffectFederatedReadExecutor;
+
+impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, FederatedRead, ReadFamily>
+    for PartialEffectFederatedReadExecutor
+{
+    const LOWERING_FAMILY: &'static str = "read-vertex-v1";
+    const DETERMINISTIC: bool = true;
+    const EXECUTION_COST: domain::WorthQueryOperationCostClass =
+        domain::WorthQueryOperationCostClass::ExternalBoundary;
+    const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
+        domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::partial_effect_execution_resource_support()
+    }
+
+    fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
+        Some(installed_read_declaration())
+    }
+
+    fn execute(
+        &self,
+        _: (),
+        context: &domain::WorthQueryOperationExecutionContext<'_>,
+        workspace: &mut domain::WorthQueryOperationWorkspace<'_>,
+    ) -> Result<
+        domain::WorthQueryOperationExecutionMaterial<read::WorthQueryReadCompletion>,
+        domain::WorthQueryOperationExecutorFailure,
+    > {
+        execute_federated_read(context, workspace)
+    }
+}
+
+fn execute_federated_read(
+    context: &domain::WorthQueryOperationExecutionContext<'_>,
+    workspace: &mut domain::WorthQueryOperationWorkspace<'_>,
+) -> Result<
+    domain::WorthQueryOperationExecutionMaterial<read::WorthQueryReadCompletion>,
+    domain::WorthQueryOperationExecutorFailure,
+> {
+    let projected = context.graph_projection("remote-a").ok_or_else(|| {
+        domain::WorthQueryOperationExecutorFailure::new(
+            domain::WorthQueryOperationFailureClass::Dependency,
+            "the installed remote-a adapter supplied no projection",
+        )
+    })?;
+    Ok(domain::WorthQueryOperationExecutionMaterial::new(
+        context.execute_installed_read(workspace)?,
+        domain::WorthQueryOperationResultState::Ready,
+    )
+    .with_warning(domain::WorthQueryOperationExecutionWarning::Advisory(
+        format!("remote-a-projected-rows={}", projected.rows().len()),
+    )))
 }
 
 #[derive(Clone, Copy)]
@@ -180,6 +228,10 @@ impl domain::WorthQueryDomainOperationExecutor<GeometryDomain, FederatedRead, Re
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())

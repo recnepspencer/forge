@@ -42,7 +42,7 @@ impl ProjectionConsumptionReceipt {
             fact_set.fact_set_digest(),
             &counter_snapshot_digest,
             fact_set.source_identity(),
-            materialized_fact_posture_digest.as_deref(),
+            materialized_fact_posture_digest,
         );
         let receipt_digest = compose_receipt_digest(
             fact_set.declaration_digest(),
@@ -51,7 +51,7 @@ impl ProjectionConsumptionReceipt {
             fact_set.source_family(),
             fact_set.source_identity(),
             fact_set.support_posture(),
-            materialized_fact_posture_digest.as_deref(),
+            materialized_fact_posture_digest,
             fact_set.support_posture().warning_kinds(),
             &deferred_neighbors,
         );

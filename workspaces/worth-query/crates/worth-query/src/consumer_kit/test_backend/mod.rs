@@ -1,5 +1,6 @@
 mod backend;
 mod builder;
+mod domain_package_installation;
 mod equivalence_report;
 mod error;
 mod installation_generation;

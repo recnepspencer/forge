@@ -5,8 +5,10 @@ use crate::logic::runtime::RelationalRuntime;
 mod branch_heads;
 mod committed_patches;
 mod continuity_lineage;
+mod execution_basis;
 mod snapshot_authority;
 mod snapshot_reads;
+mod source_profile;
 
 #[derive(Debug, Clone)]
 pub struct RuntimeBridgeRelationalSource {

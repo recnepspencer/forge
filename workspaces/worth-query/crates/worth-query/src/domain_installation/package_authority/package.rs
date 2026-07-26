@@ -11,6 +11,7 @@ use crate::application::{
     WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
     WorthQueryDomainOperatingRequirement,
 };
+use worth_query_installation::facade::WorthQueryPortableArtifactContract;
 
 pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) marker: D,
@@ -26,6 +27,7 @@ pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) operation_graph_participations:
         Vec<WorthQueryDomainOperationGraphParticipationRecord>,
     pub(crate) operation_required_domains: Vec<WorthQueryDomainOperationRequiredDomainRecord>,
+    pub(crate) artifact_contracts: Vec<WorthQueryPortableArtifactContract>,
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
@@ -44,6 +46,7 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
             domain_operations: Vec::new(),
             operation_graph_participations: Vec::new(),
             operation_required_domains: Vec::new(),
+            artifact_contracts: Vec::new(),
             contribution_policy: Vec::new(),
         }
     }
@@ -160,6 +163,12 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
         self.operation_required_domains.push(
             WorthQueryDomainOperationRequiredDomainRecord::typed::<O, F, R>(role),
         );
+        self
+    }
+
+    #[must_use]
+    pub fn artifact_contract(mut self, contract: WorthQueryPortableArtifactContract) -> Self {
+        self.artifact_contracts.push(contract);
         self
     }
 

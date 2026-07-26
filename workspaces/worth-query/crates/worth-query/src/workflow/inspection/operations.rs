@@ -260,7 +260,7 @@ pub fn build_workflow_replay_bundle(
     let counters = outcome.counters().with_replay_bundle_issued();
 
     WorkflowReplayBundle {
-        bundle_identity: bundle_identity,
+        bundle_identity,
         query_identity: outcome.source_query_identity().clone(),
         plan_identity: outcome.source_plan_identity().clone(),
         basis_identity: outcome.source_basis_identity().clone(),

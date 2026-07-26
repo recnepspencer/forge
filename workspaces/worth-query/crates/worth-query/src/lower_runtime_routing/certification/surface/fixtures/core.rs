@@ -276,7 +276,7 @@ pub(crate) fn representative_live_view_source_row() -> RepresentativeArtifacts {
     let eligibility = admitted_fixture_eligibility(
         request.clone(),
         "live-view-source-eligibility",
-        handle.name().to_string(),
+        handle.name(),
     );
     let route_plan = WorthQueryLowerRuntimeRoutePlan::new(
         eligibility.clone(),

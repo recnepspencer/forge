@@ -5,9 +5,7 @@ use super::dimension::{
     WorthQueryPortableConditionalDimension as Dimension,
     WorthQueryPortableConditionalOutputPart as OutputPart,
 };
-use super::value_basis::{
-    consequence_kind, locality_values, output_kind, workflow_value_contract_name,
-};
+use super::value_basis::{consequence_kind, locality_values, output_kind};
 use crate::domain_operation::{
     WorthQueryConditionalConsequenceRole, WorthQueryConditionalNodeOutput,
     WorthQueryPortableConditionalNodeDeclaration,
@@ -64,7 +62,7 @@ pub(super) fn append_outputs(
             WorthQueryConditionalNodeOutput::WorkflowStageOutput { contract } => {
                 bases.push(primitive(
                     dimension(OutputPart::WorkflowValueContract),
-                    text(workflow_value_contract_name(*contract)),
+                    text(contract.canonical_token()),
                     version,
                 ));
             }

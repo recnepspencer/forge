@@ -1507,7 +1507,9 @@ fn rejection_rows() -> Vec<MilestoneNineRejectionRow> {
         ),
         crate::authorized_projection::PolicyInfluenceSet::none(),
         RelationshipProofDescriptorSet::new(
-            vec![RelationshipProofDescriptor::host_callback_for_test("authz")],
+            vec![RelationshipProofDescriptor::host_callback_forbidden(
+                "authz",
+            )],
             RelationshipProofBudget::bounded(1, 1),
         ),
     )

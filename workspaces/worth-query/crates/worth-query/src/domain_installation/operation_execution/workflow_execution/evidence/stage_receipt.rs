@@ -19,6 +19,7 @@ use super::{
 pub(super) struct WorthQueryAdmittedWorkflowStageEvidence {
     pub(super) input: super::WorthQueryWorkflowSemanticValue,
     pub(super) output: WorthQueryWorkflowValue,
+    pub(super) output_semantics: super::WorthQueryWorkflowSemanticValue,
     pub(super) result_state: Option<crate::domain_installation::WorthQueryOperationResultState>,
     pub(super) warnings: Vec<WorthQueryWorkflowStageWarning>,
     pub(super) graph_receipts: Vec<WorthQueryBoundGraphExecutionReceipt>,
@@ -29,6 +30,8 @@ pub(super) struct WorthQueryAdmittedWorkflowStageEvidence {
     pub(super) execution_snapshot: crate::memory_workspace::WorthQuerySnapshotIdentity,
     pub(super) conditional: Vec<crate::domain_installation::WorthQueryConditionalProvenance>,
     pub(super) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
+    pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
+    pub(super) resource_evidence: super::WorthQueryExecutionResourceAttemptEvidence,
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
@@ -57,7 +60,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
                 "receipt.input",
                 workflow_semantic_value_material(&evidence.input),
             ),
-            ("receipt.output", evidence.output.semantic_part()),
+            (
+                "receipt.output",
+                workflow_semantic_value_material(&evidence.output_semantics),
+            ),
             (
                 "receipt.result_state",
                 operation_result_state_material(evidence.result_state).into(),
@@ -78,6 +84,19 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             (
                 "receipt.counters",
                 workflow_counter_material(evidence.counters),
+            ),
+            (
+                "receipt.domain_evidence",
+                evidence
+                    .domain_evidence
+                    .as_ref()
+                    .map(super::WorthQueryAdmittedDomainEvidence::identity)
+                    .unwrap_or("not-required")
+                    .into(),
+            ),
+            (
+                "receipt.execution_resources",
+                evidence.resource_evidence.identity().into(),
             ),
             (
                 "receipt.conditional",
@@ -139,6 +158,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             predecessor_receipt_identities,
             input: evidence.input,
             output: evidence.output,
+            output_semantics: evidence.output_semantics,
             result_state: evidence.result_state,
             warnings: evidence.warnings,
             graph_receipts: evidence.graph_receipts,
@@ -153,6 +173,9 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             execution_snapshot: evidence.execution_snapshot,
             conditional: evidence.conditional,
             lineage: evidence.lineage,
+            domain_evidence: evidence.domain_evidence,
+            execution_resources: evidence.resource_evidence,
+            artifact_provider_release: None,
         });
         self.receipt_index
             .insert(stage_identity.into(), receipt_index);
@@ -181,8 +204,8 @@ fn graph_semantics(evidence: &WorthQueryAdmittedWorkflowStageEvidence) -> String
                 (
                     "graph.projection",
                     receipt
-                        .projection()
-                        .map(|projection| projection.receipt().result_digest())
+                        .graph_read_product()
+                        .map(|projection| projection.result_digest())
                         .unwrap_or("not-projected")
                         .into(),
                 ),

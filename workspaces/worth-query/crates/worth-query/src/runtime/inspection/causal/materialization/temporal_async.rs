@@ -168,7 +168,7 @@ impl EvidenceFlags {
         families: &[CausalEvidenceFamily],
         bridge_denial_family: Option<BridgeCausalEvidenceFamily>,
     ) -> Self {
-        let has = |family| families.iter().any(|candidate| *candidate == family);
+        let has = |family| families.contains(&family);
         Self {
             temporal_wake: has(CausalEvidenceFamily::SignalInvalidation),
             async_completion: has(CausalEvidenceFamily::SignalEvaluation)

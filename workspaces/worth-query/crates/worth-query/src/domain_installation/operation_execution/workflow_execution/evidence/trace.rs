@@ -35,7 +35,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 &self,
             ));
         }
-        let mut trace = mint_completed_trace(self);
+        let mut run = self;
+        for receipt in run.receipts.iter_mut().rev() {
+            receipt.retire_artifact_output();
+        }
+        run.artifact_registry.close_released();
+        let mut trace = mint_completed_trace(run);
         match crate::domain_installation::dependency_impact::compile_workflow_semantic_aspect_dependencies(&trace) {
             Ok(dependency_closure) => trace.dependency_closure = Some(dependency_closure),
             Err(denial) => {
@@ -140,13 +145,26 @@ fn stage_semantic_part(receipt: &WorthQueryWorkflowStageReceipt) -> String {
             "stage.result_state",
             operation_result_state_material(receipt.result_state).into(),
         ),
-        ("stage.output", receipt.output.semantic_part()),
+        (
+            "stage.output",
+            crate::domain_installation::operation_identity_basis::workflow_semantic_value_material(
+                &receipt.output_semantics,
+            ),
+        ),
         (
             "stage.warnings",
             canonical_indexed_operation_material(
                 "stage.warning",
                 receipt.warnings.iter().map(workflow_warning_material),
             ),
+        ),
+        (
+            "stage.domain_evidence",
+            receipt
+                .domain_evidence()
+                .map(super::WorthQueryAdmittedDomainEvidence::replay_meaning)
+                .map(|meaning| meaning.semantic_material())
+                .unwrap_or_else(|| "not-required".into()),
         ),
         (
             "stage.graph",
@@ -160,8 +178,8 @@ fn stage_semantic_part(receipt: &WorthQueryWorkflowStageReceipt) -> String {
                         (
                             "graph.projection",
                             graph
-                                .projection()
-                                .map(|projection| projection.receipt().result_digest())
+                                .graph_read_product()
+                                .map(|projection| projection.result_digest())
                                 .unwrap_or("not-projected")
                                 .into(),
                         ),
@@ -310,6 +328,14 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryCompletedWorkflowTrace<D, O, F, L
     }
     pub fn counters(&self) -> WorthQueryWorkflowRunCounters {
         self.run.counters
+    }
+    pub fn resources(&self) -> &crate::domain_installation::WorthQueryAdmittedWorkflowResourcePlan {
+        self.run.resources()
+    }
+    pub fn operation_resource_evidence(
+        &self,
+    ) -> &crate::domain_installation::WorthQueryExecutionResourceAttemptEvidence {
+        self.run.operation_resource_evidence()
     }
     pub fn lineage_report(
         &self,

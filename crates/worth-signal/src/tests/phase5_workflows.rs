@@ -48,7 +48,9 @@ fn branch_debug_session_mixed_churn_stays_forensically_coherent() {
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("feature-debug").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -222,7 +224,9 @@ fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_t
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("feature-undo").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -375,7 +379,9 @@ fn posthoc_forensics_after_long_session_answers_branch_and_artifact_questions() 
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("feature-posthoc").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -568,7 +574,9 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
         .unwrap();
 
     let editor = runtime.observe().current_branch();
-    let editor_snapshot = runtime.capture_snapshot();
+    let editor_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let play = runtime.create_branch("play-session").unwrap();
     runtime.switch_branch(play.clone()).unwrap();
 
@@ -786,7 +794,9 @@ fn fintech_tick_correction_session_preserves_auditability_under_branching_replay
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let audit_snapshot = runtime.capture_snapshot();
+    let audit_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let what_if = runtime.create_branch("what-if-shock").unwrap();
     runtime.switch_branch(what_if.clone()).unwrap();
 
@@ -1000,7 +1010,9 @@ fn alternating_dynamic_rewire_across_branches_preserves_subscriber_integrity() {
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("feature-rewire").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
     runtime
@@ -1103,7 +1115,9 @@ fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
             .unwrap();
 
         let main = runtime.observe().current_branch();
-        let snapshot = runtime.capture_snapshot();
+        let snapshot = runtime
+            .capture_snapshot()
+            .expect("snapshot capture should succeed without managed queue bindings");
         let feature = runtime.create_branch("feature-retention").unwrap();
         runtime.switch_branch(feature.clone()).unwrap();
 
@@ -1272,7 +1286,11 @@ fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
                     Ok(())
                 })
                 .unwrap();
-            saved = Some(runtime.capture_snapshot());
+            saved = Some(
+                runtime
+                    .capture_snapshot()
+                    .expect("snapshot capture should succeed without managed queue bindings"),
+            );
             continue;
         }
 
@@ -1470,7 +1488,9 @@ fn parallel_branch_memo_rollback_session_preserves_branch_local_replay_and_cache
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("parallel-feature").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
 
@@ -1729,7 +1749,9 @@ fn long_session_replay_and_lineage_stay_equivalent_between_serial_and_parallel_e
             .unwrap();
 
         let main = runtime.observe().current_branch();
-        let snapshot = runtime.capture_snapshot();
+        let snapshot = runtime
+            .capture_snapshot()
+            .expect("snapshot capture should succeed without managed queue bindings");
         let feature = runtime.create_branch("executor-feature").unwrap();
         runtime.switch_branch(feature.clone()).unwrap();
 
@@ -2065,7 +2087,9 @@ fn dynamic_rewire_threshold_session_with_parallel_restore_preserves_subscriber_s
         .unwrap();
 
     let main = runtime.observe().current_branch();
-    let main_snapshot = runtime.capture_snapshot();
+    let main_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("feature-rewire-parallel").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
 

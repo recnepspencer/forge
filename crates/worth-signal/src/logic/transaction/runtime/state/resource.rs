@@ -28,27 +28,33 @@ use crate::data::resource::{
     ResourceHostCancellationAdvisory, ResourceInFlightStatus, ResourceIntentEquivalenceCoalescing,
     ResourceLifecycleClass, ResourceLifecycleOrdinal, ResourceLifecycleRetentionCompactionReport,
     ResourceLifecycleSummary, ResourceLifecycleTransition, ResourceLifecycleTransitionKind,
-    ResourceNodeDeclaration, ResourceNodeId, ResourceOldHostWorkCancellationAdvisory,
-    ResourceOutputContinuity, ResourceOverlappingGenerationAdmission,
-    ResourcePolicyCompatibilityClass, ResourcePolicyCompatibilityReport, ResourcePolicyDigest,
-    ResourcePolicyResolutionError, ResourcePolicyRestoreCompatibilityProof,
-    ResourceRejectionDenialClass, ResourceRejectionOrdinal, ResourceRejectionReason,
-    ResourceRejectionReport, ResourceReplayDecisionPlan, ResourceReplayReconstructionReport,
-    ResourceRequestAdmissionReport, ResourceRequestHandle, ResourceRequestId,
-    ResourceRequestIntent, ResourceRetainedDeniedCompletionAvailability,
+    ResourceManagedQueueBinding, ResourceManagedQueueCounters, ResourceManagedQueueDenial,
+    ResourceManagedQueueDenialClass, ResourceManagedQueueMutationKind,
+    ResourceManagedQueueMutationReport, ResourceManagedQueueState, ResourceNodeDeclaration,
+    ResourceNodeId, ResourceOldHostWorkCancellationAdvisory, ResourceOutputContinuity,
+    ResourceOverlappingGenerationAdmission, ResourcePolicyCompatibilityClass,
+    ResourcePolicyCompatibilityReport, ResourcePolicyDigest, ResourcePolicyResolutionError,
+    ResourcePolicyRestoreCompatibilityProof, ResourceRejectionDenialClass,
+    ResourceRejectionOrdinal, ResourceRejectionReason, ResourceRejectionReport,
+    ResourceReplayDecisionPlan, ResourceReplayReconstructionReport, ResourceRequestAdmissionReport,
+    ResourceRequestHandle, ResourceRequestId, ResourceRequestIntent,
+    ResourceRetainedDeniedCompletionAvailability,
     ResourceRetainedDeniedCompletionAvailabilityClass, ResourceRetainedHistoryAvailability,
     ResourceRetainedHistoryAvailabilityClass, ResourceRetainedRetryLineageAvailability,
     ResourceRetainedRetryLineageAvailabilityClass, ResourceRetentionCompactionBudget,
     ResourceRetryAdmissionReport, ResourceRetryDenialClass, ResourceRetryOrdinal,
     ResourceRetryReason, ResourceRetryScheduleReport, ResourceRevalidationCoalescing,
-    ResourceRevalidationDenialClass, ResourceRevalidationFreshnessClass,
-    ResourceRevalidationFreshnessDecision, ResourceRevalidationIntent, ResourceRevalidationReport,
-    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceSupersessionOrdinal,
-    ResourceSupersessionRecord, ResourceTimeoutDeadlineAuthority, ResourceTimeoutDenialClass,
-    ResourceTimeoutHeartbeatExtensionDenialClass, ResourceTimeoutHeartbeatExtensionReport,
-    ResourceTimeoutOrdinal, ResourceTimeoutOutcomeClass, ResourceTimeoutReport,
-    RetainedResourceRetryLineage, RolledBackResourceCompletionArtifact, ScheduledResourceRetry,
-    StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
+    ResourceRevalidationDenialClass, ResourceRevalidationEvidence,
+    ResourceRevalidationFreshnessClass, ResourceRevalidationFreshnessDecision,
+    ResourceRevalidationIntent, ResourceRevalidationReport, ResourceRuntimeSummary,
+    ResourceRuntimeSummaryReadReport, ResourceSafePointObservationCounters,
+    ResourceSafePointObservationDenial, ResourceSafePointObservationEvidence,
+    ResourceSafePointObservationOrdinal, ResourceSafePointObservationReport,
+    ResourceSupersessionOrdinal, ResourceSupersessionRecord, ResourceTimeoutDeadlineAuthority,
+    ResourceTimeoutDenialClass, ResourceTimeoutHeartbeatExtensionDenialClass,
+    ResourceTimeoutHeartbeatExtensionReport, ResourceTimeoutOrdinal, ResourceTimeoutOutcomeClass,
+    ResourceTimeoutReport, RetainedResourceRetryLineage, RolledBackResourceCompletionArtifact,
+    ScheduledResourceRetry, StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
     TerminalStateResourceRevalidationProof, TimedOutResourceRequest, ValidatedCompletionEnvelope,
     ValidatedResourcePolicyDeclaration,
 };
@@ -57,13 +63,109 @@ use crate::data::temporal::{ReadyTemporalWake, ScheduledTemporalWake, TemporalWa
 use crate::state::SignalBranchId;
 
 const RESOURCE_REPLAY_RECONSTRUCTION_SCHEMA_VERSION: &str =
-    "worth.resource.replay-reconstruction.v1";
+    "worth.resource.replay-reconstruction.v2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ResourceRevalidationAdmissionPreview {
-    Proceed,
-    Coalesce,
+    Proceed {
+        descriptor_id: ResourceDescriptorId,
+    },
+    Coalesce {
+        descriptor_id: ResourceDescriptorId,
+        active_request_id: ResourceRequestId,
+    },
     Deny(ResourceRevalidationDenialClass),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PreparedResourceRevalidationDisposition {
+    Proceed {
+        descriptor_id: ResourceDescriptorId,
+    },
+    Coalesce {
+        descriptor_id: ResourceDescriptorId,
+        active_request_id: ResourceRequestId,
+    },
+}
+
+#[derive(Debug)]
+pub(super) struct PreparedResourceRevalidation {
+    intent: ResourceRevalidationIntent,
+    revalidation_decision_digest: ResourcePolicyDigest,
+    freshness_decision: ResourceRevalidationFreshnessDecision,
+    evidence: ResourceRevalidationEvidence,
+    disposition: PreparedResourceRevalidationDisposition,
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct ResolvedResourceTimeoutPlan {
+    timeout_duration: crate::data::temporal::TemporalDuration,
+    due_tick: crate::data::temporal::ClockTick,
+    outcome_class: ResourceTimeoutOutcomeClass,
+    deadline_authority: ResourceTimeoutDeadlineAuthority,
+    decision_digest: ResourcePolicyDigest,
+}
+
+impl ResolvedResourceTimeoutPlan {
+    pub(super) fn new(
+        timeout_duration: crate::data::temporal::TemporalDuration,
+        due_tick: crate::data::temporal::ClockTick,
+        outcome_class: ResourceTimeoutOutcomeClass,
+        deadline_authority: ResourceTimeoutDeadlineAuthority,
+        decision_digest: ResourcePolicyDigest,
+    ) -> Self {
+        Self {
+            timeout_duration,
+            due_tick,
+            outcome_class,
+            deadline_authority,
+            decision_digest,
+        }
+    }
+
+    pub(super) const fn timeout_duration(&self) -> crate::data::temporal::TemporalDuration {
+        self.timeout_duration
+    }
+
+    pub(super) const fn due_tick(&self) -> crate::data::temporal::ClockTick {
+        self.due_tick
+    }
+
+    pub(super) fn bind_scheduled_wake(
+        self,
+        wake_id: TemporalWakeId,
+    ) -> ScheduledResourceTimeoutAdmission {
+        ScheduledResourceTimeoutAdmission {
+            timeout_duration: self.timeout_duration,
+            due_tick: self.due_tick,
+            outcome_class: self.outcome_class,
+            deadline_authority: self.deadline_authority,
+            decision_digest: self.decision_digest,
+            wake_id,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub(super) struct ScheduledResourceTimeoutAdmission {
+    timeout_duration: crate::data::temporal::TemporalDuration,
+    due_tick: crate::data::temporal::ClockTick,
+    outcome_class: ResourceTimeoutOutcomeClass,
+    deadline_authority: ResourceTimeoutDeadlineAuthority,
+    decision_digest: ResourcePolicyDigest,
+    wake_id: TemporalWakeId,
+}
+
+#[derive(Debug)]
+pub(super) struct PreparedScheduledResourceRetry {
+    scheduled: ScheduledResourceRetry,
+    previous: InFlightResourceRequest,
+}
+
+impl PreparedScheduledResourceRetry {
+    pub(super) fn previous(&self) -> &InFlightResourceRequest {
+        &self.previous
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,6 +226,7 @@ pub(in crate::logic::transaction::runtime) struct ResourceRuntimeState {
     next_rejection_ordinal: ResourceRejectionOrdinal,
     next_supersession_ordinal: ResourceSupersessionOrdinal,
     next_retry_ordinal: ResourceRetryOrdinal,
+    next_safe_point_observation_ordinal: ResourceSafePointObservationOrdinal,
     restore_epoch: u64,
     policy_registry: FrozenResourcePolicyRegistry,
     descriptors: BTreeMap<ResourceDescriptorId, LoweredResourceDescriptor>,
@@ -164,6 +267,7 @@ impl Default for ResourceRuntimeState {
             next_rejection_ordinal: ResourceRejectionOrdinal::ZERO,
             next_supersession_ordinal: ResourceSupersessionOrdinal::ZERO,
             next_retry_ordinal: ResourceRetryOrdinal::ZERO,
+            next_safe_point_observation_ordinal: ResourceSafePointObservationOrdinal::ZERO,
             restore_epoch: 0,
             policy_registry: FrozenResourcePolicyRegistry::built_in(),
             descriptors: BTreeMap::new(),
@@ -288,6 +392,8 @@ struct ResourceReplayInFlightEntryDigestBasis<'a> {
     revalidation_freshness_digest: Option<String>,
     revalidation_policy_decision_digest: Option<ResourcePolicyDigest>,
     superseded_by: Option<ResourceReplayHandleDigestBasis>,
+    managed_queue_depth: Option<u64>,
+    managed_queue_capacity: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -1057,6 +1163,7 @@ impl ResourceRuntimeState {
             .iter()
             .map(|request| {
                 let revalidation_freshness_decision = request.revalidation_freshness_decision();
+                let managed_queue = request.managed_queue();
                 ResourceReplayInFlightEntryDigestBasis {
                     handle: ResourceReplayHandleDigestBasis {
                         request_id: request.handle().request_id(),
@@ -1091,6 +1198,9 @@ impl ResourceRuntimeState {
                             generation: handle.generation(),
                         }
                     }),
+                    managed_queue_depth: managed_queue.map(ResourceManagedQueueState::queue_depth),
+                    managed_queue_capacity: managed_queue
+                        .map(ResourceManagedQueueState::queue_capacity),
                 }
             })
             .collect::<Vec<_>>();
@@ -1241,6 +1351,207 @@ impl ResourceRuntimeState {
             .filter(|in_flight| in_flight.handle() == handle)
     }
 
+    pub fn observe_safe_point(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ResourceSafePointObservationReport, ResourceSafePointObservationDenial> {
+        let counters = ResourceSafePointObservationCounters::exact_request_and_pressure();
+        let (request, status, lifecycle_ordinal, pressure, timeout_wake_id) = {
+            let request = self
+                .in_flight_request(binding.request(), telemetry)
+                .ok_or_else(|| {
+                    ResourceSafePointObservationDenial::request_unavailable(
+                        binding.request().request_id(),
+                        counters,
+                    )
+                })?;
+            let pressure = request
+                .managed_queue()
+                .filter(|queue| {
+                    request.attempt() == binding.attempt()
+                        && queue.queue_capacity() == binding.queue_capacity()
+                })
+                .map(ResourceManagedQueueState::pressure)
+                .ok_or_else(|| {
+                    ResourceSafePointObservationDenial::queue_unavailable(
+                        binding.request().request_id(),
+                        counters,
+                    )
+                })?;
+            (
+                request.handle(),
+                request.status(),
+                request.lifecycle_ordinal(),
+                pressure,
+                request.timeout_wake_id(),
+            )
+        };
+        let ordinal = self.next_safe_point_observation_ordinal;
+        self.next_safe_point_observation_ordinal = self.next_safe_point_observation_ordinal.next();
+        Ok(ResourceSafePointObservationReport::new(
+            ordinal,
+            ResourceSafePointObservationEvidence {
+                request,
+                status,
+                lifecycle_ordinal,
+                pressure,
+                timeout_wake_id,
+            },
+            counters,
+        ))
+    }
+
+    pub fn bind_managed_queue(
+        &mut self,
+        admitted: AdmittedResourceRequest,
+        queue_capacity: u64,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ResourceManagedQueueBinding, ResourceManagedQueueDenial> {
+        let state = ResourceManagedQueueState::new(queue_capacity).map_err(|class| {
+            ResourceManagedQueueDenial::new(
+                admitted.handle().request_id(),
+                class,
+                ResourceManagedQueueCounters::none(),
+            )
+        })?;
+        telemetry.resource_hot_in_flight_lookup_count += 1;
+        let request_id = admitted.handle().request_id();
+        let request = self
+            .in_flight_by_request
+            .get_mut(&request_id)
+            .filter(|request| {
+                request.handle() == admitted.handle() && request.attempt() == admitted.attempt()
+            })
+            .ok_or_else(|| {
+                ResourceManagedQueueDenial::new(
+                    request_id,
+                    ResourceManagedQueueDenialClass::RequestUnavailable,
+                    ResourceManagedQueueCounters::exact_lookup(0),
+                )
+            })?;
+        if request.status() != ResourceInFlightStatus::Active
+            || request.lifecycle() != ResourceLifecycleClass::Pending
+        {
+            return Err(ResourceManagedQueueDenial::new(
+                request_id,
+                ResourceManagedQueueDenialClass::RequestNotActive,
+                ResourceManagedQueueCounters::exact_lookup(0),
+            ));
+        }
+        if request.managed_queue().is_some() {
+            return Err(ResourceManagedQueueDenial::new(
+                request_id,
+                ResourceManagedQueueDenialClass::QueueAlreadyBound,
+                ResourceManagedQueueCounters::exact_lookup(0),
+            ));
+        }
+        request.bind_managed_queue(state);
+        Ok(ResourceManagedQueueBinding::new(
+            admitted.handle(),
+            admitted.attempt(),
+            queue_capacity,
+        ))
+    }
+
+    pub(super) fn bound_managed_queue_count(&self) -> u32 {
+        u32::try_from(
+            self.in_flight_by_request
+                .values()
+                .filter(|request| request.managed_queue().is_some())
+                .count(),
+        )
+        .unwrap_or(u32::MAX)
+    }
+
+    pub fn enqueue_managed_queue(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+        width: u64,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
+        self.mutate_managed_queue(
+            binding,
+            width,
+            ResourceManagedQueueMutationKind::Enqueued,
+            telemetry,
+        )
+    }
+
+    pub fn dequeue_managed_queue(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+        width: u64,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
+        self.mutate_managed_queue(
+            binding,
+            width,
+            ResourceManagedQueueMutationKind::Dequeued,
+            telemetry,
+        )
+    }
+
+    fn mutate_managed_queue(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+        width: u64,
+        kind: ResourceManagedQueueMutationKind,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
+        telemetry.resource_hot_in_flight_lookup_count += 1;
+        let request_id = binding.request().request_id();
+        let request = self
+            .in_flight_by_request
+            .get_mut(&request_id)
+            .filter(|request| {
+                request.handle() == binding.request() && request.attempt() == binding.attempt()
+            })
+            .ok_or_else(|| {
+                ResourceManagedQueueDenial::new(
+                    request_id,
+                    ResourceManagedQueueDenialClass::RequestUnavailable,
+                    ResourceManagedQueueCounters::exact_lookup(0),
+                )
+            })?;
+        let request_is_active = request.status() == ResourceInFlightStatus::Active
+            && request.lifecycle() == ResourceLifecycleClass::Pending;
+        if kind == ResourceManagedQueueMutationKind::Enqueued && !request_is_active {
+            return Err(ResourceManagedQueueDenial::new(
+                request_id,
+                ResourceManagedQueueDenialClass::RequestNotActive,
+                ResourceManagedQueueCounters::exact_lookup(0),
+            ));
+        }
+        let queue = request
+            .managed_queue_mut()
+            .filter(|queue| queue.queue_capacity() == binding.queue_capacity())
+            .ok_or_else(|| {
+                ResourceManagedQueueDenial::new(
+                    request_id,
+                    ResourceManagedQueueDenialClass::BindingMismatch,
+                    ResourceManagedQueueCounters::exact_lookup(0),
+                )
+            })?;
+        let mutation = match kind {
+            ResourceManagedQueueMutationKind::Enqueued => queue.enqueue(width),
+            ResourceManagedQueueMutationKind::Dequeued => queue.dequeue(width),
+        };
+        mutation.map_err(|class| {
+            ResourceManagedQueueDenial::new(
+                request_id,
+                class,
+                ResourceManagedQueueCounters::exact_lookup(0),
+            )
+        })?;
+        Ok(ResourceManagedQueueMutationReport::new(
+            binding.request(),
+            kind,
+            queue.pressure(),
+            ResourceManagedQueueCounters::exact_lookup(1),
+        ))
+    }
+
     pub fn active_timeout_wake_for_handle(
         &self,
         handle: ResourceRequestHandle,
@@ -1308,34 +1619,6 @@ impl ResourceRuntimeState {
         node: ResourceNodeId,
     ) -> Option<TemporalWakeId> {
         self.stale_after_wake_by_node.remove(&node)
-    }
-
-    pub fn attach_timeout_wake(
-        &mut self,
-        handle: ResourceRequestHandle,
-        wake_id: TemporalWakeId,
-        telemetry: &mut ResourceTelemetry,
-    ) -> Result<(), crate::data::error::SignalError> {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
-        let Some(in_flight) = self.in_flight_by_request.get_mut(&handle.request_id()) else {
-            return Err(crate::data::error::SignalError::internal(format!(
-                "cannot attach timeout wake {} to unknown resource request {}",
-                wake_id.get(),
-                handle.request_id().get()
-            )));
-        };
-        if in_flight.handle() != handle {
-            return Err(crate::data::error::SignalError::internal(format!(
-                "cannot attach timeout wake {} to stale resource request {}",
-                wake_id.get(),
-                handle.request_id().get()
-            )));
-        }
-        in_flight.attach_timeout_wake(wake_id);
-        telemetry.resource_timeout_temporal_wake_footprint = telemetry
-            .resource_timeout_temporal_wake_footprint
-            .saturating_add(1);
-        Ok(())
     }
 
     pub fn extend_timeout_heartbeat(
@@ -1547,19 +1830,13 @@ impl ResourceRuntimeState {
         ))
     }
 
-    pub fn admit_resource_request(
+    pub(super) fn admit_resource_request(
         &mut self,
         intent: ResourceRequestIntent,
         branch_id: SignalBranchId,
         generation_started_tick: crate::data::temporal::ClockTick,
         allow_intent_equivalence_coalescing: bool,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
+        resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
         telemetry: &mut ResourceTelemetry,
     ) -> Result<ResourceRequestAdmissionReport, crate::data::error::SignalError> {
         let node = intent.node();
@@ -1574,6 +1851,28 @@ impl ResourceRuntimeState {
                     node.node()
                 ))
             })?;
+        Ok(self.admit_resource_request_with_descriptor(
+            intent,
+            descriptor_id,
+            branch_id,
+            generation_started_tick,
+            allow_intent_equivalence_coalescing,
+            resolved_timeout,
+            telemetry,
+        ))
+    }
+
+    fn admit_resource_request_with_descriptor(
+        &mut self,
+        intent: ResourceRequestIntent,
+        descriptor_id: ResourceDescriptorId,
+        branch_id: SignalBranchId,
+        generation_started_tick: crate::data::temporal::ClockTick,
+        allow_intent_equivalence_coalescing: bool,
+        resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceRequestAdmissionReport {
+        let node = intent.node();
         let request_intent_digest = intent.canonical_digest();
         if allow_intent_equivalence_coalescing {
             if let Some(coalesced) = self.try_coalesce_equivalent_request_intent(
@@ -1584,7 +1883,7 @@ impl ResourceRuntimeState {
                 generation_started_tick,
                 telemetry,
             ) {
-                return Ok(coalesced);
+                return coalesced;
             }
         }
 
@@ -1625,19 +1924,15 @@ impl ResourceRuntimeState {
             timeout_outcome_class,
             timeout_deadline_authority,
             timeout_decision_digest,
+            timeout_wake_id,
         ) = match resolved_timeout {
-            Some((
-                timeout_duration,
-                timeout_due_tick,
-                timeout_outcome_class,
-                timeout_deadline_authority,
-                timeout_decision_digest,
-            )) => (
-                Some(timeout_duration),
-                Some(timeout_due_tick),
-                timeout_outcome_class,
-                timeout_deadline_authority,
-                timeout_decision_digest,
+            Some(timeout) => (
+                Some(timeout.timeout_duration),
+                Some(timeout.due_tick),
+                timeout.outcome_class,
+                timeout.deadline_authority,
+                timeout.decision_digest,
+                Some(timeout.wake_id),
             ),
             None => (
                 None,
@@ -1647,9 +1942,10 @@ impl ResourceRuntimeState {
                 crate::data::resource::ResourcePolicyDigest::new(
                     "resource-timeout:disabled-admission-default",
                 ),
+                None,
             ),
         };
-        let in_flight = InFlightResourceRequest::new(
+        let mut in_flight = InFlightResourceRequest::new(
             handle,
             node,
             descriptor_id,
@@ -1664,6 +1960,12 @@ impl ResourceRuntimeState {
             timeout_deadline_authority,
             timeout_decision_digest,
         );
+        if let Some(wake_id) = timeout_wake_id {
+            in_flight.attach_timeout_wake(wake_id);
+            telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                .resource_timeout_temporal_wake_footprint
+                .saturating_add(1);
+        }
         self.in_flight_by_request.insert(request_id, in_flight);
         self.active_request_by_node.insert(node, request_id);
         self.stale_after_wake_by_node.remove(&node);
@@ -1695,18 +1997,19 @@ impl ResourceRuntimeState {
                 0,
                 lifecycle_transition_count,
             )
+            .with_temporal_wake_footprint(u32::from(timeout_wake_id.is_some()))
             .with_density_strategy(density_strategy)
             .with_output_continuity_classification_width(1 + supersession_visibility_width),
         );
 
-        Ok(ResourceRequestAdmissionReport::new(
+        ResourceRequestAdmissionReport::new(
             admitted,
             lifecycle,
             transition,
             supersession,
             None,
             performance,
-        ))
+        )
     }
 
     pub fn retry_backoff_delay_for_handle(
@@ -2202,79 +2505,216 @@ impl ResourceRuntimeState {
         }
     }
 
-    pub fn admit_resource_revalidation(
+    fn prepare_resource_revalidation(
         &mut self,
         intent: ResourceRevalidationIntent,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
         count_policy_decision: bool,
-        revalidation_decision_digest: crate::data::resource::ResourcePolicyDigest,
+        revalidation_decision_digest: ResourcePolicyDigest,
         freshness_decision: ResourceRevalidationFreshnessDecision,
-        forced_active_handle: Option<ResourceRequestHandle>,
-        dependency_change_proof: Option<DependencyChangeResourceRevalidationProof>,
-        observer_demand_proof: Option<ObserverDemandResourceRevalidationProof>,
-        terminal_state_proof: Option<TerminalStateResourceRevalidationProof>,
-        fulfilled_lifecycle_proof: Option<FulfilledLifecycleResourceRevalidationProof>,
-        stale_after_ready_wake: Option<ReadyTemporalWake>,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
+        evidence: ResourceRevalidationEvidence,
         telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRevalidationReport {
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
         if count_policy_decision {
             telemetry.resource_revalidation_policy_decision_count += 1;
         }
-        match self.preview_revalidation_admission(intent, &freshness_decision) {
-            ResourceRevalidationAdmissionPreview::Proceed => {}
-            ResourceRevalidationAdmissionPreview::Coalesce => {
-                return self.coalesce_revalidation(
-                    intent,
-                    branch_id,
-                    generation_started_tick,
-                    freshness_decision,
-                    forced_active_handle,
-                    dependency_change_proof,
-                    observer_demand_proof,
-                    terminal_state_proof,
-                    fulfilled_lifecycle_proof,
-                    stale_after_ready_wake,
-                    revalidation_decision_digest,
-                    telemetry,
-                );
+        let disposition = match self.preview_revalidation_admission(intent, &freshness_decision) {
+            ResourceRevalidationAdmissionPreview::Proceed { descriptor_id } => {
+                PreparedResourceRevalidationDisposition::Proceed { descriptor_id }
             }
+            ResourceRevalidationAdmissionPreview::Coalesce {
+                descriptor_id,
+                active_request_id,
+            } => PreparedResourceRevalidationDisposition::Coalesce {
+                descriptor_id,
+                active_request_id,
+            },
             ResourceRevalidationAdmissionPreview::Deny(class) => {
-                return self.deny_revalidation(intent, class, telemetry);
+                return Err(self.deny_revalidation(intent, class, telemetry));
             }
-        }
+        };
+        Ok(PreparedResourceRevalidation {
+            intent,
+            revalidation_decision_digest,
+            freshness_decision,
+            evidence,
+            disposition,
+        })
+    }
 
-        let expected_active = intent.expected_active();
+    pub(super) fn prepare_explicit_resource_revalidation(
+        &mut self,
+        intent: ResourceRevalidationIntent,
+        revalidation_decision_digest: ResourcePolicyDigest,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        self.prepare_resource_revalidation(
+            intent,
+            true,
+            revalidation_decision_digest.clone(),
+            ResourceRevalidationFreshnessDecision::explicit_intent(revalidation_decision_digest),
+            ResourceRevalidationEvidence::ExplicitIntent {
+                expected_active: intent.expected_active(),
+            },
+            telemetry,
+        )
+    }
+
+    pub(super) fn prepare_forced_resource_revalidation(
+        &mut self,
+        proof: ActiveResourceRevalidationProof,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        let intent = ResourceRevalidationIntent::with_expected_active(proof.node(), proof.handle());
+        self.prepare_resource_revalidation(
+            intent,
+            false,
+            proof.decision_digest().clone(),
+            ResourceRevalidationFreshnessDecision::forced_active_handle(
+                proof.handle(),
+                proof.decision_digest().clone(),
+            ),
+            ResourceRevalidationEvidence::ForcedActive(proof),
+            telemetry,
+        )
+    }
+
+    pub(super) fn prepare_dependency_change_resource_revalidation(
+        &mut self,
+        proof: DependencyChangeResourceRevalidationProof,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        let intent = ResourceRevalidationIntent::new(proof.node());
+        self.prepare_resource_revalidation(
+            intent,
+            false,
+            proof.decision_digest().clone(),
+            ResourceRevalidationFreshnessDecision::dependency_change(&proof),
+            ResourceRevalidationEvidence::DependencyChange(proof),
+            telemetry,
+        )
+    }
+
+    pub(super) fn prepare_observer_demand_resource_revalidation(
+        &mut self,
+        proof: ObserverDemandResourceRevalidationProof,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        let intent = ResourceRevalidationIntent::new(proof.node());
+        self.prepare_resource_revalidation(
+            intent,
+            false,
+            proof.decision_digest().clone(),
+            ResourceRevalidationFreshnessDecision::observer_demand(&proof),
+            ResourceRevalidationEvidence::ObserverDemand(proof),
+            telemetry,
+        )
+    }
+
+    pub(super) fn prepare_terminal_state_resource_revalidation(
+        &mut self,
+        proof: TerminalStateResourceRevalidationProof,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        let intent = ResourceRevalidationIntent::new(proof.node());
+        self.prepare_resource_revalidation(
+            intent,
+            false,
+            proof.decision_digest().clone(),
+            ResourceRevalidationFreshnessDecision::terminal_state(&proof),
+            ResourceRevalidationEvidence::TerminalState(proof),
+            telemetry,
+        )
+    }
+
+    pub(super) fn prepare_fulfilled_lifecycle_resource_revalidation(
+        &mut self,
+        proof: FulfilledLifecycleResourceRevalidationProof,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        let intent = ResourceRevalidationIntent::new(proof.node());
+        self.prepare_resource_revalidation(
+            intent,
+            false,
+            proof.decision_digest().clone(),
+            ResourceRevalidationFreshnessDecision::fulfilled_lifecycle(&proof),
+            ResourceRevalidationEvidence::FulfilledLifecycle(proof),
+            telemetry,
+        )
+    }
+
+    pub(super) fn prepare_stale_after_resource_revalidation(
+        &mut self,
+        node: ResourceNodeId,
+        ready_wake: ReadyTemporalWake,
+        revalidation_decision_digest: ResourcePolicyDigest,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceRevalidation, ResourceRevalidationReport> {
+        let intent = ResourceRevalidationIntent::new(node);
+        self.prepare_resource_revalidation(
+            intent,
+            false,
+            revalidation_decision_digest.clone(),
+            ResourceRevalidationFreshnessDecision::stale_after(
+                node,
+                ready_wake.id(),
+                revalidation_decision_digest,
+            ),
+            ResourceRevalidationEvidence::StaleAfter(ready_wake),
+            telemetry,
+        )
+    }
+
+    pub(super) fn admit_prepared_resource_revalidation(
+        &mut self,
+        prepared: PreparedResourceRevalidation,
+        branch_id: SignalBranchId,
+        generation_started_tick: crate::data::temporal::ClockTick,
+        resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceRevalidationReport {
+        let PreparedResourceRevalidation {
+            intent,
+            revalidation_decision_digest,
+            freshness_decision,
+            evidence,
+            disposition,
+        } = prepared;
+        if let PreparedResourceRevalidationDisposition::Coalesce {
+            descriptor_id,
+            active_request_id,
+        } = disposition
+        {
+            return self.coalesce_revalidation(
+                intent,
+                descriptor_id,
+                active_request_id,
+                branch_id,
+                generation_started_tick,
+                freshness_decision,
+                evidence,
+                revalidation_decision_digest,
+                resolved_timeout,
+                telemetry,
+            );
+        }
+        let PreparedResourceRevalidationDisposition::Proceed { descriptor_id } = disposition else {
+            unreachable!("coalescing disposition returned before request admission")
+        };
         let temporal_wake_footprint = u32::from(resolved_timeout.is_some());
-        let request_report = match self.admit_resource_request(
+        let request_report = self.admit_resource_request_with_descriptor(
             match intent.transaction_deadline() {
                 Some(deadline) => {
                     ResourceRequestIntent::with_transaction_deadline(intent.node(), deadline)
                 }
                 None => ResourceRequestIntent::new(intent.node()),
             },
+            descriptor_id,
             branch_id,
             generation_started_tick,
             false,
             resolved_timeout,
             telemetry,
-        ) {
-            Ok(report) => report,
-            Err(_) => {
-                return self.deny_revalidation(
-                    intent,
-                    ResourceRevalidationDenialClass::UndeclaredResourceNode,
-                    telemetry,
-                )
-            }
-        };
+        );
         let admitted_request = request_report.admitted_request();
         if let Some(in_flight) = self
             .in_flight_by_request
@@ -2307,13 +2747,7 @@ impl ResourceRuntimeState {
             AdmittedResourceRevalidation::new(
                 admitted_request,
                 freshness_decision,
-                expected_active,
-                forced_active_handle,
-                dependency_change_proof,
-                observer_demand_proof,
-                terminal_state_proof,
-                fulfilled_lifecycle_proof,
-                stale_after_ready_wake,
+                evidence,
                 None,
                 supersession_record,
                 revalidation_decision_digest,
@@ -2324,180 +2758,17 @@ impl ResourceRuntimeState {
         )
     }
 
-    pub fn admit_forced_resource_revalidation(
-        &mut self,
-        proof: &ActiveResourceRevalidationProof,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRevalidationReport {
-        self.admit_resource_revalidation(
-            ResourceRevalidationIntent::with_expected_active(proof.node(), proof.handle()),
-            branch_id,
-            generation_started_tick,
-            false,
-            proof.decision_digest().clone(),
-            ResourceRevalidationFreshnessDecision::forced_active_handle(
-                proof.handle(),
-                proof.decision_digest().clone(),
-            ),
-            Some(proof.handle()),
-            None,
-            None,
-            None,
-            None,
-            None,
-            resolved_timeout,
-            telemetry,
-        )
-    }
-
-    pub fn admit_dependency_change_resource_revalidation(
-        &mut self,
-        proof: DependencyChangeResourceRevalidationProof,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRevalidationReport {
-        self.admit_resource_revalidation(
-            ResourceRevalidationIntent::new(proof.node()),
-            branch_id,
-            generation_started_tick,
-            false,
-            proof.decision_digest().clone(),
-            ResourceRevalidationFreshnessDecision::dependency_change(&proof),
-            None,
-            Some(proof),
-            None,
-            None,
-            None,
-            None,
-            resolved_timeout,
-            telemetry,
-        )
-    }
-
-    pub fn admit_observer_demand_resource_revalidation(
-        &mut self,
-        proof: ObserverDemandResourceRevalidationProof,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRevalidationReport {
-        self.admit_resource_revalidation(
-            ResourceRevalidationIntent::new(proof.node()),
-            branch_id,
-            generation_started_tick,
-            false,
-            proof.decision_digest().clone(),
-            ResourceRevalidationFreshnessDecision::observer_demand(&proof),
-            None,
-            None,
-            Some(proof),
-            None,
-            None,
-            None,
-            resolved_timeout,
-            telemetry,
-        )
-    }
-
-    pub fn admit_terminal_state_resource_revalidation(
-        &mut self,
-        proof: TerminalStateResourceRevalidationProof,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRevalidationReport {
-        self.admit_resource_revalidation(
-            ResourceRevalidationIntent::new(proof.node()),
-            branch_id,
-            generation_started_tick,
-            false,
-            proof.decision_digest().clone(),
-            ResourceRevalidationFreshnessDecision::terminal_state(&proof),
-            None,
-            None,
-            None,
-            Some(proof),
-            None,
-            None,
-            resolved_timeout,
-            telemetry,
-        )
-    }
-
-    pub fn admit_fulfilled_lifecycle_resource_revalidation(
-        &mut self,
-        proof: FulfilledLifecycleResourceRevalidationProof,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
-        telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRevalidationReport {
-        self.admit_resource_revalidation(
-            ResourceRevalidationIntent::new(proof.node()),
-            branch_id,
-            generation_started_tick,
-            false,
-            proof.decision_digest().clone(),
-            ResourceRevalidationFreshnessDecision::fulfilled_lifecycle(&proof),
-            None,
-            None,
-            None,
-            None,
-            Some(proof),
-            None,
-            resolved_timeout,
-            telemetry,
-        )
-    }
-
     fn preview_revalidation_admission(
         &self,
         intent: ResourceRevalidationIntent,
         freshness_decision: &ResourceRevalidationFreshnessDecision,
     ) -> ResourceRevalidationAdmissionPreview {
         let node = intent.node();
-        if !self.descriptors_by_node.contains_key(&node) {
+        let Some(descriptor_id) = self.descriptors_by_node.get(&node).copied() else {
             return ResourceRevalidationAdmissionPreview::Deny(
                 ResourceRevalidationDenialClass::UndeclaredResourceNode,
             );
-        }
+        };
 
         let request_intent = match intent.transaction_deadline() {
             Some(deadline) => ResourceRequestIntent::with_transaction_deadline(node, deadline),
@@ -2518,34 +2789,34 @@ impl ResourceRuntimeState {
                                     == freshness_decision.freshness_digest()
                         })
                 {
-                    return ResourceRevalidationAdmissionPreview::Coalesce;
+                    return ResourceRevalidationAdmissionPreview::Coalesce {
+                        descriptor_id,
+                        active_request_id,
+                    };
                 }
             }
         }
 
         self.validate_resource_revalidation_intent(intent)
             .map(ResourceRevalidationAdmissionPreview::Deny)
-            .unwrap_or(ResourceRevalidationAdmissionPreview::Proceed)
+            .unwrap_or(ResourceRevalidationAdmissionPreview::Proceed { descriptor_id })
     }
 
     fn coalesce_revalidation(
         &mut self,
         intent: ResourceRevalidationIntent,
+        descriptor_id: ResourceDescriptorId,
+        active_request_id: ResourceRequestId,
         branch_id: SignalBranchId,
         generation_started_tick: crate::data::temporal::ClockTick,
         freshness_decision: ResourceRevalidationFreshnessDecision,
-        forced_active_handle: Option<ResourceRequestHandle>,
-        dependency_change_proof: Option<DependencyChangeResourceRevalidationProof>,
-        observer_demand_proof: Option<ObserverDemandResourceRevalidationProof>,
-        terminal_state_proof: Option<TerminalStateResourceRevalidationProof>,
-        fulfilled_lifecycle_proof: Option<FulfilledLifecycleResourceRevalidationProof>,
-        stale_after_ready_wake: Option<ReadyTemporalWake>,
+        evidence: ResourceRevalidationEvidence,
         revalidation_decision_digest: crate::data::resource::ResourcePolicyDigest,
+        resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceRevalidationReport {
         let node = intent.node();
-        let descriptor_id = self.descriptors_by_node[&node];
-        let active_request_id = self.active_request_by_node[&node];
+        let temporal_wake_footprint = u32::from(resolved_timeout.is_some());
         let active_in_flight = self.in_flight_by_request[&active_request_id].clone();
         let request_intent_digest = match intent.transaction_deadline() {
             Some(deadline) => ResourceRequestIntent::with_transaction_deadline(node, deadline),
@@ -2606,11 +2877,14 @@ impl ResourceRuntimeState {
 
         let performance = Self::record_boundary_performance(
             telemetry,
-            ResourceBoundaryPerformanceEnvelope::revalidation_admission(1, 0, 1, 0)
-                .with_coalescing_width(1)
-                .with_output_continuity_classification_width(u32::from(
-                    terminal_visibility_classified,
-                )),
+            ResourceBoundaryPerformanceEnvelope::revalidation_admission(
+                1,
+                0,
+                1,
+                temporal_wake_footprint,
+            )
+            .with_coalescing_width(1)
+            .with_output_continuity_classification_width(u32::from(terminal_visibility_classified)),
         );
         let lifecycle = self
             .lifecycle_by_node
@@ -2630,18 +2904,21 @@ impl ResourceRuntimeState {
             active_in_flight.handle().branch_epoch(),
             active_in_flight.attempt(),
         );
+        if let Some(timeout) = resolved_timeout {
+            self.in_flight_by_request
+                .get_mut(&active_request_id)
+                .expect("coalesced revalidation winner must remain active")
+                .attach_timeout_wake(timeout.wake_id);
+            telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                .resource_timeout_temporal_wake_footprint
+                .saturating_add(1);
+        }
 
         ResourceRevalidationReport::admitted(
             AdmittedResourceRevalidation::new(
                 admitted_request,
                 freshness_decision.clone(),
-                intent.expected_active(),
-                forced_active_handle,
-                dependency_change_proof,
-                observer_demand_proof,
-                terminal_state_proof,
-                fulfilled_lifecycle_proof,
-                stale_after_ready_wake,
+                evidence,
                 Some(ResourceRevalidationCoalescing::new(
                     active_in_flight.handle(),
                     coalesced_request,
@@ -2755,77 +3032,88 @@ impl ResourceRuntimeState {
         ResourceRetryScheduleReport::admitted(scheduled, performance)
     }
 
-    pub fn admit_scheduled_resource_retry(
+    pub(super) fn prepare_scheduled_resource_retry(
         &mut self,
         handle: ResourceRequestHandle,
-        ready_wake: ReadyTemporalWake,
-        branch_id: SignalBranchId,
-        generation_started_tick: crate::data::temporal::ClockTick,
-        resolved_timeout: Option<(
-            crate::data::temporal::TemporalDuration,
-            crate::data::temporal::ClockTick,
-            crate::data::resource::ResourceTimeoutOutcomeClass,
-            crate::data::resource::ResourceTimeoutDeadlineAuthority,
-            crate::data::resource::ResourcePolicyDigest,
-        )>,
+        ready_wake: &ReadyTemporalWake,
         telemetry: &mut ResourceTelemetry,
-    ) -> ResourceRetryAdmissionReport {
+    ) -> Result<PreparedScheduledResourceRetry, ResourceRetryAdmissionReport> {
         telemetry.resource_hot_in_flight_lookup_count += 1;
         let request_id = handle.request_id();
         let Some(scheduled) = self.pending_retry_by_request.get(&request_id).cloned() else {
-            return self.deny_retry_admission(
+            return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::MissingRetryBackoffWake,
                 self.retry_policy_decision_digest_for_request(request_id),
                 telemetry,
-            );
+            ));
         };
         if scheduled.previous() != handle {
-            return self.deny_retry_admission(
+            return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
                 scheduled.policy_decision_digest().clone(),
                 telemetry,
-            );
+            ));
         }
         if scheduled.backoff_wake_id() != ready_wake.id() {
-            return self.deny_retry_admission(
+            return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::WakeMismatch,
                 scheduled.policy_decision_digest().clone(),
                 telemetry,
-            );
+            ));
         }
 
         let Some(previous) = self.in_flight_by_request.get(&request_id).cloned() else {
-            return self.deny_retry_admission(
+            return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
                 scheduled.policy_decision_digest().clone(),
                 telemetry,
-            );
+            ));
         };
         if previous.handle() != handle {
-            return self.deny_retry_admission(
+            return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
                 scheduled.policy_decision_digest().clone(),
                 telemetry,
-            );
+            ));
         }
         if self
             .active_request_by_node
             .get(&previous.node())
             .is_some_and(|active| *active != request_id)
         {
-            return self.deny_retry_admission(
+            return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::SupersededByNewerRequest,
                 scheduled.policy_decision_digest().clone(),
                 telemetry,
-            );
+            ));
         }
+        Ok(PreparedScheduledResourceRetry {
+            scheduled,
+            previous,
+        })
+    }
 
+    pub(super) fn admit_prepared_scheduled_resource_retry(
+        &mut self,
+        prepared: PreparedScheduledResourceRetry,
+        ready_wake: ReadyTemporalWake,
+        branch_id: SignalBranchId,
+        generation_started_tick: crate::data::temporal::ClockTick,
+        resolved_timeout: Option<ScheduledResourceTimeoutAdmission>,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceRetryAdmissionReport {
+        let PreparedScheduledResourceRetry {
+            scheduled,
+            previous,
+        } = prepared;
+        let scheduled_timeout_wake_footprint = u32::from(resolved_timeout.is_some());
+        let request_id = previous.handle().request_id();
         let retry_request_id = self.issue_request_id();
         let branch_epoch = ResourceBranchEpoch::new(branch_id, self.restore_epoch);
         let admitted = AdmittedResourceRequest::new(
@@ -2861,19 +3149,15 @@ impl ResourceRuntimeState {
             timeout_outcome_class,
             timeout_deadline_authority,
             timeout_decision_digest,
+            timeout_wake_id,
         ) = match resolved_timeout {
-            Some((
-                timeout_duration,
-                timeout_due_tick,
-                timeout_outcome_class,
-                timeout_deadline_authority,
-                timeout_decision_digest,
-            )) => (
-                Some(timeout_duration),
-                Some(timeout_due_tick),
-                timeout_outcome_class,
-                timeout_deadline_authority,
-                timeout_decision_digest,
+            Some(timeout) => (
+                Some(timeout.timeout_duration),
+                Some(timeout.due_tick),
+                timeout.outcome_class,
+                timeout.deadline_authority,
+                timeout.decision_digest,
+                Some(timeout.wake_id),
             ),
             None => (
                 previous.timeout_duration(),
@@ -2881,9 +3165,10 @@ impl ResourceRuntimeState {
                 previous.timeout_outcome_class(),
                 previous.timeout_deadline_authority(),
                 previous.timeout_decision_digest().clone(),
+                previous.timeout_wake_id(),
             ),
         };
-        let in_flight = InFlightResourceRequest::new(
+        let mut in_flight = InFlightResourceRequest::new(
             handle,
             previous.node(),
             previous.descriptor_id(),
@@ -2898,6 +3183,12 @@ impl ResourceRuntimeState {
             timeout_deadline_authority,
             timeout_decision_digest,
         );
+        if let Some(wake_id) = timeout_wake_id {
+            in_flight.attach_timeout_wake(wake_id);
+            telemetry.resource_timeout_temporal_wake_footprint = telemetry
+                .resource_timeout_temporal_wake_footprint
+                .saturating_add(1);
+        }
         self.pending_retry_by_request.remove(&request_id);
         self.pending_retry_by_wake.remove(&ready_wake.id());
         self.pending_retry_by_node.remove(&previous.node());
@@ -2919,8 +3210,13 @@ impl ResourceRuntimeState {
             .saturating_add(1);
         let performance = Self::record_boundary_performance(
             telemetry,
-            ResourceBoundaryPerformanceEnvelope::retry_admission(1, 0, 1, 1)
-                .with_output_continuity_classification_width(1),
+            ResourceBoundaryPerformanceEnvelope::retry_admission(
+                1,
+                0,
+                1,
+                1 + scheduled_timeout_wake_footprint,
+            )
+            .with_output_continuity_classification_width(1),
         );
 
         ResourceRetryAdmissionReport::admitted(
@@ -3285,6 +3581,11 @@ impl ResourceRuntimeState {
             .iter()
             .copied()
             .filter(|request_id| !self.pending_retry_by_request.contains_key(request_id))
+            .filter(|request_id| {
+                self.terminal_in_flight_record(*request_id)
+                    .and_then(|request| request.managed_queue())
+                    .is_none_or(ResourceManagedQueueState::is_empty)
+            })
             .filter(|request_id| {
                 let Some(in_flight) = self.terminal_in_flight_record(*request_id) else {
                     return false;

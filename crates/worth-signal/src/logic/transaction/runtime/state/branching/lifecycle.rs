@@ -35,10 +35,15 @@ where
         if branch.id == current.id {
             return Ok(());
         }
+        let target_state = self
+            .branches
+            .branch_state(branch.id)
+            .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
+        self.ensure_branch_state_managed_queue_transfer_allowed(target_state)?;
         let Some(state) = self.branches.take_stored_branch_transfer(branch.id) else {
             return Err(SignalError::unknown_branch(Some(branch.id), branch.name));
         };
-        let current_state = self.take_heavy_active_branch_state();
+        let current_state = self.take_heavy_active_branch_state()?;
         self.branches.store_branch_state(current_state);
         self.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
             AuthorityTransferPacket::new(branch.id, state.into_state()),
@@ -117,7 +122,7 @@ where
         branch_id: SignalBranchId,
     ) -> Result<(), SignalError> {
         if self.graph.current_branch().id == branch_id {
-            let mut state = self.capture_heavy_branch_state();
+            let mut state = self.capture_heavy_branch_state()?;
             state.clear_merge_boundary_proof();
             self.branches.store_branch_state(state);
             return Ok(());
@@ -173,6 +178,9 @@ where
                 "snapshot `{}` belongs to branch `{}` and cannot seed a fork from branch `{}`",
                 snapshot_id.0, snapshot_branch_id.0, parent_branch_id.0
             )),
+            SignalBranchForkDenial::ManagedQueueBranchTransferDenied {
+                bound_queue_count,
+            } => SignalError::managed_queue_branch_transfer_denied(bound_queue_count),
         }
     }
 }

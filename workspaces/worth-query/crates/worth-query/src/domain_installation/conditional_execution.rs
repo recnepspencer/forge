@@ -1,9 +1,11 @@
+mod compute_bridge;
 mod delivery;
 mod evaluation;
 mod installation;
 mod reentry;
 mod registry;
 
+pub(crate) use compute_bridge::QueryComputeProvider;
 pub use delivery::{
     WorthQueryConditionalAuthoritativeChangeDeliveryRequest, WorthQueryConditionalDeliveryDenial,
 };
@@ -13,7 +15,10 @@ pub(crate) use evaluation::{
     WorthQueryConditionalEvaluationScope, WorthQueryConditionalEvaluationStop,
     WorthQueryOwnerImpactConditionalEvaluationPass,
 };
-pub(crate) use installation::{PendingConditionalInstallation, PendingConditionalNode};
+pub(crate) use installation::{
+    PendingConditionalInstallation, PendingConditionalNode,
+    WorthQueryConditionalComputeContextParts,
+};
 pub use installation::{
     WorthQueryConditionalComputeContext, WorthQueryConditionalDependencyInstallation,
     WorthQueryConditionalNodeComputeProvider, WorthQueryConditionalNodeInstallationDenial,

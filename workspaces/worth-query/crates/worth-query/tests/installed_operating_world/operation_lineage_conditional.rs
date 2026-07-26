@@ -15,7 +15,7 @@ fn conditional_no_change_or_deferral_cannot_claim_fresh_lineage() {
     .unwrap();
 
     assert!(matches!(
-        bind(&workspace).reexecute(intent(), &mut workspace),
+        bind(&workspace).admit_workflow_resources(crate::suite::installed_operation_fixture::execution_resource_request(), &workspace).unwrap().reexecute(intent(), &mut workspace),
         TransitionOutcome::Deferred(
             domain::WorthQueryWorkflowReexecutionStop::ConditionalDeferred { stage_identity, .. }
         ) if stage_identity == "publish"

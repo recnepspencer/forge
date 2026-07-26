@@ -12,7 +12,10 @@ pub(super) fn create_branch(
 }
 
 pub(super) fn capture_active_snapshot(fixture: &mut FintechDomainFixture) -> SignalSnapshotV1 {
-    fixture.runtime.capture_snapshot()
+    fixture
+        .runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings")
 }
 
 pub(super) fn capture_branch_snapshot(

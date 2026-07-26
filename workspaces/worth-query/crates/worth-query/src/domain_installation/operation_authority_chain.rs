@@ -22,12 +22,15 @@ pub(crate) struct WorthQueryOperationAuthorityBasis {
     pub(crate) basis_identity: String,
     pub(crate) graph_authority_identities: Vec<String>,
     pub(crate) required_domain_authority_identities: Vec<String>,
+    pub(crate) resource_admission_identity: Option<String>,
 }
 
 #[derive(Debug)]
 pub(crate) struct WorthQueryBoundOperationPhase;
 #[derive(Debug)]
 pub(crate) struct WorthQueryExecutedOperationPhase;
+#[derive(Debug)]
+pub(crate) struct WorthQueryResourceAdmittedOperationPhase;
 #[derive(Debug)]
 pub(crate) struct WorthQueryPublishedOperationPhase;
 #[derive(Debug)]
@@ -55,6 +58,7 @@ pub(crate) struct WorthQueryImpactClassifiedPhase;
 
 impl PhaseMarker for WorthQueryBoundOperationPhase {}
 impl PhaseMarker for WorthQueryExecutedOperationPhase {}
+impl PhaseMarker for WorthQueryResourceAdmittedOperationPhase {}
 impl PhaseMarker for WorthQueryPublishedOperationPhase {}
 impl PhaseMarker for WorthQueryConsumedOperationPhase {}
 impl PhaseMarker for WorthQuerySettledOperationPhase {}

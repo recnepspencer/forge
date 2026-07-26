@@ -13,6 +13,11 @@ fn compensation_is_a_new_bound_operation_with_a_proof_carrying_relation() {
     let mut workspace =
         aftermath_workspace("aftermath-compensation", AftermathContract::Compensation).unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let original_identity = original.identity().to_owned();
@@ -22,7 +27,12 @@ fn compensation_is_a_new_bound_operation_with_a_proof_carrying_relation() {
         _ => panic!("installed compensation was not admitted"),
     };
 
-    let executed = capability.execute_workflow(&mut workspace).unwrap();
+    let executed = capability
+        .execute_workflow(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &mut workspace,
+        )
+        .unwrap();
     let relation = executed.relation();
     assert_eq!(relation.original_trace_identity(), original_identity);
     assert_ne!(relation.aftermath_execution_identity(), original_identity);
@@ -73,6 +83,11 @@ fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
     let mut workspace =
         aftermath_workspace("aftermath-exact", AftermathContract::ExactInverse).unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let original_entity = original.stage_receipts()[0].effect_evidence()[0]
@@ -86,7 +101,12 @@ fn exact_inverse_has_its_own_typed_surface_and_exact_postcondition() {
         domain::WorthQueryAftermathAdmission::ExactInverse(capability) => capability,
         _ => panic!("installed exact inverse was not admitted"),
     };
-    let executed = capability.execute_workflow(&mut workspace).unwrap();
+    let executed = capability
+        .execute_workflow(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &mut workspace,
+        )
+        .unwrap();
     assert_eq!(
         executed.relation().postcondition(),
         &domain::WorthQueryAftermathPostcondition::ExactPriorTruth
@@ -131,6 +151,11 @@ fn aftermath_admission_rejects_foreign_runtime_and_wrong_operation() {
     let mut workspace =
         aftermath_workspace("aftermath-scope", AftermathContract::Compensation).unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let foreign =
@@ -193,6 +218,11 @@ fn false_business_postcondition_cannot_mint_an_aftermath_relation() {
     )
     .unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let capability = match original.admit_aftermath(bind_candidate(&workspace)) {
@@ -200,7 +230,10 @@ fn false_business_postcondition_cannot_mint_an_aftermath_relation() {
         _ => panic!("installed compensation was not admitted"),
     };
     let TransitionOutcome::Failed(domain::WorthQueryWorkflowReexecutionStop::Aftermath(denial)) =
-        capability.execute_workflow(&mut workspace)
+        capability.execute_workflow(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &mut workspace,
+        )
     else {
         panic!("false postcondition minted aftermath authority");
     };
@@ -228,6 +261,11 @@ fn candidate_failure_after_effect_retains_original_stop_and_recovery_truth() {
     )
     .unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let capability = match original.admit_aftermath(bind_candidate(&workspace)) {
@@ -235,7 +273,10 @@ fn candidate_failure_after_effect_retains_original_stop_and_recovery_truth() {
         _ => panic!("installed compensation was not admitted"),
     };
     let TransitionOutcome::Failed(domain::WorthQueryWorkflowReexecutionStop::Aftermath(denial)) =
-        capability.execute_workflow(&mut workspace)
+        capability.execute_workflow(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &mut workspace,
+        )
     else {
         panic!("candidate failure lost aftermath recovery truth");
     };
@@ -267,16 +308,29 @@ fn reconstructed_inverse_target_is_rejected_before_effect_or_relation() {
     )
     .unwrap();
     let _decoy = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let original = bind_original(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent("apply"), &mut workspace)
         .unwrap();
     let capability = match original.admit_aftermath(bind_candidate(&workspace)) {
         domain::WorthQueryAftermathAdmission::ExactInverse(capability) => capability,
         _ => panic!("installed exact inverse was not admitted"),
     };
-    let stop = match capability.execute_workflow(&mut workspace) {
+    let stop = match capability.execute_workflow(
+        crate::suite::installed_operation_fixture::execution_resource_request(),
+        &mut workspace,
+    ) {
         TransitionOutcome::Failed(stop) => stop,
         TransitionOutcome::Success(_) => panic!("reconstructed target minted aftermath authority"),
         _ => panic!("reconstructed target did not produce an exact failed execution"),
@@ -301,6 +355,11 @@ fn provisional_discard_consumes_only_an_effect_free_provisional_trace() {
         .unwrap()
         .family(AftermathFamily)
         .bind(&installed, ProvisionalWorkflow)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .reexecute(intent("discard"), &mut workspace)
         .unwrap();

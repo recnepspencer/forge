@@ -355,5 +355,6 @@ fn stage(identity: &str) -> WorthQueryWorkflowStageTraceSemantics {
         invariants: Vec::new(),
         conditional_path: Vec::new(),
         lineage: Vec::new(),
+        domain_evidence: None,
     }
 }

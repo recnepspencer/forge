@@ -6,6 +6,7 @@ mod builder;
 mod builder_bridge;
 mod builder_support;
 mod certification;
+mod domain_evidence_copy;
 mod identity;
 mod inventory;
 mod materialization;
@@ -56,7 +57,11 @@ pub use certification::{
     CausalInspectionProofShapeCertification, CausalInspectionRepresentativeEvidence,
     CausalInspectionRepresentativeKind, CausalInspectionRepresentativeMatrix,
     CausalInspectionRepresentativeRowDigestSet, CausalInspectionScaleCounterSnapshot,
-    CausalInspectionScaleFixtureSize,
+    CausalInspectionScaleFixtureSize, WorthQueryDomainEvidenceCertificationBundle,
+    WorthQueryDomainEvidenceCertificationSidecar,
+};
+pub use domain_evidence_copy::{
+    WorthQueryDomainEvidenceInspectionCopy, WorthQueryDomainEvidenceInspectionSidecar,
 };
 pub use inventory::{
     causal_evidence_inventory_rows, CausalEvidenceFamily, CausalEvidenceInventoryRow,

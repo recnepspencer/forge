@@ -50,7 +50,7 @@ fn resource_revalidation_coalesces_duplicate_explicit_refresh_while_pending() {
     let node = graph.node().build();
     let mut runtime = TestRuntime::build(graph);
     runtime
-        .declare_resource_node(resource_declaration(node))
+        .declare_resource_node(timeout_resource_declaration(node, 5))
         .expect("resource declaration should lower");
 
     let first = runtime
@@ -61,6 +61,10 @@ fn resource_revalidation_coalesces_duplicate_explicit_refresh_while_pending() {
         .admitted_revalidation()
         .expect("first explicit revalidation should be admitted")
         .admitted_request();
+    let first_timeout_wake = runtime
+        .in_flight_resource_request(first.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("first revalidation should carry its timeout wake");
 
     let report = runtime
         .revalidate_resource_node(ResourceRevalidationIntent::new(ResourceNodeId::from_node(
@@ -83,6 +87,13 @@ fn resource_revalidation_coalesces_duplicate_explicit_refresh_while_pending() {
     assert_eq!(coalescing.winner(), first.handle());
     assert_ne!(loser.handle(), first.handle());
     assert_eq!(report.performance().coalescing_width(), 1);
+    assert_eq!(report.performance().temporal_wake_footprint(), 1);
+    let replacement_timeout_wake = runtime
+        .in_flight_resource_request(first.handle())
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("coalesced winner should carry the replacement timeout wake");
+    assert_ne!(replacement_timeout_wake, first_timeout_wake);
+    assert_eq!(runtime.temporal_wake_summary().retired_count(), 1);
     assert_eq!(
         runtime
             .in_flight_resource_request(first.handle())
@@ -103,6 +114,13 @@ fn resource_revalidation_coalesces_duplicate_explicit_refresh_while_pending() {
             .resource
             .resource_revalidation_coalesced_count,
         1
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .resource
+            .resource_timeout_temporal_wake_footprint,
+        2
     );
 }
 
@@ -139,6 +157,55 @@ fn resource_revalidation_requires_expected_handle_when_active_request_exists() {
             .resource_revalidation_active_requires_expected_denial_count,
         1
     );
+}
+
+#[test]
+fn denied_resource_revalidation_preserves_the_active_timeout_wake() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut runtime = TestRuntime::build(graph);
+    runtime
+        .declare_resource_node(timeout_resource_declaration(node, 5))
+        .expect("resource declaration should lower");
+    let active = runtime
+        .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
+        .expect("timed request should admit")
+        .admitted_request()
+        .handle();
+    let timeout_wake = runtime
+        .in_flight_resource_request(active)
+        .and_then(|in_flight| in_flight.timeout_wake_id())
+        .expect("active timed request should own one timeout wake");
+
+    let denied = runtime
+        .revalidate_resource_node(ResourceRevalidationIntent::new(ResourceNodeId::from_node(
+            node,
+        )))
+        .expect("revalidation denial should remain report-shaped");
+
+    assert_eq!(
+        denied
+            .denied_revalidation()
+            .expect("active request requires exact expected-handle authority")
+            .class(),
+        ResourceRevalidationDenialClass::ActiveRequestRequiresExpectedHandle
+    );
+    assert_eq!(
+        runtime
+            .in_flight_resource_request(active)
+            .and_then(|in_flight| in_flight.timeout_wake_id()),
+        Some(timeout_wake)
+    );
+    assert_eq!(runtime.temporal_wake_summary().retired_count(), 0);
+    runtime
+        .advance_clock(ClockAdvanceRequest::new(
+            ClockDomain::MonotonicExecution,
+            ClockTick::new(5),
+        ))
+        .expect("authoritative clock should advance to the original deadline");
+    runtime
+        .promote_temporal_wake_ready(timeout_wake)
+        .expect("denial must leave the original timeout wake promotable");
 }
 
 #[test]

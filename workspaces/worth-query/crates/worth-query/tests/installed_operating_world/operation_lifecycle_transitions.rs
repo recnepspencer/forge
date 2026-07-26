@@ -322,7 +322,13 @@ fn settle(workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace) -> 
         .unwrap();
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute(ReadExecutionInput::default(), workspace)
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

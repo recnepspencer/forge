@@ -60,7 +60,7 @@ pub fn certify_effect_execution_pipeline() -> EffectExecutionCertificationBundle
         meta.performance,
         dx.row,
         compile_fail_row(audits.compile_fail_boundary_digest().to_string()),
-        seeded_replay_row(&seeded.seed_replay_digest().to_string()),
+        seeded_replay_row(seeded.seed_replay_digest()),
         hostile_execution_row(&phase4),
     ];
 

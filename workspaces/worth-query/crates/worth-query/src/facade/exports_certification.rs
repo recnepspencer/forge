@@ -157,6 +157,7 @@ pub use crate::runtime::{
     CausalInspectionCertificationLane, CausalInspectionCertificationScope,
     CausalInspectionPerformanceCertificationBundle, CausalInspectionProofShapeCertification,
     WorthQueryAspectApiFinalizationCloseout, WorthQueryAuthoritativeMutationEvidenceCloseout,
+    WorthQueryDomainEvidenceCertificationBundle, WorthQueryDomainEvidenceCertificationSidecar,
     WorthQueryGraphObligationMatrixCertificationCase, WorthQueryGraphReadPersistentArtifactAudit,
     WorthQueryIntentAdmissionCertificationBundle,
     WorthQueryIntentAdmissionCertificationCounterSnapshot,

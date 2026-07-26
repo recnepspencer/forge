@@ -1,25 +1,35 @@
 use crate::domain_installation::{
-    WorthQueryGraphCommitCall, WorthQueryGraphProviderFailure, WorthQueryGraphProviderReceipt,
+    WorthQueryBoundGraphExecutionReceipt, WorthQueryExecutionProviderSession,
+    WorthQueryExecutionResourceAttemptEvidence, WorthQueryGraphCommitCallRequest,
+    WorthQueryGraphProviderFailure,
 };
 
 pub(super) fn contact_commit_provider(
     scope_identity: &str,
-    operation_identity: &str,
-    binding_identity: &str,
+    stage_identity: Option<&str>,
     authority: &super::super::graph_participation::WorthQueryInstalledGraphCommitAuthority,
-    graph_roles: Vec<String>,
-) -> Result<WorthQueryGraphProviderReceipt, WorthQueryGraphProviderFailure> {
-    let call = WorthQueryGraphCommitCall::new(
-        scope_identity.to_string(),
-        operation_identity.to_string(),
-        binding_identity.to_string(),
-        graph_roles,
-    );
+    graph_authorities: &[&worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority],
+    resources: &super::WorthQueryAdmittedExecutionResourcePlan,
+    resource_evidence: &WorthQueryExecutionResourceAttemptEvidence,
+    provider_session: &WorthQueryExecutionProviderSession,
+) -> Result<WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphProviderFailure> {
+    let request = match stage_identity {
+        Some(stage_identity) => WorthQueryGraphCommitCallRequest::workflow_stage(
+            scope_identity,
+            stage_identity,
+            authority.identity(),
+        ),
+        None => WorthQueryGraphCommitCallRequest::direct(scope_identity, authority.identity()),
+    };
+    let call = provider_session
+        .bind_graph_commit_call(
+            graph_authorities,
+            request,
+            resource_evidence,
+            resources.shared_envelope(),
+        )
+        .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))?;
     let receipt = authority.provider.admit_commit(&call)?;
-    if !receipt.binds_call(call.call_identity()) {
-        return Err(WorthQueryGraphProviderFailure::new(
-            "commit provider returned a receipt minted for another Query call",
-        ));
-    }
-    Ok(receipt)
+    call.admit_receipt(receipt)
+        .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
 }

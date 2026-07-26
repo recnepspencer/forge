@@ -19,7 +19,7 @@ fn intent_admission_topology_audit_freezes_real_subdomains_and_binding_ownership
     let bundle = certify_intent_admission();
     let rows = bundle.topology_audit().rows();
 
-    let expected_rows = vec![
+    let expected_rows = [
         (
             WorthQueryIntentAdmissionTopologyDomain::Families,
             INTENT_ADMISSION_FAMILIES_MODULE_ROOT,

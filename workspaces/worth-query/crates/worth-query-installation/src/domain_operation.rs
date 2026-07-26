@@ -1,6 +1,7 @@
 mod canonical_identity;
 mod conditional_node;
 mod definition;
+mod evidence_contract;
 mod native_projection_contract;
 mod operation_comparison;
 mod replay_contract;
@@ -16,6 +17,7 @@ pub use definition::{
     WorthQueryDomainOperationDefinition, WorthQueryDomainOperationIdentity,
     WorthQueryPortableDomainOperationDefinition,
 };
+pub use evidence_contract::WorthQueryDomainEvidenceContract;
 pub use native_projection_contract::WorthQueryOperationNativeProjectionContract;
 pub use operation_comparison::*;
 pub use replay_contract::*;

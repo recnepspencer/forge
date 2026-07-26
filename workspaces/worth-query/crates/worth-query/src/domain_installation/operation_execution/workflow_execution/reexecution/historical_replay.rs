@@ -115,6 +115,7 @@ pub fn replay_installed_workflow_historical<
     original: &WorthQueryCompletedWorkflowTrace<D, O, F, LO>,
     bound: WorthQueryBoundDomainOperation<D, O, F, LR>,
     intent: WorthQueryNormalizedWorkflowIntent,
+    resources: worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest,
     workspace: &mut WorthQueryWorkspace,
 ) -> WorthQueryCertificationReplayOutcome<D, O, F, LR>
 where
@@ -147,6 +148,7 @@ where
         original,
         bound,
         intent,
+        resources,
         workspace,
         WorthQueryReplayBasisRelationship::AdmittedHistoricalBasis {
             correspondence: admission.correspondence,

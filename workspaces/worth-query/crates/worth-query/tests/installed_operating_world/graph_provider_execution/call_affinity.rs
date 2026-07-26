@@ -1,136 +1,55 @@
 use std::sync::{Arc, Mutex};
 
-use worth_proof::TransitionOutcome;
-
 use worth_query::facade::domain;
 
 use super::{
-    configured_runtime_for_package, federated_package, graph_projection_material, read_definition,
+    configured_runtime_for_package, federated_package, graph_read_material, read_definition,
     FederatedRead, GeometryDomain, ReadFamily, RemoteA, RemoteB,
 };
 
-struct CrossCallProvider {
+struct RetainingProvider {
     retained: Arc<Mutex<Option<domain::WorthQueryGraphProviderCall>>>,
-    reuse_retained: bool,
+    projection_label: &'static str,
 }
 
-struct ReplayedCallProvider {
-    retained: Arc<Mutex<Option<domain::WorthQueryGraphProviderCall>>>,
-}
+impl<G> domain::WorthQueryGraphParticipationProvider<G> for RetainingProvider {
+    type Execution = crate::suite::graph_provider_step::FixtureGraphProviderExecution;
 
-impl<G> domain::WorthQueryGraphParticipationProvider<G> for ReplayedCallProvider {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("observe"))
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::super::installed_operation_fixture::execution_resource_support()
     }
 
-    fn project(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
+        start: &mut domain::WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        domain::WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        domain::WorthQueryGraphProviderFailure,
+    > {
         let mut retained = self.retained.lock().unwrap();
-        let minting_call = retained.get_or_insert_with(|| call.clone());
-        Ok(minting_call.projected(
-            "replayed-call-projection",
-            graph_projection_material("replayed-call-projection"),
-        ))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("touch"))
-    }
-}
-
-struct CurrentCallProvider;
-
-impl<G> domain::WorthQueryGraphParticipationProvider<G> for CurrentCallProvider {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("observe"))
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.projected(
-            "projection",
-            graph_projection_material("current-call-projection"),
-        ))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("touch"))
-    }
-}
-
-impl<G> domain::WorthQueryGraphParticipationProvider<G> for CrossCallProvider {
-    fn observe(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        if self.reuse_retained {
-            let retained = self.retained.lock().unwrap();
-            Ok(retained
-                .as_ref()
-                .expect("the first graph call was retained")
-                .completed("cross-call-observe"))
-        } else {
-            Ok(call.completed("observe"))
-        }
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        let mut retained = self.retained.lock().unwrap();
-        if self.reuse_retained {
-            let foreign = retained
-                .as_ref()
-                .expect("the first graph call was retained");
-            Ok(foreign.projected(
-                "cross-call-projection",
-                graph_projection_material("cross-call-projection"),
-            ))
-        } else {
-            *retained = Some(call.clone());
-            Ok(call.projected(
-                "first-projection",
-                graph_projection_material("first-call-projection"),
-            ))
-        }
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("touch"))
+        retained.get_or_insert_with(|| call.clone());
+        let execution = match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),
+            domain::WorthQueryGraphProviderCallKind::Project => Self::Execution::projection(
+                self.projection_label,
+                graph_read_material(self.projection_label),
+            ),
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        };
+        start
+            .admit_cooperative_execution(|| execution)
+            .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }
 
 #[test]
-fn graph_receipt_from_another_exact_call_cannot_be_reused() {
+fn retained_call_cannot_replace_the_current_sealed_step() {
     let retained = Arc::new(Mutex::new(None));
     let mut workspace =
         configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
@@ -140,9 +59,9 @@ fn graph_receipt_from_another_exact_call_cannot_be_reused() {
             ))
             .graph_participation_provider(
                 RemoteA,
-                CrossCallProvider {
+                RetainingProvider {
                     retained: Arc::clone(&retained),
-                    reuse_retained: false,
+                    projection_label: "remote-a-projection",
                 },
             )
             .graph_participation(read_definition::<RemoteB>(
@@ -151,73 +70,36 @@ fn graph_receipt_from_another_exact_call_cannot_be_reused() {
             ))
             .graph_participation_provider(
                 RemoteB,
-                CrossCallProvider {
-                    retained,
-                    reuse_retained: true,
+                RetainingProvider {
+                    retained: Arc::clone(&retained),
+                    projection_label: "remote-b-projection",
                 },
             )
-            .workspace("graph-provider-cross-call")
+            .workspace("graph-provider-retained-call")
             .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
-    let bound = workspace
-        .observe_operating_world()
-        .unwrap()
-        .family(ReadFamily)
-        .bind(&installed, FederatedRead)
-        .unwrap();
-    let denial = match bound.execute((), &mut workspace) {
-        TransitionOutcome::Denied(denial) => denial,
-        _ => panic!("cross-call graph receipt did not produce an exact denial"),
-    };
-    assert_eq!(
-        denial.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::GraphProvider
-    );
-    assert_eq!(denial.counters().graph_provider_contacts, 2);
-    assert_eq!(denial.counters().executor_contacts, 0);
-    assert_eq!(denial.graph_receipts().len(), 1);
-}
 
-#[test]
-fn graph_receipt_cannot_be_replayed_across_bound_capabilities() {
-    let retained = Arc::new(Mutex::new(None));
-    let mut workspace =
-        configured_runtime_for_package(federated_package::<RemoteA, RemoteB>(false))
-            .graph_participation(read_definition::<RemoteA>(
-                "remote-a",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteA, ReplayedCallProvider { retained })
-            .graph_participation(read_definition::<RemoteB>(
-                "remote-b",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteB, CurrentCallProvider)
-            .workspace("graph-provider-replayed-call")
+    for _ in 0..2 {
+        workspace
+            .observe_operating_world()
+            .unwrap()
+            .family(ReadFamily)
+            .bind(&installed, FederatedRead)
+            .unwrap()
+            .admit_execution_resources(
+                (),
+                crate::suite::installed_operation_fixture::execution_resource_request(),
+                &workspace,
+            )
+            .unwrap()
+            .execute(&mut workspace)
             .unwrap();
-    let installed = workspace.domain(GeometryDomain).unwrap();
-    workspace
-        .observe_operating_world()
+    }
+
+    let retained = retained
+        .lock()
         .unwrap()
-        .family(ReadFamily)
-        .bind(&installed, FederatedRead)
-        .unwrap()
-        .execute((), &mut workspace)
-        .unwrap();
-    let second = workspace
-        .observe_operating_world()
-        .unwrap()
-        .family(ReadFamily)
-        .bind(&installed, FederatedRead)
-        .unwrap();
-    let denial = match second.execute((), &mut workspace) {
-        TransitionOutcome::Denied(denial) => denial,
-        _ => panic!("replayed graph receipt did not produce an exact denial"),
-    };
-    assert_eq!(
-        denial.kind(),
-        &domain::WorthQueryBoundExecutionDenialKind::GraphProvider
-    );
-    assert_eq!(denial.counters().graph_provider_contacts, 1);
-    assert_eq!(denial.counters().executor_contacts, 0);
+        .clone()
+        .expect("provider retained the first descriptive call");
+    assert_eq!(retained.graph_role(), "remote-a");
 }

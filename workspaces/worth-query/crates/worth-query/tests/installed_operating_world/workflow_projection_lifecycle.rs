@@ -230,7 +230,14 @@ pub(super) fn settle_workflow(
         .unwrap();
     let request = builder.build().unwrap();
     let key = request.resolve_native_key(&selection).unwrap().into_key();
-    let run = bound.start_workflow(workspace).unwrap();
+    let run = bound
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &*workspace,
+        )
+        .unwrap()
+        .start_workflow(workspace)
+        .unwrap();
     let trace = run
         .advance(
             "start",
@@ -369,6 +376,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, WorkflowRe
     type SemanticContract = ();
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
 
     fn compute(
         &self,

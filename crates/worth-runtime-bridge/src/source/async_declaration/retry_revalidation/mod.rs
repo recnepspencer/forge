@@ -5,6 +5,7 @@ mod evidence;
 mod lineage;
 mod receipt;
 mod rejection;
+mod retry_finalization;
 
 pub use class::BridgeAsyncForwardCausalityClass;
 pub use counters::BridgeAsyncForwardCausalityCounters;

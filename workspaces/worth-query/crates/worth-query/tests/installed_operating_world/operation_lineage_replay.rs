@@ -18,6 +18,7 @@ fn certification_replay_reexecutes_the_same_lineage_semantics() {
         &original,
         bind(&workspace),
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();

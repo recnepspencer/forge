@@ -56,6 +56,7 @@ pub struct WorthQueryOperationExecutionMaterial<T> {
     output: T,
     result_state: WorthQueryOperationResultState,
     warnings: Vec<WorthQueryOperationExecutionWarning>,
+    domain_evidence: Option<super::WorthQueryDomainEvidenceMaterial>,
 }
 
 impl<T> WorthQueryOperationExecutionMaterial<T> {
@@ -64,11 +65,20 @@ impl<T> WorthQueryOperationExecutionMaterial<T> {
             output,
             result_state,
             warnings: Vec::new(),
+            domain_evidence: None,
         }
     }
 
     pub fn with_warning(mut self, warning: WorthQueryOperationExecutionWarning) -> Self {
         self.warnings.push(warning);
+        self
+    }
+
+    pub fn with_domain_evidence(
+        mut self,
+        evidence: super::WorthQueryDomainEvidenceMaterial,
+    ) -> Self {
+        self.domain_evidence = Some(evidence);
         self
     }
 
@@ -78,8 +88,14 @@ impl<T> WorthQueryOperationExecutionMaterial<T> {
         T,
         WorthQueryOperationResultState,
         Vec<WorthQueryOperationExecutionWarning>,
+        Option<super::WorthQueryDomainEvidenceMaterial>,
     ) {
-        (self.output, self.result_state, self.warnings)
+        (
+            self.output,
+            self.result_state,
+            self.warnings,
+            self.domain_evidence,
+        )
     }
 }
 
@@ -116,6 +132,8 @@ pub struct WorthQueryOperationExecutionContext<'a> {
     basis: &'a crate::basis_lifecycle::NormalizedBasisIntent,
     installed_read: Option<&'a crate::ordinary::read::WorthQueryReadDeclaration>,
     graph_receipts: &'a [super::WorthQueryBoundGraphExecutionReceipt],
+    resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+    provider_session: &'a super::WorthQueryExecutionProviderSession,
 }
 
 /// The execution-scoped workspace surface available to a registered lowering.
@@ -147,6 +165,8 @@ impl<'a> WorthQueryOperationExecutionContext<'a> {
         basis: &'a crate::basis_lifecycle::NormalizedBasisIntent,
         installed_read: Option<&'a crate::ordinary::read::WorthQueryReadDeclaration>,
         graph_receipts: &'a [super::WorthQueryBoundGraphExecutionReceipt],
+        resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
+        provider_session: &'a super::WorthQueryExecutionProviderSession,
     ) -> Self {
         Self {
             operation,
@@ -155,6 +175,8 @@ impl<'a> WorthQueryOperationExecutionContext<'a> {
             basis,
             installed_read,
             graph_receipts,
+            resources,
+            provider_session,
         }
     }
 
@@ -176,7 +198,18 @@ impl<'a> WorthQueryOperationExecutionContext<'a> {
         self.basis
     }
 
-    pub fn graph_projection(&self, role: &str) -> Option<&crate::runtime::WorthQueryReadResult> {
+    pub fn resources(&self) -> &super::WorthQueryAdmittedExecutionResourcePlan {
+        self.resources
+    }
+
+    pub fn provider_session(&self) -> &super::WorthQueryExecutionProviderSession {
+        self.provider_session
+    }
+
+    pub fn graph_projection(
+        &self,
+        role: &str,
+    ) -> Option<&super::WorthQueryExecutionGraphReadProduct> {
         self.graph_receipts
             .iter()
             .find(|receipt| {
@@ -184,7 +217,7 @@ impl<'a> WorthQueryOperationExecutionContext<'a> {
                     && receipt.kind()
                         == crate::domain_installation::WorthQueryGraphProviderCallKind::Project
             })
-            .and_then(super::WorthQueryBoundGraphExecutionReceipt::projection)
+            .and_then(super::WorthQueryBoundGraphExecutionReceipt::graph_read_product)
     }
 
     pub(crate) fn has_installed_read(&self) -> bool {
@@ -237,6 +270,10 @@ where
     ) -> Option<&crate::ordinary::read::WorthQueryReadDeclaration> {
         None
     }
+
+    fn execution_resource_support(
+        &self,
+    ) -> crate::domain_installation::WorthQueryExecutionResourceSupport;
 
     fn execute(
         &self,

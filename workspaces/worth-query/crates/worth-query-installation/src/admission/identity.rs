@@ -3,16 +3,7 @@ use sha2::{Digest, Sha256};
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::package::WorthQueryValidatedPortableDomainPackage;
 
-use super::{WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus};
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct WorthQueryInstallationAdmissionMeaning {
-    support_identity: String,
-    configuration_identity: String,
-    capabilities: Vec<(String, WorthQueryInstallationSupportStatus)>,
-    configuration: Vec<(String, bool)>,
-    operating: Vec<(String, WorthQueryInstallationSupportStatus)>,
-}
+use super::WorthQueryInstallationAdmissionProfile;
 
 pub(super) fn admission_identity(
     package: &WorthQueryValidatedPortableDomainPackage,
@@ -26,10 +17,20 @@ pub(super) fn admission_identity(
         "configuration-profile",
         &profile.configuration_identity,
     );
+    hash_required_support(&mut hasher, package, profile);
+    hash_artifact_support(&mut hasher, package, profile);
+    format!("{:x}", hasher.finalize())
+}
+
+fn hash_required_support(
+    hasher: &mut Sha256,
+    package: &WorthQueryValidatedPortableDomainPackage,
+    profile: &WorthQueryInstallationAdmissionProfile,
+) {
     for family in package.capabilities() {
         let status = profile.capability_statuses[family.as_str()];
         hash_profile_row(
-            &mut hasher,
+            hasher,
             "capability",
             family.as_str(),
             status.canonical_part(),
@@ -37,7 +38,7 @@ pub(super) fn admission_identity(
     }
     for section in package.configuration() {
         hash_profile_row(
-            &mut hasher,
+            hasher,
             "configuration",
             section.as_str(),
             if profile.configuration_statuses[section.as_str()] {
@@ -50,52 +51,40 @@ pub(super) fn admission_identity(
     for requirement in package.operating_requirements() {
         let status = profile.operating_statuses[requirement.as_str()];
         hash_profile_row(
-            &mut hasher,
+            hasher,
             "operating",
             requirement.as_str(),
             status.canonical_part(),
         );
     }
-    format!("{:x}", hasher.finalize())
 }
 
-pub(super) fn admission_meaning(
+fn hash_artifact_support(
+    hasher: &mut Sha256,
     package: &WorthQueryValidatedPortableDomainPackage,
     profile: &WorthQueryInstallationAdmissionProfile,
-) -> WorthQueryInstallationAdmissionMeaning {
-    WorthQueryInstallationAdmissionMeaning {
-        support_identity: profile.support_identity.clone(),
-        configuration_identity: profile.configuration_identity.clone(),
-        capabilities: package
-            .capabilities()
-            .iter()
-            .map(|family| {
-                (
-                    family.as_str().to_string(),
-                    profile.capability_statuses[family.as_str()],
-                )
-            })
-            .collect(),
-        configuration: package
-            .configuration()
-            .iter()
-            .map(|section| {
-                (
-                    section.as_str().to_string(),
-                    profile.configuration_statuses[section.as_str()],
-                )
-            })
-            .collect(),
-        operating: package
-            .operating_requirements()
-            .iter()
-            .map(|requirement| {
-                (
-                    requirement.as_str().to_string(),
-                    profile.operating_statuses[requirement.as_str()],
-                )
-            })
-            .collect(),
+) {
+    for contract in package.artifact_contracts() {
+        let key = (
+            contract.family().as_str().to_string(),
+            contract.schema_version().get(),
+            contract.protocol_version().get(),
+        );
+        let status = &profile.artifact_version_statuses[&key];
+        hash_profile_row(
+            hasher,
+            "artifact-version",
+            &format!("{}:{}:{}", key.0, key.1, key.2),
+            &status.canonical_part(),
+        );
+        if let Some(comparator) = contract.reproducibility().comparison().registered_family() {
+            hash_profile_row(
+                hasher,
+                "artifact-comparator",
+                comparator,
+                profile.artifact_comparator_statuses[comparator].canonical_part(),
+            );
+        }
     }
 }
 

@@ -27,6 +27,11 @@ fn cert_reexecution_and_live_maintenance_converge_without_replay_authority_promo
     consume_empty_epoch(&mut workspace, &subject, &candidate);
 
     let original = bind(&workspace)
+        .admit_workflow_resources(
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .reexecute(intent(), &mut workspace)
         .unwrap();
     let original_delivery = subject.drain(&mut workspace).unwrap();
@@ -39,6 +44,7 @@ fn cert_reexecution_and_live_maintenance_converge_without_replay_authority_promo
         &original,
         bind(&workspace),
         intent(),
+        crate::suite::installed_operation_fixture::execution_resource_request(),
         &mut workspace,
     )
     .unwrap();

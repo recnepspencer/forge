@@ -81,6 +81,12 @@ pub(super) fn compare_before_conditionals(
         &right.required_domains,
         Dimension::RequiredDomains,
         work,
+    )?;
+    require_equal(
+        &left.evidence,
+        &right.evidence,
+        Dimension::DomainEvidence,
+        work,
     )
 }
 

@@ -210,6 +210,7 @@ impl RuntimeBridge {
             signal_runtime_key: NEXT_SIGNAL_RUNTIME_KEY
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
             signal_aspect_lowering_owner: worth_signal::facade::SignalAspectLoweringOwner::fresh(),
+            execution_basis_reservations: Default::default(),
             correspondence_allocations: Default::default(),
             query_dependency_registry,
         }

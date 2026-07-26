@@ -42,7 +42,15 @@ fn typed_threshold_uses_authoritative_snapshots_and_signal_owned_comparison() {
     let installed = workspace.domain(GeometryDomain).unwrap();
 
     let first = bind(&workspace, &installed);
-    let baseline = match first.execute(ReadExecutionInput::default(), &mut workspace) {
+    let baseline = match first
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Deferred(baseline) => baseline,
         TransitionOutcome::Failed(denial) | TransitionOutcome::Denied(denial) => {
             panic!(
@@ -82,7 +90,15 @@ fn typed_threshold_uses_authoritative_snapshots_and_signal_owned_comparison() {
 
     let second = bind(&workspace, &installed);
     let consumer = second.consumer_projection_contract().unwrap();
-    let executed = match second.execute(ReadExecutionInput::default(), &mut workspace) {
+    let executed = match second
+        .admit_execution_resources(
+            ReadExecutionInput::default(),
+            crate::suite::installed_operation_fixture::execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
+    {
         TransitionOutcome::Success(executed) => executed,
         TransitionOutcome::Deferred(deferred) => panic!(
             "threshold remained deferred as {:?} after {} semantic observations",
@@ -128,7 +144,7 @@ fn typed_threshold_uses_authoritative_snapshots_and_signal_owned_comparison() {
     );
 }
 
-fn bind<'a>(
+fn bind(
     workspace: &worth_query::facade::runtime::WorthQueryWorkspace,
     installed: &domain::WorthQueryInstalledDomainHandle<GeometryDomain>,
 ) -> domain::WorthQueryBoundDomainOperation<
@@ -153,6 +169,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
     type SemanticContract = ();
 
     fn semantic_contract(&self) -> Self::SemanticContract {}
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
 
     fn compute(
         &self,

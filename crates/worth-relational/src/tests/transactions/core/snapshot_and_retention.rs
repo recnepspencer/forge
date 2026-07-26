@@ -229,6 +229,60 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
 }
 
 #[test]
+fn execution_basis_lease_retains_historical_truth_until_independent_release() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::ChipSimulation)
+        .schema_registry(test_schema_registry())
+        .mvcc(MvccConfig {
+            track_visibility_metadata: true,
+            snapshot_release_policy: SnapshotReleasePolicy::ExplicitRelease,
+            auto_reclaim_deleted_records: true,
+            reclaim_batch_size: 128,
+            retention_backend: RetentionBackend::EpochChunkRetention,
+        })
+        .build();
+    let created = create_entity_outcome(&mut runtime, "managed-execution-basis");
+    let entity = changed_entities(&created)[0];
+    let execution_basis = runtime
+        .snapshots()
+        .admit_execution_basis(created.version_id)
+        .expect("committed version should admit managed execution retention");
+    assert!(execution_basis.is_live());
+    let execution_snapshot = execution_basis.snapshot_handle().clone();
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+
+    let deleted = delete_entity(&mut runtime, entity);
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
+    let retained = runtime.retention().run_pass();
+
+    assert_eq!(retained.entity_reclaimed, 0);
+    assert!(runtime
+        .read_truth()
+        .read_snapshot(&execution_snapshot)
+        .and_then(|read| read.get_entity(entity).cloned())
+        .is_some());
+
+    assert!(execution_basis.release().released());
+    assert!(runtime
+        .read_truth()
+        .read_snapshot(&execution_snapshot)
+        .is_none());
+    let released = runtime.retention().run_pass();
+    assert!(released.entity_reclaimed <= 1);
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .reusable_entity_slots,
+        1
+    );
+}
+
+#[test]
 fn read_records_expose_visibility_metadata() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "visible");

@@ -36,6 +36,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowMutat
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
+
     fn execute_stage(
         &self,
         input: domain::WorthQueryWorkflowValue,
@@ -63,6 +67,10 @@ impl domain::WorthQueryDomainWorkflowStageExecutor<GeometryDomain, WorkflowMutat
         domain::WorthQueryOperationCostClass::DeclaredWidth;
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        super::execution_resource_support()
+    }
 
     fn execute_stage(
         &self,
@@ -151,6 +159,7 @@ pub fn mutation_workflow_workspace(
                     domain::WorthQueryWorkflowCostRole::Execution,
                     domain::WorthQueryWorkflowCostRole::ResultValidation,
                 ],
+                resources: super::execution_resource_contract(),
                 terminal_result_states: vec![domain::WorthQueryOperationResultState::Ready],
                 failure_classes: semantics.terminal.failure_classes.clone(),
                 ..Default::default()
@@ -255,6 +264,7 @@ pub fn mixed_mutation_workflow_runtime<G: 'static>(
                     domain::WorthQueryWorkflowCostRole::Execution,
                     domain::WorthQueryWorkflowCostRole::ResultValidation,
                 ],
+                resources: super::execution_resource_contract(),
                 terminal_result_states: vec![domain::WorthQueryOperationResultState::Ready],
                 failure_classes: semantics.terminal.failure_classes.clone(),
                 ..Default::default()

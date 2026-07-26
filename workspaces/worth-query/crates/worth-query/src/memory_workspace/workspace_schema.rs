@@ -32,9 +32,7 @@ pub(super) fn native_contract_declarations(
             let mapping = aspects
                 .iter()
                 .find(|aspect| aspect.aspect_touch().native_aspect_key() == contract.key());
-            let Some(mapping) = mapping else {
-                return None;
-            };
+            let mapping = mapping?;
             let declaration = mapping
                 .native_field_path()
                 .fields()

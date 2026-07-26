@@ -10,7 +10,7 @@
       "_docs\\coding_guidelines\\composition_laws.md",
       "_docs\\coding_guidelines\\domain_structure_laws.md",
       "_docs\\coding_guidelines\\perf_laws.md",
-      "_docs\\more_guidelines\\dx_laws.md",
+      "_docs\\coding_guidelines\\dx_laws.md",
       "crates\\worth-foundational\\docs\\FOUNDATIONAL_README.md",
       "crates\\worth-query\\docs\\AI_README.md",
       "_docs\\worth-ui\\worth-ui-vision.md",

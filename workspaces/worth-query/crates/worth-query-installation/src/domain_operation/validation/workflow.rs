@@ -129,6 +129,7 @@ pub(super) fn validate_workflow_closure(
     }
     for stage in workflow.stages() {
         let semantics = stage.semantics();
+        semantics.resources.validate()?;
         validate_conditional_nodes(&semantics.conditional_nodes)?;
         if stage
             .required_capabilities()

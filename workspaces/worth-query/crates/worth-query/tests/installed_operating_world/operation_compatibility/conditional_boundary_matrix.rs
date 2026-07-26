@@ -281,6 +281,10 @@ impl domain::WorthQueryConditionalNodeComputeProvider<GeometryDomain, ReadVertex
         7
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::suite::installed_operation_fixture::execution_resource_support()
+    }
+
     fn compute(
         &self,
         _context: &domain::WorthQueryConditionalComputeContext,

@@ -102,7 +102,7 @@ pub(crate) fn compose_materialized_projection_contract_digest(
     if !support_posture.warning_kinds().is_empty() {
         encoder = encoder.field_shape(
             WorthQueryEvidenceTag::new("warnings"),
-            &compose_eligibility_warning_kinds_digest(support_posture.warning_kinds()),
+            compose_eligibility_warning_kinds_digest(support_posture.warning_kinds()),
         );
     }
     let source_references = source

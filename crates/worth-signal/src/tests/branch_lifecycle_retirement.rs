@@ -50,8 +50,12 @@ fn retirement_reclaims_heavy_state_and_retains_compact_closeout_proof() {
     let canonical = runtime.current_branch();
     let branch = fork(&mut runtime, "retire-with-snapshots", canonical.id);
     runtime.switch_branch(branch.clone()).unwrap();
-    runtime.capture_snapshot();
-    runtime.capture_snapshot();
+    runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
+    runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.switch_branch(canonical.clone()).unwrap();
 
     let plan = retirement_plan(
