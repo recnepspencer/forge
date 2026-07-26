@@ -1,5 +1,5 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::OperationAllocationScope;
+use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 use worth_store_io_scheduler::{
     admit_background_pacing,
     foreground_reservation::{
@@ -51,18 +51,18 @@ fn verified_read_retains_canonical_allocation_provenance_and_releases_authority(
 
     assert_eq!(
         pool.counters()
-            .active_operation_bytes_for(OperationAllocationScope::Blob),
+            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
         0
     );
     let observed = verified.residency().allocation().allocation();
     assert_eq!(observed.store(), pool.store_identity());
     assert_eq!(observed.pool(), pool.incarnation());
-    assert_eq!(observed.scope(), OperationAllocationScope::Blob);
+    assert_eq!(observed.scope(), PhysicalOperationAllocationScope::Blob);
     assert_eq!(observed.bytes(), 8);
     assert_eq!(
         observed
             .counters()
-            .active_operation_bytes_for(OperationAllocationScope::Blob),
+            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
         8
     );
     assert_eq!(verified.residency().peak_resident_bytes(), 4);
@@ -70,7 +70,7 @@ fn verified_read_retains_canonical_allocation_provenance_and_releases_authority(
 
 #[test]
 fn read_wrong_scope_is_denied_before_observations_are_consumed() {
-    let (pool, allocation) = operation_allocation(OperationAllocationScope::Recovery, 8);
+    let (pool, allocation) = operation_allocation(PhysicalOperationAllocationScope::Recovery, 8);
     let consumed = std::cell::Cell::new(0_u64);
     let observations = observations_for(b"abcdefghijkl", 8)
         .into_iter()
@@ -96,7 +96,7 @@ fn read_wrong_scope_is_denied_before_observations_are_consumed() {
     assert_eq!(
         denial,
         BlobStreamingReadDenial::AllocationScopeMismatch {
-            actual: OperationAllocationScope::Recovery
+            actual: PhysicalOperationAllocationScope::Recovery
         }
     );
     assert_eq!(consumed.get(), 0);

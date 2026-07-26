@@ -1,9 +1,10 @@
 use crate::{
     AllocationAdmission, AllocationGrant, AllocationReceipt, AllocationRequest, AllocationScope,
-    PrefetchAdmission, PrefetchPlan, PrefetchRequest, ReadAheadAdmission, ReadAheadPlan,
-    ReadAheadRequest, SpeculativePhysicalWorkDenial, SpeculativePhysicalWorkDenialKind,
-    SpeculativePhysicalWorkKind, SpeculativeWorkBudgetSnapshot, SpeculativeWorkCounterSnapshot,
-    SpeculativeWorkReplayIdentity, WriteBehindAdmission, WriteBehindPlan, WriteBehindRequest,
+    PhysicalSpeculativeWorkKind, PrefetchAdmission, PrefetchPlan, PrefetchRequest,
+    ReadAheadAdmission, ReadAheadPlan, ReadAheadRequest, SpeculativePhysicalWorkDenial,
+    SpeculativePhysicalWorkDenialKind, SpeculativeWorkBudgetSnapshot,
+    SpeculativeWorkCounterSnapshot, SpeculativeWorkReplayIdentity, WriteBehindAdmission,
+    WriteBehindPlan, WriteBehindRequest,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +32,7 @@ impl SpeculativePhysicalWorkAdmission {
         self.counters = self.counters.with_read_ahead_attempt();
         let resident_frames = request.window().as_resident_frames();
         self.reject_resident_pressure(
-            SpeculativePhysicalWorkKind::ReadAhead,
+            PhysicalSpeculativeWorkKind::ReadAhead,
             resident_frames,
             budget,
         )
@@ -49,7 +50,7 @@ impl SpeculativePhysicalWorkAdmission {
         Ok(ReadAheadPlan::new(
             request.window(),
             self.replay_identity(
-                SpeculativePhysicalWorkKind::ReadAhead,
+                PhysicalSpeculativeWorkKind::ReadAhead,
                 resident_frames,
                 0,
                 allocation_bytes,
@@ -69,7 +70,7 @@ impl SpeculativePhysicalWorkAdmission {
         self.counters = self.counters.with_prefetch_attempt();
         let resident_frames = request.window().as_resident_frames();
         self.reject_resident_pressure(
-            SpeculativePhysicalWorkKind::Prefetch,
+            PhysicalSpeculativeWorkKind::Prefetch,
             resident_frames,
             budget,
         )
@@ -87,7 +88,7 @@ impl SpeculativePhysicalWorkAdmission {
         Ok(PrefetchPlan::new(
             request.window(),
             self.replay_identity(
-                SpeculativePhysicalWorkKind::Prefetch,
+                PhysicalSpeculativeWorkKind::Prefetch,
                 resident_frames,
                 0,
                 allocation_bytes,
@@ -133,7 +134,7 @@ impl SpeculativePhysicalWorkAdmission {
             .with_allocation_bytes_admitted(allocation_bytes);
         Ok(WriteBehindPlan::new(
             self.replay_identity(
-                SpeculativePhysicalWorkKind::WriteBehind,
+                PhysicalSpeculativeWorkKind::WriteBehind,
                 0,
                 dirty_pages,
                 allocation_bytes,
@@ -197,7 +198,7 @@ impl SpeculativePhysicalWorkAdmission {
 
     fn reject_resident_pressure(
         &self,
-        _kind: SpeculativePhysicalWorkKind,
+        _kind: PhysicalSpeculativeWorkKind,
         requested_frames: u32,
         budget: SpeculativeWorkBudgetSnapshot,
     ) -> Result<(), SpeculativePhysicalWorkDenialKind> {
@@ -271,7 +272,7 @@ impl SpeculativePhysicalWorkAdmission {
 
     fn replay_identity(
         &self,
-        kind: SpeculativePhysicalWorkKind,
+        kind: PhysicalSpeculativeWorkKind,
         resident_frames: u32,
         dirty_pages: u32,
         allocation_bytes: u64,

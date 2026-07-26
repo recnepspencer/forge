@@ -2,9 +2,9 @@ use crate::dirty_pages::dirty_state_test_support::{admit_payload_frame, resident
 use crate::{
     AllocationAdmission, AllocationByteBudget, AllocationDenial, AllocationEnvelopeDeclaration,
     AllocationRequest, AllocationRequestKind, AllocationScope, DirtyPageCount,
-    EvictionProtectionReason, FixedMetadataReservation, PrefetchRequest, PrefetchWindow,
-    ReadAheadRequest, SpeculativePhysicalWorkAdmission, SpeculativePhysicalWorkDenialKind,
-    SpeculativePhysicalWorkKind, WriteBehindRequest,
+    EvictionProtectionReason, FixedMetadataReservation, PhysicalSpeculativeWorkKind,
+    PrefetchRequest, PrefetchWindow, ReadAheadRequest, SpeculativePhysicalWorkAdmission,
+    SpeculativePhysicalWorkDenialKind, WriteBehindRequest,
 };
 
 fn allocation_admission(bytes: u64) -> AllocationAdmission {
@@ -52,7 +52,7 @@ fn same_read_ahead_hint_lowers_to_same_replay_identity_under_same_budget_state()
     assert_eq!(first_plan.replay_identity(), second_plan.replay_identity());
     assert_eq!(
         first_plan.replay_identity().kind(),
-        SpeculativePhysicalWorkKind::ReadAhead
+        PhysicalSpeculativeWorkKind::ReadAhead
     );
     assert_eq!(first_plan.counters().read_ahead_admitted_count(), 1);
 }
@@ -94,7 +94,7 @@ fn same_write_behind_hint_lowers_to_same_replay_identity_under_same_dirty_state(
     assert_eq!(first_plan.replay_identity(), second_plan.replay_identity());
     assert_eq!(
         first_plan.replay_identity().kind(),
-        SpeculativePhysicalWorkKind::WriteBehind
+        PhysicalSpeculativeWorkKind::WriteBehind
     );
     assert_eq!(first_plan.counters().write_behind_admitted_count(), 1);
 }

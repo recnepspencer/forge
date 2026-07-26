@@ -9,7 +9,7 @@ use worth_store_buffer_pool::{
     AdmittedBackgroundEnvelope, AllocationAdmission, AllocationByteBudget,
     AllocationEnvelopeDeclaration, BackgroundEnvelopeAdmission, BackgroundEnvelopeDenialKind,
     BackgroundEnvelopeRequest, BackgroundMemoryInterferenceReport, BackgroundWorkBudgetSnapshot,
-    BackgroundWorkClass, FixedMetadataReservation, OperationAllocationScope,
+    BackgroundWorkClass, FixedMetadataReservation, PhysicalOperationAllocationScope,
 };
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
@@ -32,7 +32,7 @@ fn background_envelope_honesty_suite_certifies_all_classes_and_interference() {
     let reports = complete_interference_reports();
     assert_eq!(
         recovery.allocation_scope(),
-        OperationAllocationScope::Recovery
+        PhysicalOperationAllocationScope::Recovery
     );
 
     assert!(!compaction.proves_compaction_validity());
@@ -116,7 +116,7 @@ fn evidence_rejects_each_missing_interference_report() {
 
 #[test]
 fn recovery_allocation_rejects_wrong_operation_scope() {
-    let maintenance = operation_allocation(OperationAllocationScope::Maintenance, 128)
+    let maintenance = operation_allocation(PhysicalOperationAllocationScope::Maintenance, 128)
         .expect("bounded maintenance allocation should admit");
     let denial = RecoveryMemoryAllocation::from_allocation_grant(maintenance)
         .expect_err("maintenance allocation cannot authorize recovery");
@@ -124,7 +124,7 @@ fn recovery_allocation_rejects_wrong_operation_scope() {
     assert_eq!(
         denial,
         RecoveryMemoryAllocationDenial::WrongAllocationScope {
-            actual: OperationAllocationScope::Maintenance,
+            actual: PhysicalOperationAllocationScope::Maintenance,
         }
     );
 }
@@ -196,7 +196,7 @@ fn complete_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {
 }
 
 fn maintenance_allocation() -> worth_store_buffer_pool::OperationAllocationGrant {
-    operation_allocation(OperationAllocationScope::Maintenance, 128)
+    operation_allocation(PhysicalOperationAllocationScope::Maintenance, 128)
         .expect("bounded maintenance allocation should admit")
 }
 

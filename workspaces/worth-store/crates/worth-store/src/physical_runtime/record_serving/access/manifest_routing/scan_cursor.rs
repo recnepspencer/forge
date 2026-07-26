@@ -35,6 +35,7 @@ impl<'reader> ManifestRangeCursor<'reader> {
 
     pub(in crate::physical_runtime::record_serving) fn seek(
         &mut self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         root: Option<ManifestBlockReference>,
         first: Option<PersistedRecordIdentity>,
     ) -> Result<bool, ManifestLookupFailure> {
@@ -51,7 +52,10 @@ impl<'reader> ManifestRangeCursor<'reader> {
             }
         }
         loop {
-            match self.reader.read_block(reference, &mut self.counters)? {
+            match self
+                .reader
+                .read_block(allocation, reference, &mut self.counters)?
+            {
                 PhysicalRootRoutingBlock::Leaf { entries, .. } => {
                     self.next_index = first.map_or(0, |first| {
                         let (index, comparisons) =
@@ -88,6 +92,7 @@ impl<'reader> ManifestRangeCursor<'reader> {
 
     pub(in crate::physical_runtime::record_serving) fn next(
         &mut self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     ) -> Result<Option<CurrentPhysicalRecordPlacement>, ManifestLookupFailure> {
         if !self.initialized {
             return Err(ManifestLookupFailure::Damaged);
@@ -96,10 +101,10 @@ impl<'reader> ManifestRangeCursor<'reader> {
             self.next_index += 1;
             return Ok(Some(value));
         }
-        if !self.advance_leaf()? {
+        if !self.advance_leaf(allocation)? {
             return Ok(None);
         }
-        self.next()
+        self.next(allocation)
     }
 
     pub(in crate::physical_runtime::record_serving) const fn counters(
@@ -108,18 +113,21 @@ impl<'reader> ManifestRangeCursor<'reader> {
         self.counters
     }
 
-    fn advance_leaf(&mut self) -> Result<bool, ManifestLookupFailure> {
+    fn advance_leaf(
+        &mut self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+    ) -> Result<bool, ManifestLookupFailure> {
         while let Some(mut parent) = self.parents.pop() {
             let block = self
                 .reader
-                .read_block(parent.reference, &mut self.counters)?;
+                .read_block(allocation, parent.reference, &mut self.counters)?;
             let children = block.children().ok_or(ManifestLookupFailure::Damaged)?;
             let Some(next) = children.get(parent.next_child).copied() else {
                 continue;
             };
             parent.next_child += 1;
             self.parents.push(parent);
-            self.descend_left(next)?;
+            self.descend_left(allocation, next)?;
             return Ok(true);
         }
         self.leaf.clear();
@@ -129,10 +137,14 @@ impl<'reader> ManifestRangeCursor<'reader> {
 
     fn descend_left(
         &mut self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         mut reference: ManifestBlockReference,
     ) -> Result<(), ManifestLookupFailure> {
         loop {
-            match self.reader.read_block(reference, &mut self.counters)? {
+            match self
+                .reader
+                .read_block(allocation, reference, &mut self.counters)?
+            {
                 PhysicalRootRoutingBlock::Leaf { entries, .. } => {
                     self.leaf = entries;
                     self.next_index = 0;

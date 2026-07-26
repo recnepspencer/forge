@@ -171,6 +171,7 @@ fn disjoint_payload_writes_overlap_while_root_cutover_orders_both_batches() {
         invalidations_before,
         "stable-root reads and successful publication must not manufacture dependency changes"
     );
+    drop(stable_scan);
     assert!(!serving.close_plan().execute().requires_inspection());
 
     let reopened = super::super::serving_from_open(&root);

@@ -76,8 +76,12 @@ impl PhysicalRecordReader {
         request: RecordScanRequest,
     ) -> Result<PhysicalRecordScanSession, RecordScanError> {
         let admission = request_admission::admit_scan_request(&mut self, request)?;
-        let positioned =
-            start_position::position_scan_start(&self, admission.first, &admission.runtime)?;
+        let positioned = start_position::position_scan_start(
+            &self,
+            &admission.allocation,
+            admission.first,
+            &admission.runtime,
+        )?;
         let lifecycle = self.lifecycle.scan_session();
         Ok(PhysicalRecordScanSession {
             reader: self,
@@ -120,7 +124,7 @@ impl PhysicalRecordScanSession {
             return Ok(self.pending.take());
         }
         let before = self.cursor.counters();
-        let next = self.cursor.next();
+        let next = self.cursor.next(&self._allocation);
         let after = self.cursor.counters();
         self.total.observe_manifest_delta(before, after);
         next.map_err(|failure| {

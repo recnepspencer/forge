@@ -14,7 +14,6 @@ use crate::physical_runtime::record_serving::{
         prepared_payload::prepare_payload_plan,
         rebased_root::{RebasableRecordPublicationPlan, RootRebaseContext},
     },
-    residency::frame_ports::StoreCandidateFramePublicationSession,
     AdmittedRecordPlacementPolicy, PublishedRecordBatch, RecordAppendBatch, RecordAppendDenial,
     RecordAppendError,
 };
@@ -75,10 +74,10 @@ impl RecordPublicationDirector {
         let runtime = self.runtime.upgrade().ok_or(RecordAppendError::Denied(
             RecordAppendDenial::PublicationAuthorityReleased,
         ))?;
-        let _allocation = self.begin_append_allocation(&batch, placement)?;
+        let allocation = self.begin_append_allocation(&batch, placement)?;
         let counters_before = runtime.executor.record_serving_media().counters();
         let result = self
-            .prepare_rebasable(&runtime, batch, placement)
+            .prepare_rebasable(&runtime, &allocation, batch, placement)
             .and_then(|(plan, reservation)| {
                 let replacement = self
                     .mutation
@@ -92,10 +91,11 @@ impl RecordPublicationDirector {
                             &failure,
                         )
                     })?;
-                self.materialize_payload(&runtime, plan)
+                self.materialize_payload(&runtime, &allocation, plan)
                     .and_then(|plan| {
                         self.publish_rebased_root(
                             &runtime,
+                            &allocation,
                             plan,
                             replacement,
                             placement,
@@ -114,19 +114,23 @@ impl RecordPublicationDirector {
         batch: &RecordAppendBatch,
         placement: AdmittedRecordPlacementPolicy,
     ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, RecordAppendError> {
-        self.frame_ports
+        self.residency
             .begin_operation(
-                worth_store_buffer_pool::OperationAllocationScope::ForegroundWrite,
-                append_operation_allocation_bytes(self.format, placement, batch),
+                worth_store_buffer_pool::PhysicalOperationAllocationScope::ForegroundWrite,
+                std::num::NonZeroU64::new(append_operation_allocation_bytes(
+                    self.format,
+                    placement,
+                    batch,
+                ))
+                .expect("an admitted nonempty append requests nonzero operation bytes"),
             )
-            .map_err(|reason| {
-                RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason))
-            })
+            .map_err(|reason| RecordAppendError::Denied(RecordAppendDenial::from_residency(reason)))
     }
 
     fn prepare_rebasable(
         self: &Arc<Self>,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         batch: RecordAppendBatch,
         placement: AdmittedRecordPlacementPolicy,
     ) -> Result<(RebasableRecordPublicationPlan, PublishedTailReservation), RecordAppendError> {
@@ -141,13 +145,12 @@ impl RecordPublicationDirector {
             .admit(self.access)
             .map_err(RecordAppendError::Denied)?;
         let reader = crate::physical_runtime::record_serving::access::manifest_routing::ManifestReader::serving(
-            self.frame_ports.clone(),
-            self.planning_source.clone(),
+            self.residency.clone(),
             self.format,
             self.access,
             current_root.clone(),
         );
-        let classified = classify_batch(&reader, placement, admitted)?;
+        let classified = classify_batch(&reader, allocation, placement, admitted)?;
         let shape = classified.identity_reservation_shape()?;
         let mut preparation = self
             .preparation
@@ -170,6 +173,7 @@ impl RecordPublicationDirector {
         };
         let prepared = prepare_payload_plan(
             PlacementPlanningContext {
+                allocation,
                 media: runtime.executor.record_serving_media(),
                 format: self.format,
                 access: self.access,
@@ -177,8 +181,7 @@ impl RecordPublicationDirector {
                 current_free_space: &current_free_space,
                 frontier: &mut candidate_frontier,
                 placement,
-                frame_ports: self.frame_ports.clone(),
-                source: self.planning_source.clone(),
+                residency: self.residency.clone(),
             },
             classified,
             allow_published_reuse,
@@ -194,6 +197,7 @@ impl RecordPublicationDirector {
     fn materialize_payload(
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         plan: RebasableRecordPublicationPlan,
     ) -> Result<RebasableRecordPublicationPlan, RecordAppendError> {
         let RebasableRecordPublicationPlan {
@@ -203,9 +207,10 @@ impl RecordPublicationDirector {
         let declaration = publication
             .payload_candidate_frame_set(self.format)
             .map_err(RecordAppendError::Denied)?;
-        let mut residency =
-            StoreCandidateFramePublicationSession::begin(self.frame_ports.publisher(), declaration)
-                .map_err(RecordAppendError::Denied)?;
+        let mut residency = self
+            .residency
+            .begin_candidate_publication(allocation, declaration)
+            .map_err(RecordAppendError::Denied)?;
         let before = runtime.executor.record_serving_media().counters();
         let publication = payload_progression::execute(
             &self.mutation,
@@ -233,6 +238,7 @@ impl RecordPublicationDirector {
     fn publish_rebased_root(
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         plan: RebasableRecordPublicationPlan,
         replacement: super::super::super::PreparedCatalogReplacement,
         placement: AdmittedRecordPlacementPolicy,
@@ -250,9 +256,9 @@ impl RecordPublicationDirector {
             .allocation_frontier
             .clone();
         let (plan, free_space) = plan.rebase(RootRebaseContext {
+            allocation,
             media: runtime.executor.record_serving_media(),
-            frame_ports: self.frame_ports.clone(),
-            source: self.planning_source.clone(),
+            residency: self.residency.clone(),
             format: self.format,
             access: self.access,
             current_root: &state.current_root,
@@ -264,9 +270,10 @@ impl RecordPublicationDirector {
         let declaration = plan
             .root_candidate_frame_set()
             .map_err(RecordAppendError::Denied)?;
-        let mut residency =
-            StoreCandidateFramePublicationSession::begin(self.frame_ports.publisher(), declaration)
-                .map_err(RecordAppendError::Denied)?;
+        let mut residency = self
+            .residency
+            .begin_candidate_publication(allocation, declaration)
+            .map_err(RecordAppendError::Denied)?;
         let (published, successor) = super::super::publication_progression::execute_prepared_root(
             &self.mutation,
             runtime.executor.record_serving_media(),
@@ -311,6 +318,9 @@ impl RecordPublicationDirector {
                     runtime.health.revoke();
                 }
             }
+            RecordAppendError::PhysicalPressure { .. } => runtime
+                .health
+                .observe_append_denial(&RecordAppendDenial::PhysicalPressure),
             RecordAppendError::Denied(denial) => runtime.health.observe_append_denial(denial),
         }
         Err(error)

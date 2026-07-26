@@ -4,7 +4,7 @@ use crate::{
 };
 #[cfg(feature = "legacy-certification-models")]
 use worth_store_buffer_pool::{AdmittedBackgroundEnvelope, BackgroundWorkClass};
-use worth_store_buffer_pool::{OperationAllocationGrant, OperationAllocationScope};
+use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalOperationAllocationScope};
 use worth_store_physical_format::PhysicalScopeFamily;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +18,7 @@ impl ChunkIntegrityStreamingWindow {
         object_bytes: u64,
         allocation: &OperationAllocationGrant,
     ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {
-        if allocation.scope() != OperationAllocationScope::Blob {
+        if allocation.scope() != PhysicalOperationAllocationScope::Blob {
             return Err(ChunkIntegrityStreamingWindowDenial::WrongAllocationScope {
                 actual: allocation.scope(),
             });

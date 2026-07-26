@@ -244,11 +244,14 @@ fn denied_planning_read_preserves_health_and_allows_same_runtime_append_retry() 
             placement,
         )
         .unwrap_err();
-    assert!(matches!(
-        error,
-        RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
-            if failure.kind() == ArtifactTreeFailureKind::DeniedBeforeEffect
-    ));
+    assert!(
+        matches!(
+            &error,
+            RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
+                if failure.kind() == ArtifactTreeFailureKind::DeniedBeforeEffect
+        ),
+        "unexpected planning-read denial: {error:?}"
+    );
     let media_after = serving.media_counters();
     assert_eq!(
         media_after.fault_matches(),

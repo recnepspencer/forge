@@ -73,13 +73,17 @@ fn emit_reads(reads: &C6ReadPressureEvidence) {
 
 fn emit_pins(pins: &C6PinPressureEvidence) {
     println!(
-        "C5_1_C6_PINS {} {} {} {} {} {:?}",
+        "C5_1_C6_PINS {} {} {} {} {} {:?} {:?} {} {} {}",
         pins.cold_work,
         pins.hot_work,
         pins.refault_work,
         pins.peak_pinned_frames,
         pins.peak_pin_leases,
-        pins.denial,
+        pins.dimension,
+        pins.scope,
+        pins.requested,
+        pins.admitted,
+        pins.limit,
     );
 }
 

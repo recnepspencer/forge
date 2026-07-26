@@ -1,14 +1,13 @@
-use worth_store_physical_backend::{ArtifactTreeFailure, QualifiedFilesystemMedia};
+use worth_store_physical_backend::ArtifactTreeFailure;
+#[cfg(feature = "certification-test-authority")]
+use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::{
     durable_artifact_checksum, CurrentPhysicalRecordPlacement, DurablePhysicalRootManifest,
     ManifestBlockReference, PersistedRecordIdentity, PhysicalRootRoutingBlock, RecordArtifactFile,
 };
 
 use crate::physical_runtime::record_serving::{
-    residency::{
-        frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts,
-        record_frame_reader::RecordFrameReader,
-    },
+    residency::{record_frame_reader::RecordFrameReader, ServingFrameResidency},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
 };
 
@@ -30,6 +29,7 @@ pub(in crate::physical_runtime::record_serving) enum ManifestLookupFailure {
 }
 
 impl<'media> ManifestReader<'media> {
+    #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn with_loader(
         media: &'media QualifiedFilesystemMedia,
         loader: &'media (dyn crate::physical_runtime::record_serving::residency::frame_ports::FrameLoadPort
@@ -48,14 +48,13 @@ impl<'media> ManifestReader<'media> {
     }
 
     pub(in crate::physical_runtime::record_serving) fn serving(
-        frame_ports: RecordFramePorts,
-        source: CanonicalFrameReadSource,
+        residency: ServingFrameResidency,
         format: AdmittedPhysicalRecordFormat,
         access: AdmittedRecordAccessPolicy,
         root: DurablePhysicalRootManifest,
     ) -> ManifestReader<'static> {
         ManifestReader {
-            artifacts: RecordFrameReader::serving(frame_ports, source),
+            artifacts: RecordFrameReader::serving(residency),
             format,
             access,
             root,
@@ -64,6 +63,7 @@ impl<'media> ManifestReader<'media> {
 
     pub(in crate::physical_runtime::record_serving) fn locate(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         record: PersistedRecordIdentity,
         counters: &mut ManifestDiscoveryCounterSnapshot,
     ) -> Result<Option<CurrentPhysicalRecordPlacement>, ManifestLookupFailure> {
@@ -74,7 +74,7 @@ impl<'media> ManifestReader<'media> {
             return Ok(None);
         }
         loop {
-            let block = self.read_block(reference, counters)?;
+            let block = self.read_block(allocation, reference, counters)?;
             match block {
                 PhysicalRootRoutingBlock::Leaf { entries, .. } => {
                     let (result, comparisons) =
@@ -105,6 +105,7 @@ impl<'media> ManifestReader<'media> {
 
     pub(in crate::physical_runtime::record_serving) fn read_block(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         reference: ManifestBlockReference,
         counters: &mut ManifestDiscoveryCounterSnapshot,
     ) -> Result<PhysicalRootRoutingBlock, ManifestLookupFailure> {
@@ -116,6 +117,7 @@ impl<'media> ManifestReader<'media> {
         let bytes = self
             .artifacts
             .load_bounded(
+                allocation,
                 RecordArtifactFile::RootRoutingBlock {
                     generation: reference.generation(),
                     block: reference.block(),

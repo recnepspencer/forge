@@ -1,6 +1,7 @@
 mod access;
 mod access_policy;
 mod admission;
+#[cfg(feature = "certification-test-authority")]
 mod c6_handoff;
 mod canonical_read_execution;
 mod evidence;
@@ -14,9 +15,7 @@ mod record_queue_policy;
 mod record_work_admission;
 pub(in crate::physical_runtime) mod residency;
 
-pub use access::locate::{
-    OpenedPhysicalRecord, PhysicalRecordReader, RecordReadCancellation, RecordReadSession,
-};
+pub use access::locate::{PhysicalRecordReader, RecordReadCancellation, RecordReadSession};
 pub use access::read_observation::{
     RecordReadDenial, RecordReadError, RecordReadLimits, RecordReadObservation,
     RecordReadWorkDenial, StalePhysicalRecordPlacement,
@@ -24,6 +23,7 @@ pub use access::read_observation::{
 pub use access::readmission::{
     PhysicalLocatorReadmissionDenial, PhysicalLocatorReadmissionOutcome,
 };
+pub use access::record_chunk_view::{PhysicalRecordChunkBasis, PhysicalRecordChunkView};
 pub use access::scan::{
     PhysicalRecordScanSession, RecordScanBatch, RecordScanDenial, RecordScanOutcome,
     RecordScanRequest, ScannedPhysicalRecord,
@@ -48,12 +48,16 @@ pub use admission::bootstrap::{
     UnsupportedPhysicalRecordFormat,
 };
 pub use admission::format_admission::AdmittedPhysicalRecordFormat;
-pub use admission::request::{
-    PhysicalRecordInitialization, PhysicalRecordOpen, PhysicalRecordResidencyPolicy,
+pub use admission::request::{PhysicalRecordInitialization, PhysicalRecordOpen};
+pub use admission::residency_policy::{
+    AdmittedPhysicalRecordResidencyPolicy, PhysicalOperationAllocationScope,
+    PhysicalRecordResidencyPolicy, PhysicalRecordResidencyPolicyBuilder,
+    PhysicalRecordResidencyPolicyDenial, PhysicalRecordResidencyPolicyOutcome,
+    PhysicalResidencyDimension, PhysicalSpeculativeWorkKind,
 };
+#[cfg(feature = "certification-test-authority")]
 pub use c6_handoff::{
-    C6AdmittedDirtyFrame, C6AdmittedPhysicalWriteback, C6PhysicalFrameLease,
-    C6PhysicalFrameReadFailure, C6PhysicalFrameWorkFailure, C6PhysicalResidencyWork,
+    C6AdmittedDirtyFrame, C6AdmittedPhysicalWriteback, C6PhysicalResidencyWork,
     C6PhysicalWorkHandoff, C6PhysicalWorkHandoffFailure, C6PhysicalWorkHandoffIdentity,
     C6PhysicalWorkSettlement, C6PhysicalWritebackExecution, C6PhysicalWritebackReservation,
     C6PhysicalWritebackTransitionFailure, C6PreparedPhysicalWriteback,
@@ -158,6 +162,17 @@ pub(in crate::physical_runtime) use residency::frame_ports::RecordFramePorts;
 #[cfg(feature = "certification-test-authority")]
 pub use residency::frame_ports::{FramePortCounterObserver, FramePortCounterSnapshot};
 pub use residency::scheduled_writeback::PhysicalScheduledWritebackAdmissionDenial;
+#[cfg(feature = "certification-test-authority")]
+pub use residency::{
+    CertificationFrameFaultCause, CertificationFrameReadFailure, CertificationFrameWorkFailure,
+    CertificationResidentFrame, PhysicalResidencyCertification,
+};
+pub use residency::{
+    PhysicalRecordPressureBasis, PhysicalRecordPressureEvidence, PhysicalRecordResidencyFailure,
+    PhysicalRecordResidencyFailureKind, PhysicalRecordResidencyFailureReason,
+    PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationSnapshot,
+    PhysicalResidencyCounterSnapshot, PhysicalResidencyObservation, PhysicalResidencyRetryPosture,
+};
 pub use worth_store_physical_format::{
     PhysicalPageSizeClass, PhysicalRecordByteOrder, PhysicalRecordFormatDeclaration,
     PhysicalRecordFormatDeclarationBuilder, PhysicalRecordFormatDenial,

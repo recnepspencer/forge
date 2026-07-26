@@ -23,7 +23,10 @@ pub(super) fn allocation_writer(root: &Path, logical_bytes: &str) {
         .unwrap();
     println!(
         "C5_ALLOC {} {} {}",
-        serving.residency_counters().peak_operation_bytes(),
+        serving
+            .residency_observation()
+            .counters()
+            .peak_operation_bytes(),
         published.observation().peak_scratch_bytes(),
         hex(&ExternalPhysicalRecordLocator::new(
             serving.store_identity(),
@@ -51,7 +54,10 @@ pub(super) fn allocation_reader(root: &Path, encoded_locator: &str) {
     };
     println!(
         "C5_READ_ALLOC {} {}",
-        serving.residency_counters().peak_operation_bytes(),
+        serving
+            .residency_observation()
+            .counters()
+            .peak_operation_bytes(),
         observation.peak_scratch_bytes(),
     );
     std::io::stdout().flush().unwrap();
@@ -122,9 +128,15 @@ pub(super) fn scale_allocation_reader(root: &Path, encoded_locator: &str) {
         )
         .unwrap()
         .observation();
-    let point = serving.residency_counters().peak_operation_bytes();
+    let point = serving
+        .residency_observation()
+        .counters()
+        .peak_operation_bytes();
     super::scale_support::complete_scan(&serving, 7, 16_384);
-    let scan = serving.residency_counters().peak_operation_bytes();
+    let scan = serving
+        .residency_observation()
+        .counters()
+        .peak_operation_bytes();
     super::scenario_evidence::emit_process("scale-allocation-probe", &serving);
     println!("C5_SCALE_ALLOC {point} {scan}");
     std::io::stdout().flush().unwrap();

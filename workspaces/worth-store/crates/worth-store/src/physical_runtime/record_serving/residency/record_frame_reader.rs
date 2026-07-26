@@ -2,11 +2,11 @@ use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::RecordArtifactFile;
 
 use super::{
+    capability::ServingFrameResidency,
     frame_loading::{
-        CanonicalFrameReadSource, DirectFrameReadSource, FrameLoadFailure, FrameReadWorkAdmission,
-        LoadedPhysicalFrame, ObservedArtifactLength,
+        DirectFrameReadSource, FrameLoadFailure, LoadedPhysicalFrame, ObservedArtifactLength,
     },
-    frame_ports::{FrameLoadPort, RecordFramePorts},
+    frame_ports::FrameLoadPort,
 };
 
 /// Read-only access to record frames through either bootstrap media or the
@@ -20,10 +20,7 @@ enum RecordFrameReadRoute<'media> {
         media: &'media QualifiedFilesystemMedia,
         loader: &'media (dyn FrameLoadPort + Send + Sync),
     },
-    Serving {
-        frame_ports: RecordFramePorts,
-        source: CanonicalFrameReadSource,
-    },
+    Serving(ServingFrameResidency),
 }
 
 impl<'media> RecordFrameReader<'media> {
@@ -36,15 +33,11 @@ impl<'media> RecordFrameReader<'media> {
         }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn serving(
-        frame_ports: RecordFramePorts,
-        source: CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) const fn serving(
+        residency: ServingFrameResidency,
     ) -> RecordFrameReader<'static> {
         RecordFrameReader {
-            route: RecordFrameReadRoute::Serving {
-                frame_ports,
-                source,
-            },
+            route: RecordFrameReadRoute::Serving(residency),
         }
     }
 
@@ -56,61 +49,53 @@ impl<'media> RecordFrameReader<'media> {
             RecordFrameReadRoute::Bootstrap { media, loader } => {
                 loader.file_length(&DirectFrameReadSource::new(media), artifact)
             }
-            RecordFrameReadRoute::Serving {
-                frame_ports,
-                source,
-            } => frame_ports.loader().file_length(source, artifact),
+            RecordFrameReadRoute::Serving(residency) => residency.file_length(artifact),
         }
     }
 
     pub(in crate::physical_runtime::record_serving) fn load_exact(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         artifact: RecordArtifactFile,
         offset: u64,
         length: u32,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
         match &self.route {
             RecordFrameReadRoute::Bootstrap { media, loader } => loader.load_exact(
+                allocation,
                 &DirectFrameReadSource::new(media),
                 artifact,
                 offset,
                 length,
-                FrameReadWorkAdmission::ResidencyFaultOnly,
             ),
-            RecordFrameReadRoute::Serving {
-                frame_ports,
-                source,
-            } => frame_ports.loader().load_exact(
-                source,
-                artifact,
-                offset,
-                length,
-                FrameReadWorkAdmission::EveryAccess,
+            RecordFrameReadRoute::Serving(residency) => residency.load_exact(
+                allocation,
+                worth_store_physical_format::RecordFrameCoordinate::new(artifact, offset, length)
+                    .ok_or_else(|| {
+                    super::frame_loading::FrameLoadFailure::new(
+                        super::frame_loading::FrameLoadFailureKind::InvalidCoordinate,
+                    )
+                })?,
             ),
         }
     }
 
     pub(in crate::physical_runtime::record_serving) fn load_bounded(
         &self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         artifact: RecordArtifactFile,
         limit: u32,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
         match &self.route {
             RecordFrameReadRoute::Bootstrap { media, loader } => loader.load_bounded(
+                allocation,
                 &DirectFrameReadSource::new(media),
                 artifact,
                 limit,
-                FrameReadWorkAdmission::ResidencyFaultOnly,
             ),
-            RecordFrameReadRoute::Serving {
-                frame_ports,
-                source,
-            } => frame_ports.loader().load_bounded(
-                source,
-                artifact,
-                limit,
-                FrameReadWorkAdmission::EveryAccess,
-            ),
+            RecordFrameReadRoute::Serving(residency) => {
+                residency.load_bounded(allocation, artifact, limit)
+            }
         }
     }
 }

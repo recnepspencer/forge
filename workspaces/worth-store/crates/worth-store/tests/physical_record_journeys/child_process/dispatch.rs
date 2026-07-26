@@ -47,11 +47,11 @@ fn dispatch(role: &str, root: &std::path::Path) {
         ),
         "publication_death_writer" => super::publication_death::run(root),
         "publication_reopener" => super::super::publication_reopener::run(root),
-        "c6_pressure_writer" => super::super::c6_preparation::pressure_writer(
+        "residency_pressure_writer" => super::super::residency_pressure_processes::pressure_writer(
             root,
             &std::env::var(LOCATOR_ENV).unwrap(),
         ),
-        "c6_pressure_reader" => super::super::c6_preparation::pressure_reader(
+        "residency_pressure_reader" => super::super::residency_pressure_processes::pressure_reader(
             root,
             &std::env::var(LOCATOR_ENV).unwrap(),
         ),

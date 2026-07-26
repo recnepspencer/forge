@@ -1,5 +1,5 @@
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationObservation, OperationAllocationScope,
+    OperationAllocationGrant, OperationAllocationObservation, PhysicalOperationAllocationScope,
 };
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl RecoveryMemoryAllocation {
         grant: OperationAllocationGrant,
     ) -> Result<Self, RecoveryMemoryAllocationDenial> {
         let allocation = grant.observation();
-        if allocation.scope() != OperationAllocationScope::Recovery {
+        if allocation.scope() != PhysicalOperationAllocationScope::Recovery {
             return Err(RecoveryMemoryAllocationDenial::WrongAllocationScope {
                 actual: allocation.scope(),
             });
@@ -34,7 +34,7 @@ impl RecoveryMemoryAllocation {
         })
     }
 
-    pub const fn allocation_scope(&self) -> OperationAllocationScope {
+    pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
         self.observation.allocation.scope()
     }
 
@@ -93,5 +93,7 @@ impl RecoveryMemoryCounterSnapshot {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecoveryMemoryAllocationDenial {
-    WrongAllocationScope { actual: OperationAllocationScope },
+    WrongAllocationScope {
+        actual: PhysicalOperationAllocationScope,
+    },
 }

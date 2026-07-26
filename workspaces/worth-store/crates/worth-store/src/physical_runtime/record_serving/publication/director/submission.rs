@@ -65,7 +65,9 @@ impl PhysicalRecordSubmission {
         let director = self.director.upgrade().ok_or(RecordAppendError::Denied(
             RecordAppendDenial::PublicationAuthorityReleased,
         ))?;
-        director.preflight(&batch, placement, capacity_transition)?;
+        director
+            .preflight(&batch, placement, capacity_transition)
+            .map_err(|error| director.project_pressure(error))?;
         Ok(PreparedRecordAppend {
             director: self.director.clone(),
             batch,
@@ -80,6 +82,8 @@ impl PreparedRecordAppend {
         let director = self.director.upgrade().ok_or(RecordAppendError::Denied(
             RecordAppendDenial::PublicationAuthorityReleased,
         ))?;
-        director.publish(self.batch, self.placement, self.capacity_transition)
+        director
+            .publish(self.batch, self.placement, self.capacity_transition)
+            .map_err(|error| director.project_pressure(error))
     }
 }

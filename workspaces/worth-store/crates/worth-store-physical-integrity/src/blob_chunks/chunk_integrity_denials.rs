@@ -80,7 +80,7 @@ impl ChunkIntegrityDenial {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkIntegrityStreamingWindowDenial {
     WrongAllocationScope {
-        actual: worth_store_buffer_pool::OperationAllocationScope,
+        actual: worth_store_buffer_pool::PhysicalOperationAllocationScope,
     },
     #[cfg(feature = "legacy-certification-models")]
     WrongBackgroundEnvelopeClass {

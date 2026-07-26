@@ -20,7 +20,7 @@ pub(in crate::physical_runtime::record_serving) fn execute_prepared_root(
     media: &QualifiedFilesystemMedia,
     plan: PublicationPlan,
     replacement: super::super::PreparedCatalogReplacement,
-    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession,
+    residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession<'_>,
     counters_before: MediaCounterSnapshot,
     #[cfg(feature = "certification-test-authority")] reject_catalog_eligibility_join: bool,
 ) -> Result<(PublishedRecordBatch, DurablePhysicalRootManifest), RecordAppendError> {

@@ -8,8 +8,8 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) fn last_inline_placement(
-    frame_ports: super::super::residency::frame_ports::RecordFramePorts,
-    source: super::super::residency::frame_loading::CanonicalFrameReadSource,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+    residency: super::super::residency::ServingFrameResidency,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
     root: &DurablePhysicalRootManifest,
@@ -21,14 +21,13 @@ pub(in crate::physical_runtime::record_serving) fn last_inline_placement(
     let mut counters =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
     let reader = super::super::access::manifest_routing::ManifestReader::serving(
-        frame_ports,
-        source,
+        residency,
         format,
         access,
         root.clone(),
     );
     let found = reader
-        .locate(record, &mut counters)
+        .locate(allocation, record, &mut counters)
         .map_err(manifest_lookup_failure)?;
     match found {
         Some(CurrentPhysicalRecordPlacement::Inline(value))

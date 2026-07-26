@@ -21,7 +21,7 @@ impl CanonicalRecordMutationCompletion {
         &self,
     ) -> CanonicalRecordMutationSettlement {
         match self {
-            Self::CandidateFrame(completed) => completed.settlement,
+            Self::CandidateFrame(completed) => completed.physical.settlement(),
             Self::PublicationEffect(settlement) => *settlement,
         }
     }
@@ -63,8 +63,7 @@ fn classify(
         ) => Ok(CanonicalRecordMutationCompletion::CandidateFrame(
             CanonicalCandidateFrameWrite {
                 physical: super::super::residency::candidate_frame_residency::
-                    CandidateFramePhysicalWrite::completed(physical.into_write()),
-                settlement,
+                    CandidateFramePhysicalWrite::completed(physical.into_write(), settlement),
             },
         )),
         (
@@ -76,8 +75,7 @@ fn classify(
         ) => Ok(CanonicalRecordMutationCompletion::CandidateFrame(
             CanonicalCandidateFrameWrite {
                 physical: super::super::residency::candidate_frame_residency::
-                    CandidateFramePhysicalWrite::completed(physical),
-                settlement,
+                    CandidateFramePhysicalWrite::completed(physical, settlement),
             },
         )),
         (

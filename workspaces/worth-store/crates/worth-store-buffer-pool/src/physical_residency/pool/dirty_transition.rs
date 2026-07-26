@@ -1,17 +1,30 @@
 use super::*;
 
 impl PoolInner {
-    pub(crate) fn replace_clean_lease_with_dirty(
+    pub(crate) fn reserve_dirty_replacement(
         &self,
+        scope: PhysicalOperationAllocationScope,
         key: PhysicalFrameKey,
         expected: &Arc<Vec<u8>>,
-        replacement: Arc<Vec<u8>>,
+        bytes: u64,
     ) -> Result<(), PhysicalResidencyDenial> {
         if let Err(reason) = self.validate_key(key) {
             return Err(self.record_denial(reason));
         }
         let mut state = self.lock();
-        validate_transition(self, &mut state, key, expected)?;
+        validate_transition(self, &mut state, scope, key, expected, bytes)?;
+        state.accounting.reserve_dirty_replacement(bytes);
+        Ok(())
+    }
+
+    pub(crate) fn finish_dirty_replacement(
+        &self,
+        key: PhysicalFrameKey,
+        expected: &Arc<Vec<u8>>,
+        replacement: Arc<Vec<u8>>,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        let mut state = self.lock();
+        validate_clean_frame(&mut state, key, expected)?;
         let entry = state
             .frames
             .get_mut(&key.coordinate)
@@ -20,36 +33,83 @@ impl PoolInner {
         entry.state = FrameState::Resident(replacement);
         entry.origin = FrameOrigin::Candidate;
         entry.dirty = true;
-        state.counters.dirty_frames += 1;
-        if !was_candidate {
-            state.counters.candidate_frames += 1;
-        }
-        state.counters.peak_dirty_frames = state
-            .counters
-            .peak_dirty_frames
-            .max(state.counters.dirty_frames);
-        state.counters.peak_candidate_frames = state
-            .counters
-            .peak_candidate_frames
-            .max(state.counters.candidate_frames);
+        state.accounting.mark_dirty(!was_candidate);
         Ok(())
+    }
+
+    pub(crate) fn release_dirty_replacement(&self, bytes: u64) {
+        let mut state = self.lock();
+        state.accounting.release_dirty_replacement(bytes);
+        self.changed.notify_all();
+    }
+
+    pub(crate) fn dirty_replacement_allocator_failed(&self, bytes: u64) {
+        let mut state = self.lock();
+        state.accounting.dirty_replacement_allocator_failed(bytes);
+        self.changed.notify_all();
     }
 }
 
 fn validate_transition(
     owner: &PoolInner,
     state: &mut PoolState,
+    scope: PhysicalOperationAllocationScope,
+    key: PhysicalFrameKey,
+    expected: &Arc<Vec<u8>>,
+    bytes: u64,
+) -> Result<(), PhysicalResidencyDenial> {
+    if !state.accepting {
+        return Err(PoolInner::deny(state, PhysicalResidencyDenial::PoolClosed));
+    }
+    if state.accounting.dirty_frames() >= owner.limits.dirty_frames() {
+        let current = u64::from(state.accounting.dirty_frames());
+        return Err(owner.pressure(
+            state,
+            PhysicalResidencyPressureDemand {
+                dimension: PhysicalResidencyDimension::DirtyFrames,
+                scope,
+                requested: 1,
+                current,
+                limit: u64::from(owner.limits.dirty_frames()),
+            },
+        ));
+    }
+    let replacement_current = state.accounting.dirty_replacement_bytes();
+    if replacement_current.saturating_add(bytes) > owner.limits.dirty_replacement_bytes() {
+        return Err(owner.pressure(
+            state,
+            PhysicalResidencyPressureDemand {
+                dimension: PhysicalResidencyDimension::DirtyReplacementBytes,
+                scope,
+                requested: bytes,
+                current: replacement_current,
+                limit: owner.limits.dirty_replacement_bytes(),
+            },
+        ));
+    }
+    let total_current = owner.current_admitted_bytes(state);
+    if total_current.saturating_add(bytes) > owner.limits.total_bytes() {
+        return Err(owner.pressure(
+            state,
+            PhysicalResidencyPressureDemand {
+                dimension: PhysicalResidencyDimension::TotalBytes,
+                scope,
+                requested: bytes,
+                current: total_current,
+                limit: owner.limits.total_bytes(),
+            },
+        ));
+    }
+    validate_clean_frame(state, key, expected)
+}
+
+fn validate_clean_frame(
+    state: &mut PoolState,
     key: PhysicalFrameKey,
     expected: &Arc<Vec<u8>>,
 ) -> Result<(), PhysicalResidencyDenial> {
     if !state.accepting {
         return Err(PoolInner::deny(state, PhysicalResidencyDenial::PoolClosed));
-    }
-    if state.counters.dirty_frames >= owner.limits.dirty_frames() {
-        return Err(PoolInner::deny(
-            state,
-            PhysicalResidencyDenial::DirtyFrameBudgetExceeded,
-        ));
     }
     let Some(entry) = state.frames.get(&key.coordinate) else {
         return Err(PoolInner::deny(

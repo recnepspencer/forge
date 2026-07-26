@@ -65,3 +65,18 @@ fn downstream_code_reaches_certification_through_public_facade() {
     let _certify: fn() -> Result<StoreJsonResidueInventory, StoreJsonResidueDenial> =
         certify_store_json_residue_inventory;
 }
+
+#[test]
+fn downstream_code_can_classify_exact_residency_failure_reasons() {
+    let _reason_projection: fn(
+        worth_store::physical_runtime::PhysicalRecordResidencyFailure,
+    ) -> worth_store::physical_runtime::PhysicalRecordResidencyFailureReason =
+        worth_store::physical_runtime::PhysicalRecordResidencyFailure::reason;
+    let _identity_reason =
+        worth_store::physical_runtime::PhysicalRecordResidencyFailureReason::FrameIdentityOccupied;
+    let _cardinality_reason =
+        worth_store::physical_runtime::PhysicalRecordResidencyFailureReason::CandidateCardinalityMismatch {
+            declared: 2,
+            provided: 1,
+        };
+}

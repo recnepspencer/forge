@@ -7,7 +7,6 @@ use worth_store::physical_runtime::{
     PhysicalWorkEffectFate, RecordAppendBatch, RecordAppendError, RecordPublicationStage,
     UnpublishedRecordBatchCause, UnpublishedRecordEffectFate, UnpublishedRecordWorldFate,
 };
-use worth_store_buffer_pool::PhysicalResidencyDenial;
 use worth_store_physical_backend::MediaPauseGate;
 
 use super::{configuration, serving_from_initialization};
@@ -69,15 +68,18 @@ fn post_effect_candidate_rejection_retains_staged_physical_identity() {
     let RecordAppendError::Unpublished(failure) = result.unwrap_err() else {
         panic!("post-effect residency rejection must remain unpublished")
     };
-    assert!(matches!(
-        failure.cause(),
-        UnpublishedRecordBatchCause::Residency {
-            stage: RecordPublicationStage::CandidateDataWrite,
-            denial: worth_store::physical_runtime::RecordAppendDenial::ResidencyUnavailable(
-                PhysicalResidencyDenial::CandidatePublicationActive
-            ),
-        }
-    ));
+    let UnpublishedRecordBatchCause::Residency { stage, denial } = failure.cause() else {
+        panic!("post-effect rejection must retain residency causality");
+    };
+    assert_eq!(*stage, RecordPublicationStage::CandidateDataWrite);
+    let worth_store::physical_runtime::RecordAppendDenial::ResidencyUnavailable(residency) = denial
+    else {
+        panic!("post-effect rejection must expose Store-owned residency meaning");
+    };
+    assert_eq!(
+        residency.kind(),
+        worth_store::physical_runtime::PhysicalRecordResidencyFailureKind::PublicationConflict
+    );
     assert_eq!(
         failure.effect_fate(),
         UnpublishedRecordEffectFate::EffectPossible

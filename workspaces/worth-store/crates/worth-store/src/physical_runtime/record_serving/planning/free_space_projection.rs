@@ -14,10 +14,10 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct FreeSpaceProjectionContext<'plan> {
-    pub(in crate::physical_runtime::record_serving) frame_ports:
-        super::super::residency::frame_ports::RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source:
-        super::super::residency::frame_loading::CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'plan worth_store_buffer_pool::OperationAllocationGrant,
+    pub(in crate::physical_runtime::record_serving) residency:
+        super::super::residency::ServingFrameResidency,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current: &'plan DurableFreeSpaceManifestHeader,
@@ -31,8 +31,8 @@ pub(in crate::physical_runtime::record_serving) fn project_successor_free_space(
     touched_segments: &[InlineSegmentAllocation],
 ) -> Result<FreeSpacePublicationPlan, RecordAppendError> {
     let FreeSpaceProjectionContext {
-        frame_ports,
-        source,
+        allocation,
+        residency,
         format,
         access,
         current,
@@ -80,8 +80,8 @@ pub(in crate::physical_runtime::record_serving) fn project_successor_free_space(
     };
     updates.insert(extent_key, extent_update);
     plan_free_space_successor(
-        frame_ports,
-        source,
+        allocation,
+        residency,
         format,
         access,
         current,

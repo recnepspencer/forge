@@ -4,8 +4,8 @@ use std::sync::Arc;
 use crate::physical_runtime::{
     lifecycle::LifecycleTerminationGuard,
     record_serving::{
-        RecordFramePorts, RecordPublicationResidueObservation, RecordServingOwner,
-        RecordServingTerminalObservation, ServingHealth, ServingShutdownOutcome,
+        RecordPublicationResidueObservation, RecordServingOwner, RecordServingTerminalObservation,
+        ServingHealth, ServingShutdownOutcome,
     },
     runtime::PhysicalRuntimeCore,
     work::{PhysicalWorkSafeCancellation, PhysicalWorkShutdownObservation, PhysicalWorkStopKind},
@@ -13,8 +13,8 @@ use crate::physical_runtime::{
 };
 
 use super::{
-    PhysicalStoreCloseProgressOwner, PhysicalStoreInstanceParts, PhysicalStoreWorkRuntime,
-    PhysicalWorkExecutor, PhysicalWorkSignalOwner,
+    PhysicalResidencyOwner, PhysicalStoreCloseProgressOwner, PhysicalStoreInstanceParts,
+    PhysicalStoreWorkRuntime, PhysicalWorkExecutor, PhysicalWorkSignalOwner,
 };
 
 struct AdmissionStopped;
@@ -31,7 +31,7 @@ struct ShutdownProtocol<State, Terminate> {
     record_owner: RecordServingOwner,
     publication_residue: RecordPublicationResidueObservation,
     health: Option<ServingHealth>,
-    frame_ports: Option<RecordFramePorts>,
+    residency_owner: Option<PhysicalResidencyOwner>,
     work_runtime: Option<Arc<PhysicalStoreWorkRuntime>>,
     work_cancellation: Option<PhysicalWorkSafeCancellation>,
     work: Option<PhysicalWorkShutdownObservation>,
@@ -96,7 +96,7 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
             format: _format,
             access: _access,
             publication,
-            frame_ports,
+            residency,
         } = parts;
         let publication =
             crate::physical_runtime::record_serving::RecordPublicationDirector::stop_and_extract(
@@ -112,7 +112,7 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
             record_owner,
             publication_residue,
             health: None,
-            frame_ports: Some(frame_ports),
+            residency_owner: Some(residency),
             work_runtime: Some(work_runtime),
             work_cancellation: None,
             work: None,
@@ -200,7 +200,7 @@ impl<Terminate> ShutdownProtocol<DispatchSettlementComplete, Terminate> {
 impl<Terminate> ShutdownProtocol<SignalDisposed, Terminate> {
     fn close_residency(mut self) -> ShutdownProtocol<ResidencyClosed, Terminate> {
         self.residency = Some(
-            self.frame_ports
+            self.residency_owner
                 .take()
                 .expect("phase owns residency")
                 .close(),
@@ -260,7 +260,7 @@ impl<State, Terminate> ShutdownProtocol<State, Terminate> {
             record_owner: self.record_owner,
             publication_residue: self.publication_residue,
             health: self.health,
-            frame_ports: self.frame_ports,
+            residency_owner: self.residency_owner,
             work_runtime: self.work_runtime,
             work_cancellation: self.work_cancellation,
             work: self.work,

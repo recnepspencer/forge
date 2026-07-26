@@ -183,7 +183,7 @@ fn complete_interference_reports() -> [BackgroundMemoryInterferenceReport; 6] {
 
 fn maintenance_allocation() -> worth_store_buffer_pool::OperationAllocationGrant {
     operation_allocation(
-        worth_store_buffer_pool::OperationAllocationScope::Maintenance,
+        worth_store_buffer_pool::PhysicalOperationAllocationScope::Maintenance,
         128,
     )
     .expect("bounded maintenance allocation should admit")

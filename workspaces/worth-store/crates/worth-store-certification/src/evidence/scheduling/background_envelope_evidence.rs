@@ -2,7 +2,7 @@ use worth_store_blob_chunks::LargeRecordStreamingEnvelope;
 use worth_store_buffer_pool::{
     AllocationScope, BackgroundEnvelopeCounterSnapshot, BackgroundEnvelopeDenialKind,
     BackgroundMemoryInterferenceReport, BackgroundWorkClass, OperationAllocationObservation,
-    OperationAllocationScope,
+    PhysicalOperationAllocationScope,
 };
 use worth_store_maintenance::{CompactionPlanningMemoryEnvelope, ImportExportMemoryEnvelope};
 use worth_store_physical_integrity::ScrubPlanningMemoryEnvelope;
@@ -113,9 +113,9 @@ impl BackgroundClassEnvelopeEvidence {
         work_class: BackgroundWorkClass,
         allocation: OperationAllocationObservation,
     ) -> Result<Self, BackgroundEnvelopeEvidenceDenial> {
-        if allocation.scope() != OperationAllocationScope::Maintenance {
+        if allocation.scope() != PhysicalOperationAllocationScope::Maintenance {
             return Err(
-                BackgroundEnvelopeEvidenceDenial::WrongOperationAllocationScope {
+                BackgroundEnvelopeEvidenceDenial::WrongPhysicalOperationAllocationScope {
                     work_class,
                     actual: allocation.scope(),
                 },
@@ -124,7 +124,7 @@ impl BackgroundClassEnvelopeEvidence {
         let counters = allocation.counters();
         let allocation_bytes = allocation.bytes();
         if allocation_bytes == 0
-            || counters.active_operation_bytes_for(OperationAllocationScope::Maintenance)
+            || counters.active_operation_bytes_for(PhysicalOperationAllocationScope::Maintenance)
                 < allocation_bytes
         {
             return Err(BackgroundEnvelopeEvidenceDenial::MissingEnvelopeCounters { work_class });
@@ -242,9 +242,9 @@ pub enum BackgroundEnvelopeEvidenceDenial {
     ForegroundScopeUsed {
         work_class: BackgroundWorkClass,
     },
-    WrongOperationAllocationScope {
+    WrongPhysicalOperationAllocationScope {
         work_class: BackgroundWorkClass,
-        actual: OperationAllocationScope,
+        actual: PhysicalOperationAllocationScope,
     },
     LaterSemanticClaimed {
         work_class: BackgroundWorkClass,

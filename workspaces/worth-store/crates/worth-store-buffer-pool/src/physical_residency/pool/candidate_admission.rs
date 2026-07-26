@@ -1,51 +1,50 @@
 use super::*;
 
+mod declaration;
+
+pub(super) use declaration::candidate_batch_operation_bytes;
+
 impl PoolInner {
-    pub(super) fn reserve_candidate_frames(
+    pub(crate) fn validate_candidate_projection_start(
+        &self,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        let mut state = self.lock();
+        if !state.accepting {
+            return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn admit_candidate_batch<'grant>(
         self: &Arc<Self>,
-        keys: &[PhysicalFrameKey],
-    ) -> Result<PhysicalCandidateBatchReservation, PhysicalResidencyDenial> {
+        admission: PhysicalCandidateBatchAdmission<'grant>,
+        keys: &[PhysicalCandidateFrameKey],
+    ) -> Result<PhysicalCandidateBatchReservation<'grant>, PhysicalResidencyDenial> {
+        if admission.candidate_count.get() != keys.len() {
+            return Err(self.record_denial(
+                PhysicalResidencyDenial::CandidateCardinalityMismatch {
+                    declared: admission.candidate_count.get(),
+                    provided: keys.len(),
+                },
+            ));
+        }
         let admitted = self.validate_candidate_set(keys)?;
         let mut state = self.lock();
-        self.admit_candidate_set(&mut state, keys)?;
+        let scope = admission.scope();
+        self.admit_candidate_set(&mut state, scope, keys)?;
         Ok(PhysicalCandidateBatchReservation {
             owner: Arc::clone(self),
             keys: admitted,
+            allocation_use: admission.allocation_use,
             armed: true,
         })
-    }
-
-    fn validate_candidate_set(
-        &self,
-        keys: &[PhysicalFrameKey],
-    ) -> Result<std::collections::VecDeque<PhysicalFrameKey>, PhysicalResidencyDenial> {
-        if keys.is_empty() {
-            return Err(self.record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
-        }
-        let mut unique = std::collections::HashSet::new();
-        unique
-            .try_reserve(keys.len())
-            .map_err(|_| self.record_denial(PhysicalResidencyDenial::AllocationFailed))?;
-        for key in keys {
-            if let Err(reason) = self.validate_key(*key) {
-                return Err(self.record_denial(reason));
-            }
-            if !unique.insert(*key) {
-                return Err(self.record_denial(PhysicalResidencyDenial::FrameAlreadyResident));
-            }
-        }
-        let mut admitted = std::collections::VecDeque::new();
-        admitted
-            .try_reserve_exact(keys.len())
-            .map_err(|_| self.record_denial(PhysicalResidencyDenial::AllocationFailed))?;
-        admitted.extend(keys.iter().copied());
-        Ok(admitted)
     }
 
     fn admit_candidate_set(
         &self,
         state: &mut PoolState,
-        keys: &[PhysicalFrameKey],
+        scope: PhysicalOperationAllocationScope,
+        keys: &[PhysicalCandidateFrameKey],
     ) -> Result<(), PhysicalResidencyDenial> {
         if !state.accepting {
             return Err(Self::deny(state, PhysicalResidencyDenial::PoolClosed));
@@ -53,73 +52,146 @@ impl PoolInner {
         if state.active_candidate_publications >= self.limits.pin_leases() {
             return Err(Self::deny(
                 state,
-                PhysicalResidencyDenial::PinnedFrameBudgetExceeded,
+                PhysicalResidencyDenial::CandidatePublicationActive,
             ));
         }
-        if keys
-            .iter()
-            .any(|key| state.frames.contains_key(&key.coordinate))
-        {
-            return Err(Self::deny(
-                state,
-                PhysicalResidencyDenial::FrameAlreadyResident,
-            ));
+        for candidate in keys {
+            if let Err(reason) =
+                Self::validate_candidate_identity_available(state, candidate.frame_key())
+            {
+                return Err(Self::deny(state, reason));
+            }
         }
-        self.validate_candidate_capacity(state, keys)?;
+        self.validate_candidate_capacity(state, scope, keys)?;
         state.active_candidate_publications += 1;
+        Ok(())
+    }
+
+    fn validate_candidate_identity_available(
+        state: &PoolState,
+        key: PhysicalFrameKey,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        if let Some(entry) = state.frames.get(&key.coordinate) {
+            return match &entry.state {
+                FrameState::LoadFailed(terminal) => {
+                    Err(PhysicalResidencyDenial::FrameLoadTerminated(*terminal))
+                }
+                FrameState::Loading | FrameState::CandidateReserved => {
+                    Err(PhysicalResidencyDenial::FrameIdentityOccupied)
+                }
+                FrameState::Resident(_) => Err(PhysicalResidencyDenial::FrameAlreadyResident),
+            };
+        }
+        if state
+            .frames
+            .contains_artifact_alias(key.coordinate.artifact())
+        {
+            return Err(PhysicalResidencyDenial::ArtifactIdentityOccupied);
+        }
         Ok(())
     }
 
     fn validate_candidate_capacity(
         &self,
         state: &mut PoolState,
-        keys: &[PhysicalFrameKey],
+        scope: PhysicalOperationAllocationScope,
+        keys: &[PhysicalCandidateFrameKey],
     ) -> Result<(), PhysicalResidencyDenial> {
         let max_frame = keys
             .iter()
-            .map(|key| u64::from(key.coordinate.length()))
+            .map(|candidate| u64::from(candidate.frame_key().coordinate.length()))
             .max()
             .expect("nonempty candidate set");
-        let evictable_bytes = state
+        self.validate_candidate_replacement_window(state, scope, max_frame)?;
+        self.validate_candidate_live_ceilings(state, scope)
+    }
+
+    fn validate_candidate_replacement_window(
+        &self,
+        state: &mut PoolState,
+        scope: PhysicalOperationAllocationScope,
+        max_frame: u64,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        let (evictable_bytes, evictable_frames) = state
             .frames
             .values()
             .filter(|entry| entry.is_evictable())
-            .map(|entry| entry.bytes)
-            .sum::<u64>();
-        let evictable_frames = state
-            .frames
-            .values()
-            .filter(|entry| entry.is_evictable())
-            .count();
+            .fold((0_u64, 0_usize), |(bytes, frames), entry| {
+                (bytes.saturating_add(entry.bytes), frames.saturating_add(1))
+            });
         let fixed_bytes = state
-            .counters
-            .resident_bytes
+            .accounting
+            .resident_bytes()
             .saturating_sub(evictable_bytes);
-        let fixed_frames = state.frames.len().saturating_sub(evictable_frames);
+        let fixed_frames = usize::try_from(state.accounting.frame_entries())
+            .expect("admitted frame count fits usize")
+            .saturating_sub(evictable_frames);
         if fixed_bytes.saturating_add(max_frame) > self.limits.resident_bytes() {
-            return Err(Self::deny(
+            return Err(self.pressure(
                 state,
-                PhysicalResidencyDenial::ResidentBudgetExhausted,
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::ResidentBytes,
+                    scope,
+                    requested: max_frame,
+                    current: fixed_bytes,
+                    limit: self.limits.resident_bytes(),
+                },
             ));
         }
         if fixed_frames.saturating_add(1) > self.limits.frame_entries() as usize {
-            return Err(Self::deny(
+            return Err(self.pressure(
                 state,
-                PhysicalResidencyDenial::FrameEntryBudgetExhausted,
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::FrameEntries,
+                    scope,
+                    requested: 1,
+                    current: fixed_frames as u64,
+                    limit: u64::from(self.limits.frame_entries()),
+                },
             ));
         }
-        if state.counters.dirty_frames >= self.limits.dirty_frames() {
-            return Err(Self::deny(
+        Ok(())
+    }
+
+    fn validate_candidate_live_ceilings(
+        &self,
+        state: &mut PoolState,
+        scope: PhysicalOperationAllocationScope,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        if state.accounting.dirty_frames() >= self.limits.dirty_frames() {
+            return Err(self.pressure(
                 state,
-                PhysicalResidencyDenial::DirtyFrameBudgetExceeded,
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::DirtyFrames,
+                    scope,
+                    requested: 1,
+                    current: u64::from(state.accounting.dirty_frames()),
+                    limit: u64::from(self.limits.dirty_frames()),
+                },
             ));
         }
-        if state.counters.pinned_frames >= self.limits.pinned_frames()
-            || state.counters.pin_leases >= self.limits.pin_leases()
-        {
-            return Err(Self::deny(
+        if state.accounting.pinned_frames() >= self.limits.pinned_frames() {
+            return Err(self.pressure(
                 state,
-                PhysicalResidencyDenial::PinnedFrameBudgetExceeded,
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::PinnedFrames,
+                    scope,
+                    requested: 1,
+                    current: u64::from(state.accounting.pinned_frames()),
+                    limit: u64::from(self.limits.pinned_frames()),
+                },
+            ));
+        }
+        if state.accounting.pin_leases() >= self.limits.pin_leases() {
+            return Err(self.pressure(
+                state,
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::PinLeases,
+                    scope,
+                    requested: 1,
+                    current: u64::from(state.accounting.pin_leases()),
+                    limit: u64::from(self.limits.pin_leases()),
+                },
             ));
         }
         Ok(())
@@ -127,22 +199,28 @@ impl PoolInner {
 
     pub(crate) fn reserve_next_candidate(
         &self,
-        key: PhysicalFrameKey,
+        scope: PhysicalOperationAllocationScope,
+        candidate: PhysicalCandidateFrameKey,
     ) -> Result<(), PhysicalResidencyDenial> {
+        let key = candidate.frame_key();
         let mut state = self.lock();
-        if state.frames.contains_key(&key.coordinate) {
-            return Err(Self::deny(
+        if let Err(reason) = Self::validate_candidate_identity_available(&state, key) {
+            return Err(Self::deny(&mut state, reason));
+        }
+        if state.accounting.dirty_frames() >= self.limits.dirty_frames() {
+            let current = u64::from(state.accounting.dirty_frames());
+            return Err(self.pressure(
                 &mut state,
-                PhysicalResidencyDenial::FrameAlreadyResident,
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::DirtyFrames,
+                    scope,
+                    requested: 1,
+                    current,
+                    limit: u64::from(self.limits.dirty_frames()),
+                },
             ));
         }
-        if state.counters.dirty_frames >= self.limits.dirty_frames() {
-            return Err(Self::deny(
-                &mut state,
-                PhysicalResidencyDenial::DirtyFrameBudgetExceeded,
-            ));
-        }
-        self.reserve_frame_space(&mut state, u64::from(key.coordinate.length()))?;
+        self.reserve_frame_space(&mut state, scope, u64::from(key.coordinate.length()))?;
         state.frames.insert(
             key.coordinate,
             FrameEntry {
@@ -154,22 +232,28 @@ impl PoolInner {
                 bytes: u64::from(key.coordinate.length()),
                 older_evictable: None,
                 newer_evictable: None,
+                loading_identity: None,
+                loading_waiters: 0,
+                artifact_posture: if candidate.is_complete_artifact() {
+                    FrameArtifactPosture::CompleteCandidate
+                } else {
+                    FrameArtifactPosture::Fragment
+                },
             },
         );
-        state.counters.resident_bytes += u64::from(key.coordinate.length());
-        state.counters.pinned_frames += 1;
-        state.counters.pin_leases += 1;
-        state.counters.dirty_frames += 1;
-        state.counters.candidate_frames += 1;
+        state
+            .accounting
+            .admit_frame(u64::from(key.coordinate.length()), true, true);
         state.loading_frames += 1;
-        state.counters.active_loading_frames += 1;
-        observe_candidate_reservation_peaks(self, &mut state);
         Ok(())
     }
 
     pub(crate) fn finish_candidate_batch(&self) {
         let mut state = self.lock();
-        state.active_candidate_publications = state.active_candidate_publications.saturating_sub(1);
+        state.active_candidate_publications = state
+            .active_candidate_publications
+            .checked_sub(1)
+            .expect("candidate batch finished without an active publication");
         self.changed.notify_all();
     }
 
@@ -198,7 +282,7 @@ impl PoolInner {
         }
         entry.state = FrameState::Resident(Arc::clone(&bytes));
         state.loading_frames -= 1;
-        state.counters.active_loading_frames -= 1;
+        state.accounting.finish_loading();
         self.changed.notify_all();
         Ok(DirtyPhysicalFrame {
             lease: Some(PhysicalFrameLease {
@@ -246,39 +330,16 @@ impl PoolInner {
             .frames
             .remove(&key.coordinate)
             .expect("validated candidate frame remains resident");
-        state.counters.resident_bytes -= removed.bytes;
-        state.counters.pinned_frames -= 1;
-        state.counters.pin_leases -= 1;
-        state.counters.dirty_frames -= 1;
-        state.counters.candidate_frames -= 1;
-        state.counters.administrative_drains += 1;
+        state.accounting.remove_frame(
+            removed.bytes,
+            removed.pins,
+            removed.dirty,
+            removed.origin == FrameOrigin::Candidate,
+        );
+        state.accounting.record_administrative_drain();
         self.changed.notify_all();
         Ok(())
     }
-}
-
-fn observe_candidate_reservation_peaks(owner: &PoolInner, state: &mut PoolState) {
-    state.counters.peak_resident_bytes = state
-        .counters
-        .peak_resident_bytes
-        .max(state.counters.resident_bytes);
-    state.counters.peak_pinned_frames = state
-        .counters
-        .peak_pinned_frames
-        .max(state.counters.pinned_frames);
-    state.counters.peak_pin_leases = state
-        .counters
-        .peak_pin_leases
-        .max(state.counters.pin_leases);
-    state.counters.peak_dirty_frames = state
-        .counters
-        .peak_dirty_frames
-        .max(state.counters.dirty_frames);
-    state.counters.peak_candidate_frames = state
-        .counters
-        .peak_candidate_frames
-        .max(state.counters.candidate_frames);
-    owner.observe_admitted_peak(state);
 }
 
 fn cancel_candidate_locked(state: &mut PoolState, coordinate: RecordFrameCoordinate) {
@@ -290,12 +351,13 @@ fn cancel_candidate_locked(state: &mut PoolState, coordinate: RecordFrameCoordin
             .frames
             .remove(&coordinate)
             .expect("candidate reservation remains present");
-        state.counters.resident_bytes -= entry.bytes;
-        state.counters.pinned_frames -= 1;
-        state.counters.pin_leases -= 1;
-        state.counters.dirty_frames -= 1;
-        state.counters.candidate_frames -= 1;
+        state.accounting.remove_frame(
+            entry.bytes,
+            entry.pins,
+            entry.dirty,
+            entry.origin == FrameOrigin::Candidate,
+        );
         state.loading_frames -= 1;
-        state.counters.active_loading_frames -= 1;
+        state.accounting.finish_loading();
     }
 }

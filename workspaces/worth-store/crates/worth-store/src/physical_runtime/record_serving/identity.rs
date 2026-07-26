@@ -26,6 +26,7 @@ impl PhysicalRecordId {
 pub(super) fn allocate_candidate_record_identities(
     count: usize,
     manifest: &super::access::manifest_routing::ManifestReader<'_>,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
 ) -> Result<Vec<PersistedRecordIdentity>, RecordAppendDenial> {
     if count == 0 || count > u64::MAX as usize {
         return Err(RecordAppendDenial::RecordIdentityExhausted);
@@ -37,7 +38,7 @@ pub(super) fn allocate_candidate_record_identities(
         .ok_or(RecordAppendDenial::IdentityEntropyUnavailable)?;
     let mut counters = super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
     if manifest
-        .locate(first_candidate, &mut counters)
+        .locate(allocation, first_candidate, &mut counters)
         .map_err(|_| RecordAppendDenial::PublishedLayoutDamaged)?
         .is_some()
     {

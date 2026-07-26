@@ -178,6 +178,165 @@ let admission: AllocationAdmission = todo!();
 let _forked_authority = admission.clone();
 ```
 
+An operation-scope label is vocabulary, not physical allocation authority:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    PhysicalFrameKey, PhysicalOperationAllocationScope, PhysicalResidencyPool,
+};
+
+fn load_with_scope(
+    pool: &PhysicalResidencyPool,
+    key: PhysicalFrameKey,
+) {
+    let _ = pool.access_frame(
+        PhysicalOperationAllocationScope::ForegroundRead,
+        key,
+    );
+}
+```
+
+Candidate residency cannot be reserved from a raw operation-scope label:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    PhysicalFrameKey, PhysicalOperationAllocationScope, PhysicalResidencyPool,
+};
+
+fn reserve_candidate_with_scope(
+    pool: &PhysicalResidencyPool,
+    key: PhysicalFrameKey,
+) {
+    let _ = pool.reserve_candidate_frames(
+        PhysicalOperationAllocationScope::ForegroundWrite,
+        &[key],
+    );
+}
+```
+
+A consumed operation allocation grant cannot authorize later admission:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    OperationAllocationGrant, PhysicalFrameKey, PhysicalResidencyPool,
+};
+
+fn load_after_grant_drop(
+    pool: &PhysicalResidencyPool,
+    grant: OperationAllocationGrant,
+    key: PhysicalFrameKey,
+) {
+    drop(grant);
+    let _ = pool.access_frame(&grant, key);
+}
+```
+
+A candidate batch retains the exact grant that admitted its metadata. Per-frame
+progression has no second-grant parameter through which another scope or
+allocation can be substituted:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    OperationAllocationGrant, PhysicalCandidateBatchReservation,
+    PhysicalCandidateFrameKey,
+};
+
+fn substitute_candidate_grant(
+    batch: &mut PhysicalCandidateBatchReservation<'_>,
+    other: &OperationAllocationGrant,
+    candidate: PhysicalCandidateFrameKey,
+) {
+    let _ = batch.reserve_next(other, candidate);
+}
+```
+
+Coalesced waiters have no source-loading authority:
+
+```compile_fail
+use worth_store_buffer_pool::PhysicalFrameFaultWaiter;
+
+fn forge_second_source(waiter: PhysicalFrameFaultWaiter) {
+    let _ = waiter.load(|_| Ok::<_, ()>(()));
+}
+```
+
+Sole fault ownership cannot be forked:
+
+```compile_fail
+use worth_store_buffer_pool::PhysicalFrameFaultOwner;
+
+fn fork_fault_owner(owner: PhysicalFrameFaultOwner) {
+    let _second_source_authority = owner.clone();
+}
+```
+
+Loading identities are observations, not constructible authority:
+
+```compile_fail
+use worth_store_buffer_pool::{PhysicalFrameLoadingIdentity, PhysicalResidencyIncarnation};
+
+fn forge_loading_identity(pool: PhysicalResidencyIncarnation) {
+    let _forged = PhysicalFrameLoadingIdentity {
+        pool,
+        ordinal: 1,
+    };
+}
+```
+
+Clean-to-dirty replacement cannot allocate or submit an external owning
+`Vec`:
+
+```compile_fail
+use worth_store_buffer_pool::PhysicalFrameLease;
+
+fn replace_from_external_vec(clean: PhysicalFrameLease, bytes: Vec<u8>) {
+    let _ = clean.replace_with_dirty_candidate(bytes);
+}
+```
+
+Dirty replacement cannot be authorized by a raw scope label:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    PhysicalFrameLease, PhysicalOperationAllocationScope,
+};
+
+fn replace_with_scope(clean: PhysicalFrameLease) {
+    let _ = clean.begin_dirty_replacement(
+        &PhysicalOperationAllocationScope::ForegroundWrite,
+    );
+}
+```
+
+A dirty-replacement reservation cannot outlive the concrete allocation grant
+it borrows:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    OperationAllocationGrant, PhysicalDirtyReplacementReservation, PhysicalFrameLease,
+};
+
+fn escape_grant<'a>(
+    clean: PhysicalFrameLease,
+    grant: OperationAllocationGrant,
+) -> PhysicalDirtyReplacementReservation<'a> {
+    clean.begin_dirty_replacement(&grant).unwrap()
+}
+```
+
+Dirty-replacement reservations are move-owned and cannot be cloned:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    OperationAllocationGrant, PhysicalFrameLease,
+};
+
+fn clone_replacement(clean: PhysicalFrameLease, grant: &OperationAllocationGrant) {
+    let reservation = clean.begin_dirty_replacement(grant).unwrap();
+    let _copy = reservation.clone();
+}
+```
+
 Fixed metadata exemptions cannot be forged from variable diagnostics:
 
 ```compile_fail

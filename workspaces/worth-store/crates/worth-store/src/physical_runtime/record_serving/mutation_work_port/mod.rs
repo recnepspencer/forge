@@ -57,7 +57,6 @@ pub(in crate::physical_runtime::record_serving) enum CanonicalRecordPublicationE
 
 pub(in crate::physical_runtime) struct CanonicalCandidateFrameWrite {
     physical: CandidateFramePhysicalWrite,
-    settlement: CanonicalRecordMutationSettlement,
 }
 
 pub(in crate::physical_runtime) struct CanonicalRecordMutationFailure {
@@ -115,7 +114,7 @@ impl CanonicalCandidateFrameWrite {
     pub(in crate::physical_runtime::record_serving) fn into_physical(
         self,
     ) -> CandidateFramePhysicalWrite {
-        self.physical.bind_settlement(self.settlement)
+        self.physical
     }
 }
 

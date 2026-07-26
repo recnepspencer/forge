@@ -4,11 +4,8 @@ use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_physical_format::{CurrentPhysicalRecordPlacement, DurablePhysicalRootManifest};
 
 use super::super::{
-    access::extent_read_session::ExtentReadState,
-    residency::{
-        frame_loading::{CanonicalFrameReadSource, LoadedPhysicalFrame},
-        frame_ports::RecordFramePorts,
-    },
+    access::{extent_read_session::ExtentReadState, record_chunk_view::RecordReadIdentity},
+    residency::{frame_loading::LoadedPhysicalFrame, ServingFrameResidency},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, ExternalPhysicalRecordLocator,
     PhysicalLocatorReadmissionOutcome, PhysicalRecordId, RecordReadDenial, RecordReadError,
     RecordReadLimits, RecordReadObservation,
@@ -38,6 +35,7 @@ enum ReadPlacement {
 
 pub struct RecordReadSession {
     placement: ReadPlacement,
+    identity: RecordReadIdentity,
     observation: RecordReadObservation,
     runtime: std::sync::Weak<crate::physical_runtime::instance::PhysicalStoreWorkRuntime>,
     health_permit: super::super::lifecycle::serving_health::ServingHealthPermit,
@@ -45,22 +43,25 @@ pub struct RecordReadSession {
     _allocation: worth_store_buffer_pool::OperationAllocationGrant,
 }
 
-pub type OpenedPhysicalRecord = RecordReadSession;
-
 pub struct PhysicalRecordReader {
     pub(in crate::physical_runtime::record_serving) store: StableStoreIdentity,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current_root: DurablePhysicalRootManifest,
+    pub(in crate::physical_runtime::record_serving) generation:
+        crate::physical_runtime::LifecycleGeneration,
     pub(in crate::physical_runtime::record_serving) runtime:
         std::sync::Weak<crate::physical_runtime::instance::PhysicalStoreWorkRuntime>,
     pub(in crate::physical_runtime::record_serving) lifecycle:
         super::super::lifecycle::record_lifecycle::RecordReaderLease,
-    pub(in crate::physical_runtime::record_serving) frame_ports: RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source: CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
 }
 
 impl PhysicalRecordReader {
+    const fn read_identity(&self, record: PhysicalRecordId) -> RecordReadIdentity {
+        RecordReadIdentity::new(self.store, self.generation, record)
+    }
+
     pub fn open(
         &self,
         record: PhysicalRecordId,
@@ -73,20 +74,20 @@ impl PhysicalRecordReader {
         runtime.health.permit().map_err(|_| {
             RecordReadError::new(RecordReadDenial::ServingRequiresInspection, observation)
         })?;
-        let allocation = self.begin_read_allocation(observation)?;
+        let allocation = self.begin_record_read_allocation(record, observation)?;
         let mut discovery =
             super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
         let placement = super::super::access::manifest_routing::ManifestReader::serving(
-            self.frame_ports.clone(),
-            self.source.clone(),
+            self.residency.clone(),
             self.format,
             self.access,
             self.current_root.clone(),
         )
-        .locate(record.persisted(), &mut discovery);
+        .locate(&allocation, record.persisted(), &mut discovery);
         observation.observe_manifest(discovery);
-        let placement =
-            placement.map_err(|failure| self.read_error(manifest_failure(failure), observation))?;
+        let placement = placement.map_err(|failure| {
+            self.read_error_for_record(record, manifest_failure(failure), observation)
+        })?;
         let placement = placement
             .ok_or_else(|| RecordReadError::new(RecordReadDenial::RecordNotFound, observation))?;
         self.require_caller_limit(placement.payload_bytes(), limits, &mut observation)?;
@@ -101,21 +102,48 @@ impl PhysicalRecordReader {
         mut observation: RecordReadObservation,
     ) -> Result<RecordReadSession, RecordReadError> {
         self.require_caller_limit(placement.payload_bytes(), limits, &mut observation)?;
-        let allocation = self.begin_read_allocation(observation)?;
+        let allocation = self.begin_record_read_allocation(record, observation)?;
         self.open_known_placement_with_allocation(record, placement, observation, allocation)
     }
 
-    fn begin_read_allocation(
+    pub(in crate::physical_runtime::record_serving) fn begin_read_allocation(
         &self,
         observation: RecordReadObservation,
     ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, RecordReadError> {
-        self.frame_ports
+        self.begin_read_allocation_with_basis(
+            observation,
+            super::super::PhysicalRecordPressureBasis::for_store(self.store),
+        )
+    }
+
+    fn begin_record_read_allocation(
+        &self,
+        record: PhysicalRecordId,
+        observation: RecordReadObservation,
+    ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, RecordReadError> {
+        self.begin_read_allocation_with_basis(
+            observation,
+            super::super::PhysicalRecordPressureBasis::for_store(self.store).with_record(record),
+        )
+    }
+
+    fn begin_read_allocation_with_basis(
+        &self,
+        observation: RecordReadObservation,
+        basis: super::super::PhysicalRecordPressureBasis,
+    ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, RecordReadError> {
+        self.residency
             .begin_operation(
-                worth_store_buffer_pool::OperationAllocationScope::ForegroundRead,
-                u64::from(self.format.declaration().page_size().bytes()),
+                worth_store_buffer_pool::PhysicalOperationAllocationScope::ForegroundRead,
+                std::num::NonZeroU64::new(u64::from(self.format.declaration().page_size().bytes()))
+                    .expect("an admitted format page size is nonzero"),
             )
             .map_err(|reason| {
-                RecordReadError::new(RecordReadDenial::ResidencyUnavailable(reason), observation)
+                self.read_error_with_basis(
+                    RecordReadDenial::from_residency(reason),
+                    observation,
+                    basis,
+                )
             })
     }
 
@@ -156,7 +184,7 @@ impl PhysicalRecordReader {
                 self.open_extent(record, value, &mut observation, allocation)
             }
         };
-        result.map_err(|denial| self.read_error(denial, observation))
+        result.map_err(|denial| self.read_error_for_record(record, denial, observation))
     }
 
     pub fn readmit_locator(
@@ -171,13 +199,22 @@ impl PhysicalRecordReader {
         locator: ExternalPhysicalRecordLocator,
         limits: RecordReadLimits,
     ) -> Result<RecordReadSession, RecordReadError> {
-        let readmitted = super::super::access::readmission::readmit_locator_detailed(self, locator)
-            .map_err(|failure| self.read_error(failure.read_denial(), failure.observation()))?;
-        self.open_known_placement(
+        let mut observation = RecordReadObservation::default();
+        let allocation = self.begin_read_allocation(observation)?;
+        let readmitted =
+            super::super::access::readmission::readmit_locator_detailed(self, &allocation, locator)
+                .map_err(|failure| self.read_error(failure.read_denial(), failure.observation()))?;
+        observation = readmitted.observation();
+        self.require_caller_limit(
+            readmitted.placement().payload_bytes(),
+            limits,
+            &mut observation,
+        )?;
+        self.open_known_placement_with_allocation(
             readmitted.record(),
             readmitted.placement(),
-            limits,
-            readmitted.observation(),
+            observation,
+            allocation,
         )
     }
 
@@ -190,8 +227,43 @@ impl PhysicalRecordReader {
         denial: RecordReadDenial,
         observation: RecordReadObservation,
     ) -> RecordReadError {
+        self.read_error_with_basis(
+            denial,
+            observation,
+            super::super::PhysicalRecordPressureBasis::for_store(self.store),
+        )
+    }
+
+    fn read_error_for_record(
+        &self,
+        record: PhysicalRecordId,
+        denial: RecordReadDenial,
+        observation: RecordReadObservation,
+    ) -> RecordReadError {
+        self.read_error_with_basis(
+            denial,
+            observation,
+            super::super::PhysicalRecordPressureBasis::for_store(self.store).with_record(record),
+        )
+    }
+
+    fn read_error_with_basis(
+        &self,
+        denial: RecordReadDenial,
+        observation: RecordReadObservation,
+        basis: super::super::PhysicalRecordPressureBasis,
+    ) -> RecordReadError {
         if let Some(runtime) = self.runtime.upgrade() {
             runtime.health.observe_read_denial(denial);
+        }
+        if let RecordReadDenial::ResidencyUnavailable(reason) = denial {
+            if let Some(pressure) = super::super::PhysicalRecordPressureEvidence::from_failure(
+                reason,
+                self.generation,
+                basis,
+            ) {
+                return RecordReadError::from_pressure(pressure, observation);
+            }
         }
         RecordReadError::new(denial, observation)
     }

@@ -23,12 +23,41 @@ pub(in crate::physical_runtime::record_serving) fn layout_failure(
             RecordAppendError::Denied(RecordAppendDenial::BackendUnavailable(failure))
         }
         super::super::residency::frame_loading::FrameLoadFailureKind::Residency(reason) => {
-            RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason))
+            RecordAppendError::Denied(RecordAppendDenial::from_residency(reason))
         }
         super::super::residency::frame_loading::FrameLoadFailureKind::Work(failure) => {
             canonical_work_failure(failure)
         }
+        super::super::residency::frame_loading::FrameLoadFailureKind::FaultTerminated {
+            cause,
+            ..
+        } => fault_cause(cause),
+        super::super::residency::frame_loading::FrameLoadFailureKind::CoalescedFault(terminal) => {
+            RecordAppendError::Denied(RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLoadTerminated(terminal),
+            ))
+        }
         _ => RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged),
+    }
+}
+
+fn fault_cause(
+    cause: super::super::residency::frame_loading::FrameLoadFaultCause,
+) -> RecordAppendError {
+    match cause {
+        super::super::residency::frame_loading::FrameLoadFaultCause::Backend(failure) => {
+            layout_failure(
+                super::super::residency::frame_loading::FrameLoadFailure::new(
+                    super::super::residency::frame_loading::FrameLoadFailureKind::Backend(failure),
+                ),
+            )
+        }
+        super::super::residency::frame_loading::FrameLoadFaultCause::Work(failure) => {
+            canonical_work_failure(failure)
+        }
+        super::super::residency::frame_loading::FrameLoadFaultCause::Residency(reason) => {
+            RecordAppendError::Denied(RecordAppendDenial::from_residency(reason))
+        }
     }
 }
 
@@ -62,7 +91,7 @@ fn terminal_failure(
         }
         crate::physical_runtime::PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(
             reason,
-        ) => RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason)),
+        ) => RecordAppendError::Denied(RecordAppendDenial::from_residency(reason)),
         crate::physical_runtime::PhysicalWorkTerminalCause::Backend(_)
         | crate::physical_runtime::PhysicalWorkTerminalCause::IncompleteRead { .. } => {
             RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)
@@ -88,7 +117,7 @@ pub(in crate::physical_runtime::record_serving) fn manifest_lookup_failure(
             RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)
         }
         super::super::access::manifest_routing::ManifestLookupFailure::Residency(reason) => {
-            RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(reason))
+            RecordAppendError::Denied(RecordAppendDenial::from_residency(reason))
         }
     }
 }

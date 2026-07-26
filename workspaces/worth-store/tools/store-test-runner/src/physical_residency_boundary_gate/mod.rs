@@ -1,0 +1,16 @@
+mod candidate_allocation;
+mod candidate_identity;
+mod dependency_boundary;
+mod direct_media;
+mod eviction_eligibility;
+mod failure_projection;
+mod fault_ownership;
+mod identity_transition;
+mod post_close_observation;
+mod production_trace;
+mod removal_inventory;
+mod runtime_ownership;
+mod serving_capability;
+mod shutdown_cleanup;
+mod shutdown_residue;
+mod workspace_source;

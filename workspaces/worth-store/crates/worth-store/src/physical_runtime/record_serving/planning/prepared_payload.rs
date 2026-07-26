@@ -46,6 +46,7 @@ pub(in crate::physical_runtime::record_serving) fn prepare_payload_plan(
     allow_published_reuse: bool,
 ) -> Result<PreparedRecordPayloadPlan, RecordAppendError> {
     let PlacementPlanningContext {
+        allocation,
         media,
         format,
         access,
@@ -53,14 +54,14 @@ pub(in crate::physical_runtime::record_serving) fn prepare_payload_plan(
         current_free_space,
         frontier,
         placement,
-        frame_ports,
-        source,
+        residency,
     } = context;
     let mut data = Vec::new();
     let mut payload_manifests = Vec::new();
     let mut placements = BTreeMap::new();
     let inline = plan_inline_segments(
         InlineSegmentPlanningContext {
+            allocation,
             media,
             format,
             access,
@@ -69,8 +70,7 @@ pub(in crate::physical_runtime::record_serving) fn prepare_payload_plan(
             frontier,
             placement,
             placements: &mut placements,
-            frame_ports,
-            source,
+            residency,
             allow_published_reuse,
         },
         classified.inline,

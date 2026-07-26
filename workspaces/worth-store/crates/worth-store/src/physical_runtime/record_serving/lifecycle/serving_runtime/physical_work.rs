@@ -181,7 +181,8 @@ impl ServingPhysicalRuntime {
         );
         let declaration = self
             .parts
-            .frame_ports
+            .residency
+            .ports()
             .writeback_declaration(*coordinate, grouping, flush_epoch, resource_shape)
             .map_err(crate::physical_runtime::PhysicalSchedulerDenial::Residency)?;
         crate::physical_runtime::PhysicalSchedulerDemand::residency_writeback(

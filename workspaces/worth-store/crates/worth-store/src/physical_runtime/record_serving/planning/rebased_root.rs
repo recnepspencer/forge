@@ -19,11 +19,11 @@ pub(in crate::physical_runtime::record_serving) struct RebasableRecordPublicatio
 }
 
 pub(in crate::physical_runtime::record_serving) struct RootRebaseContext<'plan> {
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'plan worth_store_buffer_pool::OperationAllocationGrant,
     pub(in crate::physical_runtime::record_serving) media: &'plan QualifiedFilesystemMedia,
-    pub(in crate::physical_runtime::record_serving) frame_ports:
-        super::super::residency::frame_ports::RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source:
-        super::super::residency::frame_loading::CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) residency:
+        super::super::residency::ServingFrameResidency,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current_root:

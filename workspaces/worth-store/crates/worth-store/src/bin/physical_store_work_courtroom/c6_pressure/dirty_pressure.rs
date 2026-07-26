@@ -56,6 +56,7 @@ pub(super) fn prove(
     let handoff = serving.c6_physical_work_handoff();
     let ready = ready_mutation(&handoff, request)?;
     let residency = handoff.residency_work();
+    let residency_certification = serving.certification_physical_residency();
     let coordinate = ready
         .intent()
         .scope()
@@ -63,12 +64,13 @@ pub(super) fn prove(
         .first()
         .copied()
         .ok_or_else(|| "C.6 writeback request omitted its coordinate".to_owned())?;
-    let lease = residency
+    let lease = residency_certification
         .pin_exact(coordinate)
         .map_err(|failure| format!("C.6 writeback frame load failed: {failure:?}"))?;
-    let bytes = lease.bytes().to_vec();
     let dirty = residency
-        .admit_dirty_frame(&ready, lease, bytes)
+        .admit_dirty_frame(&ready, lease, |source, target| {
+            target.copy_from_slice(source);
+        })
         .map_err(|failure| format!("C.6 dirty admission failed: {failure:?}"))?;
     let source = source_evidence(&handoff, &dirty)?;
     let baseline = DirtyPressureBaseline {
@@ -193,7 +195,7 @@ fn require_paused_write(
     let context = gate
         .reached_context()
         .ok_or_else(|| "C.6 dirty gate omitted its media context".to_owned())?;
-    let dirty = serving.residency_counters().dirty_frames();
+    let dirty = serving.residency_observation().counters().dirty_frames();
     let attempts = positioned_writes(serving).saturating_sub(writes_before);
     if context.role() != MediaOperationRole::PositionedWrite
         || context.identified_operation_ordinal() != Some(1)
@@ -235,7 +237,7 @@ fn settlement_evidence(
     let effect = settlement
         .effect()
         .ok_or_else(|| "C.6 writeback settlement omitted its backend effect".to_owned())?;
-    let after = serving.residency_counters();
+    let after = serving.residency_observation().counters();
     let evidence = C6DirtyPressureEvidence {
         identity: settlement.identity(),
         source_work_count: dispatched.source.work_count,

@@ -15,7 +15,7 @@ pub(in crate::physical_runtime::record_serving) fn write_candidate_data(
     artifacts: &PublicationRecordArtifacts<'_>,
     format: AdmittedPhysicalRecordFormat,
     data: &mut CandidateDataArtifact,
-    residency: &mut StoreCandidateFramePublicationSession,
+    residency: &mut StoreCandidateFramePublicationSession<'_>,
     observation: &mut PublicationObservation,
     work: &mut super::RecordPublicationWorkTrace,
 ) -> Result<(), CandidateDataWriteFailure> {

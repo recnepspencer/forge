@@ -20,6 +20,7 @@ pub(super) struct ExtentManifestAdmission<'admission, 'media> {
     pub(super) record: PhysicalRecordId,
     pub(super) placement: DurableExtentRecordPlacement,
     pub(super) observation: &'admission mut RecordReadObservation,
+    pub(super) allocation: &'admission worth_store_buffer_pool::OperationAllocationGrant,
     pub(super) artifacts: &'admission RecordFrameReader<'media>,
 }
 
@@ -40,6 +41,7 @@ impl ExtentManifestAdmission<'_, '_> {
         let bytes = self
             .artifacts
             .load_bounded(
+                self.allocation,
                 RecordArtifactFile::ExtentManifest {
                     extent: self.placement.extent().get(),
                     generation: self.placement.extent_generation(),

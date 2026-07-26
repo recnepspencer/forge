@@ -53,8 +53,9 @@ fn materialize_oversized_world(
         media.open_record_store(
             PhysicalRecordOpen::new(format, access).with_residency_policy(
                 configuration
-                    .policy()
-                    .ok_or_else(|| "C.6 residency policy was invalid".to_owned())?,
+                    .policy(format)
+                    .into_result()
+                    .map_err(|denial| format!("C.6 residency policy was invalid: {denial:?}"))?,
             ),
         ),
         "C.6 oversized-world open",
@@ -73,7 +74,7 @@ fn materialize_oversized_world(
     if record_ids.len() != configuration.record_count() {
         return Err("C.6 publication omitted configured records".to_owned());
     }
-    let counters = serving.residency_counters();
+    let counters = serving.residency_observation().counters();
     if counters.peak_resident_bytes() > configuration.resident_bytes() || counters.evictions() == 0
     {
         return Err("C.6 world materialization escaped its residency budget".to_owned());
@@ -100,8 +101,9 @@ fn run_inheritance_siege(
             PhysicalRecordOpen::new(format, access)
                 .with_residency_policy(
                     configuration
-                        .policy()
-                        .ok_or_else(|| "C.6 siege policy was invalid".to_owned())?,
+                        .policy(format)
+                        .into_result()
+                        .map_err(|denial| format!("C.6 siege policy was invalid: {denial:?}"))?,
                 )
                 .with_physical_work_profile(profile),
         ),

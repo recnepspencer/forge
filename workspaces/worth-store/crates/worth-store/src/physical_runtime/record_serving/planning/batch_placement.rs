@@ -81,11 +81,13 @@ impl PhysicalIdentityReservationShape {
 
 pub(in crate::physical_runtime::record_serving) fn classify_batch(
     manifest: &super::super::access::manifest_routing::ManifestReader<'_>,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     placement: AdmittedRecordPlacementPolicy,
     batch: AdmittedRecordAppendBatch,
 ) -> Result<ClassifiedBatch, RecordAppendError> {
-    let identities = allocate_candidate_record_identities(batch.records.len(), manifest)
-        .map_err(RecordAppendError::Denied)?;
+    let identities =
+        allocate_candidate_record_identities(batch.records.len(), manifest, allocation)
+            .map_err(RecordAppendError::Denied)?;
     let mut inline = Vec::new();
     let mut extents = Vec::new();
     for (record, admitted) in identities.iter().copied().zip(batch.records) {

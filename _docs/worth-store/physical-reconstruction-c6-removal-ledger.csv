@@ -1,0 +1,107 @@
+path,match_families,deletion_phase,replacement_owner,absence_gate,status
+crates/worth-store/src/bin/physical_store_work_courtroom.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/arguments.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/c6_pressure/configuration.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/c6_pressure/dirty_pressure.rs,c6-identifier,phase-5,Store-private writeback capability,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/c6_pressure/mod.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/c6_pressure/protocol.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/c6_pressure/read_pressure.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/bin/physical_store_work_courtroom/configuration.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/failure.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/identity.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/mod.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/residency/dirty_frame.rs,c6-identifier;temporary-handoff,phase-5,Store-private writeback capability,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/residency/frame_load.rs,c6-identifier;temporary-handoff,phase-3,record_serving/residency/capability.rs plus certification residency probe,source-and-metadata-absence,deleted-phase-3
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/residency/mod.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/residency/writeback.rs,c6-identifier;temporary-handoff,phase-5,Store-private writeback capability,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/c6_handoff/residency/writeback/outcome.rs,c6-identifier;temporary-handoff,phase-5,Store-private writeback capability,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/evidence/physical_work/causal_lowering.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/evidence/physical_work/lowering.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/evidence/physical_work/validation.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/lifecycle/serving_runtime.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/lifecycle/serving_runtime/certification.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/src/physical_runtime/record_serving/mod.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys.rs,c6-identifier,phase-3,responsibility-named physical record journey root,source-and-metadata-absence,deleted-phase-3
+crates/worth-store/tests/physical_record_journeys/c6_preparation.rs,c6-identifier,phase-3,Store-private residency capability,source-and-metadata-absence,deleted-phase-3
+crates/worth-store/tests/physical_record_journeys/child_process/dispatch.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/physical_work/c6_handoff.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/physical_work/c6_projection_failure.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/physical_work/c6_residency_inheritance.rs,c6-identifier,phase-3,Store-private residency capability,source-and-metadata-absence,deleted-phase-3
+crates/worth-store/tests/physical_record_journeys/physical_work/c6_writeback_retry.rs,c6-identifier,phase-5,Store-private writeback capability,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/physical_work/mod.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/physical_work/phase_16_lifecycle_maelstrom/mutant_report.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/physical_work/phase_16_lifecycle_maelstrom/shutdown_trace.rs,c6-identifier,phase-3,responsibility-named Phase 16 shutdown trace,source-and-metadata-absence,deleted-phase-3
+crates/worth-store/tests/physical_record_journeys/physical_work/phase_16_lifecycle_maelstrom/workflows.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_record_journeys/writeback_courtroom.rs,c6-identifier,phase-5,Store-private writeback capability,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_runtime_authority/c6_handoff_internals_are_sealed.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_runtime_authority/c6_handoff_supported.rs,c6-identifier;temporary-handoff,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store/tests/physical_runtime_authority_ui.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+crates/worth-store-blob-chunks/Cargo.toml,legacy-s2-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/Cargo.toml,legacy-s2-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/admission.rs,snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/buffer_pool_evidence_source.rs,legacy-frame-table;legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/dirty_pages/dirty_state_test_support.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/entry.rs,snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/lib.rs,legacy-frame-table;legacy-record-view;legacy-s2-feature;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/page_lease.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/physical_entry_facts.rs,snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/pinned_page_lease.rs,legacy-frame-table;legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/pinning/pin_lifecycle_tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/record_access/record_view_admission.rs,legacy-frame-table;legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/record_access/record_view_admission_tests.rs,legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/record_access/record_view_conflicts.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/record_view.rs,legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/entry_tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/mod.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_denials.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_dirty_table.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_eviction_table.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_lease_table.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_table.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_table/open.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency/resident_frame_tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/residency_vocabulary.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-buffer-pool/src/speculative_work/speculative_work_budget.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/Cargo.toml,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/courtroom/harness/test_support/bounded_memory_closeout_test_support.rs,legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/courtroom/harness/test_support/dirty_publication_evidence_test_support.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/courtroom/harness/test_support/record_view_evidence_test_support.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/cross_cutting/record_view_evidence.rs,legacy-frame-table;legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/cross_cutting/record_view_evidence_admission_tests.rs,legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/cross_cutting/speculative_work_evidence_tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/foundational/foundational_boundary_evidence_tests.rs,legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/memory/eviction_protection_evidence.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/memory/eviction_protection_evidence_tests.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/memory/pin_lifecycle_evidence_tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/memory/resident_frame_authority_evidence.rs,legacy-frame-table,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/src/evidence/memory/resident_frame_authority_evidence_tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-certification/tests/support/physical_isolation/stable_read_execution/support.rs,legacy-frame-table;legacy-record-view;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-integrity/Cargo.toml,legacy-certification-feature;legacy-s2-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-integrity/src/admission/pre_decode/protected_physical_byte_view.rs,legacy-certification-feature;legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-integrity/src/blob_chunks/chunk_integrity_denials.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-integrity/src/blob_chunks/chunk_integrity_request.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-integrity/src/scrub/scrub_planning_memory_envelope.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-isolation/Cargo.toml,legacy-certification-feature;legacy-s2-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-isolation/src/byte_guard/denial.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-isolation/src/byte_guard/guard.rs,legacy-certification-feature;legacy-record-view,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-physical-isolation/src/byte_guard/scope.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-recovery-physics/Cargo.toml,legacy-certification-feature;legacy-s2-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-recovery-physics/src/page_lsn_publication/dirty_publication_evidence.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-recovery-physics/src/page_lsn_publication/mod.rs,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-recovery-physics/src/page_lsn_publication/tests.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-test-support/Cargo.toml,legacy-certification-feature,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+crates/worth-store-test-support/src/harness/recovery/dirty_publication.rs,legacy-frame-table;snapshot-residency-authority,phase-8,canonical Store-bound residency and evidence,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/evidence_projection.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/execution.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/oracle.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/oracle/pressure.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/protocol.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/reporting.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/timing/identity.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/timing/mod.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/timing/tests.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/courtroom_campaign/c6_inheritance_siege/world.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/mutation_campaign/catalog/phase_16.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open
+tools/store-test-runner/src/physical_writer_gate.rs,c6-identifier,phase-7,responsibility-named Store facade,source-and-metadata-absence,inventory-open

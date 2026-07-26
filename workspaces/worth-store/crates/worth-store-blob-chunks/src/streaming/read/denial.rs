@@ -1,5 +1,5 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::OperationAllocationScope;
+use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 use worth_store_io_scheduler::{
     foreground_reservation::{
         ForegroundIoLaneKind, ForegroundReservationAdmissionDenial, ForegroundReservationState,
@@ -29,7 +29,7 @@ pub enum BlobStreamingReadDenial {
         actual: CounterEvidenceStrength,
     },
     AllocationScopeMismatch {
-        actual: OperationAllocationScope,
+        actual: PhysicalOperationAllocationScope,
     },
     AllocationWindowExceeded {
         window_bytes: u64,

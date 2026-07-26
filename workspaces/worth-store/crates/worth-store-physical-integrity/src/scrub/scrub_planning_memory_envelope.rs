@@ -3,7 +3,7 @@ use worth_store_buffer_pool::{
     AdmittedBackgroundEnvelope, AllocationScope, BackgroundEnvelopeCounterSnapshot,
     BackgroundWorkClass,
 };
-use worth_store_buffer_pool::{OperationAllocationGrant, OperationAllocationScope};
+use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalOperationAllocationScope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ScrubPlanningMemoryEnvelope {
@@ -20,7 +20,7 @@ impl ScrubPlanningMemoryEnvelope {
         allocation: &OperationAllocationGrant,
         pinned_pages: u32,
     ) -> Result<Self, ScrubPlanningMemoryEnvelopeDenial> {
-        if allocation.scope() != OperationAllocationScope::Scrub {
+        if allocation.scope() != PhysicalOperationAllocationScope::Scrub {
             return Err(ScrubPlanningMemoryEnvelopeDenial::WrongAllocationScope {
                 actual: allocation.scope(),
             });
@@ -94,7 +94,7 @@ impl ScrubPlanningMemoryEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScrubPlanningMemoryEnvelopeDenial {
     WrongAllocationScope {
-        actual: OperationAllocationScope,
+        actual: PhysicalOperationAllocationScope,
     },
     EmptyPinBudget,
     #[cfg(feature = "legacy-certification-models")]

@@ -91,7 +91,11 @@ impl MediaFaultInterposer {
         if directive.is_some() {
             self.counters.record_fault_match(context);
         }
-        if let Some(MediaFaultDirective::PauseBefore(gate)) = &directive {
+        if let Some(
+            MediaFaultDirective::PauseBefore(gate)
+            | MediaFaultDirective::PauseBeforeThenFailBefore { gate, .. },
+        ) = &directive
+        {
             gate.pause(Some(context));
         }
         MediaBoundaryAttempt {
@@ -144,9 +148,12 @@ pub(super) struct MediaBoundaryAttempt<'boundary> {
 impl MediaBoundaryAttempt<'_> {
     pub(super) fn fail_before_error(&self) -> Option<std::io::Error> {
         match &self.directive {
-            Some(MediaFaultDirective::FailBefore { kind, raw_os_error }) => {
-                Some(injected_error(*kind, *raw_os_error))
-            }
+            Some(
+                MediaFaultDirective::FailBefore { kind, raw_os_error }
+                | MediaFaultDirective::PauseBeforeThenFailBefore {
+                    kind, raw_os_error, ..
+                },
+            ) => Some(injected_error(*kind, *raw_os_error)),
             _ => None,
         }
     }

@@ -1,8 +1,19 @@
 use super::{PhysicalFrameKey, PhysicalResidencyDenial, PhysicalResidencyIncarnation};
 use crate::physical_residency::pool::PoolInner;
-use crate::SpeculativePhysicalWorkKind;
+use crate::PhysicalSpeculativeWorkKind;
 use sha2::{Digest, Sha256};
 use std::{ops::Deref, sync::Arc};
+
+pub(crate) mod dirty_replacement_allocation;
+
+use dirty_replacement_allocation::{DirtyReplacementAllocator, ProcessDirtyReplacementAllocator};
+
+mod candidate;
+
+pub use candidate::{
+    PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
+    PhysicalCandidateFrameReservation,
+};
 
 #[derive(Debug)]
 pub struct PhysicalFrameLease {
@@ -26,23 +37,21 @@ impl PhysicalFrameLease {
         self.owner.record_copy(target.len() as u64);
     }
 
-    pub fn replace_with_dirty_candidate(
-        mut self,
-        bytes: Vec<u8>,
-    ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
-        if bytes.len() != self.key.coordinate().length() as usize {
-            return Err(self
-                .owner
-                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
-        }
-        let replacement = Arc::new(bytes);
-        self.owner.replace_clean_lease_with_dirty(
-            self.key,
-            &self.bytes,
-            Arc::clone(&replacement),
-        )?;
-        self.bytes = replacement;
-        Ok(DirtyPhysicalFrame { lease: Some(self) })
+    pub fn begin_dirty_replacement<'grant>(
+        self,
+        allocation: &'grant super::OperationAllocationGrant,
+    ) -> Result<PhysicalDirtyReplacementReservation<'grant>, PhysicalResidencyDenial> {
+        let scope = allocation.scope_for(&self.owner)?;
+        let bytes = u64::from(self.key.coordinate().length());
+        self.owner
+            .reserve_dirty_replacement(scope, self.key, &self.bytes, bytes)?;
+        Ok(PhysicalDirtyReplacementReservation {
+            owner: Arc::clone(&self.owner),
+            lease: Some(self),
+            _allocation: allocation,
+            bytes,
+            armed: true,
+        })
     }
 }
 
@@ -50,74 +59,6 @@ impl Deref for PhysicalFrameLease {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         self.bytes.as_slice()
-    }
-}
-
-#[derive(Debug)]
-pub struct PhysicalCandidateFrameReservation {
-    pub(crate) owner: Arc<PoolInner>,
-    pub(crate) key: PhysicalFrameKey,
-    pub(crate) armed: bool,
-}
-
-#[derive(Debug)]
-pub struct PhysicalCandidateBatchReservation {
-    pub(crate) owner: Arc<PoolInner>,
-    pub(crate) keys: std::collections::VecDeque<PhysicalFrameKey>,
-    pub(crate) armed: bool,
-}
-
-impl PhysicalCandidateBatchReservation {
-    pub fn reserve_next(
-        &mut self,
-        key: PhysicalFrameKey,
-    ) -> Result<PhysicalCandidateFrameReservation, PhysicalResidencyDenial> {
-        if self.keys.front().copied() != Some(key) {
-            return Err(self
-                .owner
-                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
-        }
-        self.owner.reserve_next_candidate(key)?;
-        self.keys.pop_front();
-        Ok(PhysicalCandidateFrameReservation::new(
-            Arc::clone(&self.owner),
-            key,
-        ))
-    }
-}
-
-impl Drop for PhysicalCandidateBatchReservation {
-    fn drop(&mut self) {
-        if self.armed {
-            self.owner.finish_candidate_batch();
-            self.armed = false;
-        }
-    }
-}
-
-impl PhysicalCandidateFrameReservation {
-    pub const fn key(&self) -> PhysicalFrameKey {
-        self.key
-    }
-
-    pub fn admit(mut self, bytes: Vec<u8>) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
-        if bytes.len() != self.key.coordinate().length() as usize {
-            return Err(self
-                .owner
-                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
-        }
-        let bytes = Arc::new(bytes);
-        let frame = self.owner.finish_candidate(self.key, bytes)?;
-        self.armed = false;
-        Ok(frame)
-    }
-}
-
-impl Drop for PhysicalCandidateFrameReservation {
-    fn drop(&mut self) {
-        if self.armed {
-            self.owner.cancel_candidate(self.key);
-        }
     }
 }
 
@@ -130,6 +71,93 @@ impl Drop for PhysicalFrameLease {
 #[derive(Debug)]
 pub struct DirtyPhysicalFrame {
     pub(crate) lease: Option<PhysicalFrameLease>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PhysicalDirtyReplacementError<E> {
+    Residency(PhysicalResidencyDenial),
+    Fill(E),
+}
+
+#[derive(Debug)]
+pub struct PhysicalDirtyReplacementReservation<'grant> {
+    owner: Arc<PoolInner>,
+    lease: Option<PhysicalFrameLease>,
+    _allocation: &'grant super::OperationAllocationGrant,
+    bytes: u64,
+    armed: bool,
+}
+
+impl<'grant> PhysicalDirtyReplacementReservation<'grant> {
+    pub fn replace<E, F>(
+        self,
+        fill: F,
+    ) -> Result<DirtyPhysicalFrame, PhysicalDirtyReplacementError<E>>
+    where
+        F: FnOnce(&[u8], &mut [u8]) -> Result<(), E>,
+    {
+        self.replace_with_allocator(&ProcessDirtyReplacementAllocator, fill)
+    }
+
+    pub(crate) fn replace_with_allocator<E, F>(
+        mut self,
+        allocator: &dyn DirtyReplacementAllocator,
+        fill: F,
+    ) -> Result<DirtyPhysicalFrame, PhysicalDirtyReplacementError<E>>
+    where
+        F: FnOnce(&[u8], &mut [u8]) -> Result<(), E>,
+    {
+        let length = usize::try_from(self.bytes)
+            .expect("physical frame lengths are admitted from u32 coordinates");
+        let mut replacement = allocator.allocate(length).map_err(|()| {
+            self.release_after_allocator_failure();
+            PhysicalDirtyReplacementError::Residency(PhysicalResidencyDenial::AllocationFailed)
+        })?;
+        let lease = self
+            .lease
+            .as_ref()
+            .expect("armed dirty replacement retains its clean lease");
+        if let Err(error) = fill(lease.bytes.as_slice(), replacement.as_mut_slice()) {
+            self.release_reservation();
+            return Err(PhysicalDirtyReplacementError::Fill(error));
+        }
+        let replacement = Arc::new(replacement);
+        let mut lease = self
+            .lease
+            .take()
+            .expect("armed dirty replacement retains its clean lease");
+        if let Err(reason) =
+            lease
+                .owner
+                .finish_dirty_replacement(lease.key, &lease.bytes, Arc::clone(&replacement))
+        {
+            self.release_reservation();
+            return Err(PhysicalDirtyReplacementError::Residency(reason));
+        }
+        lease.bytes = replacement;
+        self.release_reservation();
+        Ok(DirtyPhysicalFrame { lease: Some(lease) })
+    }
+
+    fn release_reservation(&mut self) {
+        if self.armed {
+            self.owner.release_dirty_replacement(self.bytes);
+            self.armed = false;
+        }
+    }
+
+    fn release_after_allocator_failure(&mut self) {
+        if self.armed {
+            self.owner.dirty_replacement_allocator_failed(self.bytes);
+            self.armed = false;
+        }
+    }
+}
+
+impl Drop for PhysicalDirtyReplacementReservation<'_> {
+    fn drop(&mut self) {
+        self.release_reservation();
+    }
 }
 
 impl DirtyPhysicalFrame {
@@ -155,21 +183,12 @@ impl DirtyPhysicalFrame {
         let lease = self.lease.take().expect("dirty frame lease is present");
         lease.owner.discard_dirty_candidate(lease.key)
     }
-
-    #[cfg(test)]
-    pub(crate) fn publish_clean_for_pool_test(
-        mut self,
-    ) -> Result<PhysicalFrameLease, PhysicalResidencyDenial> {
-        let lease = self.lease.take().expect("dirty frame lease is present");
-        lease.owner.publish_clean(lease.key)?;
-        Ok(lease)
-    }
 }
 
 #[derive(Debug)]
 pub struct SpeculativeResidencyGrant {
     pub(crate) owner: Arc<PoolInner>,
-    pub(crate) kind: SpeculativePhysicalWorkKind,
+    pub(crate) kind: PhysicalSpeculativeWorkKind,
     pub(crate) frames: u32,
 }
 
@@ -247,7 +266,7 @@ impl Drop for PhysicalWritebackClaim {
 }
 
 impl SpeculativeResidencyGrant {
-    pub const fn kind(&self) -> SpeculativePhysicalWorkKind {
+    pub const fn kind(&self) -> PhysicalSpeculativeWorkKind {
         self.kind
     }
 

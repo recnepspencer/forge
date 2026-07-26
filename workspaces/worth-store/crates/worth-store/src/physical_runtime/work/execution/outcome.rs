@@ -78,6 +78,7 @@ pub enum PhysicalExecutorOutcome {
 }
 
 impl PhysicalEffectRecoveryObligation {
+    #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime) const fn join(self, other: Self) -> Self {
         if matches!(self, Self::Retained) || matches!(other, Self::Retained) {
             Self::Retained

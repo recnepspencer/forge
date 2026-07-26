@@ -56,7 +56,15 @@ pub(in crate::physical_runtime::record_serving) fn readmit_locator(
     reader: &PhysicalRecordReader,
     locator: ExternalPhysicalRecordLocator,
 ) -> PhysicalLocatorReadmissionOutcome {
-    match readmit_locator_detailed(reader, locator) {
+    let allocation = match reader.begin_read_allocation(RecordReadObservation::default()) {
+        Ok(allocation) => allocation,
+        Err(_) => {
+            return worth_proof::TransitionOutcome::denied(
+                PhysicalLocatorReadmissionDenial::CurrentRootUnavailable,
+            )
+        }
+    };
+    match readmit_locator_detailed(reader, &allocation, locator) {
         Ok(readmitted) => worth_proof::TransitionOutcome::success(readmitted.record),
         Err(failure) => worth_proof::TransitionOutcome::denied(failure.denial),
     }
@@ -64,6 +72,7 @@ pub(in crate::physical_runtime::record_serving) fn readmit_locator(
 
 pub(in crate::physical_runtime::record_serving) fn readmit_locator_detailed(
     reader: &PhysicalRecordReader,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     locator: ExternalPhysicalRecordLocator,
 ) -> Result<DetailedLocatorReadmission, DetailedLocatorReadmissionFailure> {
     let mut observation = RecordReadObservation::default();
@@ -92,13 +101,12 @@ pub(in crate::physical_runtime::record_serving) fn readmit_locator_detailed(
     let mut counters =
         super::super::access::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
     let found = super::super::access::manifest_routing::ManifestReader::serving(
-        reader.frame_ports.clone(),
-        reader.source.clone(),
+        reader.residency.clone(),
         reader.format,
         reader.access,
         reader.current_root.clone(),
     )
-    .locate(record.persisted(), &mut counters);
+    .locate(allocation, record.persisted(), &mut counters);
     observation.observe_manifest(counters);
     let found = found.map_err(|reason| {
         let read_denial = super::locate::failure_classification::manifest_failure(reason);

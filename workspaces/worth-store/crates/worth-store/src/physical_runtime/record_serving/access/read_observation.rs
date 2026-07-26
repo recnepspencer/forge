@@ -157,6 +157,7 @@ impl RecordReadObservation {
 pub struct RecordReadError {
     denial: RecordReadDenial,
     observation: RecordReadObservation,
+    pressure: Option<super::super::PhysicalRecordPressureEvidence>,
 }
 
 impl RecordReadError {
@@ -167,6 +168,18 @@ impl RecordReadError {
         Self {
             denial,
             observation,
+            pressure: None,
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) const fn from_pressure(
+        pressure: super::super::PhysicalRecordPressureEvidence,
+        observation: RecordReadObservation,
+    ) -> Self {
+        Self {
+            denial: RecordReadDenial::PhysicalPressure,
+            observation,
+            pressure: Some(pressure),
         }
     }
     pub const fn denial(self) -> RecordReadDenial {
@@ -174,6 +187,10 @@ impl RecordReadError {
     }
     pub const fn observation(self) -> RecordReadObservation {
         self.observation
+    }
+
+    pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
+        self.pressure
     }
 }
 
@@ -189,8 +206,17 @@ pub enum RecordReadDenial {
     BackendUnavailable(worth_store_physical_backend::ArtifactTreeFailure),
     PhysicalWork(RecordReadWorkDenial),
     FormatMismatch,
-    ResidencyUnavailable(worth_store_buffer_pool::PhysicalResidencyDenial),
+    PhysicalPressure,
+    ResidencyUnavailable(super::super::PhysicalRecordResidencyFailure),
     StalePlacement(StalePhysicalRecordPlacement),
+}
+
+impl RecordReadDenial {
+    pub(in crate::physical_runtime::record_serving) fn from_residency(
+        denial: worth_store_buffer_pool::PhysicalResidencyDenial,
+    ) -> Self {
+        Self::ResidencyUnavailable(denial.into())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

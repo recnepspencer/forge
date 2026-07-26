@@ -25,9 +25,15 @@ impl PhysicalRecordReader {
             .health
             .permit()
             .map_err(|_| RecordReadDenial::ServingRequiresInspection)?;
-        let artifacts = RecordFrameReader::serving(self.frame_ports.clone(), self.source.clone());
-        let location = page_location::locate_inline_page(self, placement, observation, &artifacts)?;
-        let page = location.load(&artifacts, observation)?;
+        let artifacts = RecordFrameReader::serving(self.residency.clone());
+        let location = page_location::locate_inline_page(
+            self,
+            placement,
+            observation,
+            &allocation,
+            &artifacts,
+        )?;
+        let page = location.load(&allocation, &artifacts, observation)?;
         let projected =
             record_projection::project_inline_record(record_projection::InlineRecordProjection {
                 reader: self,
@@ -44,6 +50,7 @@ impl PhysicalRecordReader {
                 payload: projected.payload,
                 offset: 0,
             },
+            identity: self.read_identity(record),
             observation: *observation,
             runtime: self.runtime.clone(),
             health_permit,

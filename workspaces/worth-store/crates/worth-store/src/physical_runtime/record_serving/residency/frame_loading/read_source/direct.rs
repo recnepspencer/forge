@@ -5,12 +5,12 @@ use super::{FrameReadSource, FrameReadSourceFailure, ObservedArtifactLength, Pre
 use crate::physical_runtime::record_serving::residency::frame_work_trace::FrameWorkTrace;
 use crate::physical_runtime::PhysicalWorkIdentity;
 
-pub(in crate::physical_runtime::record_serving) struct DirectFrameReadSource<'media> {
+pub(in crate::physical_runtime::record_serving::residency) struct DirectFrameReadSource<'media> {
     media: &'media QualifiedFilesystemMedia,
 }
 
 impl<'media> DirectFrameReadSource<'media> {
-    pub(in crate::physical_runtime::record_serving) const fn new(
+    pub(in crate::physical_runtime::record_serving::residency) const fn new(
         media: &'media QualifiedFilesystemMedia,
     ) -> Self {
         Self { media }

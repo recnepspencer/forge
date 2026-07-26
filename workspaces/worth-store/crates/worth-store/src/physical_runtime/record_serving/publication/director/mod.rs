@@ -4,12 +4,14 @@ use std::sync::{Arc, Condvar, Mutex, Weak};
 
 use worth_store_physical_format::{DurableFreeSpaceManifestHeader, DurablePhysicalRootManifest};
 
+use super::append::{RecordAppendDenial, RecordAppendError};
 use crate::physical_runtime::instance::PhysicalStoreWorkRuntime;
 
 use super::super::{
-    residency::frame_loading::CanonicalFrameReadSource, AdmittedPhysicalRecordFormat,
-    AdmittedRecordAccessPolicy, CanonicalRecordMutationPort, CanonicalRecordReadPort,
-    RecordAllocationFrontier, RecordFramePorts, RecordPublicationResidueObservation,
+    residency::{frame_loading::CanonicalFrameReadSource, ServingFrameResidency},
+    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, CanonicalRecordMutationPort,
+    CanonicalRecordReadPort, RecordAllocationFrontier, RecordFramePorts,
+    RecordPublicationResidueObservation,
 };
 
 mod execution;
@@ -20,11 +22,11 @@ pub use submission::{PhysicalRecordSubmission, PreparedRecordAppend};
 
 pub(in crate::physical_runtime) struct RecordPublicationDirector {
     runtime: Weak<PhysicalStoreWorkRuntime>,
-    planning_source: CanonicalFrameReadSource,
+    residency: ServingFrameResidency,
     mutation: CanonicalRecordMutationPort,
+    generation: crate::physical_runtime::LifecycleGeneration,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
-    frame_ports: RecordFramePorts,
     state: Mutex<RecordPublicationState>,
     preparation: Mutex<RecordPreparationState>,
     gate: Mutex<RecordPublicationGate>,
@@ -45,6 +47,7 @@ pub(in crate::physical_runtime) struct RecordPublicationFoundation {
     pub(in crate::physical_runtime) allocation_frontier: RecordAllocationFrontier,
     pub(in crate::physical_runtime) residue: RecordPublicationResidueObservation,
     pub(in crate::physical_runtime) frame_ports: RecordFramePorts,
+    pub(in crate::physical_runtime) generation: crate::physical_runtime::LifecycleGeneration,
 }
 
 struct RecordPublicationState {
@@ -76,11 +79,14 @@ impl RecordPublicationDirector {
     ) -> Arc<Self> {
         Arc::new(Self {
             runtime: Arc::downgrade(runtime),
-            planning_source: CanonicalFrameReadSource::new(planning_read),
+            residency: ServingFrameResidency::new(
+                foundation.frame_ports,
+                CanonicalFrameReadSource::new(planning_read),
+            ),
             mutation,
+            generation: foundation.generation,
             format: foundation.format,
             access: foundation.access,
-            frame_ports: foundation.frame_ports,
             state: Mutex::new(RecordPublicationState {
                 current_root: foundation.current_root,
                 free_space: foundation.free_space,
@@ -104,6 +110,20 @@ impl RecordPublicationDirector {
         director: &Arc<Self>,
     ) -> PhysicalRecordSubmission {
         PhysicalRecordSubmission::new(Arc::downgrade(director))
+    }
+
+    fn project_pressure(&self, error: RecordAppendError) -> RecordAppendError {
+        let RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(denial)) = error
+        else {
+            return error;
+        };
+        match super::super::PhysicalRecordPressureEvidence::from_store_failure(
+            denial,
+            self.generation,
+        ) {
+            Some(evidence) => RecordAppendError::PhysicalPressure { evidence },
+            None => RecordAppendError::Denied(RecordAppendDenial::ResidencyUnavailable(denial)),
+        }
     }
 
     pub(in crate::physical_runtime) fn current_root(&self) -> DurablePhysicalRootManifest {

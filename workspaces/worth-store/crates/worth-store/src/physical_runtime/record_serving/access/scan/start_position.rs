@@ -16,21 +16,21 @@ pub(super) struct PositionedScanStart {
 
 pub(super) fn position_scan_start(
     reader: &PhysicalRecordReader,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     first: Option<PersistedRecordIdentity>,
     runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
 ) -> Result<PositionedScanStart, RecordScanError> {
     let manifest = ManifestReader::serving(
-        reader.frame_ports.clone(),
-        reader.source.clone(),
+        reader.residency.clone(),
         reader.format,
         reader.access,
         reader.current_root.clone(),
     );
     let mut cursor = ManifestRangeCursor::new(manifest);
     let positioned = cursor
-        .seek(reader.current_root.routing_root(), first)
+        .seek(allocation, reader.current_root.routing_root(), first)
         .map_err(|failure| observe_manifest_failure(&cursor, failure, runtime))?;
-    require_resume_position(&mut cursor, first, positioned, runtime)?;
+    require_resume_position(&mut cursor, allocation, first, positioned, runtime)?;
     Ok(PositionedScanStart {
         observation: manifest_snapshot(cursor.counters()),
         cursor,
@@ -40,6 +40,7 @@ pub(super) fn position_scan_start(
 
 fn require_resume_position(
     cursor: &mut ManifestRangeCursor<'static>,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     first: Option<PersistedRecordIdentity>,
     positioned: bool,
     runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
@@ -54,7 +55,7 @@ fn require_resume_position(
         ));
     }
     let found = cursor
-        .next()
+        .next(allocation)
         .map_err(|failure| observe_manifest_failure(cursor, failure, runtime))?;
     if found.map(|placement| placement.record()) != Some(expected) {
         return Err(manifest_error(

@@ -35,6 +35,18 @@ fn schedules_reject_ambiguous_or_semantically_impossible_matches() {
         Err(MediaFaultScheduleDenial::DuplicateSemanticMatch)
     ));
 
+    let pause_then_fail =
+        MediaFaultSchedule::for_certification(vec![MediaFaultRule::for_certification(
+            MediaOperationRole::PositionedRead,
+            2,
+            MediaFaultDirective::PauseBeforeThenFailBefore {
+                gate: MediaPauseGate::for_certification(),
+                kind: std::io::ErrorKind::Other,
+                raw_os_error: None,
+            },
+        )]);
+    assert!(pause_then_fail.is_ok());
+
     let activation = CertificationMediaFaultActivation::for_certification();
     let activated_rule = |ordinal| {
         MediaFaultRule::for_certification(

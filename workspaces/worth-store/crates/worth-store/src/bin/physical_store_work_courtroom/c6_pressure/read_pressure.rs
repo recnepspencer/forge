@@ -1,6 +1,6 @@
 use worth_store::physical_runtime::{
-    C6PhysicalFrameReadFailure, ExternalPhysicalRecordLocator, PhysicalRecordId, RecordByteLimit,
-    RecordReadLimits, RecordReadObservation, ServingPhysicalRuntime,
+    CertificationFrameReadFailure, ExternalPhysicalRecordLocator, PhysicalRecordId,
+    RecordByteLimit, RecordReadLimits, RecordReadObservation, ServingPhysicalRuntime,
 };
 use worth_store_buffer_pool::PhysicalResidencyDenial;
 use worth_store_physical_backend::MediaOperationRole;
@@ -28,7 +28,11 @@ pub(super) struct C6PinPressureEvidence {
     pub(super) refault_work: u64,
     pub(super) peak_pinned_frames: u32,
     pub(super) peak_pin_leases: u32,
-    pub(super) denial: PhysicalResidencyDenial,
+    pub(super) dimension: worth_store::physical_runtime::PhysicalResidencyDimension,
+    pub(super) scope: worth_store::physical_runtime::PhysicalOperationAllocationScope,
+    pub(super) requested: u64,
+    pub(super) admitted: u64,
+    pub(super) limit: u64,
 }
 
 pub(super) struct C6CancellationEvidence {
@@ -47,7 +51,7 @@ pub(super) fn prove_pins(
 ) -> Result<C6PinPressureEvidence, String> {
     serving.drain_clean_residency();
     let handoff = serving.c6_physical_work_handoff();
-    let residency = handoff.residency_work();
+    let residency = serving.certification_physical_residency();
     let first_coordinate = pin_coordinate(0)?;
     let first = residency
         .pin_exact(first_coordinate)
@@ -60,12 +64,23 @@ pub(super) fn prove_pins(
         return Err("hot C.6 pin admitted abandoned physical work".to_owned());
     }
     let denial = match residency.pin_exact(first_coordinate) {
-        Err(C6PhysicalFrameReadFailure::Residency(denial)) => denial,
+        Err(CertificationFrameReadFailure::Residency(denial)) => denial,
         Err(failure) => return Err(format!("over-pin failed for the wrong reason: {failure:?}")),
         Ok(_) => return Err("C.6 over-pin unexpectedly succeeded".to_owned()),
     };
-    if denial != PhysicalResidencyDenial::PinLeaseBudgetExceeded {
-        return Err(format!("C.6 over-pin returned {denial:?}"));
+    let PhysicalResidencyDenial::Pressure(pressure) = denial else {
+        return Err(format!("C.6 over-pin returned bare denial {denial:?}"));
+    };
+    if pressure.dimension() != worth_store::physical_runtime::PhysicalResidencyDimension::PinLeases
+        || pressure.scope()
+            != worth_store::physical_runtime::PhysicalOperationAllocationScope::ForegroundRead
+        || pressure.requested() != 1
+        || pressure.current() != u64::from(configuration.pin_leases())
+        || pressure.limit() != u64::from(configuration.pin_leases())
+    {
+        return Err(format!(
+            "C.6 over-pin returned imprecise pressure {pressure:?}"
+        ));
     }
     if residency.counters().pin_leases() != configuration.pin_leases() {
         return Err("C.6 pin counter did not reach its admitted lease limit".to_owned());
@@ -95,7 +110,11 @@ pub(super) fn prove_pins(
         refault_work: refault.physical_work_count(),
         peak_pinned_frames: counters.peak_pinned_frames(),
         peak_pin_leases: counters.peak_pin_leases(),
-        denial,
+        dimension: pressure.dimension(),
+        scope: pressure.scope(),
+        requested: pressure.requested(),
+        admitted: pressure.current(),
+        limit: pressure.limit(),
     };
     drop(refault);
     Ok(evidence)
@@ -138,7 +157,7 @@ pub(super) fn prove_reads(
         return Err("C.6 pressure did not refault the first record".to_owned());
     }
     read_work = read_work.saturating_add(refault.physical_work_count());
-    let counters = serving.residency_counters();
+    let counters = serving.residency_observation().counters();
     if counters.evictions() == 0 || counters.peak_resident_bytes() > configuration.resident_bytes()
     {
         return Err("C.6 read pressure escaped its residency bound".to_owned());
@@ -188,7 +207,7 @@ pub(super) fn prove_cancellation(
 
 fn require_bound_work(
     handoff: &worth_store::physical_runtime::C6PhysicalWorkHandoff,
-    lease: &worth_store::physical_runtime::C6PhysicalFrameLease,
+    lease: &worth_store::physical_runtime::CertificationResidentFrame,
     label: &str,
 ) -> Result<(), String> {
     if lease.physical_work_count() != 1

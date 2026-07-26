@@ -1,8 +1,8 @@
 use std::time::{Duration, Instant};
 
 use worth_store::physical_runtime::{
-    certification::CertificationPhysicalSignalPauseGate, C6PhysicalFrameReadFailure,
-    C6PhysicalFrameWorkFailure, C6PhysicalResidencyWork, PhysicalExecutorCommand,
+    certification::CertificationPhysicalSignalPauseGate, CertificationFrameReadFailure,
+    CertificationFrameWorkFailure, PhysicalExecutorCommand, PhysicalResidencyCertification,
     PhysicalStoreCloseOutcome, PhysicalStoreClosePhase, PhysicalStoreClosePlan,
     PhysicalWorkCourtroomEvidence, PhysicalWorkEffectFate, PhysicalWorkEffectFateEvidence,
     PhysicalWorkExecution, PhysicalWorkExecutionOutcome, PhysicalWorkIdentity,
@@ -73,14 +73,14 @@ pub(super) fn close_and_finish(
 }
 
 struct HotPinFence {
-    residency: C6PhysicalResidencyWork,
+    residency: PhysicalResidencyCertification,
     coordinate: RecordFrameCoordinate,
 }
 
 fn prewarmed_writeback_pin(
     serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
 ) -> HotPinFence {
-    let residency = serving.c6_physical_work_handoff().residency_work();
+    let residency = serving.certification_physical_residency();
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();
     let hot = residency.pin_exact(coordinate).unwrap();
@@ -112,8 +112,8 @@ fn execute_dispatched_close(
         wait_until(|| progress.reached(PhysicalStoreClosePhase::AdmissionStopped));
         assert!(matches!(
             hot_pin.residency.pin_exact(hot_pin.coordinate),
-            Err(C6PhysicalFrameReadFailure::PhysicalWork(
-                C6PhysicalFrameWorkFailure::PreEffect(
+            Err(CertificationFrameReadFailure::PhysicalWork(
+                CertificationFrameWorkFailure::PreEffect(
                     PhysicalWorkPreEffectDenial::AdmissionStopped
                 )
             ))

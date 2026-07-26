@@ -44,6 +44,7 @@ pub(super) fn directive_matches_role(
                 | MediaOperationRole::ReleaseMutationLease
         ),
         MediaFaultDirective::FailBefore { .. }
+        | MediaFaultDirective::PauseBeforeThenFailBefore { .. }
         | MediaFaultDirective::PauseBefore(_)
         | MediaFaultDirective::PauseAfter(_)
         | MediaFaultDirective::PanicAfter => true,

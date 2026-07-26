@@ -1,5 +1,5 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::{OperationAllocationScope, PhysicalResidencyPool};
+use worth_store_buffer_pool::{PhysicalOperationAllocationScope, PhysicalResidencyPool};
 use worth_store_io_scheduler::{
     blob_ingest_background_capacity_for_certification_test,
     blob_ingest_wal_write_background_capacity_for_certification_test,
@@ -36,26 +36,27 @@ fn canonical_blob_allocation_is_held_through_effect_and_released_after_session()
     assert_eq!(writer.effects, 3);
     assert_eq!(
         pool.counters()
-            .active_operation_bytes_for(OperationAllocationScope::Blob),
+            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
         0,
         "the move-owned allocation must release when execution returns"
     );
     let observed = ingest.residency().allocation().allocation();
     assert_eq!(observed.store(), pool.store_identity());
     assert_eq!(observed.pool(), pool.incarnation());
-    assert_eq!(observed.scope(), OperationAllocationScope::Blob);
+    assert_eq!(observed.scope(), PhysicalOperationAllocationScope::Blob);
     assert_eq!(observed.bytes(), 4);
     assert!(
         observed
             .counters()
-            .active_operation_bytes_for(OperationAllocationScope::Blob)
+            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob)
             >= 4
     );
 }
 
 #[test]
 fn wrong_scope_denies_before_blob_effect_authority_is_reached() {
-    let (pool, allocation) = operation_allocation(OperationAllocationScope::ForegroundRead, 4);
+    let (pool, allocation) =
+        operation_allocation(PhysicalOperationAllocationScope::ForegroundRead, 4);
     let mut writer = AllocationTrackingWriter::new(pool.clone());
     let denial = BlobStreamingIngest::run_bounded(
         request(),
@@ -73,7 +74,7 @@ fn wrong_scope_denies_before_blob_effect_authority_is_reached() {
     assert_eq!(
         denial,
         BlobStreamingIngestDenial::AllocationScopeMismatch {
-            actual: OperationAllocationScope::ForegroundRead
+            actual: PhysicalOperationAllocationScope::ForegroundRead
         }
     );
     assert_eq!(writer.effects, 0);
@@ -302,7 +303,7 @@ impl crate::BlobStreamingChunkWriter for AllocationTrackingWriter {
         assert!(
             self.pool
                 .counters()
-                .active_operation_bytes_for(OperationAllocationScope::Blob)
+                .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob)
                 >= 4,
             "the allocation must remain active through every backend effect"
         );

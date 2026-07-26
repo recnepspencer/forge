@@ -18,18 +18,23 @@ pub(super) fn locate_inline_page(
     reader: &PhysicalRecordReader,
     placement: DurableInlineRecordPlacement,
     observation: &mut RecordReadObservation,
+    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     artifacts: &RecordFrameReader<'_>,
 ) -> Result<InlinePageLocation, RecordReadDenial> {
     let mut discovery =
         super::super::super::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
     let page_entry = super::super::super::segment_membership::SegmentMembershipReader::serving(
-        reader.frame_ports.clone(),
-        reader.source.clone(),
+        reader.residency.clone(),
         reader.format,
         reader.access,
         reader.current_root.clone(),
     )
-    .locate(placement.segment(), placement.page(), &mut discovery);
+    .locate(
+        allocation,
+        placement.segment(),
+        placement.page(),
+        &mut discovery,
+    );
     observation.observe_manifest(discovery);
     let page_entry =
         page_entry
@@ -56,6 +61,7 @@ pub(super) fn locate_inline_page(
 impl InlinePageLocation {
     pub(super) fn load(
         self,
+        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         artifacts: &RecordFrameReader<'_>,
         observation: &mut RecordReadObservation,
     ) -> Result<
@@ -63,7 +69,7 @@ impl InlinePageLocation {
         RecordReadDenial,
     > {
         let page = artifacts
-            .load_exact(self.artifact, self.offset, self.page_bytes)
+            .load_exact(allocation, self.artifact, self.offset, self.page_bytes)
             .map_err(|failure| {
                 observation.observe_physical_work(failure.work_trace());
                 read_failure(failure)

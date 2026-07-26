@@ -9,7 +9,7 @@ use worth_store_physical_format::{
 use super::SegmentMembershipReader;
 use crate::physical_runtime::record_serving::{
     access::manifest_routing::{ManifestDiscoveryCounterSnapshot, ManifestLookupFailure},
-    residency::{frame_loading::CanonicalFrameReadSource, frame_ports::RecordFramePorts},
+    residency::ServingFrameResidency,
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
 };
 
@@ -21,8 +21,9 @@ pub(in crate::physical_runtime::record_serving) struct SegmentMembershipPublicat
 }
 
 pub(in crate::physical_runtime::record_serving) struct SegmentMembershipUpdateContext<'plan> {
-    pub(in crate::physical_runtime::record_serving) frame_ports: RecordFramePorts,
-    pub(in crate::physical_runtime::record_serving) source: CanonicalFrameReadSource,
+    pub(in crate::physical_runtime::record_serving) allocation:
+        &'plan worth_store_buffer_pool::OperationAllocationGrant,
+    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current: &'plan DurablePhysicalRootManifest,
@@ -35,8 +36,8 @@ pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updat
     updates: BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
 ) -> Result<SegmentMembershipPublicationPlan, ManifestLookupFailure> {
     let SegmentMembershipUpdateContext {
-        frame_ports,
-        source,
+        allocation,
+        residency,
         format,
         access,
         current,
@@ -50,9 +51,9 @@ pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updat
     {
         return Err(ManifestLookupFailure::Damaged);
     }
-    let reader =
-        SegmentMembershipReader::serving(frame_ports, source, format, access, current.clone());
+    let reader = SegmentMembershipReader::serving(residency, format, access, current.clone());
     let mut planner = SegmentMembershipUpdatePlanner {
+        allocation,
         reader: &reader,
         current,
         successor_generation,
@@ -83,6 +84,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updat
 }
 
 struct SegmentMembershipUpdatePlanner<'reader> {
+    allocation: &'reader worth_store_buffer_pool::OperationAllocationGrant,
     reader: &'reader SegmentMembershipReader<'reader>,
     current: &'reader DurablePhysicalRootManifest,
     successor_generation: u64,
@@ -98,7 +100,10 @@ impl SegmentMembershipUpdatePlanner<'_> {
         reference: SegmentManifestBlockReference,
         updates: &BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
     ) -> Result<Vec<SegmentManifestBlockReference>, ManifestLookupFailure> {
-        match self.reader.read_block(reference, &mut self.discovery)? {
+        match self
+            .reader
+            .read_block(self.allocation, reference, &mut self.discovery)?
+        {
             PhysicalSegmentMembershipBlock::Leaf { entries, .. } => {
                 let mut merged = entries
                     .into_iter()
@@ -123,7 +128,10 @@ impl SegmentMembershipUpdatePlanner<'_> {
         reference: SegmentManifestBlockReference,
         updates: &BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
     ) -> Result<Vec<SegmentManifestBlockReference>, ManifestLookupFailure> {
-        match self.reader.read_block(reference, &mut self.discovery)? {
+        match self
+            .reader
+            .read_block(self.allocation, reference, &mut self.discovery)?
+        {
             PhysicalSegmentMembershipBlock::Leaf { entries, .. } => {
                 let mut merged = entries
                     .into_iter()

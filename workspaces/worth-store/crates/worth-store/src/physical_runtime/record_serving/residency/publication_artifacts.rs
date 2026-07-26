@@ -41,7 +41,7 @@ impl<'port> PublicationRecordArtifacts<'port> {
 impl StagedPublicationRecordArtifacts<'_, '_> {
     pub(in crate::physical_runtime::record_serving) fn write_new_candidate(
         &mut self,
-        residency: &mut StoreCandidateFramePublicationSession,
+        residency: &mut StoreCandidateFramePublicationSession<'_>,
         frame: CandidateFrame,
         artifact: RecordArtifactFile,
     ) -> Result<
@@ -53,7 +53,7 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
 
     pub(in crate::physical_runtime::record_serving) fn append_candidate(
         &mut self,
-        residency: &mut StoreCandidateFramePublicationSession,
+        residency: &mut StoreCandidateFramePublicationSession<'_>,
         frame: CandidateFrame,
         coordinate: RecordFrameCoordinate,
     ) -> Result<
@@ -136,9 +136,7 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
     }
 
     fn record_candidate(&mut self, physical: &CandidateFramePhysicalWrite) {
-        let settlement = physical
-            .settlement()
-            .expect("canonical candidate writes carry physical settlement");
+        let settlement = physical.settlement();
         self.work
             .record_settled(self.stage, settlement.identity(), settlement.publication());
     }

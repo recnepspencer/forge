@@ -1,334 +1,241 @@
 ---
 name: spec-designer
-description: Design or revise WORTH milestone specs and roadmap entries. Use when authoring a new milestone spec, refining an existing milestone plan, inserting a milestone into a crate roadmap, or turning a product goal into a WORTH-quality engineering specification grounded in the coding-guideline documents and the target roadmap.
+description: Design or revise WORTH milestone specifications and roadmap entries. Use before implementation planning to decide the architectural destination, authority model, public contracts, phase progression, destination topology, documentation obligations, roadmap handoff, and proof that will expose dishonest or incomplete implementations.
 ---
 
 # Spec Designer
 
-Use this skill when the task is specification design, not implementation.
+Design the architecture that governs the milestone.
 
-## Mandatory reading order
+Do not implement production code unless the user also requests implementation.
 
-Read these in this order before designing anything:
+A specification must settle the decisions that implementation is not allowed to improvise. Finish only when implementation planning can determine the edit sequence without rediscovering the architecture and QA can derive its guarantees without inventing intent.
 
-1. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\MENTALITY.md`
-2. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\arch_laws.md`
-3. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\composition_laws.md` if it is populated
-4. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\domain_structure_laws.md`
-5. `C:\Users\Esther\Documents\Programming\WORTH_workspace\WORTH\_docs\coding_guidelines\perf_laws.md`
+## Ground the design
 
-After the coding guidelines, read the target subsystem roadmap.
+Read the repository instructions, every coding guideline, the target roadmap, and the existing target specification.
 
-`MENTALITY.md` is first on purpose. It governs how the spec should be conceived, not just how it should be formatted.
+Inspect the real production boundary:
 
-## Default reading boundary
+- authority producers and consumers
+- public facades and composition roots
+- types, effects, persistence, and lifecycle
+- ordinary, diagnostic, migration, and reconstruction paths
+- tests and mechanical enforcement
+- predecessor guarantees and successor dependencies
 
-By default, read only:
+Read adjacent documents when they govern an inherited contract or roadmap handoff. Do not impose an arbitrary reading boundary that leaves the architecture misunderstood.
 
-- the coding-guideline files above
-- the target roadmap
+Treat current code as evidence of present reality, not authority over the destination.
 
-Do not read, cite, summarize, or rely on any other docs unless the user explicitly tells you to read them.
+Recover:
 
-That means:
+1. the milestone's central claim
+2. why it belongs here in the roadmap
+3. what must already be true
+4. what later work will rely on
+5. the complete causal closure required to make the claim true
 
-- do not automatically read vision docs
-- do not automatically read test-requirements docs
-- do not automatically read adjacent milestone docs
-- do not automatically read closeouts
-- do not automatically read design notes, audits, plans, or other subsystem docs
+Exclude work with an independent telos. Include necessary foundations even when they cross the initially expected crate or subsystem boundary.
 
-If the user points you at additional docs, then read those docs too. Otherwise, stay within the default reading boundary.
+## Build the adversarial courtroom
 
-If you cannot identify the roadmap for the target crate or subsystem, stop and report that clearly rather than guessing.
+When the milestone makes a runtime, integration, lifecycle, authority, recovery, compatibility, or performance claim, make its decisive proof genuinely adversarial.
 
-## Required document summaries
+Do not write "test under load," "handle failures," "verify recovery," or similar decorative adversity.
 
-Before drafting the spec, write a short working summary for each document you read.
+Identify the most plausible implementation that would satisfy the happy path while violating the milestone's real intent. Then design a production-valid world specifically to make that implementation fail.
 
-Each summary should answer:
+Combine hostile conditions that attack the same architectural weakness:
 
-- what is the single most important thing this document is trying to protect?
-- what constraint or expectation from this document most strongly shapes the spec?
+- maximum relevant scale or fan-out
+- worst lawful ordering or concurrency
+- cancellation at the most damaging effect boundary
+- crash after the most ambiguous partial effect
+- duplicate, delayed, stale, or reordered delivery
+- exhausted queues, memory, time, or admission budgets
+- incompatible versions during coexistence
+- authority loss, counterfeit authority, or scope widening
+- destroyed derived state followed by reconstruction
+- diagnostic, replay, or migration pressure against the ordinary path
 
-At minimum, this summary set must include one short summary each for:
+Quantify the conditions whenever the claim permits it. Name the exact crash point, schedule, scale axis, resource bound, compatibility window, or amplification counter.
 
-- `MENTALITY.md`
-- `arch_laws.md`
-- `composition_laws.md`, if it is populated
-- `domain_structure_laws.md`
-- `perf_laws.md`
-- the subsystem roadmap doc
+The courtroom must specify:
 
-These summaries are not optional. They are part of the design process and help ensure the spec is grounded in governing sources rather than loosely inspired by them.
+- the real production entry surface and composition root
+- the causally valid world and authority provenance
+- the hostile sequence
+- the required typed outcomes
+- the effects that may and may not occur
+- the state that must survive
+- the cost or amplification bounds
+- independent observations of the result
+- the defective implementation the proof must convict
 
-## Core design stance
+Make the proof mutation-sensitive: bypassing, inverting, deleting, weakening, misrouting, or stale-reusing the disputed mechanism must turn the evidence red.
 
-The spec must reflect WORTH standards:
+If the claim crosses a real product boundary, use the real boundary. An in-memory reenactment is not end-to-end evidence.
 
-- adversarial constraint first
-- hard problem first
-- enforcement over convention
-- architecture and spec aligned structurally
-- authority separate from derivation
-- production-grade proof, not MVP-grade plausibility
+Do not manufacture an end-to-end courtroom for a claim that is honestly local. Use model, property, exhaustive-transition, compile-fail, dependency-enforcement, deletion-inventory, or documentation-surface proof when that is stronger.
 
-Do not produce milestone specs that are:
+If the central claim cannot be made falsifiable, the milestone is not designed.
 
-- feature checklists without structural design
-- implementation todo lists without governing invariants
-- vague narrative without concrete boundaries, phases, proof, and denials
-- roadmap filler that does not earn its place in the roadmap sequence
+## Design backward from the proof
 
-## Structural reference pattern
+Derive the required architecture from what must survive the courtroom.
 
-Use the following pattern as a style reference:
+Freeze every decision whose omission would let implementation change meaning, authority, truth status, lifecycle, failure behavior, recovery, compatibility, or contractual cost.
 
-- concise framing sections at the top
-- a phase-dominant main body
-- one conceptual detail or boundary per phase
-- rich per-phase content rather than thin phase stubs
-- summary sections at the end that compress, not replace, the phase content
+Specify, where relevant:
 
-This is a structural pattern, not a document dependency. Do not cite or require any specific non-roadmap spec unless the user explicitly asks for it.
+- authoritative and derived truth
+- authority grants, consuming proofs, and non-authorities
+- constrained types and compiler-visible transitions
+- public facades and dependency direction
+- canonical artifacts and derived views
+- effect ownership and commit posture
+- typed denial, cancellation, partial, and indeterminate outcomes
+- recovery and managed-resource lifecycle
+- compatibility, migration, cutover, and deletion
+- ordinary versus reconstructive or diagnostic cost
+- caller and operator DX
+- mechanical enforcement against recurrence
 
-## What a good milestone spec must do
+For every important type or responsibility, state what it proves, who constructs it, what it authorizes, what it cannot authorize, and what consumes it.
 
-A milestone spec must:
+Show real code for caller-facing DX. Use the earliest honest enforcement boundary. Prefer unrepresentable states, compiler denial, and dependency enforcement over runtime checks; prefer typed runtime admission over convention; use tests to prove enforcement rather than substitute for it.
 
-- define a real capability boundary
-- explain why that capability matters in the roadmap
-- identify the adversarial constraint the milestone must survive
-- break the work into explicit ordered phases
-- define what must ship
-- define what must be preserved
-- define acceptance evidence
-- state the architectural shape clearly enough that code can map to it honestly
-- distinguish what is authoritative, what is derived, and what the mechanism is allowed to own
+Leave product-equivalent private mechanics to implementation planning.
 
-## Phase dominance rule
+## Require the destination topology
 
-The phases should hold most of the information in the document.
+Every specification must include a concrete destination directory and module tree for the current slice and its committed successors. A prose description alone is not a directory skeleton plan.
 
-This is mandatory.
+Anticipate growth from the roadmap, accepted specifications, and known responsibility families. Establish stable semantic and authority axes before growth arrives, not after the code has already been flattened around the first implementation.
 
-The top-level sections exist to frame the work, but the detailed design must primarily live inside the phase plan.
+A one-file directory is explicitly permitted and required when appropriate if roadmap-backed future responsibilities will join it along the same stable semantic axis. Do not flatten it while waiting for a second file. Current population count is not structural evidence.
 
-That means:
+Do not create empty placeholders for uncommitted possibilities. Future-aware topology must be justified by known meaning, authority, lifecycle, failure, scale, ownership, replacement, or roadmap commitments, not generic extensibility.
 
-- keep `Goal`, `Why This Milestone Exists`, `Governing Summaries`, `Adversarial Constraint`, and `Product Decision Lock` concise
-- do not bury the real design in giant top-level `Must Ship`, `Architectural Notes`, or `Sequencing Notes` sections
-- put the concrete structural content into the phases
-- if the phases feel like a minor section of the document, the spec is probably wrong
-- the phases should usually be the majority of the document
+Separate responsibilities when collapsing them would couple:
 
-## Phase requirement
+- meaning
+- authority
+- truth source
+- lifecycle
+- failure behavior
+- scale
+- ownership
+- replacement
 
-Milestone specs must be phase-structured.
+Recursively refine the tree until the remaining constituents genuinely share structural fate. Relatedness and similar representation are not cohesion. File count is not an optimization target.
 
-Use as many numbered `Phase N` sections as the milestone honestly requires.
+For every significant directory or module boundary, identify:
 
-Phase rules:
+- its dominant structural axis
+- its semantic or authority owner
+- what belongs there and what is excluded
+- its truth and dependency direction
+- its stable public facade
+- the current responsibility that populates it
+- the committed siblings, children, strategies, adapters, or versions expected to enter there
+- the visibility, dependency, export, or automated enforcement that preserves it
 
-- start at `Phase 1`
-- continue linearly as `Phase 2`, `Phase 3`, `Phase 4`, and so on
-- use one phase per conceptual detail or boundary by default
-- add more phases whenever collapsing steps would hide a real structural dependency, authority transition, proof boundary, or denial boundary
-- prefer more honest phases over fewer overloaded phases
+Mark files and directories as existing, created, moved, replaced, removed, or committed-successor destinations. A committed successor may appear in the planned tree without requiring an empty placeholder to be created now.
 
-Phases must:
+Place stable meaning and authority above volatile mechanisms. Keep authoritative, derived, diagnostic, reconstructed, generated, migration, and legacy responsibilities structurally directional. Make external effect boundaries spatially locatable. Place cross-domain orchestration above participating domains rather than inside one of them.
 
-- be ordered intentionally
-- be followed in order
-- each solve one real conceptual detail, boundary, or proof-bearing transition
-- each leave the system in a coherent state for the next phase
+Shared placement is lawful only when the contents share semantic authority, lifecycle, failure behavior, and replacement fate. Similar representation or convenient reuse is insufficient.
 
-Do not write specs as unordered work buckets.
-Do not treat phases as interchangeable.
-Do not compress a milestone into too few phases just to make the document look tidy.
-Do not create phase splits that are cosmetic rather than architectural.
-Do not use alternate numbering schemes such as `M1.1`, `M1.2`, or other nested milestone-local identifiers.
+The destination topology must make anticipated growth additive. A committed successor must enter by adding a sibling, child, strategy, adapter, or versioned boundary, not by splitting a god file, renaming an established directory, moving the facade, reversing dependency direction, or reclassifying existing responsibilities.
 
-## Per-phase structure
+Identify flat, bucket, and cross-authority placements the destination forbids. Use the file composition laws within the tree. Do not optimize for either fewer files or more files. Optimize for semantic predictability: the next correct responsibility must have an obvious home before it arrives.
 
-Each phase should be rich and self-contained.
+## Treat documentation as a deliverable
 
-By default, each phase should include:
+Require documentation when the milestone changes a public capability, caller workflow, operator responsibility, architectural concept, security boundary, recovery procedure, compatibility contract, or migration path.
 
-- a phase title naming the boundary or conceptual detail
-- a short statement of what that phase freezes, admits, or closes
-- `Relevant subsystems`
-- `Relevant APIs` or equivalent source surfaces when known
-- `Warnings`
-- `Test requirements`
-- `Engineering decisions`
-- `Open questions`
+Do not write "update documentation" as an unnamed task. Name:
 
-Do not reduce phases to thin `Purpose / Must ship / Gate` blocks unless the user explicitly asks for a lighter spec style.
+- the continuing audience
+- the authoritative document to create, revise, or remove
+- the public facade or operational surface it explains
+- the examples, failures, lifecycle, recovery, security, or compatibility semantics it must cover
+- how it will be checked against the real implementation
 
-## Per-phase adversarial test rule
+Prefer revising an existing authoritative document over creating a competing explanation. Remove or correct documentation made false by the milestone.
 
-Each phase must include at least 2 adversarial tests by default.
+When the requested specification work includes authoring those documents, write them. Use `feature-doc-writer` for developer-facing feature documentation.
 
-Those tests normally belong inside the phase's `Test requirements` section.
+Do not create milestone residue, duplicate summaries, speculative guides, or closeout documents without a durable audience.
 
-The default expectation is:
+## Derive the phases
 
-- one adversarial equivalence, parity, convergence, or replay-honesty test
-- one adversarial rejection, denial, drift, leakage, residue, or boundary-localization test
+Order phases by proof and authority dependency.
 
-Add more than 2 tests whenever the phase has more than two meaningful failure modes.
-
-Do not leave a phase with zero named hostile proof just because the milestone has a global acceptance section.
-
-## Phase splitting heuristics
-
-Split phases whenever any of these are true:
+Split a phase when:
 
 - authority changes
-- the proof family changes
-- one step produces a typed artifact that a later step consumes
-- one step can deny or become unavailable before later execution
-- request vocabulary, planning, execution, certification, and diagnostics are being mixed together
-- one conceptual detail could reasonably be implemented, reviewed, or tested independently of another
+- a stronger proof-bearing artifact appears
+- effects begin
+- compatibility or coexistence begins
+- the public facade becomes real
+- cutover or deletion becomes possible
+- the proof boundary changes
 
-Default toward narrower phases.
+Keep work together when splitting it would leave competing authority, a dishonest facade, or an unprovable intermediate state.
 
-## Required workflow
+For each phase, state:
 
-1. Read the mandatory coding-guideline files in the required order.
-2. Identify the target crate or subsystem.
-3. Read the subsystem roadmap.
-4. Write the short per-document summaries before drafting.
-5. State the adversarial constraint before drafting the milestone.
-6. Design the milestone so it solves the hard structural problem first.
-7. Write or revise the milestone spec with the document loaded mostly by phases.
-8. Check the resulting spec against the coding guidelines and roadmap before considering it done.
+- what becomes true
+- what proof or authority it consumes
+- what architecture it establishes
+- what it mechanically forbids
+- what evidence it enables
+- what the next phase may trust
 
-If the user explicitly points you to extra docs, read them and incorporate them. Otherwise do not expand the reading set on your own.
+Do not require fixed test counts or ceremonial subsections. Every phase must earn its existence by advancing the decisive proof, preserving an inherited guarantee, or establishing the successor handoff.
 
-## Patch-writing rule
+## Write one governing design
 
-When creating or revising a spec file, write it in multiple smaller patches rather than one giant write.
+Write one decision, not a menu.
 
-Reason:
+Put the adversarial courtroom before the phase plan. Let the reader see what the architecture must survive before explaining how it is built.
 
-- large single writes are more likely to be rejected by Windows tooling or app limits
-- smaller patches make it easier to keep structure aligned while revising
+A useful specification usually contains:
 
-Expected behavior:
+1. Goal and roadmap placement
+2. Current boundary
+3. Adversarial constraint and decisive proof
+4. Product decision lock
+5. Architectural destination
+6. Required directory and module skeleton
+7. Ordered phase plan
+8. Documentation deliverables
+9. Must ship and must preserve
+10. Acceptance evidence
+11. Successor handoff
 
-- create the file skeleton first
-- fill major sections in follow-up patches
-- add phase sections in additional patches
-- refine the later summary sections after the phase plan is stable
-- prefer several safe writes over one huge write
+Follow local document style when it remains honest. Do not let a template dilute the design.
 
-Do not try to dump the full spec into one oversized patch when the document is large.
+Update the roadmap when sequencing, ownership, or handoffs change. Revise or remove documents made false by the milestone.
 
-## Required self-check before finalizing a spec
+## Refuse weak closure
 
-Ask these questions explicitly:
+Before finalizing, attack the specification itself:
 
-- Does the milestone solve a real structural problem or just package work cosmetically?
-- Is the adversarial constraint precise and load-bearing?
-- Does the roadmap justify this milestone now?
-- Does the spec preserve crate authority boundaries?
-- Are the phases carrying most of the real design information?
-- Is each phase centered on one conceptual detail or boundary?
-- Does each phase contain at least 2 adversarial tests by default?
-- Could a competent engineer map this spec into honest types, modules, and tests?
-- Does the milestone belong in this roadmap sequence, or is it out of order?
+- Can a fake authority still open the governed path?
+- Can a happy-path implementation pass while recovery is false?
+- Can derived state quietly become authoritative?
+- Can replay, diagnostics, migration, or explanation tax the ordinary lane?
+- Can concurrency or partial effects create an unowned state?
+- Can the old path survive beside the new authority?
+- Can the next milestone enter only by moving today's architecture?
+- Does the planned tree flatten a known responsibility family while waiting for a second file?
+- Does any location combine responsibilities that do not share structural fate?
+- Can the proposed evidence pass for the wrong reason?
+- Can implementation still make a product or architectural decision the specification should have made?
+- Has a relevant documentation responsibility been reduced to an unnamed "update docs" task?
 
-If any answer is no, revise the spec before presenting it.
-
-## Preferred milestone structure
-
-Use the local crate style when one already exists. Otherwise, prefer this structure:
-
-```text
-# Milestone N: <title>
-
-## Goal
-
-## Why This Milestone Exists
-
-## Governing Summaries
-
-## Adversarial Constraint
-
-## Product Decision Lock
-
-## Phase Plan
-
-### Phase 1: <boundary or conceptual detail>
-
-[short phase statement]
-
-**Relevant subsystems**
-- <subsystem>
-- <subsystem>
-
-**Relevant APIs**
-- <api or source surface>
-- <api or source surface>
-
-**Warnings**
-- <warning>
-- <warning>
-
-**Test requirements**
-- <adversarial equivalence/parity/convergence test>
-- <adversarial denial/drift/leakage/localization test>
-
-**Engineering decisions**
-- <decision>
-- <decision>
-
-**Open questions**
-- None.
-```
-
-Continue with `Phase 2`, `Phase 3`, and so on until the milestone is honestly covered.
-
-Then end with:
-
-```text
-## Must Ship
-
-## Must Preserve
-
-## Acceptance Evidence
-
-## Sequencing Notes
-```
-
-Interpret this structure in the following way:
-
-- the top sections are concise
-- the phase plan is the main body of the document
-- `Must Ship`, `Must Preserve`, and `Acceptance Evidence` summarize rather than carry the primary design payload
-
-## Roadmap insertion rule
-
-When adding a new milestone:
-
-- place it in the roadmap sequence intentionally
-- explain why it belongs there
-- update the roadmap language so the milestone is not an orphan
-
-Do not just create a standalone milestone doc without considering roadmap sequencing.
-
-## Output rule
-
-When reporting the design work back, include:
-
-- what coding-guideline docs were read
-- what roadmap doc was read
-- the short summary takeaway from each governing doc
-- the adversarial constraint chosen
-- why the milestone belongs where it does
-- what doc(s) were created or updated
-- whether the user explicitly pointed you at any extra docs beyond the default reading set
-
-Keep the report concise, but the spec itself should be rigorous.
+If any answer is yes, the specification is not done.

@@ -170,8 +170,15 @@ pub(super) fn execute_exact_writeback(
     let admitted = handoff.admit_submitted_work(receipt).unwrap();
     let ready = expect_ready(handoff.request_work(admitted).unwrap());
     let residency = handoff.residency_work();
-    let lease = residency.pin_exact(coordinate).unwrap();
-    let dirty = residency.admit_dirty_frame(&ready, lease, bytes).unwrap();
+    let lease = serving
+        .certification_physical_residency()
+        .pin_exact(coordinate)
+        .unwrap();
+    let dirty = residency
+        .admit_dirty_frame(&ready, lease, move |_, target| {
+            target.copy_from_slice(&bytes);
+        })
+        .unwrap();
     let reservation = residency.reserve_writeback(&ready, &dirty).unwrap();
     let prepared = residency
         .prepare_writeback(ready, reservation, 7, writeback_shape())
