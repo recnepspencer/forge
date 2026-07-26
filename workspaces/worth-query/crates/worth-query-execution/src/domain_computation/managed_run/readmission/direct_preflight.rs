@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use worth_runtime_bridge::facade::{BridgeYieldedExecutionBasisPreflight, RuntimeBridge};
+use worth_runtime_bridge::facade::{
+    BridgeExecutionBasisReadmissionCounters, BridgeYieldedExecutionBasisPreflight, RuntimeBridge,
+};
 
 use super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
 use super::super::step_contract_admission::{
@@ -38,6 +40,7 @@ pub(super) struct WorthQueryDirectResumePreflightDenied {
     kind: WorthQueryDirectReadmissionDenialKind,
     detail: Arc<str>,
     yielded: WorthQueryYieldedDirectRun,
+    bridge_counters: Option<BridgeExecutionBasisReadmissionCounters>,
 }
 
 pub(super) fn validate_direct_resume_preflight(
@@ -47,7 +50,7 @@ pub(super) fn validate_direct_resume_preflight(
 ) -> Result<WorthQueryDirectResumePreflightValidated, WorthQueryDirectResumePreflightDenied> {
     if let Some((kind, detail)) = query_preflight_denial(&yielded, query_runtime) {
         return Err(WorthQueryDirectResumePreflightDenied::new(
-            kind, detail, yielded,
+            kind, detail, yielded, None,
         ));
     }
     let call = match yielded.execution.call.preflight_readmission(
@@ -60,6 +63,7 @@ pub(super) fn validate_direct_resume_preflight(
                 WorthQueryDirectReadmissionDenialKind::ProviderCallBindingDenied,
                 format!("provider call readmission denied: {denial:?}"),
                 yielded,
+                None,
             ));
         }
     };
@@ -74,16 +78,18 @@ pub(super) fn validate_direct_resume_preflight(
             Ok(preflight) => preflight,
             Err(denial) => {
                 let detail = Arc::from(denial.detail());
+                let (bridge, bridge_counters) = denial.into_returned_yielded().into_parts();
                 return Err(WorthQueryDirectResumePreflightDenied::new(
                     WorthQueryDirectReadmissionDenialKind::BridgeReadmissionDenied,
                     detail,
                     WorthQueryDirectYieldedParts {
                         state: parts.state,
                         resource_attempt: parts.resource_attempt,
-                        bridge: denial.into_yielded(),
+                        bridge,
                         execution: parts.execution,
                     }
                     .into_yielded(),
+                    Some(bridge_counters),
                 ));
             }
         };
@@ -93,16 +99,18 @@ pub(super) fn validate_direct_resume_preflight(
     ) {
         Ok(contract) => contract,
         Err(denial) => {
+            let (bridge, bridge_counters) = bridge.into_returned_yielded().into_parts();
             return Err(WorthQueryDirectResumePreflightDenied::new(
                 WorthQueryDirectReadmissionDenialKind::ProviderStepContractDenied(denial.kind()),
                 denial.detail(),
                 WorthQueryDirectYieldedParts {
                     state: parts.state,
                     resource_attempt: parts.resource_attempt,
-                    bridge: bridge.into_yielded(),
+                    bridge,
                     execution: parts.execution,
                 }
                 .into_yielded(),
+                Some(bridge_counters),
             ));
         }
     };
@@ -136,11 +144,13 @@ impl WorthQueryDirectResumePreflightDenied {
         kind: WorthQueryDirectReadmissionDenialKind,
         detail: impl Into<Arc<str>>,
         yielded: WorthQueryYieldedDirectRun,
+        bridge_counters: Option<BridgeExecutionBasisReadmissionCounters>,
     ) -> Self {
         Self {
             kind,
             detail: detail.into(),
             yielded,
+            bridge_counters,
         }
     }
 
@@ -150,8 +160,9 @@ impl WorthQueryDirectResumePreflightDenied {
         WorthQueryDirectReadmissionDenialKind,
         Arc<str>,
         WorthQueryYieldedDirectRun,
+        Option<BridgeExecutionBasisReadmissionCounters>,
     ) {
-        (self.kind, self.detail, self.yielded)
+        (self.kind, self.detail, self.yielded, self.bridge_counters)
     }
 }
 

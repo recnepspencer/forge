@@ -4,6 +4,7 @@ mod direct_outcome;
 mod direct_preflight;
 mod direct_preparation;
 mod direct_state;
+mod evidence;
 mod readmitted_execution;
 mod recovery;
 mod workflow;
@@ -18,16 +19,16 @@ pub use direct_outcome::{
     WorthQueryDirectReadmissionDenialKind, WorthQueryDirectReadmissionDenied,
     WorthQueryDirectReadmissionOutcome,
 };
+pub use evidence::WorthQueryReadmissionEvidence;
 pub use readmitted_execution::{
-    WorthQueryReadmittedAttemptEvidence, WorthQueryReadmittedDirectGraphExecution,
-    WorthQueryReadmittedWorkflowGraphExecution,
+    WorthQueryReadmittedDirectGraphExecution, WorthQueryReadmittedWorkflowGraphExecution,
 };
 pub use recovery::{
     WorthQueryArtifactGenerationRollbackEvidence, WorthQueryWorkflowReadmissionCleanupOutcome,
     WorthQueryWorkflowReadmissionCleanupPending, WorthQueryWorkflowReadmissionCleanupReceipt,
     WorthQueryWorkflowReadmissionCleanupRequired, WorthQueryWorkflowReadmissionRecoveryKind,
     WorthQueryWorkflowReadmissionRecoveryPosture, WorthQueryWorkflowReadmissionRecoveryRequired,
-    WorthQueryWorkflowReadmissionTerminalRecovery,
+    WorthQueryWorkflowReadmissionTerminalRecovery, WorthQueryWorkflowReadmissionYieldReassembled,
     WorthQueryWorkflowReadmissionYieldReassemblyOutcome,
     WorthQueryWorkflowReadmissionYieldReassemblyRecovery,
 };
@@ -36,7 +37,7 @@ pub use recovery::{
     WorthQueryDirectReadmissionCleanupReceipt, WorthQueryDirectReadmissionCleanupRequired,
     WorthQueryDirectReadmissionRecoveryKind, WorthQueryDirectReadmissionRecoveryPosture,
     WorthQueryDirectReadmissionRecoveryRequired, WorthQueryDirectReadmissionTerminalRecovery,
-    WorthQueryDirectReadmissionYieldReassemblyOutcome,
+    WorthQueryDirectReadmissionYieldReassembled, WorthQueryDirectReadmissionYieldReassemblyOutcome,
     WorthQueryDirectReadmissionYieldReassemblyRecovery,
 };
 pub use workflow_outcome::{

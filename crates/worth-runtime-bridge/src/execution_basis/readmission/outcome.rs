@@ -3,7 +3,7 @@ use worth_signal::facade::{ResourceCancellationReason, ResourceInFlightStatus};
 use crate::execution_basis::reservation::BridgeExecutionBasisReservation;
 use crate::execution_basis::{
     BridgeExecutionBasisFinalizationReceipt, BridgeExecutionBasisReadmissionPending,
-    BridgeYieldedExecutionBasis,
+    BridgeExecutionBasisReadmissionYielded, BridgeYieldedExecutionBasis,
 };
 use crate::source::{with_async_request_signal_runtime, AdmittedBridgeAsyncRequestIdentity};
 
@@ -55,7 +55,7 @@ pub struct BridgeExecutionBasisReadmissionRecoveryRequired {
 
 #[must_use = "cleanup outcomes retain yielded or recovery authority"]
 pub enum BridgeExecutionBasisReadmissionCleanupOutcome {
-    Complete(BridgeYieldedExecutionBasis),
+    Complete(BridgeExecutionBasisReadmissionYielded),
     RecoveryRequired(BridgeExecutionBasisReadmissionRecoveryRequired),
 }
 
@@ -96,8 +96,8 @@ impl BridgeExecutionBasisReadmissionDenied {
         self.yielded.receipt()
     }
 
-    pub fn into_yielded(self) -> BridgeYieldedExecutionBasis {
-        self.yielded
+    pub fn into_returned_yielded(self) -> BridgeExecutionBasisReadmissionYielded {
+        BridgeExecutionBasisReadmissionYielded::new(self.yielded, self.counters)
     }
 }
 
@@ -145,7 +145,9 @@ impl BridgeExecutionBasisReadmissionRecoveryRequired {
             .take()
             .expect("readmission recovery cleanup consumes provisional authority once");
         match provisional.cleanup() {
-            Ok(()) => BridgeExecutionBasisReadmissionCleanupOutcome::Complete(yielded),
+            Ok(()) => BridgeExecutionBasisReadmissionCleanupOutcome::Complete(
+                BridgeExecutionBasisReadmissionYielded::new(yielded, self.counters),
+            ),
             Err(detail) => BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(
                 Self::new(detail, yielded, provisional, self.counters),
             ),

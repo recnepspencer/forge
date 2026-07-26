@@ -10,7 +10,6 @@ use super::super::run_identity::WorthQueryManagedRunIdentity;
 use super::super::{
     WorthQueryActiveDirectGraphExecution, WorthQueryRunningDirectRun, WorthQueryYieldedDirectRun,
 };
-use super::counters::WorthQueryReadmissionCounters;
 use super::direct_outcome::{
     WorthQueryDirectReadmissionDenialKind, WorthQueryDirectReadmissionDenied,
     WorthQueryDirectReadmissionOutcome,
@@ -22,6 +21,7 @@ use super::direct_state::{
     WorthQueryDirectProviderRestorePending, WorthQueryDirectRollbackPending,
     WorthQueryDirectYieldedParts,
 };
+use super::evidence::WorthQueryReadmissionProgress;
 use super::recovery::{
     WorthQueryDirectReadmissionRecoveryKind, WorthQueryDirectReadmissionRecoveryRequired,
 };
@@ -43,7 +43,7 @@ pub(in crate::domain_computation::managed_run) fn readmit_direct(
 pub(in crate::domain_computation::managed_run) fn restore_direct(
     pending: WorthQueryDirectBridgeReadmissionPending,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryDirectReadmissionOutcome {
     let WorthQueryDirectBridgeReadmissionPending {
         state,
@@ -53,7 +53,7 @@ pub(in crate::domain_computation::managed_run) fn restore_direct(
         fresh_call,
         contract,
     } = pending;
-    counters.attempted_provider_restore();
+    progress.attempted_provider_restore();
     let provider = match provider_restore::restore(execution, fresh_call, contract) {
         WorthQueryManagedGraphRestoreOutcome::Pending(provider) => {
             WorthQueryDirectProviderRestorePending {
@@ -74,7 +74,7 @@ pub(in crate::domain_computation::managed_run) fn restore_direct(
                     resource: resource_pending,
                     bridge: bridge_pending,
                 },
-                counters,
+                progress,
             );
         }
         WorthQueryManagedGraphRestoreOutcome::RecoveryRequired(recovery) => {
@@ -84,7 +84,7 @@ pub(in crate::domain_computation::managed_run) fn restore_direct(
                 WorthQueryDirectReadmissionRecoveryRequired::provider(
                     kind,
                     detail,
-                    counters,
+                    progress,
                     WorthQueryDirectProviderRecoveryState {
                         state,
                         resource: resource_pending,
@@ -95,13 +95,13 @@ pub(in crate::domain_computation::managed_run) fn restore_direct(
             );
         }
     };
-    commit_provider_restore(provider, bridge_runtime, counters)
+    commit_provider_restore(provider, bridge_runtime, progress)
 }
 
 fn commit_provider_restore(
     pending: WorthQueryDirectProviderRestorePending,
     bridge_runtime: &RuntimeBridge,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryDirectReadmissionOutcome {
     let WorthQueryDirectProviderRestorePending {
         state,
@@ -118,7 +118,7 @@ fn commit_provider_restore(
                 WorthQueryDirectReadmissionRecoveryRequired::provider(
                     kind,
                     detail,
-                    counters,
+                    progress,
                     WorthQueryDirectProviderRecoveryState {
                         state,
                         resource,
@@ -137,14 +137,14 @@ fn commit_provider_restore(
             bridge,
         },
         bridge_runtime,
-        counters,
+        progress,
     )
 }
 
 fn commit_direct(
     pending: WorthQueryDirectCommitReady,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryDirectReadmissionOutcome {
     let WorthQueryDirectCommitReady {
         state,
@@ -152,7 +152,10 @@ fn commit_direct(
         resource,
         bridge,
     } = pending;
-    let bridge_basis = bridge_runtime.commit_yielded_execution_basis_readmission(bridge);
+    let (bridge_basis, bridge_counters) = bridge_runtime
+        .commit_yielded_execution_basis_readmission(bridge)
+        .into_parts();
+    progress.observe_bridge(bridge_counters);
     let resource_attempt = resource.commit();
     let identity = WorthQueryManagedRunIdentity::resumed(
         "direct",
@@ -165,7 +168,7 @@ fn commit_direct(
     let provider_work = state
         .provider_work
         .rebind_provider_session(resource_attempt.provider_session().identity());
-    counters.committed_attempt();
+    progress.committed_attempt();
     let active = WorthQueryActiveDirectGraphExecution::new(
         WorthQueryRunningDirectRun {
             logical_run_identity,
@@ -179,7 +182,7 @@ fn commit_direct(
         execution,
     );
     WorthQueryDirectReadmissionOutcome::Readmitted(
-        super::WorthQueryReadmittedDirectGraphExecution::new(active, counters),
+        super::WorthQueryReadmittedDirectGraphExecution::new(active, progress.evidence()),
     )
 }
 
@@ -187,7 +190,7 @@ fn abort_to_denial(
     kind: WorthQueryDirectReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
     pending: WorthQueryDirectRollbackPending,
-    counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryDirectReadmissionOutcome {
     let detail = detail.into();
     let WorthQueryDirectRollbackPending {
@@ -197,23 +200,28 @@ fn abort_to_denial(
         bridge,
     } = pending;
     match bridge.abort() {
-        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => denied(
-            kind,
-            detail,
-            WorthQueryDirectYieldedParts {
-                state,
-                resource_attempt: resource.abort(),
-                bridge,
-                execution,
-            }
-            .into_yielded(),
-            counters,
-        ),
+        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(returned) => {
+            let (bridge, bridge_counters) = returned.into_parts();
+            progress.observe_bridge(bridge_counters);
+            denied(
+                kind,
+                detail,
+                WorthQueryDirectYieldedParts {
+                    state,
+                    resource_attempt: resource.abort(),
+                    bridge,
+                    execution,
+                }
+                .into_yielded(),
+                progress,
+            )
+        }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(recovery) => {
+            progress.observe_bridge(recovery.counters());
             WorthQueryDirectReadmissionOutcome::RecoveryRequired(
                 WorthQueryDirectReadmissionRecoveryRequired::bridge_cleanup(
                     format!("{detail}; Bridge cleanup failed: {}", recovery.detail()),
-                    counters,
+                    progress,
                     WorthQueryDirectBridgeCleanupRecoveryState {
                         state,
                         resource_attempt: resource.abort(),
@@ -230,10 +238,13 @@ fn denied(
     kind: WorthQueryDirectReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
     yielded: WorthQueryYieldedDirectRun,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryDirectReadmissionOutcome {
     WorthQueryDirectReadmissionOutcome::Denied(WorthQueryDirectReadmissionDenied::new(
-        kind, detail, yielded, counters,
+        kind,
+        detail,
+        yielded,
+        progress.evidence(),
     ))
 }
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::super::WorthQueryYieldedWorkflowRun;
-use super::counters::WorthQueryReadmissionCounters;
+use super::evidence::WorthQueryReadmissionEvidence;
 use super::readmitted_execution::WorthQueryReadmittedWorkflowGraphExecution;
 use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 
@@ -34,7 +34,7 @@ pub struct WorthQueryWorkflowReadmissionDenied {
     kind: WorthQueryWorkflowReadmissionDenialKind,
     detail: Arc<str>,
     yielded: WorthQueryYieldedWorkflowRun,
-    counters: WorthQueryReadmissionCounters,
+    evidence: WorthQueryReadmissionEvidence,
 }
 
 impl WorthQueryWorkflowReadmissionDenied {
@@ -42,13 +42,13 @@ impl WorthQueryWorkflowReadmissionDenied {
         kind: WorthQueryWorkflowReadmissionDenialKind,
         detail: impl Into<Arc<str>>,
         yielded: WorthQueryYieldedWorkflowRun,
-        counters: WorthQueryReadmissionCounters,
+        evidence: WorthQueryReadmissionEvidence,
     ) -> Self {
         Self {
             kind,
             detail: detail.into(),
             yielded,
-            counters,
+            evidence,
         }
     }
 
@@ -60,8 +60,8 @@ impl WorthQueryWorkflowReadmissionDenied {
         &self.detail
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
-        self.counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
     }
 
     pub fn into_yielded(self) -> WorthQueryYieldedWorkflowRun {

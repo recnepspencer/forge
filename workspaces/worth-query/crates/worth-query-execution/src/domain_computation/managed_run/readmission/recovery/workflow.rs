@@ -3,7 +3,9 @@ use std::sync::Arc;
 use worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionCleanupOutcome;
 
 use super::workflow_cleanup::WorthQueryWorkflowReadmissionCleanupRequired;
-use crate::domain_computation::managed_run::readmission::counters::WorthQueryReadmissionCounters;
+use crate::domain_computation::managed_run::readmission::evidence::{
+    WorthQueryReadmissionEvidence, WorthQueryReadmissionProgress,
+};
 use crate::domain_computation::managed_run::readmission::workflow_state::{
     WorthQueryWorkflowBridgeCleanupRecoveryState,
     WorthQueryWorkflowProviderGenerationRecoveryState,
@@ -43,7 +45,7 @@ pub enum WorthQueryWorkflowReadmissionRecoveryRequired {
 pub struct WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
     kind: WorthQueryWorkflowReadmissionRecoveryKind,
     detail: Arc<str>,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
     recovery: WorthQueryWorkflowBridgeCleanupRecoveryState,
 }
 
@@ -51,14 +53,19 @@ pub struct WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
 pub struct WorthQueryWorkflowReadmissionTerminalRecovery {
     kind: WorthQueryWorkflowReadmissionRecoveryKind,
     detail: Arc<str>,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
     resource: WorthQueryWorkflowReadmissionRecoveryResource,
 }
 
 #[must_use = "yield reassembly retains yielded or exact Bridge cleanup recovery authority"]
 pub enum WorthQueryWorkflowReadmissionYieldReassemblyOutcome {
-    Yielded(WorthQueryYieldedWorkflowRun),
+    Yielded(WorthQueryWorkflowReadmissionYieldReassembled),
     RecoveryRequired(WorthQueryWorkflowReadmissionYieldReassemblyRecovery),
+}
+
+pub struct WorthQueryWorkflowReadmissionYieldReassembled {
+    yielded: WorthQueryYieldedWorkflowRun,
+    evidence: WorthQueryReadmissionEvidence,
 }
 
 enum WorthQueryWorkflowReadmissionRecoveryResource {
@@ -70,13 +77,13 @@ enum WorthQueryWorkflowReadmissionRecoveryResource {
 impl WorthQueryWorkflowReadmissionRecoveryRequired {
     pub(in crate::domain_computation::managed_run::readmission) fn bridge_cleanup(
         detail: impl Into<Arc<str>>,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
         recovery: WorthQueryWorkflowBridgeCleanupRecoveryState,
     ) -> Self {
         Self::YieldReassembly(WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
             kind: WorthQueryWorkflowReadmissionRecoveryKind::BridgeCleanupFailed,
             detail: detail.into(),
-            counters,
+            progress,
             recovery,
         })
     }
@@ -84,39 +91,39 @@ impl WorthQueryWorkflowReadmissionRecoveryRequired {
     pub(in crate::domain_computation::managed_run::readmission) fn provider(
         kind: WorthQueryWorkflowReadmissionRecoveryKind,
         detail: impl Into<Arc<str>>,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
         recovery: WorthQueryWorkflowProviderRecoveryState,
     ) -> Self {
         Self::TerminalCleanup(WorthQueryWorkflowReadmissionTerminalRecovery {
             kind,
             detail: detail.into(),
-            counters,
+            progress,
             resource: WorthQueryWorkflowReadmissionRecoveryResource::Provider(recovery),
         })
     }
 
     pub(in crate::domain_computation::managed_run::readmission) fn provider_generation(
         detail: impl Into<Arc<str>>,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
         recovery: WorthQueryWorkflowProviderGenerationRecoveryState,
     ) -> Self {
         Self::TerminalCleanup(WorthQueryWorkflowReadmissionTerminalRecovery {
             kind: WorthQueryWorkflowReadmissionRecoveryKind::ArtifactGenerationRollbackFailed,
             detail: detail.into(),
-            counters,
+            progress,
             resource: WorthQueryWorkflowReadmissionRecoveryResource::ProviderGeneration(recovery),
         })
     }
 
     pub(in crate::domain_computation::managed_run::readmission) fn provider_pending(
         detail: impl Into<Arc<str>>,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
         recovery: WorthQueryWorkflowProviderPendingRecoveryState,
     ) -> Self {
         Self::TerminalCleanup(WorthQueryWorkflowReadmissionTerminalRecovery {
             kind: WorthQueryWorkflowReadmissionRecoveryKind::ArtifactGenerationRollbackFailed,
             detail: detail.into(),
-            counters,
+            progress,
             resource: WorthQueryWorkflowReadmissionRecoveryResource::ProviderPending(recovery),
         })
     }
@@ -135,10 +142,10 @@ impl WorthQueryWorkflowReadmissionRecoveryRequired {
         }
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
         match self {
-            Self::YieldReassembly(recovery) => recovery.counters,
-            Self::TerminalCleanup(recovery) => recovery.counters,
+            Self::YieldReassembly(recovery) => recovery.progress.evidence(),
+            Self::TerminalCleanup(recovery) => recovery.progress.evidence(),
         }
     }
 
@@ -184,8 +191,8 @@ impl WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
         &self.detail
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
-        self.counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.progress.evidence()
     }
 
     pub fn retry_to_yielded(self) -> WorthQueryWorkflowReadmissionYieldReassemblyOutcome {
@@ -202,12 +209,12 @@ impl WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
                 execution,
             },
             bridge.retry_cleanup(),
-            self.counters,
+            self.progress,
         )
     }
 
     pub fn into_cleanup(self) -> WorthQueryWorkflowReadmissionCleanupRequired {
-        WorthQueryWorkflowReadmissionCleanupRequired::bridge_recovery(self.recovery, self.counters)
+        WorthQueryWorkflowReadmissionCleanupRequired::bridge_recovery(self.recovery, self.progress)
     }
 }
 
@@ -220,8 +227,8 @@ impl WorthQueryWorkflowReadmissionTerminalRecovery {
         &self.detail
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
-        self.counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.progress.evidence()
     }
 
     pub fn posture(&self) -> WorthQueryWorkflowReadmissionRecoveryPosture {
@@ -290,7 +297,7 @@ impl WorthQueryWorkflowReadmissionTerminalRecovery {
                     recovery.bridge,
                     recovery.provider.into_cleanup(),
                     None,
-                    self.counters,
+                    self.progress,
                 )
             }
             WorthQueryWorkflowReadmissionRecoveryResource::ProviderGeneration(recovery) => {
@@ -300,7 +307,7 @@ impl WorthQueryWorkflowReadmissionTerminalRecovery {
                     recovery.bridge,
                     recovery.provider.into_cleanup(),
                     Some(recovery.generation_rollback),
-                    self.counters,
+                    self.progress,
                 )
             }
             WorthQueryWorkflowReadmissionRecoveryResource::ProviderPending(recovery) => {
@@ -310,17 +317,27 @@ impl WorthQueryWorkflowReadmissionTerminalRecovery {
                     recovery.bridge,
                     recovery.provider.into_cleanup(),
                     Some(recovery.generation_rollback),
-                    self.counters,
+                    self.progress,
                 )
             }
         }
     }
 }
 
+impl WorthQueryWorkflowReadmissionYieldReassembled {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
+    }
+
+    pub fn into_yielded(self) -> WorthQueryYieldedWorkflowRun {
+        self.yielded
+    }
+}
+
 fn retry_workflow_bridge_cleanup(
     pending: WorthQueryWorkflowYieldedReassembly,
     bridge: BridgeExecutionBasisReadmissionCleanupOutcome,
-    counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionYieldReassemblyOutcome {
     let WorthQueryWorkflowYieldedReassembly {
         state,
@@ -328,24 +345,30 @@ fn retry_workflow_bridge_cleanup(
         execution,
     } = pending;
     match bridge {
-        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
+        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(returned) => {
+            let (bridge, bridge_counters) = returned.into_parts();
+            progress.observe_bridge(bridge_counters);
             WorthQueryWorkflowReadmissionYieldReassemblyOutcome::Yielded(
-                WorthQueryWorkflowYieldedParts {
-                    state,
-                    resource_attempt,
-                    bridge,
-                    execution,
-                }
-                .into_yielded(),
+                WorthQueryWorkflowReadmissionYieldReassembled {
+                    yielded: WorthQueryWorkflowYieldedParts {
+                        state,
+                        resource_attempt,
+                        bridge,
+                        execution,
+                    }
+                    .into_yielded(),
+                    evidence: progress.evidence(),
+                },
             )
         }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(bridge) => {
             let detail = bridge.detail().to_owned();
+            progress.observe_bridge(bridge.counters());
             WorthQueryWorkflowReadmissionYieldReassemblyOutcome::RecoveryRequired(
                 WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
                     kind: WorthQueryWorkflowReadmissionRecoveryKind::BridgeCleanupFailed,
                     detail: detail.into(),
-                    counters,
+                    progress,
                     recovery: WorthQueryWorkflowBridgeCleanupRecoveryState {
                         state,
                         resource_attempt,

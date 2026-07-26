@@ -5,7 +5,7 @@ use worth_runtime_bridge::facade::RuntimeBridge;
 use super::super::provider_restore::WorthQueryManagedGraphRestoreCommitOutcome;
 use super::super::run_identity::WorthQueryManagedRunIdentity;
 use super::super::{WorthQueryActiveWorkflowGraphExecution, WorthQueryRunningWorkflowRun};
-use super::counters::WorthQueryReadmissionCounters;
+use super::evidence::WorthQueryReadmissionProgress;
 use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 use super::workflow_abort::{abort_provider_pending, map_recovery_kind};
 use super::workflow_outcome::{
@@ -22,7 +22,7 @@ use crate::domain_computation::provider_session::graph_provider::bounded_step::W
 pub(super) fn advance_artifact_generation(
     pending: WorthQueryWorkflowProviderRestorePending,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let WorthQueryWorkflowProviderRestorePending {
         state,
@@ -31,7 +31,7 @@ pub(super) fn advance_artifact_generation(
         resource,
         bridge,
     } = pending;
-    counters.attempted_artifact_generation();
+    progress.attempted_artifact_generation();
     let registry = state.artifacts.registry();
     let generation = match registry.prepare_next_generation() {
         Ok(generation) => generation,
@@ -45,7 +45,7 @@ pub(super) fn advance_artifact_generation(
                     resource,
                     bridge,
                 },
-                counters,
+                progress,
             );
         }
     };
@@ -63,7 +63,7 @@ pub(super) fn advance_artifact_generation(
                             "{detail}; generation rollback failed: {}",
                             generation_rollback.detail()
                         ),
-                        counters,
+                        progress,
                         WorthQueryWorkflowProviderPendingRecoveryState {
                             state,
                             resource,
@@ -83,7 +83,7 @@ pub(super) fn advance_artifact_generation(
                     resource,
                     bridge,
                 },
-                counters,
+                progress,
             );
         }
     };
@@ -103,14 +103,14 @@ pub(super) fn advance_artifact_generation(
             artifact_context,
         },
         bridge_runtime,
-        counters,
+        progress,
     )
 }
 
 fn commit_artifact_generation(
     pending: WorthQueryWorkflowArtifactGenerationPending,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let WorthQueryWorkflowArtifactGenerationPending {
         state,
@@ -131,7 +131,7 @@ fn commit_artifact_generation(
                 return WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
                     WorthQueryWorkflowReadmissionRecoveryRequired::provider_generation(
                         detail,
-                        counters,
+                        progress,
                         WorthQueryWorkflowProviderGenerationRecoveryState {
                             state,
                             resource,
@@ -146,7 +146,7 @@ fn commit_artifact_generation(
                 WorthQueryWorkflowReadmissionRecoveryRequired::provider(
                     kind,
                     detail,
-                    counters,
+                    progress,
                     WorthQueryWorkflowProviderRecoveryState {
                         state,
                         resource,
@@ -158,7 +158,7 @@ fn commit_artifact_generation(
         }
     };
     let committed_generation = generation.commit();
-    counters.committed_artifact_generation();
+    progress.committed_artifact_generation();
     commit_workflow(
         WorthQueryWorkflowCommitReady {
             state: state.commit_artifact_generation(committed_generation),
@@ -167,14 +167,14 @@ fn commit_artifact_generation(
             bridge,
         },
         bridge_runtime,
-        counters,
+        progress,
     )
 }
 
 fn commit_workflow(
     pending: WorthQueryWorkflowCommitReady,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let WorthQueryWorkflowCommitReady {
         state,
@@ -182,7 +182,10 @@ fn commit_workflow(
         resource,
         bridge,
     } = pending;
-    let bridge_basis = bridge_runtime.commit_yielded_execution_basis_readmission(bridge);
+    let (bridge_basis, bridge_counters) = bridge_runtime
+        .commit_yielded_execution_basis_readmission(bridge)
+        .into_parts();
+    progress.observe_bridge(bridge_counters);
     let resource_attempt = resource.commit();
     let identity = WorthQueryManagedRunIdentity::resumed(
         "workflow",
@@ -195,7 +198,7 @@ fn commit_workflow(
     let provider_work = state
         .provider_work
         .rebind_provider_session(resource_attempt.provider_session().identity());
-    counters.committed_attempt();
+    progress.committed_attempt();
     let active = WorthQueryActiveWorkflowGraphExecution::new(
         WorthQueryRunningWorkflowRun {
             logical_run_identity,
@@ -211,6 +214,6 @@ fn commit_workflow(
         execution,
     );
     WorthQueryWorkflowReadmissionOutcome::Readmitted(
-        super::WorthQueryReadmittedWorkflowGraphExecution::new(active, counters),
+        super::WorthQueryReadmittedWorkflowGraphExecution::new(active, progress.evidence()),
     )
 }

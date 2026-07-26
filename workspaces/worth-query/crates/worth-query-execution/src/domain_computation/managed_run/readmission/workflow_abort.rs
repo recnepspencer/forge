@@ -5,7 +5,7 @@ use worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionCleanupOutcome;
 use super::super::provider_restore::{
     WorthQueryManagedGraphRestoreAbortOutcome, WorthQueryManagedGraphRestoreRecoveryKind,
 };
-use super::counters::WorthQueryReadmissionCounters;
+use super::evidence::WorthQueryReadmissionProgress;
 use super::recovery::{
     WorthQueryWorkflowReadmissionRecoveryKind, WorthQueryWorkflowReadmissionRecoveryRequired,
 };
@@ -23,7 +23,7 @@ pub(super) fn abort_without_provider(
     kind: WorthQueryWorkflowReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
     pending: WorthQueryWorkflowRollbackPending,
-    counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let detail = detail.into();
     let WorthQueryWorkflowRollbackPending {
@@ -33,7 +33,9 @@ pub(super) fn abort_without_provider(
         bridge,
     } = pending;
     match bridge.abort() {
-        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
+        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(returned) => {
+            let (bridge, bridge_counters) = returned.into_parts();
+            progress.observe_bridge(bridge_counters);
             WorthQueryWorkflowReadmissionOutcome::Denied(WorthQueryWorkflowReadmissionDenied::new(
                 kind,
                 detail,
@@ -44,14 +46,15 @@ pub(super) fn abort_without_provider(
                     execution,
                 }
                 .into_yielded(),
-                counters,
+                progress.evidence(),
             ))
         }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(recovery) => {
+            progress.observe_bridge(recovery.counters());
             WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
                 WorthQueryWorkflowReadmissionRecoveryRequired::bridge_cleanup(
                     format!("{detail}; Bridge cleanup failed: {}", recovery.detail()),
-                    counters,
+                    progress,
                     WorthQueryWorkflowBridgeCleanupRecoveryState {
                         state,
                         resource_attempt: resource.abort(),
@@ -68,7 +71,7 @@ pub(super) fn abort_provider_pending(
     kind: WorthQueryWorkflowReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
     pending: WorthQueryWorkflowProviderAbortPending,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let detail = detail.into();
     let WorthQueryWorkflowProviderAbortPending {
@@ -87,7 +90,7 @@ pub(super) fn abort_provider_pending(
                 resource,
                 bridge,
             },
-            counters,
+            progress,
         ),
         WorthQueryManagedGraphRestoreAbortOutcome::RecoveryRequired(recovery) => {
             let recovery_kind = map_recovery_kind(recovery.kind());
@@ -95,7 +98,7 @@ pub(super) fn abort_provider_pending(
                 WorthQueryWorkflowReadmissionRecoveryRequired::provider(
                     recovery_kind,
                     format!("{detail}; {}", recovery.detail()),
-                    counters,
+                    progress,
                     WorthQueryWorkflowProviderRecoveryState {
                         state,
                         resource,

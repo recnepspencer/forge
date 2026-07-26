@@ -27,7 +27,7 @@ impl RuntimeBridge {
     pub fn commit_yielded_execution_basis_readmission(
         &self,
         pending: BridgeExecutionBasisReadmissionPending,
-    ) -> BridgeBoundExecutionBasis {
+    ) -> BridgeExecutionBasisReadmissionCommitted {
         assert_eq!(
             pending.runtime_key(),
             self.signal_runtime_key,

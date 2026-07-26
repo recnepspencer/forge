@@ -2,8 +2,9 @@ use worth_signal::facade::ResourceManagedQueueBinding;
 
 use crate::execution_basis::authority::BridgeBoundExecutionBasisParts;
 use crate::execution_basis::{
-    BridgeBoundExecutionBasis, BridgeExecutionBasisCounters, BridgeManagedExecutionIntent,
-    BridgeYieldedExecutionBasis,
+    BridgeBoundExecutionBasis, BridgeExecutionBasisCounters,
+    BridgeExecutionBasisReadmissionCommitted, BridgeExecutionBasisReadmissionYielded,
+    BridgeManagedExecutionIntent, BridgeYieldedExecutionBasis,
 };
 use crate::source::AdmittedBridgeAsyncRequestIdentity;
 
@@ -84,7 +85,9 @@ impl BridgeExecutionBasisReadmissionPending {
             .expect("readmission abort owns provisional Signal authority");
         self.managed_queue.take();
         match provisional.cleanup() {
-            Ok(()) => BridgeExecutionBasisReadmissionCleanupOutcome::Complete(yielded),
+            Ok(()) => BridgeExecutionBasisReadmissionCleanupOutcome::Complete(
+                BridgeExecutionBasisReadmissionYielded::new(yielded, self.counters),
+            ),
             Err(detail) => BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(
                 BridgeExecutionBasisReadmissionRecoveryRequired::new(
                     detail,
@@ -96,7 +99,7 @@ impl BridgeExecutionBasisReadmissionPending {
         }
     }
 
-    pub(crate) fn commit(mut self) -> BridgeBoundExecutionBasis {
+    pub(crate) fn commit(mut self) -> BridgeExecutionBasisReadmissionCommitted {
         self.counters.committed();
         let mut yielded = self
             .yielded
@@ -110,7 +113,7 @@ impl BridgeExecutionBasisReadmissionPending {
             .take()
             .expect("readmission commit consumes provisional Signal authority")
             .into_parts();
-        BridgeBoundExecutionBasis::new(BridgeBoundExecutionBasisParts {
+        let basis = BridgeBoundExecutionBasis::new(BridgeBoundExecutionBasisParts {
             bridge_runtime_key: self.runtime_key,
             managed_intent: self
                 .fresh_intent
@@ -126,7 +129,8 @@ impl BridgeExecutionBasisReadmissionPending {
             authoritative_source_profile,
             reservation,
             counters: self.basis_counters.clone(),
-        })
+        });
+        BridgeExecutionBasisReadmissionCommitted::new(basis, self.counters)
     }
 }
 

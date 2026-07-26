@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::super::WorthQueryYieldedDirectRun;
-use super::counters::WorthQueryReadmissionCounters;
+use super::evidence::WorthQueryReadmissionEvidence;
 use super::readmitted_execution::WorthQueryReadmittedDirectGraphExecution;
 use super::recovery::WorthQueryDirectReadmissionRecoveryRequired;
 
@@ -30,7 +30,7 @@ pub struct WorthQueryDirectReadmissionDenied {
     kind: WorthQueryDirectReadmissionDenialKind,
     detail: Arc<str>,
     yielded: WorthQueryYieldedDirectRun,
-    counters: WorthQueryReadmissionCounters,
+    evidence: WorthQueryReadmissionEvidence,
 }
 
 impl WorthQueryDirectReadmissionDenied {
@@ -38,13 +38,13 @@ impl WorthQueryDirectReadmissionDenied {
         kind: WorthQueryDirectReadmissionDenialKind,
         detail: impl Into<Arc<str>>,
         yielded: WorthQueryYieldedDirectRun,
-        counters: WorthQueryReadmissionCounters,
+        evidence: WorthQueryReadmissionEvidence,
     ) -> Self {
         Self {
             kind,
             detail: detail.into(),
             yielded,
-            counters,
+            evidence,
         }
     }
 
@@ -56,8 +56,8 @@ impl WorthQueryDirectReadmissionDenied {
         &self.detail
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
-        self.counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
     }
 
     pub fn into_yielded(self) -> WorthQueryYieldedDirectRun {

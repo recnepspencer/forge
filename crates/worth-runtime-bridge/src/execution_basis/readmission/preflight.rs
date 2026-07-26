@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use crate::execution_basis::{
     BridgeExecutionBasisReadmissionCounters, BridgeExecutionBasisReadmissionDenialKind,
-    BridgeExecutionBasisReadmissionDenied, BridgeExecutionBasisSignalTerminal,
-    BridgeExecutionBasisTerminalDisposition, BridgeYieldedExecutionBasis,
+    BridgeExecutionBasisReadmissionDenied, BridgeExecutionBasisReadmissionYielded,
+    BridgeExecutionBasisSignalTerminal, BridgeExecutionBasisTerminalDisposition,
+    BridgeYieldedExecutionBasis,
 };
 use crate::facade::RuntimeBridge;
 
@@ -76,8 +77,8 @@ impl BridgeYieldedExecutionBasisPreflight {
         self.yielded.receipt()
     }
 
-    pub fn into_yielded(self) -> BridgeYieldedExecutionBasis {
-        self.yielded
+    pub fn into_returned_yielded(self) -> BridgeExecutionBasisReadmissionYielded {
+        BridgeExecutionBasisReadmissionYielded::new(self.yielded, self.counters)
     }
 
     pub(super) fn into_parts(

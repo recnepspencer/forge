@@ -7,9 +7,11 @@ use worth_runtime_bridge::facade::{
 };
 
 use crate::domain_computation::managed_run::provider_restore::WorthQueryManagedGraphRestoreCleanupRequired;
-use crate::domain_computation::managed_run::readmission::counters::WorthQueryReadmissionCounters;
 use crate::domain_computation::managed_run::readmission::direct_state::{
     WorthQueryDirectBridgeCleanupRecoveryState, WorthQueryDirectYieldedState,
+};
+use crate::domain_computation::managed_run::readmission::evidence::{
+    WorthQueryReadmissionEvidence, WorthQueryReadmissionProgress,
 };
 use crate::domain_computation::managed_run::{
     WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCounters,
@@ -34,7 +36,7 @@ pub struct WorthQueryDirectReadmissionCleanupRequired {
     resource_attempt: WorthQueryDirectExecutionResourceAttempt,
     bridge: WorthQueryDirectReadmissionBridgeCleanup,
     provider: WorthQueryManagedGraphRestoreCleanupRequired,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
 }
 
 #[must_use = "pending direct readmission cleanup retains Bridge cleanup authority"]
@@ -58,7 +60,7 @@ struct WorthQueryDirectReadmissionPartialCleanupReceipt {
     run_counters: WorthQueryManagedRunCounters,
     provider_work: WorthQueryManagedProviderWorkEvidence,
     yield_counters: WorthQueryYieldTransitionCounters,
-    readmission_counters: WorthQueryReadmissionCounters,
+    readmission_progress: WorthQueryReadmissionProgress,
 }
 
 enum WorthQueryDirectReadmissionBridgeCleanup {
@@ -72,20 +74,20 @@ impl WorthQueryDirectReadmissionCleanupRequired {
         resource_attempt: WorthQueryDirectExecutionResourceAttempt,
         bridge: BridgeExecutionBasisReadmissionPending,
         provider: WorthQueryManagedGraphRestoreCleanupRequired,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
     ) -> Self {
         Self {
             state,
             resource_attempt,
             bridge: WorthQueryDirectReadmissionBridgeCleanup::Pending(bridge),
             provider,
-            counters,
+            progress,
         }
     }
 
     pub(super) fn bridge_recovery(
         recovery: WorthQueryDirectBridgeCleanupRecoveryState,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
     ) -> Self {
         Self {
             state: recovery.state,
@@ -95,7 +97,7 @@ impl WorthQueryDirectReadmissionCleanupRequired {
                 recovery.execution,
                 None,
             ),
-            counters,
+            progress,
         }
     }
 
@@ -116,7 +118,7 @@ impl WorthQueryDirectReadmissionCleanupRequired {
             run_counters: self.state.run_counters,
             provider_work: self.state.provider_work.into_evidence(),
             yield_counters: self.state.yield_counters,
-            readmission_counters: self.counters,
+            readmission_progress: self.progress,
         };
         finish_bridge_cleanup(
             partial,
@@ -147,8 +149,8 @@ impl WorthQueryDirectReadmissionCleanupPending {
         &self.receipt.checkpoint_release
     }
 
-    pub const fn readmission_counters(&self) -> WorthQueryReadmissionCounters {
-        self.receipt.readmission_counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.receipt.readmission_progress.evidence()
     }
 }
 
@@ -195,17 +197,19 @@ impl WorthQueryDirectReadmissionCleanupReceipt {
         self.partial.yield_counters
     }
 
-    pub const fn readmission_counters(&self) -> WorthQueryReadmissionCounters {
-        self.partial.readmission_counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.partial.readmission_progress.evidence()
     }
 }
 
 fn finish_bridge_cleanup(
-    partial: WorthQueryDirectReadmissionPartialCleanupReceipt,
+    mut partial: WorthQueryDirectReadmissionPartialCleanupReceipt,
     bridge: BridgeExecutionBasisReadmissionCleanupOutcome,
 ) -> WorthQueryDirectReadmissionCleanupOutcome {
     match bridge {
-        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
+        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(returned) => {
+            let (bridge, bridge_counters) = returned.into_parts();
+            partial.readmission_progress.observe_bridge(bridge_counters);
             let receipt = WorthQueryDirectReadmissionCleanupReceipt {
                 partial,
                 bridge: bridge.release(),
@@ -217,6 +221,9 @@ fn finish_bridge_cleanup(
             }
         }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(bridge) => {
+            partial
+                .readmission_progress
+                .observe_bridge(bridge.counters());
             WorthQueryDirectReadmissionCleanupOutcome::Pending(
                 WorthQueryDirectReadmissionCleanupPending {
                     receipt: partial,

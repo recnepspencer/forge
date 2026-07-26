@@ -38,10 +38,11 @@ pub use queue_pressure::{
 };
 pub(crate) use readmission::{preflight_yielded_execution_basis, readmit_yielded_execution_basis};
 pub use readmission::{
-    BridgeExecutionBasisReadmissionCleanupOutcome, BridgeExecutionBasisReadmissionCounters,
-    BridgeExecutionBasisReadmissionDenialKind, BridgeExecutionBasisReadmissionDenied,
-    BridgeExecutionBasisReadmissionOutcome, BridgeExecutionBasisReadmissionPending,
-    BridgeExecutionBasisReadmissionRecoveryKind, BridgeExecutionBasisReadmissionRecoveryRequired,
+    BridgeExecutionBasisReadmissionCleanupOutcome, BridgeExecutionBasisReadmissionCommitted,
+    BridgeExecutionBasisReadmissionCounters, BridgeExecutionBasisReadmissionDenialKind,
+    BridgeExecutionBasisReadmissionDenied, BridgeExecutionBasisReadmissionOutcome,
+    BridgeExecutionBasisReadmissionPending, BridgeExecutionBasisReadmissionRecoveryKind,
+    BridgeExecutionBasisReadmissionRecoveryRequired, BridgeExecutionBasisReadmissionYielded,
     BridgeYieldedExecutionBasisPreflight,
 };
 pub use request::{BridgeManagedExecutionIntent, BridgeManagedExecutionIntentIdentity};

@@ -3,10 +3,12 @@ use std::sync::Arc;
 use worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionCleanupOutcome;
 
 use super::direct_cleanup::WorthQueryDirectReadmissionCleanupRequired;
-use crate::domain_computation::managed_run::readmission::counters::WorthQueryReadmissionCounters;
 use crate::domain_computation::managed_run::readmission::direct_state::{
     WorthQueryDirectBridgeCleanupRecoveryState, WorthQueryDirectProviderRecoveryState,
     WorthQueryDirectYieldedParts, WorthQueryDirectYieldedReassembly,
+};
+use crate::domain_computation::managed_run::readmission::evidence::{
+    WorthQueryReadmissionEvidence, WorthQueryReadmissionProgress,
 };
 use crate::domain_computation::managed_run::WorthQueryYieldedDirectRun;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryProviderExecutionReleaseEvidence;
@@ -39,7 +41,7 @@ pub enum WorthQueryDirectReadmissionRecoveryRequired {
 pub struct WorthQueryDirectReadmissionYieldReassemblyRecovery {
     kind: WorthQueryDirectReadmissionRecoveryKind,
     detail: Arc<str>,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
     recovery: WorthQueryDirectBridgeCleanupRecoveryState,
 }
 
@@ -47,26 +49,31 @@ pub struct WorthQueryDirectReadmissionYieldReassemblyRecovery {
 pub struct WorthQueryDirectReadmissionTerminalRecovery {
     kind: WorthQueryDirectReadmissionRecoveryKind,
     detail: Arc<str>,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
     recovery: WorthQueryDirectProviderRecoveryState,
 }
 
 #[must_use = "yield reassembly retains yielded or exact Bridge cleanup recovery authority"]
 pub enum WorthQueryDirectReadmissionYieldReassemblyOutcome {
-    Yielded(WorthQueryYieldedDirectRun),
+    Yielded(WorthQueryDirectReadmissionYieldReassembled),
     RecoveryRequired(WorthQueryDirectReadmissionYieldReassemblyRecovery),
+}
+
+pub struct WorthQueryDirectReadmissionYieldReassembled {
+    yielded: WorthQueryYieldedDirectRun,
+    evidence: WorthQueryReadmissionEvidence,
 }
 
 impl WorthQueryDirectReadmissionRecoveryRequired {
     pub(in crate::domain_computation::managed_run::readmission) fn bridge_cleanup(
         detail: impl Into<Arc<str>>,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
         recovery: WorthQueryDirectBridgeCleanupRecoveryState,
     ) -> Self {
         Self::YieldReassembly(WorthQueryDirectReadmissionYieldReassemblyRecovery {
             kind: WorthQueryDirectReadmissionRecoveryKind::BridgeCleanupFailed,
             detail: detail.into(),
-            counters,
+            progress,
             recovery,
         })
     }
@@ -74,13 +81,13 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
     pub(in crate::domain_computation::managed_run::readmission) fn provider(
         kind: WorthQueryDirectReadmissionRecoveryKind,
         detail: impl Into<Arc<str>>,
-        counters: WorthQueryReadmissionCounters,
+        progress: WorthQueryReadmissionProgress,
         recovery: WorthQueryDirectProviderRecoveryState,
     ) -> Self {
         Self::TerminalCleanup(WorthQueryDirectReadmissionTerminalRecovery {
             kind,
             detail: detail.into(),
-            counters,
+            progress,
             recovery,
         })
     }
@@ -99,10 +106,10 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
         }
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
         match self {
-            Self::YieldReassembly(recovery) => recovery.counters,
-            Self::TerminalCleanup(recovery) => recovery.counters,
+            Self::YieldReassembly(recovery) => recovery.progress.evidence(),
+            Self::TerminalCleanup(recovery) => recovery.progress.evidence(),
         }
     }
 
@@ -153,8 +160,8 @@ impl WorthQueryDirectReadmissionYieldReassemblyRecovery {
         &self.detail
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
-        self.counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.progress.evidence()
     }
 
     pub fn retry_to_yielded(self) -> WorthQueryDirectReadmissionYieldReassemblyOutcome {
@@ -171,12 +178,12 @@ impl WorthQueryDirectReadmissionYieldReassemblyRecovery {
                 execution,
             },
             bridge.retry_cleanup(),
-            self.counters,
+            self.progress,
         )
     }
 
     pub fn into_cleanup(self) -> WorthQueryDirectReadmissionCleanupRequired {
-        WorthQueryDirectReadmissionCleanupRequired::bridge_recovery(self.recovery, self.counters)
+        WorthQueryDirectReadmissionCleanupRequired::bridge_recovery(self.recovery, self.progress)
     }
 }
 
@@ -189,8 +196,8 @@ impl WorthQueryDirectReadmissionTerminalRecovery {
         &self.detail
     }
 
-    pub const fn counters(&self) -> WorthQueryReadmissionCounters {
-        self.counters
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.progress.evidence()
     }
 
     pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
@@ -213,15 +220,25 @@ impl WorthQueryDirectReadmissionTerminalRecovery {
             self.recovery.resource.abort(),
             self.recovery.bridge,
             self.recovery.provider.into_cleanup(),
-            self.counters,
+            self.progress,
         )
+    }
+}
+
+impl WorthQueryDirectReadmissionYieldReassembled {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
+        self.evidence
+    }
+
+    pub fn into_yielded(self) -> WorthQueryYieldedDirectRun {
+        self.yielded
     }
 }
 
 fn retry_direct_bridge_cleanup(
     pending: WorthQueryDirectYieldedReassembly,
     bridge: BridgeExecutionBasisReadmissionCleanupOutcome,
-    counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryDirectReadmissionYieldReassemblyOutcome {
     let WorthQueryDirectYieldedReassembly {
         state,
@@ -229,24 +246,30 @@ fn retry_direct_bridge_cleanup(
         execution,
     } = pending;
     match bridge {
-        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
+        BridgeExecutionBasisReadmissionCleanupOutcome::Complete(returned) => {
+            let (bridge, bridge_counters) = returned.into_parts();
+            progress.observe_bridge(bridge_counters);
             WorthQueryDirectReadmissionYieldReassemblyOutcome::Yielded(
-                WorthQueryDirectYieldedParts {
-                    state,
-                    resource_attempt,
-                    bridge,
-                    execution,
-                }
-                .into_yielded(),
+                WorthQueryDirectReadmissionYieldReassembled {
+                    yielded: WorthQueryDirectYieldedParts {
+                        state,
+                        resource_attempt,
+                        bridge,
+                        execution,
+                    }
+                    .into_yielded(),
+                    evidence: progress.evidence(),
+                },
             )
         }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(bridge) => {
             let detail = bridge.detail().to_owned();
+            progress.observe_bridge(bridge.counters());
             WorthQueryDirectReadmissionYieldReassemblyOutcome::RecoveryRequired(
                 WorthQueryDirectReadmissionYieldReassemblyRecovery {
                     kind: WorthQueryDirectReadmissionRecoveryKind::BridgeCleanupFailed,
                     detail: detail.into(),
-                    counters,
+                    progress,
                     recovery: WorthQueryDirectBridgeCleanupRecoveryState {
                         state,
                         resource_attempt,

@@ -1,45 +1,27 @@
 use super::super::{WorthQueryActiveDirectGraphExecution, WorthQueryActiveWorkflowGraphExecution};
-use super::WorthQueryReadmissionCounters;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct WorthQueryReadmittedAttemptEvidence {
-    counters: WorthQueryReadmissionCounters,
-}
+use super::WorthQueryReadmissionEvidence;
 
 #[must_use = "a readmitted direct execution must enter the managed-run lifecycle"]
 pub struct WorthQueryReadmittedDirectGraphExecution {
     active: WorthQueryActiveDirectGraphExecution,
-    evidence: WorthQueryReadmittedAttemptEvidence,
+    evidence: WorthQueryReadmissionEvidence,
 }
 
 #[must_use = "a readmitted workflow execution must enter the managed-run lifecycle"]
 pub struct WorthQueryReadmittedWorkflowGraphExecution {
     active: WorthQueryActiveWorkflowGraphExecution,
-    evidence: WorthQueryReadmittedAttemptEvidence,
-}
-
-impl WorthQueryReadmittedAttemptEvidence {
-    const fn committed(counters: WorthQueryReadmissionCounters) -> Self {
-        Self { counters }
-    }
-
-    pub const fn counters(self) -> WorthQueryReadmissionCounters {
-        self.counters
-    }
+    evidence: WorthQueryReadmissionEvidence,
 }
 
 impl WorthQueryReadmittedDirectGraphExecution {
     pub(super) fn new(
         active: WorthQueryActiveDirectGraphExecution,
-        counters: WorthQueryReadmissionCounters,
+        evidence: WorthQueryReadmissionEvidence,
     ) -> Self {
-        Self {
-            active,
-            evidence: WorthQueryReadmittedAttemptEvidence::committed(counters),
-        }
+        Self { active, evidence }
     }
 
-    pub const fn readmission_evidence(&self) -> WorthQueryReadmittedAttemptEvidence {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
         self.evidence
     }
 
@@ -55,15 +37,12 @@ impl WorthQueryReadmittedDirectGraphExecution {
 impl WorthQueryReadmittedWorkflowGraphExecution {
     pub(super) fn new(
         active: WorthQueryActiveWorkflowGraphExecution,
-        counters: WorthQueryReadmissionCounters,
+        evidence: WorthQueryReadmissionEvidence,
     ) -> Self {
-        Self {
-            active,
-            evidence: WorthQueryReadmittedAttemptEvidence::committed(counters),
-        }
+        Self { active, evidence }
     }
 
-    pub const fn readmission_evidence(&self) -> WorthQueryReadmittedAttemptEvidence {
+    pub const fn readmission_evidence(&self) -> WorthQueryReadmissionEvidence {
         self.evidence
     }
 

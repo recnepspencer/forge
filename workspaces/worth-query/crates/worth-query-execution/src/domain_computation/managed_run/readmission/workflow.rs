@@ -6,7 +6,7 @@ use worth_runtime_bridge::facade::{
 
 use super::super::provider_restore::{self, WorthQueryManagedGraphRestoreOutcome};
 use super::super::WorthQueryYieldedWorkflowRun;
-use super::counters::WorthQueryReadmissionCounters;
+use super::evidence::WorthQueryReadmissionProgress;
 use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 use super::workflow_abort::{abort_without_provider, map_recovery_kind};
 use super::workflow_completion::advance_artifact_generation;
@@ -31,30 +31,33 @@ pub(in crate::domain_computation::managed_run) fn readmit_workflow(
     query_runtime: &WorthQueryExecutionRuntime,
     bridge_runtime: &RuntimeBridge,
 ) -> WorthQueryWorkflowReadmissionOutcome {
-    let mut counters = WorthQueryReadmissionCounters::default();
-    counters.checked_preflight();
+    let mut progress = WorthQueryReadmissionProgress::default();
+    progress.checked_preflight();
     let preflight = match validate_workflow_resume_preflight(yielded, query_runtime, bridge_runtime)
     {
         Ok(preflight) => preflight,
         Err(denial) => {
-            let (kind, detail, yielded) = denial.into_parts();
-            return denied(kind, detail, yielded, counters);
+            let (kind, detail, yielded, bridge_counters) = denial.into_parts();
+            if let Some(bridge_counters) = bridge_counters {
+                progress.observe_bridge(bridge_counters);
+            }
+            return denied(kind, detail, yielded, progress);
         }
     };
-    let provisional = begin_resource_attempt(preflight, &mut counters);
-    let pending = match begin_bridge_readmission(provisional, bridge_runtime, counters) {
-        Ok((pending, next_counters)) => {
-            counters = next_counters;
+    let provisional = begin_resource_attempt(preflight, &mut progress);
+    let pending = match begin_bridge_readmission(provisional, bridge_runtime, progress) {
+        Ok((pending, next_progress)) => {
+            progress = next_progress;
             pending
         }
         Err(outcome) => return outcome,
     };
-    restore_workflow(pending, bridge_runtime, counters)
+    restore_workflow(pending, bridge_runtime, progress)
 }
 
 fn begin_resource_attempt(
     preflight: WorthQueryWorkflowResumePreflightValidated,
-    counters: &mut WorthQueryReadmissionCounters,
+    progress: &mut WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowProvisionalResourceAttempt {
     let parts = preflight.into_parts();
     let (resource, fresh_call) = WorthQueryWorkflowResourceReadmissionPending::begin(
@@ -62,7 +65,7 @@ fn begin_resource_attempt(
         parts.stage_resources,
         parts.call,
     );
-    counters.minted_fresh_resource_attempt();
+    progress.minted_fresh_resource_attempt();
     WorthQueryWorkflowProvisionalResourceAttempt {
         state: parts.state,
         execution: parts.execution,
@@ -78,11 +81,11 @@ fn begin_resource_attempt(
 fn begin_bridge_readmission(
     provisional: WorthQueryWorkflowProvisionalResourceAttempt,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> Result<
     (
         WorthQueryWorkflowBridgeReadmissionPending,
-        WorthQueryReadmissionCounters,
+        WorthQueryReadmissionProgress,
     ),
     WorthQueryWorkflowReadmissionOutcome,
 > {
@@ -90,41 +93,47 @@ fn begin_bridge_readmission(
         provisional.binding_identity,
         provisional.resource.attempt_identity().as_str(),
     );
-    counters.attempted_bridge_readmission();
+    progress.attempted_bridge_readmission();
     match bridge_runtime.readmit_yielded_execution_basis(provisional.bridge, intent) {
-        BridgeExecutionBasisReadmissionOutcome::Pending(bridge) => Ok((
-            WorthQueryWorkflowBridgeReadmissionPending {
-                state: provisional.state,
-                execution: provisional.execution,
-                resource: provisional.resource,
-                bridge,
-                fresh_call: provisional.fresh_call,
-                contract: provisional.contract,
-                stage_identity: provisional.stage_identity,
-            },
-            counters,
-        )),
+        BridgeExecutionBasisReadmissionOutcome::Pending(bridge) => {
+            progress.observe_bridge(bridge.counters());
+            Ok((
+                WorthQueryWorkflowBridgeReadmissionPending {
+                    state: provisional.state,
+                    execution: provisional.execution,
+                    resource: provisional.resource,
+                    bridge,
+                    fresh_call: provisional.fresh_call,
+                    contract: provisional.contract,
+                    stage_identity: provisional.stage_identity,
+                },
+                progress,
+            ))
+        }
         BridgeExecutionBasisReadmissionOutcome::Denied(denial) => {
             let detail = Arc::from(denial.detail());
+            let (bridge, bridge_counters) = denial.into_returned_yielded().into_parts();
+            progress.observe_bridge(bridge_counters);
             Err(denied(
                 WorthQueryWorkflowReadmissionDenialKind::BridgeReadmissionDenied,
                 detail,
                 WorthQueryWorkflowYieldedParts {
                     state: provisional.state,
                     resource_attempt: provisional.resource.abort(),
-                    bridge: denial.into_yielded(),
+                    bridge,
                     execution: provisional.execution,
                 }
                 .into_yielded(),
-                counters,
+                progress,
             ))
         }
         BridgeExecutionBasisReadmissionOutcome::RecoveryRequired(recovery) => {
             let detail = Arc::from(recovery.detail());
+            progress.observe_bridge(recovery.counters());
             Err(WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
                 WorthQueryWorkflowReadmissionRecoveryRequired::bridge_cleanup(
                     detail,
-                    counters,
+                    progress,
                     WorthQueryWorkflowBridgeCleanupRecoveryState {
                         state: provisional.state,
                         resource_attempt: provisional.resource.abort(),
@@ -140,7 +149,7 @@ fn begin_bridge_readmission(
 fn restore_workflow(
     pending: WorthQueryWorkflowBridgeReadmissionPending,
     bridge_runtime: &RuntimeBridge,
-    mut counters: WorthQueryReadmissionCounters,
+    mut progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let WorthQueryWorkflowBridgeReadmissionPending {
         state,
@@ -151,7 +160,7 @@ fn restore_workflow(
         contract,
         stage_identity,
     } = pending;
-    counters.attempted_provider_restore();
+    progress.attempted_provider_restore();
     let provider = match provider_restore::restore(execution, fresh_call, contract) {
         WorthQueryManagedGraphRestoreOutcome::Pending(provider) => {
             WorthQueryWorkflowProviderRestorePending {
@@ -173,7 +182,7 @@ fn restore_workflow(
                     resource: resource_pending,
                     bridge: bridge_pending,
                 },
-                counters,
+                progress,
             );
         }
         WorthQueryManagedGraphRestoreOutcome::RecoveryRequired(recovery) => {
@@ -183,7 +192,7 @@ fn restore_workflow(
                 WorthQueryWorkflowReadmissionRecoveryRequired::provider(
                     kind,
                     detail,
-                    counters,
+                    progress,
                     WorthQueryWorkflowProviderRecoveryState {
                         state,
                         resource: resource_pending,
@@ -194,16 +203,19 @@ fn restore_workflow(
             );
         }
     };
-    advance_artifact_generation(provider, bridge_runtime, counters)
+    advance_artifact_generation(provider, bridge_runtime, progress)
 }
 
 fn denied(
     kind: WorthQueryWorkflowReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
     yielded: WorthQueryYieldedWorkflowRun,
-    counters: WorthQueryReadmissionCounters,
+    progress: WorthQueryReadmissionProgress,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     WorthQueryWorkflowReadmissionOutcome::Denied(WorthQueryWorkflowReadmissionDenied::new(
-        kind, detail, yielded, counters,
+        kind,
+        detail,
+        yielded,
+        progress.evidence(),
     ))
 }
