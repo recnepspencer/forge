@@ -13,6 +13,7 @@ use super::outcome::{
 };
 use super::BridgeExecutionBasisReadmissionCounters;
 
+#[must_use = "pending readmission must be committed through RuntimeBridge or explicitly aborted"]
 pub struct BridgeExecutionBasisReadmissionPending {
     yielded: Option<BridgeYieldedExecutionBasis>,
     runtime_key: u64,
@@ -67,6 +68,10 @@ impl BridgeExecutionBasisReadmissionPending {
         self.counters
     }
 
+    pub(crate) const fn runtime_key(&self) -> u64 {
+        self.runtime_key
+    }
+
     pub fn abort(mut self) -> BridgeExecutionBasisReadmissionCleanupOutcome {
         self.counters.aborted();
         let yielded = self
@@ -91,7 +96,7 @@ impl BridgeExecutionBasisReadmissionPending {
         }
     }
 
-    pub fn commit(mut self) -> BridgeBoundExecutionBasis {
+    pub(crate) fn commit(mut self) -> BridgeBoundExecutionBasis {
         self.counters.committed();
         let mut yielded = self
             .yielded

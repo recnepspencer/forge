@@ -1,19 +1,31 @@
 use std::sync::Arc;
 
 use worth_relational::facade::runtime::RelationalExecutionBasisLease;
-use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
+use worth_runtime_bridge::facade::{
+    BridgeExecutionBasisReadmissionPending, BridgeExecutionBasisReadmissionRecoveryRequired,
+    BridgeYieldedExecutionBasis, BridgeYieldedExecutionBasisPreflight,
+};
 
+use super::super::managed_graph_execution::WorthQueryManagedGraphExecution;
+use super::super::provider_restore::{
+    WorthQueryManagedGraphRestorePending, WorthQueryManagedGraphRestoreRecoveryRequired,
+};
 use super::super::provider_work::WorthQueryManagedProviderWorkLedger;
 use super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
+use super::super::step_contract_admission::WorthQueryAdmittedManagedStepContract;
 use super::super::{
     WorthQueryManagedRunCounters, WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
 };
 use crate::domain_computation::artifact_owner::{
     WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactProductionGenerationCommitted,
-    WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactAuthority,
-    WorthQueryWorkflowArtifactRegistryEvidence,
+    WorthQueryArtifactProductionGenerationPending, WorthQueryFrozenWorkflowArtifactAuthority,
+    WorthQueryWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
 };
-use crate::domain_computation::WorthQueryWorkflowExecutionResourceAttempt;
+use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepArtifactContext;
+use crate::domain_computation::provider_session::readmission::WorthQueryWorkflowResourceReadmissionPending;
+use crate::domain_computation::{
+    WorthQueryGraphProviderCall, WorthQueryWorkflowExecutionResourceAttempt,
+};
 
 pub(super) struct WorthQueryWorkflowYieldedState {
     pub(super) logical_run_identity: Arc<str>,
@@ -41,6 +53,92 @@ pub(super) struct WorthQueryWorkflowReadmissionCommitState {
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
     pub(super) provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
+}
+
+pub(super) struct WorthQueryWorkflowProvisionalResourceAttempt {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeYieldedExecutionBasisPreflight,
+    pub(super) fresh_call: WorthQueryGraphProviderCall,
+    pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) binding_identity: String,
+    pub(super) stage_identity: String,
+}
+
+pub(super) struct WorthQueryWorkflowBridgeReadmissionPending {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) fresh_call: WorthQueryGraphProviderCall,
+    pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) stage_identity: String,
+}
+
+pub(super) struct WorthQueryWorkflowProviderRestorePending {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) stage_identity: String,
+    pub(super) provider: WorthQueryManagedGraphRestorePending,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryWorkflowArtifactGenerationPending {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) provider: WorthQueryManagedGraphRestorePending,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) generation: WorthQueryArtifactProductionGenerationPending,
+    pub(super) artifact_context: Option<WorthQueryGraphProviderStepArtifactContext>,
+}
+
+pub(super) struct WorthQueryWorkflowCommitReady {
+    pub(super) state: WorthQueryWorkflowReadmissionCommitState,
+    pub(super) execution: WorthQueryManagedGraphExecution,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryWorkflowRollbackPending {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryWorkflowProviderAbortPending {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) provider: WorthQueryManagedGraphRestorePending,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryWorkflowBridgeCleanupRecoveryState {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) bridge: BridgeExecutionBasisReadmissionRecoveryRequired,
+}
+
+pub(super) struct WorthQueryWorkflowProviderRecoveryState {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) provider: WorthQueryManagedGraphRestoreRecoveryRequired,
+}
+
+pub(super) struct WorthQueryWorkflowProviderPendingRecoveryState {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) provider: WorthQueryManagedGraphRestorePending,
+}
+
+pub(super) struct WorthQueryWorkflowYieldedReassembly {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
 }
 
 impl WorthQueryWorkflowYieldedState {

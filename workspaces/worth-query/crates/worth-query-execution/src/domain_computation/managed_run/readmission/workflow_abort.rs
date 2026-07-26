@@ -3,36 +3,43 @@ use std::sync::Arc;
 use worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionCleanupOutcome;
 
 use super::super::provider_restore::{
-    WorthQueryManagedGraphRestoreAbortOutcome, WorthQueryManagedGraphRestorePending,
-    WorthQueryManagedGraphRestoreRecoveryKind,
+    WorthQueryManagedGraphRestoreAbortOutcome, WorthQueryManagedGraphRestoreRecoveryKind,
 };
 use super::counters::WorthQueryReadmissionCounters;
 use super::workflow_outcome::{
     WorthQueryWorkflowReadmissionDenialKind, WorthQueryWorkflowReadmissionDenied,
-    WorthQueryWorkflowReadmissionOutcome, WorthQueryWorkflowReadmissionRecoveryKind,
-    WorthQueryWorkflowReadmissionRecoveryRequired,
+    WorthQueryWorkflowReadmissionOutcome,
 };
-use super::workflow_state::{WorthQueryWorkflowYieldedParts, WorthQueryWorkflowYieldedState};
-use crate::domain_computation::provider_session::readmission::WorthQueryWorkflowResourceReadmissionPending;
+use super::workflow_recovery::{
+    WorthQueryWorkflowReadmissionRecoveryKind, WorthQueryWorkflowReadmissionRecoveryRequired,
+};
+use super::workflow_state::{
+    WorthQueryWorkflowBridgeCleanupRecoveryState, WorthQueryWorkflowProviderAbortPending,
+    WorthQueryWorkflowProviderRecoveryState, WorthQueryWorkflowRollbackPending,
+    WorthQueryWorkflowYieldedParts,
+};
 
 pub(super) fn abort_without_provider(
     kind: WorthQueryWorkflowReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
-    state: WorthQueryWorkflowYieldedState,
-    execution: super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
-    resource_pending: WorthQueryWorkflowResourceReadmissionPending,
-    bridge_pending: worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionPending,
+    pending: WorthQueryWorkflowRollbackPending,
     counters: WorthQueryReadmissionCounters,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let detail = detail.into();
-    match bridge_pending.abort() {
+    let WorthQueryWorkflowRollbackPending {
+        state,
+        execution,
+        resource,
+        bridge,
+    } = pending;
+    match bridge.abort() {
         BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
             WorthQueryWorkflowReadmissionOutcome::Denied(WorthQueryWorkflowReadmissionDenied::new(
                 kind,
                 detail,
                 WorthQueryWorkflowYieldedParts {
                     state,
-                    resource_attempt: resource_pending.abort(),
+                    resource_attempt: resource.abort(),
                     bridge,
                     execution,
                 }
@@ -45,10 +52,12 @@ pub(super) fn abort_without_provider(
                 WorthQueryWorkflowReadmissionRecoveryRequired::bridge_cleanup(
                     format!("{detail}; Bridge cleanup failed: {}", recovery.detail()),
                     counters,
-                    state,
-                    resource_pending.abort(),
-                    execution,
-                    recovery,
+                    WorthQueryWorkflowBridgeCleanupRecoveryState {
+                        state,
+                        resource_attempt: resource.abort(),
+                        execution,
+                        bridge: recovery,
+                    },
                 ),
             )
         }
@@ -58,21 +67,26 @@ pub(super) fn abort_without_provider(
 pub(super) fn abort_provider_pending(
     kind: WorthQueryWorkflowReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
-    state: WorthQueryWorkflowYieldedState,
-    provider: WorthQueryManagedGraphRestorePending,
-    resource_pending: WorthQueryWorkflowResourceReadmissionPending,
-    bridge_pending: worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionPending,
+    pending: WorthQueryWorkflowProviderAbortPending,
     counters: WorthQueryReadmissionCounters,
 ) -> WorthQueryWorkflowReadmissionOutcome {
     let detail = detail.into();
+    let WorthQueryWorkflowProviderAbortPending {
+        state,
+        provider,
+        resource,
+        bridge,
+    } = pending;
     match provider.abort() {
         WorthQueryManagedGraphRestoreAbortOutcome::Aborted(execution) => abort_without_provider(
             kind,
             detail,
-            state,
-            execution,
-            resource_pending,
-            bridge_pending,
+            WorthQueryWorkflowRollbackPending {
+                state,
+                execution,
+                resource,
+                bridge,
+            },
             counters,
         ),
         WorthQueryManagedGraphRestoreAbortOutcome::RecoveryRequired(recovery) => {
@@ -82,10 +96,12 @@ pub(super) fn abort_provider_pending(
                     recovery_kind,
                     format!("{detail}; {}", recovery.detail()),
                     counters,
-                    state,
-                    resource_pending,
-                    bridge_pending,
-                    recovery,
+                    WorthQueryWorkflowProviderRecoveryState {
+                        state,
+                        resource,
+                        bridge,
+                        provider: recovery,
+                    },
                 ),
             )
         }

@@ -1,19 +1,16 @@
 use std::sync::Arc;
 
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisReadmissionCleanupOutcome, BridgeExecutionBasisReadmissionPending,
-    BridgeExecutionBasisReadmissionRecoveryRequired,
-};
+use worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionCleanupOutcome;
 
-use super::super::provider_restore::WorthQueryManagedGraphRestoreRecoveryRequired;
 use super::super::{WorthQueryActiveDirectGraphExecution, WorthQueryYieldedDirectRun};
 use super::counters::WorthQueryReadmissionCounters;
-use super::direct_state::{WorthQueryDirectYieldedParts, WorthQueryDirectYieldedState};
+use super::direct_state::{
+    WorthQueryDirectBridgeCleanupRecoveryState, WorthQueryDirectProviderRecoveryState,
+    WorthQueryDirectYieldedParts, WorthQueryDirectYieldedReassembly,
+};
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryProviderExecutionReleaseEvidence;
-use crate::domain_computation::provider_session::readmission::WorthQueryDirectResourceReadmissionPending;
 use crate::domain_computation::{
-    WorthQueryDirectExecutionResourceAttempt, WorthQueryProviderCheckpointEvidence,
-    WorthQueryProviderCheckpointReleaseEvidence,
+    WorthQueryProviderCheckpointEvidence, WorthQueryProviderCheckpointReleaseEvidence,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -38,12 +35,14 @@ pub enum WorthQueryDirectReadmissionRecoveryKind {
     CheckpointReleasePanicked,
 }
 
+#[must_use = "direct readmission outcomes retain running, yielded, or recovery authority"]
 pub enum WorthQueryDirectReadmissionOutcome {
     Readmitted(WorthQueryActiveDirectGraphExecution),
     Denied(WorthQueryDirectReadmissionDenied),
     RecoveryRequired(WorthQueryDirectReadmissionRecoveryRequired),
 }
 
+#[must_use = "direct readmission denial retains the yielded run capability"]
 pub struct WorthQueryDirectReadmissionDenied {
     kind: WorthQueryDirectReadmissionDenialKind,
     detail: Arc<str>,
@@ -51,6 +50,7 @@ pub struct WorthQueryDirectReadmissionDenied {
     counters: WorthQueryReadmissionCounters,
 }
 
+#[must_use = "direct readmission recovery must be explicitly resolved"]
 pub struct WorthQueryDirectReadmissionRecoveryRequired {
     kind: WorthQueryDirectReadmissionRecoveryKind,
     detail: Arc<str>,
@@ -58,24 +58,15 @@ pub struct WorthQueryDirectReadmissionRecoveryRequired {
     resource: WorthQueryDirectReadmissionRecoveryResource,
 }
 
+#[must_use = "direct readmission recovery retry retains yielded or recovery authority"]
 pub enum WorthQueryDirectReadmissionRecoveryRetryOutcome {
     Yielded(WorthQueryYieldedDirectRun),
     RecoveryRequired(WorthQueryDirectReadmissionRecoveryRequired),
 }
 
-pub(super) enum WorthQueryDirectReadmissionRecoveryResource {
-    BridgeCleanup {
-        state: WorthQueryDirectYieldedState,
-        resource_attempt: WorthQueryDirectExecutionResourceAttempt,
-        bridge: BridgeExecutionBasisReadmissionRecoveryRequired,
-        execution: super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
-    },
-    Provider {
-        state: WorthQueryDirectYieldedState,
-        resource_attempt: WorthQueryDirectResourceReadmissionPending,
-        bridge: BridgeExecutionBasisReadmissionPending,
-        provider: WorthQueryManagedGraphRestoreRecoveryRequired,
-    },
+enum WorthQueryDirectReadmissionRecoveryResource {
+    BridgeCleanup(WorthQueryDirectBridgeCleanupRecoveryState),
+    Provider(WorthQueryDirectProviderRecoveryState),
 }
 
 impl WorthQueryDirectReadmissionDenied {
@@ -114,21 +105,13 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
     pub(super) fn bridge_cleanup(
         detail: impl Into<Arc<str>>,
         counters: WorthQueryReadmissionCounters,
-        state: WorthQueryDirectYieldedState,
-        resource_attempt: WorthQueryDirectExecutionResourceAttempt,
-        execution: super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
-        bridge: BridgeExecutionBasisReadmissionRecoveryRequired,
+        recovery: WorthQueryDirectBridgeCleanupRecoveryState,
     ) -> Self {
         Self {
             kind: WorthQueryDirectReadmissionRecoveryKind::BridgeCleanupFailed,
             detail: detail.into(),
             counters,
-            resource: WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup {
-                state,
-                resource_attempt,
-                bridge,
-                execution,
-            },
+            resource: WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(recovery),
         }
     }
 
@@ -136,21 +119,13 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
         kind: WorthQueryDirectReadmissionRecoveryKind,
         detail: impl Into<Arc<str>>,
         counters: WorthQueryReadmissionCounters,
-        state: WorthQueryDirectYieldedState,
-        resource_attempt: WorthQueryDirectResourceReadmissionPending,
-        bridge: BridgeExecutionBasisReadmissionPending,
-        provider: WorthQueryManagedGraphRestoreRecoveryRequired,
+        recovery: WorthQueryDirectProviderRecoveryState,
     ) -> Self {
         Self {
             kind,
             detail: detail.into(),
             counters,
-            resource: WorthQueryDirectReadmissionRecoveryResource::Provider {
-                state,
-                resource_attempt,
-                bridge,
-                provider,
-            },
+            resource: WorthQueryDirectReadmissionRecoveryResource::Provider(recovery),
         }
     }
 
@@ -168,29 +143,29 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
 
     pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
         match &self.resource {
-            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup { execution, .. } => {
-                execution.checkpoint_evidence()
+            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(recovery) => {
+                recovery.execution.checkpoint_evidence()
             }
-            WorthQueryDirectReadmissionRecoveryResource::Provider { provider, .. } => {
-                provider.checkpoint_evidence()
+            WorthQueryDirectReadmissionRecoveryResource::Provider(recovery) => {
+                recovery.provider.checkpoint_evidence()
             }
         }
     }
 
     pub fn checkpoint_release(&self) -> Option<&WorthQueryProviderCheckpointReleaseEvidence> {
         match &self.resource {
-            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup { .. } => None,
-            WorthQueryDirectReadmissionRecoveryResource::Provider { provider, .. } => {
-                provider.checkpoint_release()
+            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(_) => None,
+            WorthQueryDirectReadmissionRecoveryResource::Provider(recovery) => {
+                recovery.provider.checkpoint_release()
             }
         }
     }
 
     pub fn checkpoint_authority_retained(&self) -> bool {
         match &self.resource {
-            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup { .. } => true,
-            WorthQueryDirectReadmissionRecoveryResource::Provider { provider, .. } => {
-                provider.checkpoint_retained()
+            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(_) => true,
+            WorthQueryDirectReadmissionRecoveryResource::Provider(recovery) => {
+                recovery.provider.checkpoint_retained()
             }
         }
     }
@@ -199,9 +174,9 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
         &self,
     ) -> Option<&WorthQueryProviderExecutionReleaseEvidence> {
         match &self.resource {
-            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup { .. } => None,
-            WorthQueryDirectReadmissionRecoveryResource::Provider { provider, .. } => {
-                provider.restored_execution_release_evidence()
+            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(_) => None,
+            WorthQueryDirectReadmissionRecoveryResource::Provider(recovery) => {
+                recovery.provider.restored_execution_release_evidence()
             }
         }
     }
@@ -213,37 +188,27 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
     pub fn fresh_resource_attempt_pending(&self) -> bool {
         matches!(
             self.resource,
-            WorthQueryDirectReadmissionRecoveryResource::Provider { .. }
+            WorthQueryDirectReadmissionRecoveryResource::Provider(_)
         )
     }
 
     pub fn retained_authority_count(&self) -> usize {
         match &self.resource {
-            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup {
-                state,
-                resource_attempt,
-                bridge,
-                execution,
-            } => {
+            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(recovery) => {
                 let _ = (
-                    &state.logical_run_identity,
-                    resource_attempt.attempt_identity(),
-                    bridge.yielded_receipt(),
-                    execution.checkpoint_evidence(),
+                    &recovery.state.logical_run_identity,
+                    recovery.resource_attempt.attempt_identity(),
+                    recovery.bridge.yielded_receipt(),
+                    recovery.execution.checkpoint_evidence(),
                 );
                 4
             }
-            WorthQueryDirectReadmissionRecoveryResource::Provider {
-                state,
-                resource_attempt,
-                bridge,
-                provider,
-            } => {
+            WorthQueryDirectReadmissionRecoveryResource::Provider(recovery) => {
                 let _ = (
-                    &state.logical_run_identity,
-                    resource_attempt.attempt_identity(),
-                    bridge.fresh_request_identity(),
-                    provider.kind(),
+                    &recovery.state.logical_run_identity,
+                    recovery.resource.attempt_identity(),
+                    recovery.bridge.fresh_request_identity(),
+                    recovery.provider.kind(),
                 );
                 4
             }
@@ -256,40 +221,43 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
         }
         let counters = self.counters;
         match self.resource {
-            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup {
-                state,
-                resource_attempt,
-                bridge,
-                execution,
-            } => Ok(retry_direct_bridge_cleanup(
-                state,
-                resource_attempt,
-                execution,
-                bridge.retry_cleanup(),
-                counters,
-            )),
-            WorthQueryDirectReadmissionRecoveryResource::Provider {
-                mut state,
-                resource_attempt,
-                bridge,
-                provider,
-            } => {
-                let retryable = match provider.into_retryable() {
+            WorthQueryDirectReadmissionRecoveryResource::BridgeCleanup(recovery) => {
+                let WorthQueryDirectBridgeCleanupRecoveryState {
+                    state,
+                    resource_attempt,
+                    bridge,
+                    execution,
+                } = recovery;
+                Ok(retry_direct_bridge_cleanup(
+                    WorthQueryDirectYieldedReassembly {
+                        state,
+                        resource_attempt,
+                        execution,
+                    },
+                    bridge.retry_cleanup(),
+                    counters,
+                ))
+            }
+            WorthQueryDirectReadmissionRecoveryResource::Provider(mut recovery) => {
+                let retryable = match recovery.provider.into_retryable() {
                     Ok(retryable) => retryable,
                     Err(_) => {
                         unreachable!("retained checkpoint posture was checked before recovery")
                     }
                 };
                 if let Some(release) = &retryable.restored_execution_release {
-                    state
+                    recovery
+                        .state
                         .provider_work
                         .record_provider_execution_release(release);
                 }
                 Ok(retry_direct_bridge_cleanup(
-                    state,
-                    resource_attempt.abort(),
-                    retryable.retained,
-                    bridge.abort(),
+                    WorthQueryDirectYieldedReassembly {
+                        state: recovery.state,
+                        resource_attempt: recovery.resource.abort(),
+                        execution: retryable.retained,
+                    },
+                    recovery.bridge.abort(),
                     counters,
                 ))
             }
@@ -298,12 +266,15 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
 }
 
 fn retry_direct_bridge_cleanup(
-    state: WorthQueryDirectYieldedState,
-    resource_attempt: WorthQueryDirectExecutionResourceAttempt,
-    execution: super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
+    pending: WorthQueryDirectYieldedReassembly,
     bridge: BridgeExecutionBasisReadmissionCleanupOutcome,
     counters: WorthQueryReadmissionCounters,
 ) -> WorthQueryDirectReadmissionRecoveryRetryOutcome {
+    let WorthQueryDirectYieldedReassembly {
+        state,
+        resource_attempt,
+        execution,
+    } = pending;
     match bridge {
         BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
             WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
@@ -322,10 +293,12 @@ fn retry_direct_bridge_cleanup(
                 WorthQueryDirectReadmissionRecoveryRequired::bridge_cleanup(
                     detail,
                     counters,
-                    state,
-                    resource_attempt,
-                    execution,
-                    bridge,
+                    WorthQueryDirectBridgeCleanupRecoveryState {
+                        state,
+                        resource_attempt,
+                        execution,
+                        bridge,
+                    },
                 ),
             )
         }

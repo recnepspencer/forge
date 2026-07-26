@@ -7,6 +7,7 @@ use crate::execution_basis::{
 };
 use crate::facade::RuntimeBridge;
 
+#[must_use = "validated yielded-basis authority must be readmitted or recovered"]
 pub struct BridgeYieldedExecutionBasisPreflight {
     yielded: BridgeYieldedExecutionBasis,
     operation_binding_identity: Arc<str>,
@@ -65,10 +66,18 @@ fn yield_posture_is_readmittable(yielded: &BridgeYieldedExecutionBasis) -> bool 
 }
 
 impl BridgeYieldedExecutionBasisPreflight {
+    pub fn step_contract(&self) -> &crate::execution_basis::BridgeManagedExecutionStepContract {
+        self.yielded.step_contract()
+    }
+
     pub fn yielded_receipt(
         &self,
     ) -> &crate::execution_basis::BridgeExecutionBasisFinalizationReceipt {
         self.yielded.receipt()
+    }
+
+    pub fn into_yielded(self) -> BridgeYieldedExecutionBasis {
+        self.yielded
     }
 
     pub(super) fn into_parts(

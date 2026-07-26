@@ -4,8 +4,13 @@ error[E0432]: unresolved import `worth_query_execution::facade::provider_session
 1 | use worth_query_execution::facade::provider_session::WorthQueryDirectResourceReadmissionPending;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryDirectResourceReadmissionPending` in `facade::provider_session`
 
-error[E0599]: no method named `advance` found for struct `BridgeExecutionBasisReadmissionPending` in the current scope
- --> tests/ui/installed_domain/managed_run/partial_readmission_states_cannot_advance.rs:5:13
-  |
-5 |     pending.advance();
-  |             ^^^^^^^ method not found in `BridgeExecutionBasisReadmissionPending`
+error[E0624]: method `commit` is private
+  --> tests/ui/installed_domain/managed_run/partial_readmission_states_cannot_advance.rs:5:13
+   |
+ 5 |     pending.commit();
+   |             ^^^^^^ private method
+   |
+  ::: C:/Users/Esther/Documents/Programming/forge_workspace/worktree_2/crates/worth-runtime-bridge/src/execution_basis/readmission/pending.rs:99:5
+   |
+99 |     pub(crate) fn commit(mut self) -> BridgeBoundExecutionBasis {
+   |     ----------------------------------------------------------- private method defined here

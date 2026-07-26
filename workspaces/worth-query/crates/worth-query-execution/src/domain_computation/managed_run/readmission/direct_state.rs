@@ -1,14 +1,25 @@
 use std::sync::Arc;
 
 use worth_relational::facade::runtime::RelationalExecutionBasisLease;
-use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
+use worth_runtime_bridge::facade::{
+    BridgeExecutionBasisReadmissionPending, BridgeExecutionBasisReadmissionRecoveryRequired,
+    BridgeYieldedExecutionBasis, BridgeYieldedExecutionBasisPreflight,
+};
 
+use super::super::managed_graph_execution::WorthQueryManagedGraphExecution;
+use super::super::provider_restore::{
+    WorthQueryManagedGraphRestorePending, WorthQueryManagedGraphRestoreRecoveryRequired,
+};
 use super::super::provider_work::WorthQueryManagedProviderWorkLedger;
 use super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
+use super::super::step_contract_admission::WorthQueryAdmittedManagedStepContract;
 use super::super::{
     WorthQueryManagedRunCounters, WorthQueryYieldTransitionCounters, WorthQueryYieldedDirectRun,
 };
-use crate::domain_computation::WorthQueryDirectExecutionResourceAttempt;
+use crate::domain_computation::provider_session::readmission::WorthQueryDirectResourceReadmissionPending;
+use crate::domain_computation::{
+    WorthQueryDirectExecutionResourceAttempt, WorthQueryGraphProviderCall,
+};
 
 pub(super) struct WorthQueryDirectYieldedState {
     pub(super) logical_run_identity: Arc<str>,
@@ -24,6 +35,66 @@ pub(super) struct WorthQueryDirectYieldedParts {
     pub(super) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+}
+
+pub(super) struct WorthQueryDirectProvisionalResourceAttempt {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) resource: WorthQueryDirectResourceReadmissionPending,
+    pub(super) bridge: BridgeYieldedExecutionBasisPreflight,
+    pub(super) fresh_call: WorthQueryGraphProviderCall,
+    pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) binding_identity: String,
+}
+
+pub(super) struct WorthQueryDirectBridgeReadmissionPending {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) resource: WorthQueryDirectResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) fresh_call: WorthQueryGraphProviderCall,
+    pub(super) contract: WorthQueryAdmittedManagedStepContract,
+}
+
+pub(super) struct WorthQueryDirectProviderRestorePending {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) provider: WorthQueryManagedGraphRestorePending,
+    pub(super) resource: WorthQueryDirectResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryDirectCommitReady {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) execution: WorthQueryManagedGraphExecution,
+    pub(super) resource: WorthQueryDirectResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryDirectRollbackPending {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) resource: WorthQueryDirectResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+}
+
+pub(super) struct WorthQueryDirectBridgeCleanupRecoveryState {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+    pub(super) bridge: BridgeExecutionBasisReadmissionRecoveryRequired,
+}
+
+pub(super) struct WorthQueryDirectYieldedReassembly {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) resource_attempt: WorthQueryDirectExecutionResourceAttempt,
+    pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+}
+
+pub(super) struct WorthQueryDirectProviderRecoveryState {
+    pub(super) state: WorthQueryDirectYieldedState,
+    pub(super) resource: WorthQueryDirectResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) provider: WorthQueryManagedGraphRestoreRecoveryRequired,
 }
 
 impl WorthQueryDirectYieldedParts {

@@ -136,6 +136,31 @@ fn query_preflight_denial_returns_the_exact_yielded_capability_without_fresh_wor
 }
 
 #[test]
+fn step_contract_mismatch_denies_before_resource_or_signal_authority() {
+    let (mut yielded, bridge, runtime) = yielded_direct();
+    let checkpoint = yielded.checkpoint().identity().to_owned();
+    yielded.execution.contract = foreign_safe_point_contract();
+    let denied = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Denied(denied) => denied,
+        _ => panic!("step-contract mismatch should deny during effect-free preflight"),
+    };
+    assert_eq!(
+        denied.kind(),
+        crate::domain_computation::WorthQueryDirectReadmissionDenialKind::
+            ProviderStepContractDenied(
+                crate::domain_computation::WorthQueryManagedStepContractDenialKind::
+                    SafePointFamilyMismatch,
+            )
+    );
+    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
+    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
+    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
+    let yielded = denied.into_yielded();
+    assert_eq!(yielded.checkpoint().identity(), checkpoint);
+    complete_direct_yield_cleanup(yielded);
+}
+
+#[test]
 fn provider_restore_denial_preserves_the_exact_checkpoint_and_capacity_package() {
     let (yielded, bridge, runtime) =
         yielded_direct_with_provider(YieldProvider::checkpoint_restore_failure(7));
@@ -331,4 +356,31 @@ fn checkpoint_release_panic_reports_exact_non_retryable_physical_posture() {
         _ => panic!("released checkpoint recovery must not claim retry safety"),
     };
     assert!(!recovery.checkpoint_authority_retained());
+}
+
+fn foreign_safe_point_contract(
+) -> worth_query_installation::facade::WorthQueryInstalledBoundedStepContract {
+    use worth_query_declaration::facade::domain_computation::{
+        WorthQueryCancellationSafePointFamily, WorthQueryExecutionMode,
+        WorthQueryResourceDimension, WorthQueryResourceLimitRequest,
+        WorthQuerySemanticScaleRequest,
+    };
+
+    let resources = WorthQueryResourceLimitRequest::bounded(1)
+        .with(WorthQueryResourceDimension::CancellationPollingInterval, 1)
+        .with(WorthQueryResourceDimension::QueueDepth, 1)
+        .with(WorthQueryResourceDimension::ChunkWidth, 1)
+        .with(WorthQueryResourceDimension::ScratchBytes, 1)
+        .with(WorthQueryResourceDimension::RetainedBytes, 1)
+        .with(WorthQueryResourceDimension::DeadlineNanos, 1);
+    worth_query_installation::facade::WorthQueryExecutionResourceEnvelope::new(
+        WorthQuerySemanticScaleRequest::bounded(1),
+        resources,
+        WorthQueryExecutionMode::Asynchronous,
+        None,
+        WorthQueryCancellationSafePointFamily::new("foreign-readmission-safe-point")
+            .expect("test safe-point family should be valid"),
+    )
+    .bounded_step_contract()
+    .expect("fully bounded test envelope should expose a step contract")
 }

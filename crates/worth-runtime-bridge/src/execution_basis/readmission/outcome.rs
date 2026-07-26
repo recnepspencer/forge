@@ -30,12 +30,14 @@ pub enum BridgeExecutionBasisReadmissionRecoveryKind {
     ProvisionalSignalCleanupFailed,
 }
 
+#[must_use = "readmission outcomes retain live or recoverable execution-basis authority"]
 pub enum BridgeExecutionBasisReadmissionOutcome {
     Pending(BridgeExecutionBasisReadmissionPending),
     Denied(BridgeExecutionBasisReadmissionDenied),
     RecoveryRequired(BridgeExecutionBasisReadmissionRecoveryRequired),
 }
 
+#[must_use = "readmission denial retains the yielded execution-basis authority"]
 pub struct BridgeExecutionBasisReadmissionDenied {
     kind: BridgeExecutionBasisReadmissionDenialKind,
     detail: String,
@@ -43,6 +45,7 @@ pub struct BridgeExecutionBasisReadmissionDenied {
     counters: BridgeExecutionBasisReadmissionCounters,
 }
 
+#[must_use = "readmission recovery must be resolved to release provisional Signal authority"]
 pub struct BridgeExecutionBasisReadmissionRecoveryRequired {
     detail: String,
     yielded: Option<BridgeYieldedExecutionBasis>,
@@ -50,6 +53,7 @@ pub struct BridgeExecutionBasisReadmissionRecoveryRequired {
     counters: BridgeExecutionBasisReadmissionCounters,
 }
 
+#[must_use = "cleanup outcomes retain yielded or recovery authority"]
 pub enum BridgeExecutionBasisReadmissionCleanupOutcome {
     Complete(BridgeYieldedExecutionBasis),
     RecoveryRequired(BridgeExecutionBasisReadmissionRecoveryRequired),

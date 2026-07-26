@@ -24,7 +24,7 @@ fn readmission_mints_fresh_signal_generation_and_commits_one_new_basis() {
     assert_eq!(pending.counters().signal_attempt_check_count(), 1);
     assert_eq!(pending.counters().signal_queue_binding_count(), 1);
 
-    let basis = pending.commit();
+    let basis = runtime.commit_yielded_execution_basis_readmission(pending);
     assert_ne!(basis.identity().as_str(), old_basis);
     assert_eq!(
         basis.managed_intent().resource_attempt_identity(),
@@ -54,7 +54,7 @@ fn abort_returns_the_exact_yielded_basis_and_releases_provisional_ownership() {
     assert_eq!(yielded.basis_request_identity(), yielded_request);
 
     let pending = pending_readmission(&runtime, yielded, "attempt-b");
-    let basis = pending.commit();
+    let basis = runtime.commit_yielded_execution_basis_readmission(pending);
     basis
         .finalize(BridgeExecutionBasisTerminalDisposition::Cancelled)
         .expect("retry after abort should own one live basis");
@@ -83,7 +83,8 @@ fn foreign_thread_abort_returns_recovery_that_owner_thread_can_finish() {
     };
     assert_eq!(yielded.basis_identity().as_str(), yielded_basis);
 
-    let basis = pending_readmission(&runtime, yielded, "attempt-b").commit();
+    let pending = pending_readmission(&runtime, yielded, "attempt-b");
+    let basis = runtime.commit_yielded_execution_basis_readmission(pending);
     basis
         .finalize(BridgeExecutionBasisTerminalDisposition::Cancelled)
         .expect("cleanup recovery should preserve exact Bridge readmission authority");
@@ -108,10 +109,26 @@ fn foreign_runtime_preflight_returns_the_untouched_yielded_authority() {
     assert_eq!(denial.counters().signal_attempt_admission_count(), 0);
     let yielded = denial.into_yielded();
     assert_eq!(yielded.basis_identity().as_str(), basis_identity);
-    let basis = pending_readmission(&owner_runtime, yielded, "attempt-b").commit();
+    let pending = pending_readmission(&owner_runtime, yielded, "attempt-b");
+    let basis = owner_runtime.commit_yielded_execution_basis_readmission(pending);
     basis
         .finalize(BridgeExecutionBasisTerminalDisposition::Cancelled)
         .expect("foreign-runtime denial should preserve retry authority");
+}
+
+#[test]
+fn foreign_runtime_cannot_commit_an_owner_runtime_pending_readmission() {
+    let owner_runtime = runtime(BridgeRuntimePolicy::development());
+    let foreign_runtime = runtime(BridgeRuntimePolicy::development());
+    let yielded = yielded_basis(&owner_runtime);
+    let pending = pending_readmission(&owner_runtime, yielded, "attempt-b");
+    let commit = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        foreign_runtime.commit_yielded_execution_basis_readmission(pending)
+    }));
+    assert!(
+        commit.is_err(),
+        "foreign RuntimeBridge must not mint an active basis from owner pending authority"
+    );
 }
 
 #[test]
@@ -131,7 +148,8 @@ fn reused_query_attempt_denies_before_signal_admission_and_preserves_retry() {
         BridgeExecutionBasisReadmissionDenialKind::AttemptIdentityReused
     );
     assert_eq!(denial.counters().signal_attempt_admission_count(), 0);
-    let basis = pending_readmission(&runtime, denial.into_yielded(), "attempt-b").commit();
+    let pending = pending_readmission(&runtime, denial.into_yielded(), "attempt-b");
+    let basis = runtime.commit_yielded_execution_basis_readmission(pending);
     basis
         .finalize(BridgeExecutionBasisTerminalDisposition::Cancelled)
         .expect("attempt-reuse denial should preserve retry authority");

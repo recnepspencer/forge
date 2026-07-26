@@ -1,11 +1,14 @@
 mod counters;
 mod direct;
 mod direct_outcome;
+mod direct_preflight;
 mod direct_state;
 mod workflow;
 mod workflow_abort;
+mod workflow_completion;
 mod workflow_outcome;
 mod workflow_preflight;
+mod workflow_recovery;
 mod workflow_state;
 
 pub use counters::WorthQueryReadmissionCounters;
@@ -16,8 +19,10 @@ pub use direct_outcome::{
 };
 pub use workflow_outcome::{
     WorthQueryWorkflowReadmissionDenialKind, WorthQueryWorkflowReadmissionDenied,
-    WorthQueryWorkflowReadmissionOutcome, WorthQueryWorkflowReadmissionRecoveryKind,
-    WorthQueryWorkflowReadmissionRecoveryRequired,
+    WorthQueryWorkflowReadmissionOutcome,
+};
+pub use workflow_recovery::{
+    WorthQueryWorkflowReadmissionRecoveryKind, WorthQueryWorkflowReadmissionRecoveryRequired,
     WorthQueryWorkflowReadmissionRecoveryRetryOutcome,
 };
 

@@ -19,7 +19,15 @@ use super::direct_outcome::{
     WorthQueryDirectReadmissionOutcome, WorthQueryDirectReadmissionRecoveryKind,
     WorthQueryDirectReadmissionRecoveryRequired,
 };
-use super::direct_state::{WorthQueryDirectYieldedParts, WorthQueryDirectYieldedState};
+use super::direct_preflight::{
+    validate_direct_resume_preflight, WorthQueryDirectResumePreflightValidated,
+};
+use super::direct_state::{
+    WorthQueryDirectBridgeCleanupRecoveryState, WorthQueryDirectBridgeReadmissionPending,
+    WorthQueryDirectCommitReady, WorthQueryDirectProviderRecoveryState,
+    WorthQueryDirectProviderRestorePending, WorthQueryDirectProvisionalResourceAttempt,
+    WorthQueryDirectRollbackPending, WorthQueryDirectYieldedParts,
+};
 use crate::domain_computation::provider_session::readmission::WorthQueryDirectResourceReadmissionPending;
 use crate::domain_computation::WorthQueryExecutionRuntime;
 
@@ -30,136 +38,173 @@ pub(in crate::domain_computation::managed_run) fn readmit_direct(
 ) -> WorthQueryDirectReadmissionOutcome {
     let mut counters = WorthQueryReadmissionCounters::default();
     counters.checked_preflight();
-    if let Some((kind, detail)) = query_preflight_denial(&yielded, query_runtime) {
-        return denied(kind, detail, yielded, counters);
-    }
-    let parts = WorthQueryDirectYieldedParts::from_yielded(yielded);
-    let binding_identity = parts
-        .resource_attempt
-        .binding_authority()
-        .binding_identity()
-        .to_owned();
-    let bridge_preflight =
-        match bridge_runtime.preflight_yielded_execution_basis(parts.bridge, &binding_identity) {
-            Ok(preflight) => preflight,
-            Err(denial) => {
-                let detail = Arc::from(denial.detail());
-                return denied(
-                    WorthQueryDirectReadmissionDenialKind::BridgeReadmissionDenied,
-                    detail,
-                    WorthQueryDirectYieldedParts {
-                        state: parts.state,
-                        resource_attempt: parts.resource_attempt,
-                        bridge: denial.into_yielded(),
-                        execution: parts.execution,
-                    }
-                    .into_yielded(),
-                    counters,
-                );
-            }
-        };
-    let resource_pending =
-        WorthQueryDirectResourceReadmissionPending::begin(parts.resource_attempt);
+    let preflight = match validate_direct_resume_preflight(yielded, query_runtime, bridge_runtime) {
+        Ok(preflight) => preflight,
+        Err(denial) => {
+            let (kind, detail, yielded) = denial.into_parts();
+            return denied(kind, detail, yielded, counters);
+        }
+    };
+    let provisional = match begin_resource_attempt(preflight, counters) {
+        Ok((provisional, next_counters)) => {
+            counters = next_counters;
+            provisional
+        }
+        Err(outcome) => return outcome,
+    };
+    let pending = match begin_bridge_readmission(provisional, bridge_runtime, counters) {
+        Ok((pending, next_counters)) => {
+            counters = next_counters;
+            pending
+        }
+        Err(outcome) => return outcome,
+    };
+    restore_direct(pending, bridge_runtime, counters)
+}
+
+fn begin_resource_attempt(
+    preflight: WorthQueryDirectResumePreflightValidated,
+    mut counters: WorthQueryReadmissionCounters,
+) -> Result<
+    (
+        WorthQueryDirectProvisionalResourceAttempt,
+        WorthQueryReadmissionCounters,
+    ),
+    WorthQueryDirectReadmissionOutcome,
+> {
+    let parts = preflight.into_parts();
+    let resource = WorthQueryDirectResourceReadmissionPending::begin(parts.resource_attempt);
     counters.minted_fresh_resource_attempt();
+    let fresh_call = match parts
+        .execution
+        .call
+        .remint_for_readmission(resource.provider_session(), resource.evidence())
+    {
+        Ok(call) => call,
+        Err(denial) => {
+            return Err(denied(
+                WorthQueryDirectReadmissionDenialKind::ProviderCallBindingDenied,
+                format!("provider call readmission denied: {denial:?}"),
+                WorthQueryDirectYieldedParts {
+                    state: parts.state,
+                    resource_attempt: resource.abort(),
+                    bridge: parts.bridge.into_yielded(),
+                    execution: parts.execution,
+                }
+                .into_yielded(),
+                counters,
+            ));
+        }
+    };
+    Ok((
+        WorthQueryDirectProvisionalResourceAttempt {
+            state: parts.state,
+            execution: parts.execution,
+            resource,
+            bridge: parts.bridge,
+            fresh_call,
+            contract: parts.contract,
+            binding_identity: parts.binding_identity,
+        },
+        counters,
+    ))
+}
+
+fn begin_bridge_readmission(
+    provisional: WorthQueryDirectProvisionalResourceAttempt,
+    bridge_runtime: &RuntimeBridge,
+    mut counters: WorthQueryReadmissionCounters,
+) -> Result<
+    (
+        WorthQueryDirectBridgeReadmissionPending,
+        WorthQueryReadmissionCounters,
+    ),
+    WorthQueryDirectReadmissionOutcome,
+> {
     let intent = BridgeManagedExecutionIntent::new(
-        binding_identity,
-        resource_pending.attempt_identity().as_str(),
+        provisional.binding_identity,
+        provisional.resource.attempt_identity().as_str(),
     );
     counters.attempted_bridge_readmission();
-    let bridge_pending =
-        match bridge_runtime.readmit_yielded_execution_basis(bridge_preflight, intent) {
-            BridgeExecutionBasisReadmissionOutcome::Pending(pending) => pending,
-            BridgeExecutionBasisReadmissionOutcome::Denied(denial) => {
-                let detail = Arc::from(denial.detail());
-                return denied(
-                    WorthQueryDirectReadmissionDenialKind::BridgeReadmissionDenied,
+    match bridge_runtime.readmit_yielded_execution_basis(provisional.bridge, intent) {
+        BridgeExecutionBasisReadmissionOutcome::Pending(bridge) => Ok((
+            WorthQueryDirectBridgeReadmissionPending {
+                state: provisional.state,
+                execution: provisional.execution,
+                resource: provisional.resource,
+                bridge,
+                fresh_call: provisional.fresh_call,
+                contract: provisional.contract,
+            },
+            counters,
+        )),
+        BridgeExecutionBasisReadmissionOutcome::Denied(denial) => {
+            let detail = Arc::from(denial.detail());
+            Err(denied(
+                WorthQueryDirectReadmissionDenialKind::BridgeReadmissionDenied,
+                detail,
+                WorthQueryDirectYieldedParts {
+                    state: provisional.state,
+                    resource_attempt: provisional.resource.abort(),
+                    bridge: denial.into_yielded(),
+                    execution: provisional.execution,
+                }
+                .into_yielded(),
+                counters,
+            ))
+        }
+        BridgeExecutionBasisReadmissionOutcome::RecoveryRequired(recovery) => {
+            let detail = Arc::from(recovery.detail());
+            Err(WorthQueryDirectReadmissionOutcome::RecoveryRequired(
+                WorthQueryDirectReadmissionRecoveryRequired::bridge_cleanup(
                     detail,
-                    WorthQueryDirectYieldedParts {
-                        state: parts.state,
-                        resource_attempt: resource_pending.abort(),
-                        bridge: denial.into_yielded(),
-                        execution: parts.execution,
-                    }
-                    .into_yielded(),
                     counters,
-                );
-            }
-            BridgeExecutionBasisReadmissionOutcome::RecoveryRequired(recovery) => {
-                let detail = Arc::from(recovery.detail());
-                return WorthQueryDirectReadmissionOutcome::RecoveryRequired(
-                    WorthQueryDirectReadmissionRecoveryRequired::bridge_cleanup(
-                        detail,
-                        counters,
-                        parts.state,
-                        resource_pending.abort(),
-                        parts.execution,
-                        recovery,
-                    ),
-                );
-            }
-        };
-    restore_direct(
-        parts.state,
-        parts.execution,
-        resource_pending,
-        bridge_pending,
-        counters,
-    )
+                    WorthQueryDirectBridgeCleanupRecoveryState {
+                        state: provisional.state,
+                        resource_attempt: provisional.resource.abort(),
+                        execution: provisional.execution,
+                        bridge: recovery,
+                    },
+                ),
+            ))
+        }
+    }
 }
 
 fn restore_direct(
-    state: WorthQueryDirectYieldedState,
-    execution: super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
-    resource_pending: WorthQueryDirectResourceReadmissionPending,
-    bridge_pending: worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionPending,
+    pending: WorthQueryDirectBridgeReadmissionPending,
+    bridge_runtime: &RuntimeBridge,
     mut counters: WorthQueryReadmissionCounters,
 ) -> WorthQueryDirectReadmissionOutcome {
-    let contract = match super::super::step_contract_admission::admit_managed_step_contract(
-        execution.contract().clone(),
-        bridge_pending.step_contract(),
-    ) {
-        Ok(contract) => contract,
-        Err(denial) => {
-            return abort_to_denial(
-                WorthQueryDirectReadmissionDenialKind::ProviderStepContractDenied(denial.kind()),
-                denial.detail(),
-                state,
-                execution,
-                resource_pending,
-                bridge_pending,
-                counters,
-            )
-        }
-    };
-    let fresh_call = match execution.call.remint_for_readmission(
-        resource_pending.provider_session(),
-        resource_pending.evidence(),
-    ) {
-        Ok(call) => call,
-        Err(denial) => {
-            return abort_to_denial(
-                WorthQueryDirectReadmissionDenialKind::ProviderCallBindingDenied,
-                format!("provider call readmission denied: {denial:?}"),
-                state,
-                execution,
-                resource_pending,
-                bridge_pending,
-                counters,
-            );
-        }
-    };
+    let WorthQueryDirectBridgeReadmissionPending {
+        state,
+        execution,
+        resource: resource_pending,
+        bridge: bridge_pending,
+        fresh_call,
+        contract,
+    } = pending;
     counters.attempted_provider_restore();
-    let provider_pending = match provider_restore::restore(execution, fresh_call, contract) {
-        WorthQueryManagedGraphRestoreOutcome::Pending(pending) => pending,
+    let provider = match provider_restore::restore(execution, fresh_call, contract) {
+        WorthQueryManagedGraphRestoreOutcome::Pending(provider) => {
+            WorthQueryDirectProviderRestorePending {
+                state,
+                provider,
+                resource: resource_pending,
+                bridge: bridge_pending,
+            }
+        }
         WorthQueryManagedGraphRestoreOutcome::Denied(denial) => {
             let detail = Arc::from(denial.detail());
             return abort_to_denial(
                 WorthQueryDirectReadmissionDenialKind::ProviderRestoreDenied,
                 detail,
-                state,
-                denial.into_retained(),
-                resource_pending,
-                bridge_pending,
+                WorthQueryDirectRollbackPending {
+                    state,
+                    execution: denial.into_retained(),
+                    resource: resource_pending,
+                    bridge: bridge_pending,
+                },
                 counters,
             );
         }
@@ -171,15 +216,31 @@ fn restore_direct(
                     kind,
                     detail,
                     counters,
-                    state,
-                    resource_pending,
-                    bridge_pending,
-                    recovery,
+                    WorthQueryDirectProviderRecoveryState {
+                        state,
+                        resource: resource_pending,
+                        bridge: bridge_pending,
+                        provider: recovery,
+                    },
                 ),
             );
         }
     };
-    let execution = match provider_pending.commit(None) {
+    commit_provider_restore(provider, bridge_runtime, counters)
+}
+
+fn commit_provider_restore(
+    pending: WorthQueryDirectProviderRestorePending,
+    bridge_runtime: &RuntimeBridge,
+    counters: WorthQueryReadmissionCounters,
+) -> WorthQueryDirectReadmissionOutcome {
+    let WorthQueryDirectProviderRestorePending {
+        state,
+        provider,
+        resource,
+        bridge,
+    } = pending;
+    let execution = match provider.commit(None) {
         WorthQueryManagedGraphRestoreCommitOutcome::Restored(execution) => execution,
         WorthQueryManagedGraphRestoreCommitOutcome::RecoveryRequired(recovery) => {
             let kind = recovery_kind(recovery.kind());
@@ -189,16 +250,41 @@ fn restore_direct(
                     kind,
                     detail,
                     counters,
-                    state,
-                    resource_pending,
-                    bridge_pending,
-                    recovery,
+                    WorthQueryDirectProviderRecoveryState {
+                        state,
+                        resource,
+                        bridge,
+                        provider: recovery,
+                    },
                 ),
             );
         }
     };
-    let bridge_basis = bridge_pending.commit();
-    let resource_attempt = resource_pending.commit();
+    commit_direct(
+        WorthQueryDirectCommitReady {
+            state,
+            execution,
+            resource,
+            bridge,
+        },
+        bridge_runtime,
+        counters,
+    )
+}
+
+fn commit_direct(
+    pending: WorthQueryDirectCommitReady,
+    bridge_runtime: &RuntimeBridge,
+    mut counters: WorthQueryReadmissionCounters,
+) -> WorthQueryDirectReadmissionOutcome {
+    let WorthQueryDirectCommitReady {
+        state,
+        execution,
+        resource,
+        bridge,
+    } = pending;
+    let bridge_basis = bridge_runtime.commit_yielded_execution_basis_readmission(bridge);
+    let resource_attempt = resource.commit();
     let identity = WorthQueryManagedRunIdentity::resumed(
         "direct",
         Arc::clone(&state.logical_run_identity),
@@ -228,20 +314,23 @@ fn restore_direct(
 fn abort_to_denial(
     kind: WorthQueryDirectReadmissionDenialKind,
     detail: impl Into<Arc<str>>,
-    state: WorthQueryDirectYieldedState,
-    execution: super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
-    resource_pending: WorthQueryDirectResourceReadmissionPending,
-    bridge_pending: worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionPending,
+    pending: WorthQueryDirectRollbackPending,
     counters: WorthQueryReadmissionCounters,
 ) -> WorthQueryDirectReadmissionOutcome {
     let detail = detail.into();
-    match bridge_pending.abort() {
+    let WorthQueryDirectRollbackPending {
+        state,
+        execution,
+        resource,
+        bridge,
+    } = pending;
+    match bridge.abort() {
         BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => denied(
             kind,
             detail,
             WorthQueryDirectYieldedParts {
                 state,
-                resource_attempt: resource_pending.abort(),
+                resource_attempt: resource.abort(),
                 bridge,
                 execution,
             }
@@ -253,56 +342,16 @@ fn abort_to_denial(
                 WorthQueryDirectReadmissionRecoveryRequired::bridge_cleanup(
                     format!("{detail}; Bridge cleanup failed: {}", recovery.detail()),
                     counters,
-                    state,
-                    resource_pending.abort(),
-                    execution,
-                    recovery,
+                    WorthQueryDirectBridgeCleanupRecoveryState {
+                        state,
+                        resource_attempt: resource.abort(),
+                        execution,
+                        bridge: recovery,
+                    },
                 ),
             )
         }
     }
-}
-
-fn query_preflight_denial(
-    yielded: &WorthQueryYieldedDirectRun,
-    runtime: &WorthQueryExecutionRuntime,
-) -> Option<(WorthQueryDirectReadmissionDenialKind, &'static str)> {
-    let operation = yielded.resource_attempt.binding_authority();
-    if !operation.belongs_to(runtime) {
-        return Some((
-            WorthQueryDirectReadmissionDenialKind::ForeignQueryRuntime,
-            "yielded run belongs to a different Query execution runtime",
-        ));
-    }
-    if !operation.belongs_to_current_installation(runtime) {
-        return Some((
-            WorthQueryDirectReadmissionDenialKind::StaleInstallationGeneration,
-            "yielded run belongs to a stale installed-operation generation",
-        ));
-    }
-    if yielded
-        .resource_attempt
-        .retained_capacity_reservation_count()
-        == 0
-    {
-        return Some((
-            WorthQueryDirectReadmissionDenialKind::RetainedCapacityMismatch,
-            "yielded run no longer owns its nonempty capacity-reservation package",
-        ));
-    }
-    if !yielded.relational_basis.is_live() {
-        return Some((
-            WorthQueryDirectReadmissionDenialKind::RelationalLeaseNotLive,
-            "yielded Relational execution-basis lease is no longer live",
-        ));
-    }
-    if !yielded.execution.provider_generation_matches_anchor() {
-        return Some((
-            WorthQueryDirectReadmissionDenialKind::ProviderCheckpointMismatch,
-            "provider checkpoint generation no longer matches its retained provider anchor",
-        ));
-    }
-    None
 }
 
 fn denied(
