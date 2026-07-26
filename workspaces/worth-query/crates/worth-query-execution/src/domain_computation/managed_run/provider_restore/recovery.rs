@@ -21,19 +21,6 @@ pub(in crate::domain_computation::managed_run) struct WorthQueryManagedGraphRest
     resource: WorthQueryManagedGraphRestoreRecoveryResource,
 }
 
-pub(in crate::domain_computation::managed_run) struct WorthQueryRetryableManagedGraphRestore {
-    pub(in crate::domain_computation::managed_run) retained:
-        WorthQueryRetainedManagedGraphExecution,
-    pub(in crate::domain_computation::managed_run) restored_execution_release:
-        Option<WorthQueryProviderExecutionReleaseEvidence>,
-}
-
-pub(in crate::domain_computation::managed_run) enum WorthQueryManagedGraphRestoreRecoveryRetryOutcome
-{
-    Retryable(WorthQueryRetryableManagedGraphRestore),
-    CleanupRequired(WorthQueryManagedGraphRestoreCleanupRequired),
-}
-
 pub(in crate::domain_computation::managed_run) struct WorthQueryManagedGraphRestoreCleanupRequired {
     checkpoint: WorthQueryManagedGraphRestoreCleanupCheckpoint,
     restored_execution_release: Option<WorthQueryProviderExecutionReleaseEvidence>,
@@ -160,40 +147,6 @@ impl WorthQueryManagedGraphRestoreRecoveryRequired {
                 restored_execution, ..
             } => Some(restored_execution),
         }
-    }
-
-    pub(in crate::domain_computation::managed_run) fn retry_or_cleanup(
-        self,
-    ) -> WorthQueryManagedGraphRestoreRecoveryRetryOutcome {
-        let cleanup = match self.resource {
-            WorthQueryManagedGraphRestoreRecoveryResource::Retained(retained) => {
-                return WorthQueryManagedGraphRestoreRecoveryRetryOutcome::Retryable(
-                    WorthQueryRetryableManagedGraphRestore {
-                        retained,
-                        restored_execution_release: None,
-                    },
-                );
-            }
-            WorthQueryManagedGraphRestoreRecoveryResource::RetainedAfterRestoredRelease {
-                retained,
-                restored_execution,
-            } => {
-                return WorthQueryManagedGraphRestoreRecoveryRetryOutcome::Retryable(
-                    WorthQueryRetryableManagedGraphRestore {
-                        retained,
-                        restored_execution_release: Some(restored_execution),
-                    },
-                );
-            }
-            WorthQueryManagedGraphRestoreRecoveryResource::Released {
-                checkpoint,
-                restored_execution,
-            } => WorthQueryManagedGraphRestoreCleanupRequired {
-                checkpoint: WorthQueryManagedGraphRestoreCleanupCheckpoint::Released(checkpoint),
-                restored_execution_release: Some(restored_execution),
-            },
-        };
-        WorthQueryManagedGraphRestoreRecoveryRetryOutcome::CleanupRequired(cleanup)
     }
 
     pub(in crate::domain_computation::managed_run) fn into_cleanup(
