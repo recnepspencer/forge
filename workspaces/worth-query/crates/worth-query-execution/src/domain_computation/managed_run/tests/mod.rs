@@ -13,6 +13,7 @@ mod provider_work;
 mod readmission_checkpoint_export;
 mod readmission_direct;
 mod readmission_parity;
+mod readmission_preflight;
 mod readmission_recovery_topology;
 mod readmission_workflow;
 mod safe_point_observation;
@@ -99,21 +100,24 @@ use crate::domain_computation::{
     WorthQueryRunningDirectRun, WorthQueryWorkflowRunCleanupOutcome,
 };
 
-fn admit_provider_execution<E>(
+fn admit_provider_execution<E: WorthQueryGraphProviderExecution>(
     start: &mut WorthQueryGraphProviderExecutionStart,
     execution: E,
 ) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderFailure> {
     start
-        .admit_cooperative_execution(execution)
+        .admit_cooperative_execution(|| execution)
         .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
 }
 
-fn admit_restored_provider_execution<E>(
+fn admit_restored_provider_execution(
     memory: &mut WorthQueryGraphProviderRestoreMemory,
-    execution: E,
-) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderFailure> {
+    execution: Box<dyn WorthQueryGraphProviderExecution>,
+) -> Result<
+    WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+    WorthQueryGraphProviderFailure,
+> {
     memory
-        .admit_cooperative_execution(execution)
+        .admit_cooperative_execution(|| execution)
         .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
 }
 

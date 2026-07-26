@@ -99,6 +99,11 @@ pub(super) fn map_recovery_kind(
         WorthQueryManagedGraphRestoreRecoveryKind::ProviderRestorePanicked => {
             WorthQueryWorkflowReadmissionRecoveryKind::ProviderRestorePanicked
         }
+        WorthQueryManagedGraphRestoreRecoveryKind::
+            ProviderRestoreRejectedAfterExecutionAdmission => {
+                WorthQueryWorkflowReadmissionRecoveryKind::
+                    ProviderRestoreRejectedAfterExecutionAdmission
+            }
         WorthQueryManagedGraphRestoreRecoveryKind::RestoredExecutionReleaseRecoveryRequired => {
             WorthQueryWorkflowReadmissionRecoveryKind::RestoredExecutionReleaseRecoveryRequired
         }

@@ -1,19 +1,29 @@
+use std::marker::PhantomData;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_COOPERATIVE_EXECUTION_ADMISSION: AtomicU64 = AtomicU64::new(1);
+
 /// Move-only proof that a native provider execution was admitted through the
 /// exact runtime-owned start or restore port.
 ///
-/// The wrapper's fields and constructor are private. Returning a raw execution
-/// from provider authoring code therefore cannot satisfy the provider contract.
+/// The runtime-owned port takes physical ownership of the execution before
+/// returning this proof. The proof's fields and constructor are private, so
+/// returning a raw execution cannot satisfy the provider contract and a
+/// provider panic cannot destroy an already-admitted execution in its own
+/// stack frame.
 #[must_use = "cooperative execution admission must be returned to the runtime"]
 pub struct WorthQueryCooperativeGraphProviderExecution<E> {
     arena_identity: u64,
-    execution: E,
+    admission_identity: u64,
+    execution_type: PhantomData<fn() -> E>,
 }
 
 impl<E> WorthQueryCooperativeGraphProviderExecution<E> {
-    pub(super) const fn new(arena_identity: u64, execution: E) -> Self {
+    pub(super) const fn new(arena_identity: u64, admission_identity: u64) -> Self {
         Self {
             arena_identity,
-            execution,
+            admission_identity,
+            execution_type: PhantomData,
         }
     }
 
@@ -21,8 +31,8 @@ impl<E> WorthQueryCooperativeGraphProviderExecution<E> {
         self.arena_identity
     }
 
-    pub(super) fn into_execution(self) -> E {
-        self.execution
+    pub(super) const fn admission_identity(&self) -> u64 {
+        self.admission_identity
     }
 }
 
@@ -31,6 +41,11 @@ impl<E> std::fmt::Debug for WorthQueryCooperativeGraphProviderExecution<E> {
         formatter
             .debug_struct("WorthQueryCooperativeGraphProviderExecution")
             .field("arena_identity", &self.arena_identity)
+            .field("admission_identity", &self.admission_identity)
             .finish_non_exhaustive()
     }
+}
+
+pub(super) fn next_cooperative_execution_admission_identity() -> u64 {
+    NEXT_COOPERATIVE_EXECUTION_ADMISSION.fetch_add(1, Ordering::Relaxed)
 }

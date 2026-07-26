@@ -103,7 +103,7 @@ impl WorthQueryGraphParticipationProvider<CompilePassGraph> for CompilePassProvi
         WorthQueryGraphProviderFailure,
     > {
         start
-            .admit_cooperative_execution(CompilePassExecution)
+            .admit_cooperative_execution(|| CompilePassExecution)
             .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }

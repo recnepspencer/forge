@@ -45,6 +45,7 @@ pub(super) struct WorthQueryManagedGraphRestoreDenied {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryManagedGraphRestoreRecoveryKind {
     ProviderRestorePanicked,
+    ProviderRestoreRejectedAfterExecutionAdmission,
     RestoredExecutionReleaseRecoveryRequired,
     CheckpointReleasePanicked,
 }
@@ -53,6 +54,11 @@ pub(super) struct WorthQueryManagedGraphRestoreRecoveryRequired {
     kind: WorthQueryManagedGraphRestoreRecoveryKind,
     detail: Arc<str>,
     resource: WorthQueryManagedGraphRestoreRecoveryResource,
+}
+
+pub(super) struct WorthQueryRetryableManagedGraphRestore {
+    pub(super) retained: WorthQueryRetainedManagedGraphExecution,
+    pub(super) restored_execution_release: Option<WorthQueryProviderExecutionReleaseEvidence>,
 }
 
 pub(super) enum WorthQueryManagedGraphRestoreRecoveryResource {
@@ -73,19 +79,46 @@ pub(super) fn restore(
     contract: super::step_contract_admission::WorthQueryAdmittedManagedStepContract,
 ) -> WorthQueryManagedGraphRestoreOutcome {
     let mut memory = WorthQueryGraphProviderRestoreMemory::new(retained.memory.clone());
-    match retained.checkpoint.invoke_restore(&fresh_call, &mut memory) {
+    let invocation = retained.checkpoint.invoke_restore(&fresh_call, &mut memory);
+    let unreturned_execution_release = memory.release_unreturned_execution();
+    match invocation {
         WorthQueryProviderCheckpointRestoreInvocation::Returned(Err(failure)) => {
-            WorthQueryManagedGraphRestoreOutcome::Denied(WorthQueryManagedGraphRestoreDenied {
-                detail: Arc::from(failure.detail()),
-                retained,
-            })
+            if let Some(restored_execution) = unreturned_execution_release {
+                WorthQueryManagedGraphRestoreOutcome::RecoveryRequired(
+                    WorthQueryManagedGraphRestoreRecoveryRequired {
+                        kind: WorthQueryManagedGraphRestoreRecoveryKind::
+                            ProviderRestoreRejectedAfterExecutionAdmission,
+                        detail: Arc::from(failure.detail()),
+                        resource:
+                            WorthQueryManagedGraphRestoreRecoveryResource::
+                                RetainedAfterRestoredRelease {
+                                    retained,
+                                    restored_execution,
+                                },
+                    },
+                )
+            } else {
+                WorthQueryManagedGraphRestoreOutcome::Denied(WorthQueryManagedGraphRestoreDenied {
+                    detail: Arc::from(failure.detail()),
+                    retained,
+                })
+            }
         }
         WorthQueryProviderCheckpointRestoreInvocation::Panicked => {
             WorthQueryManagedGraphRestoreOutcome::RecoveryRequired(
                 WorthQueryManagedGraphRestoreRecoveryRequired {
                     kind: WorthQueryManagedGraphRestoreRecoveryKind::ProviderRestorePanicked,
                     detail: Arc::from("provider checkpoint restore panicked"),
-                    resource: WorthQueryManagedGraphRestoreRecoveryResource::Retained(retained),
+                    resource: match unreturned_execution_release {
+                        Some(restored_execution) => {
+                            WorthQueryManagedGraphRestoreRecoveryResource::
+                                RetainedAfterRestoredRelease {
+                                    retained,
+                                    restored_execution,
+                                }
+                        }
+                        None => WorthQueryManagedGraphRestoreRecoveryResource::Retained(retained),
+                    },
                 },
             )
         }
@@ -282,18 +315,26 @@ impl WorthQueryManagedGraphRestoreRecoveryRequired {
         }
     }
 
-    pub(super) fn into_retained(self) -> Result<WorthQueryRetainedManagedGraphExecution, Self> {
+    pub(super) fn into_retryable(self) -> Result<WorthQueryRetryableManagedGraphRestore, Self> {
         let Self {
             kind,
             detail,
             resource,
         } = self;
         match resource {
-            WorthQueryManagedGraphRestoreRecoveryResource::Retained(retained)
-            | WorthQueryManagedGraphRestoreRecoveryResource::RetainedAfterRestoredRelease {
+            WorthQueryManagedGraphRestoreRecoveryResource::Retained(retained) => {
+                Ok(WorthQueryRetryableManagedGraphRestore {
+                    retained,
+                    restored_execution_release: None,
+                })
+            }
+            WorthQueryManagedGraphRestoreRecoveryResource::RetainedAfterRestoredRelease {
                 retained,
-                ..
-            } => Ok(retained),
+                restored_execution,
+            } => Ok(WorthQueryRetryableManagedGraphRestore {
+                retained,
+                restored_execution_release: Some(restored_execution),
+            }),
             resource @ WorthQueryManagedGraphRestoreRecoveryResource::Released { .. } => {
                 Err(Self {
                     kind,

@@ -323,6 +323,11 @@ fn recovery_kind(
         WorthQueryManagedGraphRestoreRecoveryKind::ProviderRestorePanicked => {
             WorthQueryDirectReadmissionRecoveryKind::ProviderRestorePanicked
         }
+        WorthQueryManagedGraphRestoreRecoveryKind::
+            ProviderRestoreRejectedAfterExecutionAdmission => {
+                WorthQueryDirectReadmissionRecoveryKind::
+                    ProviderRestoreRejectedAfterExecutionAdmission
+            }
         WorthQueryManagedGraphRestoreRecoveryKind::RestoredExecutionReleaseRecoveryRequired => {
             WorthQueryDirectReadmissionRecoveryKind::RestoredExecutionReleaseRecoveryRequired
         }

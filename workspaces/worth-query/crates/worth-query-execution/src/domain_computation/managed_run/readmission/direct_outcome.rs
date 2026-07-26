@@ -33,6 +33,7 @@ pub enum WorthQueryDirectReadmissionDenialKind {
 pub enum WorthQueryDirectReadmissionRecoveryKind {
     BridgeCleanupFailed,
     ProviderRestorePanicked,
+    ProviderRestoreRejectedAfterExecutionAdmission,
     RestoredExecutionReleaseRecoveryRequired,
     CheckpointReleasePanicked,
 }
@@ -268,21 +269,26 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
                 counters,
             )),
             WorthQueryDirectReadmissionRecoveryResource::Provider {
-                state,
+                mut state,
                 resource_attempt,
                 bridge,
                 provider,
             } => {
-                let execution = match provider.into_retained() {
-                    Ok(execution) => execution,
+                let retryable = match provider.into_retryable() {
+                    Ok(retryable) => retryable,
                     Err(_) => {
                         unreachable!("retained checkpoint posture was checked before recovery")
                     }
                 };
+                if let Some(release) = &retryable.restored_execution_release {
+                    state
+                        .provider_work
+                        .record_provider_execution_release(release);
+                }
                 Ok(retry_direct_bridge_cleanup(
                     state,
                     resource_attempt.abort(),
-                    execution,
+                    retryable.retained,
                     bridge.abort(),
                     counters,
                 ))

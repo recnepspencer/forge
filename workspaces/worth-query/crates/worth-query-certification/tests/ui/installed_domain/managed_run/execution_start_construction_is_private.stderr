@@ -18,7 +18,7 @@ error: cannot construct `WorthQueryGraphProviderExecutionStart` with struct lite
 6 |         denial: None,
   |         ------------ private field
   |
-  = note: ...and other private field `execution_admission_issued` that was not provided
+  = note: ...and other private fields `execution_admission_identity` and `admitted_execution` that were not provided
 help: you might have meant to use the `new` associated function
   |
 4 -     WorthQueryGraphProviderExecutionStart {

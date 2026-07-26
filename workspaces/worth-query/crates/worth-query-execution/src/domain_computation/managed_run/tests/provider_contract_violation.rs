@@ -7,6 +7,7 @@ enum HostilePort {
     OutputThenFailure,
     Scratch,
     Retained,
+    Artifact,
     Checkpoint,
     NoProgress,
 }
@@ -43,6 +44,15 @@ impl WorthQueryGraphProviderExecution for HostileExecution {
             HostilePort::Retained => {
                 step.perform_work_unit(|| Ok(()))?;
                 let _ = step.retain_bytes(4_097);
+            }
+            HostilePort::Artifact => {
+                let _ = step.produce_artifact(
+                    WorthQueryArtifactProductionEvidence::new(
+                        "hostile-artifact",
+                        "missing-artifact-authority",
+                    ),
+                    HostileArtifact,
+                );
             }
             HostilePort::Checkpoint => {
                 step.perform_work_unit(|| Ok(()))?;
@@ -101,6 +111,10 @@ fn ignored_governed_denials_and_zero_progress_completion_cannot_advance() {
             WorthQueryGraphProviderStepDenialKind::RetainedBudgetExceeded,
         ),
         (
+            HostilePort::Artifact,
+            WorthQueryGraphProviderStepDenialKind::ArtifactAdmissionDenied,
+        ),
+        (
             HostilePort::Checkpoint,
             WorthQueryGraphProviderStepDenialKind::MultipleCheckpoints,
         ),
@@ -145,6 +159,22 @@ fn ignored_governed_denials_and_zero_progress_completion_cannot_advance() {
             .cleanup()
             .expect("failed hostile step should clean up");
     }
+}
+
+struct HostileArtifact;
+
+impl WorthQueryArtifactProviderResource for HostileArtifact {
+    const PROVIDER_FAMILY: &'static str = "WORTH.tests.hostile-artifact";
+
+    fn canonical_semantic_projection(&self) -> Vec<u8> {
+        b"hostile-artifact".to_vec()
+    }
+
+    fn retained_bytes(&self) -> usize {
+        1
+    }
+
+    fn dispose(&mut self) {}
 }
 
 #[test]

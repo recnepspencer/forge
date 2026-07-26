@@ -203,6 +203,96 @@ fn provider_restore_panic_remains_typed_recovery_with_retained_authority() {
 }
 
 #[test]
+fn provider_restore_rejection_after_admission_carries_exact_release_evidence() {
+    let (yielded, bridge, runtime) =
+        yielded_direct_with_provider(YieldProvider::checkpoint_restore_reject_after_admission(7));
+    let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::RecoveryRequired(
+            recovery,
+        ) => recovery,
+        _ => panic!("post-admission restore rejection became ordinary retryable denial"),
+    };
+    assert_eq!(
+        recovery.kind(),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryKind::
+            ProviderRestoreRejectedAfterExecutionAdmission
+    );
+    let release = recovery
+        .restored_execution_release_evidence()
+        .expect("rejected admitted restore must carry physical-release evidence");
+    assert_eq!(
+        release.disposal(),
+        crate::domain_computation::WorthQueryProviderExecutionDisposalDisposition::Completed
+    );
+    assert_eq!(
+        release.destructor(),
+        crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Completed
+    );
+    assert!(recovery.checkpoint_authority_retained());
+    let yielded = match recovery.retry_to_yielded() {
+        Ok(
+            crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
+                yielded,
+            ),
+        ) => yielded,
+        _ => panic!("successfully released replacement should restore yielded authority"),
+    };
+    complete_direct_yield_cleanup(yielded);
+}
+
+#[test]
+fn restore_panic_and_replacement_destructor_panic_flow_into_yielded_cleanup() {
+    let (yielded, bridge, runtime) =
+        yielded_direct_with_provider(YieldProvider::checkpoint_restore_panic_after_admission(7));
+    let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::RecoveryRequired(
+            recovery,
+        ) => recovery,
+        _ => panic!("double restore failure escaped typed recovery"),
+    };
+    assert_eq!(
+        recovery.kind(),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryKind::ProviderRestorePanicked
+    );
+    let release = recovery
+        .restored_execution_release_evidence()
+        .expect("restore panic must retain replacement release evidence");
+    assert_eq!(
+        release.disposal(),
+        crate::domain_computation::WorthQueryProviderExecutionDisposalDisposition::Completed
+    );
+    assert_eq!(
+        release.destructor(),
+        crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Panicked
+    );
+    assert!(recovery.checkpoint_authority_retained());
+    let yielded = match recovery.retry_to_yielded() {
+        Ok(
+            crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
+                yielded,
+            ),
+        ) => yielded,
+        _ => panic!("retained checkpoint recovery did not return yielded authority"),
+    };
+    let carried_release = yielded
+        .provider_work()
+        .provider_execution_release()
+        .recovery_evidence()
+        .cloned()
+        .expect("yielded authority must retain replacement release uncertainty");
+    assert_eq!(
+        carried_release.destructor(),
+        crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Panicked
+    );
+    let cleanup = complete_direct_yield_cleanup(yielded);
+    assert!(cleanup
+        .provider_work()
+        .provider_execution_release()
+        .recovery_evidence()
+        .is_some());
+}
+
+#[test]
 fn checkpoint_release_panic_reports_exact_non_retryable_physical_posture() {
     let (yielded, bridge, runtime) =
         yielded_direct_with_provider(YieldProvider::checkpoint_drop_panic());
@@ -241,74 +331,4 @@ fn checkpoint_release_panic_reports_exact_non_retryable_physical_posture() {
         _ => panic!("released checkpoint recovery must not claim retry safety"),
     };
     assert!(!recovery.checkpoint_authority_retained());
-}
-
-#[test]
-fn foreign_bridge_denies_before_fresh_query_or_provider_work_and_preserves_retry() {
-    let (yielded, bridge, runtime) = yielded_direct();
-    let checkpoint = yielded.checkpoint().identity().to_owned();
-    let resource_attempt = yielded.resource_attempt_identity().to_owned();
-    let foreign_bridge = super::causal_fixture::managed_admission_context().bridge;
-    let denied = match yielded.readmit_same_runtime(&runtime, &foreign_bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Denied(denied) => denied,
-        _ => panic!("foreign Bridge runtime should deny during Bridge preflight"),
-    };
-    assert_eq!(
-        denied.kind(),
-        crate::domain_computation::WorthQueryDirectReadmissionDenialKind::BridgeReadmissionDenied
-    );
-    assert_eq!(denied.counters().preflight_check_count(), 1);
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
-    let yielded = denied.into_yielded();
-    assert_eq!(yielded.checkpoint().identity(), checkpoint);
-    assert_eq!(yielded.resource_attempt_identity(), resource_attempt);
-
-    let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
-        _ => panic!("foreign-Bridge denial must preserve exact retry authority"),
-    };
-    let completion = match active.advance() {
-        WorthQueryDirectGraphStepOutcome::Completed(completion) => completion,
-        _ => panic!("restored provider should complete"),
-    };
-    assert!(completion
-        .into_running()
-        .completed()
-        .unwrap()
-        .cleanup()
-        .is_ok());
-}
-
-#[test]
-fn successor_installation_denies_stale_yield_before_any_fresh_authority() {
-    let (yielded, _bridge, mut runtime) = yielded_direct();
-    let checkpoint = yielded.checkpoint().identity().to_owned();
-    runtime
-        .commit_successor_installation(Arc::new(
-            runtime.installed_packages().successor_generation(),
-        ))
-        .expect("successor installation should commit");
-    let bridge = super::causal_fixture::managed_admission_context().bridge;
-    let denied = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Denied(denied) => denied,
-        _ => panic!("stale yielded installation should deny"),
-    };
-    assert_eq!(
-        denied.kind(),
-        crate::domain_computation::WorthQueryDirectReadmissionDenialKind::StaleInstallationGeneration
-    );
-    assert_eq!(denied.counters().fresh_resource_attempt_count(), 0);
-    assert_eq!(denied.counters().bridge_readmission_attempt_count(), 0);
-    assert_eq!(denied.counters().provider_restore_attempt_count(), 0);
-    let yielded = denied.into_yielded();
-    assert_eq!(yielded.checkpoint().identity(), checkpoint);
-    assert_eq!(
-        complete_direct_yield_cleanup(yielded)
-            .checkpoint()
-            .unwrap()
-            .identity(),
-        checkpoint
-    );
 }

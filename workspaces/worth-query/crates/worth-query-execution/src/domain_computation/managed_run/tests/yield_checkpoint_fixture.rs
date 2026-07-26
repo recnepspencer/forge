@@ -30,6 +30,16 @@ pub(super) struct RestorePanicCheckpoint {
     pub(super) _retained: WorthQueryGraphProviderRetainedMemory,
 }
 
+pub(super) struct RestoreRejectAfterAdmissionCheckpoint {
+    pub(super) retained_bytes: u64,
+    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+}
+
+pub(super) struct RestorePanicAfterAdmissionCheckpoint {
+    pub(super) retained_bytes: u64,
+    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+}
+
 pub(super) struct RestoreExecutionDropPanicCheckpoint {
     pub(super) retained_bytes: u64,
     pub(super) checkpoint_drop_panics: bool,
@@ -145,6 +155,64 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for RestorePan
 
     fn export(&self) -> Result<WorthQueryProviderCheckpointExport, WorthQueryGraphProviderFailure> {
         panic!("yield fixture checkpoint export panicked")
+    }
+}
+
+impl crate::domain_computation::WorthQueryGraphProviderCheckpoint
+    for RestoreRejectAfterAdmissionCheckpoint
+{
+    fn retained_bytes(&self) -> u64 {
+        self.retained_bytes
+    }
+
+    fn restore(
+        &self,
+        _call: &WorthQueryGraphProviderCall,
+        memory: &mut WorthQueryGraphProviderRestoreMemory,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let retained = memory
+            .rebind(&self.retained)
+            .map_err(restore_memory_failure)?;
+        let _admission = memory
+            .admit_cooperative_execution(|| {
+                Box::new(YieldExecution::restored(retained))
+                    as Box<dyn WorthQueryGraphProviderExecution>
+            })
+            .map_err(restore_memory_failure)?;
+        Err(WorthQueryGraphProviderFailure::new(
+            "provider rejected after restored execution admission",
+        ))
+    }
+}
+
+impl crate::domain_computation::WorthQueryGraphProviderCheckpoint
+    for RestorePanicAfterAdmissionCheckpoint
+{
+    fn retained_bytes(&self) -> u64 {
+        self.retained_bytes
+    }
+
+    fn restore(
+        &self,
+        _call: &WorthQueryGraphProviderCall,
+        memory: &mut WorthQueryGraphProviderRestoreMemory,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let retained = memory
+            .rebind(&self.retained)
+            .map_err(restore_memory_failure)?;
+        let _admission = memory
+            .admit_cooperative_execution(|| {
+                Box::new(YieldExecution::restored_with_drop_panic(retained))
+                    as Box<dyn WorthQueryGraphProviderExecution>
+            })
+            .map_err(restore_memory_failure)?;
+        panic!("provider panicked after restored execution admission")
     }
 }
 

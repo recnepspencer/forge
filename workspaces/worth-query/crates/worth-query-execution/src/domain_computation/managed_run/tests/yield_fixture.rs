@@ -1,7 +1,8 @@
 use super::yield_checkpoint_fixture::{
     PanicDropCheckpoint, PanicProbeAndDropCheckpoint, PanicProbeCheckpoint,
-    RestoreExecutionDropPanicCheckpoint, RestoreFailureCheckpoint, RestorePanicCheckpoint,
-    YieldCheckpoint,
+    RestoreExecutionDropPanicCheckpoint, RestoreFailureCheckpoint,
+    RestorePanicAfterAdmissionCheckpoint, RestorePanicCheckpoint,
+    RestoreRejectAfterAdmissionCheckpoint, YieldCheckpoint,
 };
 use super::*;
 
@@ -21,6 +22,12 @@ pub(super) enum YieldSuspension {
     CheckpointRestorePanic {
         retained_bytes: u64,
     },
+    CheckpointRestoreRejectAfterAdmission {
+        retained_bytes: u64,
+    },
+    CheckpointRestorePanicAfterAdmission {
+        retained_bytes: u64,
+    },
     CheckpointRestoreExecutionDropPanic {
         retained_bytes: u64,
         checkpoint_drop_panics: bool,
@@ -36,6 +43,8 @@ impl YieldSuspension {
             | Self::CheckpointDropPanic { retained_bytes }
             | Self::CheckpointRestoreFailure { retained_bytes }
             | Self::CheckpointRestorePanic { retained_bytes }
+            | Self::CheckpointRestoreRejectAfterAdmission { retained_bytes }
+            | Self::CheckpointRestorePanicAfterAdmission { retained_bytes }
             | Self::CheckpointRestoreExecutionDropPanic { retained_bytes, .. } => retained_bytes,
             Self::CheckpointProbePanic
             | Self::CheckpointProbeAndDropPanic
@@ -159,6 +168,18 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
                 Ok(Box::new(RestorePanicCheckpoint {
                     retained_bytes,
                     _retained: self.take_checkpoint_memory(),
+                }))
+            }
+            YieldSuspension::CheckpointRestoreRejectAfterAdmission { retained_bytes } => {
+                Ok(Box::new(RestoreRejectAfterAdmissionCheckpoint {
+                    retained_bytes,
+                    retained: self.take_checkpoint_memory(),
+                }))
+            }
+            YieldSuspension::CheckpointRestorePanicAfterAdmission { retained_bytes } => {
+                Ok(Box::new(RestorePanicAfterAdmissionCheckpoint {
+                    retained_bytes,
+                    retained: self.take_checkpoint_memory(),
                 }))
             }
             YieldSuspension::CheckpointRestoreExecutionDropPanic {

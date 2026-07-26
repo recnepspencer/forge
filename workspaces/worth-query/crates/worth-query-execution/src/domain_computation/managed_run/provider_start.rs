@@ -39,6 +39,7 @@ pub(super) fn start_managed_provider(
     let memory = WorthQueryGraphProviderMemoryArena::new(retained_bytes_ceiling);
     let mut start = WorthQueryGraphProviderExecutionStart::new(memory.clone());
     let invocation = anchor.begin(call, &mut start);
+    let unreturned_execution_release = start.release_unreturned_execution();
     let contract = start.finish();
     match invocation {
         WorthQueryGraphProviderStartInvocation::Returned(Ok(execution)) => {
@@ -58,7 +59,12 @@ pub(super) fn start_managed_provider(
                     Arc::from(denial.detail()),
                 ),
             };
-            Err(failed_without_execution(kind, detail, memory))
+            Err(failed_without_returned_execution(
+                kind,
+                detail,
+                memory,
+                unreturned_execution_release,
+            ))
         }
         WorthQueryGraphProviderStartInvocation::Panicked => {
             let detail = contract.err().map_or_else(
@@ -70,10 +76,11 @@ pub(super) fn start_managed_provider(
                     ))
                 },
             );
-            Err(failed_without_execution(
+            Err(failed_without_returned_execution(
                 WorthQueryManagedProviderStartFailureKind::Panicked,
                 detail,
                 memory,
+                unreturned_execution_release,
             ))
         }
     }
@@ -101,21 +108,27 @@ fn release_denied_execution(
     }
 }
 
-fn failed_without_execution(
+fn failed_without_returned_execution(
     primary: WorthQueryManagedProviderStartFailureKind,
     detail: Arc<str>,
     memory: WorthQueryGraphProviderMemoryArena,
+    provider_execution_release: Option<WorthQueryProviderExecutionReleaseEvidence>,
 ) -> WorthQueryManagedProviderStartFailure {
     let snapshot = memory.snapshot();
-    let kind = if snapshot.retained_bytes() == 0 {
-        primary
-    } else {
+    let kind = if provider_execution_release
+        .as_ref()
+        .is_some_and(WorthQueryProviderExecutionReleaseEvidence::recovery_required)
+    {
+        WorthQueryManagedProviderStartFailureKind::ProviderExecutionReleaseRecoveryRequired
+    } else if snapshot.retained_bytes() != 0 {
         WorthQueryManagedProviderStartFailureKind::MemoryLeaked
+    } else {
+        primary
     };
     WorthQueryManagedProviderStartFailure {
         kind,
         detail,
         memory,
-        provider_execution_release: None,
+        provider_execution_release,
     }
 }

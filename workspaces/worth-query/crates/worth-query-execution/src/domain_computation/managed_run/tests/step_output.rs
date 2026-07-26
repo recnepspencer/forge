@@ -105,6 +105,8 @@ fn stalled_consumer_cancellation_releases_the_chunk_before_terminal_cleanup() {
     };
     assert_eq!(advances.load(Ordering::Relaxed), 1);
     assert_eq!(terminal.provider_work().interrupted_call_count(), 1);
+    assert_eq!(terminal.provider_work().queue_state_mutation_count(), 2);
+    assert_eq!(terminal.provider_work().retained_bytes(), 0);
     let cleanup = terminal
         .cleanup()
         .expect("cancelled stream should clean up");

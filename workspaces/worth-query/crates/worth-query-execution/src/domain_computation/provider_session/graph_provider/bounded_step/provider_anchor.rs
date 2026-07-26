@@ -41,7 +41,6 @@ impl<G: 'static, P: WorthQueryGraphParticipationProvider<G>>
         self.provider
             .begin(call, start)
             .and_then(|admitted| start.validate_returned_execution(admitted))
-            .map(|execution| Box::new(execution) as Box<dyn WorthQueryGraphProviderExecution>)
     }
 }
 

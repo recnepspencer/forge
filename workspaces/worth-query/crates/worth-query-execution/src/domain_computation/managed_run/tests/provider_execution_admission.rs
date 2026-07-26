@@ -1,6 +1,11 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::*;
+use crate::domain_computation::{
+    WorthQueryProviderExecutionDestructorDisposition,
+    WorthQueryProviderExecutionDisposalDisposition,
+};
 
 struct AdmissionExecution;
 
@@ -49,7 +54,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for ForeignAdmissionProv
         }
         *retained = Some(
             start
-                .admit_cooperative_execution(AdmissionExecution)
+                .admit_cooperative_execution(|| AdmissionExecution)
                 .map_err(step_failure)?,
         );
         Err(WorthQueryGraphProviderFailure::new(
@@ -59,6 +64,87 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for ForeignAdmissionProv
 }
 
 struct MultipleAdmissionProvider;
+
+#[derive(Clone, Copy)]
+enum PostAdmissionBehavior {
+    Reject,
+    Panic,
+}
+
+struct PostAdmissionProvider {
+    behavior: PostAdmissionBehavior,
+    disposal_attempts: Arc<AtomicUsize>,
+    destructor_attempts: Arc<AtomicUsize>,
+    destructor_panics: bool,
+}
+
+struct PostAdmissionExecution {
+    disposal_attempts: Arc<AtomicUsize>,
+    destructor_attempts: Arc<AtomicUsize>,
+    destructor_panics: bool,
+}
+
+impl WorthQueryGraphProviderExecution for PostAdmissionExecution {
+    fn advance(
+        &mut self,
+        _step: &mut WorthQueryGraphProviderStep,
+    ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
+        unreachable!("post-admission failure must prevent provider advancement")
+    }
+
+    fn dispose(&mut self) -> Result<(), WorthQueryGraphProviderFailure> {
+        self.disposal_attempts.fetch_add(1, Ordering::AcqRel);
+        Ok(())
+    }
+}
+
+impl Drop for PostAdmissionExecution {
+    fn drop(&mut self) {
+        self.destructor_attempts.fetch_add(1, Ordering::AcqRel);
+        assert!(
+            !self.destructor_panics,
+            "post-admission provider execution destructor panicked"
+        );
+    }
+}
+
+impl WorthQueryGraphParticipationProvider<ManagedGraph> for PostAdmissionProvider {
+    type Execution = PostAdmissionExecution;
+
+    fn execution_resource_support(
+        &self,
+    ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport {
+        crate::domain_computation::provider_session::execution_resource_support(
+            "post-admission-failure",
+            8,
+        )
+    }
+
+    fn begin(
+        &self,
+        _call: &WorthQueryGraphProviderCall,
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let _admission = start
+            .admit_cooperative_execution(|| PostAdmissionExecution {
+                disposal_attempts: Arc::clone(&self.disposal_attempts),
+                destructor_attempts: Arc::clone(&self.destructor_attempts),
+                destructor_panics: self.destructor_panics,
+            })
+            .map_err(step_failure)?;
+        match self.behavior {
+            PostAdmissionBehavior::Reject => Err(WorthQueryGraphProviderFailure::new(
+                "provider rejected after execution admission",
+            )),
+            PostAdmissionBehavior::Panic => {
+                panic!("provider panicked after execution admission")
+            }
+        }
+    }
+}
 
 impl WorthQueryGraphParticipationProvider<ManagedGraph> for MultipleAdmissionProvider {
     type Execution = AdmissionExecution;
@@ -81,9 +167,9 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for MultipleAdmissionPro
         WorthQueryGraphProviderFailure,
     > {
         let first = start
-            .admit_cooperative_execution(AdmissionExecution)
+            .admit_cooperative_execution(|| AdmissionExecution)
             .map_err(step_failure)?;
-        let _ignored_denial = start.admit_cooperative_execution(AdmissionExecution);
+        let _ignored_denial = start.admit_cooperative_execution(|| AdmissionExecution);
         Ok(first)
     }
 }
@@ -154,6 +240,106 @@ fn ignored_second_execution_admission_denies_the_provider_start() {
         failure.provider_execution_release().is_some(),
         "the denied execution must be explicitly released"
     );
+}
+
+#[test]
+fn rejection_after_admission_releases_the_runtime_owned_execution_explicitly() {
+    let disposal_attempts = Arc::new(AtomicUsize::new(0));
+    let destructor_attempts = Arc::new(AtomicUsize::new(0));
+    let failure = post_admission_failure(
+        PostAdmissionBehavior::Reject,
+        false,
+        Arc::clone(&disposal_attempts),
+        Arc::clone(&destructor_attempts),
+    );
+    assert_eq!(
+        failure.kind(),
+        crate::domain_computation::WorthQueryDirectGraphExecutionStartFailureKind::ProviderStart
+    );
+    let release = failure
+        .provider_execution_release()
+        .expect("post-admission rejection must carry physical-release evidence");
+    assert_eq!(
+        release.disposal(),
+        WorthQueryProviderExecutionDisposalDisposition::Completed
+    );
+    assert_eq!(
+        release.destructor(),
+        WorthQueryProviderExecutionDestructorDisposition::Completed
+    );
+    assert_eq!(disposal_attempts.load(Ordering::Acquire), 1);
+    assert_eq!(destructor_attempts.load(Ordering::Acquire), 1);
+    failure
+        .into_running()
+        .terminate_for_convergence(WorthQueryManagedRunTerminalKind::Failed)
+        .cleanup()
+        .expect("contained start rejection preserves cleanup authority");
+}
+
+#[test]
+fn panic_after_admission_contains_an_independent_destructor_panic() {
+    let disposal_attempts = Arc::new(AtomicUsize::new(0));
+    let destructor_attempts = Arc::new(AtomicUsize::new(0));
+    let failure = post_admission_failure(
+        PostAdmissionBehavior::Panic,
+        true,
+        Arc::clone(&disposal_attempts),
+        Arc::clone(&destructor_attempts),
+    );
+    assert_eq!(
+        failure.kind(),
+        crate::domain_computation::WorthQueryDirectGraphExecutionStartFailureKind::
+            ProviderStartReleaseRecoveryRequired
+    );
+    let release = failure
+        .provider_execution_release()
+        .expect("post-admission panic must carry physical-release evidence");
+    assert_eq!(
+        release.disposal(),
+        WorthQueryProviderExecutionDisposalDisposition::Completed
+    );
+    assert_eq!(
+        release.destructor(),
+        WorthQueryProviderExecutionDestructorDisposition::Panicked
+    );
+    assert_eq!(disposal_attempts.load(Ordering::Acquire), 1);
+    assert_eq!(destructor_attempts.load(Ordering::Acquire), 1);
+    let cleanup = failure
+        .into_running()
+        .terminate_for_convergence(WorthQueryManagedRunTerminalKind::Failed)
+        .cleanup()
+        .expect("contained start panic preserves lower cleanup authority");
+    assert_eq!(
+        cleanup.disposition(),
+        WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+    );
+}
+
+fn post_admission_failure(
+    behavior: PostAdmissionBehavior,
+    destructor_panics: bool,
+    disposal_attempts: Arc<AtomicUsize>,
+    destructor_attempts: Arc<AtomicUsize>,
+) -> crate::domain_computation::WorthQueryDirectGraphExecutionStartFailure {
+    let (running, graph) = managed_graph_run_with_provider(
+        WorthQueryOperationGraphAccess::Observe,
+        PostAdmissionProvider {
+            behavior,
+            disposal_attempts,
+            destructor_attempts,
+            destructor_panics,
+        },
+    );
+    match running.begin_graph_execution(
+        &graph,
+        WorthQueryManagedGraphCallRequest::new(
+            WorthQueryGraphProviderCallKind::Observe,
+            "post-admission-failure",
+        ),
+    ) {
+        Ok(_) => panic!("post-admission provider failure returned active execution authority"),
+        Err(failure) => failure,
+    }
 }
 
 fn step_failure(

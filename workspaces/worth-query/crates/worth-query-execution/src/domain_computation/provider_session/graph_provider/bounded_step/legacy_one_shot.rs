@@ -30,16 +30,21 @@ pub fn execute_legacy_one_shot(
         .map_err(WorthQueryGraphProviderFailure::new)?;
     let memory = WorthQueryGraphProviderMemoryArena::new(contract.retained_bytes_ceiling());
     let mut start = WorthQueryGraphProviderExecutionStart::new(memory.clone());
-    let mut execution = match anchor.begin(call, &mut start) {
+    let invocation = anchor.begin(call, &mut start);
+    let unreturned_execution_release = start.release_unreturned_execution();
+    let start_contract = start.finish();
+    let mut execution = match invocation {
         WorthQueryGraphProviderStartInvocation::Returned(Ok(execution)) => execution,
-        WorthQueryGraphProviderStartInvocation::Returned(Err(failure)) => return Err(failure),
+        WorthQueryGraphProviderStartInvocation::Returned(Err(failure)) => {
+            return Err(legacy_start_failure(failure, unreturned_execution_release))
+        }
         WorthQueryGraphProviderStartInvocation::Panicked => {
             return Err(WorthQueryGraphProviderFailure::new(
                 "legacy provider execution construction panicked",
             ))
         }
     };
-    if let Err(denial) = start.finish() {
+    if let Err(denial) = start_contract {
         let _ = WorthQueryOwnedGraphProviderExecution::new(execution).release();
         return Err(WorthQueryGraphProviderFailure::new(denial.detail()));
     }
@@ -96,5 +101,22 @@ pub fn execute_legacy_one_shot(
                 ));
             }
         }
+    }
+}
+
+fn legacy_start_failure(
+    failure: WorthQueryGraphProviderFailure,
+    release: Option<super::WorthQueryProviderExecutionReleaseEvidence>,
+) -> WorthQueryGraphProviderFailure {
+    if release
+        .as_ref()
+        .is_some_and(super::WorthQueryProviderExecutionReleaseEvidence::recovery_required)
+    {
+        WorthQueryGraphProviderFailure::new(format!(
+            "{}; admitted provider execution required physical-release recovery",
+            failure.detail()
+        ))
+    } else {
+        failure
     }
 }

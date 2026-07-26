@@ -99,7 +99,7 @@ impl WorthQueryGraphParticipationProvider<FixtureGraph> for ConvergentProvider {
             retained: None,
         };
         start
-            .admit_cooperative_execution(execution)
+            .admit_cooperative_execution(|| execution)
             .map_err(step_failure)
     }
 }
@@ -127,7 +127,7 @@ impl WorthQueryGraphProviderCheckpoint for ConvergenceCheckpoint {
             retained: Some(memory.rebind(&self.retained).map_err(step_failure)?),
         }) as Box<dyn WorthQueryGraphProviderExecution>;
         memory
-            .admit_cooperative_execution(execution)
+            .admit_cooperative_execution(|| execution)
             .map_err(step_failure)
     }
 }

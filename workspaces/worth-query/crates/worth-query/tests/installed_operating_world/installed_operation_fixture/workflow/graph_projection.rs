@@ -140,7 +140,7 @@ impl domain::WorthQueryGraphParticipationProvider<WorkflowRemoteGraph>
             }
         };
         start
-            .admit_cooperative_execution(execution)
+            .admit_cooperative_execution(|| execution)
             .map_err(|denial| domain::WorthQueryGraphProviderFailure::new(denial.detail()))
     }
 }

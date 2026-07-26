@@ -101,6 +101,26 @@ impl YieldProvider {
         }
     }
 
+    pub(super) const fn checkpoint_restore_reject_after_admission(retained_bytes: u64) -> Self {
+        Self {
+            yield_installed: true,
+            checkpoint_available: true,
+            record_effect: false,
+            suspension: YieldSuspension::CheckpointRestoreRejectAfterAdmission { retained_bytes },
+            execution_drop_panics: false,
+        }
+    }
+
+    pub(super) const fn checkpoint_restore_panic_after_admission(retained_bytes: u64) -> Self {
+        Self {
+            yield_installed: true,
+            checkpoint_available: true,
+            record_effect: false,
+            suspension: YieldSuspension::CheckpointRestorePanicAfterAdmission { retained_bytes },
+            execution_drop_panics: false,
+        }
+    }
+
     pub(super) const fn restored_execution_drop_panic(retained_bytes: u64) -> Self {
         Self {
             yield_installed: true,

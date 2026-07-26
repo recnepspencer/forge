@@ -137,7 +137,7 @@ fn signal_timeout_stops_before_the_next_provider_step() {
     bridge
         .advance_managed_execution_clock(1)
         .expect("host clock authority should advance Signal time");
-    active
+    let timeout = active
         .admit_ready_timeout()
         .expect("Bridge should admit the ready exact-request timeout");
     let terminal = match active.advance() {
@@ -146,6 +146,15 @@ fn signal_timeout_stops_before_the_next_provider_step() {
     };
     assert_eq!(advances.load(Ordering::Relaxed), 0);
     assert_eq!(terminal.provider_work().interrupted_call_count(), 1);
+    assert_eq!(
+        terminal
+            .provider_work()
+            .last_safe_point()
+            .expect("timeout terminal must retain the consumed Signal safe point")
+            .bridge_evidence()
+            .timeout_wake_identity(),
+        Some(timeout.timeout_wake_identity())
+    );
     let cleanup = terminal.cleanup().expect("timed-out step should clean up");
     assert_eq!(
         cleanup.bridge().signal_terminal(),

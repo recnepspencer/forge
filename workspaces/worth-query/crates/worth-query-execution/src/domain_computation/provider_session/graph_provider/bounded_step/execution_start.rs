@@ -1,7 +1,9 @@
 use super::{
-    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphProviderMemoryArena,
-    WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStepDenial,
-    WorthQueryGraphProviderStepDenialKind,
+    cooperative_execution::next_cooperative_execution_admission_identity,
+    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphProviderExecution,
+    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderRetainedMemory,
+    WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
+    WorthQueryOwnedGraphProviderExecution, WorthQueryProviderExecutionReleaseEvidence,
 };
 
 /// Provider-facing construction port bound to one admitted managed execution.
@@ -11,7 +13,8 @@ use super::{
 pub struct WorthQueryGraphProviderExecutionStart {
     memory: WorthQueryGraphProviderMemoryArena,
     denial: Option<WorthQueryGraphProviderStepDenial>,
-    execution_admission_issued: bool,
+    execution_admission_identity: u64,
+    admitted_execution: Option<Box<dyn WorthQueryGraphProviderExecution>>,
 }
 
 impl WorthQueryGraphProviderExecutionStart {
@@ -19,7 +22,8 @@ impl WorthQueryGraphProviderExecutionStart {
         Self {
             memory,
             denial: None,
-            execution_admission_issued: false,
+            execution_admission_identity: next_cooperative_execution_admission_identity(),
+            admitted_execution: None,
         }
     }
 
@@ -39,15 +43,15 @@ impl WorthQueryGraphProviderExecutionStart {
         }
     }
 
-    pub fn admit_cooperative_execution<E>(
+    pub fn admit_cooperative_execution<E: WorthQueryGraphProviderExecution>(
         &mut self,
-        execution: E,
+        construct: impl FnOnce() -> E,
     ) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderStepDenial>
     {
         if let Some(denial) = &self.denial {
             return Err(denial.clone());
         }
-        if self.execution_admission_issued {
+        if self.admitted_execution.is_some() {
             let denial = WorthQueryGraphProviderStepDenial::new(
                 WorthQueryGraphProviderStepDenialKind::MultipleExecutionAdmissions,
                 "provider start can admit exactly one cooperative execution",
@@ -55,18 +59,23 @@ impl WorthQueryGraphProviderExecutionStart {
             self.denial = Some(denial.clone());
             return Err(denial);
         }
-        self.execution_admission_issued = true;
+        self.admitted_execution = Some(Box::new(construct()));
         Ok(WorthQueryCooperativeGraphProviderExecution::new(
             self.memory.snapshot().arena_identity(),
-            execution,
+            self.execution_admission_identity,
         ))
     }
 
     pub(crate) fn validate_returned_execution<E>(
         &mut self,
         admitted: WorthQueryCooperativeGraphProviderExecution<E>,
-    ) -> Result<E, crate::domain_computation::WorthQueryGraphProviderFailure> {
-        if admitted.arena_identity() != self.memory.snapshot().arena_identity() {
+    ) -> Result<
+        Box<dyn WorthQueryGraphProviderExecution>,
+        crate::domain_computation::WorthQueryGraphProviderFailure,
+    > {
+        if admitted.arena_identity() != self.memory.snapshot().arena_identity()
+            || admitted.admission_identity() != self.execution_admission_identity
+        {
             let denial = WorthQueryGraphProviderStepDenial::new(
                 WorthQueryGraphProviderStepDenialKind::ForeignExecutionAdmission,
                 "cooperative provider execution belongs to another managed start",
@@ -76,7 +85,19 @@ impl WorthQueryGraphProviderExecutionStart {
                 crate::domain_computation::WorthQueryGraphProviderFailure::new(denial.detail()),
             );
         }
-        Ok(admitted.into_execution())
+        self.admitted_execution.take().ok_or_else(|| {
+            crate::domain_computation::WorthQueryGraphProviderFailure::new(
+                "cooperative provider execution admission no longer owns an execution",
+            )
+        })
+    }
+
+    pub(crate) fn release_unreturned_execution(
+        &mut self,
+    ) -> Option<WorthQueryProviderExecutionReleaseEvidence> {
+        self.admitted_execution
+            .take()
+            .map(|execution| WorthQueryOwnedGraphProviderExecution::new(execution).release())
     }
 
     pub(crate) fn finish(self) -> Result<(), WorthQueryGraphProviderStepDenial> {

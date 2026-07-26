@@ -16,7 +16,7 @@ fn restored_execution_abort_panic_preserves_the_checkpoint_and_exact_release_pos
         bridge,
         execution,
         run_counters,
-        provider_work,
+        mut provider_work,
         yield_counters,
     } = yielded;
     let contract = super::super::step_contract_admission::admit_managed_step_contract(
@@ -65,23 +65,35 @@ fn restored_execution_abort_panic_preserves_the_checkpoint_and_exact_release_pos
         restored_release.destructor(),
         crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Panicked
     );
-    let execution = match recovery.into_retained() {
-        Ok(execution) => execution,
+    let retryable = match recovery.into_retryable() {
+        Ok(retryable) => retryable,
         Err(_) => panic!("restored-execution release failure must retain the provider checkpoint"),
     };
+    provider_work.record_provider_execution_release(
+        retryable
+            .restored_execution_release
+            .as_ref()
+            .expect("retryable recovery carries replacement release evidence"),
+    );
     let yielded = WorthQueryYieldedDirectRun {
         logical_run_identity,
         attempt_identity,
         resource_attempt: resource_pending.abort(),
         relational_basis,
         bridge,
-        execution,
+        execution: retryable.retained,
         run_counters,
         provider_work,
         yield_counters,
     };
+    let cleanup = complete_direct_yield_cleanup(yielded);
+    assert!(cleanup
+        .provider_work()
+        .provider_execution_release()
+        .recovery_evidence()
+        .is_some());
     assert_eq!(
-        complete_direct_yield_cleanup(yielded)
+        cleanup
             .checkpoint()
             .expect("retained checkpoint should release during yielded cleanup")
             .retained_bytes(),

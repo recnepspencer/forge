@@ -255,6 +255,50 @@ fn workflow_restore_panic_can_recover_only_through_the_retained_yielded_authorit
 }
 
 #[test]
+fn workflow_restore_rejection_after_admission_carries_release_into_yielded_authority() {
+    let (yielded, bridge, runtime, _producer) =
+        yielded_workflow(YieldProvider::checkpoint_restore_reject_after_admission(7));
+    let prior_release_count = yielded
+        .provider_work()
+        .provider_execution_release()
+        .release_count();
+    let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
+            recovery,
+        ) => recovery,
+        _ => panic!("post-admission workflow restore rejection became ordinary denial"),
+    };
+    assert_eq!(
+        recovery.kind(),
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryKind::
+            ProviderRestoreRejectedAfterExecutionAdmission
+    );
+    let release = recovery
+        .restored_execution_release_evidence()
+        .expect("workflow recovery must retain replacement release evidence");
+    assert!(!release.recovery_required());
+    let yielded = match recovery.retry_to_yielded() {
+        Ok(
+            crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
+                yielded,
+            ),
+        ) => yielded,
+        _ => panic!("released workflow replacement did not return yielded authority"),
+    };
+    assert_eq!(
+        yielded
+            .provider_work()
+            .provider_execution_release()
+            .release_count(),
+        prior_release_count + 1
+    );
+    match yielded.cleanup() {
+        crate::domain_computation::WorthQueryWorkflowYieldCleanupOutcome::Complete(_) => {}
+        _ => panic!("recovered workflow yielded authority should clean up"),
+    }
+}
+
+#[test]
 fn workflow_generation_mismatch_denies_before_fresh_authority_and_rolls_back_cleanly() {
     let (yielded, bridge, runtime, _producer) = yielded_workflow(YieldProvider::installed(7));
     let generation = yielded.artifact_evidence().production_generation();
