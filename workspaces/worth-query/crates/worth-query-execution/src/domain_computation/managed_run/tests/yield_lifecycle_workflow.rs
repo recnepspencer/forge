@@ -171,6 +171,10 @@ fn workflow_suspension_failure_returns_terminalized_release_authority() {
         )) => {
             panic!("artifact-free workflow recovery reported pending cleanup")
         }
+        Ok(
+            crate::domain_computation::WorthQueryWorkflowYieldRecoveryReleaseOutcome::
+                RecoveryRequired(_),
+        ) => panic!("artifact-free workflow recovery gained artifact recovery"),
         Err(_) => panic!("artifact-free workflow recovery did not release"),
     };
     assert_eq!(

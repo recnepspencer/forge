@@ -10,7 +10,8 @@ use worth_query_host::facade::{
             WorthQueryArtifactNativeAccessDenial, WorthQueryDirectYieldOutcome,
             WorthQueryDirectYieldRecoveryRequired, WorthQueryPausedDirectGraphExecution,
             WorthQueryPausedWorkflowGraphExecution, WorthQueryTransferredArtifactHandle,
-            WorthQueryWorkflowYieldOutcome, WorthQueryWorkflowYieldRecoveryRequired,
+            WorthQueryWorkflowYieldOutcome, WorthQueryWorkflowYieldRecoveryReleaseOutcome,
+            WorthQueryWorkflowYieldRecoveryRequired,
         },
         provider_session::{
             WorthQueryCooperativeGraphProviderExecution, WorthQueryExecutionProviderSession,
@@ -101,7 +102,18 @@ fn yield_from_consumed_workflow_safe_point(paused: WorthQueryPausedWorkflowGraph
 }
 
 fn release_terminalized_workflow_yield_recovery(recovery: WorthQueryWorkflowYieldRecoveryRequired) {
-    let _ = recovery.release_terminalized();
+    match recovery.release_terminalized() {
+        Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::Complete(release))
+        | Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::RecoveryRequired(release)) => {
+            let _ = release.artifact_evidence();
+        }
+        Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::Pending(pending)) => {
+            let _ = pending.pending_artifact_owner_count();
+        }
+        Err(running) => {
+            let _ = running.into_paused();
+        }
+    }
 }
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {

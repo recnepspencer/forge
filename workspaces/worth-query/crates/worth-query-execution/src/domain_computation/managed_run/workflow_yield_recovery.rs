@@ -135,26 +135,40 @@ impl WorthQueryWorkflowYieldRecoveryRequired {
             ));
         }
         drop(state.artifacts);
-        Ok(WorthQueryWorkflowYieldRecoveryReleaseOutcome::Complete(
-            WorthQueryWorkflowYieldRecoveryRelease {
-                logical_run_identity: state.logical_run_identity,
-                attempt_identity: state.attempt_identity,
-                bridge: state.bridge.release(),
-                relational: state.relational_basis.release(),
-                attempt: state.resource_attempt.release(),
-                artifact_evidence,
-                run_counters: state.run_counters,
-                provider_work: state.provider_work,
-                yield_counters: counters,
-                recovery_evidence: resource_evidence,
-            },
-        ))
+        let release = WorthQueryWorkflowYieldRecoveryRelease {
+            logical_run_identity: state.logical_run_identity,
+            attempt_identity: state.attempt_identity,
+            bridge: state.bridge.release(),
+            relational: state.relational_basis.release(),
+            attempt: state.resource_attempt.release(),
+            artifact_evidence,
+            run_counters: state.run_counters,
+            provider_work: state.provider_work,
+            yield_counters: counters,
+            recovery_evidence: resource_evidence,
+        };
+        Ok(classify_terminalized_release(release))
+    }
+}
+
+fn classify_terminalized_release(
+    release: WorthQueryWorkflowYieldRecoveryRelease,
+) -> WorthQueryWorkflowYieldRecoveryReleaseOutcome {
+    if release
+        .artifact_evidence
+        .provider_release_recovery_required_count()
+        == 0
+    {
+        WorthQueryWorkflowYieldRecoveryReleaseOutcome::Complete(release)
+    } else {
+        WorthQueryWorkflowYieldRecoveryReleaseOutcome::RecoveryRequired(release)
     }
 }
 
 pub enum WorthQueryWorkflowYieldRecoveryReleaseOutcome {
     Complete(WorthQueryWorkflowYieldRecoveryRelease),
     Pending(WorthQueryWorkflowYieldRecoveryReleasePending),
+    RecoveryRequired(WorthQueryWorkflowYieldRecoveryRelease),
 }
 
 pub struct WorthQueryWorkflowYieldRecoveryReleasePending {
@@ -221,12 +235,6 @@ impl WorthQueryWorkflowYieldRecoveryRelease {
 
     pub const fn artifact_evidence(&self) -> WorthQueryWorkflowArtifactRegistryEvidence {
         self.artifact_evidence
-    }
-
-    pub const fn artifact_release_recovery_required(&self) -> bool {
-        self.artifact_evidence
-            .provider_release_recovery_required_count()
-            != 0
     }
 
     pub fn provider_work(&self) -> &WorthQueryManagedProviderWorkEvidence {

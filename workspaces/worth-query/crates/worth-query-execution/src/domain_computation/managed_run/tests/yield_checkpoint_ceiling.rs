@@ -48,6 +48,10 @@ fn checkpoint_memory_mismatch_preserves_exact_release_evidence() {
                     _,
                 ),
             ) => panic!("artifact-free checkpoint mismatch recovery reported pending cleanup"),
+            Ok(
+                crate::domain_computation::WorthQueryWorkflowYieldRecoveryReleaseOutcome::
+                    RecoveryRequired(_),
+            ) => panic!("artifact-free checkpoint mismatch gained artifact recovery"),
             Err(_) => panic!("checkpoint mismatch recovery lost terminalized release authority"),
         };
         assert_eq!(

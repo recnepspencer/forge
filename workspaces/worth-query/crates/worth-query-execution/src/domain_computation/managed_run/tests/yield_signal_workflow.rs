@@ -85,6 +85,10 @@ fn workflow_signal_terminalized_after_safe_point_preserves_exact_recovery_eviden
         )) => {
             panic!("artifact-free Signal recovery reported pending cleanup")
         }
+        Ok(
+            crate::domain_computation::WorthQueryWorkflowYieldRecoveryReleaseOutcome::
+                RecoveryRequired(_),
+        ) => panic!("artifact-free Signal recovery gained artifact recovery"),
         Err(_) => panic!("Signal-race workflow recovery did not release"),
     };
     assert_eq!(release.logical_run_identity(), logical_run_identity);
