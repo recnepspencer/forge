@@ -59,12 +59,18 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for TwoStepProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(TwoStepExecution {
-            phase: 0,
-            retained: None,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            TwoStepExecution {
+                phase: 0,
+                retained: None,
+            },
+        )
     }
 }
 
@@ -108,9 +114,12 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for FailingProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(FailingExecution { retained: None })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(start, FailingExecution { retained: None })
     }
 }
 
@@ -158,11 +167,17 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for StartProvider {
         &self,
         _call: &WorthQueryGraphProviderCall,
         start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
         match self.0 {
-            StartBehavior::Retain => Ok(StartExecution {
-                _retained: start.retain_bytes(4).map_err(step_failure)?,
-            }),
+            StartBehavior::Retain => {
+                let execution = StartExecution {
+                    _retained: start.retain_bytes(4).map_err(step_failure)?,
+                };
+                admit_provider_execution(start, execution)
+            }
             StartBehavior::Deny => {
                 let _ = start.retain_bytes(4_097);
                 Err(WorthQueryGraphProviderFailure::new(

@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
-use worth_runtime_bridge::facade::{
-    BridgeExecutionBasisFinalizationFailureKind, BridgeExecutionBasisFinalizationReceipt,
-};
+use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationReceipt;
 
 use super::direct_terminal::bridge_terminal_disposition;
 use super::{
     WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCleanupDisposition,
-    WorthQueryManagedRunCounters, WorthQueryManagedRunTerminalKind, WorthQueryWorkflowRunTerminal,
+    WorthQueryManagedRunCleanupFailureKind, WorthQueryManagedRunCounters,
+    WorthQueryManagedRunTerminalKind, WorthQueryWorkflowRunTerminal,
 };
 use crate::domain_computation::WorthQueryWorkflowArtifactRegistryEvidence;
 use crate::domain_computation::WorthQueryWorkflowExecutionAttemptReleaseReceipt;
@@ -31,6 +30,7 @@ impl WorthQueryWorkflowRunCleanupOutcome {
 
 pub struct WorthQueryWorkflowRunCleanupPending {
     artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
+    provider_retained_bytes: usize,
     terminal: WorthQueryWorkflowRunTerminal,
 }
 
@@ -43,20 +43,24 @@ impl WorthQueryWorkflowRunCleanupPending {
         self.artifact_evidence
     }
 
+    pub const fn provider_retained_bytes(&self) -> usize {
+        self.provider_retained_bytes
+    }
+
     pub fn retry(self) -> WorthQueryWorkflowRunCleanupOutcome {
         cleanup_workflow_terminal(self.terminal)
     }
 }
 
 pub struct WorthQueryWorkflowRunCleanupFailure {
-    failure_kind: BridgeExecutionBasisFinalizationFailureKind,
+    failure_kind: WorthQueryManagedRunCleanupFailureKind,
     failure_detail: Arc<str>,
     artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     terminal: WorthQueryWorkflowRunTerminal,
 }
 
 impl WorthQueryWorkflowRunCleanupFailure {
-    pub fn failure_kind(&self) -> BridgeExecutionBasisFinalizationFailureKind {
+    pub fn failure_kind(&self) -> WorthQueryManagedRunCleanupFailureKind {
         self.failure_kind
     }
 
@@ -141,7 +145,7 @@ impl WorthQueryWorkflowRunCleanupReceipt {
 }
 
 pub(super) fn cleanup_workflow_terminal(
-    terminal: WorthQueryWorkflowRunTerminal,
+    mut terminal: WorthQueryWorkflowRunTerminal,
 ) -> WorthQueryWorkflowRunCleanupOutcome {
     let registry = terminal.artifacts.registry();
     if terminal.kind == WorthQueryManagedRunTerminalKind::Completed {
@@ -150,11 +154,30 @@ pub(super) fn cleanup_workflow_terminal(
         registry.close_cancelled();
     }
     let artifact_evidence = registry.evidence();
+    if let Err(failure) = terminal
+        .provider_cleanup
+        .release_queue_occupancies(&mut terminal.bridge_basis, &mut terminal.provider_work)
+    {
+        return WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(
+            WorthQueryWorkflowRunCleanupFailure {
+                failure_kind: WorthQueryManagedRunCleanupFailureKind::QueueRelease(failure.kind()),
+                failure_detail: Arc::from(failure.detail()),
+                artifact_evidence,
+                terminal,
+            },
+        );
+    }
+    let provider_retained_bytes = terminal.provider_cleanup.reconcile_provider_memory();
+    terminal
+        .provider_work
+        .reconcile_provider_retained_bytes(provider_retained_bytes);
     if artifact_evidence.retained_artifact_count() != 0
         || artifact_evidence.provider_release_pending_count() != 0
+        || provider_retained_bytes != 0
     {
         return WorthQueryWorkflowRunCleanupOutcome::Pending(WorthQueryWorkflowRunCleanupPending {
             artifact_evidence,
+            provider_retained_bytes,
             terminal,
         });
     }
@@ -177,6 +200,7 @@ fn finalize_workflow_terminal(
         artifact_evidence_at_terminal,
         counters,
         provider_work,
+        provider_cleanup,
     } = terminal;
     let bridge = match bridge_basis.finalize(bridge_terminal_disposition(kind)) {
         Ok(receipt) => receipt,
@@ -185,7 +209,9 @@ fn finalize_workflow_terminal(
             let failure_detail = Arc::from(failure.detail());
             return WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(
                 WorthQueryWorkflowRunCleanupFailure {
-                    failure_kind,
+                    failure_kind: WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
+                        failure_kind,
+                    ),
                     failure_detail,
                     artifact_evidence,
                     terminal: WorthQueryWorkflowRunTerminal {
@@ -199,6 +225,7 @@ fn finalize_workflow_terminal(
                         artifact_evidence_at_terminal,
                         counters,
                         provider_work,
+                        provider_cleanup,
                     },
                 },
             );

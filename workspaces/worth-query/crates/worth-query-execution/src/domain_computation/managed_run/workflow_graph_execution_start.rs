@@ -210,20 +210,37 @@ impl WorthQueryReadyWorkflowGraphStart {
         ) {
             Ok(started) => started,
             Err(failure) => {
-                if let Some(release) = &failure.provider_execution_release {
+                let super::provider_start::WorthQueryManagedProviderStartFailure {
+                    kind,
+                    detail,
+                    memory,
+                    provider_execution_release,
+                } = failure;
+                let snapshot = memory.snapshot();
+                if let Some(release) = &provider_execution_release {
                     self.bound
                         .running
                         .provider_work_mut()
                         .record_provider_execution_release(release);
                 }
+                self.bound
+                    .running
+                    .provider_work_mut()
+                    .retain_provider_memory(memory);
                 self.bound.running.provider_work_mut().abandon();
-                return Err(provider_start_failure(failure, self.bound.running));
+                return Err(provider_start_failure(
+                    kind,
+                    detail,
+                    snapshot,
+                    provider_execution_release,
+                    self.bound.running,
+                ));
             }
         };
         self.bound
             .running
             .provider_work_mut()
-            .record_provider_memory(started.memory.snapshot());
+            .observe_active_provider_memory(started.memory.snapshot());
         Ok(WorthQueryActiveWorkflowGraphExecution::new(
             self.bound.running,
             WorthQueryManagedGraphExecution::new(
@@ -254,11 +271,16 @@ fn start_failure(
 }
 
 fn provider_start_failure(
-    failure: super::provider_start::WorthQueryManagedProviderStartFailure,
+    failure_kind: super::provider_start::WorthQueryManagedProviderStartFailureKind,
+    detail: Arc<str>,
+    memory: crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderMemorySnapshot,
+    provider_execution_release: Option<
+        crate::domain_computation::WorthQueryProviderExecutionReleaseEvidence,
+    >,
     running: WorthQueryRunningWorkflowRun,
 ) -> WorthQueryWorkflowGraphExecutionStartFailure {
     use super::provider_start::WorthQueryManagedProviderStartFailureKind as Kind;
-    let kind = match failure.kind {
+    let kind = match failure_kind {
         Kind::Rejected => WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStart,
         Kind::Panicked => WorthQueryWorkflowGraphExecutionStartFailureKind::ProviderStartPanicked,
         Kind::ContractDenied => {
@@ -273,11 +295,11 @@ fn provider_start_failure(
     };
     WorthQueryWorkflowGraphExecutionStartFailure {
         kind,
-        detail: failure.detail,
+        detail,
         running,
-        provider_retained_bytes: failure.memory.retained_bytes(),
-        provider_retained_allocation_count: failure.memory.retained_allocation_count(),
-        provider_execution_release: failure.provider_execution_release,
+        provider_retained_bytes: memory.retained_bytes(),
+        provider_retained_allocation_count: memory.retained_allocation_count(),
+        provider_execution_release,
     }
 }
 

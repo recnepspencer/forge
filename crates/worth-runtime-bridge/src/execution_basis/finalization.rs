@@ -28,6 +28,7 @@ pub enum BridgeExecutionBasisSignalTerminal {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeExecutionBasisFinalizationFailureKind {
+    ManagedQueueOccupied,
     SignalRuntimeThreadAffinityViolation,
     SignalCompletionDenied,
     SignalCompletionStagingFailed,
@@ -58,6 +59,16 @@ impl BridgeBoundExecutionBasis {
         disposition: BridgeExecutionBasisTerminalDisposition,
     ) -> Result<BridgeExecutionBasisFinalizationReceipt, BridgeExecutionBasisFinalizationFailure>
     {
+        if self.managed_queue_occupancy_width != 0 {
+            return Err(BridgeExecutionBasisFinalizationFailure {
+                kind: BridgeExecutionBasisFinalizationFailureKind::ManagedQueueOccupied,
+                detail: format!(
+                    "managed execution basis retains {} units of Signal queue occupancy",
+                    self.managed_queue_occupancy_width
+                ),
+                basis: self,
+            });
+        }
         let (signal_terminal, signal_transition_performed) =
             match finalize_signal_request(&self, disposition) {
                 Ok(finalization) => finalization,

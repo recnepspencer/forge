@@ -42,11 +42,17 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for MultiChunkProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(MultiChunkExecution {
-            advances: Arc::clone(&self.advances),
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            MultiChunkExecution {
+                advances: Arc::clone(&self.advances),
+            },
+        )
     }
 }
 
@@ -106,6 +112,33 @@ fn stalled_consumer_cancellation_releases_the_chunk_before_terminal_cleanup() {
         cleanup.bridge().signal_terminal(),
         BridgeExecutionBasisSignalTerminal::Cancelled
     );
+}
+
+#[test]
+fn foreign_consumer_failure_preserves_queue_occupancy_for_owner_cleanup() {
+    let pending = expect_chunk(
+        start_projection(MultiChunkProvider {
+            advances: Arc::new(AtomicUsize::new(0)),
+        })
+        .advance(),
+    );
+    let terminal = std::thread::spawn(move || match pending.acknowledge() {
+        WorthQueryDirectGraphStepOutcome::Failed(terminal) => terminal,
+        _ => panic!("foreign consumer should fail its Signal safe-point observation"),
+    })
+    .join()
+    .expect("foreign consumer should return the terminal recovery authority");
+    assert_eq!(terminal.provider_work().queue_state_mutation_count(), 1);
+
+    let cleanup = terminal
+        .cleanup()
+        .expect("Signal owner should release the retained queue occupancy");
+    assert_eq!(cleanup.provider_work().queue_state_mutation_count(), 2);
+    assert_eq!(
+        cleanup.disposition(),
+        WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+    );
+    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
 }
 
 #[test]
@@ -187,11 +220,17 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for WideChunkProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(WideChunkExecution {
-            advances: Arc::clone(&self.advances),
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            WideChunkExecution {
+                advances: Arc::clone(&self.advances),
+            },
+        )
     }
 }
 

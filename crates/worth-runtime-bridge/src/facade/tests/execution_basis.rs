@@ -262,9 +262,10 @@ fn safe_points_project_exact_signal_lifecycle_and_queue_pressure() {
     assert_eq!(available.counters().exact_signal_request_lookup_count(), 1);
     assert_eq!(available.counters().pressure_classification_count(), 1);
 
-    let saturation = basis
+    let admission = basis
         .enqueue_managed_queue(4)
         .expect("exact bridge basis should fill its Signal-owned queue");
+    let saturation = admission.mutation();
     assert_eq!(
         saturation.pressure_state(),
         BridgeExecutionQueuePressureState::Saturated
@@ -290,6 +291,11 @@ fn safe_points_project_exact_signal_lifecycle_and_queue_pressure() {
         BridgeExecutionQueuePressureState::Saturated
     );
     assert_eq!(saturated.observation_ordinal(), 1);
+    let (_, occupancy) = admission.into_parts();
+    let release = basis
+        .release_managed_queue_occupancy(occupancy)
+        .expect("terminal Signal requests must still release exact queue occupancy");
+    assert_eq!(release.queue_depth(), 0);
 }
 
 #[test]
@@ -321,6 +327,38 @@ fn queue_overflow_denies_without_mutating_signal_pressure() {
     basis
         .finalize(BridgeExecutionBasisTerminalDisposition::Cancelled)
         .expect("test basis should clean up");
+}
+
+#[test]
+fn execution_basis_cannot_finalize_while_queue_occupancy_is_outstanding() {
+    let runtime = runtime(BridgeRuntimePolicy::development());
+    let mut basis = runtime
+        .admit_managed_execution_basis(
+            managed_intent("queue-finalization-attempt"),
+            step_contract(),
+            truth_basis("snapshot-a"),
+            planned_truth_view(&runtime),
+        )
+        .expect("managed execution should admit");
+    let admission = basis
+        .enqueue_managed_queue(1)
+        .expect("one queue unit should admit");
+    let (_, occupancy) = admission.into_parts();
+
+    let failure = basis
+        .finalize(BridgeExecutionBasisTerminalDisposition::Abandoned)
+        .expect_err("outstanding queue occupancy must retain the execution basis");
+    assert_eq!(
+        failure.kind(),
+        BridgeExecutionBasisFinalizationFailureKind::ManagedQueueOccupied
+    );
+    let mut basis = failure.into_basis();
+    basis
+        .release_managed_queue_occupancy(occupancy)
+        .expect("exact occupancy should remain releasable");
+    basis
+        .finalize(BridgeExecutionBasisTerminalDisposition::Abandoned)
+        .expect("released queue occupancy should permit finalization");
 }
 
 fn managed_intent(attempt: &str) -> BridgeManagedExecutionIntent {

@@ -35,13 +35,19 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for RepeatedYieldProvide
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(RepeatedYieldExecution {
-            next_step: 0,
-            step_count: self.step_count,
-            retained: None,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            RepeatedYieldExecution {
+                next_step: 0,
+                step_count: self.step_count,
+                retained: None,
+            },
+        )
     }
 }
 
@@ -94,12 +100,16 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for RepeatedYi
         &self,
         _call: &WorthQueryGraphProviderCall,
         memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
-        Ok(Box::new(RepeatedYieldExecution {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = Box::new(RepeatedYieldExecution {
             next_step: self.next_step,
             step_count: self.step_count,
             retained: Some(memory.rebind(&self.retained).map_err(step_failure)?),
-        }))
+        }) as Box<dyn WorthQueryGraphProviderExecution>;
+        admit_restored_provider_execution(memory, execution)
     }
 }
 

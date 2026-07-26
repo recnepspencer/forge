@@ -40,10 +40,13 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for SupportAffinityProvi
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
         self.begins.fetch_add(1, Ordering::Relaxed);
-        Ok(SupportAffinityExecution)
+        admit_provider_execution(start, SupportAffinityExecution)
     }
 }
 
@@ -75,10 +78,13 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for ForeignSafePointProv
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
         self.begins.fetch_add(1, Ordering::Relaxed);
-        Ok(SupportAffinityExecution)
+        admit_provider_execution(start, SupportAffinityExecution)
     }
 }
 

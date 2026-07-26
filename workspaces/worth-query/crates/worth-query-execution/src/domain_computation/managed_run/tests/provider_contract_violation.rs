@@ -72,9 +72,12 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for HostileProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(HostileExecution(self.0))
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(start, HostileExecution(self.0))
     }
 }
 

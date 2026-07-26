@@ -155,8 +155,8 @@ impl WorthQueryActiveDirectGraphExecution {
     ) -> WorthQueryDirectGraphStepOutcome {
         let width = u64::try_from(material.rows().len()).unwrap_or(u64::MAX);
         let retained_bytes = material.owned_allocation_capacity_bytes();
-        let mutation = match self.running.bridge_basis_mut().enqueue_managed_queue(width) {
-            Ok(mutation) => mutation,
+        let admission = match self.running.bridge_basis_mut().enqueue_managed_queue(width) {
+            Ok(admission) => admission,
             Err(failure) => {
                 if !self.release_pending_chunk(retained_bytes) {
                     return self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
@@ -169,12 +169,13 @@ impl WorthQueryActiveDirectGraphExecution {
                 };
             }
         };
+        let (mutation, occupancy) = admission.into_parts();
         self.running
             .provider_work_mut()
             .record_queue_mutation(mutation.counters());
         self.execution.admit_projection_chunk(&material);
         let queue = WorthQueryPendingDirectGraphQueueState::new(
-            width,
+            occupancy,
             mutation.queue_depth(),
             mutation.queue_capacity(),
         );
@@ -204,13 +205,15 @@ impl WorthQueryActiveDirectGraphExecution {
             return self.settled_terminal(kind);
         }
         let release = self.execution.release_provider_execution();
+        let recovery_required = release.evidence().recovery_required();
+        let (release_evidence, memory) = release.into_parts();
         self.running
             .provider_work_mut()
-            .record_provider_execution_release(release.evidence());
+            .record_provider_execution_release(&release_evidence);
         self.running
             .provider_work_mut()
-            .record_provider_memory(release.memory());
-        if release.evidence().recovery_required() {
+            .retain_provider_memory(memory);
+        if recovery_required {
             return terminal_outcome(
                 self.running
                     .terminal(WorthQueryManagedRunTerminalKind::Failed),
@@ -306,12 +309,13 @@ impl WorthQueryActiveDirectGraphExecution {
         kind: WorthQueryManagedRunTerminalKind,
     ) -> WorthQueryDirectGraphStepOutcome {
         let release = self.execution.release_provider_execution();
+        let (release_evidence, memory) = release.into_parts();
         self.running
             .provider_work_mut()
-            .record_provider_execution_release(release.evidence());
+            .record_provider_execution_release(&release_evidence);
         self.running
             .provider_work_mut()
-            .record_provider_memory(release.memory());
+            .retain_provider_memory(memory);
         terminal_outcome(self.running.terminal(kind), kind)
     }
 }

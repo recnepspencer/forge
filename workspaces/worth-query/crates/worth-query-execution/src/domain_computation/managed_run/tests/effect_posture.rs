@@ -71,13 +71,19 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for EffectProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(EffectExecution {
-            applied_effects: Arc::clone(&self.applied_effects),
-            reject_effect: self.reject_effect,
-            panic_after_effect: self.panic_after_effect,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            EffectExecution {
+                applied_effects: Arc::clone(&self.applied_effects),
+                reject_effect: self.reject_effect,
+                panic_after_effect: self.panic_after_effect,
+            },
+        )
     }
 }
 

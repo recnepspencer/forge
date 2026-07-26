@@ -208,16 +208,22 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(YieldExecution {
-            step_ordinal: 0,
-            checkpoint_available: self.checkpoint_available,
-            record_effect: self.record_effect,
-            suspension: self.suspension,
-            execution_drop_panics: self.execution_drop_panics,
-            retained: None,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            YieldExecution {
+                step_ordinal: 0,
+                checkpoint_available: self.checkpoint_available,
+                record_effect: self.record_effect,
+                suspension: self.suspension,
+                execution_drop_panics: self.execution_drop_panics,
+                retained: None,
+            },
+        )
     }
 }
 

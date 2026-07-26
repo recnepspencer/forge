@@ -13,6 +13,8 @@ pub enum WorthQueryGraphProviderStepDenialKind {
     RetainedBudgetExceeded,
     MemoryAllocationFailed,
     ForeignRetainedMemory,
+    MultipleExecutionAdmissions,
+    ForeignExecutionAdmission,
     ArtifactAdmissionDenied,
     MultipleCheckpoints,
     NoProgress,

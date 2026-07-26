@@ -63,13 +63,19 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldCostProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(YieldCostExecution {
-            suspension_count: Arc::clone(&self.suspension_count),
-            retained_probe_count: Arc::clone(&self.retained_probe_count),
-            retained: None,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            YieldCostExecution {
+                suspension_count: Arc::clone(&self.suspension_count),
+                retained_probe_count: Arc::clone(&self.retained_probe_count),
+                retained: None,
+            },
+        )
     }
 }
 
@@ -88,7 +94,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for YieldCostC
         &self,
         _call: &WorthQueryGraphProviderCall,
         _memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
         Err(WorthQueryGraphProviderFailure::new(
             "Phase 6.3 cost probe must never restore its checkpoint",
         ))

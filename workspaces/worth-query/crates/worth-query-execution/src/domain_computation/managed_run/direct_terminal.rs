@@ -4,13 +4,15 @@ use worth_relational::facade::runtime::{
     RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
 };
 use worth_runtime_bridge::facade::{
-    BridgeBoundExecutionBasis, BridgeExecutionBasisFinalizationFailureKind,
-    BridgeExecutionBasisFinalizationReceipt, BridgeExecutionBasisTerminalDisposition,
+    BridgeBoundExecutionBasis, BridgeExecutionBasisFinalizationReceipt,
+    BridgeExecutionBasisTerminalDisposition,
 };
 
 use super::{
+    provider_work::WorthQueryManagedProviderCleanupAuthority,
     WorthQueryManagedProviderWorkEvidence, WorthQueryManagedRunCleanupDisposition,
-    WorthQueryManagedRunCounters, WorthQueryManagedRunTerminalKind,
+    WorthQueryManagedRunCleanupFailureKind, WorthQueryManagedRunCounters,
+    WorthQueryManagedRunTerminalKind,
 };
 use crate::domain_computation::{
     WorthQueryDirectExecutionAttemptReleaseReceipt, WorthQueryDirectExecutionResourceAttempt,
@@ -25,6 +27,7 @@ pub struct WorthQueryDirectRunTerminal {
     pub(super) relational_basis: RelationalExecutionBasisLease,
     pub(super) counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkEvidence,
+    pub(super) provider_cleanup: WorthQueryManagedProviderCleanupAuthority,
 }
 
 impl WorthQueryDirectRunTerminal {
@@ -56,18 +59,61 @@ impl WorthQueryDirectRunTerminal {
             identity,
             kind,
             resource_attempt,
-            bridge_basis,
+            mut bridge_basis,
             relational_basis,
             counters,
-            provider_work,
+            mut provider_work,
+            mut provider_cleanup,
         } = self;
+        if let Err(failure) =
+            provider_cleanup.release_queue_occupancies(&mut bridge_basis, &mut provider_work)
+        {
+            return Err(WorthQueryDirectRunCleanupFailure {
+                failure_kind: WorthQueryManagedRunCleanupFailureKind::QueueRelease(failure.kind()),
+                failure_detail: Arc::from(failure.detail()),
+                terminal: WorthQueryDirectRunTerminal {
+                    logical_run_identity,
+                    identity,
+                    kind,
+                    resource_attempt,
+                    bridge_basis,
+                    relational_basis,
+                    counters,
+                    provider_work,
+                    provider_cleanup,
+                },
+            });
+        }
+        let provider_retained_bytes = provider_cleanup.reconcile_provider_memory();
+        provider_work.reconcile_provider_retained_bytes(provider_retained_bytes);
+        if provider_retained_bytes != 0 {
+            return Err(WorthQueryDirectRunCleanupFailure {
+                failure_kind: WorthQueryManagedRunCleanupFailureKind::ProviderMemoryRetained,
+                failure_detail: Arc::from(format!(
+                    "managed provider retains {provider_retained_bytes} governed bytes"
+                )),
+                terminal: WorthQueryDirectRunTerminal {
+                    logical_run_identity,
+                    identity,
+                    kind,
+                    resource_attempt,
+                    bridge_basis,
+                    relational_basis,
+                    counters,
+                    provider_work,
+                    provider_cleanup,
+                },
+            });
+        }
         let bridge = match bridge_basis.finalize(bridge_terminal_disposition(kind)) {
             Ok(receipt) => receipt,
             Err(failure) => {
                 let failure_kind = failure.kind();
                 let failure_detail = Arc::from(failure.detail());
                 return Err(WorthQueryDirectRunCleanupFailure {
-                    failure_kind,
+                    failure_kind: WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
+                        failure_kind,
+                    ),
                     failure_detail,
                     terminal: WorthQueryDirectRunTerminal {
                         logical_run_identity,
@@ -78,6 +124,7 @@ impl WorthQueryDirectRunTerminal {
                         relational_basis,
                         counters,
                         provider_work,
+                        provider_cleanup,
                     },
                 });
             }
@@ -122,13 +169,13 @@ pub(super) fn bridge_terminal_disposition(
 }
 
 pub struct WorthQueryDirectRunCleanupFailure {
-    failure_kind: BridgeExecutionBasisFinalizationFailureKind,
+    failure_kind: WorthQueryManagedRunCleanupFailureKind,
     failure_detail: Arc<str>,
     terminal: WorthQueryDirectRunTerminal,
 }
 
 impl WorthQueryDirectRunCleanupFailure {
-    pub fn failure_kind(&self) -> BridgeExecutionBasisFinalizationFailureKind {
+    pub fn failure_kind(&self) -> WorthQueryManagedRunCleanupFailureKind {
         self.failure_kind
     }
 
@@ -136,8 +183,20 @@ impl WorthQueryDirectRunCleanupFailure {
         &self.failure_detail
     }
 
+    pub fn provider_retained_bytes(&self) -> usize {
+        self.terminal.provider_work.provider_retained_bytes()
+    }
+
     pub fn disposition(&self) -> WorthQueryManagedRunCleanupDisposition {
-        WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+        match self.failure_kind {
+            WorthQueryManagedRunCleanupFailureKind::ProviderMemoryRetained => {
+                WorthQueryManagedRunCleanupDisposition::CleanupPending
+            }
+            WorthQueryManagedRunCleanupFailureKind::QueueRelease(_)
+            | WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(_) => {
+                WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+            }
+        }
     }
 
     pub fn retry(

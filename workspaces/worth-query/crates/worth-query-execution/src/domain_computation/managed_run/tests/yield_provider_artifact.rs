@@ -72,13 +72,19 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CheckpointArtifactPr
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(CheckpointArtifactExecution {
-            disposed: Arc::clone(&self.disposed),
-            artifact: None,
-            retained: None,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            CheckpointArtifactExecution {
+                disposed: Arc::clone(&self.disposed),
+                artifact: None,
+                retained: None,
+            },
+        )
     }
 }
 
@@ -97,7 +103,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for Checkpoint
         &self,
         _call: &WorthQueryGraphProviderCall,
         _memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
         Err(WorthQueryGraphProviderFailure::new(
             "Phase 6.3 checkpoint-artifact proof must not restore",
         ))

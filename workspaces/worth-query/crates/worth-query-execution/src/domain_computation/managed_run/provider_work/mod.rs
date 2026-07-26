@@ -1,3 +1,4 @@
+mod cleanup_authority;
 mod evidence;
 mod ledger;
 mod release_summary;
@@ -10,4 +11,5 @@ pub use evidence::{
 pub use release_summary::WorthQueryManagedProviderExecutionReleaseSummary;
 pub use request::WorthQueryManagedGraphCallRequest;
 
+pub(crate) use cleanup_authority::WorthQueryManagedProviderCleanupAuthority;
 pub(crate) use ledger::WorthQueryManagedProviderWorkLedger;

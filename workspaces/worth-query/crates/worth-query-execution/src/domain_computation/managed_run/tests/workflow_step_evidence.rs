@@ -44,9 +44,12 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CheckpointContinuity
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(CheckpointContinuityExecution { step_ordinal: 0 })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(start, CheckpointContinuityExecution { step_ordinal: 0 })
     }
 }
 
@@ -125,13 +128,19 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for MultiCallArtifactPro
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(MultiCallArtifactExecution {
-            produce: self.begin_ordinal.fetch_add(1, Ordering::AcqRel) == 0,
-            retained: Arc::clone(&self.retained),
-            disposed: Arc::clone(&self.disposed),
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            MultiCallArtifactExecution {
+                produce: self.begin_ordinal.fetch_add(1, Ordering::AcqRel) == 0,
+                retained: Arc::clone(&self.retained),
+                disposed: Arc::clone(&self.disposed),
+            },
+        )
     }
 }
 

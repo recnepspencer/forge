@@ -296,6 +296,7 @@ impl WorthQueryRunningWorkflowRun {
         let artifact_evidence_at_terminal = self.artifacts.registry().freeze_production();
         self.provider_work
             .settle_artifacts(self.provider_artifact_occurrences.snapshot());
+        let (provider_work, provider_cleanup) = self.provider_work.into_terminal_parts();
         WorthQueryWorkflowRunTerminal {
             logical_run_identity: self.logical_run_identity,
             identity: self.identity,
@@ -306,7 +307,8 @@ impl WorthQueryRunningWorkflowRun {
             artifacts: self.artifacts,
             artifact_evidence_at_terminal,
             counters: self.counters,
-            provider_work: self.provider_work.into_evidence(),
+            provider_work,
+            provider_cleanup,
         }
     }
 
@@ -354,6 +356,7 @@ pub struct WorthQueryWorkflowRunTerminal {
     pub(super) artifact_evidence_at_terminal: WorthQueryWorkflowArtifactRegistryEvidence,
     pub(super) counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkEvidence,
+    pub(super) provider_cleanup: super::provider_work::WorthQueryManagedProviderCleanupAuthority,
 }
 
 impl WorthQueryWorkflowRunTerminal {

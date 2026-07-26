@@ -44,9 +44,12 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for WorkflowAbandonProvi
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(WorkflowAbandonExecution { step_ordinal: 0 })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(start, WorkflowAbandonExecution { step_ordinal: 0 })
     }
 }
 

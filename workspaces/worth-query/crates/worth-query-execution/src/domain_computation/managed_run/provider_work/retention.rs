@@ -11,14 +11,29 @@ pub(super) struct WorthQueryManagedProviderRetentionLedger {
 }
 
 impl WorthQueryManagedProviderRetentionLedger {
-    pub(super) fn admit_step(&mut self, evidence: WorthQueryGraphProviderStepRetainedEvidence) {
-        self.provider_bytes = as_usize(evidence.provider_bytes());
+    pub(super) fn admit_step(
+        &mut self,
+        evidence: WorthQueryGraphProviderStepRetainedEvidence,
+        prior_provider_bytes: usize,
+    ) {
+        self.provider_bytes =
+            prior_provider_bytes.saturating_add(as_usize(evidence.provider_bytes()));
         self.projection_bytes = as_usize(evidence.projection_bytes());
         self.record_peak();
     }
 
-    pub(super) fn reconcile_provider(&mut self, memory: WorthQueryGraphProviderMemorySnapshot) {
-        self.provider_bytes = as_usize(memory.retained_bytes());
+    pub(super) fn observe_active_provider(
+        &mut self,
+        memory: WorthQueryGraphProviderMemorySnapshot,
+        prior_provider_bytes: usize,
+    ) {
+        self.provider_bytes =
+            prior_provider_bytes.saturating_add(as_usize(memory.retained_bytes()));
+        self.record_peak();
+    }
+
+    pub(super) fn reconcile_provider_liabilities(&mut self, provider_bytes: usize) {
+        self.provider_bytes = provider_bytes;
         self.record_peak();
     }
 
@@ -39,6 +54,10 @@ impl WorthQueryManagedProviderRetentionLedger {
         self.provider_bytes
             .saturating_add(self.projection_bytes)
             .saturating_add(self.artifact_bytes)
+    }
+
+    pub(super) const fn provider_bytes(&self) -> usize {
+        self.provider_bytes
     }
 
     pub(super) const fn peak_bytes(&self) -> usize {

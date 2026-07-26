@@ -7,15 +7,19 @@ use crate::domain_computation::provider_session::graph_provider::bounded_step::W
 use crate::domain_computation::{WorthQueryGraphProviderStepReport, WorthQueryGraphReadMaterial};
 
 pub(super) struct WorthQueryPendingDirectGraphQueueState {
-    width: u64,
+    occupancy: worth_runtime_bridge::facade::BridgeManagedQueueOccupancy,
     depth: u64,
     capacity: u64,
 }
 
 impl WorthQueryPendingDirectGraphQueueState {
-    pub(super) const fn new(width: u64, depth: u64, capacity: u64) -> Self {
+    pub(super) const fn new(
+        occupancy: worth_runtime_bridge::facade::BridgeManagedQueueOccupancy,
+        depth: u64,
+        capacity: u64,
+    ) -> Self {
         Self {
-            width,
+            occupancy,
             depth,
             capacity,
         }
@@ -70,52 +74,42 @@ impl WorthQueryPendingDirectGraphChunk {
         self.active.request_cancellation(reason)
     }
 
-    pub fn acknowledge(mut self) -> WorthQueryDirectGraphStepOutcome {
-        let before = match self.active.observe_safe_point() {
+    pub fn acknowledge(self) -> WorthQueryDirectGraphStepOutcome {
+        let Self {
+            mut active,
+            report,
+            material,
+            queue,
+            retained_bytes,
+        } = self;
+        let before = match active.observe_safe_point() {
             Ok(observation) => observation,
             Err(_) => {
-                return self
-                    .active
-                    .abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+                release_or_retain_queue(&mut active, queue.occupancy);
+                drop(material);
+                let _ = active.release_pending_chunk(retained_bytes);
+                return active.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
             }
         };
         let terminal = consumer_terminal_kind(&before);
-        let mutation = match self
-            .active
-            .running
-            .bridge_basis_mut()
-            .dequeue_managed_queue(self.queue.width)
-        {
-            Ok(mutation) => mutation,
-            Err(_) => {
-                let _ = self.active.release_pending_chunk(self.retained_bytes);
-                return self
-                    .active
-                    .abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
-            }
-        };
-        self.active
-            .running
-            .provider_work_mut()
-            .record_queue_mutation(mutation.counters());
-        if !self.active.release_pending_chunk(self.retained_bytes) {
-            return self
-                .active
-                .abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
+        let released = release_or_retain_queue(&mut active, queue.occupancy);
+        if !released {
+            drop(material);
+            let _ = active.release_pending_chunk(retained_bytes);
+            return active.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
+        }
+        if !active.release_pending_chunk(retained_bytes) {
+            return active.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
         }
         if let Some(kind) = terminal {
-            return self.active.interrupted_terminal(kind);
+            return active.interrupted_terminal(kind);
         }
-        match self.report.completion() {
-            WorthQueryGraphProviderStepCompletion::Continue => {
-                self.active.continue_after_safe_point()
+        match report.completion() {
+            WorthQueryGraphProviderStepCompletion::Continue => active.continue_after_safe_point(),
+            WorthQueryGraphProviderStepCompletion::Complete => active.finish_completion(&report),
+            WorthQueryGraphProviderStepCompletion::Failed => {
+                active.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
             }
-            WorthQueryGraphProviderStepCompletion::Complete => {
-                self.active.finish_completion(&self.report)
-            }
-            WorthQueryGraphProviderStepCompletion::Failed => self
-                .active
-                .abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed),
         }
     }
 
@@ -127,18 +121,19 @@ impl WorthQueryPendingDirectGraphChunk {
             queue,
             retained_bytes,
         } = self;
-        let mutation = active
-            .running
-            .bridge_basis_mut()
-            .dequeue_managed_queue(queue.width);
-        if let Ok(mutation) = mutation {
-            active
-                .running
-                .provider_work_mut()
-                .record_queue_mutation(mutation.counters());
-        }
+        release_or_retain_queue(&mut active, queue.occupancy);
         drop(material);
         let _ = active.release_pending_chunk(retained_bytes);
         active.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
     }
+}
+
+fn release_or_retain_queue(
+    active: &mut WorthQueryActiveDirectGraphExecution,
+    occupancy: worth_runtime_bridge::facade::BridgeManagedQueueOccupancy,
+) -> bool {
+    let running = &mut active.running;
+    running
+        .provider_work
+        .release_or_retain_queue_occupancy(&mut running.bridge_basis, occupancy)
 }

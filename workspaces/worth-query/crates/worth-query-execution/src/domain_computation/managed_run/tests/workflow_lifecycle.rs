@@ -201,7 +201,9 @@ fn workflow_cleanup_thread_failure_returns_the_same_terminal_for_retry() {
 
     assert_eq!(
         failure.failure_kind(),
-        BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
+            BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        )
     );
     assert_artifact_evidence(failure.artifact_evidence(), (0, 0, 0, 0));
     let cleanup = complete_cleanup(failure.retry());

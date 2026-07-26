@@ -224,6 +224,7 @@ impl WorthQueryRunningDirectRun {
         self,
         kind: WorthQueryManagedRunTerminalKind,
     ) -> WorthQueryDirectRunTerminal {
+        let (provider_work, provider_cleanup) = self.provider_work.into_terminal_parts();
         WorthQueryDirectRunTerminal {
             logical_run_identity: self.logical_run_identity,
             identity: self.identity,
@@ -232,7 +233,8 @@ impl WorthQueryRunningDirectRun {
             bridge_basis: self.bridge_basis,
             relational_basis: self.relational_basis,
             counters: self.counters,
-            provider_work: self.provider_work.into_evidence(),
+            provider_work,
+            provider_cleanup,
         }
     }
 

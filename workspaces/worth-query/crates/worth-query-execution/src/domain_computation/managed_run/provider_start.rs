@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
     provider_anchor::{WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStartInvocation},
     WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderMemoryArena,
-    WorthQueryGraphProviderMemorySnapshot, WorthQueryOwnedGraphProviderExecution,
+    WorthQueryOwnedGraphProviderExecution,
 };
 use crate::domain_computation::{
     WorthQueryGraphProviderCall, WorthQueryGraphProviderExecution,
@@ -27,7 +27,7 @@ pub(super) struct WorthQueryManagedProviderStarted {
 pub(super) struct WorthQueryManagedProviderStartFailure {
     pub(super) kind: WorthQueryManagedProviderStartFailureKind,
     pub(super) detail: Arc<str>,
-    pub(super) memory: WorthQueryGraphProviderMemorySnapshot,
+    pub(super) memory: WorthQueryGraphProviderMemoryArena,
     pub(super) provider_execution_release: Option<WorthQueryProviderExecutionReleaseEvidence>,
 }
 
@@ -96,7 +96,7 @@ fn release_denied_execution(
     WorthQueryManagedProviderStartFailure {
         kind,
         detail: Arc::from(detail),
-        memory: snapshot,
+        memory,
         provider_execution_release: Some(release),
     }
 }
@@ -115,7 +115,7 @@ fn failed_without_execution(
     WorthQueryManagedProviderStartFailure {
         kind,
         detail,
-        memory: snapshot,
+        memory,
         provider_execution_release: None,
     }
 }

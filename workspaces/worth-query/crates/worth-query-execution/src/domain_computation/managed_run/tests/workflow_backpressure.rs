@@ -55,12 +55,18 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for StageQueueContractPr
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
         self.begins.fetch_add(1, Ordering::Relaxed);
-        Ok(StageQueueContractExecution {
-            advances: Arc::clone(&self.advances),
-        })
+        admit_provider_execution(
+            start,
+            StageQueueContractExecution {
+                advances: Arc::clone(&self.advances),
+            },
+        )
     }
 }
 

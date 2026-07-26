@@ -5,6 +5,7 @@ mod denial;
 mod finalization;
 mod interruption;
 mod managed_declaration;
+mod queue_occupancy;
 mod queue_pressure;
 mod readmission;
 mod request;
@@ -27,6 +28,9 @@ pub use interruption::{
     BridgeManagedExecutionClockAdvance, BridgeManagedExecutionInterruptionFailure,
     BridgeManagedExecutionInterruptionFailureKind, BridgeManagedExecutionRejection,
     BridgeManagedExecutionRejectionReason, BridgeManagedExecutionTimeout,
+};
+pub use queue_occupancy::{
+    BridgeManagedQueueAdmission, BridgeManagedQueueOccupancy, BridgeManagedQueueReleaseFailure,
 };
 pub use queue_pressure::{
     BridgeExecutionQueuePressureState, BridgeManagedQueueFailure, BridgeManagedQueueFailureKind,

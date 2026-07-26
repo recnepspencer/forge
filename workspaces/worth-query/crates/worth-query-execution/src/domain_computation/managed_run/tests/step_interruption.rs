@@ -69,14 +69,20 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for CountingProvider {
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(CountingExecution {
-            advances: Arc::clone(&self.advances),
-            work_units: Arc::clone(&self.work_units),
-            exceed_work_budget: self.exceed_work_budget,
-            reject_work: self.reject_work,
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            CountingExecution {
+                advances: Arc::clone(&self.advances),
+                work_units: Arc::clone(&self.work_units),
+                exceed_work_budget: self.exceed_work_budget,
+                reject_work: self.reject_work,
+            },
+        )
     }
 }
 

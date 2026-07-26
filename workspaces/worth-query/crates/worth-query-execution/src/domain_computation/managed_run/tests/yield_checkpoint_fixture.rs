@@ -45,7 +45,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for PanicProbe
         &self,
         _call: &WorthQueryGraphProviderCall,
         _memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
         Err(WorthQueryGraphProviderFailure::new(
             "panicking checkpoint probe must never restore",
         ))
@@ -61,12 +64,16 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for PanicDropC
         &self,
         _call: &WorthQueryGraphProviderCall,
         memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
-        Ok(Box::new(YieldExecution::restored(
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = Box::new(YieldExecution::restored(
             memory
                 .rebind(&self.retained)
                 .map_err(restore_memory_failure)?,
-        )))
+        )) as Box<dyn WorthQueryGraphProviderExecution>;
+        admit_restored_provider_execution(memory, execution)
     }
 }
 
@@ -85,7 +92,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for PanicProbe
         &self,
         _call: &WorthQueryGraphProviderCall,
         _memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
         Err(WorthQueryGraphProviderFailure::new(
             "double-panicking checkpoint must never restore",
         ))
@@ -107,7 +117,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for RestoreFai
         &self,
         _call: &WorthQueryGraphProviderCall,
         _memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
         Err(WorthQueryGraphProviderFailure::new(
             "yield fixture restore denied",
         ))
@@ -123,7 +136,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for RestorePan
         &self,
         _call: &WorthQueryGraphProviderCall,
         _memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
         panic!("yield fixture restore panicked")
     }
 
@@ -143,12 +159,16 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint
         &self,
         _call: &WorthQueryGraphProviderCall,
         memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
-        Ok(Box::new(YieldExecution::restored_with_drop_panic(
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = Box::new(YieldExecution::restored_with_drop_panic(
             memory
                 .rebind(&self.retained)
                 .map_err(restore_memory_failure)?,
-        )))
+        )) as Box<dyn WorthQueryGraphProviderExecution>;
+        admit_restored_provider_execution(memory, execution)
     }
 }
 
@@ -169,12 +189,16 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for YieldCheck
         &self,
         _call: &WorthQueryGraphProviderCall,
         memory: &mut WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
-        Ok(Box::new(YieldExecution::restored(
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = Box::new(YieldExecution::restored(
             memory
                 .rebind(&self.retained)
                 .map_err(restore_memory_failure)?,
-        )))
+        )) as Box<dyn WorthQueryGraphProviderExecution>;
+        admit_restored_provider_execution(memory, execution)
     }
 
     fn export(&self) -> Result<WorthQueryProviderCheckpointExport, WorthQueryGraphProviderFailure> {

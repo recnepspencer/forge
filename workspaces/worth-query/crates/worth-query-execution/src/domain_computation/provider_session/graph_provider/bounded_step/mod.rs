@@ -3,6 +3,7 @@ mod checkpoint;
 mod checkpoint_export;
 mod checkpoint_release;
 mod checkpoint_restore;
+mod cooperative_execution;
 mod denial;
 mod disposition;
 mod execution_start;
@@ -20,6 +21,7 @@ mod step_state;
 
 pub use checkpoint::{WorthQueryGraphProviderCheckpoint, WorthQueryProviderCheckpointEvidence};
 pub use checkpoint_export::WorthQueryProviderCheckpointExport;
+pub use cooperative_execution::WorthQueryCooperativeGraphProviderExecution;
 pub use checkpoint_release::{
     WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
     WorthQueryProviderCheckpointRetentionFailure, WorthQueryProviderCheckpointRetentionFailureKind,

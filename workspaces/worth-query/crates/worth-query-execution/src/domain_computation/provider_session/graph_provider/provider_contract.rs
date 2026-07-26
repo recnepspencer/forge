@@ -1,5 +1,6 @@
 use super::{
-    WorthQueryGraphCommitCall, WorthQueryGraphProviderCall, WorthQueryGraphProviderExecution,
+    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphCommitCall,
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderExecution,
     WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
     WorthQueryGraphProviderReceipt,
 };
@@ -15,7 +16,10 @@ pub trait WorthQueryGraphParticipationProvider<G>: Send + Sync + 'static {
         &self,
         call: &WorthQueryGraphProviderCall,
         start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure>;
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    >;
 }
 
 pub trait WorthQueryGraphCommitProvider<C>: Send + Sync + 'static {

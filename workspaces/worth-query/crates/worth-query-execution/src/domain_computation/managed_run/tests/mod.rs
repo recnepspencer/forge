@@ -6,6 +6,7 @@ mod direct_lifecycle;
 mod effect_posture;
 mod provider_contract_violation;
 mod provider_execution_release;
+mod provider_memory_cleanup;
 mod provider_support_affinity;
 mod provider_work;
 mod readmission_checkpoint_export;
@@ -70,8 +71,9 @@ use worth_runtime_bridge::facade::{
 
 use super::{
     WorthQueryDirectGraphStepOutcome, WorthQueryManagedProviderSessionDisposition,
-    WorthQueryManagedRunCleanupDisposition, WorthQueryManagedRunDenialKind,
-    WorthQueryManagedRunTerminalKind, WorthQueryWorkflowGraphStepOutcome,
+    WorthQueryManagedRunCleanupDisposition, WorthQueryManagedRunCleanupFailureKind,
+    WorthQueryManagedRunDenialKind, WorthQueryManagedRunTerminalKind,
+    WorthQueryWorkflowGraphStepOutcome,
 };
 use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionRuntime, WorthQueryExecutionRuntimeInstaller,
@@ -86,8 +88,8 @@ use crate::domain_computation::provider_session::{
 };
 use crate::domain_computation::{
     WorthQueryArtifactProductionEvidence, WorthQueryArtifactProviderResource,
-    WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
-    WorthQueryGraphProviderCallKind, WorthQueryGraphProviderExecution,
+    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphParticipationProvider,
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallKind, WorthQueryGraphProviderExecution,
     WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
     WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
     WorthQueryGraphProviderStep, WorthQueryGraphProviderStepDenialKind,
@@ -95,6 +97,24 @@ use crate::domain_computation::{
     WorthQueryGraphReadMaterial, WorthQueryGraphReadRow, WorthQueryManagedGraphCallRequest,
     WorthQueryRunningDirectRun, WorthQueryWorkflowRunCleanupOutcome,
 };
+
+fn admit_provider_execution<E>(
+    start: &mut WorthQueryGraphProviderExecutionStart,
+    execution: E,
+) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderFailure> {
+    start
+        .admit_cooperative_execution(execution)
+        .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
+}
+
+fn admit_restored_provider_execution<E>(
+    memory: &mut WorthQueryGraphProviderRestoreMemory,
+    execution: E,
+) -> Result<WorthQueryCooperativeGraphProviderExecution<E>, WorthQueryGraphProviderFailure> {
+    memory
+        .admit_cooperative_execution(execution)
+        .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
+}
 
 fn query_runtime() -> WorthQueryExecutionRuntime {
     WorthQueryExecutionRuntimeInstaller::new()

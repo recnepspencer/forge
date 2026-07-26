@@ -131,9 +131,10 @@ pub use crate::execution_basis::{
     BridgeManagedExecutionInterruptionFailure, BridgeManagedExecutionInterruptionFailureKind,
     BridgeManagedExecutionPartialEffectPosture, BridgeManagedExecutionRejection,
     BridgeManagedExecutionRejectionReason, BridgeManagedExecutionStepContract,
-    BridgeManagedExecutionStepLimits, BridgeManagedExecutionTimeout, BridgeManagedQueueFailure,
-    BridgeManagedQueueFailureKind, BridgeManagedQueueMutation, BridgeManagedQueueMutationCounters,
-    BridgeManagedQueueMutationKind, BridgeYieldedExecutionBasis,
+    BridgeManagedExecutionStepLimits, BridgeManagedExecutionTimeout, BridgeManagedQueueAdmission,
+    BridgeManagedQueueFailure, BridgeManagedQueueFailureKind, BridgeManagedQueueMutation,
+    BridgeManagedQueueMutationCounters, BridgeManagedQueueMutationKind,
+    BridgeManagedQueueOccupancy, BridgeManagedQueueReleaseFailure, BridgeYieldedExecutionBasis,
     BridgeYieldedExecutionBasisPreflight,
 };
 pub use crate::identity::{bridge_identity_reporting_label, BridgeIdentityEvidence};

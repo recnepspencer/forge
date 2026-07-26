@@ -8,6 +8,7 @@ use crate::domain_computation::{
 
 use super::evidence::WorthQueryManagedProviderWorkEvidenceParts;
 use super::retention::WorthQueryManagedProviderRetentionLedger;
+use super::WorthQueryManagedProviderCleanupAuthority;
 use super::{
     WorthQueryManagedProviderExecutionReleaseSummary, WorthQueryManagedProviderWorkEvidence,
 };
@@ -38,6 +39,7 @@ pub(crate) struct WorthQueryManagedProviderWorkLedger {
     last_step_failure:
         Option<crate::domain_computation::WorthQueryGraphProviderStepFailureEvidence>,
     provider_execution_release: WorthQueryManagedProviderExecutionReleaseSummary,
+    cleanup: WorthQueryManagedProviderCleanupAuthority,
 }
 
 impl WorthQueryManagedProviderWorkLedger {
@@ -67,6 +69,7 @@ impl WorthQueryManagedProviderWorkLedger {
             last_safe_point: None,
             last_step_failure: None,
             provider_execution_release: WorthQueryManagedProviderExecutionReleaseSummary::default(),
+            cleanup: WorthQueryManagedProviderCleanupAuthority::default(),
         }
     }
 
@@ -88,7 +91,10 @@ impl WorthQueryManagedProviderWorkLedger {
             .peak_scratch_bytes
             .max(usize::try_from(report.peak_scratch_bytes()).unwrap_or(usize::MAX));
         let artifacts = report.artifact_evidence();
-        self.retention.admit_step(report.retained_evidence());
+        self.retention.admit_step(
+            report.retained_evidence(),
+            self.cleanup.provider_retained_bytes(),
+        );
         self.produced_artifact_count = self
             .produced_artifact_count
             .saturating_add(artifacts.produced_artifact_count());
@@ -148,6 +154,24 @@ impl WorthQueryManagedProviderWorkLedger {
             .saturating_add(counters.queue_state_mutation_count());
     }
 
+    pub(crate) fn release_or_retain_queue_occupancy(
+        &mut self,
+        basis: &mut worth_runtime_bridge::facade::BridgeBoundExecutionBasis,
+        occupancy: worth_runtime_bridge::facade::BridgeManagedQueueOccupancy,
+    ) -> bool {
+        match basis.release_managed_queue_occupancy(occupancy) {
+            Ok(mutation) => {
+                self.record_queue_mutation(mutation.counters());
+                true
+            }
+            Err(failure) => {
+                self.cleanup
+                    .retain_queue_occupancy(failure.into_occupancy());
+                false
+            }
+        }
+    }
+
     pub(crate) fn record_provider_execution_release(
         &mut self,
         evidence: &WorthQueryProviderExecutionReleaseEvidence,
@@ -155,8 +179,21 @@ impl WorthQueryManagedProviderWorkLedger {
         self.provider_execution_release.record(evidence);
     }
 
-    pub(crate) fn record_provider_memory(&mut self, memory: WorthQueryGraphProviderMemorySnapshot) {
-        self.retention.reconcile_provider(memory);
+    pub(crate) fn observe_active_provider_memory(
+        &mut self,
+        memory: WorthQueryGraphProviderMemorySnapshot,
+    ) {
+        self.retention
+            .observe_active_provider(memory, self.cleanup.provider_retained_bytes());
+    }
+
+    pub(crate) fn retain_provider_memory(
+        &mut self,
+        memory: crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderMemoryArena,
+    ) {
+        let retained_bytes = self.cleanup.retain_provider_memory(memory);
+        self.retention
+            .reconcile_provider_liabilities(retained_bytes);
     }
 
     pub(crate) fn release_projection_bytes(&mut self, retained_bytes: usize) -> bool {
@@ -205,6 +242,7 @@ impl WorthQueryManagedProviderWorkLedger {
                 retained_artifact_count: self.retained_artifact_count,
                 disposed_artifact_count: self.disposed_artifact_count,
                 peak_scratch_bytes: self.peak_scratch_bytes,
+                provider_retained_bytes: self.retention.provider_bytes(),
                 retained_bytes: self.retention.current_bytes(),
                 peak_retained_bytes: self.retention.peak_bytes(),
                 checkpoint_available: self.checkpoint_available,
@@ -224,5 +262,15 @@ impl WorthQueryManagedProviderWorkLedger {
 
     pub(crate) fn into_evidence(self) -> WorthQueryManagedProviderWorkEvidence {
         self.snapshot()
+    }
+
+    pub(crate) fn into_terminal_parts(
+        self,
+    ) -> (
+        WorthQueryManagedProviderWorkEvidence,
+        WorthQueryManagedProviderCleanupAuthority,
+    ) {
+        let evidence = self.snapshot();
+        (evidence, self.cleanup)
     }
 }

@@ -3,7 +3,7 @@ use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationFailureKind;
 use super::terminal_fixture::{converged_terminal, workflow_converged_terminal};
 use crate::domain_computation::{
     WorthQueryConvergenceTerminalKind, WorthQueryManagedRunCleanupDisposition,
-    WorthQueryWorkflowConvergenceCleanupOutcome,
+    WorthQueryManagedRunCleanupFailureKind, WorthQueryWorkflowConvergenceCleanupOutcome,
 };
 
 #[test]
@@ -25,7 +25,9 @@ fn direct_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
     assert!(failure.domain_failure().is_none());
     assert_eq!(
         failure.managed_failure().failure_kind(),
-        BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
+            BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        )
     );
 
     let receipt = match failure.retry() {
@@ -67,7 +69,9 @@ fn workflow_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
     assert!(failure.domain_failure().is_none());
     assert_eq!(
         failure.managed_failure().failure_kind(),
-        BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
+            BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        )
     );
 
     let receipt = match failure.retry() {

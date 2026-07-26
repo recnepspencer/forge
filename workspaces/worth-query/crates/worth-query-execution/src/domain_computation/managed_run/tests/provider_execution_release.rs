@@ -88,15 +88,21 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for PhysicalReleaseProvi
     fn begin(
         &self,
         _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(PhysicalReleaseExecution {
-            advance: self.advance,
-            disposal: self.disposal,
-            destructor_panics: self.destructor_panics,
-            disposal_attempts: Arc::clone(&self.disposal_attempts),
-            destructor_attempts: Arc::clone(&self.destructor_attempts),
-        })
+        start: &mut WorthQueryGraphProviderExecutionStart,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
+        WorthQueryGraphProviderFailure,
+    > {
+        admit_provider_execution(
+            start,
+            PhysicalReleaseExecution {
+                advance: self.advance,
+                disposal: self.disposal,
+                destructor_panics: self.destructor_panics,
+                disposal_attempts: Arc::clone(&self.disposal_attempts),
+                destructor_attempts: Arc::clone(&self.destructor_attempts),
+            },
+        )
     }
 }
 

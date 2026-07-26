@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use super::provider_anchor::WorthQueryGraphProviderAnchor;
 use super::{
-    WorthQueryGraphProviderExecution, WorthQueryProviderCheckpointExport,
+    WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphProviderExecution,
+    WorthQueryProviderCheckpointExport,
     WorthQueryProviderCheckpointExportInvocation, WorthQueryProviderCheckpointReleaseDisposition,
     WorthQueryProviderCheckpointReleaseEvidence, WorthQueryProviderCheckpointRestoreInvocation,
     WorthQueryProviderCheckpointRetentionFailure,
@@ -20,7 +21,10 @@ pub trait WorthQueryGraphProviderCheckpoint: Send + 'static {
         &self,
         call: &WorthQueryGraphProviderCall,
         memory: &mut super::WorthQueryGraphProviderRestoreMemory,
-    ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure>;
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    >;
 
     fn export(&self) -> Result<WorthQueryProviderCheckpointExport, WorthQueryGraphProviderFailure> {
         Err(WorthQueryGraphProviderFailure::new(
@@ -128,7 +132,9 @@ impl WorthQueryRetainedGraphProviderCheckpoint {
         match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             checkpoint.restore(call, memory)
         })) {
-            Ok(result) => WorthQueryProviderCheckpointRestoreInvocation::Returned(result),
+            Ok(result) => WorthQueryProviderCheckpointRestoreInvocation::Returned(
+                result.and_then(|admitted| memory.validate_returned_execution(admitted)),
+            ),
             Err(_) => WorthQueryProviderCheckpointRestoreInvocation::Panicked,
         }
     }

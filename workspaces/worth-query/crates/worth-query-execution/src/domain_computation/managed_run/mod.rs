@@ -110,7 +110,10 @@ pub use safe_point_observation::{
     WorthQueryManagedSafePointObservation,
 };
 pub use step_contract_admission::WorthQueryManagedStepContractDenialKind;
-pub use terminal::{WorthQueryManagedRunCleanupDisposition, WorthQueryManagedRunTerminalKind};
+pub use terminal::{
+    WorthQueryManagedRunCleanupDisposition, WorthQueryManagedRunCleanupFailureKind,
+    WorthQueryManagedRunTerminalKind,
+};
 pub use truth_read_request::WorthQueryManagedTruthReadRequest;
 pub use workflow::{
     WorthQueryAdmittedWorkflowRun, WorthQueryRunningWorkflowRun,

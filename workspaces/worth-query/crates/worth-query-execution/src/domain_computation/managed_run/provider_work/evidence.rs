@@ -24,6 +24,7 @@ pub struct WorthQueryManagedProviderWorkEvidence {
     retained_artifact_count: usize,
     disposed_artifact_count: usize,
     peak_scratch_bytes: usize,
+    provider_retained_bytes: usize,
     retained_bytes: usize,
     peak_retained_bytes: usize,
     checkpoint_available: bool,
@@ -53,6 +54,7 @@ pub(super) struct WorthQueryManagedProviderWorkEvidenceParts {
     pub(super) retained_artifact_count: usize,
     pub(super) disposed_artifact_count: usize,
     pub(super) peak_scratch_bytes: usize,
+    pub(super) provider_retained_bytes: usize,
     pub(super) retained_bytes: usize,
     pub(super) peak_retained_bytes: usize,
     pub(super) checkpoint_available: bool,
@@ -84,6 +86,7 @@ impl WorthQueryManagedProviderWorkEvidence {
             retained_artifact_count: parts.retained_artifact_count,
             disposed_artifact_count: parts.disposed_artifact_count,
             peak_scratch_bytes: parts.peak_scratch_bytes,
+            provider_retained_bytes: parts.provider_retained_bytes,
             retained_bytes: parts.retained_bytes,
             peak_retained_bytes: parts.peak_retained_bytes,
             checkpoint_available: parts.checkpoint_available,
@@ -164,6 +167,10 @@ impl WorthQueryManagedProviderWorkEvidence {
         self.retained_bytes
     }
 
+    pub const fn provider_retained_bytes(&self) -> usize {
+        self.provider_retained_bytes
+    }
+
     pub const fn peak_retained_bytes(&self) -> usize {
         self.peak_retained_bytes
     }
@@ -220,6 +227,26 @@ impl WorthQueryManagedProviderWorkEvidence {
 
     pub(crate) fn has_uncertainty(&self) -> bool {
         self.abandoned_call_count != 0
+    }
+
+    pub(crate) fn record_queue_mutation(
+        &mut self,
+        counters: worth_runtime_bridge::facade::BridgeManagedQueueMutationCounters,
+    ) {
+        self.queue_request_lookup_count = self
+            .queue_request_lookup_count
+            .saturating_add(counters.exact_signal_request_lookup_count());
+        self.queue_state_mutation_count = self
+            .queue_state_mutation_count
+            .saturating_add(counters.queue_state_mutation_count());
+    }
+
+    pub(crate) fn reconcile_provider_retained_bytes(&mut self, provider_retained_bytes: usize) {
+        self.retained_bytes = self
+            .retained_bytes
+            .saturating_sub(self.provider_retained_bytes)
+            .saturating_add(provider_retained_bytes);
+        self.provider_retained_bytes = provider_retained_bytes;
     }
 
     pub(crate) fn requires_cleanup_recovery(&self) -> bool {

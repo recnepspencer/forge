@@ -5,7 +5,7 @@ use worth_signal::facade::{
 
 use crate::source::with_async_request_signal_runtime;
 
-use super::BridgeBoundExecutionBasis;
+use super::{BridgeBoundExecutionBasis, BridgeManagedQueueAdmission, BridgeManagedQueueOccupancy};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeManagedQueueMutationKind {
@@ -80,7 +80,7 @@ pub struct BridgeManagedQueueFailure {
 }
 
 impl BridgeManagedQueueFailure {
-    fn new(kind: BridgeManagedQueueFailureKind, detail: impl Into<String>) -> Self {
+    pub(super) fn new(kind: BridgeManagedQueueFailureKind, detail: impl Into<String>) -> Self {
         Self {
             kind,
             detail: detail.into(),
@@ -100,7 +100,7 @@ impl BridgeBoundExecutionBasis {
     pub fn enqueue_managed_queue(
         &mut self,
         width: u64,
-    ) -> Result<BridgeManagedQueueMutation, BridgeManagedQueueFailure> {
+    ) -> Result<BridgeManagedQueueAdmission, BridgeManagedQueueFailure> {
         let report = with_async_request_signal_runtime(self.bridge_runtime_key, |signal_runtime| {
             signal_runtime.enqueue_resource_managed_queue(&self.managed_queue, width)
         })
@@ -111,10 +111,16 @@ impl BridgeBoundExecutionBasis {
                 denial.detail(),
             )
         })?;
-        project_queue_mutation(self, report)
+        let mutation = project_queue_mutation(self, report)?;
+        self.managed_queue_occupancy_width = self
+            .managed_queue_occupancy_width
+            .checked_add(width)
+            .expect("Signal queue admission cannot exceed its bounded u64 capacity");
+        let occupancy = BridgeManagedQueueOccupancy::new(self, width);
+        Ok(BridgeManagedQueueAdmission::new(mutation, occupancy))
     }
 
-    pub fn dequeue_managed_queue(
+    pub(super) fn dequeue_managed_queue_width(
         &mut self,
         width: u64,
     ) -> Result<BridgeManagedQueueMutation, BridgeManagedQueueFailure> {

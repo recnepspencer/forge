@@ -74,7 +74,9 @@ fn cleanup_thread_failure_returns_all_authority_for_owner_thread_retry() {
 
     assert_eq!(
         failure.failure_kind(),
-        BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
+            BridgeExecutionBasisFinalizationFailureKind::SignalRuntimeThreadAffinityViolation
+        )
     );
     assert_eq!(
         failure.disposition(),
