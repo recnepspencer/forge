@@ -6,8 +6,11 @@ use worth_query_host::facade::{
     domain::{WorthQueryInstalledDomainOperationAuthority, WorthQueryPortableDomainPackage},
     installed::{
         domain_computation::{
-        WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
-        WorthQueryArtifactNativeAccessDenial, WorthQueryTransferredArtifactHandle,
+            WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
+            WorthQueryArtifactNativeAccessDenial, WorthQueryDirectYieldOutcome,
+            WorthQueryDirectYieldRecoveryRequired, WorthQueryPausedDirectGraphExecution,
+            WorthQueryPausedWorkflowGraphExecution, WorthQueryTransferredArtifactHandle,
+            WorthQueryWorkflowYieldOutcome, WorthQueryWorkflowYieldRecoveryRequired,
         },
         provider_session::{
             WorthQueryCooperativeGraphProviderExecution, WorthQueryExecutionProviderSession,
@@ -61,6 +64,44 @@ fn carry_artifact_and_publication(
     evidence: WorthQueryDomainEvidenceMaterial,
 ) {
     let _ = (artifact, request, counters, denial, evidence);
+}
+
+fn yield_from_consumed_direct_safe_point(paused: WorthQueryPausedDirectGraphExecution) {
+    match paused.yield_run() {
+        WorthQueryDirectYieldOutcome::Yielded(yielded) => {
+            let _ = yielded.checkpoint();
+            let _ = yielded.cleanup();
+        }
+        WorthQueryDirectYieldOutcome::Denied(denied) => {
+            let _ = denied.into_paused();
+        }
+        WorthQueryDirectYieldOutcome::RecoveryRequired(recovery) => {
+            let _ = recovery.into_paused();
+        }
+    }
+}
+
+fn release_terminalized_direct_yield_recovery(recovery: WorthQueryDirectYieldRecoveryRequired) {
+    let _ = recovery.cleanup_terminalized();
+}
+
+fn yield_from_consumed_workflow_safe_point(paused: WorthQueryPausedWorkflowGraphExecution) {
+    match paused.yield_run() {
+        WorthQueryWorkflowYieldOutcome::Yielded(yielded) => {
+            let _ = yielded.artifact_evidence();
+            let _ = yielded.cleanup();
+        }
+        WorthQueryWorkflowYieldOutcome::Denied(denied) => {
+            let _ = denied.into_paused();
+        }
+        WorthQueryWorkflowYieldOutcome::RecoveryRequired(recovery) => {
+            let _ = recovery.into_paused();
+        }
+    }
+}
+
+fn release_terminalized_workflow_yield_recovery(recovery: WorthQueryWorkflowYieldRecoveryRequired) {
+    let _ = recovery.release_terminalized();
 }
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {

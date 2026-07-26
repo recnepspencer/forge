@@ -15,6 +15,11 @@ pub(super) enum YieldSuspension {
     CheckpointDropPanic {
         retained_bytes: u64,
     },
+    CheckpointMemoryMismatch {
+        governed_retained_bytes: u64,
+        reported_retained_bytes: u64,
+        drop_panics: bool,
+    },
     CheckpointProbeAndDropPanic,
     CheckpointRestoreFailure {
         retained_bytes: u64,
@@ -46,12 +51,16 @@ impl YieldSuspension {
             | Self::CheckpointRestoreRejectAfterAdmission { retained_bytes }
             | Self::CheckpointRestorePanicAfterAdmission { retained_bytes }
             | Self::CheckpointRestoreExecutionDropPanic { retained_bytes, .. } => retained_bytes,
+            Self::CheckpointMemoryMismatch {
+                governed_retained_bytes,
+                ..
+            } => governed_retained_bytes,
             Self::CheckpointProbePanic
             | Self::CheckpointProbeAndDropPanic
             | Self::Failure
             | Self::Panic => 3,
         };
-        usize::try_from(reported.min(3_000)).unwrap()
+        usize::try_from(reported).unwrap()
     }
 }
 
@@ -153,6 +162,24 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
                     retained: self.take_checkpoint_memory(),
                 }))
             }
+            YieldSuspension::CheckpointMemoryMismatch {
+                reported_retained_bytes,
+                drop_panics,
+                ..
+            } => {
+                let retained = self.take_checkpoint_memory();
+                if drop_panics {
+                    Ok(Box::new(PanicDropCheckpoint {
+                        retained_bytes: reported_retained_bytes,
+                        retained,
+                    }))
+                } else {
+                    Ok(Box::new(YieldCheckpoint {
+                        retained_bytes: reported_retained_bytes,
+                        retained,
+                    }))
+                }
+            }
             YieldSuspension::CheckpointProbeAndDropPanic => {
                 Ok(Box::new(PanicProbeAndDropCheckpoint {
                     _retained: self.take_checkpoint_memory(),
@@ -209,10 +236,8 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldProvider {
         &self,
     ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport {
         if self.record_effect {
-            crate::domain_computation::provider_session::execution_resource_support_with_yield_and_partial_effects(
-                "yield-fixture",
-                8,
-            )
+            crate::domain_computation::provider_session::
+                execution_resource_support_with_yield_and_partial_effects("yield-fixture", 8)
         } else if self.yield_installed {
             crate::domain_computation::provider_session::execution_resource_support_with_yield(
                 "yield-fixture",

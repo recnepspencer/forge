@@ -9,7 +9,8 @@ use super::super::{
     WorthQueryManagedRunCounters, WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
 };
 use crate::domain_computation::artifact_owner::{
-    WorthQueryArtifactOccurrenceLedger, WorthQueryWorkflowArtifactAuthority,
+    WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactProductionGenerationCommitted,
+    WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactAuthority,
     WorthQueryWorkflowArtifactRegistryEvidence,
 };
 use crate::domain_computation::WorthQueryWorkflowExecutionResourceAttempt;
@@ -18,7 +19,7 @@ pub(super) struct WorthQueryWorkflowYieldedState {
     pub(super) logical_run_identity: Arc<str>,
     pub(super) yielded_attempt_identity: Arc<str>,
     pub(super) relational_basis: RelationalExecutionBasisLease,
-    pub(super) artifacts: WorthQueryWorkflowArtifactAuthority,
+    pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     pub(super) artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
@@ -31,6 +32,31 @@ pub(super) struct WorthQueryWorkflowYieldedParts {
     pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) execution: WorthQueryRetainedManagedGraphExecution,
+}
+
+pub(super) struct WorthQueryWorkflowReadmissionCommitState {
+    pub(super) logical_run_identity: Arc<str>,
+    pub(super) relational_basis: RelationalExecutionBasisLease,
+    pub(super) artifacts: WorthQueryWorkflowArtifactAuthority,
+    pub(super) run_counters: WorthQueryManagedRunCounters,
+    pub(super) provider_work: WorthQueryManagedProviderWorkLedger,
+    pub(super) provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
+}
+
+impl WorthQueryWorkflowYieldedState {
+    pub(super) fn commit_artifact_generation(
+        self,
+        committed: WorthQueryArtifactProductionGenerationCommitted,
+    ) -> WorthQueryWorkflowReadmissionCommitState {
+        WorthQueryWorkflowReadmissionCommitState {
+            logical_run_identity: self.logical_run_identity,
+            relational_basis: self.relational_basis,
+            artifacts: self.artifacts.activate_after_readmission(committed),
+            run_counters: self.run_counters,
+            provider_work: self.provider_work,
+            provider_artifact_occurrences: self.provider_artifact_occurrences,
+        }
+    }
 }
 
 impl WorthQueryWorkflowYieldedParts {

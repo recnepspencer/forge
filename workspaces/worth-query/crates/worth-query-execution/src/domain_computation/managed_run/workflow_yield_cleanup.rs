@@ -10,7 +10,7 @@ use super::{
     WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
 };
 use crate::domain_computation::artifact_owner::{
-    WorthQueryWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
+    WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
 };
 use crate::domain_computation::{
     WorthQueryProviderCheckpointEvidence, WorthQueryProviderCheckpointReleaseEvidence,
@@ -29,7 +29,7 @@ pub struct WorthQueryWorkflowYieldCleanupPending {
     resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     relational_basis: RelationalExecutionBasisLease,
     bridge: BridgeExecutionBasisFinalizationReceipt,
-    artifacts: WorthQueryWorkflowArtifactAuthority,
+    artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,
     artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     run_counters: WorthQueryManagedRunCounters,

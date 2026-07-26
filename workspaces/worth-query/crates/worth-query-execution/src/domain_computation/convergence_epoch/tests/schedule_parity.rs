@@ -89,10 +89,17 @@ fn same_runtime_yield_and_resume_preserve_the_semantic_convergence_result() {
         .managed_terminal()
         .provider_work()
         .checkpoint_available());
-    assert!(resumed
+    assert!(!resumed
         .managed_terminal()
         .provider_work()
         .checkpoint_available());
+    assert_eq!(
+        resumed
+            .managed_terminal()
+            .provider_work()
+            .checkpoint_available_observation_count(),
+        1
+    );
     assert_eq!(
         resumed.managed_terminal().provider_work().retained_bytes(),
         0
@@ -188,10 +195,17 @@ fn workflow_yield_and_resume_preserve_the_semantic_convergence_result() {
         .managed_terminal()
         .provider_work()
         .checkpoint_available());
-    assert!(resumed
+    assert!(!resumed
         .managed_terminal()
         .provider_work()
         .checkpoint_available());
+    assert_eq!(
+        resumed
+            .managed_terminal()
+            .provider_work()
+            .checkpoint_available_observation_count(),
+        1
+    );
     assert_eq!(
         resumed.managed_terminal().provider_work().retained_bytes(),
         0

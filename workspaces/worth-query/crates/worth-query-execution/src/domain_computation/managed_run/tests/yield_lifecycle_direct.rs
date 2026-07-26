@@ -1,10 +1,9 @@
+use super::yield_fixture::YieldProvider;
+use super::*;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisSignalTerminal, BridgeExecutionBasisTerminalDisposition,
     BridgeManagedExecutionCancellationReason,
 };
-
-use super::yield_fixture::YieldProvider;
-use super::*;
 
 #[test]
 fn direct_yield_retains_exact_authorities_and_releases_them_explicitly() {
@@ -215,8 +214,11 @@ fn suspension_panic_and_oversized_checkpoint_follow_the_same_recovery_lane() {
             ),
         ),
         (
-            YieldProvider::installed(4_097),
-            crate::domain_computation::WorthQueryYieldRecoveryKind::RetainedBytesExceeded,
+            YieldProvider::checkpoint_memory_mismatch(3_000, 4_097, false),
+            crate::domain_computation::WorthQueryYieldRecoveryKind::ProviderCheckpointSuspension(
+                crate::domain_computation::WorthQueryProviderCheckpointSuspensionFailureKind::
+                    CheckpointMemoryMismatch,
+            ),
         ),
     ] {
         let (running, graph) =

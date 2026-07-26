@@ -44,6 +44,7 @@ mod workflow_graph_step_outcome;
 mod workflow_yield;
 mod workflow_yield_cleanup;
 mod workflow_yield_eligibility;
+mod workflow_yield_freeze;
 mod workflow_yield_recovery;
 mod workflow_yield_transition;
 mod yield_eligibility;

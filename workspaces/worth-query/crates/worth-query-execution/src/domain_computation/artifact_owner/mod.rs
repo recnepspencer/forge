@@ -8,6 +8,7 @@ mod borrow;
 mod counters;
 mod denial;
 mod disposition;
+mod frozen_workflow_authority;
 mod handle;
 mod handle_core;
 mod installed_binding;
@@ -19,6 +20,7 @@ mod owner;
 mod production;
 mod production_admission;
 mod production_authority;
+mod production_freeze;
 mod production_generation;
 mod provider_release;
 mod provider_resource;
@@ -58,6 +60,7 @@ pub use transferred_handle::WorthQueryTransferredArtifactHandle;
 pub use workflow_authority::WorthQueryWorkflowArtifactAuthority;
 
 use authority_match::{artifact_authority_denial_detail, WorthQueryArtifactAuthorityMatch};
+pub(crate) use frozen_workflow_authority::WorthQueryFrozenWorkflowArtifactAuthority;
 use handle_core::{WorthQueryArtifactHandleCore, WorthQueryArtifactHandleGuard};
 pub(crate) use installed_binding::{
     compile_workflow_artifact_contracts, WorthQueryInstalledWorkflowArtifactContracts,
@@ -70,7 +73,10 @@ pub(crate) use occurrence_ledger::{
 pub(crate) use owner::{WorthQueryRuntimeArtifactBinding, WorthQueryRuntimeArtifactOwner};
 pub use production_authority::WorthQueryArtifactProductionAuthority;
 pub(crate) use production_authority::WorthQueryArtifactProductionAuthorityParts;
-pub(crate) use production_generation::WorthQueryArtifactProductionGenerationPending;
+pub(crate) use production_freeze::WorthQueryWorkflowArtifactFreezePending;
+pub(crate) use production_generation::{
+    WorthQueryArtifactProductionGenerationCommitted, WorthQueryArtifactProductionGenerationPending,
+};
 pub(crate) use provider_resource::{
     WorthQueryErasedArtifactProviderResource, WorthQueryGuardedArtifactResource,
     WorthQueryPreparedArtifactResource,

@@ -296,13 +296,19 @@ fn advance_artifact_generation(
             );
         }
     };
-    generation_pending.commit();
+    let committed_generation = generation_pending.commit();
     counters.committed_artifact_generation();
-    commit_workflow(state, execution, resource_pending, bridge_pending, counters)
+    commit_workflow(
+        state.commit_artifact_generation(committed_generation),
+        execution,
+        resource_pending,
+        bridge_pending,
+        counters,
+    )
 }
 
 fn commit_workflow(
-    state: WorthQueryWorkflowYieldedState,
+    state: super::workflow_state::WorthQueryWorkflowReadmissionCommitState,
     execution: super::super::managed_graph_execution::WorthQueryManagedGraphExecution,
     resource_pending: WorthQueryWorkflowResourceReadmissionPending,
     bridge_pending: worth_runtime_bridge::facade::BridgeExecutionBasisReadmissionPending,

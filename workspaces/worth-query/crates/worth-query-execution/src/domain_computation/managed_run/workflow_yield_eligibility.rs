@@ -1,9 +1,6 @@
 use worth_runtime_bridge::facade::BridgeExecutionSafePointSignalState;
 
-use super::{
-    WorthQueryPausedWorkflowGraphExecution, WorthQueryWorkflowYieldDenialKind,
-    WorthQueryYieldTransitionCounters,
-};
+use super::{WorthQueryPausedWorkflowGraphExecution, WorthQueryWorkflowYieldDenialKind};
 
 pub(super) fn classify_workflow_yield_denial(
     paused: &WorthQueryPausedWorkflowGraphExecution,
@@ -59,26 +56,14 @@ pub(super) fn classify_workflow_yield_denial(
     None
 }
 
-pub(super) fn freeze_and_classify_workflow_artifact_retention(
-    paused: &WorthQueryPausedWorkflowGraphExecution,
-    counters: &mut WorthQueryYieldTransitionCounters,
+pub(super) fn classify_workflow_retained_bytes_denial(
+    provider_retained_bytes: u64,
+    artifact_retained_bytes: usize,
+    retained_bytes_ceiling: u64,
 ) -> Option<(WorthQueryWorkflowYieldDenialKind, &'static str)> {
-    let running = &paused.active.running;
-    counters.observed_artifact_registry();
-    let frozen_artifacts = running.artifacts.registry().freeze_production();
-    let retained_total = paused
-        .safe_point
-        .retained()
-        .provider_bytes()
-        .saturating_add(u64::try_from(frozen_artifacts.retained_bytes()).unwrap_or(u64::MAX));
-    let ceiling = running
-        .resource_attempt
-        .operation_resources()
-        .envelope()
-        .yield_contract()
-        .expect("pre-freeze eligibility established the installed yield contract")
-        .retained_bytes_ceiling();
-    if retained_total > ceiling {
+    let retained_total = provider_retained_bytes
+        .saturating_add(u64::try_from(artifact_retained_bytes).unwrap_or(u64::MAX));
+    if retained_total > retained_bytes_ceiling {
         return Some((
             WorthQueryWorkflowYieldDenialKind::RetainedBytesExceeded,
             "provider and workflow artifacts exceed the installed retained-byte ceiling",

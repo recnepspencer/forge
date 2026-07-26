@@ -375,5 +375,6 @@ fn expected_workflow_yield_counters() -> crate::domain_computation::WorthQueryYi
     let mut counters = expected_direct_yield_counters();
     counters.observed_artifact_registry();
     counters.observed_artifact_registry();
+    counters.validated_retained_resources();
     counters
 }

@@ -54,9 +54,13 @@ impl WorthQueryArtifactProductionGenerationPending {
         outcome
     }
 
-    pub(crate) fn commit(mut self) {
+    pub(crate) fn commit(mut self) -> WorthQueryArtifactProductionGenerationCommitted {
         self.registry.commit_generation(self.prior, self.next);
         self.active = false;
+        WorthQueryArtifactProductionGenerationCommitted {
+            registry: Arc::clone(&self.registry),
+            prior: self.prior,
+        }
     }
 }
 
@@ -65,5 +69,20 @@ impl Drop for WorthQueryArtifactProductionGenerationPending {
         if self.active {
             let _ = self.registry.abort_generation(self.prior, self.next);
         }
+    }
+}
+
+pub(crate) struct WorthQueryArtifactProductionGenerationCommitted {
+    registry: Arc<WorthQueryWorkflowArtifactRegistry>,
+    prior: WorthQueryArtifactProductionGeneration,
+}
+
+impl WorthQueryArtifactProductionGenerationCommitted {
+    pub(crate) fn belongs_to(&self, registry: &Arc<WorthQueryWorkflowArtifactRegistry>) -> bool {
+        Arc::ptr_eq(&self.registry, registry)
+    }
+
+    pub(crate) const fn prior(&self) -> WorthQueryArtifactProductionGeneration {
+        self.prior
     }
 }

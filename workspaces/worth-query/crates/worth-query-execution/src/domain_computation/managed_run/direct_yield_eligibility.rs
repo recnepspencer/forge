@@ -16,17 +16,17 @@ pub(super) fn classify_direct_yield_denial(
             "the installed operation generation changed after the run was admitted",
         ));
     }
-    let contract = running
+    let Some(contract) = running
         .resource_attempt
         .resources()
         .envelope()
-        .yield_contract();
-    if contract.is_none() {
+        .yield_contract()
+    else {
         return Some((
             WorthQueryDirectYieldDenialKind::YieldNotInstalled,
             "the admitted resource envelope does not install provider checkpoint yield",
         ));
-    }
+    };
     if !paused.safe_point.checkpoint_available() {
         return Some((
             WorthQueryDirectYieldDenialKind::CheckpointUnavailable,
@@ -45,10 +45,7 @@ pub(super) fn classify_direct_yield_denial(
             "yield requires every pending result chunk to be acknowledged",
         ));
     }
-    if paused.active.execution.applied_effect_count() != 0
-        && !contract
-            .expect("yield contract checked above")
-            .partial_effects_may_remain()
+    if paused.active.execution.applied_effect_count() != 0 && !contract.partial_effects_may_remain()
     {
         return Some((
             WorthQueryDirectYieldDenialKind::PartialEffectPostureMismatch,

@@ -11,11 +11,11 @@ use super::{
 
 pub struct WorthQueryWorkflowArtifactRegistry {
     run_identity: String,
-    state: Mutex<WorthQueryWorkflowArtifactRegistryState>,
+    pub(super) state: Mutex<WorthQueryWorkflowArtifactRegistryState>,
 }
 
-struct WorthQueryWorkflowArtifactRegistryState {
-    posture: WorthQueryWorkflowArtifactRegistryPosture,
+pub(super) struct WorthQueryWorkflowArtifactRegistryState {
+    pub(super) posture: WorthQueryWorkflowArtifactRegistryPosture,
     owners: BTreeMap<String, WorthQueryWorkflowArtifactRegistryEntry>,
 }
 
@@ -25,8 +25,9 @@ struct WorthQueryWorkflowArtifactRegistryEntry {
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-enum WorthQueryWorkflowArtifactRegistryPosture {
+pub(super) enum WorthQueryWorkflowArtifactRegistryPosture {
     Producing(WorthQueryArtifactProductionGeneration),
+    YieldFreezePending(WorthQueryArtifactProductionGeneration),
     Frozen(WorthQueryArtifactProductionGeneration),
     ReadmissionPending {
         prior: WorthQueryArtifactProductionGeneration,
@@ -190,20 +191,6 @@ impl WorthQueryWorkflowArtifactRegistry {
         }
     }
 
-    pub(crate) fn frozen_production_generation(
-        &self,
-    ) -> Option<WorthQueryArtifactProductionGeneration> {
-        match self
-            .state
-            .lock()
-            .expect("workflow artifact registry lock must remain available")
-            .posture
-        {
-            WorthQueryWorkflowArtifactRegistryPosture::Frozen(generation) => Some(generation),
-            _ => None,
-        }
-    }
-
     pub(crate) fn prepare_next_generation(
         self: &Arc<Self>,
     ) -> Result<WorthQueryArtifactProductionGenerationPending, WorthQueryArtifactDenial> {
@@ -302,6 +289,7 @@ fn registration_denial(
             unreachable!("producing registries admit artifact registration")
         }
         WorthQueryWorkflowArtifactRegistryPosture::Frozen(_)
+        | WorthQueryWorkflowArtifactRegistryPosture::YieldFreezePending(_)
         | WorthQueryWorkflowArtifactRegistryPosture::ReadmissionPending { .. } => {
             WorthQueryArtifactDenial::new(
                 WorthQueryArtifactDenialKind::ProductionClosed,
@@ -341,6 +329,7 @@ fn production_generation(
 ) -> WorthQueryArtifactProductionGeneration {
     match posture {
         WorthQueryWorkflowArtifactRegistryPosture::Producing(generation)
+        | WorthQueryWorkflowArtifactRegistryPosture::YieldFreezePending(generation)
         | WorthQueryWorkflowArtifactRegistryPosture::Frozen(generation) => generation,
         WorthQueryWorkflowArtifactRegistryPosture::ReadmissionPending { prior, .. } => prior,
         WorthQueryWorkflowArtifactRegistryPosture::Closed(generation) => generation,

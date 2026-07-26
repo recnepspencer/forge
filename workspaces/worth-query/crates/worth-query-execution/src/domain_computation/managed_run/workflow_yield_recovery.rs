@@ -14,7 +14,7 @@ use super::{
     WorthQueryYieldTransitionCounters,
 };
 use crate::domain_computation::artifact_owner::{
-    WorthQueryWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
+    WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
 };
 use crate::domain_computation::{
     WorthQueryWorkflowExecutionAttemptReleaseReceipt, WorthQueryWorkflowExecutionResourceAttempt,
@@ -30,7 +30,7 @@ pub(super) struct WorthQueryTerminalizedWorkflowYieldRecovery {
     pub(super) attempt_identity: Arc<str>,
     pub(super) resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     pub(super) relational_basis: RelationalExecutionBasisLease,
-    pub(super) artifacts: WorthQueryWorkflowArtifactAuthority,
+    pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkEvidence,

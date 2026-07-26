@@ -41,12 +41,10 @@ pub(super) fn query_preflight_denial(
             "workflow checkpoint generation no longer matches its provider anchor",
         ));
     }
-    let generation = yielded
-        .artifacts
-        .registry()
-        .frozen_production_generation()
-        .map(|generation| generation.ordinal());
-    if generation != Some(yielded.artifact_evidence.production_generation()) {
+    if !yielded.artifacts.registry_is_frozen_at_owned_generation()
+        || yielded.artifacts.production_generation().ordinal()
+            != yielded.artifact_evidence.production_generation()
+    {
         return Some((
             WorthQueryWorkflowReadmissionDenialKind::ArtifactGenerationMismatch,
             "workflow artifact registry is not frozen at the yielded production generation",

@@ -12,7 +12,7 @@ use super::{
     WorthQueryPausedWorkflowGraphExecution, WorthQueryYieldTransitionCounters,
 };
 use crate::domain_computation::artifact_owner::{
-    WorthQueryArtifactOccurrenceLedger, WorthQueryWorkflowArtifactAuthority,
+    WorthQueryArtifactOccurrenceLedger, WorthQueryFrozenWorkflowArtifactAuthority,
     WorthQueryWorkflowArtifactRegistryEvidence,
 };
 use crate::domain_computation::{
@@ -73,7 +73,7 @@ pub struct WorthQueryYieldedWorkflowRun {
     pub(super) relational_basis: RelationalExecutionBasisLease,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) execution: WorthQueryRetainedManagedGraphExecution,
-    pub(super) artifacts: WorthQueryWorkflowArtifactAuthority,
+    pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     pub(super) artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkLedger,

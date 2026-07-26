@@ -88,6 +88,22 @@ fn over_ceiling_workflow_artifacts_deny_yield_without_consuming_the_run() {
         denied.kind(),
         crate::domain_computation::WorthQueryWorkflowYieldDenialKind::RetainedBytesExceeded
     );
+    let resumed_admission =
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProductionAuthority::admit(
+            &production,
+            WorthQueryArtifactProductionEvidence::new(
+                "post-denial-provenance",
+                "post-denial-dependency",
+            ),
+        );
+    let post_denial_handle =
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProductionAuthority::register_exact(
+            &production,
+            resumed_admission,
+            OverCeilingArtifact,
+        )
+        .expect("denied yield must restore the active artifact production generation");
+    drop(post_denial_handle);
     drop(handle);
     let completion = match denied.into_paused().advance() {
         WorthQueryWorkflowGraphStepOutcome::Completed(completion) => completion,

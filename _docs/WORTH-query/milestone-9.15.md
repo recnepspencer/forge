@@ -1401,10 +1401,15 @@ cannot abort the process.
   provider-execution destructor panic, and each combination with checkpoint
   release panic remain in-process, mint no yielded capability, and preserve
   typed ownership and recovery evidence.
-- Checkpoint ceiling test: an actual workflow checkpoint over the retained-byte
-  ceiling is rejected before capability minting; successful and panicking
-  checkpoint release remain distinguishable and the checkpoint evidence is not
-  discarded.
+- Retained-ceiling test: the exact safe-point and frozen-artifact total over the
+  retained-byte ceiling denies before Bridge terminalization; the provisional
+  artifact freeze aborts, the paused attempt remains runnable, and its existing
+  artifact-production authority can register again.
+- Checkpoint-memory truth test: a checkpoint retained-byte report that differs
+  from the governed provider-memory arena, including an over-ceiling report, is
+  rejected as a typed checkpoint-memory mismatch before capability minting;
+  successful and panicking checkpoint release remain distinguishable and the
+  checkpoint evidence is not discarded.
 - Artifact physical-release test: disposal panic, artifact-provider destructor
   panic, both failures together, and release delayed by an outstanding borrow
   produce exact typed cleanup or recovery posture without double release.

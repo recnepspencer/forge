@@ -191,12 +191,20 @@ impl YieldProvider {
         }
     }
 
-    pub(super) const fn over_ceiling_checkpoint_with_drop_panic(retained_bytes: u64) -> Self {
+    pub(super) const fn checkpoint_memory_mismatch(
+        governed_retained_bytes: u64,
+        reported_retained_bytes: u64,
+        drop_panics: bool,
+    ) -> Self {
         Self {
             yield_installed: true,
             checkpoint_available: true,
             record_effect: false,
-            suspension: YieldSuspension::CheckpointDropPanic { retained_bytes },
+            suspension: YieldSuspension::CheckpointMemoryMismatch {
+                governed_retained_bytes,
+                reported_retained_bytes,
+                drop_panics,
+            },
             execution_drop_panics: false,
         }
     }

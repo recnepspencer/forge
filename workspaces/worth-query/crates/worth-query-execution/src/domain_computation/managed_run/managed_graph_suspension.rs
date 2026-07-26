@@ -157,10 +157,8 @@ fn retain_suspended_checkpoint(
     let retained = WorthQueryRetainedManagedGraphExecution::new(parts, checkpoint);
     match retained {
         Ok(retained)
-            if retained.checkpoint_evidence().retained_bytes()
-                <= retained.contract().retained_bytes_ceiling()
-                && retained.provider_memory_snapshot().retained_bytes()
-                    != retained.checkpoint_evidence().retained_bytes() =>
+            if retained.provider_memory_snapshot().retained_bytes()
+                != retained.checkpoint_evidence().retained_bytes() =>
         {
             Err(checkpoint_memory_mismatch(
                 retained.release(),

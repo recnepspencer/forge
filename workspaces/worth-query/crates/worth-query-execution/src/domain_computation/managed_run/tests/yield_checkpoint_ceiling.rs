@@ -2,17 +2,17 @@ use super::yield_fixture::YieldProvider;
 use super::*;
 
 #[test]
-fn actual_workflow_checkpoint_ceiling_rejection_preserves_release_evidence() {
+fn checkpoint_memory_mismatch_preserves_exact_release_evidence() {
     for (provider, expected_release, label) in [
         (
-            YieldProvider::installed(4_097),
+            YieldProvider::checkpoint_memory_mismatch(3_000, 4_097, false),
             crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Released,
-            "workflow-over-ceiling-checkpoint",
+            "workflow-checkpoint-memory-mismatch",
         ),
         (
-            YieldProvider::over_ceiling_checkpoint_with_drop_panic(4_097),
+            YieldProvider::checkpoint_memory_mismatch(3_000, 4_097, true),
             crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked,
-            "workflow-over-ceiling-checkpoint-drop-panic",
+            "workflow-checkpoint-memory-mismatch-drop-panic",
         ),
     ] {
         let paused = paused_workflow_checkpoint_target(provider, label);
@@ -20,16 +20,21 @@ fn actual_workflow_checkpoint_ceiling_rejection_preserves_release_evidence() {
             crate::domain_computation::WorthQueryWorkflowYieldOutcome::RecoveryRequired(
                 recovery,
             ) => recovery,
-            _ => panic!("actual over-ceiling workflow checkpoint minted yielded authority"),
+            _ => panic!("checkpoint memory mismatch minted yielded authority"),
         };
         assert_eq!(
             recovery.kind(),
-            crate::domain_computation::WorthQueryYieldRecoveryKind::RetainedBytesExceeded
+            crate::domain_computation::WorthQueryYieldRecoveryKind::ProviderCheckpointSuspension(
+                crate::domain_computation::WorthQueryProviderCheckpointSuspensionFailureKind::
+                    CheckpointMemoryMismatch,
+            )
         );
         let checkpoint_release = recovery
             .resource_evidence()
+            .provider_checkpoint_failure()
+            .expect("memory mismatch carries suspension failure evidence")
             .checkpoint_release()
-            .expect("ceiling rejection carries the rejected checkpoint");
+            .expect("memory mismatch carries the rejected checkpoint");
         assert_eq!(checkpoint_release.checkpoint().retained_bytes(), 4_097);
         assert_eq!(checkpoint_release.disposition(), expected_release);
         let release = match recovery.release_terminalized() {
@@ -42,14 +47,16 @@ fn actual_workflow_checkpoint_ceiling_rejection_preserves_release_evidence() {
                 crate::domain_computation::WorthQueryWorkflowYieldRecoveryReleaseOutcome::Pending(
                     _,
                 ),
-            ) => panic!("artifact-free checkpoint ceiling recovery reported pending cleanup"),
-            Err(_) => panic!("checkpoint ceiling recovery lost terminalized release authority"),
+            ) => panic!("artifact-free checkpoint mismatch recovery reported pending cleanup"),
+            Err(_) => panic!("checkpoint mismatch recovery lost terminalized release authority"),
         };
         assert_eq!(
             release
                 .recovery_evidence()
+                .provider_checkpoint_failure()
+                .expect("release preserves suspension failure evidence")
                 .checkpoint_release()
-                .expect("release preserves checkpoint rejection evidence")
+                .expect("release preserves checkpoint mismatch evidence")
                 .disposition(),
             expected_release
         );
