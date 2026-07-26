@@ -4,9 +4,11 @@ use super::{
 use crate::domain_computation::{
     WorthQueryWorkflowReadmissionCleanupRequired, WorthQueryWorkflowReadmissionDenied,
     WorthQueryWorkflowReadmissionOutcome, WorthQueryWorkflowReadmissionRecoveryRequired,
-    WorthQueryWorkflowReadmissionRecoveryRetryOutcome as ManagedRecoveryRetryOutcome,
-    WorthQueryWorkflowYieldDenied, WorthQueryWorkflowYieldOutcome,
-    WorthQueryWorkflowYieldRecoveryRequired, WorthQueryYieldedWorkflowRun,
+    WorthQueryWorkflowReadmissionTerminalRecovery,
+    WorthQueryWorkflowReadmissionYieldReassemblyOutcome as ManagedYieldReassemblyOutcome,
+    WorthQueryWorkflowReadmissionYieldReassemblyRecovery, WorthQueryWorkflowYieldDenied,
+    WorthQueryWorkflowYieldOutcome, WorthQueryWorkflowYieldRecoveryRequired,
+    WorthQueryYieldedWorkflowRun,
 };
 
 pub enum WorthQueryWorkflowConvergenceYieldOutcome {
@@ -71,12 +73,25 @@ impl WorthQueryYieldedWorkflowConvergenceIteration {
                 )
             }
             WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(recovery) => {
-                WorthQueryWorkflowConvergenceReadmissionOutcome::RecoveryRequired(
-                    WorthQueryWorkflowConvergenceReadmissionRecoveryRequired {
-                        pending: self.pending,
-                        recovery,
-                    },
-                )
+                let recovery = match recovery {
+                    WorthQueryWorkflowReadmissionRecoveryRequired::YieldReassembly(recovery) => {
+                        WorthQueryWorkflowConvergenceReadmissionRecoveryRequired::YieldReassembly(
+                            WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
+                                pending: self.pending,
+                                recovery,
+                            },
+                        )
+                    }
+                    WorthQueryWorkflowReadmissionRecoveryRequired::TerminalCleanup(recovery) => {
+                        WorthQueryWorkflowConvergenceReadmissionRecoveryRequired::TerminalCleanup(
+                            WorthQueryWorkflowConvergenceReadmissionTerminalRecovery {
+                                pending: self.pending,
+                                recovery,
+                            },
+                        )
+                    }
+                };
+                WorthQueryWorkflowConvergenceReadmissionOutcome::RecoveryRequired(recovery)
             }
         }
     }
@@ -100,32 +115,43 @@ impl WorthQueryWorkflowConvergenceReadmissionDenied {
     }
 }
 
-pub struct WorthQueryWorkflowConvergenceReadmissionRecoveryRequired {
-    pending: WorthQueryPendingWorkflowConvergenceIteration,
-    recovery: WorthQueryWorkflowReadmissionRecoveryRequired,
+#[must_use = "convergence readmission recovery must be resolved by authority posture"]
+pub enum WorthQueryWorkflowConvergenceReadmissionRecoveryRequired {
+    YieldReassembly(WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery),
+    TerminalCleanup(WorthQueryWorkflowConvergenceReadmissionTerminalRecovery),
 }
 
-impl WorthQueryWorkflowConvergenceReadmissionRecoveryRequired {
-    pub fn managed_recovery(&self) -> &WorthQueryWorkflowReadmissionRecoveryRequired {
+#[must_use = "convergence yield reassembly must retry Bridge cleanup or enter cleanup"]
+pub struct WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
+    pending: WorthQueryPendingWorkflowConvergenceIteration,
+    recovery: WorthQueryWorkflowReadmissionYieldReassemblyRecovery,
+}
+
+#[must_use = "terminal convergence readmission recovery can only enter cleanup"]
+pub struct WorthQueryWorkflowConvergenceReadmissionTerminalRecovery {
+    pending: WorthQueryPendingWorkflowConvergenceIteration,
+    recovery: WorthQueryWorkflowReadmissionTerminalRecovery,
+}
+
+impl WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
+    pub fn managed_recovery(&self) -> &WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
         &self.recovery
     }
 
-    pub fn retry_to_yielded(self) -> WorthQueryWorkflowConvergenceReadmissionRecoveryRetryOutcome {
+    pub fn retry_to_yielded(self) -> WorthQueryWorkflowConvergenceYieldReassemblyOutcome {
         let Self { pending, recovery } = self;
         match recovery.retry_to_yielded() {
-            ManagedRecoveryRetryOutcome::Yielded(yielded) => {
-                WorthQueryWorkflowConvergenceReadmissionRecoveryRetryOutcome::Yielded(
+            ManagedYieldReassemblyOutcome::Yielded(yielded) => {
+                WorthQueryWorkflowConvergenceYieldReassemblyOutcome::Yielded(
                     WorthQueryYieldedWorkflowConvergenceIteration { pending, yielded },
                 )
             }
-            ManagedRecoveryRetryOutcome::RecoveryRequired(recovery) => {
-                WorthQueryWorkflowConvergenceReadmissionRecoveryRetryOutcome::RecoveryRequired(
-                    Self { pending, recovery },
-                )
-            }
-            ManagedRecoveryRetryOutcome::CleanupRequired(cleanup) => {
-                WorthQueryWorkflowConvergenceReadmissionRecoveryRetryOutcome::CleanupRequired(
-                    WorthQueryWorkflowConvergenceReadmissionCleanupRequired { pending, cleanup },
+            ManagedYieldReassemblyOutcome::RecoveryRequired(recovery) => {
+                WorthQueryWorkflowConvergenceYieldReassemblyOutcome::RecoveryRequired(
+                    WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery {
+                        pending,
+                        recovery,
+                    },
                 )
             }
         }
@@ -139,10 +165,23 @@ impl WorthQueryWorkflowConvergenceReadmissionRecoveryRequired {
     }
 }
 
-pub enum WorthQueryWorkflowConvergenceReadmissionRecoveryRetryOutcome {
+impl WorthQueryWorkflowConvergenceReadmissionTerminalRecovery {
+    pub fn managed_recovery(&self) -> &WorthQueryWorkflowReadmissionTerminalRecovery {
+        &self.recovery
+    }
+
+    pub fn into_cleanup(self) -> WorthQueryWorkflowConvergenceReadmissionCleanupRequired {
+        WorthQueryWorkflowConvergenceReadmissionCleanupRequired {
+            pending: self.pending,
+            cleanup: self.recovery.into_cleanup(),
+        }
+    }
+}
+
+#[must_use = "convergence yield reassembly retains yielded or exact recovery authority"]
+pub enum WorthQueryWorkflowConvergenceYieldReassemblyOutcome {
     Yielded(WorthQueryYieldedWorkflowConvergenceIteration),
-    RecoveryRequired(WorthQueryWorkflowConvergenceReadmissionRecoveryRequired),
-    CleanupRequired(WorthQueryWorkflowConvergenceReadmissionCleanupRequired),
+    RecoveryRequired(WorthQueryWorkflowConvergenceReadmissionYieldReassemblyRecovery),
 }
 
 pub struct WorthQueryWorkflowConvergenceReadmissionCleanupRequired {

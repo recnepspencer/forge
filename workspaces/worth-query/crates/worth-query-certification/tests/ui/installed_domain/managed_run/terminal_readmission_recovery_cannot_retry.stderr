@@ -1,0 +1,11 @@
+error[E0599]: no method named `retry_to_yielded` found for struct `WorthQueryDirectReadmissionTerminalRecovery` in the current scope
+ --> tests/ui/installed_domain/managed_run/terminal_readmission_recovery_cannot_retry.rs:7:14
+  |
+7 |     recovery.retry_to_yielded();
+  |              ^^^^^^^^^^^^^^^^ method not found in `WorthQueryDirectReadmissionTerminalRecovery`
+
+error[E0599]: no method named `retry_to_yielded` found for struct `WorthQueryWorkflowReadmissionTerminalRecovery` in the current scope
+  --> tests/ui/installed_domain/managed_run/terminal_readmission_recovery_cannot_retry.rs:11:14
+   |
+11 |     recovery.retry_to_yielded();
+   |              ^^^^^^^^^^^^^^^^ method not found in `WorthQueryWorkflowReadmissionTerminalRecovery`

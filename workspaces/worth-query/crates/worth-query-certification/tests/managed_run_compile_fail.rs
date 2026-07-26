@@ -55,4 +55,7 @@ fn managed_run_authority_boundaries_hold() {
     );
     cases
         .compile_fail("tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_resume.rs");
+    cases.compile_fail(
+        "tests/ui/installed_domain/managed_run/terminal_readmission_recovery_cannot_retry.rs",
+    );
 }

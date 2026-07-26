@@ -210,24 +210,28 @@ fn provider_restore_panic_remains_typed_recovery_with_retained_authority() {
     assert_eq!(
         recovery.posture(),
         crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::
-            YieldReassemblyPending
+            TerminalCleanupRequired
     );
     assert!(recovery.checkpoint_release().is_none());
     assert!(recovery.restored_execution_release_evidence().is_none());
-    let yielded = match recovery.retry_to_yielded() {
-        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
-            yielded,
-        ) => yielded,
-        _ => panic!("retained checkpoint recovery should return the yielded authority"),
+    let recovery = match recovery {
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRequired::TerminalCleanup(
+            recovery,
+        ) => recovery,
+        _ => panic!("provider panic must not expose yield-reassembly authority"),
     };
-    assert_eq!(yielded.checkpoint().retained_bytes(), 7);
+    let receipt = match recovery.into_cleanup().finish() {
+        crate::domain_computation::WorthQueryDirectReadmissionCleanupOutcome::Complete(receipt) => {
+            receipt
+        }
+        _ => panic!("retained checkpoint should release through terminal cleanup"),
+    };
     assert_eq!(
-        complete_direct_yield_cleanup(yielded)
-            .checkpoint()
-            .unwrap()
-            .retained_bytes(),
+        receipt.checkpoint_release().checkpoint().retained_bytes(),
         7
     );
+    assert!(receipt.bridge().reservation_released());
+    assert!(receipt.relational().released());
 }
 
 #[test]
@@ -259,19 +263,31 @@ fn provider_restore_rejection_after_admission_carries_exact_release_evidence() {
     assert_eq!(
         recovery.posture(),
         crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::
-            YieldReassemblyPending
+            TerminalCleanupRequired
     );
-    let yielded = match recovery.retry_to_yielded() {
-        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
-            yielded,
-        ) => yielded,
-        _ => panic!("successfully released replacement should restore yielded authority"),
+    let recovery = match recovery {
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRequired::TerminalCleanup(
+            recovery,
+        ) => recovery,
+        _ => panic!("post-admission provider rejection must not expose retry authority"),
     };
-    complete_direct_yield_cleanup(yielded);
+    match recovery.into_cleanup().finish() {
+        crate::domain_computation::WorthQueryDirectReadmissionCleanupOutcome::Complete(receipt) => {
+            assert_eq!(
+                receipt.checkpoint_release().disposition(),
+                crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Released
+            );
+            assert!(!receipt
+                .restored_execution_release()
+                .expect("replacement release evidence must survive cleanup")
+                .recovery_required());
+        }
+        _ => panic!("released replacement and checkpoint should complete terminal cleanup"),
+    }
 }
 
 #[test]
-fn restore_panic_and_replacement_destructor_panic_flow_into_yielded_cleanup() {
+fn restore_panic_and_replacement_destructor_panic_flow_into_terminal_cleanup() {
     let (yielded, bridge, runtime) =
         yielded_direct_with_provider(YieldProvider::checkpoint_restore_panic_after_admission(7));
     let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
@@ -298,30 +314,29 @@ fn restore_panic_and_replacement_destructor_panic_flow_into_yielded_cleanup() {
     assert_eq!(
         recovery.posture(),
         crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::
-            YieldReassemblyPending
+            TerminalCleanupRequired
     );
-    let yielded = match recovery.retry_to_yielded() {
-        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
-            yielded,
-        ) => yielded,
-        _ => panic!("retained checkpoint recovery did not return yielded authority"),
+    let recovery = match recovery {
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRequired::TerminalCleanup(
+            recovery,
+        ) => recovery,
+        _ => panic!("provider panic must not expose yield-reassembly authority"),
     };
-    let carried_release = yielded
+    let receipt = match recovery.into_cleanup().finish() {
+        crate::domain_computation::WorthQueryDirectReadmissionCleanupOutcome::RecoveryRequired(
+            receipt,
+        ) => receipt,
+        _ => panic!("destructor uncertainty must remain visible after terminal cleanup"),
+    };
+    let carried_release = receipt
         .provider_work()
         .provider_execution_release()
         .recovery_evidence()
-        .cloned()
-        .expect("yielded authority must retain replacement release uncertainty");
+        .expect("cleanup evidence must retain replacement release uncertainty");
     assert_eq!(
         carried_release.destructor(),
         crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Panicked
     );
-    let cleanup = complete_direct_yield_cleanup(yielded);
-    assert!(cleanup
-        .provider_work()
-        .provider_execution_release()
-        .recovery_evidence()
-        .is_some());
 }
 
 fn foreign_safe_point_contract(

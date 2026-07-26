@@ -5,7 +5,9 @@ mod workflow_cleanup;
 
 pub use direct::{
     WorthQueryDirectReadmissionRecoveryKind, WorthQueryDirectReadmissionRecoveryPosture,
-    WorthQueryDirectReadmissionRecoveryRequired, WorthQueryDirectReadmissionRecoveryRetryOutcome,
+    WorthQueryDirectReadmissionRecoveryRequired, WorthQueryDirectReadmissionTerminalRecovery,
+    WorthQueryDirectReadmissionYieldReassemblyOutcome,
+    WorthQueryDirectReadmissionYieldReassemblyRecovery,
 };
 pub use direct_cleanup::{
     WorthQueryDirectReadmissionCleanupOutcome, WorthQueryDirectReadmissionCleanupPending,
@@ -13,8 +15,9 @@ pub use direct_cleanup::{
 };
 pub use workflow::{
     WorthQueryWorkflowReadmissionRecoveryKind, WorthQueryWorkflowReadmissionRecoveryPosture,
-    WorthQueryWorkflowReadmissionRecoveryRequired,
-    WorthQueryWorkflowReadmissionRecoveryRetryOutcome,
+    WorthQueryWorkflowReadmissionRecoveryRequired, WorthQueryWorkflowReadmissionTerminalRecovery,
+    WorthQueryWorkflowReadmissionYieldReassemblyOutcome,
+    WorthQueryWorkflowReadmissionYieldReassemblyRecovery,
 };
 pub use workflow_cleanup::{
     WorthQueryArtifactGenerationRollbackEvidence, WorthQueryWorkflowReadmissionCleanupOutcome,

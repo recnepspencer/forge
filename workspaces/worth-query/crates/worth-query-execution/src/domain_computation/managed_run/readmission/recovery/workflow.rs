@@ -55,11 +55,10 @@ pub struct WorthQueryWorkflowReadmissionTerminalRecovery {
     resource: WorthQueryWorkflowReadmissionRecoveryResource,
 }
 
-#[must_use = "workflow readmission recovery retains yielded, cleanup, or recovery authority"]
-pub enum WorthQueryWorkflowReadmissionRecoveryRetryOutcome {
+#[must_use = "yield reassembly retains yielded or exact Bridge cleanup recovery authority"]
+pub enum WorthQueryWorkflowReadmissionYieldReassemblyOutcome {
     Yielded(WorthQueryYieldedWorkflowRun),
-    RecoveryRequired(WorthQueryWorkflowReadmissionRecoveryRequired),
-    CleanupRequired(WorthQueryWorkflowReadmissionCleanupRequired),
+    RecoveryRequired(WorthQueryWorkflowReadmissionYieldReassemblyRecovery),
 }
 
 enum WorthQueryWorkflowReadmissionRecoveryResource {
@@ -154,7 +153,7 @@ impl WorthQueryWorkflowReadmissionRecoveryRequired {
 
     pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
         match self {
-            Self::YieldReassembly(recovery) => recovery.execution.checkpoint_evidence(),
+            Self::YieldReassembly(recovery) => recovery.recovery.execution.checkpoint_evidence(),
             Self::TerminalCleanup(recovery) => recovery.checkpoint(),
         }
     }
@@ -189,7 +188,7 @@ impl WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
         self.counters
     }
 
-    pub fn retry_to_yielded(self) -> WorthQueryWorkflowReadmissionRecoveryRetryOutcome {
+    pub fn retry_to_yielded(self) -> WorthQueryWorkflowReadmissionYieldReassemblyOutcome {
         let WorthQueryWorkflowBridgeCleanupRecoveryState {
             state,
             resource_attempt,
@@ -322,7 +321,7 @@ fn retry_workflow_bridge_cleanup(
     pending: WorthQueryWorkflowYieldedReassembly,
     bridge: BridgeExecutionBasisReadmissionCleanupOutcome,
     counters: WorthQueryReadmissionCounters,
-) -> WorthQueryWorkflowReadmissionRecoveryRetryOutcome {
+) -> WorthQueryWorkflowReadmissionYieldReassemblyOutcome {
     let WorthQueryWorkflowYieldedReassembly {
         state,
         resource_attempt,
@@ -330,7 +329,7 @@ fn retry_workflow_bridge_cleanup(
     } = pending;
     match bridge {
         BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
-            WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
+            WorthQueryWorkflowReadmissionYieldReassemblyOutcome::Yielded(
                 WorthQueryWorkflowYieldedParts {
                     state,
                     resource_attempt,
@@ -342,17 +341,18 @@ fn retry_workflow_bridge_cleanup(
         }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(bridge) => {
             let detail = bridge.detail().to_owned();
-            WorthQueryWorkflowReadmissionRecoveryRetryOutcome::RecoveryRequired(
-                WorthQueryWorkflowReadmissionRecoveryRequired::bridge_cleanup(
-                    detail,
+            WorthQueryWorkflowReadmissionYieldReassemblyOutcome::RecoveryRequired(
+                WorthQueryWorkflowReadmissionYieldReassemblyRecovery {
+                    kind: WorthQueryWorkflowReadmissionRecoveryKind::BridgeCleanupFailed,
+                    detail: detail.into(),
                     counters,
-                    WorthQueryWorkflowBridgeCleanupRecoveryState {
+                    recovery: WorthQueryWorkflowBridgeCleanupRecoveryState {
                         state,
                         resource_attempt,
                         execution,
                         bridge,
                     },
-                ),
+                },
             )
         }
     }

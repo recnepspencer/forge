@@ -51,11 +51,10 @@ pub struct WorthQueryDirectReadmissionTerminalRecovery {
     recovery: WorthQueryDirectProviderRecoveryState,
 }
 
-#[must_use = "direct readmission recovery retains yielded, cleanup, or recovery authority"]
-pub enum WorthQueryDirectReadmissionRecoveryRetryOutcome {
+#[must_use = "yield reassembly retains yielded or exact Bridge cleanup recovery authority"]
+pub enum WorthQueryDirectReadmissionYieldReassemblyOutcome {
     Yielded(WorthQueryYieldedDirectRun),
-    RecoveryRequired(WorthQueryDirectReadmissionRecoveryRequired),
-    CleanupRequired(WorthQueryDirectReadmissionCleanupRequired),
+    RecoveryRequired(WorthQueryDirectReadmissionYieldReassemblyRecovery),
 }
 
 impl WorthQueryDirectReadmissionRecoveryRequired {
@@ -120,15 +119,15 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
 
     pub fn checkpoint(&self) -> &WorthQueryProviderCheckpointEvidence {
         match self {
-            Self::YieldReassembly(recovery) => recovery.execution.checkpoint_evidence(),
-            Self::TerminalCleanup(recovery) => recovery.provider.checkpoint_evidence(),
+            Self::YieldReassembly(recovery) => recovery.recovery.execution.checkpoint_evidence(),
+            Self::TerminalCleanup(recovery) => recovery.recovery.provider.checkpoint_evidence(),
         }
     }
 
     pub fn checkpoint_release(&self) -> Option<&WorthQueryProviderCheckpointReleaseEvidence> {
         match self {
             Self::YieldReassembly(_) => None,
-            Self::TerminalCleanup(recovery) => recovery.provider.checkpoint_release(),
+            Self::TerminalCleanup(recovery) => recovery.recovery.provider.checkpoint_release(),
         }
     }
 
@@ -137,9 +136,10 @@ impl WorthQueryDirectReadmissionRecoveryRequired {
     ) -> Option<&WorthQueryProviderExecutionReleaseEvidence> {
         match self {
             Self::YieldReassembly(_) => None,
-            Self::TerminalCleanup(recovery) => {
-                recovery.provider.restored_execution_release_evidence()
-            }
+            Self::TerminalCleanup(recovery) => recovery
+                .recovery
+                .provider
+                .restored_execution_release_evidence(),
         }
     }
 }
@@ -157,7 +157,7 @@ impl WorthQueryDirectReadmissionYieldReassemblyRecovery {
         self.counters
     }
 
-    pub fn retry_to_yielded(self) -> WorthQueryDirectReadmissionRecoveryRetryOutcome {
+    pub fn retry_to_yielded(self) -> WorthQueryDirectReadmissionYieldReassemblyOutcome {
         let WorthQueryDirectBridgeCleanupRecoveryState {
             state,
             resource_attempt,
@@ -222,7 +222,7 @@ fn retry_direct_bridge_cleanup(
     pending: WorthQueryDirectYieldedReassembly,
     bridge: BridgeExecutionBasisReadmissionCleanupOutcome,
     counters: WorthQueryReadmissionCounters,
-) -> WorthQueryDirectReadmissionRecoveryRetryOutcome {
+) -> WorthQueryDirectReadmissionYieldReassemblyOutcome {
     let WorthQueryDirectYieldedReassembly {
         state,
         resource_attempt,
@@ -230,7 +230,7 @@ fn retry_direct_bridge_cleanup(
     } = pending;
     match bridge {
         BridgeExecutionBasisReadmissionCleanupOutcome::Complete(bridge) => {
-            WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
+            WorthQueryDirectReadmissionYieldReassemblyOutcome::Yielded(
                 WorthQueryDirectYieldedParts {
                     state,
                     resource_attempt,
@@ -242,17 +242,18 @@ fn retry_direct_bridge_cleanup(
         }
         BridgeExecutionBasisReadmissionCleanupOutcome::RecoveryRequired(bridge) => {
             let detail = bridge.detail().to_owned();
-            WorthQueryDirectReadmissionRecoveryRetryOutcome::RecoveryRequired(
-                WorthQueryDirectReadmissionRecoveryRequired::bridge_cleanup(
-                    detail,
+            WorthQueryDirectReadmissionYieldReassemblyOutcome::RecoveryRequired(
+                WorthQueryDirectReadmissionYieldReassemblyRecovery {
+                    kind: WorthQueryDirectReadmissionRecoveryKind::BridgeCleanupFailed,
+                    detail: detail.into(),
                     counters,
-                    WorthQueryDirectBridgeCleanupRecoveryState {
+                    recovery: WorthQueryDirectBridgeCleanupRecoveryState {
                         state,
                         resource_attempt,
                         execution,
                         bridge,
                     },
-                ),
+                },
             )
         }
     }

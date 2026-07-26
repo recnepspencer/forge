@@ -222,7 +222,7 @@ fn workflow_provider_restore_denial_keeps_frozen_generation_retryable() {
 }
 
 #[test]
-fn workflow_restore_panic_can_recover_only_through_the_retained_yielded_authority() {
+fn workflow_restore_panic_can_recover_only_through_terminal_cleanup() {
     let (yielded, bridge, runtime, _producer) =
         yielded_workflow(YieldProvider::checkpoint_restore_panic(7));
     let checkpoint = yielded.checkpoint().identity().to_owned();
@@ -236,27 +236,34 @@ fn workflow_restore_panic_can_recover_only_through_the_retained_yielded_authorit
     assert_eq!(
         recovery.posture(),
         crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryPosture::
-            YieldReassemblyPending
+            TerminalCleanupRequired
     );
-    let yielded = match recovery.retry_to_yielded() {
-        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
-            yielded,
-        ) => yielded,
-        _ => panic!("retry-safe workflow recovery should return the yielded authority"),
+    let recovery = match recovery {
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRequired::TerminalCleanup(
+            recovery,
+        ) => recovery,
+        _ => panic!("provider panic must not expose workflow yield-reassembly authority"),
     };
-    assert_eq!(yielded.checkpoint().identity(), checkpoint);
+    let receipt = match recovery.into_cleanup().finish() {
+        crate::domain_computation::WorthQueryWorkflowReadmissionCleanupOutcome::Complete(
+            receipt,
+        ) => receipt,
+        _ => panic!("retained workflow authorities should complete terminal cleanup"),
+    };
     assert_eq!(
-        yielded.artifact_evidence().production_generation(),
+        receipt.checkpoint_release().checkpoint().identity(),
+        checkpoint
+    );
+    assert_eq!(
+        receipt.artifact_evidence().production_generation(),
         generation
     );
-    match yielded.cleanup() {
-        crate::domain_computation::WorthQueryWorkflowYieldCleanupOutcome::Complete(_) => {}
-        _ => panic!("recovered workflow yielded authority should clean up"),
-    }
+    assert!(receipt.bridge().reservation_released());
+    assert!(receipt.relational().released());
 }
 
 #[test]
-fn workflow_restore_rejection_after_admission_carries_release_into_yielded_authority() {
+fn workflow_restore_rejection_after_admission_is_terminal_even_after_clean_release() {
     let (yielded, bridge, runtime, _producer) =
         yielded_workflow(YieldProvider::checkpoint_restore_reject_after_admission(7));
     let prior_release_count = yielded
@@ -278,22 +285,30 @@ fn workflow_restore_rejection_after_admission_carries_release_into_yielded_autho
         .restored_execution_release_evidence()
         .expect("workflow recovery must retain replacement release evidence");
     assert!(!release.recovery_required());
-    let yielded = match recovery.retry_to_yielded() {
-        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
-            yielded,
-        ) => yielded,
-        _ => panic!("released workflow replacement did not return yielded authority"),
-    };
     assert_eq!(
-        yielded
-            .provider_work()
-            .provider_execution_release()
-            .release_count(),
-        prior_release_count + 1
+        recovery.posture(),
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryPosture::
+            TerminalCleanupRequired
     );
-    match yielded.cleanup() {
-        crate::domain_computation::WorthQueryWorkflowYieldCleanupOutcome::Complete(_) => {}
-        _ => panic!("recovered workflow yielded authority should clean up"),
+    let recovery = match recovery {
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRequired::TerminalCleanup(
+            recovery,
+        ) => recovery,
+        _ => panic!("post-admission provider rejection must not expose retry authority"),
+    };
+    match recovery.into_cleanup().finish() {
+        crate::domain_computation::WorthQueryWorkflowReadmissionCleanupOutcome::Complete(
+            receipt,
+        ) => {
+            assert_eq!(
+                receipt
+                    .provider_work()
+                    .provider_execution_release()
+                    .release_count(),
+                prior_release_count + 1
+            );
+        }
+        _ => panic!("released workflow replacement should complete terminal cleanup"),
     }
 }
 

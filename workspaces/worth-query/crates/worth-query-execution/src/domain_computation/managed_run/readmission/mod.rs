@@ -27,13 +27,17 @@ pub use recovery::{
     WorthQueryWorkflowReadmissionCleanupPending, WorthQueryWorkflowReadmissionCleanupReceipt,
     WorthQueryWorkflowReadmissionCleanupRequired, WorthQueryWorkflowReadmissionRecoveryKind,
     WorthQueryWorkflowReadmissionRecoveryPosture, WorthQueryWorkflowReadmissionRecoveryRequired,
-    WorthQueryWorkflowReadmissionRecoveryRetryOutcome,
+    WorthQueryWorkflowReadmissionTerminalRecovery,
+    WorthQueryWorkflowReadmissionYieldReassemblyOutcome,
+    WorthQueryWorkflowReadmissionYieldReassemblyRecovery,
 };
 pub use recovery::{
     WorthQueryDirectReadmissionCleanupOutcome, WorthQueryDirectReadmissionCleanupPending,
     WorthQueryDirectReadmissionCleanupReceipt, WorthQueryDirectReadmissionCleanupRequired,
     WorthQueryDirectReadmissionRecoveryKind, WorthQueryDirectReadmissionRecoveryPosture,
-    WorthQueryDirectReadmissionRecoveryRequired, WorthQueryDirectReadmissionRecoveryRetryOutcome,
+    WorthQueryDirectReadmissionRecoveryRequired, WorthQueryDirectReadmissionTerminalRecovery,
+    WorthQueryDirectReadmissionYieldReassemblyOutcome,
+    WorthQueryDirectReadmissionYieldReassemblyRecovery,
 };
 pub use workflow_outcome::{
     WorthQueryWorkflowReadmissionDenialKind, WorthQueryWorkflowReadmissionDenied,

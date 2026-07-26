@@ -9,10 +9,12 @@ use worth_query_host::facade::{
             WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
             WorthQueryArtifactNativeAccessDenial, WorthQueryCheckpointExportHandoff,
             WorthQueryDirectCheckpointExported, WorthQueryDirectReadmissionCleanupRequired,
-            WorthQueryDirectReadmissionOutcome, WorthQueryDirectYieldOutcome,
+            WorthQueryDirectReadmissionOutcome, WorthQueryDirectReadmissionRecoveryRequired,
+            WorthQueryDirectYieldOutcome,
             WorthQueryDirectYieldRecoveryRequired, WorthQueryPausedDirectGraphExecution,
             WorthQueryPausedWorkflowGraphExecution, WorthQueryTransferredArtifactHandle,
-            WorthQueryWorkflowReadmissionCleanupRequired, WorthQueryWorkflowYieldOutcome,
+            WorthQueryWorkflowReadmissionCleanupRequired,
+            WorthQueryWorkflowReadmissionRecoveryRequired, WorthQueryWorkflowYieldOutcome,
             WorthQueryWorkflowYieldRecoveryReleaseOutcome, WorthQueryWorkflowYieldRecoveryRequired,
             WorthQueryYieldedDirectRun,
         },
@@ -230,6 +232,28 @@ fn resolve_readmission_cleanup(
 ) {
     let _ = direct.finish();
     let _ = workflow.finish();
+}
+
+fn resolve_typed_readmission_recovery(
+    direct: WorthQueryDirectReadmissionRecoveryRequired,
+    workflow: WorthQueryWorkflowReadmissionRecoveryRequired,
+) {
+    match direct {
+        WorthQueryDirectReadmissionRecoveryRequired::YieldReassembly(recovery) => {
+            let _ = recovery.retry_to_yielded();
+        }
+        WorthQueryDirectReadmissionRecoveryRequired::TerminalCleanup(recovery) => {
+            let _ = recovery.into_cleanup();
+        }
+    }
+    match workflow {
+        WorthQueryWorkflowReadmissionRecoveryRequired::YieldReassembly(recovery) => {
+            let _ = recovery.retry_to_yielded();
+        }
+        WorthQueryWorkflowReadmissionRecoveryRequired::TerminalCleanup(recovery) => {
+            let _ = recovery.into_cleanup();
+        }
+    }
 }
 
 fn main() {}
