@@ -48,193 +48,11 @@ impl YieldSuspension {
 
 #[derive(Clone, Copy)]
 pub(super) struct YieldProvider {
-    yield_installed: bool,
-    checkpoint_available: bool,
-    record_effect: bool,
-    suspension: YieldSuspension,
-    execution_drop_panics: bool,
-}
-
-impl YieldProvider {
-    pub(super) const fn installed(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::Checkpoint { retained_bytes },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn installed_with_partial_effect(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: true,
-            suspension: YieldSuspension::Checkpoint { retained_bytes },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn without_installed_yield() -> Self {
-        Self {
-            yield_installed: false,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::Checkpoint { retained_bytes: 3 },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn without_checkpoint_evidence() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: false,
-            record_effect: false,
-            suspension: YieldSuspension::Checkpoint { retained_bytes: 3 },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn suspension_failure() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::Failure,
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn suspension_panic() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::Panic,
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn checkpoint_probe_panic() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointProbePanic,
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn checkpoint_drop_panic() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointDropPanic { retained_bytes: 3 },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn checkpoint_restore_failure(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointRestoreFailure { retained_bytes },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn checkpoint_restore_panic(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointRestorePanic { retained_bytes },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn restored_execution_drop_panic(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointRestoreExecutionDropPanic {
-                retained_bytes,
-                checkpoint_drop_panics: false,
-            },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn checkpoint_and_restored_execution_drop_panic(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointRestoreExecutionDropPanic {
-                retained_bytes,
-                checkpoint_drop_panics: true,
-            },
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn checkpoint_probe_and_drop_panic() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointProbeAndDropPanic,
-            execution_drop_panics: false,
-        }
-    }
-
-    pub(super) const fn suspension_and_execution_drop_panic() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::Panic,
-            execution_drop_panics: true,
-        }
-    }
-
-    pub(super) const fn suspension_failure_and_execution_drop_panic() -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::Failure,
-            execution_drop_panics: true,
-        }
-    }
-
-    pub(super) const fn checkpoint_and_execution_drop_panic(checkpoint_drop_panics: bool) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: if checkpoint_drop_panics {
-                YieldSuspension::CheckpointDropPanic { retained_bytes: 3 }
-            } else {
-                YieldSuspension::Checkpoint { retained_bytes: 3 }
-            },
-            execution_drop_panics: true,
-        }
-    }
-
-    pub(super) const fn over_ceiling_checkpoint_with_drop_panic(retained_bytes: u64) -> Self {
-        Self {
-            yield_installed: true,
-            checkpoint_available: true,
-            record_effect: false,
-            suspension: YieldSuspension::CheckpointDropPanic { retained_bytes },
-            execution_drop_panics: false,
-        }
-    }
+    pub(super) yield_installed: bool,
+    pub(super) checkpoint_available: bool,
+    pub(super) record_effect: bool,
+    pub(super) suspension: YieldSuspension,
+    pub(super) execution_drop_panics: bool,
 }
 
 pub(super) struct YieldExecution {
@@ -313,14 +131,12 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
         WorthQueryGraphProviderFailure,
     > {
         match self.suspension {
-            YieldSuspension::Checkpoint { retained_bytes } => {
-                Ok(Box::new(YieldCheckpoint {
-                    retained_bytes,
-                    retained: self.take_checkpoint_memory(),
-                }))
-            }
-            YieldSuspension::CheckpointProbePanic => Ok(Box::new(PanicProbeCheckpoint {
+            YieldSuspension::Checkpoint { retained_bytes } => Ok(Box::new(YieldCheckpoint {
+                retained_bytes,
                 retained: self.take_checkpoint_memory(),
+            })),
+            YieldSuspension::CheckpointProbePanic => Ok(Box::new(PanicProbeCheckpoint {
+                _retained: self.take_checkpoint_memory(),
             })),
             YieldSuspension::CheckpointDropPanic { retained_bytes } => {
                 Ok(Box::new(PanicDropCheckpoint {
@@ -330,19 +146,19 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
             }
             YieldSuspension::CheckpointProbeAndDropPanic => {
                 Ok(Box::new(PanicProbeAndDropCheckpoint {
-                    retained: self.take_checkpoint_memory(),
+                    _retained: self.take_checkpoint_memory(),
                 }))
             }
             YieldSuspension::CheckpointRestoreFailure { retained_bytes } => {
                 Ok(Box::new(RestoreFailureCheckpoint {
                     retained_bytes,
-                    retained: self.take_checkpoint_memory(),
+                    _retained: self.take_checkpoint_memory(),
                 }))
             }
             YieldSuspension::CheckpointRestorePanic { retained_bytes } => {
                 Ok(Box::new(RestorePanicCheckpoint {
                     retained_bytes,
-                    retained: self.take_checkpoint_memory(),
+                    _retained: self.take_checkpoint_memory(),
                 }))
             }
             YieldSuspension::CheckpointRestoreExecutionDropPanic {

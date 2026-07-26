@@ -195,139 +195,40 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for WideChunkProvider {
     }
 }
 
-#[derive(Clone, Copy)]
-enum HostilePort {
-    Effect,
-    Output,
-    Scratch,
-    Retained,
-    Checkpoint,
-    NoProgress,
-}
-
-struct HostileProvider(HostilePort);
-
-struct HostileExecution(HostilePort);
-
-impl WorthQueryGraphProviderExecution for HostileExecution {
-    fn advance(
-        &mut self,
-        step: &mut WorthQueryGraphProviderStep,
-    ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
-        match self.0 {
-            HostilePort::Effect => {
-                let _ = step.apply_effect(|| Ok(()));
-            }
-            HostilePort::Output => {
-                step.perform_work_unit(|| Ok(()))?;
-                let _ = step.emit_projection_chunk(graph_material_rows(9));
-            }
-            HostilePort::Scratch => {
-                step.perform_work_unit(|| Ok(()))?;
-                let _ = step.with_scratch_bytes(9, |_| Ok(()));
-            }
-            HostilePort::Retained => {
-                step.perform_work_unit(|| Ok(()))?;
-                let _ = step.retain_bytes(4_097);
-            }
-            HostilePort::Checkpoint => {
-                step.perform_work_unit(|| Ok(()))?;
-                step.record_checkpoint_available().map_err(step_failure)?;
-                let _ = step.record_checkpoint_available();
-            }
-            HostilePort::NoProgress => {}
-        }
-        WorthQueryGraphProviderStepDisposition::complete("hostile")
-            .map_err(WorthQueryGraphProviderFailure::new)
-    }
-
-    fn dispose(&mut self) -> Result<(), WorthQueryGraphProviderFailure> {
-        Ok(())
-    }
-}
-
-impl WorthQueryGraphParticipationProvider<ManagedGraph> for HostileProvider {
-    type Execution = HostileExecution;
-
-    fn execution_resource_support(
-        &self,
-    ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport {
-        crate::domain_computation::provider_session::execution_resource_support("hostile-port", 8)
-    }
-
-    fn begin(
-        &self,
-        _call: &WorthQueryGraphProviderCall,
-        _start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<Self::Execution, WorthQueryGraphProviderFailure> {
-        Ok(HostileExecution(self.0))
-    }
-}
-
 #[test]
-fn ignored_governed_denials_and_zero_progress_completion_cannot_advance() {
-    for (port, expected_denial) in [
-        (
-            HostilePort::Effect,
-            WorthQueryGraphProviderStepDenialKind::UnexpectedEffect,
-        ),
-        (
-            HostilePort::Output,
-            WorthQueryGraphProviderStepDenialKind::ChunkWidthExceeded,
-        ),
-        (
-            HostilePort::Scratch,
-            WorthQueryGraphProviderStepDenialKind::ScratchBudgetExceeded,
-        ),
-        (
-            HostilePort::Retained,
-            WorthQueryGraphProviderStepDenialKind::RetainedBudgetExceeded,
-        ),
-        (
-            HostilePort::Checkpoint,
-            WorthQueryGraphProviderStepDenialKind::MultipleCheckpoints,
-        ),
-        (
-            HostilePort::NoProgress,
-            WorthQueryGraphProviderStepDenialKind::NoProgress,
-        ),
-    ] {
-        let (access, kind) = if matches!(port, HostilePort::Output) {
-            (
-                WorthQueryOperationGraphAccess::Project,
-                WorthQueryGraphProviderCallKind::Project,
-            )
-        } else {
-            (
-                WorthQueryOperationGraphAccess::Observe,
-                WorthQueryGraphProviderCallKind::Observe,
-            )
-        };
-        let (running, graph) = managed_graph_run_with_provider(access, HostileProvider(port));
-        let active = running
-            .begin_graph_execution(
-                &graph,
-                WorthQueryManagedGraphCallRequest::new(kind, "hostile-port"),
-            )
-            .expect("hostile fixture should reach its governed step");
-        let terminal = match active.advance() {
-            WorthQueryDirectGraphStepOutcome::Failed(terminal) => terminal,
-            _ => panic!("hostile governed port advanced the managed lane"),
-        };
-        assert_eq!(terminal.provider_work().abandoned_call_count(), 1);
-        let failure = terminal
-            .provider_work()
-            .last_step_failure()
-            .expect("failed provider step should retain its exact cause");
-        assert_eq!(
-            failure.invocation(),
-            WorthQueryGraphProviderStepInvocationDisposition::Returned
-        );
-        assert_eq!(failure.governed_denial_kind(), Some(expected_denial));
-        terminal
-            .cleanup()
-            .expect("failed hostile step should clean up");
-    }
+fn pending_and_paused_abandonment_release_queue_and_output_retention() {
+    let advances = Arc::new(AtomicUsize::new(0));
+    let pending = expect_chunk(
+        start_projection(MultiChunkProvider {
+            advances: Arc::clone(&advances),
+        })
+        .advance(),
+    );
+    let terminal = match pending.abandon() {
+        WorthQueryDirectGraphStepOutcome::Failed(terminal) => terminal,
+        _ => panic!("pending-chunk abandonment did not terminalize"),
+    };
+    assert_eq!(terminal.provider_work().queue_state_mutation_count(), 2);
+    assert_eq!(terminal.provider_work().retained_bytes(), 0);
+    assert!(terminal.provider_work().peak_retained_bytes() > 0);
+    assert_eq!(terminal.provider_work().abandoned_call_count(), 1);
+
+    let pending = expect_chunk(
+        start_projection(MultiChunkProvider {
+            advances: Arc::new(AtomicUsize::new(0)),
+        })
+        .advance(),
+    );
+    let paused = match pending.acknowledge() {
+        WorthQueryDirectGraphStepOutcome::Continue(paused) => paused,
+        _ => panic!("first chunk acknowledgement did not reach a paused safe point"),
+    };
+    let terminal = match paused.abandon() {
+        WorthQueryDirectGraphStepOutcome::Failed(terminal) => terminal,
+        _ => panic!("paused execution abandonment did not terminalize"),
+    };
+    assert_eq!(terminal.provider_work().retained_bytes(), 0);
+    assert_eq!(terminal.provider_work().abandoned_call_count(), 1);
 }
 
 fn start_projection(

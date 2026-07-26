@@ -15,6 +15,7 @@ struct FreezeProbeExecution {
     authority: Arc<Mutex<Option<ProductionAuthority>>>,
     result: Arc<Mutex<Option<FreezeProbeResult>>>,
     disposals: Arc<AtomicUsize>,
+    retained: Option<WorthQueryGraphProviderRetainedMemory>,
 }
 
 enum FreezeProbeResult {
@@ -43,6 +44,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for FreezeProbeProvider 
             authority: Arc::clone(&self.authority),
             result: Arc::clone(&self.result),
             disposals: Arc::clone(&self.disposals),
+            retained: None,
         })
     }
 }
@@ -53,6 +55,7 @@ impl WorthQueryGraphProviderExecution for FreezeProbeExecution {
         step: &mut WorthQueryGraphProviderStep,
     ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
         step.perform_work_unit(|| Ok(()))?;
+        self.retained = Some(step.retain_bytes(3).map_err(step_failure)?);
         step.record_checkpoint_available().map_err(step_failure)?;
         Ok(WorthQueryGraphProviderStepDisposition::continue_work())
     }
@@ -93,7 +96,12 @@ impl WorthQueryGraphProviderExecution for FreezeProbeExecution {
             }
             Err(denial) => FreezeProbeResult::Denied(denial),
         });
-        Ok(Box::new(FreezeProbeCheckpoint))
+        Ok(Box::new(FreezeProbeCheckpoint {
+            _retained: self
+                .retained
+                .take()
+                .expect("freeze checkpoint transfers governed retained memory once"),
+        }))
     }
 
     fn dispose(&mut self) -> Result<(), WorthQueryGraphProviderFailure> {
@@ -101,7 +109,9 @@ impl WorthQueryGraphProviderExecution for FreezeProbeExecution {
     }
 }
 
-struct FreezeProbeCheckpoint;
+struct FreezeProbeCheckpoint {
+    _retained: WorthQueryGraphProviderRetainedMemory,
+}
 
 impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for FreezeProbeCheckpoint {
     fn retained_bytes(&self) -> u64 {

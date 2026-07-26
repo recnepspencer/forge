@@ -110,5 +110,4 @@ impl WorthQueryGraphProviderStepBudget {
     pub(super) const fn peak_scratch_bytes(&self) -> u64 {
         self.peak_scratch_bytes
     }
-
 }

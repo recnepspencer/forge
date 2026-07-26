@@ -29,9 +29,7 @@ pub use disposition::{
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
 };
 pub use execution_start::WorthQueryGraphProviderExecutionStart;
-pub use memory::{
-    WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
-};
+pub use memory::{WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory};
 pub use provider_execution::WorthQueryGraphProviderExecution;
 pub use provider_execution_release::{
     WorthQueryProviderExecutionDestructorDisposition,

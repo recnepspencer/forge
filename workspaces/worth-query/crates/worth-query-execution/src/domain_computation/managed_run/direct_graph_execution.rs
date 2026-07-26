@@ -3,6 +3,7 @@ use worth_runtime_bridge::facade::BridgeManagedQueueFailureKind;
 use super::direct_graph_chunk::{
     WorthQueryPendingDirectGraphChunk, WorthQueryPendingDirectGraphQueueState,
 };
+use super::direct_graph_completion::WorthQueryCompletedDirectGraphExecution;
 use super::interruption_classification::producer_terminal_kind;
 use super::managed_graph_execution::{
     WorthQueryManagedGraphExecution, WorthQueryManagedProviderStep,
@@ -11,11 +12,9 @@ use super::{
     WorthQueryDirectRunTerminal, WorthQueryManagedRunTerminalKind, WorthQueryRunningDirectRun,
 };
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepCompletion;
-use crate::domain_computation::{
-    WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphProviderStepReport,
-    WorthQueryGraphReadMaterial,
-};
+use crate::domain_computation::{WorthQueryGraphProviderStepReport, WorthQueryGraphReadMaterial};
 
+#[must_use = "active graph execution must be advanced or explicitly abandoned"]
 pub struct WorthQueryActiveDirectGraphExecution {
     pub(super) running: WorthQueryRunningDirectRun,
     pub(super) execution: WorthQueryManagedGraphExecution,
@@ -92,6 +91,10 @@ impl WorthQueryActiveDirectGraphExecution {
         self.running.bridge_basis().reject_execution(reason)
     }
 
+    pub fn abandon(self) -> WorthQueryDirectGraphStepOutcome {
+        self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+    }
+
     pub fn advance(mut self) -> WorthQueryDirectGraphStepOutcome {
         let before = match self.observe_safe_point() {
             Ok(observation) => observation,
@@ -115,9 +118,7 @@ impl WorthQueryActiveDirectGraphExecution {
             .record_provider_step_attempt();
         match self.execution.advance_provider(admitted) {
             WorthQueryManagedProviderStep::Failed(evidence) => {
-                let mut report = evidence.into_report();
-                self.record_report(&mut report);
-                self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+                self.admit_provider_step(evidence.into_report())
             }
             WorthQueryManagedProviderStep::Continue(evidence)
             | WorthQueryManagedProviderStep::Complete(evidence) => {
@@ -131,6 +132,10 @@ impl WorthQueryActiveDirectGraphExecution {
         mut report: WorthQueryGraphProviderStepReport,
     ) -> WorthQueryDirectGraphStepOutcome {
         self.record_report(&mut report);
+        if report.completion() == WorthQueryGraphProviderStepCompletion::Failed {
+            let _ = self.release_unpublished_projection(&mut report);
+            return self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
+        }
         if let Some(material) = report.take_projection() {
             return self.admit_pending_chunk(report, material);
         }
@@ -138,7 +143,7 @@ impl WorthQueryActiveDirectGraphExecution {
             WorthQueryGraphProviderStepCompletion::Continue => self.continue_after_safe_point(),
             WorthQueryGraphProviderStepCompletion::Complete => self.finish_completion(&report),
             WorthQueryGraphProviderStepCompletion::Failed => {
-                self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+                unreachable!("failed provider reports terminalize before output publication")
             }
         }
     }
@@ -201,18 +206,21 @@ impl WorthQueryActiveDirectGraphExecution {
         let release = self.execution.release_provider_execution();
         self.running
             .provider_work_mut()
-            .record_provider_execution_release(&release);
-        if release.recovery_required() {
+            .record_provider_execution_release(release.evidence());
+        self.running
+            .provider_work_mut()
+            .record_provider_memory(release.memory());
+        if release.evidence().recovery_required() {
             return terminal_outcome(
                 self.running
                     .terminal(WorthQueryManagedRunTerminalKind::Failed),
                 WorthQueryManagedRunTerminalKind::Failed,
             );
         }
-        WorthQueryDirectGraphStepOutcome::Completed(WorthQueryCompletedDirectGraphExecution {
-            running: self.running,
+        WorthQueryDirectGraphStepOutcome::Completed(WorthQueryCompletedDirectGraphExecution::new(
+            self.running,
             receipt,
-        })
+        ))
     }
 
     pub(super) fn continue_after_safe_point(mut self) -> WorthQueryDirectGraphStepOutcome {
@@ -255,7 +263,19 @@ impl WorthQueryActiveDirectGraphExecution {
             && self
                 .running
                 .provider_work_mut()
-                .release_retained_bytes(retained_bytes)
+                .release_projection_bytes(retained_bytes)
+    }
+
+    fn release_unpublished_projection(
+        &mut self,
+        report: &mut WorthQueryGraphProviderStepReport,
+    ) -> bool {
+        let Some(material) = report.take_projection() else {
+            return true;
+        };
+        let retained_bytes = material.owned_allocation_capacity_bytes();
+        drop(material);
+        self.release_pending_chunk(retained_bytes)
     }
 
     pub(super) fn interrupted_terminal(
@@ -288,11 +308,15 @@ impl WorthQueryActiveDirectGraphExecution {
         let release = self.execution.release_provider_execution();
         self.running
             .provider_work_mut()
-            .record_provider_execution_release(&release);
+            .record_provider_execution_release(release.evidence());
+        self.running
+            .provider_work_mut()
+            .record_provider_memory(release.memory());
         terminal_outcome(self.running.terminal(kind), kind)
     }
 }
 
+#[must_use = "paused graph execution must be advanced, yielded, or explicitly abandoned"]
 pub struct WorthQueryPausedDirectGraphExecution {
     pub(super) active: WorthQueryActiveDirectGraphExecution,
     pub(super) safe_point: super::yield_eligibility::WorthQueryManagedYieldSafePoint,
@@ -310,44 +334,9 @@ impl WorthQueryPausedDirectGraphExecution {
     pub fn yield_run(self) -> super::WorthQueryDirectYieldOutcome {
         super::direct_yield_transition::yield_direct_run(self)
     }
-}
 
-pub struct WorthQueryCompletedDirectGraphExecution {
-    running: WorthQueryRunningDirectRun,
-    receipt: WorthQueryBoundGraphExecutionReceipt,
-}
-
-impl WorthQueryCompletedDirectGraphExecution {
-    pub fn run_identity(&self) -> &str {
-        self.running.identity()
-    }
-
-    pub fn receipt(&self) -> &WorthQueryBoundGraphExecutionReceipt {
-        &self.receipt
-    }
-
-    pub fn into_running(self) -> WorthQueryRunningDirectRun {
-        self.running
-    }
-
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        WorthQueryRunningDirectRun,
-        WorthQueryBoundGraphExecutionReceipt,
-    ) {
-        (self.running, self.receipt)
-    }
-
-    pub(crate) fn bind_convergence_candidate_evidence(
-        &self,
-        output_occurrence_identity: &str,
-    ) -> Result<
-        crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
-        crate::domain_computation::WorthQueryDomainEvidenceBindingDenial,
-    > {
-        self.running
-            .bind_convergence_candidate_evidence(output_occurrence_identity)
+    pub fn abandon(self) -> WorthQueryDirectGraphStepOutcome {
+        self.active.abandon()
     }
 }
 

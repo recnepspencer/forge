@@ -9,7 +9,11 @@ use worth_query_host::facade::{
         WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
         WorthQueryArtifactNativeAccessDenial, WorthQueryTransferredArtifactHandle,
         },
-        provider_session::WorthQueryExecutionProviderSession,
+        provider_session::{
+            WorthQueryExecutionProviderSession, WorthQueryGraphProviderCheckpoint,
+            WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderRestoreMemory,
+            WorthQueryGraphProviderRetainedMemory, WorthQueryProviderCheckpointExport,
+        },
     },
     publication::domain_computation::WorthQueryDomainEvidenceMaterial,
     runtime::{WorthQueryExecutionRuntime, WorthQueryExecutionRuntimeInstaller},
@@ -57,6 +61,16 @@ fn carry_artifact_and_publication(
 
 fn certification_entry(counters: WorthQueryCertificationReplayCounters) {
     let _ = counters;
+}
+
+fn carry_provider_authoring_contract(
+    start: &mut WorthQueryGraphProviderExecutionStart,
+    retained: WorthQueryGraphProviderRetainedMemory,
+    restore: &mut WorthQueryGraphProviderRestoreMemory,
+    checkpoint: &dyn WorthQueryGraphProviderCheckpoint,
+    export: WorthQueryProviderCheckpointExport,
+) {
+    let _ = (start, retained, restore, checkpoint, export);
 }
 
 fn main() {}

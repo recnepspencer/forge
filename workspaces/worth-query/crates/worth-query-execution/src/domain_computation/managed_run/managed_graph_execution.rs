@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use super::step_contract_admission::WorthQueryAdmittedManagedStepContract;
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
-    provider_anchor::WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStepArtifactContext,
-    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderStepCompletion,
+    provider_anchor::WorthQueryGraphProviderAnchor, WorthQueryGraphProviderMemoryArena,
+    WorthQueryGraphProviderStepArtifactContext, WorthQueryGraphProviderStepCompletion,
     WorthQueryOwnedGraphProviderExecution, WorthQueryProviderExecutionInvocation,
 };
 use crate::domain_computation::{
@@ -239,6 +239,9 @@ impl WorthQueryManagedGraphExecution {
         let Some(remaining) = self.retained_bytes.checked_sub(retained_bytes) else {
             return false;
         };
+        if !self.last_retained.release_projection_bytes(retained_bytes) {
+            return false;
+        }
         self.retained_bytes = remaining;
         true
     }

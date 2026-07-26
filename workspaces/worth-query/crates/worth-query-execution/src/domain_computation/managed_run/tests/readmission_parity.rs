@@ -98,11 +98,7 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for RepeatedYi
         Ok(Box::new(RepeatedYieldExecution {
             next_step: self.next_step,
             step_count: self.step_count,
-            retained: Some(
-                memory
-                    .rebind(&self.retained)
-                    .map_err(step_failure)?,
-            ),
+            retained: Some(memory.rebind(&self.retained).map_err(step_failure)?),
         }))
     }
 }

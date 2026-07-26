@@ -4,6 +4,7 @@ pub(crate) mod causal_fixture;
 mod cost_bound;
 mod direct_lifecycle;
 mod effect_posture;
+mod provider_contract_violation;
 mod provider_execution_release;
 mod provider_support_affinity;
 mod provider_work;
@@ -18,6 +19,7 @@ mod step_interruption;
 mod step_output;
 mod terminal_matrix;
 mod variable_width_output;
+mod workflow_abandonment;
 mod workflow_backpressure;
 mod workflow_lifecycle;
 mod workflow_provider_steps;
@@ -35,6 +37,7 @@ mod yield_lifecycle_direct;
 mod yield_lifecycle_workflow;
 mod yield_production_freeze;
 mod yield_provider_artifact;
+mod yield_provider_configuration;
 mod yield_signal_workflow;
 mod yield_workflow_recovery;
 
@@ -85,11 +88,12 @@ use crate::domain_computation::{
     WorthQueryArtifactProductionEvidence, WorthQueryArtifactProviderResource,
     WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
     WorthQueryGraphProviderCallKind, WorthQueryGraphProviderExecution,
-    WorthQueryGraphProviderFailure, WorthQueryGraphProviderStep,
-    WorthQueryGraphProviderStepDenialKind, WorthQueryGraphProviderStepDisposition,
-    WorthQueryGraphProviderStepInvocationDisposition, WorthQueryGraphReadMaterial,
-    WorthQueryGraphReadRow, WorthQueryManagedGraphCallRequest, WorthQueryRunningDirectRun,
-    WorthQueryWorkflowRunCleanupOutcome,
+    WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
+    WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
+    WorthQueryGraphProviderStep, WorthQueryGraphProviderStepDenialKind,
+    WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepInvocationDisposition,
+    WorthQueryGraphReadMaterial, WorthQueryGraphReadRow, WorthQueryManagedGraphCallRequest,
+    WorthQueryRunningDirectRun, WorthQueryWorkflowRunCleanupOutcome,
 };
 
 fn query_runtime() -> WorthQueryExecutionRuntime {

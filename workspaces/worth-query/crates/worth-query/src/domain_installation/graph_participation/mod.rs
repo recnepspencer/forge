@@ -16,9 +16,13 @@ pub(crate) use worth_query_execution::facade::provider_session::{
 };
 pub use worth_query_execution::facade::provider_session::{
     WorthQueryGraphCommitCall, WorthQueryGraphCommitProvider, WorthQueryGraphParticipationProvider,
-    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallKind, WorthQueryGraphProviderExecution,
-    WorthQueryGraphProviderFailure, WorthQueryGraphProviderReceipt, WorthQueryGraphProviderStep,
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallKind,
+    WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
+    WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
+    WorthQueryGraphProviderReceipt, WorthQueryGraphProviderRestoreMemory,
+    WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStep,
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
     WorthQueryGraphReadMaterial, WorthQueryGraphReadRow, WorthQueryGraphReadRowConstructionDenial,
+    WorthQueryProviderCheckpointExport,
 };

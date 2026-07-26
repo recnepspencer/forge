@@ -22,6 +22,7 @@ impl WorthQueryPendingDirectGraphQueueState {
     }
 }
 
+#[must_use = "pending graph chunk must be acknowledged or explicitly abandoned"]
 pub struct WorthQueryPendingDirectGraphChunk {
     active: WorthQueryActiveDirectGraphExecution,
     report: WorthQueryGraphProviderStepReport,
@@ -116,5 +117,28 @@ impl WorthQueryPendingDirectGraphChunk {
                 .active
                 .abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed),
         }
+    }
+
+    pub fn abandon(self) -> WorthQueryDirectGraphStepOutcome {
+        let Self {
+            mut active,
+            report: _,
+            material,
+            queue,
+            retained_bytes,
+        } = self;
+        let mutation = active
+            .running
+            .bridge_basis_mut()
+            .dequeue_managed_queue(queue.width);
+        if let Ok(mutation) = mutation {
+            active
+                .running
+                .provider_work_mut()
+                .record_queue_mutation(mutation.counters());
+        }
+        drop(material);
+        let _ = active.release_pending_chunk(retained_bytes);
+        active.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
     }
 }

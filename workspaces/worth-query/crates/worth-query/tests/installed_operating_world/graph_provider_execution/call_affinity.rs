@@ -22,6 +22,7 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for RetainingProvider {
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
+        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
         let mut retained = self.retained.lock().unwrap();
         retained.get_or_insert_with(|| call.clone());

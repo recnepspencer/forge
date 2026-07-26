@@ -15,6 +15,7 @@ use super::{WorthQueryManagedRunTerminalKind, WorthQueryRunningWorkflowRun};
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepCompletion;
 use crate::domain_computation::{WorthQueryGraphProviderStepReport, WorthQueryGraphReadMaterial};
 
+#[must_use = "active graph execution must be advanced or explicitly abandoned"]
 pub struct WorthQueryActiveWorkflowGraphExecution {
     pub(super) running: WorthQueryRunningWorkflowRun,
     pub(super) execution: WorthQueryManagedGraphExecution,
@@ -101,6 +102,10 @@ impl WorthQueryActiveWorkflowGraphExecution {
         self.running.bridge_basis().reject_execution(reason)
     }
 
+    pub fn abandon(self) -> WorthQueryWorkflowGraphStepOutcome {
+        self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+    }
+
     pub fn advance(mut self) -> WorthQueryWorkflowGraphStepOutcome {
         let before = match self.observe_safe_point() {
             Ok(observation) => observation,
@@ -124,9 +129,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
             .record_provider_step_attempt();
         match self.execution.advance_provider(admitted) {
             WorthQueryManagedProviderStep::Failed(evidence) => {
-                let mut report = evidence.into_report();
-                self.record_report(&mut report);
-                self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+                self.admit_provider_step(evidence.into_report())
             }
             WorthQueryManagedProviderStep::Continue(evidence)
             | WorthQueryManagedProviderStep::Complete(evidence) => {
@@ -140,6 +143,10 @@ impl WorthQueryActiveWorkflowGraphExecution {
         mut report: WorthQueryGraphProviderStepReport,
     ) -> WorthQueryWorkflowGraphStepOutcome {
         self.record_report(&mut report);
+        if report.completion() == WorthQueryGraphProviderStepCompletion::Failed {
+            let _ = self.release_unpublished_projection(&mut report);
+            return self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed);
+        }
         if let Some(material) = report.take_projection() {
             return self.admit_pending_chunk(report, material);
         }
@@ -147,7 +154,7 @@ impl WorthQueryActiveWorkflowGraphExecution {
             WorthQueryGraphProviderStepCompletion::Continue => self.continue_after_safe_point(),
             WorthQueryGraphProviderStepCompletion::Complete => self.finish_completion(&report),
             WorthQueryGraphProviderStepCompletion::Failed => {
-                self.abandoned_terminal(WorthQueryManagedRunTerminalKind::Failed)
+                unreachable!("failed provider reports terminalize before output publication")
             }
         }
     }
@@ -210,8 +217,11 @@ impl WorthQueryActiveWorkflowGraphExecution {
         let release = self.execution.release_provider_execution();
         self.running
             .provider_work_mut()
-            .record_provider_execution_release(&release);
-        if release.recovery_required() {
+            .record_provider_execution_release(release.evidence());
+        self.running
+            .provider_work_mut()
+            .record_provider_memory(release.memory());
+        if release.evidence().recovery_required() {
             return terminal_outcome(
                 self.running
                     .terminal(WorthQueryManagedRunTerminalKind::Failed),
@@ -243,7 +253,11 @@ impl WorthQueryActiveWorkflowGraphExecution {
     }
 
     fn record_report(&mut self, report: &mut WorthQueryGraphProviderStepReport) {
+        let artifact_snapshot = self.running.provider_artifact_occurrences().snapshot();
         self.running.provider_work_mut().admit_step(report);
+        self.running
+            .provider_work_mut()
+            .settle_artifacts(artifact_snapshot);
         self.execution.admit_report(report);
     }
 
@@ -265,7 +279,19 @@ impl WorthQueryActiveWorkflowGraphExecution {
             && self
                 .running
                 .provider_work_mut()
-                .release_retained_bytes(retained_bytes)
+                .release_projection_bytes(retained_bytes)
+    }
+
+    fn release_unpublished_projection(
+        &mut self,
+        report: &mut WorthQueryGraphProviderStepReport,
+    ) -> bool {
+        let Some(material) = report.take_projection() else {
+            return true;
+        };
+        let retained_bytes = material.owned_allocation_capacity_bytes();
+        drop(material);
+        self.release_pending_chunk(retained_bytes)
     }
 
     pub(super) fn interrupted_terminal(
@@ -298,7 +324,10 @@ impl WorthQueryActiveWorkflowGraphExecution {
         let release = self.execution.release_provider_execution();
         self.running
             .provider_work_mut()
-            .record_provider_execution_release(&release);
+            .record_provider_execution_release(release.evidence());
+        self.running
+            .provider_work_mut()
+            .record_provider_memory(release.memory());
         terminal_outcome(self.running.terminal(kind), kind)
     }
 }

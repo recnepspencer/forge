@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use crate::domain_computation::artifact_owner::WorthQueryArtifactOccurrenceSnapshot;
+use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderMemorySnapshot;
 use crate::domain_computation::{
     WorthQueryGraphProviderStepReport, WorthQueryProviderExecutionReleaseEvidence,
 };
 
 use super::evidence::WorthQueryManagedProviderWorkEvidenceParts;
+use super::retention::WorthQueryManagedProviderRetentionLedger;
 use super::{
     WorthQueryManagedProviderExecutionReleaseSummary, WorthQueryManagedProviderWorkEvidence,
 };
@@ -23,9 +25,9 @@ pub(crate) struct WorthQueryManagedProviderWorkLedger {
     retained_artifact_count: usize,
     disposed_artifact_count: usize,
     peak_scratch_bytes: usize,
-    retained_bytes: usize,
-    non_artifact_retained_bytes: usize,
+    retention: WorthQueryManagedProviderRetentionLedger,
     checkpoint_available: bool,
+    checkpoint_available_observation_count: usize,
     provider_step_attempt_count: usize,
     safe_point_request_lookup_count: usize,
     pressure_classification_count: usize,
@@ -53,9 +55,9 @@ impl WorthQueryManagedProviderWorkLedger {
             retained_artifact_count: 0,
             disposed_artifact_count: 0,
             peak_scratch_bytes: 0,
-            retained_bytes: 0,
-            non_artifact_retained_bytes: 0,
+            retention: WorthQueryManagedProviderRetentionLedger::default(),
             checkpoint_available: false,
+            checkpoint_available_observation_count: 0,
             provider_step_attempt_count: 0,
             safe_point_request_lookup_count: 0,
             pressure_classification_count: 0,
@@ -86,10 +88,7 @@ impl WorthQueryManagedProviderWorkLedger {
             .peak_scratch_bytes
             .max(usize::try_from(report.peak_scratch_bytes()).unwrap_or(usize::MAX));
         let artifacts = report.artifact_evidence();
-        self.retained_bytes = usize::try_from(report.retained_bytes()).unwrap_or(usize::MAX);
-        self.non_artifact_retained_bytes = self
-            .retained_bytes
-            .saturating_sub(artifacts.retained_bytes());
+        self.retention.admit_step(report.retained_evidence());
         self.produced_artifact_count = self
             .produced_artifact_count
             .saturating_add(artifacts.produced_artifact_count());
@@ -97,7 +96,12 @@ impl WorthQueryManagedProviderWorkLedger {
         self.disposed_artifact_count = self
             .disposed_artifact_count
             .saturating_add(artifacts.disposed_artifact_count());
-        self.checkpoint_available |= report.checkpoint_available();
+        self.checkpoint_available = report.checkpoint_available();
+        if report.checkpoint_available() {
+            self.checkpoint_available_observation_count = self
+                .checkpoint_available_observation_count
+                .saturating_add(1);
+        }
         self.last_step_failure = report.failure().cloned();
     }
 
@@ -151,27 +155,19 @@ impl WorthQueryManagedProviderWorkLedger {
         self.provider_execution_release.record(evidence);
     }
 
-    pub(crate) fn release_retained_bytes(&mut self, retained_bytes: usize) -> bool {
-        let Some(total_remaining) = self.retained_bytes.checked_sub(retained_bytes) else {
-            return false;
-        };
-        let Some(non_artifact_remaining) =
-            self.non_artifact_retained_bytes.checked_sub(retained_bytes)
-        else {
-            return false;
-        };
-        self.retained_bytes = total_remaining;
-        self.non_artifact_retained_bytes = non_artifact_remaining;
-        true
+    pub(crate) fn record_provider_memory(&mut self, memory: WorthQueryGraphProviderMemorySnapshot) {
+        self.retention.reconcile_provider(memory);
+    }
+
+    pub(crate) fn release_projection_bytes(&mut self, retained_bytes: usize) -> bool {
+        self.retention.release_projection(retained_bytes)
     }
 
     pub(crate) fn settle_artifacts(&mut self, snapshot: WorthQueryArtifactOccurrenceSnapshot) {
         self.produced_artifact_count = snapshot.produced_artifact_count();
         self.retained_artifact_count = snapshot.retained_artifact_count();
         self.disposed_artifact_count = snapshot.disposed_artifact_count();
-        self.retained_bytes = self
-            .non_artifact_retained_bytes
-            .saturating_add(snapshot.retained_bytes());
+        self.retention.settle_artifacts(snapshot.retained_bytes());
     }
 
     pub(crate) fn interrupt_step_call(&mut self) {
@@ -209,8 +205,10 @@ impl WorthQueryManagedProviderWorkLedger {
                 retained_artifact_count: self.retained_artifact_count,
                 disposed_artifact_count: self.disposed_artifact_count,
                 peak_scratch_bytes: self.peak_scratch_bytes,
-                retained_bytes: self.retained_bytes,
+                retained_bytes: self.retention.current_bytes(),
+                peak_retained_bytes: self.retention.peak_bytes(),
                 checkpoint_available: self.checkpoint_available,
+                checkpoint_available_observation_count: self.checkpoint_available_observation_count,
                 provider_step_attempt_count: self.provider_step_attempt_count,
                 safe_point_request_lookup_count: self.safe_point_request_lookup_count,
                 pressure_classification_count: self.pressure_classification_count,

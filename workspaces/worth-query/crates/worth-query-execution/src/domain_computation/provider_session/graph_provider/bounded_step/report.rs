@@ -67,6 +67,18 @@ impl WorthQueryGraphProviderStepRetainedEvidence {
     pub const fn total_bytes(self) -> u64 {
         self.total_bytes
     }
+
+    pub(crate) fn release_projection_bytes(&mut self, released_bytes: u64) -> bool {
+        let Some(projection_bytes) = self.projection_bytes.checked_sub(released_bytes) else {
+            return false;
+        };
+        let Some(total_bytes) = self.total_bytes.checked_sub(released_bytes) else {
+            return false;
+        };
+        self.projection_bytes = projection_bytes;
+        self.total_bytes = total_bytes;
+        true
+    }
 }
 
 #[derive(Debug, PartialEq)]

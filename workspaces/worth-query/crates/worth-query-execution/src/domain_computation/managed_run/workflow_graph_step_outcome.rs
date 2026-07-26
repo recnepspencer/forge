@@ -5,6 +5,7 @@ use super::{
 };
 use crate::domain_computation::WorthQueryBoundGraphExecutionReceipt;
 
+#[must_use = "paused graph execution must be advanced, yielded, or explicitly abandoned"]
 pub struct WorthQueryPausedWorkflowGraphExecution {
     pub(super) active: WorthQueryActiveWorkflowGraphExecution,
     pub(super) safe_point: super::yield_eligibility::WorthQueryManagedYieldSafePoint,
@@ -21,6 +22,10 @@ impl WorthQueryPausedWorkflowGraphExecution {
 
     pub fn yield_run(self) -> super::WorthQueryWorkflowYieldOutcome {
         super::workflow_yield_transition::yield_workflow_run(self)
+    }
+
+    pub fn abandon(self) -> WorthQueryWorkflowGraphStepOutcome {
+        self.active.abandon()
     }
 }
 

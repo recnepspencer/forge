@@ -6,6 +6,7 @@ mod direct;
 mod direct_admission;
 mod direct_admission_failure;
 mod direct_graph_chunk;
+mod direct_graph_completion;
 mod direct_graph_execution;
 mod direct_graph_execution_start;
 mod direct_terminal;
@@ -18,6 +19,7 @@ mod interruption_classification;
 mod lower_admission;
 mod managed_graph_execution;
 mod managed_graph_suspension;
+mod provider_execution_release;
 mod provider_restore;
 mod provider_start;
 mod provider_step_admission;
@@ -66,9 +68,10 @@ pub use direct_admission_failure::{
     WorthQueryManagedDirectRunAdmissionFailure, WorthQueryManagedDirectRunAdmissionFailureKind,
 };
 pub use direct_graph_chunk::WorthQueryPendingDirectGraphChunk;
+pub use direct_graph_completion::WorthQueryCompletedDirectGraphExecution;
 pub use direct_graph_execution::{
-    WorthQueryActiveDirectGraphExecution, WorthQueryCompletedDirectGraphExecution,
-    WorthQueryDirectGraphStepOutcome, WorthQueryPausedDirectGraphExecution,
+    WorthQueryActiveDirectGraphExecution, WorthQueryDirectGraphStepOutcome,
+    WorthQueryPausedDirectGraphExecution,
 };
 pub use direct_graph_execution_start::{
     WorthQueryDirectGraphExecutionStartFailure, WorthQueryDirectGraphExecutionStartFailureKind,

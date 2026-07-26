@@ -55,6 +55,7 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for Provider {
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
+        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
         Ok(match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => {

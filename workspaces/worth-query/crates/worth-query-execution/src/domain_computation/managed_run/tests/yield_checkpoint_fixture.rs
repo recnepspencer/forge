@@ -8,7 +8,7 @@ pub(super) struct YieldCheckpoint {
 }
 
 pub(super) struct PanicProbeCheckpoint {
-    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+    pub(super) _retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 pub(super) struct PanicDropCheckpoint {
@@ -17,17 +17,17 @@ pub(super) struct PanicDropCheckpoint {
 }
 
 pub(super) struct PanicProbeAndDropCheckpoint {
-    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+    pub(super) _retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 pub(super) struct RestoreFailureCheckpoint {
     pub(super) retained_bytes: u64,
-    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+    pub(super) _retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 pub(super) struct RestorePanicCheckpoint {
     pub(super) retained_bytes: u64,
-    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+    pub(super) _retained: WorthQueryGraphProviderRetainedMemory,
 }
 
 pub(super) struct RestoreExecutionDropPanicCheckpoint {
@@ -63,7 +63,9 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for PanicDropC
         memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Ok(Box::new(YieldExecution::restored(
-            memory.rebind(&self.retained).map_err(step_failure)?,
+            memory
+                .rebind(&self.retained)
+                .map_err(restore_memory_failure)?,
         )))
     }
 }
@@ -143,7 +145,9 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint
         memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Ok(Box::new(YieldExecution::restored_with_drop_panic(
-            memory.rebind(&self.retained).map_err(step_failure)?,
+            memory
+                .rebind(&self.retained)
+                .map_err(restore_memory_failure)?,
         )))
     }
 }
@@ -167,7 +171,9 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for YieldCheck
         memory: &mut WorthQueryGraphProviderRestoreMemory,
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure> {
         Ok(Box::new(YieldExecution::restored(
-            memory.rebind(&self.retained).map_err(step_failure)?,
+            memory
+                .rebind(&self.retained)
+                .map_err(restore_memory_failure)?,
         )))
     }
 
@@ -179,4 +185,10 @@ impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for YieldCheck
             format!("retained-bytes:{}", self.retained_bytes).into_bytes(),
         )
     }
+}
+
+fn restore_memory_failure(
+    denial: crate::domain_computation::WorthQueryGraphProviderStepDenial,
+) -> WorthQueryGraphProviderFailure {
+    WorthQueryGraphProviderFailure::new(denial.detail())
 }

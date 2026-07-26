@@ -59,7 +59,8 @@ fn one_variable_width_row_cannot_escape_the_retained_memory_ceiling() {
         _ => panic!("variable-width row escaped the retained-memory ceiling"),
     };
     assert_eq!(terminal.provider_work().completed_work_units(), 1);
-    assert!(terminal.provider_work().retained_bytes() > 4_096);
+    assert_eq!(terminal.provider_work().retained_bytes(), 0);
+    assert!(terminal.provider_work().peak_retained_bytes() > 4_096);
     assert_eq!(terminal.provider_work().queue_state_mutation_count(), 0);
     terminal
         .cleanup()

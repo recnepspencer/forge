@@ -2,6 +2,7 @@ mod evidence;
 mod ledger;
 mod release_summary;
 mod request;
+mod retention;
 
 pub use evidence::{
     WorthQueryManagedProviderSessionDisposition, WorthQueryManagedProviderWorkEvidence,

@@ -123,6 +123,7 @@ impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
+        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
         Self::assert_graph_call_resources(call);
         Ok(match call.kind() {
@@ -190,6 +191,7 @@ impl domain::WorthQueryGraphParticipationProvider<RemoteA> for ReceiptOnlyProvid
     fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
+        _start: &mut domain::WorthQueryGraphProviderExecutionStart,
     ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
         Ok(match call.kind() {
             domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),

@@ -1,0 +1,27 @@
+warning: unreachable expression
+ --> tests/ui/installed_domain/managed_run/execution_start_construction_is_private.rs:6:17
+  |
+5 |         memory: todo!(),
+  |                 ------- any code following this expression is unreachable
+6 |         denial: None,
+  |                 ^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `memory` and `denial` of struct `WorthQueryGraphProviderExecutionStart` are private
+ --> tests/ui/installed_domain/managed_run/execution_start_construction_is_private.rs:5:9
+  |
+4 |     WorthQueryGraphProviderExecutionStart {
+  |     ------------------------------------- in this type
+5 |         memory: todo!(),
+  |         ^^^^^^ private field
+6 |         denial: None,
+  |         ^^^^^^ private field
+
+error: type `worth_query_execution::domain_computation::provider_session::graph_provider::bounded_step::memory::arena::WorthQueryGraphProviderMemoryArena` is private
+ --> tests/ui/installed_domain/managed_run/execution_start_construction_is_private.rs:5:17
+  |
+5 |         memory: todo!(),
+  |                 ^^^^^^^ private type
+  |
+  = note: this error originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)

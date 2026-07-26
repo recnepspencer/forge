@@ -25,7 +25,9 @@ pub struct WorthQueryManagedProviderWorkEvidence {
     disposed_artifact_count: usize,
     peak_scratch_bytes: usize,
     retained_bytes: usize,
+    peak_retained_bytes: usize,
     checkpoint_available: bool,
+    checkpoint_available_observation_count: usize,
     provider_step_attempt_count: usize,
     safe_point_request_lookup_count: usize,
     pressure_classification_count: usize,
@@ -52,7 +54,9 @@ pub(super) struct WorthQueryManagedProviderWorkEvidenceParts {
     pub(super) disposed_artifact_count: usize,
     pub(super) peak_scratch_bytes: usize,
     pub(super) retained_bytes: usize,
+    pub(super) peak_retained_bytes: usize,
     pub(super) checkpoint_available: bool,
+    pub(super) checkpoint_available_observation_count: usize,
     pub(super) provider_step_attempt_count: usize,
     pub(super) safe_point_request_lookup_count: usize,
     pub(super) pressure_classification_count: usize,
@@ -81,7 +85,9 @@ impl WorthQueryManagedProviderWorkEvidence {
             disposed_artifact_count: parts.disposed_artifact_count,
             peak_scratch_bytes: parts.peak_scratch_bytes,
             retained_bytes: parts.retained_bytes,
+            peak_retained_bytes: parts.peak_retained_bytes,
             checkpoint_available: parts.checkpoint_available,
+            checkpoint_available_observation_count: parts.checkpoint_available_observation_count,
             provider_step_attempt_count: parts.provider_step_attempt_count,
             safe_point_request_lookup_count: parts.safe_point_request_lookup_count,
             pressure_classification_count: parts.pressure_classification_count,
@@ -158,8 +164,16 @@ impl WorthQueryManagedProviderWorkEvidence {
         self.retained_bytes
     }
 
+    pub const fn peak_retained_bytes(&self) -> usize {
+        self.peak_retained_bytes
+    }
+
     pub const fn checkpoint_available(&self) -> bool {
         self.checkpoint_available
+    }
+
+    pub const fn checkpoint_available_observation_count(&self) -> usize {
+        self.checkpoint_available_observation_count
     }
 
     pub const fn provider_step_attempt_count(&self) -> usize {

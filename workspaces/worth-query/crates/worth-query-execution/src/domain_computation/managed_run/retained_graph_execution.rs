@@ -3,8 +3,8 @@ use std::sync::Arc;
 use worth_query_installation::facade::WorthQueryInstalledBoundedStepContract;
 
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
-    provider_anchor::WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStepArtifactContext,
-    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderMemorySnapshot,
+    provider_anchor::WorthQueryGraphProviderAnchor, WorthQueryGraphProviderMemoryArena,
+    WorthQueryGraphProviderMemorySnapshot, WorthQueryGraphProviderStepArtifactContext,
     WorthQueryRetainedGraphProviderCheckpoint,
 };
 use crate::domain_computation::{

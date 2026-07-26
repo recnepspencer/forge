@@ -180,12 +180,13 @@ impl WorthQueryReadyDirectGraphStart {
                         .record_provider_execution_release(release);
                 }
                 self.bound.running.provider_work_mut().abandon();
-                return Err(provider_start_failure(
-                    failure,
-                    self.bound.running,
-                ));
+                return Err(provider_start_failure(failure, self.bound.running));
             }
         };
+        self.bound
+            .running
+            .provider_work_mut()
+            .record_provider_memory(started.memory.snapshot());
         Ok(WorthQueryActiveDirectGraphExecution::new(
             self.bound.running,
             WorthQueryManagedGraphExecution::new(

@@ -5,10 +5,10 @@ use super::memory::allocate_scratch_bytes;
 use super::step_budget::WorthQueryGraphProviderStepBudget;
 use super::step_state::WorthQueryGraphProviderStepState;
 use super::{
+    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderRetainedMemory,
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
     WorthQueryGraphProviderStepFailureEvidence, WorthQueryGraphProviderStepReport,
-    WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderRetainedMemory,
     WorthQueryGraphProviderStepRetainedEvidence,
 };
 use crate::domain_computation::{
@@ -227,19 +227,15 @@ impl WorthQueryGraphProviderStep {
             let _ = self.state.admit(admission);
         }
         if !self.state.has_failure() {
-            let admission = self
-                .budget
-                .admit_retained_component(
-                    u64::try_from(projection_retained_bytes).unwrap_or(u64::MAX),
-                );
+            let admission = self.budget.admit_retained_component(
+                u64::try_from(projection_retained_bytes).unwrap_or(u64::MAX),
+            );
             let _ = self.state.admit(admission);
         }
         if !self.state.has_failure() {
-            let admission = self
-                .budget
-                .admit_retained_component(
-                    u64::try_from(artifacts.retained_bytes()).unwrap_or(u64::MAX),
-                );
+            let admission = self.budget.admit_retained_component(
+                u64::try_from(artifacts.retained_bytes()).unwrap_or(u64::MAX),
+            );
             let _ = self.state.admit(admission);
         }
         if !self.state.has_failure()

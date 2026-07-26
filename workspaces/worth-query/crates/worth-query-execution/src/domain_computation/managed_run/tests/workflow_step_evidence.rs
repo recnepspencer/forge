@@ -216,7 +216,13 @@ fn provider_step_evidence_ignores_preexisting_artifacts_and_keeps_checkpoint_con
     assert_eq!(receipt.disposed_artifact_count(), 0);
 
     let terminal = completion.into_running().completed().unwrap();
-    assert!(terminal.provider_work().checkpoint_available());
+    assert!(!terminal.provider_work().checkpoint_available());
+    assert_eq!(
+        terminal
+            .provider_work()
+            .checkpoint_available_observation_count(),
+        1
+    );
     assert_eq!(terminal.provider_work().produced_artifact_count(), 0);
     assert_eq!(terminal.provider_work().retained_artifact_count(), 0);
     assert_eq!(terminal.provider_work().retained_bytes(), 0);

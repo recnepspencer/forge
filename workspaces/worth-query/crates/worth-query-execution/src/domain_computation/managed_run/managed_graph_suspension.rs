@@ -77,10 +77,6 @@ impl WorthQueryManagedGraphExecution {
         let checkpoint = classify_suspension_invocation(suspension, &provider_execution_release)?;
         retain_suspended_checkpoint(parts, checkpoint, provider_execution_release)
     }
-
-    pub(super) fn release_provider_execution(self) -> WorthQueryProviderExecutionReleaseEvidence {
-        self.execution.release()
-    }
 }
 
 fn split_managed_execution(

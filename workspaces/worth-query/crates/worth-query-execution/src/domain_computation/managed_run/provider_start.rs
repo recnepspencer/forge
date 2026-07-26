@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use crate::domain_computation::provider_session::graph_provider::bounded_step::{
-    provider_anchor::{
-        WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStartInvocation,
-    },
+    provider_anchor::{WorthQueryGraphProviderAnchor, WorthQueryGraphProviderStartInvocation},
     WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderMemoryArena,
     WorthQueryGraphProviderMemorySnapshot, WorthQueryOwnedGraphProviderExecution,
 };
@@ -50,20 +48,34 @@ pub(super) fn start_managed_provider(
             Ok(WorthQueryManagedProviderStarted { execution, memory })
         }
         WorthQueryGraphProviderStartInvocation::Returned(Err(failure)) => {
-            let detail = contract
-                .err()
-                .map_or_else(|| Arc::from(failure.detail()), |denial| Arc::from(denial.detail()));
+            let (kind, detail) = match contract {
+                Ok(()) => (
+                    WorthQueryManagedProviderStartFailureKind::Rejected,
+                    Arc::from(failure.detail()),
+                ),
+                Err(denial) => (
+                    WorthQueryManagedProviderStartFailureKind::ContractDenied,
+                    Arc::from(denial.detail()),
+                ),
+            };
+            Err(failed_without_execution(kind, detail, memory))
+        }
+        WorthQueryGraphProviderStartInvocation::Panicked => {
+            let detail = contract.err().map_or_else(
+                || Arc::from("provider execution construction panicked"),
+                |denial| {
+                    Arc::from(format!(
+                        "provider execution construction panicked after start contract denial: {}",
+                        denial.detail()
+                    ))
+                },
+            );
             Err(failed_without_execution(
-                WorthQueryManagedProviderStartFailureKind::Rejected,
+                WorthQueryManagedProviderStartFailureKind::Panicked,
                 detail,
                 memory,
             ))
         }
-        WorthQueryGraphProviderStartInvocation::Panicked => Err(failed_without_execution(
-            WorthQueryManagedProviderStartFailureKind::Panicked,
-            Arc::from("provider execution construction panicked"),
-            memory,
-        )),
     }
 }
 

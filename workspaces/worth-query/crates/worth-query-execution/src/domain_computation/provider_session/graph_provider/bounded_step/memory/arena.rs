@@ -44,7 +44,8 @@ impl WorthQueryGraphProviderMemoryArena {
         byte_count: usize,
     ) -> Result<WorthQueryGraphProviderRetainedMemory, WorthQueryGraphProviderStepDenial> {
         let bytes = allocate_bytes(byte_count)?;
-        let charged_bytes = u64::try_from(bytes.capacity()).map_err(|_| retained_budget_denial())?;
+        let charged_bytes =
+            u64::try_from(bytes.capacity()).map_err(|_| retained_budget_denial())?;
         self.reserve(charged_bytes)?;
         self.state.record_allocation();
         Ok(WorthQueryGraphProviderRetainedMemory::new(
