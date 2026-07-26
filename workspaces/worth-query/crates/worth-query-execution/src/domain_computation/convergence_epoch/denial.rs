@@ -20,6 +20,7 @@ pub enum WorthQueryConvergenceEpochDenialKind {
     ManagedRunOperationMismatch,
     GraphOperationMismatch,
     MissingConvergenceProvider,
+    ConvergenceProviderFamilyInspectionPanicked,
     ConvergenceProviderFamilyMismatch,
     WorkflowEvidenceStageMismatch,
     IterationBudgetExhausted,

@@ -3,6 +3,7 @@ mod cleanup_recovery;
 mod cost_bound;
 mod direct_progression;
 mod fixture;
+mod governed_assessment;
 mod incumbent_transitions;
 mod oscillation_policy;
 mod readmission_denial;

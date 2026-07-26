@@ -1,0 +1,5 @@
+error[E0599]: no function or associated item named `default` found for struct `WorthQueryConvergenceDomainWorkEvidence` in the current scope
+ --> tests/ui/installed_domain/convergence_epoch/domain_work_evidence_cannot_be_constructed.rs:4:46
+  |
+4 |     WorthQueryConvergenceDomainWorkEvidence::default()
+  |                                              ^^^^^^^ function or associated item not found in `WorthQueryConvergenceDomainWorkEvidence`

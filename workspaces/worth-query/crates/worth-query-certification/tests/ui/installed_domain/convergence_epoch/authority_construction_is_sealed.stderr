@@ -31,6 +31,15 @@ error[E0624]: associated function `new` is private
    | |     ) -> Self {
    | |_____________- private associated function defined here
 
+error[E0599]: no function or associated item named `new` found for struct `WorthQueryConvergenceDomainWorkEvidence` in the current scope
+  --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:38:50
+   |
+38 |         WorthQueryConvergenceDomainWorkEvidence::new(1, 1, 1),
+   |                                                  ^^^ function or associated item not found in `WorthQueryConvergenceDomainWorkEvidence`
+   |
+help: there is a method `ne` with a similar name, but with different arguments
+  --> $RUST/core/src/cmp.rs
+
 error[E0599]: no method named `resolve_one_step` found for struct `WorthQueryIteratingDirectConvergenceEpoch` in the current scope
   --> tests/ui/installed_domain/convergence_epoch/authority_construction_is_sealed.rs:44:19
    |

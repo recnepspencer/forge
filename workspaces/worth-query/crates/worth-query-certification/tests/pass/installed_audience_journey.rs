@@ -28,6 +28,13 @@ use worth_query_host::facade::{
     publication::domain_computation::WorthQueryDomainEvidenceMaterial,
     runtime::{WorthQueryExecutionRuntime, WorthQueryExecutionRuntimeInstaller},
 };
+use worth_query_host::facade::convergence_epoch::{
+    WorthQueryCandidateSemanticFamilies, WorthQueryConvergenceAssessment,
+    WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure,
+    WorthQueryConvergenceDomainProvider, WorthQueryConvergenceProgress,
+    WorthQueryConvergenceProviderFamilies, WorthQueryConvergenceRepeatedState,
+    WorthQueryIterationSemanticFamilies,
+};
 use worth_query_replay::facade::WorthQueryCertificationReplayCounters;
 
 fn install_and_inspect(
@@ -123,6 +130,7 @@ fn certification_entry(counters: WorthQueryCertificationReplayCounters) {
 }
 
 struct CompilePassGraph;
+struct CompilePassCommit;
 struct CompilePassProvider;
 struct CompilePassExecution;
 
@@ -161,6 +169,69 @@ impl WorthQueryGraphParticipationProvider<CompilePassGraph> for CompilePassProvi
             .admit_cooperative_execution(|| CompilePassExecution)
             .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
     }
+}
+
+impl WorthQueryConvergenceDomainProvider for CompilePassProvider {
+    fn convergence_families(&self) -> &WorthQueryConvergenceProviderFamilies {
+        unimplemented!()
+    }
+
+    fn compare(
+        &self,
+        _assessment: &WorthQueryConvergenceAssessment<'_>,
+    ) -> Result<WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure> {
+        unimplemented!()
+    }
+
+    fn measure_progress(
+        &self,
+        _assessment: &WorthQueryConvergenceAssessment<'_>,
+        _comparison: &WorthQueryConvergenceComparison,
+    ) -> Result<WorthQueryConvergenceProgress, WorthQueryConvergenceDomainFailure> {
+        unimplemented!()
+    }
+
+    fn detect_repeated_state(
+        &self,
+        _assessment: &WorthQueryConvergenceAssessment<'_>,
+        _comparison: &WorthQueryConvergenceComparison,
+        _progress: WorthQueryConvergenceProgress,
+    ) -> Result<WorthQueryConvergenceRepeatedState, WorthQueryConvergenceDomainFailure> {
+        unimplemented!()
+    }
+}
+
+fn register_convergent_provider(
+    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
+) {
+    let _ = builder.convergent_graph_participation_provider(
+        CompilePassGraph,
+        CompilePassProvider,
+    );
+}
+
+fn register_atomic_convergent_provider(
+    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
+) {
+    let _ = builder.atomic_convergent_graph_participation_provider(
+        CompilePassGraph,
+        CompilePassProvider,
+        CompilePassCommit,
+    );
+}
+
+fn construct_convergence_families() {
+    let candidate = WorthQueryCandidateSemanticFamilies::new(
+        "universe",
+        "termination",
+        "feasibility",
+        "comparison",
+        "incumbent",
+    )
+    .unwrap();
+    let iteration =
+        WorthQueryIterationSemanticFamilies::new("progress", "comparator", "repeated").unwrap();
+    let _ = WorthQueryConvergenceProviderFamilies::new(candidate, iteration);
 }
 
 fn carry_provider_authoring_contract(

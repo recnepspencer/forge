@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use super::core::WorthQueryConvergenceEpochCore;
 use super::{
     WorthQueryBoundConvergenceReport, WorthQueryConvergenceEpochCounters,
-    WorthQueryConvergenceTerminalKind, WorthQueryConvergenceTerminalState,
-    WorthQueryRetainedConvergenceCandidateEvidence, WorthQueryWorkflowConvergenceTerminal,
+    WorthQueryConvergenceIndeterminateCause, WorthQueryConvergenceTerminalKind,
+    WorthQueryConvergenceTerminalState, WorthQueryRetainedConvergenceCandidateEvidence,
+    WorthQueryWorkflowConvergenceTerminal,
 };
 use crate::domain_computation::{
     WorthQueryManagedRunCleanupDisposition, WorthQueryWorkflowRunCleanupFailure,
@@ -48,7 +48,7 @@ where
     State: WorthQueryConvergenceTerminalState,
 {
     core: WorthQueryConvergenceEpochCore,
-    domain_failure: Option<Arc<str>>,
+    indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     managed: WorthQueryWorkflowRunCleanupReceipt,
     terminal_state: PhantomData<State>,
 }
@@ -77,8 +77,8 @@ where
         self.core.latest_report()
     }
 
-    pub fn domain_failure(&self) -> Option<&str> {
-        self.domain_failure.as_deref()
+    pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
+        self.indeterminate_cause.as_ref()
     }
 
     pub fn managed_receipt(&self) -> &WorthQueryWorkflowRunCleanupReceipt {
@@ -91,7 +91,7 @@ where
     State: WorthQueryConvergenceTerminalState,
 {
     core: WorthQueryConvergenceEpochCore,
-    domain_failure: Option<Arc<str>>,
+    indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     pending: WorthQueryWorkflowRunCleanupPending,
     terminal_state: PhantomData<State>,
 }
@@ -120,8 +120,8 @@ where
         self.core.latest_report()
     }
 
-    pub fn domain_failure(&self) -> Option<&str> {
-        self.domain_failure.as_deref()
+    pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
+        self.indeterminate_cause.as_ref()
     }
 
     pub fn managed_pending(&self) -> &WorthQueryWorkflowRunCleanupPending {
@@ -131,12 +131,12 @@ where
     pub fn retry(self) -> WorthQueryWorkflowConvergenceCleanupOutcome<State> {
         let Self {
             mut core,
-            domain_failure,
+            indeterminate_cause,
             pending,
             terminal_state,
         } = self;
         core.counters_mut().cleaned_up();
-        admit_workflow_cleanup_outcome(core, domain_failure, terminal_state, pending.retry())
+        admit_workflow_cleanup_outcome(core, indeterminate_cause, terminal_state, pending.retry())
     }
 }
 
@@ -145,7 +145,7 @@ where
     State: WorthQueryConvergenceTerminalState,
 {
     core: WorthQueryConvergenceEpochCore,
-    domain_failure: Option<Arc<str>>,
+    indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     failure: WorthQueryWorkflowRunCleanupFailure,
     terminal_state: PhantomData<State>,
 }
@@ -174,8 +174,8 @@ where
         self.core.latest_report()
     }
 
-    pub fn domain_failure(&self) -> Option<&str> {
-        self.domain_failure.as_deref()
+    pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
+        self.indeterminate_cause.as_ref()
     }
 
     pub fn managed_failure(&self) -> &WorthQueryWorkflowRunCleanupFailure {
@@ -185,12 +185,12 @@ where
     pub fn retry(self) -> WorthQueryWorkflowConvergenceCleanupOutcome<State> {
         let Self {
             mut core,
-            domain_failure,
+            indeterminate_cause,
             failure,
             terminal_state,
         } = self;
         core.counters_mut().cleaned_up();
-        admit_workflow_cleanup_outcome(core, domain_failure, terminal_state, failure.retry())
+        admit_workflow_cleanup_outcome(core, indeterminate_cause, terminal_state, failure.retry())
     }
 }
 
@@ -202,17 +202,17 @@ where
         let WorthQueryWorkflowConvergenceTerminal {
             mut core,
             managed,
-            domain_failure,
+            indeterminate_cause,
             terminal_state,
         } = self;
         core.counters_mut().cleaned_up();
-        admit_workflow_cleanup_outcome(core, domain_failure, terminal_state, managed.cleanup())
+        admit_workflow_cleanup_outcome(core, indeterminate_cause, terminal_state, managed.cleanup())
     }
 }
 
 fn admit_workflow_cleanup_outcome<State>(
     core: WorthQueryConvergenceEpochCore,
-    domain_failure: Option<Arc<str>>,
+    indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     terminal_state: PhantomData<State>,
     outcome: WorthQueryWorkflowRunCleanupOutcome,
 ) -> WorthQueryWorkflowConvergenceCleanupOutcome<State>
@@ -224,7 +224,7 @@ where
             WorthQueryWorkflowConvergenceCleanupOutcome::Complete(
                 WorthQueryWorkflowConvergenceCleanupReceipt {
                     core,
-                    domain_failure,
+                    indeterminate_cause,
                     managed,
                     terminal_state,
                 },
@@ -234,7 +234,7 @@ where
             WorthQueryWorkflowConvergenceCleanupOutcome::Pending(
                 WorthQueryWorkflowConvergenceCleanupPending {
                     core,
-                    domain_failure,
+                    indeterminate_cause,
                     pending,
                     terminal_state,
                 },
@@ -244,7 +244,7 @@ where
             WorthQueryWorkflowConvergenceCleanupOutcome::RecoveryRequired(
                 WorthQueryWorkflowConvergenceCleanupFailure {
                     core,
-                    domain_failure,
+                    indeterminate_cause,
                     failure,
                     terminal_state,
                 },

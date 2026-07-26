@@ -2,9 +2,8 @@ use std::sync::Arc;
 
 use crate::domain_computation::{
     WorthQueryCandidateSemanticFamilies, WorthQueryConvergenceAssessment,
-    WorthQueryConvergenceDisposition, WorthQueryConvergenceDomainAssessmentOutcome,
-    WorthQueryConvergenceDomainDecision, WorthQueryConvergenceDomainFailure,
-    WorthQueryConvergenceDomainProvider, WorthQueryConvergenceDomainWorkEvidence,
+    WorthQueryConvergenceComparison, WorthQueryConvergenceDisposition,
+    WorthQueryConvergenceDomainFailure, WorthQueryConvergenceDomainProvider,
     WorthQueryConvergenceFeasibility, WorthQueryConvergenceIncumbentUpdate,
     WorthQueryConvergenceProgress, WorthQueryConvergenceProviderFamilies,
     WorthQueryConvergenceRepeatedState, WorthQueryIterationSemanticFamilies,
@@ -50,39 +49,76 @@ impl ConvergentProvider {
 
 impl WorthQueryConvergenceDomainProvider for ConvergentProvider {
     fn convergence_families(&self) -> &WorthQueryConvergenceProviderFamilies {
+        assert!(
+            !matches!(self.disposition, FixtureDisposition::FamilyInspectionPanic),
+            "fixture convergence family inspection panic"
+        );
         &self.families
     }
 
-    fn assess(
+    fn compare(
         &self,
-        assessment: WorthQueryConvergenceAssessment<'_>,
-    ) -> Result<WorthQueryConvergenceDomainAssessmentOutcome, WorthQueryConvergenceDomainFailure>
-    {
+        assessment: &WorthQueryConvergenceAssessment<'_>,
+    ) -> Result<WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure> {
+        assert!(
+            !matches!(self.disposition, FixtureDisposition::ComparatorPanic),
+            "fixture convergence comparator panic"
+        );
         if matches!(self.disposition, FixtureDisposition::ComparatorFailure) {
-            return Err(WorthQueryConvergenceDomainFailure::with_work(
+            return Err(WorthQueryConvergenceDomainFailure::new(
                 "installed comparator could not classify the candidate",
-                WorthQueryConvergenceDomainWorkEvidence::comparator_failure(),
             ));
         }
         let iteration_ordinal = assessment.iteration_ordinal();
-        let (disposition, feasibility, progress, repeated_state) =
-            decision_axes(self.disposition, iteration_ordinal);
+        let (disposition, feasibility, _, _) = decision_axes(self.disposition, iteration_ordinal);
         let (candidate_occurrence_identity, incumbent_update) =
             incumbent_transition(self.disposition, iteration_ordinal);
-        let decision = WorthQueryConvergenceDomainDecision::new(
+        WorthQueryConvergenceComparison::new(
             candidate_occurrence_identity,
             format!("state-{iteration_ordinal}"),
             disposition,
             feasibility,
-            progress,
-            repeated_state,
             incumbent_update,
         )
-        .map_err(WorthQueryConvergenceDomainFailure::new)?;
-        Ok(WorthQueryConvergenceDomainAssessmentOutcome::new(
-            decision,
-            WorthQueryConvergenceDomainWorkEvidence::one_complete_assessment(),
-        ))
+        .map_err(WorthQueryConvergenceDomainFailure::new)
+    }
+
+    fn measure_progress(
+        &self,
+        assessment: &WorthQueryConvergenceAssessment<'_>,
+        _comparison: &WorthQueryConvergenceComparison,
+    ) -> Result<WorthQueryConvergenceProgress, WorthQueryConvergenceDomainFailure> {
+        assert!(
+            !matches!(self.disposition, FixtureDisposition::ProgressPanic),
+            "fixture convergence progress panic"
+        );
+        if matches!(self.disposition, FixtureDisposition::ProgressFailure) {
+            return Err(WorthQueryConvergenceDomainFailure::new(
+                "installed progress measure could not classify the candidate",
+            ));
+        }
+        let (_, _, progress, _) = decision_axes(self.disposition, assessment.iteration_ordinal());
+        Ok(progress)
+    }
+
+    fn detect_repeated_state(
+        &self,
+        assessment: &WorthQueryConvergenceAssessment<'_>,
+        _comparison: &WorthQueryConvergenceComparison,
+        _progress: WorthQueryConvergenceProgress,
+    ) -> Result<WorthQueryConvergenceRepeatedState, WorthQueryConvergenceDomainFailure> {
+        assert!(
+            !matches!(self.disposition, FixtureDisposition::RepeatedStatePanic),
+            "fixture convergence repeated-state panic"
+        );
+        if matches!(self.disposition, FixtureDisposition::RepeatedStateFailure) {
+            return Err(WorthQueryConvergenceDomainFailure::new(
+                "installed repeated-state detector could not classify the candidate",
+            ));
+        }
+        let (_, _, _, repeated_state) =
+            decision_axes(self.disposition, assessment.iteration_ordinal());
+        Ok(repeated_state)
     }
 }
 
@@ -109,6 +145,13 @@ fn decision_axes(
             WorthQueryConvergenceDisposition::Continue
         }
         FixtureDisposition::Converged
+        | FixtureDisposition::ComparatorFailure
+        | FixtureDisposition::ComparatorPanic
+        | FixtureDisposition::ProgressFailure
+        | FixtureDisposition::ProgressPanic
+        | FixtureDisposition::RepeatedStateFailure
+        | FixtureDisposition::RepeatedStatePanic
+        | FixtureDisposition::FamilyInspectionPanic
         | FixtureDisposition::YieldThenConverged
         | FixtureDisposition::ChunkedConverged(_)
         | FixtureDisposition::StageQueueContractMismatch
@@ -135,7 +178,6 @@ fn decision_axes(
         FixtureDisposition::Stalled | FixtureDisposition::IndeterminateComparison => {
             WorthQueryConvergenceDisposition::Indeterminate
         }
-        FixtureDisposition::ComparatorFailure => unreachable!("handled before decision assembly"),
     };
     let progress = match fixture {
         FixtureDisposition::StableWithoutProof => WorthQueryConvergenceProgress::Stable,

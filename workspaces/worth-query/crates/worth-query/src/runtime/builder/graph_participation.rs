@@ -24,6 +24,21 @@ impl WorthQueryRuntimeBuilder {
         self
     }
 
+    pub fn convergent_graph_participation_provider<G: 'static, P>(
+        mut self,
+        _marker: G,
+        provider: P,
+    ) -> Self
+    where
+        P: crate::domain_installation::WorthQueryGraphParticipationProvider<G>
+            + worth_query_execution::facade::convergence_epoch::WorthQueryConvergenceDomainProvider,
+    {
+        self.pending_graph_participations = self
+            .pending_graph_participations
+            .convergent_provider::<G, P>(provider, None);
+        self
+    }
+
     pub fn atomic_graph_participation_provider<G: 'static, C: 'static, P>(
         mut self,
         _marker: G,
@@ -37,6 +52,25 @@ impl WorthQueryRuntimeBuilder {
             provider,
             Some((std::any::TypeId::of::<C>(), std::any::type_name::<C>())),
         );
+        self
+    }
+
+    pub fn atomic_convergent_graph_participation_provider<G: 'static, C: 'static, P>(
+        mut self,
+        _marker: G,
+        provider: P,
+        _commit: C,
+    ) -> Self
+    where
+        P: crate::domain_installation::WorthQueryGraphParticipationProvider<G>
+            + worth_query_execution::facade::convergence_epoch::WorthQueryConvergenceDomainProvider,
+    {
+        self.pending_graph_participations = self
+            .pending_graph_participations
+            .convergent_provider::<G, P>(
+                provider,
+                Some((std::any::TypeId::of::<C>(), std::any::type_name::<C>())),
+            );
         self
     }
 

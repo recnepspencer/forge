@@ -57,7 +57,25 @@ pub(super) fn indeterminate_terminal(
 
 pub(super) fn workflow_converged_terminal(
 ) -> WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged> {
-    let epoch = workflow_epoch_fixture(FixtureDisposition::Converged);
+    match workflow_terminal_outcome(FixtureDisposition::Converged) {
+        WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal) => terminal,
+        _ => panic!("ordinary workflow comparator must converge"),
+    }
+}
+
+pub(super) fn workflow_indeterminate_terminal(
+    disposition: FixtureDisposition,
+) -> WorthQueryWorkflowConvergenceTerminal<WorthQueryIndeterminate> {
+    match workflow_terminal_outcome(disposition) {
+        WorthQueryWorkflowConvergenceIterationOutcome::Indeterminate(terminal) => terminal,
+        _ => panic!("ordinary workflow comparator must remain indeterminate"),
+    }
+}
+
+fn workflow_terminal_outcome(
+    disposition: FixtureDisposition,
+) -> WorthQueryWorkflowConvergenceIterationOutcome {
+    let epoch = workflow_epoch_fixture(disposition);
     let started = match epoch.begin_stage_iteration(
         WORKFLOW_STAGE,
         WorthQueryManagedGraphCallRequest::new(
@@ -74,8 +92,7 @@ pub(super) fn workflow_converged_terminal(
         _ => panic!("ordinary workflow provider must complete"),
     };
     match pending.admit_completion(completion) {
-        Ok(WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal)) => terminal,
-        Ok(_) => panic!("ordinary workflow comparator must converge"),
+        Ok(outcome) => outcome,
         Err(_) => panic!("ordinary workflow completion must rejoin"),
     }
 }

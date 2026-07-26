@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::{panic::catch_unwind, panic::AssertUnwindSafe};
 
 use worth_query_admission::facade::domain_computation::WorthQueryAdmittedConvergenceContract;
 use worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority;
@@ -302,7 +303,19 @@ fn bind_convergence_provider(
             graph,
         ));
     };
-    if !provider.convergence_families().matches(contract) {
+    let families_match = match catch_unwind(AssertUnwindSafe(|| {
+        provider.convergence_families().matches(contract)
+    })) {
+        Ok(matches) => matches,
+        Err(_) => {
+            return Err((
+                Kind::ConvergenceProviderFamilyInspectionPanicked,
+                "installed graph provider panicked while exposing convergence families",
+                graph,
+            ))
+        }
+    };
+    if !families_match {
         return Err((
             Kind::ConvergenceProviderFamilyMismatch,
             "installed graph provider semantic families do not match the convergence contract",

@@ -17,4 +17,7 @@ fn convergence_epoch_authority_boundaries_hold() {
     cases.compile_fail(
         "tests/ui/installed_domain/convergence_epoch/readmission_outcome_must_be_resolved.rs",
     );
+    cases.compile_fail(
+        "tests/ui/installed_domain/convergence_epoch/domain_work_evidence_cannot_be_constructed.rs",
+    );
 }

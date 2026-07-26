@@ -4,16 +4,15 @@ use worth_query_installation::facade::WorthQueryConvergenceIncumbentPosture;
 use worth_query_installation::facade::WorthQueryConvergenceOscillationPosture;
 
 use crate::domain_computation::{
-    WorthQueryBoundGraphExecutionReceipt, WorthQueryConvergenceAssessment,
-    WorthQueryConvergenceDisposition, WorthQueryConvergenceDomainAssessmentOutcome,
-    WorthQueryConvergenceDomainDecision, WorthQueryConvergenceDomainFailure,
-    WorthQueryConvergenceDomainProvider, WorthQueryConvergenceFeasibility,
+    WorthQueryBoundGraphExecutionReceipt, WorthQueryConvergenceDisposition,
+    WorthQueryConvergenceDomainDecision, WorthQueryConvergenceFeasibility,
     WorthQueryConvergenceIncumbentUpdate, WorthQueryConvergenceProgress,
     WorthQueryConvergenceRepeatedState, WorthQueryDomainEvidenceExecutionBinding,
 };
 use crate::execution_digest::hash_parts;
 
 use super::core::WorthQueryConvergenceEpochCore;
+use super::domain_work::WorthQueryConvergenceDomainAssessmentOutcome;
 use super::{
     WorthQueryBoundConvergenceReport, WorthQueryConvergenceEpochDenial,
     WorthQueryConvergenceEpochDenialKind, WorthQueryRetainedConvergenceCandidateEvidence,
@@ -21,32 +20,6 @@ use super::{
 
 pub(super) enum WorthQueryConvergenceReportAdmissionFailure {
     Epoch(WorthQueryConvergenceEpochDenial),
-}
-
-pub(super) fn assess_domain_report(
-    core: &mut WorthQueryConvergenceEpochCore,
-    provider: &dyn WorthQueryConvergenceDomainProvider,
-    receipt: &WorthQueryBoundGraphExecutionReceipt,
-) -> Result<WorthQueryConvergenceDomainAssessmentOutcome, WorthQueryConvergenceDomainFailure> {
-    let iteration_ordinal = core.counters().iteration_count();
-    core.counters_mut()
-        .recorded_provider_work(receipt.work_report().completed_work_units());
-    let outcome = provider.assess(WorthQueryConvergenceAssessment::new(
-        core.contract(),
-        receipt,
-        iteration_ordinal,
-        core.incumbents(),
-    ));
-    match outcome {
-        Ok(outcome) => {
-            core.counters_mut().recorded_domain_work(outcome.work());
-            Ok(outcome)
-        }
-        Err(failure) => {
-            core.counters_mut().recorded_domain_work(failure.work());
-            Err(failure)
-        }
-    }
 }
 
 pub(super) fn admit_assessed_domain_report(

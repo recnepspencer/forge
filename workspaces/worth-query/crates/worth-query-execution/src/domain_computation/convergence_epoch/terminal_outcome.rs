@@ -1,11 +1,10 @@
-use std::sync::Arc;
-
 use super::core::WorthQueryConvergenceEpochCore;
 use super::{
     WorthQueryCancelled, WorthQueryConverged, WorthQueryConvergenceDisposition,
-    WorthQueryConvergenceTerminalKind, WorthQueryDirectConvergenceIterationOutcome,
-    WorthQueryDirectConvergenceTerminal, WorthQueryExhausted, WorthQueryFeasibleIncumbent,
-    WorthQueryIndeterminate, WorthQueryOscillating, WorthQueryStableWithoutProof,
+    WorthQueryConvergenceIndeterminateCause, WorthQueryConvergenceTerminalKind,
+    WorthQueryDirectConvergenceIterationOutcome, WorthQueryDirectConvergenceTerminal,
+    WorthQueryExhausted, WorthQueryFeasibleIncumbent, WorthQueryIndeterminate,
+    WorthQueryOscillating, WorthQueryStableWithoutProof,
     WorthQueryWorkflowConvergenceIterationOutcome, WorthQueryWorkflowConvergenceTerminal,
 };
 use crate::domain_computation::{WorthQueryDirectRunTerminal, WorthQueryWorkflowRunTerminal};
@@ -35,7 +34,7 @@ pub(super) fn direct_terminal_outcome(
     core: WorthQueryConvergenceEpochCore,
     managed: WorthQueryDirectRunTerminal,
     kind: WorthQueryConvergenceTerminalKind,
-    domain_failure: Option<Arc<str>>,
+    indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
 ) -> WorthQueryDirectConvergenceIterationOutcome {
     match kind {
         WorthQueryConvergenceTerminalKind::Converged => {
@@ -43,7 +42,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryConverged>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -52,7 +51,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryStableWithoutProof>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -61,7 +60,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryFeasibleIncumbent>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -70,7 +69,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryOscillating>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -79,7 +78,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryExhausted>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -88,7 +87,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryCancelled>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -97,7 +96,7 @@ pub(super) fn direct_terminal_outcome(
                 WorthQueryDirectConvergenceTerminal::<WorthQueryIndeterminate>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -108,7 +107,7 @@ pub(super) fn workflow_terminal_outcome(
     core: WorthQueryConvergenceEpochCore,
     managed: WorthQueryWorkflowRunTerminal,
     kind: WorthQueryConvergenceTerminalKind,
-    domain_failure: Option<Arc<str>>,
+    indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
 ) -> WorthQueryWorkflowConvergenceIterationOutcome {
     match kind {
         WorthQueryConvergenceTerminalKind::Converged => {
@@ -116,7 +115,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryConverged>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -125,7 +124,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryStableWithoutProof>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -134,7 +133,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryFeasibleIncumbent>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -143,7 +142,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryOscillating>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -152,7 +151,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryExhausted>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -161,7 +160,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryCancelled>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }
@@ -170,7 +169,7 @@ pub(super) fn workflow_terminal_outcome(
                 WorthQueryWorkflowConvergenceTerminal::<WorthQueryIndeterminate>::new(
                     core,
                     managed,
-                    domain_failure,
+                    indeterminate_cause,
                 ),
             )
         }

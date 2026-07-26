@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use super::identity_validation::portable_identity;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryConvergenceDisposition {
     Continue,
@@ -122,42 +120,19 @@ pub struct WorthQueryConvergenceDomainDecision {
 }
 
 impl WorthQueryConvergenceDomainDecision {
-    pub fn new(
-        candidate_occurrence_identity: impl Into<Arc<str>>,
-        state_identity: impl Into<Arc<str>>,
-        disposition: WorthQueryConvergenceDisposition,
-        feasibility: WorthQueryConvergenceFeasibility,
+    pub(super) fn from_governed_assessment(
+        comparison: super::WorthQueryConvergenceComparison,
         progress: WorthQueryConvergenceProgress,
         repeated_state: WorthQueryConvergenceRepeatedState,
-        incumbent_update: WorthQueryConvergenceIncumbentUpdate,
-    ) -> Result<Self, &'static str> {
-        let candidate_occurrence_identity = candidate_occurrence_identity.into();
-        let state_identity = state_identity.into();
-        if !portable_identity(&candidate_occurrence_identity) || !portable_identity(&state_identity)
-        {
-            return Err("invalid-convergence-domain-decision-identity");
-        }
-        if let WorthQueryConvergenceIncumbentUpdate::RemoveCandidatesAndAdd {
-            removed_occurrence_identities,
-        } = &incumbent_update
-        {
-            let mut normalized = removed_occurrence_identities
-                .iter()
-                .map(|identity| identity.as_ref())
-                .collect::<Vec<_>>();
-            if normalized.is_empty()
-                || normalized
-                    .iter()
-                    .any(|identity| !portable_identity(identity))
-            {
-                return Err("invalid-convergence-incumbent-removal");
-            }
-            normalized.sort_unstable();
-            if normalized.windows(2).any(|pair| pair[0] == pair[1]) {
-                return Err("duplicate-convergence-incumbent-removal");
-            }
-        }
-        Ok(Self {
+    ) -> Self {
+        let (
+            candidate_occurrence_identity,
+            state_identity,
+            disposition,
+            feasibility,
+            incumbent_update,
+        ) = comparison.into_parts();
+        Self {
             candidate_occurrence_identity,
             state_identity,
             disposition,
@@ -165,7 +140,7 @@ impl WorthQueryConvergenceDomainDecision {
             progress,
             repeated_state,
             incumbent_update,
-        })
+        }
     }
 
     pub fn candidate_occurrence_identity(&self) -> &str {

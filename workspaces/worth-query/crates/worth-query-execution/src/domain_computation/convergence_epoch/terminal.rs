@@ -1,10 +1,9 @@
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use super::core::WorthQueryConvergenceEpochCore;
 use super::{
     WorthQueryBoundConvergenceReport, WorthQueryConvergenceEpochCounters,
-    WorthQueryRetainedConvergenceCandidateEvidence,
+    WorthQueryConvergenceIndeterminateCause, WorthQueryRetainedConvergenceCandidateEvidence,
 };
 use crate::domain_computation::{WorthQueryDirectRunTerminal, WorthQueryWorkflowRunTerminal};
 
@@ -55,7 +54,7 @@ where
 {
     pub(super) core: WorthQueryConvergenceEpochCore,
     pub(super) managed: WorthQueryDirectRunTerminal,
-    pub(super) domain_failure: Option<Arc<str>>,
+    pub(super) indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     pub(super) terminal_state: PhantomData<State>,
 }
 
@@ -66,12 +65,12 @@ where
     pub(super) fn new(
         core: WorthQueryConvergenceEpochCore,
         managed: WorthQueryDirectRunTerminal,
-        domain_failure: Option<Arc<str>>,
+        indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     ) -> Self {
         Self {
             core,
             managed,
-            domain_failure,
+            indeterminate_cause,
             terminal_state: PhantomData,
         }
     }
@@ -96,8 +95,8 @@ where
         self.core.latest_report()
     }
 
-    pub fn domain_failure(&self) -> Option<&str> {
-        self.domain_failure.as_deref()
+    pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
+        self.indeterminate_cause.as_ref()
     }
 
     pub fn managed_terminal(&self) -> &WorthQueryDirectRunTerminal {
@@ -111,7 +110,7 @@ where
 {
     pub(super) core: WorthQueryConvergenceEpochCore,
     pub(super) managed: WorthQueryWorkflowRunTerminal,
-    pub(super) domain_failure: Option<Arc<str>>,
+    pub(super) indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     pub(super) terminal_state: PhantomData<State>,
 }
 
@@ -122,12 +121,12 @@ where
     pub(super) fn new(
         core: WorthQueryConvergenceEpochCore,
         managed: WorthQueryWorkflowRunTerminal,
-        domain_failure: Option<Arc<str>>,
+        indeterminate_cause: Option<WorthQueryConvergenceIndeterminateCause>,
     ) -> Self {
         Self {
             core,
             managed,
-            domain_failure,
+            indeterminate_cause,
             terminal_state: PhantomData,
         }
     }
@@ -152,8 +151,8 @@ where
         self.core.latest_report()
     }
 
-    pub fn domain_failure(&self) -> Option<&str> {
-        self.domain_failure.as_deref()
+    pub fn indeterminate_cause(&self) -> Option<&WorthQueryConvergenceIndeterminateCause> {
+        self.indeterminate_cause.as_ref()
     }
 
     pub fn managed_terminal(&self) -> &WorthQueryWorkflowRunTerminal {

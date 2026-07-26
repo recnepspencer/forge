@@ -3,14 +3,15 @@ use std::sync::Arc;
 use worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority;
 
 use super::core::WorthQueryConvergenceEpochCore;
+use super::domain_assessment_transition::assess_domain_report;
 use super::report_admission::{
-    admit_assessed_domain_report, assess_domain_report, WorthQueryConvergenceReportAdmissionFailure,
+    admit_assessed_domain_report, WorthQueryConvergenceReportAdmissionFailure,
 };
 use super::terminal_outcome::{semantic_terminal_kind, workflow_terminal_outcome};
 use super::{
     WorthQueryCancelled, WorthQueryConverged, WorthQueryConvergenceDisposition,
     WorthQueryConvergenceDomainProvider, WorthQueryConvergenceEpochDenial,
-    WorthQueryConvergenceEpochDenialKind as Kind,
+    WorthQueryConvergenceEpochDenialKind as Kind, WorthQueryConvergenceIndeterminateCause,
     WorthQueryConvergenceIterationStartFailureKind as StartFailureKind,
     WorthQueryConvergenceTerminalKind, WorthQueryExhausted, WorthQueryFeasibleIncumbent,
     WorthQueryIndeterminate, WorthQueryIteratingWorkflowConvergenceEpoch, WorthQueryOscillating,
@@ -76,8 +77,10 @@ impl WorthQueryWorkflowConvergenceIterationStartRejection {
         } else {
             WorthQueryManagedRunTerminalKind::Failed
         };
-        let domain_failure = (terminal_kind == WorthQueryConvergenceTerminalKind::Indeterminate)
-            .then(|| Arc::from(self.denial.detail()));
+        let indeterminate_cause =
+            (terminal_kind == WorthQueryConvergenceTerminalKind::Indeterminate).then(|| {
+                WorthQueryConvergenceIndeterminateCause::EpochProgression(self.denial.clone())
+            });
         let WorthQueryIteratingWorkflowConvergenceEpoch {
             core, managed_run, ..
         } = self.epoch;
@@ -87,7 +90,7 @@ impl WorthQueryWorkflowConvergenceIterationStartRejection {
                 core,
                 managed_run.terminate_for_convergence(managed_kind),
                 terminal_kind,
-                domain_failure,
+                indeterminate_cause,
             ),
         }
     }
@@ -237,7 +240,7 @@ impl WorthQueryPendingWorkflowConvergenceIteration {
                 return Ok(indeterminate(
                     self.core,
                     running,
-                    failure.detail().to_owned(),
+                    WorthQueryConvergenceIndeterminateCause::DomainInvocation(failure),
                 ));
             }
         };
@@ -251,7 +254,7 @@ impl WorthQueryPendingWorkflowConvergenceIteration {
                 return Ok(indeterminate(
                     self.core,
                     running,
-                    format!("domain evidence binding failed: {denial:?}"),
+                    WorthQueryConvergenceIndeterminateCause::DomainEvidenceBinding(denial),
                 ));
             }
         };
@@ -267,7 +270,7 @@ impl WorthQueryPendingWorkflowConvergenceIteration {
                 return Ok(indeterminate(
                     self.core,
                     running,
-                    denial.detail().to_owned(),
+                    WorthQueryConvergenceIndeterminateCause::ReportAdmission(denial),
                 ));
             }
         };
@@ -294,11 +297,12 @@ impl WorthQueryPendingWorkflowConvergenceIteration {
         let managed = match running.completed() {
             Ok(terminal) => terminal,
             Err(rejection) => {
+                let denial = rejection.denial().clone();
                 return Ok(indeterminate(
                     self.core,
                     rejection.into_running(),
-                    "provider work remained unverified at convergence terminal",
-                ))
+                    WorthQueryConvergenceIndeterminateCause::ManagedCompletion(denial),
+                ));
             }
         };
         Ok(workflow_terminal_outcome(self.core, managed, kind, None))
@@ -320,7 +324,8 @@ impl WorthQueryPendingWorkflowConvergenceIteration {
         self.core
             .counters_mut()
             .reconciled_provider_work_total(terminal.provider_work().completed_work_units());
-        let kind = match terminal.kind() {
+        let managed_kind = terminal.kind();
+        let kind = match managed_kind {
             WorthQueryManagedRunTerminalKind::Cancelled => {
                 WorthQueryConvergenceTerminalKind::Cancelled
             }
@@ -329,20 +334,29 @@ impl WorthQueryPendingWorkflowConvergenceIteration {
             }
             _ => WorthQueryConvergenceTerminalKind::Indeterminate,
         };
-        Ok(workflow_terminal_outcome(self.core, terminal, kind, None))
+        let indeterminate_cause = (kind == WorthQueryConvergenceTerminalKind::Indeterminate)
+            .then_some(WorthQueryConvergenceIndeterminateCause::ManagedTerminal(
+                managed_kind,
+            ));
+        Ok(workflow_terminal_outcome(
+            self.core,
+            terminal,
+            kind,
+            indeterminate_cause,
+        ))
     }
 }
 
 fn indeterminate(
     core: WorthQueryConvergenceEpochCore,
     running: crate::domain_computation::WorthQueryRunningWorkflowRun,
-    detail: impl Into<Arc<str>>,
+    cause: WorthQueryConvergenceIndeterminateCause,
 ) -> WorthQueryWorkflowConvergenceIterationOutcome {
     workflow_terminal_outcome(
         core,
         running.terminate_for_convergence(WorthQueryManagedRunTerminalKind::Failed),
         WorthQueryConvergenceTerminalKind::Indeterminate,
-        Some(detail.into()),
+        Some(cause),
     )
 }
 

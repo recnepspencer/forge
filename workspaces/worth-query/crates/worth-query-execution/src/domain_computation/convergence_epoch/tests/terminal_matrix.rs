@@ -1,7 +1,9 @@
 use super::fixture::{direct_epoch_fixture, FixtureDisposition};
 use super::terminal_fixture::{direct_terminal_outcome, indeterminate_terminal};
 use crate::domain_computation::{
-    WorthQueryConvergenceFeasibility, WorthQueryConvergenceProgress,
+    WorthQueryConvergenceDomainInvocationFailureKind, WorthQueryConvergenceDomainPhase,
+    WorthQueryConvergenceEpochDenialKind, WorthQueryConvergenceFeasibility,
+    WorthQueryConvergenceIndeterminateCause, WorthQueryConvergenceProgress,
     WorthQueryConvergenceRepeatedState, WorthQueryConvergenceTerminalKind,
     WorthQueryConvergenceTerminalState, WorthQueryDirectConvergenceIterationOutcome,
     WorthQueryDirectConvergenceTerminal, WorthQueryDirectGraphStepOutcome,
@@ -61,9 +63,11 @@ fn incoherent_terminal_semantics_become_indeterminate_without_becoming_a_report(
         terminal.kind(),
         WorthQueryConvergenceTerminalKind::Indeterminate
     );
-    assert!(terminal
-        .domain_failure()
-        .is_some_and(|detail| detail.contains("contradicts")));
+    assert!(matches!(
+        terminal.indeterminate_cause(),
+        Some(WorthQueryConvergenceIndeterminateCause::ReportAdmission(denial))
+            if denial.kind() == WorthQueryConvergenceEpochDenialKind::InvalidDomainReport
+    ));
     assert!(terminal.latest_report().is_none());
     assert_eq!(terminal.incumbents().len(), 0);
     assert_eq!(terminal.counters().provider_work_unit_count(), 1);
@@ -102,7 +106,7 @@ fn stalled_progress_remains_explicit_domain_evidence() {
         terminal.managed_terminal().kind(),
         WorthQueryManagedRunTerminalKind::Completed
     );
-    assert!(terminal.domain_failure().is_none());
+    assert!(terminal.indeterminate_cause().is_none());
     if terminal.cleanup().is_err() {
         panic!("stalled convergence terminal must retain cleanup authority");
     }
@@ -136,7 +140,7 @@ fn indeterminate_comparison_retains_each_indeterminate_semantic_axis() {
         terminal.managed_terminal().kind(),
         WorthQueryManagedRunTerminalKind::Completed
     );
-    assert!(terminal.domain_failure().is_none());
+    assert!(terminal.indeterminate_cause().is_none());
     if terminal.cleanup().is_err() {
         panic!("indeterminate comparison must retain cleanup authority");
     }
@@ -149,9 +153,12 @@ fn comparator_failure_retains_exact_attempted_work_without_admitting_a_report() 
         terminal.kind(),
         WorthQueryConvergenceTerminalKind::Indeterminate
     );
-    assert!(terminal
-        .domain_failure()
-        .is_some_and(|detail| detail.contains("comparator")));
+    assert!(matches!(
+        terminal.indeterminate_cause(),
+        Some(WorthQueryConvergenceIndeterminateCause::DomainInvocation(failure))
+            if failure.phase() == WorthQueryConvergenceDomainPhase::Comparator
+                && failure.kind() == WorthQueryConvergenceDomainInvocationFailureKind::Rejected
+    ));
     assert!(terminal.latest_report().is_none());
     assert_eq!(terminal.counters().provider_work_unit_count(), 1);
     assert_eq!(terminal.counters().comparator_call_count(), 1);
@@ -232,7 +239,7 @@ fn assert_semantic_terminal<State>(
     assert_eq!(terminal.counters().comparator_call_count(), 1);
     assert_eq!(terminal.counters().progress_check_count(), 1);
     assert_eq!(terminal.counters().repeated_state_probe_count(), 1);
-    assert!(terminal.domain_failure().is_none());
+    assert!(terminal.indeterminate_cause().is_none());
     assert_eq!(terminal.incumbents().len(), incumbent_count);
     let report = terminal
         .latest_report()

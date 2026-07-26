@@ -2,6 +2,7 @@ use super::fixture::{
     direct_admission_fixture_with_contract, FixtureConvergenceContract, FixtureDisposition,
 };
 use crate::domain_computation::{
+    WorthQueryConvergenceEpochDenialKind, WorthQueryConvergenceIndeterminateCause,
     WorthQueryConvergenceTerminalKind, WorthQueryDirectConvergenceIterationOutcome,
     WorthQueryDirectConvergenceTerminal, WorthQueryDirectGraphStepOutcome,
     WorthQueryGraphProviderCallKind, WorthQueryIndeterminate, WorthQueryManagedGraphCallRequest,
@@ -35,7 +36,7 @@ fn installed_oscillation_postures_govern_incumbent_selection() {
     );
     assert!(denied.incumbents().is_empty());
     assert!(denied.latest_report().is_some());
-    assert!(denied.domain_failure().is_none());
+    assert!(denied.indeterminate_cause().is_none());
     if denied.cleanup().is_err() {
         panic!("detect-and-deny oscillation must retain cleanup authority");
     }
@@ -50,7 +51,7 @@ fn installed_oscillation_postures_govern_incumbent_selection() {
     );
     assert_eq!(selected.incumbents().len(), 1);
     assert!(selected.latest_report().is_some());
-    assert!(selected.domain_failure().is_none());
+    assert!(selected.indeterminate_cause().is_none());
     if selected.cleanup().is_err() {
         panic!("detect-and-select oscillation must retain cleanup authority");
     }
@@ -65,7 +66,7 @@ fn installed_oscillation_postures_govern_incumbent_selection() {
     );
     assert_eq!(classified.incumbents().len(), 1);
     assert!(classified.latest_report().is_some());
-    assert!(classified.domain_failure().is_none());
+    assert!(classified.indeterminate_cause().is_none());
     if classified.cleanup().is_err() {
         panic!("domain-classified oscillation must retain cleanup authority");
     }
@@ -78,9 +79,11 @@ fn assert_indeterminate_policy_denial(
         terminal.kind(),
         WorthQueryConvergenceTerminalKind::Indeterminate
     );
-    assert!(terminal
-        .domain_failure()
-        .is_some_and(|detail| detail.contains("oscillation posture")));
+    assert!(matches!(
+        terminal.indeterminate_cause(),
+        Some(WorthQueryConvergenceIndeterminateCause::ReportAdmission(denial))
+            if denial.kind() == WorthQueryConvergenceEpochDenialKind::InvalidDomainReport
+    ));
     assert!(terminal.latest_report().is_none());
     assert!(terminal.incumbents().is_empty());
     if terminal.cleanup().is_err() {

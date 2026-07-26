@@ -1617,6 +1617,8 @@ owner, or continuation authority.
 
 - installed convergence contract and installed-operation phase proof
 - convergence-epoch admission
+- runtime-builder registration of one concrete graph provider that implements
+  both graph execution and the installed convergence semantic ports
 - managed-run bounded execution step, yield, same-runtime readmission, and
   terminal evidence
 - domain-provided comparator, progress, candidate/incumbent, and
@@ -1643,6 +1645,10 @@ Admission binds one installed operation and convergence contract, one semantic-
 world basis, candidate universe and termination posture, comparator, progress
 measure, candidate/incumbent family, iteration and resource budgets, checkpoint
 posture, repeated-state policy, and the managed-run authorities they consume.
+The production runtime-builder path must be able to register that convergent
+provider explicitly and retain its semantic facet in the installed graph
+authority. Direct construction of an execution anchor in a privileged fixture
+does not prove this path.
 Each iteration is one bounded managed execution step and uses the ordinary
 Signal cancellation, pressure, yield, same-runtime readmission, cleanup,
 provider-session, artifact, and resource paths.
@@ -1661,6 +1667,16 @@ evidence. `Converged`, `StableWithoutProof`, `FeasibleIncumbent`,
 `Oscillating`, `Exhausted`, `Cancelled`, and `Indeterminate` are terminally
   distinct. None grants decision, approval, conflict, resolution-session,
 or publication authority.
+
+The installed comparator, progress measure, and repeated-state detector are
+distinct domain-owned ports invoked through Query-owned progression. Query
+mints their work evidence from the calls it actually performs; a provider
+cannot submit numeric call counts or an aggregate assessment that hides which
+installed semantic ports ran. Each port rejection and panic is contained at
+its invocation boundary and becomes a typed indeterminate cause carrying the
+exact phase and governed work completed before failure. Report validation,
+domain-evidence binding, and managed-run completion denials remain distinct
+typed causes rather than diagnostic strings.
 
 **Warnings**
 
@@ -1704,6 +1720,16 @@ or publication authority.
   calls, progress checks, repeated-state probes, incumbent retention, yield and
   readmission work, and cleanup; none scales with unrelated operations, epochs,
   candidates, artifacts, or diagnostics.
+- Governed-assessment test: provider code cannot construct comparator,
+  progress, or repeated-state call counters; Query counts the exact installed
+  ports it invokes, stops later ports after rejection or panic, and preserves
+  the typed failed phase through terminal cleanup.
+- Production-composition evidence: compiler evidence covers the public runtime
+  builder registration of a concrete provider satisfying both graph-execution
+  and convergence contracts; production-registry evidence covers the exact
+  convergent anchor constructor and retained registration; execution evidence
+  covers admission through that constructor. No closure claim may rely only on
+  direct anchor construction or a privileged fixture-only registration path.
 
 **Engineering decisions**
 

@@ -2,6 +2,7 @@ use super::fixture::{
     direct_admission_fixture_with_contract, FixtureConvergenceContract, FixtureDisposition,
 };
 use crate::domain_computation::{
+    WorthQueryConvergenceEpochDenialKind, WorthQueryConvergenceIndeterminateCause,
     WorthQueryConvergenceTerminalKind, WorthQueryDirectConvergenceIterationOutcome,
     WorthQueryDirectGraphStepOutcome, WorthQueryGraphProviderCallKind,
     WorthQueryIteratingDirectConvergenceEpoch, WorthQueryManagedGraphCallRequest,
@@ -78,9 +79,11 @@ fn pareto_duplicate_candidate_denies_without_mutating_retained_incumbent_authori
             .iteration_ordinal(),
         1
     );
-    assert!(terminal
-        .domain_failure()
-        .is_some_and(|detail| detail.contains("incumbent transition")));
+    assert!(matches!(
+        terminal.indeterminate_cause(),
+        Some(WorthQueryConvergenceIndeterminateCause::ReportAdmission(denial))
+            if denial.kind() == WorthQueryConvergenceEpochDenialKind::InvalidIncumbentTransition
+    ));
     if terminal.cleanup().is_err() {
         panic!("denied Pareto replacement must retain cleanup authority");
     }

@@ -1,13 +1,27 @@
 use super::{
-    WorthQueryConvergenceAssessment, WorthQueryConvergenceDomainAssessmentOutcome,
-    WorthQueryConvergenceDomainFailure, WorthQueryConvergenceProviderFamilies,
+    WorthQueryConvergenceAssessment, WorthQueryConvergenceComparison,
+    WorthQueryConvergenceDomainFailure, WorthQueryConvergenceProgress,
+    WorthQueryConvergenceProviderFamilies, WorthQueryConvergenceRepeatedState,
 };
 
 pub trait WorthQueryConvergenceDomainProvider: Send + Sync + 'static {
     fn convergence_families(&self) -> &WorthQueryConvergenceProviderFamilies;
 
-    fn assess(
+    fn compare(
         &self,
-        assessment: WorthQueryConvergenceAssessment<'_>,
-    ) -> Result<WorthQueryConvergenceDomainAssessmentOutcome, WorthQueryConvergenceDomainFailure>;
+        assessment: &WorthQueryConvergenceAssessment<'_>,
+    ) -> Result<WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure>;
+
+    fn measure_progress(
+        &self,
+        assessment: &WorthQueryConvergenceAssessment<'_>,
+        comparison: &WorthQueryConvergenceComparison,
+    ) -> Result<WorthQueryConvergenceProgress, WorthQueryConvergenceDomainFailure>;
+
+    fn detect_repeated_state(
+        &self,
+        assessment: &WorthQueryConvergenceAssessment<'_>,
+        comparison: &WorthQueryConvergenceComparison,
+        progress: WorthQueryConvergenceProgress,
+    ) -> Result<WorthQueryConvergenceRepeatedState, WorthQueryConvergenceDomainFailure>;
 }

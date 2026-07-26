@@ -22,7 +22,7 @@ fn direct_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
     assert_eq!(failure.counters().cleanup_count(), 1);
     assert_eq!(failure.incumbents().len(), 1);
     assert!(failure.latest_report().is_some());
-    assert!(failure.domain_failure().is_none());
+    assert!(failure.indeterminate_cause().is_none());
     assert_eq!(
         failure.managed_failure().failure_kind(),
         WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(
@@ -66,7 +66,7 @@ fn workflow_cleanup_recovery_preserves_epoch_evidence_and_counts_the_retry() {
     assert_eq!(failure.counters().cleanup_count(), 1);
     assert_eq!(failure.incumbents().len(), 1);
     assert!(failure.latest_report().is_some());
-    assert!(failure.domain_failure().is_none());
+    assert!(failure.indeterminate_cause().is_none());
     assert_eq!(
         failure.managed_failure().failure_kind(),
         WorthQueryManagedRunCleanupFailureKind::BridgeFinalization(

@@ -1,4 +1,5 @@
 mod admission;
+mod comparison;
 mod core;
 mod counters;
 mod denial;
@@ -7,11 +8,13 @@ mod direct_iteration;
 mod direct_yield;
 mod direct_yield_cleanup;
 mod domain_assessment;
+mod domain_assessment_transition;
 mod domain_decision;
 mod domain_provider;
 mod domain_work;
 mod identity_validation;
 mod incumbent;
+mod indeterminate_cause;
 mod provider_families;
 mod report;
 mod report_admission;
@@ -26,6 +29,7 @@ mod workflow_yield_cleanup;
 pub use admission::{
     WorthQueryDirectConvergenceAdmissionRejection, WorthQueryWorkflowConvergenceAdmissionRejection,
 };
+pub use comparison::WorthQueryConvergenceComparison;
 pub use counters::WorthQueryConvergenceEpochCounters;
 pub use denial::{
     WorthQueryConvergenceEpochDenial, WorthQueryConvergenceEpochDenialKind,
@@ -61,10 +65,13 @@ pub use domain_decision::{
 };
 pub use domain_provider::WorthQueryConvergenceDomainProvider;
 pub use domain_work::{
-    WorthQueryConvergenceDomainAssessmentOutcome, WorthQueryConvergenceDomainFailure,
-    WorthQueryConvergenceDomainWorkEvidence,
+    WorthQueryConvergenceDomainFailure, WorthQueryConvergenceDomainWorkEvidence,
 };
 pub use incumbent::WorthQueryRetainedConvergenceCandidateEvidence;
+pub use indeterminate_cause::{
+    WorthQueryConvergenceDomainInvocationFailure, WorthQueryConvergenceDomainInvocationFailureKind,
+    WorthQueryConvergenceDomainPhase, WorthQueryConvergenceIndeterminateCause,
+};
 pub use provider_families::{
     WorthQueryCandidateSemanticFamilies, WorthQueryConvergenceProviderFamilies,
     WorthQueryIterationSemanticFamilies,

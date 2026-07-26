@@ -98,12 +98,35 @@ impl WorthQueryPendingGraphParticipations {
     }
 
     pub(crate) fn provider<G: 'static, P: WorthQueryGraphParticipationProvider<G>>(
-        mut self,
+        self,
         provider: P,
         commit_marker: Option<(TypeId, &'static str)>,
     ) -> Self {
-        let marker = TypeId::of::<G>();
         let provider = Arc::new(WorthQueryGraphProviderAnchor::install::<G, P>(provider));
+        self.register_provider::<G>(provider, commit_marker)
+    }
+
+    pub(crate) fn convergent_provider<G: 'static, P>(
+        self,
+        provider: P,
+        commit_marker: Option<(TypeId, &'static str)>,
+    ) -> Self
+    where
+        P: WorthQueryGraphParticipationProvider<G>
+            + worth_query_execution::facade::convergence_epoch::WorthQueryConvergenceDomainProvider,
+    {
+        let provider = Arc::new(WorthQueryGraphProviderAnchor::install_convergent::<G, P>(
+            provider,
+        ));
+        self.register_provider::<G>(provider, commit_marker)
+    }
+
+    fn register_provider<G: 'static>(
+        mut self,
+        provider: Arc<WorthQueryGraphProviderAnchor>,
+        commit_marker: Option<(TypeId, &'static str)>,
+    ) -> Self {
+        let marker = TypeId::of::<G>();
         let resource_support = provider.resource_support().clone();
         let registration = GraphParticipationProviderRegistration {
             provider_identity: provider.provider_identity(),
@@ -262,6 +285,9 @@ impl WorthQueryPendingGraphParticipations {
         Ok(WorthQueryInstalledGraphParticipationRegistry { records })
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 pub(crate) struct WorthQueryInstalledGraphParticipationRecord {
     pub authority_identity: String,

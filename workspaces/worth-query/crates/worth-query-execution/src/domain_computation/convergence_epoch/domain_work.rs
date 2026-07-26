@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use super::WorthQueryConvergenceDomainDecision;
+use super::{
+    WorthQueryConvergenceComparison, WorthQueryConvergenceDomainDecision,
+    WorthQueryConvergenceProgress, WorthQueryConvergenceRepeatedState,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryConvergenceDomainWorkEvidence {
@@ -10,24 +13,24 @@ pub struct WorthQueryConvergenceDomainWorkEvidence {
 }
 
 impl WorthQueryConvergenceDomainWorkEvidence {
-    pub const fn new(
-        comparator_call_count: usize,
-        progress_check_count: usize,
-        repeated_state_probe_count: usize,
-    ) -> Self {
+    pub(super) const fn empty() -> Self {
         Self {
-            comparator_call_count,
-            progress_check_count,
-            repeated_state_probe_count,
+            comparator_call_count: 0,
+            progress_check_count: 0,
+            repeated_state_probe_count: 0,
         }
     }
 
-    pub const fn one_complete_assessment() -> Self {
-        Self::new(1, 1, 1)
+    pub(super) fn called_comparator(&mut self) {
+        self.comparator_call_count += 1;
     }
 
-    pub const fn comparator_failure() -> Self {
-        Self::new(1, 0, 0)
+    pub(super) fn checked_progress(&mut self) {
+        self.progress_check_count += 1;
+    }
+
+    pub(super) fn probed_repeated_state(&mut self) {
+        self.repeated_state_probe_count += 1;
     }
 
     pub const fn comparator_call_count(&self) -> usize {
@@ -43,28 +46,33 @@ impl WorthQueryConvergenceDomainWorkEvidence {
     }
 }
 
-pub struct WorthQueryConvergenceDomainAssessmentOutcome {
+pub(super) struct WorthQueryConvergenceDomainAssessmentOutcome {
     decision: WorthQueryConvergenceDomainDecision,
     work: WorthQueryConvergenceDomainWorkEvidence,
 }
 
 impl WorthQueryConvergenceDomainAssessmentOutcome {
-    pub fn new(
-        decision: WorthQueryConvergenceDomainDecision,
+    pub(super) fn new(
+        comparison: WorthQueryConvergenceComparison,
+        progress: WorthQueryConvergenceProgress,
+        repeated_state: WorthQueryConvergenceRepeatedState,
         work: WorthQueryConvergenceDomainWorkEvidence,
     ) -> Self {
-        Self { decision, work }
+        Self {
+            decision: WorthQueryConvergenceDomainDecision::from_governed_assessment(
+                comparison,
+                progress,
+                repeated_state,
+            ),
+            work,
+        }
     }
 
-    pub fn work(&self) -> &WorthQueryConvergenceDomainWorkEvidence {
-        &self.work
-    }
-
-    pub fn decision(&self) -> &WorthQueryConvergenceDomainDecision {
+    pub(super) fn decision(&self) -> &WorthQueryConvergenceDomainDecision {
         &self.decision
     }
 
-    pub fn into_parts(
+    pub(super) fn into_parts(
         self,
     ) -> (
         WorthQueryConvergenceDomainDecision,
@@ -77,32 +85,16 @@ impl WorthQueryConvergenceDomainAssessmentOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryConvergenceDomainFailure {
     detail: Arc<str>,
-    work: WorthQueryConvergenceDomainWorkEvidence,
 }
 
 impl WorthQueryConvergenceDomainFailure {
     pub fn new(detail: impl Into<Arc<str>>) -> Self {
         Self {
             detail: detail.into(),
-            work: WorthQueryConvergenceDomainWorkEvidence::new(0, 0, 0),
-        }
-    }
-
-    pub fn with_work(
-        detail: impl Into<Arc<str>>,
-        work: WorthQueryConvergenceDomainWorkEvidence,
-    ) -> Self {
-        Self {
-            detail: detail.into(),
-            work,
         }
     }
 
     pub fn detail(&self) -> &str {
         &self.detail
-    }
-
-    pub fn work(&self) -> &WorthQueryConvergenceDomainWorkEvidence {
-        &self.work
     }
 }
