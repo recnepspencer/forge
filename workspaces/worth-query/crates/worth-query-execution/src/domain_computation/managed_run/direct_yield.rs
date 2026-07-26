@@ -20,9 +20,6 @@ pub enum WorthQueryDirectYieldDenialKind {
     InstallationGenerationStale,
     YieldNotInstalled,
     CheckpointUnavailable,
-    SignalAttemptNotActive,
-    QueueNotDrained,
-    PartialEffectPostureMismatch,
 }
 
 pub struct WorthQueryDirectYieldDenied {
@@ -54,6 +51,7 @@ impl WorthQueryDirectYieldDenied {
     }
 }
 
+#[must_use = "yield outcomes must be resolved into yielded, denied, or recovery authority"]
 pub enum WorthQueryDirectYieldOutcome {
     Yielded(WorthQueryYieldedDirectRun),
     Denied(WorthQueryDirectYieldDenied),

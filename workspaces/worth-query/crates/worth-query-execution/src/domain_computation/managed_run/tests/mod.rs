@@ -27,6 +27,7 @@ mod workflow_backpressure;
 mod workflow_lifecycle;
 mod workflow_provider_steps;
 mod workflow_step_evidence;
+mod yield_abandonment;
 mod yield_binding_evidence;
 mod yield_bridge_failure;
 mod yield_checkpoint_ceiling;

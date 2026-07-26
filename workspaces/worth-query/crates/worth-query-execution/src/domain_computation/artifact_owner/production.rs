@@ -31,6 +31,7 @@ impl WorthQueryMoveOnlyArtifactHandle {
             runtime_artifact_binding(&admission, occurrence_ordinal),
             prepared,
             occurrence_scope,
+            authority.registry.lifecycle_snapshot_gate(),
         );
         let handle = Self {
             core: WorthQueryArtifactHandleCore::new_owner(

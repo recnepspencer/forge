@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use super::registry_evidence::WorthQueryArtifactLifecycleSnapshotGate;
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactLifecycleRecord,
     WorthQueryArtifactOccurrenceScope, WorthQueryArtifactSemanticProjection,
@@ -15,6 +16,7 @@ pub(crate) struct WorthQueryRuntimeArtifactOwner {
     resource: Mutex<Option<Box<dyn WorthQueryErasedArtifactProviderResource>>>,
     occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
     pub(super) lifecycle: Arc<WorthQueryArtifactLifecycleRecord>,
+    pub(super) snapshot_gate: Arc<WorthQueryArtifactLifecycleSnapshotGate>,
 }
 
 pub(crate) struct WorthQueryRuntimeArtifactBinding {
@@ -38,6 +40,7 @@ impl WorthQueryRuntimeArtifactOwner {
         binding: WorthQueryRuntimeArtifactBinding,
         prepared: WorthQueryPreparedArtifactResource,
         occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
+        snapshot_gate: Arc<WorthQueryArtifactLifecycleSnapshotGate>,
     ) -> Arc<Self> {
         let (semantic_projection, retained_bytes, resource) = prepared.into_owner_parts();
         let provider_access_session_identity =
@@ -63,6 +66,7 @@ impl WorthQueryRuntimeArtifactOwner {
             resource: Mutex::new(Some(resource)),
             occurrence_scope,
             lifecycle: Arc::new(WorthQueryArtifactLifecycleRecord::new(retained_bytes)),
+            snapshot_gate,
         });
         if let Some(scope) = &owner.occurrence_scope {
             scope.record_produced(retained_bytes);
@@ -123,7 +127,7 @@ impl WorthQueryRuntimeArtifactOwner {
             .expect("live artifact owner retains exactly one provider resource");
         let release = resource.release();
         self.record_occurrence_disposal();
-        self.lifecycle.record_provider_release(release);
+        self.record_provider_release(release);
     }
 
     pub(super) fn denial(
@@ -143,6 +147,14 @@ impl WorthQueryRuntimeArtifactOwner {
             scope.record_disposed(self.retained_bytes);
         }
     }
+
+    pub(super) fn record_provider_release(
+        &self,
+        release: super::WorthQueryArtifactProviderReleaseEvidence,
+    ) {
+        let _snapshot = self.snapshot_gate.lifecycle_mutation();
+        self.lifecycle.record_provider_release(release);
+    }
 }
 
 impl Drop for WorthQueryRuntimeArtifactOwner {
@@ -157,6 +169,7 @@ impl Drop for WorthQueryRuntimeArtifactOwner {
         };
         let release = resource.release();
         self.record_occurrence_disposal();
+        let _snapshot = self.snapshot_gate.lifecycle_mutation();
         self.lifecycle.record_provider_release(release);
     }
 }

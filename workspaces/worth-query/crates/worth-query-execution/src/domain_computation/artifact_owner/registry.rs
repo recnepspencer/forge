@@ -1,27 +1,28 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, Weak};
 
+use super::registry_evidence::WorthQueryArtifactLifecycleSnapshotGate;
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactDisposition,
     WorthQueryArtifactLifecycleRecord, WorthQueryArtifactProductionGeneration,
-    WorthQueryArtifactProductionGenerationPending, WorthQueryArtifactProviderReleasePosture,
-    WorthQueryMoveOnlyArtifactHandle, WorthQueryRuntimeArtifactOwner,
-    WorthQueryWorkflowArtifactRegistryEvidence,
+    WorthQueryArtifactProductionGenerationPending, WorthQueryMoveOnlyArtifactHandle,
+    WorthQueryRuntimeArtifactOwner, WorthQueryWorkflowArtifactRegistryEvidence,
 };
 
 pub struct WorthQueryWorkflowArtifactRegistry {
     run_identity: String,
     pub(super) state: Mutex<WorthQueryWorkflowArtifactRegistryState>,
+    pub(super) snapshot_gate: Arc<WorthQueryArtifactLifecycleSnapshotGate>,
 }
 
 pub(super) struct WorthQueryWorkflowArtifactRegistryState {
     pub(super) posture: WorthQueryWorkflowArtifactRegistryPosture,
-    owners: BTreeMap<String, WorthQueryWorkflowArtifactRegistryEntry>,
+    pub(super) owners: BTreeMap<String, WorthQueryWorkflowArtifactRegistryEntry>,
 }
 
-struct WorthQueryWorkflowArtifactRegistryEntry {
+pub(super) struct WorthQueryWorkflowArtifactRegistryEntry {
     owner: Weak<WorthQueryRuntimeArtifactOwner>,
-    lifecycle: Arc<WorthQueryArtifactLifecycleRecord>,
+    pub(super) lifecycle: Arc<WorthQueryArtifactLifecycleRecord>,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -46,6 +47,7 @@ impl WorthQueryWorkflowArtifactRegistry {
                 ),
                 owners: BTreeMap::new(),
             }),
+            snapshot_gate: Arc::new(WorthQueryArtifactLifecycleSnapshotGate::new()),
         }
     }
 
@@ -75,6 +77,7 @@ impl WorthQueryWorkflowArtifactRegistry {
             ));
         }
         let owner = &handle.core.owner;
+        let _snapshot = self.snapshot_gate.lifecycle_mutation();
         let mut state = self
             .state
             .lock()
@@ -123,58 +126,8 @@ impl WorthQueryWorkflowArtifactRegistry {
         self.evidence()
     }
 
-    pub fn evidence(&self) -> WorthQueryWorkflowArtifactRegistryEvidence {
-        let state = self
-            .state
-            .lock()
-            .expect("workflow artifact registry lock must remain available");
-        let posture = state.posture;
-        let owners = state
-            .owners
-            .values()
-            .map(|entry| Arc::clone(&entry.lifecycle))
-            .collect::<Vec<_>>();
-        drop(state);
-        let mut retained_artifact_count = 0usize;
-        let mut disposed_artifact_count = 0usize;
-        let mut retained_bytes = 0usize;
-        let mut provider_release_complete_count = 0usize;
-        let mut provider_release_pending_count = 0usize;
-        let mut provider_release_recovery_required_count = 0usize;
-        for lifecycle in &owners {
-            let snapshot = lifecycle.snapshot();
-            if snapshot.is_disposed() {
-                disposed_artifact_count = disposed_artifact_count.saturating_add(1);
-            } else {
-                retained_artifact_count = retained_artifact_count.saturating_add(1);
-                retained_bytes = retained_bytes.saturating_add(snapshot.counters().retained_bytes);
-            }
-            match snapshot.provider_release() {
-                WorthQueryArtifactProviderReleasePosture::Retained => {}
-                WorthQueryArtifactProviderReleasePosture::Pending => {
-                    provider_release_pending_count =
-                        provider_release_pending_count.saturating_add(1);
-                }
-                WorthQueryArtifactProviderReleasePosture::Complete(_) => {
-                    provider_release_complete_count =
-                        provider_release_complete_count.saturating_add(1);
-                }
-                WorthQueryArtifactProviderReleasePosture::RecoveryRequired(_) => {
-                    provider_release_recovery_required_count =
-                        provider_release_recovery_required_count.saturating_add(1);
-                }
-            }
-        }
-        WorthQueryWorkflowArtifactRegistryEvidence::new(
-            production_generation(posture),
-            owners.len(),
-            retained_artifact_count,
-            disposed_artifact_count,
-            retained_bytes,
-            provider_release_complete_count,
-            provider_release_pending_count,
-            provider_release_recovery_required_count,
-        )
+    pub(super) fn lifecycle_snapshot_gate(&self) -> Arc<WorthQueryArtifactLifecycleSnapshotGate> {
+        Arc::clone(&self.snapshot_gate)
     }
 
     pub(super) fn current_production_generation(
@@ -324,7 +277,7 @@ fn validate_registration_posture(
     }
 }
 
-fn production_generation(
+pub(super) fn production_generation(
     posture: WorthQueryWorkflowArtifactRegistryPosture,
 ) -> WorthQueryArtifactProductionGeneration {
     match posture {

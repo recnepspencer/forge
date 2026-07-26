@@ -25,9 +25,6 @@ pub enum WorthQueryWorkflowYieldDenialKind {
     InstallationGenerationStale,
     YieldNotInstalled,
     CheckpointUnavailable,
-    SignalAttemptNotActive,
-    QueueNotDrained,
-    PartialEffectPostureMismatch,
     RetainedBytesExceeded,
 }
 
@@ -60,6 +57,7 @@ impl WorthQueryWorkflowYieldDenied {
     }
 }
 
+#[must_use = "yield outcomes must be resolved into yielded, denied, or recovery authority"]
 pub enum WorthQueryWorkflowYieldOutcome {
     Yielded(WorthQueryYieldedWorkflowRun),
     Denied(WorthQueryWorkflowYieldDenied),

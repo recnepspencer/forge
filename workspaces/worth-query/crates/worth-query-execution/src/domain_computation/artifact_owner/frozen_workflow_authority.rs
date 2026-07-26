@@ -9,7 +9,7 @@ use super::{
 };
 
 pub(crate) struct WorthQueryFrozenWorkflowArtifactAuthority {
-    authority: WorthQueryWorkflowArtifactAuthority,
+    authority: Option<WorthQueryWorkflowArtifactAuthority>,
     production_generation: WorthQueryArtifactProductionGeneration,
 }
 
@@ -32,21 +32,21 @@ impl WorthQueryFrozenWorkflowArtifactAuthority {
         production_generation: WorthQueryArtifactProductionGeneration,
     ) -> Self {
         Self {
-            authority,
+            authority: Some(authority),
             production_generation,
         }
     }
 
     pub(crate) fn registry(&self) -> Arc<WorthQueryWorkflowArtifactRegistry> {
-        self.authority.registry()
+        self.authority().registry()
     }
 
     pub(crate) fn run_identity(&self) -> &str {
-        self.authority.run_identity()
+        self.authority().run_identity()
     }
 
     pub(crate) fn evidence(&self) -> WorthQueryWorkflowArtifactRegistryEvidence {
-        self.authority.registry().evidence()
+        self.authority().registry().evidence()
     }
 
     pub(crate) const fn production_generation(&self) -> WorthQueryArtifactProductionGeneration {
@@ -54,7 +54,7 @@ impl WorthQueryFrozenWorkflowArtifactAuthority {
     }
 
     pub(crate) fn registry_is_frozen_at_owned_generation(&self) -> bool {
-        self.authority
+        self.authority()
             .registry()
             .is_frozen_at(self.production_generation)
     }
@@ -64,19 +64,35 @@ impl WorthQueryFrozenWorkflowArtifactAuthority {
         stage_identity: &str,
         pending: &WorthQueryArtifactProductionGenerationPending,
     ) -> Result<Option<Arc<WorthQueryArtifactProductionAuthority>>, WorthQueryArtifactDenial> {
-        self.authority
+        self.authority()
             .production_authority_for_readmission(stage_identity, pending)
     }
 
     pub(crate) fn activate_after_readmission(
-        self,
+        mut self,
         committed: WorthQueryArtifactProductionGenerationCommitted,
     ) -> WorthQueryWorkflowArtifactAuthority {
         assert!(
-            committed.belongs_to(&self.authority.registry())
+            committed.belongs_to(&self.authority().registry())
                 && committed.prior() == self.production_generation,
             "artifact generation commit must advance this frozen workflow authority",
         );
         self.authority
+            .take()
+            .expect("valid readmission consumes the frozen workflow authority")
+    }
+
+    fn authority(&self) -> &WorthQueryWorkflowArtifactAuthority {
+        self.authority
+            .as_ref()
+            .expect("frozen workflow authority remains owned until cleanup or readmission")
+    }
+}
+
+impl Drop for WorthQueryFrozenWorkflowArtifactAuthority {
+    fn drop(&mut self) {
+        if let Some(authority) = &self.authority {
+            authority.registry().close_cancelled();
+        }
     }
 }

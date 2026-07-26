@@ -1,3 +1,6 @@
+use std::ops::{Deref, DerefMut};
+use std::sync::{MutexGuard, RwLockReadGuard};
+
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactDisposition,
     WorthQueryArtifactHandleGuard, WorthQueryArtifactOwnerSnapshot,
@@ -7,6 +10,7 @@ use super::{
 
 impl WorthQueryRuntimeArtifactOwner {
     pub(super) fn snapshot(&self) -> WorthQueryArtifactOwnerSnapshot {
+        let _snapshot = self.snapshot_gate.lifecycle_mutation();
         self.lifecycle.snapshot()
     }
 
@@ -238,8 +242,30 @@ impl WorthQueryRuntimeArtifactOwner {
         self.dispose_provider_if_required(should_dispose);
     }
 
-    fn lifecycle(&self) -> std::sync::MutexGuard<'_, WorthQueryRuntimeArtifactLifecycle> {
-        self.lifecycle.lock()
+    fn lifecycle(&self) -> WorthQueryArtifactLifecycleMutation<'_> {
+        WorthQueryArtifactLifecycleMutation {
+            _snapshot: self.snapshot_gate.lifecycle_mutation(),
+            state: self.lifecycle.lock(),
+        }
+    }
+}
+
+struct WorthQueryArtifactLifecycleMutation<'a> {
+    _snapshot: RwLockReadGuard<'a, ()>,
+    state: MutexGuard<'a, WorthQueryRuntimeArtifactLifecycle>,
+}
+
+impl Deref for WorthQueryArtifactLifecycleMutation<'_> {
+    type Target = WorthQueryRuntimeArtifactLifecycle;
+
+    fn deref(&self) -> &Self::Target {
+        &self.state
+    }
+}
+
+impl DerefMut for WorthQueryArtifactLifecycleMutation<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.state
     }
 }
 

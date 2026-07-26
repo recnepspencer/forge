@@ -35,6 +35,7 @@ fn managed_run_authority_boundaries_hold() {
     cases.compile_fail(
         "tests/ui/installed_domain/managed_run/yield_requires_consumed_safe_point.rs",
     );
+    cases.compile_fail("tests/ui/installed_domain/managed_run/yield_outcome_must_be_resolved.rs");
     cases.compile_fail("tests/ui/installed_domain/managed_run/pending_chunk_cannot_yield.rs");
     cases.compile_fail(
         "tests/ui/installed_domain/managed_run/raw_checkpoint_cannot_mint_yielded_run.rs",

@@ -214,15 +214,25 @@ impl WorthQueryManagedGraphExecution {
         &self,
         observation: super::WorthQueryManagedSafePointObservation,
     ) -> super::yield_eligibility::WorthQueryManagedYieldSafePoint {
+        assert_eq!(
+            observation.signal_state(),
+            worth_runtime_bridge::facade::BridgeExecutionSafePointSignalState::Active,
+            "yield safe-point authority requires an active Signal attempt",
+        );
+        assert_eq!(
+            observation.queue_depth(),
+            0,
+            "yield safe-point authority requires a drained result queue",
+        );
+        assert!(
+            self.applied_effect_count == 0
+                || self.contract.installed().partial_effects_may_remain(),
+            "yield safe-point authority requires the installed partial-effect posture",
+        );
         super::yield_eligibility::WorthQueryManagedYieldSafePoint::new(
-            observation,
             self.last_checkpoint_available,
             self.last_retained,
         )
-    }
-
-    pub(super) const fn applied_effect_count(&self) -> u64 {
-        self.applied_effect_count
     }
 
     pub(super) fn provider_call_identity(&self) -> &str {
