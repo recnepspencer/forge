@@ -24,7 +24,7 @@ file = "facade/mod.rs"
 audience = "product"
 responsibility = "named audience modules"
 disposition = "retain"
-fingerprint = "09795c3ad947f9dc"
+fingerprint = "5f3ae69d30a14fb5"
 forbidden_shortcut = "add a broad prelude or wildcard export"
 
 [[surface]]
@@ -59,7 +59,7 @@ audience = "inspection-consumer"
 responsibility = "read-only inspection projections"
 disposition = "split"
 exit_phase = 5
-fingerprint = "453445943a5a2c64"
+fingerprint = "5348028550348a15"
 forbidden_shortcut = "export certification-only reconstruction or mutable runtime authority"
 
 [[surface]]
@@ -76,7 +76,7 @@ file = "facade/admission.rs"
 audience = "runtime-integrator"
 responsibility = "curated admission contract"
 disposition = "retain"
-fingerprint = "e2d751a984f14353"
+fingerprint = "a638ef3c488beacf"
 forbidden_shortcut = "expose admission implementation modules"
 
 [[surface]]
@@ -84,7 +84,7 @@ file = "facade/declaration.rs"
 audience = "application-author"
 responsibility = "curated declaration contract"
 disposition = "retain"
-fingerprint = "4533c6a81c8bd93f"
+fingerprint = "b3f8ec9c57dd639c"
 forbidden_shortcut = "reopen declaration source authority"
 
 [[surface]]
@@ -92,7 +92,7 @@ file = "facade/diagnostics.rs"
 audience = "inspection-consumer"
 responsibility = "product diagnostics"
 disposition = "retain"
-fingerprint = "000a1d5f261204be"
+fingerprint = "b13b149e4e076c42"
 forbidden_shortcut = "export certification construction"
 
 [[surface]]
@@ -100,7 +100,7 @@ file = "facade/graph.rs"
 audience = "runtime-integrator"
 responsibility = "curated graph contract"
 disposition = "retain"
-fingerprint = "6119f17fe3708a2b"
+fingerprint = "b808a4230919c881"
 forbidden_shortcut = "export graph storage mutation"
 
 [[surface]]
@@ -116,7 +116,7 @@ file = "facade/obligations.rs"
 audience = "application-author"
 responsibility = "curated obligation contract"
 disposition = "retain"
-fingerprint = "7eb2723e1b782b82"
+fingerprint = "e3327f90e33f576f"
 forbidden_shortcut = "reopen obligation legality authority"
 
 [[surface]]
@@ -157,7 +157,7 @@ file = "facade/support.rs"
 audience = "runtime-integrator"
 responsibility = "runtime support posture"
 disposition = "retain"
-fingerprint = "e17ad288d6a7543b"
+fingerprint = "ee8b82376aac2543"
 forbidden_shortcut = "become a catch-all compatibility surface"
 
 [[certification_surface]]
@@ -187,7 +187,7 @@ id = "certification-allocation"
 path = "allocation"
 match = "directory"
 expected_files = 2
-content_fingerprint = "5d0ad9e5b5607e2c"
+content_fingerprint = "7052f6fc3542cc99"
 audience = "certification-support"
 responsibility = "allocation certification reports and entrypoints"
 disposition = "retain"
@@ -198,7 +198,7 @@ id = "certification-scenario"
 path = "scenario"
 match = "directory"
 expected_files = 17
-content_fingerprint = "b91f378492168cf9"
+content_fingerprint = "d20af5ebe6772cb8"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction"
 disposition = "retain"
@@ -209,7 +209,7 @@ id = "certification-topology"
 path = "topology"
 match = "directory"
 expected_files = 61
-content_fingerprint = "ddcb07c1102f6d03"
+content_fingerprint = "dac46d562750fbf1"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"

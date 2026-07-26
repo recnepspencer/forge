@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fs;
 use std::path::Path;
 
@@ -54,4 +55,12 @@ pub(super) fn fingerprint(text: impl AsRef<[u8]>) -> String {
         hash = hash.wrapping_mul(1_099_511_628_211);
     }
     format!("{hash:016x}")
+}
+
+pub(super) fn canonical_source_text(text: &str) -> Cow<'_, str> {
+    if text.contains('\r') {
+        Cow::Owned(text.replace("\r\n", "\n").replace('\r', "\n"))
+    } else {
+        Cow::Borrowed(text)
+    }
 }

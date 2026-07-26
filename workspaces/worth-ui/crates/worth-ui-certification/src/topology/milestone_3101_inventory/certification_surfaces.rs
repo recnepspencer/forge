@@ -107,11 +107,9 @@ fn content_fingerprint(inventory: &WorkspaceSourceInventory, paths: &[String]) -
     for path in paths {
         bytes.extend_from_slice(path.as_bytes());
         bytes.push(0);
-        bytes.extend_from_slice(
-            inventory
-                .text(Path::new(CERTIFICATION_ROOT).join(path))
-                .as_bytes(),
-        );
+        let source = inventory.text(Path::new(CERTIFICATION_ROOT).join(path));
+        let canonical_source = ledger::canonical_source_text(source);
+        bytes.extend_from_slice(canonical_source.as_bytes());
         bytes.push(0);
     }
     ledger::fingerprint(bytes)

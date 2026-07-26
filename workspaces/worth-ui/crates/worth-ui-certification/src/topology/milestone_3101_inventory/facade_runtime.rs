@@ -86,7 +86,8 @@ fn audit_surfaces(
         }
         let source = inventory.text(Path::new(FACADE_ROOT).join(file));
         reject_certification_export(file, source)?;
-        let observed = ledger::fingerprint(source);
+        let canonical_source = ledger::canonical_source_text(source);
+        let observed = ledger::fingerprint(canonical_source.as_bytes());
         let expected = ledger::text(row, "fingerprint")?;
         if observed != expected {
             return Err(format!(

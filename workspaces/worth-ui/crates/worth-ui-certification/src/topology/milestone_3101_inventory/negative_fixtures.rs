@@ -49,7 +49,7 @@ fn milestone_3101_rejects_a_disguised_second_parser_file() {
         "dependency/disguised_front_end.rs",
     )
     .expect_err("new parser file should invalidate frozen coverage");
-    assert!(error.contains("files; expected"));
+    assert!(error.contains("files; expected"), "{error}");
 }
 
 #[test]
