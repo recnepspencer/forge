@@ -91,7 +91,9 @@ fn public_async_gate_rediscovery_is_branch_local_and_visibility_honest_under_res
             ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(u32::MAX),
         )
         .expect("feature baseline equivalence should materialize");
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .admit_async_node_request(feature_handle.request_intent())
@@ -227,7 +229,9 @@ fn keyed_public_rediscovery_and_rebind_churn_stay_branch_local() {
     let family = define_keyed_computation(&mut runtime, "async-public-branch-churn", ());
     let keyed = family.keyed("left-wing");
     let _owner = keyed.node(&mut runtime);
-    let pre_attachment_snapshot = runtime.capture_snapshot();
+    let pre_attachment_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let main = runtime.observe().current_branch();
     let feature = runtime
         .create_branch("async-public-keyed-feature")
@@ -273,7 +277,9 @@ fn keyed_public_rediscovery_and_rebind_churn_stay_branch_local() {
             ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(u32::MAX),
         )
         .expect("feature baseline equivalence should materialize");
-    let feature_attached_snapshot = runtime.capture_snapshot();
+    let feature_attached_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .restore_snapshot(&pre_attachment_snapshot)

@@ -110,35 +110,31 @@ impl domain::WorthQueryDomainReplaySemanticComparator<GeometryDomain, WorkflowRe
 impl domain::WorthQueryGraphParticipationProvider<WorkflowRemoteGraph>
     for WorkflowGraphProjectionProvider
 {
+    type Execution = crate::suite::graph_provider_step::FixtureGraphProviderExecution;
+
     fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
         super::super::execution_resource_support()
     }
 
-    fn observe(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("workflow-remote-observe"))
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        call.projected(
-            "workflow-remote-project",
-            graph_read_material("workflow-remote-row"),
-        )
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("workflow-remote-touch"))
+    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
+        Ok(match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => {
+                Self::Execution::read("workflow-remote-observe")
+            }
+            domain::WorthQueryGraphProviderCallKind::Project => Self::Execution::projection(
+                "workflow-remote-project",
+                graph_read_material("workflow-remote-row"),
+            ),
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("workflow-remote-touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        })
     }
 }
 

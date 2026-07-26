@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/ui/installed_domain/convergence_epoch/legacy_receipt_cannot_advance.rs:8:38
+  |
+8 |     let _ = pending.admit_completion(receipt);
+  |                     ---------------- ^^^^^^^ expected `WorthQueryCompletedDirectGraphExecution`, found `WorthQueryGraphProviderReceipt`
+  |                     |
+  |                     arguments to this method are incorrect
+  |
+note: method defined here
+ --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/direct_iteration.rs
+  |
+  |     pub fn admit_completion(
+  |            ^^^^^^^^^^^^^^^^

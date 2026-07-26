@@ -3,17 +3,28 @@ use std::sync::{Arc, Mutex, Weak};
 use worth_query_admission::facade::resource_admission::{
     WorthQueryAdmittedExecutionResourcePlan, WorthQueryAdmittedWorkflowResourcePlan,
 };
-use worth_query_admission::integration::WorthQueryCapacityReservedWorkflowResourcePlan;
+use worth_query_admission::integration::{
+    WorthQueryCapacityReservedWorkflowResourcePlan, WorthQueryExecutionCapacityReleaseReceipt,
+};
 
-use super::{WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence};
+use super::{
+    WorthQueryExecutionAttemptIdentity, WorthQueryExecutionProviderSession,
+    WorthQueryExecutionResourceAttemptEvidence,
+};
 pub struct WorthQueryWorkflowExecutionResourceAttempt {
-    reserved: WorthQueryCapacityReservedWorkflowResourcePlan,
-    provider_session: WorthQueryExecutionProviderSession,
-    evidence: WorthQueryExecutionResourceAttemptEvidence,
-    artifact_run: Mutex<WorthQueryWorkflowArtifactRunState>,
+    pub(in crate::domain_computation::provider_session) reserved:
+        WorthQueryCapacityReservedWorkflowResourcePlan,
+    pub(in crate::domain_computation::provider_session) attempt_identity:
+        WorthQueryExecutionAttemptIdentity,
+    pub(in crate::domain_computation::provider_session) provider_session:
+        WorthQueryExecutionProviderSession,
+    pub(in crate::domain_computation::provider_session) evidence:
+        WorthQueryExecutionResourceAttemptEvidence,
+    pub(in crate::domain_computation::provider_session) artifact_run:
+        Mutex<WorthQueryWorkflowArtifactRunState>,
 }
 
-struct WorthQueryWorkflowArtifactRunState {
+pub(in crate::domain_computation::provider_session) struct WorthQueryWorkflowArtifactRunState {
     next_generation: u64,
     active_registry:
         Option<Weak<crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactRegistry>>,
@@ -24,10 +35,12 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         mut reserved: WorthQueryCapacityReservedWorkflowResourcePlan,
         binding_authority: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
     ) -> Self {
-        let provider_session = WorthQueryExecutionProviderSession::mint(
+        let attempt_identity = WorthQueryExecutionAttemptIdentity::initial(
+            "workflow",
             reserved.resources().identity(),
-            binding_authority,
         );
+        let provider_session =
+            WorthQueryExecutionProviderSession::mint(&attempt_identity, binding_authority);
         reserved.resources_mut().record_provider_session_mint();
         let evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
             reserved.resources().operation(),
@@ -35,6 +48,7 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         );
         Self {
             reserved,
+            attempt_identity,
             provider_session,
             evidence,
             artifact_run: Mutex::new(WorthQueryWorkflowArtifactRunState {
@@ -52,6 +66,10 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         self.reserved.resources().operation()
     }
 
+    /// Legacy operational integration retained until the Phase 19 audience-
+    /// facade cutover. Possession of this session does not mint managed-run
+    /// admission, terminal, cleanup, or recovery authority.
+    #[doc(hidden)]
     pub fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
         &self.provider_session
     }
@@ -60,6 +78,17 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         &self.evidence
     }
 
+    pub fn attempt_identity(&self) -> &WorthQueryExecutionAttemptIdentity {
+        &self.attempt_identity
+    }
+
+    pub(crate) fn retained_capacity_reservation_count(&self) -> usize {
+        self.reserved.reservation_count()
+    }
+
+    /// Legacy workflow-artifact integration retained until Phase 19 removes
+    /// the monolith progression. This authority is not a managed-run proof.
+    #[doc(hidden)]
     pub fn bind_workflow_artifacts(
         &self,
     ) -> Result<
@@ -102,6 +131,9 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         Ok(authority)
     }
 
+    /// Legacy stage integration retained until the Phase 19 cutover. The
+    /// returned evidence cannot substitute for managed-run admission.
+    #[doc(hidden)]
     pub fn stage_resources_and_evidence(
         &self,
         stage_identity: &str,
@@ -113,5 +145,37 @@ impl WorthQueryWorkflowExecutionResourceAttempt {
         let evidence =
             WorthQueryExecutionResourceAttemptEvidence::capture(&resources, &self.provider_session);
         Some((resources, evidence))
+    }
+
+    pub(crate) fn binding_authority(
+        &self,
+    ) -> &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority
+    {
+        self.provider_session.binding_authority()
+    }
+
+    pub(crate) fn release(self) -> WorthQueryWorkflowExecutionAttemptReleaseReceipt {
+        let provider_session_identity = self.provider_session.identity().to_owned();
+        drop(self.provider_session);
+        WorthQueryWorkflowExecutionAttemptReleaseReceipt {
+            provider_session_identity,
+            capacity: self.reserved.release(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryWorkflowExecutionAttemptReleaseReceipt {
+    provider_session_identity: String,
+    capacity: WorthQueryExecutionCapacityReleaseReceipt,
+}
+
+impl WorthQueryWorkflowExecutionAttemptReleaseReceipt {
+    pub fn provider_session_identity(&self) -> &str {
+        &self.provider_session_identity
+    }
+
+    pub fn capacity(&self) -> &WorthQueryExecutionCapacityReleaseReceipt {
+        &self.capacity
     }
 }

@@ -1,8 +1,8 @@
 use worth_query_declaration::facade::domain_computation::{
     WorthQueryCancellationSafePointFamily, WorthQueryExecutionDegradation, WorthQueryExecutionMode,
     WorthQueryExecutionResourceRequest, WorthQueryPartialEffectPosture,
-    WorthQueryResourceDimension, WorthQueryResourceLimitRequest, WorthQuerySemanticScaleAxis,
-    WorthQuerySemanticScaleRequest,
+    WorthQueryResourceDimension, WorthQueryResourceLimitRequest, WorthQueryRetainedProgressPosture,
+    WorthQuerySemanticScaleAxis, WorthQuerySemanticScaleRequest, WorthQueryYieldedStatePosture,
 };
 use worth_query_installation::facade::{
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
@@ -17,7 +17,7 @@ fn safe_point() -> WorthQueryCancellationSafePointFamily {
     WorthQueryCancellationSafePointFamily::new("admission-chunk").unwrap()
 }
 
-fn envelope(limit: u64) -> WorthQueryExecutionResourceEnvelope {
+pub(super) fn envelope(limit: u64) -> WorthQueryExecutionResourceEnvelope {
     WorthQueryExecutionResourceEnvelope::new(
         WorthQuerySemanticScaleRequest::bounded(limit),
         WorthQueryResourceLimitRequest::bounded(limit),
@@ -27,19 +27,19 @@ fn envelope(limit: u64) -> WorthQueryExecutionResourceEnvelope {
     )
 }
 
-fn provider() -> WorthQueryExecutionProviderFamily {
+pub(super) fn provider() -> WorthQueryExecutionProviderFamily {
     WorthQueryExecutionProviderFamily::new("admission-provider").unwrap()
 }
 
-fn access() -> WorthQueryExecutionAccessProductFamily {
+pub(super) fn access() -> WorthQueryExecutionAccessProductFamily {
     WorthQueryExecutionAccessProductFamily::new("admission-access").unwrap()
 }
 
-fn allocator() -> WorthQueryExecutionAllocatorFamily {
+pub(super) fn allocator() -> WorthQueryExecutionAllocatorFamily {
     WorthQueryExecutionAllocatorFamily::new("admission-arena").unwrap()
 }
 
-fn contract(limit: u64) -> WorthQueryExecutionResourceContract {
+pub(super) fn contract(limit: u64) -> WorthQueryExecutionResourceContract {
     WorthQueryExecutionResourceContract::declared([WorthQueryExecutionStrategyContract::new(
         WorthQueryExecutionStrategyName::new("bounded").unwrap(),
         envelope(limit),
@@ -66,7 +66,7 @@ fn support(limit: u64) -> WorthQueryExecutionResourceSupportSnapshot {
     )
 }
 
-fn request(limit: u64) -> WorthQueryExecutionResourceRequest {
+pub(super) fn request(limit: u64) -> WorthQueryExecutionResourceRequest {
     WorthQueryExecutionResourceRequest::bounded(limit, limit, safe_point())
 }
 
@@ -186,56 +186,115 @@ fn partial_effect_posture_is_admitted_independently_from_degradation() {
 }
 
 #[test]
-fn every_named_degradation_requires_explicit_request_consent() {
-    for degradation in [
-        WorthQueryExecutionDegradation::PartialResult,
-        WorthQueryExecutionDegradation::YieldedProgress,
-        WorthQueryExecutionDegradation::RetainedProgress,
-    ] {
-        let degraded = WorthQueryExecutionResourceEnvelope::new(
-            WorthQuerySemanticScaleRequest::bounded(8),
-            WorthQueryResourceLimitRequest::bounded(8),
-            WorthQueryExecutionMode::Synchronous,
-            Some(degradation),
-            safe_point(),
-        );
-        let contract = WorthQueryExecutionResourceContract::declared([
-            WorthQueryExecutionStrategyContract::new(
-                WorthQueryExecutionStrategyName::new(degradation.as_str()).unwrap(),
-                degraded.clone(),
-                WorthQueryExecutionProviderRequirements::new(provider(), access(), allocator()),
-            ),
-        ])
+fn yield_and_retained_progress_postures_require_independent_consent() {
+    let yieldable = envelope(8)
+        .with_yielded_state_posture(WorthQueryYieldedStatePosture::ProviderCheckpoint)
+        .with_retained_progress_posture(WorthQueryRetainedProgressPosture::RetainAttemptCapacity);
+    let contract =
+        WorthQueryExecutionResourceContract::declared([WorthQueryExecutionStrategyContract::new(
+            WorthQueryExecutionStrategyName::new("yieldable").unwrap(),
+            yieldable.clone(),
+            WorthQueryExecutionProviderRequirements::new(provider(), access(), allocator()),
+        )])
         .unwrap();
-        let support = support_with_capacity(
-            degraded,
-            std::sync::Arc::new(
-                WorthQueryFixedExecutionCapacity::mint(degradation.as_str(), 1).unwrap(),
-            ),
-        );
+    let support = support_with_capacity(
+        yieldable,
+        std::sync::Arc::new(WorthQueryFixedExecutionCapacity::mint("yield", 1).unwrap()),
+    );
 
-        let denied = admit_execution_resource_plan(
-            "binding",
-            &contract,
-            &request(8),
-            support.clone(),
-            WorthQueryExecutionResourceAdmissionCounters::default(),
-        )
-        .unwrap_err();
-        assert_eq!(
-            denied.kind(),
-            &WorthQueryExecutionResourceAdmissionDenialKind::DegradationPostureUnsupported
-        );
-        let admitted = admit_execution_resource_plan(
-            "binding",
-            &contract,
-            &request(8).allow_degradation(degradation),
-            support,
-            WorthQueryExecutionResourceAdmissionCounters::default(),
-        )
+    let yield_denial = admit_execution_resource_plan(
+        "binding",
+        &contract,
+        &request(8),
+        support.clone(),
+        WorthQueryExecutionResourceAdmissionCounters::default(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        yield_denial.kind(),
+        &WorthQueryExecutionResourceAdmissionDenialKind::YieldedStatePostureUnsupported
+    );
+
+    let retained_denial = admit_execution_resource_plan(
+        "binding",
+        &contract,
+        &request(8).allow_yielded_state_posture(WorthQueryYieldedStatePosture::ProviderCheckpoint),
+        support.clone(),
+        WorthQueryExecutionResourceAdmissionCounters::default(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        retained_denial.kind(),
+        &WorthQueryExecutionResourceAdmissionDenialKind::RetainedProgressPostureUnsupported
+    );
+
+    let admitted = admit_execution_resource_plan(
+        "binding",
+        &contract,
+        &request(8)
+            .allow_yielded_state_posture(WorthQueryYieldedStatePosture::ProviderCheckpoint)
+            .allow_retained_progress_posture(
+                WorthQueryRetainedProgressPosture::RetainAttemptCapacity,
+            ),
+        support,
+        WorthQueryExecutionResourceAdmissionCounters::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        admitted.envelope().yielded_state_posture(),
+        WorthQueryYieldedStatePosture::ProviderCheckpoint
+    );
+    assert_eq!(
+        admitted.envelope().retained_progress_posture(),
+        WorthQueryRetainedProgressPosture::RetainAttemptCapacity
+    );
+}
+
+#[test]
+fn partial_result_degradation_requires_explicit_request_consent() {
+    let degradation = WorthQueryExecutionDegradation::PartialResult;
+    let degraded = WorthQueryExecutionResourceEnvelope::new(
+        WorthQuerySemanticScaleRequest::bounded(8),
+        WorthQueryResourceLimitRequest::bounded(8),
+        WorthQueryExecutionMode::Synchronous,
+        Some(degradation),
+        safe_point(),
+    );
+    let contract =
+        WorthQueryExecutionResourceContract::declared([WorthQueryExecutionStrategyContract::new(
+            WorthQueryExecutionStrategyName::new(degradation.as_str()).unwrap(),
+            degraded.clone(),
+            WorthQueryExecutionProviderRequirements::new(provider(), access(), allocator()),
+        )])
         .unwrap();
-        assert_eq!(admitted.envelope().degradation(), Some(degradation));
-    }
+    let support = support_with_capacity(
+        degraded,
+        std::sync::Arc::new(
+            WorthQueryFixedExecutionCapacity::mint(degradation.as_str(), 1).unwrap(),
+        ),
+    );
+
+    let denied = admit_execution_resource_plan(
+        "binding",
+        &contract,
+        &request(8),
+        support.clone(),
+        WorthQueryExecutionResourceAdmissionCounters::default(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        denied.kind(),
+        &WorthQueryExecutionResourceAdmissionDenialKind::DegradationPostureUnsupported
+    );
+    let admitted = admit_execution_resource_plan(
+        "binding",
+        &contract,
+        &request(8).allow_degradation(degradation),
+        support,
+        WorthQueryExecutionResourceAdmissionCounters::default(),
+    )
+    .unwrap();
+    assert_eq!(admitted.envelope().degradation(), Some(degradation));
 }
 
 #[test]
@@ -280,78 +339,7 @@ fn assert_single_axis_denial(request: WorthQueryExecutionResourceRequest) {
     assert_eq!(denial.counters().provider_session_mints, 0);
 }
 
-#[test]
-fn consuming_capacity_reservation_saturates_and_drop_releases_the_exact_pool() {
-    let capacity = std::sync::Arc::new(
-        WorthQueryFixedExecutionCapacity::mint("one-shot-capacity", 1).unwrap(),
-    );
-    let support = support_with_capacity(envelope(8), capacity);
-    let first = admit_execution_resource_plan(
-        "binding",
-        &contract(8),
-        &request(8),
-        support.clone(),
-        WorthQueryExecutionResourceAdmissionCounters::default(),
-    )
-    .unwrap();
-    let second = admit_execution_resource_plan(
-        "binding",
-        &contract(8),
-        &request(8),
-        support.clone(),
-        WorthQueryExecutionResourceAdmissionCounters::default(),
-    )
-    .unwrap();
-    let retry = admit_execution_resource_plan(
-        "binding",
-        &contract(8),
-        &request(8),
-        support,
-        WorthQueryExecutionResourceAdmissionCounters::default(),
-    )
-    .unwrap();
-
-    let reserved = reserve_execution_resource_plan(first).expect("first arrival reserves");
-    assert!(reserve_execution_resource_plan(second).is_none());
-    drop(reserved);
-
-    assert!(reserve_execution_resource_plan(retry).is_some());
-}
-
-#[test]
-fn equal_capacity_labels_cannot_merge_distinct_provider_authorities() {
-    let first: std::sync::Arc<dyn WorthQueryExecutionCapacityPort> =
-        std::sync::Arc::new(WorthQueryFixedExecutionCapacity::new("shared-label", 1).unwrap());
-    let second: std::sync::Arc<dyn WorthQueryExecutionCapacityPort> =
-        std::sync::Arc::new(WorthQueryFixedExecutionCapacity::new("shared-label", 1).unwrap());
-    let operation = admitted_with_support("operation", support_with_capacity(envelope(8), first));
-    let stage = admitted_with_support(
-        "operation:stage",
-        support_with_capacity(envelope(8), second),
-    );
-    let workflow = WorthQueryAdmittedWorkflowResourcePlan::assemble(
-        operation,
-        [("stage".to_owned(), stage)].into_iter().collect(),
-    );
-
-    assert!(reserve_workflow_resource_plan(workflow).is_none());
-}
-
-fn admitted_with_support(
-    binding: &str,
-    support: WorthQueryExecutionResourceSupportSnapshot,
-) -> WorthQueryAdmittedExecutionResourcePlan {
-    admit_execution_resource_plan(
-        binding,
-        &contract(8),
-        &request(8),
-        support,
-        WorthQueryExecutionResourceAdmissionCounters::default(),
-    )
-    .unwrap()
-}
-
-fn support_with_capacity(
+pub(super) fn support_with_capacity(
     resource_envelope: WorthQueryExecutionResourceEnvelope,
     capacity: std::sync::Arc<dyn WorthQueryExecutionCapacityPort>,
 ) -> WorthQueryExecutionResourceSupportSnapshot {

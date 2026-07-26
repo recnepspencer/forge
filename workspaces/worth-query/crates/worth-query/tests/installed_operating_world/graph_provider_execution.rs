@@ -5,9 +5,10 @@ use worth_query::facade::domain;
 
 use super::graph_read_material::graph_read_material;
 use super::installed_operation_fixture::{
-    configured_runtime_for_package, configured_runtime_for_understated_cost_package,
-    federated_operation_contract_drift_package, federated_package, federated_touch_package,
-    FederatedOperationContractDrift, FederatedRead, GeometryDomain, ReadFamily,
+    configured_runtime_for_package, configured_runtime_for_partial_effect_package,
+    configured_runtime_for_understated_cost_package, federated_operation_contract_drift_package,
+    federated_package, federated_touch_package, FederatedOperationContractDrift, FederatedRead,
+    GeometryDomain, ReadFamily,
 };
 
 mod call_affinity;
@@ -80,28 +81,33 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
             FailAt::Observe => (None, Some(failure), None),
             FailAt::Commit => (None, None, Some(failure)),
         };
-        let mut workspace = configured_runtime_for_package(federated_touch_package::<
-            RemoteA,
-            RemoteB,
-        >(false, true))
-        .graph_participation(atomic_definition::<RemoteA>("remote-a"))
-        .atomic_graph_participation_provider(
-            RemoteA,
-            SelectiveProvider::new(&log, a_failure),
-            SharedCommit,
-        )
-        .graph_participation(atomic_definition::<RemoteB>("remote-b"))
-        .atomic_graph_participation_provider(
-            RemoteB,
-            SelectiveProvider::new(&log, b_failure),
-            SharedCommit,
-        )
-        .graph_commit_provider(
-            SharedCommit,
-            SelectiveProvider::commit(&log, commit_failure, vec!["remote-a", "remote-b"]),
-        )
-        .workspace(format!("graph-sabotage-{name}"))
-        .unwrap();
+        let mut workspace =
+            configured_runtime_for_partial_effect_package(federated_touch_package::<
+                RemoteA,
+                RemoteB,
+            >(false, true))
+            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+            .atomic_graph_participation_provider(
+                RemoteA,
+                SelectiveProvider::partial_effect(&log, a_failure),
+                SharedCommit,
+            )
+            .graph_participation(atomic_definition::<RemoteB>("remote-b"))
+            .atomic_graph_participation_provider(
+                RemoteB,
+                SelectiveProvider::partial_effect(&log, b_failure),
+                SharedCommit,
+            )
+            .graph_commit_provider(
+                SharedCommit,
+                SelectiveProvider::partial_effect_commit(
+                    &log,
+                    commit_failure,
+                    vec!["remote-a", "remote-b"],
+                ),
+            )
+            .workspace(format!("graph-sabotage-{name}"))
+            .unwrap();
         let installed = workspace.domain(GeometryDomain).unwrap();
         let bound = workspace
             .prepare_mutation_operating_world()
@@ -112,7 +118,8 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
         let denial = match bound
             .admit_execution_resources(
                 (),
-                crate::suite::installed_operation_fixture::execution_resource_request(),
+                crate::suite::installed_operation_fixture::partial_effect_execution_resource_request(
+                ),
                 &workspace,
             )
             .unwrap()
@@ -138,25 +145,27 @@ fn every_graph_entrypoint_fails_at_its_exact_boundary_and_commit_precedes_touch(
 #[test]
 fn read_only_participation_does_not_widen_the_mutating_commit_set() {
     let log = Arc::new(Mutex::new(Vec::new()));
-    let mut workspace =
-        configured_runtime_for_package(federated_touch_package::<RemoteA, RemoteB>(false, false))
-            .graph_participation(atomic_definition::<RemoteA>("remote-a"))
-            .atomic_graph_participation_provider(
-                RemoteA,
-                SelectiveProvider::new(&log, None),
-                SharedCommit,
-            )
-            .graph_participation(read_definition::<RemoteB>(
-                "remote-b",
-                domain::WorthQueryGraphProjectionPosture::NativeProjection,
-            ))
-            .graph_participation_provider(RemoteB, SelectiveProvider::new(&log, None))
-            .graph_commit_provider(
-                SharedCommit,
-                SelectiveProvider::commit(&log, None, vec!["remote-a"]),
-            )
-            .workspace("graph-selective-commit-set")
-            .unwrap();
+    let mut workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
+        RemoteA,
+        RemoteB,
+    >(false, false))
+    .graph_participation(atomic_definition::<RemoteA>("remote-a"))
+    .atomic_graph_participation_provider(
+        RemoteA,
+        SelectiveProvider::partial_effect(&log, None),
+        SharedCommit,
+    )
+    .graph_participation(read_definition::<RemoteB>(
+        "remote-b",
+        domain::WorthQueryGraphProjectionPosture::NativeProjection,
+    ))
+    .graph_participation_provider(RemoteB, SelectiveProvider::partial_effect(&log, None))
+    .graph_commit_provider(
+        SharedCommit,
+        SelectiveProvider::partial_effect_commit(&log, None, vec!["remote-a"]),
+    )
+    .workspace("graph-selective-commit-set")
+    .unwrap();
     let installed = workspace.domain(GeometryDomain).unwrap();
     let bound = workspace
         .prepare_mutation_operating_world()
@@ -171,7 +180,7 @@ fn read_only_participation_does_not_widen_the_mutating_commit_set() {
     bound
         .admit_execution_resources(
             (),
-            crate::suite::installed_operation_fixture::execution_resource_request(),
+            crate::suite::installed_operation_fixture::partial_effect_execution_resource_request(),
             &workspace,
         )
         .unwrap()

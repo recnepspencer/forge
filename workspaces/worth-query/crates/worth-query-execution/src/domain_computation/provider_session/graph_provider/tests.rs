@@ -8,7 +8,7 @@ use worth_query_installation::facade::{
 use super::{
     WorthQueryGraphCallBindingDenial, WorthQueryGraphProviderCallKind,
     WorthQueryGraphProviderCallRequest, WorthQueryGraphReadMaterial, WorthQueryGraphReadRow,
-    WorthQueryGraphReceiptAdmissionDenial,
+    WorthQueryGraphReceiptAdmissionDenial, WorthQueryProviderWorkReport,
 };
 use crate::domain_computation::execution_runtime::WorthQueryExecutionRuntimeInstaller;
 use crate::domain_computation::operation_binding::direct_authority_with_graph;
@@ -26,7 +26,9 @@ fn retained_graph_call_cannot_bind_a_later_call_receipt() {
     let attempt = attempt();
     let first = call(&attempt, "first");
     let second = call(&attempt, "second");
-    let foreign_receipt = first.projected("first", material("first")).unwrap();
+    let foreign_receipt = first
+        .projected("first", material("first"), projected_work_report())
+        .unwrap();
 
     assert_eq!(
         second.admit_receipt(foreign_receipt).unwrap_err(),
@@ -43,14 +45,22 @@ fn equal_semantic_results_keep_distinct_call_and_product_occurrences() {
     let first_product = first
         .admit_receipt(
             first
-                .projected("first", material_with_rows(["a", "b"]))
+                .projected(
+                    "first",
+                    material_with_rows(["a", "b"]),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
     let second_product = second
         .admit_receipt(
             second
-                .projected("second", material_with_rows(["a", "b"]))
+                .projected(
+                    "second",
+                    material_with_rows(["a", "b"]),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
@@ -76,14 +86,22 @@ fn graph_product_digest_is_canonical_across_field_insertion_order() {
     let first_receipt = first
         .admit_receipt(
             first
-                .projected("first", material_with_field_order(false))
+                .projected(
+                    "first",
+                    material_with_field_order(false),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
     let second_receipt = second
         .admit_receipt(
             second
-                .projected("second", material_with_field_order(true))
+                .projected(
+                    "second",
+                    material_with_field_order(true),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
@@ -102,14 +120,22 @@ fn graph_product_digest_preserves_provider_row_order() {
     let first_receipt = first
         .admit_receipt(
             first
-                .projected("first", material_with_rows(["a", "b"]))
+                .projected(
+                    "first",
+                    material_with_rows(["a", "b"]),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
     let second_receipt = second
         .admit_receipt(
             second
-                .projected("second", material_with_rows(["b", "a"]))
+                .projected(
+                    "second",
+                    material_with_rows(["b", "a"]),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
@@ -129,14 +155,22 @@ fn graph_product_digest_changes_when_a_field_value_changes() {
     let first_receipt = first
         .admit_receipt(
             first
-                .projected("first", material_with_identity_value("vertex-a"))
+                .projected(
+                    "first",
+                    material_with_identity_value("vertex-a"),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
     let second_receipt = second
         .admit_receipt(
             second
-                .projected("second", material_with_identity_value("vertex-b"))
+                .projected(
+                    "second",
+                    material_with_identity_value("vertex-b"),
+                    projected_work_report(),
+                )
                 .unwrap(),
         )
         .unwrap();
@@ -159,8 +193,16 @@ fn non_projection_call_cannot_seal_projection_material() {
     );
 
     assert!(call
-        .projected("unexpected", material("unexpected"))
+        .projected(
+            "unexpected",
+            material("unexpected"),
+            projected_work_report(),
+        )
         .is_err());
+}
+
+fn projected_work_report() -> WorthQueryProviderWorkReport {
+    WorthQueryProviderWorkReport::new(1, 0, 64, 64)
 }
 
 #[test]
@@ -198,8 +240,8 @@ fn provider_session_rejects_an_installed_but_undeclared_graph_authority() {
             WorthQueryGraphProviderCallRequest::direct(
                 WorthQueryGraphProviderCallKind::Project,
                 "foreign-graph",
-                "snapshot",
-            ),
+            )
+            .bind_execution_snapshot("snapshot"),
             attempt.attempt.evidence(),
             attempt.attempt.resources().shared_envelope(),
         )
@@ -223,8 +265,8 @@ fn direct_provider_session_rejects_a_caller_authored_workflow_stage() {
                 WorthQueryGraphProviderCallKind::Project,
                 "invented-stage",
                 "invented",
-                "snapshot",
-            ),
+            )
+            .bind_execution_snapshot("snapshot"),
             attempt.attempt.evidence(),
             attempt.attempt.resources().shared_envelope(),
         )
@@ -261,7 +303,7 @@ fn call_spec(
     scope: &str,
     kind: WorthQueryGraphProviderCallKind,
 ) -> WorthQueryGraphProviderCallRequest {
-    WorthQueryGraphProviderCallRequest::direct(kind, scope, "snapshot")
+    WorthQueryGraphProviderCallRequest::direct(kind, scope).bind_execution_snapshot("snapshot")
 }
 
 fn material(label: &str) -> WorthQueryGraphReadMaterial {

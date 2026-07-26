@@ -1,0 +1,204 @@
+use super::*;
+
+#[test]
+fn workflow_cleanup_contains_artifact_disposal_and_destructor_panics() {
+    let world = double_panicking_artifact_world("artifact-double-panic");
+
+    let terminal = world
+        .running
+        .completed()
+        .expect("owned artifact does not prevent semantic completion");
+    let cleanup = match terminal.cleanup() {
+        WorthQueryWorkflowRunCleanupOutcome::Complete(receipt) => receipt,
+        WorthQueryWorkflowRunCleanupOutcome::Pending(_) => {
+            panic!("owner without borrows remained pending after registry close")
+        }
+        WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(failure) => {
+            panic!("provider panic escaped into lower-layer cleanup failure: {failure:?}")
+        }
+    };
+    assert_eq!(
+        cleanup.disposition(),
+        WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+    );
+    assert!(cleanup.relational().released());
+    assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 2);
+    let evidence = cleanup.artifact_evidence();
+    assert_eq!(evidence.produced_artifact_count(), 1);
+    assert_eq!(evidence.retained_artifact_count(), 0);
+    assert_eq!(evidence.disposed_artifact_count(), 1);
+    assert_eq!(evidence.retained_bytes(), 0);
+    assert_eq!(evidence.provider_release_complete_count(), 0);
+    assert_eq!(evidence.provider_release_pending_count(), 0);
+    assert_eq!(evidence.provider_release_recovery_required_count(), 1);
+    assert_eq!(world.disposal_attempts.load(Ordering::Acquire), 1);
+    assert_eq!(world.destructor_attempts.load(Ordering::Acquire), 1);
+    let release = match world.handle.owner_snapshot().provider_release() {
+        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
+            evidence,
+        ) => evidence,
+        posture => panic!("double-panic artifact reported {posture:?}"),
+    };
+    assert_eq!(
+        release.disposal(),
+        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Panicked
+    );
+    assert_eq!(
+        release.destructor(),
+        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Panicked
+    );
+}
+
+#[test]
+fn surviving_borrow_delays_and_then_contains_both_artifact_release_panics() {
+    let world = double_panicking_artifact_world("artifact-delayed-double-panic");
+    let borrowed = world
+        .handle
+        .borrow("delayed double-panic release")
+        .expect("installed artifact contract should admit the surviving borrow");
+    let terminal = world
+        .running
+        .completed()
+        .expect("surviving artifact borrow does not prevent semantic completion");
+    let pending = match terminal.cleanup() {
+        WorthQueryWorkflowRunCleanupOutcome::Pending(pending) => pending,
+        WorthQueryWorkflowRunCleanupOutcome::Complete(_) => {
+            panic!("surviving artifact borrow allowed cleanup completion")
+        }
+        WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(failure) => {
+            panic!("physical release ran before the last borrow left: {failure:?}")
+        }
+    };
+    assert_eq!(world.disposal_attempts.load(Ordering::Acquire), 0);
+    assert_eq!(world.destructor_attempts.load(Ordering::Acquire), 0);
+
+    drop(borrowed);
+    assert_eq!(world.disposal_attempts.load(Ordering::Acquire), 1);
+    assert_eq!(world.destructor_attempts.load(Ordering::Acquire), 1);
+    let release = match world.handle.owner_snapshot().provider_release() {
+        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
+            evidence,
+        ) => evidence,
+        posture => panic!("delayed double-panic artifact reported {posture:?}"),
+    };
+    assert_eq!(
+        release.disposal(),
+        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Panicked
+    );
+    assert_eq!(
+        release.destructor(),
+        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Panicked
+    );
+    drop(world.handle);
+    let cleanup = match pending.retry() {
+        WorthQueryWorkflowRunCleanupOutcome::Complete(cleanup) => cleanup,
+        WorthQueryWorkflowRunCleanupOutcome::Pending(_) => {
+            panic!("released artifact owner kept cleanup pending")
+        }
+        WorthQueryWorkflowRunCleanupOutcome::RecoveryRequired(failure) => {
+            panic!("contained artifact panic became lower cleanup failure: {failure:?}")
+        }
+    };
+    assert_eq!(
+        cleanup.disposition(),
+        WorthQueryManagedRunCleanupDisposition::RecoveryRequired
+    );
+    assert_eq!(
+        cleanup
+            .artifact_evidence()
+            .provider_release_recovery_required_count(),
+        1
+    );
+}
+
+struct DoublePanickingArtifactWorld {
+    running: crate::domain_computation::WorthQueryRunningWorkflowRun,
+    handle: crate::domain_computation::WorthQueryMoveOnlyArtifactHandle,
+    disposal_attempts: Arc<AtomicUsize>,
+    destructor_attempts: Arc<AtomicUsize>,
+}
+
+fn double_panicking_artifact_world(label: &str) -> DoublePanickingArtifactWorld {
+    let runtime = query_runtime();
+    let operation_resources = admitted_plan(label, 8);
+    let stage_label = format!("{label}:producer");
+    let stage_resources = admitted_plan(&stage_label, 4);
+    let resources = WorthQueryAdmittedWorkflowResourcePlan::assemble(
+        operation_resources,
+        BTreeMap::from([("producer".to_owned(), stage_resources)]),
+    );
+    let output =
+        crate::domain_computation::artifact_owner::installed_artifact_contract_for_managed_run();
+    let operation =
+        workflow_authority_with_output_artifact(&runtime, &resources, "producer", output);
+    let attempt = runtime
+        .start_workflow_resource_attempt(&operation, resources)
+        .expect("double-panic workflow should reserve");
+    let lower = causal_fixture::managed_admission_context();
+    let running = runtime
+        .managed_run_admission(&lower.bridge, &lower.relational)
+        .admit_workflow(&operation, attempt, lower.read_request())
+        .expect("double-panic workflow should admit")
+        .start()
+        .expect("double-panic workflow should start");
+    let production = running
+        .artifacts()
+        .production_authority("producer")
+        .expect("producer stage should validate")
+        .expect("producer stage should own output authority");
+    let admission =
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProductionAuthority::admit(
+            &production,
+            WorthQueryArtifactProductionEvidence::new(
+                "double-panic-provenance",
+                "double-panic-dependency",
+            ),
+        );
+    let disposal_attempts = Arc::new(AtomicUsize::new(0));
+    let destructor_attempts = Arc::new(AtomicUsize::new(0));
+    let handle =
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProductionAuthority::register_exact(
+            &production,
+            admission,
+            DoublePanickingArtifactResource {
+                disposal_attempts: Arc::clone(&disposal_attempts),
+                destructor_attempts: Arc::clone(&destructor_attempts),
+            },
+        )
+        .expect("double-panic artifact should register before production freezes");
+    DoublePanickingArtifactWorld {
+        running,
+        handle,
+        disposal_attempts,
+        destructor_attempts,
+    }
+}
+
+struct DoublePanickingArtifactResource {
+    disposal_attempts: Arc<AtomicUsize>,
+    destructor_attempts: Arc<AtomicUsize>,
+}
+
+impl WorthQueryArtifactProviderResource for DoublePanickingArtifactResource {
+    const PROVIDER_FAMILY: &'static str = "WORTH.tests.affinity.provider";
+
+    fn canonical_semantic_projection(&self) -> Vec<u8> {
+        b"double-panic-artifact".to_vec()
+    }
+
+    fn retained_bytes(&self) -> usize {
+        64
+    }
+
+    fn dispose(&mut self) {
+        self.disposal_attempts.fetch_add(1, Ordering::AcqRel);
+        panic!("artifact provider disposal panicked")
+    }
+}
+
+impl Drop for DoublePanickingArtifactResource {
+    fn drop(&mut self) {
+        self.destructor_attempts.fetch_add(1, Ordering::AcqRel);
+        panic!("artifact provider destructor panicked")
+    }
+}

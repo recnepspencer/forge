@@ -4,9 +4,10 @@ use std::sync::Arc;
 
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactDisposition,
-    WorthQueryArtifactHandleCore, WorthQueryArtifactProductionAdmission,
-    WorthQueryMoveOnlyArtifactHandle, WorthQueryPreparedArtifactResource,
-    WorthQueryRuntimeArtifactBinding, WorthQueryRuntimeArtifactOwner,
+    WorthQueryArtifactHandleCore, WorthQueryArtifactOccurrenceScope,
+    WorthQueryArtifactProductionAdmission, WorthQueryMoveOnlyArtifactHandle,
+    WorthQueryPreparedArtifactResource, WorthQueryRuntimeArtifactBinding,
+    WorthQueryRuntimeArtifactOwner,
 };
 
 static NEXT_ARTIFACT_OCCURRENCE: AtomicU64 = AtomicU64::new(1);
@@ -15,57 +16,21 @@ impl WorthQueryMoveOnlyArtifactHandle {
     pub(super) fn register(
         admission: WorthQueryArtifactProductionAdmission,
         prepared: WorthQueryPreparedArtifactResource,
+        occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
     ) -> Result<Self, WorthQueryArtifactDenial> {
-        validate_production(&admission, &prepared)?;
+        if let Err(denial) = validate_production(&admission, &prepared) {
+            let release = prepared.release();
+            return Err(denial.with_rejected_resource_release(
+                super::WorthQueryArtifactProviderReleasePosture::from_evidence(release),
+            ));
+        }
         let occurrence_ordinal = NEXT_ARTIFACT_OCCURRENCE.fetch_add(1, Ordering::Relaxed);
         let authority = admission.authority();
-        let contract = authority.contract.contract();
-        let owner_identity =
-            crate::domain_computation::artifact_identity::hash_artifact_identity_parts(&[
-                "worth_query_runtime_artifact_owner_v1".into(),
-                format!(
-                    "runtime:{}",
-                    authority.domain_authority.runtime_authority().as_u64()
-                ),
-                format!(
-                    "generation:{}",
-                    admission
-                        .authority()
-                        .domain_authority
-                        .installation_generation()
-                        .ordinal()
-                ),
-                format!("operation:{}", authority.operation_identity),
-                format!("binding:{}", authority.binding_identity),
-                format!("run:{}", authority.run_identity),
-                format!("stage:{}", authority.stage_identity),
-                format!("contract:{}", contract.identity().as_str()),
-                format!("occurrence-ordinal:{occurrence_ordinal}"),
-            ]);
-        let occurrence_identity =
-            crate::domain_computation::artifact_identity::hash_artifact_identity_parts(&[
-                "worth_query_artifact_occurrence_v1".into(),
-                format!("owner:{owner_identity}"),
-                format!("contract:{}", contract.identity().as_str()),
-                format!("run:{}", authority.run_identity),
-                format!("stage:{}", authority.stage_identity),
-            ]);
         let holder_stage = authority.stage_identity.clone();
         let owner = WorthQueryRuntimeArtifactOwner::register(
-            WorthQueryRuntimeArtifactBinding {
-                contract: Arc::clone(&authority.contract),
-                domain_authority: Arc::clone(&authority.domain_authority),
-                operation_identity: authority.operation_identity.clone(),
-                binding_identity: authority.binding_identity.clone(),
-                run_identity: authority.run_identity.clone(),
-                producing_stage: authority.stage_identity.clone(),
-                basis_identity: authority.basis_identity.clone(),
-                provenance_identity: admission.evidence.provenance_identity().to_owned(),
-                dependency_identity: admission.evidence.dependency_identity().to_owned(),
-                owner_identity,
-                occurrence_identity,
-            },
+            runtime_artifact_binding(&admission, occurrence_ordinal),
             prepared,
+            occurrence_scope,
         );
         let handle = Self {
             core: WorthQueryArtifactHandleCore::new_owner(
@@ -74,8 +39,68 @@ impl WorthQueryMoveOnlyArtifactHandle {
                 WorthQueryArtifactDisposition::Produced,
             ),
         };
-        authority.registry.register(&handle)?;
+        if let Err(denial) = authority
+            .registry
+            .register(&handle, authority.production_generation)
+        {
+            let release = handle.cancel().provider_release();
+            return Err(denial.with_rejected_resource_release(release));
+        }
         Ok(handle)
+    }
+}
+
+fn runtime_artifact_binding(
+    admission: &WorthQueryArtifactProductionAdmission,
+    occurrence_ordinal: u64,
+) -> WorthQueryRuntimeArtifactBinding {
+    let authority = admission.authority();
+    let contract = authority.contract.contract();
+    let owner_identity =
+        crate::domain_computation::artifact_identity::hash_artifact_identity_parts(&[
+            "worth_query_runtime_artifact_owner_v1".into(),
+            format!(
+                "runtime:{}",
+                authority.domain_authority.runtime_authority().as_u64()
+            ),
+            format!(
+                "generation:{}",
+                authority
+                    .domain_authority
+                    .installation_generation()
+                    .ordinal()
+            ),
+            format!("operation:{}", authority.operation_identity),
+            format!("binding:{}", authority.binding_identity),
+            format!("run:{}", authority.run_identity),
+            format!("stage:{}", authority.stage_identity),
+            format!(
+                "production-generation:{}",
+                authority.production_generation.ordinal()
+            ),
+            format!("contract:{}", contract.identity().as_str()),
+            format!("occurrence-ordinal:{occurrence_ordinal}"),
+        ]);
+    let occurrence_identity =
+        crate::domain_computation::artifact_identity::hash_artifact_identity_parts(&[
+            "worth_query_artifact_occurrence_v1".into(),
+            format!("owner:{owner_identity}"),
+            format!("contract:{}", contract.identity().as_str()),
+            format!("run:{}", authority.run_identity),
+            format!("stage:{}", authority.stage_identity),
+        ]);
+    WorthQueryRuntimeArtifactBinding {
+        contract: Arc::clone(&authority.contract),
+        domain_authority: Arc::clone(&authority.domain_authority),
+        operation_identity: authority.operation_identity.clone(),
+        binding_identity: authority.binding_identity.clone(),
+        run_identity: authority.run_identity.clone(),
+        producing_stage: authority.stage_identity.clone(),
+        basis_identity: authority.basis_identity.clone(),
+        provenance_identity: admission.evidence.provenance_identity().to_owned(),
+        dependency_identity: admission.evidence.dependency_identity().to_owned(),
+        owner_identity,
+        occurrence_identity,
     }
 }
 

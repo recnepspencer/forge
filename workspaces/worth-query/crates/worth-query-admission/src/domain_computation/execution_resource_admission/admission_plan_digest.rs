@@ -41,6 +41,14 @@ pub(super) fn admitted_envelope_identity(envelope: &WorthQueryExecutionResourceE
             envelope.partial_effect_posture().as_str()
         ),
         format!(
+            "yielded-state:{}",
+            envelope.yielded_state_posture().as_str()
+        ),
+        format!(
+            "retained-progress:{}",
+            envelope.retained_progress_posture().as_str()
+        ),
+        format!(
             "scale:{}",
             envelope
                 .scale_ceilings()

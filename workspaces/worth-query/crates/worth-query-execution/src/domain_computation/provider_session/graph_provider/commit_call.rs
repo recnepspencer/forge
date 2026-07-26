@@ -8,6 +8,7 @@ use super::call_identity::WorthQueryGraphCallAuthorityIdentity;
 use super::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryGraphCallBindingDenial,
     WorthQueryGraphProviderReceipt, WorthQueryGraphReceiptAdmissionDenial,
+    WorthQueryLegacyProviderWorkClaim,
 };
 use crate::domain_computation::provider_session::{
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
@@ -154,8 +155,13 @@ impl WorthQueryGraphCommitCall {
     pub fn completed(
         &self,
         provider_receipt: impl Into<Arc<str>>,
+        work_claim: WorthQueryLegacyProviderWorkClaim,
     ) -> WorthQueryGraphProviderReceipt {
-        WorthQueryGraphProviderReceipt::completed(self.authority_identity, provider_receipt)
+        WorthQueryGraphProviderReceipt::completed(
+            self.authority_identity,
+            provider_receipt,
+            work_claim.into_report(),
+        )
     }
 
     pub fn admit_receipt(

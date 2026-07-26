@@ -175,6 +175,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryWorkflowRun<D, O, F, L> {
             lineage: evidence.lineage,
             domain_evidence: evidence.domain_evidence,
             execution_resources: evidence.resource_evidence,
+            artifact_provider_release: None,
         });
         self.receipt_index
             .insert(stage_identity.into(), receipt_index);

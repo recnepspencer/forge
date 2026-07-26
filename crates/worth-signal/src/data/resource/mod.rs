@@ -7,6 +7,7 @@ mod descriptor;
 mod diagnostics;
 mod inflight;
 mod lifecycle;
+mod managed_queue;
 mod observation;
 mod policy;
 mod policy_registry;
@@ -17,6 +18,7 @@ mod request;
 mod retention;
 mod retry;
 mod revalidation;
+mod safe_point;
 mod summary;
 mod supersession;
 mod timeout;
@@ -93,6 +95,13 @@ pub use lifecycle::{
     ResourceLifecycleClass, ResourceLifecycleOrdinal, ResourceLifecycleTransition,
     ResourceLifecycleTransitionKind, ResourceOutputContinuity,
 };
+pub(crate) use managed_queue::ResourceManagedQueueState;
+pub use managed_queue::{
+    ResourceManagedQueueBinding, ResourceManagedQueueCounters, ResourceManagedQueueDenial,
+    ResourceManagedQueueDenialClass, ResourceManagedQueueMutationKind,
+    ResourceManagedQueueMutationReport, ResourceQueuePressureClass,
+    ResourceQueuePressureObservation,
+};
 pub use observation::{
     ObservedResourceNodeState, ResourceObservationBatchReport, ResourceObservationEvent,
 };
@@ -160,9 +169,15 @@ pub use revalidation::{
     ActiveResourceRevalidationProof, AdmittedResourceRevalidation, DeniedResourceRevalidation,
     DependencyChangeResourceRevalidationProof, FulfilledLifecycleResourceRevalidationProof,
     ObserverDemandResourceRevalidationProof, ResourceRevalidationCoalescing,
-    ResourceRevalidationDenialClass, ResourceRevalidationFreshnessClass,
-    ResourceRevalidationFreshnessDecision, ResourceRevalidationIntent,
-    TerminalStateResourceRevalidationProof,
+    ResourceRevalidationDenialClass, ResourceRevalidationEvidence,
+    ResourceRevalidationFreshnessClass, ResourceRevalidationFreshnessDecision,
+    ResourceRevalidationIntent, TerminalStateResourceRevalidationProof,
+};
+pub(crate) use safe_point::ResourceSafePointObservationEvidence;
+pub use safe_point::{
+    ResourceSafePointObservationCounters, ResourceSafePointObservationDenial,
+    ResourceSafePointObservationDenialClass, ResourceSafePointObservationOrdinal,
+    ResourceSafePointObservationReport,
 };
 pub use summary::{
     ResourceBoundaryKind, ResourceBoundaryPerformanceEnvelope, ResourceBranchRestoreReport,

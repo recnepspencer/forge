@@ -47,10 +47,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         }
         self.runtime.visibility.insert_active_handle(
             handle.snapshot_id,
-            SnapshotHandleBinding {
-                version_id: handle.version_id,
-                read_policy: handle.read_policy,
-            },
+            SnapshotHandleBinding::new(handle.version_id, handle.read_policy),
         );
         bump_active_snapshot_ref(self.runtime, handle.version_id, 1);
         handle
@@ -67,9 +64,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
-        if reconstruct_state(self.runtime, version_id, false).is_none() {
-            return None;
-        }
+        reconstruct_state(self.runtime, version_id, false)?;
         let handle = self.open_active_snapshot(version_id, SnapshotReadPolicy::ImmutablePinned);
         Some(SnapshotGuard::new(handle))
     }
@@ -103,15 +98,19 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             }
             return true;
         }
-        if self
-            .runtime
+        self.runtime
             .visibility
             .remove_published_handle(handle.snapshot_id)
             .is_some()
-        {
-            true
-        } else {
-            false
-        }
+    }
+
+    pub fn admit_execution_basis(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Result<
+        crate::visibility::execution_basis::RelationalExecutionBasisLease,
+        crate::visibility::execution_basis::RelationalExecutionBasisDenial,
+    > {
+        crate::visibility::execution_basis::admit_execution_basis(self.runtime, version_id)
     }
 }

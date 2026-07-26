@@ -51,6 +51,42 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
     );
 }
 
+#[test]
+fn runtime_bridge_snapshot_reader_requires_live_execution_basis_authority() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "managed");
+    let version_id = created.version_id;
+    let entity_identity = active_entity_identity(&created);
+    assert!(runtime.snapshots().release_snapshot(&created.snapshot));
+    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
+        .expect("test graph role");
+    let lease = source
+        .admit_execution_basis(version_id)
+        .expect("Relational source should admit its reconstructible version");
+    let identity = bridge_snapshot_identity_for_handle(lease.snapshot_handle());
+
+    let reader = source
+        .open_snapshot(&identity)
+        .expect("live execution basis should authorize Bridge snapshot access");
+    let packet = worth_runtime_bridge::facade::SnapshotReadPacket::new(vec![
+        worth_runtime_bridge::facade::SnapshotReadRequest::for_relational_record(
+            entity_identity,
+            SnapshotReadContract::scalar(aspect_key("name"), ScalarAspectType::String),
+        ),
+    ]);
+    assert_eq!(
+        reader
+            .read_packet(&packet)
+            .expect("execution basis packet should read")
+            .records()
+            .len(),
+        1
+    );
+
+    assert!(lease.release().released());
+    assert!(source.open_snapshot(&identity).is_err());
+}
+
 fn active_entity_identity(
     result: &crate::facade::transactions::CommitResult,
 ) -> RelationalBridgeRecordIdentityParts {

@@ -6,6 +6,7 @@ use crate::domain_installation::{
     WorthQueryOperationGraphAccess, WorthQueryOperationGraphParticipation,
     WorthQueryOperationTouchContract,
 };
+use worth_query_execution::facade::integration::legacy_provider_execution::execute_legacy_one_shot;
 
 use super::{
     WorthQueryBoundExecutionDenial, WorthQueryBoundExecutionDenialKind,
@@ -242,11 +243,7 @@ pub(super) fn contact_graph(
         )
     })?;
     counters.graph_provider_contacts += 1;
-    let receipt = request
-        .participation
-        .record
-        .provider
-        .call(request.kind, &call)
+    let receipt = execute_legacy_one_shot(request.participation.record.provider.as_ref(), &call)
         .map_err(|failure| {
             WorthQueryBoundExecutionDenial::new(
                 WorthQueryBoundExecutionDenialKind::GraphProvider,
@@ -274,14 +271,10 @@ fn graph_provider_call(
             request.kind,
             request.scope_identity,
             stage_identity,
-            request.expected_snapshot.evidence_identity().as_str(),
         ),
-        None => WorthQueryGraphProviderCallRequest::direct(
-            request.kind,
-            request.scope_identity,
-            request.expected_snapshot.evidence_identity().as_str(),
-        ),
-    };
+        None => WorthQueryGraphProviderCallRequest::direct(request.kind, request.scope_identity),
+    }
+    .bind_execution_snapshot(request.expected_snapshot.evidence_identity().as_str());
     request.provider_session.bind_graph_provider_call(
         request.participation.record.installation_authority.as_ref(),
         call_request,

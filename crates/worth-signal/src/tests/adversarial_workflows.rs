@@ -530,7 +530,10 @@ fn seed_geometry_baseline(
             head_snapshot: None,
         },
     );
-    let snapshot = fixture.runtime.capture_snapshot();
+    let snapshot = fixture
+        .runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let mut truth = model.branch(main.id).clone();
     truth.head_snapshot = Some(snapshot.meta.snapshot_id);
     model.snapshots.insert(snapshot.meta.snapshot_id, truth);
@@ -584,7 +587,10 @@ fn seed_fintech_baseline(
             head_snapshot: None,
         },
     );
-    let snapshot = fixture.runtime.capture_snapshot();
+    let snapshot = fixture
+        .runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let mut truth = model.branch(main.id).clone();
     truth.head_snapshot = Some(snapshot.meta.snapshot_id);
     model.snapshots.insert(snapshot.meta.snapshot_id, truth);
@@ -1550,7 +1556,10 @@ fn focused_parallel_branch_restore_and_evaluate_dirty_regression() {
         .unwrap();
     trace_adv("[parallel-test] focused-regression:parallel-evaluated");
 
-    let feature_snapshot = fixture.runtime.capture_snapshot();
+    let feature_snapshot = fixture
+        .runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     fixture
         .runtime
         .restore_branch_snapshot(feature.clone(), &feature_snapshot)
@@ -1634,7 +1643,9 @@ fn event_flush_failure_workflow_does_not_advance_branch_truth() {
         .unwrap();
 
     let source = runtime.graph_mut().node().build();
-    let baseline = runtime.capture_snapshot();
+    let baseline = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let feature = runtime.create_branch("event-feature").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
     let head_before = runtime.observe().branch_head_snapshot_id(feature.id);

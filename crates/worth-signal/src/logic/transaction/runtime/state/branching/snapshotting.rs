@@ -111,7 +111,7 @@ where
             + snapshot.diagnostics.lineage_records.len() as u64;
     }
 
-    pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
+    pub fn capture_snapshot(&mut self) -> Result<SignalSnapshotV1, SignalError> {
         let mut snapshot = self.graph.capture_snapshot();
         let retained_replay = self
             .graph
@@ -177,7 +177,7 @@ where
                 ),
             ),
         );
-        let mut branch_state = self.capture_heavy_branch_state();
+        let mut branch_state = self.capture_heavy_branch_state()?;
         branch_state
             .mutation_ledger_mut()
             .clear_all(Some(snapshot.meta.snapshot_id));
@@ -187,7 +187,7 @@ where
         self.branches.store_branch_state(branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
-        snapshot
+        Ok(snapshot)
     }
 
     pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
@@ -214,6 +214,10 @@ where
             .branches
             .snapshot_state(snapshot.meta.branch_id, snapshot.meta.snapshot_id)
             .cloned();
+        Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
+        if let Some(snapshot_state) = snapshot_state.as_ref() {
+            Self::ensure_managed_queue_branch_transfer_allowed(snapshot_state.resource())?;
+        }
         if let Some(snapshot_state) = snapshot_state {
             let current_diagnostics = self.graph.diagnostics_state().clone();
             let current_policy = current_diagnostics.policy();
@@ -324,8 +328,13 @@ where
         branch: SignalBranchHandle,
     ) -> Result<SignalSnapshotV1, SignalError> {
         if branch.id == self.graph.current_branch().id {
-            return Ok(self.capture_snapshot());
+            return self.capture_snapshot();
         }
+        let stored_state = self
+            .branches
+            .branch_state(branch.id)
+            .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
+        Self::ensure_managed_queue_branch_transfer_allowed(stored_state.resource())?;
         let Some((snapshot, branch_catalog, snapshot_state)) =
             self.branches.with_stored_branch_state_mut(branch.id, |state| {
             let policy = state.graph().runtime_policy();
@@ -497,11 +506,13 @@ where
                     snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0
                 ))
             })?;
-        let current_diagnostics = self
+        let target_state = self
             .branches
             .branch_state(branch.id)
-            .map(|state| state.graph().diagnostics_state().clone())
             .ok_or_else(|| SignalError::unknown_branch(Some(branch.id), branch.name.clone()))?;
+        Self::ensure_managed_queue_branch_transfer_allowed(target_state.resource())?;
+        Self::ensure_managed_queue_branch_transfer_allowed(snapshot_state.resource())?;
+        let current_diagnostics = target_state.graph().diagnostics_state().clone();
         let current_policy = current_diagnostics.policy();
         let mut graph = self
             .restore_runtime_authority_from_snapshot_proof(snapshot, &reconstructability_proof)?;

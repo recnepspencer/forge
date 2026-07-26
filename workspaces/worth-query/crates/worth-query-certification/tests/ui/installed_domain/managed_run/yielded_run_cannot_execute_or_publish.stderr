@@ -1,0 +1,35 @@
+error[E0599]: no method named `advance` found for struct `WorthQueryYieldedDirectRun` in the current scope
+ --> tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs:6:9
+  |
+6 |     run.advance();
+  |         ^^^^^^^ method not found in `WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `restore` found for struct `WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs:10:9
+   |
+10 |     run.restore();
+   |         ^^^^^^^ method not found in `WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `publish` found for struct `WorthQueryYieldedDirectRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs:14:9
+   |
+14 |     run.publish();
+   |         ^^^^^^^ method not found in `WorthQueryYieldedDirectRun`
+
+error[E0599]: no method named `advance` found for struct `WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs:18:9
+   |
+18 |     run.advance();
+   |         ^^^^^^^ method not found in `WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `restore` found for struct `WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs:22:9
+   |
+22 |     run.restore();
+   |         ^^^^^^^ method not found in `WorthQueryYieldedWorkflowRun`
+
+error[E0599]: no method named `publish` found for struct `WorthQueryYieldedWorkflowRun` in the current scope
+  --> tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs:26:9
+   |
+26 |     run.publish();
+   |         ^^^^^^^ method not found in `WorthQueryYieldedWorkflowRun`

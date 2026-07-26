@@ -114,7 +114,10 @@ impl ArtifactWorkflowExecutor {
         if mode == "cancel" {
             let disposed = handle.cancel();
             if disposed.disposition() == domain::WorthQueryArtifactDisposition::Cancelled
-                && disposed.provider_disposed()
+                && matches!(
+                    disposed.provider_release(),
+                    domain::WorthQueryArtifactProviderReleasePosture::Complete(_)
+                )
             {
                 self.probe.observe_cancellation();
             }
@@ -162,7 +165,10 @@ impl ArtifactWorkflowExecutor {
             )
             .map_err(|stop| artifact_failure(stop.into_parts().0))?;
         if replacement.prior().disposition() == domain::WorthQueryArtifactDisposition::Replaced
-            && replacement.prior().provider_disposed()
+            && matches!(
+                replacement.prior().provider_release(),
+                domain::WorthQueryArtifactProviderReleasePosture::Complete(_)
+            )
         {
             self.probe.observe_replacement();
         }

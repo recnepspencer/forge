@@ -53,7 +53,9 @@ fn async_node_hierarchy_late_descendant_completion_switches_from_cancelled_to_st
         grandchild_handle.payload_contract_digest().clone(),
         48,
     );
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let cancellation = runtime
         .cancel_async_node_request(

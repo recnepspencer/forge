@@ -14,10 +14,13 @@ pub use support_snapshot::*;
 pub use capacity_reservation::{
     reserve_execution_resource_plan, reserve_workflow_resource_plan,
     WorthQueryCapacityReservedExecutionResourcePlan,
-    WorthQueryCapacityReservedWorkflowResourcePlan,
+    WorthQueryCapacityReservedWorkflowResourcePlan, WorthQueryExecutionCapacityReleaseReceipt,
+    WorthQueryExecutionCapacityReservationScope,
 };
 pub use lowering::admit_execution_resource_plan;
 
+#[cfg(test)]
+mod capacity_authority_tests;
 #[cfg(test)]
 mod capacity_tests;
 #[cfg(test)]

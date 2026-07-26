@@ -38,7 +38,9 @@ fn async_node_interior_gate_report_tracks_dependency_shape_and_restores_identica
     let baseline = runtime
         .async_node_gate_state_report(gate)
         .expect("interior async gate report should materialize");
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     assert_eq!(baseline.node(), gate);
     assert_eq!(baseline.upstream_dependency_count(), 1);

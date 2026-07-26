@@ -12,6 +12,7 @@ mod async_completion_supersession;
 mod async_request_identity;
 mod async_retry_revalidation;
 mod async_writeback;
+mod authoritative_profile;
 mod canonicalization;
 mod materialization;
 mod planning;

@@ -15,6 +15,8 @@ pub enum WorthQueryExecutionResourceAdmissionDenialKind {
     CancellationSafePointUnsupported,
     DegradationPostureUnsupported,
     PartialEffectPostureUnsupported,
+    YieldedStatePostureUnsupported,
+    RetainedProgressPostureUnsupported,
     AsyncExecutionRequired,
     Backpressured,
     ResourceCeilingExceeded,

@@ -250,7 +250,9 @@ pub(crate) fn denied_request_response_completion_after_restore_staleness(
     let request_identity = admit_request_response_identity(runtime, node, truth_basis);
     let raw = request_response_raw_completion(&request_identity, 64);
     with_async_request_signal_runtime(runtime.signal_runtime_key, |signal_runtime| {
-        let snapshot = signal_runtime.capture_snapshot();
+        let snapshot = signal_runtime
+            .capture_snapshot()
+            .expect("snapshot capture should succeed without managed queue bindings");
         let node = request_identity
             .lowered()
             .request_response_declaration()

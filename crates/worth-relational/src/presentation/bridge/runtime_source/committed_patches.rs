@@ -10,15 +10,9 @@ impl CommittedPatchSource for RuntimeBridgeRelationalSource {
     fn authoritative_source_profile(
         &self,
     ) -> Option<worth_runtime_bridge::facade::BridgeAuthoritativeSourceProfile> {
-        Some(
-            worth_runtime_bridge::facade::BridgeAuthoritativeSourceProfile::new(
-                self.runtime.runtime_instance_id(),
-                super::super::identities::relational_bridge_adapter_identity(
-                    self.runtime.runtime_instance_id(),
-                ),
-            )
-            .expect("Relational runtime authority always yields a valid Bridge source profile"),
-        )
+        Some(RuntimeBridgeRelationalSource::authoritative_source_profile(
+            self,
+        ))
     }
 
     fn load_committed_patch(

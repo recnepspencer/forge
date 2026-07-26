@@ -38,6 +38,8 @@ pub struct RuntimeBridge {
     pub(crate) subscription_family_registry: FrozenSubscriptionFamilyRegistry,
     pub(crate) signal_runtime_key: u64,
     pub(crate) signal_aspect_lowering_owner: worth_signal::facade::SignalAspectLoweringOwner,
+    pub(crate) execution_basis_reservations:
+        std::sync::Arc<crate::execution_basis::BridgeExecutionBasisReservationRegistry>,
     pub(crate) correspondence_allocations:
         crate::correspondence::SharedCorrespondenceAllocationRegistry,
     pub(crate) query_dependency_registry: crate::correspondence::AdmittedQueryDependencyRegistry,

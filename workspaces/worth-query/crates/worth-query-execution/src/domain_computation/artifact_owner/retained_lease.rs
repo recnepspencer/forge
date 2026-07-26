@@ -47,7 +47,7 @@ impl WorthQueryRetainedArtifactLease {
         mut self,
     ) -> Result<super::WorthQueryDisposedArtifact, WorthQueryArtifactDenial> {
         self.active = false;
-        let provider_disposed = self.owner.release_lease(
+        let provider_release = self.owner.release_lease(
             self.lease_generation,
             WorthQueryArtifactDisposition::Released,
         )?;
@@ -55,7 +55,7 @@ impl WorthQueryRetainedArtifactLease {
             self.owner.binding().owner_identity.clone(),
             self.owner.binding().occurrence_identity.clone(),
             WorthQueryArtifactDisposition::Released,
-            provider_disposed,
+            provider_release,
         ))
     }
 }

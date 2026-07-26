@@ -161,6 +161,12 @@ where
         &self.derived.temporal
     }
 
+    pub(in crate::logic::transaction::runtime::state) fn resource(
+        &self,
+    ) -> &super::super::resource::ResourceRuntimeState {
+        &self.derived.resource
+    }
+
     pub fn branch_id(&self) -> SignalBranchId {
         self.ancestry.branch_id()
     }
@@ -260,6 +266,12 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    pub(in crate::logic::transaction::runtime::state) fn resource(
+        &self,
+    ) -> &super::super::resource::ResourceRuntimeState {
+        &self.derived.resource
+    }
+
     pub fn from_branch_state(state: &BranchState<D, I, T>) -> Self {
         Self {
             config: state.config().clone(),

@@ -93,7 +93,7 @@ where
         self.runtime.branch_ancestry(branch_id)
     }
 
-    pub fn snapshot(&mut self) -> SignalSnapshotV1 {
+    pub fn snapshot(&mut self) -> Result<SignalSnapshotV1, SignalError> {
         self.runtime.capture_snapshot()
     }
 

@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use crate::data::graph::{EvaluationStrategy, SignalGraph};
 use crate::data::handle::NodeId;
 use crate::data::resource::{
-    AdmittedResourceCompletion, AsyncDenialId, DeniedResourceCompletion,
+    AdmittedResourceCompletion, AdmittedResourceRequest, AsyncDenialId, DeniedResourceCompletion,
     DeniedResourcePolicyRestoreCompatibility, DependencyChangeResourceRevalidationProof,
     FulfilledLifecycleResourceRevalidationProof, InFlightResourceRequest,
     LoweredResourceDescriptor, ObserverDemandResourceRevalidationProof, RawCompletionEnvelope,
@@ -13,8 +13,9 @@ use crate::data::resource::{
     ResourceCompletionDenialStagingReport, ResourceCompletionRollbackReport,
     ResourceCompletionStagingReport, ResourceDeclarationReport, ResourceDiagnosticsExpansionBudget,
     ResourceDiagnosticsExpansionDenial, ResourceDiagnosticsSummary, ResourceLifecycleClass,
-    ResourceLifecycleRetentionCompactionReport, ResourceNodeDeclaration, ResourceNodeId,
-    ResourcePolicyCompatibilityReport, ResourcePolicyRestoreCompatibilityProof,
+    ResourceLifecycleRetentionCompactionReport, ResourceManagedQueueBinding,
+    ResourceManagedQueueDenial, ResourceManagedQueueMutationReport, ResourceNodeDeclaration,
+    ResourceNodeId, ResourcePolicyCompatibilityReport, ResourcePolicyRestoreCompatibilityProof,
     ResourceRejectionReason, ResourceRejectionReport, ResourceReplayAvailabilityClass,
     ResourceReplayAvailabilityDenialClass, ResourceReplayAvailabilityReport,
     ResourceReplayReconstructionReport, ResourceRequestAdmissionReport, ResourceRequestHandle,
@@ -23,11 +24,11 @@ use crate::data::resource::{
     ResourceRetentionCompactionBudget, ResourceRetryAdmissionReport, ResourceRetryDenialClass,
     ResourceRetryOrdinal, ResourceRetryReason, ResourceRetryScheduleReport,
     ResourceRevalidationDenialClass, ResourceRevalidationIntent, ResourceRevalidationReport,
-    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceTimeoutDeadlineAuthority,
-    ResourceTimeoutDecisionPlan, ResourceTimeoutHeartbeatExtensionReport,
-    ResourceTimeoutOutcomeClass, ResourceTimeoutReport, RetainedResourceRetryLineage,
-    StagedDeniedResourceCompletionEffect, StagedResourceCompletionEffect,
-    TerminalStateResourceRevalidationProof,
+    ResourceRuntimeSummary, ResourceRuntimeSummaryReadReport, ResourceSafePointObservationDenial,
+    ResourceSafePointObservationReport, ResourceTimeoutDeadlineAuthority,
+    ResourceTimeoutDecisionPlan, ResourceTimeoutHeartbeatExtensionReport, ResourceTimeoutReport,
+    RetainedResourceRetryLineage, StagedDeniedResourceCompletionEffect,
+    StagedResourceCompletionEffect, TerminalStateResourceRevalidationProof,
 };
 use crate::data::telemetry::{RuntimeTelemetry, TransactionTelemetry};
 use crate::data::temporal::{
@@ -51,21 +52,12 @@ use super::merge::{
 use super::observer::RuntimeObserver;
 use super::reconstructability::{AuthorityState, DerivedState};
 
-#[derive(Debug, Clone)]
-struct ResolvedTimeoutAdmission {
-    timeout_duration: TemporalDuration,
-    due_tick: crate::data::temporal::ClockTick,
-    outcome_class: ResourceTimeoutOutcomeClass,
-    deadline_authority: ResourceTimeoutDeadlineAuthority,
-    decision_digest: crate::data::resource::ResourcePolicyDigest,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RetryTimeoutAdmissionResolution {
     Disabled,
     InheritedDeadlineExhausted,
 }
-use super::resource::ResourceRuntimeState;
+use super::resource::{ResolvedResourceTimeoutPlan, ResourceRuntimeState};
 use super::runtime_observation::RuntimeObservationRegistry;
 use super::temporal::TemporalRuntimeState;
 
@@ -1235,6 +1227,41 @@ where
             .in_flight_request(handle, &mut self.telemetry.resource)
     }
 
+    pub fn observe_resource_safe_point(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+    ) -> Result<ResourceSafePointObservationReport, ResourceSafePointObservationDenial> {
+        self.resource
+            .observe_safe_point(binding, &mut self.telemetry.resource)
+    }
+
+    pub fn bind_resource_managed_queue(
+        &mut self,
+        admitted: AdmittedResourceRequest,
+        queue_capacity: u64,
+    ) -> Result<ResourceManagedQueueBinding, ResourceManagedQueueDenial> {
+        self.resource
+            .bind_managed_queue(admitted, queue_capacity, &mut self.telemetry.resource)
+    }
+
+    pub fn enqueue_resource_managed_queue(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+        width: u64,
+    ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
+        self.resource
+            .enqueue_managed_queue(binding, width, &mut self.telemetry.resource)
+    }
+
+    pub fn dequeue_resource_managed_queue(
+        &mut self,
+        binding: &ResourceManagedQueueBinding,
+        width: u64,
+    ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
+        self.resource
+            .dequeue_managed_queue(binding, width, &mut self.telemetry.resource)
+    }
+
     pub fn declare_resource_node(
         &mut self,
         declaration: ResourceNodeDeclaration,
@@ -1257,7 +1284,7 @@ where
         timeout_plan: &ResourceTimeoutDecisionPlan,
         generation_started_tick: crate::data::temporal::ClockTick,
         transaction_deadline: Option<TemporalDuration>,
-    ) -> Result<Option<ResolvedTimeoutAdmission>, crate::data::error::SignalError> {
+    ) -> Result<Option<ResolvedResourceTimeoutPlan>, crate::data::error::SignalError> {
         self.telemetry
             .resource
             .resource_timeout_policy_decision_count += 1;
@@ -1313,28 +1340,27 @@ where
             timeout_plan.outcome_class().as_str(),
             deadline_authority.as_str()
         ));
-        Ok(Some(ResolvedTimeoutAdmission {
+        Ok(Some(ResolvedResourceTimeoutPlan::new(
             timeout_duration,
             due_tick,
-            outcome_class: timeout_plan.outcome_class(),
+            timeout_plan.outcome_class(),
             deadline_authority,
             decision_digest,
-        }))
+        )))
     }
 
     fn schedule_resource_timeout_wake(
         &mut self,
         resource_node: ResourceNodeId,
-        resolved_timeout: &ResolvedTimeoutAdmission,
-    ) -> Result<Option<ScheduledTemporalWake>, crate::data::error::SignalError> {
-        let timeout = resolved_timeout.timeout_duration;
+        resolved_timeout: &ResolvedResourceTimeoutPlan,
+    ) -> Result<ScheduledTemporalWake, crate::data::error::SignalError> {
+        let timeout = resolved_timeout.timeout_duration();
         let condition = TemporalCondition::after(timeout.get())?;
         self.schedule_owned_temporal_wake(
             TemporalWakeOwner::ResourceNode(resource_node.node()),
             condition,
-            resolved_timeout.due_tick,
+            resolved_timeout.due_tick(),
         )
-        .map(Some)
     }
 
     fn schedule_resource_stale_after_wake(
@@ -1361,7 +1387,7 @@ where
         in_flight: InFlightResourceRequest,
         timeout_plan: &ResourceTimeoutDecisionPlan,
     ) -> Result<
-        Result<ResolvedTimeoutAdmission, RetryTimeoutAdmissionResolution>,
+        Result<ResolvedResourceTimeoutPlan, RetryTimeoutAdmissionResolution>,
         crate::data::error::SignalError,
     > {
         match in_flight.timeout_deadline_authority() {
@@ -1397,13 +1423,13 @@ where
                     timeout_plan.outcome_class().as_str(),
                     in_flight.timeout_deadline_authority().as_str()
                 ));
-                Ok(Ok(ResolvedTimeoutAdmission {
+                Ok(Ok(ResolvedResourceTimeoutPlan::new(
                     timeout_duration,
                     due_tick,
-                    outcome_class: timeout_plan.outcome_class(),
-                    deadline_authority: in_flight.timeout_deadline_authority(),
+                    timeout_plan.outcome_class(),
+                    in_flight.timeout_deadline_authority(),
                     decision_digest,
-                }))
+                )))
             }
         }
     }
@@ -1504,8 +1530,15 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
@@ -1518,15 +1551,7 @@ where
             self.graph.current_branch().id,
             current_tick,
             true,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         ) {
             Ok(report) => report,
@@ -1537,17 +1562,6 @@ where
                 return Err(err);
             }
         };
-
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Err(err) = self.resource.attach_timeout_wake(
-                report.admitted_request().handle(),
-                wake.id(),
-                &mut self.telemetry.resource,
-            ) {
-                self.dispose_resource_timeout_wake(&wake);
-                return Err(err);
-            }
-        }
 
         Ok(report)
     }
@@ -1666,10 +1680,14 @@ where
                     "resource-policy-revalidation-plan:undeclared",
                 )
             });
-        let freshness_decision =
-            crate::data::resource::ResourceRevalidationFreshnessDecision::explicit_intent(
-                revalidation_decision_digest.clone(),
-            );
+        let prepared_revalidation = match self.resource.prepare_explicit_resource_revalidation(
+            intent,
+            revalidation_decision_digest,
+            &mut self.telemetry.resource,
+        ) {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let resolved_timeout = self.resolve_timeout_admission(
             resource_node,
             &timeout_plan,
@@ -1683,49 +1701,30 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
 
-        let report = self.resource.admit_resource_revalidation(
-            intent,
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
             self.graph.current_branch().id,
             current_tick,
-            true,
-            revalidation_decision_digest,
-            freshness_decision,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        if report.denied_revalidation().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -1778,6 +1777,13 @@ where
                 &mut self.telemetry.resource,
             ));
         }
+        let prepared_revalidation = match self
+            .resource
+            .prepare_forced_resource_revalidation(proof, &mut self.telemetry.resource)
+        {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let timeout_plan = self
             .resource
             .descriptor_for_node(resource_node)
@@ -1792,40 +1798,30 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
 
-        let report = self.resource.admit_forced_resource_revalidation(
-            &proof,
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
             self.graph.current_branch().id,
             current_tick,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        if report.denied_revalidation().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -1982,6 +1978,13 @@ where
         self.telemetry
             .resource
             .resource_dependency_change_revalidation_count += 1;
+        let prepared_revalidation = match self
+            .resource
+            .prepare_dependency_change_resource_revalidation(proof, &mut self.telemetry.resource)
+        {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let timeout_plan = self
             .resource
             .descriptor_for_node(resource_node)
@@ -1996,40 +1999,30 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
 
-        let report = self.resource.admit_dependency_change_resource_revalidation(
-            proof,
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
             self.graph.current_branch().id,
             current_tick,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        if report.denied_revalidation().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -2079,6 +2072,13 @@ where
         self.telemetry
             .resource
             .resource_observer_demand_revalidation_count += 1;
+        let prepared_revalidation = match self
+            .resource
+            .prepare_observer_demand_resource_revalidation(proof, &mut self.telemetry.resource)
+        {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let timeout_plan = self
             .resource
             .descriptor_for_node(resource_node)
@@ -2093,40 +2093,30 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
 
-        let report = self.resource.admit_observer_demand_resource_revalidation(
-            proof,
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
             self.graph.current_branch().id,
             current_tick,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        if report.denied_revalidation().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -2191,6 +2181,13 @@ where
         self.telemetry
             .resource
             .resource_terminal_state_revalidation_count += 1;
+        let prepared_revalidation = match self
+            .resource
+            .prepare_terminal_state_resource_revalidation(proof, &mut self.telemetry.resource)
+        {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let timeout_plan = self
             .resource
             .descriptor_for_node(resource_node)
@@ -2205,40 +2202,30 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
 
-        let report = self.resource.admit_terminal_state_resource_revalidation(
-            proof,
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
             self.graph.current_branch().id,
             current_tick,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        if report.denied_revalidation().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -2303,6 +2290,13 @@ where
         self.telemetry
             .resource
             .resource_fulfilled_lifecycle_revalidation_count += 1;
+        let prepared_revalidation = match self
+            .resource
+            .prepare_fulfilled_lifecycle_resource_revalidation(proof, &mut self.telemetry.resource)
+        {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let timeout_plan = self
             .resource
             .descriptor_for_node(resource_node)
@@ -2317,42 +2311,30 @@ where
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(resource_node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
         self.retire_superseded_resource_stale_after_wake(prior_stale_after_wake, None)?;
 
-        let report = self
-            .resource
-            .admit_fulfilled_lifecycle_resource_revalidation(
-                proof,
-                self.graph.current_branch().id,
-                current_tick,
-                resolved_timeout.map(|resolved| {
-                    (
-                        resolved.timeout_duration,
-                        resolved.due_tick,
-                        resolved.outcome_class,
-                        resolved.deadline_authority,
-                        resolved.decision_digest,
-                    )
-                }),
-                &mut self.telemetry.resource,
-            );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
+            self.graph.current_branch().id,
+            current_tick,
+            scheduled_timeout_admission,
+            &mut self.telemetry.resource,
+        );
+        if report.denied_revalidation().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -2386,14 +2368,6 @@ where
             .resource
             .validate_stale_after_resource_revalidation(node, &ready_wake);
         let wake_id = ready_wake.id();
-        let matched_active_wake = self
-            .resource
-            .active_stale_after_wake_for_node(node)
-            .is_some_and(|active| active == wake_id);
-        if matched_active_wake {
-            self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
-            self.resource.clear_stale_after_wake_for_node(node);
-        }
         if let Some(class) = validation {
             return Ok(self.resource.deny_resource_revalidation_for_report(
                 node,
@@ -2422,73 +2396,44 @@ where
                     "resource-policy-revalidation-plan:undeclared",
                 )
             });
+        let prepared_revalidation = match self.resource.prepare_stale_after_resource_revalidation(
+            node,
+            ready_wake,
+            revalidation_decision_digest,
+            &mut self.telemetry.resource,
+        ) {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
         let resolved_timeout =
             self.resolve_timeout_admission(node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(node);
         let scheduled_timeout_wake = resolved_timeout
             .as_ref()
             .map(|resolved| self.schedule_resource_timeout_wake(node, resolved))
-            .transpose()?
-            .flatten();
+            .transpose()?;
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
         self.retire_superseded_resource_timeout_wake(
             prior_timeout_wake,
             scheduled_timeout_wake.as_ref(),
         )?;
+        self.retire_temporal_wake(wake_id, TemporalWakeRetirementReason::Consumed)?;
+        self.resource.clear_stale_after_wake_for_node(node);
 
-        let report = self.resource.admit_resource_revalidation(
-            ResourceRevalidationIntent::new(node),
+        let report = self.resource.admit_prepared_resource_revalidation(
+            prepared_revalidation,
             self.graph.current_branch().id,
             current_tick,
-            false,
-            revalidation_decision_digest,
-            crate::data::resource::ResourceRevalidationFreshnessDecision::stale_after(
-                node,
-                ready_wake.id(),
-                self.resource
-                    .descriptor_for_node(node)
-                    .map(|descriptor| {
-                        descriptor
-                            .revalidation_decision_plan()
-                            .decision_digest()
-                            .clone()
-                    })
-                    .unwrap_or_else(|| {
-                        crate::data::resource::ResourcePolicyDigest::new(
-                            "resource-policy-revalidation-plan:undeclared",
-                        )
-                    }),
-            ),
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(ready_wake),
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_revalidation() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
-                self.dispose_resource_timeout_wake(&wake);
-            }
-        }
         Ok(report)
     }
 
@@ -2648,7 +2593,15 @@ where
         handle: ResourceRequestHandle,
         ready_wake: ReadyTemporalWake,
     ) -> Result<ResourceRetryAdmissionReport, crate::data::error::SignalError> {
-        let retry_lineage = self.in_flight_resource_request(handle).cloned();
+        let prepared_retry = match self.resource.prepare_scheduled_resource_retry(
+            handle,
+            &ready_wake,
+            &mut self.telemetry.resource,
+        ) {
+            Ok(prepared) => prepared,
+            Err(report) => return Ok(report),
+        };
+        let retry_lineage = Some(prepared_retry.previous().clone());
         let current_tick = self.clock_basis().current_tick();
         let resource_node = retry_lineage.as_ref().map(|in_flight| in_flight.node());
         let timeout_plan = resource_node
@@ -2667,12 +2620,12 @@ where
         };
         let scheduled_timeout_wake = match (resource_node, timeout_resolution.as_ref()) {
             (Some(node), Some(Ok(resolved))) => {
-                self.schedule_resource_timeout_wake(node, resolved)?
+                Some(self.schedule_resource_timeout_wake(node, resolved)?)
             }
             _ => None,
         };
         if !matches!(
-            timeout_resolution,
+            &timeout_resolution,
             Some(Err(
                 RetryTimeoutAdmissionResolution::InheritedDeadlineExhausted
             ))
@@ -2694,7 +2647,7 @@ where
         }
 
         if matches!(
-            timeout_resolution,
+            &timeout_resolution,
             Some(Err(
                 RetryTimeoutAdmissionResolution::InheritedDeadlineExhausted
             ))
@@ -2711,34 +2664,25 @@ where
             Some(Err(RetryTimeoutAdmissionResolution::Disabled)) | None => None,
             Some(Err(RetryTimeoutAdmissionResolution::InheritedDeadlineExhausted)) => None,
         };
-        let report = self.resource.admit_scheduled_resource_retry(
-            handle,
+        let scheduled_timeout_admission = resolved_timeout.map(|resolved| {
+            resolved.bind_scheduled_wake(
+                scheduled_timeout_wake
+                    .as_ref()
+                    .expect("resolved retry timeout must schedule one temporal wake")
+                    .id(),
+            )
+        });
+        let report = self.resource.admit_prepared_scheduled_resource_retry(
+            prepared_retry,
             ready_wake,
             self.graph.current_branch().id,
             current_tick,
-            resolved_timeout.map(|resolved| {
-                (
-                    resolved.timeout_duration,
-                    resolved.due_tick,
-                    resolved.outcome_class,
-                    resolved.deadline_authority,
-                    resolved.decision_digest,
-                )
-            }),
+            scheduled_timeout_admission,
             &mut self.telemetry.resource,
         );
 
-        if let Some(wake) = scheduled_timeout_wake {
-            if let Some(admitted) = report.admitted_retry() {
-                if let Err(err) = self.resource.attach_timeout_wake(
-                    admitted.admitted_request().handle(),
-                    wake.id(),
-                    &mut self.telemetry.resource,
-                ) {
-                    self.dispose_resource_timeout_wake(&wake);
-                    return Err(err);
-                }
-            } else {
+        if report.denied_retry().is_some() {
+            if let Some(wake) = scheduled_timeout_wake {
                 self.dispose_resource_timeout_wake(&wake);
             }
         }
@@ -2768,7 +2712,32 @@ where
         HeavyCaptureWitness(())
     }
 
-    pub(super) fn capture_heavy_branch_state(&mut self) -> BranchState<D, I, T> {
+    pub(super) fn ensure_managed_queue_branch_transfer_allowed(
+        resource: &ResourceRuntimeState,
+    ) -> Result<(), crate::data::error::SignalError> {
+        let bound_queue_count = resource.bound_managed_queue_count();
+        if bound_queue_count == 0 {
+            return Ok(());
+        }
+        Err(
+            crate::data::error::SignalError::managed_queue_branch_transfer_denied(
+                bound_queue_count,
+            ),
+        )
+    }
+
+    pub(super) fn ensure_branch_state_managed_queue_transfer_allowed(
+        &self,
+        state: &BranchState<D, I, T>,
+    ) -> Result<(), crate::data::error::SignalError> {
+        Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
+        Self::ensure_managed_queue_branch_transfer_allowed(state.resource())
+    }
+
+    pub(super) fn capture_heavy_branch_state(
+        &mut self,
+    ) -> Result<BranchState<D, I, T>, crate::data::error::SignalError> {
+        Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
         let _witness = self.heavy_capture_witness();
         let handle = self.graph.current_branch();
         let ancestry = self
@@ -2789,15 +2758,18 @@ where
             });
         mutation_ledger.absorb_records(self.graph.pending_branch_mutation_records());
         self.graph.clear_branch_mutation_nodes();
-        self.branches.capture_active_state(
+        Ok(self.branches.capture_active_state(
             self.capture_full_authority_state(),
             self.capture_full_derived_state(),
             ancestry,
             mutation_ledger,
-        )
+        ))
     }
 
-    pub(super) fn take_heavy_active_branch_state(&mut self) -> BranchState<D, I, T> {
+    pub(super) fn take_heavy_active_branch_state(
+        &mut self,
+    ) -> Result<BranchState<D, I, T>, crate::data::error::SignalError> {
+        Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
         let _witness = self.heavy_capture_witness();
         let handle = self.graph.current_branch();
         let ancestry = self
@@ -2833,8 +2805,9 @@ where
             temporal: std::mem::take(&mut self.temporal),
             telemetry: std::mem::take(&mut self.telemetry),
         };
-        self.branches
-            .capture_active_state(authority, derived, ancestry, mutation_ledger)
+        Ok(self
+            .branches
+            .capture_active_state(authority, derived, ancestry, mutation_ledger))
     }
 
     fn load_branch_state(
@@ -2852,6 +2825,8 @@ where
                 state.ancestry().branch_id().0
             )));
         }
+        Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
+        Self::ensure_managed_queue_branch_transfer_allowed(state.resource())?;
         self.branches.restore_active_state(
             state,
             &mut self.graph,

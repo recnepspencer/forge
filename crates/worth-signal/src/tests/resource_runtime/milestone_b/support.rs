@@ -167,7 +167,9 @@ pub(super) fn resource_certification_fixture_artifacts(
         CompletionDenialClass::Malformed
     );
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let replay_before_restore = runtime.reconstruct_resource_replay_summary();
     runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(

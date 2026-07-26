@@ -74,32 +74,30 @@ fn conditional_model_graph_definition_with_identity(
 impl domain::WorthQueryGraphParticipationProvider<ConditionalModelGraph>
     for ConditionalModelGraphProvider
 {
+    type Execution = crate::suite::graph_provider_step::FixtureGraphProviderExecution;
+
     fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
         super::execution_resource_support()
     }
 
-    fn observe(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("conditional-model-observe"))
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("conditional-model-project"))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("conditional-model-touch"))
+    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
+        Ok(match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => {
+                Self::Execution::read("conditional-model-observe")
+            }
+            domain::WorthQueryGraphProviderCallKind::Project => {
+                Self::Execution::read("conditional-model-project")
+            }
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("conditional-model-touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        })
     }
 }
 

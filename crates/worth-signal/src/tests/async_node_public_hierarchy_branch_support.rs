@@ -173,7 +173,9 @@ pub(crate) fn public_hierarchy_branch_workload() -> PublicHierarchyBranchWorkloa
             ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(u32::MAX),
         )
         .expect("feature hierarchy historical parity should materialize");
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .admit_async_node_request(feature_gate.request_intent())

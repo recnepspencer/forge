@@ -49,7 +49,9 @@ fn exercise_temporal_phase9_hostile_suffix_on_active_branch(
         "hostile branch suffix should admit after, throttle, and interval wakes at tick 5"
     );
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let restored_snapshot_id = snapshot.meta().snapshot_id;
     let reconstructability_before_restore = snapshot
         .reconstructability
@@ -75,6 +77,7 @@ fn exercise_temporal_phase9_hostile_suffix_on_active_branch(
         .unwrap();
     let reconstructability_after_snapshot_drift = runtime
         .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings")
         .reconstructability
         .expect("post-drift temporal snapshot should carry reconstructability")
         .temporal;
@@ -91,6 +94,7 @@ fn exercise_temporal_phase9_hostile_suffix_on_active_branch(
         .replay_for_branch(runtime.observe().current_branch().id);
     let reconstructability_after_restore = runtime
         .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings")
         .reconstructability
         .expect("restored temporal snapshot should carry reconstructability")
         .temporal;
@@ -758,7 +762,9 @@ fn active_temporal_snapshot_restore_counts_restore_and_reinstates_frontier() {
     let wake = runtime
         .schedule_temporal_wake(TemporalCondition::after(4).unwrap(), ClockTick::new(4))
         .unwrap();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let snapshot_proof = snapshot.reconstructability_proof().unwrap();
     assert_eq!(snapshot_proof.temporal.wake_summary.scheduled_count(), 1);
     assert_eq!(snapshot_proof.temporal.scheduled_wake_count, 1);
@@ -814,7 +820,9 @@ fn temporal_snapshot_restore_preserves_ready_wake_frontier_without_rebuild_scan(
         .unwrap();
     let ready = runtime.promote_due_temporal_wakes_ready().unwrap();
     assert_eq!(ready[0].id(), wake.id());
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let snapshot_proof = snapshot.reconstructability_proof().unwrap();
 
     assert_eq!(snapshot_proof.temporal.wake_summary.ready_count(), 1);
@@ -1050,7 +1058,9 @@ fn previous_value_access_is_rejected_after_restore_epoch_changes() {
         ))
         .unwrap();
     let ready = runtime.promote_temporal_wake_ready(wake.id()).unwrap();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let access = runtime
         .grant_temporal_previous_value_access(ready.id())
         .unwrap();
@@ -2886,7 +2896,9 @@ fn temporal_replay_parity_survives_snapshot_restore_of_ready_frontier() {
         ))
         .unwrap();
     runtime.promote_due_temporal_wakes_ready().unwrap();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let expected = snapshot
         .reconstructability
         .clone()
@@ -2896,7 +2908,9 @@ fn temporal_replay_parity_survives_snapshot_restore_of_ready_frontier() {
         .retire_temporal_wake(wake.id(), TemporalWakeRetirementReason::Consumed)
         .unwrap();
     runtime.restore_snapshot(&snapshot).unwrap();
-    let restored = runtime.capture_snapshot();
+    let restored = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let replayed = restored
         .reconstructability
         .clone()
@@ -2964,7 +2978,9 @@ fn temporal_branch_restore_equivalence_certifies_full_bundle_parity() {
         ))
         .unwrap();
     runtime.promote_due_temporal_wakes_ready().unwrap();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let expected = snapshot
         .reconstructability
         .clone()
@@ -2976,6 +2992,7 @@ fn temporal_branch_restore_equivalence_certifies_full_bundle_parity() {
     runtime.restore_snapshot(&snapshot).unwrap();
     let replayed = runtime
         .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings")
         .reconstructability
         .expect("restored snapshot should carry temporal reconstructability");
 
@@ -3142,7 +3159,9 @@ fn temporal_wake_boundedness_certification_family_covers_large_interval_jumps() 
         1
     );
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let record = temporal_certification_record(
         TemporalCertificationFamily::TemporalWakeBoundedness,
         snapshot.reconstructability.unwrap().temporal,
@@ -3244,7 +3263,9 @@ fn previous_value_time_gated_equivalence_certification_family_captures_committed
         reference.output_identity().map(OutputIdentity::as_str),
         Some("previous-value-equivalence")
     );
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let record = temporal_certification_record(
         TemporalCertificationFamily::PreviousValueTimeGatedEquivalence,
         snapshot.reconstructability.unwrap().temporal,
@@ -3356,7 +3377,9 @@ fn temporal_certification_builder_requires_distinct_family_evidence_lanes() {
         ))
         .unwrap();
     runtime.promote_due_temporal_wakes_ready().unwrap();
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let expected_restore = snapshot
         .reconstructability
         .clone()
@@ -3367,6 +3390,7 @@ fn temporal_certification_builder_requires_distinct_family_evidence_lanes() {
     runtime.restore_snapshot(&snapshot).unwrap();
     let replayed_restore = runtime
         .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings")
         .reconstructability
         .expect("restored snapshot should carry temporal reconstructability");
     let restore_parity =

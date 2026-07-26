@@ -5,7 +5,7 @@ use super::{
 
 pub struct WorthQueryCapacityReservedExecutionResourcePlan {
     resources: WorthQueryAdmittedExecutionResourcePlan,
-    _provider_reservations: Vec<Box<dyn WorthQueryExecutionCapacityReservation>>,
+    provider_reservations: Vec<Box<dyn WorthQueryExecutionCapacityReservation>>,
 }
 
 impl WorthQueryCapacityReservedExecutionResourcePlan {
@@ -13,7 +13,7 @@ impl WorthQueryCapacityReservedExecutionResourcePlan {
         let reservations = reserve_plans([&resources])?;
         Some(Self {
             resources,
-            _provider_reservations: reservations,
+            provider_reservations: reservations,
         })
     }
 
@@ -24,11 +24,23 @@ impl WorthQueryCapacityReservedExecutionResourcePlan {
     pub fn resources_mut(&mut self) -> &mut WorthQueryAdmittedExecutionResourcePlan {
         &mut self.resources
     }
+
+    pub fn reservation_count(&self) -> usize {
+        self.provider_reservations.len()
+    }
+
+    pub fn release(self) -> WorthQueryExecutionCapacityReleaseReceipt {
+        release_reservations(
+            self.resources.identity(),
+            self.provider_reservations,
+            WorthQueryExecutionCapacityReservationScope::Direct,
+        )
+    }
 }
 
 pub struct WorthQueryCapacityReservedWorkflowResourcePlan {
     resources: WorthQueryAdmittedWorkflowResourcePlan,
-    _provider_reservations: Vec<Box<dyn WorthQueryExecutionCapacityReservation>>,
+    provider_reservations: Vec<Box<dyn WorthQueryExecutionCapacityReservation>>,
 }
 
 impl WorthQueryCapacityReservedWorkflowResourcePlan {
@@ -39,7 +51,7 @@ impl WorthQueryCapacityReservedWorkflowResourcePlan {
         )?;
         Some(Self {
             resources,
-            _provider_reservations: reservations,
+            provider_reservations: reservations,
         })
     }
 
@@ -49,6 +61,45 @@ impl WorthQueryCapacityReservedWorkflowResourcePlan {
 
     pub fn resources_mut(&mut self) -> &mut WorthQueryAdmittedWorkflowResourcePlan {
         &mut self.resources
+    }
+
+    pub fn reservation_count(&self) -> usize {
+        self.provider_reservations.len()
+    }
+
+    pub fn release(self) -> WorthQueryExecutionCapacityReleaseReceipt {
+        release_reservations(
+            self.resources.identity(),
+            self.provider_reservations,
+            WorthQueryExecutionCapacityReservationScope::Workflow,
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryExecutionCapacityReservationScope {
+    Direct,
+    Workflow,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryExecutionCapacityReleaseReceipt {
+    resource_plan_identity: String,
+    scope: WorthQueryExecutionCapacityReservationScope,
+    released_reservation_count: usize,
+}
+
+impl WorthQueryExecutionCapacityReleaseReceipt {
+    pub fn resource_plan_identity(&self) -> &str {
+        &self.resource_plan_identity
+    }
+
+    pub fn scope(&self) -> WorthQueryExecutionCapacityReservationScope {
+        self.scope
+    }
+
+    pub fn released_reservation_count(&self) -> usize {
+        self.released_reservation_count
     }
 }
 
@@ -68,6 +119,20 @@ pub fn reserve_workflow_resource_plan(
     let mut reserved = WorthQueryCapacityReservedWorkflowResourcePlan::reserve(resources)?;
     reserved.resources_mut().record_capacity_reservation();
     Some(reserved)
+}
+
+fn release_reservations(
+    resource_plan_identity: &str,
+    reservations: Vec<Box<dyn WorthQueryExecutionCapacityReservation>>,
+    scope: WorthQueryExecutionCapacityReservationScope,
+) -> WorthQueryExecutionCapacityReleaseReceipt {
+    let released_reservation_count = reservations.len();
+    drop(reservations);
+    WorthQueryExecutionCapacityReleaseReceipt {
+        resource_plan_identity: resource_plan_identity.to_owned(),
+        scope,
+        released_reservation_count,
+    }
 }
 
 fn reserve_plans<'a>(

@@ -141,6 +141,11 @@ impl WorthQueryInstalledGraphParticipationAuthority {
     pub fn authority_identity(&self) -> &str {
         &self.recipe.payload().authority_identity
     }
+
+    #[doc(hidden)]
+    pub fn retain_provider_anchor<P: Any + Send + Sync>(&self) -> Option<Arc<P>> {
+        Arc::clone(&self.provider_anchor).downcast::<P>().ok()
+    }
 }
 
 impl std::fmt::Debug for WorthQueryInstalledGraphParticipationAuthority {

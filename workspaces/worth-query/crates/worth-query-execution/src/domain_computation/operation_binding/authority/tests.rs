@@ -1,5 +1,9 @@
 use std::sync::Arc;
 
+use worth_query_admission::facade::basis::{
+    admit_basis_capability, evaluate_basis_observation_eligibility, normalize_raw_basis_intent,
+    BasisOperationLane, NormalizedBasisIntent, ObservationLaneWitness, RawBasisIntent,
+};
 use worth_query_admission::facade::resource_admission::{
     WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionResourceAdmissionCounters,
     WorthQueryExecutionResourceAdmissionDenialKind, WorthQueryExecutionResourceSupport,
@@ -26,157 +30,7 @@ use crate::domain_computation::operation_binding::{
     WorthQueryInstalledDomainExecutionAuthority, WorthQueryInstalledOperationExecutionSupport,
 };
 
-#[test]
-fn resource_attempt_requires_the_exact_binding_and_installed_contract() {
-    let runtime = runtime();
-    let (foreign_binding, contract_identity) = admitted_plan("foreign-binding");
-    let installed_authority = authority(
-        &runtime,
-        "installed-binding",
-        &contract_identity,
-        &foreign_binding,
-    );
-
-    let denial = match runtime.start_direct_resource_attempt(&installed_authority, foreign_binding)
-    {
-        Err(denial) => denial,
-        Ok(_) => panic!("foreign resource-plan binding started an execution attempt"),
-    };
-
-    assert_eq!(
-        denial.kind(),
-        &WorthQueryExecutionResourceAdmissionDenialKind::ResourcePlanAuthorityMismatch
-    );
-    assert_eq!(denial.counters().capacity_reservation_checks, 0);
-    assert_eq!(denial.counters().provider_session_mints, 0);
-
-    let (foreign_contract, _) = admitted_plan("installed-binding");
-    let foreign_contract_authority = authority(
-        &runtime,
-        "installed-binding",
-        "another-contract",
-        &foreign_contract,
-    );
-    let denial = match runtime
-        .start_direct_resource_attempt(&foreign_contract_authority, foreign_contract)
-    {
-        Err(denial) => denial,
-        Ok(_) => panic!("foreign resource contract started an execution attempt"),
-    };
-    assert_eq!(
-        denial.kind(),
-        &WorthQueryExecutionResourceAdmissionDenialKind::ResourcePlanAuthorityMismatch
-    );
-    assert_eq!(denial.counters().capacity_reservation_checks, 0);
-    assert_eq!(denial.counters().provider_session_mints, 0);
-}
-
-#[test]
-fn exact_resource_plan_binding_can_start_one_direct_attempt() {
-    let runtime = runtime();
-    let (plan, contract_identity) = admitted_plan("installed-binding");
-    let authority = authority(&runtime, "installed-binding", &contract_identity, &plan);
-
-    let attempt = runtime
-        .start_direct_resource_attempt(&authority, plan)
-        .unwrap();
-
-    assert_eq!(attempt.resources().counters().capacity_reservations, 1);
-    assert_eq!(attempt.resources().counters().provider_session_mints, 1);
-}
-
-#[test]
-fn stale_bound_operation_cannot_start_an_execution_attempt() {
-    let mut runtime = runtime();
-    let (plan, contract_identity) = admitted_plan("installed-binding");
-    let authority = authority(&runtime, "installed-binding", &contract_identity, &plan);
-    runtime
-        .commit_successor_installation(Arc::new(
-            runtime.installed_packages().successor_generation(),
-        ))
-        .unwrap();
-
-    let denial = match runtime.start_direct_resource_attempt(&authority, plan) {
-        Err(denial) => denial,
-        Ok(_) => panic!("stale bound operation started an execution attempt"),
-    };
-
-    assert_eq!(
-        denial.kind(),
-        &WorthQueryExecutionResourceAdmissionDenialKind::RuntimeAuthority(
-            worth_query_installation::facade::WorthQueryDomainHandleDenialKind::StaleInstallationGeneration,
-        )
-    );
-    assert_eq!(denial.counters().capacity_reservation_checks, 0);
-    assert_eq!(denial.counters().capacity_reservations, 0);
-    assert_eq!(denial.counters().provider_session_mints, 0);
-}
-
-#[test]
-fn resource_attempt_rejects_omitted_installed_support_participants() {
-    for (conditional_nodes, graph_providers, commit_groups) in [
-        (&["operation:gate"][..], &[][..], &[][..]),
-        (&[][..], &["geometry"][..], &[][..]),
-        (&[][..], &[][..], &["geometry,labels"][..]),
-    ] {
-        let runtime = runtime();
-        let (plan, contract_identity) = admitted_plan("installed-binding");
-        let mut authority = authority(&runtime, "installed-binding", &contract_identity, &plan);
-        authority.direct_resource_topology = topology(
-            conditional_nodes.iter().copied(),
-            graph_providers.iter().copied(),
-            commit_groups.iter().copied(),
-        );
-
-        let denial = match runtime.start_direct_resource_attempt(&authority, plan) {
-            Err(denial) => denial,
-            Ok(_) => panic!("an omitted installed participant started an execution attempt"),
-        };
-
-        assert_eq!(
-            denial.kind(),
-            &WorthQueryExecutionResourceAdmissionDenialKind::ResourcePlanAuthorityMismatch
-        );
-        assert_eq!(denial.counters().capacity_reservation_checks, 0);
-        assert_eq!(denial.counters().provider_session_mints, 0);
-    }
-}
-
-#[test]
-fn resource_attempt_rejects_caller_reconstructed_support() {
-    let runtime = runtime();
-    let (installed_plan, contract_identity) =
-        admitted_plan_with_support_limit("installed-binding", 2);
-    let (reconstructed_plan, reconstructed_contract_identity) =
-        admitted_plan_with_support_limit("installed-binding", 8);
-    assert_eq!(contract_identity, reconstructed_contract_identity);
-    let authority = authority(
-        &runtime,
-        "installed-binding",
-        &contract_identity,
-        &installed_plan,
-    );
-
-    let denial = match runtime.start_direct_resource_attempt(&authority, reconstructed_plan) {
-        Err(denial) => denial,
-        Ok(_) => panic!("caller-reconstructed support started an execution attempt"),
-    };
-
-    assert_eq!(
-        denial.kind(),
-        &WorthQueryExecutionResourceAdmissionDenialKind::ResourcePlanAuthorityMismatch
-    );
-    assert_eq!(denial.counters().capacity_reservation_checks, 0);
-    assert_eq!(denial.counters().provider_session_mints, 0);
-}
-
-fn topology<'a>(
-    conditional_nodes: impl Iterator<Item = &'a str>,
-    graph_providers: impl Iterator<Item = &'a str>,
-    commit_groups: impl Iterator<Item = &'a str>,
-) -> WorthQueryExecutionResourceTopology {
-    test_topology(conditional_nodes, graph_providers, commit_groups)
-}
+mod attempt_admission;
 
 fn runtime() -> crate::domain_computation::WorthQueryExecutionRuntime {
     WorthQueryExecutionRuntimeInstaller::new()
@@ -195,12 +49,14 @@ fn authority(
     contract_identity: &str,
     plan: &WorthQueryAdmittedExecutionResourcePlan,
 ) -> WorthQueryExecutionBoundOperationAuthority {
+    let (basis_identity, semantic_basis) = admitted_test_basis();
     WorthQueryExecutionBoundOperationAuthority {
         runtime_authority: runtime.authority_identity(),
         installation_runtime_ordinal: runtime.installed_packages().runtime_ordinal(),
         binding_identity: Arc::from(binding_identity),
         operation_identity: Arc::from("installed-operation"),
-        basis_identity: Arc::from("installed-basis"),
+        basis_identity,
+        semantic_basis,
         canonical_query_digest: Arc::from("installed-query"),
         operation_resource_contract_identity: Arc::from(contract_identity),
         commit_posture:
@@ -250,6 +106,23 @@ pub(crate) fn direct_authority_with_graph(
     authority
 }
 
+pub(crate) fn direct_authority_with_graph_effect(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &WorthQueryAdmittedExecutionResourcePlan,
+    graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority = direct_authority(runtime, plan);
+    authority.installation_runtime_ordinal = graph.runtime_ordinal();
+    authority.direct_resource_topology = super::topology::resource_topology(
+        std::iter::empty(),
+        &[graph],
+        std::iter::empty(),
+        std::iter::once(graph.role()),
+        crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
+    );
+    authority
+}
+
 pub(crate) fn workflow_authority(
     runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
     plan: &worth_query_admission::facade::resource_admission::WorthQueryAdmittedWorkflowResourcePlan,
@@ -274,12 +147,14 @@ pub(crate) fn workflow_authority(
         plan.stages()
             .map(|(stage, resources)| (stage.to_owned(), resources.support_snapshot().clone())),
     );
+    let (basis_identity, semantic_basis) = admitted_test_basis();
     WorthQueryExecutionBoundOperationAuthority {
         runtime_authority: runtime.authority_identity(),
         installation_runtime_ordinal: runtime.installed_packages().runtime_ordinal(),
         binding_identity: Arc::from(plan.operation().binding_identity()),
         operation_identity: Arc::from("installed-workflow-operation"),
-        basis_identity: Arc::from("installed-basis"),
+        basis_identity,
+        semantic_basis,
         canonical_query_digest: Arc::from("installed-query"),
         operation_resource_contract_identity: Arc::from(plan.operation().contract_identity()),
         commit_posture:
@@ -295,6 +170,86 @@ pub(crate) fn workflow_authority(
             runtime.retain_current_generation(),
         ),
     }
+}
+
+pub(crate) fn workflow_authority_with_output_artifact(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &worth_query_admission::facade::resource_admission::WorthQueryAdmittedWorkflowResourcePlan,
+    stage_identity: &str,
+    output: Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority = workflow_authority(runtime, plan);
+    authority
+        .workflow_stage_resources
+        .as_mut()
+        .and_then(|stages| stages.get_mut(stage_identity))
+        .expect("managed-run artifact stage must exist")
+        .artifact_contracts =
+        crate::domain_computation::artifact_owner::WorthQueryInstalledWorkflowArtifactContracts::with_output(
+            output,
+        );
+    authority
+}
+
+pub(crate) fn workflow_authority_with_stage_graph(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &worth_query_admission::facade::resource_admission::WorthQueryAdmittedWorkflowResourcePlan,
+    stage_identity: &str,
+    graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    access: worth_query_installation::facade::WorthQueryOperationGraphAccess,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority = workflow_authority(runtime, plan);
+    authority.installation_runtime_ordinal = graph.runtime_ordinal();
+    authority
+        .workflow_stage_resources
+        .as_mut()
+        .and_then(|stages| stages.get_mut(stage_identity))
+        .expect("managed-run graph stage must exist")
+        .topology = super::topology::resource_topology(
+        std::iter::empty(),
+        &[graph],
+        std::iter::once((graph.role(), access)),
+        std::iter::empty(),
+        crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
+    );
+    authority
+}
+
+pub(crate) fn workflow_authority_with_stage_graph_and_output_artifact(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &worth_query_admission::facade::resource_admission::WorthQueryAdmittedWorkflowResourcePlan,
+    stage_identity: &str,
+    graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    access: worth_query_installation::facade::WorthQueryOperationGraphAccess,
+    output: Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority =
+        workflow_authority_with_stage_graph(runtime, plan, stage_identity, graph, access);
+    authority
+        .workflow_stage_resources
+        .as_mut()
+        .and_then(|stages| stages.get_mut(stage_identity))
+        .expect("managed-run graph and artifact stage must exist")
+        .artifact_contracts =
+        crate::domain_computation::artifact_owner::WorthQueryInstalledWorkflowArtifactContracts::with_output(
+            output,
+        );
+    authority
+}
+
+fn admitted_test_basis() -> (Arc<str>, NormalizedBasisIntent) {
+    let normalized = normalize_raw_basis_intent(
+        RawBasisIntent::CurrentHead,
+        ObservationLaneWitness::lane_name(),
+    )
+    .expect("current-head test basis should normalize");
+    let eligibility = evaluate_basis_observation_eligibility(normalized)
+        .expect("current-head test basis should be eligible");
+    let capability = admit_basis_capability(eligibility);
+    (
+        Arc::from(capability.capability_digest()),
+        capability.normalized().clone(),
+    )
 }
 
 fn admitted_plan(binding_identity: &str) -> (WorthQueryAdmittedExecutionResourcePlan, String) {

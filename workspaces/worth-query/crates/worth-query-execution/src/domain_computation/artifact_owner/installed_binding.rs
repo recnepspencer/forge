@@ -21,6 +21,17 @@ impl WorthQueryInstalledWorkflowArtifactContracts {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn with_output(
+        output: Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>,
+    ) -> Self {
+        Self {
+            input: None,
+            output: Some(output),
+            evidence: None,
+        }
+    }
+
     pub fn input(
         &self,
     ) -> Option<&Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>

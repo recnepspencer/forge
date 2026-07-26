@@ -72,6 +72,10 @@ impl WorthQueryArtifactProductionAdmission {
         &self.authority.basis_identity
     }
 
+    pub fn production_generation(&self) -> u64 {
+        self.authority.production_generation.ordinal()
+    }
+
     pub(super) fn authority(&self) -> &Arc<WorthQueryArtifactProductionAuthority> {
         &self.authority
     }

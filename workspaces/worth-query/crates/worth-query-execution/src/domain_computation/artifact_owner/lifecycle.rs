@@ -1,58 +1,13 @@
-use std::collections::BTreeSet;
-
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactDisposition,
-    WorthQueryArtifactHandleGuard, WorthQueryArtifactLifecycleCounters,
-    WorthQueryArtifactOwnerSnapshot, WorthQueryRuntimeArtifactOwner,
+    WorthQueryArtifactHandleGuard, WorthQueryArtifactOwnerSnapshot,
+    WorthQueryArtifactProviderReleasePosture, WorthQueryRuntimeArtifactLifecycle,
+    WorthQueryRuntimeArtifactOwner,
 };
-
-pub(super) struct WorthQueryRuntimeArtifactLifecycle {
-    owner_generation: u64,
-    owner_active: bool,
-    next_borrow_generation: u64,
-    active_borrows: BTreeSet<u64>,
-    next_lease_generation: u64,
-    active_leases: BTreeSet<u64>,
-    close_requested: bool,
-    disposed: bool,
-    disposition: WorthQueryArtifactDisposition,
-    counters: WorthQueryArtifactLifecycleCounters,
-}
-
-impl WorthQueryRuntimeArtifactLifecycle {
-    pub(super) fn new(retained_bytes: usize) -> Self {
-        Self {
-            owner_generation: 1,
-            owner_active: true,
-            next_borrow_generation: 0,
-            active_borrows: BTreeSet::new(),
-            next_lease_generation: 0,
-            active_leases: BTreeSet::new(),
-            close_requested: false,
-            disposed: false,
-            disposition: WorthQueryArtifactDisposition::Produced,
-            counters: WorthQueryArtifactLifecycleCounters {
-                production_admissions: 1,
-                owner_registrations: 1,
-                retained_bytes,
-                peak_retained_bytes: retained_bytes,
-                ..WorthQueryArtifactLifecycleCounters::default()
-            },
-        }
-    }
-}
 
 impl WorthQueryRuntimeArtifactOwner {
     pub(super) fn snapshot(&self) -> WorthQueryArtifactOwnerSnapshot {
-        let state = self.lifecycle();
-        WorthQueryArtifactOwnerSnapshot::new(
-            usize::from(state.owner_active),
-            state.active_borrows.len(),
-            state.active_leases.len(),
-            state.owner_generation,
-            state.disposed,
-            state.counters,
-        )
+        self.lifecycle.snapshot()
     }
 
     pub(super) fn validate_guard(
@@ -188,7 +143,7 @@ impl WorthQueryRuntimeArtifactOwner {
         &self,
         generation: u64,
         disposition: WorthQueryArtifactDisposition,
-    ) -> Result<bool, WorthQueryArtifactDenial> {
+    ) -> Result<WorthQueryArtifactProviderReleasePosture, WorthQueryArtifactDenial> {
         let should_dispose = {
             let mut state = self.lifecycle();
             if !state.active_leases.remove(&generation) {
@@ -201,7 +156,7 @@ impl WorthQueryRuntimeArtifactOwner {
             mark_disposed_if_unowned(&mut state)
         };
         self.dispose_provider_if_required(should_dispose);
-        Ok(should_dispose)
+        Ok(self.snapshot().provider_release())
     }
 
     pub(super) fn release_owner(
@@ -209,7 +164,7 @@ impl WorthQueryRuntimeArtifactOwner {
         generation: u64,
         disposition: WorthQueryArtifactDisposition,
         require_no_lease: bool,
-    ) -> Result<bool, WorthQueryArtifactDenial> {
+    ) -> Result<WorthQueryArtifactProviderReleasePosture, WorthQueryArtifactDenial> {
         let should_dispose = {
             let mut state = self.lifecycle();
             validate_guard(
@@ -235,7 +190,7 @@ impl WorthQueryRuntimeArtifactOwner {
             mark_disposed_if_unowned(&mut state)
         };
         self.dispose_provider_if_required(should_dispose);
-        Ok(should_dispose)
+        Ok(self.snapshot().provider_release())
     }
 
     pub(super) fn release_guard_on_drop(
@@ -284,9 +239,7 @@ impl WorthQueryRuntimeArtifactOwner {
     }
 
     fn lifecycle(&self) -> std::sync::MutexGuard<'_, WorthQueryRuntimeArtifactLifecycle> {
-        self.lifecycle
-            .lock()
-            .expect("artifact lifecycle lock must remain available")
+        self.lifecycle.lock()
     }
 }
 
@@ -336,7 +289,7 @@ fn mark_disposed_if_unowned(state: &mut WorthQueryRuntimeArtifactLifecycle) -> b
     {
         state.disposed = true;
         state.disposition = WorthQueryArtifactDisposition::Disposed;
-        state.counters.provider_disposals += 1;
+        state.provider_release = WorthQueryArtifactProviderReleasePosture::Pending;
         true
     } else {
         false

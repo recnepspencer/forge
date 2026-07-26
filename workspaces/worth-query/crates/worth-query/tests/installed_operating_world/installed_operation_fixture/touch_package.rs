@@ -1,6 +1,9 @@
 use worth_query::facade::domain;
 
-use super::{read_vertex_definition, FederatedRead, GeometryDomain, ReadFamily};
+use super::{
+    partial_effect_execution_resource_contract, read_vertex_definition, FederatedRead,
+    GeometryDomain, ReadFamily,
+};
 
 pub fn federated_touch_package<G1: 'static, G2: 'static>(
     compensated: bool,
@@ -40,6 +43,7 @@ pub fn federated_touch_package<G1: 'static, G2: 'static>(
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
     };
+    semantics.resources = partial_effect_execution_resource_contract();
     if compensated {
         semantics.reversal = domain::WorthQueryOperationReversalContract::Compensation {
             operation: domain::WorthQueryDomainOperationIdentity::new(

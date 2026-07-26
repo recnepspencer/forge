@@ -24,5 +24,6 @@ pub(crate) use publication::PublicationSubsystem;
 pub(crate) use schema_contract_runtime::SchemaContractRuntimeSubsystem;
 pub(crate) use services::{RuntimeInstrumentation, RuntimeServices};
 pub(crate) use visibility::{
-    ReplayRetentionState, SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
+    ExecutionBasisRegistry, ReplayRetentionState, SnapshotHandleBinding, VisibilityResidency,
+    VisibilitySubsystem,
 };

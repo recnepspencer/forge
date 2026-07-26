@@ -16,4 +16,8 @@ impl AspectKey {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.0.capacity()
+    }
 }

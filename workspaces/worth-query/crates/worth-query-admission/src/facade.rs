@@ -12,6 +12,10 @@ pub mod resource_admission {
     pub use crate::domain_computation::execution_resource_admission::*;
 }
 
+pub mod convergence_epoch {
+    pub use crate::domain_computation::convergence_epoch_admission::*;
+}
+
 pub mod policy {
     pub use crate::domain_computation::policy_basis::*;
 }

@@ -37,4 +37,48 @@ impl RuntimeBridge {
             )
         })?
     }
+
+    /// Admits one managed execution intent through a fresh Signal request and
+    /// binds that attempt to one materialized truth view.
+    ///
+    /// The returned authority is move-only and reserves the exact managed
+    /// intent until Signal is explicitly terminalized or the basis is dropped.
+    pub fn admit_managed_execution_basis(
+        &self,
+        intent: BridgeManagedExecutionIntent,
+        step_contract: BridgeManagedExecutionStepContract,
+        truth_basis: BridgeAsyncRequestTruthViewBasis,
+        planned: PlannedTruthViewPacket,
+    ) -> Result<BridgeBoundExecutionBasis, BridgeExecutionBasisDenial> {
+        crate::execution_basis::admit_managed_execution_basis(
+            self,
+            intent,
+            step_contract,
+            truth_basis,
+            planned,
+        )
+    }
+
+    pub fn preflight_yielded_execution_basis(
+        &self,
+        yielded: BridgeYieldedExecutionBasis,
+        operation_binding_identity: &str,
+    ) -> Result<
+        crate::execution_basis::BridgeYieldedExecutionBasisPreflight,
+        BridgeExecutionBasisReadmissionDenied,
+    > {
+        crate::execution_basis::preflight_yielded_execution_basis(
+            self,
+            yielded,
+            operation_binding_identity,
+        )
+    }
+
+    pub fn readmit_yielded_execution_basis(
+        &self,
+        preflight: crate::execution_basis::BridgeYieldedExecutionBasisPreflight,
+        fresh_intent: BridgeManagedExecutionIntent,
+    ) -> BridgeExecutionBasisReadmissionOutcome {
+        crate::execution_basis::readmit_yielded_execution_basis(self, preflight, fresh_intent)
+    }
 }

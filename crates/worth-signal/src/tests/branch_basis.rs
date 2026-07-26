@@ -8,7 +8,9 @@ fn branch_basis_digest_survives_snapshot_restore_on_same_branch() {
     let graph = SignalGraph::new();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let expected = runtime.current_branch_basis_artifact();
     let explicit_branch = runtime.current_branch();
     let explicit = match runtime.branch_basis_artifact(explicit_branch.clone()) {
@@ -111,7 +113,9 @@ fn branch_basis_validation_distinguishes_cross_branch_and_stale_posture_without_
         branch_count_after_feature
     );
 
-    let _snapshot = runtime.capture_snapshot();
+    let _snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let refreshed_head = runtime.branch_head_snapshot_id(original_branch.id);
     match runtime.validate_branch_basis_artifact(original_basis.clone(), original_branch.clone()) {
         TransitionOutcome::Stale(stale) => {
@@ -152,7 +156,9 @@ fn branch_basis_trust_boundary_bridge_and_readmission_preserve_identity_digest()
     let graph = SignalGraph::new();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let basis = match runtime.snapshot_restore_branch_basis_artifact(
         &snapshot,
         SnapshotRestoreIntent::restore_runtime_truth(),
@@ -182,7 +188,9 @@ fn branch_basis_snapshot_lane_rejects_untracked_snapshot_without_side_effects() 
     let graph = SignalGraph::new();
     let mut runtime = SignalRuntime::builder(graph).with_kernel_defaults().build();
 
-    let mut snapshot = runtime.capture_snapshot();
+    let mut snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     snapshot.meta.snapshot_id = SignalSnapshotId(snapshot.snapshot_id().0 + 41);
     let original_branch = runtime.current_branch();
     let original_head = runtime.branch_head_snapshot_id(original_branch.id);

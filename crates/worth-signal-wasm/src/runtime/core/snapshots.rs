@@ -9,7 +9,7 @@ impl RuntimeCore {
     pub fn snapshot(&mut self) -> Result<RuntimeSnapshotEnvelope, WorthSignalJsError> {
         let snapshot: RuntimeSnapshot = {
             let mut history = self.runtime.history();
-            history.snapshot()
+            history.snapshot().map_err(WorthSignalJsError::from)?
         };
         let snapshot_key = runtime_snapshot_key(&snapshot);
         self.runtime_snapshots

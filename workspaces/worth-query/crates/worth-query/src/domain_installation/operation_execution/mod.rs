@@ -111,6 +111,7 @@ mod workflow_trace;
 
 pub use worth_query_execution::facade::provider_session::{
     WorthQueryBoundGraphExecutionReceipt, WorthQueryExecutionGraphReadProduct,
+    WorthQueryLegacyProviderWorkClaim, WorthQueryProviderWorkReport,
 };
 
 pub use artifact_owner::*;

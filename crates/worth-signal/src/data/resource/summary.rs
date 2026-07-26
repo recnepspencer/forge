@@ -186,6 +186,11 @@ impl ResourceBoundaryPerformanceEnvelope {
         self
     }
 
+    pub(crate) fn with_temporal_wake_footprint(mut self, temporal_wake_footprint: u32) -> Self {
+        self.temporal_wake_footprint = temporal_wake_footprint;
+        self
+    }
+
     pub(crate) fn with_output_continuity_classification_width(
         mut self,
         output_continuity_classification_width: u32,

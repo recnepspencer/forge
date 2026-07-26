@@ -1,0 +1,31 @@
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/terminal_kind_cannot_be_relabelled.rs:10:68
+   |
+10 |             WorthQueryDirectConvergenceIterationOutcome::Converged(terminal)
+   |             ------------------------------------------------------ ^^^^^^^^ expected `WorthQueryConverged`, found `WorthQueryCancelled`
+   |             |
+   |             arguments to this enum variant are incorrect
+   |
+   = note: expected struct `WorthQueryDirectConvergenceTerminal<WorthQueryConverged>`
+              found struct `WorthQueryDirectConvergenceTerminal<WorthQueryCancelled>`
+note: tuple variant defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/direct_iteration.rs
+   |
+   |     Converged(WorthQueryDirectConvergenceTerminal<WorthQueryConverged>),
+   |     ^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/installed_domain/convergence_epoch/terminal_kind_cannot_be_relabelled.rs:21:70
+   |
+21 |             WorthQueryWorkflowConvergenceIterationOutcome::Converged(terminal)
+   |             -------------------------------------------------------- ^^^^^^^^ expected `WorthQueryConverged`, found `WorthQueryCancelled`
+   |             |
+   |             arguments to this enum variant are incorrect
+   |
+   = note: expected struct `WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>`
+              found struct `WorthQueryWorkflowConvergenceTerminal<WorthQueryCancelled>`
+note: tuple variant defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/convergence_epoch/workflow_iteration.rs
+   |
+   |     Converged(WorthQueryWorkflowConvergenceTerminal<WorthQueryConverged>),
+   |     ^^^^^^^^^

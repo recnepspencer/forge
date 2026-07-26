@@ -30,7 +30,7 @@ pub struct WorthQueryDisposedArtifact {
     owner_identity: String,
     occurrence_identity: String,
     disposition: WorthQueryArtifactDisposition,
-    provider_disposed: bool,
+    provider_release: super::WorthQueryArtifactProviderReleasePosture,
 }
 
 impl WorthQueryDisposedArtifact {
@@ -38,13 +38,13 @@ impl WorthQueryDisposedArtifact {
         owner_identity: String,
         occurrence_identity: String,
         disposition: WorthQueryArtifactDisposition,
-        provider_disposed: bool,
+        provider_release: super::WorthQueryArtifactProviderReleasePosture,
     ) -> Self {
         Self {
             owner_identity,
             occurrence_identity,
             disposition,
-            provider_disposed,
+            provider_release,
         }
     }
 
@@ -60,7 +60,7 @@ impl WorthQueryDisposedArtifact {
         self.disposition
     }
 
-    pub const fn provider_disposed(&self) -> bool {
-        self.provider_disposed
+    pub const fn provider_release(&self) -> super::WorthQueryArtifactProviderReleasePosture {
+        self.provider_release
     }
 }

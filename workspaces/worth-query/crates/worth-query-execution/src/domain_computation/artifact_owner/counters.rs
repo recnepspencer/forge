@@ -7,6 +7,8 @@ pub struct WorthQueryArtifactLifecycleCounters {
     pub lease_admissions: usize,
     pub lifecycle_generation_checks: usize,
     pub provider_disposals: usize,
+    pub provider_destructor_attempts: usize,
+    pub provider_release_failures: usize,
     pub retained_bytes: usize,
     pub peak_retained_bytes: usize,
 }
@@ -18,6 +20,7 @@ pub struct WorthQueryArtifactOwnerSnapshot {
     lease_count: usize,
     lifecycle_generation: u64,
     disposed: bool,
+    provider_release: super::WorthQueryArtifactProviderReleasePosture,
     counters: WorthQueryArtifactLifecycleCounters,
 }
 
@@ -42,6 +45,10 @@ impl WorthQueryArtifactOwnerSnapshot {
         self.disposed
     }
 
+    pub const fn provider_release(self) -> super::WorthQueryArtifactProviderReleasePosture {
+        self.provider_release
+    }
+
     pub const fn counters(self) -> WorthQueryArtifactLifecycleCounters {
         self.counters
     }
@@ -52,6 +59,7 @@ impl WorthQueryArtifactOwnerSnapshot {
         lease_count: usize,
         lifecycle_generation: u64,
         disposed: bool,
+        provider_release: super::WorthQueryArtifactProviderReleasePosture,
         counters: WorthQueryArtifactLifecycleCounters,
     ) -> Self {
         Self {
@@ -60,6 +68,7 @@ impl WorthQueryArtifactOwnerSnapshot {
             lease_count,
             lifecycle_generation,
             disposed,
+            provider_release,
             counters,
         }
     }

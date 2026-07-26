@@ -1,0 +1,11 @@
+error[E0599]: no method named `resume` found for struct `WorthQueryCheckpointExportHandoff` in the current scope
+ --> tests/ui/installed_domain/managed_run/checkpoint_export_handoff_cannot_resume.rs:4:13
+  |
+4 |     handoff.resume();
+  |             ^^^^^^ method not found in `WorthQueryCheckpointExportHandoff`
+
+error[E0599]: no method named `restore` found for struct `WorthQueryCheckpointExportHandoff` in the current scope
+ --> tests/ui/installed_domain/managed_run/checkpoint_export_handoff_cannot_resume.rs:8:13
+  |
+8 |     handoff.restore();
+  |             ^^^^^^^ method not found in `WorthQueryCheckpointExportHandoff`

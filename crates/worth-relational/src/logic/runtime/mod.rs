@@ -30,10 +30,10 @@ pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageSubsystem, PublicationSubsystem, ReplayRetentionState, RuntimeInstrumentation,
-    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
-    VisibilityResidency, VisibilitySubsystem,
+    CommitStrategiesSubsystem, DurabilitySubsystem, ExecutionBasisRegistry, HistorySubsystem,
+    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, ReplayRetentionState,
+    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem,
+    SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
 };
 
 #[derive(Debug, Clone)]

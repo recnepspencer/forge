@@ -46,6 +46,9 @@ pub enum SignalError {
         message: String,
         evidence: Option<BranchMergeFailureEvidence>,
     },
+    ManagedQueueBranchTransferDenied {
+        bound_queue_count: u32,
+    },
     InvalidInput {
         message: String,
         context: Option<String>,
@@ -129,6 +132,10 @@ impl SignalError {
             message: message.into(),
             evidence: Some(evidence),
         }
+    }
+
+    pub fn managed_queue_branch_transfer_denied(bound_queue_count: u32) -> Self {
+        Self::ManagedQueueBranchTransferDenied { bound_queue_count }
     }
 
     /// Build an invalid-input error with no extra context.
@@ -233,6 +240,10 @@ impl fmt::Display for SignalError {
                     write!(f, "branch merge failed ({kind:?}): {message}")
                 }
             }
+            Self::ManagedQueueBranchTransferDenied { bound_queue_count } => write!(
+                f,
+                "branch transfer denied while {bound_queue_count} managed resource queue binding(s) remain live"
+            ),
             Self::InvalidInput { message, .. } => write!(f, "invalid input: {message}"),
             Self::Internal { message, .. } => write!(f, "internal error: {message}"),
         }

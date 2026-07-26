@@ -81,4 +81,15 @@ impl WorthQueryInstalledArtifactContractAuthority {
     pub fn admission_identity(&self) -> &str {
         &self.admission_identity
     }
+
+    pub fn belongs_to_operation_installation(
+        &self,
+        operation: &crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority,
+    ) -> bool {
+        self.runtime_ordinal == operation.runtime_ordinal
+            && self.generation == operation.generation
+            && self.owner == operation.owner
+            && self.package_identity == operation.package_identity
+            && self.package_authority_nonce == operation.package_authority_nonce
+    }
 }

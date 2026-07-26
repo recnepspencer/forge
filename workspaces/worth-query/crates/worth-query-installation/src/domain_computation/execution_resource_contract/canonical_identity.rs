@@ -43,6 +43,14 @@ pub(super) fn canonical_resource_contract_token(
             &mut hasher,
             strategy.envelope().partial_effect_posture().as_str(),
         );
+        hash_text(
+            &mut hasher,
+            strategy.envelope().yielded_state_posture().as_str(),
+        );
+        hash_text(
+            &mut hasher,
+            strategy.envelope().retained_progress_posture().as_str(),
+        );
         for (axis, value) in strategy.envelope().scale_ceilings().iter() {
             hash_text(&mut hasher, axis.as_str());
             hash_u64(&mut hasher, value);

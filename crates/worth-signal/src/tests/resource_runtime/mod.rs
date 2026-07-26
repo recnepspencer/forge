@@ -28,6 +28,7 @@ mod policy_restore_compatibility;
 mod replay_availability;
 mod retention;
 mod revalidation;
+mod safe_point;
 mod support;
 mod timeout_and_retry;
 

@@ -29,8 +29,37 @@ fn later_subject_failure_rolls_back_every_prior_reservation() {
     let reserved =
         reserve_execution_resource_plan(admitted(snapshot(first.clone(), second.clone()))).unwrap();
     assert_eq!((first.active(), second.active()), (1, 1));
-    drop(reserved);
+    let plan_identity = reserved.resources().identity().to_owned();
+    let receipt = reserved.release();
+    assert_eq!(receipt.resource_plan_identity(), plan_identity);
+    assert_eq!(
+        receipt.scope(),
+        WorthQueryExecutionCapacityReservationScope::Direct
+    );
+    assert_eq!(receipt.released_reservation_count(), 2);
     assert_eq!((first.active(), second.active()), (0, 0));
+}
+
+#[test]
+fn workflow_release_disposes_each_exact_capacity_authority_once() {
+    let capacity = Arc::new(ObservedCapacity::new("workflow", 1));
+    let first = workflow_plan(capacity.clone());
+    let blocked = workflow_plan(capacity.clone());
+    let retry = workflow_plan(capacity.clone());
+
+    let reserved = reserve_workflow_resource_plan(first).expect("workflow should reserve");
+    assert!(reserve_workflow_resource_plan(blocked).is_none());
+
+    let plan_identity = reserved.resources().identity().to_owned();
+    let receipt = reserved.release();
+    assert_eq!(receipt.resource_plan_identity(), plan_identity);
+    assert_eq!(
+        receipt.scope(),
+        WorthQueryExecutionCapacityReservationScope::Workflow
+    );
+    assert_eq!(receipt.released_reservation_count(), 1);
+    assert_eq!(capacity.active(), 0);
+    assert!(reserve_workflow_resource_plan(retry).is_some());
 }
 
 #[test]
@@ -155,6 +184,15 @@ fn single_snapshot(capacity: Arc<ObservedCapacity>) -> WorthQueryExecutionResour
         Vec::new(),
         Vec::new(),
         None,
+    )
+}
+
+fn workflow_plan(capacity: Arc<ObservedCapacity>) -> WorthQueryAdmittedWorkflowResourcePlan {
+    let operation = admitted(single_snapshot(capacity.clone()));
+    let stage = admitted(single_snapshot(capacity));
+    WorthQueryAdmittedWorkflowResourcePlan::assemble(
+        operation,
+        [("stage".to_owned(), stage)].into_iter().collect(),
     )
 }
 

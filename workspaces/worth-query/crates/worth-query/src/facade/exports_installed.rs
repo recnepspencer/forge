@@ -53,9 +53,10 @@ pub mod operation {
     pub use crate::ordinary::read::project_facts;
     pub use worth_query_declaration::facade::domain_computation::{
         WorthQueryCancellationSafePointFamily, WorthQueryExecutionDegradation,
-        WorthQueryExecutionMode, WorthQueryExecutionResourceRequest, WorthQueryResourceDimension,
-        WorthQueryResourceLimitRequest, WorthQuerySemanticScaleAxis,
-        WorthQuerySemanticScaleRequest,
+        WorthQueryExecutionMode, WorthQueryExecutionResourceRequest,
+        WorthQueryPartialEffectPosture, WorthQueryResourceDimension,
+        WorthQueryResourceLimitRequest, WorthQueryRetainedProgressPosture,
+        WorthQuerySemanticScaleAxis, WorthQuerySemanticScaleRequest, WorthQueryYieldedStatePosture,
     };
 }
 

@@ -295,7 +295,9 @@ fn resource_overlap_supersession_replay_retains_superseded_denial_evidence_after
         CompletionDenialClass::Superseded
     );
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let expected = runtime.reconstruct_resource_replay_summary();
 
     runtime

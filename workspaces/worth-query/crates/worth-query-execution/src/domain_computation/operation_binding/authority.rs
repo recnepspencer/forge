@@ -29,6 +29,7 @@ pub struct WorthQueryExecutionBoundOperationAuthority {
     binding_identity: Arc<str>,
     operation_identity: Arc<str>,
     basis_identity: Arc<str>,
+    semantic_basis: worth_query_admission::facade::basis::NormalizedBasisIntent,
     canonical_query_digest: Arc<str>,
     operation_resource_contract_identity: Arc<str>,
     commit_posture: WorthQueryExecutionCommitPosture,
@@ -69,6 +70,10 @@ impl WorthQueryExecutionBoundOperationAuthority {
 
     pub fn basis_identity(&self) -> &str {
         &self.basis_identity
+    }
+
+    pub fn semantic_basis(&self) -> &worth_query_admission::facade::basis::NormalizedBasisIntent {
+        &self.semantic_basis
     }
 
     pub fn commit_posture(&self) -> WorthQueryExecutionCommitPosture {
@@ -114,7 +119,46 @@ impl WorthQueryExecutionBoundOperationAuthority {
         self.belongs_to(runtime) && self.installed_domain.is_current_installation_generation()
     }
 
-    pub(crate) fn is_current_installation_generation(&self) -> bool {
+    pub(crate) fn admits_convergence_contract(
+        &self,
+        contract: &worth_query_admission::facade::domain_computation::WorthQueryAdmittedConvergenceContract,
+    ) -> bool {
+        self.installation_runtime_ordinal == contract.runtime_ordinal()
+            && self.operation_identity() == contract.operation_identity()
+            && self.installed_domain.owner() == contract.operation_owner()
+            && self.installation_generation() == contract.generation()
+            && self.operation_resource_contract_identity.as_ref()
+                == contract.resource_contract_identity()
+            && self
+                .convergence_evidence_contract(contract)
+                .is_some_and(|installed| {
+                    installed.admission_identity() == contract.artifact_admission_identity()
+                        && installed.contract().identity().as_str()
+                            == contract.artifact_contract_identity()
+                })
+    }
+
+    fn convergence_evidence_contract(
+        &self,
+        contract: &worth_query_admission::facade::domain_computation::WorthQueryAdmittedConvergenceContract,
+    ) -> Option<&worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>
+    {
+        match contract.evidence_stage_identity() {
+            None => self.operation_evidence_contract().map(AsRef::as_ref),
+            Some(stage) => self
+                .workflow_stage_artifact_contracts(stage)?
+                .evidence()
+                .map(AsRef::as_ref),
+        }
+    }
+
+    pub fn installation_generation(
+        &self,
+    ) -> worth_query_installation::facade::WorthQueryInstallationGeneration {
+        self.installed_domain.installation_generation()
+    }
+
+    pub fn is_current_installation_generation(&self) -> bool {
         self.installed_domain.is_current_installation_generation()
     }
 
@@ -168,6 +212,26 @@ impl WorthQueryExecutionBoundOperationAuthority {
                             && stage_plan.support_snapshot().parallel_admission().is_none()
                     })
             })
+    }
+
+    pub(crate) fn admits_convergence_graph(
+        &self,
+        contract: &worth_query_admission::facade::domain_computation::WorthQueryAdmittedConvergenceContract,
+        graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    ) -> bool {
+        match contract.evidence_stage_identity() {
+            None => {
+                self.workflow_stage_resources.is_none()
+                    && self
+                        .direct_resource_topology
+                        .contains_graph_authority(graph)
+            }
+            Some(stage) => self
+                .workflow_stage_resources
+                .as_ref()
+                .and_then(|stages| stages.get(stage))
+                .is_some_and(|stage| stage.topology.contains_graph_authority(graph)),
+        }
     }
 
     fn admits_operation_plan(&self, plan: &WorthQueryAdmittedExecutionResourcePlan) -> bool {

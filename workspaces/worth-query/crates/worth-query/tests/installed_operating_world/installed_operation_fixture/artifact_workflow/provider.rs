@@ -305,7 +305,7 @@ impl domain::WorthQueryArtifactProviderResource for CandidateArtifactResource {
         Some(&self.native)
     }
 
-    fn dispose(self) {
+    fn dispose(&mut self) {
         self.probe.inner.disposals.fetch_add(1, Ordering::SeqCst);
     }
 }
@@ -334,7 +334,7 @@ impl domain::WorthQueryArtifactProviderResource for ForeignArtifactResource {
         self.projection.len()
     }
 
-    fn dispose(self) {
+    fn dispose(&mut self) {
         self.probe.inner.disposals.fetch_add(1, Ordering::SeqCst);
     }
 }
@@ -354,7 +354,7 @@ impl domain::WorthQueryArtifactProviderResource for PanicDuringProjectionResourc
         1
     }
 
-    fn dispose(self) {
+    fn dispose(&mut self) {
         self.probe.inner.disposals.fetch_add(1, Ordering::SeqCst);
     }
 }

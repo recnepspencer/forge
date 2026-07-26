@@ -15,6 +15,7 @@ mod validation;
 
 pub(crate) use async_declaration::{
     admit_retry_lineage, admit_revalidation_lineage, with_async_request_signal_runtime,
+    BridgeSignalRuntime, SignalRuntimeThreadAffinityError,
 };
 pub use async_declaration::{
     AdmittedBridgeAsyncCompletion, AdmittedBridgeAsyncRequestIdentity,

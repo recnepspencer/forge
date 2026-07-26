@@ -60,6 +60,8 @@ fn build_installed_dependencies() -> Vec<(String, BridgeSemanticDependencyCandid
             &installation_runtime,
             "model",
             "query-graph-adapter:bridge-tests",
+            false,
+            Option::<String>::None,
             Arc::new(BridgeQueryGraphProviderFixture),
         )
         .expect("real installed graph participation authority"),
@@ -130,6 +132,7 @@ fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOpe
         required_capabilities: Vec::new(),
         required_domains: Vec::new(),
         workflow: query::WorthQueryOperationWorkflowContract::NotRequired,
+        evidence: query::WorthQueryDomainEvidenceContract::NotRequired,
         conditional_nodes: labels.iter().map(|label| conditional_node(label)).collect(),
         graph_reads: query::WorthQueryOperationGraphReadContract::Declared {
             roles: vec![query::WorthQueryOperationGraphReadRole {
@@ -160,6 +163,7 @@ fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOpe
             execution: query::WorthQueryOperationCostClass::DeclaredWidth,
             result_width: query::WorthQueryOperationCostClass::DeclaredWidth,
         },
+        resources: execution_resource_contract(),
         support: query::WorthQueryOperationSupportRequirements {
             live: query::WorthQuerySupportRequirement::NotRequired,
             continuation: query::WorthQuerySupportRequirement::NotRequired,
@@ -186,6 +190,38 @@ fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOpe
         semantics,
     )
     .into_portable()
+}
+
+fn execution_resource_contract() -> query::WorthQueryOperationExecutionResourceContract {
+    query::WorthQueryExecutionResourceContract::declared([
+        query::WorthQueryExecutionStrategyContract::new(
+            query::WorthQueryExecutionStrategyName::new("bridge-correspondence-bounded").unwrap(),
+            query::WorthQueryExecutionResourceEnvelope::bounded(
+                1_000_000,
+                1_000_000,
+                worth_query_declaration::facade::domain_computation::WorthQueryExecutionMode::Synchronous,
+                worth_query_declaration::facade::domain_computation::WorthQueryCancellationSafePointFamily::new(
+                    "bridge-correspondence-boundary",
+                )
+                .unwrap(),
+            ),
+            query::WorthQueryExecutionProviderRequirements::new(
+                query::WorthQueryExecutionProviderFamily::new(
+                    "bridge-correspondence-provider",
+                )
+                .unwrap(),
+                query::WorthQueryExecutionAccessProductFamily::new(
+                    "bridge-correspondence-access",
+                )
+                .unwrap(),
+                query::WorthQueryExecutionAllocatorFamily::new(
+                    "bridge-correspondence-arena",
+                )
+                .unwrap(),
+            ),
+        ),
+    ])
+    .expect("bridge correspondence fixture resource contract should be bounded")
 }
 
 pub(super) fn conditional_node(label: &str) -> query::WorthQueryPortableConditionalNodeDeclaration {

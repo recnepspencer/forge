@@ -15,12 +15,14 @@ pub(super) fn validate(
         WorthQueryConvergenceContract::Iterative {
             progress_measure_family,
             comparator_family,
+            repeated_state_family,
             iteration_bound,
             ..
         } => {
             *iteration_bound > 0
                 && portable_text(progress_measure_family)
                 && portable_text(comparator_family)
+                && portable_text(repeated_state_family)
         }
     };
     valid.then_some(()).ok_or_else(|| {

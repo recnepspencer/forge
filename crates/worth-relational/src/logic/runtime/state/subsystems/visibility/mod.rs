@@ -4,7 +4,11 @@ mod snapshot_handles;
 
 pub(crate) use cache::{VisibilityCache, VisibilityResidency};
 pub(crate) use replay_retention::{ReplayRetentionIndex, ReplayRetentionState};
-pub(crate) use snapshot_handles::{SnapshotHandleBinding, SnapshotHandles};
+pub(crate) use snapshot_handles::{
+    ExecutionBasisBinding, ExecutionBasisRegistry, SnapshotHandleBinding, SnapshotHandles,
+};
+
+use std::sync::Arc;
 
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
 use crate::logic::runtime::RelationalRuntimeConfig;
@@ -13,6 +17,7 @@ use crate::snapshots::data::SnapshotId;
 #[derive(Debug)]
 pub(crate) struct VisibilitySubsystem {
     pub(crate) handles: SnapshotHandles,
+    execution_bases: Arc<ExecutionBasisRegistry>,
     pub(crate) cache: VisibilityCache,
     pub(crate) replay_retention: ReplayRetentionIndex,
 }
@@ -21,6 +26,7 @@ impl VisibilitySubsystem {
     fn build_from_config(config: &RelationalRuntimeConfig) -> Self {
         Self {
             handles: SnapshotHandles::new(),
+            execution_bases: ExecutionBasisRegistry::new(),
             cache: VisibilityCache::new(config),
             replay_retention: ReplayRetentionIndex::new(),
         }
@@ -37,6 +43,7 @@ impl RuntimeSubsystem for VisibilitySubsystem {
     fn fork(&self) -> Self {
         Self {
             handles: self.handles.fork(),
+            execution_bases: ExecutionBasisRegistry::new(),
             cache: self.cache.fork(),
             replay_retention: self.replay_retention.fork(),
         }
@@ -52,7 +59,7 @@ impl VisibilitySubsystem {
         self.handles.published_count()
     }
 
-    pub(crate) fn allocate_snapshot_id(&mut self) -> SnapshotId {
+    pub(crate) fn allocate_snapshot_id(&self) -> SnapshotId {
         self.handles.next_snapshot_id()
     }
 
@@ -80,6 +87,26 @@ impl VisibilitySubsystem {
 
     pub(crate) fn is_known_snapshot(&self, snapshot_id: SnapshotId) -> bool {
         self.handles.is_known_snapshot(snapshot_id)
+            || self.execution_bases.binding(snapshot_id).is_some()
+    }
+
+    pub(crate) fn admit_execution_basis(
+        &self,
+        snapshot_id: SnapshotId,
+        version_id: crate::identity::data::VersionId,
+        read_policy: crate::snapshots::data::SnapshotReadPolicy,
+    ) -> (u64, Arc<ExecutionBasisRegistry>) {
+        let lease_ordinal = self
+            .execution_bases
+            .admit(snapshot_id, version_id, read_policy);
+        (lease_ordinal, Arc::clone(&self.execution_bases))
+    }
+
+    pub(crate) fn execution_basis_binding(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Option<ExecutionBasisBinding> {
+        self.execution_bases.binding(snapshot_id)
     }
 
     pub(crate) fn active_versions(
@@ -92,10 +119,16 @@ impl VisibilitySubsystem {
         &self,
         published_version: crate::identity::data::VersionId,
     ) -> crate::identity::data::VersionId {
-        self.active_versions()
+        let non_execution_fence = self
+            .active_versions()
             .chain(self.replay_retention.versions())
             .min()
-            .unwrap_or(published_version)
+            .unwrap_or(published_version);
+        self.execution_bases
+            .oldest_version()
+            .map_or(non_execution_fence, |version| {
+                version.min(non_execution_fence)
+            })
     }
 
     pub(crate) fn insert_published_handle(

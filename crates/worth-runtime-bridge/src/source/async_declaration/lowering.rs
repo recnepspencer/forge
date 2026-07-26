@@ -104,6 +104,47 @@ impl LoweredBridgeAsyncSourceDeclaration {
         }
     }
 
+    pub(crate) fn instantiate_request_response(
+        &self,
+        instance_identity: &str,
+    ) -> Result<Self, BridgeAsyncSourceDeclarationRejection> {
+        let LoweredBridgeAsyncSourceDeclarationBody::RequestResponse {
+            declaration,
+            descriptor,
+        } = &self.body
+        else {
+            return Err(BridgeAsyncSourceDeclarationRejection::new(
+                BridgeAsyncSourceDeclarationRejectionKind::SignalDeclarationRejected,
+                "bridge managed execution can instantiate only a request-response declaration",
+            ));
+        };
+        let canonical_basis = Arc::<str>::from(format!(
+            "bridge-async-lowering-instance|template={}|instance={instance_identity}|payload-contract={}|registry-digest={}|bundle-digest={}",
+            self.digest(),
+            descriptor.payload_contract_digest().as_str(),
+            descriptor.lowered_policy_bundle().registry_digest().as_str(),
+            descriptor.lowered_policy_bundle().bundle_digest().as_str(),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+        Ok(Self {
+            declaration_identity: BridgeAsyncSourceDeclarationIdentity::admit_bridge_owned(
+                format!("bridge-managed-execution-declaration:{instance_identity}"),
+            ),
+            family_kind: self.family_kind,
+            lowering_family_kind: self.lowering_family_kind,
+            lowering_identity: BridgeAsyncSourceLoweringIdentity::admit_bridge_owned(format!(
+                "bridge-async-lowering-instance:sha256:{digest:x}"
+            )),
+            canonical_basis,
+            digest: Arc::from(format!("bridge-async-lowering-instance:sha256:{digest:x}")),
+            counters: BridgeAsyncSourceDeclarationCounters::request_response_lowered(),
+            body: LoweredBridgeAsyncSourceDeclarationBody::RequestResponse {
+                declaration: declaration.clone(),
+                descriptor: descriptor.clone(),
+            },
+        })
+    }
+
     fn lower_request_response(
         validated: &ValidatedBridgeAsyncSourceDeclaration,
         declaration: &ResourceNodeDeclaration,

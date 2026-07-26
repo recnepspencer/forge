@@ -2,6 +2,7 @@
 pub enum WorthQueryGraphCallBindingDenial {
     BoundOperationAuthorityMismatch,
     CommitKindRequiresCommitCall,
+    ExecutionBasisMismatch,
     ForeignResourceAttempt,
 }
 
@@ -13,6 +14,9 @@ impl WorthQueryGraphCallBindingDenial {
             }
             Self::CommitKindRequiresCommitCall => {
                 "commit admission requires the graph commit-call authority"
+            }
+            Self::ExecutionBasisMismatch => {
+                "graph call snapshot does not match the running execution basis"
             }
             Self::ForeignResourceAttempt => {
                 "execution resources were admitted for another provider session"

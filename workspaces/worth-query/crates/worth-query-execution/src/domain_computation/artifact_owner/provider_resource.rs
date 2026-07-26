@@ -18,7 +18,7 @@ pub trait WorthQueryArtifactProviderResource: Send + 'static {
         None
     }
 
-    fn dispose(self);
+    fn dispose(&mut self);
 }
 
 pub(crate) trait WorthQueryErasedArtifactProviderResource: Send {
@@ -28,7 +28,7 @@ pub(crate) trait WorthQueryErasedArtifactProviderResource: Send {
 
     fn native_access_provider(&self) -> Option<&dyn WorthQueryArtifactNativeAccessProvider>;
 
-    fn dispose(self: Box<Self>);
+    fn release(self: Box<Self>) -> super::WorthQueryArtifactProviderReleaseEvidence;
 }
 
 struct TypedArtifactProviderResource<R: WorthQueryArtifactProviderResource> {
@@ -59,18 +59,19 @@ impl<R: WorthQueryArtifactProviderResource> WorthQueryErasedArtifactProviderReso
             .native_access_provider()
     }
 
-    fn dispose(mut self: Box<Self>) {
-        self.resource
-            .take()
-            .expect("registered provider resource is disposed exactly once")
-            .dispose();
+    fn release(mut self: Box<Self>) -> super::WorthQueryArtifactProviderReleaseEvidence {
+        release_typed_provider_resource(
+            self.resource
+                .take()
+                .expect("registered provider resource is disposed exactly once"),
+        )
     }
 }
 
 impl<R: WorthQueryArtifactProviderResource> Drop for TypedArtifactProviderResource<R> {
     fn drop(&mut self) {
         if let Some(resource) = self.resource.take() {
-            resource.dispose();
+            let _ = release_typed_provider_resource(resource);
         }
     }
 }
@@ -107,12 +108,19 @@ impl WorthQueryGuardedArtifactResource {
             resource: Some(resource),
         }
     }
+
+    pub(crate) fn release(mut self) -> super::WorthQueryArtifactProviderReleaseEvidence {
+        self.resource
+            .take()
+            .expect("guarded artifact retains exactly one provider resource")
+            .release()
+    }
 }
 
 impl Drop for WorthQueryGuardedArtifactResource {
     fn drop(&mut self) {
         if let Some(resource) = self.resource.take() {
-            resource.dispose();
+            let _ = resource.release();
         }
     }
 }
@@ -148,14 +156,42 @@ impl WorthQueryPreparedArtifactResource {
                 .expect("prepared artifact transfers one provider resource"),
         )
     }
+
+    pub(crate) fn release(mut self) -> super::WorthQueryArtifactProviderReleaseEvidence {
+        self.resource
+            .take()
+            .expect("prepared artifact retains exactly one provider resource")
+            .release()
+    }
 }
 
 impl Drop for WorthQueryPreparedArtifactResource {
     fn drop(&mut self) {
         if let Some(resource) = self.resource.take() {
-            resource.dispose();
+            let _ = resource.release();
         }
     }
+}
+
+fn release_typed_provider_resource<R: WorthQueryArtifactProviderResource>(
+    mut resource: R,
+) -> super::WorthQueryArtifactProviderReleaseEvidence {
+    let disposal = if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        resource.dispose();
+    }))
+    .is_ok()
+    {
+        super::WorthQueryArtifactProviderDisposalDisposition::Completed
+    } else {
+        super::WorthQueryArtifactProviderDisposalDisposition::Panicked
+    };
+    let destructor =
+        if std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(resource))).is_ok() {
+            super::WorthQueryArtifactProviderDestructorDisposition::Completed
+        } else {
+            super::WorthQueryArtifactProviderDestructorDisposition::Panicked
+        };
+    super::WorthQueryArtifactProviderReleaseEvidence::new(disposal, destructor)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

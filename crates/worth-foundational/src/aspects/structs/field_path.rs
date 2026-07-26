@@ -21,4 +21,16 @@ impl CanonicalFieldPath {
     pub fn fields(&self) -> &[FieldKey] {
         &self.0
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.0
+            .capacity()
+            .saturating_mul(std::mem::size_of::<FieldKey>())
+            .saturating_add(
+                self.0
+                    .iter()
+                    .map(FieldKey::owned_allocation_capacity_bytes)
+                    .sum(),
+            )
+    }
 }

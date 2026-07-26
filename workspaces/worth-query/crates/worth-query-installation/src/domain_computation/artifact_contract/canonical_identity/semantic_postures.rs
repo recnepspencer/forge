@@ -149,6 +149,7 @@ pub(super) fn hash_convergence(hash: &mut Sha256, value: &WorthQueryConvergenceC
         WorthQueryConvergenceContract::Iterative {
             progress_measure_family,
             comparator_family,
+            repeated_state_family,
             incumbent,
             iteration_bound,
             oscillation,
@@ -156,6 +157,7 @@ pub(super) fn hash_convergence(hash: &mut Sha256, value: &WorthQueryConvergenceC
             hash_text_field(hash, "convergence", "iterative");
             hash_text_field(hash, "progress-measure", progress_measure_family);
             hash_text_field(hash, "convergence-comparator", comparator_family);
+            hash_text_field(hash, "repeated-state-detector", repeated_state_family);
             hash_text_field(hash, "incumbent", incumbent_name(*incumbent));
             hash_text_field(hash, "iteration-bound", &iteration_bound.to_string());
             hash_text_field(hash, "oscillation", oscillation_name(*oscillation));

@@ -172,7 +172,9 @@ pub(in crate::tests::resource_runtime) fn resource_async_inflight_pressure_workl
         branch_admitted.attempt(),
         64,
     );
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let drifted_branch_request = runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(
             branch_node,

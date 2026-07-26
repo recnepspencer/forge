@@ -17,7 +17,9 @@ fn resource_branch_restore_accounts_for_retained_lifecycle_history_width() {
         .expect("cancellation should admit");
     let compaction = runtime.compact_resource_lifecycle_history(1);
     assert_eq!(compaction.retained_history_width(), 1);
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))

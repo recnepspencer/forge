@@ -307,21 +307,23 @@ where
         let request = lowered_request.normalized_request().request();
         let source_state_owned = if request.source_branch.id == self.graph.current_branch().id {
             {
-                self.capture_heavy_branch_state()
+                self.capture_heavy_branch_state()?
             }
         } else {
-            self.branches
+            let state = self
+                .branches
                 .branch_state(request.source_branch.id)
-                .cloned()
                 .ok_or_else(|| {
                     SignalError::unknown_branch(
                         Some(request.source_branch.id),
                         request.source_branch.name.clone(),
                     )
-                })?
+                })?;
+            Self::ensure_managed_queue_branch_transfer_allowed(state.resource())?;
+            state.clone()
         };
         let target_state_owned = if request.target_branch.id == self.graph.current_branch().id {
-            Some(self.capture_heavy_branch_state())
+            Some(self.capture_heavy_branch_state()?)
         } else {
             None
         };
@@ -334,6 +336,7 @@ where
                 request.target_branch.name.clone(),
             )
         })?;
+        Self::ensure_managed_queue_branch_transfer_allowed(target_state.resource())?;
         let source_state = &source_state_owned;
         let target_graph = target_state.graph();
         let target_snapshot_id_before =
@@ -1015,33 +1018,37 @@ where
         let request = request.normalized_request().request();
         let source_state = if request.source_branch.id == self.graph.current_branch().id {
             {
-                self.capture_heavy_branch_state()
+                self.capture_heavy_branch_state()?
             }
         } else {
-            self.branches
+            let state = self
+                .branches
                 .branch_state(request.source_branch.id)
-                .cloned()
                 .ok_or_else(|| {
                     SignalError::unknown_branch(
                         Some(request.source_branch.id),
                         request.source_branch.name.clone(),
                     )
-                })?
+                })?;
+            Self::ensure_managed_queue_branch_transfer_allowed(state.resource())?;
+            state.clone()
         };
         let mut target_state = if request.target_branch.id == self.graph.current_branch().id {
             {
-                self.capture_heavy_branch_state()
+                self.capture_heavy_branch_state()?
             }
         } else {
-            self.branches
+            let state = self
+                .branches
                 .branch_state(request.target_branch.id)
-                .cloned()
                 .ok_or_else(|| {
                     SignalError::unknown_branch(
                         Some(request.target_branch.id),
                         request.target_branch.name.clone(),
                     )
-                })?
+                })?;
+            Self::ensure_managed_queue_branch_transfer_allowed(state.resource())?;
+            state.clone()
         };
 
         let mut node_map = plan.node_map().clone();
@@ -1360,7 +1367,7 @@ where
             self.branches.store_branch_state(target_state);
         }
         if request.source_branch.id == self.graph.current_branch().id {
-            let mut updated_source_state = self.capture_heavy_branch_state();
+            let mut updated_source_state = self.capture_heavy_branch_state()?;
             updated_source_state
                 .mutation_ledger_mut()
                 .clear_merged_nodes(

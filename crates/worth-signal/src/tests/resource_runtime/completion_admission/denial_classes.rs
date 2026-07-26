@@ -13,7 +13,9 @@ fn resource_completion_admission_denies_pre_restore_epoch_as_stale() {
         .expect("request should admit before snapshot")
         .admitted_request();
     let stale = raw_completion(&runtime, node, admitted.handle(), admitted.attempt(), 64);
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))
@@ -170,7 +172,9 @@ fn resource_completion_identity_staleness_dominates_cancelled_lifecycle_after_re
         .cancel_resource_request(admitted.handle(), ResourceCancellationReason::HostRequested)
         .expect("cancellation should retire timeout side effects cleanly");
     assert!(cancellation.cancelled_request().is_some());
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))

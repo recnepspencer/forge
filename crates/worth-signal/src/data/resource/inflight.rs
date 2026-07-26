@@ -6,6 +6,7 @@ use crate::data::temporal::TemporalWakeId;
 
 use super::descriptor::ResourceDescriptorId;
 use super::lifecycle::{ResourceLifecycleClass, ResourceLifecycleOrdinal};
+use super::managed_queue::ResourceManagedQueueState;
 use super::policy::ResourceTimeoutOutcomeClass;
 use super::policy_registry::ResourcePolicyDigest;
 use super::request::{
@@ -49,6 +50,8 @@ pub struct InFlightResourceRequest {
     revalidation_freshness_digest: Option<String>,
     revalidation_policy_decision_digest: Option<ResourcePolicyDigest>,
     superseded_by: Option<ResourceRequestHandle>,
+    #[serde(default)]
+    managed_queue: Option<ResourceManagedQueueState>,
 }
 
 impl InFlightResourceRequest {
@@ -88,6 +91,7 @@ impl InFlightResourceRequest {
             revalidation_freshness_digest: None,
             revalidation_policy_decision_digest: None,
             superseded_by: None,
+            managed_queue: None,
         }
     }
 
@@ -218,5 +222,17 @@ impl InFlightResourceRequest {
 
     pub fn superseded_by(&self) -> Option<ResourceRequestHandle> {
         self.superseded_by
+    }
+
+    pub(crate) const fn managed_queue(&self) -> Option<ResourceManagedQueueState> {
+        self.managed_queue
+    }
+
+    pub(crate) fn managed_queue_mut(&mut self) -> Option<&mut ResourceManagedQueueState> {
+        self.managed_queue.as_mut()
+    }
+
+    pub(crate) fn bind_managed_queue(&mut self, state: ResourceManagedQueueState) {
+        self.managed_queue = Some(state);
     }
 }

@@ -115,6 +115,20 @@ fn support_mismatch(
             Kind::PartialEffectPostureUnsupported,
             format!("{subject} does not support the strategy partial-effect posture"),
         )
+    } else if actual.envelope().yielded_state_posture()
+        != strategy.envelope().yielded_state_posture()
+    {
+        (
+            Kind::YieldedStatePostureUnsupported,
+            format!("{subject} does not support the strategy yielded-state posture"),
+        )
+    } else if actual.envelope().retained_progress_posture()
+        != strategy.envelope().retained_progress_posture()
+    {
+        (
+            Kind::RetainedProgressPostureUnsupported,
+            format!("{subject} does not support the strategy retained-progress posture"),
+        )
     } else {
         (
             Kind::Backpressured,
@@ -185,7 +199,37 @@ fn classify_request_mismatch(
             counters,
         );
     }
-    if partial_effect
+    let yielded_state = partial_effect
+        .into_iter()
+        .filter(|strategy| {
+            request
+                .yielded_state_postures()
+                .contains(&strategy.envelope().yielded_state_posture())
+        })
+        .collect::<Vec<_>>();
+    if yielded_state.is_empty() {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::YieldedStatePostureUnsupported,
+            "capacity-fitting strategies require an unapproved yielded-state posture",
+            counters,
+        );
+    }
+    let retained_progress = yielded_state
+        .into_iter()
+        .filter(|strategy| {
+            request
+                .retained_progress_postures()
+                .contains(&strategy.envelope().retained_progress_posture())
+        })
+        .collect::<Vec<_>>();
+    if retained_progress.is_empty() {
+        return WorthQueryExecutionResourceAdmissionDenial::new(
+            Kind::RetainedProgressPostureUnsupported,
+            "capacity-fitting strategies require an unapproved retained-progress posture",
+            counters,
+        );
+    }
+    if retained_progress
         .iter()
         .any(|strategy| strategy.envelope().mode() == WorthQueryExecutionMode::Asynchronous)
     {

@@ -105,7 +105,7 @@ fn named_degradation_is_explicit_and_cannot_satisfy_exact_support_silently() {
         100,
         100,
         installed::operation::WorthQueryExecutionMode::Synchronous,
-        Some(installed::operation::WorthQueryExecutionDegradation::RetainedProgress),
+        Some(installed::operation::WorthQueryExecutionDegradation::PartialResult),
         safe_point("degraded-chunk"),
     );
     let (workspace, _) = resource_admission_workspace(
@@ -132,9 +132,7 @@ fn named_degradation_is_explicit_and_cannot_satisfy_exact_support_silently() {
                 installed::operation::WorthQueryResourceLimitRequest::bounded(1),
                 safe_point("degraded-chunk"),
             )
-            .allow_degradation(
-                installed::operation::WorthQueryExecutionDegradation::RetainedProgress,
-            ),
+            .allow_degradation(installed::operation::WorthQueryExecutionDegradation::PartialResult),
             &workspace,
         )
         .unwrap();
@@ -149,7 +147,7 @@ fn named_degradation_is_explicit_and_cannot_satisfy_exact_support_silently() {
     );
     assert_eq!(
         admitted.resources().envelope().degradation(),
-        Some(installed::operation::WorthQueryExecutionDegradation::RetainedProgress)
+        Some(installed::operation::WorthQueryExecutionDegradation::PartialResult)
     );
     assert_eq!(admitted.resources().counters().support_snapshot_checks, 2);
 }

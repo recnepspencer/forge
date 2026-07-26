@@ -81,7 +81,9 @@ pub(crate) fn milestone_d_restore_lineage_nightmare_workload(
             ResourceDiagnosticsExpansionBudget::allow_cold_reconstruction(u32::MAX),
         )
         .expect("baseline hierarchy historical parity should materialize");
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     let payload_a = AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(91))
         .with_max_payload_bytes(1024);

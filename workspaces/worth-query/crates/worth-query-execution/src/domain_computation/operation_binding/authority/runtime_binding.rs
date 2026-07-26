@@ -70,6 +70,7 @@ impl WorthQueryExecutionRuntime {
             .into(),
             operation_identity: operation.definition().canonical_identity().into(),
             basis_identity: basis.capability_digest().into(),
+            semantic_basis: basis.normalized().clone(),
             canonical_query_digest: operation
                 .definition()
                 .semantics()

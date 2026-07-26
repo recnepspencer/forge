@@ -99,6 +99,7 @@ fn changed_request_mints_a_new_plan_and_session_without_mutating_prior_admission
     let first_plan_identity = first.resources().identity().to_owned();
     let first_request_identity = first.resources().request_identity().to_owned();
     let first_session_identity = first.provider_session().identity().to_owned();
+    let first_attempt_identity = first.provider_session().attempt_identity().to_owned();
     let executed = first.execute(&mut workspace).unwrap();
     let evidence = executed.receipt().execution_resources();
     assert_eq!(executed.resources().identity(), first_plan_identity);
@@ -110,6 +111,10 @@ fn changed_request_mints_a_new_plan_and_session_without_mutating_prior_admission
     assert_eq!(evidence.request_identity(), first_request_identity);
     assert_eq!(evidence.provider_session_identity(), first_session_identity);
     assert_eq!(
+        evidence.provider_session_attempt_identity(),
+        first_attempt_identity
+    );
+    assert_ne!(
         evidence.provider_session_attempt_identity(),
         executed.resources().identity()
     );

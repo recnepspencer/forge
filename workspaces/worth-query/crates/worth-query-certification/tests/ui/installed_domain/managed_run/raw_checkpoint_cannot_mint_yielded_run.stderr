@@ -1,0 +1,7 @@
+error[E0277]: the trait bound `WorthQueryYieldedDirectRun: From<Box<dyn WorthQueryGraphProviderCheckpoint>>` is not satisfied
+ --> tests/ui/installed_domain/managed_run/raw_checkpoint_cannot_mint_yielded_run.rs:8:16
+  |
+8 |     checkpoint.into()
+  |                ^^^^ the trait `From<Box<dyn WorthQueryGraphProviderCheckpoint>>` is not implemented for `WorthQueryYieldedDirectRun`
+  |
+  = note: required for `Box<dyn WorthQueryGraphProviderCheckpoint>` to implement `Into<WorthQueryYieldedDirectRun>`

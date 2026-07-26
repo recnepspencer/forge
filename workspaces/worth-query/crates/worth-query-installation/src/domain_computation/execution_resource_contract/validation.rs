@@ -1,8 +1,11 @@
 use std::collections::BTreeSet;
 
 use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimension;
+use worth_query_declaration::facade::domain_computation::{
+    WorthQueryRetainedProgressPosture, WorthQueryYieldedStatePosture,
+};
 
-use super::WorthQueryExecutionResourceContract;
+use super::{WorthQueryExecutionResourceContract, WorthQueryInstalledBoundedStepContract};
 
 pub(super) fn validate_resource_contract(
     contract: &WorthQueryExecutionResourceContract,
@@ -18,12 +21,13 @@ pub(super) fn validate_resource_contract(
         if !names.insert(strategy.name().as_str()) {
             return Err("duplicate-execution-resource-strategy");
         }
-        if strategy
-            .envelope()
-            .resource_ceiling(WorthQueryResourceDimension::CancellationPollingInterval)
-            == 0
+        WorthQueryInstalledBoundedStepContract::derive(strategy.envelope())?;
+        if strategy.envelope().yielded_state_posture()
+            == WorthQueryYieldedStatePosture::ProviderCheckpoint
+            && strategy.envelope().retained_progress_posture()
+                != WorthQueryRetainedProgressPosture::RetainAttemptCapacity
         {
-            return Err("zero-cancellation-polling-interval");
+            return Err("provider-checkpoint-requires-retained-attempt-capacity");
         }
         if strategy
             .envelope()

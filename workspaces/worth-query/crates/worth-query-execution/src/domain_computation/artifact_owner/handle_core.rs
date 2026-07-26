@@ -81,7 +81,7 @@ impl WorthQueryArtifactHandleCore {
         require_no_lease: bool,
     ) -> Result<WorthQueryDisposedArtifact, WorthQueryArtifactDenial> {
         self.owner.validate_guard(self.guard)?;
-        let provider_disposed = match self.guard {
+        let provider_release = match self.guard {
             WorthQueryArtifactHandleGuard::Owner(generation) => {
                 self.owner
                     .release_owner(generation, disposition, require_no_lease)?
@@ -95,7 +95,7 @@ impl WorthQueryArtifactHandleCore {
             self.owner.binding().owner_identity.clone(),
             self.owner.binding().occurrence_identity.clone(),
             disposition,
-            provider_disposed,
+            provider_release,
         ))
     }
 }

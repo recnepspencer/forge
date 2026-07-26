@@ -14,20 +14,23 @@ pub(super) fn resolve_snapshot_version(
     let active_version_id = runtime
         .active_snapshot_binding(snapshot_id)
         .map(|(version_id, _)| version_id);
-    let observed_version_id = if active_version_id == Some(expected_version_id) {
-        expected_version_id
-    } else if runtime.commit_envelope(CommitId(snapshot_id.0)).is_some() {
-        expected_version_id
-    } else {
-        active_version_id
-            .or_else(|| runtime.published_snapshot_version(snapshot_id))
-            .ok_or_else(|| {
+    let execution_version_id = runtime
+        .execution_basis_binding(snapshot_id)
+        .map(|(version_id, _)| version_id);
+    let observed_version_id = active_version_id
+        .or(execution_version_id)
+        .or_else(|| runtime.published_snapshot_version(snapshot_id))
+        .or_else(|| {
+            runtime
+                .commit_envelope(CommitId(snapshot_id.0))
+                .map(|envelope| envelope.commit.version_id)
+        })
+        .ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "relational bridge snapshot `{}` does not resolve to an authoritative active/published snapshot binding or commit envelope",
+                "relational bridge snapshot `{}` has no active, execution, published, or canonical commit authority",
                 snapshot_id.0
             ))
-        })?
-    };
+        })?;
     if observed_version_id != expected_version_id {
         return Err(RelationalBridgeSourceError::new(format!(
             "relational bridge snapshot `{}` expected version `{}` but authoritative binding resolved to version `{}`",

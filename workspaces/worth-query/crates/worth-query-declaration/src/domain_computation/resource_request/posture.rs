@@ -16,16 +16,42 @@ impl WorthQueryExecutionMode {
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum WorthQueryExecutionDegradation {
     PartialResult,
-    YieldedProgress,
-    RetainedProgress,
 }
 
 impl WorthQueryExecutionDegradation {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::PartialResult => "partial-result",
-            Self::YieldedProgress => "yielded-progress",
-            Self::RetainedProgress => "retained-progress",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum WorthQueryYieldedStatePosture {
+    NotYieldable,
+    ProviderCheckpoint,
+}
+
+impl WorthQueryYieldedStatePosture {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::NotYieldable => "not-yieldable",
+            Self::ProviderCheckpoint => "provider-checkpoint",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum WorthQueryRetainedProgressPosture {
+    ReleaseAfterAttempt,
+    RetainAttemptCapacity,
+}
+
+impl WorthQueryRetainedProgressPosture {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ReleaseAfterAttempt => "release-after-attempt",
+            Self::RetainAttemptCapacity => "retain-attempt-capacity",
         }
     }
 }

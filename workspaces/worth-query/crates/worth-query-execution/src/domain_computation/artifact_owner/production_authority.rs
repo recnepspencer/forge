@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use super::{
     artifact_authority_denial_detail, WorthQueryArtifactAuthorityMatch, WorthQueryArtifactDenial,
-    WorthQueryArtifactDenialKind, WorthQueryArtifactProductionAdmission,
-    WorthQueryArtifactProductionEvidence, WorthQueryArtifactProviderResource,
-    WorthQueryGuardedArtifactResource, WorthQueryMoveOnlyArtifactHandle,
-    WorthQueryWorkflowArtifactRegistry,
+    WorthQueryArtifactDenialKind, WorthQueryArtifactOccurrenceScope,
+    WorthQueryArtifactProductionAdmission, WorthQueryArtifactProductionEvidence,
+    WorthQueryArtifactProductionGeneration, WorthQueryArtifactProviderReleasePosture,
+    WorthQueryArtifactProviderResource, WorthQueryGuardedArtifactResource,
+    WorthQueryMoveOnlyArtifactHandle, WorthQueryWorkflowArtifactRegistry,
 };
 
 pub struct WorthQueryArtifactProductionAuthority {
@@ -19,6 +20,7 @@ pub struct WorthQueryArtifactProductionAuthority {
     pub(super) stage_identity: String,
     pub(super) basis_identity: String,
     pub(super) registry: Arc<WorthQueryWorkflowArtifactRegistry>,
+    pub(super) production_generation: WorthQueryArtifactProductionGeneration,
 }
 
 pub(crate) struct WorthQueryArtifactProductionAuthorityParts {
@@ -32,6 +34,7 @@ pub(crate) struct WorthQueryArtifactProductionAuthorityParts {
     pub(crate) stage_identity: String,
     pub(crate) basis_identity: String,
     pub(crate) registry: Arc<WorthQueryWorkflowArtifactRegistry>,
+    pub(crate) production_generation: WorthQueryArtifactProductionGeneration,
 }
 
 impl WorthQueryArtifactProductionAuthority {
@@ -45,6 +48,7 @@ impl WorthQueryArtifactProductionAuthority {
             stage_identity: parts.stage_identity,
             basis_identity: parts.basis_identity,
             registry: parts.registry,
+            production_generation: parts.production_generation,
         })
     }
 
@@ -99,8 +103,52 @@ impl WorthQueryArtifactProductionAuthority {
         resource: R,
     ) -> Result<WorthQueryMoveOnlyArtifactHandle, WorthQueryArtifactDenial> {
         let guarded = WorthQueryGuardedArtifactResource::new(resource);
-        Self::validate_admission(expected, &admission)?;
-        admission.authority().registry.admit_registration()?;
-        WorthQueryMoveOnlyArtifactHandle::register(admission, guarded.prepare())
+        if let Err(denial) = Self::validate_admission(expected, &admission) {
+            let release = guarded.release();
+            return Err(denial.with_rejected_resource_release(
+                WorthQueryArtifactProviderReleasePosture::from_evidence(release),
+            ));
+        }
+        if let Err(denial) = admission
+            .authority()
+            .registry
+            .admit_registration(admission.authority().production_generation)
+        {
+            let release = guarded.release();
+            return Err(denial.with_rejected_resource_release(
+                WorthQueryArtifactProviderReleasePosture::from_evidence(release),
+            ));
+        }
+        WorthQueryMoveOnlyArtifactHandle::register(admission, guarded.prepare(), None)
+    }
+
+    pub(crate) fn register_tracked<R: WorthQueryArtifactProviderResource>(
+        expected: &Arc<Self>,
+        admission: WorthQueryArtifactProductionAdmission,
+        resource: R,
+        occurrence_scope: WorthQueryArtifactOccurrenceScope,
+    ) -> Result<WorthQueryMoveOnlyArtifactHandle, WorthQueryArtifactDenial> {
+        let guarded = WorthQueryGuardedArtifactResource::new(resource);
+        if let Err(denial) = Self::validate_admission(expected, &admission) {
+            let release = guarded.release();
+            return Err(denial.with_rejected_resource_release(
+                WorthQueryArtifactProviderReleasePosture::from_evidence(release),
+            ));
+        }
+        if let Err(denial) = admission
+            .authority()
+            .registry
+            .admit_registration(admission.authority().production_generation)
+        {
+            let release = guarded.release();
+            return Err(denial.with_rejected_resource_release(
+                WorthQueryArtifactProviderReleasePosture::from_evidence(release),
+            ));
+        }
+        WorthQueryMoveOnlyArtifactHandle::register(
+            admission,
+            guarded.prepare(),
+            Some(occurrence_scope),
+        )
     }
 }

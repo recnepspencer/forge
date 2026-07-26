@@ -3,6 +3,7 @@ use std::sync::Arc;
 use super::{
     WorthQueryArtifactAccessAuthority, WorthQueryArtifactDenial, WorthQueryArtifactDenialKind,
     WorthQueryArtifactProductionAuthority, WorthQueryArtifactProductionAuthorityParts,
+    WorthQueryArtifactProductionGeneration, WorthQueryArtifactProductionGenerationPending,
     WorthQueryArtifactTransferAdmission, WorthQueryArtifactTransferAdmissionParts,
     WorthQueryWorkflowArtifactRegistry,
 };
@@ -57,6 +58,30 @@ impl WorthQueryWorkflowArtifactAuthority {
         stage_identity: &str,
     ) -> Result<Option<Arc<WorthQueryArtifactProductionAuthority>>, WorthQueryArtifactDenial> {
         self.validate_current_stage(stage_identity)?;
+        let generation = self.registry.current_production_generation()?;
+        self.mint_production_authority(stage_identity, generation)
+    }
+
+    pub(crate) fn production_authority_for_readmission(
+        &self,
+        stage_identity: &str,
+        pending: &WorthQueryArtifactProductionGenerationPending,
+    ) -> Result<Option<Arc<WorthQueryArtifactProductionAuthority>>, WorthQueryArtifactDenial> {
+        self.validate_current_stage(stage_identity)?;
+        if !pending.belongs_to(&self.registry) {
+            return Err(denial(
+                WorthQueryArtifactDenialKind::RunMismatch,
+                "artifact generation transition belongs to another workflow run",
+            ));
+        }
+        self.mint_production_authority(stage_identity, pending.generation())
+    }
+
+    fn mint_production_authority(
+        &self,
+        stage_identity: &str,
+        production_generation: WorthQueryArtifactProductionGeneration,
+    ) -> Result<Option<Arc<WorthQueryArtifactProductionAuthority>>, WorthQueryArtifactDenial> {
         let contract = self
             .binding
             .workflow_stage_artifact_contracts(stage_identity)
@@ -73,6 +98,7 @@ impl WorthQueryWorkflowArtifactAuthority {
                     stage_identity: stage_identity.to_owned(),
                     basis_identity: self.binding.basis_identity().to_owned(),
                     registry: Arc::clone(&self.registry),
+                    production_generation,
                 },
             )
         }))

@@ -20,5 +20,11 @@ pub(super) fn validate_resource_request(
     if request.modes().is_empty() {
         return Err("empty-execution-mode-set");
     }
+    if request.yielded_state_postures().is_empty() {
+        return Err("empty-yielded-state-posture-set");
+    }
+    if request.retained_progress_postures().is_empty() {
+        return Err("empty-retained-progress-posture-set");
+    }
     Ok(())
 }

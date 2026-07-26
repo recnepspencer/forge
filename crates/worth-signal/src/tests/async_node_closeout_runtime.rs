@@ -248,7 +248,9 @@ fn async_node_hierarchy_historical_parity_report_preserves_restore_honesty() {
         })
         .expect("parent completion should commit");
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let baseline = runtime
         .async_node_hierarchy_historical_parity_report(
             &parent_handle,

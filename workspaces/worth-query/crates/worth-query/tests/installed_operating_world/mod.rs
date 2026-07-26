@@ -31,6 +31,7 @@ mod domain_evidence;
 mod execution_resource_admission;
 mod graph_participation;
 mod graph_provider_execution;
+mod graph_provider_step;
 mod graph_read_material;
 mod installed_operation_fixture;
 mod operating_world;
@@ -70,3 +71,8 @@ mod workflow_progression;
 mod workflow_projection_lifecycle;
 mod workflow_projection_transition_authority;
 mod workflow_projection_transitions;
+
+fn provider_commit_admission_work_report(
+) -> worth_query::facade::domain::WorthQueryLegacyProviderWorkClaim {
+    worth_query::facade::domain::WorthQueryLegacyProviderWorkClaim::new(1, 0, 0, 0)
+}

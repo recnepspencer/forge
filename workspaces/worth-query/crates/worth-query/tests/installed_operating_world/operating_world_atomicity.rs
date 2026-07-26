@@ -15,35 +15,27 @@ struct SeparateCommit;
 struct UncontactedProvider(Arc<AtomicUsize>);
 
 impl domain::WorthQueryGraphParticipationProvider<RemoteGraph> for UncontactedProvider {
+    type Execution = super::graph_provider_step::FixtureGraphProviderExecution;
+
     fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
         super::installed_operation_fixture::execution_resource_support()
     }
 
-    fn observe(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
+    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
         self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("observe"))
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("project"))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("touch"))
+        Ok(match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),
+            domain::WorthQueryGraphProviderCallKind::Project => Self::Execution::read("project"),
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        })
     }
 }
 
@@ -58,7 +50,7 @@ impl domain::WorthQueryGraphCommitProvider<SeparateCommit> for UncontactedProvid
     ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
     {
         self.0.fetch_add(1, Ordering::Relaxed);
-        Ok(call.completed("commit"))
+        Ok(call.completed("commit", super::provider_commit_admission_work_report()))
     }
 }
 

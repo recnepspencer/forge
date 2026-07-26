@@ -26,7 +26,7 @@ use worth_query_installation::facade::{
 use super::{
     WorthQueryArtifactDenialKind, WorthQueryArtifactProductionAuthority,
     WorthQueryArtifactProductionAuthorityParts, WorthQueryArtifactProductionEvidence,
-    WorthQueryWorkflowArtifactRegistry,
+    WorthQueryArtifactProductionGeneration, WorthQueryWorkflowArtifactRegistry,
 };
 use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionRuntime, WorthQueryExecutionRuntimeInstaller,
@@ -201,6 +201,7 @@ fn authority_parts(
         registry: Arc::new(WorthQueryWorkflowArtifactRegistry::new(
             "installed-run".into(),
         )),
+        production_generation: WorthQueryArtifactProductionGeneration::initial(),
     }
 }
 
@@ -231,6 +232,11 @@ struct InstalledContracts {
     foreign_owner: Arc<WorthQueryInstalledArtifactContractAuthority>,
     foreign_family: Arc<WorthQueryInstalledArtifactContractAuthority>,
     foreign_version: Arc<WorthQueryInstalledArtifactContractAuthority>,
+}
+
+pub(crate) fn installed_artifact_contract_for_managed_run(
+) -> Arc<WorthQueryInstalledArtifactContractAuthority> {
+    installed_contracts().expected
 }
 
 fn installed_contracts() -> InstalledContracts {
@@ -345,9 +351,13 @@ fn contract<F: WorthQueryArtifactFamily>(
     .convergence(WorthQueryConvergenceContract::NotIterative)
     .transformation(WorthQueryTransformationEvidenceContract::not_a_transformation())
     .access_path(worth_query_installation::facade::WorthQueryArtifactAccessPathContract::denied())
-    .carriage(
-        worth_query_installation::facade::WorthQueryArtifactCarriageContract::move_only_provider_transfer(),
-    )
+    .carriage(worth_query_installation::facade::WorthQueryArtifactCarriageContract::new(
+        worth_query_installation::facade::WorthQueryArtifactMovePosture::Required,
+        worth_query_installation::facade::WorthQueryArtifactBorrowPosture::SharedReadOnly,
+        worth_query_installation::facade::WorthQueryArtifactClonePosture::Forbidden,
+        worth_query_installation::facade::WorthQueryArtifactProviderTransferPosture::MoveOwnership,
+        worth_query_installation::facade::WorthQueryArtifactSerializationPosture::CanonicalProjectionOnly,
+    ))
     .lifecycle(WorthQueryArtifactLifecycleContract::ArenaScoped)
     .counters(WorthQueryStructuralCounterContract::required_foundation(
         counter("bytes"),

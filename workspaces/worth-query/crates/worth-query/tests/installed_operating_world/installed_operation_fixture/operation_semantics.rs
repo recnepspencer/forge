@@ -106,11 +106,29 @@ pub(crate) fn execution_resource_request() -> domain::WorthQueryExecutionResourc
     )
 }
 
+pub(crate) fn partial_effect_execution_resource_request(
+) -> domain::WorthQueryExecutionResourceRequest {
+    execution_resource_request().allow_partial_effect_posture(
+        domain::WorthQueryPartialEffectPosture::PartialEffectsMayRemain,
+    )
+}
+
 pub(crate) fn execution_resource_contract() -> domain::WorthQueryExecutionResourceContract {
+    execution_resource_contract_for(execution_resource_envelope())
+}
+
+pub(crate) fn partial_effect_execution_resource_contract(
+) -> domain::WorthQueryExecutionResourceContract {
+    execution_resource_contract_for(partial_effect_execution_resource_envelope())
+}
+
+fn execution_resource_contract_for(
+    envelope: domain::WorthQueryExecutionResourceEnvelope,
+) -> domain::WorthQueryExecutionResourceContract {
     domain::WorthQueryExecutionResourceContract::declared([
         domain::WorthQueryExecutionStrategyContract::new(
             domain::WorthQueryExecutionStrategyName::new("fixture-bounded").unwrap(),
-            execution_resource_envelope(),
+            envelope,
             domain::WorthQueryExecutionProviderRequirements::new(
                 domain::WorthQueryExecutionProviderFamily::new("fixture-provider").unwrap(),
                 domain::WorthQueryExecutionAccessProductFamily::new("fixture-access").unwrap(),
@@ -122,11 +140,22 @@ pub(crate) fn execution_resource_contract() -> domain::WorthQueryExecutionResour
 }
 
 pub(crate) fn execution_resource_support() -> domain::WorthQueryExecutionResourceSupport {
+    execution_resource_support_for(execution_resource_envelope())
+}
+
+pub(crate) fn partial_effect_execution_resource_support(
+) -> domain::WorthQueryExecutionResourceSupport {
+    execution_resource_support_for(partial_effect_execution_resource_envelope())
+}
+
+fn execution_resource_support_for(
+    envelope: domain::WorthQueryExecutionResourceEnvelope,
+) -> domain::WorthQueryExecutionResourceSupport {
     domain::WorthQueryExecutionResourceSupport::new(
         domain::WorthQueryExecutionProviderFamily::new("fixture-provider").unwrap(),
         domain::WorthQueryExecutionAccessProductFamily::new("fixture-access").unwrap(),
         domain::WorthQueryExecutionAllocatorFamily::new("fixture-arena").unwrap(),
-        execution_resource_envelope(),
+        envelope,
         std::sync::Arc::new(
             domain::WorthQueryFixedExecutionCapacity::mint("fixture-provider", 1_000_000).unwrap(),
         ),
@@ -139,6 +168,12 @@ fn execution_resource_envelope() -> domain::WorthQueryExecutionResourceEnvelope 
         1_000_000,
         domain::WorthQueryExecutionMode::Synchronous,
         cancellation_safe_point(),
+    )
+}
+
+fn partial_effect_execution_resource_envelope() -> domain::WorthQueryExecutionResourceEnvelope {
+    execution_resource_envelope().with_partial_effect_posture(
+        domain::WorthQueryPartialEffectPosture::PartialEffectsMayRemain,
     )
 }
 

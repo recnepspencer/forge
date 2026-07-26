@@ -49,17 +49,17 @@ impl SelectiveProvider {
         }
     }
 
-    pub(super) fn commit(
+    pub(super) fn partial_effect(
         log: &Arc<Mutex<Vec<&'static str>>>,
         fail_at: Option<FailAt>,
-        expected_roles: Vec<&'static str>,
     ) -> Self {
         Self {
             log: Arc::clone(log),
             fail_at,
-            expected_commit_roles: Some(expected_roles),
-            resource_support: super::super::installed_operation_fixture::execution_resource_support(
-            ),
+            expected_commit_roles: None,
+            resource_support:
+                super::super::installed_operation_fixture::partial_effect_execution_resource_support(
+                ),
         }
     }
 
@@ -73,6 +73,21 @@ impl SelectiveProvider {
             fail_at: None,
             expected_commit_roles: Some(expected_roles),
             resource_support,
+        }
+    }
+
+    pub(super) fn partial_effect_commit(
+        log: &Arc<Mutex<Vec<&'static str>>>,
+        fail_at: Option<FailAt>,
+        expected_roles: Vec<&'static str>,
+    ) -> Self {
+        Self {
+            log: Arc::clone(log),
+            fail_at,
+            expected_commit_roles: Some(expected_roles),
+            resource_support:
+                super::super::installed_operation_fixture::partial_effect_execution_resource_support(
+                ),
         }
     }
 
@@ -99,43 +114,39 @@ impl SelectiveProvider {
 }
 
 impl<G> domain::WorthQueryGraphParticipationProvider<G> for SelectiveProvider {
+    type Execution = crate::suite::graph_provider_step::FixtureGraphProviderExecution;
+
     fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
         self.resource_support.clone()
     }
 
-    fn observe(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
+    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
         Self::assert_graph_call_resources(call);
-        Ok(call.completed(self.contact_label("observe", FailAt::Observe)?))
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Self::assert_graph_call_resources(call);
-        self.log.lock().unwrap().push("project");
-        if self.fail_at == Some(FailAt::Project) {
-            Err(domain::WorthQueryGraphProviderFailure::new("project"))
-        } else {
-            call.projected(
-                "project",
-                graph_read_material("graph-provider-execution-projection"),
-            )
-        }
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Self::assert_graph_call_resources(call);
-        Ok(call.completed(self.contact_label("touch", FailAt::Touch)?))
+        Ok(match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => {
+                Self::Execution::read(self.contact_label("observe", FailAt::Observe)?)
+            }
+            domain::WorthQueryGraphProviderCallKind::Project => {
+                self.log.lock().unwrap().push("project");
+                if self.fail_at == Some(FailAt::Project) {
+                    Self::Execution::failed("project")
+                } else {
+                    Self::Execution::projection(
+                        "project",
+                        graph_read_material("graph-provider-execution-projection"),
+                    )
+                }
+            }
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect(self.contact_label("touch", FailAt::Touch)?)
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        })
     }
 }
 
@@ -160,38 +171,37 @@ impl domain::WorthQueryGraphCommitProvider<SharedCommit> for SelectiveProvider {
                 .as_deref()
                 .expect("commit fixture declares the exact mutating role set")
         );
-        Ok(call.completed(self.contact_label("commit", FailAt::Commit)?))
+        Ok(call.completed(
+            self.contact_label("commit", FailAt::Commit)?,
+            crate::suite::provider_commit_admission_work_report(),
+        ))
     }
 }
 
 pub(super) struct ReceiptOnlyProvider;
 
 impl domain::WorthQueryGraphParticipationProvider<RemoteA> for ReceiptOnlyProvider {
+    type Execution = crate::suite::graph_provider_step::FixtureGraphProviderExecution;
+
     fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
         super::super::installed_operation_fixture::execution_resource_support()
     }
 
-    fn observe(
+    fn begin(
         &self,
         call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("observe"))
-    }
-
-    fn project(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("dishonest-projection-receipt"))
-    }
-
-    fn touch_effect(
-        &self,
-        call: &domain::WorthQueryGraphProviderCall,
-    ) -> Result<domain::WorthQueryGraphProviderReceipt, domain::WorthQueryGraphProviderFailure>
-    {
-        Ok(call.completed("touch"))
+    ) -> Result<Self::Execution, domain::WorthQueryGraphProviderFailure> {
+        Ok(match call.kind() {
+            domain::WorthQueryGraphProviderCallKind::Observe => Self::Execution::read("observe"),
+            domain::WorthQueryGraphProviderCallKind::Project => {
+                Self::Execution::read("dishonest-projection-receipt")
+            }
+            domain::WorthQueryGraphProviderCallKind::TouchEffect => {
+                Self::Execution::effect("touch")
+            }
+            domain::WorthQueryGraphProviderCallKind::CommitAdmission => {
+                unreachable!("graph participation never receives commit admission")
+            }
+        })
     }
 }

@@ -80,6 +80,7 @@ pub(crate) fn valid_contract(
     .convergence(WorthQueryConvergenceContract::bounded(
         "worth.routing.progress",
         "worth.routing.convergence",
+        "worth.routing.repeated-state",
         100,
     ))
     .transformation(WorthQueryTransformationEvidenceContract::not_a_transformation())

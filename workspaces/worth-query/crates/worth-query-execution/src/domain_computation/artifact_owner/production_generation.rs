@@ -1,0 +1,69 @@
+use std::sync::Arc;
+
+use super::{WorthQueryArtifactDenial, WorthQueryWorkflowArtifactRegistry};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct WorthQueryArtifactProductionGeneration(u64);
+
+impl WorthQueryArtifactProductionGeneration {
+    pub(super) const fn initial() -> Self {
+        Self(1)
+    }
+
+    pub(super) fn next(self) -> Option<Self> {
+        self.0.checked_add(1).map(Self)
+    }
+
+    pub const fn ordinal(self) -> u64 {
+        self.0
+    }
+}
+
+pub(crate) struct WorthQueryArtifactProductionGenerationPending {
+    pub(super) registry: Arc<WorthQueryWorkflowArtifactRegistry>,
+    pub(super) prior: WorthQueryArtifactProductionGeneration,
+    pub(super) next: WorthQueryArtifactProductionGeneration,
+    active: bool,
+}
+
+impl WorthQueryArtifactProductionGenerationPending {
+    pub(super) fn new(
+        registry: Arc<WorthQueryWorkflowArtifactRegistry>,
+        prior: WorthQueryArtifactProductionGeneration,
+        next: WorthQueryArtifactProductionGeneration,
+    ) -> Self {
+        Self {
+            registry,
+            prior,
+            next,
+            active: true,
+        }
+    }
+
+    pub(crate) const fn generation(&self) -> WorthQueryArtifactProductionGeneration {
+        self.next
+    }
+
+    pub(crate) fn belongs_to(&self, registry: &Arc<WorthQueryWorkflowArtifactRegistry>) -> bool {
+        Arc::ptr_eq(&self.registry, registry)
+    }
+
+    pub(crate) fn abort(mut self) -> Result<(), WorthQueryArtifactDenial> {
+        let outcome = self.registry.abort_generation(self.prior, self.next);
+        self.active = false;
+        outcome
+    }
+
+    pub(crate) fn commit(mut self) {
+        self.registry.commit_generation(self.prior, self.next);
+        self.active = false;
+    }
+}
+
+impl Drop for WorthQueryArtifactProductionGenerationPending {
+    fn drop(&mut self) {
+        if self.active {
+            let _ = self.registry.abort_generation(self.prior, self.next);
+        }
+    }
+}

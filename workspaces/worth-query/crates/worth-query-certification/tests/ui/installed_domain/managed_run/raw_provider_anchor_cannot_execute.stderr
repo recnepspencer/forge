@@ -1,0 +1,5 @@
+error[E0599]: no method named `execute_unmanaged` found for reference `&WorthQueryGraphProviderAnchor` in the current scope
+ --> tests/ui/installed_domain/managed_run/raw_provider_anchor_cannot_execute.rs:5:20
+  |
+5 |     let _ = anchor.execute_unmanaged(call);
+  |                    ^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryGraphProviderAnchor`

@@ -54,6 +54,15 @@ impl WorthQueryExecutionResourceTopology {
         }
     }
 
+    pub(super) fn contains_graph_authority(
+        &self,
+        authority: &WorthQueryInstalledGraphParticipationAuthority,
+    ) -> bool {
+        self.graph_providers
+            .get(authority.role())
+            .is_some_and(|installed| installed.authority_identity == authority.authority_identity())
+    }
+
     pub(super) fn admits_commit_call(
         &self,
         authorities: &[&WorthQueryInstalledGraphParticipationAuthority],

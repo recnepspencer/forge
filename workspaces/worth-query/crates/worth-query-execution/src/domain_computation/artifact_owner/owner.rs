@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use super::{
-    WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactSemanticProjection,
+    WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactLifecycleRecord,
+    WorthQueryArtifactOccurrenceScope, WorthQueryArtifactSemanticProjection,
     WorthQueryErasedArtifactProviderResource, WorthQueryPreparedArtifactResource,
-    WorthQueryRuntimeArtifactLifecycle,
 };
 
 pub(crate) struct WorthQueryRuntimeArtifactOwner {
@@ -13,7 +13,8 @@ pub(crate) struct WorthQueryRuntimeArtifactOwner {
     created_thread: std::thread::ThreadId,
     provider_access_session_identity: String,
     resource: Mutex<Option<Box<dyn WorthQueryErasedArtifactProviderResource>>>,
-    pub(super) lifecycle: Mutex<WorthQueryRuntimeArtifactLifecycle>,
+    occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
+    pub(super) lifecycle: Arc<WorthQueryArtifactLifecycleRecord>,
 }
 
 pub(crate) struct WorthQueryRuntimeArtifactBinding {
@@ -36,6 +37,7 @@ impl WorthQueryRuntimeArtifactOwner {
     pub(super) fn register(
         binding: WorthQueryRuntimeArtifactBinding,
         prepared: WorthQueryPreparedArtifactResource,
+        occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
     ) -> Arc<Self> {
         let (semantic_projection, retained_bytes, resource) = prepared.into_owner_parts();
         let provider_access_session_identity =
@@ -52,15 +54,20 @@ impl WorthQueryRuntimeArtifactOwner {
                         .unwrap_or("unbound")
                 ),
             ]);
-        Arc::new(Self {
+        let owner = Arc::new(Self {
             binding,
             semantic_projection,
             retained_bytes,
             created_thread: std::thread::current().id(),
             provider_access_session_identity,
             resource: Mutex::new(Some(resource)),
-            lifecycle: Mutex::new(WorthQueryRuntimeArtifactLifecycle::new(retained_bytes)),
-        })
+            occurrence_scope,
+            lifecycle: Arc::new(WorthQueryArtifactLifecycleRecord::new(retained_bytes)),
+        });
+        if let Some(scope) = &owner.occurrence_scope {
+            scope.record_produced(retained_bytes);
+        }
+        owner
     }
 
     pub(super) fn binding(&self) -> &WorthQueryRuntimeArtifactBinding {
@@ -81,6 +88,10 @@ impl WorthQueryRuntimeArtifactOwner {
 
     pub(super) fn provider_access_session_identity(&self) -> &str {
         &self.provider_access_session_identity
+    }
+
+    pub(super) fn lifecycle_record(&self) -> Arc<WorthQueryArtifactLifecycleRecord> {
+        Arc::clone(&self.lifecycle)
     }
 
     pub(super) fn with_native_access_provider<T>(
@@ -110,7 +121,9 @@ impl WorthQueryRuntimeArtifactOwner {
             .expect("artifact provider resource lock must remain available")
             .take()
             .expect("live artifact owner retains exactly one provider resource");
-        resource.dispose();
+        let release = resource.release();
+        self.record_occurrence_disposal();
+        self.lifecycle.record_provider_release(release);
     }
 
     pub(super) fn denial(
@@ -124,6 +137,12 @@ impl WorthQueryRuntimeArtifactOwner {
             detail,
         )
     }
+
+    fn record_occurrence_disposal(&self) {
+        if let Some(scope) = &self.occurrence_scope {
+            scope.record_disposed(self.retained_bytes);
+        }
+    }
 }
 
 impl Drop for WorthQueryRuntimeArtifactOwner {
@@ -136,6 +155,8 @@ impl Drop for WorthQueryRuntimeArtifactOwner {
         else {
             return;
         };
-        resource.dispose();
+        let release = resource.release();
+        self.record_occurrence_disposal();
+        self.lifecycle.record_provider_release(release);
     }
 }

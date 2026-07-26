@@ -2340,7 +2340,9 @@ fn observation_unobserve_does_not_resurrect_dead_listener_after_branch_restore_c
     let main = runtime.observe().current_branch();
     let feature = runtime.create_branch("feature-observation").unwrap();
     runtime.switch_branch(feature.clone()).unwrap();
-    let feature_snapshot = runtime.capture_snapshot();
+    let feature_snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     runtime.switch_branch(main).unwrap();
     runtime
         .restore_branch_snapshot(feature.clone(), &feature_snapshot)

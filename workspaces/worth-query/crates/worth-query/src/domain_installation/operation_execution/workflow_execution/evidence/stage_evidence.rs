@@ -227,6 +227,9 @@ pub struct WorthQueryWorkflowStageReceipt {
     pub(crate) lineage: Vec<crate::identity_evolution::InstalledIdentityEvolutionOutcome>,
     pub(super) domain_evidence: Option<super::WorthQueryAdmittedDomainEvidence>,
     pub(super) execution_resources: super::WorthQueryExecutionResourceAttemptEvidence,
+    pub(super) artifact_provider_release: Option<
+        worth_query_execution::facade::domain_computation::WorthQueryArtifactProviderReleasePosture,
+    >,
 }
 
 #[derive(Debug)]
@@ -288,11 +291,10 @@ impl WorthQueryWorkflowStageReceipt {
         match output {
             WorthQueryWorkflowValue::InstalledArtifact(handle) => {
                 let disposed = handle.cancel();
-                self.set_artifact_disposition(if disposed.provider_disposed() {
-                    crate::domain_installation::WorthQueryArtifactDisposition::Disposed
-                } else {
-                    crate::domain_installation::WorthQueryArtifactDisposition::Cancelled
-                });
+                self.set_artifact_disposition(
+                    crate::domain_installation::WorthQueryArtifactDisposition::Cancelled,
+                );
+                self.artifact_provider_release = Some(disposed.provider_release());
             }
             output => self.restore_output(output),
         }
@@ -302,17 +304,23 @@ impl WorthQueryWorkflowStageReceipt {
         match output {
             WorthQueryWorkflowValue::InstalledArtifact(handle) => {
                 let disposed = handle.retire_for_trace();
-                self.set_artifact_disposition(if disposed.provider_disposed() {
-                    crate::domain_installation::WorthQueryArtifactDisposition::Disposed
-                } else {
-                    crate::domain_installation::WorthQueryArtifactDisposition::Released
-                });
+                self.set_artifact_disposition(
+                    crate::domain_installation::WorthQueryArtifactDisposition::Released,
+                );
+                self.artifact_provider_release = Some(disposed.provider_release());
             }
             output => self.restore_output(output),
         }
     }
     pub(crate) fn output_semantics(&self) -> &WorthQueryWorkflowSemanticValue {
         &self.output_semantics
+    }
+    pub fn artifact_provider_release(
+        &self,
+    ) -> Option<
+        worth_query_execution::facade::domain_computation::WorthQueryArtifactProviderReleasePosture,
+    > {
+        self.artifact_provider_release
     }
     pub fn result_state(&self) -> Option<WorthQueryOperationResultState> {
         self.result_state

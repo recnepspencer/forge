@@ -33,7 +33,10 @@ pub use lowering::{BridgeAsyncSourceLoweringIdentity, LoweredBridgeAsyncSourceDe
 pub use rejection::{
     BridgeAsyncSourceDeclarationRejection, BridgeAsyncSourceDeclarationRejectionKind,
 };
-pub(crate) use request_identity::state::with_signal_runtime as with_async_request_signal_runtime;
+pub(crate) use request_identity::state::{
+    with_signal_runtime as with_async_request_signal_runtime, BridgeSignalRuntime,
+};
+pub(crate) use request_identity::SignalRuntimeThreadAffinityError;
 pub use request_identity::{
     AdmittedBridgeAsyncRequestIdentity, BridgeAsyncInFlightRequestIdentity,
     BridgeAsyncRequestAdmissionRequest, BridgeAsyncRequestBasisBindingIdentity,

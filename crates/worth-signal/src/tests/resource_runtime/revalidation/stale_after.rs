@@ -283,7 +283,9 @@ fn resource_stale_after_revalidation_survives_snapshot_restore_with_same_ready_w
     let stale_after_wake = runtime
         .active_resource_stale_after_wake_for_node(ResourceNodeId::from_node(node))
         .expect("fulfilled node should retain stale-after wake before restore");
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
 
     runtime
         .admit_resource_request(ResourceRequestIntent::new(ResourceNodeId::from_node(node)))

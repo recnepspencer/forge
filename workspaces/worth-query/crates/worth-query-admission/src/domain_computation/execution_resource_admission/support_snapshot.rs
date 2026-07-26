@@ -55,6 +55,14 @@ impl WorthQueryExecutionResourceSupport {
                 envelope.partial_effect_posture().as_str()
             ),
             format!(
+                "yielded-state:{}",
+                envelope.yielded_state_posture().as_str()
+            ),
+            format!(
+                "retained-progress:{}",
+                envelope.retained_progress_posture().as_str()
+            ),
+            format!(
                 "scale:{}",
                 envelope
                     .scale_ceilings()
@@ -166,6 +174,8 @@ fn covers(
         && admitted.cancellation_safe_point() == support.cancellation_safe_point()
         && admitted.degradation() == support.degradation()
         && admitted.partial_effect_posture() == support.partial_effect_posture()
+        && admitted.yielded_state_posture() == support.yielded_state_posture()
+        && admitted.retained_progress_posture() == support.retained_progress_posture()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -243,6 +253,13 @@ impl WorthQueryExecutionResourceSupportSnapshot {
 
     pub fn graph_providers(&self) -> &[(String, WorthQueryExecutionResourceSupport)] {
         &self.graph_providers
+    }
+
+    pub fn graph_provider(&self, role: &str) -> Option<&WorthQueryExecutionResourceSupport> {
+        self.graph_providers
+            .binary_search_by(|(candidate, _)| candidate.as_str().cmp(role))
+            .ok()
+            .map(|index| &self.graph_providers[index].1)
     }
 
     pub fn commit_providers(&self) -> &[(String, WorthQueryExecutionResourceSupport)] {

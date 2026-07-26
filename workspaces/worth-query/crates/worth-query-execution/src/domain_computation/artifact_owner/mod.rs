@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod authority_affinity_tests;
+#[cfg(test)]
+pub(crate) use authority_affinity_tests::installed_artifact_contract_for_managed_run;
 mod authority_match;
 mod authority_validation;
 mod borrow;
@@ -10,13 +12,20 @@ mod handle;
 mod handle_core;
 mod installed_binding;
 mod lifecycle;
+mod lifecycle_state;
 mod native_access;
+mod occurrence_ledger;
 mod owner;
 mod production;
 mod production_admission;
 mod production_authority;
+mod production_generation;
+mod provider_release;
 mod provider_resource;
+#[cfg(test)]
+mod provider_resource_tests;
 mod registry;
+mod registry_evidence;
 mod replacement;
 mod retained_lease;
 mod trace_meaning;
@@ -33,6 +42,11 @@ pub use native_access::*;
 pub use production_admission::{
     WorthQueryArtifactProductionAdmission, WorthQueryArtifactProductionEvidence,
 };
+pub use production_generation::WorthQueryArtifactProductionGeneration;
+pub use provider_release::{
+    WorthQueryArtifactProviderDestructorDisposition, WorthQueryArtifactProviderDisposalDisposition,
+    WorthQueryArtifactProviderReleaseEvidence, WorthQueryArtifactProviderReleasePosture,
+};
 pub use provider_resource::{
     WorthQueryArtifactProviderResource, WorthQueryArtifactSemanticProjection,
 };
@@ -48,13 +62,19 @@ use handle_core::{WorthQueryArtifactHandleCore, WorthQueryArtifactHandleGuard};
 pub(crate) use installed_binding::{
     compile_workflow_artifact_contracts, WorthQueryInstalledWorkflowArtifactContracts,
 };
-use lifecycle::WorthQueryRuntimeArtifactLifecycle;
+use lifecycle_state::{WorthQueryArtifactLifecycleRecord, WorthQueryRuntimeArtifactLifecycle};
+pub(crate) use occurrence_ledger::{
+    WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactOccurrenceScope,
+    WorthQueryArtifactOccurrenceSnapshot,
+};
 pub(crate) use owner::{WorthQueryRuntimeArtifactBinding, WorthQueryRuntimeArtifactOwner};
 pub use production_authority::WorthQueryArtifactProductionAuthority;
 pub(crate) use production_authority::WorthQueryArtifactProductionAuthorityParts;
+pub(crate) use production_generation::WorthQueryArtifactProductionGenerationPending;
 pub(crate) use provider_resource::{
     WorthQueryErasedArtifactProviderResource, WorthQueryGuardedArtifactResource,
     WorthQueryPreparedArtifactResource,
 };
 pub use registry::WorthQueryWorkflowArtifactRegistry;
+pub use registry_evidence::WorthQueryWorkflowArtifactRegistryEvidence;
 pub(crate) use transfer::WorthQueryArtifactTransferAdmissionParts;

@@ -7,7 +7,7 @@ use super::graph_provider::{
     WorthQueryGraphCallBindingDenial, WorthQueryGraphCommitCall, WorthQueryGraphCommitCallRequest,
     WorthQueryGraphProviderCall, WorthQueryGraphProviderCallRequest,
 };
-use super::WorthQueryExecutionResourceAttemptEvidence;
+use super::{WorthQueryExecutionAttemptIdentity, WorthQueryExecutionResourceAttemptEvidence};
 use crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority;
 
 static NEXT_PROVIDER_SESSION: AtomicU64 = AtomicU64::new(1);
@@ -21,18 +21,18 @@ pub struct WorthQueryExecutionProviderSession {
 
 impl WorthQueryExecutionProviderSession {
     pub(super) fn mint(
-        attempt_identity: &str,
+        attempt_identity: &WorthQueryExecutionAttemptIdentity,
         binding_authority: &WorthQueryExecutionBoundOperationAuthority,
     ) -> Self {
         let ordinal = NEXT_PROVIDER_SESSION.fetch_add(1, Ordering::Relaxed);
         let identity = Arc::<str>::from(hash_parts(&[
             "worth_query_execution_provider_session_v1".into(),
-            format!("attempt:{attempt_identity}"),
+            format!("attempt:{}", attempt_identity.as_str()),
             format!("ordinal:{ordinal}"),
         ]));
         Self {
             identity,
-            attempt_identity: Arc::from(attempt_identity),
+            attempt_identity: Arc::from(attempt_identity.as_str()),
             binding_authority: Arc::new(binding_authority.clone()),
         }
     }
@@ -49,6 +49,10 @@ impl WorthQueryExecutionProviderSession {
         &self,
     ) -> Arc<WorthQueryExecutionBoundOperationAuthority> {
         Arc::clone(&self.binding_authority)
+    }
+
+    pub(crate) fn binding_authority(&self) -> &WorthQueryExecutionBoundOperationAuthority {
+        &self.binding_authority
     }
 
     pub fn bind_direct_domain_evidence(
@@ -94,6 +98,9 @@ impl WorthQueryExecutionProviderSession {
             worth_query_installation::facade::WorthQueryExecutionResourceEnvelope,
         >,
     ) -> Result<WorthQueryGraphProviderCall, WorthQueryGraphCallBindingDenial> {
+        if request.execution_snapshot_identity().is_none() {
+            return Err(WorthQueryGraphCallBindingDenial::ExecutionBasisMismatch);
+        }
         if !self.binding_authority.admits_graph_call(
             request.stage_identity(),
             graph_authority,

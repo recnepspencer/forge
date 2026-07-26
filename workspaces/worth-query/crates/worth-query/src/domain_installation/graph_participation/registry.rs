@@ -3,46 +3,15 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use worth_query_execution::facade::integration::WorthQueryGraphProviderAnchor;
+
 use super::{
     WorthQueryGraphCommitCall, WorthQueryGraphCommitPosture, WorthQueryGraphCommitProvider,
     WorthQueryGraphParticipationDefinition, WorthQueryGraphParticipationInstallationDenial,
     WorthQueryGraphParticipationInstallationDenialKind, WorthQueryGraphParticipationLookupDenial,
     WorthQueryGraphParticipationLookupDenialKind, WorthQueryGraphParticipationProvider,
-    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallKind, WorthQueryGraphProviderFailure,
-    WorthQueryGraphProviderReceipt,
+    WorthQueryGraphProviderFailure, WorthQueryGraphProviderReceipt,
 };
-
-pub(crate) trait ErasedGraphParticipationProvider: Send + Sync {
-    fn call(
-        &self,
-        kind: WorthQueryGraphProviderCallKind,
-        call: &WorthQueryGraphProviderCall,
-    ) -> Result<WorthQueryGraphProviderReceipt, WorthQueryGraphProviderFailure>;
-}
-
-struct TypedGraphParticipationProvider<G, P> {
-    provider: P,
-    _marker: PhantomData<fn() -> G>,
-}
-
-impl<G: 'static, P: WorthQueryGraphParticipationProvider<G>> ErasedGraphParticipationProvider
-    for TypedGraphParticipationProvider<G, P>
-{
-    fn call(
-        &self,
-        kind: WorthQueryGraphProviderCallKind,
-        call: &WorthQueryGraphProviderCall,
-    ) -> Result<WorthQueryGraphProviderReceipt, WorthQueryGraphProviderFailure> {
-        match kind {
-            WorthQueryGraphProviderCallKind::Observe => self.provider.observe(call),
-            WorthQueryGraphProviderCallKind::Project => self.provider.project(call),
-            WorthQueryGraphProviderCallKind::TouchEffect => self.provider.touch_effect(call),
-            WorthQueryGraphProviderCallKind::CommitAdmission => {
-                unreachable!("commit admission has one separately installed group provider")
-            }
-        }
-    }
-}
 
 pub(crate) trait ErasedGraphCommitProvider: Send + Sync {
     fn admit_commit(
@@ -75,7 +44,7 @@ pub(crate) struct ErasedGraphParticipationDefinition {
 }
 
 pub(crate) struct GraphParticipationProviderRegistration {
-    pub provider: Arc<dyn ErasedGraphParticipationProvider>,
+    pub provider: Arc<WorthQueryGraphProviderAnchor>,
     pub provider_identity: &'static str,
     pub commit_marker: Option<(TypeId, &'static str)>,
     pub resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
@@ -134,13 +103,11 @@ impl WorthQueryPendingGraphParticipations {
         commit_marker: Option<(TypeId, &'static str)>,
     ) -> Self {
         let marker = TypeId::of::<G>();
-        let resource_support = provider.execution_resource_support();
+        let provider = Arc::new(WorthQueryGraphProviderAnchor::install::<G, P>(provider));
+        let resource_support = provider.resource_support().clone();
         let registration = GraphParticipationProviderRegistration {
-            provider: Arc::new(TypedGraphParticipationProvider::<G, P> {
-                provider,
-                _marker: PhantomData,
-            }),
-            provider_identity: std::any::type_name::<P>(),
+            provider_identity: provider.provider_identity(),
+            provider,
             commit_marker,
             resource_support,
         };
@@ -266,9 +233,6 @@ impl WorthQueryPendingGraphParticipations {
                     &definition.role,
                 ));
             }
-            let provider_anchor = Arc::new(InstalledGraphProviderAnchor {
-                provider: Arc::clone(&registration.provider),
-            });
             let installation_authority = Arc::new(
                 worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority::install(
                     installation_runtime,
@@ -276,7 +240,7 @@ impl WorthQueryPendingGraphParticipations {
                     registration.provider_identity,
                     requires_commit,
                     registration.commit_marker.map(|(_, identity)| identity),
-                    provider_anchor,
+                    Arc::clone(&registration.provider),
                 )
                 .expect("validated Query graph participation must mint installation authority"),
             );
@@ -305,14 +269,9 @@ pub(crate) struct WorthQueryInstalledGraphParticipationRecord {
         Arc<worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority>,
     pub definition: ErasedGraphParticipationDefinition,
     pub runtime_authority: u64,
-    pub provider: Arc<dyn ErasedGraphParticipationProvider>,
+    pub provider: Arc<WorthQueryGraphProviderAnchor>,
     pub resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
     pub commit_authority: Option<Arc<WorthQueryInstalledGraphCommitAuthority>>,
-}
-
-struct InstalledGraphProviderAnchor {
-    #[allow(dead_code)]
-    provider: Arc<dyn ErasedGraphParticipationProvider>,
 }
 
 pub(crate) struct WorthQueryInstalledGraphCommitAuthority {

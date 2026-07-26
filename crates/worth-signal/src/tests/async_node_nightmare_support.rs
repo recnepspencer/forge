@@ -167,7 +167,9 @@ pub(crate) fn milestone_d_combined_workload() -> MilestoneDCombinedWorkload {
         )
         .expect("pre-cancellation hierarchy historical parity should materialize");
 
-    let snapshot = runtime.capture_snapshot();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
     let hierarchy_cancellation = runtime
         .cancel_async_node_request(
             parent_request.handle(),
