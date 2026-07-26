@@ -1,11 +1,11 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         TaskPresentationCancellationPosture, TaskPresentationDescriptor,
         TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationLifecyclePosture,
         TaskPresentationProjectionEligibility, TaskPresentationRuntimeAuthorityPosture,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::task_presentation_assertions::{

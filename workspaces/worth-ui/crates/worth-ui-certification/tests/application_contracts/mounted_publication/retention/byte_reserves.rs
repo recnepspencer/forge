@@ -1,4 +1,5 @@
 use super::*;
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 
 #[test]
 fn each_frame_evidence_byte_reserve_denies_at_its_real_boundary() {

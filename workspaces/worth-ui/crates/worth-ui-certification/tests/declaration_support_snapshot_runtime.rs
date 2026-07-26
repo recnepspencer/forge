@@ -3,29 +3,31 @@ use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationSupportMilestoneExpectation,
     UiDeclarationSupportRowSchemaKind, UiDeclarationUnsupportedPosture,
 };
-use worth_ui::facade::{
-    host::WorthUiHostCapability,
-    inspection::{
-        UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery,
-        UiInspectionScope, UiInspectionSupportPosture, UiInspectionSupportReason,
-        UiInspectionSupportStatus, UiInspectionSupportWorld, UiInspectionTarget,
-    },
+use worth_ui::facade::inspection::{
+    UiInspectionMilestoneExpectation, UiInspectionPosture, UiInspectionQuery, UiInspectionScope,
+    UiInspectionSupportPosture, UiInspectionSupportReason, UiInspectionSupportStatus,
+    UiInspectionSupportWorld, UiInspectionTarget,
+};
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
+use worth_ui_host_contract::WorthUiHostCapability;
 
 #[test]
 fn public_freeze_derives_support_snapshot_from_admitted_declaration_authority() {
+    let fixture =
+        WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.declaration-support")
+            .with_semantic_artifact_spec(control_spec());
+    let provenance = fixture.admitted_provenance_for("workflow_editor.inspector.save");
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration-support")
-                .with_semantic_artifact_spec(control_spec()),
-        )
+        .with_rust_authored_declaration_fixture(fixture)
         .freeze()
         .expect("application preparation should succeed");
-    let artifact = artifact_from_file_provenance(&app, "app/declaration_support.wui", 0);
+    let artifact = artifact_from_compiler_provenance(&app, &provenance);
     let snapshot = artifact
         .support_snapshot()
         .expect("control declaration should expose support snapshot on freeze path");
@@ -43,14 +45,16 @@ fn public_freeze_derives_support_snapshot_from_admitted_declaration_authority() 
 
 #[test]
 fn public_freeze_localizes_future_semantics_to_exact_support_rows() {
+    let fixture = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.declaration-support.localization",
+    )
+    .with_semantic_artifact_spec(page_spec());
+    let provenance = fixture.admitted_provenance_for("workflow_editor.region.root");
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration-support.localization")
-                .with_semantic_artifact_spec(page_spec()),
-        )
+        .with_rust_authored_declaration_fixture(fixture)
         .freeze()
         .expect("application preparation should succeed");
-    let artifact = artifact_from_file_provenance(&app, "app/declaration_support.wui", 1);
+    let artifact = artifact_from_compiler_provenance(&app, &provenance);
     let snapshot = artifact
         .support_snapshot()
         .expect("page declaration should expose support snapshot on freeze path");
@@ -84,21 +88,27 @@ fn public_freeze_localizes_future_semantics_to_exact_support_rows() {
 
 #[test]
 fn public_freeze_preserves_representative_support_shapes_across_family_classes() {
+    let fixture = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.declaration-support.shapes",
+    )
+    .with_semantic_artifact_spec(page_spec())
+    .with_semantic_artifact_spec(region_spec())
+    .with_semantic_artifact_spec(control_spec())
+    .with_semantic_artifact_spec(diagnostic_surface_spec());
+    let page_provenance = fixture.admitted_provenance_for("workflow_editor.region.root");
+    let region_provenance = fixture.admitted_provenance_for("workflow_editor.region.sidebar");
+    let control_provenance = fixture.admitted_provenance_for("workflow_editor.inspector.save");
+    let diagnostic_provenance =
+        fixture.admitted_provenance_for("workflow_editor.diagnostic_surface.lint");
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration-support.shapes")
-                .with_semantic_artifact_spec(page_spec())
-                .with_semantic_artifact_spec(region_spec())
-                .with_semantic_artifact_spec(control_spec())
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
-        )
+        .with_rust_authored_declaration_fixture(fixture)
         .freeze()
         .expect("application preparation should succeed");
 
-    let page = artifact_from_file_provenance(&app, "app/declaration_support.wui", 1);
-    let region = artifact_from_file_provenance(&app, "app/declaration_support.wui", 2);
-    let control = artifact_from_file_provenance(&app, "app/declaration_support.wui", 0);
-    let diagnostic = artifact_from_file_provenance(&app, "app/declaration_support.wui", 3);
+    let page = artifact_from_compiler_provenance(&app, &page_provenance);
+    let region = artifact_from_compiler_provenance(&app, &region_provenance);
+    let control = artifact_from_compiler_provenance(&app, &control_provenance);
+    let diagnostic = artifact_from_compiler_provenance(&app, &diagnostic_provenance);
 
     for artifact in [page, region] {
         assert_eq!(
@@ -149,9 +159,11 @@ fn public_freeze_preserves_representative_support_shapes_across_family_classes()
 #[test]
 fn public_app_inspection_surfaces_use_declaration_support_projection() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration-support.inspection")
-                .with_semantic_artifact_spec(page_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.declaration-support.inspection",
+            )
+            .with_semantic_artifact_spec(page_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -205,17 +217,20 @@ fn public_app_inspection_surfaces_use_declaration_support_projection() {
 
 #[test]
 fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
+    let fixture = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.declaration-support.receipt-diagnostic",
+    )
+    .with_semantic_artifact_spec(diagnostic_surface_spec());
+    let provenance = fixture.admitted_provenance_for("workflow_editor.diagnostic_surface.lint");
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named(
-                "worth-ui.certification.declaration-support.receipt-diagnostic",
-            )
-            .with_semantic_artifact_spec(diagnostic_surface_spec()),
-        )
+        .with_rust_authored_declaration_fixture(fixture)
         .freeze()
         .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
-        UiInspectionTarget::declared_surface("app/declaration_support.wui", 3),
+        UiInspectionTarget::declared_surface(
+            provenance.module_path(),
+            provenance.declaration_index(),
+        ),
         UiInspectionScope::Mounting,
     );
     let report = app.inspection_support_report_for(&query);
@@ -245,14 +260,16 @@ fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
 
 #[test]
 fn public_declaration_support_projection_keeps_diagnostic_only_rows_visible() {
+    let fixture = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.declaration-support.diagnostic",
+    )
+    .with_semantic_artifact_spec(diagnostic_surface_spec());
+    let provenance = fixture.admitted_provenance_for("workflow_editor.diagnostic_surface.lint");
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration-support.diagnostic")
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
-        )
+        .with_rust_authored_declaration_fixture(fixture)
         .freeze()
         .expect("application preparation should succeed");
-    let artifact = artifact_from_file_provenance(&app, "app/declaration_support.wui", 3);
+    let artifact = artifact_from_compiler_provenance(&app, &provenance);
     let rows = artifact
         .support_snapshot()
         .expect("diagnostic surface should expose support snapshot")
@@ -330,4 +347,15 @@ fn artifact_from_file_provenance<'a>(
                 "expected declaration artifact for {module_path}#{declaration_index} on freeze path"
             )
         })
+}
+
+fn artifact_from_compiler_provenance<'a>(
+    app: &'a worth_ui::facade::app::WorthUiApp,
+    provenance: &UiDslSourceProvenance,
+) -> &'a UiDeclarationArtifact {
+    artifact_from_file_provenance(
+        app,
+        provenance.module_path(),
+        provenance.declaration_index(),
+    )
 }

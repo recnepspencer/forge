@@ -4,8 +4,7 @@ use crate::runtime::tests::active_application_session_test_support::{
     admit_candidate_catalog, component_candidate_submission, source_backed_component_session,
 };
 use crate::runtime::{
-    WorthUiSourceIngressDenialReason, WorthUiSourceProvider,
-    WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
+    WorthUiSourceProvider, WorthUiWatchedCandidateSubmissionDenial, WorthUiWatcherEvent,
 };
 
 const STORM_STEP_COUNT: usize = 1_000;
@@ -69,12 +68,12 @@ fn assert_malformed_source_denial(
         .expect("malformed material should still debounce")
         .lower_to_candidate_submission(session.capabilities())
         .expect_err("malformed storm candidate must deny before preparation");
-    let WorthUiWatchedCandidateSubmissionDenial::SourceIngress(denial) = denial else {
-        panic!("malformed source must remain localized to source ingress");
+    let WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report) = denial else {
+        panic!("malformed source must remain localized to DSL compilation");
     };
     assert_eq!(
-        denial.reason(),
-        WorthUiSourceIngressDenialReason::SourceParseRejected
+        report.diagnostics()[0].identity().code(),
+        worth_ui_dsl::WorthUiDslCompileDiagnosticCode::UnterminatedBlock
     );
 }
 

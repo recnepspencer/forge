@@ -1135,6 +1135,8 @@ presentation is followed by the matching infallible runtime publication.
 
 ### Milestone 3.10.1: DSL Ownership, Runtime Subsystem Boundaries, and Facade Closure
 
+Status: Complete (2026-07-25)
+
 Detailed spec: [milestone-3.10.1.md](./milestone-3.10.1.md)
 
 This corrective gate follows mounted-receipt and host-contract closure and
@@ -1193,6 +1195,10 @@ owner, broaden a runtime macro-boundary, or consume transitional phase APIs.
 - poisoned DSL paths remain untouched during steady frames, and comparable
   allocator/counter/build evidence proves the migration added no hidden source
   work or build-topology expansion
+
+Milestone 3.11 inherits the closed `application`-owned replacement preparation
+and commit boundary. It must add visual snapshot truth there without reopening
+source ownership, public midpoint execution, or session-owned replacement.
 
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 

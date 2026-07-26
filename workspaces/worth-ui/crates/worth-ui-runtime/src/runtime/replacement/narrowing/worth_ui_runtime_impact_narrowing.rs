@@ -4,7 +4,8 @@ use crate::runtime::{
     WorthUiQueryDependencyInvalidation, WorthUiRendererResourceInvalidation,
     WorthUiTokenInvalidation,
 };
-use crate::source::{WorthUiArtifactHandle, WorthUiArtifactSubtreeDigest, WorthUiSourceModuleId};
+use crate::source::{WorthUiArtifactHandle, WorthUiArtifactSubtreeDigest};
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiRuntimeImpactNarrowing {

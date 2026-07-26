@@ -1,5 +1,8 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
@@ -10,7 +13,7 @@ use worth_ui::facade::graph::{
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
@@ -195,8 +198,8 @@ fn declaration_correspondence_lookup_handles_zero_one_many_nodes_honestly() {
 
 fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-lookup")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-lookup")
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
@@ -205,9 +208,11 @@ fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
 
 fn absent_lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-lookup.absent")
-                .with_semantic_artifact_spec(absent_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-lookup.absent",
+            )
+            .with_semantic_artifact_spec(absent_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")

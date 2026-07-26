@@ -14,7 +14,6 @@ pub(in crate::runtime::allocation_frame_dispatch::framework_turn) struct UiPlann
 #[derive(Debug)]
 pub(in crate::runtime::allocation_frame_dispatch::framework_turn) enum UiFrameworkTransitionAuthorityPlan
 {
-    NoIngress,
     AdmittedFrame {
         frame_epoch_assignment:
             crate::runtime::allocation_frame_dispatch::UiAllocationFrameEpochAssignment,
@@ -95,19 +94,6 @@ pub(in crate::runtime::allocation_frame_dispatch::framework_turn) struct UiDragR
 }
 
 impl UiPlannedFrameworkTransition {
-    pub(super) fn no_ingress(
-        active_generation: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
-        frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,
-    ) -> Self {
-        Self {
-            active_generation,
-            predecessor_frame_epoch: frame_epoch,
-            authority: UiFrameworkTransitionAuthorityPlan::NoIngress,
-            counters: UiFrameworkTransitionPlanningCounters::default(),
-            family: UiFrameworkTransitionFamilyPlan::NoIngress,
-        }
-    }
-
     pub(super) fn admitted_frame(
         active_generation: crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         predecessor_frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,

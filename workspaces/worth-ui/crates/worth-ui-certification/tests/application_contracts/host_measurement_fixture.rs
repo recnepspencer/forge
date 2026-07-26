@@ -1,4 +1,4 @@
-use worth_ui::facade::host::{WorthUiHostCapability, WorthUiHostCapabilityReport};
+use worth_ui::facade::measurement_exchange::WorthUiHostMeasurementSessionExt;
 use worth_ui::facade::measurement_exchange::{
     UiFontMeasurementKey, UiHostMeasurementDeadline, UiHostMeasurementIntent,
     UiHostMeasurementObservation, UiHostMeasurementObservationValue, UiHostMeasurementOutcome,
@@ -6,6 +6,7 @@ use worth_ui::facade::measurement_exchange::{
     UiRequestedHostMeasurement, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
     UiViewportExtentObservation, UiViewportExtentRequest,
 };
+use worth_ui_runtime::facade::host::{WorthUiHostCapability, WorthUiHostCapabilityReport};
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::mounted_session;
 use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
@@ -16,7 +17,7 @@ pub(super) fn mounted_measurement_session(
 ) -> (
     ScriptedPresentationHost,
     worth_ui::facade::app::WorthUiActiveApplicationSession,
-    Vec<worth_ui::facade::mounted::UiSurfaceBindingGeneration>,
+    Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
 ) {
     let host = measurement_host();
     let (session, bindings) = mounted_session(host.clone(), label, surface_count);
@@ -36,7 +37,7 @@ pub(super) fn measurement_host() -> ScriptedPresentationHost {
 
 pub(super) fn begin_viewport(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    binding: Option<worth_ui::facade::mounted::UiSurfaceBindingGeneration>,
+    binding: Option<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
     deadline: u64,
     now: u64,
 ) -> UiRequestedHostMeasurement {
@@ -52,7 +53,7 @@ pub(super) fn begin_viewport(
 
 pub(super) fn begin_text(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    binding: Option<worth_ui::facade::mounted::UiSurfaceBindingGeneration>,
+    binding: Option<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
     text: impl Into<Box<str>>,
     deadline: u64,
     now: u64,
@@ -71,7 +72,7 @@ pub(super) fn begin_text(
 
 pub(super) fn begin_portal(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    binding: worth_ui::facade::mounted::UiSurfaceBindingGeneration,
+    binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
     deadline: u64,
     now: u64,
 ) -> UiRequestedHostMeasurement {

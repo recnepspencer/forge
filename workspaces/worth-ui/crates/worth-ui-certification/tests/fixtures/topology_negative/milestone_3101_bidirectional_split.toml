@@ -1,0 +1,7 @@
+[[edge]]
+from = "worth-ui-dsl"
+to = "worth-ui-runtime"
+
+[[edge]]
+from = "worth-ui-runtime"
+to = "worth-ui-dsl"

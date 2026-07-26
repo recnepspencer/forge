@@ -6,9 +6,10 @@ use crate::capability::{
     MosaicStateSlotDescriptor, MosaicStateSlotId, SupportRequirement, SurfaceDescriptor, SurfaceId,
 };
 use crate::source::{
-    WorthUiArtifactInputProvenance, WorthUiSourceModuleId, WorthUiStructuralLegalityDiagnostic,
-    WorthUiStructuralLegalityDiagnosticCode, WorthUiStructuralLegalityMetrics,
+    WorthUiStructuralLegalityDiagnostic, WorthUiStructuralLegalityDiagnosticCode,
+    WorthUiStructuralLegalityMetrics,
 };
+use worth_ui_dsl::{WorthUiArtifactInputProvenance, WorthUiSourceModuleId};
 
 pub(crate) struct WorthUiStructuralLegalityContext<'snapshot> {
     snapshot: &'snapshot CapabilitySnapshot,

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
-use crate::source::{WorthUiArtifactHandle, WorthUiSourceModuleId};
+use crate::source::WorthUiArtifactHandle;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiArtifactImpact {

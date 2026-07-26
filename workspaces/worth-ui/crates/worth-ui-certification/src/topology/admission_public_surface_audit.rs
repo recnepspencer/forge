@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use syn::{File, Item, ItemUse, UseTree, Visibility};
 
@@ -29,6 +29,7 @@ const CURATED_ADMISSION_PUBLIC_NAMES: &[&str] = &[
     "UiSupportReason",
     "UiSupportSnapshot",
 ];
+const CURATED_ADMISSION_AUDIENCE_NAMES: &[&str] = &["WorthUiAdmissionExt"];
 
 pub fn audit_runtime_admission_surface_routes_through_curated_submodule(
     workspace_root: &Path,
@@ -65,52 +66,121 @@ pub fn audit_runtime_admission_surface_routes_through_curated_submodule(
 }
 
 pub fn audit_admission_facades_are_curated_and_glob_free(workspace_root: &Path) -> Vec<String> {
-    let product_root_path = workspace_root.join(PRODUCT_FACADE_ROOT);
-    let runtime_path = workspace_root.join(RUNTIME_ADMISSION_FACADE);
-    let product_path = workspace_root.join(PRODUCT_ADMISSION_FACADE);
-    let runtime_names = collect_public_names(&runtime_path);
-    let product_names = collect_public_names(&product_path);
+    let paths = AdmissionFacadePaths::new(workspace_root);
+    let names = AdmissionSurfaceNames::capture(&paths);
     let mut violations = Vec::new();
 
-    if product_root_contains_flat_surface(&parse_rust_file(&product_root_path)) {
-        violations.push(format!(
-            "{} must not declare a compatibility facade or flat root re-exports; product callers must enter through named facade modules",
-            product_root_path.display()
-        ));
-    }
-
-    if runtime_names != product_names {
-        violations.push(format!(
-            "{} must mirror the curated runtime admission facade exactly; product names: {:?}, runtime names: {:?}",
-            product_path.display(),
-            product_names,
-            runtime_names
-        ));
-    }
-
-    let curated_names = curated_name_set();
-    if runtime_names != curated_names {
-        violations.push(format!(
-            "{} must expose exactly the curated admission capability set; observed: {:?}, expected: {:?}",
-            runtime_path.display(),
-            runtime_names,
-            curated_names
-        ));
-    }
-
-    if let Some(reason) = first_invalid_public_use(&runtime_path, &[&["crate", "admission"]]) {
-        violations.push(format!("{} {reason}", runtime_path.display()));
-    }
-    if let Some(reason) = first_invalid_public_use(
-        &product_path,
-        &[&["worth_ui_runtime", "facade", "admission"]],
-    ) {
-        violations.push(format!("{} {reason}", product_path.display()));
-    }
+    audit_product_root(&paths, &mut violations);
+    audit_product_mirror(&paths, &names, &mut violations);
+    audit_runtime_capabilities(&paths, &names, &mut violations);
+    audit_runtime_audiences(&paths, &names, &mut violations);
+    audit_public_routes(&paths, &mut violations);
 
     violations.sort();
     violations.dedup();
     violations
+}
+
+struct AdmissionFacadePaths {
+    product_root: PathBuf,
+    runtime: PathBuf,
+    product: PathBuf,
+}
+
+impl AdmissionFacadePaths {
+    fn new(workspace_root: &Path) -> Self {
+        Self {
+            product_root: workspace_root.join(PRODUCT_FACADE_ROOT),
+            runtime: workspace_root.join(RUNTIME_ADMISSION_FACADE),
+            product: workspace_root.join(PRODUCT_ADMISSION_FACADE),
+        }
+    }
+}
+
+struct AdmissionSurfaceNames {
+    runtime: std::collections::BTreeSet<String>,
+    product: std::collections::BTreeSet<String>,
+    runtime_audiences: std::collections::BTreeSet<String>,
+}
+
+impl AdmissionSurfaceNames {
+    fn capture(paths: &AdmissionFacadePaths) -> Self {
+        Self {
+            runtime: collect_public_names(&paths.runtime),
+            product: collect_public_names(&paths.product),
+            runtime_audiences: collect_public_trait_names(&parse_rust_file(&paths.runtime)),
+        }
+    }
+}
+
+fn audit_product_root(paths: &AdmissionFacadePaths, violations: &mut Vec<String>) {
+    if product_root_contains_flat_surface(&parse_rust_file(&paths.product_root)) {
+        violations.push(format!(
+            "{} must not declare a compatibility facade or flat root re-exports; product callers must enter through named facade modules",
+            paths.product_root.display()
+        ));
+    }
+}
+
+fn audit_product_mirror(
+    paths: &AdmissionFacadePaths,
+    names: &AdmissionSurfaceNames,
+    violations: &mut Vec<String>,
+) {
+    let mut expected = names.runtime.clone();
+    expected.extend(names.runtime_audiences.iter().cloned());
+    if names.product != expected {
+        violations.push(format!(
+            "{} must mirror the curated runtime admission capabilities and named audiences exactly; product names: {:?}, expected names: {:?}",
+            paths.product.display(),
+            names.product,
+            expected
+        ));
+    }
+}
+
+fn audit_runtime_capabilities(
+    paths: &AdmissionFacadePaths,
+    names: &AdmissionSurfaceNames,
+    violations: &mut Vec<String>,
+) {
+    let expected = curated_name_set();
+    if names.runtime != expected {
+        violations.push(format!(
+            "{} must expose exactly the curated admission capability set; observed: {:?}, expected: {:?}",
+            paths.runtime.display(),
+            names.runtime,
+            expected
+        ));
+    }
+}
+
+fn audit_runtime_audiences(
+    paths: &AdmissionFacadePaths,
+    names: &AdmissionSurfaceNames,
+    violations: &mut Vec<String>,
+) {
+    let expected = curated_audience_name_set();
+    if names.runtime_audiences != expected {
+        violations.push(format!(
+            "{} must declare exactly the curated admission audience traits; observed: {:?}, expected: {:?}",
+            paths.runtime.display(),
+            names.runtime_audiences,
+            expected
+        ));
+    }
+}
+
+fn audit_public_routes(paths: &AdmissionFacadePaths, violations: &mut Vec<String>) {
+    if let Some(reason) = first_invalid_public_use(&paths.runtime, &[&["crate", "admission"]]) {
+        violations.push(format!("{} {reason}", paths.runtime.display()));
+    }
+    if let Some(reason) = first_invalid_public_use(
+        &paths.product,
+        &[&["worth_ui_runtime", "facade", "admission"]],
+    ) {
+        violations.push(format!("{} {reason}", paths.product.display()));
+    }
 }
 
 fn product_root_contains_flat_surface(parsed: &File) -> bool {
@@ -205,6 +275,19 @@ fn looks_like_admission_surface(name: &str) -> bool {
         || name.starts_with("UiSupport")
 }
 
+fn collect_public_trait_names(parsed: &File) -> std::collections::BTreeSet<String> {
+    parsed
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Trait(item_trait) if matches!(item_trait.vis, Visibility::Public(_)) => {
+                Some(item_trait.ident.to_string())
+            }
+            _ => None,
+        })
+        .collect()
+}
+
 fn parse_rust_file(path: &Path) -> File {
     let text = fs::read_to_string(path).expect("source file should decode");
     syn::parse_file(&text).unwrap_or_else(|error| {
@@ -219,9 +302,16 @@ fn curated_name_set() -> std::collections::BTreeSet<String> {
         .collect()
 }
 
+fn curated_audience_name_set() -> std::collections::BTreeSet<String> {
+    CURATED_ADMISSION_AUDIENCE_NAMES
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::product_root_contains_flat_surface;
+    use super::{collect_public_trait_names, product_root_contains_flat_surface};
 
     #[test]
     fn compatibility_surface_audit_rejects_private_module_glob_reexport_loophole() {
@@ -242,5 +332,21 @@ mod tests {
         let parsed =
             syn::parse_file("pub mod app; pub mod runtime;").expect("named facade fixture parses");
         assert!(!product_root_contains_flat_surface(&parsed));
+    }
+
+    #[test]
+    fn admission_audience_inventory_rejects_unlisted_public_traits() {
+        let parsed = syn::parse_file(
+            "pub trait WorthUiAdmissionExt {} pub trait WorthUiAdmissionBypassExt {}",
+        )
+        .expect("hostile audience fixture parses");
+        let names = collect_public_trait_names(&parsed);
+        assert_eq!(
+            names,
+            ["WorthUiAdmissionBypassExt", "WorthUiAdmissionExt"]
+                .into_iter()
+                .map(str::to_owned)
+                .collect()
+        );
     }
 }

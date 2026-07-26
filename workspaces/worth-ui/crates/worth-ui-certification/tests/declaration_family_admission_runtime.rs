@@ -7,9 +7,12 @@ use worth_ui::facade::declaration::{
     UiDeclarationStructuralSemanticsAdmissionDenial, UiDeclaredPostureApplicability,
     UiDeclaredQueryBindingPosture,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
@@ -59,9 +62,11 @@ fn public_freeze_exposes_bootstrap_page_family_authority() {
 #[test]
 fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_roles() {
     let attached_app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.family.freeze-path")
-                .with_semantic_artifact_spec(attached_query_binding_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.family.freeze-path",
+            )
+            .with_semantic_artifact_spec(attached_query_binding_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -153,7 +158,10 @@ fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
-        .with_dsl_package(WorthUiDslPackage::named(package_name).with_semantic_artifact_spec(spec))
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(package_name)
+                .with_semantic_artifact_spec(spec),
+        )
         .freeze()
     {
         Ok(_) => panic!("invalid declaration authority must deny application preparation"),

@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{
+    declaration::{
         PluginCapabilityPermission, PluginContributionFamily, PluginSlotDescriptor,
         PluginSlotDiagnostics, PluginSlotOrdering, PluginSlotSupportPosture,
     },

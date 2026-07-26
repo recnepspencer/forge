@@ -1,4 +1,5 @@
 use std::collections::BTreeSet;
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 
 use crate::runtime::tests::{
     dependency_impact_narrowing_test_support::{
@@ -11,7 +12,6 @@ use crate::runtime::tests::{
     },
 };
 use crate::runtime::{WorthUiQueryDependencySurface, WorthUiRuntimeImpactNarrowingDenial};
-use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
 #[test]
 fn equivalent_dependency_metadata_produces_equivalent_runtime_impact() {

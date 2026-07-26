@@ -1,3 +1,4 @@
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::mounted_session;
@@ -14,14 +15,14 @@ fn prepared_frame_cannot_publish_after_mounted_authority_changes() {
 
     let outcome = session.present_prepared_mounted_frame(
         frame,
-        worth_ui::facade::mounted::UiPresentationDeadline::at_tick(10),
+        worth_ui_runtime::facade::mounted::UiPresentationDeadline::at_tick(10),
         0,
     );
     match outcome {
-        worth_ui::facade::mounted::UiMountedFrameOutcome::AdmissionDenied(rejection) => {
+        worth_ui_runtime::facade::mounted::UiMountedFrameOutcome::AdmissionDenied(rejection) => {
             assert_eq!(
                 rejection.denial(),
-                worth_ui::facade::mounted::UiMountedPresentationAdmissionDenial::PreparedFrameBasisChanged
+                worth_ui_runtime::facade::mounted::UiMountedPresentationAdmissionDenial::PreparedFrameBasisChanged
             );
         }
         _ => panic!("stale mounted authority must deny before presentation"),
@@ -42,10 +43,12 @@ fn runtime_session_authority_isolates_shared_adapter_resources() {
             .host_session_release()
             .expect("active application shutdown releases its host session")
         {
-            worth_ui::facade::host::UiHostSessionReleaseOutcome::Released(receipt) => {
+            worth_ui_runtime::facade::host::UiHostSessionReleaseOutcome::Released(receipt) => {
                 receipt.released_surface_count()
             }
-            worth_ui::facade::host::UiHostSessionReleaseOutcome::ReleaseIndeterminate(_) => {
+            worth_ui_runtime::facade::host::UiHostSessionReleaseOutcome::ReleaseIndeterminate(
+                _,
+            ) => {
                 panic!("scripted host release is deterministic")
             }
         },
@@ -59,10 +62,12 @@ fn runtime_session_authority_isolates_shared_adapter_resources() {
             .host_session_release()
             .expect("active application shutdown releases its host session")
         {
-            worth_ui::facade::host::UiHostSessionReleaseOutcome::Released(receipt) => {
+            worth_ui_runtime::facade::host::UiHostSessionReleaseOutcome::Released(receipt) => {
                 receipt.released_surface_count()
             }
-            worth_ui::facade::host::UiHostSessionReleaseOutcome::ReleaseIndeterminate(_) => {
+            worth_ui_runtime::facade::host::UiHostSessionReleaseOutcome::ReleaseIndeterminate(
+                _,
+            ) => {
                 panic!("scripted host release is deterministic")
             }
         },
@@ -77,16 +82,16 @@ fn dropped_session_releases_in_flight_adapter_state() {
     let (mut session, _) = mounted_session(host.clone(), "presentation-authority-in-flight", 1);
     host.push_in_flight(
         vec![super::mounted_host_protocol::scripted_host::ScriptedSurfaceCompletion::Pending],
-        worth_ui::facade::mounted::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
+        worth_ui_runtime::facade::mounted::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
     );
     let frame = prepared(&mut session);
     assert!(matches!(
         session.present_prepared_mounted_frame(
             frame,
-            worth_ui::facade::mounted::UiPresentationDeadline::at_tick(10),
+            worth_ui_runtime::facade::mounted::UiPresentationDeadline::at_tick(10),
             0,
         ),
-        worth_ui::facade::mounted::UiMountedFrameOutcome::InFlight(_)
+        worth_ui_runtime::facade::mounted::UiMountedFrameOutcome::InFlight(_)
     ));
     assert_eq!(host.native_in_flight_count(), 1);
 

@@ -60,8 +60,6 @@ pub(crate) mod dependency_impact_narrowing_test_support;
 pub(crate) mod durable_resize_input_boundary_tests;
 #[path = "replacement/durable_state_inventory_boundary_tests.rs"]
 mod durable_state_inventory_boundary_tests;
-#[path = "replacement/durable_state_inventory_custom_hook_boundary_tests.rs"]
-mod durable_state_inventory_custom_hook_boundary_tests;
 #[path = "replacement/durable_state_inventory_test_support.rs"]
 mod durable_state_inventory_test_support;
 #[path = "replacement/durable_state_reconciliation_boundary_tests.rs"]

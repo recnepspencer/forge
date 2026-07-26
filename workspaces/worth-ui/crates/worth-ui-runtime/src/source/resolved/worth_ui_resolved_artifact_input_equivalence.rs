@@ -38,19 +38,18 @@ fn nodes_are_equivalent(
             WorthUiResolvedArtifactInputNode::Component(left),
             WorthUiResolvedArtifactInputNode::Component(right),
         ) => {
-            left.component().id() == right.component().id()
-                && left.body_atoms() == right.body_atoms()
+            left.component().id() == right.component().id() && left.structure() == right.structure()
         }
         (
             WorthUiResolvedArtifactInputNode::Surface(left),
             WorthUiResolvedArtifactInputNode::Surface(right),
-        ) => left.surface().id() == right.surface().id() && left.body_atoms() == right.body_atoms(),
+        ) => left.surface().id() == right.surface().id() && left.structure() == right.structure(),
         (
             WorthUiResolvedArtifactInputNode::Binding(left),
             WorthUiResolvedArtifactInputNode::Binding(right),
         ) => {
             left.view_binding().id() == right.view_binding().id()
-                && left.body_atoms() == right.body_atoms()
+                && left.structure() == right.structure()
         }
         (
             WorthUiResolvedArtifactInputNode::Token(left),

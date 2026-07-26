@@ -5,41 +5,32 @@ pub struct WorthUiApplicationPublicationObservation {
     application_generation: WorthUiPreparedApplicationGenerationIdentity,
     runtime: crate::runtime::WorthUiActiveRuntimeObservation,
     host_session: crate::facade::WorthUiHostSessionIdentity,
-    runtime_host_session: Option<crate::facade::WorthUiHostSessionIdentity>,
-    plan_host_session: crate::facade::WorthUiHostSessionIdentity,
-    runtime_host_observation:
-        Option<worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration>,
-    plan_host_observation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    runtime_basis: crate::runtime::session::WorthUiRuntimePublicationBasis,
     scheduler: crate::runtime::UiAllocationFrameDispatcherState,
 }
 
-pub(super) struct WorthUiApplicationPublicationPreparation<'a> {
+pub(super) struct WorthUiApplicationPublicationPreparation {
     pub(super) application_generation: WorthUiPreparedApplicationGenerationIdentity,
     pub(super) successor_runtime: crate::runtime::WorthUiActiveRuntimeObservation,
-    pub(super) runtime: &'a crate::runtime::WorthUiRuntime,
-    pub(super) host: &'a crate::facade::WorthUiHostSessionAuthority,
+    pub(super) runtime_basis: crate::runtime::session::WorthUiRuntimePublicationBasis,
+    pub(super) host_session: crate::facade::WorthUiHostSessionIdentity,
     pub(super) successor_scheduler: crate::runtime::UiAllocationFrameDispatcherState,
 }
 
 impl WorthUiApplicationPublicationObservation {
-    pub(super) fn prepare_successor(
-        preparation: WorthUiApplicationPublicationPreparation<'_>,
-    ) -> Self {
+    pub(super) fn prepare_successor(preparation: WorthUiApplicationPublicationPreparation) -> Self {
         let WorthUiApplicationPublicationPreparation {
             application_generation,
             successor_runtime,
-            runtime,
-            host,
+            runtime_basis,
+            host_session,
             successor_scheduler,
         } = preparation;
         Self {
             application_generation,
             runtime: successor_runtime,
-            host_session: host.identity(),
-            runtime_host_session: runtime.host_session_identity,
-            plan_host_session: runtime.host_plan_binding.session_identity(),
-            runtime_host_observation: runtime.host_observation_generation,
-            plan_host_observation: runtime.host_plan_binding.observation_generation(),
+            host_session,
+            runtime_basis,
             scheduler: successor_scheduler,
         }
     }
@@ -61,8 +52,6 @@ impl WorthUiApplicationPublicationObservation {
     }
 
     pub fn host_is_coherent(&self) -> bool {
-        self.runtime_host_session == Some(self.host_session)
-            && self.plan_host_session == self.host_session
-            && self.runtime_host_observation == Some(self.plan_host_observation)
+        self.runtime_basis.is_coherent_with(self.host_session)
     }
 }

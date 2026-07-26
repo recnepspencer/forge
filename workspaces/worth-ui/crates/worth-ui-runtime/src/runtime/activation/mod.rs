@@ -27,7 +27,10 @@ pub use catalog_activation_denial::{
     WorthUiAllocationCatalogActivationDenial, WorthUiAllocationCatalogPreparationStage,
 };
 pub(crate) use catalog_activation_input::UiAllocationCatalogDeltaActivationInput;
-pub(crate) use query_aware_plan_outcome::WorthUiPreparedApplicationPlanSwap;
+pub(crate) use query_aware_plan_outcome::{
+    WorthUiApplicationPlanSwap, WorthUiPreparedApplicationPlanSwap,
+    WorthUiPreparedQueryAwarePlanOutcome,
+};
 pub use semantic_no_op::{
     WorthUiNoOpProvenancePosture, WorthUiNoOpQueryPosture, WorthUiSemanticNoOpReceipt,
     WorthUiSemanticNoOpWork,

@@ -238,17 +238,6 @@ impl UiMountedIdentityState {
         }
     }
 
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn reuse_receipt(
-        &self,
-        witness: &UiMountedFrameReuseWitness,
-    ) -> Option<UiMountedFramePublicationReceipt> {
-        let receipt = self.current_publication.as_ref()?;
-        let contract = self.current_reuse_contract.as_ref()?;
-        (contract == witness.contract() && receipt == witness.publication())
-            .then(|| receipt.clone())
-    }
-
     pub(crate) fn instances_for(
         &self,
         handle: UiMountedGraphNodeHandle,

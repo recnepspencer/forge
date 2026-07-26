@@ -19,7 +19,6 @@ pub enum WorthUiRuntimeLaunchDenial {
     HostProtocol(worth_ui_host_contract::UiHostProtocolDenial),
     HostMountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
     MountedIdentityExhausted,
-    PreparedApplicationHasNoRuntimeArtifact,
     InitialAllocationGraphAuthorityMismatch,
     InitialAllocationObligationsUnsettled {
         node_count: usize,

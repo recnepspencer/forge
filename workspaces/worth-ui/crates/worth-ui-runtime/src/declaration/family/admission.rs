@@ -1,4 +1,4 @@
-use worth_ui_dsl::{UiDslLoweringReceipt, UiDslSemanticFamily};
+use worth_ui_dsl::{UiDslSemanticArtifact, UiDslSemanticFamily};
 
 use crate::declaration::family::contracts::{
     UiControlDeclarationFamily, UiDeclarationIntentProjectionRole,
@@ -29,9 +29,8 @@ impl UiDeclarationFamilyAdmission {
 }
 
 pub(crate) fn admit_declaration_family(
-    semantic_receipt: &UiDslLoweringReceipt,
+    semantic_artifact: &UiDslSemanticArtifact,
 ) -> UiDeclarationFamilyAdmission {
-    let semantic_artifact = semantic_receipt.semantic_artifact();
     let structural_tokens = semantic_artifact
         .structural_tokens()
         .iter()

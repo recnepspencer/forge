@@ -64,6 +64,8 @@ mod legacy_surface_residue_audit;
 mod measurement_boundary_purity_audit;
 #[path = "../measurement_growth_posture_audit.rs"]
 mod measurement_growth_posture_audit;
+#[path = "../milestone_3101_inventory_audit.rs"]
+mod milestone_3101_inventory_audit;
 #[path = "../milestone_37_structural_inventory_audit.rs"]
 mod milestone_37_structural_inventory_audit;
 #[path = "../obligation_boundary_bypass.rs"]

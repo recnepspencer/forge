@@ -1,11 +1,25 @@
-error[E0616]: field `runtime` of struct `WorthUiActiveApplicationSession` is private
- --> tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs:4:28
-  |
-4 |     let _runtime = session.runtime;
-  |                            ^^^^^^^ private field
+error[E0609]: no field `runtime` on type `WorthUiActiveApplicationSession`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
 
-error[E0616]: field `app` of struct `WorthUiActiveApplicationSession` is private
- --> tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs:5:31
-  |
-5 |     let _inspection = session.app;
-  |                               ^^^ private field
+error[E0609]: no field `app` on type `WorthUiActiveApplicationSession`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
+
+error[E0616]: field `application` of struct `WorthUiActiveApplicationSession` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
+
+error[E0616]: field `mounted` of struct `WorthUiActiveApplicationSession` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
+
+error[E0616]: field `host_exchange` of struct `WorthUiActiveApplicationSession` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
+
+error[E0624]: method `execute_framework_turn` is private
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
+ help: items from traits can only be used if the trait is in scope
+ help: trait `WorthUiFrameworkTurnCertificationExt` which provides `execute_framework_turn` is implemented but not in scope; perhaps you want to import it
+
+error[E0599]: no method named `handle` found for reference `&WorthUiMountedApplicationReplacementInFlight<'_>` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs
+
+error[E0599]: no method named `handle` found for reference `&WorthUiMountedPreviewInFlight<'_>` in the current scope
+ --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs

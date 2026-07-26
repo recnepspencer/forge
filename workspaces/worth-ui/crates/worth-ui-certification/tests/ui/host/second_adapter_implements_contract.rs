@@ -1,6 +1,5 @@
 use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::dsl::WorthUiDslPackage;
-use worth_ui::facade::host::{
+use worth_ui_runtime::facade::host::{
     UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiOperationalHostAdapter,
 };
@@ -40,7 +39,6 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
 
 fn main() {
     let app = WorthUi::app()
-        .with_dsl_package(WorthUiDslPackage::named("certification.host"))
         .with_host(AlternateHost::default())
         .freeze()
         .expect("application preparation should succeed");

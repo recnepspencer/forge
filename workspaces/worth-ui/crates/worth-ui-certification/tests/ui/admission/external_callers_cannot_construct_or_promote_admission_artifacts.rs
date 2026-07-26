@@ -17,7 +17,7 @@ mod covered_002 { include!("../declaration/external_callers_cannot_mint_declarat
 mod covered_003 { include!("../declaration/external_callers_cannot_mint_declaration_identity.rs"); }
 mod covered_004 { include!("../declaration/external_callers_cannot_construct_semantic_artifact.rs"); }
 mod covered_005 { include!("../declaration/external_callers_cannot_mint_dsl_lowering_receipt.rs"); }
-mod covered_006 { include!("../declaration/external_callers_cannot_seed_dsl_package_with_semantic_artifact.rs"); }
+mod covered_006 { include!("../declaration/external_callers_cannot_forge_or_bypass_semantic_package.rs"); }
 mod covered_007 { include!("../declaration_boundary/runtime_facade_root_does_not_export_declaration_surface.rs"); }
 mod covered_008 { include!("../declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs"); }
 mod covered_009 { include!("../declaration_posture/declared_posture_cannot_promote_to_runtime_receipts.rs"); }

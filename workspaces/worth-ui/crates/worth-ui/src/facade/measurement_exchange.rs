@@ -7,5 +7,5 @@ pub use worth_ui_runtime::facade::measurement_exchange::{
     UiMeasurementRequestIdentity, UiPortalAnchorRectObservation, UiPortalAnchorRectRequest,
     UiRequestedHostMeasurement, UiSolicitedHostMeasurementResult, UiTextIntrinsicSizeObservation,
     UiTextIntrinsicSizeRequest, UiViewportExtentObservation, UiViewportExtentRequest,
-    WorthUiHostMeasurementIngress, WorthUiMeasurementHostAdapter,
+    WorthUiHostMeasurementIngress, WorthUiHostMeasurementSessionExt, WorthUiMeasurementHostAdapter,
 };

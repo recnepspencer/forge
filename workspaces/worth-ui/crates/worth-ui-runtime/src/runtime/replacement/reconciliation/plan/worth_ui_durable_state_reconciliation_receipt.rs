@@ -7,26 +7,35 @@ use crate::runtime::{
 pub struct WorthUiDurableStateReconciliationReceipt {
     identity_basis: String,
     family_id: WorthUiDurableStateFamilyId,
+    family_contract_digest: u64,
     outcome: WorthUiDurableStateReconciliationOutcome,
     carry_forward: Option<WorthUiDurableStateCarryForward>,
     replacement: Option<WorthUiDurableStateReplacement>,
 }
 
 impl WorthUiDurableStateReconciliationReceipt {
-    pub(crate) fn from_carry_forward(carry_forward: WorthUiDurableStateCarryForward) -> Self {
+    pub(crate) fn from_carry_forward(
+        carry_forward: WorthUiDurableStateCarryForward,
+        family_contract_digest: u64,
+    ) -> Self {
         Self {
             identity_basis: carry_forward.identity_basis().to_owned(),
             family_id: carry_forward.family_id().clone(),
+            family_contract_digest,
             outcome: WorthUiDurableStateReconciliationOutcome::CarryForward,
             carry_forward: Some(carry_forward),
             replacement: None,
         }
     }
 
-    pub(crate) fn from_replacement(replacement: WorthUiDurableStateReplacement) -> Self {
+    pub(crate) fn from_replacement(
+        replacement: WorthUiDurableStateReplacement,
+        family_contract_digest: u64,
+    ) -> Self {
         Self {
             identity_basis: replacement.identity_basis().to_owned(),
             family_id: replacement.family_id().clone(),
+            family_contract_digest,
             outcome: replacement.outcome(),
             carry_forward: None,
             replacement: Some(replacement),
@@ -39,6 +48,10 @@ impl WorthUiDurableStateReconciliationReceipt {
 
     pub fn family_id(&self) -> &WorthUiDurableStateFamilyId {
         &self.family_id
+    }
+
+    pub fn family_contract_digest(&self) -> u64 {
+        self.family_contract_digest
     }
 
     pub fn outcome(&self) -> WorthUiDurableStateReconciliationOutcome {

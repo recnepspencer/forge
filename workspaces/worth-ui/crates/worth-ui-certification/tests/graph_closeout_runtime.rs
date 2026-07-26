@@ -5,9 +5,12 @@ use worth_ui::facade::graph::{
     UiGraphEvidenceRefKind, UiGraphInspectionStopPoint, UiGraphInspectionTargetKind,
     UiGraphLookupFamily, UiGraphParticipationAxis, UiGraphParticipationStatus,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
@@ -147,8 +150,8 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
 
 fn graph_closeout_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-closeout")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-closeout")
                 .with_semantic_artifact_spec(control_spec())
                 .with_semantic_artifact_spec(consumer_spec()),
         )

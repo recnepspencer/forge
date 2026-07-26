@@ -1,13 +1,13 @@
 //! Deterministic operational host used by the authority-closure scenario.
 
-use worth_ui::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
 use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
     UiMeasurementRequestFamily, UiViewportExtentObservation, WorthUiHostCapability,
     WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiOperationalHostAdapter,
 };
 
 #[derive(Clone, Copy, Default)]

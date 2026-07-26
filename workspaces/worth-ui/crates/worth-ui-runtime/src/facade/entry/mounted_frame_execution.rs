@@ -6,15 +6,32 @@ use crate::runtime::WorthUiFrameworkTurn;
 use worth_ui_host_contract::UiPresentationDeadline;
 
 use super::{
-    mounted_publication::WorthUiMountedPublicationAuthority, WorthUiActiveApplicationSession,
-    WorthUiActiveFrameworkTurnCompletion, WorthUiActiveFrameworkTurnExecution,
+    mounted_publication::finish_mounted_transition, WorthUiActiveApplicationSession,
+    WorthUiActiveFrameworkTurnCompletion,
 };
 
 /// A typed stop before one ordinary mounted-frame request can publish.
 pub enum WorthUiMountedFrameExecutionStop<'session> {
     PublicationLease(UiMountedPublicationLeaseDenial),
-    FrameworkTransition(Box<WorthUiActiveFrameworkTurnCompletion<'session>>),
+    FrameworkTransition(WorthUiMountedFrameFrameworkTransitionStop<'session>),
     Preparation(UiMountedFramePreparationDenial),
+}
+
+/// Opaque framework-transition state retained by an ordinary mounted-frame stop.
+///
+/// The raw completion remains available to runtime internals, but ordinary callers
+/// cannot recover lane-execution authority from a mounted-frame failure.
+pub struct WorthUiMountedFrameFrameworkTransitionStop<'session> {
+    completion: Box<WorthUiActiveFrameworkTurnCompletion<'session>>,
+}
+
+impl WorthUiMountedFrameFrameworkTransitionStop<'_> {
+    pub fn generation_identity(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        self.completion.generation_identity()
+    }
 }
 
 impl WorthUiActiveApplicationSession {
@@ -40,70 +57,30 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
         deadline: UiPresentationDeadline,
         now: u64,
     ) -> Result<UiMountedFrameOutcome, WorthUiMountedFrameExecutionStop<'session>> {
-        let Self {
-            generation_identity,
-            graph,
-            active_plan_digest,
-            host_session_identity,
-            completion,
-            mounted_identity,
-            mounted_retention,
-            host_session,
-            mounted_presentation,
-            mounted_publication_reservations,
-            host_observations,
-        } = self;
-        let runtime_execution = match completion.into_execution() {
-            Ok(execution) => execution,
-            Err(completion) => {
-                return Err(WorthUiMountedFrameExecutionStop::FrameworkTransition(
-                    Box::new(WorthUiActiveFrameworkTurnCompletion {
-                        generation_identity,
-                        graph,
-                        active_plan_digest,
-                        host_session_identity,
-                        completion: *completion,
-                        mounted_identity,
-                        mounted_retention,
-                        host_session,
-                        mounted_presentation,
-                        mounted_publication_reservations,
-                        host_observations,
-                    }),
-                ));
-            }
-        };
-        let capability_report = host_session.capability_report();
-        let execution = WorthUiActiveFrameworkTurnExecution {
-            generation_identity,
-            graph,
-            host_session_identity,
-            execution: runtime_execution,
-            mounted_identity: &mut *mounted_identity,
-            host_protocol: host_session.protocol(),
-            host_capability_generation: capability_report.observation_generation(),
-            host_capability_profile_digest: capability_report.profile_identity_digest(),
-        };
+        let execution = self.into_execution().map_err(|completion| {
+            WorthUiMountedFrameExecutionStop::FrameworkTransition(
+                WorthUiMountedFrameFrameworkTransitionStop { completion },
+            )
+        })?;
 
         match execution.classify_mounted_frame_reuse_internal(&request) {
-            UiMountedFrameReuse::Exact(witness) => {
-                let receipt = witness.publication().clone();
-                drop(execution);
-                Ok(UiMountedFrameOutcome::Unchanged(receipt))
-            }
+            UiMountedFrameReuse::Exact(witness) => Ok(UiMountedFrameOutcome::Unchanged(
+                witness.publication().clone(),
+            )),
             UiMountedFrameReuse::ComparisonRequired(_) => {
                 let frame = execution
                     .prepare_mounted_frame_internal(request)
                     .map_err(WorthUiMountedFrameExecutionStop::Preparation)?;
-                Ok(WorthUiMountedPublicationAuthority {
-                    mounted_identity,
-                    mounted_retention,
-                    host_session,
-                    mounted_presentation,
-                    mounted_publication_reservations,
-                    host_observations,
-                }
-                .present(frame, deadline, now))
+                let transition = execution.mounted.present_prepared_frame(
+                    execution.host_session,
+                    frame,
+                    deadline,
+                    now,
+                );
+                Ok(finish_mounted_transition(
+                    execution.host_exchange,
+                    transition,
+                ))
             }
         }
     }

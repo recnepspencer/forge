@@ -1,11 +1,13 @@
 use worth_query::facade::runtime;
-use worth_ui::facade::app::{
-    WorthUiAllocationCatalogActivationDenial, WorthUiApplicationCutoverDenial,
-};
+use worth_ui::facade::app::WorthUiApplicationCutoverDenial;
 use worth_ui_query_binding::{
     WorthUiInstalledQueryBindingReference, WorthUiQueryBindingSuccessionDenial,
     WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSettledSnapshotFact,
     WorthUiSettledSnapshotProjection,
+};
+use worth_ui_runtime::facade::WorthUiAllocationCatalogActivationDenial;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use super::scenario::{

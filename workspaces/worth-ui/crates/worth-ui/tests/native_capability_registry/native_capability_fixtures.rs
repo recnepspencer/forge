@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     NativeCapabilityDescriptor, NativeCapabilityFamily, NativeCapabilityId, NativePlatformPosture,
 };
 

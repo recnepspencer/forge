@@ -11,8 +11,8 @@ use crate::runtime::{
 struct WorthUiPreparedApplicationLoweringFacts {
     generation_identity: WorthUiPreparedApplicationGenerationIdentity,
     generation_witness: super::WorthUiPreparedApplicationGenerationWitness,
-    source_candidate_basis: Option<WorthUiReplacementCandidateBasis>,
-    source_artifact_authority: Option<Rc<crate::source::WorthUiArtifact>>,
+    source_candidate_basis: WorthUiReplacementCandidateBasis,
+    source_artifact_authority: Rc<crate::source::WorthUiArtifact>,
     graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
     capability_snapshot: Rc<CapabilitySnapshot>,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
@@ -31,8 +31,8 @@ pub(crate) struct WorthUiPreparedApplicationLoweringAuthority {
 impl WorthUiPreparedApplicationLoweringAuthority {
     pub(super) fn seal(
         generation_identity: WorthUiPreparedApplicationGenerationIdentity,
-        source_candidate_basis: Option<WorthUiReplacementCandidateBasis>,
-        source_artifact_authority: Option<Rc<crate::source::WorthUiArtifact>>,
+        source_candidate_basis: WorthUiReplacementCandidateBasis,
+        source_artifact_authority: Rc<crate::source::WorthUiArtifact>,
         graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
         capability_snapshot: Rc<CapabilitySnapshot>,
         query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
@@ -62,16 +62,10 @@ impl WorthUiPreparedApplicationLoweringAuthority {
     }
 
     pub(crate) fn admits_candidate(&self, admitted: &WorthUiAdmittedReplacementCandidate) -> bool {
-        self.facts.source_candidate_basis == Some(admitted.candidate().basis())
-            && self
-                .facts
-                .source_artifact_authority
-                .as_ref()
-                .is_some_and(|artifact| {
-                    admitted
-                        .artifact_bundle()
-                        .shares_artifact_authority_with(artifact)
-                })
+        self.facts.source_candidate_basis == admitted.candidate().basis()
+            && admitted
+                .artifact_bundle()
+                .shares_artifact_authority_with(&self.facts.source_artifact_authority)
             && self.facts.capability_snapshot.digest().as_u64()
                 == admitted.candidate().lowering_basis().snapshot_digest()
     }
@@ -81,14 +75,8 @@ impl WorthUiPreparedApplicationLoweringAuthority {
         artifact: &crate::source::WorthUiArtifact,
         artifact_digest: crate::source::WorthUiArtifactDigest,
     ) -> bool {
-        self.facts
-            .source_candidate_basis
-            .is_some_and(|basis| basis.artifact_digest() == artifact_digest)
-            && self
-                .facts
-                .source_artifact_authority
-                .as_ref()
-                .is_some_and(|admitted| std::ptr::eq(admitted.as_ref(), artifact))
+        self.facts.source_candidate_basis.artifact_digest() == artifact_digest
+            && std::ptr::eq(self.facts.source_artifact_authority.as_ref(), artifact)
     }
 
     pub(crate) fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
@@ -111,6 +99,12 @@ impl WorthUiPreparedApplicationLoweringAuthority {
         &self.facts.execution_lane_support
     }
 
+    pub(crate) fn mosaic_state_capabilities(
+        &self,
+    ) -> &crate::capability::FrozenMosaicStateCapabilities {
+        self.facts.capability_snapshot.mosaic_state_slots()
+    }
+
     #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn synthetic_successor_for_certification(
         &self,
@@ -118,8 +112,8 @@ impl WorthUiPreparedApplicationLoweringAuthority {
     ) -> Self {
         Self::seal(
             self.facts.generation_identity.clone(),
-            Some(admitted.candidate().basis()),
-            Some(admitted.artifact_bundle().artifact_authority()),
+            admitted.candidate().basis(),
+            admitted.artifact_bundle().artifact_authority(),
             self.facts.graph_authority_identity,
             Rc::clone(&self.facts.capability_snapshot),
             self.facts.query_binding_plan.clone(),
@@ -135,8 +129,8 @@ impl WorthUiPreparedApplicationLoweringAuthority {
     ) -> Self {
         Self::seal(
             self.facts.generation_identity.clone(),
-            Some(WorthUiReplacementCandidateBasis::new(artifact_digest, 0, 0)),
-            Some(artifact),
+            WorthUiReplacementCandidateBasis::new(artifact_digest, 0, 0),
+            artifact,
             self.facts.graph_authority_identity,
             Rc::clone(&self.facts.capability_snapshot),
             self.facts.query_binding_plan.clone(),

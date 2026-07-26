@@ -15,6 +15,7 @@ worth-ui-host-contract = { path = "../../../../worth-ui-host-contract" }
 worth-ui-inspection = { path = "../../../../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../../../../worth-ui-query-binding", features = ["certification-construction"] }
 worth-ui-runtime = { path = "../../../../worth-ui-runtime" }
+worth-ui-test-support = { path = "../../../../worth-ui-test-support" }
 
 [[bin]]
 name = "product-runtime-authority"
@@ -25,8 +26,36 @@ name = "product-host-measurement-authority"
 path = "../../../../worth-ui/tests/ui/runtime_authority/fail/host_measurement_capability_requires_active_session.rs"
 
 [[bin]]
+name = "product-active-session-authority"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/active_application_session_cannot_be_split.rs"
+
+[[bin]]
+name = "product-runtime-internal-denials"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/runtime_authority_internal_denials.rs"
+
+[[bin]]
+name = "product-prepared-constituent-authority"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/prepared_application_constituent_cannot_be_replaced.rs"
+
+[[bin]]
+name = "product-prepared-launch-linearity"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/prepared_application_cannot_launch_twice.rs"
+
+[[bin]]
+name = "product-prepared-inspection-boundary"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/prepared_application_has_no_active_inspection.rs"
+
+[[bin]]
+name = "product-inspection-non-authority"
+path = "../../../../worth-ui/tests/ui/facade/inspection/inspection_authority_is_not_product_surface.rs"
+
+[[bin]]
 name = "product-source-ingress"
 path = "../../../../worth-ui/tests/ui/runtime_source_ingress/fail/candidate_submission_has_no_candidate_extraction.rs"
+
+[[bin]]
+name = "product-rust-authored-source-ingress"
+path = "../../../../worth-ui/tests/ui/runtime_source_ingress/pass/rust_authored_input_uses_compiler_owned_handoff.rs"
 
 [[bin]]
 name = "product-facade-snapshot"
@@ -35,6 +64,14 @@ path = "../../../../worth-ui/tests/ui/facade/snapshot/snapshot_internal_indexes_
 [[bin]]
 name = "product-entry-construction"
 path = "../../../../worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_entry_construction_fails.rs"
+
+[[bin]]
+name = "product-predecessor-builder-aliases"
+path = "../../../../worth-ui/tests/ui/facade/construction/predecessor_builder_aliases_are_absent.rs"
+
+[[bin]]
+name = "product-ordinary-framework-turn"
+path = "../../../../worth-ui/tests/ui/runtime_authority/fail/ordinary_framework_turn_is_not_callable.rs"
 
 [[bin]]
 name = "product-runtime-diagnostics"
@@ -47,6 +84,10 @@ path = "../../../../worth-ui/tests/ui/runtime_measurement/fail/uncertified_count
 [[bin]]
 name = "certification-admission"
 path = "../../ui/admission/external_callers_cannot_construct_or_promote_admission_artifacts.rs"
+
+[[bin]]
+name = "certification-framework-turn-support"
+path = "../../ui/framework_turn_support/certification_trait_opens_framework_turn.rs"
 
 [[bin]]
 name = "certification-evidence-construction"
@@ -79,6 +120,10 @@ path = "../../../../worth-ui/tests/ui/facade/named_surface_pass/empty_app_uses_n
 [[bin]]
 name = "product-inspection-named-surface"
 path = "../../../../worth-ui/tests/ui/facade/named_surface_pass/inspection_query_uses_named_inspection_surface.rs"
+
+[[bin]]
+name = "product-mounted-frame-app-journey"
+path = "../../../../worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
 
 [[bin]]
 name = "product-facade-ergonomic"

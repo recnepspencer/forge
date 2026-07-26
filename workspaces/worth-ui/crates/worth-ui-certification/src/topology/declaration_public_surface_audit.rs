@@ -7,6 +7,8 @@ use super::public_surface_audit::collect_public_names;
 
 const RUNTIME_FACADE_ROOT: &str = "crates/worth-ui-runtime/src/facade/mod.rs";
 const RUNTIME_DECLARATION_FACADE: &str = "crates/worth-ui-runtime/src/facade/declaration.rs";
+const RUNTIME_REGISTRY_DESCRIPTOR_FACADE: &str =
+    "crates/worth-ui-runtime/src/facade/registry/descriptor.rs";
 const PRODUCT_DECLARATION_FACADE: &str = "crates/worth-ui/src/facade/declaration.rs";
 const CURATED_DECLARATION_PUBLIC_NAMES: &[&str] = &[
     "UiAspectContract",
@@ -102,17 +104,22 @@ pub fn audit_runtime_declaration_surface_routes_through_curated_submodule(
 
 pub fn audit_declaration_facades_are_curated_and_glob_free(workspace_root: &Path) -> Vec<String> {
     let runtime_path = workspace_root.join(RUNTIME_DECLARATION_FACADE);
+    let descriptor_path = workspace_root.join(RUNTIME_REGISTRY_DESCRIPTOR_FACADE);
     let product_path = workspace_root.join(PRODUCT_DECLARATION_FACADE);
     let runtime_names = collect_public_names(&runtime_path);
+    let mut descriptor_names = collect_public_names(&descriptor_path);
     let product_names = collect_public_names(&product_path);
     let mut violations = Vec::new();
 
-    if runtime_names != product_names {
+    descriptor_names.remove("WorthUiQueryViewRegistration");
+    let mut expected_product_names = runtime_names.clone();
+    expected_product_names.extend(descriptor_names);
+    if expected_product_names != product_names {
         violations.push(format!(
-            "{} must mirror the curated runtime declaration facade exactly; product names: {:?}, runtime names: {:?}",
+            "{} must equal the curated declaration and authored registry descriptor facades; product names: {:?}, expected names: {:?}",
             product_path.display(),
             product_names,
-            runtime_names
+            expected_product_names
         ));
     }
 
@@ -132,9 +139,15 @@ pub fn audit_declaration_facades_are_curated_and_glob_free(workspace_root: &Path
     ) {
         violations.push(format!("{} {reason}", runtime_path.display()));
     }
+    if let Some(reason) = first_invalid_public_use(&descriptor_path, &[&["crate", "capability"]]) {
+        violations.push(format!("{} {reason}", descriptor_path.display()));
+    }
     if let Some(reason) = first_invalid_public_use(
         &product_path,
-        &[&["worth_ui_runtime", "facade", "declaration"]],
+        &[
+            &["worth_ui_runtime", "facade", "declaration"],
+            &["worth_ui_runtime", "facade", "registry", "descriptor"],
+        ],
     ) {
         violations.push(format!("{} {reason}", product_path.display()));
     }
@@ -145,8 +158,10 @@ pub fn audit_declaration_facades_are_curated_and_glob_free(workspace_root: &Path
 }
 
 fn first_invalid_public_use(path: &Path, allowed_prefixes: &[&[&str]]) -> Option<String> {
-    let parsed = parse_rust_file(path);
+    first_invalid_public_use_in_file(parse_rust_file(path), allowed_prefixes)
+}
 
+fn first_invalid_public_use_in_file(parsed: File, allowed_prefixes: &[&[&str]]) -> Option<String> {
     for item in parsed.items {
         match item {
             Item::Use(item_use) if matches!(item_use.vis, Visibility::Public(_)) => {
@@ -238,4 +253,37 @@ fn curated_name_set() -> std::collections::BTreeSet<String> {
         .iter()
         .map(|name| (*name).to_owned())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::first_invalid_public_use_in_file;
+
+    const PRODUCT_OWNERS: &[&[&str]] = &[
+        &["worth_ui_runtime", "facade", "declaration"],
+        &["worth_ui_runtime", "facade", "registry", "descriptor"],
+    ];
+
+    #[test]
+    fn declaration_product_owner_allowlist_rejects_snapshot_and_glob_shortcuts() {
+        let snapshot = syn::parse_file(
+            "pub use worth_ui_runtime::facade::registry::snapshot::FrozenCommandCapabilities;",
+        )
+        .expect("hostile snapshot source parses");
+        assert!(first_invalid_public_use_in_file(snapshot, PRODUCT_OWNERS)
+            .expect("snapshot owner should fail")
+            .contains("must route public declaration exports"));
+
+        let glob = syn::parse_file("pub use worth_ui_runtime::facade::registry::descriptor::*;")
+            .expect("hostile glob source parses");
+        assert!(first_invalid_public_use_in_file(glob, PRODUCT_OWNERS)
+            .expect("glob should fail")
+            .contains("must enumerate"));
+
+        let descriptor = syn::parse_file(
+            "pub use worth_ui_runtime::facade::registry::descriptor::CommandDescriptor;",
+        )
+        .expect("curated descriptor source parses");
+        assert!(first_invalid_public_use_in_file(descriptor, PRODUCT_OWNERS).is_none());
+    }
 }

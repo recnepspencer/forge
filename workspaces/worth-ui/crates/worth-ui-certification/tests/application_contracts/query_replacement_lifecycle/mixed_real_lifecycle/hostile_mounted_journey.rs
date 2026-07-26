@@ -1,16 +1,19 @@
 use std::time::Duration;
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
-use worth_ui::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedAllocationProjection,
-    UiMountedEffectFamily, UiMountedFrameOutcome, UiMountedOmissionReason,
-    UiMountedPresentationAdmissionDenial, UiPresentationDeadline, UiSurfaceBindingGeneration,
-};
 use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationReportDenial, UiHostObservationReportOutcome,
 };
 use worth_ui::facade::source::{WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher};
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedAllocationProjection,
+    UiMountedEffectFamily, UiMountedFrameOutcome, UiMountedOmissionReason,
+    UiMountedPresentationAdmissionDenial, UiPresentationDeadline, UiSurfaceBindingGeneration,
+};
 use worth_ui_test_support::{
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
@@ -188,7 +191,7 @@ fn one_real_predecessor_survives_ordered_hostile_seams_until_each_is_resolved() 
 
 fn prepare_all_lane_frame(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .expect("no presentation lease is active")
@@ -200,8 +203,8 @@ fn prepare_all_lane_frame(
 
 fn assert_prepared_frame_stale(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-    stale: worth_ui::facade::mounted::UiPreparedMountedFrame,
-    predecessor: &worth_ui::facade::mounted::UiMountedFramePublicationReceipt,
+    stale: worth_ui_runtime::facade::mounted::UiPreparedMountedFrame,
+    predecessor: &worth_ui_runtime::facade::mounted::UiMountedFramePublicationReceipt,
 ) {
     let outcome =
         session.present_prepared_mounted_frame(stale, UiPresentationDeadline::at_tick(20), 1);
@@ -217,8 +220,8 @@ fn assert_prepared_frame_stale(
 fn prove_observation_denials_are_terminal(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     binding: UiSurfaceBindingGeneration,
-    instance: worth_ui::facade::mounted::UiMountedInstanceIdentity,
-    publication: &worth_ui::facade::mounted::UiMountedFramePublicationReceipt,
+    instance: worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity,
+    publication: &worth_ui_runtime::facade::mounted::UiMountedFramePublicationReceipt,
 ) {
     let inspection = session.inspect_mounted_identity();
     let receipt = inspection

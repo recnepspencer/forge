@@ -7,7 +7,7 @@ use crate::runtime::planning::plan_topology::{
     WorthUiPlanRegionMutation, WorthUiPlanRegionTransition,
 };
 use crate::runtime::{WorthUiExecutablePlanDecisionKind, WorthUiPlanNodeInputFamily};
-use crate::source::WorthUiRustAuthoredArtifactInputModule;
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 
 use super::replacement_impact_test_support::{artifact_from_modules, launch_runtime};
 

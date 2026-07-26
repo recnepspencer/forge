@@ -1,3 +1,4 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiEvidenceAuthorityGeneration, UiEvidenceAuthorityKind, UiEvidenceExpansionOutcome,

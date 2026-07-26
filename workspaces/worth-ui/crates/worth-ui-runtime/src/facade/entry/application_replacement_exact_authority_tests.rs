@@ -55,7 +55,7 @@ fn traversal_in_progress_returns_the_exact_candidate_for_retry() {
     let pending = session
         .stage_prepared_replacement(lowered)
         .expect("candidate stages");
-    let traversal = session.runtime.traversal_frame_boundary_for_test();
+    let traversal = session.application.traversal_frame_boundary_for_test();
 
     let denial = match session.activate_prepared_replacement(pending, catalog, traversal, None) {
         Ok(_) => panic!("frame-in-progress cannot publish"),
@@ -71,7 +71,7 @@ fn traversal_in_progress_returns_the_exact_candidate_for_retry() {
     );
     assert_eq!(session.generation_identity(), &active_generation);
 
-    let safe = session.runtime.safe_frame_boundary();
+    let safe = session.application.safe_frame_boundary_for_test();
     let outcome = retry
         .retry(&mut session, safe)
         .expect("the same candidate commits at the next safe boundary");

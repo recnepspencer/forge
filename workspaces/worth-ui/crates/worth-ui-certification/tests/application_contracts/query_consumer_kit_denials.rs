@@ -2,6 +2,7 @@ use worth_query::facade::domain;
 use worth_ui_query_binding::{
     WorthUiQueryViewShape, WorthUiQueryWorkspaceExt, WorthUiSnapshotConsumerPreparationDenial,
 };
+use worth_ui_test_support::WorthUiActiveSessionCertificationExt;
 
 use crate::query_consumer_kit_application::file_authored_query_app;
 use crate::query_consumer_kit_workspace::{

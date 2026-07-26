@@ -1,5 +1,5 @@
 use worth_ui::facade::query_binding::WorthUiQueryViewDefinition;
-use worth_ui::facade::registry::{ViewBindingDescriptor, ViewBindingFamily, ViewBindingId};
+use worth_ui::facade::declaration::{ViewBindingDescriptor, ViewBindingFamily, ViewBindingId};
 
 fn main() {
     let definition = WorthUiQueryViewDefinition::measurement_snapshot("workspace.measurements")

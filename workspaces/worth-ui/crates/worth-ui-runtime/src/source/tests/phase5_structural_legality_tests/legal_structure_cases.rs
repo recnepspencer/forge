@@ -45,13 +45,13 @@ fn identical_structure_with_reordered_rust_modules_stays_equivalent() {
     let left = resolved_artifact_input_from_modules(
         [
             standard_component_module(),
-            crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/extra.wui"),
+            worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/extra.wui"),
         ],
         snapshot,
     );
     let right = resolved_artifact_input_from_modules(
         [
-            crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/extra.wui"),
+            worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/extra.wui"),
             standard_component_module(),
         ],
         snapshot,

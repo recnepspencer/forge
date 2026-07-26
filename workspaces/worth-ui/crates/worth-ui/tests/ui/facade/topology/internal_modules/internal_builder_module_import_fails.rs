@@ -1,5 +1,5 @@
-use worth_ui::facade::builder::WorthUiAppBuilder;
+use worth_ui::facade::builder::WorthUiApplicationBuilder;
 
 fn main() {
-    let _ = core::mem::size_of::<WorthUiAppBuilder>();
+    let _ = core::mem::size_of::<WorthUiApplicationBuilder>();
 }

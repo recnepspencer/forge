@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{MeasurementValue, MosaicSizingKind},
+    declaration::{MeasurementValue, MosaicSizingKind},
 };
 
 use super::sizing_assertions::assert_registered_mosaic_sizing_ids;

@@ -52,6 +52,20 @@ forbidden_targets = ["worth-store", "worth-store-aspect-native"]
 forbidden_target_prefixes = ["worth-store"]
 guidance = "generic Signal cannot import Store composition or Store-owned physical aspect vocabulary"
 
+[[dependency_denials]]
+workspace_manifest = "workspaces/worth-ui/Cargo.toml"
+sources = ["worth-ui-dsl"]
+forbidden_targets = [
+  "worth-query",
+  "worth-ui",
+  "worth-ui-host-contract",
+  "worth-ui-host-egui",
+  "worth-ui-inspection",
+  "worth-ui-query-binding",
+  "worth-ui-runtime",
+]
+guidance = "Milestone 3.10.1: DSL owns authored language meaning and may not import runtime, host, Query, inspection, product-session, or mounted authority"
+
 [[source_identifier_denials]]
 root = "workspaces/worth-store/crates/worth-store/src/physical_runtime/work"
 forbidden_identifiers = [
@@ -99,6 +113,48 @@ forbidden_identifiers = [
   "StoreTerminalProjectionText",
 ]
 guidance = "the physical composition owner installs mechanisms but does not own future branch/MVCC authority"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-runtime/src"
+forbidden_identifiers = [
+  "tokenize_module_source",
+  "WorthUiArtifactInput",
+  "WorthUiArtifactInputNormalizer",
+  "WorthUiCanonicalModuleOrder",
+  "WorthUiParsedSourceDeclaration",
+  "WorthUiParsedSourceModule",
+  "WorthUiParsedSourcePackage",
+  "WorthUiParsedSourceToArtifactInputLowerer",
+  "WorthUiRustAuthoredToArtifactInputLowerer",
+  "WorthUiSourceImportGraph",
+  "WorthUiSourceModuleRecord",
+  "WorthUiSourcePackageLoader",
+  "WorthUiSourceParser",
+  "WorthUiSourceToken",
+  "WorthUiSourceTokenKind",
+  "WorthUiStructuralBodyParser",
+]
+guidance = "Milestone 3.10.1: runtime may transport sealed source and admit runtime capabilities, but authored text, syntax trees, language normalization, and sealing belong only to worth-ui-dsl"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-dsl/src"
+forbidden_identifiers = [
+  "UiHostAdapterSessionAuthority",
+  "UiMountedFrame",
+  "UiMountedPresentation",
+  "WorthUiActiveApplicationSession",
+  "WorthUiAllocationCatalog",
+  "WorthUiApplicationPublication",
+  "WorthUiCanvasSpatialPlan",
+  "WorthUiFrameworkTurn",
+  "WorthUiHostSession",
+  "WorthUiMountedApplication",
+  "WorthUiOrdinaryPlan",
+  "WorthUiPreparedApplicationGeneration",
+  "WorthUiRealtimePlan",
+  "WorthUiVirtualizedPlan",
+]
+guidance = "Milestone 3.10.1: DSL owns authored meaning but must not define or import runtime generation, plan, allocation, mounted, publication, or host-session authority"
 
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"

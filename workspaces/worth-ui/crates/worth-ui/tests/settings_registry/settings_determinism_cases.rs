@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{
+    declaration::{
         SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint,
         SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
         SettingValueSchema,

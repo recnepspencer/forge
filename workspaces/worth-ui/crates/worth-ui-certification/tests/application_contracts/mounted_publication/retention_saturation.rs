@@ -1,4 +1,10 @@
-use worth_ui::facade::mounted::{
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
+use worth_ui::facade::observation_report::{
+    UiHostObservationCapacity, UiHostObservationCapacityInput, UiHostObservationFamily,
+    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
+    UiHostObservationReportOutcome,
+};
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfaceCancellationOutcome, UiHostSurfacePresentationMode,
     UiHostSurfacePresentationOutcome, UiMountedFrameOutcome, UiMountedFrameRetentionBudget,
     UiMountedFrameRetentionBudgetInput, UiMountedInspectionOmission, UiMountedInspectionReceipt,
@@ -6,11 +12,7 @@ use worth_ui::facade::mounted::{
     UiMountedRetentionClass, UiMountedRetentionClassBudget, UiMountedRetentionEvictionPosture,
     UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
-use worth_ui::facade::observation_report::{
-    UiHostObservationCapacity, UiHostObservationCapacityInput, UiHostObservationFamily,
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome,
-};
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use crate::host_observation_fixture::{batch, report, source};
@@ -289,7 +291,7 @@ fn assert_bounded_retention_truth(
 }
 
 fn assert_evidence_class_within_budget(
-    report: &worth_ui::facade::mounted::UiMountedRetentionReport,
+    report: &worth_ui_runtime::facade::mounted::UiMountedRetentionReport,
     class: UiMountedRetentionClass,
 ) {
     let row = report.class(class);
@@ -320,7 +322,7 @@ fn assert_current_is_inspectable(
 
 fn assert_current_frame_is_inspectable(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-    expected: worth_ui::facade::mounted::UiMountedFrameIdentity,
+    expected: worth_ui_runtime::facade::mounted::UiMountedFrameIdentity,
 ) {
     match session.inspect_mounted_frame(UiMountedInspectionRequest::current()) {
         UiMountedInspectionReceipt::Available(inspection) => {

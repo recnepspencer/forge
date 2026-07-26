@@ -1,11 +1,11 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         CommandDescriptor, ComponentAccessibilitySupport, ComponentChildPolicy,
         ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema,
         ComponentStateOwnership, ThemeTokenId,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 #[path = "component_registry/component_registry_assertions.rs"]

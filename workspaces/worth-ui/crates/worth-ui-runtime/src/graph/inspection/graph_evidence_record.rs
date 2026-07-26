@@ -41,10 +41,11 @@ impl UiGraphEvidenceRecord {
 #[cfg(test)]
 mod tests {
     use crate::facade::WorthUi;
+    use crate::facade::WorthUiRustAuthoredDeclarationFixture;
     use crate::graph::UiGraphWorldProfile;
     use worth_ui_dsl::{
         UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-        UiDslStructuralToken, WorthUiDslPackage,
+        UiDslStructuralToken,
     };
 
     use super::{UiEvidenceFamily, UiGraphEvidenceRecord};
@@ -52,8 +53,8 @@ mod tests {
     #[test]
     fn graph_evidence_refs_bind_the_real_snapshot_generation() {
         let app = WorthUi::app()
-            .with_dsl_package(
-                WorthUiDslPackage::named("worth-ui.runtime.graph.evidence")
+            .with_rust_authored_declaration_fixture(
+                WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.graph.evidence")
                     .with_semantic_artifact_spec(
                         UiDslSemanticArtifactSpec::new(
                             UiDslSemanticKey::new("ui.graph.evidence.record"),

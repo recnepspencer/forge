@@ -5,7 +5,6 @@ use crate::runtime::replacement::matching::WorthUiIdentityMatchGraphBuilder;
 use crate::runtime::replacement::narrowing::WorthUiRuntimeImpactNarrower;
 use crate::runtime::replacement::node_classification::WorthUiNodeReplacementClassifier;
 use crate::runtime::replacement::reconciliation::WorthUiDurableStateReconciliationPlanner;
-use crate::runtime::replacement::state_inventory::WorthUiDurableStateInventoryBuilder;
 use crate::runtime::source_ingress::WorthUiSourceEventIngress;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiAmbiguousReplacementDenial,
@@ -159,10 +158,6 @@ impl WorthUiRuntime {
         })
     }
 
-    pub(crate) fn durable_state_inventory(&self) -> WorthUiDurableStateInventoryBuilder {
-        WorthUiDurableStateInventoryBuilder::new()
-    }
-
     pub(crate) fn source_event_ingress(
         &self,
         provider: crate::runtime::WorthUiSourceProvider,
@@ -212,9 +207,6 @@ impl WorthUiRuntime {
         admitted: WorthUiAdmittedReplacementCandidate,
         candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
         candidate_query_binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
-        configure: impl FnOnce(
-            WorthUiDurableStateInventoryBuilder,
-        ) -> WorthUiDurableStateInventoryBuilder,
     ) -> Result<WorthUiReplacementLoweringReady, WorthUiReplacementLoweringDenial> {
         if !candidate_application_authority.admits_candidate(&admitted) {
             return Err(WorthUiReplacementLoweringDenial::CandidateApplicationAuthorityMismatch);
@@ -224,9 +216,11 @@ impl WorthUiRuntime {
             candidate_application_authority.query_binding_plan(),
             candidate_query_binding,
         )?;
-        let inventory = configure(self.platform_durable_state_inventory())
-            .build_for_replacement(&node_plan.node_plan)
-            .map_err(WorthUiReplacementLoweringDenial::Inventory)?;
+        let inventory = WorthUiDurableStateInventory::assemble_for_replacement(
+            &node_plan.node_plan,
+            candidate_application_authority.mosaic_state_capabilities(),
+        )
+        .map_err(WorthUiReplacementLoweringDenial::Inventory)?;
         self.finish_replacement_lowering(node_plan, &inventory, candidate_application_authority)
     }
 
@@ -315,6 +309,7 @@ impl WorthUiRuntime {
         inventory: &WorthUiDurableStateInventory,
         candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
     ) -> Result<WorthUiReplacementLoweringReady, WorthUiReplacementLoweringDenial> {
+        let inventory_counters = inventory.counters();
         let reconciliation = self
             .reconcile_durable_state_from_node_plan(node_plan, inventory)
             .map_err(WorthUiReplacementLoweringDenial::Reconciliation)?;
@@ -334,6 +329,7 @@ impl WorthUiRuntime {
             narrowing,
             node_plan,
             reconciliation_plan,
+            inventory_counters,
             query_comparison,
             artifact_comparison_counters,
             identity_match_counters,

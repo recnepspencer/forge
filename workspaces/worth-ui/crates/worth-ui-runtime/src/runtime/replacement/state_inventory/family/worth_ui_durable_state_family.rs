@@ -1,6 +1,5 @@
 use crate::runtime::{
-    WorthUiDurableStateEligibility, WorthUiDurableStateFamilyHook, WorthUiDurableStateFamilyId,
-    WorthUiDurableStateReplacementPolicy, WorthUiStateOwnerIdentity, WorthUiStateOwnershipClass,
+    WorthUiDurableStateFamilyId, WorthUiDurableStateReplacementPolicy, WorthUiStateOwnerIdentity,
     WorthUiStatePersistencePosture,
 };
 
@@ -11,6 +10,16 @@ pub struct WorthUiDurableStateFamily {
     replacement_policy: WorthUiDurableStateReplacementPolicy,
     persistence_posture: WorthUiStatePersistencePosture,
     lane_constrained: bool,
+    contract_digest: u64,
+}
+
+pub(in crate::runtime::replacement::state_inventory) struct WorthUiDurableStateFamilyDefinition {
+    pub(super) id: WorthUiDurableStateFamilyId,
+    pub(super) owner_identity: WorthUiStateOwnerIdentity,
+    pub(super) replacement_policy: WorthUiDurableStateReplacementPolicy,
+    pub(super) persistence_posture: WorthUiStatePersistencePosture,
+    pub(super) lane_constrained: bool,
+    pub(super) contract_digest: u64,
 }
 
 impl WorthUiDurableStateFamily {
@@ -74,41 +83,24 @@ impl WorthUiDurableStateFamily {
         &self.id
     }
 
-    pub fn owner_identity(&self) -> &WorthUiStateOwnerIdentity {
-        &self.owner_identity
-    }
-
-    pub fn ownership_class(&self) -> WorthUiStateOwnershipClass {
-        self.owner_identity.ownership_class()
-    }
-
     pub fn replacement_policy(&self) -> WorthUiDurableStateReplacementPolicy {
         self.replacement_policy
     }
 
-    pub fn persistence_posture(&self) -> WorthUiStatePersistencePosture {
-        self.persistence_posture
+    pub fn contract_digest(&self) -> u64 {
+        self.contract_digest
     }
 
-    pub fn eligibility(&self) -> WorthUiDurableStateEligibility {
-        WorthUiDurableStateEligibility::Eligible
-    }
-
-    pub fn is_durable(&self) -> bool {
-        self.eligibility() == WorthUiDurableStateEligibility::Eligible
-    }
-
-    pub fn is_lane_constrained(&self) -> bool {
-        self.lane_constrained
-    }
-
-    pub(crate) fn from_validated_hook(hook: WorthUiDurableStateFamilyHook) -> Self {
+    pub(super) fn from_admitted_definition(
+        definition: WorthUiDurableStateFamilyDefinition,
+    ) -> Self {
         Self {
-            id: hook.family_id().clone(),
-            owner_identity: hook.owner_identity().expect("validated owner"),
-            replacement_policy: hook.replacement_policy().expect("validated policy"),
-            persistence_posture: hook.persistence_posture().expect("validated posture"),
-            lane_constrained: hook.is_lane_constrained(),
+            id: definition.id,
+            owner_identity: definition.owner_identity,
+            replacement_policy: definition.replacement_policy,
+            persistence_posture: definition.persistence_posture,
+            lane_constrained: definition.lane_constrained,
+            contract_digest: definition.contract_digest,
         }
     }
 
@@ -117,6 +109,8 @@ impl WorthUiDurableStateFamily {
         replacement_policy: WorthUiDurableStateReplacementPolicy,
         lane_constrained: bool,
     ) -> Self {
+        let contract_digest =
+            crate::declaration::stable_text_digest(platform_contract_identity_basis(&id));
         let owner_identity =
             WorthUiStateOwnerIdentity::platform_state_family(platform_owner_identity_basis(&id));
         Self {
@@ -125,6 +119,7 @@ impl WorthUiDurableStateFamily {
             replacement_policy,
             persistence_posture: WorthUiStatePersistencePosture::RuntimeOnly,
             lane_constrained,
+            contract_digest,
         }
     }
 }
@@ -139,5 +134,34 @@ fn platform_owner_identity_basis(id: &WorthUiDurableStateFamilyId) -> &'static s
         WorthUiDurableStateFamilyId::TabState => "worth-ui.platform.tab-state",
         WorthUiDurableStateFamilyId::PanelVisibility => "worth-ui.platform.panel-visibility",
         WorthUiDurableStateFamilyId::Custom(_) => "worth-ui.platform.custom",
+    }
+}
+
+fn platform_contract_identity_basis(id: &WorthUiDurableStateFamilyId) -> &'static str {
+    match id {
+        WorthUiDurableStateFamilyId::FocusChain => {
+            "worth-ui.state.focus-chain|platform|preserve|runtime-only|lane-constrained"
+        }
+        WorthUiDurableStateFamilyId::ScrollAnchor => {
+            "worth-ui.state.scroll-anchor|platform|reconcile-lane|runtime-only|lane-constrained"
+        }
+        WorthUiDurableStateFamilyId::SelectionRange => {
+            "worth-ui.state.selection-range|platform|preserve|runtime-only|lane-constrained"
+        }
+        WorthUiDurableStateFamilyId::TextEditBuffer => {
+            "worth-ui.state.text-edit-buffer|platform|drop|runtime-only|lane-constrained"
+        }
+        WorthUiDurableStateFamilyId::SplitterPosition => {
+            "worth-ui.state.splitter-position|platform|reconcile-lane|runtime-only|lane-neutral"
+        }
+        WorthUiDurableStateFamilyId::TabState => {
+            "worth-ui.state.tab-state|platform|reconcile-lane|runtime-only|lane-neutral"
+        }
+        WorthUiDurableStateFamilyId::PanelVisibility => {
+            "worth-ui.state.panel-visibility|platform|reconcile-lane|runtime-only|lane-neutral"
+        }
+        WorthUiDurableStateFamilyId::Custom(_) => {
+            unreachable!("custom families derive contract identity from admitted state slots")
+        }
     }
 }

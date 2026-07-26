@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{MosaicStateSlotDescriptor, MosaicStateSlotId, MosaicStateSlotKind},
+    declaration::{MosaicStateSlotDescriptor, MosaicStateSlotId, MosaicStateSlotKind},
 };
 
 fn main() {

@@ -1,5 +1,5 @@
-use crate::source::{WorthUiArtifactInputProvenance, WorthUiSourceModuleId};
 use std::cmp::Ordering;
+use worth_ui_dsl::{WorthUiArtifactInputProvenance, WorthUiSourceModuleId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum WorthUiResolutionDiagnosticCode {
@@ -114,8 +114,8 @@ fn stable_provenance_cmp(
 }
 
 fn stable_optional_span_cmp(
-    left: Option<&crate::source::WorthUiSourceSpan>,
-    right: Option<&crate::source::WorthUiSourceSpan>,
+    left: Option<&worth_ui_dsl::WorthUiSourceSpan>,
+    right: Option<&worth_ui_dsl::WorthUiSourceSpan>,
 ) -> Ordering {
     match (left, right) {
         (Some(left), Some(right)) => stable_span_cmp(left, right),
@@ -126,8 +126,8 @@ fn stable_optional_span_cmp(
 }
 
 fn stable_span_cmp(
-    left: &crate::source::WorthUiSourceSpan,
-    right: &crate::source::WorthUiSourceSpan,
+    left: &worth_ui_dsl::WorthUiSourceSpan,
+    right: &worth_ui_dsl::WorthUiSourceSpan,
 ) -> Ordering {
     left.module_id()
         .cmp(right.module_id())

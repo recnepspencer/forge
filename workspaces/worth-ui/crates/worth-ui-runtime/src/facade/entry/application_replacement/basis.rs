@@ -13,17 +13,17 @@ impl WorthUiPreparedApplicationReplacementBasis {
         (next_app
             .prepared_authority()
             .source_backed_candidate_basis()
-            == Some(candidate_basis))
-        .then(|| Self {
-            origin_session,
-            next_generation: next_app.generation_identity().clone(),
-            candidate_basis,
-            graph_authority_identity: next_app
-                .prepared_authority()
-                .graph_snapshot()
-                .authority_identity(),
-            candidate_application_authority: next_app.prepared_authority().lowering_authority(),
-        })
+            == candidate_basis)
+            .then(|| Self {
+                origin_session,
+                next_generation: next_app.generation_identity().clone(),
+                candidate_basis,
+                graph_authority_identity: next_app
+                    .prepared_authority()
+                    .graph_snapshot()
+                    .authority_identity(),
+                candidate_application_authority: next_app.prepared_authority().lowering_authority(),
+            })
     }
 
     pub(super) fn admits_session(&self, session: WorthUiActiveApplicationSessionIdentity) -> bool {

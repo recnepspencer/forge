@@ -1,12 +1,12 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         ComponentAccessibilitySupport, ComponentChildPolicy, ComponentDescriptor,
         ComponentExecutionLane, ComponentFocusSupport, ComponentId, ComponentPropSchema,
         ComponentStateOwnership, ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily,
         ThemeTokenSource, ThemeTokenValue,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::theme_token_assertions::{assert_diagnostic_codes, assert_registered_theme_token_ids};

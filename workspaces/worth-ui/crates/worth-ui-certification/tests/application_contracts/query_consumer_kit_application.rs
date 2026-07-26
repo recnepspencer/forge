@@ -2,11 +2,11 @@ use worth_ui::facade::{
     app::WorthUi,
     query_binding::WorthUiInstalledSnapshotQueryView,
     source::{
-        WorthUiFilesystemSourceProvider, WorthUiRustAuthoredArtifactInput,
-        WorthUiRustAuthoredArtifactInputModule, WorthUiSourceEventIngress, WorthUiSourceProvider,
+        WorthUiFilesystemSourceProvider, WorthUiSourceEventIngress, WorthUiSourceProvider,
         WorthUiWatcherEvent,
     },
 };
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 

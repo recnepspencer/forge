@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{SettingDefaultPosture, SettingDescriptor, SettingEditorHint, SettingId, SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture, SettingValueSchema},
+    declaration::{SettingDefaultPosture, SettingDescriptor, SettingEditorHint, SettingId, SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture, SettingValueSchema},
 };
 
 fn main() {

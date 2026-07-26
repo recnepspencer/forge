@@ -24,7 +24,7 @@ use crate::obligations::touch::{
 };
 
 use super::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
-use super::{WorthUi, WorthUiApp, WorthUiDslPackage};
+use super::{WorthUi, WorthUiApp, WorthUiRustAuthoredDeclarationFixture};
 
 pub(super) fn measurement_query(target: UiInspectionTarget) -> UiInspectionQuery {
     UiInspectionQuery::new(target, UiInspectionScope::Measurement)
@@ -57,12 +57,12 @@ pub(super) fn query_measurement_app_in_world(
 }
 
 pub(super) fn measurement_app_in_world(
-    dsl_package: WorthUiDslPackage,
+    dsl_package: WorthUiRustAuthoredDeclarationFixture,
     graph_world_profile: UiGraphWorldProfile,
     evidence: Option<UiMeasurementInspectionEvidenceBundle>,
 ) -> WorthUiApp {
     let mut builder = WorthUi::app()
-        .with_dsl_package(dsl_package)
+        .with_rust_authored_declaration_fixture(dsl_package)
         .with_graph_world_profile(graph_world_profile);
     if let Some(bundle) = evidence {
         builder = builder.with_measurement_inspection_evidence(bundle);
@@ -92,7 +92,7 @@ pub(super) fn repeated_instance_app() -> WorthUiApp {
     ];
 
     WorthUi::app()
-        .with_dsl_package(host_measurement_package())
+        .with_rust_authored_declaration_fixture(host_measurement_package())
         .with_runtime_instance_basis_admissions(runtime_bases)
         .freeze()
         .expect("typed repeated-instance input should prepare one complete app authority")
@@ -184,23 +184,24 @@ pub(super) fn direct_measurement_view_for_graph_node(
     project_measurement_inspection_view(measurement_support_report(artifact), Some(&basis))
 }
 
-fn host_measurement_package() -> WorthUiDslPackage {
-    WorthUiDslPackage::named("worth-ui.phase11.measurement-inspection").with_semantic_artifact_spec(
-        UiDslSemanticArtifactSpec::new(
-            UiDslSemanticKey::new("workflow_editor.control.measurement"),
-            UiDslSemanticFamily::Control,
-            UiDslSourceProvenance::file_authored("app/measurement_inspection.wui", 0),
+fn host_measurement_package() -> WorthUiRustAuthoredDeclarationFixture {
+    WorthUiRustAuthoredDeclarationFixture::named("worth-ui.phase11.measurement-inspection")
+        .with_semantic_artifact_spec(
+            UiDslSemanticArtifactSpec::new(
+                UiDslSemanticKey::new("workflow_editor.control.measurement"),
+                UiDslSemanticFamily::Control,
+                UiDslSourceProvenance::file_authored("app/measurement_inspection.wui", 0),
+            )
+            .with_structural_token(UiDslStructuralToken::new("control:save"))
+            .with_posture_token(UiDslPostureToken::new("measurement:mode:hug-height"))
+            .with_posture_token(UiDslPostureToken::new(
+                "measurement:evidence:font-metrics-required",
+            )),
         )
-        .with_structural_token(UiDslStructuralToken::new("control:save"))
-        .with_posture_token(UiDslPostureToken::new("measurement:mode:hug-height"))
-        .with_posture_token(UiDslPostureToken::new(
-            "measurement:evidence:font-metrics-required",
-        )),
-    )
 }
 
-pub(super) fn query_measurement_package() -> WorthUiDslPackage {
-    WorthUiDslPackage::named("worth-ui.phase11.measurement-inspection.query")
+pub(super) fn query_measurement_package() -> WorthUiRustAuthoredDeclarationFixture {
+    WorthUiRustAuthoredDeclarationFixture::named("worth-ui.phase11.measurement-inspection.query")
         .with_semantic_artifact_spec(
             UiDslSemanticArtifactSpec::new(
                 UiDslSemanticKey::new("workflow_editor.control.measurement"),

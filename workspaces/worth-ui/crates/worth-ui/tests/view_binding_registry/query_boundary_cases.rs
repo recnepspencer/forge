@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{
+    declaration::{
         ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
         ComponentStateOwnership, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
         SurfaceStateClass,

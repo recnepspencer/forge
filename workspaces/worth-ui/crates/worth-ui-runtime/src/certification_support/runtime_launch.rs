@@ -3,18 +3,21 @@ use crate::runtime::{WorthUiRuntime, WorthUiRuntimeLaunch};
 use crate::source::{
     WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityLowerer,
+};
+use worth_ui_dsl::{
+    WorthUiDslCompiler, WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
 
 /// Launch an app through an empty canonical artifact for external certification.
 /// Production callers must arrive with a source-lowered candidate instead.
 pub fn launch_empty_runtime_for_certification(app: &WorthUiApp) -> WorthUiRuntime {
-    let input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let input = WorthUiDslCompiler::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("certification.empty"),
         ]),
-    );
+    )
+    .expect("empty certification source compiles");
     let snapshot = app.capabilities();
     let resolved = WorthUiArtifactInputResolver::resolve(&input, snapshot)
         .expect("empty certification artifact input resolves");

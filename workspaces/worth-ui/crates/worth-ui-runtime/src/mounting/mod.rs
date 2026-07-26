@@ -14,6 +14,7 @@ mod publication;
 mod receipt_basis;
 mod retention;
 mod reuse;
+mod session_state;
 mod surface_binding;
 
 pub(crate) use assembly::{binding_requirement, validate_manifest};
@@ -83,6 +84,13 @@ pub use reuse::{
     UiMountedFrameExecutionPosture, UiMountedFrameReuse, UiMountedFrameReuseComparator,
     UiMountedFrameReuseContract, UiMountedFrameReuseDependency, UiMountedFrameReuseMintingStage,
     UiMountedFrameReuseWitness,
+};
+pub(crate) use session_state::{
+    UiMountedGraphReplacementAdmission, UiMountedGraphReplacementInFlight,
+    UiMountedGraphReplacementPreparation, UiMountedGraphReplacementPresentation,
+    UiMountedGraphReplacementSuccessor, UiMountedHostObservationTransition,
+    UiMountedObservationValidationBasis, UiMountedPublicationTransition,
+    WorthUiMountedSessionState,
 };
 pub use surface_binding::{UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile};
 

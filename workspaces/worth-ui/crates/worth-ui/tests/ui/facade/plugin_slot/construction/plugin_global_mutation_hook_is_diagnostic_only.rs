@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{PluginContributionFamily, PluginSlotDescriptor, PluginSlotGlobalMutationHook, PluginSlotId},
+    declaration::{PluginContributionFamily, PluginSlotDescriptor, PluginSlotGlobalMutationHook, PluginSlotId},
 };
 
 fn main() {

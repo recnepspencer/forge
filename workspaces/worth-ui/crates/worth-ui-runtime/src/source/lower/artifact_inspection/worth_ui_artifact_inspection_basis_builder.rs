@@ -142,7 +142,7 @@ fn seeded_node_kind(node: &WorthUiIdentitySeededArtifactInputNode) -> WorthUiArt
 
 fn seeded_node_provenance(
     node: &WorthUiIdentitySeededArtifactInputNode,
-) -> &crate::source::WorthUiArtifactInputProvenance {
+) -> &worth_ui_dsl::WorthUiArtifactInputProvenance {
     match node {
         WorthUiIdentitySeededArtifactInputNode::Import(node) => node.provenance(),
         WorthUiIdentitySeededArtifactInputNode::Component(node) => node.provenance(),

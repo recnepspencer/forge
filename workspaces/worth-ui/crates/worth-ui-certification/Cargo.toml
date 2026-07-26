@@ -13,6 +13,7 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
+serde_json = "1.0"
 syn = { version = "2.0", features = ["full", "visit"] }
 toml = "0.8"
 worth-ui = { path = "../worth-ui" }

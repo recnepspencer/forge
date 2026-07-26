@@ -13,12 +13,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             active_plan_digest,
             host_session_identity,
             completion,
-            mounted_identity,
-            mounted_retention,
+            mounted,
             host_session,
-            mounted_presentation,
-            mounted_publication_reservations,
-            host_observations,
+            host_exchange,
         } = self;
         match completion.into_pending_mounted_preview() {
             Ok((transition, planning_counters)) => Ok(WorthUiPendingMountedPreview {
@@ -29,11 +26,8 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 planning_counters,
                 ports: WorthUiMountedPreviewPorts {
                     host_session,
-                    identity: mounted_identity,
-                    retention: mounted_retention,
-                    presentation: mounted_presentation,
-                    reservations: mounted_publication_reservations,
-                    observations: host_observations,
+                    mounted,
+                    host_exchange,
                 },
             }),
             Err(completion) => Err(Box::new(Self {
@@ -42,12 +36,9 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 active_plan_digest,
                 host_session_identity,
                 completion: *completion,
-                mounted_identity,
-                mounted_retention,
+                mounted,
                 host_session,
-                mounted_presentation,
-                mounted_publication_reservations,
-                host_observations,
+                host_exchange,
             })),
         }
     }
@@ -88,7 +79,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
         mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
     ) -> Result<crate::mounting::UiPreparedMountedFrame, WorthUiMountedPreviewPreparationDenial>
     {
-        let identity_view = self.ports.identity.view();
+        let identity_view = self.ports.mounted.view();
         let instance = identity_view
             .mounted_instances()
             .iter()
@@ -112,7 +103,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
             ..Default::default()
         };
         let capability_report = self.ports.host_session.capability_report();
-        let reuse_contract = self.ports.identity.seal_reuse_contract(
+        let reuse_contract = self.ports.mounted.seal_frame_reuse_contract(
             crate::mounting::UiMountedFrameReuseExternalBasis {
                 generation: self.generation.clone(),
                 host_session: self.ports.host_session.identity().as_u64(),
@@ -128,9 +119,10 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                 capability_profile_digest: capability_report.profile_identity_digest(),
             },
         );
-        let assembler = crate::mounting::UiMountedFrameAssembler::begin(
-            self.ports.identity,
-            crate::mounting::UiMountedFrameAssemblyInput {
+        let assembler = self
+            .ports
+            .mounted
+            .begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
                 graph: self.graph,
                 generation: self.generation.clone(),
                 plan_digest: self.plan_digest,
@@ -149,9 +141,8 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                     all_candidates_admitted: preview.all_candidates_admitted(),
                 }),
                 reuse_contract,
-            },
-        )
-        .map_err(WorthUiMountedPreviewPreparationDenial::Frame)?;
+            })
+            .map_err(WorthUiMountedPreviewPreparationDenial::Frame)?;
         assembler
             .finish()
             .map_err(WorthUiMountedPreviewPreparationDenial::Frame)

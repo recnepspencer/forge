@@ -3,6 +3,7 @@ mod worth_ui_resolved_artifact_input;
 mod worth_ui_resolved_artifact_input_equivalence;
 mod worth_ui_resolved_artifact_input_module;
 mod worth_ui_resolved_artifact_input_node;
+mod worth_ui_runtime_semantic_import;
 
 pub(crate) use worth_ui_resolved_artifact_input::WorthUiResolvedArtifactInput;
 #[cfg(test)]
@@ -13,3 +14,4 @@ pub(crate) use worth_ui_resolved_artifact_input_node::{
     WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputSurfaceNode,
     WorthUiResolvedArtifactInputThemeTokenNode,
 };
+pub(crate) use worth_ui_runtime_semantic_import::WorthUiRuntimeSemanticImport;

@@ -1,10 +1,10 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         NativeCapabilityDescriptor, NativeCapabilityFamily, NativePlatformPosture,
         NativeShellAuthorityClaim,
     },
+    diagnostics::CapabilityDiagnosticCode,
     support::AmbientHostCheck,
 };
 

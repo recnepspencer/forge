@@ -35,6 +35,12 @@ fn successful_cutover_publishes_runtime_app_and_inspection_as_one_generation() {
     assert_eq!(candidate_cost, lowered.cost_envelope());
     assert!(candidate_summary.replacement_classification_count() > 0);
     assert!(candidate_cost.admission_checks() > 0);
+    assert_eq!(
+        candidate_cost.state_inventory_classifications(),
+        candidate_summary.replacement_classification_count()
+    );
+    assert_eq!(candidate_cost.state_family_registrations(), 8);
+    assert_eq!(candidate_cost.transient_state_drop_rules(), 8);
     let pending = session
         .stage_prepared_replacement(lowered)
         .expect("lowered successor should stage");

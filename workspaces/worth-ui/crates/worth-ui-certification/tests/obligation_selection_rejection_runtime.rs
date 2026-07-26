@@ -1,3 +1,4 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::admission::{UiAdmissionWorld, UiSupportPosture, UiSupportReason};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
@@ -7,25 +8,33 @@ use worth_ui::facade::graph::{
     UiGraphSessionLabel, UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming,
     UiGraphWorldProfile,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
+use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 #[test]
 fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-selection.rejection")
-                .with_semantic_artifact_spec(supported_control_spec())
-                .with_semantic_artifact_spec(deferred_surface_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-selection.rejection",
+            )
+            .with_semantic_artifact_spec(supported_control_spec())
+            .with_semantic_artifact_spec(deferred_surface_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-selection.foreign")
-                .with_semantic_artifact_spec(foreign_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-selection.foreign",
+            )
+            .with_semantic_artifact_spec(foreign_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -34,9 +43,11 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             UiGraphSessionLabel::new("worth-ui.selection.preview")
                 .expect("preview label should admit"),
         ))
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-selection.preview")
-                .with_semantic_artifact_spec(supported_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-selection.preview",
+            )
+            .with_semantic_artifact_spec(supported_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");

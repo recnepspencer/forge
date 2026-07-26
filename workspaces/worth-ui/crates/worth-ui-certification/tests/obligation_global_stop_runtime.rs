@@ -1,12 +1,16 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::graph::{UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchTiming};
 use worth_ui::facade::inspection::{
     UiEvidenceMaterializedDetail, UiEvidenceRichness, UiInspectionObligationVerdictClass,
     UiInspectionObligationVerdictPosture, UiInspectionQuery, UiInspectionScope, UiInspectionTarget,
 };
 use worth_ui::facade::{app::WorthUi, declaration::UiDeclarationArtifact};
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 use worth_ui_runtime::facade::admission::UiAdmissionReport;
 
@@ -16,10 +20,12 @@ fn distinct_global_stop_reports_keep_distinct_public_refs_for_the_same_stop_post
         .freeze()
         .expect("application preparation should succeed");
     let foreign = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.foreign-global-stop")
-                .with_semantic_artifact_spec(foreign_spec("foreign/one.wui", "foreign.one"))
-                .with_semantic_artifact_spec(foreign_spec("foreign/two.wui", "foreign.two")),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.foreign-global-stop",
+            )
+            .with_semantic_artifact_spec(foreign_spec("foreign/one.wui", "foreign.one"))
+            .with_semantic_artifact_spec(foreign_spec("foreign/two.wui", "foreign.two")),
         )
         .freeze()
         .expect("application preparation should succeed");

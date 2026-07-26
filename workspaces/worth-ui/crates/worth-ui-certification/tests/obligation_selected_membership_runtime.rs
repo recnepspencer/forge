@@ -1,3 +1,4 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::inspection::{
     UiEvidenceMaterializedDetail, UiEvidenceRichness, UiInspectionObligationRelevanceDetail,
     UiInspectionQuery, UiInspectionRelevance, UiInspectionScope, UiInspectionTarget,

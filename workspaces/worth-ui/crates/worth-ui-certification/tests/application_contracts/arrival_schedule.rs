@@ -1,9 +1,10 @@
-use worth_ui::facade::mounted::{
-    UiMountedInspectionReceipt, UiMountedInspectionRequest, UiMountedRetentionClass,
-};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationFamily, UiHostObservationLoss, UiHostObservationPayload,
     UiHostObservationReportDenial, UiHostObservationReportOutcome,
+};
+use worth_ui_runtime::facade::mounted::{
+    UiMountedInspectionReceipt, UiMountedInspectionRequest, UiMountedRetentionClass,
 };
 
 use crate::host_observation_fixture::{batch, pointer, report, source};

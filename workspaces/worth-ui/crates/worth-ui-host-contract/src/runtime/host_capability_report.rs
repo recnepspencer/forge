@@ -110,16 +110,10 @@ impl WorthUiHostCapabilityReport {
             WorthUiHostCapabilityPosture::Ambiguous => "ambiguous",
             WorthUiHostCapabilityPosture::DiagnosticOnly => "diagnostic-only",
         };
-        let mut capabilities = self
-            .observed_capabilities
-            .iter()
-            .map(|capability| capability.as_str())
-            .collect::<Vec<_>>();
-        capabilities.sort_unstable();
-        capabilities.into_iter().fold(
+        self.observed_capabilities.iter().fold(
             stable_text_digest("worth-ui-host-capability-report")
                 ^ stable_text_digest(posture_label).rotate_left(7),
-            |digest, capability| digest ^ stable_text_digest(capability).rotate_left(17),
+            |digest, capability| digest ^ stable_text_digest(capability.as_str()).rotate_left(17),
         )
     }
 
@@ -134,4 +128,28 @@ fn stable_text_digest(text: &str) -> u64 {
         .fold(0xCBF2_9CE4_8422_2325, |digest, byte| {
             digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{WorthUiHostCapability, WorthUiHostCapabilityReport};
+
+    #[test]
+    fn profile_digest_uses_constructor_canonical_order_without_input_order_leakage() {
+        let first = WorthUiHostCapabilityReport::available(vec![
+            WorthUiHostCapability::Ime,
+            WorthUiHostCapability::Accessibility,
+            WorthUiHostCapability::Ime,
+        ]);
+        let second = WorthUiHostCapabilityReport::available(vec![
+            WorthUiHostCapability::Accessibility,
+            WorthUiHostCapability::Ime,
+        ]);
+
+        assert_eq!(first, second);
+        assert_eq!(
+            first.profile_identity_digest(),
+            second.profile_identity_digest()
+        );
+    }
 }

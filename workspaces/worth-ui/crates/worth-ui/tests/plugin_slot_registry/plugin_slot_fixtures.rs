@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     PluginCapabilityPermission, PluginContributionFamily, PluginSlotDescriptor,
     PluginSlotDiagnostics, PluginSlotId, PluginSlotOrdering, PluginSlotSupportPosture,
 };

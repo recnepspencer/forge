@@ -1,20 +1,24 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiBuilder};
-use worth_ui::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
-};
-use worth_ui::facade::registry::{
+use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+use worth_ui::facade::declaration::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentRealtimeOverlayContract, ComponentRealtimeOverlayPriority, ComponentStateOwnership,
-};
-use worth_ui::facade::runtime::{
-    WorthUiHandleResolutionOutcome, WorthUiHudPlanDenialReason, WorthUiRealtimeFrameDenialReason,
-    WorthUiRealtimeFrameTarget, WorthUiRealtimePlanAvailability, WorthUiRuntimeLaunchDenial,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_host_contract::{
     UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
     WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
+use worth_ui_runtime::facade::execution::{
+    WorthUiHandleResolutionOutcome, WorthUiHudPlanDenialReason, WorthUiRealtimeFrameDenialReason,
+    WorthUiRealtimeFrameTarget, WorthUiRealtimePlanAvailability,
+};
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
+};
+use worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -231,7 +235,10 @@ fn execute_scaled_target(
     workspace_name: &str,
     hud_count: usize,
     ordinary_count: usize,
-) -> (u16, worth_ui::facade::runtime::WorthUiRealtimeLaneCounters) {
+) -> (
+    u16,
+    worth_ui_runtime::facade::execution::WorthUiRealtimeLaneCounters,
+) {
     let workspace = FilesystemContractWorkspace::new(workspace_name);
     let mut source = String::new();
     for index in 0..hud_count {
@@ -268,7 +275,7 @@ fn execute_scaled_target(
     work
 }
 
-fn hud_builder() -> WorthUiBuilder {
+fn hud_builder() -> WorthUiApplicationBuilder {
     hud_builder_with_policy(8, 4, 16, WorthUiHeadlessHost)
 }
 
@@ -277,13 +284,13 @@ fn hud_builder_with_policy(
     cost: u16,
     budget: u32,
     host: impl WorthUiOperationalHostAdapter + 'static,
-) -> WorthUiBuilder {
+) -> WorthUiApplicationBuilder {
     WorthUi::app()
         .register_component(realtime_component(HUD, rows, cost, budget))
         .with_host(host)
 }
 
-fn scaled_builder(hud_count: usize, ordinary_count: usize) -> WorthUiBuilder {
+fn scaled_builder(hud_count: usize, ordinary_count: usize) -> WorthUiApplicationBuilder {
     let mut builder = WorthUi::app().with_host(WorthUiHeadlessHost);
     for index in 0..hud_count {
         builder = builder.register_component(realtime_component(
@@ -331,7 +338,7 @@ fn ordinary_component(id: impl Into<String>) -> ComponentDescriptor {
 fn file_app(
     workspace: &FilesystemContractWorkspace,
     source: &str,
-    builder: impl Fn() -> WorthUiBuilder,
+    builder: impl Fn() -> WorthUiApplicationBuilder,
 ) -> WorthUiApp {
     workspace.write("app/main.wui", source);
     let capabilities = builder().freeze().expect("capabilities freeze");

@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{CommandId, ComponentId},
+    declaration::{CommandId, ComponentId},
 };
 
 fn main() {

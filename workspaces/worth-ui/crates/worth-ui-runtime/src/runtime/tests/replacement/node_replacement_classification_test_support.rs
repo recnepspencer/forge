@@ -5,7 +5,7 @@ use crate::runtime::{
     WorthUiReplacementImpactCounters, WorthUiReplacementScope, WorthUiRuntimeImpactNarrowing,
     WorthUiTokenThemeImpact,
 };
-use crate::source::WorthUiSourceModuleId;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 pub(super) fn no_op_impact_for(
     identity_report: &WorthUiIdentityMatchReport,

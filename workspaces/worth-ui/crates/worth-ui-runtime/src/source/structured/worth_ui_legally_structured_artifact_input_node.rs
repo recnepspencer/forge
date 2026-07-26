@@ -2,13 +2,12 @@ use crate::capability::{
     AdmittedCapability, ComponentDescriptor, ComponentId, FrozenThemeTokenEntry,
     FrozenViewBindingEntry, SurfaceDescriptor, SurfaceId, ThemeTokenId, ViewBindingId,
 };
-use crate::source::{
-    WorthUiArtifactInputImportNode, WorthUiArtifactInputProvenance, WorthUiMosaicStructureFacts,
-};
+use crate::source::{WorthUiMosaicStructureFacts, WorthUiRuntimeSemanticImport};
+use worth_ui_dsl::WorthUiArtifactInputProvenance;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiLegallyStructuredArtifactInputNode {
-    Import(WorthUiArtifactInputImportNode),
+    Import(WorthUiRuntimeSemanticImport),
     Component(WorthUiLegallyStructuredArtifactInputComponentNode),
     Surface(WorthUiLegallyStructuredArtifactInputSurfaceNode),
     Binding(WorthUiLegallyStructuredArtifactInputBindingNode),

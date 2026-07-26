@@ -6,9 +6,12 @@ use worth_ui::facade::graph::{
     UiGraphInstantiationPlan, UiGraphLookupCostClass, UiGraphLookupFamily,
     UiGraphTopologyLocalDenial, UiGraphWorldDifferenceKind, UiGraphWorldProfile,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 
 #[test]
@@ -80,10 +83,12 @@ fn denied_graph_mutation_publishes_no_replacement_snapshot() {
 #[test]
 fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
     let denial = match WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-mutation.freeze-denial")
-                .with_semantic_artifact_spec(extra_root_page_spec())
-                .with_semantic_artifact_spec(control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-mutation.freeze-denial",
+            )
+            .with_semantic_artifact_spec(extra_root_page_spec())
+            .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
     {
@@ -109,8 +114,8 @@ fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
 
 fn mutation_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-mutation")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-mutation")
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()

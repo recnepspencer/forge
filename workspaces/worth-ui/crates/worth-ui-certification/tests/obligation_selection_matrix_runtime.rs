@@ -1,3 +1,4 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::UiDeclarationArtifact;
 use worth_ui::facade::declaration::UiDeclarationSupportRowSchemaKind;
@@ -12,10 +13,14 @@ use worth_ui::facade::obligations::{
     UiSelectedObligation,
 };
 use worth_ui_certification::scenario::installed_query_world;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
+use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
 #[test]
 fn structural_hot_reload_touch_selects_closed_structural_matrix_with_stable_identity() {
@@ -246,9 +251,11 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
 fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.obligation-selection")
-                .with_semantic_artifact_spec(control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.obligation-selection",
+            )
+            .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")
@@ -319,7 +326,7 @@ fn query_snapshot_world_profile(
 ) -> UiGraphWorldProfile {
     let binding = schema_basis_parts.join(".").replace('-', "_");
     installed_query_world::settled_query_world_profile(
-        worth_ui::facade::registry::ViewBindingId::new(binding.clone()).unwrap(),
+        worth_ui::facade::declaration::ViewBindingId::new(binding.clone()).unwrap(),
         format!("{binding}.{snapshot_label}").replace('-', "_"),
     )
 }

@@ -1,10 +1,15 @@
-use worth_ui::facade::app::{
-    UiResizeLogicalExtent, UiResizePreviewSample, WorthUiActiveApplicationSession,
-};
-use worth_ui::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
-use worth_ui::facade::mounted::{UiMountedLaneParticipation, UiRequiredLaneContributionStatus};
+use worth_ui::facade::app::WorthUiActiveApplicationSession;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
+use worth_ui_runtime::facade::mounted::{
+    UiMountedLaneParticipation, UiRequiredLaneContributionStatus,
+};
+use worth_ui_runtime::facade::{
+    runtime_handoff::{UiResizeLogicalExtent, UiResizePreviewSample},
+    WorthUiPendingMountedPreview,
+};
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -89,7 +94,7 @@ pub(crate) fn submit_preview<'session>(
     session: &'session mut WorthUiActiveApplicationSession,
     target: worth_ui::facade::graph::UiGraphNodeIdentity,
     pixels: f32,
-) -> worth_ui::facade::app::WorthUiPendingMountedPreview<'session> {
+) -> WorthUiPendingMountedPreview<'session> {
     let extent = UiResizeLogicalExtent::try_from_logical_pixels(pixels).unwrap();
     session
         .execute_framework_turn(|turn| {
@@ -110,7 +115,7 @@ pub(crate) fn submit_preview<'session>(
 }
 
 pub(crate) fn cell_status(
-    frame: &worth_ui::facade::mounted::UiPreparedMountedFrame,
+    frame: &worth_ui_runtime::facade::mounted::UiPreparedMountedFrame,
     lane: UiMountedLaneParticipation,
 ) -> UiRequiredLaneContributionStatus {
     frame
@@ -125,7 +130,7 @@ pub(crate) fn cell_status(
 pub(crate) fn preview_target(
     session: &WorthUiActiveApplicationSession,
 ) -> worth_ui::facade::graph::UiGraphNodeIdentity {
-    let expected = worth_ui::facade::registry::MosaicSizingContractId::new(
+    let expected = worth_ui::facade::declaration::MosaicSizingContractId::new(
         FilesystemApplicationLifecycleScenario::preview_sizing_contract_id(),
     )
     .unwrap();

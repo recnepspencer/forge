@@ -1,7 +1,5 @@
-use worth_ui::facade::{
-    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationReport},
-    registry::FrozenThemeTokenCapabilities,
-};
+use worth_ui::facade::diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationReport};
+use worth_ui_runtime::facade::registry::snapshot::FrozenThemeTokenCapabilities;
 
 pub(crate) fn assert_registered_theme_token_ids(
     registry: &FrozenThemeTokenCapabilities,

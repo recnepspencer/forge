@@ -25,14 +25,14 @@ and $N others
  note: required by a bound in `CapabilitySupportId`
  note: `CapabilitySupportId` is a "sealed trait", because to implement it you also need to implement `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
  help: the following types implement the trait:
-  worth_ui::facade::registry::CommandId
-  worth_ui::facade::registry::ComponentId
-  worth_ui::facade::registry::SurfaceId
-  worth_ui::facade::registry::MosaicRegionKindId
-  worth_ui::facade::registry::MosaicPlacementPolicyId
-  worth_ui::facade::registry::MosaicSizingContractId
-  worth_ui::facade::registry::MosaicStateSlotId
-  worth_ui::facade::registry::ViewBindingId
+  worth_ui::facade::declaration::CommandId
+  worth_ui::facade::declaration::ComponentId
+  worth_ui::facade::declaration::SurfaceId
+  worth_ui::facade::declaration::MosaicRegionKindId
+  worth_ui::facade::declaration::MosaicPlacementPolicyId
+  worth_ui::facade::declaration::MosaicSizingContractId
+  worth_ui::facade::declaration::MosaicStateSlotId
+  worth_ui::facade::declaration::ViewBindingId
 and $N others
 
 error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
@@ -45,7 +45,7 @@ error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
 error[E0599]: no method named `with_label` found for struct `CommandProjectionDescriptor` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/command_projection/construction/projection_command_meaning_methods_are_not_available.rs
 
-error: cannot construct `WorthUiBuilder` with struct literal syntax due to private fields
+error: cannot construct `WorthUiApplicationBuilder` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_builder_construction_fails.rs
  help: you might have meant to use the `new` associated function
 
@@ -169,9 +169,9 @@ error[E0277]: the trait bound `WorthUiQueryViewRegistration: From<WorthUiQueryVi
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/query_registration_requires_installed_view.rs
  help: the following other types implement trait `From<T>`
  note: required for `WorthUiQueryViewDefinition` to implement `Into<WorthUiQueryViewRegistration>`
- note: required by a bound in `WorthUiBuilder::register_query_view`
+ note: required by a bound in `WorthUiApplicationBuilder::register_query_view`
 
-error[E0599]: no method named `register_view_binding` found for struct `WorthUiBuilder` in the current scope
+error[E0599]: no method named `register_view_binding` found for struct `WorthUiApplicationBuilder` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/direct_view_binding_registration_is_not_public.rs
  help: there is a method `register_setting` with a similar name
 
@@ -180,4 +180,4 @@ error[E0624]: associated function `from_definition` is private
 
 error[E0382]: use of moved value: `builder`
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/lifecycle/freeze/register_after_snapshot_freeze_fails.rs
- note: `WorthUiBuilder::freeze` takes ownership of the receiver `self`, which moves `builder`
+ note: `WorthUiApplicationBuilder::freeze` takes ownership of the receiver `self`, which moves `builder`

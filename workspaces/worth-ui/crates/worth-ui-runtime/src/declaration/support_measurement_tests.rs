@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_host_contract::WorthUiHostCapability;
 
@@ -13,7 +14,9 @@ use crate::declaration::{
 };
 
 fn lower(spec: UiDslSemanticArtifactSpec) -> crate::declaration::UiDeclarationArtifact {
-    let package = WorthUiDslPackage::named("worth-ui.runtime.declaration-support-measurement");
+    let package = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.runtime.declaration-support-measurement",
+    );
     UiDeclarationLowering::lower(package.admit_semantic_artifact(spec))
 }
 

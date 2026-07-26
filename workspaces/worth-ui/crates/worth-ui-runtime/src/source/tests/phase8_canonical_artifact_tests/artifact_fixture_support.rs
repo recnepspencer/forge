@@ -1,15 +1,15 @@
 use std::collections::BTreeMap;
 use std::path::Path;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactBindingNode, WorthUiArtifactComponentNode,
-    WorthUiArtifactHandle, WorthUiArtifactInputImportNode, WorthUiArtifactInputProvenance,
-    WorthUiArtifactInputReference, WorthUiArtifactNode, WorthUiArtifactSurfaceNode,
+    WorthUiArtifactHandle, WorthUiArtifactNode, WorthUiArtifactSurfaceNode,
     WorthUiArtifactThemeTokenNode, WorthUiCanonicalArtifactAssembler,
     WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
     WorthUiIdentitySeedLowerer, WorthUiIdentitySeededArtifactInput,
     WorthUiIdentitySeededArtifactInputImportNode, WorthUiIdentitySeededArtifactInputModule,
-    WorthUiIdentitySeededArtifactInputNode, WorthUiSourceModuleId,
+    WorthUiIdentitySeededArtifactInputNode,
 };
 
 use super::super::phase7_identity_seeding_tests::identity_app_fixture::identity_test_app;
@@ -19,7 +19,7 @@ use super::super::phase7_identity_seeding_tests::identity_fixture_support::{
 };
 
 pub(super) fn assembled_artifact_from_modules<const N: usize>(
-    modules: [crate::source::WorthUiRustAuthoredArtifactInputModule; N],
+    modules: [worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule; N],
 ) -> (
     WorthUiArtifact,
     crate::source::WorthUiArtifactAssemblyMetrics,
@@ -30,12 +30,12 @@ pub(super) fn assembled_artifact_from_modules<const N: usize>(
 }
 
 pub(super) fn identity_seeded_from_modules<const N: usize>(
-    modules: [crate::source::WorthUiRustAuthoredArtifactInputModule; N],
+    modules: [worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule; N],
 ) -> WorthUiIdentitySeededArtifactInput {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let artifact_input = crate::source::WorthUiRustAuthoredToArtifactInputLowerer::lower(
-        &crate::source::WorthUiRustAuthoredArtifactInput::from_modules(modules),
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
+        &worth_ui_dsl::WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("phase 4 resolution");
@@ -49,18 +49,18 @@ pub(super) fn identity_seeded_from_modules<const N: usize>(
         .0
 }
 
-pub(super) fn imported_modules() -> [crate::source::WorthUiRustAuthoredArtifactInputModule; 2] {
+pub(super) fn imported_modules() -> [worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule; 2] {
     imported_identity_modules()
 }
 
-pub(super) fn reordered_modules() -> [crate::source::WorthUiRustAuthoredArtifactInputModule; 2] {
+pub(super) fn reordered_modules() -> [worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule; 2] {
     reordered_imported_identity_modules()
 }
 
 pub(super) fn canonical_declaration_module(
-) -> [crate::source::WorthUiRustAuthoredArtifactInputModule; 1] {
+) -> [worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule; 1] {
     [
-        crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
             .with_component("workspace.component.dashboard")
             .with_surface("workspace.surface.inspector")
             .with_binding("workspace.view_binding.selection")
@@ -69,7 +69,7 @@ pub(super) fn canonical_declaration_module(
 }
 
 pub(super) fn structureful_component_module(
-) -> [crate::source::WorthUiRustAuthoredArtifactInputModule; 1] {
+) -> [worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule; 1] {
     [structural_component_module(standard_component_body_atoms())]
 }
 
@@ -220,10 +220,7 @@ fn manual_import_node(
 ) -> WorthUiIdentitySeededArtifactInputNode {
     WorthUiIdentitySeededArtifactInputNode::Import(
         WorthUiIdentitySeededArtifactInputImportNode::new(
-            WorthUiArtifactInputImportNode::new(
-                WorthUiArtifactInputReference::new(target),
-                WorthUiArtifactInputProvenance::rust_authored("app/main.wui", declaration_index),
-            ),
+            crate::source::test_compilation::semantic_import_at(target, declaration_index),
             crate::source::WorthUiArtifactIdentitySeed::structural_fallback(seed_basis.to_owned()),
             WorthUiDurableStateEligibility::Ineligible {
                 reason: WorthUiDurableStateIneligibilityReason::NoDurableStateSurface,

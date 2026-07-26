@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    diagnostics::CapabilityDiagnosticCode, registry::RawLayoutMeasurementForDiagnostics,
+    declaration::RawLayoutMeasurementForDiagnostics, diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::app_fixtures::{

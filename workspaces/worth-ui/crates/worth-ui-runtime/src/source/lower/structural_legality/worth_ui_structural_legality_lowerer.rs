@@ -57,7 +57,7 @@ impl WorthUiStructuralLegalityLowerer {
 }
 
 fn lower_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     node: &WorthUiResolvedArtifactInputNode,
     context: &mut WorthUiStructuralLegalityContext<'_>,
 ) -> Result<WorthUiLegallyStructuredArtifactInputNode, Vec<WorthUiStructuralLegalityDiagnostic>> {

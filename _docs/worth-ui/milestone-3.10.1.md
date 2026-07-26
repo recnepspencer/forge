@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned.
+Status: Complete (2026-07-25)
 
 ## Placement
 
@@ -726,6 +726,12 @@ boundary must not be rejected solely to preserve the current crate shape.
   projections; it does not own duplicate operational state.
 - Host report transport may retain structurally validated batches, but semantic
   observation admission remains reserved for Milestone 3.12.
+- Future-insertion rows name the exact seam a successor consumes; they do not
+  assign every responsibility in a cross-boundary milestone to one runtime
+  family. Milestone 3.17 keeps authored expression meaning in `worth-ui-dsl`
+  while runtime evaluation enters through planning. Milestone 3.18 completes
+  composition and module lowering before the sealed semantic handoff and
+  therefore has no runtime-subsystem insertion.
 - All touched production and test files comply with the workspace line cap
   unless an explicit existing exemption applies.
 

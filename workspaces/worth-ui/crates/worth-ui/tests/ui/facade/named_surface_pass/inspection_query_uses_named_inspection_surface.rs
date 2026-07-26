@@ -6,8 +6,8 @@ use worth_ui::facade::inspection::{
 
 fn main() {
     let app = WorthUi::app()
-        .with_dsl_package(worth_ui_dsl::WorthUiDslPackage::empty())
-        .freeze().expect("application preparation should succeed");
+        .freeze()
+        .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::product_root(),
         UiInspectionScope::graph(),

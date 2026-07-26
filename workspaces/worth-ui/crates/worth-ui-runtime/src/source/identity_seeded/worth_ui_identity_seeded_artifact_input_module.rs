@@ -1,4 +1,5 @@
-use crate::source::{WorthUiIdentitySeededArtifactInputNode, WorthUiSourceModuleId};
+use crate::source::WorthUiIdentitySeededArtifactInputNode;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiIdentitySeededArtifactInputModule {

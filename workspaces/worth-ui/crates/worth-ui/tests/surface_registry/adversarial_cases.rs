@@ -1,10 +1,10 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
-    registry::{
+    declaration::{
         CommandId, ComponentId, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
         SurfaceStateClass, ViewBindingId,
     },
+    diagnostics::{CapabilityDiagnosticCode, CapabilityRegistrationDiagnostic},
 };
 
 #[test]

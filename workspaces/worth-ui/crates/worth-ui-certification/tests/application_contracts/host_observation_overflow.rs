@@ -1,3 +1,4 @@
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatchDisposition, UiHostObservationDisposition, UiHostObservationFamily,
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,

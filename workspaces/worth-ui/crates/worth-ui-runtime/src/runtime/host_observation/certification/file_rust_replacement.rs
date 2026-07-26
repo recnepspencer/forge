@@ -2,11 +2,10 @@ use crate::runtime::replacement::file_rust_replacement_parity::WorthUiFileRustRe
 use crate::runtime::tests::allocation_planning_test_support::admitted_planning_admission;
 use crate::runtime::WorthUiRuntime;
 use crate::runtime::{
-    WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiDurableStateFamily,
-    WorthUiExecutionLaneSupport, WorthUiFileRustReplacementParityCounters,
-    WorthUiFileRustReplacementParityDenial, WorthUiFileRustReplacementParityDenialReason,
-    WorthUiFileRustReplacementPipelineReport, WorthUiReplacementCandidate,
-    WorthUiRuntimeArtifactComparison,
+    WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiExecutionLaneSupport,
+    WorthUiFileRustReplacementParityCounters, WorthUiFileRustReplacementParityDenial,
+    WorthUiFileRustReplacementParityDenialReason, WorthUiFileRustReplacementPipelineReport,
+    WorthUiReplacementCandidate, WorthUiRuntimeArtifactComparison,
 };
 
 impl WorthUiRuntime {
@@ -94,14 +93,17 @@ impl WorthUiRuntime {
                 )
             })?;
 
-        let inventory = platform_inventory(self)
-            .build_for_replacement(&node_plan)
-            .map_err(|_| {
-                denial(
-                    WorthUiFileRustReplacementParityDenialReason::StateInventoryDenied,
-                    counters,
-                )
-            })?;
+        let inventory = crate::runtime::WorthUiDurableStateInventory::assemble_for_replacement(
+            &node_plan,
+            self.active_application_lowering_authority
+                .mosaic_state_capabilities(),
+        )
+        .map_err(|_| {
+            denial(
+                WorthUiFileRustReplacementParityDenialReason::StateInventoryDenied,
+                counters,
+            )
+        })?;
 
         counters.record_durable_state_reconciliation();
         let reconciliation = self
@@ -215,20 +217,6 @@ impl WorthUiRuntime {
             },
         ))
     }
-}
-
-fn platform_inventory(
-    runtime: &WorthUiRuntime,
-) -> crate::runtime::WorthUiDurableStateInventoryBuilder {
-    runtime
-        .durable_state_inventory()
-        .register_platform_family(WorthUiDurableStateFamily::focus_chain())
-        .register_platform_family(WorthUiDurableStateFamily::scroll_anchor())
-        .register_platform_family(WorthUiDurableStateFamily::selection_range())
-        .register_platform_family(WorthUiDurableStateFamily::text_edit_buffer())
-        .register_platform_family(WorthUiDurableStateFamily::splitter_position())
-        .register_platform_family(WorthUiDurableStateFamily::tab_state())
-        .register_platform_family(WorthUiDurableStateFamily::panel_visibility())
 }
 
 fn denial(

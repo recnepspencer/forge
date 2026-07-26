@@ -4,9 +4,9 @@ use crate::capability::{
     SurfaceId, ThemeTokenId, ViewBindingId,
 };
 use crate::source::{
-    WorthUiArtifactInputProvenance, WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode,
-    WorthUiResolutionMetrics, WorthUiSourceModuleId,
+    WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode, WorthUiResolutionMetrics,
 };
+use worth_ui_dsl::{WorthUiArtifactInputProvenance, WorthUiSourceModuleId};
 
 pub(crate) struct WorthUiSnapshotResolutionContext<'snapshot> {
     snapshot: &'snapshot CapabilitySnapshot,

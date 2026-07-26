@@ -5,26 +5,31 @@ use worth_ui::facade::inspection::{
     UiInspectionRelevance, UiInspectionScope, UiInspectionTarget, UiRelevanceFamily,
     UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 pub fn closeout_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.inspection-closeout")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.workflow.inspection_closeout"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored("app/inspection_closeout.wui", 0),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:inspection-closeout"))
-                    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-                    .with_published_aspect(UiDslAspectName::new("content.text"))
-                    .with_consumed_aspect(UiDslAspectName::new("content.text")),
-                ),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.inspection-closeout",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.workflow.inspection_closeout"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored("app/inspection_closeout.wui", 0),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:inspection-closeout"))
+                .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
+                .with_published_aspect(UiDslAspectName::new("content.text"))
+                .with_consumed_aspect(UiDslAspectName::new("content.text")),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

@@ -223,7 +223,7 @@ fn candidate_catalog_partition(
     partition
 }
 
-fn component_builder() -> crate::facade::entry::WorthUiBuilder {
+fn component_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
     let (_, _, world_profile) =
         crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
             "active-application-session",
@@ -248,6 +248,28 @@ fn component_builder() -> crate::facade::entry::WorthUiBuilder {
         ))
         .register_mosaic_region_kind(source_backed_package_region())
         .register_mosaic_sizing_contract(source_backed_package_sizing())
+        .register_mosaic_state_slot(component_runtime_state_slot())
+}
+
+fn component_runtime_state_slot() -> crate::capability::MosaicStateSlotDescriptor {
+    crate::capability::MosaicStateSlotDescriptor::new(
+        crate::capability::MosaicStateSlotId::new("workspace.state.active_component")
+            .expect("active component state-slot id is valid"),
+        crate::capability::MosaicStateSlotKind::active_stack_item(),
+    )
+    .with_owner_identity(
+        crate::capability::MosaicStateOwnerIdentity::mosaic_region_kind(
+            crate::capability::MosaicRegionKindId::new("workspace.region.primary")
+                .expect("active component state owner is valid"),
+        ),
+    )
+    .with_persistence_policy(
+        crate::capability::MosaicStatePersistencePolicy::restore_across_hot_reload(),
+    )
+    .with_replacement_rule(
+        crate::capability::MosaicStateReplacementRule::preserve_when_owner_matches(),
+    )
+    .with_truth_posture(crate::capability::MosaicStateTruthPosture::ui_runtime_state())
 }
 
 fn source_backed_scaled_component_app(unrelated_component_count: usize) -> WorthUiApp {
@@ -268,7 +290,7 @@ fn source_backed_scaled_component_app(unrelated_component_count: usize) -> Worth
 
 fn scaled_component_builder(
     unrelated_component_count: usize,
-) -> crate::facade::entry::WorthUiBuilder {
+) -> crate::facade::entry::WorthUiApplicationBuilder {
     let (_, _, world_profile) =
         crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
             "scaled-active-application-session",

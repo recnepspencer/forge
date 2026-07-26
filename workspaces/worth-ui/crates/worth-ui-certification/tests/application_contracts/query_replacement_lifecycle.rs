@@ -1,7 +1,10 @@
 use worth_ui::facade::app::WorthUiApplicationCutoverDenial;
-use worth_ui::facade::app::{WorthUiPlanRegionTransition, WorthUiVirtualizedPlanAvailability};
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_query_binding::WorthUiQueryWorkspaceExt;
+use worth_ui_runtime::facade::application::{
+    WorthUiPlanRegionTransition, WorthUiVirtualizedPlanAvailability,
+};
+use worth_ui_test_support::WorthUiActiveSessionCertificationExt;
 #[path = "query_replacement_lifecycle/mixed_real_lifecycle.rs"]
 mod mixed_real_lifecycle;
 #[path = "query_replacement_lifecycle/precommit_rollback.rs"]

@@ -1,11 +1,10 @@
-mod worth_ui_durable_state_eligibility;
+mod admitted_mosaic_state_family;
 mod worth_ui_durable_state_family;
-mod worth_ui_durable_state_family_hook;
 mod worth_ui_durable_state_family_id;
 mod worth_ui_durable_state_replacement_policy;
 
-pub use worth_ui_durable_state_eligibility::WorthUiDurableStateEligibility;
+pub(super) use admitted_mosaic_state_family::admitted_mosaic_state_family;
 pub use worth_ui_durable_state_family::WorthUiDurableStateFamily;
-pub use worth_ui_durable_state_family_hook::WorthUiDurableStateFamilyHook;
+pub(super) use worth_ui_durable_state_family::WorthUiDurableStateFamilyDefinition;
 pub use worth_ui_durable_state_family_id::WorthUiDurableStateFamilyId;
 pub use worth_ui_durable_state_replacement_policy::WorthUiDurableStateReplacementPolicy;

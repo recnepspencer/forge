@@ -1,5 +1,5 @@
 use super::durable_state_reconciliation_test_support::{
-    ambiguous_plan_with_inventory, custom_inventory_for_policy, drop_create_inputs,
+    ambiguous_plan_with_inventory, custom_inventory_for_rule, drop_create_inputs,
 };
 use super::identity_match_graph_test_support::identity_match_app;
 use super::identity_state_query_certification_test_support::{
@@ -7,9 +7,10 @@ use super::identity_state_query_certification_test_support::{
     ui_local_drift_rebind_plan,
 };
 use super::query_binding_comparison_test_support::standard_query_app;
+use crate::capability::MosaicStateReplacementRule;
 use crate::runtime::{
     WorthUiDurableStateReconciliationOutcome, WorthUiDurableStateReconciliationPlan,
-    WorthUiDurableStateReplacementPolicy, WorthUiIdentityStateQueryCertificationDenialReason,
+    WorthUiIdentityStateQueryCertificationDenialReason,
     WorthUiIdentityStateQueryCertificationScenario, WorthUiQueryBindingDriftDenialKind,
 };
 
@@ -42,10 +43,9 @@ fn ambiguous_identity_storm_never_preserves_durable_state() {
 fn state_replacement_and_drop_receipts_match_actual_runtime_state() {
     let (runtime, structural_plan, _) = single_active_state_lifecycle_inputs();
     let app = identity_match_app();
-    let structural_inventory = custom_inventory_for_policy(
-        &runtime,
+    let structural_inventory = custom_inventory_for_rule(
         &structural_plan,
-        WorthUiDurableStateReplacementPolicy::ReplaceOnReplacement,
+        MosaicStateReplacementRule::remap_when_runtime_supplies_alias(),
     );
     let structural_reconciliation = runtime
         .reconcile_durable_state(&structural_plan, &structural_inventory)

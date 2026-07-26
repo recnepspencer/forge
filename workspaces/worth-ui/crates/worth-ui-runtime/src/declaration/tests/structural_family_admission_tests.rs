@@ -23,7 +23,7 @@ fn contradictory_structural_claims_deny_through_family_admission() {
         &UiDeclarationFamilyAdmission::Denied(
             UiDeclarationFamilyAdmissionDenial::ContradictoryStructuralClaims {
                 family: UiDeclarationFamilyKind::Control,
-                observed: vec!["control:save".to_owned(), "control:alternate".to_owned()],
+                observed: vec!["control:alternate".to_owned(), "control:save".to_owned()],
             }
         )
     );

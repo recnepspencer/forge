@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::source::{
     WorthUiArtifactDependencyEdge, WorthUiArtifactHandle, WorthUiArtifactSubtreeDigest,
-    WorthUiRuntimeDependencyHook, WorthUiSourceModuleId,
+    WorthUiRuntimeDependencyHook,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]

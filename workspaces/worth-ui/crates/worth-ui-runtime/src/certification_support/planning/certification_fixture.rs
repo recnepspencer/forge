@@ -1,3 +1,4 @@
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
 use crate::declaration::UiDeclaredMeasurementBasisSource;
@@ -7,7 +8,6 @@ use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiCandidateAdmission, WorthUiPendingActivation,
     WorthUiReplacementCause, WorthUiRuntime, WorthUiRuntimeLaunch,
 };
-use crate::source::WorthUiRustAuthoredArtifactInputModule;
 
 use super::fixture_support::{
     artifact_from_modules, capability_report, container_basis, control_app,
@@ -205,17 +205,13 @@ fn stage_pending_activation(
     let node_plan = runtime
         .classify_node_replacements(&impact, &narrowing, &identity)
         .expect("suite node plan succeeds");
-    let inventory = runtime
-        .durable_state_inventory()
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::focus_chain())
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::scroll_anchor())
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::selection_range())
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::text_edit_buffer())
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::splitter_position())
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::tab_state())
-        .register_platform_family(crate::runtime::WorthUiDurableStateFamily::panel_visibility())
-        .build_for_replacement(&node_plan)
-        .expect("suite inventory builds");
+    let inventory = crate::runtime::WorthUiDurableStateInventory::assemble_for_replacement(
+        &node_plan,
+        runtime
+            .active_application_lowering_authority
+            .mosaic_state_capabilities(),
+    )
+    .expect("suite inventory builds");
     let reconciliation = runtime
         .reconcile_durable_state(&node_plan, &inventory)
         .expect("suite reconciliation succeeds");

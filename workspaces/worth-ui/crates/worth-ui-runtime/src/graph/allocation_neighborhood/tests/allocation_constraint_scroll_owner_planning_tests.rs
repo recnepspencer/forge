@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -248,9 +249,11 @@ fn scroll_owner_policy() -> UiDeclaredMeasurementPolicyPosture {
 fn scroll_owner_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.graph.allocation-constraint-scroll")
-                .with_semantic_artifact_spec(scroll_owner_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.graph.allocation-constraint-scroll",
+            )
+            .with_semantic_artifact_spec(scroll_owner_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")

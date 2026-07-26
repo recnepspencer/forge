@@ -1,4 +1,5 @@
 use super::*;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 #[test]
 fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter() {
@@ -79,10 +80,10 @@ fn ordinary_publication_preserves_predecessor_and_exact_reuse_skips_the_adapter(
     ));
 }
 
-fn assert_constant_unchanged_cost(cost: worth_ui::facade::mounted::UiMountCostReport) {
+fn assert_constant_unchanged_cost(cost: worth_ui_runtime::facade::mounted::UiMountCostReport) {
     assert_eq!(
         cost.work_class(),
-        worth_ui::facade::mounted::UiMountWorkClass::UnchangedReuse
+        worth_ui_runtime::facade::mounted::UiMountWorkClass::UnchangedReuse
     );
     assert_eq!(cost.initial_mounted_instances(), 0);
     assert_eq!(cost.changed_mounted_instances(), 0);

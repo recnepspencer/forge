@@ -12,8 +12,7 @@ use super::{
 pub(crate) struct UiHostObservationValidationContext<'a> {
     pub(crate) host_session: u64,
     pub(crate) protocol: worth_ui_host_contract::UiHostProtocolAgreement,
-    pub(crate) retention: &'a crate::mounting::UiMountedFrameRetentionCoordinator,
-    pub(crate) presentation: &'a crate::mounting::UiMountedPresentationCoordinator,
+    pub(crate) mounted: crate::mounting::UiMountedObservationValidationBasis<'a>,
 }
 
 impl UiHostObservationReportValidation {
@@ -57,12 +56,12 @@ impl UiHostObservationReportValidation {
         }
         let basis = UiBasisAdmittedObservationBatch::admit(
             covered,
-            context.retention,
+            context.mounted.retention(),
             context.host_session,
             self.observation_basis(core.frame()),
         )?;
         if context
-            .presentation
+            .mounted
             .binding_requires_reconciliation(core.binding())
         {
             return self.quarantine(core, integrity);

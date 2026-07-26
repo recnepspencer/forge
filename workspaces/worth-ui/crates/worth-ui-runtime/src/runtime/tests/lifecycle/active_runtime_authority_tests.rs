@@ -1,4 +1,5 @@
 use std::{collections::BTreeMap, path::Path};
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::{
@@ -7,9 +8,8 @@ use crate::runtime::{
 };
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactIdentitySeed,
-    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactInputReference,
-    WorthUiArtifactModule, WorthUiArtifactNode, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiSourceModuleId,
+    WorthUiArtifactImportHandle, WorthUiArtifactImportNode, WorthUiArtifactModule,
+    WorthUiArtifactNode, WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
 };
 
 #[test]
@@ -130,7 +130,9 @@ fn import_node(
             module_id.clone(),
             node_index,
         )),
-        WorthUiArtifactInputReference::new(target),
+        crate::source::test_compilation::semantic_import(target)
+            .target()
+            .clone(),
         0,
         WorthUiArtifactIdentitySeed::structural_fallback(format!(
             "module:{}|import:{}",

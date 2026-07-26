@@ -1,12 +1,7 @@
 use super::bootstrap::WorthUiFacadeLifecycleBootstrap;
-use super::declaration_freeze::{
-    lower_declaration_artifacts, lower_graph_handoffs, lower_source_backed_declaration_artifacts,
-};
+use super::declaration_freeze::lower_graph_handoffs;
 use super::runtime_instance_expansion::expand_runtime_instance_handoffs;
-use super::{
-    WorthUiApplicationDeclarationSource, WorthUiApplicationPreparationDenial,
-    WorthUiApplicationPreparationSource,
-};
+use super::{WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationSource};
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::prepared_application_authority::{
     WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationAuthorityInput,
@@ -25,14 +20,8 @@ pub(crate) fn prepare_application_authority(
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
 ) -> Result<WorthUiPreparedApplicationAuthority, WorthUiApplicationPreparationDenial> {
     let capability_snapshot = Rc::new(capability_snapshot);
-    let declaration_artifacts = match preparation_source.declaration_source() {
-        WorthUiApplicationDeclarationSource::Declared(dsl_package) => {
-            lower_declaration_artifacts(dsl_package)
-        }
-        WorthUiApplicationDeclarationSource::SourceBacked(declaration_source) => {
-            lower_source_backed_declaration_artifacts(declaration_source)
-        }
-    };
+    let (canonical_artifact, declaration_source_identity, semantic_handoff, declaration_artifacts) =
+        preparation_source.into_prepared_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
         .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
     let graph_handoffs =
@@ -48,14 +37,12 @@ pub(crate) fn prepare_application_authority(
         measurement_inspection_evidence,
         worth_ui_inspection::RUNTIME_INSPECTION_SCOPE_INVENTORY,
     );
-    let (canonical_artifact, declaration_source_identity) =
-        preparation_source.into_prepared_parts();
-
     Ok(WorthUiPreparedApplicationAuthority::seal(
         WorthUiPreparedApplicationAuthorityInput {
             capability_snapshot,
             canonical_artifact,
             declaration_source_identity,
+            semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
             lifecycle,
@@ -86,11 +73,10 @@ pub(crate) fn prepare_successor_application_authority(
             },
         );
     }
-    let (canonical_artifact, candidate, declaration_source, declaration_source_identity) =
-        submission
-            .into_replacement_handoff()
-            .into_replacement_parts();
-    let declaration_artifacts = lower_source_backed_declaration_artifacts(&declaration_source);
+    let (canonical_artifact, candidate, declaration_material, semantic_handoff) = submission
+        .into_replacement_handoff()
+        .into_replacement_parts();
+    let (declaration_artifacts, declaration_source_identity) = declaration_material.into_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
         .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
     let admissions = current.runtime_instance_basis_admissions();
@@ -116,6 +102,7 @@ pub(crate) fn prepare_successor_application_authority(
             capability_snapshot: current.capability_authority(),
             canonical_artifact,
             declaration_source_identity,
+            semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
             lifecycle,

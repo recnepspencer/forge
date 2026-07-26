@@ -15,13 +15,13 @@ workspace = true
 [dependencies]
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-runtime = { path = "../worth-ui-runtime" }
+worth-ui-dsl = { path = "../worth-ui-dsl" }
 
 [dev-dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-relational = { path = "../../../../crates/worth-relational" }
 worth-runtime-bridge = { path = "../../../../crates/worth-runtime-bridge" }
 worth-signal = { path = "../../../../crates/worth-signal" }
-worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
 
 [[test]]

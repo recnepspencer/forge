@@ -1,10 +1,14 @@
 use worth_foundational::facade::CanonicalF32;
 use worth_query::facade::{domain, runtime::WorthQueryWorkspace};
-use worth_ui::facade::{app::WorthUiActiveApplicationSession, runtime::WorthUiQueryLaneFactLink};
+use worth_ui::facade::app::WorthUiActiveApplicationSession;
 use worth_ui_query_binding::{
     WorthUiInstalledQueryBindingReference, WorthUiQueryInspection,
     WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionRelevance, WorthUiQueryViewShape,
     WorthUiQueryWorkspaceExt, WorthUiSettledSnapshotFact, WorthUiSettledSnapshotProjection,
+};
+use worth_ui_runtime::facade::runtime_handoff::WorthUiQueryLaneFactLink;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use crate::query_consumer_kit_workspace::{
@@ -223,7 +227,7 @@ fn assert_fact_coordinates(fact: &WorthUiSettledSnapshotFact, generation: u64, o
 }
 
 fn assert_gateway_coordinates(
-    frame_ingress: &worth_ui::facade::runtime::WorthUiQueryFrameIngressOutcome,
+    frame_ingress: &worth_ui_runtime::facade::runtime_handoff::WorthUiQueryFrameIngressOutcome,
     generation: u64,
     order: u64,
 ) {
@@ -314,7 +318,9 @@ fn assert_successor_projection(
     drop(completion.into_completion());
     assert_eq!(
         stale_denial,
-        Some(worth_ui::facade::runtime::WorthUiQueryFrameIngressDenial::StaleApplicationGeneration)
+        Some(
+            worth_ui_runtime::facade::runtime_handoff::WorthUiQueryFrameIngressDenial::StaleApplicationGeneration
+        )
     );
     assert_eq!(
         successor_ingress

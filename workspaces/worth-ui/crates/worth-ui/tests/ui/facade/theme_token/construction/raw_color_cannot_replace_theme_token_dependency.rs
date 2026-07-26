@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentStateOwnership},
+    declaration::{ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentStateOwnership},
 };
 
 fn main() {

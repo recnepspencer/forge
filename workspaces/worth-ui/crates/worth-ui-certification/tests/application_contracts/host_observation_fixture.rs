@@ -1,11 +1,11 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
-use worth_ui::facade::mounted::UiSurfaceBindingGeneration;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationBatchInput, UiHostObservationLoss,
     UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
     UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
     UiHostProtocolContract, UiHostProtocolNegotiation,
 };
+use worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration;
 
 use super::mounted_application_lifecycle::published_mounted_world::PresentedObservationBasis;
 

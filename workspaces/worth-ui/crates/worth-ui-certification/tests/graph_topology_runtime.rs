@@ -1,26 +1,30 @@
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 #[path = "fixtures/graph_topology_test_support.rs"]
 mod graph_topology_test_support;
 
 use graph_topology_test_support::{
-    artifact_from_file_provenance, diagnostic_surface_spec, extra_root_page_spec,
-    graph_node_identity, local_composition_spec, mosaic_spec, page_set_spec, region_spec,
-    root_page_artifact, slotted_control_spec,
+    artifact_from_compiler_provenance, artifact_from_file_provenance, diagnostic_surface_spec,
+    extra_root_page_spec, graph_node_identity, local_composition_spec, mosaic_spec, page_set_spec,
+    region_spec, root_page_artifact, slotted_control_spec,
 };
 use worth_ui::facade::app::{
     WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
 };
+use worth_ui::facade::declaration::MosaicSizingContractId;
 use worth_ui::facade::graph::{
     UiGraphContainmentClaim, UiGraphParentResolutionClaim, UiGraphTopologyLocalDenial,
 };
-use worth_ui::facade::registry::MosaicSizingContractId;
-use worth_ui_dsl::WorthUiDslPackage;
 
 #[test]
 fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.slot")
-                .with_semantic_artifact_spec(slotted_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.slot",
+            )
+            .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -103,18 +107,21 @@ fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
 
 #[test]
 fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
+    let fixture = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.graph-topology.membership",
+    )
+    .with_semantic_artifact_spec(region_spec())
+    .with_semantic_artifact_spec(mosaic_spec());
+    let region_provenance = fixture.admitted_provenance_for("workflow_editor.region.sidebar");
+    let mosaic_provenance = fixture.admitted_provenance_for("workflow_editor.mosaic.workspace");
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.membership")
-                .with_semantic_artifact_spec(region_spec())
-                .with_semantic_artifact_spec(mosaic_spec()),
-        )
+        .with_rust_authored_declaration_fixture(fixture)
         .freeze()
         .expect("application preparation should succeed");
     let graph = app.graph();
     let root_page = root_page_artifact(&app);
-    let region = artifact_from_file_provenance(&app, "app/graph_topology.wui", 1);
-    let mosaic = artifact_from_file_provenance(&app, "app/graph_topology.wui", 2);
+    let region = artifact_from_compiler_provenance(&app, &region_provenance);
+    let mosaic = artifact_from_compiler_provenance(&app, &mosaic_provenance);
     let root_page_id = graph_node_identity(graph, root_page);
     let region_id = graph_node_identity(graph, region);
     let mosaic_id = graph_node_identity(graph, mosaic);
@@ -184,9 +191,11 @@ fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
 #[test]
 fn topology_indexes_locate_nodes_while_attachment_posture_stays_on_node_truth() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.attachment")
-                .with_semantic_artifact_spec(slotted_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.attachment",
+            )
+            .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -213,11 +222,13 @@ fn topology_indexes_locate_nodes_while_attachment_posture_stays_on_node_truth() 
 #[test]
 fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membership_tags() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.containment-claims")
-                .with_semantic_artifact_spec(page_set_spec())
-                .with_semantic_artifact_spec(local_composition_spec())
-                .with_semantic_artifact_spec(diagnostic_surface_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.containment-claims",
+            )
+            .with_semantic_artifact_spec(page_set_spec())
+            .with_semantic_artifact_spec(local_composition_spec())
+            .with_semantic_artifact_spec(diagnostic_surface_spec()),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -286,10 +297,12 @@ fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membershi
 #[test]
 fn freeze_returns_typed_denial_when_topology_has_multiple_root_pages() {
     let denial = match WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-topology.root-denial")
-                .with_semantic_artifact_spec(extra_root_page_spec())
-                .with_semantic_artifact_spec(slotted_control_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-topology.root-denial",
+            )
+            .with_semantic_artifact_spec(extra_root_page_spec())
+            .with_semantic_artifact_spec(slotted_control_spec()),
         )
         .freeze()
     {

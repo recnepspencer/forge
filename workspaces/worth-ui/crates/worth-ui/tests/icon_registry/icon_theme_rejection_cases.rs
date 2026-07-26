@@ -1,10 +1,10 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         IconAccessibilityPosture, IconColorSupport, IconDescriptor, IconFamily,
         IconSourceDescriptor, IconThemePosture,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::icon_assertions::assert_dependency_diagnostics;

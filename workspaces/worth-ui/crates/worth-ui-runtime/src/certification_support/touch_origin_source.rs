@@ -9,9 +9,10 @@ use crate::facade::registry::descriptor::{
 use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider, WorthUiWatcherEvent};
 use crate::source::{
     WorthUiArtifact, WorthUiBindingSemanticsLowerer, WorthUiCanonicalArtifactAssembler,
-    WorthUiIdentitySeedLowerer, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiStructuralLegalityLowerer,
+    WorthUiIdentitySeedLowerer, WorthUiStructuralLegalityLowerer,
+};
+use worth_ui_dsl::{
+    WorthUiDslCompiler, WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -39,7 +40,7 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
         .expect("application preparation should succeed")
 }
 
-fn touch_runtime_builder() -> crate::facade::entry::WorthUiBuilder {
+fn touch_runtime_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
     WorthUi::app()
         .register_component(ComponentDescriptor::new(
             ComponentId::new("workspace.component.dashboard").expect("valid component id"),
@@ -131,9 +132,10 @@ fn artifact_from_modules<const N: usize>(
     app: &WorthUiApp,
     modules: [WorthUiRustAuthoredArtifactInputModule; N],
 ) -> WorthUiArtifact {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = WorthUiDslCompiler::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
-    );
+    )
+    .expect("touch-origin source compiles");
     let snapshot = app.capabilities();
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
         .expect("artifact input resolves");

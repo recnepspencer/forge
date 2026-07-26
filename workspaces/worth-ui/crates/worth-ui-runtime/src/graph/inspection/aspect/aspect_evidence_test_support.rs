@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use super::super::super::super::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
+use super::super::super::super::facade::{
+    WorthUi, WorthUiApp, WorthUiRustAuthoredDeclarationFixture,
+};
 use crate::graph::{
     project_aspect_evidence_refs, UiAspectEvidenceLane, UiAspectEvidenceRefProjection,
     UiAspectEvidenceSubjectKind, UiGraphMountEligibilityIdentity, UiGraphNodeIdentity,
@@ -25,8 +27,8 @@ pub(super) const COMPETING_CONSUMED_ASPECT: &str = "interaction.operability";
 
 pub(super) fn aspect_identity_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.aspect-evidence-index")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.aspect-evidence-index")
                 .with_semantic_artifact_spec(
                     control_spec(
                         "ui.workflow.aspect.alpha",

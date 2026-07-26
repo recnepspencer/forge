@@ -10,19 +10,16 @@ use crate::runtime::source_ingress::denial::{
 use crate::runtime::source_ingress::ordering_receipt::WorthUiCandidateOrderingReceipt;
 use crate::runtime::source_ingress::provider::WorthUiSourceProvider;
 use crate::runtime::source_ingress::revision::WorthUiSourcePackageRevision;
-use crate::runtime::source_ingress::source_backed_declaration_projection::project_source_backed_declaration_witness;
-use crate::runtime::source_ingress::source_backed_package_lowering::source_backed_package;
 use crate::runtime::source_ingress::{
-    WorthUiCandidateComposition, WorthUiCandidateCompositionBasis,
-    WorthUiCandidatePreparationHandoff, WorthUiSourceBackedDslPackage,
+    prepare_semantic_handoff, WorthUiCandidateComposition, WorthUiCandidateCompositionBasis,
+    WorthUiCandidatePreparationHandoff, WorthUiPreparedSemanticHandoffMaterial,
 };
 use crate::runtime::WorthUiReplacementCause;
 use crate::runtime::{WorthUiReplacementCandidate, WorthUiReplacementCandidateDenial};
-use crate::source::{
-    WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
-    WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
-    WorthUiParsedSourceToArtifactInputLowerer, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiSourcePackageLoader, WorthUiSourceParser, WorthUiStructuralLegalityLowerer,
+use crate::source::WorthUiArtifact;
+use worth_ui_dsl::{
+    WorthUiAuthoredSourceInput, WorthUiDslCompileReport, WorthUiDslCompiler,
+    WorthUiRustAuthoredArtifactInput, WorthUiSourceModuleId,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -35,8 +32,38 @@ pub struct WorthUiWatchedCandidateSubmission {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiWatchedCandidateSubmissionDenial {
+    DslCompilation(WorthUiDslCompileReport),
     SourceIngress(WorthUiSourceIngressDenial),
+    RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
     Candidate(WorthUiReplacementCandidateDenial),
+}
+
+pub(crate) enum WorthUiAuthoredCompositionPreparationDenial {
+    DslCompilation(WorthUiDslCompileReport),
+    RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
+    Candidate(WorthUiReplacementCandidateDenial),
+}
+
+pub(crate) fn prepare_rust_authored_handoff(
+    input: &WorthUiRustAuthoredArtifactInput,
+    snapshot: &CapabilitySnapshot,
+) -> Result<WorthUiCandidatePreparationHandoff, WorthUiAuthoredCompositionPreparationDenial> {
+    let source_revision_digest = input.source_revision_digest();
+    let sealed_package = WorthUiDslCompiler::compile_rust_authored(input)
+        .map_err(WorthUiAuthoredCompositionPreparationDenial::DslCompilation)?;
+    let material = prepare_semantic_handoff(sealed_package, snapshot)
+        .map_err(WorthUiAuthoredCompositionPreparationDenial::RuntimePreparation)?;
+    let (artifact, declaration_material, handoff) = material.into_parts();
+    let candidate = rust_authored_replacement_candidate(
+        artifact,
+        snapshot.digest(),
+        WorthUiReplacementCause::rust_authored_input_change(source_revision_digest),
+    )
+    .map_err(WorthUiAuthoredCompositionPreparationDenial::Candidate)?;
+    Ok(
+        WorthUiCandidateComposition::rust_authored(candidate, declaration_material, handoff)
+            .into_preparation_handoff(),
+    )
 }
 
 impl WorthUiSettledSourceSnapshot {
@@ -105,23 +132,17 @@ fn lower_provider_to_candidate(
     reject_ambiguous_candidate_material(provider)?;
     if let Some(input) = provider.rust_authored_inputs().first() {
         let material = rust_authored_material(input, snapshot)?;
-        return rust_authored_candidate(material.artifact, snapshot.digest(), revision).map(
-            |candidate| {
-                WorthUiCandidateComposition::rust_authored(
-                    candidate,
-                    material.source_backed_dsl_package,
-                )
-            },
-        );
+        let (artifact, declaration_source, handoff) = material.into_parts();
+        return rust_authored_candidate(artifact, snapshot.digest(), revision).map(|candidate| {
+            WorthUiCandidateComposition::rust_authored(candidate, declaration_source, handoff)
+        });
     }
     if !provider.source_modules().is_empty() {
-        let material = file_authored_material(provider, snapshot)?;
-        return file_authored_candidate(material.artifact, snapshot.digest(), provider, revision)
+        let (material, primary_module_id) = file_authored_material(provider, snapshot)?;
+        let (artifact, declaration_source, handoff) = material.into_parts();
+        return file_authored_candidate(artifact, snapshot.digest(), primary_module_id, revision)
             .map(|candidate| {
-                WorthUiCandidateComposition::file_authored(
-                    candidate,
-                    material.source_backed_dsl_package,
-                )
+                WorthUiCandidateComposition::file_authored(candidate, declaration_source, handoff)
             });
     }
     Err(source_denial(
@@ -145,59 +166,40 @@ fn reject_ambiguous_candidate_material(
     Ok(())
 }
 
-struct WorthUiLoweredCandidateMaterial {
-    artifact: WorthUiArtifact,
-    source_backed_dsl_package: WorthUiSourceBackedDslPackage,
-}
-
 fn file_authored_material(
     provider: &WorthUiSourceProvider,
     snapshot: &CapabilitySnapshot,
-) -> Result<WorthUiLoweredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
-    let mut loader = WorthUiSourcePackageLoader::from_workspace_root(provider.workspace_root());
+) -> Result<
+    (
+        WorthUiPreparedSemanticHandoffMaterial,
+        WorthUiSourceModuleId,
+    ),
+    WorthUiWatchedCandidateSubmissionDenial,
+> {
+    let mut input = WorthUiAuthoredSourceInput::rooted_at(provider.workspace_root());
     for module in provider.source_modules() {
-        loader = loader.register_module_with_source(module.relative_path(), module.source_text());
+        input = input.with_module(module.relative_path(), module.source_text());
     }
-    let source_package = loader
-        .compile()
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))?;
-    let parsed = WorthUiSourceParser::parse_package(&source_package)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourceParseRejected))?;
-    let artifact_input = WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed);
-    canonical_artifact_from_input(artifact_input, snapshot)
+    let sealed_package =
+        WorthUiDslCompiler::compile_source(input).map_err(dsl_compilation_denial)?;
+    let primary_module_id = sealed_package
+        .module_ids()
+        .first()
+        .cloned()
+        .ok_or_else(|| source_denial(WorthUiSourceIngressDenialReason::NoCandidateMaterial))?;
+    prepare_semantic_handoff(sealed_package, snapshot)
+        .map_err(WorthUiWatchedCandidateSubmissionDenial::RuntimePreparation)
+        .map(|material| (material, primary_module_id))
 }
 
 fn rust_authored_material(
-    input: &crate::source::WorthUiRustAuthoredArtifactInput,
+    input: &WorthUiRustAuthoredArtifactInput,
     snapshot: &CapabilitySnapshot,
-) -> Result<WorthUiLoweredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::try_lower(input)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))?;
-    canonical_artifact_from_input(artifact_input, snapshot)
-}
-
-fn canonical_artifact_from_input(
-    artifact_input: crate::source::WorthUiArtifactInput,
-    snapshot: &CapabilitySnapshot,
-) -> Result<WorthUiLoweredCandidateMaterial, WorthUiWatchedCandidateSubmissionDenial> {
-    let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::ArtifactResolutionRejected))?;
-    let structured = WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::StructuralLegalityRejected))?;
-    let declaration_witness = project_source_backed_declaration_witness(&structured)?;
-    let source_backed_dsl_package =
-        WorthUiSourceBackedDslPackage::new(source_backed_package(&structured), declaration_witness);
-    let bound = WorthUiBindingSemanticsLowerer::lower(&structured, snapshot)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::BindingSemanticsRejected))?;
-    let identity_seeded = WorthUiIdentitySeedLowerer::lower(&bound)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::IdentitySeedingRejected))?
-        .0;
-    let artifact = WorthUiCanonicalArtifactAssembler::assemble(&identity_seeded)
-        .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::CanonicalAssemblyRejected))?;
-    Ok(WorthUiLoweredCandidateMaterial {
-        artifact,
-        source_backed_dsl_package,
-    })
+) -> Result<WorthUiPreparedSemanticHandoffMaterial, WorthUiWatchedCandidateSubmissionDenial> {
+    let sealed_package =
+        WorthUiDslCompiler::compile_rust_authored(input).map_err(dsl_compilation_denial)?;
+    prepare_semantic_handoff(sealed_package, snapshot)
+        .map_err(WorthUiWatchedCandidateSubmissionDenial::RuntimePreparation)
 }
 
 fn rust_authored_candidate(
@@ -216,29 +218,24 @@ fn rust_authored_candidate(
 fn file_authored_candidate(
     artifact: WorthUiArtifact,
     snapshot_digest: CapabilitySnapshotDigest,
-    provider: &WorthUiSourceProvider,
+    primary_module_id: WorthUiSourceModuleId,
     revision: &WorthUiSourcePackageRevision,
 ) -> Result<WorthUiReplacementCandidate, WorthUiWatchedCandidateSubmissionDenial> {
-    let module_id = primary_source_module_id(provider)?;
     file_authored_replacement_candidate(
         artifact,
         snapshot_digest,
-        WorthUiReplacementCause::file_source_change(module_id, revision.final_package_digest()),
+        WorthUiReplacementCause::file_source_change(
+            primary_module_id,
+            revision.final_package_digest(),
+        ),
     )
     .map_err(WorthUiWatchedCandidateSubmissionDenial::Candidate)
 }
 
-fn primary_source_module_id(
-    provider: &WorthUiSourceProvider,
-) -> Result<crate::source::WorthUiSourceModuleId, WorthUiWatchedCandidateSubmissionDenial> {
-    let primary_source_module = provider
-        .source_modules()
-        .first()
-        .ok_or_else(|| source_denial(WorthUiSourceIngressDenialReason::NoCandidateMaterial))?;
-    crate::source::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(
-        primary_source_module.relative_path(),
-    ))
-    .map_err(|_| source_denial(WorthUiSourceIngressDenialReason::SourcePackageRejected))
+fn dsl_compilation_denial(
+    report: WorthUiDslCompileReport,
+) -> WorthUiWatchedCandidateSubmissionDenial {
+    WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report)
 }
 
 fn source_denial(

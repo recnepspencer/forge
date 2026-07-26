@@ -1,3 +1,4 @@
+use worth_ui::facade::admission::WorthUiAdmissionExt;
 use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
@@ -5,9 +6,12 @@ use worth_ui::facade::inspection::{
     UiInspectionDeclarationIdentity, UiInspectionQuery, UiInspectionRelevance,
     UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, WorthUiDslPackage,
+    UiDslStructuralToken,
 };
 
 #[test]
@@ -120,30 +124,32 @@ fn authored_provenance_query(provenance: UiAuthoredSourceProvenanceRef) -> UiIns
 fn authored_source_generation_tracks_source_artifact_generation_not_declaration_digest() {
     let baseline = declaration_lookup_app("ui.workflow.editor", "control:workflow");
     let changed = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration.lookup.changed")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.workflow.editor"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/declaration_evidence_lookup_runtime.wui",
-                            0,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:workflow")),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.declaration.lookup.changed",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.workflow.editor"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored(
+                        "app/declaration_evidence_lookup_runtime.wui",
+                        0,
+                    ),
                 )
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new("ui.workflow.editor.sidebar"),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/declaration_evidence_lookup_runtime.wui",
-                            1,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new("control:sidebar")),
-                ),
+                .with_structural_token(UiDslStructuralToken::new("control:workflow")),
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new("ui.workflow.editor.sidebar"),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored(
+                        "app/declaration_evidence_lookup_runtime.wui",
+                        1,
+                    ),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:sidebar")),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -176,18 +182,17 @@ fn authored_source_generation_tracks_source_artifact_generation_not_declaration_
 
 #[test]
 fn admit_semantic_artifact_returns_package_authoritative_source_generation() {
-    let package = WorthUiDslPackage::named("worth-ui.certification.declaration.lookup.authority")
-        .with_semantic_artifact_spec(
-            UiDslSemanticArtifactSpec::new(
-                UiDslSemanticKey::new("ui.workflow.editor"),
-                UiDslSemanticFamily::Control,
-                UiDslSourceProvenance::file_authored(
-                    "app/declaration_evidence_lookup_runtime.wui",
-                    0,
-                ),
-            )
-            .with_structural_token(UiDslStructuralToken::new("control:workflow")),
-        );
+    let package = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.certification.declaration.lookup.authority",
+    )
+    .with_semantic_artifact_spec(
+        UiDslSemanticArtifactSpec::new(
+            UiDslSemanticKey::new("ui.workflow.editor"),
+            UiDslSemanticFamily::Control,
+            UiDslSourceProvenance::file_authored("app/declaration_evidence_lookup_runtime.wui", 0),
+        )
+        .with_structural_token(UiDslStructuralToken::new("control:workflow")),
+    );
     let admitted = package.admit_semantic_artifact(
         UiDslSemanticArtifactSpec::new(
             UiDslSemanticKey::new("ui.workflow.sidebar"),
@@ -220,19 +225,21 @@ fn admit_semantic_artifact_returns_package_authoritative_source_generation() {
 
 fn declaration_lookup_app(semantic_key: &str, structural_token: &str) -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.declaration.lookup")
-                .with_semantic_artifact_spec(
-                    UiDslSemanticArtifactSpec::new(
-                        UiDslSemanticKey::new(semantic_key),
-                        UiDslSemanticFamily::Control,
-                        UiDslSourceProvenance::file_authored(
-                            "app/declaration_evidence_lookup_runtime.wui",
-                            0,
-                        ),
-                    )
-                    .with_structural_token(UiDslStructuralToken::new(structural_token)),
-                ),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.declaration.lookup",
+            )
+            .with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new(semantic_key),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::file_authored(
+                        "app/declaration_evidence_lookup_runtime.wui",
+                        0,
+                    ),
+                )
+                .with_structural_token(UiDslStructuralToken::new(structural_token)),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

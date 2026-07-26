@@ -1,7 +1,8 @@
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfaceCancellationOutcome, UiHostSurfacePresentationMode, UiMountWorkClass,
     UiMountedFrameOutcome, UiPresentationDeadline,
 };
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::{

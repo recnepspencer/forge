@@ -26,7 +26,7 @@ pub(super) fn lower_component_node(
 }
 
 pub(super) fn lower_surface_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     surface_node: &WorthUiLegallyStructuredArtifactInputSurfaceNode,
     context: &mut WorthUiBindingSemanticsContext<'_>,
 ) -> Result<WorthUiBoundArtifactInputSurfaceNode, Vec<WorthUiBindingDiagnostic>> {
@@ -118,7 +118,7 @@ pub(super) fn lower_surface_node(
 }
 
 pub(super) fn lower_binding_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     binding_node: &WorthUiLegallyStructuredArtifactInputBindingNode,
     context: &mut WorthUiBindingSemanticsContext<'_>,
 ) -> Result<WorthUiBoundArtifactInputBindingNode, Vec<WorthUiBindingDiagnostic>> {
@@ -146,7 +146,7 @@ pub(super) fn lower_binding_node(
 }
 
 pub(super) fn lower_theme_token_node(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     token_node: &WorthUiLegallyStructuredArtifactInputThemeTokenNode,
     context: &mut WorthUiBindingSemanticsContext<'_>,
 ) -> Result<WorthUiBoundArtifactInputThemeTokenNode, Vec<WorthUiBindingDiagnostic>> {
@@ -170,7 +170,7 @@ pub(super) fn lower_theme_token_node(
 }
 
 fn bind_surface_icon(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     surface_node: &WorthUiLegallyStructuredArtifactInputSurfaceNode,
     icon_id: &crate::capability::IconId,
     context: &mut WorthUiBindingSemanticsContext<'_>,
@@ -192,7 +192,7 @@ fn bind_surface_icon(
 }
 
 fn bind_command_semantics(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     surface_node: &WorthUiLegallyStructuredArtifactInputSurfaceNode,
     command_slot_index: usize,
     command_descriptor: &crate::capability::CommandDescriptor,
@@ -246,7 +246,7 @@ fn bind_command_semantics(
 }
 
 fn bind_command_icon(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     surface_node: &WorthUiLegallyStructuredArtifactInputSurfaceNode,
     command_slot_index: usize,
     icon_id: &crate::capability::IconId,
@@ -272,7 +272,7 @@ fn bind_command_icon(
 }
 
 fn bind_command_projection(
-    module_id: &crate::source::WorthUiSourceModuleId,
+    module_id: &worth_ui_dsl::WorthUiSourceModuleId,
     surface_node: &WorthUiLegallyStructuredArtifactInputSurfaceNode,
     command_slot_index: usize,
     command_projection_id: &crate::capability::CommandProjectionId,

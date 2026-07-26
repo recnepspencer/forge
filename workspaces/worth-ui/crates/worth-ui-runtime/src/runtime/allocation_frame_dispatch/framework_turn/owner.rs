@@ -99,6 +99,14 @@ impl WorthUiRuntime {
         transition: super::transition_planning::UiFrameworkTransitionPlanningDisposition,
     ) -> WorthUiFrameworkTurnCompletion<'_> {
         match transition {
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::NoIngress {
+                active_generation,
+                active_frame_epoch,
+            } => super::execution::execute_no_ingress_framework_transition(
+                self,
+                active_generation,
+                active_frame_epoch,
+            ),
             super::transition_planning::UiFrameworkTransitionPlanningDisposition::Planned(plan) => {
                 super::execution::execute_planned_framework_transition(self, *plan)
             }
@@ -124,11 +132,20 @@ impl WorthUiRuntime {
         &mut self,
         transition: super::transition_planning::UiFrameworkTransitionPlanningDisposition,
     ) {
-        if let super::transition_planning::UiFrameworkTransitionPlanningDisposition::Planned(
-            planned,
-        ) = transition
-        {
-            super::execution::acknowledge_discarded_framework_transition(self, *planned);
+        match transition {
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::NoIngress {
+                ..
+            } => {}
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::Planned(
+                planned,
+            ) => super::execution::acknowledge_discarded_framework_transition(self, *planned),
+            super::transition_planning::UiFrameworkTransitionPlanningDisposition::FrameResolutionDenied(_)
+            | super::transition_planning::UiFrameworkTransitionPlanningDisposition::InvalidationNarrowingDenied(_)
+            | super::transition_planning::UiFrameworkTransitionPlanningDisposition::ReplanSelectionDenied(_)
+            | super::transition_planning::UiFrameworkTransitionPlanningDisposition::PlanningDenied(_)
+            | super::transition_planning::UiFrameworkTransitionPlanningDisposition::DispatchDenied {
+                ..
+            } => {}
         }
     }
 

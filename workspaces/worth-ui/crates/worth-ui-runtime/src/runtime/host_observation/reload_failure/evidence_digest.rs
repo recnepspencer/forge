@@ -1,7 +1,6 @@
 use crate::runtime::{
     WorthUiActivationGateDenial, WorthUiActivationStagingDenial,
-    WorthUiActivationStagingDenialReason, WorthUiDurableStateFamilyId,
-    WorthUiDurableStateReconciliationDenial, WorthUiNodeLifecycleTransition,
+    WorthUiActivationStagingDenialReason, WorthUiDurableStateReconciliationDenial,
     WorthUiPlanLoweringDenial, WorthUiQueryBindingDriftDenial, WorthUiQueryBindingDriftDenialKind,
     WorthUiQueryBindingUiRequirements, WorthUiQueryBindingUiRequirementsDriftFamily,
     WorthUiQueryLiveRebindPlanDenial, WorthUiReplacementCandidateDenial,
@@ -39,26 +38,6 @@ pub(crate) fn reconciliation_denial_digest(
                 ^ plan_candidate_artifact_digest.rotate_left(23)
                 ^ inventory_candidate_artifact_digest.rotate_left(37)
                 ^ (counters.rejected_reconciliation_count() as u64).rotate_left(47)
-        }
-        WorthUiDurableStateReconciliationDenial::MissingInventoryFamily {
-            family_id,
-            counters,
-        } => {
-            0xD0_00_00_03
-                ^ durable_state_family_digest(family_id)
-                ^ (counters.rejected_reconciliation_count() as u64).rotate_left(19)
-        }
-        WorthUiDurableStateReconciliationDenial::UnsupportedCustomTransition {
-            identity_basis,
-            family_id,
-            transition,
-            counters,
-        } => {
-            0xD0_00_00_04
-                ^ stable_text_digest(identity_basis)
-                ^ durable_state_family_digest(family_id).rotate_left(13)
-                ^ node_transition_digest(*transition).rotate_left(29)
-                ^ (counters.rejected_reconciliation_count() as u64).rotate_left(43)
         }
     }
 }
@@ -170,31 +149,6 @@ fn query_binding_drift_family_digest(family: WorthUiQueryBindingUiRequirementsDr
     }
 }
 
-fn durable_state_family_digest(family_id: &WorthUiDurableStateFamilyId) -> u64 {
-    match family_id {
-        WorthUiDurableStateFamilyId::FocusChain => 0xF0_00_00_01,
-        WorthUiDurableStateFamilyId::ScrollAnchor => 0xF0_00_00_02,
-        WorthUiDurableStateFamilyId::SelectionRange => 0xF0_00_00_03,
-        WorthUiDurableStateFamilyId::TextEditBuffer => 0xF0_00_00_04,
-        WorthUiDurableStateFamilyId::SplitterPosition => 0xF0_00_00_05,
-        WorthUiDurableStateFamilyId::TabState => 0xF0_00_00_06,
-        WorthUiDurableStateFamilyId::PanelVisibility => 0xF0_00_00_07,
-        WorthUiDurableStateFamilyId::Custom(id) => 0xF0_00_00_08 ^ stable_text_digest(id),
-    }
-}
-
-fn node_transition_digest(transition: WorthUiNodeLifecycleTransition) -> u64 {
-    match transition {
-        WorthUiNodeLifecycleTransition::Preserve => 0xF1_00_00_01,
-        WorthUiNodeLifecycleTransition::Replace => 0xF1_00_00_02,
-        WorthUiNodeLifecycleTransition::Drop => 0xF1_00_00_03,
-        WorthUiNodeLifecycleTransition::Create => 0xF1_00_00_04,
-        WorthUiNodeLifecycleTransition::Move => 0xF1_00_00_05,
-        WorthUiNodeLifecycleTransition::Rebind => 0xF1_00_00_06,
-        WorthUiNodeLifecycleTransition::LaneChange => 0xF1_00_00_07,
-    }
-}
-
 fn activation_staging_reason_digest(reason: WorthUiActivationStagingDenialReason) -> u64 {
     match reason {
         WorthUiActivationStagingDenialReason::CandidateApplicationAuthorityMismatch => {
@@ -206,12 +160,4 @@ fn activation_staging_reason_digest(reason: WorthUiActivationStagingDenialReason
         WorthUiActivationStagingDenialReason::CandidateArtifactDigestMismatch => 0xF2_00_00_06,
         WorthUiActivationStagingDenialReason::ActiveRuntimeMutatedDuringStaging => 0xF2_00_00_08,
     }
-}
-
-fn stable_text_digest(text: &str) -> u64 {
-    text.as_bytes()
-        .iter()
-        .fold(0xCBF2_9CE4_8422_2325, |digest, byte| {
-            digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
-        })
 }

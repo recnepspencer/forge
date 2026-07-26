@@ -1,9 +1,10 @@
-use worth_ui::facade::host::WorthUiOperationalHostAdapter;
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationMode, UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile,
-};
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile,
+};
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -22,7 +23,7 @@ fn mounted_application(label: &str) -> worth_ui::facade::app::WorthUiApp {
     );
     scenario.prepare_application_with_host(
         submission,
-        worth_ui::facade::host::WorthUiHeadlessRecorder::default(),
+        worth_ui_runtime::facade::host::WorthUiHeadlessRecorder::default(),
     )
 }
 
@@ -45,7 +46,7 @@ where
 pub(crate) fn mounted_application_with_host_and_retention_budget<Host>(
     label: &str,
     host: Host,
-    retention_budget: worth_ui::facade::mounted::UiMountedFrameRetentionBudget,
+    retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
 ) -> worth_ui::facade::app::WorthUiApp
 where
     Host: WorthUiOperationalHostAdapter + 'static,
@@ -62,7 +63,7 @@ where
 pub(crate) fn mounted_application_with_host_and_capacities<Host>(
     label: &str,
     host: Host,
-    retention_budget: worth_ui::facade::mounted::UiMountedFrameRetentionBudget,
+    retention_budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
     observation_capacity: worth_ui::facade::observation_report::UiHostObservationCapacity,
 ) -> worth_ui::facade::app::WorthUiApp
 where
@@ -99,7 +100,7 @@ fn mounted_submission(
 
 pub(crate) fn registered_surface(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiSemanticSurfaceIdentity {
+) -> worth_ui_runtime::facade::mounted::UiSemanticSurfaceIdentity {
     let surface = session.create_semantic_surface().unwrap();
     session
         .register_host_surface(
@@ -113,7 +114,7 @@ pub(crate) fn registered_surface(
 
 pub(crate) fn first_node(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiMountedGraphNodeHandle {
+) -> worth_ui_runtime::facade::mounted::UiMountedGraphNodeHandle {
     let node = session.graph().node_identities().next().unwrap();
     session.mounted_graph_node(node).unwrap()
 }

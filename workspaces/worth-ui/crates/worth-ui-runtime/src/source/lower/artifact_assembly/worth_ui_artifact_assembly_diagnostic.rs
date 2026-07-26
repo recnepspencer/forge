@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
-
-use crate::source::WorthUiSourceModuleId;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum WorthUiArtifactAssemblyDiagnosticCode {

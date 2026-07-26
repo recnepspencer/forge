@@ -1,0 +1,844 @@
+schema = "worth-ui.milestone-3.10.1.product-api.v1"
+
+[[journey]]
+id = "admission-contract"
+audience = "admission"
+path = "crates/worth-ui-certification/tests/admission_support_runtime.rs"
+
+[[journey]]
+id = "ordinary-mounted-app"
+audience = "app"
+path = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
+
+[[journey]]
+id = "authored-application"
+audience = "declaration"
+path = "crates/worth-ui/tests/ui/facade_visibility/pass/facade_only_app_remains_ergonomic.rs"
+
+[[journey]]
+id = "capability-diagnostics"
+audience = "diagnostics"
+path = "crates/worth-ui/tests/command_registry.rs"
+
+[[journey]]
+id = "graph-inspection"
+audience = "graph"
+path = "crates/worth-ui-certification/tests/graph_authority_runtime.rs"
+
+[[journey]]
+id = "compact-inspection"
+audience = "inspection"
+path = "crates/worth-ui/tests/ui/facade/named_surface_pass/inspection_query_uses_named_inspection_surface.rs"
+
+[[journey]]
+id = "host-measurement"
+audience = "measurement_exchange"
+path = "crates/worth-ui-certification/tests/application_contracts/host_measurement_lifecycle.rs"
+
+[[journey]]
+id = "obligation-dispatch"
+audience = "obligations"
+path = "crates/worth-ui-certification/tests/obligation_dispatch_runtime.rs"
+
+[[journey]]
+id = "host-observation"
+audience = "observation_report"
+path = "crates/worth-ui-certification/tests/application_contracts/arrival_schedule.rs"
+
+[[journey]]
+id = "installed-query-view"
+audience = "query_binding"
+path = "crates/worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
+
+[[journey]]
+id = "authored-source-ingress"
+audience = "source"
+path = "crates/worth-ui/tests/ui/runtime_source_ingress/pass/rust_authored_input_uses_compiler_owned_handoff.rs"
+
+[[journey]]
+id = "capability-support"
+audience = "support"
+path = "crates/worth-ui/tests/identity_validation.rs"
+
+[[export_group]]
+audience = "admission"
+source = "facade/admission.rs"
+stability = "evolving-product-contract"
+authority = "admission decisions and immutable evidence"
+caller = "admission-contract"
+symbols = [
+  "UiAdmissionAggregation",
+  "UiAdmissionBoundary",
+  "UiAdmissionDecision",
+  "UiAdmissionFamily",
+  "UiAdmissionHostCapability",
+  "UiAdmissionOutcome",
+  "UiAdmissionQueryBasis",
+  "UiAdmissionReport",
+  "UiAdmissionSelectionBudget",
+  "UiAdmissionStaleEvidence",
+  "UiAdmissionTarget",
+  "UiAdmissionWorld",
+  "UiLegalityDecision",
+  "UiLegalityPosture",
+  "UiLegalityReason",
+  "UiSupportPosture",
+  "UiSupportReason",
+  "UiSupportSnapshot",
+  "WorthUiAdmissionExt",
+]
+
+[[export_group]]
+audience = "app"
+source = "facade/app.rs"
+stability = "evolving-product-contract"
+authority = "application lifecycle and affine execution"
+caller = "ordinary-mounted-app"
+symbols = [
+  "UiMountedFrameOutcome",
+  "UiMountedFramePublicationReceipt",
+  "UiMountedFrameRequest",
+  "UiMountedFrameRetentionRejection",
+  "UiMountedIndeterminateFrame",
+  "UiMountedPresentationAdmissionRejection",
+  "UiMountedPresentationCompletionDenial",
+  "UiMountedPresentationInFlight",
+  "UiMountedRejectedFrame",
+  "UiPresentationDeadline",
+  "WorthUi",
+  "WorthUiActiveApplicationSession",
+  "WorthUiActiveApplicationSessionIdentity",
+  "WorthUiApp",
+  "WorthUiApplicationBuilder",
+  "WorthUiApplicationCutoverDenial",
+  "WorthUiApplicationCutoverReceipt",
+  "WorthUiApplicationCutoverRetry",
+  "WorthUiApplicationPreparationDenial",
+  "WorthUiApplicationPreparationPhase",
+  "WorthUiApplicationPublicationObservation",
+  "WorthUiApplicationReplacementLoweringDenial",
+  "WorthUiApplicationReplacementOutcome",
+  "WorthUiApplicationReplacementPreparationDenial",
+  "WorthUiApplicationReplacementStagingDenial",
+  "WorthUiApplicationSemanticNoOpReceipt",
+  "WorthUiCandidateInspectionReceipt",
+  "WorthUiLoweredApplicationReplacement",
+  "WorthUiMountedApplicationReplacementInFlight",
+  "WorthUiMountedApplicationReplacementOutcome",
+  "WorthUiMountedFrameExecutionStop",
+  "WorthUiMountedFrameFrameworkTransitionStop",
+  "WorthUiMountedReplacementAdmissionDenial",
+  "WorthUiMountedReplacementCompletionDenial",
+  "WorthUiMountedReplacementPreparationOutcome",
+  "WorthUiMountedReplacementRetentionDenial",
+  "WorthUiPendingApplicationCutover",
+  "WorthUiPreparedApplicationGenerationIdentity",
+  "WorthUiPreparedApplicationReplacement",
+  "WorthUiPreparedMountedApplicationReplacement",
+  "WorthUiReplacementCandidateSummary",
+  "WorthUiReplacementPlannedCostEnvelope",
+  "WorthUiVisibleRange",
+  "WorthUiVisibleRangeDenial",
+  "WorthUiVisibleRangeDenialReason",
+]
+
+[[export_group]]
+audience = "declaration"
+source = "facade/declaration.rs"
+stability = "evolving-product-contract"
+authority = "authored semantic declarations"
+caller = "authored-application"
+symbols = [
+  "CommandCategory",
+  "CommandDescriptor",
+  "CommandId",
+  "CommandProjectionCommandReference",
+  "CommandProjectionDescriptor",
+  "CommandProjectionGrouping",
+  "CommandProjectionIconLabelPolicy",
+  "CommandProjectionId",
+  "CommandProjectionKey",
+  "CommandProjectionMeaningOverride",
+  "CommandProjectionMosaicScope",
+  "CommandProjectionOrdering",
+  "CommandProjectionOverflowBehavior",
+  "CommandProjectionReadinessDisplayPolicy",
+  "CommandProjectionShortcutVisibility",
+  "CommandProjectionSurface",
+  "CommandReadinessBinding",
+  "CommandReadinessStatus",
+  "CommandRuntimeIntentBinding",
+  "ComponentAccessibilitySupport",
+  "ComponentCanvasSpatialContract",
+  "ComponentChildPolicy",
+  "ComponentDescriptor",
+  "ComponentExecutionLane",
+  "ComponentFocusSupport",
+  "ComponentId",
+  "ComponentPropSchema",
+  "ComponentRealtimeOverlayContract",
+  "ComponentRealtimeOverlayContractDenial",
+  "ComponentRealtimeOverlayContractDenialReason",
+  "ComponentRealtimeOverlayPriority",
+  "ComponentStateOwnership",
+  "IconAccessibilityPosture",
+  "IconColorSupport",
+  "IconDescriptor",
+  "IconFamily",
+  "IconId",
+  "IconKey",
+  "IconSizeSupport",
+  "IconSourceDescriptor",
+  "IconSourceKind",
+  "IconThemePosture",
+  "MeasurementConstraint",
+  "MeasurementValue",
+  "MosaicChildRule",
+  "MosaicClippingPosture",
+  "MosaicFocusScopeKind",
+  "MosaicHitTestPosture",
+  "MosaicMeasurementAuthority",
+  "MosaicOverflowBehavior",
+  "MosaicParentGrowthBehavior",
+  "MosaicPlacementAction",
+  "MosaicPlacementConflictBehavior",
+  "MosaicPlacementEligibility",
+  "MosaicPlacementPersistence",
+  "MosaicPlacementPolicyDescriptor",
+  "MosaicPlacementPolicyId",
+  "MosaicPlacementReloadReconciliation",
+  "MosaicPlacementSource",
+  "MosaicPlacementSupport",
+  "MosaicPlacementTarget",
+  "MosaicRegionKindDescriptor",
+  "MosaicRegionKindId",
+  "MosaicRegionPersistence",
+  "MosaicRegionRole",
+  "MosaicResizePermission",
+  "MosaicScrollOwnership",
+  "MosaicSizingBehavior",
+  "MosaicSizingContractDescriptor",
+  "MosaicSizingContractId",
+  "MosaicSizingKind",
+  "MosaicSizingPersistence",
+  "MosaicStableIdentityBehavior",
+  "MosaicStateOwnerIdentity",
+  "MosaicStateOwnerScopeId",
+  "MosaicStatePersistencePolicy",
+  "MosaicStateReconciliationKey",
+  "MosaicStateReplacementRule",
+  "MosaicStateSlotDescriptor",
+  "MosaicStateSlotId",
+  "MosaicStateSlotKind",
+  "MosaicStateTruthPosture",
+  "MosaicViewportConstraint",
+  "NamedMeasurementDefinition",
+  "NamedMeasurementToken",
+  "NativeCapabilityDescriptor",
+  "NativeCapabilityFamily",
+  "NativeCapabilityId",
+  "NativeCapabilityKey",
+  "NativePlatformPosture",
+  "NativeShellAuthorityClaim",
+  "PlatformInternalCapability",
+  "PluginCapabilityPermission",
+  "PluginContributionFamily",
+  "PluginSlotContributionReference",
+  "PluginSlotDescriptor",
+  "PluginSlotDiagnostics",
+  "PluginSlotGlobalMutationHook",
+  "PluginSlotId",
+  "PluginSlotKey",
+  "PluginSlotOrdering",
+  "PluginSlotSupportPosture",
+  "QueryDenialPresentation",
+  "RawColorOutsideTokenDefinition",
+  "RawIconAssetReference",
+  "RawLayoutMeasurementForDiagnostics",
+  "RawLayoutMeasurementKind",
+  "RuntimeOutcomeAffordance",
+  "RuntimeOutcomeDenialPosture",
+  "RuntimeOutcomeFamily",
+  "RuntimeOutcomePresentation",
+  "RuntimeOutcomeProjectionDescriptor",
+  "RuntimeOutcomeProjectionId",
+  "RuntimeOutcomeProjectionKey",
+  "RuntimeOutcomeRecoveryPosture",
+  "RuntimeOutcomeSourceReference",
+  "RuntimeOutcomeTone",
+  "SettingDefaultPosture",
+  "SettingDefaultValue",
+  "SettingDescriptor",
+  "SettingEditorHint",
+  "SettingId",
+  "SettingKey",
+  "SettingMigrationPosture",
+  "SettingOwnershipMetadata",
+  "SettingScope",
+  "SettingValidationPosture",
+  "SettingValueSchema",
+  "SurfaceDescriptor",
+  "SurfaceId",
+  "SurfaceKind",
+  "SurfacePlacementClass",
+  "SurfaceStateClass",
+  "TaskPresentationCancellationPosture",
+  "TaskPresentationDescriptor",
+  "TaskPresentationFailurePosture",
+  "TaskPresentationFamily",
+  "TaskPresentationId",
+  "TaskPresentationKey",
+  "TaskPresentationLifecyclePosture",
+  "TaskPresentationProjectionEligibility",
+  "TaskPresentationRuntimeAuthorityPosture",
+  "ThemeColorValue",
+  "ThemeColorValueError",
+  "ThemeTokenAlias",
+  "ThemeTokenDescriptor",
+  "ThemeTokenFamily",
+  "ThemeTokenId",
+  "ThemeTokenKey",
+  "ThemeTokenSource",
+  "ThemeTokenValue",
+  "UiAspectContract",
+  "UiAspectContractAdmissionDenial",
+  "UiAspectCoverageEntry",
+  "UiAspectCoverageReport",
+  "UiAspectFamily",
+  "UiAspectName",
+  "UiAspectSemanticSlice",
+  "UiConsumedAspectContract",
+  "UiDeclarationArtifact",
+  "UiDeclarationArtifactDigest",
+  "UiDeclarationAspectDigest",
+  "UiDeclarationClosedSemanticLane",
+  "UiDeclarationCloseoutGuarantee",
+  "UiDeclarationCloseoutNonGoal",
+  "UiDeclarationCloseoutReport",
+  "UiDeclarationContainmentIntent",
+  "UiDeclarationDigestProjection",
+  "UiDeclarationEquivalenceContract",
+  "UiDeclarationFamily",
+  "UiDeclarationFamilyAdmissionDenial",
+  "UiDeclarationFamilyCatalog",
+  "UiDeclarationFamilyDigest",
+  "UiDeclarationFamilyKind",
+  "UiDeclarationGraphHandoff",
+  "UiDeclarationGraphHandoffDenial",
+  "UiDeclarationIdentity",
+  "UiDeclarationIdentityDigest",
+  "UiDeclarationOrderingGuarantee",
+  "UiDeclarationPostureDigest",
+  "UiDeclarationProvenance",
+  "UiDeclarationRepetitionPosture",
+  "UiDeclarationSlotParticipationIntent",
+  "UiDeclarationStructuralDigest",
+  "UiDeclarationStructuralRole",
+  "UiDeclarationStructuralSemantics",
+  "UiDeclarationStructuralSemanticsAdmissionDenial",
+  "UiDeclarationSupportDigest",
+  "UiDeclarationSupportMilestoneExpectation",
+  "UiDeclarationSupportRow",
+  "UiDeclarationSupportRowSchemaKind",
+  "UiDeclarationSupportSnapshot",
+  "UiDeclarationSupportSnapshotAdmissionDenial",
+  "UiDeclarationUnsupportedPosture",
+  "UiDeclaredHostCapabilityPosture",
+  "UiDeclaredMeasurementPolicyPosture",
+  "UiDeclaredPostureAdmissionDenial",
+  "UiDeclaredPostureApplicability",
+  "UiDeclaredPostureContract",
+  "UiDeclaredPostureLane",
+  "UiDeclaredPostureLaneKind",
+  "UiDeclaredQueryBindingPosture",
+  "UiDeclaredServiceUsagePosture",
+  "UiDeclaredTouchMeaningPosture",
+  "UiPublishedAspectContract",
+  "ViewBindingDescriptor",
+  "ViewBindingFamily",
+  "ViewBindingId",
+  "VisibleStateBindingDeclaration",
+  "WorthUiHostCapability",
+  "WorthUiViewBindingIdentity",
+]
+
+[[export_group]]
+audience = "diagnostics"
+source = "facade/diagnostics.rs"
+stability = "evolving-product-contract"
+authority = "immutable capability diagnostics"
+caller = "capability-diagnostics"
+symbols = [
+  "CapabilityDiagnosticCode",
+  "CapabilityDiagnosticRichness",
+  "CapabilityDiagnosticSeverity",
+  "CapabilityRegistrationDiagnostic",
+  "CapabilityRegistrationReport",
+  "CapabilitySnapshot",
+  "CapabilitySnapshotDigest",
+  "CapabilitySnapshotIndex",
+  "RegisteredCapabilitySet",
+  "SnapshotFamilyIndex",
+  "SnapshotFreezeReport",
+  "SnapshotLookupCounters",
+  "SnapshotLookupReport",
+  "SnapshotMetrics",
+  "SnapshotReferenceValidationReport",
+  "SnapshotReferenceViolation",
+  "SnapshotReferenceViolationKind",
+  "WorthUiBindingObservationRow",
+  "WorthUiBindingObservationSurface",
+  "WorthUiRuntimeDiagnostic",
+  "WorthUiRuntimeDiagnosticCode",
+  "WorthUiRuntimeDiagnosticCounters",
+  "WorthUiRuntimeDiagnosticFamily",
+  "WorthUiRuntimeDiagnosticPolicy",
+  "WorthUiRuntimeDiagnosticReport",
+  "WorthUiRuntimeDiagnosticRequest",
+  "WorthUiRuntimeDiagnostics",
+]
+
+[[export_group]]
+audience = "graph"
+source = "facade/graph.rs"
+stability = "evolving-product-contract"
+authority = "graph authority observations and admitted handoffs"
+caller = "graph-inspection"
+symbols = [
+  "project_aspect_evidence_ref",
+  "project_aspect_evidence_refs",
+  "UiAdmittedAllocationCatalogBasisSet",
+  "UiAdmittedAllocationCatalogDelta",
+  "UiAllocationCatalogDeltaAdmissionDenial",
+  "UiAspectEvidenceLane",
+  "UiAspectEvidenceRefProjection",
+  "UiAspectEvidenceSubjectKind",
+  "UiGraphAspectConsumer",
+  "UiGraphAspectConsumerKind",
+  "UiGraphAspectPublisher",
+  "UiGraphAspectPublisherKind",
+  "UiGraphAttachmentPosture",
+  "UiGraphAuthority",
+  "UiGraphAxisParticipation",
+  "UiGraphClosedSemanticLane",
+  "UiGraphCloseoutGuarantee",
+  "UiGraphCloseoutNonGoal",
+  "UiGraphCloseoutReport",
+  "UiGraphContainmentClaim",
+  "UiGraphCoreIndexContributionSeed",
+  "UiGraphEvidenceRef",
+  "UiGraphEvidenceRefKind",
+  "UiGraphGeneration",
+  "UiGraphGenerationRelation",
+  "UiGraphInspection",
+  "UiGraphInspectionStopPoint",
+  "UiGraphInspectionSupport",
+  "UiGraphInspectionSupportReport",
+  "UiGraphInspectionTarget",
+  "UiGraphInspectionTargetKind",
+  "UiGraphInstantiationDenial",
+  "UiGraphInstantiationLocalDenial",
+  "UiGraphInstantiationLocalDenialKind",
+  "UiGraphInstantiationPlan",
+  "UiGraphLookup",
+  "UiGraphLookupCostClass",
+  "UiGraphLookupFamily",
+  "UiGraphLookupReceipt",
+  "UiGraphLookupSurface",
+  "UiGraphMosaicMembership",
+  "UiGraphMountEligibilityIdentity",
+  "UiGraphMountEligibilityMutation",
+  "UiGraphMountEligibilityMutationKind",
+  "UiGraphMountEligibilityRecord",
+  "UiGraphMountEligibilityRelationship",
+  "UiGraphMountEligibilityReservation",
+  "UiGraphMountEligibilitySeed",
+  "UiGraphMountEligibilityTransition",
+  "UiGraphMutationCommitDenial",
+  "UiGraphMutationCommitResult",
+  "UiGraphNodeIdentity",
+  "UiGraphNodeInstantiationEntry",
+  "UiGraphNodeRecord",
+  "UiGraphPageMembership",
+  "UiGraphPageParticipationMember",
+  "UiGraphPageParticipationMutation",
+  "UiGraphPageParticipationMutationKind",
+  "UiGraphParentResolutionClaim",
+  "UiGraphParticipationAxis",
+  "UiGraphParticipationEvidenceHandle",
+  "UiGraphParticipationMutation",
+  "UiGraphParticipationPosture",
+  "UiGraphParticipationReasonCode",
+  "UiGraphParticipationReasonSource",
+  "UiGraphParticipationSeed",
+  "UiGraphParticipationStatus",
+  "UiGraphRegionMembership",
+  "UiGraphSessionIdentityError",
+  "UiGraphSessionLabel",
+  "UiGraphSlotTopology",
+  "UiGraphSnapshotComparable",
+  "UiGraphTopologyLocalDenial",
+  "UiGraphTopologyRecord",
+  "UiGraphTopologySeed",
+  "UiGraphTouchAspectFact",
+  "UiGraphTouchAspectPosture",
+  "UiGraphTouchAspects",
+  "UiGraphTouchAttachmentLane",
+  "UiGraphTouchAuthority",
+  "UiGraphTouchDenial",
+  "UiGraphTouchDescriptor",
+  "UiGraphTouchOriginClass",
+  "UiGraphTouchOriginReceipt",
+  "UiGraphTouchOriginWitness",
+  "UiGraphTouchRuntimeLane",
+  "UiGraphTouchTarget",
+  "UiGraphTouchTargetClass",
+  "UiGraphTouchTiming",
+  "UiGraphTouchWorld",
+  "UiGraphWorldDifferenceKind",
+  "UiGraphWorldProfile",
+  "UiPreviewSessionIdentity",
+  "UiRepeatedInstanceBasis",
+  "UiRepeatedInstanceBasisDenial",
+  "UiRepeatedInstanceBasisKind",
+  "UiRuntimeDataInstanceKeyKind",
+  "UiRuntimeDataInstanceKeyToken",
+  "UiRuntimeInstanceBasisAdmission",
+]
+
+[[export_group]]
+audience = "inspection"
+source = "facade/inspection.rs"
+stability = "evolving-product-contract"
+authority = "compact read-only evidence"
+caller = "compact-inspection"
+symbols = [
+  "UiAllocationInspectionAnchorPosture",
+  "UiAllocationInspectionAttemptResult",
+  "UiAllocationInspectionAxis",
+  "UiAllocationInspectionBounds",
+  "UiAllocationInspectionCoordinateSpace",
+  "UiAllocationInspectionDenialFamily",
+  "UiAllocationInspectionDeniedAttempt",
+  "UiAllocationInspectionEdgeReference",
+  "UiAllocationInspectionEvidenceFamily",
+  "UiAllocationInspectionEvidenceRef",
+  "UiAllocationInspectionFreshnessPosture",
+  "UiAllocationInspectionGeometry",
+  "UiAllocationInspectionGraphNodeIdentity",
+  "UiAllocationInspectionInvalidationFamily",
+  "UiAllocationInspectionKnowledge",
+  "UiAllocationInspectionNeighborhoodIdentity",
+  "UiAllocationInspectionPlanningBasisIdentity",
+  "UiAllocationInspectionPortalAnchorTargetIdentity",
+  "UiAllocationInspectionReceipt",
+  "UiAllocationInspectionReceiptIdentity",
+  "UiAllocationInspectionReuseDenialPosture",
+  "UiAllocationInspectionReusePosture",
+  "UiAllocationInspectionSelection",
+  "UiAllocationInspectionStreamFamily",
+  "UiAllocationReceiptDenialInspectionReceipt",
+  "UiAllocationReceiptInspectionReceipt",
+  "UiAuthoredSourceProvenanceRef",
+  "UiEvidenceAuthorityArtifactIdentity",
+  "UiEvidenceAuthorityBinding",
+  "UiEvidenceAuthorityGeneration",
+  "UiEvidenceAuthorityKind",
+  "UiEvidenceBudget",
+  "UiEvidenceExpansion",
+  "UiEvidenceExpansionOutcome",
+  "UiEvidenceFamily",
+  "UiEvidenceFamilySummary",
+  "UiEvidenceHandle",
+  "UiEvidenceIdentity",
+  "UiEvidenceLinkKind",
+  "UiEvidenceMaterializationPosture",
+  "UiEvidenceMaterializedDetail",
+  "UiEvidenceRef",
+  "UiEvidenceRetentionPosture",
+  "UiEvidenceRichness",
+  "UiEvidenceSlice",
+  "UiEvidenceSliceOmission",
+  "UiEvidenceSliceRef",
+  "UiInspectionAdmissionHostCapability",
+  "UiInspectionAdmissionPosture",
+  "UiInspectionAdmissionQueryBasis",
+  "UiInspectionAdmissionStaleEvidence",
+  "UiInspectionAiHarness",
+  "UiInspectionAiHarnessLane",
+  "UiInspectionAspectRelevanceDetail",
+  "UiInspectionClosedSemanticLane",
+  "UiInspectionCloseoutGuarantee",
+  "UiInspectionCloseoutNonGoal",
+  "UiInspectionCloseoutReport",
+  "UiInspectionClosureReport",
+  "UiInspectionCostLane",
+  "UiInspectionCostReceipt",
+  "UiInspectionDeclarationIdentity",
+  "UiInspectionDeferredPosture",
+  "UiInspectionDerivedIndexLane",
+  "UiInspectionDiagnosticOnlyPosture",
+  "UiInspectionEvidenceSource",
+  "UiInspectionFacadeObservation",
+  "UiInspectionForeignEvidenceCitation",
+  "UiInspectionForeignEvidenceRef",
+  "UiInspectionMeasurementBasisInput",
+  "UiInspectionMeasurementBasisPosture",
+  "UiInspectionMeasurementBasisSource",
+  "UiInspectionMeasurementDenialPosture",
+  "UiInspectionMeasurementDependencyLineageEntry",
+  "UiInspectionMeasurementDependencyLineageKind",
+  "UiInspectionMeasurementEvidenceCategory",
+  "UiInspectionMeasurementEvidenceSlot",
+  "UiInspectionMeasurementEvidenceView",
+  "UiInspectionMeasurementFailureSource",
+  "UiInspectionMeasurementGenerationCompatibility",
+  "UiInspectionMeasurementNeighborhoodClassHint",
+  "UiInspectionMeasurementOwnershipPosture",
+  "UiInspectionMilestoneExpectation",
+  "UiInspectionObligationDecision",
+  "UiInspectionObligationDenialPosture",
+  "UiInspectionObligationDispatchPosture",
+  "UiInspectionObligationEvidenceReceipt",
+  "UiInspectionObligationFamily",
+  "UiInspectionObligationLegalityReason",
+  "UiInspectionObligationNonSelectionReason",
+  "UiInspectionObligationReasonProjection",
+  "UiInspectionObligationRelevanceDetail",
+  "UiInspectionObligationSelectionReason",
+  "UiInspectionObligationVerdictClass",
+  "UiInspectionObligationVerdictPosture",
+  "UiInspectionPosture",
+  "UiInspectionQuery",
+  "UiInspectionQueryForeignEvidenceArtifactKind",
+  "UiInspectionQueryForeignEvidenceCitation",
+  "UiInspectionQueryForeignEvidenceKind",
+  "UiInspectionQueryForeignEvidenceRef",
+  "UiInspectionReceipt",
+  "UiInspectionRefLifecycleLane",
+  "UiInspectionRelevance",
+  "UiInspectionRelevanceAdmission",
+  "UiInspectionRelevanceOutcome",
+  "UiInspectionScope",
+  "UiInspectionScopeSupportRow",
+  "UiInspectionSliceLane",
+  "UiInspectionSupportPosture",
+  "UiInspectionSupportReason",
+  "UiInspectionSupportReport",
+  "UiInspectionSupportRowSchemaKind",
+  "UiInspectionSupportStatus",
+  "UiInspectionSupportWorld",
+  "UiInspectionTarget",
+  "UiInspectionTargetClass",
+  "UiInspectionTouchAspectPosture",
+  "UiInspectionTouchOriginClass",
+  "UiInspectionTouchRuntimeLane",
+  "UiInspectionTouchTargetClass",
+  "UiInspectionUnsupportedPosture",
+  "UiInspectionWrongWorldPosture",
+  "UiMeasurementInspectionEvidenceBundle",
+  "UiRelevanceFamily",
+  "UiRelevanceFilter",
+]
+
+[[export_group]]
+audience = "measurement_exchange"
+source = "facade/measurement_exchange.rs"
+stability = "evolving-product-contract"
+authority = "typed host measurement exchange"
+caller = "host-measurement"
+symbols = [
+  "UiFontMeasurementKey",
+  "UiHostMeasurementCompletion",
+  "UiHostMeasurementDeadline",
+  "UiHostMeasurementDenial",
+  "UiHostMeasurementIngressDenial",
+  "UiHostMeasurementIntent",
+  "UiHostMeasurementObservation",
+  "UiHostMeasurementObservationContractDenial",
+  "UiHostMeasurementObservationValue",
+  "UiHostMeasurementOutcome",
+  "UiHostMeasurementRequest",
+  "UiHostMeasurementRequestIntent",
+  "UiMeasurementEvidenceFamily",
+  "UiMeasurementRequestFamily",
+  "UiMeasurementRequestIdentity",
+  "UiPortalAnchorRectObservation",
+  "UiPortalAnchorRectRequest",
+  "UiRequestedHostMeasurement",
+  "UiSolicitedHostMeasurementResult",
+  "UiTextIntrinsicSizeObservation",
+  "UiTextIntrinsicSizeRequest",
+  "UiViewportExtentObservation",
+  "UiViewportExtentRequest",
+  "WorthUiHostMeasurementIngress",
+  "WorthUiHostMeasurementSessionExt",
+  "WorthUiMeasurementHostAdapter",
+]
+
+[[export_group]]
+audience = "obligations"
+source = "facade/obligations.rs"
+stability = "evolving-product-contract"
+authority = "typed obligation decisions and receipts"
+caller = "obligation-dispatch"
+symbols = [
+  "UiAdmissionAuthorityHandoff",
+  "UiObligationCheckKind",
+  "UiObligationClosedSemanticLane",
+  "UiObligationCloseoutGuarantee",
+  "UiObligationCloseoutNonGoal",
+  "UiObligationCloseoutReport",
+  "UiObligationDiagnosticProjection",
+  "UiObligationDiagnosticRow",
+  "UiObligationDispatchEntry",
+  "UiObligationDispatchStopPosture",
+  "UiObligationEvidenceDecision",
+  "UiObligationEvidenceDenialPosture",
+  "UiObligationEvidenceHandle",
+  "UiObligationEvidenceHandleKind",
+  "UiObligationEvidencePrerequisiteSource",
+  "UiObligationEvidenceQuery",
+  "UiObligationFamily",
+  "UiObligationFamilyCatalog",
+  "UiObligationNonSelectionReason",
+  "UiObligationSelectionHandoff",
+  "UiObligationSelectionReason",
+  "UiObligationStarterMatrixRowTopology",
+  "UiObligationStarterMatrixTopology",
+  "UiObligationSupportBasis",
+  "UiObligationSupportSelectionPosture",
+  "UiObligationVerdictClass",
+  "UiObligationWorldProfileClass",
+  "UiSelectedObligation",
+]
+
+[[export_group]]
+audience = "observation_report"
+source = "facade/observation_report.rs"
+stability = "evolving-product-contract"
+authority = "typed host observation reports"
+caller = "host-observation"
+symbols = [
+  "UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT",
+  "UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT",
+  "UiDuplicateHostObservationBatch",
+  "UiHostObservationBatch",
+  "UiHostObservationBatchConstructionDenial",
+  "UiHostObservationBatchDisposition",
+  "UiHostObservationBatchInput",
+  "UiHostObservationCanonicalCore",
+  "UiHostObservationCanonicalCoreInput",
+  "UiHostObservationCapacity",
+  "UiHostObservationCapacityInput",
+  "UiHostObservationCoalescingIdentity",
+  "UiHostObservationDisposition",
+  "UiHostObservationFamily",
+  "UiHostObservationFrameRelation",
+  "UiHostObservationIngressDenial",
+  "UiHostObservationIntegrity",
+  "UiHostObservationLoss",
+  "UiHostObservationMountedBasis",
+  "UiHostObservationPayload",
+  "UiHostObservationReport",
+  "UiHostObservationReportDenial",
+  "UiHostObservationReportOutcome",
+  "UiHostObservationSequence",
+  "UiHostObservationSequenceRange",
+  "UiHostObservationTimeBasis",
+  "UiHostObservationWorkReport",
+  "UiHostProtocolAgreement",
+  "UiHostProtocolContract",
+  "UiHostProtocolNegotiation",
+  "UiQuarantinedHostObservationBatch",
+  "UiValidatedHostObservationBatch",
+  "UiValidatedHostObservationReport",
+  "WorthUiHostObservationIngress",
+  "WorthUiHostObservationSessionExt",
+]
+
+[[export_group]]
+audience = "query_binding"
+source = "facade/query_binding.rs"
+stability = "evolving-product-contract"
+authority = "authored Query binding declarations"
+caller = "installed-query-view"
+symbols = [
+  "WorthUiInstalledQueryDomain",
+  "WorthUiInstalledQueryView",
+  "WorthUiInstalledSnapshotQueryView",
+  "WorthUiQueryBindingRegistrationDenial",
+  "WorthUiQueryBindingRegistrationDenialKind",
+  "WorthUiQueryViewDeclarationDenial",
+  "WorthUiQueryViewDefinition",
+  "WorthUiQueryViewIdentity",
+  "WorthUiQueryViewIdentityError",
+  "WorthUiQueryViewLifecycle",
+  "WorthUiQueryViewRegistration",
+  "WorthUiQueryViewRegistrationError",
+  "WorthUiQueryViewShape",
+]
+
+[[export_group]]
+audience = "source"
+source = "facade/source.rs"
+stability = "evolving-product-contract"
+authority = "authored source acquisition and candidate ingress"
+caller = "authored-source-ingress"
+symbols = [
+  "WorthUiCandidateComposition",
+  "WorthUiCandidateCompositionBasis",
+  "WorthUiCandidateOrderingReceipt",
+  "WorthUiFilesystemSourceAcquisitionDenial",
+  "WorthUiFilesystemSourceProvider",
+  "WorthUiFilesystemSourceWatcher",
+  "WorthUiFilesystemWatcherBackend",
+  "WorthUiFilesystemWatcherDenial",
+  "WorthUiFilesystemWatcherReadiness",
+  "WorthUiFilesystemWatcherShutdownReceipt",
+  "WorthUiReloadDebounce",
+  "WorthUiSemanticHandoffEvidence",
+  "WorthUiSemanticHandoffPreparationDenial",
+  "WorthUiSemanticHandoffPreparationStop",
+  "WorthUiSettledSourceSnapshot",
+  "WorthUiSourceEventIngress",
+  "WorthUiSourceEventIngressSession",
+  "WorthUiSourceIngressCounters",
+  "WorthUiSourceIngressDenial",
+  "WorthUiSourceIngressDenialReason",
+  "WorthUiSourceIngressExt",
+  "WorthUiSourcePackageRevision",
+  "WorthUiSourceProvider",
+  "WorthUiSourceProviderKind",
+  "WorthUiWatchedCandidateSubmission",
+  "WorthUiWatchedCandidateSubmissionDenial",
+  "WorthUiWatcherEvent",
+]
+
+[[export_group]]
+audience = "support"
+source = "facade/support.rs"
+stability = "evolving-product-contract"
+authority = "capability support classification"
+caller = "capability-support"
+symbols = [
+  "AdmittedCapability",
+  "AmbientHostCheck",
+  "ArbitraryKeyValueSettingBag",
+  "CapabilityIdError",
+  "CapabilitySupportId",
+  "CapabilitySupportKind",
+  "CapabilitySupportPosture",
+  "CapabilitySupportRejection",
+  "DeferredCapability",
+  "FrozenCapabilityFamily",
+  "RegistryFamily",
+  "RegistryFamilyFacadeExposure",
+  "RegistryFamilyInventoryAudit",
+  "RegistryFamilyLifecyclePropagation",
+  "RUNTIME_SUPPORT_INVENTORY",
+  "SupportRequirement",
+  "SupportSnapshot",
+  "UnsupportedCapability",
+  "WorthUiRuntimeSupportInventory",
+]

@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind},
+    declaration::{MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind},
 };
 
 fn main() {

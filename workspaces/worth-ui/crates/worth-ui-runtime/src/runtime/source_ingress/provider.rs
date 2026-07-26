@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::source::WorthUiRustAuthoredArtifactInput;
+use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthUiSourceProvider {

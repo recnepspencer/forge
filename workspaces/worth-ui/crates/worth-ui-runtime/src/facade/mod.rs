@@ -33,6 +33,8 @@ mod retained_obligation_registry;
 pub mod runtime_handoff;
 pub mod source_ingress;
 
+#[cfg(test)]
+pub(crate) use crate::declaration::WorthUiRustAuthoredDeclarationFixture;
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 
 pub use entry::{
@@ -41,16 +43,16 @@ pub use entry::{
     WorthUiActiveFrameworkTurnCompletion, WorthUiActiveFrameworkTurnExecution,
     WorthUiActiveInspectionReceipt, WorthUiActiveOrdinaryFrameCompletion,
     WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion,
-    WorthUiAllocationCatalogActivationDenial, WorthUiApp, WorthUiAppBuilder,
+    WorthUiAllocationCatalogActivationDenial, WorthUiApp, WorthUiApplicationBuilder,
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
     WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
-    WorthUiApplicationSemanticNoOpReceipt, WorthUiBuilder, WorthUiCandidateInspectionReceipt,
+    WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,
     WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementOutcome, WorthUiMountedFrameExecutionStop,
-    WorthUiMountedLaneProjectionDenial, WorthUiMountedPreviewAdmissionRejection,
-    WorthUiMountedPreviewCompletionRejection, WorthUiMountedPreviewDisposition,
-    WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
+    WorthUiMountedFrameFrameworkTransitionStop, WorthUiMountedLaneProjectionDenial,
+    WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
+    WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
     WorthUiMountedPreviewRetentionRejection, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
@@ -68,4 +70,3 @@ pub use host_session_authority::{
     WorthUiHostSessionIdentity,
 };
 pub use lifecycle::{WorthUiRuntimeSupportInventory, RUNTIME_SUPPORT_INVENTORY};
-pub use worth_ui_dsl::WorthUiDslPackage;

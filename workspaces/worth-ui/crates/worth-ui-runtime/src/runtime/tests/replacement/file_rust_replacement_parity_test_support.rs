@@ -96,7 +96,7 @@ fn candidate_for_artifact(
             artifact,
             app.capabilities().digest(),
             WorthUiReplacementCause::file_source_change(
-                crate::source::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(
+                worth_ui_dsl::WorthUiSourceModuleId::from_relative_path(std::path::Path::new(
                     "app/main.wui",
                 ))
                 .expect("test source module identity should be valid"),

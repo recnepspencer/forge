@@ -23,6 +23,7 @@ mod legacy_surface_residue;
 mod lifecycle_propagation;
 mod measurement_boundary_audit;
 mod measurement_growth_posture_audit;
+mod milestone_3101_inventory;
 mod milestone_37_structural_inventory_audit;
 mod obligation_boundary_audit;
 mod obligation_residue_audit;
@@ -104,6 +105,7 @@ pub use measurement_growth_posture_audit::{
     audit_measurement_basis_artifact_growth_posture,
     audit_measurement_future_family_extension_home, audit_measurement_future_growth_posture,
 };
+pub use milestone_3101_inventory::audit_milestone_3101_inventory;
 pub use milestone_37_structural_inventory_audit::{
     audit_milestone_37_structural_inventory, milestone_37_active_failure_modes,
     milestone_37_cleared_finding_ids, milestone_37_critical_finding_ids,

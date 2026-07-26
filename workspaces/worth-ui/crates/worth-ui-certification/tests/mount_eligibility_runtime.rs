@@ -5,9 +5,12 @@ use worth_ui::facade::graph::{
     UiGraphMountEligibilityRelationship, UiGraphParticipationAxis, UiGraphParticipationStatus,
     UiGraphWorldProfile,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
@@ -224,10 +227,12 @@ fn artifact_from_file_provenance<'a>(
 
 fn mount_eligibility_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.mount-eligibility")
-                .with_semantic_artifact_spec(control_spec())
-                .with_semantic_artifact_spec(region_spec()),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.mount-eligibility",
+            )
+            .with_semantic_artifact_spec(control_spec())
+            .with_semantic_artifact_spec(region_spec()),
         )
         .freeze()
         .expect("application preparation should succeed")

@@ -1,4 +1,4 @@
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     SettingDefaultPosture, SettingDefaultValue, SettingDescriptor, SettingEditorHint, SettingId,
     SettingMigrationPosture, SettingOwnershipMetadata, SettingScope, SettingValidationPosture,
     SettingValueSchema,

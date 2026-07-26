@@ -17,6 +17,7 @@ pub(crate) fn reconciliation_basis_digest(
     for receipt in receipts {
         fold.fold_text(receipt.identity_basis());
         fold_family_id(&mut fold, receipt.family_id());
+        fold.fold_u64(receipt.family_contract_digest());
         fold_outcome(&mut fold, receipt.outcome());
         if let Some(carry_forward) = receipt.carry_forward() {
             fold.fold_tag(0xcafe);

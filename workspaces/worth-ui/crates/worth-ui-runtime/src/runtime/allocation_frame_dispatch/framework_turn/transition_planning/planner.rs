@@ -7,6 +7,11 @@ use super::{
 
 pub(in crate::runtime::allocation_frame_dispatch::framework_turn) enum UiFrameworkTransitionPlanningDisposition
 {
+    NoIngress {
+        active_generation:
+            crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+        active_frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch,
+    },
     Planned(Box<UiPlannedFrameworkTransition>),
     FrameResolutionDenied(crate::runtime::UiAllocationFrameRejection),
     InvalidationNarrowingDenied(crate::runtime::UiAllocationInvalidationNarrowingRejection),
@@ -30,12 +35,10 @@ pub(in crate::runtime::allocation_frame_dispatch::framework_turn) fn plan_framew
 ) -> UiFrameworkTransitionPlanningDisposition {
     match turn {
         super::super::UiAllocationFrameTurnOutcome::NoAdmittedIngress { .. } => {
-            UiFrameworkTransitionPlanningDisposition::Planned(Box::new(
-                UiPlannedFrameworkTransition::no_ingress(
-                    active_generation.clone(),
-                    active_frame_epoch,
-                ),
-            ))
+            UiFrameworkTransitionPlanningDisposition::NoIngress {
+                active_generation: active_generation.clone(),
+                active_frame_epoch,
+            }
         }
         super::super::UiAllocationFrameTurnOutcome::Denied { denial, counters } => {
             UiFrameworkTransitionPlanningDisposition::DispatchDenied { denial, counters }

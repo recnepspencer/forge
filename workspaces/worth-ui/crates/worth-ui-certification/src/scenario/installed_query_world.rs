@@ -1,6 +1,6 @@
 //! Canonical immutable Query world used by graph-world certification scenarios.
 
-use worth_ui::facade::{graph::UiGraphWorldProfile, registry::ViewBindingId};
+use worth_ui::facade::{declaration::ViewBindingId, graph::UiGraphWorldProfile};
 
 /// Derive a settled Query graph world from a real installed Query view.
 ///

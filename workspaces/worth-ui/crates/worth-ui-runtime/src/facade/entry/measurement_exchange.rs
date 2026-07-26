@@ -1,21 +1,22 @@
 use super::WorthUiActiveApplicationSession;
 
 impl WorthUiActiveApplicationSession {
-    pub fn host_measurement_ingress(
+    pub(crate) fn host_measurement_ingress(
         &self,
     ) -> crate::facade::measurement_exchange::WorthUiHostMeasurementIngress {
-        self.host_measurements.ingress()
+        self.host_exchange.measurement_ingress()
     }
 
-    pub fn begin_host_measurement(
+    pub(crate) fn begin_host_measurement(
         &mut self,
         intent: crate::facade::measurement_exchange::UiHostMeasurementIntent,
         now: u64,
     ) -> crate::facade::measurement_exchange::UiHostMeasurementOutcome {
         if let Some(binding) = intent.binding() {
-            if self.mounted_identity.validate_binding(binding).is_err()
+            if self.mounted.validate_binding(binding).is_err()
                 || self
-                    .mounted_presentation
+                    .mounted
+                    .observation_validation_basis()
                     .binding_requires_reconciliation(binding)
             {
                 return denied(
@@ -24,57 +25,63 @@ impl WorthUiActiveApplicationSession {
             }
         }
         let current = self.measurement_truth(true);
-        self.host_measurements
-            .begin(intent, current, self.host_session.capability_report(), now)
+        self.host_exchange.begin_measurement(
+            intent,
+            current,
+            self.host_session.capability_report(),
+            now,
+        )
     }
 
-    pub fn complete_host_measurement(
+    pub(crate) fn complete_host_measurement(
         &mut self,
         observation: worth_ui_host_contract::UiHostMeasurementObservation,
         now: u64,
     ) -> crate::facade::measurement_exchange::UiHostMeasurementOutcome {
         let binding_is_live = self
-            .host_measurements
-            .pending_binding(observation.request_identity())
+            .host_exchange
+            .pending_measurement_binding(observation.request_identity())
             .is_none_or(|binding| {
                 binding.is_none_or(|binding| {
-                    self.mounted_identity.validate_binding(binding).is_ok()
+                    self.mounted.validate_binding(binding).is_ok()
                         && !self
-                            .mounted_presentation
+                            .mounted
+                            .observation_validation_basis()
                             .binding_requires_reconciliation(binding)
                 })
             });
         let current = self.measurement_truth(binding_is_live);
-        self.host_measurements.complete(observation, current, now)
+        self.host_exchange
+            .complete_measurement(observation, current, now)
     }
 
-    pub fn cancel_host_measurement(
+    pub(crate) fn cancel_host_measurement(
         &mut self,
         identity: worth_ui_host_contract::UiMeasurementRequestIdentity,
     ) -> crate::facade::measurement_exchange::UiHostMeasurementOutcome {
-        self.host_measurements.cancel(identity)
+        self.host_exchange.cancel_measurement(identity)
     }
 
-    pub fn expire_host_measurements(
+    pub(crate) fn expire_host_measurements(
         &mut self,
         now: u64,
     ) -> Box<[crate::facade::measurement_exchange::UiHostMeasurementOutcome]> {
-        self.host_measurements.expire(now)
+        self.host_exchange.expire_measurements(now)
     }
 
-    pub fn pending_host_measurement_count(&self) -> usize {
-        self.host_measurements.pending_count()
+    pub(crate) fn pending_host_measurement_count(&self) -> usize {
+        self.host_exchange.pending_measurement_count()
     }
 
-    pub fn pending_host_measurement_bytes(&self) -> usize {
-        self.host_measurements.pending_bytes()
+    pub(crate) fn pending_host_measurement_bytes(&self) -> usize {
+        self.host_exchange.pending_measurement_bytes()
     }
 
-    pub fn complete_enqueued_host_measurements(
+    pub(crate) fn complete_enqueued_host_measurements(
         &mut self,
     ) -> Box<[crate::facade::measurement_exchange::UiHostMeasurementOutcome]> {
-        self.host_measurements
-            .drain_ingress()
+        self.host_exchange
+            .drain_measurement_ingress()
             .into_iter()
             .map(|completion| {
                 self.complete_host_measurement(
@@ -92,7 +99,7 @@ impl WorthUiActiveApplicationSession {
     ) -> crate::host_exchange::measurement_admission::UiHostMeasurementCurrentTruth {
         crate::host_exchange::measurement_admission::UiHostMeasurementCurrentTruth::new(
             self.host_session.identity().as_u64(),
-            self.runtime.allocation_truth_revision(),
+            self.application.allocation_truth_revision(),
             self.host_session
                 .output_adapter()
                 .measurement_environment_report(),

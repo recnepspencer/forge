@@ -50,8 +50,7 @@ pub use worth_ui_runtime::facade::evidence::{
     UiEvidenceExpansion, UiEvidenceFamilySummary, UiEvidenceHandle, UiEvidenceIdentity,
     UiEvidenceMaterializedDetail, UiEvidenceRef, UiEvidenceSlice, UiEvidenceSliceRef,
     UiInspectionCostReceipt, UiInspectionObligationEvidenceReceipt,
-    UiInspectionObligationReasonProjection, WorthUiFrameReportMaterializationBoundary,
-    WorthUiSteadyFrameReportPlanner,
+    UiInspectionObligationReasonProjection,
 };
 pub use worth_ui_runtime::facade::inspection_bridge::{
     UiInspectionAiHarness, UiInspectionClosureReport, UiInspectionFacadeObservation,

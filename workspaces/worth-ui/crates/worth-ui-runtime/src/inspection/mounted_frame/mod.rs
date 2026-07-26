@@ -24,11 +24,8 @@ pub(crate) fn inspect(
 }
 
 pub(crate) fn retention_report(
-    retention: &crate::mounting::UiMountedFrameRetentionCoordinator,
-    observations: &crate::host_exchange::observation_report_validation::UiHostObservationReportValidation,
+    mounted: crate::mounting::UiMountedFrameRetentionSnapshot,
+    observations: crate::host_exchange::observation_report_validation::UiHostObservationRetentionSnapshot,
 ) -> UiMountedRetentionReport {
-    retention_report::compose(
-        retention.retention_snapshot(),
-        observations.retention_snapshot(),
-    )
+    retention_report::compose(mounted, observations)
 }

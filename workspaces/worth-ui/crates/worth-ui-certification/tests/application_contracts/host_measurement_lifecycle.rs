@@ -1,17 +1,22 @@
 use worth_ui::facade::app::{
     WorthUiMountedApplicationReplacementOutcome, WorthUiMountedReplacementPreparationOutcome,
 };
+use worth_ui::facade::measurement_exchange::WorthUiHostMeasurementSessionExt;
 use worth_ui::facade::measurement_exchange::{
     UiFontMeasurementKey, UiHostMeasurementDeadline, UiHostMeasurementDenial,
     UiHostMeasurementIntent, UiHostMeasurementObservation, UiHostMeasurementObservationValue,
     UiHostMeasurementOutcome, UiHostMeasurementRequest, UiHostMeasurementRequestIntent,
     UiMeasurementEvidenceFamily, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
 };
-use worth_ui::facade::mounted::{
-    UiHostSurfacePresentationMode, UiMountedFrameRequest, UiPresentationDeadline,
-};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
+};
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiMountedFrameRequest, UiPresentationDeadline,
+};
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiMountedIdentityCertificationExt,
 };
 
 use super::host_measurement_fixture::{

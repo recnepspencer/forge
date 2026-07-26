@@ -1,7 +1,6 @@
 use worth_ui::facade::{
     app::{WorthUi, WorthUiApp},
-    diagnostics::CapabilityRegistrationReport,
-    registry::{
+    declaration::{
         CommandCategory, CommandDescriptor, CommandId, ComponentChildPolicy, ComponentDescriptor,
         ComponentId, ComponentPropSchema, ComponentStateOwnership, SettingDefaultPosture,
         SettingDefaultValue, SettingDescriptor, SettingEditorHint, SettingId,
@@ -11,6 +10,7 @@ use worth_ui::facade::{
         TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,
         TaskPresentationRuntimeAuthorityPosture,
     },
+    diagnostics::CapabilityRegistrationReport,
 };
 
 pub(crate) fn empty_app() -> WorthUiApp {

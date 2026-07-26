@@ -4,11 +4,7 @@ mod artifact_equivalence;
 #[cfg(test)]
 mod artifact_inspection;
 mod binding_semantics;
-mod file_authored;
 mod identity_seeding;
-mod rust_authored;
-#[cfg(test)]
-mod rust_composition;
 mod snapshot_bound;
 mod structural_legality;
 
@@ -37,7 +33,6 @@ pub(crate) use binding_semantics::{
     WorthUiBindingDiagnostic, WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsLowerer,
     WorthUiBindingSemanticsMetrics, WorthUiBindingSemanticsReport,
 };
-pub(crate) use file_authored::WorthUiParsedSourceToArtifactInputLowerer;
 #[cfg(test)]
 pub(crate) use identity_seeding::{
     WorthUiIdentityReplacementClassifier, WorthUiIdentitySeedingDiagnosticCode,
@@ -45,13 +40,6 @@ pub(crate) use identity_seeding::{
 pub(crate) use identity_seeding::{
     WorthUiIdentitySeedLowerer, WorthUiIdentitySeedingDiagnostic, WorthUiIdentitySeedingMetrics,
     WorthUiIdentitySeedingReport,
-};
-pub(crate) use rust_authored::WorthUiRustAuthoredToArtifactInputLowerer;
-pub use rust_authored::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
-#[cfg(test)]
-pub(crate) use rust_composition::{
-    WorthUiRustCompositionInput, WorthUiRustCompositionMetrics, WorthUiRustCompositionModule,
-    WorthUiRustCompositionReport, WorthUiRustCompositionToArtifactInputLowerer,
 };
 pub(crate) use snapshot_bound::{
     WorthUiArtifactInputResolver, WorthUiResolutionDiagnostic, WorthUiResolutionDiagnosticCode,

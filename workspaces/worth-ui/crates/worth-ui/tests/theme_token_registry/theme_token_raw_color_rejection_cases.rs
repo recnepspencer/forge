@@ -1,10 +1,10 @@
 use worth_ui::facade::{
     app::WorthUi,
-    diagnostics::CapabilityDiagnosticCode,
-    registry::{
+    declaration::{
         RawColorOutsideTokenDefinition, ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily,
         ThemeTokenSource, ThemeTokenValue,
     },
+    diagnostics::CapabilityDiagnosticCode,
 };
 
 use super::theme_token_assertions::assert_diagnostic_codes;

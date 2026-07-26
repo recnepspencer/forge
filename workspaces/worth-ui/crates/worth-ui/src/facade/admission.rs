@@ -3,5 +3,5 @@ pub use worth_ui_runtime::facade::admission::{
     UiAdmissionHostCapability, UiAdmissionOutcome, UiAdmissionQueryBasis, UiAdmissionReport,
     UiAdmissionSelectionBudget, UiAdmissionStaleEvidence, UiAdmissionTarget, UiAdmissionWorld,
     UiLegalityDecision, UiLegalityPosture, UiLegalityReason, UiSupportPosture, UiSupportReason,
-    UiSupportSnapshot,
+    UiSupportSnapshot, WorthUiAdmissionExt,
 };

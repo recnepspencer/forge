@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    registry::{NativeCapabilityDescriptor, NativeCapabilityFamily, NativeCapabilityId, NativePlatformPosture},
+    declaration::{NativeCapabilityDescriptor, NativeCapabilityFamily, NativeCapabilityId, NativePlatformPosture},
 };
 
 fn main() {

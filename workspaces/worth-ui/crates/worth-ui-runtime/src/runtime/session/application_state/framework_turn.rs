@@ -1,0 +1,57 @@
+use super::WorthUiApplicationSessionState;
+use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
+use crate::graph::UiGraphAuthority;
+use crate::runtime::{WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion};
+
+pub(crate) struct WorthUiApplicationFrameworkTurnCompletion<'session> {
+    generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    graph: UiGraphAuthority<'session>,
+    active_plan_digest: u64,
+    completion: WorthUiFrameworkTurnCompletion<'session>,
+}
+
+impl WorthUiApplicationSessionState {
+    pub(crate) fn execute_framework_turn(
+        &mut self,
+        collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
+    ) -> WorthUiApplicationFrameworkTurnCompletion<'_> {
+        let generation_identity = self.app.generation_identity().clone();
+        let graph = self.app.graph();
+        let active_plan_digest = self.runtime.active.active_plan_ref().digest().as_u64();
+        let completion = self.runtime.execute_framework_turn(collect_sources);
+        WorthUiApplicationFrameworkTurnCompletion {
+            generation_identity,
+            graph,
+            active_plan_digest,
+            completion,
+        }
+    }
+
+    pub(crate) fn prepare_empty_activation_boundary(
+        &mut self,
+    ) -> Result<crate::runtime::WorthUiFrameBoundary, ()> {
+        self.runtime
+            .execute_framework_turn(|_| {})
+            .into_execution()
+            .map(|execution| execution.into_activation_boundary())
+            .map_err(|_| ())
+    }
+}
+
+impl<'session> WorthUiApplicationFrameworkTurnCompletion<'session> {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        WorthUiPreparedApplicationGenerationIdentity,
+        UiGraphAuthority<'session>,
+        u64,
+        WorthUiFrameworkTurnCompletion<'session>,
+    ) {
+        (
+            self.generation_identity,
+            self.graph,
+            self.active_plan_digest,
+            self.completion,
+        )
+    }
+}

@@ -65,6 +65,12 @@ error[E0624]: associated function `admit` is private
 error[E0624]: associated function `admit` is private
  --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
 
+error[E0308]: mismatched types
+ --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
+ note: expected reference `&UiDslSemanticArtifact`
+   found reference `&UiDslLoweringReceipt`
+ note: associated function defined here
+
 error[E0624]: associated function `new` is private
  --> tests/ui/declaration_aspect/external_callers_cannot_construct_aspect_contracts.rs
 
@@ -98,9 +104,14 @@ error[E0061]: this function takes 4 arguments but 3 arguments were supplied
  note: associated function defined here
  help: provide the argument
 
-error[E0599]: no method named `with_admitted_semantic_artifact` found for struct `WorthUiDslPackage` in the current scope
- --> tests/ui/declaration/external_callers_cannot_seed_dsl_package_with_semantic_artifact.rs
- help: there is a method `admit_semantic_artifact` with a similar name
+error: cannot construct `WorthUiSealedSemanticPackage` with struct literal syntax due to private fields
+ --> tests/ui/declaration/external_callers_cannot_forge_or_bypass_semantic_package.rs
+
+error[E0599]: no method named `with_artifact_input` found for struct `WorthUiApplicationBuilder` in the current scope
+ --> tests/ui/declaration/external_callers_cannot_forge_or_bypass_semantic_package.rs
+
+error[E0599]: no method named `with_declarations` found for struct `WorthUiApplicationBuilder` in the current scope
+ --> tests/ui/declaration/external_callers_cannot_forge_or_bypass_semantic_package.rs
 
 error[E0624]: associated function `new` is private
  --> tests/ui/declaration_posture/external_callers_cannot_construct_declared_posture_contracts.rs

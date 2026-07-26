@@ -12,7 +12,7 @@ use worth_ui_inspection::{
 use super::UiGraphNodeEvidenceIndex;
 use crate::declaration::UiDeclarationArtifact;
 use crate::evidence::UiEvidenceRef;
-use crate::facade::{WorthUi, WorthUiApp, WorthUiDslPackage};
+use crate::facade::{WorthUi, WorthUiApp, WorthUiRustAuthoredDeclarationFixture};
 use crate::graph::UiGraphNodeIdentity;
 
 const ALPHA_MODULE_PATH: &str = "app/graph_node_alpha.wui";
@@ -196,18 +196,20 @@ fn rebuilding_graph_node_index_from_authority_preserves_public_lookup_answers() 
 
 fn graph_identity_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.graph-node-evidence-index")
-                .with_semantic_artifact_spec(control_spec(
-                    "ui.workflow.graph_identity.alpha",
-                    ALPHA_MODULE_PATH,
-                    "query-binding:attached:view",
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "ui.workflow.graph_identity.beta",
-                    BETA_MODULE_PATH,
-                    "service:portal",
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.graph-node-evidence-index",
+            )
+            .with_semantic_artifact_spec(control_spec(
+                "ui.workflow.graph_identity.alpha",
+                ALPHA_MODULE_PATH,
+                "query-binding:attached:view",
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "ui.workflow.graph_identity.beta",
+                BETA_MODULE_PATH,
+                "service:portal",
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")

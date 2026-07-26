@@ -1,6 +1,7 @@
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -320,18 +321,20 @@ pub(crate) fn control_app(
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
         .with_graph_world_profile(world_profile)
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.runtime.graph.allocation-constraint")
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.control.primary",
-                    0,
-                    operator_token,
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "workflow_editor.control.sibling",
-                    1,
-                    operator_token,
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.runtime.graph.allocation-constraint",
+            )
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.control.primary",
+                0,
+                operator_token,
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "workflow_editor.control.sibling",
+                1,
+                operator_token,
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")

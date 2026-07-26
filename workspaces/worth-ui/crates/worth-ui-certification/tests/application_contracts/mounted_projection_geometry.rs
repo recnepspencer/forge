@@ -1,11 +1,13 @@
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedCanonicalBoxInput, UiMountedClipProjection,
     UiMountedClipReference, UiMountedClipRow, UiMountedClipTable, UiMountedCoordinateSpace,
     UiMountedFrameRequest, UiMountedGeometryDenial, UiMountedGeometryPosture,
     UiMountedLayerProjection, UiMountedLayerRow, UiMountedLayerTable,
     UiMountedTableProjectionStatus, UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile,
 };
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 use worth_ui_test_support::WorthUiMountedFrameExecutionCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{
     active_session, first_node, registered_surface,
@@ -14,13 +16,15 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
 #[test]
 fn canonical_geometry_rejects_invalid_values_and_names_known_posture() {
     let canonical = |x, y, width, height, coordinate_space| {
-        worth_ui::facade::mounted::UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
-            x,
-            y,
-            width,
-            height,
-            coordinate_space,
-        })
+        worth_ui_runtime::facade::mounted::UiMountedCanonicalBox::canonicalize(
+            UiMountedCanonicalBoxInput {
+                x,
+                y,
+                width,
+                height,
+                coordinate_space,
+            },
+        )
     };
     assert_eq!(
         canonical(f32::NAN, 0.0, 1.0, 1.0, UiMountedCoordinateSpace::Viewport),
@@ -52,7 +56,7 @@ fn canonical_geometry_rejects_invalid_values_and_names_known_posture() {
 
 #[test]
 fn portable_clip_and_layer_tables_preserve_nested_and_overlay_meaning() {
-    let outer = worth_ui::facade::mounted::UiMountedCanonicalBox::canonicalize(
+    let outer = worth_ui_runtime::facade::mounted::UiMountedCanonicalBox::canonicalize(
         UiMountedCanonicalBoxInput {
             x: 0.0,
             y: 0.0,
@@ -62,7 +66,7 @@ fn portable_clip_and_layer_tables_preserve_nested_and_overlay_meaning() {
         },
     )
     .unwrap();
-    let inner = worth_ui::facade::mounted::UiMountedCanonicalBox::canonicalize(
+    let inner = worth_ui_runtime::facade::mounted::UiMountedCanonicalBox::canonicalize(
         UiMountedCanonicalBoxInput {
             x: 24.0,
             y: 48.0,

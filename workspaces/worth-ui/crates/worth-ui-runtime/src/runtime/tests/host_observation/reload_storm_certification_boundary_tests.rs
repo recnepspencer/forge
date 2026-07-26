@@ -230,6 +230,26 @@ fn declaration_bearing_reload_storm_retains_whole_compositions_pending_cutover()
         file_iteration.composition_basis(),
         rust_iteration.composition_basis()
     );
+    assert_eq!(
+        file_iteration
+            .composition_basis()
+            .semantic_handoff()
+            .identity(),
+        rust_iteration
+            .composition_basis()
+            .semantic_handoff()
+            .identity()
+    );
+    assert_ne!(
+        file_iteration
+            .composition_basis()
+            .semantic_handoff()
+            .authored_mode(),
+        rust_iteration
+            .composition_basis()
+            .semantic_handoff()
+            .authored_mode()
+    );
     assert_ne!(
         file_iteration.authoring_lane(),
         rust_iteration.authoring_lane()

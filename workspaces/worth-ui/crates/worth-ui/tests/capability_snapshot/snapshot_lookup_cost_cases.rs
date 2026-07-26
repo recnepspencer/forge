@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{
+    declaration::{
         CommandProjectionId, MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId,
         MosaicStateSlotId, PluginSlotId, RuntimeOutcomeProjectionId, SettingId, SurfaceId,
         TaskPresentationId, ThemeTokenId, ViewBindingId,

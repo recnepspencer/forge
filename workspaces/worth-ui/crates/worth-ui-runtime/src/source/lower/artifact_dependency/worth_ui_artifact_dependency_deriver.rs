@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use worth_ui_dsl::WorthUiSourceModuleId;
 
 use crate::capability::SurfaceId;
 use crate::source::{
@@ -8,7 +9,7 @@ use crate::source::{
     WorthUiArtifactDependencyReport, WorthUiArtifactDependencyTarget, WorthUiArtifactHandle,
     WorthUiArtifactImpactMetadata, WorthUiArtifactNode, WorthUiArtifactSubtreeDigest,
     WorthUiIncrementalInvalidationBasis, WorthUiMosaicRegionFacts, WorthUiMosaicStructureFacts,
-    WorthUiRuntimeDependencyHook, WorthUiSourceModuleId,
+    WorthUiRuntimeDependencyHook,
 };
 
 use super::worth_ui_artifact_dependency_index_builder::{

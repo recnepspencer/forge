@@ -1,4 +1,4 @@
-use crate::source::{WorthUiArtifactInputProvenance, WorthUiSourceSpan};
+use worth_ui_dsl::{WorthUiArtifactInputProvenance, WorthUiSourceSpan};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum WorthUiArtifactSourceOrigin {

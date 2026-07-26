@@ -1,9 +1,5 @@
-use worth_ui::facade::app::{UiAllocationCatalogRowDisposition, WorthUi, WorthUiBuilder};
-use worth_ui::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiOperationalHostAdapter,
-};
-use worth_ui::facade::registry::{
+use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::declaration::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
     MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
@@ -22,6 +18,14 @@ use worth_ui_host_contract::{
     UiHostMeasurementObservationValue, UiHostMeasurementRequest, UiMeasurementRequestFamily,
     UiPortalAnchorRectObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
     WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
+use worth_ui_runtime::facade::application::UiAllocationCatalogRowDisposition;
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiOperationalHostAdapter,
+};
+use worth_ui_test_support::{
+    WorthUiApplicationBuilderCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -140,7 +144,7 @@ fn filesystem_submission(
 
 fn boundary(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::runtime::WorthUiFrameBoundary {
+) -> worth_ui_runtime::facade::execution::WorthUiFrameBoundary {
     session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")
@@ -163,11 +167,11 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
         .expect("real-file application should prepare")
 }
 
-fn builder() -> WorthUiBuilder {
+fn builder() -> WorthUiApplicationBuilder {
     WorthUi::app()
         .with_host(MultiRemovalHost)
         .with_graph_world_profile(installed_query_world::settled_query_world_profile(
-            worth_ui::facade::registry::ViewBindingId::new("multi.removal.filesystem").unwrap(),
+            worth_ui::facade::declaration::ViewBindingId::new("multi.removal.filesystem").unwrap(),
             "worth-ui.phase14.filesystem.multi-removal",
         ))
         .register_component(component(BASE))

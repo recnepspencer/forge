@@ -1,4 +1,4 @@
-use worth_ui::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBindingGeneration};
+use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationCanonicalCore, UiHostObservationCanonicalCoreInput,
     UiHostObservationIngressDenial, UiHostObservationIntegrity, UiHostObservationLoss,
@@ -12,6 +12,7 @@ use worth_ui_host_contract::{
     UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiMountedFrameSchemaVersion,
     UiMountedPresentationSchemaVersion,
 };
+use worth_ui_runtime::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBindingGeneration};
 
 use super::host_observation_fixture::{batch, pointer, report, source};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;

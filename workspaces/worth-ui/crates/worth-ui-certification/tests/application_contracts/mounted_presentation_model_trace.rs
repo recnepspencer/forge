@@ -1,4 +1,4 @@
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfaceCancellationOutcome, UiMountedFrameOutcome, UiPresentationDeadline,
 };
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
@@ -104,7 +104,7 @@ pub(crate) fn assert_model_outcome(model: &ModelPresentation, outcome: &UiMounte
 
 fn expect_in_flight(
     outcome: UiMountedFrameOutcome,
-) -> worth_ui::facade::mounted::UiMountedPresentationInFlight {
+) -> worth_ui_runtime::facade::mounted::UiMountedPresentationInFlight {
     match outcome {
         UiMountedFrameOutcome::InFlight(value) => value,
         _ => panic!("scripted pending presentation remains in flight"),

@@ -1,4 +1,7 @@
 use std::collections::BTreeSet;
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 
 use worth_ui::facade::app::{WorthUi, WorthUiApp};
 use worth_ui::facade::inspection::{
@@ -8,7 +11,7 @@ use worth_ui::facade::inspection::{
 };
 use worth_ui_dsl::{
     UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
 };
 use worth_ui_runtime::facade::graph::{
     project_aspect_evidence_refs, UiAspectEvidenceLane, UiAspectEvidenceRefProjection,
@@ -22,42 +25,44 @@ use super::{
 
 pub fn aspect_identity_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.aspect-evidence-lookup")
-                .with_semantic_artifact_spec(
-                    control_spec(
-                        "ui.workflow.aspect.alpha",
-                        ALPHA_MODULE_PATH,
-                        "query-binding:attached:view",
-                    )
-                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
-                    .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.aspect-evidence-lookup",
+            )
+            .with_semantic_artifact_spec(
+                control_spec(
+                    "ui.workflow.aspect.alpha",
+                    ALPHA_MODULE_PATH,
+                    "query-binding:attached:view",
                 )
-                .with_semantic_artifact_spec(
-                    control_spec(
-                        "ui.workflow.aspect.beta",
-                        BETA_MODULE_PATH,
-                        "service:portal",
-                    )
-                    .with_published_aspect(UiDslAspectName::new(COMPETING_PUBLISHED_ASPECT)),
+                .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
+                .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+            )
+            .with_semantic_artifact_spec(
+                control_spec(
+                    "ui.workflow.aspect.beta",
+                    BETA_MODULE_PATH,
+                    "service:portal",
                 )
-                .with_semantic_artifact_spec(
-                    control_spec(
-                        "ui.workflow.aspect.gamma",
-                        GAMMA_MODULE_PATH,
-                        "query-binding:attached:view",
-                    )
-                    .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
-                    .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+                .with_published_aspect(UiDslAspectName::new(COMPETING_PUBLISHED_ASPECT)),
+            )
+            .with_semantic_artifact_spec(
+                control_spec(
+                    "ui.workflow.aspect.gamma",
+                    GAMMA_MODULE_PATH,
+                    "query-binding:attached:view",
                 )
-                .with_semantic_artifact_spec(
-                    control_spec(
-                        "ui.workflow.aspect.delta",
-                        DELTA_MODULE_PATH,
-                        "service:portal",
-                    )
-                    .with_consumed_aspect(UiDslAspectName::new(COMPETING_CONSUMED_ASPECT)),
-                ),
+                .with_published_aspect(UiDslAspectName::new(SHARED_ASPECT))
+                .with_consumed_aspect(UiDslAspectName::new(SHARED_ASPECT)),
+            )
+            .with_semantic_artifact_spec(
+                control_spec(
+                    "ui.workflow.aspect.delta",
+                    DELTA_MODULE_PATH,
+                    "service:portal",
+                )
+                .with_consumed_aspect(UiDslAspectName::new(COMPETING_CONSUMED_ASPECT)),
+            ),
         )
         .freeze()
         .expect("application preparation should succeed")

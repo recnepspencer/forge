@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
-use worth_ui::facade::mounted::{
+use worth_ui_host_contract::WorthUiHostCapabilityReport;
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfaceCancellationOutcome, UiHostSurfaceInFlightCompletion,
     UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome, UiMountedCompletedEffects,
     UiMountedEffectFamily,
 };
-use worth_ui_host_contract::WorthUiHostCapabilityReport;
 
 mod adapter;
 

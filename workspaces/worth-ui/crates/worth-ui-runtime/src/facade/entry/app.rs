@@ -37,8 +37,8 @@ pub struct WorthUi {
 
 impl WorthUi {
     /// Start a Worth UI application definition.
-    pub fn app() -> crate::facade::entry::WorthUiBuilder {
-        crate::facade::entry::WorthUiBuilder::new()
+    pub fn app() -> crate::facade::entry::WorthUiApplicationBuilder {
+        crate::facade::entry::WorthUiApplicationBuilder::new()
     }
 }
 
@@ -81,7 +81,7 @@ impl WorthUiApp {
 
     /// Borrow the sealed prepared authority without transferring any
     /// independently launchable constituent.
-    pub fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
+    pub(crate) fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
         &self.prepared
     }
 
@@ -114,7 +114,7 @@ impl WorthUiApp {
     }
 
     /// Enter the runtime-owned admission boundary through one formal facade lane.
-    pub fn admission(&self) -> UiAdmissionBoundary<'_> {
+    pub(crate) fn admission(&self) -> UiAdmissionBoundary<'_> {
         UiAdmissionBoundary::new(
             self.prepared.declaration_artifacts(),
             self.prepared.graph_snapshot(),
@@ -237,7 +237,7 @@ impl WorthUiApp {
         self.launch_with_diagnostics(crate::runtime::WorthUiRuntimeDiagnosticPolicy::minimal())
     }
 
-    pub fn launch_with_diagnostics(
+    pub(crate) fn launch_with_diagnostics(
         self,
         diagnostic_policy: crate::runtime::WorthUiRuntimeDiagnosticPolicy,
     ) -> Result<crate::facade::entry::WorthUiActiveApplicationSession, WorthUiRuntimeLaunchDenial>
@@ -320,7 +320,7 @@ impl WorthUiApp {
         )
     }
 
-    pub fn try_query_touch_for_node(
+    pub(crate) fn try_query_touch_for_node(
         &self,
         graph_node_identity: crate::graph::UiGraphNodeIdentity,
     ) -> Result<

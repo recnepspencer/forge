@@ -1,7 +1,7 @@
-use worth_ui::facade::query_binding::{WorthUiInstalledQueryDomain, WorthUiQueryViewRegistration};
-use worth_ui::facade::registry::{
+use worth_ui::facade::declaration::{
     QueryDenialPresentation, ViewBindingId, VisibleStateBindingDeclaration,
 };
+use worth_ui::facade::query_binding::{WorthUiInstalledQueryDomain, WorthUiQueryViewRegistration};
 
 pub(crate) fn table_view_binding(id: &str) -> WorthUiQueryViewRegistration {
     let installed = test_installed_domain(id);

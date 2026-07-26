@@ -3,9 +3,9 @@ use crate::runtime::{WorthUiRuntimeLaunch, WorthUiSourceProvider};
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
-    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer, WorthUiStructuralLegalityLowerer,
+    WorthUiStructuralLegalityLowerer,
 };
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 
 pub(crate) fn file_import_provider() -> WorthUiSourceProvider {
     file_import_provider_for("app/panels/inspector.wui")
@@ -42,7 +42,7 @@ pub(crate) fn rust_import_artifact() -> WorthUiArtifact {
 }
 
 pub(crate) fn rust_import_artifact_for(target_module_path: &str) -> WorthUiArtifact {
-    canonical_artifact_from_input(WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    canonical_artifact_from_input(crate::source::test_compilation::compile_rust_authored(
         &rust_import_input_for(target_module_path),
     ))
 }
@@ -76,14 +76,14 @@ pub(crate) fn framework_from_artifact(
 fn canonical_artifact_from_rust_modules<const N: usize>(
     modules: [WorthUiRustAuthoredArtifactInputModule; N],
 ) -> WorthUiArtifact {
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     canonical_artifact_from_input(artifact_input)
 }
 
 fn canonical_artifact_from_input(
-    artifact_input: crate::source::WorthUiArtifactInput,
+    artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
         .freeze()

@@ -14,7 +14,7 @@ use crate::facade::registry::descriptor::{
     MosaicSizingPersistence, MosaicViewportConstraint, NamedMeasurementDefinition,
     NamedMeasurementToken, SurfacePlacementClass,
 };
-use crate::facade::WorthUiDslPackage;
+use crate::facade::WorthUiRustAuthoredDeclarationFixture;
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
     UiDslSourceProvenance, UiDslStructuralToken,
@@ -176,15 +176,17 @@ fn assert_hostile_capabilities_are_admitted(app: &crate::facade::WorthUiApp) {
 
 #[test]
 fn registered_measurement_artifacts_do_not_change_declaration_measurement_posture() {
-    let dsl_package = WorthUiDslPackage::named("worth-ui.runtime.measurement.registration-proof")
-        .with_semantic_artifact_spec(measurement_control_spec())
-        .with_semantic_artifact_spec(portal_measurement_control_spec());
+    let dsl_package = WorthUiRustAuthoredDeclarationFixture::named(
+        "worth-ui.runtime.measurement.registration-proof",
+    )
+    .with_semantic_artifact_spec(measurement_control_spec())
+    .with_semantic_artifact_spec(portal_measurement_control_spec());
     let baseline = WorthUi::app()
-        .with_dsl_package(dsl_package.clone())
+        .with_rust_authored_declaration_fixture(dsl_package.clone())
         .freeze()
         .expect("application preparation should succeed");
     let with_registered_measurement = WorthUi::app()
-        .with_dsl_package(dsl_package)
+        .with_rust_authored_declaration_fixture(dsl_package)
         .register_mosaic_sizing_contract(registered_measurement_descriptor(
             "workspace.measurement.sidebar",
         ))

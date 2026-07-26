@@ -1,4 +1,6 @@
-use worth_ui::facade::mounted::{UiHostSurfacePresentationMode, UiMountedFrameRequest};
+use worth_ui_runtime::facade::mounted::{UiHostSurfacePresentationMode, UiMountedFrameRequest};
+use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::{
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
@@ -8,7 +10,7 @@ use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 
 pub(crate) struct InFlightPresentationWorld {
     pub session: worth_ui::facade::app::WorthUiActiveApplicationSession,
-    pub handle: worth_ui::facade::mounted::UiMountedPresentationInFlight,
+    pub handle: worth_ui_runtime::facade::mounted::UiMountedPresentationInFlight,
 }
 
 impl InFlightPresentationWorld {
@@ -18,15 +20,15 @@ impl InFlightPresentationWorld {
         let frame = prepared(&mut session);
         host.push_in_flight(
             vec![crate::mounted_host_protocol::scripted_host::presented_completion()],
-            worth_ui::facade::mounted::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
+            worth_ui_runtime::facade::mounted::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
         );
         let outcome = session.present_prepared_mounted_frame(
             frame,
-            worth_ui::facade::mounted::UiPresentationDeadline::at_tick(20),
+            worth_ui_runtime::facade::mounted::UiPresentationDeadline::at_tick(20),
             0,
         );
         let handle = match outcome {
-            worth_ui::facade::mounted::UiMountedFrameOutcome::InFlight(handle) => handle,
+            worth_ui_runtime::facade::mounted::UiMountedFrameOutcome::InFlight(handle) => handle,
             _ => panic!("canonical in-flight world requires host acceptance"),
         };
         Self { session, handle }
@@ -39,7 +41,7 @@ pub(crate) fn mounted_session(
     surface_count: usize,
 ) -> (
     worth_ui::facade::app::WorthUiActiveApplicationSession,
-    Vec<worth_ui::facade::mounted::UiSurfaceBindingGeneration>,
+    Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
 ) {
     let mut session = mounted_application_with_host(label, host).launch().unwrap();
     let node = first_node(&session);
@@ -63,7 +65,7 @@ pub(crate) fn mounted_session(
 
 pub(crate) fn prepared(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::mounted::UiPreparedMountedFrame {
+) -> worth_ui_runtime::facade::mounted::UiPreparedMountedFrame {
     session
         .execute_framework_turn(|_| {})
         .expect("no mounted presentation lease is active")

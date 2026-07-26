@@ -1,6 +1,7 @@
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile,
 };
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::known_empty_surface_world::{active_session, first_node};
 use super::mounted_identity_lifecycle::incarnation;
@@ -58,7 +59,7 @@ fn equivalent_bases_ignore_visible_order_and_surface_geometry_posture() {
 
 fn repeated_basis(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
-    identity: worth_ui::facade::mounted::UiMountedInstanceIdentity,
+    identity: worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity,
 ) -> worth_ui::facade::graph::UiRepeatedInstanceBasis {
     session
         .inspect_mounted_identity()
@@ -75,7 +76,7 @@ fn surface_with_geometry(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
     coordinate_posture: UiSurfaceBindingCoordinatePosture,
     device_scale_milli: u32,
-) -> worth_ui::facade::mounted::UiSemanticSurfaceIdentity {
+) -> worth_ui_runtime::facade::mounted::UiSemanticSurfaceIdentity {
     let surface = session.create_semantic_surface().unwrap();
     let profile = UiSurfaceBindingProfile::new(device_scale_milli, coordinate_posture, 1).unwrap();
     session

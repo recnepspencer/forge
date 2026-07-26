@@ -1,11 +1,12 @@
 use std::path::Path;
+use worth_ui_dsl::{
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule, WorthUiSourceModuleId,
+};
 
 use crate::source::{
     WorthUiArtifact, WorthUiArtifactHandle, WorthUiArtifactNode, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIncrementalInvalidationBasis,
-    WorthUiRuntimeQuerySurface, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiSourceModuleId, WorthUiStructuralLegalityLowerer,
+    WorthUiRuntimeQuerySurface, WorthUiStructuralLegalityLowerer,
 };
 
 use super::super::phase7_identity_seeding_tests::identity_app_fixture::identity_test_app;
@@ -57,7 +58,7 @@ fn artifact_from_rust_modules<const N: usize>(
 ) -> WorthUiArtifact {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved = crate::source::WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
@@ -82,7 +83,7 @@ fn reordered_modules() -> [WorthUiRustAuthoredArtifactInputModule; 2] {
 }
 
 fn mounted_component_module(
-    body_atoms: Vec<crate::source::WorthUiArtifactInputBodyAtom>,
+    body_atoms: Vec<worth_ui_dsl::WorthUiArtifactInputBodyAtom>,
 ) -> WorthUiRustAuthoredArtifactInputModule {
     WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
         .with_component_body_atoms("workspace.component.dashboard", body_atoms)

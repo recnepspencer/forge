@@ -1,14 +1,16 @@
 use crate::source::{
-    WorthUiArtifactIdentitySeedKind, WorthUiArtifactInputBodyAtom, WorthUiArtifactInputResolver,
-    WorthUiBindingSemanticsLowerer, WorthUiDurableStateEligibility,
-    WorthUiDurableStateIneligibilityReason, WorthUiIdentitySeedLowerer,
-    WorthUiIdentitySeededArtifactInput, WorthUiIdentitySeededArtifactInputBindingNode,
-    WorthUiIdentitySeededArtifactInputComponentNode, WorthUiIdentitySeededArtifactInputImportNode,
-    WorthUiIdentitySeededArtifactInputNode, WorthUiIdentitySeededArtifactInputSurfaceNode,
+    WorthUiArtifactIdentitySeedKind, WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
+    WorthUiDurableStateEligibility, WorthUiDurableStateIneligibilityReason,
+    WorthUiIdentitySeedLowerer, WorthUiIdentitySeededArtifactInput,
+    WorthUiIdentitySeededArtifactInputBindingNode, WorthUiIdentitySeededArtifactInputComponentNode,
+    WorthUiIdentitySeededArtifactInputImportNode, WorthUiIdentitySeededArtifactInputNode,
+    WorthUiIdentitySeededArtifactInputSurfaceNode,
     WorthUiIdentitySeededArtifactInputThemeTokenNode, WorthUiIdentitySeedingDiagnosticCode,
-    WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport, WorthUiRustAuthoredArtifactInput,
-    WorthUiRustAuthoredArtifactInputModule, WorthUiRustAuthoredToArtifactInputLowerer,
-    WorthUiStructuralLegalityLowerer,
+    WorthUiIdentitySeedingMetrics, WorthUiIdentitySeedingReport, WorthUiStructuralLegalityLowerer,
+};
+use worth_ui_dsl::{
+    WorthUiArtifactInputBodyAtom, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule,
 };
 
 use super::identity_app_fixture::identity_test_app;
@@ -21,7 +23,7 @@ pub(super) fn identity_seeded_from_modules<const N: usize>(
 ) {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)
@@ -38,7 +40,7 @@ pub(super) fn identity_seeding_report_from_modules<const N: usize>(
 ) -> WorthUiIdentitySeedingReport {
     let app = identity_test_app();
     let snapshot = app.capabilities();
-    let artifact_input = WorthUiRustAuthoredToArtifactInputLowerer::lower(
+    let artifact_input = crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules(modules),
     );
     let resolved = WorthUiArtifactInputResolver::resolve(&artifact_input, snapshot)

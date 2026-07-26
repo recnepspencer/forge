@@ -6,9 +6,12 @@ use worth_ui::facade::inspection::{
     UiInspectionRelevanceOutcome, UiInspectionScope, UiInspectionTarget, UiInspectionTargetClass,
     UiRelevanceFamily, UiRelevanceFilter,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 const ALPHA_MODULE_PATH: &str = "app/graph_evidence_alpha.wui";
@@ -155,18 +158,20 @@ fn graph_node_identity_rejects_aspect_family_until_indexed_lane_exists() {
 
 fn graph_identity_app() -> WorthUiApp {
     WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.graph-evidence-lookup")
-                .with_semantic_artifact_spec(control_spec(
-                    "ui.workflow.graph_evidence.alpha",
-                    ALPHA_MODULE_PATH,
-                    "query-binding:attached:view",
-                ))
-                .with_semantic_artifact_spec(control_spec(
-                    "ui.workflow.graph_evidence.beta",
-                    BETA_MODULE_PATH,
-                    "service:portal",
-                )),
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.graph-evidence-lookup",
+            )
+            .with_semantic_artifact_spec(control_spec(
+                "ui.workflow.graph_evidence.alpha",
+                ALPHA_MODULE_PATH,
+                "query-binding:attached:view",
+            ))
+            .with_semantic_artifact_spec(control_spec(
+                "ui.workflow.graph_evidence.beta",
+                BETA_MODULE_PATH,
+                "service:portal",
+            )),
         )
         .freeze()
         .expect("application preparation should succeed")

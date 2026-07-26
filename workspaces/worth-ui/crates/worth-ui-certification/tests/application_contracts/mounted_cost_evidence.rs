@@ -1,6 +1,7 @@
-use worth_ui::facade::mounted::{
+use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountWorkClass, UiMountedFrameOutcome, UiPresentationDeadline,
 };
+use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::mounted_application_lifecycle::in_flight_presentation_world::{
@@ -95,7 +96,7 @@ fn overlapping_semantic_and_binding_delta_counts_distinct_surface_pairs_once() {
     ));
 
     host.push_presentation(
-        worth_ui::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
+        worth_ui_runtime::facade::mounted::UiHostSurfacePresentationOutcome::PresentationIndeterminate,
     );
     let uncertain = prepared(&mut session);
     assert!(matches!(
@@ -151,16 +152,16 @@ fn assert_logarithmic_index_work(index_entries: u64, graph_instances: usize) {
 fn ordinary_replacement_bytes(order_rows: usize) -> u64 {
     let bytes = order_rows
         .checked_mul(std::mem::size_of::<
-            worth_ui::facade::mounted::UiMountedInstanceIdentity,
+            worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity,
         >())
         .and_then(|bytes| {
             bytes.checked_add(std::mem::size_of::<
-                worth_ui::facade::mounted::UiMountedLayerRow,
+                worth_ui_runtime::facade::mounted::UiMountedLayerRow,
             >())
         })
         .and_then(|bytes| {
             bytes.checked_add(std::mem::size_of::<
-                worth_ui::facade::mounted::UiMountedPaintBatchRow,
+                worth_ui_runtime::facade::mounted::UiMountedPaintBatchRow,
             >())
         })
         .expect("the deterministic replacement granule fits usize");

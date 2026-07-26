@@ -1,6 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    registry::{
+    declaration::{
         TaskPresentationCancellationPosture, TaskPresentationDescriptor,
         TaskPresentationFailurePosture, TaskPresentationFamily, TaskPresentationLifecyclePosture,
         TaskPresentationProjectionEligibility, TaskPresentationRuntimeAuthorityPosture,

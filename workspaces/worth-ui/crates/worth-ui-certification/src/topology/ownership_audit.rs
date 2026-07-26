@@ -284,7 +284,7 @@ fn collect_lifecycle_aggregate_struct_names(parsed: &File) -> Vec<String> {
 }
 
 fn is_lifecycle_aggregate_struct_name(name: &str) -> bool {
-    name == "WorthUiBuilder"
+    name == "WorthUiApplicationBuilder"
         || name.contains("Bootstrap")
         || name.contains("FreezeCore")
         || name.contains("SupportInventory")

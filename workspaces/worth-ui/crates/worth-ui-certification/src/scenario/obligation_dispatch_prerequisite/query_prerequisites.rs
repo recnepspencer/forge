@@ -1,7 +1,7 @@
 //! Settled Query world identity used by obligation scenarios.
 
+use worth_ui::facade::declaration::ViewBindingId;
 use worth_ui::facade::graph::UiGraphWorldProfile;
-use worth_ui::facade::registry::ViewBindingId;
 
 use crate::scenario::installed_query_world;
 

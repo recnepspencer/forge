@@ -3,9 +3,12 @@ use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationClosedSemanticLane, UiDeclarationCloseoutGuarantee,
     UiDeclarationCloseoutNonGoal, UiDeclarationCloseoutReport, UiDeclarationFamilyKind,
 };
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken, WorthUiDslPackage,
+    UiDslSourceProvenance, UiDslStructuralToken,
 };
 
 #[test]
@@ -35,8 +38,8 @@ fn bootstrap_app_exposes_milestone32_closeout_report() {
 #[test]
 fn caller_authored_app_exposes_same_closeout_contract() {
     let app = WorthUi::app()
-        .with_dsl_package(
-            WorthUiDslPackage::named("worth-ui.certification.closeout")
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.closeout")
                 .with_semantic_artifact_spec(control_closeout_spec()),
         )
         .freeze()

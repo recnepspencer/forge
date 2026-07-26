@@ -1,4 +1,4 @@
-use worth_ui_dsl::UiDslLoweringReceipt;
+use worth_ui_dsl::UiDslSemanticArtifact;
 
 use crate::capability::MosaicSizingContractId;
 use crate::declaration::{
@@ -14,7 +14,7 @@ use super::{
 };
 
 pub(crate) fn admit_declaration_structural_semantics(
-    semantic_receipt: &UiDslLoweringReceipt,
+    semantic_artifact: &UiDslSemanticArtifact,
     family_admission: &UiDeclarationFamilyAdmission,
 ) -> UiDeclarationStructuralSemanticsAdmission {
     let family_kind = match family_admission.admitted_family() {
@@ -39,7 +39,6 @@ pub(crate) fn admit_declaration_structural_semantics(
         }
     };
 
-    let semantic_artifact = semantic_receipt.semantic_artifact();
     let structural_tokens = semantic_artifact
         .structural_tokens()
         .iter()

@@ -1,9 +1,11 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{UiDeclarationArtifact, UiDeclarationEquivalenceContract};
+use worth_ui_certification::{
+    WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
+};
 use worth_ui_dsl::{
-    UiDslAspectName, UiDslLoweringReceipt, UiDslPostureToken, UiDslSemanticArtifactSpec,
-    UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
-    UiDslSupportToken, WorthUiDslPackage,
+    UiDslAspectName, UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
+    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, UiDslSupportToken,
 };
 
 fn declaration_input() -> UiDslSemanticArtifactSpec {
@@ -29,49 +31,52 @@ fn noisy_declaration_input() -> UiDslSemanticArtifactSpec {
         .with_renderer_label("primary-action-button")
 }
 
-fn freeze_artifacts(package: WorthUiDslPackage) -> Vec<UiDeclarationArtifact> {
+fn freeze_artifacts(package: WorthUiRustAuthoredDeclarationFixture) -> Vec<UiDeclarationArtifact> {
     WorthUi::app()
-        .with_dsl_package(package)
+        .with_rust_authored_declaration_fixture(package)
         .freeze()
         .expect("application preparation should succeed")
         .declaration_artifacts()
         .to_vec()
 }
 
-fn bootstrap_receipts(package: &WorthUiDslPackage) -> Vec<UiDslLoweringReceipt> {
-    package.runtime_lowering_receipts()
-}
-
 #[test]
-fn public_runtime_lowering_receipts_include_caller_authored_semantics() {
-    let package = WorthUiDslPackage::named("worth-ui.certification.declaration")
-        .with_semantic_artifact_spec(declaration_input());
+fn dsl_declaration_receipts_exclude_runtime_owned_bootstrap_semantics() {
+    let package =
+        WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.declaration")
+            .with_semantic_artifact_spec(declaration_input());
     let caller_receipt = package.admitted_declarations()[0].clone();
-    let receipts = bootstrap_receipts(&package);
+    let receipts = package.admitted_declarations();
+    let artifacts = freeze_artifacts(package);
 
-    assert_eq!(receipts.len(), 2);
+    assert_eq!(receipts.len(), 1);
     assert_eq!(
         receipts[0].source_provenance().module_path(),
-        "worth-ui.runtime.bootstrap"
+        caller_receipt.source_provenance().module_path()
     );
-    assert_eq!(receipts[0].source_provenance().declaration_index(), 0);
-    assert_ne!(receipts[0].semantic_input_digest(), 0);
     assert_eq!(
-        receipts[1].source_provenance(),
+        receipts[0].source_provenance(),
         caller_receipt.source_provenance()
     );
     assert_eq!(
-        receipts[1].semantic_input_digest(),
+        receipts[0].semantic_input_digest(),
         caller_receipt.semantic_input_digest()
+    );
+    assert_eq!(artifacts.len(), 2);
+    assert_eq!(
+        artifacts[0].provenance().source_provenance().module_path(),
+        "worth-ui.runtime.bootstrap"
     );
 }
 
 #[test]
 fn public_app_freeze_is_stable_under_non_semantic_caller_receipt_noise() {
-    let baseline_package = WorthUiDslPackage::named("worth-ui.certification.declaration")
-        .with_semantic_artifact_spec(declaration_input());
-    let noisy_package = WorthUiDslPackage::named("worth-ui.certification.declaration")
-        .with_semantic_artifact_spec(noisy_declaration_input());
+    let baseline_package =
+        WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.declaration")
+            .with_semantic_artifact_spec(declaration_input());
+    let noisy_package =
+        WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.declaration")
+            .with_semantic_artifact_spec(noisy_declaration_input());
 
     let baseline_receipt = baseline_package.admitted_declarations()[0].clone();
     let noisy_receipt = noisy_package.admitted_declarations()[0].clone();
@@ -92,11 +97,8 @@ fn public_app_freeze_is_stable_under_non_semantic_caller_receipt_noise() {
 
 #[test]
 fn public_app_freeze_returns_the_expected_bootstrap_declaration_contract() {
-    let package = WorthUiDslPackage::empty();
-    let bootstrap_receipt = bootstrap_receipts(&package).remove(0);
-
-    let first_artifacts = freeze_artifacts(WorthUiDslPackage::empty());
-    let second_artifacts = freeze_artifacts(WorthUiDslPackage::empty());
+    let first_artifacts = freeze_artifacts(WorthUiRustAuthoredDeclarationFixture::empty());
+    let second_artifacts = freeze_artifacts(WorthUiRustAuthoredDeclarationFixture::empty());
     let artifact = &first_artifacts[0];
 
     assert_eq!(first_artifacts, second_artifacts);
@@ -116,10 +118,7 @@ fn public_app_freeze_returns_the_expected_bootstrap_declaration_contract() {
             .declaration_index(),
         0
     );
-    assert_eq!(
-        artifact.provenance().semantic_input_digest(),
-        bootstrap_receipt.semantic_input_digest()
-    );
+    assert_ne!(artifact.provenance().semantic_input_digest(), 0);
     assert_eq!(
         artifact.digest_projection().family().raw(),
         stable_text_digest(UiDslSemanticFamily::Page.as_str())

@@ -1,22 +1,25 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiBuilder};
-use worth_ui::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
-};
-use worth_ui::facade::registry::{
+use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+use worth_ui::facade::declaration::{
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership,
-};
-use worth_ui::facade::runtime::{
-    WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
-    WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasViewportRequest,
-    WorthUiHandleResolutionOutcome, WorthUiRuntimeLaunchDenial, WorthUiSpatialHitTestRequest,
-    WorthUiSpatialViewportPoint,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_host_contract::{
     UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
     WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
+};
+use worth_ui_runtime::facade::execution::{
+    WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
+    WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasViewportRequest,
+    WorthUiHandleResolutionOutcome, WorthUiSpatialHitTestRequest, WorthUiSpatialViewportPoint,
+};
+use worth_ui_runtime::facade::host::{
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
+};
+use worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiFrameworkTurnCertificationExt,
 };
 
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -48,7 +51,7 @@ fn real_wui_canvas_executes_only_from_the_host_bound_active_plan() {
     assert_eq!(summary.host_session_identity(), host_session_identity);
     assert_eq!(
         summary.strategy(),
-        worth_ui::facade::runtime::WorthUiSpatialIndexStrategy::Tiled
+        worth_ui_runtime::facade::execution::WorthUiSpatialIndexStrategy::Tiled
     );
     let execution = session
         .execute_framework_turn(|_| {})
@@ -129,7 +132,7 @@ fn foreign_active_session_handle_denies_before_spatial_work() {
 
     assert_eq!(
         denial.reason(),
-        worth_ui::facade::runtime::WorthUiCanvasSpatialFrameDenialReason::TargetArenaMismatch
+        worth_ui_runtime::facade::execution::WorthUiCanvasSpatialFrameDenialReason::TargetArenaMismatch
     );
     assert_eq!(denial.counters().draw_pass_count(), 0);
     assert_eq!(denial.counters().spatial_hit_test_count(), 0);
@@ -156,7 +159,7 @@ fn missing_host_spatial_support_denies_before_publication() {
     assert!(matches!(
         denial,
         WorthUiRuntimeLaunchDenial::CanvasSpatialPlan(ref plan)
-            if plan.reason() == worth_ui::facade::runtime::WorthUiCanvasSpatialPlanDenialReason::HostSupportMissing
+            if plan.reason() == worth_ui_runtime::facade::execution::WorthUiCanvasSpatialPlanDenialReason::HostSupportMissing
     ));
     workspace.close();
 }
@@ -236,11 +239,11 @@ fn lawful_source_reordering_preserves_spatial_plan_behavior() {
     right_workspace.close();
 }
 
-fn canvas_builder() -> WorthUiBuilder {
+fn canvas_builder() -> WorthUiApplicationBuilder {
     canvas_descriptor_builder().with_host(WorthUiHeadlessHost)
 }
 
-fn canvas_builder_with_ordinary(count: usize) -> WorthUiBuilder {
+fn canvas_builder_with_ordinary(count: usize) -> WorthUiApplicationBuilder {
     let mut builder = canvas_builder();
     for index in 0..count {
         builder = builder.register_component(ordinary_component(format!(
@@ -250,11 +253,11 @@ fn canvas_builder_with_ordinary(count: usize) -> WorthUiBuilder {
     builder
 }
 
-fn unsupported_canvas_builder() -> WorthUiBuilder {
+fn unsupported_canvas_builder() -> WorthUiApplicationBuilder {
     canvas_descriptor_builder().with_host(MissingHitTestHost)
 }
 
-fn canvas_descriptor_builder() -> WorthUiBuilder {
+fn canvas_descriptor_builder() -> WorthUiApplicationBuilder {
     WorthUi::app().register_component(canvas_descriptor())
 }
 
@@ -277,7 +280,7 @@ fn ordinary_component(id: impl Into<String>) -> ComponentDescriptor {
 fn file_app(
     workspace: &FilesystemContractWorkspace,
     source: &str,
-    builder: impl Fn() -> WorthUiBuilder,
+    builder: impl Fn() -> WorthUiApplicationBuilder,
 ) -> WorthUiApp {
     workspace.write("app/main.wui", source);
     let capability_app = builder().freeze().expect("capabilities should freeze");

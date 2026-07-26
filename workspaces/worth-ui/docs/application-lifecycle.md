@@ -2,259 +2,280 @@
 
 ## What This Feature Is
 
-The application lifecycle is the public Worth UI path for preparing, launching,
-running, inspecting, and replacing one UI application without handing executable
-plan authority to application code. Application developers hold a
-`WorthUiActiveApplicationSession`; it keeps the application, Query, host,
-inspection, and frame generations coherent.
+The application lifecycle prepares, launches, runs, inspects, and shuts down
+one Worth UI application while the platform keeps graph, Query, host, mounted
+publication, and generation state coherent. Application code holds one
+`WorthUiActiveApplicationSession`.
 
 ## Why You Use It
 
-- Launch a Query-free or Query-backed UI as one prepared application.
-- Run headless or native-host frames through the same runtime-owned lifecycle.
-- Inspect a replacement before cutover without making it executable.
-- Replace a running application atomically while preserving the last valid
-  generation on denial.
-- Observe reload and steady-frame cost at the production boundary that performed
-  the work.
+- Launch Query-free or Query-backed UI through one path.
+- Present headless and native-host frames with the same mounted contract.
+- Preserve the last published frame when preparation or presentation denies.
+- Handle in-flight or uncertain native effects through typed outcomes.
+- Inspect the active generation without receiving execution authority.
 
 ## Stable Entry Points
 
 - `worth_ui::facade::app::WorthUi::app()`
-- `WorthUiBuilder::freeze()`
+- `WorthUiApplicationBuilder::freeze()`
 - `WorthUiApp::launch()`
-- `WorthUiActiveApplicationSession::execute_framework_turn(...)`
 - `WorthUiActiveApplicationSession::execute_mounted_frame(...)`
-- `WorthUiActiveApplicationSession::establish_mounted_allocation_catalog(...)`
-- `WorthUiActiveApplicationSession::prepare_replacement(...)`
-- `WorthUiActiveApplicationSession::lower_prepared_replacement(...)`
-- `WorthUiLoweredApplicationReplacement::summary()`
-- `WorthUiLoweredApplicationReplacement::cost_envelope()`
-- `WorthUiActiveApplicationSession::stage_prepared_replacement(...)`
-- `WorthUiActiveApplicationSession::activate_prepared_replacement(...)`
-- `WorthUiActiveApplicationSession::prepare_mounted_replacement(...)`
-- `WorthUiActiveApplicationSession::present_current_mounted_frame_for_reconciliation(...)`
-- activated and semantic-no-op `reload_cost()` accessors
-- active lane completion `cost_receipt()` methods
+- `WorthUiActiveApplicationSession::inspect(...)`
+- `WorthUiActiveApplicationSession::shutdown()`
+- `UiMountedFrameOutcome`
+- `WorthUiMountedFrameExecutionStop`
 
-Declarations, installed Query views, host choice, and advanced lane targets enter
-through their named `worth_ui::facade` modules. Raw plan builders, plan digests,
-lowerers, and executors are not application entry points.
+Mounted request, deadline, outcome, and recovery types are re-exported by
+`worth_ui::facade::app`. Application code does not import a mounted runtime
+module.
 
 ## Core Mental Model
 
-Prepared application authority is one inseparable generation of declared UI
-meaning, graph authority, capability support, Query binding, host-session plan,
-and inspection indexes. Launch consumes it and produces the active session—the
-only ordinary owner allowed to execute it.
+`freeze` prepares one inseparable application generation: authored meaning,
+capabilities, graph, Query bindings, host plan, and inspection indexes. Launch
+consumes that prepared app and returns the only ordinary running owner.
 
-A replacement candidate is not a future active plan. Preparation and lowering
-derive candidate artifacts and compact observations. Staging retains the exact
-candidate authority for a cutover attempt. Only activation at a session-bound
-frame boundary may publish a new executable generation or prove an exact
-semantic no-op.
-
-Receipts are observations, not capabilities. A generation identity or digest can
-explain work, but cannot activate a candidate, execute a plan, or recreate Query
-authority.
-
-Mounted publication is the visible endpoint. A semantic surface, its current
-host binding, a mounted instance, a frame-scoped node receipt, and a published
-frame are different identities with different lifetimes. The runtime assembles
-all participating lanes and required surfaces into one frame, the adapter
-reports mechanical completion, and only complete presentation can publish the
-frame as current.
-
-Host measurement and host observation are different protocols. Measurement is
-a solicited response to a runtime-issued request and may contribute evidence to
-allocation. Observation is an unsolicited bounded report of native mechanics;
-structural validation does not grant semantic mutation authority.
+`execute_mounted_frame` collects admitted inputs, advances the runtime,
+assembles all required surfaces, presents through the host contract, and
+publishes only a complete frame. A receipt reports what happened; it cannot be
+used to execute or publish another frame.
 
 ## How It Executes
 
 ```text
-application declarations and optional installed Query views
--> freeze (fallible preparation)
--> launch (one active application session)
--> register host surfaces and mount graph nodes
--> establish the first allocation catalog after mounted and host evidence exist
+WorthUi::app()
+-> register capabilities, source, Query views, and host
+-> freeze
+-> launch
+-> register/mount application-specific surfaces as required
 -> execute_mounted_frame
--> Published | Unchanged | RejectedBeforeEffects | InFlight
-   | PresentationIndeterminate | typed admission/retention denial
-
-replacement submission
--> prepare candidate
--> admit candidate graph/allocation facts
--> lower candidate (expensive reconstruction)
--> inspect compact candidate summary and completed lowering cost
--> stage exact candidate authority
--> obtain a session-bound activation boundary from a framework turn
--> prepare one mounted replacement frame
--> present through the same host contract
--> publish application, plan, allocation, mounting, and frame together
+-> Published | Unchanged | Reconciled
+   | RejectedBeforeEffects | InFlight | PresentationIndeterminate
+   | RetentionDenied | AdmissionDenied | CompletionDenied
+-> inspect or continue through the returned typed outcome
+-> shutdown
 ```
 
-The phases remain separate because they have different authority and denial
-boundaries. A transient frame-boundary denial returns retry authority for the
-same staged candidate instead of forcing a rebuild.
-
-A pre-effect rejection leaves the prior publication current. If native effects
-may have begun, the runtime keeps its prior semantic truth but marks affected
-host bindings as uncertain. Those bindings remain blocked until the current
-published frame is fully re-presented on explicit replacement bindings.
+A pre-effect denial leaves the predecessor publication current. If native
+effects may have started, the runtime retains semantic truth but marks affected
+bindings uncertain until the typed recovery path completes.
 
 ## Small Example
 
 ```rust
-use worth_ui::facade::app::WorthUiActiveApplicationSession;
-use worth_ui::facade::mounted::{
-    UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline,
+use worth_ui::facade::app::{
+    UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline, WorthUi,
 };
 
-fn present(session: &mut WorthUiActiveApplicationSession) {
-    let outcome = session
-        .execute_mounted_frame(
-            UiMountedFrameRequest::all_bound_surfaces(),
-            UiPresentationDeadline::at_tick(10),
-            0,
-            |_turn| {},
-        )
-        .expect("the active session admits mounted execution");
+let app = WorthUi::app()
+    .freeze()
+    .expect("application preparation should succeed");
+let mut session = app.launch().expect("application should launch");
 
-    match outcome {
-        UiMountedFrameOutcome::Published(_) | UiMountedFrameOutcome::Unchanged(_) => {}
-        UiMountedFrameOutcome::Reconciled(_) => {}
-        UiMountedFrameOutcome::RejectedBeforeEffects(_) => {}
-        UiMountedFrameOutcome::InFlight(_) => {}
-        UiMountedFrameOutcome::PresentationIndeterminate(_) => {}
-        UiMountedFrameOutcome::RetentionDenied(_) => {}
-        UiMountedFrameOutcome::AdmissionDenied(_) => {}
-        UiMountedFrameOutcome::CompletionDenied(_) => {}
+let outcome = session
+    .execute_mounted_frame(
+        UiMountedFrameRequest::all_bound_surfaces(),
+        UiPresentationDeadline::at_tick(1),
+        0,
+        |_sources| {},
+    )
+    .expect("mounted-frame transition should start");
+
+match outcome {
+    UiMountedFrameOutcome::Published(receipt)
+    | UiMountedFrameOutcome::Unchanged(receipt)
+    | UiMountedFrameOutcome::Reconciled(receipt) => {
+        observe_publication(receipt);
     }
+    other => handle_non_success(other),
 }
 ```
 
-The example starts after application-specific surface registration and mounting.
-`execute_mounted_frame` is the smallest honest visible-frame call: source
-collection, lane execution, complete frame assembly, host presentation, and
-publication stay under the active session. Query-free applications do not
-submit dummy Query work.
+This is the smallest honest visible-frame call. Query-free applications do not
+create dummy Query work.
+
+## Executable Fresh-Reader Contract
+
+The following is the exact downstream program used by the compiler-contract
+matrix and the application-contract runtime suite. It uses only the ordinary
+product facade, branches over every mounted outcome and start-stop family, and
+executes the real empty-application path.
+
+<!-- compile-run:ordinary-mounted-frame -->
+```rust
+use worth_ui::facade::app::{
+    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameRequest,
+    UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
+    UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
+    UiMountedPresentationInFlight, UiMountedRejectedFrame, UiPresentationDeadline, WorthUi,
+    WorthUiMountedFrameExecutionStop,
+};
+
+fn main() {
+    run();
+}
+
+pub fn run() {
+    let app = WorthUi::app()
+        .freeze()
+        .expect("empty application preparation should succeed");
+    let mut session = app.launch().expect("empty application should launch");
+    let outcome = match session.execute_mounted_frame(
+        UiMountedFrameRequest::all_bound_surfaces(),
+        UiPresentationDeadline::at_tick(1),
+        0,
+        |_| {},
+    ) {
+        Ok(outcome) => outcome,
+        Err(stop) => {
+            observe_stop(&stop);
+            return;
+        }
+    };
+
+    match outcome {
+        UiMountedFrameOutcome::Published(receipt)
+        | UiMountedFrameOutcome::Unchanged(receipt)
+        | UiMountedFrameOutcome::Reconciled(receipt) => {
+            observe_publication(&receipt);
+        }
+        UiMountedFrameOutcome::RejectedBeforeEffects(rejection) => {
+            observe_rejection(&rejection);
+        }
+        UiMountedFrameOutcome::InFlight(in_flight) => {
+            observe_in_flight(&in_flight);
+        }
+        UiMountedFrameOutcome::PresentationIndeterminate(indeterminate) => {
+            observe_indeterminate(&indeterminate);
+        }
+        UiMountedFrameOutcome::RetentionDenied(rejection) => {
+            observe_retention_denial(&rejection);
+        }
+        UiMountedFrameOutcome::AdmissionDenied(rejection) => {
+            observe_admission_denial(&rejection);
+        }
+        UiMountedFrameOutcome::CompletionDenied(denial) => observe_completion_denial(&denial),
+    }
+}
+
+fn observe_stop(stop: &WorthUiMountedFrameExecutionStop<'_>) {
+    match stop {
+        WorthUiMountedFrameExecutionStop::PublicationLease(_) => {}
+        WorthUiMountedFrameExecutionStop::FrameworkTransition(transition) => {
+            let _ = transition.generation_identity();
+        }
+        WorthUiMountedFrameExecutionStop::Preparation(_) => {}
+    }
+}
+
+fn observe_publication(receipt: &UiMountedFramePublicationReceipt) {
+    let _ = receipt.cost_report();
+}
+
+fn observe_rejection(rejection: &UiMountedRejectedFrame) {
+    let _ = rejection.cost_report();
+}
+
+fn observe_in_flight(in_flight: &UiMountedPresentationInFlight) {
+    let _ = in_flight.cost_report();
+}
+
+fn observe_indeterminate(indeterminate: &UiMountedIndeterminateFrame) {
+    let _ = indeterminate.cost_report();
+}
+
+fn observe_retention_denial(rejection: &UiMountedFrameRetentionRejection) {
+    let _ = rejection.frame().cost_report();
+}
+
+fn observe_admission_denial(rejection: &UiMountedPresentationAdmissionRejection) {
+    let _ = rejection.frame().cost_report();
+}
+
+fn observe_completion_denial(_denial: &UiMountedPresentationCompletionDenial) {}
+```
 
 ## Real Example
 
 ```rust
-let mut prepared = session.prepare_replacement(submission)?;
+use worth_ui::facade::app::{
+    UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline,
+    WorthUiMountedFrameExecutionStop,
+};
 
-// Application graph/measurement code admits the candidate-owned catalog delta
-// through `prepared`'s candidate admission surfaces.
-let admitted_delta = admit_application_catalog_delta(&mut prepared)?;
-
-let lowered = session.lower_prepared_replacement(*prepared)?;
-observe_candidate(lowered.summary(), lowered.cost_envelope());
-let pending = session.stage_prepared_replacement(lowered)?;
-
-let boundary = session
-    .execute_framework_turn(|_turn| {})
-    .into_completion()
-    .into_execution()
-    .map_err(|_| "framework turn did not yield execution authority")?
-    .into_activation_boundary();
-
-match session.prepare_mounted_replacement(
-    pending,
-    admitted_delta,
-    boundary,
-    None,
+let outcome = match session.execute_mounted_frame(
     UiMountedFrameRequest::all_bound_surfaces(),
-)? {
-    WorthUiMountedReplacementPreparationOutcome::Prepared(replacement) => {
-        match replacement.present(UiPresentationDeadline::at_tick(20), 1) {
-            WorthUiMountedApplicationReplacementOutcome::Published {
-                application,
-                mounted,
-            } => observe_coherent_successor(application, mounted),
-            other => handle_mounted_replacement_outcome(other),
-        }
+    UiPresentationDeadline::at_tick(clock.deadline()),
+    clock.now(),
+    |sources| collect_application_inputs(sources),
+) {
+    Ok(outcome) => outcome,
+    Err(WorthUiMountedFrameExecutionStop::PublicationLease(denial)) => {
+        return retry_after_publication_lease(denial);
     }
-    WorthUiMountedReplacementPreparationOutcome::SemanticNoOp(receipt) => {
-        observe_reload_cost(receipt.reload_cost()?);
+    Err(WorthUiMountedFrameExecutionStop::FrameworkTransition(stop)) => {
+        return report_generation_stop(stop.generation_identity());
     }
+    Err(WorthUiMountedFrameExecutionStop::Preparation(denial)) => {
+        return preserve_predecessor(denial);
+    }
+};
+
+match outcome {
+    UiMountedFrameOutcome::Published(receipt)
+    | UiMountedFrameOutcome::Unchanged(receipt)
+    | UiMountedFrameOutcome::Reconciled(receipt) => publish_observation(receipt),
+    UiMountedFrameOutcome::RejectedBeforeEffects(rejection) => {
+        preserve_predecessor(rejection)
+    }
+    UiMountedFrameOutcome::InFlight(handle) => retain_in_flight(handle),
+    UiMountedFrameOutcome::PresentationIndeterminate(handle) => {
+        require_typed_reconciliation(handle)
+    }
+    UiMountedFrameOutcome::RetentionDenied(denial) => preserve_predecessor(denial),
+    UiMountedFrameOutcome::AdmissionDenied(denial) => preserve_predecessor(denial),
+    UiMountedFrameOutcome::CompletionDenied(denial) => preserve_predecessor(denial),
 }
 ```
 
-The omitted catalog helper is application-specific: its entries come from the
-candidate graph and measurement declarations, so a generic fabricated catalog
-would be dishonest. `summary()` and `cost_envelope()` are derived observations;
-they cannot stage, activate, or execute anything. The pending cutover retains
-candidate authority, the framework turn lends the exact boundary, and the
-outcome reports either one presented mounted successor or exact executable
-equivalence. `reload_cost()` derives from the production work that actually ran.
-
-For a frame, execute through `WorthUiActiveFrameworkTurnExecution`, then call the
-returned lane completion's `cost_receipt()` only when cost evidence is needed.
-That explicit materialization keeps reporting allocations outside the measured
-executor interval. Each lane receipt carries its exact host-output generation
-and proves executed breadth did not exceed requested breadth.
+The advanced branches begin with typed values returned by the ordinary call.
+The app may retain or route those values, but it cannot fabricate them from an
+identity, host result, or inspection receipt.
 
 ## How It Relates To Other Features
 
-- Register an installed view from [Query-backed UI views](./query-binding.md)
-  before `freeze`; Query-free applications require no Query ceremony.
-- Headless and egui hosts consume the same sealed mounted-frame view and never
-  receive application, graph, Query, allocation, or publication authority.
-- Candidate inspection describes candidate-only facts before cutover. Active
-  inspection observes only the current published generation.
-- Durable-state hooks are an advanced lowering control. Use
-  `lower_prepared_replacement_with_state_hooks(...)` only for a declared state
-  family.
+- Add file or Rust composition as described in
+  [Authored composition](./authored-composition.md).
+- Register installed Query views before `freeze`; submit settled projection
+  input inside the mounted-frame source closure.
+- Use [Application inspection](./inspection.md) on the prepared app or active
+  session.
+- Host adapters consume only the sealed mounted mechanics prepared by runtime.
 
 ## Inspection And Debugging
 
-- Borrow `session.generation_identity()` for the current active generation.
-- Use `session.current_mounted_publication()` and
-  `session.inspect_mounted_identity()` for current frame, surface-binding,
-  mounted-instance, and frame-receipt evidence.
-- Use `prepared.inspect_candidate(...)` for candidate graph/evidence inspection.
-- Use `lowered.summary()` for affected scope and classifications;
-  `lowered.cost_envelope()` reports reconstruction work already performed.
-- Inspect `WorthUiApplicationReplacementOutcome` exhaustively. A semantic no-op
-  is a successful equivalence decision, not a swallowed update.
-- Use `reload_cost()` for reconstructive work and lane `cost_receipt()` for
-  ordinary frame work. Their schemas are intentionally distinct.
-- Rich evidence expansion is explicit and does not mutate equivalence or frame
-  counters.
+Use `generation_identity()` to correlate lifecycle outcomes. Use `inspect(...)`
+for generation-bound read-only evidence. Publication and denial cost reports
+describe work already performed; materialize rich reports only when needed.
 
 ## Anti-Patterns
 
-- Do not compare artifact or plan digests to decide no-op.
-- Do not construct or pass a plan to a frame executor.
-- Do not present lane output, preview paint, or replacement output outside the
-  mounted-frame facade.
-- Do not treat a host completion as publication authority.
-- Do not feed an unsolicited observation batch into solicited measurement
-  admission.
-- Do not activate from a candidate summary, inspection receipt, or cost receipt.
-- Do not collapse phase denials into a boolean or log string.
-- Do not rebuild a candidate after a transient boundary denial; use its retry
-  authority.
-- Do not count host-adapter or renderer allocation as executor work.
-- Do not copy Query explanations into UI diagnostics; retain Query-owned evidence
-  references.
+- Calling a raw frame transition or lane executor.
+- Importing runtime, mounting, or publication internals.
+- Treating an identity, digest, or receipt as executable authority.
+- Assuming every non-success is safe to retry the same way.
+- Rebuilding Query or host state inside application callbacks.
 
 ## Current Limits
 
-- Candidate catalog admission remains explicit because allocation truth is
-  application-specific.
-- There is no one-call replacement helper; the explicit phases are the stable
-  authority model.
-- Visual snapshots and pixel-to-mounted identity bridges remain outside this
-  lifecycle.
-- Cost receipts certify runtime boundary work, not wall-clock or native renderer
-  cost.
-- Advanced lane target construction stays separate from the common turn path.
+Surface registration, mounting, and allocation setup depend on the
+application’s declared capabilities. The empty example is useful for lifecycle
+shape; it is not a substitute for a real application’s graph and host setup.
 
 ## Related Docs
 
-- [Worth UI runtime orientation](./worth-ui-readme.md)
+- [Worth UI architecture](./architecture.md)
+- [Authored composition](./authored-composition.md)
+- [Application inspection](./inspection.md)
 - [Query-backed UI views](./query-binding.md)
-- [Compact AI discovery guide](../AI_README.md)

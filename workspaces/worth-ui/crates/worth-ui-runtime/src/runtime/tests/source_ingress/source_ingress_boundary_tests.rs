@@ -1,6 +1,6 @@
 use crate::facade::WorthUi;
 use crate::runtime::tests::source_ingress_boundary_test_support::{
-    assert_source_denial_reason, lower_file_submission,
+    assert_dsl_denial_code, assert_source_denial_reason, lower_file_submission,
 };
 use crate::runtime::tests::source_ingress_test_support::{
     empty_artifact, file_import_provider, runtime_from_artifact, rust_import_input,
@@ -10,6 +10,7 @@ use crate::runtime::{
     WorthUiWatcherEvent,
 };
 use std::time::Duration;
+use worth_ui_dsl::WorthUiDslCompileDiagnosticCode;
 
 #[test]
 fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
@@ -191,8 +192,8 @@ fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() 
             WorthUiSourceProvider::rust_authored("rust-authored")
                 .with_rust_authored_input(rust_import_input())
                 .with_rust_authored_input(
-                    crate::source::WorthUiRustAuthoredArtifactInput::from_modules([
-                        crate::source::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui"),
+                    worth_ui_dsl::WorthUiRustAuthoredArtifactInput::from_modules([
+                        worth_ui_dsl::WorthUiRustAuthoredArtifactInputModule::new("app/main.wui"),
                     ]),
                 ),
         )
@@ -245,9 +246,9 @@ fn duplicate_source_modules_report_source_package_rejection() {
         .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("duplicate source module identity must fail package validation");
 
-    assert_source_denial_reason(
+    assert_dsl_denial_code(
         denial,
-        WorthUiSourceIngressDenialReason::SourcePackageRejected,
+        WorthUiDslCompileDiagnosticCode::DuplicateModuleIdentity,
     );
 }
 
@@ -267,10 +268,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
         .lower_to_candidate_submission(snapshot.capabilities())
         .expect_err("malformed source must fail parse validation");
 
-    assert_source_denial_reason(
-        denial,
-        WorthUiSourceIngressDenialReason::SourceParseRejected,
-    );
+    assert_dsl_denial_code(denial, WorthUiDslCompileDiagnosticCode::UnterminatedBlock);
 }
 
 #[test]

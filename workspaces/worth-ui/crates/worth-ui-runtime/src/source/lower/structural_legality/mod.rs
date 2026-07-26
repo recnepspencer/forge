@@ -1,4 +1,4 @@
-mod worth_ui_structural_body_parser;
+mod worth_ui_structural_admission;
 mod worth_ui_structural_legality_context;
 mod worth_ui_structural_legality_diagnostic;
 mod worth_ui_structural_legality_lowerer;

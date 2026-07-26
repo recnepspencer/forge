@@ -8,14 +8,14 @@ use crate::capability::{
     COMPONENT_FAMILY_NAME, SURFACE_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
 use crate::facade::{WorthUi, WorthUiApp};
-use crate::source::{
-    WorthUiArtifactInput, WorthUiResolutionDiagnosticCode, WorthUiResolutionReport,
+use crate::source::{WorthUiResolutionDiagnosticCode, WorthUiResolutionReport};
+use worth_ui_dsl::{
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
-    WorthUiRustAuthoredToArtifactInputLowerer,
+    WorthUiSealedSemanticPackage,
 };
 
-pub(super) fn standard_artifact_input() -> WorthUiArtifactInput {
-    WorthUiRustAuthoredToArtifactInputLowerer::lower(
+pub(super) fn standard_artifact_input() -> WorthUiSealedSemanticPackage {
+    crate::source::test_compilation::compile_rust_authored(
         &WorthUiRustAuthoredArtifactInput::from_modules([
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
                 .with_import("app/panels/inspector.wui")

@@ -23,10 +23,10 @@ const DECLARATION_SOURCE_REOPENING_ALLOWED_FILES: &[&str] = &[
     "crates/worth-ui-runtime/src/declaration/declared_posture/measurement_policy/mode.rs",
     "crates/worth-ui-runtime/src/declaration/declared_posture/measurement_policy/ownership_posture.rs",
     "crates/worth-ui-runtime/src/declaration/family/admission.rs",
+    "crates/worth-ui-runtime/src/declaration/rust_authored_declaration_fixture.rs",
     "crates/worth-ui-runtime/src/source/lower/artifact_dependency/worth_ui_subtree_digest_basis.rs",
     "crates/worth-ui-runtime/src/source/lower/artifact_equivalence/worth_ui_artifact_descriptor_basis.rs",
     "crates/worth-ui-runtime/src/declaration/structural_semantics/admission.rs",
-    "crates/worth-ui-runtime/src/runtime/source_ingress/source_backed_package_lowering.rs",
 ];
 
 const DECLARATION_SEMANTIC_AUTHORITY_TYPES: &[&str] = &[
