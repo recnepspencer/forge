@@ -47,7 +47,7 @@ pub(super) struct WorthQueryDirectProvisionalResourceAttempt {
     pub(super) binding_identity: String,
 }
 
-pub(super) struct WorthQueryDirectBridgeReadmissionPending {
+pub(in crate::domain_computation::managed_run) struct WorthQueryDirectBridgeReadmissionPending {
     pub(super) state: WorthQueryDirectYieldedState,
     pub(super) execution: WorthQueryRetainedManagedGraphExecution,
     pub(super) resource: WorthQueryDirectResourceReadmissionPending,

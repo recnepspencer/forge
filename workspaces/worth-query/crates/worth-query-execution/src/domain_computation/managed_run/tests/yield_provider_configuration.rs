@@ -1,6 +1,37 @@
 use super::yield_fixture::{YieldProvider, YieldSuspension};
 
 impl YieldProvider {
+    pub(super) fn artifact_generation_rollback_failure(
+        retained_bytes: u64,
+    ) -> (
+        Self,
+        std::sync::Arc<
+            std::sync::Mutex<
+                Option<
+                    std::sync::Arc<
+                        crate::domain_computation::artifact_owner::
+                            WorthQueryWorkflowArtifactRegistry,
+                    >,
+                >,
+            >,
+        >,
+    ){
+        let registry = std::sync::Arc::new(std::sync::Mutex::new(None));
+        (
+            Self {
+                yield_installed: true,
+                checkpoint_available: true,
+                record_effect: false,
+                suspension: YieldSuspension::CheckpointArtifactGenerationRollbackFailure {
+                    retained_bytes,
+                    registry: std::sync::Arc::clone(&registry),
+                },
+                execution_drop_panics: false,
+            },
+            registry,
+        )
+    }
+
     pub(super) const fn installed(retained_bytes: u64) -> Self {
         Self {
             yield_installed: true,

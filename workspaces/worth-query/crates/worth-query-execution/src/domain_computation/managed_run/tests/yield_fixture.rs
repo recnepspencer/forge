@@ -1,12 +1,12 @@
 use super::yield_checkpoint_fixture::{
-    PanicDropCheckpoint, PanicProbeAndDropCheckpoint, PanicProbeCheckpoint,
-    RestoreExecutionDropPanicCheckpoint, RestoreFailureCheckpoint,
+    ArtifactGenerationRollbackFailureCheckpoint, PanicDropCheckpoint, PanicProbeAndDropCheckpoint,
+    PanicProbeCheckpoint, RestoreExecutionDropPanicCheckpoint, RestoreFailureCheckpoint,
     RestorePanicAfterAdmissionCheckpoint, RestorePanicCheckpoint,
     RestoreRejectAfterAdmissionCheckpoint, YieldCheckpoint,
 };
 use super::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) enum YieldSuspension {
     Checkpoint {
         retained_bytes: u64,
@@ -37,12 +37,25 @@ pub(super) enum YieldSuspension {
         retained_bytes: u64,
         checkpoint_drop_panics: bool,
     },
+    CheckpointArtifactGenerationRollbackFailure {
+        retained_bytes: u64,
+        registry: Arc<
+            std::sync::Mutex<
+                Option<
+                    Arc<
+                        crate::domain_computation::artifact_owner::
+                            WorthQueryWorkflowArtifactRegistry,
+                    >,
+                >,
+            >,
+        >,
+    },
     Failure,
     Panic,
 }
 
 impl YieldSuspension {
-    fn governed_retained_bytes(self) -> usize {
+    fn governed_retained_bytes(&self) -> usize {
         let reported = match self {
             Self::Checkpoint { retained_bytes }
             | Self::CheckpointDropPanic { retained_bytes }
@@ -50,11 +63,14 @@ impl YieldSuspension {
             | Self::CheckpointRestorePanic { retained_bytes }
             | Self::CheckpointRestoreRejectAfterAdmission { retained_bytes }
             | Self::CheckpointRestorePanicAfterAdmission { retained_bytes }
-            | Self::CheckpointRestoreExecutionDropPanic { retained_bytes, .. } => retained_bytes,
+            | Self::CheckpointRestoreExecutionDropPanic { retained_bytes, .. }
+            | Self::CheckpointArtifactGenerationRollbackFailure { retained_bytes, .. } => {
+                *retained_bytes
+            }
             Self::CheckpointMemoryMismatch {
                 governed_retained_bytes,
                 ..
-            } => governed_retained_bytes,
+            } => *governed_retained_bytes,
             Self::CheckpointProbePanic
             | Self::CheckpointProbeAndDropPanic
             | Self::Failure
@@ -64,7 +80,7 @@ impl YieldSuspension {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) struct YieldProvider {
     pub(super) yield_installed: bool,
     pub(super) checkpoint_available: bool,
@@ -148,7 +164,7 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
         Box<dyn crate::domain_computation::WorthQueryGraphProviderCheckpoint>,
         WorthQueryGraphProviderFailure,
     > {
-        match self.suspension {
+        match self.suspension.clone() {
             YieldSuspension::Checkpoint { retained_bytes } => Ok(Box::new(YieldCheckpoint {
                 retained_bytes,
                 retained: self.take_checkpoint_memory(),
@@ -217,6 +233,14 @@ impl WorthQueryGraphProviderExecution for YieldExecution {
                 checkpoint_drop_panics,
                 retained: self.take_checkpoint_memory(),
             })),
+            YieldSuspension::CheckpointArtifactGenerationRollbackFailure {
+                retained_bytes,
+                registry,
+            } => Ok(Box::new(ArtifactGenerationRollbackFailureCheckpoint {
+                retained_bytes,
+                retained: self.take_checkpoint_memory(),
+                registry,
+            })),
             YieldSuspension::Failure => Err(WorthQueryGraphProviderFailure::new(
                 "yield fixture suspension failed",
             )),
@@ -265,7 +289,7 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for YieldProvider {
                 step_ordinal: 0,
                 checkpoint_available: self.checkpoint_available,
                 record_effect: self.record_effect,
-                suspension: self.suspension,
+                suspension: self.suspension.clone(),
                 execution_drop_panics: self.execution_drop_panics,
                 retained: None,
             },

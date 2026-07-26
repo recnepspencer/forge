@@ -6,15 +6,16 @@ use super::super::provider_restore::WorthQueryManagedGraphRestoreCommitOutcome;
 use super::super::run_identity::WorthQueryManagedRunIdentity;
 use super::super::{WorthQueryActiveWorkflowGraphExecution, WorthQueryRunningWorkflowRun};
 use super::counters::WorthQueryReadmissionCounters;
+use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 use super::workflow_abort::{abort_provider_pending, map_recovery_kind};
 use super::workflow_outcome::{
     WorthQueryWorkflowReadmissionDenialKind, WorthQueryWorkflowReadmissionOutcome,
 };
-use super::workflow_recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 use super::workflow_state::{
     WorthQueryWorkflowArtifactGenerationPending, WorthQueryWorkflowCommitReady,
-    WorthQueryWorkflowProviderAbortPending, WorthQueryWorkflowProviderPendingRecoveryState,
-    WorthQueryWorkflowProviderRecoveryState, WorthQueryWorkflowProviderRestorePending,
+    WorthQueryWorkflowProviderAbortPending, WorthQueryWorkflowProviderGenerationRecoveryState,
+    WorthQueryWorkflowProviderPendingRecoveryState, WorthQueryWorkflowProviderRecoveryState,
+    WorthQueryWorkflowProviderRestorePending,
 };
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepArtifactContext;
 
@@ -55,16 +56,20 @@ pub(super) fn advance_artifact_generation(
         Ok(production) => production,
         Err(denial) => {
             let detail = Arc::from(denial.detail());
-            if let Err(abort) = generation.abort() {
+            if let Err(generation_rollback) = generation.abort() {
                 return WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
                     WorthQueryWorkflowReadmissionRecoveryRequired::provider_pending(
-                        format!("{detail}; generation rollback failed: {}", abort.detail()),
+                        format!(
+                            "{detail}; generation rollback failed: {}",
+                            generation_rollback.detail()
+                        ),
                         counters,
                         WorthQueryWorkflowProviderPendingRecoveryState {
                             state,
                             resource,
                             bridge,
                             provider,
+                            generation_rollback,
                         },
                     ),
                 );
@@ -120,9 +125,22 @@ fn commit_artifact_generation(
         WorthQueryManagedGraphRestoreCommitOutcome::RecoveryRequired(recovery) => {
             let kind = map_recovery_kind(recovery.kind());
             let mut detail = recovery.detail().to_owned();
-            if let Err(abort) = generation.abort() {
+            if let Err(generation_rollback) = generation.abort() {
                 detail.push_str("; generation rollback failed: ");
-                detail.push_str(abort.detail());
+                detail.push_str(generation_rollback.detail());
+                return WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
+                    WorthQueryWorkflowReadmissionRecoveryRequired::provider_generation(
+                        detail,
+                        counters,
+                        WorthQueryWorkflowProviderGenerationRecoveryState {
+                            state,
+                            resource,
+                            bridge,
+                            provider: recovery,
+                            generation_rollback,
+                        },
+                    ),
+                );
             }
             return WorthQueryWorkflowReadmissionOutcome::RecoveryRequired(
                 WorthQueryWorkflowReadmissionRecoveryRequired::provider(

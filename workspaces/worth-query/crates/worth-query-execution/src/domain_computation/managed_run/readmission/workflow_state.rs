@@ -17,9 +17,10 @@ use super::super::{
     WorthQueryManagedRunCounters, WorthQueryYieldTransitionCounters, WorthQueryYieldedWorkflowRun,
 };
 use crate::domain_computation::artifact_owner::{
-    WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactProductionGenerationCommitted,
-    WorthQueryArtifactProductionGenerationPending, WorthQueryFrozenWorkflowArtifactAuthority,
-    WorthQueryWorkflowArtifactAuthority, WorthQueryWorkflowArtifactRegistryEvidence,
+    WorthQueryArtifactOccurrenceLedger, WorthQueryArtifactProductionGenerationAbortFailure,
+    WorthQueryArtifactProductionGenerationCommitted, WorthQueryArtifactProductionGenerationPending,
+    WorthQueryFrozenWorkflowArtifactAuthority, WorthQueryWorkflowArtifactAuthority,
+    WorthQueryWorkflowArtifactRegistryEvidence,
 };
 use crate::domain_computation::provider_session::graph_provider::bounded_step::WorthQueryGraphProviderStepArtifactContext;
 use crate::domain_computation::provider_session::readmission::WorthQueryWorkflowResourceReadmissionPending;
@@ -128,11 +129,20 @@ pub(super) struct WorthQueryWorkflowProviderRecoveryState {
     pub(super) provider: WorthQueryManagedGraphRestoreRecoveryRequired,
 }
 
+pub(super) struct WorthQueryWorkflowProviderGenerationRecoveryState {
+    pub(super) state: WorthQueryWorkflowYieldedState,
+    pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
+    pub(super) bridge: BridgeExecutionBasisReadmissionPending,
+    pub(super) provider: WorthQueryManagedGraphRestoreRecoveryRequired,
+    pub(super) generation_rollback: WorthQueryArtifactProductionGenerationAbortFailure,
+}
+
 pub(super) struct WorthQueryWorkflowProviderPendingRecoveryState {
     pub(super) state: WorthQueryWorkflowYieldedState,
     pub(super) resource: WorthQueryWorkflowResourceReadmissionPending,
     pub(super) bridge: BridgeExecutionBasisReadmissionPending,
     pub(super) provider: WorthQueryManagedGraphRestorePending,
+    pub(super) generation_rollback: WorthQueryArtifactProductionGenerationAbortFailure,
 }
 
 pub(super) struct WorthQueryWorkflowYieldedReassembly {

@@ -71,7 +71,6 @@ fn panicking_direct_export_returns_typed_recovery_with_cleanup_authority() {
         _ => panic!("provider export panic must remain typed recovery"),
     };
     assert_eq!(recovery.detail(), "provider checkpoint export panicked");
-    assert_eq!(recovery.retained_authority_count(), 4);
     match recovery.cleanup() {
         crate::domain_computation::WorthQueryDirectYieldCleanupOutcome::Complete(_) => {}
         _ => panic!("export recovery should retain direct cleanup authority"),

@@ -2,8 +2,8 @@ use super::{
     WorthQueryPendingDirectConvergenceIteration, WorthQueryStartedDirectConvergenceIteration,
 };
 use crate::domain_computation::{
-    WorthQueryDirectReadmissionDenied, WorthQueryDirectReadmissionOutcome,
-    WorthQueryDirectReadmissionRecoveryRequired,
+    WorthQueryDirectReadmissionCleanupRequired, WorthQueryDirectReadmissionDenied,
+    WorthQueryDirectReadmissionOutcome, WorthQueryDirectReadmissionRecoveryRequired,
     WorthQueryDirectReadmissionRecoveryRetryOutcome as ManagedRecoveryRetryOutcome,
     WorthQueryDirectYieldDenied, WorthQueryDirectYieldOutcome,
     WorthQueryDirectYieldRecoveryRequired, WorthQueryYieldedDirectRun,
@@ -110,22 +110,32 @@ impl WorthQueryDirectConvergenceReadmissionRecoveryRequired {
         &self.recovery
     }
 
-    pub fn retry_to_yielded(
-        self,
-    ) -> Result<WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome, Self> {
+    pub fn retry_to_yielded(self) -> WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome {
         let Self { pending, recovery } = self;
         match recovery.retry_to_yielded() {
-            Ok(ManagedRecoveryRetryOutcome::Yielded(yielded)) => Ok(
+            ManagedRecoveryRetryOutcome::Yielded(yielded) => {
                 WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome::Yielded(
                     WorthQueryYieldedDirectConvergenceIteration { pending, yielded },
-                ),
-            ),
-            Ok(ManagedRecoveryRetryOutcome::RecoveryRequired(recovery)) => Ok(
-                WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome::RecoveryRequired(
-                    Self { pending, recovery },
-                ),
-            ),
-            Err(recovery) => Err(Self { pending, recovery }),
+                )
+            }
+            ManagedRecoveryRetryOutcome::RecoveryRequired(recovery) => {
+                WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome::RecoveryRequired(Self {
+                    pending,
+                    recovery,
+                })
+            }
+            ManagedRecoveryRetryOutcome::CleanupRequired(cleanup) => {
+                WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome::CleanupRequired(
+                    WorthQueryDirectConvergenceReadmissionCleanupRequired { pending, cleanup },
+                )
+            }
+        }
+    }
+
+    pub fn into_cleanup(self) -> WorthQueryDirectConvergenceReadmissionCleanupRequired {
+        WorthQueryDirectConvergenceReadmissionCleanupRequired {
+            pending: self.pending,
+            cleanup: self.recovery.into_cleanup(),
         }
     }
 }
@@ -133,6 +143,27 @@ impl WorthQueryDirectConvergenceReadmissionRecoveryRequired {
 pub enum WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome {
     Yielded(WorthQueryYieldedDirectConvergenceIteration),
     RecoveryRequired(WorthQueryDirectConvergenceReadmissionRecoveryRequired),
+    CleanupRequired(WorthQueryDirectConvergenceReadmissionCleanupRequired),
+}
+
+pub struct WorthQueryDirectConvergenceReadmissionCleanupRequired {
+    pending: WorthQueryPendingDirectConvergenceIteration,
+    cleanup: WorthQueryDirectReadmissionCleanupRequired,
+}
+
+impl WorthQueryDirectConvergenceReadmissionCleanupRequired {
+    pub fn managed_cleanup(&self) -> &WorthQueryDirectReadmissionCleanupRequired {
+        &self.cleanup
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        WorthQueryPendingDirectConvergenceIteration,
+        WorthQueryDirectReadmissionCleanupRequired,
+    ) {
+        (self.pending, self.cleanup)
+    }
 }
 
 pub enum WorthQueryDirectConvergenceReadmissionOutcome {

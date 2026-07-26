@@ -39,6 +39,7 @@ pub use direct_iteration::{
     WorthQueryPendingDirectConvergenceIteration, WorthQueryStartedDirectConvergenceIteration,
 };
 pub use direct_yield::{
+    WorthQueryDirectConvergenceReadmissionCleanupRequired,
     WorthQueryDirectConvergenceReadmissionDenied, WorthQueryDirectConvergenceReadmissionOutcome,
     WorthQueryDirectConvergenceReadmissionRecoveryRequired,
     WorthQueryDirectConvergenceReadmissionRecoveryRetryOutcome,
@@ -84,6 +85,7 @@ pub use workflow_iteration::{
     WorthQueryWorkflowConvergenceIterationStartTermination,
 };
 pub use workflow_yield::{
+    WorthQueryWorkflowConvergenceReadmissionCleanupRequired,
     WorthQueryWorkflowConvergenceReadmissionDenied,
     WorthQueryWorkflowConvergenceReadmissionOutcome,
     WorthQueryWorkflowConvergenceReadmissionRecoveryRequired,

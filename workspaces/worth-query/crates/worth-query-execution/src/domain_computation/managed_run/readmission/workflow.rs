@@ -7,6 +7,7 @@ use worth_runtime_bridge::facade::{
 use super::super::provider_restore::{self, WorthQueryManagedGraphRestoreOutcome};
 use super::super::WorthQueryYieldedWorkflowRun;
 use super::counters::WorthQueryReadmissionCounters;
+use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 use super::workflow_abort::{abort_without_provider, map_recovery_kind};
 use super::workflow_completion::advance_artifact_generation;
 use super::workflow_outcome::{
@@ -16,7 +17,6 @@ use super::workflow_outcome::{
 use super::workflow_preflight::{
     validate_workflow_resume_preflight, WorthQueryWorkflowResumePreflightValidated,
 };
-use super::workflow_recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 use super::workflow_state::{
     WorthQueryWorkflowBridgeCleanupRecoveryState, WorthQueryWorkflowBridgeReadmissionPending,
     WorthQueryWorkflowProviderRecoveryState, WorthQueryWorkflowProviderRestorePending,

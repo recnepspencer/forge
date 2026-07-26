@@ -26,6 +26,13 @@ pub(crate) struct WorthQueryArtifactProductionGenerationPending {
     active: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorthQueryArtifactProductionGenerationAbortFailure {
+    prior: WorthQueryArtifactProductionGeneration,
+    pending: WorthQueryArtifactProductionGeneration,
+    denial: WorthQueryArtifactDenial,
+}
+
 impl WorthQueryArtifactProductionGenerationPending {
     pub(super) fn new(
         registry: Arc<WorthQueryWorkflowArtifactRegistry>,
@@ -48,8 +55,19 @@ impl WorthQueryArtifactProductionGenerationPending {
         Arc::ptr_eq(&self.registry, registry)
     }
 
-    pub(crate) fn abort(mut self) -> Result<(), WorthQueryArtifactDenial> {
-        let outcome = self.registry.abort_generation(self.prior, self.next);
+    pub(crate) fn abort(
+        mut self,
+    ) -> Result<(), WorthQueryArtifactProductionGenerationAbortFailure> {
+        let outcome = self
+            .registry
+            .abort_generation(self.prior, self.next)
+            .map_err(
+                |denial| WorthQueryArtifactProductionGenerationAbortFailure {
+                    prior: self.prior,
+                    pending: self.next,
+                    denial,
+                },
+            );
         self.active = false;
         outcome
     }
@@ -61,6 +79,24 @@ impl WorthQueryArtifactProductionGenerationPending {
             registry: Arc::clone(&self.registry),
             prior: self.prior,
         }
+    }
+}
+
+impl WorthQueryArtifactProductionGenerationAbortFailure {
+    pub(crate) const fn prior_generation(&self) -> WorthQueryArtifactProductionGeneration {
+        self.prior
+    }
+
+    pub(crate) const fn pending_generation(&self) -> WorthQueryArtifactProductionGeneration {
+        self.pending
+    }
+
+    pub(crate) const fn denial(&self) -> &WorthQueryArtifactDenial {
+        &self.denial
+    }
+
+    pub(crate) const fn detail(&self) -> &'static str {
+        self.denial.detail()
     }
 }
 

@@ -75,6 +75,7 @@ pub use production_authority::WorthQueryArtifactProductionAuthority;
 pub(crate) use production_authority::WorthQueryArtifactProductionAuthorityParts;
 pub(crate) use production_freeze::WorthQueryWorkflowArtifactFreezePending;
 pub(crate) use production_generation::{
+    WorthQueryArtifactProductionGenerationAbortFailure,
     WorthQueryArtifactProductionGenerationCommitted, WorthQueryArtifactProductionGenerationPending,
 };
 pub(crate) use provider_resource::{

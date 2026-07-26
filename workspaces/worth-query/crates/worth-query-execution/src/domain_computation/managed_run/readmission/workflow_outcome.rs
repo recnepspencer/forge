@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::super::{WorthQueryActiveWorkflowGraphExecution, WorthQueryYieldedWorkflowRun};
 use super::counters::WorthQueryReadmissionCounters;
-use super::workflow_recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
+use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryWorkflowReadmissionDenialKind {

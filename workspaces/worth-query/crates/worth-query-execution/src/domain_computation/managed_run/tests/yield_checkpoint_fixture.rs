@@ -46,6 +46,18 @@ pub(super) struct RestoreExecutionDropPanicCheckpoint {
     pub(super) retained: WorthQueryGraphProviderRetainedMemory,
 }
 
+pub(super) struct ArtifactGenerationRollbackFailureCheckpoint {
+    pub(super) retained_bytes: u64,
+    pub(super) retained: WorthQueryGraphProviderRetainedMemory,
+    pub(super) registry: Arc<
+        std::sync::Mutex<
+            Option<
+                Arc<crate::domain_computation::artifact_owner::WorthQueryWorkflowArtifactRegistry>,
+            >,
+        >,
+    >,
+}
+
 impl crate::domain_computation::WorthQueryGraphProviderCheckpoint for PanicProbeCheckpoint {
     fn retained_bytes(&self) -> u64 {
         panic!("yield fixture checkpoint probe panicked")
@@ -245,6 +257,43 @@ impl Drop for RestoreExecutionDropPanicCheckpoint {
         if self.checkpoint_drop_panics {
             panic!("yield fixture checkpoint and restored execution drop panicked")
         }
+    }
+}
+
+impl crate::domain_computation::WorthQueryGraphProviderCheckpoint
+    for ArtifactGenerationRollbackFailureCheckpoint
+{
+    fn retained_bytes(&self) -> u64 {
+        self.retained_bytes
+    }
+
+    fn restore(
+        &self,
+        _call: &WorthQueryGraphProviderCall,
+        memory: &mut WorthQueryGraphProviderRestoreMemory,
+    ) -> Result<
+        WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
+        WorthQueryGraphProviderFailure,
+    > {
+        let execution = Box::new(YieldExecution::restored(
+            memory
+                .rebind(&self.retained)
+                .map_err(restore_memory_failure)?,
+        )) as Box<dyn WorthQueryGraphProviderExecution>;
+        admit_restored_provider_execution(memory, execution)
+    }
+}
+
+impl Drop for ArtifactGenerationRollbackFailureCheckpoint {
+    fn drop(&mut self) {
+        let registry = self
+            .registry
+            .lock()
+            .expect("artifact-generation rollback fixture registry lock must remain available")
+            .take()
+            .expect("workflow test must bind the yielded artifact registry before readmission");
+        registry.close_cancelled();
+        panic!("checkpoint release disrupted artifact-generation rollback")
     }
 }
 

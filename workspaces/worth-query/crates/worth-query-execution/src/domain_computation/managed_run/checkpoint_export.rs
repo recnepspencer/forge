@@ -142,16 +142,6 @@ impl WorthQueryDirectCheckpointExportRecoveryRequired {
         &self.detail
     }
 
-    pub fn retained_authority_count(&self) -> usize {
-        let _ = (
-            self.yielded.checkpoint(),
-            self.yielded.resource_attempt_identity(),
-            self.yielded.bridge(),
-            self.yielded.relational_basis_identity(),
-        );
-        4
-    }
-
     pub fn cleanup(self) -> WorthQueryDirectYieldCleanupOutcome {
         self.yielded.cleanup()
     }
@@ -185,17 +175,6 @@ impl WorthQueryWorkflowCheckpointExportFailed {
 impl WorthQueryWorkflowCheckpointExportRecoveryRequired {
     pub fn detail(&self) -> &str {
         &self.detail
-    }
-
-    pub fn retained_authority_count(&self) -> usize {
-        let _ = (
-            self.yielded.checkpoint(),
-            self.yielded.resource_attempt_identity(),
-            self.yielded.bridge(),
-            self.yielded.relational_basis_identity(),
-            self.yielded.artifact_run_identity(),
-        );
-        5
     }
 
     pub fn cleanup(self) -> WorthQueryWorkflowYieldCleanupOutcome {

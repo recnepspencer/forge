@@ -233,13 +233,14 @@ fn workflow_restore_panic_can_recover_only_through_the_retained_yielded_authorit
         ) => recovery,
         _ => panic!("workflow provider restore panic should require recovery"),
     };
-    assert!(recovery.checkpoint_authority_retained());
-    assert!(!recovery.replacement_execution_active());
+    assert_eq!(
+        recovery.posture(),
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryPosture::
+            YieldReassemblyPending
+    );
     let yielded = match recovery.retry_to_yielded() {
-        Ok(
-            crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
-                yielded,
-            ),
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
+            yielded,
         ) => yielded,
         _ => panic!("retry-safe workflow recovery should return the yielded authority"),
     };
@@ -278,10 +279,8 @@ fn workflow_restore_rejection_after_admission_carries_release_into_yielded_autho
         .expect("workflow recovery must retain replacement release evidence");
     assert!(!release.recovery_required());
     let yielded = match recovery.retry_to_yielded() {
-        Ok(
-            crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
-                yielded,
-            ),
+        crate::domain_computation::WorthQueryWorkflowReadmissionRecoveryRetryOutcome::Yielded(
+            yielded,
         ) => yielded,
         _ => panic!("released workflow replacement did not return yielded authority"),
     };

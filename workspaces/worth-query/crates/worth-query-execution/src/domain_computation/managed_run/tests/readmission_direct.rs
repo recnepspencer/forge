@@ -203,17 +203,16 @@ fn provider_restore_panic_remains_typed_recovery_with_retained_authority() {
     );
     assert_eq!(recovery.counters().provider_restore_attempt_count(), 1);
     assert_eq!(recovery.counters().committed_attempt_count(), 0);
-    assert_eq!(recovery.retained_authority_count(), 4);
-    assert!(recovery.checkpoint_authority_retained());
+    assert_eq!(
+        recovery.posture(),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::
+            YieldReassemblyPending
+    );
     assert!(recovery.checkpoint_release().is_none());
     assert!(recovery.restored_execution_release_evidence().is_none());
-    assert!(recovery.bridge_cleanup_pending());
-    assert!(recovery.fresh_resource_attempt_pending());
     let yielded = match recovery.retry_to_yielded() {
-        Ok(
-            crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
-                yielded,
-            ),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
+            yielded,
         ) => yielded,
         _ => panic!("retained checkpoint recovery should return the yielded authority"),
     };
@@ -253,12 +252,14 @@ fn provider_restore_rejection_after_admission_carries_exact_release_evidence() {
         release.destructor(),
         crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Completed
     );
-    assert!(recovery.checkpoint_authority_retained());
+    assert_eq!(
+        recovery.posture(),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::
+            YieldReassemblyPending
+    );
     let yielded = match recovery.retry_to_yielded() {
-        Ok(
-            crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
-                yielded,
-            ),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
+            yielded,
         ) => yielded,
         _ => panic!("successfully released replacement should restore yielded authority"),
     };
@@ -290,12 +291,14 @@ fn restore_panic_and_replacement_destructor_panic_flow_into_yielded_cleanup() {
         release.destructor(),
         crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Panicked
     );
-    assert!(recovery.checkpoint_authority_retained());
+    assert_eq!(
+        recovery.posture(),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryPosture::
+            YieldReassemblyPending
+    );
     let yielded = match recovery.retry_to_yielded() {
-        Ok(
-            crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
-                yielded,
-            ),
+        crate::domain_computation::WorthQueryDirectReadmissionRecoveryRetryOutcome::Yielded(
+            yielded,
         ) => yielded,
         _ => panic!("retained checkpoint recovery did not return yielded authority"),
     };
@@ -315,47 +318,6 @@ fn restore_panic_and_replacement_destructor_panic_flow_into_yielded_cleanup() {
         .provider_execution_release()
         .recovery_evidence()
         .is_some());
-}
-
-#[test]
-fn checkpoint_release_panic_reports_exact_non_retryable_physical_posture() {
-    let (yielded, bridge, runtime) =
-        yielded_direct_with_provider(YieldProvider::checkpoint_drop_panic());
-    let checkpoint = yielded.checkpoint().identity().to_owned();
-    let recovery = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::RecoveryRequired(
-            recovery,
-        ) => recovery,
-        _ => panic!("checkpoint release panic must require recovery"),
-    };
-    assert_eq!(
-        recovery.kind(),
-        crate::domain_computation::WorthQueryDirectReadmissionRecoveryKind::CheckpointReleasePanicked
-    );
-    assert_eq!(recovery.checkpoint().identity(), checkpoint);
-    assert!(!recovery.checkpoint_authority_retained());
-    assert_eq!(
-        recovery.checkpoint_release().unwrap().disposition(),
-        crate::domain_computation::WorthQueryProviderCheckpointReleaseDisposition::Panicked
-    );
-    let restored_release = recovery
-        .restored_execution_release_evidence()
-        .expect("replacement execution was physically released");
-    assert_eq!(
-        restored_release.disposal(),
-        crate::domain_computation::WorthQueryProviderExecutionDisposalDisposition::Completed
-    );
-    assert_eq!(
-        restored_release.destructor(),
-        crate::domain_computation::WorthQueryProviderExecutionDestructorDisposition::Completed
-    );
-    assert!(recovery.bridge_cleanup_pending());
-    assert!(recovery.fresh_resource_attempt_pending());
-    let recovery = match recovery.retry_to_yielded() {
-        Err(recovery) => recovery,
-        _ => panic!("released checkpoint recovery must not claim retry safety"),
-    };
-    assert!(!recovery.checkpoint_authority_retained());
 }
 
 fn foreign_safe_point_contract(
