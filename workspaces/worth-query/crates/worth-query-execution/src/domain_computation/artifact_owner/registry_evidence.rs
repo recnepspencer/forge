@@ -1,20 +1,30 @@
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+#[cfg(test)]
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use super::registry::production_generation;
 use super::{WorthQueryArtifactProviderReleasePosture, WorthQueryWorkflowArtifactRegistry};
 
 pub(super) struct WorthQueryArtifactLifecycleSnapshotGate {
     state: RwLock<()>,
+    #[cfg(test)]
+    lifecycle_mutation_attempt_count: AtomicUsize,
 }
 
 impl WorthQueryArtifactLifecycleSnapshotGate {
     pub(super) const fn new() -> Self {
         Self {
             state: RwLock::new(()),
+            #[cfg(test)]
+            lifecycle_mutation_attempt_count: AtomicUsize::new(0),
         }
     }
 
     pub(super) fn lifecycle_mutation(&self) -> RwLockReadGuard<'_, ()> {
+        #[cfg(test)]
+        self.lifecycle_mutation_attempt_count
+            .fetch_add(1, Ordering::AcqRel);
         self.state
             .read()
             .expect("artifact lifecycle snapshot gate must remain available")
@@ -24,6 +34,12 @@ impl WorthQueryArtifactLifecycleSnapshotGate {
         self.state
             .write()
             .expect("artifact lifecycle snapshot gate must remain available")
+    }
+
+    #[cfg(test)]
+    pub(super) fn lifecycle_mutation_attempt_count(&self) -> usize {
+        self.lifecycle_mutation_attempt_count
+            .load(Ordering::Acquire)
     }
 }
 
@@ -170,3 +186,7 @@ mod tests {
         assert!(gate.state.try_write().is_ok());
     }
 }
+
+#[cfg(test)]
+#[path = "registry_evidence_tests.rs"]
+mod production_tests;
