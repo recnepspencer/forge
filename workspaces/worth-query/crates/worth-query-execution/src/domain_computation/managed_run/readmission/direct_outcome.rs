@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use super::super::{WorthQueryActiveDirectGraphExecution, WorthQueryYieldedDirectRun};
+use super::super::WorthQueryYieldedDirectRun;
 use super::counters::WorthQueryReadmissionCounters;
+use super::readmitted_execution::WorthQueryReadmittedDirectGraphExecution;
 use super::recovery::WorthQueryDirectReadmissionRecoveryRequired;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,7 +20,7 @@ pub enum WorthQueryDirectReadmissionDenialKind {
 
 #[must_use = "direct readmission outcomes retain running, yielded, or recovery authority"]
 pub enum WorthQueryDirectReadmissionOutcome {
-    Readmitted(WorthQueryActiveDirectGraphExecution),
+    Readmitted(WorthQueryReadmittedDirectGraphExecution),
     Denied(WorthQueryDirectReadmissionDenied),
     RecoveryRequired(WorthQueryDirectReadmissionRecoveryRequired),
 }

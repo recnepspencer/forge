@@ -52,13 +52,13 @@ impl WorthQueryYieldedWorkflowConvergenceIteration {
             .yielded
             .readmit_same_runtime(query_runtime, bridge_runtime)
         {
-            WorthQueryWorkflowReadmissionOutcome::Readmitted(execution) => {
+            WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
                 self.pending.core.counters_mut().resumed();
-                self.pending.expected_run_identity = execution.run_identity().into();
+                self.pending.expected_run_identity = readmitted.active().run_identity().into();
                 WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(
                     WorthQueryStartedWorkflowConvergenceIteration {
                         pending: self.pending,
-                        execution,
+                        execution: readmitted.into_active(),
                     },
                 )
             }

@@ -112,8 +112,8 @@ fn workflow_readmission_rolls_generation_and_preserves_occurrence_state() {
     let old_provider_work = yielded.provider_work();
     let reservations = yielded.retained_capacity_reservation_count();
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(active) => {
-            active
+        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
         }
         _ => panic!("same-runtime workflow readmission should succeed"),
     };
@@ -324,8 +324,8 @@ fn workflow_generation_mismatch_denies_before_fresh_authority_and_rolls_back_cle
         generation
     );
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(active) => {
-            active
+        crate::domain_computation::WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
         }
         _ => panic!("generation rollback should restore exact retry authority"),
     };

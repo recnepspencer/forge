@@ -7,11 +7,14 @@ use worth_query_host::facade::{
     installed::{
         domain_computation::{
             WorthQueryArtifactChunkRequest, WorthQueryArtifactNativeAccessCounters,
-            WorthQueryArtifactNativeAccessDenial, WorthQueryDirectYieldOutcome,
+            WorthQueryArtifactNativeAccessDenial, WorthQueryCheckpointExportHandoff,
+            WorthQueryDirectCheckpointExported, WorthQueryDirectReadmissionCleanupRequired,
+            WorthQueryDirectReadmissionOutcome, WorthQueryDirectYieldOutcome,
             WorthQueryDirectYieldRecoveryRequired, WorthQueryPausedDirectGraphExecution,
             WorthQueryPausedWorkflowGraphExecution, WorthQueryTransferredArtifactHandle,
-            WorthQueryWorkflowYieldOutcome, WorthQueryWorkflowYieldRecoveryReleaseOutcome,
-            WorthQueryWorkflowYieldRecoveryRequired,
+            WorthQueryWorkflowReadmissionCleanupRequired, WorthQueryWorkflowYieldOutcome,
+            WorthQueryWorkflowYieldRecoveryReleaseOutcome, WorthQueryWorkflowYieldRecoveryRequired,
+            WorthQueryYieldedDirectRun,
         },
         provider_session::{
             WorthQueryCooperativeGraphProviderExecution, WorthQueryExecutionProviderSession,
@@ -169,6 +172,64 @@ fn carry_provider_authoring_contract(
     export: WorthQueryProviderCheckpointExport,
 ) {
     let _ = (start, retained, restore, checkpoint, export);
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct FakeStoreCheckpointRecord {
+    protocol_identity: String,
+    protocol_version: u64,
+    binding_digest: String,
+    provider_contract_digest: String,
+    provider_format_identity: String,
+    provider_format_version: u64,
+    provider_compatibility_identity: String,
+    payload_digest: String,
+    payload: Vec<u8>,
+    governance: worth_query_host::facade::domain::WorthQueryArtifactGovernanceContract,
+}
+
+impl FakeStoreCheckpointRecord {
+    fn ingest(handoff: &WorthQueryCheckpointExportHandoff) -> Self {
+        let provider = handoff.provider_export();
+        Self {
+            protocol_identity: handoff.protocol_identity().to_owned(),
+            protocol_version: handoff.protocol_version(),
+            binding_digest: handoff.binding_digest().to_owned(),
+            provider_contract_digest: provider.contract_digest().to_owned(),
+            provider_format_identity: provider.format_identity().to_owned(),
+            provider_format_version: provider.format_version(),
+            provider_compatibility_identity: provider.compatibility_identity().to_owned(),
+            payload_digest: provider.payload_digest().to_owned(),
+            payload: provider.payload().to_vec(),
+            governance: handoff.governance().clone(),
+        }
+    }
+}
+
+fn host_ingests_checkpoint_and_retains_only_owner_readmission(
+    exported: WorthQueryDirectCheckpointExported,
+    runtime: &WorthQueryExecutionRuntime,
+    bridge: &worth_runtime_bridge::facade::RuntimeBridge,
+) -> (
+    FakeStoreCheckpointRecord,
+    WorthQueryDirectReadmissionOutcome,
+) {
+    let (handoff, yielded) = exported.into_parts();
+    let stored = FakeStoreCheckpointRecord::ingest(&handoff);
+    let readmission = yielded.readmit_same_runtime(runtime, bridge);
+    (stored, readmission)
+}
+
+fn carry_same_runtime_readmission_authority(yielded: WorthQueryYieldedDirectRun) {
+    let _ = yielded;
+}
+
+fn resolve_readmission_cleanup(
+    direct: WorthQueryDirectReadmissionCleanupRequired,
+    workflow: WorthQueryWorkflowReadmissionCleanupRequired,
+) {
+    let _ = direct.finish();
+    let _ = workflow.finish();
 }
 
 fn main() {}

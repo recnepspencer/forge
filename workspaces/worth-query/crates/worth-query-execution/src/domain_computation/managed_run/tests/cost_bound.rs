@@ -1,15 +1,19 @@
 use super::*;
+use crate::domain_computation::{
+    WorthQueryDirectReadmissionOutcome, WorthQueryReadmissionCounters,
+    WorthQueryRunningWorkflowRun, WorthQueryWorkflowReadmissionOutcome,
+};
 
 const UNRELATED_RUN_COUNT: usize = 12;
 
 #[test]
 fn managed_run_work_is_invariant_to_unrelated_live_authority_width() {
     let disposed = Arc::new(AtomicUsize::new(0));
+    let runtime = query_runtime();
     let unrelated = (0..UNRELATED_RUN_COUNT)
-        .map(|index| unrelated_artifact_run(index, Arc::clone(&disposed)))
+        .map(|index| unrelated_artifact_run_in_runtime(&runtime, index, Arc::clone(&disposed)))
         .collect::<Vec<_>>();
 
-    let runtime = query_runtime();
     let plan = admitted_plan("cost-bound-target", 8);
     let operation = direct_authority(&runtime, &plan);
     let attempt = runtime
@@ -42,6 +46,24 @@ fn managed_run_work_is_invariant_to_unrelated_live_authority_width() {
     assert_eq!(disposed.load(Ordering::Acquire), UNRELATED_RUN_COUNT);
 }
 
+#[test]
+fn readmission_work_is_invariant_to_same_runtime_unrelated_authority_width() {
+    let direct_empty = direct_readmission_work(0);
+    let direct_wide = direct_readmission_work(UNRELATED_RUN_COUNT);
+    assert_eq!(direct_empty, direct_wide);
+    assert_exact_direct_readmission_work(direct_wide);
+
+    let workflow_empty = workflow_readmission_work(0);
+    let workflow_wide = workflow_readmission_work(UNRELATED_RUN_COUNT);
+    assert_eq!(workflow_empty, workflow_wide);
+    assert_exact_workflow_readmission_work(workflow_wide);
+
+    let denial_empty = denied_readmission_work(0);
+    let denial_wide = denied_readmission_work(UNRELATED_RUN_COUNT);
+    assert_eq!(denial_empty, denial_wide);
+    assert_exact_preflight_denial_work(denial_wide);
+}
+
 pub(super) fn unrelated_artifact_run(
     index: usize,
     disposed: Arc<AtomicUsize>,
@@ -50,6 +72,17 @@ pub(super) fn unrelated_artifact_run(
     crate::domain_computation::artifact_owner::WorthQueryMoveOnlyArtifactHandle,
 ) {
     let runtime = query_runtime();
+    unrelated_artifact_run_in_runtime(&runtime, index, disposed)
+}
+
+fn unrelated_artifact_run_in_runtime(
+    runtime: &WorthQueryExecutionRuntime,
+    index: usize,
+    disposed: Arc<AtomicUsize>,
+) -> (
+    crate::domain_computation::WorthQueryRunningWorkflowRun,
+    crate::domain_computation::artifact_owner::WorthQueryMoveOnlyArtifactHandle,
+) {
     let operation_label = format!("unrelated-workflow-{index}");
     let stage_label = format!("unrelated-workflow-{index}:producer");
     let operation_resources = admitted_plan(&operation_label, 8);
@@ -61,7 +94,7 @@ pub(super) fn unrelated_artifact_run(
     let output =
         crate::domain_computation::artifact_owner::installed_artifact_contract_for_managed_run();
     let operation =
-        workflow_authority_with_output_artifact(&runtime, &resources, "producer", output);
+        workflow_authority_with_output_artifact(runtime, &resources, "producer", output);
     let attempt = runtime
         .start_workflow_resource_attempt(&operation, resources)
         .expect("unrelated workflow should reserve");
@@ -93,6 +126,120 @@ pub(super) fn unrelated_artifact_run(
         )
         .expect("unrelated artifact should register");
     (running, handle)
+}
+
+fn direct_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCounters {
+    let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct();
+    let (unrelated, disposed) = unrelated_authority(&runtime, unrelated_width);
+    let readmitted = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => readmitted,
+        _ => panic!("direct cost target should readmit"),
+    };
+    let counters = readmitted.readmission_evidence().counters();
+    let terminal = match readmitted.into_active().abandon() {
+        WorthQueryDirectGraphStepOutcome::Failed(terminal) => terminal,
+        _ => panic!("direct cost target should explicitly terminalize"),
+    };
+    terminal
+        .cleanup()
+        .expect("direct cost target should clean up");
+    assert_and_release_unrelated_authority(unrelated, &disposed, unrelated_width);
+    counters
+}
+
+fn workflow_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCounters {
+    let (yielded, bridge, runtime, old_producer) = super::readmission_workflow::yielded_workflow(
+        super::yield_fixture::YieldProvider::installed(7),
+    );
+    let (unrelated, disposed) = unrelated_authority(&runtime, unrelated_width);
+    let readmitted = match yielded.readmit_same_runtime(&runtime, &bridge) {
+        WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => readmitted,
+        _ => panic!("workflow cost target should readmit"),
+    };
+    let counters = readmitted.readmission_evidence().counters();
+    drop(old_producer);
+    let terminal = match readmitted.into_active().abandon() {
+        WorthQueryWorkflowGraphStepOutcome::Failed(terminal) => terminal,
+        _ => panic!("workflow cost target should explicitly terminalize"),
+    };
+    match terminal.cleanup() {
+        WorthQueryWorkflowRunCleanupOutcome::Complete(_) => {}
+        _ => panic!("workflow cost target should clean up"),
+    }
+    assert_and_release_unrelated_authority(unrelated, &disposed, unrelated_width);
+    counters
+}
+
+fn denied_readmission_work(unrelated_width: usize) -> WorthQueryReadmissionCounters {
+    let (yielded, bridge, runtime) = super::readmission_direct::yielded_direct();
+    let (unrelated, disposed) = unrelated_authority(&runtime, unrelated_width);
+    let foreign = query_runtime();
+    let denial = match yielded.readmit_same_runtime(&foreign, &bridge) {
+        WorthQueryDirectReadmissionOutcome::Denied(denial) => denial,
+        _ => panic!("foreign Query runtime should deny readmission"),
+    };
+    let counters = denial.counters();
+    complete_direct_yield_cleanup(denial.into_yielded());
+    assert_and_release_unrelated_authority(unrelated, &disposed, unrelated_width);
+    counters
+}
+
+fn unrelated_authority(
+    runtime: &WorthQueryExecutionRuntime,
+    width: usize,
+) -> (
+    Vec<(
+        WorthQueryRunningWorkflowRun,
+        crate::domain_computation::artifact_owner::WorthQueryMoveOnlyArtifactHandle,
+    )>,
+    Arc<AtomicUsize>,
+) {
+    let disposed = Arc::new(AtomicUsize::new(0));
+    let unrelated = (0..width)
+        .map(|index| unrelated_artifact_run_in_runtime(runtime, index, Arc::clone(&disposed)))
+        .collect();
+    (unrelated, disposed)
+}
+
+fn assert_and_release_unrelated_authority<T>(
+    unrelated: Vec<T>,
+    disposed: &Arc<AtomicUsize>,
+    expected_width: usize,
+) {
+    assert_eq!(unrelated.len(), expected_width);
+    assert_eq!(disposed.load(Ordering::Acquire), 0);
+    drop(unrelated);
+    assert_eq!(disposed.load(Ordering::Acquire), expected_width);
+}
+
+fn assert_exact_direct_readmission_work(counters: WorthQueryReadmissionCounters) {
+    assert_eq!(counters.preflight_check_count(), 1);
+    assert_eq!(counters.fresh_resource_attempt_count(), 1);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 1);
+    assert_eq!(counters.provider_restore_attempt_count(), 1);
+    assert_eq!(counters.artifact_generation_attempt_count(), 0);
+    assert_eq!(counters.artifact_generation_commit_count(), 0);
+    assert_eq!(counters.committed_attempt_count(), 1);
+}
+
+fn assert_exact_workflow_readmission_work(counters: WorthQueryReadmissionCounters) {
+    assert_eq!(counters.preflight_check_count(), 1);
+    assert_eq!(counters.fresh_resource_attempt_count(), 1);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 1);
+    assert_eq!(counters.provider_restore_attempt_count(), 1);
+    assert_eq!(counters.artifact_generation_attempt_count(), 1);
+    assert_eq!(counters.artifact_generation_commit_count(), 1);
+    assert_eq!(counters.committed_attempt_count(), 1);
+}
+
+fn assert_exact_preflight_denial_work(counters: WorthQueryReadmissionCounters) {
+    assert_eq!(counters.preflight_check_count(), 1);
+    assert_eq!(counters.fresh_resource_attempt_count(), 0);
+    assert_eq!(counters.bridge_readmission_attempt_count(), 0);
+    assert_eq!(counters.provider_restore_attempt_count(), 0);
+    assert_eq!(counters.artifact_generation_attempt_count(), 0);
+    assert_eq!(counters.artifact_generation_commit_count(), 0);
+    assert_eq!(counters.committed_attempt_count(), 0);
 }
 
 pub(super) fn assert_exact_admission_work(counters: &super::super::WorthQueryManagedRunCounters) {

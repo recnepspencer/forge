@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use super::super::{WorthQueryActiveWorkflowGraphExecution, WorthQueryYieldedWorkflowRun};
+use super::super::WorthQueryYieldedWorkflowRun;
 use super::counters::WorthQueryReadmissionCounters;
+use super::readmitted_execution::WorthQueryReadmittedWorkflowGraphExecution;
 use super::recovery::WorthQueryWorkflowReadmissionRecoveryRequired;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,7 +24,7 @@ pub enum WorthQueryWorkflowReadmissionDenialKind {
 
 #[must_use = "workflow readmission outcomes retain running, yielded, or recovery authority"]
 pub enum WorthQueryWorkflowReadmissionOutcome {
-    Readmitted(WorthQueryActiveWorkflowGraphExecution),
+    Readmitted(WorthQueryReadmittedWorkflowGraphExecution),
     Denied(WorthQueryWorkflowReadmissionDenied),
     RecoveryRequired(WorthQueryWorkflowReadmissionRecoveryRequired),
 }

@@ -196,7 +196,7 @@ fn commit_workflow(
         .provider_work
         .rebind_provider_session(resource_attempt.provider_session().identity());
     counters.committed_attempt();
-    WorthQueryWorkflowReadmissionOutcome::Readmitted(WorthQueryActiveWorkflowGraphExecution::new(
+    let active = WorthQueryActiveWorkflowGraphExecution::new(
         WorthQueryRunningWorkflowRun {
             logical_run_identity,
             identity,
@@ -209,5 +209,8 @@ fn commit_workflow(
             provider_artifact_occurrences: state.provider_artifact_occurrences,
         },
         execution,
-    ))
+    );
+    WorthQueryWorkflowReadmissionOutcome::Readmitted(
+        super::WorthQueryReadmittedWorkflowGraphExecution::new(active, counters),
+    )
 }

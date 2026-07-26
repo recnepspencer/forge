@@ -24,7 +24,9 @@ fn foreign_bridge_denies_before_fresh_query_or_provider_work_and_preserves_retry
     assert_eq!(yielded.resource_attempt_identity(), resource_attempt);
 
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
+        }
         _ => panic!("foreign-Bridge denial must preserve exact retry authority"),
     };
     let completion = match active.advance() {

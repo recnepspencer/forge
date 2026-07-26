@@ -52,13 +52,13 @@ impl WorthQueryYieldedDirectConvergenceIteration {
             .yielded
             .readmit_same_runtime(query_runtime, bridge_runtime)
         {
-            WorthQueryDirectReadmissionOutcome::Readmitted(execution) => {
+            WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
                 self.pending.core.counters_mut().resumed();
-                self.pending.expected_run_identity = execution.run_identity().into();
+                self.pending.expected_run_identity = readmitted.active().run_identity().into();
                 WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(
                     WorthQueryStartedDirectConvergenceIteration {
                         pending: self.pending,
-                        execution,
+                        execution: readmitted.into_active(),
                     },
                 )
             }

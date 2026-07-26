@@ -1,0 +1,11 @@
+error[E0599]: no method named `retry_to_yielded` found for struct `WorthQueryDirectReadmissionCleanupRequired` in the current scope
+ --> tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_resume.rs:6:13
+  |
+6 |     cleanup.retry_to_yielded();
+  |             ^^^^^^^^^^^^^^^^ method not found in `WorthQueryDirectReadmissionCleanupRequired`
+
+error[E0599]: no method named `readmit_same_runtime` found for struct `WorthQueryWorkflowReadmissionCleanupRequired` in the current scope
+  --> tests/ui/installed_domain/managed_run/readmission_cleanup_cannot_resume.rs:10:13
+   |
+10 |     cleanup.readmit_same_runtime();
+   |             ^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryWorkflowReadmissionCleanupRequired`

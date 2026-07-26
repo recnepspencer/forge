@@ -4,6 +4,7 @@ mod direct_outcome;
 mod direct_preflight;
 mod direct_preparation;
 mod direct_state;
+mod readmitted_execution;
 mod recovery;
 mod workflow;
 mod workflow_abort;
@@ -16,6 +17,10 @@ pub use counters::WorthQueryReadmissionCounters;
 pub use direct_outcome::{
     WorthQueryDirectReadmissionDenialKind, WorthQueryDirectReadmissionDenied,
     WorthQueryDirectReadmissionOutcome,
+};
+pub use readmitted_execution::{
+    WorthQueryReadmittedAttemptEvidence, WorthQueryReadmittedDirectGraphExecution,
+    WorthQueryReadmittedWorkflowGraphExecution,
 };
 pub use recovery::{
     WorthQueryArtifactGenerationRollbackEvidence, WorthQueryWorkflowReadmissionCleanupOutcome,

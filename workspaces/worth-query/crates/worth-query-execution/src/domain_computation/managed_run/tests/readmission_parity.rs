@@ -164,7 +164,9 @@ fn readmission_transfers_saturated_capacity_without_a_second_reservation() {
         "arrival pressure must saturate every capacity pool"
     );
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
+        }
         _ => panic!("same-runtime readmission must transfer retained capacity"),
     };
     assert_eq!(
@@ -281,8 +283,8 @@ fn execute_repeated_yield_world(resume_every_safe_point: bool) -> ParityEvidence
                 };
                 let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
                     crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(
-                        active,
-                    ) => active,
+                        readmitted,
+                    ) => readmitted.into_active(),
                     _ => panic!("parity yielded run should readmit"),
                 };
                 readmission_count += 1;

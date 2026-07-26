@@ -25,7 +25,9 @@ fn direct_export_binds_durable_evidence_without_consuming_resume_authority() {
     let (_, yielded) = exported.into_parts();
     assert_eq!(yielded.checkpoint().identity(), expected.checkpoint);
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
+        }
         _ => panic!("export must leave the in-memory yielded authority readmittable"),
     };
     let completion = match active.advance() {

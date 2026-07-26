@@ -52,6 +52,14 @@ forbidden_targets = ["worth-store", "worth-store-aspect-native"]
 forbidden_target_prefixes = ["worth-store"]
 guidance = "generic Signal cannot import Store composition or Store-owned physical aspect vocabulary"
 
+[[dependency_denials]]
+workspace_manifest = "workspaces/worth-query/Cargo.toml"
+sources = []
+source_prefixes = ["worth-query"]
+forbidden_targets = []
+forbidden_target_prefixes = ["worth-store"]
+guidance = "Query defines checkpoint handoff and readmission contracts but cannot import Store persistence or reconstruction authority"
+
 [[source_identifier_denials]]
 root = "workspaces/worth-store/crates/worth-store/src/physical_runtime/work"
 forbidden_identifiers = [

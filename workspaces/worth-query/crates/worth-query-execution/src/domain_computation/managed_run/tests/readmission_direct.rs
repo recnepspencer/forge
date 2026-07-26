@@ -72,7 +72,9 @@ fn direct_readmission_mints_fresh_attempts_and_transfers_capacity() {
     let bridge_request = yielded.bridge_request_identity().to_owned();
     let reservation_count = yielded.retained_capacity_reservation_count();
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
+        }
         _ => panic!("same-runtime readmission should succeed"),
     };
     assert_eq!(active.logical_run_identity(), logical);
@@ -120,7 +122,9 @@ fn query_preflight_denial_returns_the_exact_yielded_capability_without_fresh_wor
     assert_eq!(yielded.resource_attempt_identity(), resource_attempt);
 
     let active = match yielded.readmit_same_runtime(&runtime, &bridge) {
-        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(active) => active,
+        crate::domain_computation::WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
+            readmitted.into_active()
+        }
         _ => panic!("returned yielded capability should remain readmittable"),
     };
     let completion = match active.advance() {

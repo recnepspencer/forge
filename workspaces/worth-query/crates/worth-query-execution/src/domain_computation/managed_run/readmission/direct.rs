@@ -166,7 +166,7 @@ fn commit_direct(
         .provider_work
         .rebind_provider_session(resource_attempt.provider_session().identity());
     counters.committed_attempt();
-    WorthQueryDirectReadmissionOutcome::Readmitted(WorthQueryActiveDirectGraphExecution::new(
+    let active = WorthQueryActiveDirectGraphExecution::new(
         WorthQueryRunningDirectRun {
             logical_run_identity,
             identity,
@@ -177,7 +177,10 @@ fn commit_direct(
             provider_work,
         },
         execution,
-    ))
+    );
+    WorthQueryDirectReadmissionOutcome::Readmitted(
+        super::WorthQueryReadmittedDirectGraphExecution::new(active, counters),
+    )
 }
 
 fn abort_to_denial(
