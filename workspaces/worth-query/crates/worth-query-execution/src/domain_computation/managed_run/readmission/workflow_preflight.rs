@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use worth_query_admission::facade::resource_admission::WorthQueryAdmittedExecutionResourcePlan;
 use worth_runtime_bridge::facade::{BridgeYieldedExecutionBasisPreflight, RuntimeBridge};
 
 use super::super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
@@ -9,6 +10,7 @@ use super::super::step_contract_admission::{
 use super::super::WorthQueryYieldedWorkflowRun;
 use super::workflow_outcome::WorthQueryWorkflowReadmissionDenialKind;
 use super::workflow_state::{WorthQueryWorkflowYieldedParts, WorthQueryWorkflowYieldedState};
+use crate::domain_computation::provider_session::graph_provider::WorthQueryGraphProviderCallReadmissionPlan;
 use crate::domain_computation::{
     WorthQueryExecutionRuntime, WorthQueryWorkflowExecutionResourceAttempt,
 };
@@ -19,6 +21,8 @@ pub(super) struct WorthQueryWorkflowResumePreflightValidated {
     bridge: BridgeYieldedExecutionBasisPreflight,
     execution: WorthQueryRetainedManagedGraphExecution,
     contract: WorthQueryAdmittedManagedStepContract,
+    call: WorthQueryGraphProviderCallReadmissionPlan,
+    stage_resources: Arc<WorthQueryAdmittedExecutionResourcePlan>,
     binding_identity: String,
     stage_identity: String,
 }
@@ -29,6 +33,8 @@ pub(super) struct WorthQueryWorkflowResumePreflightValidatedParts {
     pub(super) bridge: BridgeYieldedExecutionBasisPreflight,
     pub(super) execution: WorthQueryRetainedManagedGraphExecution,
     pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) call: WorthQueryGraphProviderCallReadmissionPlan,
+    pub(super) stage_resources: Arc<WorthQueryAdmittedExecutionResourcePlan>,
     pub(super) binding_identity: String,
     pub(super) stage_identity: String,
 }
@@ -49,14 +55,37 @@ pub(super) fn validate_workflow_resume_preflight(
             kind, detail, yielded,
         ));
     }
-    let parts = WorthQueryWorkflowYieldedParts::from_yielded(yielded);
-    let Some(stage_identity) = parts.execution.call.stage_identity().map(str::to_owned) else {
+    let Some(stage_identity) = yielded.execution.call.stage_identity().map(str::to_owned) else {
         return Err(WorthQueryWorkflowResumePreflightDenied::new(
             WorthQueryWorkflowReadmissionDenialKind::WorkflowStageResourcesUnavailable,
             "retained workflow provider call has no stage identity",
-            parts.into_yielded(),
+            yielded,
         ));
     };
+    let Some((stage_resources, stage_evidence)) = yielded
+        .resource_attempt
+        .stage_resources_and_evidence(&stage_identity)
+    else {
+        return Err(WorthQueryWorkflowResumePreflightDenied::new(
+            WorthQueryWorkflowReadmissionDenialKind::WorkflowStageResourcesUnavailable,
+            "yielded workflow attempt has no resources for the retained stage",
+            yielded,
+        ));
+    };
+    let call = match yielded.execution.call.preflight_readmission(
+        yielded.resource_attempt.binding_authority(),
+        &stage_evidence,
+    ) {
+        Ok(call) => call,
+        Err(denial) => {
+            return Err(WorthQueryWorkflowResumePreflightDenied::new(
+                WorthQueryWorkflowReadmissionDenialKind::ProviderCallBindingDenied,
+                format!("workflow provider call readmission denied: {denial:?}"),
+                yielded,
+            ));
+        }
+    };
+    let parts = WorthQueryWorkflowYieldedParts::from_yielded(yielded);
     let binding_identity = parts
         .resource_attempt
         .binding_authority()
@@ -105,6 +134,8 @@ pub(super) fn validate_workflow_resume_preflight(
         bridge,
         execution: parts.execution,
         contract,
+        call,
+        stage_resources,
         binding_identity,
         stage_identity,
     })
@@ -118,6 +149,8 @@ impl WorthQueryWorkflowResumePreflightValidated {
             bridge: self.bridge,
             execution: self.execution,
             contract: self.contract,
+            call: self.call,
+            stage_resources: self.stage_resources,
             binding_identity: self.binding_identity,
             stage_identity: self.stage_identity,
         }

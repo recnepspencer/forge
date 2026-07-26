@@ -13,6 +13,7 @@ mod receipt;
 mod stream_evidence;
 mod work_report;
 
+pub(crate) use call::WorthQueryGraphProviderCallReadmissionPlan;
 pub use call::{WorthQueryGraphProviderCall, WorthQueryGraphProviderCallRequest};
 pub use call_kind::WorthQueryGraphProviderCallKind;
 pub use commit_call::{WorthQueryGraphCommitCall, WorthQueryGraphCommitCallRequest};

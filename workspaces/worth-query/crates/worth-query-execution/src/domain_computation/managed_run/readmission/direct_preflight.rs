@@ -9,6 +9,7 @@ use super::super::step_contract_admission::{
 use super::super::WorthQueryYieldedDirectRun;
 use super::direct_outcome::WorthQueryDirectReadmissionDenialKind;
 use super::direct_state::{WorthQueryDirectYieldedParts, WorthQueryDirectYieldedState};
+use crate::domain_computation::provider_session::graph_provider::WorthQueryGraphProviderCallReadmissionPlan;
 use crate::domain_computation::{
     WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionRuntime,
 };
@@ -19,6 +20,7 @@ pub(super) struct WorthQueryDirectResumePreflightValidated {
     bridge: BridgeYieldedExecutionBasisPreflight,
     execution: WorthQueryRetainedManagedGraphExecution,
     contract: WorthQueryAdmittedManagedStepContract,
+    call: WorthQueryGraphProviderCallReadmissionPlan,
     binding_identity: String,
 }
 
@@ -28,6 +30,7 @@ pub(super) struct WorthQueryDirectResumePreflightValidatedParts {
     pub(super) bridge: BridgeYieldedExecutionBasisPreflight,
     pub(super) execution: WorthQueryRetainedManagedGraphExecution,
     pub(super) contract: WorthQueryAdmittedManagedStepContract,
+    pub(super) call: WorthQueryGraphProviderCallReadmissionPlan,
     pub(super) binding_identity: String,
 }
 
@@ -47,6 +50,19 @@ pub(super) fn validate_direct_resume_preflight(
             kind, detail, yielded,
         ));
     }
+    let call = match yielded.execution.call.preflight_readmission(
+        yielded.resource_attempt.binding_authority(),
+        yielded.resource_attempt.evidence(),
+    ) {
+        Ok(call) => call,
+        Err(denial) => {
+            return Err(WorthQueryDirectResumePreflightDenied::new(
+                WorthQueryDirectReadmissionDenialKind::ProviderCallBindingDenied,
+                format!("provider call readmission denied: {denial:?}"),
+                yielded,
+            ));
+        }
+    };
     let parts = WorthQueryDirectYieldedParts::from_yielded(yielded);
     let binding_identity = parts
         .resource_attempt
@@ -96,6 +112,7 @@ pub(super) fn validate_direct_resume_preflight(
         bridge,
         execution: parts.execution,
         contract,
+        call,
         binding_identity,
     })
 }
@@ -108,6 +125,7 @@ impl WorthQueryDirectResumePreflightValidated {
             bridge: self.bridge,
             execution: self.execution,
             contract: self.contract,
+            call: self.call,
             binding_identity: self.binding_identity,
         }
     }

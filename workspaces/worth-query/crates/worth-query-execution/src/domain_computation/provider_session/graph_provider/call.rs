@@ -15,6 +15,10 @@ use crate::domain_computation::provider_session::{
 };
 use crate::execution_digest::hash_parts;
 
+mod readmission;
+
+pub(crate) use readmission::WorthQueryGraphProviderCallReadmissionPlan;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphProviderCallRequest {
     kind: WorthQueryGraphProviderCallKind,
@@ -148,6 +152,20 @@ impl WorthQueryGraphProviderCall {
         {
             return Err(WorthQueryGraphCallBindingDenial::ForeignResourceAttempt);
         }
+        Ok(Self::mint_validated(
+            session,
+            spec,
+            execution_resources,
+            resource_envelope,
+        ))
+    }
+
+    fn mint_validated(
+        session: &WorthQueryExecutionProviderSession,
+        spec: WorthQueryGraphProviderCallSpec,
+        execution_resources: &WorthQueryExecutionResourceAttemptEvidence,
+        resource_envelope: Arc<WorthQueryExecutionResourceEnvelope>,
+    ) -> Self {
         let authority_identity = WorthQueryGraphCallAuthorityIdentity::mint();
         let call_identity = Arc::<str>::from(hash_parts(&[
             "worth_query_graph_provider_call_v2".into(),
@@ -167,14 +185,14 @@ impl WorthQueryGraphProviderCall {
             ),
             format!("resources:{}", execution_resources.identity()),
         ]));
-        Ok(Self {
+        Self {
             authority_identity,
             call_identity,
             provider_session_identity: Arc::from(session.identity()),
             spec,
             execution_resources: execution_resources.clone(),
             resource_envelope,
-        })
+        }
     }
 
     pub fn operation_identity(&self) -> &str {
@@ -215,34 +233,6 @@ impl WorthQueryGraphProviderCall {
 
     pub fn resource_envelope(&self) -> &WorthQueryExecutionResourceEnvelope {
         &self.resource_envelope
-    }
-
-    pub(crate) fn remint_for_readmission(
-        &self,
-        session: &WorthQueryExecutionProviderSession,
-        execution_resources: &WorthQueryExecutionResourceAttemptEvidence,
-    ) -> Result<Self, WorthQueryGraphCallBindingDenial> {
-        if self.spec.scope.binding_identity.as_ref()
-            != session.binding_authority().binding_identity()
-        {
-            return Err(WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch);
-        }
-        if execution_resources.admission_identity() != self.execution_resources.admission_identity()
-            || execution_resources.request_identity() != self.execution_resources.request_identity()
-            || execution_resources.strategy() != self.execution_resources.strategy()
-            || execution_resources.envelope_identity()
-                != self.execution_resources.envelope_identity()
-            || execution_resources.support_snapshot_identity()
-                != self.execution_resources.support_snapshot_identity()
-        {
-            return Err(WorthQueryGraphCallBindingDenial::ExecutionBasisMismatch);
-        }
-        Self::mint(
-            session,
-            self.spec.clone(),
-            execution_resources,
-            Arc::clone(&self.resource_envelope),
-        )
     }
 
     pub(crate) fn stage_identity(&self) -> Option<&str> {

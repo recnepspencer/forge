@@ -2,6 +2,9 @@ use super::super::{
     WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionAttemptIdentity,
     WorthQueryExecutionProviderSession, WorthQueryExecutionResourceAttemptEvidence,
 };
+use crate::domain_computation::provider_session::graph_provider::{
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallReadmissionPlan,
+};
 
 pub(crate) struct WorthQueryDirectResourceReadmissionPending {
     yielded_attempt: WorthQueryDirectExecutionResourceAttempt,
@@ -11,7 +14,10 @@ pub(crate) struct WorthQueryDirectResourceReadmissionPending {
 }
 
 impl WorthQueryDirectResourceReadmissionPending {
-    pub(crate) fn begin(yielded_attempt: WorthQueryDirectExecutionResourceAttempt) -> Self {
+    pub(crate) fn begin(
+        yielded_attempt: WorthQueryDirectExecutionResourceAttempt,
+        call: WorthQueryGraphProviderCallReadmissionPlan,
+    ) -> (Self, WorthQueryGraphProviderCall) {
         let fresh_attempt_identity = WorthQueryExecutionAttemptIdentity::readmission(
             "direct",
             yielded_attempt.resources().identity(),
@@ -25,24 +31,20 @@ impl WorthQueryDirectResourceReadmissionPending {
             yielded_attempt.resources(),
             &fresh_provider_session,
         );
-        Self {
-            yielded_attempt,
-            fresh_attempt_identity,
-            fresh_provider_session,
-            fresh_evidence,
-        }
+        let fresh_call = call.mint(&fresh_provider_session, &fresh_evidence);
+        (
+            Self {
+                yielded_attempt,
+                fresh_attempt_identity,
+                fresh_provider_session,
+                fresh_evidence,
+            },
+            fresh_call,
+        )
     }
 
     pub(crate) fn attempt_identity(&self) -> &WorthQueryExecutionAttemptIdentity {
         &self.fresh_attempt_identity
-    }
-
-    pub(crate) fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
-        &self.fresh_provider_session
-    }
-
-    pub(crate) fn evidence(&self) -> &WorthQueryExecutionResourceAttemptEvidence {
-        &self.fresh_evidence
     }
 
     pub(crate) fn abort(self) -> WorthQueryDirectExecutionResourceAttempt {

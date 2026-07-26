@@ -41,13 +41,7 @@ pub(in crate::domain_computation::managed_run) fn readmit_workflow(
             return denied(kind, detail, yielded, counters);
         }
     };
-    let provisional = match begin_resource_attempt(preflight, counters) {
-        Ok((provisional, next_counters)) => {
-            counters = next_counters;
-            provisional
-        }
-        Err(outcome) => return outcome,
-    };
+    let provisional = begin_resource_attempt(preflight, &mut counters);
     let pending = match begin_bridge_readmission(provisional, bridge_runtime, counters) {
         Ok((pending, next_counters)) => {
             counters = next_counters;
@@ -60,67 +54,25 @@ pub(in crate::domain_computation::managed_run) fn readmit_workflow(
 
 fn begin_resource_attempt(
     preflight: WorthQueryWorkflowResumePreflightValidated,
-    mut counters: WorthQueryReadmissionCounters,
-) -> Result<
-    (
-        WorthQueryWorkflowProvisionalResourceAttempt,
-        WorthQueryReadmissionCounters,
-    ),
-    WorthQueryWorkflowReadmissionOutcome,
-> {
+    counters: &mut WorthQueryReadmissionCounters,
+) -> WorthQueryWorkflowProvisionalResourceAttempt {
     let parts = preflight.into_parts();
-    let resource = WorthQueryWorkflowResourceReadmissionPending::begin(parts.resource_attempt);
+    let (resource, fresh_call) = WorthQueryWorkflowResourceReadmissionPending::begin(
+        parts.resource_attempt,
+        parts.stage_resources,
+        parts.call,
+    );
     counters.minted_fresh_resource_attempt();
-    let Some((_resources, stage_evidence)) =
-        resource.stage_resources_and_evidence(&parts.stage_identity)
-    else {
-        return Err(denied(
-            WorthQueryWorkflowReadmissionDenialKind::WorkflowStageResourcesUnavailable,
-            "fresh workflow attempt has no resources for the retained stage",
-            WorthQueryWorkflowYieldedParts {
-                state: parts.state,
-                resource_attempt: resource.abort(),
-                bridge: parts.bridge.into_yielded(),
-                execution: parts.execution,
-            }
-            .into_yielded(),
-            counters,
-        ));
-    };
-    let fresh_call = match parts
-        .execution
-        .call
-        .remint_for_readmission(resource.provider_session(), &stage_evidence)
-    {
-        Ok(call) => call,
-        Err(denial) => {
-            return Err(denied(
-                WorthQueryWorkflowReadmissionDenialKind::ProviderCallBindingDenied,
-                format!("workflow provider call readmission denied: {denial:?}"),
-                WorthQueryWorkflowYieldedParts {
-                    state: parts.state,
-                    resource_attempt: resource.abort(),
-                    bridge: parts.bridge.into_yielded(),
-                    execution: parts.execution,
-                }
-                .into_yielded(),
-                counters,
-            ));
-        }
-    };
-    Ok((
-        WorthQueryWorkflowProvisionalResourceAttempt {
-            state: parts.state,
-            execution: parts.execution,
-            resource,
-            bridge: parts.bridge,
-            fresh_call,
-            contract: parts.contract,
-            binding_identity: parts.binding_identity,
-            stage_identity: parts.stage_identity,
-        },
-        counters,
-    ))
+    WorthQueryWorkflowProvisionalResourceAttempt {
+        state: parts.state,
+        execution: parts.execution,
+        resource,
+        bridge: parts.bridge,
+        fresh_call,
+        contract: parts.contract,
+        binding_identity: parts.binding_identity,
+        stage_identity: parts.stage_identity,
+    }
 }
 
 fn begin_bridge_readmission(

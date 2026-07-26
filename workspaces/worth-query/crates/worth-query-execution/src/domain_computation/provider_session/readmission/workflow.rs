@@ -5,6 +5,10 @@ use super::super::{
 use std::sync::Arc;
 use worth_query_admission::facade::resource_admission::WorthQueryAdmittedExecutionResourcePlan;
 
+use crate::domain_computation::provider_session::graph_provider::{
+    WorthQueryGraphProviderCall, WorthQueryGraphProviderCallReadmissionPlan,
+};
+
 pub(crate) struct WorthQueryWorkflowResourceReadmissionPending {
     yielded_attempt: WorthQueryWorkflowExecutionResourceAttempt,
     fresh_attempt_identity: WorthQueryExecutionAttemptIdentity,
@@ -13,7 +17,11 @@ pub(crate) struct WorthQueryWorkflowResourceReadmissionPending {
 }
 
 impl WorthQueryWorkflowResourceReadmissionPending {
-    pub(crate) fn begin(yielded_attempt: WorthQueryWorkflowExecutionResourceAttempt) -> Self {
+    pub(crate) fn begin(
+        yielded_attempt: WorthQueryWorkflowExecutionResourceAttempt,
+        stage_resources: Arc<WorthQueryAdmittedExecutionResourcePlan>,
+        call: WorthQueryGraphProviderCallReadmissionPlan,
+    ) -> (Self, WorthQueryGraphProviderCall) {
         let fresh_attempt_identity = WorthQueryExecutionAttemptIdentity::readmission(
             "workflow",
             yielded_attempt.resources().identity(),
@@ -27,39 +35,24 @@ impl WorthQueryWorkflowResourceReadmissionPending {
             yielded_attempt.operation_resources(),
             &fresh_provider_session,
         );
-        Self {
-            yielded_attempt,
-            fresh_attempt_identity,
-            fresh_provider_session,
-            fresh_evidence,
-        }
+        let stage_evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
+            &stage_resources,
+            &fresh_provider_session,
+        );
+        let fresh_call = call.mint(&fresh_provider_session, &stage_evidence);
+        (
+            Self {
+                yielded_attempt,
+                fresh_attempt_identity,
+                fresh_provider_session,
+                fresh_evidence,
+            },
+            fresh_call,
+        )
     }
 
     pub(crate) fn attempt_identity(&self) -> &WorthQueryExecutionAttemptIdentity {
         &self.fresh_attempt_identity
-    }
-
-    pub(crate) fn provider_session(&self) -> &WorthQueryExecutionProviderSession {
-        &self.fresh_provider_session
-    }
-
-    pub(crate) fn stage_resources_and_evidence(
-        &self,
-        stage_identity: &str,
-    ) -> Option<(
-        Arc<WorthQueryAdmittedExecutionResourcePlan>,
-        WorthQueryExecutionResourceAttemptEvidence,
-    )> {
-        let resources = self
-            .yielded_attempt
-            .reserved
-            .resources()
-            .shared_stage(stage_identity)?;
-        let evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
-            &resources,
-            &self.fresh_provider_session,
-        );
-        Some((resources, evidence))
     }
 
     pub(crate) fn abort(self) -> WorthQueryWorkflowExecutionResourceAttempt {

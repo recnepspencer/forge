@@ -41,13 +41,7 @@ pub(in crate::domain_computation::managed_run) fn prepare_direct_provider_restor
             return Err(denied(kind, detail, yielded, counters));
         }
     };
-    let provisional = match begin_resource_attempt(preflight, counters) {
-        Ok((provisional, next_counters)) => {
-            counters = next_counters;
-            provisional
-        }
-        Err(outcome) => return Err(outcome),
-    };
+    let provisional = begin_resource_attempt(preflight, &mut counters);
     let pending = match begin_bridge_readmission(provisional, bridge_runtime, counters) {
         Ok((pending, next_counters)) => {
             counters = next_counters;
@@ -60,50 +54,21 @@ pub(in crate::domain_computation::managed_run) fn prepare_direct_provider_restor
 
 fn begin_resource_attempt(
     preflight: WorthQueryDirectResumePreflightValidated,
-    mut counters: WorthQueryReadmissionCounters,
-) -> Result<
-    (
-        WorthQueryDirectProvisionalResourceAttempt,
-        WorthQueryReadmissionCounters,
-    ),
-    WorthQueryDirectReadmissionOutcome,
-> {
+    counters: &mut WorthQueryReadmissionCounters,
+) -> WorthQueryDirectProvisionalResourceAttempt {
     let parts = preflight.into_parts();
-    let resource = WorthQueryDirectResourceReadmissionPending::begin(parts.resource_attempt);
+    let (resource, fresh_call) =
+        WorthQueryDirectResourceReadmissionPending::begin(parts.resource_attempt, parts.call);
     counters.minted_fresh_resource_attempt();
-    let fresh_call = match parts
-        .execution
-        .call
-        .remint_for_readmission(resource.provider_session(), resource.evidence())
-    {
-        Ok(call) => call,
-        Err(denial) => {
-            return Err(denied(
-                WorthQueryDirectReadmissionDenialKind::ProviderCallBindingDenied,
-                format!("provider call readmission denied: {denial:?}"),
-                WorthQueryDirectYieldedParts {
-                    state: parts.state,
-                    resource_attempt: resource.abort(),
-                    bridge: parts.bridge.into_yielded(),
-                    execution: parts.execution,
-                }
-                .into_yielded(),
-                counters,
-            ));
-        }
-    };
-    Ok((
-        WorthQueryDirectProvisionalResourceAttempt {
-            state: parts.state,
-            execution: parts.execution,
-            resource,
-            bridge: parts.bridge,
-            fresh_call,
-            contract: parts.contract,
-            binding_identity: parts.binding_identity,
-        },
-        counters,
-    ))
+    WorthQueryDirectProvisionalResourceAttempt {
+        state: parts.state,
+        execution: parts.execution,
+        resource,
+        bridge: parts.bridge,
+        fresh_call,
+        contract: parts.contract,
+        binding_identity: parts.binding_identity,
+    }
 }
 
 fn begin_bridge_readmission(
