@@ -4,7 +4,6 @@ use std::sync::Arc;
 use super::provider_anchor::WorthQueryGraphProviderAnchor;
 use super::{
     WorthQueryCooperativeGraphProviderExecution, WorthQueryGraphProviderExecution,
-    WorthQueryProviderCheckpointExport, WorthQueryProviderCheckpointExportInvocation,
     WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
     WorthQueryProviderCheckpointRestoreInvocation, WorthQueryProviderCheckpointRetentionFailure,
 };
@@ -24,12 +23,6 @@ pub trait WorthQueryGraphProviderCheckpoint: Send + 'static {
         WorthQueryCooperativeGraphProviderExecution<Box<dyn WorthQueryGraphProviderExecution>>,
         WorthQueryGraphProviderFailure,
     >;
-
-    fn export(&self) -> Result<WorthQueryProviderCheckpointExport, WorthQueryGraphProviderFailure> {
-        Err(WorthQueryGraphProviderFailure::new(
-            "provider checkpoint does not support durable export",
-        ))
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -135,17 +128,6 @@ impl WorthQueryRetainedGraphProviderCheckpoint {
                 result.and_then(|admitted| memory.validate_returned_execution(admitted)),
             ),
             Err(_) => WorthQueryProviderCheckpointRestoreInvocation::Panicked,
-        }
-    }
-
-    pub(crate) fn invoke_export(&self) -> WorthQueryProviderCheckpointExportInvocation {
-        let checkpoint = self
-            .checkpoint
-            .as_ref()
-            .expect("retained checkpoint remains present until explicit release");
-        match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| checkpoint.export())) {
-            Ok(result) => WorthQueryProviderCheckpointExportInvocation::Returned(result),
-            Err(_) => WorthQueryProviderCheckpointExportInvocation::Panicked,
         }
     }
 

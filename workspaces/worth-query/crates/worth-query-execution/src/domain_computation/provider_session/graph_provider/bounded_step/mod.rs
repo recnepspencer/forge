@@ -1,6 +1,5 @@
 mod artifact_evidence;
 mod checkpoint;
-mod checkpoint_export;
 mod checkpoint_release;
 mod checkpoint_restore;
 mod cooperative_execution;
@@ -20,9 +19,6 @@ mod step_port;
 mod step_state;
 
 pub use checkpoint::{WorthQueryGraphProviderCheckpoint, WorthQueryProviderCheckpointEvidence};
-pub use checkpoint_export::{
-    WorthQueryProviderCheckpointExport, WorthQueryProviderCheckpointFormat,
-};
 pub use checkpoint_release::{
     WorthQueryProviderCheckpointReleaseDisposition, WorthQueryProviderCheckpointReleaseEvidence,
     WorthQueryProviderCheckpointRetentionFailure, WorthQueryProviderCheckpointRetentionFailureKind,
@@ -48,7 +44,6 @@ pub use step_port::WorthQueryGraphProviderStep;
 pub(crate) use artifact_evidence::WorthQueryGraphProviderStepArtifactContext;
 pub use artifact_evidence::WorthQueryGraphProviderStepArtifactEvidence;
 pub(crate) use checkpoint::WorthQueryRetainedGraphProviderCheckpoint;
-pub(crate) use checkpoint_export::WorthQueryProviderCheckpointExportInvocation;
 pub(crate) use checkpoint_restore::WorthQueryProviderCheckpointRestoreInvocation;
 pub(crate) use memory::{
     WorthQueryGraphProviderMemoryArena, WorthQueryGraphProviderMemorySnapshot,

@@ -10,7 +10,6 @@ mod provider_execution_release;
 mod provider_memory_cleanup;
 mod provider_support_affinity;
 mod provider_work;
-mod readmission_checkpoint_export;
 pub(in crate::domain_computation::managed_run) mod readmission_direct;
 mod readmission_owner_evidence;
 mod readmission_parity;

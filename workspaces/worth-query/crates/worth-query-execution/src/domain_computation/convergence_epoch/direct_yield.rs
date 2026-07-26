@@ -28,8 +28,8 @@ pub enum WorthQueryDirectConvergenceYieldOutcome {
 }
 
 pub struct WorthQueryYieldedDirectConvergenceIteration {
-    pending: WorthQueryPendingDirectConvergenceIteration,
-    yielded: WorthQueryYieldedDirectRun,
+    pub(super) pending: WorthQueryPendingDirectConvergenceIteration,
+    pub(super) yielded: WorthQueryYieldedDirectRun,
 }
 
 impl WorthQueryYieldedDirectConvergenceIteration {
@@ -56,7 +56,7 @@ impl WorthQueryYieldedDirectConvergenceIteration {
         {
             WorthQueryDirectReadmissionOutcome::Readmitted(readmitted) => {
                 let evidence = readmitted.readmission_evidence();
-                self.pending.core.counters_mut().resumed();
+                self.pending.core.counters_mut().readmitted();
                 self.pending.expected_run_identity = readmitted.active().run_identity().into();
                 WorthQueryDirectConvergenceReadmissionOutcome::Readmitted(
                     WorthQueryReadmittedDirectConvergenceIteration {

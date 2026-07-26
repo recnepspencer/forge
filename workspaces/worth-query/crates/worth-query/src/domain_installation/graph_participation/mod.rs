@@ -21,7 +21,6 @@ pub use worth_query_execution::facade::provider_session::{
     WorthQueryGraphProviderStepDenial, WorthQueryGraphProviderStepDenialKind,
     WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderStepDispositionKind,
     WorthQueryGraphReadMaterial, WorthQueryGraphReadRow, WorthQueryGraphReadRowConstructionDenial,
-    WorthQueryProviderCheckpointExport,
 };
 pub(crate) use worth_query_execution::facade::provider_session::{
     WorthQueryGraphCallBindingDenial, WorthQueryGraphCommitCallRequest,

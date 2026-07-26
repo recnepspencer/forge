@@ -28,8 +28,8 @@ pub enum WorthQueryWorkflowConvergenceYieldOutcome {
 }
 
 pub struct WorthQueryYieldedWorkflowConvergenceIteration {
-    pending: WorthQueryPendingWorkflowConvergenceIteration,
-    yielded: WorthQueryYieldedWorkflowRun,
+    pub(super) pending: WorthQueryPendingWorkflowConvergenceIteration,
+    pub(super) yielded: WorthQueryYieldedWorkflowRun,
 }
 
 impl WorthQueryYieldedWorkflowConvergenceIteration {
@@ -56,7 +56,7 @@ impl WorthQueryYieldedWorkflowConvergenceIteration {
         {
             WorthQueryWorkflowReadmissionOutcome::Readmitted(readmitted) => {
                 let evidence = readmitted.readmission_evidence();
-                self.pending.core.counters_mut().resumed();
+                self.pending.core.counters_mut().readmitted();
                 self.pending.expected_run_identity = readmitted.active().run_identity().into();
                 WorthQueryWorkflowConvergenceReadmissionOutcome::Readmitted(
                     WorthQueryReadmittedWorkflowConvergenceIteration {

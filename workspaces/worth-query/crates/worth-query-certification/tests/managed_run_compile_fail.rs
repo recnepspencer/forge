@@ -43,9 +43,6 @@ fn managed_run_authority_boundaries_hold() {
     cases.compile_fail(
         "tests/ui/installed_domain/managed_run/yielded_run_cannot_execute_or_publish.rs",
     );
-    cases.compile_fail(
-        "tests/ui/installed_domain/managed_run/checkpoint_export_handoff_cannot_resume.rs",
-    );
     cases.compile_fail("tests/ui/installed_domain/managed_run/bridge_receipt_cannot_readmit.rs");
     cases.compile_fail(
         "tests/ui/installed_domain/managed_run/bridge_readmission_commit_result_cannot_masquerade_as_basis.rs",

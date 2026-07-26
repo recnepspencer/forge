@@ -1,5 +1,4 @@
 mod admission;
-mod checkpoint_export;
 mod counters;
 mod denial;
 mod direct;
@@ -52,16 +51,6 @@ mod yield_recovery;
 mod yield_recovery_evidence;
 mod yield_transition_counters;
 
-pub use checkpoint_export::{
-    WorthQueryCheckpointExportCost, WorthQueryCheckpointExportHandoff,
-    WorthQueryCheckpointExportRecoveryKind, WorthQueryCheckpointExportRecoveryPosture,
-    WorthQueryDirectCheckpointExportFailed, WorthQueryDirectCheckpointExportOutcome,
-    WorthQueryDirectCheckpointExportRecoveryRequired, WorthQueryDirectCheckpointExported,
-    WorthQueryWorkflowCheckpointExportFailed, WorthQueryWorkflowCheckpointExportOutcome,
-    WorthQueryWorkflowCheckpointExportRecoveryRequired, WorthQueryWorkflowCheckpointExported,
-    WORTH_QUERY_CHECKPOINT_EXPORT_PROTOCOL_IDENTITY,
-    WORTH_QUERY_CHECKPOINT_EXPORT_PROTOCOL_VERSION,
-};
 pub use counters::WorthQueryManagedRunCounters;
 pub use denial::{WorthQueryManagedRunDenial, WorthQueryManagedRunDenialKind};
 pub use direct::{

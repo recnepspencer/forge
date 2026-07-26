@@ -12,7 +12,7 @@ pub struct WorthQueryConvergenceEpochCounters {
     incumbent_retention_count: usize,
     incumbent_replacement_count: usize,
     yield_count: usize,
-    resume_count: usize,
+    readmission_count: usize,
     cleanup_count: usize,
 }
 
@@ -74,8 +74,8 @@ impl WorthQueryConvergenceEpochCounters {
         self.yield_count += 1;
     }
 
-    pub(super) fn resumed(&mut self) {
-        self.resume_count += 1;
+    pub(super) fn readmitted(&mut self) {
+        self.readmission_count += 1;
     }
 
     pub(super) fn cleaned_up(&mut self) {
@@ -130,8 +130,8 @@ impl WorthQueryConvergenceEpochCounters {
         self.yield_count
     }
 
-    pub fn resume_count(&self) -> usize {
-        self.resume_count
+    pub fn readmission_count(&self) -> usize {
+        self.readmission_count
     }
 
     pub fn cleanup_count(&self) -> usize {

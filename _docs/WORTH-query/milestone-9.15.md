@@ -125,7 +125,7 @@ independent verification from reuse. Irrelevant concurrent mutation must not
 cause false conflict. A heuristic or incomplete candidate search must not claim
 uniqueness or optimality; a merely stable or feasible iteration must not claim
 convergence; and transformation, correspondence, loss, repair, candidate, or
-advisory evidence must not become admission or durable resolution authority.
+advisory evidence must not become admission or resolution authority.
 Relevant mutation, missing negative-space coverage, widened provider scope,
 failed invariant execution, stale attempt generation, and incomplete commit
 knowledge must fail at the exact responsible phase.
@@ -189,16 +189,13 @@ The following decisions are frozen for this milestone:
     in the canonical boundary core. High-cardinality domain decisions, traces,
     and optional counters are policy-materialized sidecars with explicit
     omission, redaction, retention, and disclosure posture.
-16. Durable artifact payloads, access products, checkpoints, continuations,
-    journals, transaction recovery, and restart reconciliation remain Store
-    responsibilities. Query defines the semantic and provider contracts Store
-    must implement without claiming durability locally. Store's durable-resume
-    state machine remains the owner of persisted cursor/checkpoint progression;
-    Query does not build a second durable state machine beside it.
+16. This milestone owns in-process semantic contracts, runtime authority, and
+    same-runtime lifecycle progression only. It does not define any additional
+    continuation system beyond the managed authority paths specified here.
 17. The existing one-operating-world root, installed operation identity, basis,
     publication, lineage, compatibility, dependency-impact, lease, window,
     patch, and lifecycle authorities from 9.14 are extended, never duplicated.
-18. No fallback may weaken correctness, authority, security, or durability.
+18. No fallback may weaken correctness, authority, or security.
     Degradation may reduce freshness, richness, throughput, retained progress,
     or physical strategy only when the retained and weakened guarantees are
     named.
@@ -229,7 +226,7 @@ The following decisions are frozen for this milestone:
     source/output correspondence, disposition, and error posture, but they
     cannot admit foreign input, repair truth, preserve identity, or authorize
     publication by themselves.
-24. Durable conflict identity, typed resolution alternatives, admitted/rejected/
+24. Authoritative conflict identity, typed resolution alternatives, admitted/rejected/
     superseded/applied decision state, participant roles, approval, deferral,
     carry-forward, journaling, and resolution-session recovery belong to
     `_docs/cross-runtime/merging-and-branching-roadmap.md` Milestones 10-11.
@@ -290,7 +287,7 @@ No later state accepts raw components from an earlier phase. In particular:
   invariant receipts
 - a committed attempt cannot be reconstructed from a provider success string,
   commit-admission receipt, or matching digest
-- a resolution command or durable decision cannot be reconstructed from
+- a resolution command or authoritative decision cannot be reconstructed from
   candidate, convergence, transformation, correspondence, loss, repair, or
   advisory evidence
 - native admission or identity cannot be reconstructed from source occurrence,
@@ -430,7 +427,7 @@ Every artifact family declares:
   correspondence cardinality, disposition, and error/loss posture where the
   family transforms external or prior artifacts
 - move, borrow, clone, provider-transfer, and serialization posture
-- transient, arena-scoped, retained, reconstructible, or externally durable
+- transient, arena-scoped, retained, reconstructible, or externally managed
   lifecycle
 - required byte, element, and structural-work counters
 - audience, classification, redaction, retention, deletion, and legal-hold
@@ -488,7 +485,7 @@ make a derived payload authoritative.
   changing universe, termination, comparator, or bound changes contract meaning.
 - Transformation-authority denial test: copied source anchors, correspondence
   rows, loss evidence, or a domain repair proposal cannot mint native identity,
-  authoritative admission, or a durable resolution decision.
+  authoritative admission, or a resolution decision.
 
 **Engineering decisions**
 
@@ -828,19 +825,19 @@ and retained progress rather than live-query lifecycle labels reused by analogy.
 - `worth-relational` and provider-owned snapshot retention or readmission
 - artifact owner and resource envelope
 - temporal/async result-state and continuation contracts
-- host-composed Store handoff for durable checkpoints, reload, and recovery
 
 **Relevant APIs**
 
 - stage executor context
 - Signal-minted `ResourceRequestHandle`, `ResourceGeneration`,
   `ResourceAttemptId`, cancellation outcome, and wake/retry evidence
-- bridge-minted admitted async request identity and execution-resume basis
+- bridge-minted admitted async request identity and retained lower-execution
+  basis for same-runtime readmission
 - Relational/provider-minted retained snapshot lease or fresh readmission
   receipt
 - bounded chunk sink
-- Query-minted yielded-run capability, resume admission, new attempt identity,
-  and cleanup receipts
+- Query-minted yielded-run capability, same-runtime readmission, new attempt
+  identity, and cleanup receipts
 - convergence-epoch admission and progress evidence
 
 **Authority split**
@@ -854,18 +851,13 @@ and retained progress rather than live-query lifecycle labels reused by analogy.
   public descriptor, or digest is not basis authority.
 - The runtime bridge owns the exact binding between the active Signal request,
   lower-runtime route, truth-view basis, provider generation, and retained
-  branch posture. Existing subscription-resume authority may be reused only if
-  its contract is genuinely execution-generic; it may not be renamed or
+  branch posture. Existing lower-runtime continuation authority may be reused
+  only if its contract is genuinely execution-generic; it may not be renamed or
   wrapped into domain-computation authority by analogy.
 - Query owns the semantic run state machine, yielded-run capability,
   same-runtime readmission eligibility, logical-run linkage, fresh attempt
   minting, public outcome, and evidence carriage. Query does not reconstruct
   lower authority from representations.
-- Store owns durable checkpoint bytes, WAL/journal order, restart survival,
-  corruption detection, reload, migration, transaction recovery, and
-  reconciliation persistence. The host composes Store restoration with the
-  lower-runtime and Query readmission sequence; Query gains no dependency on
-  Store.
 
 If Signal, Relational, the runtime bridge, or the provider does not yet expose
 the concrete authority required above, that missing lower-authority seam is a
@@ -886,8 +878,8 @@ AdmittedRun
      | Failed
 
 YieldedRun
-  -> QueryResumeReadmission
-  -> ResumedRunWithFreshAttempt
+  -> QueryReadmission
+  -> ReadmittedRunWithFreshAttempt
 
 Completed | Cancelled | TimedOut | Exhausted | Degraded | Failed
   -> CleanupComplete
@@ -908,8 +900,8 @@ requires fresh, concrete proof of all of the following before provider work:
 - an admitted Signal request generation and fresh resource-attempt identity
 - a fresh Query execution-resource attempt identity that receives the retained
   reservation rather than reacquiring capacity
-- a bridge-minted execution-resume basis for the exact lower-runtime route and
-  branch posture
+- a bridge-minted retained execution basis for the exact lower-runtime route
+  and branch posture
 - a Relational/provider-minted retained basis lease or fresh readmission
   receipt
 - a provider-owned checkpoint/continuation handle whose provider generation
@@ -920,38 +912,28 @@ logical run. It does not reuse the yielded attempt identity. Any mismatch
 denies before scheduling, allocation, provider restore, domain work, or effect
 application.
 
-Same-runtime readmission and durable restoration are different lanes:
+Same-runtime readmission is the only continuation lane in this milestone:
 
 ```text
 SameRuntimeYield
   -> QueryYieldedRunCapability
   -> OwnerMintedReadmissionPendingStates
-  -> QueryResumeReadmission
-  -> ResumedRunWithFreshAttempt
-
-QueryYieldedRunCapability
-  -> CheckpointExportHandoff
-  -> StoreOwnedDurableCheckpoint
-  -> HostOrchestratedRestore
-  -> OwnerMintedRestoredAuthorities
-  -> QueryResumeReadmission
-  -> ResumedRunWithFreshAttempt
+  -> QueryReadmission
+  -> ReadmittedRunWithFreshAttempt
 ```
 
-Phase 6.4 implements the first lane and the Query/provider contracts at the
-handoff boundaries of the second lane. It does not implement checkpoint
-serialization, persistence, WAL, restart reconstruction, cursor storage,
-payload migration, or recovery orchestration. Restored bytes, cursor position,
-or a serialized Query projection have zero resume authority until Store,
-Relational, Signal, the runtime bridge, and the provider have each restored or
-minted their own concrete authority and Query has advanced their owner-controlled
-pending transitions through readmission.
+Phase 6.4 implements this lane completely. Query accepts only the move-only
+yielded-run capability produced by Phase 6.3 and the owning runtime entry
+surfaces required to readmit it.
 
 An iterative domain operation may additionally advance:
 
 ```text
 AdmittedConvergenceEpoch
   -> Iterating
+  -> YieldedIteration
+     -> SameRuntimeReadmission
+     | YieldCleanup
   -> Converged
      | StableWithoutProof
      | FeasibleIncumbent
@@ -980,10 +962,9 @@ only from Phase 6.2's evidence-backed bounded provider step and backpressure
 path. Phase 6.4 begins only from Phase 6.3's real yielded-run capability and
 retained-resource posture. Phase 6.5 begins only after same-runtime readmission
 uses the same managed lifecycle without creating a parallel scheduler or
-resource owner. Phase 6.4 does not close durable resume: it closes same-runtime
-readmission and the authority-preserving export/restore handoff that Store may
-later implement. Store-backed restart remains open outside Milestone 9.15 and
-Phase 6.5 cannot treat the handoff contract as durable-completion evidence.
+resource owner. Phase 6.4 closes same-runtime readmission. Phase 6.5 consumes
+that completed managed lifecycle directly and may not invent a second
+continuation lane.
 
 #### Phase 6.1: Managed Run Authority And Terminal Lifecycle
 
@@ -1152,7 +1133,7 @@ resources. This slice replaces the one-shot provider callback with actual
 bounded execution steps, derives progress from work performed through governed
 ports, observes Signal-owned cancellation and pressure at declared safe points,
 and stops production before a bounded result consumer can overflow. It does not
-mint continuation or resume authority.
+mint continuation or readmission authority.
 
 **Relevant subsystems**
 
@@ -1292,7 +1273,7 @@ to release provider work.
 Turn an interrupted bounded step into an honest suspended run. This slice owns
 the transition from evidence-backed safe-point posture to one move-only
 yielded-run capability while preserving exactly the resources needed to
-continue. It does not readmit the run or create durable checkpoint storage.
+continue. It does not readmit the run.
 
 **Relevant subsystems**
 
@@ -1329,11 +1310,11 @@ Running
 
 Yield eligibility is derived from the installed operation, the exact running
 attempt, the consumed Phase 6.2 safe-point report, the provider session, and the
-declared partial-effect and checkpoint posture. A provider cursor, serialized
-payload, checkpoint digest, or caller assertion cannot satisfy this boundary.
+declared partial-effect and checkpoint posture. A public checkpoint descriptor,
+checkpoint digest, or caller assertion cannot satisfy this boundary.
 If the safe point reports non-checkpointable work, excess retained memory,
 uncovered effects, missing artifact ownership, or a provider generation that no
-longer matches, yield denies without fabricating a resumable result.
+longer matches, yield denies without fabricating a yielded result.
 
 Successful yield consumes the running attempt and mints one Query capability
 bound to the logical run, yielded attempt, installed operation and schema
@@ -1345,7 +1326,7 @@ a provider, publish partial artifacts, or reconstruct any lower authority.
 
 Resources not explicitly retained by the yielded posture are cleaned up during
 the transition. Retained resources remain owned and bounded, and their release
-authority remains available even if resume never occurs. A failed yield reports
+authority remains available even if readmission never occurs. A failed yield reports
 which resources remain, which were released, whether the running attempt is
 still recoverable, and whether cleanup or reconciliation is required.
 
@@ -1418,7 +1399,7 @@ cannot abort the process.
   or published.
 - Cost-bound test: yield validation and minting scale only with changed
   safe-point evidence and resources retained by that run; they perform no
-  unrelated registry scan or checkpoint serialization.
+  unrelated registry scan or lower-runtime work.
 
 **Engineering decisions**
 
@@ -1427,36 +1408,30 @@ cannot abort the process.
 - Providers own physical checkpoint handles, artifact owners own retained
   artifacts, Signal owns request-attempt truth, and Query owns only the semantic
   yield transition and capability.
-- The checkpoint-export handoff contract and fresh-authority readmission remain
-  Phase 6.4; this phase proves that there is an honest runtime-bound capability
-  to hand them.
+- Fresh-authority readmission remains Phase 6.4; this phase proves that there is
+  an honest runtime-bound capability for it to consume.
 
 **Open questions**
 
 - None.
 
-#### Phase 6.4: Same-Runtime Yield Readmission And Store Handoff Contract
+#### Phase 6.4: Same-Runtime Yield Readmission
 
-Resume a yielded run only by readmitting every authority that may have changed
-while work was suspended. The resumed work remains the same logical run but
+Readmit a yielded run only by readmitting every authority that may have changed
+while work was suspended. The readmitted work remains the same logical run but
 uses a fresh Signal resource attempt, fresh Query execution-resource attempt,
-and fresh Query managed-run attempt. This slice also freezes the only handoff
-through which a future Store-backed durable restore may re-enter Query. It is
-not a Query-owned durable-resume feature: Query retains no restart cursor,
-serialized checkpoint payload, journal, or recovery state machine.
+and fresh Query managed-run attempt.
 
 **Relevant subsystems**
 
-- Query yielded-run capability and resume admission
+- Query yielded-run capability and same-runtime readmission
 - Signal resource-request generation and fresh attempt authority admitted
   through the runtime bridge
 - execution-generic runtime-bridge yielded-basis retention and readmission
-- Relational retained-basis lease for same-runtime readmission and fresh
-  Relational/provider readmission for later Store restoration
+- Relational retained-basis lease for same-runtime readmission
 - provider-owned checkpoint/continuation handle and provider generation
 - Phase 5 execution-resource attempt identity and retained-capacity transfer
 - workflow artifact-production generation
-- host-composed Store checkpoint export and restoration handoff
 
 **Relevant APIs**
 
@@ -1471,21 +1446,20 @@ serialized checkpoint payload, journal, or recovery state machine.
 - Relational retained-basis lease or owner-minted fresh readmission receipt
 - provider-owned checkpoint authority and checkpoint-preserving restore attempt
 - artifact-owner production-generation rollover
-- Query-minted readmitted attempt, typed denial/recovery outcomes, and
-  non-authoritative checkpoint-export handoff contract
+- Query-minted readmitted attempt and typed denial/recovery outcomes
 
 **Required progression**
 
 ```text
 QueryYieldedRunCapability
-  -> ResumePreflightValidated
+  -> ReadmissionPreflightValidated
   -> ProvisionalFreshResourceAttempt
   -> BridgeReadmissionPending
   -> ProviderRestorePending
   -> ArtifactProductionGenerationPending
-  -> ResumedRunWithFreshAttempt
+  -> ReadmittedRunWithFreshAttempt
 
-ResumePreflightValidated
+ReadmissionPreflightValidated
   -> ReadmissionDenied(QueryYieldedRunCapability)
 
 ProvisionalFreshResourceAttempt
@@ -1500,7 +1474,7 @@ The yielded capability privately owns the exact retained Query resource
 attempt, bridge yielded-basis authority, Relational basis lease, provider
 checkpoint, artifact owner, retained capacity, completed-work evidence, and
 unfinished terminal posture. Callers cannot extract, replace, or independently
-assemble those ingredients. Resume admission accepts the capability and the
+assemble those ingredients. Readmission accepts the capability and the
 owning runtime entry surface, not a bag of caller-supplied lower handles.
 
 Preflight verifies the current installed-operation generation, logical run,
@@ -1509,7 +1483,7 @@ route and branch posture, provider generation and checkpoint identity, artifact
 owner, frozen production generation, retained capacity, and unfinished
 terminal posture before minting any fresh lower authority. The bridge yielded
 authority must be execution-generic by contract; a cloneable bridge
-finalization receipt or subscription-resume artifact has zero readmission
+finalization receipt or unrelated continuation artifact has zero readmission
 authority. The Relational basis must remain live under the retained lease for
 the same-runtime lane. Public snapshot handles, branch identifiers, equal
 digests, and host assertions carry no basis authority.
@@ -1535,7 +1509,7 @@ translated into an ordinary retryable denial.
 Workflow readmission also advances artifact ownership into a fresh production
 generation. Yield permanently closes the old generation. Readmission may mint
 new production authority only for the fresh generation, so an `Arc` or other
-producer capability retained from before yield remains denied after resume.
+producer capability retained from before yield remains denied after readmission.
 Retained artifact owners and occurrence evidence survive; only production
 authority advances.
 
@@ -1551,69 +1525,25 @@ Query consumes the yielded capability to mint a fresh managed-run attempt
 joined to the original logical run. No fallible work may remain after this
 commit boundary. The yielded or completed attempt identity is never reused.
 
-The durable handoff is contractual only:
-
-```text
-QueryYieldedRunCapability
-  -> ProviderCheckpointExportCandidate
-  -> QueryCheckpointExportHandoff
-  -> StoreOwnedDurableCheckpoint
-  -> HostOrchestratedRestore
-  -> OwnerMintedFreshLowerAuthorities
-  -> QueryResumeReadmission
-```
-
-The provider defines the exportable checkpoint payload, format identity,
-version, and compatibility posture. Query binds that provider-defined export
-to the logical run, installed operation/schema generation, semantic basis,
-provider generation, and checkpoint occurrence as a derived handoff artifact.
-The handoff is evidence for Store ingestion, not continuation authority. It has
-no resume, restore, schedule, basis-readmission, capacity, publication, or
-authority-promotion operation, and copying or serializing it cannot duplicate
-the yielded capability.
-
-Checkpoint export must preserve the same-runtime yielded capability on
-ordinary failure or success. Export panic or physical cleanup failure returns
-typed recovery with the retained authority posture; it cannot silently consume
-the only runnable checkpoint. Query defines the checkpoint export and
-readmission boundaries but implements no serialization, persistence, WAL,
-cursor storage, restart reconstruction, payload migration, corruption handling,
-or recovery orchestration.
-
-Restored bytes become usable only after Store validates and migrates the
-durable record, the provider restores physical state and mints a new checkpoint
-or execution authority, Relational readmits the truth basis, the runtime bridge
-admits the exact restored route and mints a fresh Signal generation and attempt,
-Phase 5 admits fresh capacity, and Query admits the owner-minted authorities
-through its ordinary readmission progression. The host may order these facade
-calls but cannot package independently valid handles into readmission authority
-or synthesize any owner's proof.
-
 **Warnings**
 
-- A checkpoint is not durable because it is serializable, and durability does
-  not grant resume authority.
-- Query may not depend on Store or accept a Store cursor, stored digest, or
-  deserialized Query projection as a continuation.
 - A caller-assembled tuple of individually valid Signal, bridge, Relational,
   provider, resource, artifact, and checkpoint handles is not readmission
   authority. Each fresh proof must be minted through its owner's pending
   transition from the retained yielded authority.
 - A fresh attempt identity does not imply a second capacity reservation.
-  Same-runtime readmission transfers the retained reservation; durable restore
-  performs ordinary fresh Phase 5 capacity admission.
+  Same-runtime readmission transfers the retained reservation.
 - A cloneable finalization receipt is observation, not bridge readmission
   authority, and an old workflow producer capability must remain closed after
   a fresh production generation begins.
 - Failed readmission must preserve the yielded run and release only resources
   acquired by that failed attempt; it may not destroy the last recoverable
   checkpoint or leak partial fresh authority.
-- Same-runtime readmission and durable restoration share one Query readmission
-  contract but retain different physical restoration and failure ownership.
 
 **Test requirements**
 
-- Resume parity test: uninterrupted and repeatedly yielded/resumed executions
+- Readmission parity test: uninterrupted and repeatedly yielded/readmitted
+  executions
   converge on equivalent semantic result, realized footprint, invariant
   evidence, artifact occurrence posture, and structural counters.
 - Lower-authority substitution matrix: foreign, stale, completed, or mismatched
@@ -1622,13 +1552,11 @@ or synthesize any owner's proof.
   generation/checkpoint handle, runtime, envelope, artifact/schema version, or
   logical run denies before work.
 - Representation non-authority test: copied snapshot identifiers, equal
-  digests, serialized continuation projections, Store-restored cursor bytes,
-  provider checkpoint descriptors, and host assertions cannot resume without
-  the complete owner-minted readmission progression.
+  digests, public checkpoint evidence, and host assertions cannot readmit
+  without the complete owner-minted readmission progression.
 - Compile-time authority test: raw bridge receipts, cloned evidence, provider
-  checkpoint descriptors, export handoffs, independently admitted lower
-  handles, and partial pending states cannot call restore, resume, advance, or
-  publish.
+  checkpoint evidence, independently admitted lower handles, and partial
+  pending states cannot call restore, readmit, advance, or publish.
 - Freshness and capacity-transfer test: every successful readmission has new
   Signal, Query execution-resource, provider-call, and managed-run attempt
   identity while retaining exactly one capacity reservation; repeated
@@ -1645,33 +1573,23 @@ or synthesize any owner's proof.
   denied after readmission, newly minted production authority belongs only to
   the fresh generation, and retained artifacts and occurrence evidence remain
   unchanged.
-- Export non-authority test: successful, failed, and panicking checkpoint export
-  preserve the yielded capability or typed recovery posture; copied,
-  serialized, migrated, and Store-returned handoff representations cannot
-  restore or resume.
-- Query/Store boundary test: the same-runtime lane builds and executes with no
-  Store dependency, while a host-composed fake durable restore enters only
-  through the ordinary lower-authority readmission contract and gains no
-  alternate semantics.
-- Cost-bound test: resume validation is proportional only to the bound authority
+- Cost-bound test: readmission validation is proportional only to the bound authority
   bundle and retained resources; mismatch performs zero restore, domain, or
   effect work and no unrelated registry scan.
 
 **Engineering decisions**
 
-- Domains define checkpoint semantic payloads, providers own physical
-  checkpoint handles, Query owns yielded-run and semantic resume progression,
-  and Store owns durable survival and reload.
+- Providers own physical checkpoint handles and Query owns yielded-run and
+  semantic readmission progression. Neither may construct the other's authority.
 - The runtime bridge, not Query, joins the retained bridge basis to a fresh
   Signal request. Relational retains or readmits truth-basis authority, and
   Phase 5 alone owns reservation transfer or fresh capacity admission.
 - Readmission is a new attempt within one logical run, never reuse or mutation
   of an old attempt identity. Its pending phases retain rollback-to-yielded
   authority until one final infallible commit.
-- The host orders durable restoration across Store, provider, Relational,
-  runtime bridge/Signal, execution-resource admission, and Query through
-  owner facades. No one subsystem or caller-supplied aggregate may synthesize
-  the others' authority.
+- No one subsystem or caller-supplied aggregate may synthesize the authorities
+  owned by Signal, the runtime bridge, Relational, the provider, Phase 5
+  admission, artifact ownership, or Query.
 
 **Open questions**
 
@@ -1699,7 +1617,8 @@ owner, or continuation authority.
 
 - installed convergence contract and installed-operation phase proof
 - convergence-epoch admission
-- managed-run bounded execution step, yield, resume, and terminal evidence
+- managed-run bounded execution step, yield, same-runtime readmission, and
+  terminal evidence
 - domain-provided comparator, progress, candidate/incumbent, and
   repeated-state evidence
 - Query-minted epoch state, terminal outcome, and exact counter snapshot
@@ -1725,15 +1644,22 @@ world basis, candidate universe and termination posture, comparator, progress
 measure, candidate/incumbent family, iteration and resource budgets, checkpoint
 posture, repeated-state policy, and the managed-run authorities they consume.
 Each iteration is one bounded managed execution step and uses the ordinary
-Signal cancellation, pressure, yield, resume, cleanup, provider-session,
-artifact, and resource paths.
+Signal cancellation, pressure, yield, same-runtime readmission, cleanup,
+provider-session, artifact, and resource paths.
+
+A yielded iteration retains the epoch evidence needed either to rejoin the same
+iteration through same-runtime readmission or to end through the managed
+yield-cleanup path. Cleanup returns epoch counters and incumbent/report evidence
+alongside the exact managed checkpoint, artifact, bridge, Relational, and
+resource-release posture. Dropping a yielded wrapper is a safety net, not the
+evidence-producing lifecycle API.
 
 The domain owns convergence, feasibility, comparison, optimality, progress, and
 oscillation meaning. Query owns only installed-contract admission, legal epoch
 progression, bounded accounting, cancellation consumption, and retained
 evidence. `Converged`, `StableWithoutProof`, `FeasibleIncumbent`,
 `Oscillating`, `Exhausted`, `Cancelled`, and `Indeterminate` are terminally
-distinct. None grants durable decision, approval, conflict, resolution-session,
+  distinct. None grants decision, approval, conflict, resolution-session,
 or publication authority.
 
 **Warnings**
@@ -1745,12 +1671,13 @@ or publication authority.
 - A convergence epoch cannot restamp comparator, progress, or candidate claims
   reported without the installed domain contract and exact basis.
 - Rebase, participant roles, deferral, supersession, branch-aware carry-forward,
-  durable journals, and recovery remain cross-runtime/Store work.
+  and cross-runtime recovery remain outside this phase.
 
 **Test requirements**
 
 - Convergence-schedule parity test: admitted chunk widths, cancellation checks,
-  backpressure, yields, resumes, and provider schedules converge on equivalent
+  backpressure, yields, same-runtime readmissions, and provider schedules
+  converge on equivalent
   semantic result and epoch evidence whenever the installed comparator says
   they should.
 - Terminal-distinction matrix: converged, stable-without-proof, feasible
@@ -1763,15 +1690,19 @@ or publication authority.
   candidate family, managed run, envelope, or checkpoint posture denies before
   an iteration executes.
 - Resolution-authority denial test: a converged, stable, or feasible candidate
-  cannot become an admitted durable conflict, decision, approval, resolution
+  cannot become an admitted conflict, decision, approval, resolution
   session, or publication through epoch, run, artifact, or continuation
   authority.
 - No-caller-loop test: the ordinary facade owns epoch progression and evidence
   assembly; consumers cannot reconstruct equivalent authority by repeatedly
   invoking a one-step resolver.
+- Yield-cleanup test: direct and workflow yielded iterations can end explicitly
+  without readmission, retain exact epoch and lower-owner cleanup evidence, and
+  foreign yielded authority returns both owners without incrementing epoch
+  yield or readmission counters.
 - Cost-bound test: counters distinguish iterations, provider work, comparator
   calls, progress checks, repeated-state probes, incumbent retention, yield and
-  resume work, and cleanup; none scales with unrelated operations, epochs,
+  readmission work, and cleanup; none scales with unrelated operations, epochs,
   candidates, artifacts, or diagnostics.
 
 **Engineering decisions**
@@ -1859,7 +1790,7 @@ digest or free-form scope label cannot satisfy this lane.
 
 **Open questions**
 
-- None. Physical two-phase or provider-specific protocols remain provider/Store
+- None. Physical two-phase or provider-specific protocols remain provider
   implementation choices behind this contract.
 
 ### Phase 8: Basis-Complete Decision Read-Set
@@ -1992,7 +1923,7 @@ admit the effect program and validate the proposed post-state.
 - Domain code cannot hold a raw mutable graph or provider transaction object.
 - Discard must revoke every promotion path and clean every provisional resource.
 - A selected candidate, repair suggestion, transformation record, loss ledger,
-  or advisory response is not a durable resolution command.
+  or advisory response is not a resolution command.
 - This phase may reject a stale single-basis proposal; it may not invent branch-
   aware carry-forward or resolution-session state.
 
@@ -2021,10 +1952,9 @@ admit the effect program and validate the proposed post-state.
   mechanics; domain owns effect-program meaning.
 - Provisional identity is explicitly non-authoritative and cannot enter ordinary
   publication or consumer projection lanes.
-- Durable acceptance, rejection, deferral, supersession, participant approval,
+- Acceptance, rejection, deferral, supersession, participant approval,
   and carry-forward are intentionally absent; they consume the cross-runtime
   conflict/resolution authority when that substrate exists.
-- Durable speculative checkpoints remain Store scope.
 
 **Open questions**
 
@@ -2253,8 +2183,8 @@ or other physical mechanisms.
 
 - Access-product identity, artifact identity, access-plan identity, and semantic
   query identity remain distinct.
-- Store owns durable bytes and restart-stable product restoration; Query owns
-  the portable/runtime semantic contract and runtime-backed lifecycle.
+- Query owns the portable/runtime semantic contract and runtime-backed
+  lifecycle defined by this milestone.
 - Bounded ephemeral products use the same contract with a shorter lifecycle,
   not a weaker untracked lane.
 
@@ -2594,7 +2524,7 @@ classification, retention, and summary identity.
 - A displayed candidate, recommendation, transformation, correspondence, or
   repair explanation cannot become selection, admission, identity, or
   publication authority.
-- Durable participant decisions and resolution-session journals are not decision
+- Participant decisions and resolution-session journals are not decision
   sidecars; they belong to their cross-runtime authoritative owners.
 
 **Test requirements**
@@ -2620,10 +2550,10 @@ classification, retention, and summary identity.
 
 - Query owns causal attachment, indexing, policy enforcement, and public
   inspection shape. Domain owns decision vocabulary and explanation rendering.
-- Durable decision-log storage is a Store handoff; runtime-backed attachment is
-  complete without claiming restart survival.
+- Runtime-backed attachment is complete at the in-process boundary defined
+  here.
 - Query 9.15 owns single-run evidence only. The cross-runtime roadmap owns
-  durable conflict/resolution decision state, participant authority,
+  conflict/resolution decision state, participant authority,
   supersession, carry-forward, checkpoint, and journal semantics.
 - Certification uses decision attachments for divergence localization, not as
   an oracle derived from the implementation under test.
@@ -2855,7 +2785,8 @@ semantic correctness from provider self-reporting.
 - no scalar loop over an admitted bulk operation
 - no domain vocabulary in Query declarations, execution, or public evidence
 - no decision/counter sidecar widening disclosure authority
-- no Store durability claim from runtime-only handles or serializable payloads
+- no authority claim from runtime-only handles or serializable payloads beyond
+  their in-process lifecycle
 - no content, reporting digest, retry, or cache identity substituted for a
   production/acquisition occurrence or independent-certification identity
 - no cached/shared result satisfying a required fresh occurrence or independent
@@ -2867,7 +2798,7 @@ semantic correctness from provider self-reporting.
 - no transformation, correspondence, loss, repair, candidate, convergence, or
   advisory artifact promoted into admission, identity, resolution, or
   publication authority
-- no Query-local durable conflict model, participant approval state, resolution
+- no Query-local conflict model, participant approval state, resolution
   session, carry-forward rule, or session journal competing with
   `_docs/cross-runtime/merging-and-branching-roadmap.md`
 
@@ -2898,7 +2829,7 @@ semantic correctness from provider self-reporting.
   cancellation, and incumbent preservation
 - transformation occurrence, source/output correspondence, loss/disposition,
   and authority-denial posture
-- branch/resolution boundary proving no durable resolution authority exists in
+- branch/resolution boundary proving no resolution authority exists in
   Query 9.15
 - geometry, chip/netlist, and research-style reference adoption residue
 
@@ -2938,7 +2869,7 @@ semantic correctness from provider self-reporting.
 - Convergence sabotage test: inject slow progress, repeated-state cycles,
   misleading provider completion, cancellation, and exhausted budgets; typed
   epoch posture and incumbent evidence remain exact.
-- Resolution-boundary residue test: production Query 9.15 contains no durable
+- Resolution-boundary residue test: production Query 9.15 contains no
   conflict/session authority, participant approval state, resolution journal,
   branch-aware carry-forward, or recovery path.
 - Scale-ladder test: vary total graph size, touched footprint, path length,
@@ -2977,8 +2908,8 @@ semantic correctness from provider self-reporting.
 - bulk/chunk native access with actual physical memory and work evidence
 - installed structural counter and decision-record schemas
 - multi-axis resource admission and managed run lifecycle with cancellation,
-  backpressure, yield/resume, production freeze, typed physical release,
-  cleanup, and Store handoff
+  backpressure, yield/readmission, production freeze, typed physical release,
+  and cleanup
 - sealed provider execution plans and prepared provider sessions
 - complete positive, negative, membership, predicate, cardinality, ordering,
   traversal, artifact, and structural decision read-sets
@@ -3008,15 +2939,13 @@ semantic correctness from provider self-reporting.
   constraints, and schema evolution
 - runtime-bridge and provider ownership of physical route/session mechanics
 - Signal ownership of scheduling and reactive evaluation semantics
-- Store ownership of durable payloads, indexes, checkpoints, continuations,
-  journals, restart, recovery, and reconciliation persistence
 - domain ownership of payload schemas, algorithms, validators, decision
   semantics, structural counter meaning, equivalence, conflict/disjointness,
   replanning, compensation, and physical strategy
 - authority/derived separation for artifacts, access products, proposed state,
   footprints, decision records, counters, and reporting projections
 - authority/derived separation between candidate/search/transformation evidence
-  and durable conflict, resolution, participant, approval, and publication state
+  and conflict, resolution, participant, approval, and publication state
 - separation of semantic content, occurrence, certification, and permitted
   computational substitution across execution, reuse, and publication
 - domain ownership of determinism, numerical/statistical comparison, evidence
@@ -3027,14 +2956,11 @@ semantic correctness from provider self-reporting.
   freshness/witness law behind stronger owner-specific types
 - privacy, disclosure, redaction, retention, deletion, legal hold, schema
   evolution, and compatibility law at every boundary
-- cross-runtime ownership of durable conflict and resolution semantics,
-  participant authority, session persistence, carry-forward, and recovery
+- cross-runtime ownership of conflict and resolution semantics, participant
+  authority, carry-forward, and recovery
 
 ## Allowed Debt
 
-- durable artifact payloads, persistent access-product bytes, restart-stable
-  continuations, checkpoint/journal survival, distributed recovery, and
-  reconciliation history remain Store-owned follow-on implementation
 - provider-specific zero-copy layout, allocator, index, transaction, and
   maintenance strategies may vary behind the complete contracts
 - additional domain artifact, access-path, validator, counter, decision, and
@@ -3058,7 +2984,7 @@ Milestone 9.15 is complete only when Query can prove:
 - a realistic planar-boolean or equivalent geometry/topology workflow carries
   candidate, intersection, split, continuation, classification, provisional
   topology, and invariant products as managed artifacts without primitive/blob
-  smuggling or a domain-local side store
+  smuggling or a domain-local side cache
 - a chip/netlist cone recomputation and incremental update completes the same
   lifecycle without Query gaining domain-specific vocabulary
 - a research-style multi-site biological reference retains byte-identical
@@ -3085,7 +3011,7 @@ Milestone 9.15 is complete only when Query can prove:
   heuristic or incomplete search can present itself as uniquely best
 - iterative runs converge, remain merely stable or feasible, oscillate,
   exhaust, cancel, or become indeterminate according to installed single-basis
-  contracts without creating durable resolution authority
+  contracts without creating resolution authority
 - transformation and loss evidence preserves source occurrence,
   correspondence cardinality, disposition, and proposed identity consequences
   while remaining unable to admit or publish repaired truth
@@ -3138,14 +3064,11 @@ resource, access-product, footprint, and batch contracts rather than the naive
 callback surfaces they replace.
 
 Runtime-backed managed artifacts, sessions, attempts, resource lifecycle,
-ephemeral access products, and evidence are not blocked on Store. Durable
-artifact bytes, persistent access products, restart-stable continuations,
-checkpoint/journal survival, distributed recovery, and reconciliation history
-are explicit Store handoffs. Store integration must implement the same contracts
-without redefining semantic meaning or weakening provider obligations.
+ephemeral access products, and evidence are complete at the in-process
+authority boundary defined by this milestone.
 
 Candidate search, bounded convergence, and transformation evidence are complete
-single-semantic-world execution capabilities here. Durable conflict identity,
+single-semantic-world execution capabilities here. Conflict identity,
 resolution alternatives and decisions, participant roles, approval, deferral,
 supersession, branch-aware carry-forward, session checkpoints/journals, and
 resolution recovery are blocked on the distinct cross-runtime semantic Git

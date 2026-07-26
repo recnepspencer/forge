@@ -22,7 +22,7 @@ fn epoch_counters_are_exact_and_isolated_from_unrelated_epochs() {
     assert_eq!(counters.incumbent_retention_count(), 0);
     assert_eq!(counters.incumbent_replacement_count(), 1);
     assert_eq!(counters.yield_count(), 0);
-    assert_eq!(counters.resume_count(), 0);
+    assert_eq!(counters.readmission_count(), 0);
     assert_eq!(counters.cleanup_count(), 0);
     let domain_work = terminal
         .latest_report()

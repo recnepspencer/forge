@@ -175,8 +175,4 @@ impl WorthQueryYieldedWorkflowRun {
     ) -> super::WorthQueryWorkflowReadmissionOutcome {
         super::readmission::readmit_workflow(self, query_runtime, bridge_runtime)
     }
-
-    pub fn export_checkpoint(self) -> super::WorthQueryWorkflowCheckpointExportOutcome {
-        super::checkpoint_export::export_workflow_checkpoint(self)
-    }
 }

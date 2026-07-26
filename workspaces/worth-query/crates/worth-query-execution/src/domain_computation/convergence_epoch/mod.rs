@@ -5,6 +5,7 @@ mod denial;
 mod direct_cleanup;
 mod direct_iteration;
 mod direct_yield;
+mod direct_yield_cleanup;
 mod domain_assessment;
 mod domain_decision;
 mod domain_provider;
@@ -20,6 +21,7 @@ mod terminal_outcome;
 mod workflow_cleanup;
 mod workflow_iteration;
 mod workflow_yield;
+mod workflow_yield_cleanup;
 
 pub use admission::{
     WorthQueryDirectConvergenceAdmissionRejection, WorthQueryWorkflowConvergenceAdmissionRejection,
@@ -47,6 +49,9 @@ pub use direct_yield::{
     WorthQueryDirectConvergenceYieldOutcome, WorthQueryDirectConvergenceYieldReassembled,
     WorthQueryDirectConvergenceYieldReassemblyOutcome,
     WorthQueryReadmittedDirectConvergenceIteration, WorthQueryYieldedDirectConvergenceIteration,
+};
+pub use direct_yield_cleanup::{
+    WorthQueryDirectConvergenceYieldCleanupOutcome, WorthQueryDirectConvergenceYieldCleanupReceipt,
 };
 pub use domain_assessment::WorthQueryConvergenceAssessment;
 pub use domain_decision::{
@@ -98,6 +103,11 @@ pub use workflow_yield::{
     WorthQueryWorkflowConvergenceYieldOutcome, WorthQueryWorkflowConvergenceYieldReassembled,
     WorthQueryWorkflowConvergenceYieldReassemblyOutcome,
     WorthQueryYieldedWorkflowConvergenceIteration,
+};
+pub use workflow_yield_cleanup::{
+    WorthQueryWorkflowConvergenceYieldCleanupOutcome,
+    WorthQueryWorkflowConvergenceYieldCleanupPending,
+    WorthQueryWorkflowConvergenceYieldCleanupReceipt,
 };
 
 #[cfg(test)]

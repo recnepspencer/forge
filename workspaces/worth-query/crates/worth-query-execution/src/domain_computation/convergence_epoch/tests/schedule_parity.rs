@@ -14,7 +14,7 @@ use crate::domain_computation::{
 };
 
 #[test]
-fn same_runtime_yield_and_resume_preserve_the_semantic_convergence_result() {
+fn same_runtime_yield_and_readmission_preserve_the_semantic_convergence_result() {
     let ordinary = converged_terminal();
     let DirectAdmissionFixture {
         runtime,
@@ -85,7 +85,7 @@ fn same_runtime_yield_and_resume_preserve_the_semantic_convergence_result() {
         resumed.incumbents()[0].state_identity()
     );
     assert_eq!(resumed.counters().yield_count(), 1);
-    assert_eq!(resumed.counters().resume_count(), 1);
+    assert_eq!(resumed.counters().readmission_count(), 1);
     assert_eq!(resumed.counters().iteration_count(), 1);
     assert_eq!(resumed.counters().provider_work_unit_count(), 2);
     assert!(!ordinary
@@ -120,7 +120,7 @@ fn same_runtime_yield_and_resume_preserve_the_semantic_convergence_result() {
 }
 
 #[test]
-fn workflow_yield_and_resume_preserve_the_semantic_convergence_result() {
+fn workflow_yield_and_readmission_preserve_the_semantic_convergence_result() {
     let ordinary = workflow_converged_terminal();
     let WorkflowAdmissionFixture {
         runtime,
@@ -194,7 +194,7 @@ fn workflow_yield_and_resume_preserve_the_semantic_convergence_result() {
         resumed.incumbents()[0].occurrence_identity()
     );
     assert_eq!(resumed.counters().yield_count(), 1);
-    assert_eq!(resumed.counters().resume_count(), 1);
+    assert_eq!(resumed.counters().readmission_count(), 1);
     assert_eq!(resumed.counters().iteration_count(), 1);
     assert_eq!(resumed.counters().provider_work_unit_count(), 2);
     assert!(!ordinary

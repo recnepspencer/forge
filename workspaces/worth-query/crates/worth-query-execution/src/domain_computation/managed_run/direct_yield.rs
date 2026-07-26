@@ -158,8 +158,4 @@ impl WorthQueryYieldedDirectRun {
     ) -> super::WorthQueryDirectReadmissionOutcome {
         super::readmission::readmit_direct(self, query_runtime, bridge_runtime)
     }
-
-    pub fn export_checkpoint(self) -> super::WorthQueryDirectCheckpointExportOutcome {
-        super::checkpoint_export::export_direct_checkpoint(self)
-    }
 }

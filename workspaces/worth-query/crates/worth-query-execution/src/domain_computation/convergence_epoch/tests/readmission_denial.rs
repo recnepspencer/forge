@@ -77,7 +77,7 @@ fn denied_direct_readmission_rejoins_without_recounting_the_yield() {
         _ => panic!("readmitted direct convergence iteration must converge"),
     };
     assert_eq!(terminal.counters().yield_count(), 1);
-    assert_eq!(terminal.counters().resume_count(), 1);
+    assert_eq!(terminal.counters().readmission_count(), 1);
     assert_eq!(terminal.counters().iteration_count(), 1);
     if terminal.cleanup().is_err() {
         panic!("readmitted direct convergence terminal must retain cleanup authority");
@@ -155,7 +155,7 @@ fn denied_workflow_readmission_rejoins_without_recounting_the_yield() {
         _ => panic!("readmitted workflow convergence iteration must converge"),
     };
     assert_eq!(terminal.counters().yield_count(), 1);
-    assert_eq!(terminal.counters().resume_count(), 1);
+    assert_eq!(terminal.counters().readmission_count(), 1);
     assert_eq!(terminal.counters().iteration_count(), 1);
     assert!(matches!(
         terminal.cleanup(),
