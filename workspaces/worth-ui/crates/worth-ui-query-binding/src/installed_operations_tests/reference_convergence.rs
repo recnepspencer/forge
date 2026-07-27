@@ -65,7 +65,13 @@ fn settle_headless(workspace: &mut runtime::WorthQueryWorkspace) -> (QuerySettle
         .to_owned();
     assert_eq!(direct_operation_identity, installed_operation_identity);
     let direct = direct
-        .execute((), workspace)
+        .admit_execution_resources(
+            (),
+            crate::installed_domain::execution_resources::operation_execution_resource_request(),
+            workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -110,7 +116,7 @@ fn assert_exact_convergence(ui: &WorthUiSettledSnapshotProjection, direct: &Quer
     assert!(ui.execution_warnings().is_empty());
     assert_eq!(ui.counters(), direct.counters());
     assert_eq!(direct.counters().runtime_authority_checks, 1);
-    assert_eq!(direct.counters().input_contract_checks, 1);
+    assert_eq!(direct.resources().counters().input_contract_checks, 1);
     assert_eq!(direct.counters().primary_read_contacts, 1);
     assert_eq!(direct.counters().executor_contacts, 1);
     assert_eq!(direct.counters().terminal_posture_checks, 1);

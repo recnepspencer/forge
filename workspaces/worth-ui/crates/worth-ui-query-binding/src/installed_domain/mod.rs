@@ -1,4 +1,5 @@
 mod capability;
+pub(crate) mod execution_resources;
 pub(crate) mod executor_registration;
 pub(crate) mod measurement_recording;
 mod rebind;

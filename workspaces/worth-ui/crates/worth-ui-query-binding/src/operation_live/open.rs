@@ -55,6 +55,7 @@ pub enum WorthUiOperationLiveOpenError {
     Preparation(Box<WorthUiSnapshotConsumerPreparationDenial>),
     Derivation(Box<crate::WorthUiQueryMeasurementFactObservationError>),
     Deferred(Box<Deferred>),
+    ResourceAdmission(Box<installed::transition::WorthQueryResourceAdmissionStop>),
     Execution(Box<operation::WorthQueryBoundExecutionDenial>),
     Publication(Box<operation::WorthQueryPublicationDenial>),
     Consumption(Box<operation::WorthQueryProgressionDenial>),
@@ -89,6 +90,7 @@ impl std::fmt::Debug for WorthUiOperationLiveOpenError {
             Self::Preparation(_) => "Preparation",
             Self::Derivation(_) => "Derivation",
             Self::Deferred(_) => "Deferred",
+            Self::ResourceAdmission(_) => "ResourceAdmission",
             Self::Execution(_) => "Execution",
             Self::Publication(_) => "Publication",
             Self::Consumption(_) => "Consumption",
@@ -134,7 +136,14 @@ pub(crate) fn settle_once(
         .map_err(|error| WorthUiOperationLiveOpenError::Preparation(Box::new(error)))?;
     let (_, bound, native_request, _) = prepared.into_parts();
     let (projection, native_access) = native_request.into_parts();
-    let executed = match installed::transition::execution(bound.execute((), workspace)) {
+    let admitted = installed::transition::resource_admission(bound.admit_execution_resources(
+        (),
+        crate::installed_domain::execution_resources::operation_execution_resource_request(),
+        workspace,
+    ))
+    .into_result()
+    .map_err(|stop| WorthUiOperationLiveOpenError::ResourceAdmission(Box::new(stop)))?;
+    let executed = match installed::transition::execution(admitted.execute(workspace)) {
         installed::transition::WorthQueryExecutionTransition::Executed(executed) => executed,
         installed::transition::WorthQueryExecutionTransition::Deferred(deferred) => {
             return Err(WorthUiOperationLiveOpenError::Deferred(Box::new(deferred)));

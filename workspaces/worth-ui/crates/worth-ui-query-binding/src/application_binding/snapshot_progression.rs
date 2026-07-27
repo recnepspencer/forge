@@ -103,7 +103,22 @@ impl WorthUiPreparedSnapshotConsumer {
         workspace: &mut runtime::WorthQueryWorkspace,
     ) -> WorthUiSnapshotConsumerExecutionOutcome {
         let (reference, bound, native_request, requirements) = self.into_parts();
-        match installed::transition::execution(bound.execute((), workspace)) {
+        let admitted = match installed::transition::resource_admission(
+            bound.admit_execution_resources(
+                (),
+                crate::installed_domain::execution_resources::operation_execution_resource_request(
+                ),
+                workspace,
+            ),
+        )
+        .into_result()
+        {
+            Ok(admitted) => admitted,
+            Err(stop) => {
+                return WorthUiSnapshotConsumerExecutionOutcome::ResourceAdmission(Box::new(stop));
+            }
+        };
+        match installed::transition::execution(admitted.execute(workspace)) {
             installed::transition::WorthQueryExecutionTransition::Executed(executed) => {
                 WorthUiSnapshotConsumerExecutionOutcome::Executed(Box::new(
                     WorthUiExecutedSnapshotConsumer {
@@ -360,6 +375,11 @@ impl WorthUiSettledSnapshotProjection {
     }
     pub fn counters(&self) -> operation::WorthQueryOperationExecutionCounters {
         self.settled.counters()
+    }
+    pub fn resource_admission_counters(
+        &self,
+    ) -> operation::WorthQueryExecutionResourceAdmissionCounters {
+        self.settled.resources().counters()
     }
     pub fn publication_receipt(&self) -> &operation::WorthQueryDerivedPublicationReceipt {
         self.settled.publication_receipt()

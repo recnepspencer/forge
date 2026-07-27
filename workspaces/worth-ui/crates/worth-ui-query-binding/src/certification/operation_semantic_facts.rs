@@ -69,6 +69,12 @@ impl WorthUiInstalledQueryTestFixture {
             .family(WorthUiMeasurementRecordingFamily)
             .bind(installed.handle(), WorthUiMeasurementRecording)
             .expect("installed recording operation binds")
+            .admit_workflow_resources(
+                crate::installed_domain::execution_resources::operation_execution_resource_request(
+                ),
+                &self.workspace,
+            )
+            .unwrap()
             .start_workflow(&mut self.workspace)
             .unwrap()
             .advance(

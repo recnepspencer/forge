@@ -38,6 +38,10 @@ impl
         Some(installed_read_declaration())
     }
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::installed_domain::execution_resources::operation_execution_resource_support()
+    }
+
     fn execute(
         &self,
         (): (),
@@ -68,6 +72,10 @@ impl
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_read_declaration())
+    }
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::installed_domain::execution_resources::operation_execution_resource_support()
     }
 
     fn execute(
@@ -106,6 +114,10 @@ impl
 
     fn installed_read_declaration(&self) -> Option<&read::WorthQueryReadDeclaration> {
         Some(installed_value_alias_read_declaration())
+    }
+
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::installed_domain::execution_resources::operation_execution_resource_support()
     }
 
     fn execute(

@@ -54,6 +54,7 @@ fn semantic_closure(
         ],
         required_domains: Vec::new(),
         workflow: domain::WorthQueryOperationWorkflowContract::NotRequired,
+        evidence: domain::WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes: Vec::new(),
         graph_reads: domain::WorthQueryOperationGraphReadContract::Declared {
             roles: vec![domain::WorthQueryOperationGraphReadRole {
@@ -88,6 +89,8 @@ fn semantic_closure(
             execution: domain::WorthQueryOperationCostClass::DeclaredWidth,
             result_width: domain::WorthQueryOperationCostClass::DeclaredWidth,
         },
+        resources:
+            crate::installed_domain::execution_resources::operation_execution_resource_contract(),
         support: support_requirements(domain::WorthQuerySupportRequirement::Required),
         lowering: domain::WorthQueryOperationLoweringContract {
             family: LOWERING_FAMILY.into(),

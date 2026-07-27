@@ -1,4 +1,4 @@
-use worth_query::facade::installed::operation;
+use worth_query::facade::installed::{self, operation};
 
 use super::{
     WorthUiConsumedSnapshotProjection, WorthUiDeferredSnapshotConsumer,
@@ -9,6 +9,7 @@ use super::{
 pub enum WorthUiSnapshotConsumerExecutionOutcome {
     Executed(Box<WorthUiExecutedSnapshotConsumer>),
     Deferred(Box<WorthUiDeferredSnapshotConsumer>),
+    ResourceAdmission(Box<installed::transition::WorthQueryResourceAdmissionStop>),
     Denied(Box<operation::WorthQueryBoundExecutionDenial>),
     Stale(Box<operation::WorthQueryBoundExecutionDenial>),
     RebindRequired(Box<operation::WorthQueryBoundExecutionDenial>),
@@ -46,6 +47,7 @@ impl WorthUiSnapshotConsumerExecutionOutcome {
         match self {
             Self::Executed(value) => *value,
             Self::Deferred(_) => panic!("snapshot execution deferred"),
+            Self::ResourceAdmission(_) => panic!("snapshot execution resource admission stopped"),
             Self::Denied(_) => panic!("snapshot execution denied"),
             Self::Stale(_) => panic!("snapshot execution stale"),
             Self::RebindRequired(_) => panic!("snapshot execution requires rebind"),

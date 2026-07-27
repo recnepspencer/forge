@@ -102,6 +102,11 @@ fn registered_snapshot_and_recording_workflow_execute_real_query_mechanics() {
         .family(WorthUiMeasurementRecordingFamily)
         .bind(installed.handle(), WorthUiMeasurementRecording)
         .expect("measurement recording should bind")
+        .admit_workflow_resources(
+            crate::installed_domain::execution_resources::operation_execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
         .advance(
@@ -147,7 +152,13 @@ fn registered_snapshot_and_recording_workflow_execute_real_query_mechanics() {
         .consumer_projection_contract()
         .expect("snapshot operation should mint one consumer contract");
     let settled = bound
-        .execute((), &mut workspace)
+        .admit_execution_resources(
+            (),
+            crate::installed_domain::execution_resources::operation_execution_resource_request(),
+            &workspace,
+        )
+        .unwrap()
+        .execute(&mut workspace)
         .unwrap()
         .publish()
         .unwrap()
@@ -181,6 +192,11 @@ fn recording_workflow_rejects_invalid_value_without_a_partial_write() {
         .unwrap()
         .family(WorthUiMeasurementRecordingFamily)
         .bind(installed.handle(), WorthUiMeasurementRecording)
+        .unwrap()
+        .admit_workflow_resources(
+            crate::installed_domain::execution_resources::operation_execution_resource_request(),
+            &workspace,
+        )
         .unwrap()
         .start_workflow(&mut workspace)
         .unwrap()
@@ -313,7 +329,13 @@ fn settled_identity_count(
     let bound = bound_snapshot(workspace);
     let consumer = bound.consumer_projection_contract().unwrap();
     bound
-        .execute((), workspace)
+        .admit_execution_resources(
+            (),
+            crate::installed_domain::execution_resources::operation_execution_resource_request(),
+            workspace,
+        )
+        .unwrap()
+        .execute(workspace)
         .unwrap()
         .publish()
         .unwrap()

@@ -75,6 +75,8 @@ fn workflow() -> domain::WorthQueryPortableWorkflowDefinition {
                     domain::WorthQueryWorkflowCostRole::ResultValidation,
                 ],
                 failure_classes: vec![domain::WorthQueryOperationFailureClass::InvalidInput],
+                resources: crate::installed_domain::execution_resources::
+                    operation_execution_resource_contract(),
                 ..Default::default()
             }),
             domain::WorthQueryPortableWorkflowStage::new(
@@ -99,6 +101,8 @@ fn workflow() -> domain::WorthQueryPortableWorkflowDefinition {
                     domain::WorthQueryOperationFailureClass::InvalidInput,
                     domain::WorthQueryOperationFailureClass::Dependency,
                 ],
+                resources: crate::installed_domain::execution_resources::
+                    operation_execution_resource_contract(),
                 ..Default::default()
             }),
         ],

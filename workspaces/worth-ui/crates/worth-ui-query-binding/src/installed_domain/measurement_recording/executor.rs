@@ -25,6 +25,10 @@ impl
     const RESULT_WIDTH_COST: domain::WorthQueryOperationCostClass =
         domain::WorthQueryOperationCostClass::DeclaredWidth;
 
+    fn execution_resource_support(&self) -> domain::WorthQueryExecutionResourceSupport {
+        crate::installed_domain::execution_resources::operation_execution_resource_support()
+    }
+
     fn execute_stage(
         &self,
         input: domain::WorthQueryWorkflowValue,

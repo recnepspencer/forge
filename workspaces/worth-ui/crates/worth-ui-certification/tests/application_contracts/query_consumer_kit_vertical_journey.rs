@@ -102,7 +102,10 @@ fn assert_query_projection(settled: &WorthUiSettledSnapshotProjection) {
     );
     let query_counters = settled.counters();
     assert_eq!(query_counters.runtime_authority_checks, 1);
-    assert_eq!(query_counters.input_contract_checks, 1);
+    assert_eq!(
+        settled.resource_admission_counters().input_contract_checks,
+        1
+    );
     assert_eq!(query_counters.executor_contacts, 1);
     assert_eq!(query_counters.publication_checks, 1);
     assert_eq!(query_counters.consumption_contacts, 1);
