@@ -80,6 +80,8 @@ mod mounted_projection_parity;
 mod mounted_protocol_model;
 #[path = "../application_contracts/mounted_publication.rs"]
 mod mounted_publication;
+#[path = "../application_contracts/mounted_static_paint.rs"]
+mod mounted_static_paint;
 #[path = "../application_contracts/multi_removal_filesystem.rs"]
 mod multi_removal_filesystem;
 #[path = "../application_contracts/phase7_adapter_parity.rs"]
@@ -90,6 +92,10 @@ mod phase7_denial_preservation;
 mod phase7_hot_frame_source_exclusion;
 #[path = "../application_contracts/phase7_public_mounted_allocation.rs"]
 mod phase7_public_mounted_allocation;
+#[path = "../application_contracts/platform_pulse.rs"]
+mod platform_pulse;
+#[path = "../application_contracts/platform_pulse_lifecycle.rs"]
+mod platform_pulse_lifecycle;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
 #[path = "../application_contracts/query_consumer_kit_application.rs"]

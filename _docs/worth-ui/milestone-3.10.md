@@ -1,6 +1,10 @@
 # Milestone 3.10: Mounted Receipts and Host Contract
 
-Status: In progress. Phases 1 through 8 are implemented and verified; phases 9 and 10 remain.
+Status: Complete (2026-07-25). Phases 1 through 10 are implemented and
+verified. The human-visible Platform Pulse requirement was adopted after
+completion and was closed as product capability by the explicit Milestone
+3.10.2 catch-up gate. Milestone 3.10.3 owns the later-discovered
+executable-world evidence correction before 3.11.
 
 ## Goal
 
@@ -1973,6 +1977,22 @@ compiled test owners. Remove predecessor routes only after every ordinary,
 preview, replacement, adapter, and inspection caller uses the mounted-frame
 facade.
 
+**Post-completion platform-pulse obligation**
+
+Phase 10 completed the real-filesystem, watcher, mounted-publication, headless,
+and egui mechanical lifecycle before the Platform Pulse requirement existed.
+That evidence remains valid, but it does not prove a human-visible page: the
+closed egui path deliberately rejects appearance-incomplete native paint and
+the admitted no-effect case produces no native shapes.
+
+Milestone 3.10.2 therefore owns the retroactive Platform Pulse seed. It must
+extend—not replace—the completed Phase 10 lifecycle so one continuing
+file-authored page visibly renders through the canonical host contract and
+independent evidence binds the exact filesystem snapshot, mounted-frame
+publication, complete static-paint mechanics, and post-translation adapter
+observation. This is a new successor obligation, not a rewritten claim about
+what Phase 10 had already shipped.
+
 **Relevant subsystems**
 
 - public Worth UI session and framework-turn facade
@@ -2012,10 +2032,12 @@ facade.
 
 **Test requirements**
 
-- A real lifecycle test must write a `.wui` application to disk, load it through
-  the production filesystem path, execute and present a multi-lane frame
-  through a real adapter, edit the file, receive a real watcher event, replace
-  the application, and prove one coherent successor mounted generation.
+- The completed real lifecycle test writes its `.wui` application to disk,
+  loads it through the production filesystem path, executes and presents a
+  multi-lane frame through a real adapter, edits the file, receives a real
+  watcher event, replaces the application, and proves one coherent successor
+  mounted generation. Milestone 3.10.2 must reuse this production path and add
+  the missing complete native-paint and human-visible proof.
 - Before that first edit, the same lifecycle must register and mount a
   file-authored splitter surface, establish its first allocation catalog only
   after mounted and host-measurement authority exist, and publish a preview
@@ -2082,6 +2104,12 @@ facade.
   and bounded identity/report/cost traces. Each family may contain narrowly
   named cases, but its setup, independent oracle, mutation controls, and cost
   lane remain visible.
+- Automated Platform Pulse proof remains a named scenario within that existing
+  canonical authored-to-mounted family. Milestone 3.10.2 may add exactly one
+  permanent downstream pulse executable because no human-runnable composition
+  root currently exists; successor milestones must extend that same executable
+  and the same compiled proof owner instead of adding milestone-specific
+  binaries, targets, or fixtures.
 - Compile-denial cases share one consolidated target and dependency build.
   Runtime denials remain runtime tests.
 - Closing evidence must preserve the existing integration-target and
@@ -2090,6 +2118,11 @@ facade.
   artifact cost rather than hiding it in aggregate wall time.
 - `AI_README.md`, `docs/application-lifecycle.md`, host integration guidance,
   and inspection guidance are updated in the same phase.
+- `docs/application-lifecycle.md` owns the continuing `Platform Pulse` run
+  section. Milestone 3.10.2 must add the exact launch command, visible mounted
+  result, source-edit action, and independently inspectable receipt/adapter
+  evidence; successor milestones revise that same section rather than creating
+  competing demo instructions.
 - Phase 10 closes only after the inventory and edge matrix have no unresolved
   or compatibility-lane dispositions.
 
@@ -2129,6 +2162,24 @@ facade.
   proof-lane cost evidence in existing compiled owners
 - real filesystem, watcher, adapter, replacement, mixed-lane, multi-surface,
   identity, denial, and cost certification in existing compiled owners
+
+## Post-Completion Platform-Pulse Catch-Up
+
+The Must Ship list above records what the completed milestone actually
+delivered. The later-adopted human-visible requirement was specified and closed
+as product capability by
+[Milestone 3.10.2](./milestone-3.10.2.md). Its automated evidence was later
+adjudicated honestly as in-process integration, so
+[Milestone 3.10.3](./milestone-3.10.3.md) is the remaining mandatory
+executable-world successor gate:
+
+- one permanent human-visible Platform Pulse Page seeded by the completed real
+  filesystem, watcher, mounted-publication, and adapter lifecycle;
+- one complete runtime-owned static filled-rectangle paint path translated by
+  egui without adapter-owned appearance meaning; and
+- one durable downstream composition root, one consolidated automated
+  integration path, and one exact-product executable-world path that later
+  Milestones 3.11 through 3.23 extend cumulatively.
 
 ## Must Preserve
 

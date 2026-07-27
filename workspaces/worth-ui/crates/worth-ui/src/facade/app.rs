@@ -24,7 +24,10 @@ pub use worth_ui_runtime::facade::{
     WorthUiMountedApplicationReplacementOutcome, WorthUiMountedFrameExecutionStop,
     WorthUiMountedFrameFrameworkTransitionStop, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
-    WorthUiMountedReplacementRetentionDenial, WorthUiPendingApplicationCutover,
-    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
-    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationReplacementDenial,
+    WorthUiNativeApplicationReplacementOutcome, WorthUiNativeApplicationShell,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
+    WorthUiReplacementPlannedCostEnvelope,
 };

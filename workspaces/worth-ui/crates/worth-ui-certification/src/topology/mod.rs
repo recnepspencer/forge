@@ -24,6 +24,12 @@ mod lifecycle_propagation;
 mod measurement_boundary_audit;
 mod measurement_growth_posture_audit;
 mod milestone_3101_inventory;
+mod milestone_3102_pulse_seed;
+mod milestone_3103_cost_closure;
+mod milestone_3103_executable_world;
+mod milestone_3103_external_world;
+mod milestone_3103_product_contract;
+mod milestone_3103_watched_replacement;
 mod milestone_37_structural_inventory_audit;
 mod obligation_boundary_audit;
 mod obligation_residue_audit;
@@ -106,6 +112,12 @@ pub use measurement_growth_posture_audit::{
     audit_measurement_future_family_extension_home, audit_measurement_future_growth_posture,
 };
 pub use milestone_3101_inventory::audit_milestone_3101_inventory;
+pub use milestone_3102_pulse_seed::audit_milestone_3102_pulse_seed;
+pub use milestone_3103_cost_closure::audit_milestone_3103_phase5_cost_closure;
+pub use milestone_3103_executable_world::audit_milestone_3103_phase1;
+pub use milestone_3103_external_world::audit_milestone_3103_phase3_external_world;
+pub use milestone_3103_product_contract::audit_milestone_3103_phase2_product_contract;
+pub use milestone_3103_watched_replacement::audit_milestone_3103_phase4_watched_replacement;
 pub use milestone_37_structural_inventory_audit::{
     audit_milestone_37_structural_inventory, milestone_37_active_failure_modes,
     milestone_37_cleared_finding_ids, milestone_37_critical_finding_ids,

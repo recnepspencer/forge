@@ -1,6 +1,8 @@
 use serde_json::Value;
 
-use super::{load_json, validate_closing_evidence, CLOSING_PATH, OPENING_PATH};
+use super::{
+    belongs_to_phase7_inventory, load_json, validate_closing_evidence, CLOSING_PATH, OPENING_PATH,
+};
 use crate::topology::WorkspaceSourceInventory;
 
 fn documents() -> (WorkspaceSourceInventory, Value, Value) {
@@ -91,4 +93,17 @@ fn phase7_closing_rejects_unadjudicated_paired_regression() {
     assert!(audit(&closing)
         .expect_err("a paired regression needs adjudication")
         .contains("not comparable"));
+}
+
+#[test]
+fn phase7_inventory_excludes_only_named_successor_sources() {
+    assert!(!belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout.rs"
+    ));
+    assert!(!belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/topology/milestone_3102_pulse_seed/mod.rs"
+    ));
+    assert!(belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/topology/unadjudicated_future.rs"
+    ));
 }

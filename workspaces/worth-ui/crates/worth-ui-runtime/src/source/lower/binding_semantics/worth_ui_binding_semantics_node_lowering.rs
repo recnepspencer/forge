@@ -153,7 +153,7 @@ pub(super) fn lower_theme_token_node(
     let semantic_locus = format!("token:{}", token_node.theme_token().id().as_str());
     let (resolved_target_theme_token, resolved_target_entry) = match context.resolve_theme_token(
         module_id,
-        token_node.entry().resolved_target_id().as_str(),
+        token_node.binding_target().reference_text(),
         &semantic_locus,
         token_node.provenance(),
     ) {

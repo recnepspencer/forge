@@ -1,7 +1,19 @@
 use super::binding_app_fixture::admitted_app;
 use super::binding_phase_fixture::bound_artifact_input;
-use crate::capability::CommandReadinessStatus;
-use crate::source::WorthUiBoundArtifactInputNode;
+use crate::capability::{
+    CommandReadinessStatus, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor,
+    ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+};
+use crate::facade::{WorthUi, WorthUiApp};
+use crate::source::{
+    WorthUiArtifactInputResolver, WorthUiBindingDiagnosticCode, WorthUiBindingSemanticsLowerer,
+    WorthUiBindingSemanticsReport, WorthUiBoundArtifactInput, WorthUiBoundArtifactInputNode,
+    WorthUiStructuralLegalityLowerer,
+};
+use worth_ui_dsl::{
+    WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiSealedSemanticPackage,
+};
 
 #[test]
 fn nested_command_and_surface_semantics_preserve_typed_identity() {
@@ -120,4 +132,96 @@ fn theme_token_resolution_preserves_frozen_target_identity() {
             .as_str(),
         "theme.text.primary"
     );
+}
+
+#[test]
+fn file_authored_token_reference_can_rebind_the_registered_alias_target() {
+    let package = crate::source::test_compilation::compile_source([(
+        "app/main.wui",
+        "token theme.test.fill = \"theme.test.green\";",
+    )]);
+    let bound = lower_token_package(package).expect("admitted file alias should bind");
+
+    assert_eq!(bound_token_target(&bound), "theme.test.green");
+}
+
+#[test]
+fn invalid_file_authored_token_reference_is_not_replaced_by_the_registered_default() {
+    let package = crate::source::test_compilation::compile_source([(
+        "app/main.wui",
+        "token theme.test.fill = \"theme.test.missing\";",
+    )]);
+    let report = lower_token_package(package).expect_err("unknown file alias should be denied");
+
+    assert_eq!(
+        report.diagnostics()[0].code(),
+        WorthUiBindingDiagnosticCode::MissingSemanticThemeTokenReference
+    );
+}
+
+#[test]
+fn rust_authored_token_payload_retains_the_registered_alias_target() {
+    let package = crate::source::test_compilation::compile_rust_authored(
+        &WorthUiRustAuthoredArtifactInput::from_modules([
+            WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+                .with_token("theme.test.fill", "#payload-not-a-token-id"),
+        ]),
+    );
+    let bound = lower_token_package(package).expect("Rust-authored payload should bind");
+
+    assert_eq!(bound_token_target(&bound), "theme.test.blue");
+}
+
+fn lower_token_package(
+    package: WorthUiSealedSemanticPackage,
+) -> Result<WorthUiBoundArtifactInput, WorthUiBindingSemanticsReport> {
+    let app = token_target_app();
+    let snapshot = app.capabilities();
+    let resolved = WorthUiArtifactInputResolver::resolve(&package, snapshot)
+        .expect("token name should resolve");
+    let structured = WorthUiStructuralLegalityLowerer::lower(&resolved, snapshot)
+        .expect("token should remain structurally legal");
+    WorthUiBindingSemanticsLowerer::lower(&structured, snapshot)
+}
+
+fn bound_token_target(bound: &WorthUiBoundArtifactInput) -> &str {
+    bound
+        .module(bound.module_ids().first().expect("one module"))
+        .expect("module remains bound")
+        .nodes()
+        .iter()
+        .find_map(|node| match node {
+            WorthUiBoundArtifactInputNode::Token(token) => Some(
+                token
+                    .semantics()
+                    .resolved_target_theme_token()
+                    .id()
+                    .as_str(),
+            ),
+            _ => None,
+        })
+        .expect("one token remains bound")
+}
+
+fn token_target_app() -> WorthUiApp {
+    WorthUi::app()
+        .register_theme_token(color_token("theme.test.blue", "#2f81f7"))
+        .register_theme_token(color_token("theme.test.green", "#3fb950"))
+        .register_theme_token(ThemeTokenDescriptor::alias(
+            ThemeTokenId::new("theme.test.fill").expect("valid fill token"),
+            ThemeTokenFamily::surface(),
+            ThemeTokenSource::application(),
+            ThemeTokenAlias::to(ThemeTokenId::new("theme.test.blue").expect("valid blue token")),
+        ))
+        .freeze()
+        .expect("token target app should freeze")
+}
+
+fn color_token(id: &str, color: &str) -> ThemeTokenDescriptor {
+    ThemeTokenDescriptor::define(
+        ThemeTokenId::new(id).expect("valid test token"),
+        ThemeTokenFamily::surface(),
+        ThemeTokenSource::application(),
+        ThemeTokenValue::color(ThemeColorValue::hex(color).expect("valid test color")),
+    )
 }

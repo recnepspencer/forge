@@ -226,7 +226,7 @@ impl UiCommittedAllocationActivationAttempt {
                     attempt_identity,
                     super::UiCommittedAllocationActivationCounters::default(),
                     super::UiCommittedAllocationActivationDenialReason::CommitResourceUnavailable,
-                )
+                    )
                 })?;
         let validated = super::UiCommittedAllocationValidation::prepare_mounted(
             basis,

@@ -33,6 +33,7 @@ impl UiRetainedPresentedFrame {
         bindings: &[UiSurfaceBindingGeneration],
         receipts: super::super::UiMountedNodeReceiptBasis,
         mount_cost: super::super::UiMountCostReport,
+        static_paint_structural_bytes: usize,
     ) -> Option<Self> {
         let mut bindings = bindings.to_vec();
         bindings.sort();
@@ -42,7 +43,8 @@ impl UiRetainedPresentedFrame {
             .checked_mul(std::mem::size_of::<UiSurfaceBindingGeneration>())?;
         let structural_bytes = std::mem::size_of::<Self>()
             .checked_add(binding_bytes)?
-            .checked_add(receipts.retained_structural_bytes()?)?;
+            .checked_add(receipts.retained_structural_bytes()?)?
+            .checked_add(static_paint_structural_bytes)?;
         Some(Self {
             frame,
             bindings: bindings.into_boxed_slice(),

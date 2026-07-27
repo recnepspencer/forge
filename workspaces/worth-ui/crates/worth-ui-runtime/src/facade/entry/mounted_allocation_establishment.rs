@@ -10,9 +10,9 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMountedAllocationMeasurementRequest {
-    evidence_family: UiMeasurementEvidenceFamily,
-    need: crate::host::UiHostMeasurementNeed,
-    normalization_context: crate::host::UiHostMeasurementNormalizationContext,
+    pub(super) evidence_family: UiMeasurementEvidenceFamily,
+    pub(super) need: crate::host::UiHostMeasurementNeed,
+    pub(super) normalization_context: crate::host::UiHostMeasurementNormalizationContext,
 }
 
 #[derive(Debug)]
@@ -62,6 +62,33 @@ pub trait WorthUiMountedAllocationCertificationExt {
 }
 
 impl WorthUiActiveApplicationSession {
+    pub(crate) fn establish_native_viewport_allocation(
+        &mut self,
+    ) -> Result<(), WorthUiMountedAllocationEstablishmentDenial> {
+        let request = {
+            let capability = self.host_measurement_capability();
+            let assumptions =
+                crate::host::UiHostMeasurementAssumptionProfile::from_capability_report(
+                    capability.capability_report(),
+                    1,
+                    2,
+                    3,
+                    4,
+                );
+            UiMountedAllocationMeasurementRequest::new(
+                UiMeasurementEvidenceFamily::ViewportExtent,
+                crate::host::UiHostMeasurementNeed::ViewportExtent(
+                    worth_ui_host_contract::UiViewportExtentRequest,
+                ),
+                crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                    assumptions,
+                ),
+            )
+        };
+        self.establish_mounted_allocation_catalog(1, [request])
+            .map(|_| ())
+    }
+
     pub(crate) fn establish_mounted_allocation_catalog(
         &mut self,
         request_identity_start: u64,
@@ -138,7 +165,7 @@ impl WorthUiActiveApplicationSession {
                     WorthUiMountedAllocationEstablishmentDenial::MissingMountedInstance(node),
                 );
             }
-            let touch = self.try_query_touch_for_node(node).map_err(|_| {
+            let touch = self.try_allocation_touch_for_node(node).map_err(|_| {
                 WorthUiMountedAllocationEstablishmentDenial::Runtime(
                     WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
                 )

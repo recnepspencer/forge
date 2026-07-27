@@ -1,0 +1,186 @@
+use std::fmt;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use super::CanonicalPlatformPulse;
+
+static INSTALLATION_ORDINAL: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Debug)]
+pub(crate) struct IsolatedPulseInstallation {
+    root: PathBuf,
+    cleanup_required: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct PulseInstallationCleanupEvidence {
+    removed_owned_root: bool,
+}
+
+#[derive(Debug)]
+pub(crate) enum PulseInstallationFailure {
+    CreateRoot(std::io::Error),
+    PrepareEntrySource {
+        primary: PulseEntrySourcePreparationFailure,
+        rollback: Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure>,
+    },
+}
+
+#[derive(Debug)]
+pub(crate) enum PulseEntrySourcePreparationFailure {
+    Create(std::io::Error),
+    Write(std::io::Error),
+    Flush(std::io::Error),
+}
+
+#[derive(Debug)]
+pub(crate) enum PulseInstallationCleanupFailure {
+    RemoveRoot(std::io::Error),
+    Residue(PathBuf),
+}
+
+impl fmt::Display for PulseInstallationFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CreateRoot(error) => write!(formatter, "create isolated root: {error}"),
+            Self::PrepareEntrySource { primary, rollback } => {
+                write!(
+                    formatter,
+                    "prepare isolated main.wui: {primary}; rollback: "
+                )?;
+                match rollback {
+                    Ok(evidence) => {
+                        write!(formatter, "released={}", evidence.removed_owned_root)
+                    }
+                    Err(failure) => write!(formatter, "failed({failure})"),
+                }
+            }
+        }
+    }
+}
+
+impl fmt::Display for PulseEntrySourcePreparationFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Create(error) => {
+                write!(formatter, "create isolated main.wui: {error}")
+            }
+            Self::Write(error) => {
+                write!(formatter, "write isolated main.wui: {error}")
+            }
+            Self::Flush(error) => {
+                write!(formatter, "flush isolated main.wui: {error}")
+            }
+        }
+    }
+}
+
+impl fmt::Display for PulseInstallationCleanupFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RemoveRoot(error) => write!(formatter, "remove isolated root: {error}"),
+            Self::Residue(path) => {
+                write!(
+                    formatter,
+                    "isolated root remained after cleanup: {}",
+                    path.display()
+                )
+            }
+        }
+    }
+}
+
+impl IsolatedPulseInstallation {
+    pub(crate) fn install(
+        canonical: CanonicalPlatformPulse,
+    ) -> Result<Self, PulseInstallationFailure> {
+        let ordinal = INSTALLATION_ORDINAL.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "worth-ui-platform-pulse-executable-world-{}-{ordinal}",
+            std::process::id()
+        ));
+        fs::create_dir(&root).map_err(PulseInstallationFailure::CreateRoot)?;
+        let mut installation = Self {
+            root,
+            cleanup_required: true,
+        };
+        match installation.write_entry_source(canonical.source_bytes()) {
+            Ok(()) => Ok(installation),
+            Err(primary) => {
+                let rollback = installation.close();
+                Err(PulseInstallationFailure::PrepareEntrySource { primary, rollback })
+            }
+        }
+    }
+
+    pub(crate) fn source_root(&self) -> &Path {
+        &self.root
+    }
+
+    pub(crate) fn entry_source(&self) -> PathBuf {
+        self.root.join("main.wui")
+    }
+
+    pub(crate) fn failure_source_snapshot(&self) -> Option<Box<[u8]>> {
+        fs::read(self.entry_source())
+            .ok()
+            .map(Vec::into_boxed_slice)
+    }
+
+    pub(crate) fn close(
+        &mut self,
+    ) -> Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure> {
+        fs::remove_dir_all(&self.root).map_err(PulseInstallationCleanupFailure::RemoveRoot)?;
+        self.cleanup_required = false;
+        if self.root.exists() {
+            return Err(PulseInstallationCleanupFailure::Residue(self.root.clone()));
+        }
+        Ok(PulseInstallationCleanupEvidence {
+            removed_owned_root: true,
+        })
+    }
+
+    fn write_entry_source(&self, source: &[u8]) -> Result<(), PulseEntrySourcePreparationFailure> {
+        let mut file = OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(self.root.join("main.wui"))
+            .map_err(PulseEntrySourcePreparationFailure::Create)?;
+        file.write_all(source)
+            .map_err(PulseEntrySourcePreparationFailure::Write)?;
+        file.flush()
+            .map_err(PulseEntrySourcePreparationFailure::Flush)
+    }
+}
+
+impl PulseInstallationCleanupEvidence {
+    pub(crate) fn removed_owned_root(self) -> bool {
+        self.removed_owned_root
+    }
+}
+
+impl Drop for IsolatedPulseInstallation {
+    fn drop(&mut self) {
+        if self.cleanup_required {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::IsolatedPulseInstallation;
+    use crate::installation::CanonicalPlatformPulse;
+
+    #[test]
+    fn isolated_installation_owns_exact_source_and_explicit_cleanup() {
+        let mut installation =
+            IsolatedPulseInstallation::install(CanonicalPlatformPulse::checked_in())
+                .expect("installation");
+        let source = std::fs::read(installation.source_root().join("main.wui")).expect("source");
+        assert_eq!(source, CanonicalPlatformPulse::checked_in().source_bytes());
+        assert!(installation.close().expect("cleanup").removed_owned_root());
+    }
+}

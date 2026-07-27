@@ -26,6 +26,7 @@ pub struct UiDeclarationArtifact {
     source_backed_mosaic_sizing_contract_id: Option<MosaicSizingContractId>,
     source_backed_mosaic_membership_name: Option<Box<str>>,
     source_backed_measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    source_backed_measurement_mode: Option<crate::declaration::UiDeclaredMeasurementMode>,
     source_backed_measurement_basis_source:
         Option<crate::declaration::UiDeclaredMeasurementBasisSource>,
 }
@@ -65,6 +66,7 @@ impl UiDeclarationArtifact {
             source_backed_mosaic_sizing_contract_id: None,
             source_backed_mosaic_membership_name: None,
             source_backed_measurement_constraint_modifier: None,
+            source_backed_measurement_mode: None,
             source_backed_measurement_basis_source: None,
         }
     }
@@ -185,6 +187,13 @@ impl UiDeclarationArtifact {
         self.source_backed_measurement_basis_source = basis_source;
     }
 
+    pub(crate) fn admit_source_backed_measurement_mode(
+        &mut self,
+        mode: Option<crate::declaration::UiDeclaredMeasurementMode>,
+    ) {
+        self.source_backed_measurement_mode = mode;
+    }
+
     #[cfg(test)]
     pub(crate) fn structural_handoff(
         &self,
@@ -298,15 +307,21 @@ impl UiDeclarationArtifact {
         admitted: &UiDeclaredPostureContract,
     ) -> UiDeclaredPostureContract {
         let modifier = self.source_backed_measurement_constraint_modifier;
+        let mode = self.source_backed_measurement_mode;
         let basis_source = self.source_backed_measurement_basis_source;
-        if modifier.is_none() && basis_source.is_none() {
+        if modifier.is_none() && mode.is_none() && basis_source.is_none() {
             return admitted.clone();
         }
         let measurement_lane = admitted.measurement_policy();
         let measurement_policy = measurement_lane.admitted().cloned().or_else(|| {
-            UiDeclaredMeasurementPolicyPosture::new(None, modifier, basis_source, None, vec![])
+            UiDeclaredMeasurementPolicyPosture::new(mode, modifier, basis_source, None, vec![])
         });
         let measurement_policy = measurement_policy.map(|mut policy| {
+            if policy.mode().is_none() {
+                if let Some(mode) = mode {
+                    policy = policy.with_mode(mode);
+                }
+            }
             if policy.constraint_modifier().is_none() {
                 if let Some(modifier) = modifier {
                     policy = policy.with_constraint_modifier(modifier);

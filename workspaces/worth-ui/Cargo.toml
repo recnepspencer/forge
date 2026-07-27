@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "apps/platform-pulse",
     "crates/worth-ui-theme",
     "crates/worth-ui-components",
     "crates/worth-ui-dsl",
@@ -39,8 +40,13 @@ worth-ui-test-support = { path = "crates/worth-ui-test-support" }
 worth-ui = { path = "crates/worth-ui" }
 
 serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1.0"
 egui = "0.31"
+eframe = { version = "=0.31.1", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 notify = "8.2.0"
+uiautomation = { version = "=0.25.0", default-features = false, features = ["control", "input"] }
+winsafe = { version = "=0.0.28", features = ["kernel", "user"] }
+xcap = { version = "=0.9.7", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

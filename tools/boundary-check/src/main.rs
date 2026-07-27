@@ -1,6 +1,7 @@
 mod cargo_graph;
 mod config;
 mod configured_dependency_denials;
+mod configured_source_dependency_allowlists;
 mod configured_source_identifier_denials;
 mod dependency_rules;
 mod diagnostics;
@@ -19,6 +20,7 @@ use crate::config::Road1Config;
 use crate::configured_dependency_denials::{
     validate_configured_dependency_denials, validate_dependency_target_allowlists,
 };
+use crate::configured_source_dependency_allowlists::validate_source_dependency_allowlists;
 use crate::configured_source_identifier_denials::validate_source_identifier_denials;
 use crate::dependency_rules::{validate_dependency_rules, validate_worth_ui_query_edge};
 use crate::diagnostics::{render_human, render_json, Diagnostic};
@@ -139,6 +141,16 @@ fn run(
                 vec![Diagnostic::new(
                     crate::diagnostics::DiagnosticCode::Bc2001BandDependencyViolation,
                     "dependency-target-allowlists",
+                    error,
+                )]
+            })?,
+    );
+    diagnostics.extend(
+        validate_source_dependency_allowlists(&root, &config.source_dependency_allowlists)
+            .map_err(|error| {
+                vec![Diagnostic::new(
+                    crate::diagnostics::DiagnosticCode::Bc2001BandDependencyViolation,
+                    "source-dependency-allowlists",
                     error,
                 )]
             })?,

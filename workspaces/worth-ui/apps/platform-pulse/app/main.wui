@@ -1,0 +1,3 @@
+component platform.pulse.component.seed {}
+surface platform.pulse.surface.main {}
+token theme.platform_pulse.fill = "theme.platform_pulse.blue";

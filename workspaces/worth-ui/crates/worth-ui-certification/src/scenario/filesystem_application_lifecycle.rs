@@ -19,6 +19,9 @@ use super::application_authority_closure::authored_composition::{
 };
 use super::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 
+#[path = "filesystem_application_lifecycle/platform_pulse.rs"]
+mod platform_pulse;
+
 pub struct FilesystemApplicationLifecycleScenario {
     query: WorthUiInstalledQueryTestFixture,
 }

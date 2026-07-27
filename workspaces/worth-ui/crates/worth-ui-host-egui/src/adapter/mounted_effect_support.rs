@@ -1,7 +1,7 @@
 use worth_ui_host_contract::{
     UiMountedAccessibilityProjection, UiMountedDiagnosticProjection, UiMountedEffectFamily,
     UiMountedMotionProjection, UiMountedPaintPrimitiveKind, UiMountedPaintProjection,
-    UiMountedParticipationStatus, UiMountedProjectionView,
+    UiMountedParticipationStatus, UiMountedPreviewProjection, UiMountedProjectionView,
 };
 
 pub(super) fn unsupported_projection_effect(
@@ -25,10 +25,19 @@ pub(super) fn unsupported_projection_effect(
     {
         return Some(UiMountedEffectFamily::Realtime);
     }
+    if projection.nodes().iter().any(|node| {
+        matches!(
+            node.paint(),
+            UiMountedPaintProjection::FilledRect(reference)
+                if projection.filled_rects().resolve(reference).is_none()
+        )
+    }) {
+        return Some(UiMountedEffectFamily::NativePaint);
+    }
     if projection
         .nodes()
         .iter()
-        .any(|node| matches!(node.paint(), UiMountedPaintProjection::Batch(_)))
+        .any(|node| matches!(node.preview(), UiMountedPreviewProjection::Resize { .. }))
     {
         return Some(UiMountedEffectFamily::NativePaint);
     }

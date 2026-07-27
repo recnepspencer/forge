@@ -4,6 +4,7 @@ mod headless_observation;
 mod participation;
 mod preview;
 mod resource;
+mod static_paint;
 mod tables;
 mod view;
 
@@ -29,6 +30,11 @@ pub use preview::UiMountedPreviewProjection;
 pub use resource::{
     UiMountedResourceEntry, UiMountedResourceKind, UiMountedResourceReference,
     UiMountedResourceTable,
+};
+pub use static_paint::{
+    UiMountedFilledRectCompletionDenial, UiMountedFilledRectCompletionInput,
+    UiMountedFilledRectMechanic, UiMountedFilledRectReference, UiMountedFilledRectTable,
+    UiMountedFilledRectTableDenial, UiMountedRgba8, UiMountedStaticPaintSchemaVersion,
 };
 pub use tables::{
     UiMountedClipProjection, UiMountedClipReference, UiMountedClipRow, UiMountedClipTable,

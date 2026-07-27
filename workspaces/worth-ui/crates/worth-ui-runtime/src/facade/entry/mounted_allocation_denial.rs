@@ -12,6 +12,9 @@ pub enum WorthUiMountedAllocationEstablishmentDenial {
     MissingMountedInstance(crate::graph::UiGraphNodeIdentity),
     MountedIdentity(crate::mounting::UiMountedIdentityDenial),
     GraphMountEligibility(crate::graph::UiGraphMountEligibilityAdmissionDenial),
+    CandidateTouch(crate::obligations::touch::UiGraphTouchDenial),
+    MissingCandidateMountTransition(crate::graph::UiGraphNodeIdentity),
+    CandidateAllocationPartition,
     StaleGraphSuccessor,
     MissingMeasurementRequest(UiMeasurementEvidenceFamily),
     MeasurementRequestIdentityExhausted,
@@ -21,6 +24,7 @@ pub enum WorthUiMountedAllocationEstablishmentDenial {
         denial: crate::evidence::UiMeasurementBasisDenial,
     },
     CatalogAdmission(crate::graph::UiAllocationCatalogBasisAdmissionDenial),
+    CandidateCatalogAdmission(crate::graph::UiAllocationCatalogDeltaAdmissionDenial),
     Activation(crate::runtime::WorthUiAllocationCatalogActivationDenial),
     Runtime(WorthUiMountedAllocationRuntimeStage),
 }

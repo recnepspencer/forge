@@ -1,9 +1,8 @@
 use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
-use crate::runtime::{
-    WorthUiActiveRuntimeObservation, WorthUiFrameworkTurn, WorthUiRuntime,
-    WorthUiRuntimeShutdownReceipt,
-};
+#[cfg(any(test, feature = "certification-support"))]
+use crate::runtime::WorthUiActiveRuntimeObservation;
+use crate::runtime::{WorthUiFrameworkTurn, WorthUiRuntime, WorthUiRuntimeShutdownReceipt};
 use worth_ui_inspection::UiInspectionQuery;
 
 use super::{
@@ -85,10 +84,12 @@ impl WorthUiActiveApplicationSession {
         }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_runtime(&self) -> WorthUiActiveRuntimeObservation {
         self.application.inspect_active_runtime()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_query_state_residue(
         &self,
     ) -> crate::runtime::WorthUiStateQueryResidueScan {
@@ -120,18 +121,21 @@ impl WorthUiActiveApplicationSession {
         })
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn ordinary_plan_availability(
         &self,
     ) -> crate::runtime::WorthUiOrdinaryPlanAvailability {
         self.application.ordinary_plan_availability()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn virtualized_plan_availability(
         &self,
     ) -> crate::runtime::WorthUiVirtualizedPlanAvailability {
         self.application.virtualized_plan_availability()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn query_fact_link(
         &self,
         binding_id: &str,
@@ -139,16 +143,19 @@ impl WorthUiActiveApplicationSession {
         self.application.query_fact_link(binding_id)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn canvas_spatial_plan_availability(
         &self,
     ) -> crate::runtime::WorthUiCanvasSpatialPlanAvailability {
         self.application.canvas_spatial_plan_availability()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn first_canvas_spatial_handle(&self) -> Option<crate::runtime::WorthUiLaneHandle> {
         self.application.first_canvas_spatial_handle()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_canvas_spatial_target(
         &self,
         handle: crate::runtime::WorthUiLaneHandle,
@@ -159,18 +166,21 @@ impl WorthUiActiveApplicationSession {
         self.application.inspect_canvas_spatial_target(handle)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn realtime_plan_availability(
         &self,
     ) -> crate::runtime::WorthUiRealtimePlanAvailability {
         self.application.realtime_plan_availability()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn first_realtime_renderer_surface(
         &self,
     ) -> Option<crate::runtime::WorthUiRendererSurfaceHandle> {
         self.application.first_realtime_renderer_surface()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_realtime_target(
         &self,
         handle: crate::runtime::WorthUiRendererSurfaceHandle,
@@ -181,6 +191,7 @@ impl WorthUiActiveApplicationSession {
         self.application.inspect_realtime_target(handle)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_virtualized_plan(
         &self,
         request: crate::runtime::WorthUiVirtualizedPlanSummaryRequest,
@@ -191,6 +202,7 @@ impl WorthUiActiveApplicationSession {
         self.application.inspect_virtualized_plan(request)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_ordinary_plan(
         &self,
         request: crate::runtime::WorthUiOrdinaryPlanSummaryRequest,

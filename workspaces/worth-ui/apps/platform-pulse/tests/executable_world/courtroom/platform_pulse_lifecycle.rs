@@ -1,0 +1,122 @@
+use std::time::{Duration, Instant};
+
+use crate::external_observation::PlatformPulseLifecycleStreamFailure;
+use crate::failure_teardown::PulseExecutableWorldFailure;
+use crate::installation::CanonicalPlatformPulse;
+use crate::native_platform::{current_platform_posture, NativePlatformPosture};
+use crate::product_process::{
+    AwaitingFirstFrame, AwaitingReplacement, CargoBuiltPlatformPulse, InitialBlue, Installed,
+    Published, PulseExecutableWorld, WatchedPulseObservationFailure, WatchedPulseTransition,
+};
+use crate::source_delta::GreenPulseSourceDelta;
+
+use super::platform_pulse_journey::{self, PlatformPulseJourneyDeltas};
+
+const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
+const JOURNEY_BUDGET: Duration = Duration::from_secs(20);
+
+#[test]
+fn canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutdown() {
+    assert_eq!(
+        current_platform_posture(),
+        NativePlatformPosture::CertifiedExecutable
+    );
+    let journey_started = Instant::now();
+    let deltas = PlatformPulseJourneyDeltas::exact()
+        .unwrap_or_else(|failure| panic!("derive exact source deltas: {failure}"));
+    let completed = platform_pulse_journey::complete(deltas);
+    assert!(journey_started.elapsed() <= JOURNEY_BUDGET);
+    assert!(completed.closed().evidence().installation_removed());
+    completed.cost().assert_frozen_budgets();
+    completed.cost().report();
+}
+
+#[test]
+fn expired_first_frame_deadline_preserves_primary_failure_and_teardown_disposition() {
+    let installed: PulseExecutableWorld<Installed> =
+        PulseExecutableWorld::install(CanonicalPlatformPulse::checked_in())
+            .unwrap_or_else(|failure| panic!("install hostile world: {failure}"));
+    let binary = CargoBuiltPlatformPulse::exact()
+        .unwrap_or_else(|failure| panic!("resolve hostile Cargo executable: {failure}"));
+    let awaiting: PulseExecutableWorld<AwaitingFirstFrame> = installed
+        .launch(binary)
+        .unwrap_or_else(|failure| panic!("launch hostile product process: {failure}"));
+    let expired = Instant::now()
+        .checked_sub(Duration::from_secs(1))
+        .expect("representable expired deadline");
+    let failure = match awaiting.await_first_frame(expired) {
+        Ok(_) => panic!("expired first-frame deadline must fail"),
+        Err(failure) => failure,
+    };
+
+    assert!(matches!(
+        failure.primary(),
+        PulseExecutableWorldFailure::Lifecycle(PlatformPulseLifecycleStreamFailure::Deadline)
+    ));
+    assert_eq!(failure.teardown().forced_process_termination(), Some(true));
+    assert_eq!(failure.teardown().lifecycle_reader_joined(), Some(true));
+    assert!(failure.teardown().discarded_lifecycle_envelopes().is_some());
+    assert_eq!(failure.teardown().installation_removed(), Some(true));
+    assert!(failure.teardown().all_owned_resources_released());
+    discard_expected_failure_artifact(failure);
+}
+
+#[test]
+fn expired_green_observation_preserves_action_failure_and_teardown_disposition() {
+    let canonical = CanonicalPlatformPulse::checked_in();
+    let green_delta = GreenPulseSourceDelta::from_checked_in(canonical)
+        .unwrap_or_else(|failure| panic!("derive hostile green delta: {failure}"));
+    let installed: PulseExecutableWorld<Installed> = PulseExecutableWorld::install(canonical)
+        .unwrap_or_else(|failure| panic!("install hostile replacement world: {failure}"));
+    let binary = CargoBuiltPlatformPulse::exact()
+        .unwrap_or_else(|failure| panic!("resolve hostile Cargo executable: {failure}"));
+    let awaiting: PulseExecutableWorld<AwaitingFirstFrame> = installed
+        .launch(binary)
+        .unwrap_or_else(|failure| panic!("launch hostile replacement process: {failure}"));
+    let published: PulseExecutableWorld<Published<InitialBlue>> = awaiting
+        .await_first_frame(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile initial frame: {failure}"));
+    let awaiting_green: PulseExecutableWorld<AwaitingReplacement> = published
+        .apply_green(green_delta)
+        .unwrap_or_else(|failure| panic!("apply hostile green action: {failure}"));
+    let expired = Instant::now()
+        .checked_sub(Duration::from_secs(1))
+        .expect("representable expired replacement deadline");
+    let failure = match awaiting_green.await_green_successor(expired) {
+        Ok(_) => panic!("expired green observation must fail"),
+        Err(failure) => failure,
+    };
+
+    assert!(matches!(
+        failure.primary(),
+        PulseExecutableWorldFailure::WatchedObservation(WatchedPulseObservationFailure::Deadline(
+            WatchedPulseTransition::GreenReplacement
+        ))
+    ));
+    assert_eq!(failure.teardown().forced_process_termination(), Some(true));
+    assert_eq!(failure.teardown().lifecycle_reader_joined(), Some(true));
+    assert!(failure.teardown().discarded_lifecycle_envelopes().is_some());
+    assert_eq!(failure.teardown().installation_removed(), Some(true));
+    assert!(failure.teardown().all_owned_resources_released());
+    discard_expected_failure_artifact(failure);
+}
+
+fn discard_expected_failure_artifact(
+    failure: crate::failure_teardown::PulseExecutableWorldFailureReport,
+) {
+    let artifact = failure.artifact().unwrap_or_else(|artifact_failure| {
+        panic!("retain hostile failure artifact: {artifact_failure}")
+    });
+    let path = artifact.path().to_owned();
+    assert!(path.is_dir());
+    assert!(path.join("manifest.json").is_file());
+    assert!(path.join("source.wui").is_file());
+    assert!(artifact.retained_bytes() <= artifact.maximum_bytes());
+    let discarded = failure
+        .discard_artifact()
+        .unwrap_or_else(|artifact_failure| {
+            panic!("discard expected hostile artifact: {artifact_failure}")
+        });
+    assert!(discarded.removed_owned_root());
+    assert!(!path.exists());
+}

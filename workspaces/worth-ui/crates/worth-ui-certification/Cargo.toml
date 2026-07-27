@@ -32,6 +32,7 @@ worth-query = { path = "../../../worth-query/crates/worth-query" }
 worth-query-certification = { path = "../../../worth-query/crates/worth-query-certification" }
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-host-egui = { path = "../worth-ui-host-egui" }
+worth-ui-platform-pulse = { path = "../../apps/platform-pulse" }
 
 [[test]]
 name = "application_contracts"

@@ -336,6 +336,9 @@ fn measurement_mode_digest(mode: Option<UiDeclaredMeasurementMode>) -> u64 {
         Some(UiDeclaredMeasurementMode::HugHeight) => {
             stable_text_digest("worth-ui.operator-contract.mode.hug-height")
         }
+        Some(UiDeclaredMeasurementMode::FillViewport) => {
+            stable_text_digest("worth-ui.operator-contract.mode.fill-viewport")
+        }
         None => stable_text_digest("worth-ui.operator-contract.mode.none"),
     }
 }

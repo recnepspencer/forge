@@ -19,6 +19,8 @@ pub(crate) struct Road1Config {
     #[serde(default)]
     pub(crate) dependency_target_allowlists: Vec<DependencyTargetAllowlistConfig>,
     #[serde(default)]
+    pub(crate) source_dependency_allowlists: Vec<SourceDependencyAllowlistConfig>,
+    #[serde(default)]
     pub(crate) source_identifier_denials: Vec<SourceIdentifierDenialConfig>,
 }
 
@@ -41,6 +43,24 @@ pub(crate) struct DependencyTargetAllowlistConfig {
     pub(crate) target: String,
     pub(crate) allowed_sources: Vec<String>,
     pub(crate) guidance: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct SourceDependencyAllowlistConfig {
+    pub(crate) workspace_manifest: String,
+    pub(crate) sources: Vec<String>,
+    pub(crate) allowed_targets: Vec<String>,
+    #[serde(default)]
+    pub(crate) dependency_contracts: Vec<SourceDependencyContractConfig>,
+    pub(crate) guidance: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct SourceDependencyContractConfig {
+    pub(crate) target: String,
+    pub(crate) version_requirement: String,
+    pub(crate) uses_default_features: bool,
+    pub(crate) features: Vec<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

@@ -273,6 +273,122 @@ Surface registration, mounting, and allocation setup depend on the
 application’s declared capabilities. The empty example is useful for lifecycle
 shape; it is not a substitute for a real application’s graph and host setup.
 
+## Platform Pulse
+
+Platform Pulse is the permanent, human-visible application used to prove the
+real lifecycle as Worth UI grows. From the repository root, run:
+
+```powershell
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse
+```
+
+That no-argument workflow uses the checked-in source root. To run the same
+product composition root against another installation, pass an existing
+absolute directory containing `main.wui`:
+
+```powershell
+$sourceRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/app).Path
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- --source-root $sourceRoot
+```
+
+The process watches
+`workspaces/worth-ui/apps/platform-pulse/app/main.wui`. On first launch, the
+160-by-96 native window is filled with the admitted blue `#2f81f7` rectangle.
+The rectangle is mounted runtime meaning translated through the canonical host
+contract; the eframe shell does not draw a second application-owned shape.
+Successful first publication prints
+`WORTH_UI_PLATFORM_PULSE_PUBLISHED` with the active application generation and
+mounted frame identity.
+
+To exercise a valid replacement, change only this line:
+
+```text
+token theme.platform_pulse.fill = "theme.platform_pulse.blue";
+```
+
+to:
+
+```text
+token theme.platform_pulse.fill = "theme.platform_pulse.green";
+```
+
+After the operating-system watcher settles the file, the complete successor is
+prepared and published atomically. The window becomes admitted green
+`#3fb950`, and `WORTH_UI_PLATFORM_PULSE_REPLACED` reports the predecessor,
+successor, and published frame identities. This is whole-application
+replacement, not Milestone 3.12 semantic rebind.
+
+To see denial preservation, replace the file temporarily with:
+
+```text
+component platform.pulse.component.seed {
+```
+
+The source compiler reports a typed diagnostic. No successor publishes, and
+the last admitted green generation and pixels remain visible. Restore the
+checked-in source exactly:
+
+```text
+component platform.pulse.component.seed {}
+surface platform.pulse.surface.main {}
+token theme.platform_pulse.fill = "theme.platform_pulse.blue";
+```
+
+The watcher then publishes the recovered blue application. Close the native
+window normally to shut down the operating-system watcher, release the
+registered host surface, and consume the active application shutdown path.
+
+### Current Certification Posture
+
+The workflows have three deliberately separate claims:
+
+1. The commands above are human product-entry workflows. They run the actual
+   `main`, `eframe::run_native`, native window loop, source watcher, and public
+   application lifecycle.
+2. The consolidated in-process integration lane proves the production
+   filesystem watcher, public application shell, mounted publication,
+   replacement, denial preservation, shutdown receipts, and egui translation
+   inside the certification process:
+
+   ```powershell
+   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts platform_pulse
+   ```
+
+   It does not claim executable product entry or an operating-system window.
+3. The permanent executable-world lane launches Cargo's exact pulse binary
+   against an isolated copy of the canonical source, applies edits outside the
+   child, and joins process-bound native pixels to typed product lifecycle
+   observations:
+
+   ```powershell
+   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --features executable-world --test executable_world -- --nocapture
+   ```
+
+   On Windows this lane is executable-certified. Other platforms retain an
+   explicit compile-only posture until their native adapters run in a required
+   real lane; a successful compile is not native certification.
+
+Product stdout prefixes each versioned JSON lifecycle envelope with
+`WORTH_UI_PLATFORM_PULSE_EVENT `. The observation-only pulse library decodes
+the stream, rejects unsupported versions, foreign runs, sequence gaps, events
+after termination, and byte/event budget overruns, and never grants product
+authority back to the runner.
+
+An uncaught executable-world failure retains a bounded diagnostic directory
+named `worth-ui-platform-pulse-failure-<pid>-<ordinal>` under the operating
+system temp directory. Its `manifest.json` records the primary failure,
+independent teardown disposition, platform posture, and accepted lifecycle
+trace; `source.wui` records the final isolated source when available. Each
+bundle is capped at 64 MiB and is retained by default for diagnosis. Expected
+hostile tests explicitly discard their bundles after asserting the contents.
+A passing run removes its sandbox, closes its native window, joins its
+lifecycle reader, leaves no child process, and creates no retained bundle.
+
+[Milestone 3.10.3](../../../_docs/worth-ui/milestone-3.10.3.md) closed this
+corrective executable-world foundation. Later Platform Pulse milestones extend
+these same human, integration, and executable lanes rather than creating a new
+composition root or universal fixture.
+
 ## Related Docs
 
 - [Worth UI architecture](./architecture.md)

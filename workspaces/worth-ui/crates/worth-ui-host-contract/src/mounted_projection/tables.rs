@@ -40,7 +40,8 @@ pub enum UiMountedLayerProjection {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedPaintPrimitiveKind {
-    FilledRect,
+    OrdinaryLaneSummary,
+    VirtualizedLaneSummary,
     CanvasSpatialBatch,
     RealtimeBatch,
 }

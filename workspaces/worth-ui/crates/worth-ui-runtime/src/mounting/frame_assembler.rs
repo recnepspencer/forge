@@ -57,6 +57,37 @@ impl UiMountedPlanProjectionSource<'_> {
             Self::PreviewOnly => Ok(None),
         }
     }
+
+    pub(crate) fn ordinary_meaning(
+        self,
+        plan_index: u32,
+    ) -> Option<
+        std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+    > {
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_ordinary_meaning(plan_index),
+            Self::PreviewOnly => None,
+        }
+    }
+
+    pub(crate) fn component_theme_token(
+        self,
+        component: &crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning,
+    ) -> Result<
+        Option<(
+            u32,
+            std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+        )>,
+        (),
+    > {
+        let Some(token_id) = component.static_paint_theme_token_dependency() else {
+            return Ok(None);
+        };
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_theme_token(token_id),
+            Self::PreviewOnly => Ok(None),
+        }
+    }
 }
 
 impl<'state> UiMountedFrameAssembler<'state> {

@@ -1,7 +1,6 @@
-use crate::runtime::{
-    WorthUiHandleResolutionOutcome, WorthUiHighFrequencyFramePolicy, WorthUiHudPlan,
-    WorthUiRendererSurfaceHandle,
-};
+use crate::runtime::{WorthUiHandleResolutionOutcome, WorthUiHighFrequencyFramePolicy};
+#[cfg(any(test, feature = "certification-support"))]
+use crate::runtime::{WorthUiHudPlan, WorthUiRendererSurfaceHandle};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiRealtimeTargetSummary {
@@ -20,6 +19,7 @@ pub struct WorthUiRealtimeInspectionDenial {
 }
 
 impl WorthUiRealtimeTargetSummary {
+    #[cfg(any(test, feature = "certification-support"))]
     fn from_node(node: crate::runtime::WorthUiHudNode) -> Self {
         let surface = node.renderer_surface_admission();
         Self {
@@ -57,6 +57,7 @@ impl WorthUiRealtimeTargetSummary {
 }
 
 impl WorthUiRealtimeInspectionDenial {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn new(outcome: WorthUiHandleResolutionOutcome) -> Self {
         Self { outcome }
     }
@@ -65,6 +66,7 @@ impl WorthUiRealtimeInspectionDenial {
     }
 }
 
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) fn summarize(
     plan: &WorthUiHudPlan,
     handle: WorthUiRendererSurfaceHandle,

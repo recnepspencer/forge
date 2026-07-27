@@ -6,7 +6,7 @@ impl WorthUiActiveApplicationSession {
         self.application.admission()
     }
 
-    pub(crate) fn try_query_touch_for_node(
+    pub(crate) fn try_allocation_touch_for_node(
         &self,
         graph_node_identity: crate::graph::UiGraphNodeIdentity,
     ) -> Result<
@@ -14,6 +14,6 @@ impl WorthUiActiveApplicationSession {
         crate::obligations::touch::UiGraphTouchDenial,
     > {
         self.application
-            .try_query_touch_for_node(graph_node_identity)
+            .try_allocation_touch_for_node(graph_node_identity)
     }
 }

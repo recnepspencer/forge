@@ -55,6 +55,7 @@ impl WorthUiActiveOrdinaryPlanPosture {
         }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn summary(
         &self,
         request: crate::runtime::WorthUiOrdinaryPlanSummaryRequest,

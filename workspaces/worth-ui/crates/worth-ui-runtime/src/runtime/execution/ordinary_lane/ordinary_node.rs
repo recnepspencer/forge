@@ -67,6 +67,7 @@ impl WorthUiOrdinaryLaneNode {
         &self.child_targets
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub fn ordinary_semantic_digest(&self) -> u64 {
         self.ordinary_meaning.as_deref().map_or(
             0,
@@ -81,6 +82,7 @@ impl WorthUiOrdinaryLaneNode {
         self.ordinary_meaning.as_deref()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn ordinary_meaning_reference(
         &self,
     ) -> Option<Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>>

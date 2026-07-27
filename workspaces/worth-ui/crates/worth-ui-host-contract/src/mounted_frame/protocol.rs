@@ -92,7 +92,7 @@ impl UiHostProtocolVersion {
 
 impl UiHostProtocolContract {
     const COMPATIBLE_FLOOR: u16 = 1;
-    const CURRENT: u16 = 2;
+    const CURRENT: u16 = 3;
     const CURRENT_OBSERVATION_SCHEMA: u16 = 3;
 
     pub const fn current() -> Self {
@@ -249,8 +249,14 @@ mod tests {
 
     #[test]
     fn protocol_and_each_schema_family_negotiate_without_cross_family_substitution() {
+        let current = UiHostProtocolContract::current();
+        let protocol = current.protocol().revision();
+        let frame = current.mounted_frame().revision();
+        let presentation = current.mounted_presentation().revision();
+        let observation = current.observation().revision();
+        let measurement = current.measurement().revision();
         assert!(matches!(
-            UiHostProtocolContract::current().negotiate(),
+            current.negotiate(),
             UiHostProtocolNegotiation::Compatible(_)
         ));
         assert!(matches!(
@@ -258,28 +264,28 @@ mod tests {
             UiHostProtocolNegotiation::Compatible(_)
         ));
         assert_denial(
-            contract(0, 2, 2, 3, 2),
+            contract(0, frame, presentation, observation, measurement),
             UiHostProtocolDenial::ProtocolTooOld,
         );
         assert_denial(
-            contract(3, 2, 2, 3, 2),
+            contract(protocol + 1, frame, presentation, observation, measurement),
             UiHostProtocolDenial::ProtocolTooNew,
         );
         for (contract, family) in [
             (
-                contract(2, 0, 2, 3, 2),
+                contract(protocol, 0, presentation, observation, measurement),
                 UiHostProtocolSchemaFamily::MountedFrame,
             ),
             (
-                contract(2, 2, 0, 3, 2),
+                contract(protocol, frame, 0, observation, measurement),
                 UiHostProtocolSchemaFamily::MountedPresentation,
             ),
             (
-                contract(2, 2, 2, 2, 2),
+                contract(protocol, frame, presentation, observation - 1, measurement),
                 UiHostProtocolSchemaFamily::Observation,
             ),
             (
-                contract(2, 2, 2, 3, 0),
+                contract(protocol, frame, presentation, observation, 0),
                 UiHostProtocolSchemaFamily::Measurement,
             ),
         ] {
@@ -287,19 +293,19 @@ mod tests {
         }
         for (contract, family) in [
             (
-                contract(2, 3, 2, 3, 2),
+                contract(protocol, frame + 1, presentation, observation, measurement),
                 UiHostProtocolSchemaFamily::MountedFrame,
             ),
             (
-                contract(2, 2, 3, 3, 2),
+                contract(protocol, frame, presentation + 1, observation, measurement),
                 UiHostProtocolSchemaFamily::MountedPresentation,
             ),
             (
-                contract(2, 2, 2, 4, 2),
+                contract(protocol, frame, presentation, observation + 1, measurement),
                 UiHostProtocolSchemaFamily::Observation,
             ),
             (
-                contract(2, 2, 2, 3, 3),
+                contract(protocol, frame, presentation, observation, measurement + 1),
                 UiHostProtocolSchemaFamily::Measurement,
             ),
         ] {
@@ -307,11 +313,11 @@ mod tests {
         }
         let foreign = UiHostProtocolContract::new(
             UiHostProtocolIdentity::from_untrusted(7),
-            UiHostProtocolVersion::new(2),
-            UiMountedFrameSchemaVersion::new(2),
-            UiMountedPresentationSchemaVersion::new(2),
-            UiHostObservationSchemaVersion::new(3),
-            UiHostMeasurementSchemaVersion::new(2),
+            UiHostProtocolVersion::new(protocol),
+            UiMountedFrameSchemaVersion::new(frame),
+            UiMountedPresentationSchemaVersion::new(presentation),
+            UiHostObservationSchemaVersion::new(observation),
+            UiHostMeasurementSchemaVersion::new(measurement),
         );
         assert_denial(foreign, UiHostProtocolDenial::ForeignIdentity);
     }

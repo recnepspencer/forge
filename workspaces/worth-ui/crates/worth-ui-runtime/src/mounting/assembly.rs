@@ -258,6 +258,10 @@ impl UiPreparedMountedFrame {
         &self.reuse_contract
     }
 
+    pub(crate) fn static_paint_structural_bytes(&self) -> Option<usize> {
+        self.candidate.frame().static_paint_structural_bytes()
+    }
+
     pub fn is_unpublished(&self) -> bool {
         self.candidate.is_unpublished()
     }
@@ -350,6 +354,14 @@ fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
             digest ^ view.binding().diagnostic_value(),
             |value, length| value.rotate_left(7) ^ u64::try_from(length).unwrap_or(u64::MAX),
         )
+        .rotate_left(11)
+            ^ view
+                .filled_rects()
+                .rows()
+                .iter()
+                .fold(0_u64, |paint_digest, row| {
+                    paint_digest.rotate_left(9) ^ row.semantic_digest()
+                })
     })
 }
 

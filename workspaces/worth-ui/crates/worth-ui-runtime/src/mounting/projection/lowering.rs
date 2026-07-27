@@ -2,6 +2,7 @@ use super::frame_storage::{
     UiMountedProjectionNodeRecord, UiMountedProjectionSurface, UiMountedSemanticProjection,
 };
 use super::geometry::lower_allocation;
+use super::mechanical_role::mechanical_role;
 use super::node_receipt::UiMountedNodeReceiptInput;
 use super::participation::lower_participation;
 use super::{UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame};
@@ -56,6 +57,7 @@ struct UiMountedProjectionNodeDraft {
     participation: worth_ui_host_contract::UiMountedParticipation,
     allocation: worth_ui_host_contract::UiMountedAllocationProjection,
     plan_index: Option<u32>,
+    static_paint: Option<super::static_paint::UiMountedStaticPaintSeed>,
 }
 
 struct UiMountedProjectionBuild {
@@ -148,6 +150,7 @@ impl UiPreparedMountedProjection {
             self.semantic,
             self.counters,
         );
+        frame.complete_static_paint()?;
         if let Some(receipt) = self.ordinary.as_ref() {
             frame.record_ordinary(receipt)?;
         }
@@ -332,6 +335,9 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             self.allocation_source
                 .projection(instance.graph_node_identity()),
         )?;
+        let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
+        let participation =
+            lower_participation(graph_node.participation_posture(), static_paint.is_some());
         Ok(UiMountedProjectionNodeDraft {
             mounted_instance: instance.identity(),
             graph_node: instance.graph_node_identity(),
@@ -339,9 +345,10 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             incarnation: instance.mount_incarnation(),
             plan_digest: self.plan_digest,
             role: mechanical_role(graph_node.operator_kind()),
-            participation: lower_participation(graph_node.participation_posture()),
+            participation,
             allocation,
             plan_index,
+            static_paint,
         })
     }
 }
@@ -360,30 +367,8 @@ impl UiMountedProjectionNodeDraft {
                 allocation: self.allocation,
             }),
             plan_index: self.plan_index,
+            static_paint: self.static_paint,
         }
-    }
-}
-
-fn mechanical_role(
-    operator: crate::declaration::UiDeclarationPlanningOperatorKind,
-) -> worth_ui_host_contract::UiMountedMechanicalRole {
-    use crate::declaration::UiDeclarationPlanningOperatorKind as Operator;
-    use worth_ui_host_contract::UiMountedMechanicalRole as Role;
-
-    match operator {
-        Operator::PageRoot | Operator::PageSet => Role::Surface,
-        Operator::Control => Role::Control,
-        Operator::DiagnosticSurface => Role::Diagnostic,
-        Operator::PortalAnchor => Role::Portal,
-        Operator::Region
-        | Operator::Mosaic
-        | Operator::LocalComposition
-        | Operator::Stack
-        | Operator::Row
-        | Operator::Grid
-        | Operator::Split
-        | Operator::Overlay
-        | Operator::Scroll => Role::Container,
     }
 }
 

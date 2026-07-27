@@ -260,15 +260,6 @@ fn project_query_unsupported_reason(
         crate::admission::UiQueryMeasurementUnsupportedQueryReason::MissingSettledQueryFact => {
             UiInspectionMeasurementQueryUnsupportedReason::MissingQueryPrerequisites
         }
-        crate::admission::UiQueryMeasurementUnsupportedQueryReason::WrongWorldProjection => {
-            UiInspectionMeasurementQueryUnsupportedReason::WrongWorldProjection
-        }
-        crate::admission::UiQueryMeasurementUnsupportedQueryReason::RebindRequired => {
-            UiInspectionMeasurementQueryUnsupportedReason::RebindRequired
-        }
-        crate::admission::UiQueryMeasurementUnsupportedQueryReason::AmbiguousSources => {
-            UiInspectionMeasurementQueryUnsupportedReason::AmbiguousSources
-        }
         crate::admission::UiQueryMeasurementUnsupportedQueryReason::ProjectionConsumptionUnavailable => {
             UiInspectionMeasurementQueryUnsupportedReason::ProjectionConsumptionUnavailable
         }

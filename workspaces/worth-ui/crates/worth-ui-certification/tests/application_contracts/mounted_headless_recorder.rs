@@ -94,7 +94,7 @@ fn assert_ordinary_transcript(
     assert_eq!(
         transcript.unperformed_effects()[0],
         worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::NativePaint {
-            paint_batch_count: transcript.paint_batches().len() as u32,
+            filled_rect_count: transcript.filled_rects().len() as u32,
             preview_node_count: 0,
         }
     );

@@ -4,6 +4,9 @@ use crate::runtime::{
     WorthUiOrdinaryLanePlanDenial, WorthUiOrdinaryPlanAvailability,
 };
 
+#[path = "sealed_execution_plan_bundle/mounted_projection.rs"]
+mod mounted_projection;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiSealedExecutionPlanBundle {
     generation_identity:
@@ -125,11 +128,6 @@ impl WorthUiSealedExecutionPlanBundle {
         &self.execution_plan
     }
 
-    pub(crate) fn mounted_projection_plan_index(&self, provenance: u64) -> Result<Option<u32>, ()> {
-        self.execution_plan
-            .mounted_projection_plan_index(provenance)
-    }
-
     pub(crate) fn classify_candidate(
         &self,
         candidate: &Self,
@@ -232,6 +230,7 @@ impl WorthUiSealedExecutionPlanBundle {
             .map(|row| row.settled_fact_link().clone())
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn query_fact_link_for_binding_id(
         &self,
         binding_id: &crate::capability::ViewBindingId,
@@ -307,6 +306,7 @@ impl WorthUiSealedExecutionPlanBundle {
         self.realtime_overlay.execute(target)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn realtime_summary(
         &self,
         handle: crate::runtime::WorthUiRendererSurfaceHandle,
@@ -382,6 +382,7 @@ impl WorthUiSealedExecutionPlanBundle {
         self.ordinary.execute(target)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn ordinary_summary(
         &self,
         request: crate::runtime::WorthUiOrdinaryPlanSummaryRequest,

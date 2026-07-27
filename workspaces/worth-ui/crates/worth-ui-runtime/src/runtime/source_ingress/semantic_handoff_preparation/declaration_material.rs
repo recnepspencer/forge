@@ -48,12 +48,65 @@ pub(in crate::runtime::source_ingress) fn prepare_declaration_material(
     );
     let claims = runtime_structural_claims(structured)?;
     admit_runtime_structural_claims(&mut artifacts, &claims);
+    let component_measurement_claims = runtime_component_measurement_claims(structured);
+    admit_component_measurement_claims(&mut artifacts, &component_measurement_claims);
     Ok(WorthUiPreparedDeclarationMaterial {
         artifacts: artifacts.into_boxed_slice(),
         identity: WorthUiPreparedDeclarationSourceIdentity::from_semantic_package(
             package.identity().clone(),
         ),
     })
+}
+
+fn runtime_component_measurement_claims(
+    structured: &WorthUiLegallyStructuredArtifactInput,
+) -> BTreeMap<RuntimeStructuralClaimKey, UiDeclaredMeasurementBasisSource> {
+    let mut claims = BTreeMap::new();
+    for module_id in structured.module_ids() {
+        let Some(module) = structured.module(module_id) else {
+            continue;
+        };
+        for node in module.nodes() {
+            let WorthUiLegallyStructuredArtifactInputNode::Component(component) = node else {
+                continue;
+            };
+            let Some(contract) = component.descriptor().allocation_measurement_contract() else {
+                continue;
+            };
+            let basis = match contract {
+                crate::capability::ComponentAllocationMeasurementContract::FillViewport => {
+                    UiDeclaredMeasurementBasisSource::ViewportExtent
+                }
+            };
+            claims.insert(
+                (
+                    component.provenance().module_path().to_owned(),
+                    component.provenance().declaration_index(),
+                ),
+                basis,
+            );
+        }
+    }
+    claims
+}
+
+fn admit_component_measurement_claims(
+    artifacts: &mut [UiDeclarationArtifact],
+    claims: &BTreeMap<RuntimeStructuralClaimKey, UiDeclaredMeasurementBasisSource>,
+) {
+    for artifact in artifacts {
+        let provenance = artifact.provenance().source_provenance();
+        let key = (
+            provenance.module_path().to_owned(),
+            provenance.declaration_index(),
+        );
+        if let Some(basis) = claims.get(&key).copied() {
+            artifact.admit_source_backed_measurement_mode(Some(
+                crate::declaration::UiDeclaredMeasurementMode::FillViewport,
+            ));
+            artifact.admit_source_backed_measurement_basis_source(Some(basis));
+        }
+    }
 }
 
 struct RuntimeStructuralClaims {

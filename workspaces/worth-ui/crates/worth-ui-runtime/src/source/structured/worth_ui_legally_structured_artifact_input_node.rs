@@ -2,7 +2,10 @@ use crate::capability::{
     AdmittedCapability, ComponentDescriptor, ComponentId, FrozenThemeTokenEntry,
     FrozenViewBindingEntry, SurfaceDescriptor, SurfaceId, ThemeTokenId, ViewBindingId,
 };
-use crate::source::{WorthUiMosaicStructureFacts, WorthUiRuntimeSemanticImport};
+use crate::source::{
+    WorthUiMosaicStructureFacts, WorthUiResolvedThemeTokenBindingTarget,
+    WorthUiRuntimeSemanticImport,
+};
 use worth_ui_dsl::WorthUiArtifactInputProvenance;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,6 +48,7 @@ pub(crate) struct WorthUiLegallyStructuredArtifactInputBindingNode {
 pub(crate) struct WorthUiLegallyStructuredArtifactInputThemeTokenNode {
     theme_token: AdmittedCapability<ThemeTokenId>,
     entry: FrozenThemeTokenEntry,
+    binding_target: WorthUiResolvedThemeTokenBindingTarget,
     authored_identity: Option<String>,
     provenance: WorthUiArtifactInputProvenance,
 }
@@ -167,12 +171,14 @@ impl WorthUiLegallyStructuredArtifactInputThemeTokenNode {
     pub(crate) fn new(
         theme_token: AdmittedCapability<ThemeTokenId>,
         entry: FrozenThemeTokenEntry,
+        binding_target: WorthUiResolvedThemeTokenBindingTarget,
         authored_identity: Option<String>,
         provenance: WorthUiArtifactInputProvenance,
     ) -> Self {
         Self {
             theme_token,
             entry,
+            binding_target,
             authored_identity,
             provenance,
         }
@@ -184,6 +190,10 @@ impl WorthUiLegallyStructuredArtifactInputThemeTokenNode {
 
     pub(crate) fn entry(&self) -> &FrozenThemeTokenEntry {
         &self.entry
+    }
+
+    pub(crate) fn binding_target(&self) -> &WorthUiResolvedThemeTokenBindingTarget {
+        &self.binding_target
     }
 
     pub(crate) fn authored_identity(&self) -> Option<&str> {

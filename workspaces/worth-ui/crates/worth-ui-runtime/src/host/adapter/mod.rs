@@ -1,6 +1,8 @@
 mod headless_host;
 mod headless_measurement;
 mod headless_recorder;
+#[cfg(test)]
+mod headless_static_paint_tests;
 mod headless_transcript;
 mod headless_translation;
 #[cfg(test)]
@@ -11,10 +13,10 @@ mod session_authority;
 pub use headless_host::WorthUiHeadlessHost;
 pub use headless_recorder::WorthUiHeadlessRecorder;
 pub use headless_transcript::{
-    UiHeadlessClipMechanic, UiHeadlessLayerMechanic, UiHeadlessMountedFrameTranscript,
-    UiHeadlessNodeMechanic, UiHeadlessNodePaintMechanic, UiHeadlessPaintBatchMechanic,
-    UiHeadlessRecorderCapacity, UiHeadlessResolvedClip, UiHeadlessResourceContact,
-    UiHeadlessUnperformedEffect,
+    UiHeadlessClipMechanic, UiHeadlessFilledRectMechanic, UiHeadlessLayerMechanic,
+    UiHeadlessMountedFrameTranscript, UiHeadlessNodeMechanic, UiHeadlessNodePaintMechanic,
+    UiHeadlessPaintBatchMechanic, UiHeadlessRecorderCapacity, UiHeadlessResolvedClip,
+    UiHeadlessResourceContact, UiHeadlessUnperformedEffect,
 };
 pub use operational_contract::{WorthUiHostAdapter, WorthUiOperationalHostAdapter};
 pub use session_authority::UiHostAdapterSessionAuthority;

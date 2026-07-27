@@ -10,9 +10,6 @@ use worth_ui_query_binding::WorthUiQueryMeasurementFactFamily;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiQueryMeasurementUnsupportedQueryReason {
     MissingSettledQueryFact,
-    WrongWorldProjection,
-    RebindRequired,
-    AmbiguousSources,
     ProjectionConsumptionUnavailable,
 }
 
@@ -125,21 +122,5 @@ impl UiQueryMeasurementSourceIdentity {
             binding_reference: fact.binding_reference().clone(),
             settlement_reference: fact.settlement_reference().clone(),
         }
-    }
-
-    pub fn view_binding_id(&self) -> &crate::capability::ViewBindingId {
-        &self.view_binding_id
-    }
-
-    pub fn binding_reference(
-        &self,
-    ) -> &worth_ui_query_binding::WorthUiAdmittedQueryBindingReference {
-        &self.binding_reference
-    }
-
-    pub fn settlement_reference(
-        &self,
-    ) -> &worth_ui_query_binding::WorthUiAdmittedQuerySettlementReference {
-        &self.settlement_reference
     }
 }

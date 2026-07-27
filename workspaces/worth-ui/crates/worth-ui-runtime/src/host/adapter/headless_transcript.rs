@@ -7,6 +7,11 @@ use worth_ui_host_contract::{
     UiMountedResourceKind, UiSurfaceBindingGeneration,
 };
 
+mod static_paint;
+
+pub use self::static_paint::UiHeadlessFilledRectMechanic;
+pub(in crate::host::adapter) use self::static_paint::UiHeadlessFilledRectMechanicInput;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiHeadlessRecorderCapacity {
     surface_bindings: usize,
@@ -54,7 +59,8 @@ pub struct UiHeadlessPaintBatchMechanic {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHeadlessNodePaintMechanic {
-    Batch(u16),
+    CountOnlyBatch(u16),
+    FilledRect(u16),
     Omitted(UiMountedOmissionReason),
 }
 
@@ -86,7 +92,7 @@ pub(crate) struct UiHeadlessNodeMechanicInput {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHeadlessUnperformedEffect {
     NativePaint {
-        paint_batch_count: u32,
+        filled_rect_count: u32,
         preview_node_count: u32,
     },
     Accessibility {
@@ -124,6 +130,7 @@ pub struct UiHeadlessMountedFrameTranscript {
     mode: UiHostSurfacePresentationMode,
     nodes: Box<[UiHeadlessNodeMechanic]>,
     clips: Box<[UiHeadlessClipMechanic]>,
+    filled_rects: Box<[UiHeadlessFilledRectMechanic]>,
     paint_batches: Box<[UiHeadlessPaintBatchMechanic]>,
     unperformed_effects: Box<[UiHeadlessUnperformedEffect]>,
 }
@@ -305,6 +312,7 @@ pub(crate) struct UiHeadlessMountedFrameTranscriptInput {
     pub binding: UiSurfaceBindingGeneration,
     pub nodes: Vec<UiHeadlessNodeMechanic>,
     pub clips: Vec<UiHeadlessClipMechanic>,
+    pub filled_rects: Vec<UiHeadlessFilledRectMechanic>,
     pub paint_batches: Vec<UiHeadlessPaintBatchMechanic>,
     pub unperformed_effects: Vec<UiHeadlessUnperformedEffect>,
 }
@@ -320,6 +328,7 @@ impl UiHeadlessMountedFrameTranscript {
             mode: UiHostSurfacePresentationMode::RecordOnly,
             nodes: input.nodes.into_boxed_slice(),
             clips: input.clips.into_boxed_slice(),
+            filled_rects: input.filled_rects.into_boxed_slice(),
             paint_batches: input.paint_batches.into_boxed_slice(),
             unperformed_effects: input.unperformed_effects.into_boxed_slice(),
         }
@@ -355,6 +364,10 @@ impl UiHeadlessMountedFrameTranscript {
 
     pub fn clips(&self) -> &[UiHeadlessClipMechanic] {
         &self.clips
+    }
+
+    pub fn filled_rects(&self) -> &[UiHeadlessFilledRectMechanic] {
+        &self.filled_rects
     }
 
     pub fn paint_batches(&self) -> &[UiHeadlessPaintBatchMechanic] {

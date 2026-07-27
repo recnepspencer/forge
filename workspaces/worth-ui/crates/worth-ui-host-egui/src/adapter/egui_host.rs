@@ -24,6 +24,9 @@ pub struct WorthUiHostEgui {
         >,
     >,
     measurement_environment: Arc<Mutex<EguiMeasurementEnvironment>>,
+    retained_native_paint: Arc<
+        Mutex<BTreeMap<UiSurfaceBindingGeneration, super::native_paint::UiEguiPreparedNativePaint>>,
+    >,
 }
 
 #[derive(Default)]
@@ -40,11 +43,23 @@ impl WorthUiHostEgui {
             context,
             registrations: Arc::default(),
             measurement_environment: Arc::default(),
+            retained_native_paint: Arc::default(),
         }
     }
 
     pub fn registered_surface_count(&self) -> usize {
         self.registrations.lock().unwrap().len()
+    }
+
+    /// Replay the currently admitted mounted mechanics for one egui frame.
+    ///
+    /// Egui paint commands are frame-ephemeral. This method replays only
+    /// adapter-owned mechanics retained from a successful mounted presentation;
+    /// it does not execute Worth UI or construct new product meaning.
+    pub fn repaint_retained_surfaces(&self) {
+        for paint in self.retained_native_paint.lock().unwrap().values() {
+            paint.paint(&self.context);
+        }
     }
 }
 
@@ -81,6 +96,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
     fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
         WorthUiHostCapabilityReport::available(vec![
             WorthUiHostCapability::DpiObservation,
+            WorthUiHostCapability::NativePaint,
             WorthUiHostCapability::ViewportObservation,
         ])
     }
@@ -155,6 +171,10 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
                 worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
             );
         }
+        self.retained_native_paint
+            .lock()
+            .unwrap()
+            .remove(&request.binding_generation());
         worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::Deregistered(
             worth_ui_host_contract::UiHostSurfaceDeregistrationReceipt::from_runtime(
                 request.host_session_identity(),
@@ -170,15 +190,34 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
         if let Some(denial) = self.validate_mounted_view(view) {
             return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
         }
+        let native_paint = match super::native_paint::UiEguiPreparedNativePaint::prepare(view) {
+            Ok(prepared) => prepared,
+            Err(denial) => {
+                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+            }
+        };
         let cost = match projection_cost(view.projection()) {
             Ok(cost) => cost,
             Err(denial) => {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
+        let effects = if native_paint.is_empty() {
+            Vec::new()
+        } else {
+            vec![worth_ui_host_contract::UiMountedEffectFamily::NativePaint]
+        };
+        native_paint.paint(&self.context);
+        let binding = view.requirement().binding();
+        let mut retained = self.retained_native_paint.lock().unwrap();
+        if native_paint.is_empty() {
+            retained.remove(&binding);
+        } else {
+            retained.insert(binding, native_paint);
+        }
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::NativeDisplay,
-            UiMountedCompletedEffects::new(Vec::new()),
+            UiMountedCompletedEffects::new(effects),
             cost,
         ))
     }
@@ -188,8 +227,18 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
         host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut registrations = self.registrations.lock().unwrap();
+        let released_bindings = registrations
+            .iter()
+            .filter_map(|(binding, request)| {
+                (request.host_session_identity() == host_session_identity).then_some(*binding)
+            })
+            .collect::<Vec<_>>();
         let before = registrations.len();
         registrations.retain(|_, request| request.host_session_identity() != host_session_identity);
+        let mut retained = self.retained_native_paint.lock().unwrap();
+        for binding in released_bindings {
+            retained.remove(&binding);
+        }
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
             host_session_identity,
             before - registrations.len(),
@@ -204,6 +253,7 @@ fn projection_cost(
         projection.nodes().len(),
         projection.clips().rows().len(),
         projection.layers().rows().len(),
+        projection.filled_rects().rows().len(),
         projection.paint_batches().rows().len(),
         projection.spatial_batches().rows().len(),
         projection.realtime_batches().rows().len(),
@@ -216,6 +266,7 @@ fn projection_cost(
         std::mem::size_of_val(projection.nodes()),
         std::mem::size_of_val(projection.clips().rows()),
         std::mem::size_of_val(projection.layers().rows()),
+        std::mem::size_of_val(projection.filled_rects().rows()),
         std::mem::size_of_val(projection.paint_batches().rows()),
         std::mem::size_of_val(projection.spatial_batches().rows()),
         std::mem::size_of_val(projection.realtime_batches().rows()),

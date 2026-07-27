@@ -332,4 +332,17 @@ impl WorthUiApp {
             graph_node_identity,
         )
     }
+
+    pub(crate) fn try_allocation_touch_for_node(
+        &self,
+        graph_node_identity: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        crate::obligations::touch::UiGraphTouchDescriptor,
+        crate::obligations::touch::UiGraphTouchDenial,
+    > {
+        crate::facade::inspection_bridge::obligation_routes::try_allocation_touch_for_node(
+            self,
+            graph_node_identity,
+        )
+    }
 }

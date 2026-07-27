@@ -88,10 +88,28 @@ fn validate_row_fields(row: &toml::Value) -> Result<(), String> {
     ] {
         ledger::text(row, field)?;
     }
+    if row.get("exclude_prefixes").is_some() {
+        let exclusions = ledger::strings(row, "exclude_prefixes")?;
+        if exclusions.iter().any(|prefix| prefix.trim().is_empty()) {
+            return Err("certification surface exclusion prefixes should be non-empty".to_owned());
+        }
+    }
     Ok(())
 }
 
 fn row_matches(row: &toml::Value, path: &str) -> bool {
+    if row
+        .get("exclude_prefixes")
+        .and_then(toml::Value::as_array)
+        .is_some_and(|prefixes| {
+            prefixes
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .any(|prefix| path == prefix || path.starts_with(&format!("{prefix}/")))
+        })
+    {
+        return false;
+    }
     let owner_path = ledger::text(row, "path").unwrap_or("");
     match ledger::text(row, "match").unwrap_or("") {
         "exact" => path == owner_path,

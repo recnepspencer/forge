@@ -1,9 +1,11 @@
 use std::rc::Rc;
 
 use crate::runtime::{
-    WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle, WorthUiOrdinaryLanePlan,
-    WorthUiPlanNodeInputFamily, WorthUiStateSlotHandle, WorthUiTokenHandle,
+    WorthUiChildRangeHandle, WorthUiCommandHandle, WorthUiComponentHandle, WorthUiStateSlotHandle,
+    WorthUiTokenHandle,
 };
+#[cfg(any(test, feature = "certification-support"))]
+use crate::runtime::{WorthUiOrdinaryLanePlan, WorthUiPlanNodeInputFamily};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiOrdinaryPlanSummaryRequest {
@@ -62,6 +64,7 @@ pub enum WorthUiOrdinaryPlanSummaryDenial {
 }
 
 impl WorthUiOrdinaryPlanSummary {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn from_plan(
         plan: &WorthUiOrdinaryLanePlan,
         request: WorthUiOrdinaryPlanSummaryRequest,
@@ -199,6 +202,7 @@ impl WorthUiOrdinaryPlanSummary {
 }
 
 impl WorthUiOrdinaryPlanSummaryRequest {
+    #[cfg(any(test, feature = "certification-support"))]
     fn family(self) -> WorthUiPlanNodeInputFamily {
         match self {
             Self::Component => WorthUiPlanNodeInputFamily::ComponentInvocation,
@@ -209,6 +213,7 @@ impl WorthUiOrdinaryPlanSummaryRequest {
         }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     fn target(self, handle: crate::runtime::WorthUiRuntimeHandle) -> WorthUiOrdinarySummaryTarget {
         match self {
             Self::Component => WorthUiOrdinarySummaryTarget::Component(

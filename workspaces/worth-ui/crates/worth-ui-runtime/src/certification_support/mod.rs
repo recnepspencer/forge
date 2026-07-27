@@ -6,6 +6,7 @@
 mod activation_interruption;
 mod active_session_observation;
 mod application_builder;
+mod application_replacement;
 mod framework_turn_execution;
 mod layout_admission;
 mod mounted_frame_execution;
@@ -21,7 +22,8 @@ pub use crate::admission::{
 };
 pub use crate::declaration::UiDeclaredMeasurementMode;
 pub use crate::facade::entry::{
-    WorthUiMountedAllocationCertificationExt, WorthUiMountedIdentityCertificationExt,
+    WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
+    WorthUiMountedIdentityCertificationExt,
 };
 pub(crate) use activation_interruption::interrupt_if_armed;
 pub use activation_interruption::{
@@ -29,6 +31,7 @@ pub use activation_interruption::{
 };
 pub use active_session_observation::WorthUiActiveSessionCertificationExt;
 pub use application_builder::WorthUiApplicationBuilderCertificationExt;
+pub use application_replacement::WorthUiApplicationReplacementCertificationExt;
 pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;

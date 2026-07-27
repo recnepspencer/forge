@@ -1,5 +1,6 @@
 use crate::runtime::WorthUiPlanSwapReceipt;
 
+#[cfg(any(test, feature = "certification-support"))]
 pub(crate) struct WorthUiQueryAwarePlanSwap {
     plan_swap: Box<WorthUiPlanSwapReceipt>,
     query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
@@ -52,6 +53,7 @@ impl WorthUiQueryAwarePlanOutcome {
     }
 }
 
+#[cfg(any(test, feature = "certification-support"))]
 impl WorthUiQueryAwarePlanSwap {
     pub(super) fn new(
         plan_swap: Box<WorthUiPlanSwapReceipt>,
@@ -153,6 +155,7 @@ impl WorthUiPreparedQueryAwarePlanSwap {
         })
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn commit_once(
         self,
         runtime: &mut crate::runtime::WorthUiRuntime,

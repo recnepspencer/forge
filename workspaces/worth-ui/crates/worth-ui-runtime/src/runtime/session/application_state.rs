@@ -1,6 +1,7 @@
 mod framework_turn;
 mod inspection;
 mod mounted_allocation;
+#[cfg(any(test, feature = "certification-support"))]
 mod planning;
 mod replacement;
 
@@ -57,14 +58,14 @@ impl WorthUiApplicationSessionState {
         self.app.admission()
     }
 
-    pub(crate) fn try_query_touch_for_node(
+    pub(crate) fn try_allocation_touch_for_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,
     ) -> Result<
         crate::obligations::touch::UiGraphTouchDescriptor,
         crate::obligations::touch::UiGraphTouchDenial,
     > {
-        self.app.try_query_touch_for_node(graph_node_identity)
+        self.app.try_allocation_touch_for_node(graph_node_identity)
     }
 
     pub(crate) fn allocation_truth_revision(&self) -> crate::runtime::UiAllocationTruthRevision {

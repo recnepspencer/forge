@@ -188,8 +188,10 @@ fn removing_every_active_allocation_row_publishes_an_empty_successor() {
 
     let source_name = "remove-all-allocation-roots";
     let submission = lower_file_submission(
-        WorthUiSourceProvider::in_memory(source_name)
-            .with_file("app/main.wui", "token theme.removal_only = \"empty\";"),
+        WorthUiSourceProvider::in_memory(source_name).with_file(
+            "app/main.wui",
+            "token theme.removal_only = \"theme.removal_only\";",
+        ),
         [WorthUiWatcherEvent::provider_revision(source_name)],
         session.capabilities(),
     );

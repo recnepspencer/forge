@@ -111,6 +111,7 @@ impl WorthUiApplicationBuilder {
         self
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn with_graph_world_profile(
         mut self,
         graph_world_profile: UiGraphWorldProfile,

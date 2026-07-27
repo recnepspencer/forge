@@ -42,6 +42,11 @@ impl UiDeclaredMeasurementPolicyPosture {
         self.mode
     }
 
+    pub(crate) fn with_mode(mut self, mode: UiDeclaredMeasurementMode) -> Self {
+        self.mode = Some(mode);
+        self
+    }
+
     pub const fn constraint_modifier(&self) -> Option<UiDeclaredMeasurementConstraintModifier> {
         self.constraint_modifier
     }

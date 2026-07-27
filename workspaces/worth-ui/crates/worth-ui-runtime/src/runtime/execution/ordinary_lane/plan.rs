@@ -58,6 +58,7 @@ impl WorthUiOrdinaryLanePlan {
             .map(|row| row.runtime_handle())
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn first_row_for_family(
         &self,
         family: crate::runtime::WorthUiPlanNodeInputFamily,

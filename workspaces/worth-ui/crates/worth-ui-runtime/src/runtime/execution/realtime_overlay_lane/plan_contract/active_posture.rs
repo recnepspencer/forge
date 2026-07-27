@@ -61,6 +61,7 @@ impl WorthUiActiveRealtimePlanPosture {
         }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn summary(
         &self,
         handle: WorthUiRendererSurfaceHandle,

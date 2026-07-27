@@ -11,6 +11,15 @@ const PHASE8_CLOSEOUT_SOURCES: [&str; 2] = [
     "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout.rs",
     "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout_tests.rs",
 ];
+const SUCCESSOR_MILESTONE_SOURCE_PREFIXES: [&str; 7] = [
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/platform_pulse.rs",
+    "crates/worth-ui-certification/src/topology/milestone_3102_pulse_seed/",
+    "crates/worth-ui-certification/src/topology/milestone_3103_executable_world/",
+    "crates/worth-ui-certification/src/topology/milestone_3103_product_contract/",
+    "crates/worth-ui-certification/src/topology/milestone_3103_external_world/",
+    "crates/worth-ui-certification/src/topology/milestone_3103_watched_replacement/",
+    "crates/worth-ui-certification/src/topology/milestone_3103_cost_closure/",
+];
 
 const REQUIRED_OPERATION_CATEGORIES: &[&str] = &[
     "initial_file_acquisition_and_dsl_lowering",
@@ -56,6 +65,13 @@ fn validate_paired_measurements(closing: &Value) -> Result<(), String> {
     if text(paired, "methodology")?.trim().is_empty() {
         return Err("paired QA measurement methodology is empty".to_owned());
     }
+    validate_paired_sources(paired)?;
+    let rows = validate_paired_operation_rows(paired)?;
+    validate_paired_compile_posture(&rows)?;
+    validate_focused_milestone_measurement(paired)
+}
+
+fn validate_paired_sources(paired: &Value) -> Result<(), String> {
     let opening = paired
         .get("opening_source")
         .ok_or_else(|| "paired QA measurement lacks opening source".to_owned())?;
@@ -76,6 +92,10 @@ fn validate_paired_measurements(closing: &Value) -> Result<(), String> {
     {
         return Err("paired QA measurements must use distinct isolated targets".to_owned());
     }
+    Ok(())
+}
+
+fn validate_paired_operation_rows(paired: &Value) -> Result<BTreeMap<&str, &Value>, String> {
     let rows = named_rows(array(paired, "measurements")?)?;
     let commands = BTreeMap::from([
         (
@@ -112,6 +132,10 @@ fn validate_paired_measurements(closing: &Value) -> Result<(), String> {
             return Err(format!("paired QA measurement `{name}` is not comparable"));
         }
     }
+    Ok(rows)
+}
+
+fn validate_paired_compile_posture(rows: &BTreeMap<&str, &Value>) -> Result<(), String> {
     let compile = rows["warm_compile_contracts"];
     if integer(compile, "opening_cases")? != 24
         || integer(compile, "closing_cases")? != 35
@@ -120,6 +144,10 @@ fn validate_paired_measurements(closing: &Value) -> Result<(), String> {
     {
         return Err("paired QA compile-contract posture changed".to_owned());
     }
+    Ok(())
+}
+
+fn validate_focused_milestone_measurement(paired: &Value) -> Result<(), String> {
     let focused = paired
         .get("focused_milestone")
         .ok_or_else(|| "paired QA measurement lacks focused milestone evidence".to_owned())?;
@@ -279,7 +307,7 @@ fn validate_inventory_budget(
         .rust_files_under("crates/worth-ui-certification/src")
         .filter(|source| {
             let path = source.relative_path().to_string_lossy().replace('\\', "/");
-            !PHASE8_CLOSEOUT_SOURCES.contains(&path.as_str())
+            belongs_to_phase7_inventory(&path)
         })
         .count();
     if integer(budget, "certification_audience_source_files")? as usize != certification_files
@@ -288,6 +316,13 @@ fn validate_inventory_budget(
         return Err("Phase 7 closing structural inventory changed".to_owned());
     }
     Ok(())
+}
+
+fn belongs_to_phase7_inventory(path: &str) -> bool {
+    !PHASE8_CLOSEOUT_SOURCES.contains(&path)
+        && !SUCCESSOR_MILESTONE_SOURCE_PREFIXES
+            .iter()
+            .any(|prefix| path.starts_with(prefix))
 }
 
 fn named_rows(rows: &[Value]) -> Result<BTreeMap<&str, &Value>, String> {

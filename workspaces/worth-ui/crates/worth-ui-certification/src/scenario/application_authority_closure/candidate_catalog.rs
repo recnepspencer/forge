@@ -18,7 +18,9 @@ use worth_ui_runtime::facade::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
     UiHostMeasurementNormalizationContext,
 };
-use worth_ui_test_support::WorthUiActiveSessionCertificationExt;
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiApplicationReplacementCertificationExt,
+};
 
 pub fn admit_candidate_catalog(
     session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
@@ -93,8 +95,8 @@ fn candidate_inputs(
                 return None;
             }
             let touch = prepared
-                .try_candidate_query_touch_for_node(node)
-                .expect("candidate graph should mint its query touch");
+                .candidate_allocation_touch_for_node(node)
+                .expect("candidate graph should mint its allocation touch");
             let selected = prepared.candidate_admission().select_obligations(&touch);
             let prior = record
                 .value()

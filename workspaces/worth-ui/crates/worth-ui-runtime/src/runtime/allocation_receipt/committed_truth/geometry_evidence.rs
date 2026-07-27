@@ -52,11 +52,14 @@ pub struct UiPortalAnchorObservationGeometryEvidence {
 impl UiCommittedAllocationGeometryEvidence {
     pub(super) fn from_candidate(candidate: &super::UiAllocationCandidate) -> Self {
         let portal_anchor_observation = portal_anchor_observation(candidate);
+        let bounds = fill_viewport_bounds(candidate)
+            .map(UiAllocationGeometryKnowledge::Known)
+            .unwrap_or(UiAllocationGeometryKnowledge::NotKnownAtAllocation);
         Self {
-            // The host-observed anchor rectangle is an input, not the portal's
-            // derived placement. Phase 11's solver must establish allocation
-            // bounds before this field may become Known.
-            bounds: UiAllocationGeometryKnowledge::NotKnownAtAllocation,
+            // General layout remains unknown until the later solver. The
+            // exact FillViewport contract is the sole current known-bounds
+            // case; a portal anchor rectangle remains only an input.
+            bounds,
             anchor_posture: portal_anchor_observation
                 .map(|observation| UiAllocationAnchorPosture::PortalAnchored(observation.identity))
                 .unwrap_or(UiAllocationAnchorPosture::NotAnchored),
@@ -97,6 +100,32 @@ impl UiCommittedAllocationGeometryEvidence {
     pub fn baseline_relationships(&self) -> &UiAllocationGeometryKnowledge<Box<[u64]>> {
         &self.baseline_relationships
     }
+}
+
+fn fill_viewport_bounds(
+    candidate: &super::UiAllocationCandidate,
+) -> Option<UiAllocationAxisAlignedBounds> {
+    let basis = candidate.measurement_basis();
+    let policy = basis.declared_measurement_policy();
+    if policy.mode() != Some(crate::declaration::UiDeclaredMeasurementMode::FillViewport)
+        || policy.basis_source()
+            != Some(crate::declaration::UiDeclaredMeasurementBasisSource::ViewportExtent)
+    {
+        return None;
+    }
+    basis.evidence_inputs().iter().find_map(|evidence| {
+        let result = evidence.as_host_measurement_result()?;
+        let crate::evidence::UiMeasurementValue::ViewportExtent(extent) = result.value() else {
+            return None;
+        };
+        Some(UiAllocationAxisAlignedBounds {
+            x: 0.0,
+            y: 0.0,
+            width: extent.width,
+            height: extent.height,
+            coordinate_space: result.coordinate_space(),
+        })
+    })
 }
 
 impl UiAllocationAxisAlignedBounds {
