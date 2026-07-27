@@ -1,7 +1,13 @@
 # WORTH Query Todo Showcase Spec
 
-> **Status:** Draft showcase spec
+> **Status:** Superseded by
+> [Milestone 9.16](./milestone-9.16.md).
 >
+> This draft is retained as historical design context only. It is not an
+> acceptance target, roadmap authority, or substitute for the authenticated,
+> asynchronous bank courtroom. New Query front-door work must follow Milestone
+> 9.16.
+
 > **Scope class:** Fast-moving application showcase, not a new roadmap milestone
 >
 > **Vision parent:** [worth_query_vision.md](/Users/Esther/Documents/Programming/WORTH_workspace/WORTH/_docs/worth-query/worth_query_vision.md)
