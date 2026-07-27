@@ -187,6 +187,15 @@ mod tests {
         let maintenance = allocations.admit_maintenance(bytes).unwrap();
         let verification = allocations.admit_verification(bytes).unwrap();
         let blob = allocations.admit_blob(bytes).unwrap();
+        for runtime in [
+            recovery.runtime_identity(),
+            scrub.runtime_identity(),
+            maintenance.runtime_identity(),
+            verification.runtime_identity(),
+            blob.runtime_identity(),
+        ] {
+            assert_eq!(runtime, serving.runtime_identity());
+        }
         for active_scope in [
             Scope::Recovery,
             Scope::Scrub,

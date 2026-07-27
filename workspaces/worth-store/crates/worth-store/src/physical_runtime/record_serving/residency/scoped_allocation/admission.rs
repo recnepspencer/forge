@@ -3,7 +3,7 @@ use std::num::NonZeroU64;
 use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 
 use crate::physical_runtime::{
-    record_serving::residency::frame_ports::RecordFramePorts, LifecycleGeneration,
+    record_serving::residency::frame_ports::RecordFramePorts, LifecycleGeneration, RuntimeIdentity,
 };
 
 use super::{
@@ -13,16 +13,19 @@ use super::{
 
 pub struct PhysicalScopedAllocationAdmission<'runtime> {
     frame_ports: &'runtime RecordFramePorts,
+    runtime: RuntimeIdentity,
     generation: LifecycleGeneration,
 }
 
 impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
     pub(in crate::physical_runtime) const fn new(
         frame_ports: &'runtime RecordFramePorts,
+        runtime: RuntimeIdentity,
         generation: LifecycleGeneration,
     ) -> Self {
         Self {
             frame_ports,
+            runtime,
             generation,
         }
     }
@@ -32,7 +35,7 @@ impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
         bytes: NonZeroU64,
     ) -> Result<RecoveryPhysicalAllocation, PhysicalScopedAllocationFailure> {
         self.admit(PhysicalOperationAllocationScope::Recovery, bytes)
-            .map(|grant| RecoveryPhysicalAllocation::bind(grant, self.generation))
+            .map(|grant| RecoveryPhysicalAllocation::bind(grant, self.runtime, self.generation))
     }
 
     pub fn admit_scrub(
@@ -40,7 +43,7 @@ impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
         bytes: NonZeroU64,
     ) -> Result<ScrubPhysicalAllocation, PhysicalScopedAllocationFailure> {
         self.admit(PhysicalOperationAllocationScope::Scrub, bytes)
-            .map(|grant| ScrubPhysicalAllocation::bind(grant, self.generation))
+            .map(|grant| ScrubPhysicalAllocation::bind(grant, self.runtime, self.generation))
     }
 
     pub fn admit_maintenance(
@@ -48,7 +51,7 @@ impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
         bytes: NonZeroU64,
     ) -> Result<MaintenancePhysicalAllocation, PhysicalScopedAllocationFailure> {
         self.admit(PhysicalOperationAllocationScope::Maintenance, bytes)
-            .map(|grant| MaintenancePhysicalAllocation::bind(grant, self.generation))
+            .map(|grant| MaintenancePhysicalAllocation::bind(grant, self.runtime, self.generation))
     }
 
     pub fn admit_verification(
@@ -56,7 +59,7 @@ impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
         bytes: NonZeroU64,
     ) -> Result<VerificationPhysicalAllocation, PhysicalScopedAllocationFailure> {
         self.admit(PhysicalOperationAllocationScope::Verification, bytes)
-            .map(|grant| VerificationPhysicalAllocation::bind(grant, self.generation))
+            .map(|grant| VerificationPhysicalAllocation::bind(grant, self.runtime, self.generation))
     }
 
     pub fn admit_blob(
@@ -64,7 +67,7 @@ impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
         bytes: NonZeroU64,
     ) -> Result<BlobPhysicalAllocation, PhysicalScopedAllocationFailure> {
         self.admit(PhysicalOperationAllocationScope::Blob, bytes)
-            .map(|grant| BlobPhysicalAllocation::bind(grant, self.generation))
+            .map(|grant| BlobPhysicalAllocation::bind(grant, self.runtime, self.generation))
     }
 
     fn admit(

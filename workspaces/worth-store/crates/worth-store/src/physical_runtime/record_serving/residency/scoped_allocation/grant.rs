@@ -1,11 +1,12 @@
 use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalOperationAllocationScope};
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
-use crate::physical_runtime::LifecycleGeneration;
+use crate::physical_runtime::{LifecycleGeneration, RuntimeIdentity};
 
 #[derive(Debug)]
 pub(super) struct StoreScopedAllocation {
     grant: OperationAllocationGrant,
+    runtime: RuntimeIdentity,
     generation: LifecycleGeneration,
 }
 
@@ -19,11 +20,16 @@ macro_rules! exact_scope_allocation {
         impl $name {
             pub(super) fn bind(
                 grant: OperationAllocationGrant,
+                runtime: RuntimeIdentity,
                 generation: LifecycleGeneration,
             ) -> Self {
                 debug_assert_eq!(grant.scope(), PhysicalOperationAllocationScope::$scope);
                 Self {
-                    allocation: StoreScopedAllocation { grant, generation },
+                    allocation: StoreScopedAllocation {
+                        grant,
+                        runtime,
+                        generation,
+                    },
                 }
             }
 
@@ -33,6 +39,10 @@ macro_rules! exact_scope_allocation {
 
             pub const fn store_generation(&self) -> LifecycleGeneration {
                 self.allocation.generation
+            }
+
+            pub const fn runtime_identity(&self) -> RuntimeIdentity {
+                self.allocation.runtime
             }
 
             pub const fn bytes(&self) -> u64 {

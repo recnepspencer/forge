@@ -24,6 +24,7 @@ macro_rules! assert_exact_scope_ceiling {
             .$admit(bytes(PAGE_BYTES * 2))
             .expect("the exact successor scope ceiling must be admitted");
         assert_eq!(exact.store_identity(), $store);
+        assert_eq!(exact.runtime_identity(), $serving.runtime_identity());
         assert_eq!(exact.store_generation(), $generation);
         assert_eq!(exact.bytes(), PAGE_BYTES * 2);
         assert_eq!(
