@@ -7,11 +7,6 @@ use worth_store::aspect_native::{
     StorePhysicalAuthorityWitness, StorePhysicalBoundaryWitness,
     ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE,
 };
-use worth_store::certification::{
-    certify_store_json_residue_inventory, StoreCertificationProgram, StoreJsonAuthorityRisk,
-    StoreJsonResidueDenial, StoreJsonResidueInventory, StoreJsonResidueTokenKind,
-    StoreJsonResidueZone,
-};
 
 #[test]
 fn downstream_code_authors_boundary_facts_through_public_native_facade() {
@@ -54,16 +49,6 @@ fn downstream_code_authors_boundary_facts_through_public_native_facade() {
     .unwrap();
 
     assert_eq!(fact.identity(), &StoreAspectIdentity::from_aspect_key(key));
-}
-
-#[test]
-fn downstream_code_reaches_certification_through_public_facade() {
-    let _program = StoreCertificationProgram::Generic;
-    let _zone = StoreJsonResidueZone::DedicatedWorkspaceCertificationEnforcement;
-    let _risk = StoreJsonAuthorityRisk::CertificationScannerVocabulary;
-    let _token = StoreJsonResidueTokenKind::SerdeJson;
-    let _certify: fn() -> Result<StoreJsonResidueInventory, StoreJsonResidueDenial> =
-        certify_store_json_residue_inventory;
 }
 
 #[test]

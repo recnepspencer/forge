@@ -17,6 +17,7 @@ pub(super) mod publication_artifacts;
 pub(super) mod record_frame_reader;
 mod residency_observation;
 pub(in crate::physical_runtime) mod scheduled_writeback;
+mod scoped_allocation;
 pub(super) mod serving_artifacts;
 mod speculation;
 
@@ -52,6 +53,11 @@ pub use residency_observation::{
     PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationSnapshot,
     PhysicalResidencyCounterSnapshot, PhysicalResidencyObservation,
     PhysicalWritebackCounterSnapshot,
+};
+pub use scoped_allocation::{
+    BlobPhysicalAllocation, MaintenancePhysicalAllocation, PhysicalScopedAllocationAdmission,
+    PhysicalScopedAllocationFailure, RecoveryPhysicalAllocation, ScrubPhysicalAllocation,
+    VerificationPhysicalAllocation,
 };
 pub use speculation::{
     PhysicalPrefetchIntent, PhysicalPrefetchOutcome, PhysicalReadAheadBatch,

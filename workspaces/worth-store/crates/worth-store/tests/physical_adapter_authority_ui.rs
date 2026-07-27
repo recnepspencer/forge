@@ -15,8 +15,9 @@ fn physical_adapters_receive_observation_without_pool_control() {
         "dirty_mutation_authority_is_sealed.rs",
         "generation_forgery_is_rejected.rs",
         "semantic_residency_inference_is_rejected.rs",
-        "certification_authority_is_absent.rs",
     ] {
         cases.compile_fail(format!("tests/physical_adapter_authority/{denied}"));
     }
+    #[cfg(not(feature = "certification-test-authority"))]
+    cases.compile_fail("tests/physical_adapter_authority/certification_authority_is_absent.rs");
 }

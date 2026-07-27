@@ -57,9 +57,8 @@ use canonical_read_execution::PreparedCanonicalMetadataRead;
 pub(in crate::physical_runtime) use canonical_read_execution::PreparedCanonicalRecordRead;
 #[cfg(feature = "certification-test-authority")]
 pub use evidence::canonical_evidence::{
-    lower_offline_record_publication_canonical_basis, lower_record_publication_canonical_basis,
-    PhysicalRecordPublicationSummary, RecordCanonicalObservationDenial,
-    RecordTopologyCanonicalBasisOutcome,
+    lower_record_publication_canonical_basis, PhysicalRecordPublicationSummary,
+    RecordCanonicalObservationDenial, RecordTopologyCanonicalBasisOutcome,
 };
 #[cfg(feature = "certification-test-authority")]
 pub use evidence::performance_evidence::{
@@ -160,17 +159,19 @@ pub use residency::{
     RetryablePhysicalWriteback,
 };
 pub use residency::{
-    PhysicalFrameFaultCause, PhysicalFrameReadFailure, PhysicalFrameWorkFailure,
-    PhysicalPrefetchIntent, PhysicalPrefetchOutcome, PhysicalReadAheadBatch,
-    PhysicalReadAheadFrameOutcome, PhysicalReadAheadIntent, PhysicalReadAheadIntentDenial,
-    PhysicalReadAheadOutcome, PhysicalRecordPressureBasis, PhysicalRecordPressureEvidence,
-    PhysicalRecordResidencyFailure, PhysicalRecordResidencyFailureKind,
-    PhysicalRecordResidencyFailureReason, PhysicalRecordWritebackFailureCause,
-    PhysicalRecordWritebackFailureEvidence, PhysicalResidencyAllocationEventSnapshot,
-    PhysicalResidencyAllocationSnapshot, PhysicalResidencyCounterSnapshot,
-    PhysicalResidencyObservation, PhysicalResidencyRetryPosture, PhysicalSpeculativeReadDrop,
-    PhysicalSpeculativeReadFailure, PhysicalWritebackCounterSnapshot,
-    PhysicalWritebackFailureCause,
+    BlobPhysicalAllocation, MaintenancePhysicalAllocation, PhysicalFrameFaultCause,
+    PhysicalFrameReadFailure, PhysicalFrameWorkFailure, PhysicalPrefetchIntent,
+    PhysicalPrefetchOutcome, PhysicalReadAheadBatch, PhysicalReadAheadFrameOutcome,
+    PhysicalReadAheadIntent, PhysicalReadAheadIntentDenial, PhysicalReadAheadOutcome,
+    PhysicalRecordPressureBasis, PhysicalRecordPressureEvidence, PhysicalRecordResidencyFailure,
+    PhysicalRecordResidencyFailureKind, PhysicalRecordResidencyFailureReason,
+    PhysicalRecordWritebackFailureCause, PhysicalRecordWritebackFailureEvidence,
+    PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationSnapshot,
+    PhysicalResidencyCounterSnapshot, PhysicalResidencyObservation, PhysicalResidencyRetryPosture,
+    PhysicalScopedAllocationAdmission, PhysicalScopedAllocationFailure,
+    PhysicalSpeculativeReadDrop, PhysicalSpeculativeReadFailure, PhysicalWritebackCounterSnapshot,
+    PhysicalWritebackFailureCause, RecoveryPhysicalAllocation, ScrubPhysicalAllocation,
+    VerificationPhysicalAllocation,
 };
 pub(in crate::physical_runtime) use work_semantics::{RecordReadPartition, RecordWorkAdmission};
 pub use worth_store_physical_format::{

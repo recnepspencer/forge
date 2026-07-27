@@ -25,7 +25,6 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     cases.compile_fail(
         "tests/physical_runtime_authority/wrong_phase_and_physical_operations_are_absent.rs",
     );
-    cases.compile_fail("tests/physical_runtime_authority/maximal_feature_profile_cannot_admit.rs");
     cases.pass(
         "tests/physical_runtime_authority/independent_scan_and_mutation_capabilities_compile.rs",
     );

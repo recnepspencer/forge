@@ -38,6 +38,7 @@ mod handoff;
 mod hostile_physical_truth;
 mod inspection;
 mod media_acquisition;
+mod record_topology_canonical_basis;
 mod repair_blast_radius_observation;
 #[cfg(test)]
 mod repair_blast_radius_observation_tests;
@@ -108,6 +109,9 @@ pub use inspection::{
 };
 pub use media_acquisition::{
     OfflineMediaAcquisitionDenial, OfflineMediaAcquisitionDimension, UntrustedOfflineMediaSet,
+};
+pub use record_topology_canonical_basis::{
+    lower_offline_record_publication_canonical_basis, OfflineRecordTopologyCanonicalBasisOutcome,
 };
 pub use repair_blast_radius_observation::{
     OfflineRepairBlastRadiusObservation, OfflineRepairBlastRadiusObservationDenial,

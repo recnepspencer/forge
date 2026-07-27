@@ -1204,7 +1204,6 @@ dependencies = [
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-buffer-pool",
- "worth-store-certification",
  "worth-store-contracts",
  "worth-store-io-scheduler",
  "worth-store-offline-verifier",

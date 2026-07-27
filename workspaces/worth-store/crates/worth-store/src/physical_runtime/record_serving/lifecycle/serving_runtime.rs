@@ -73,6 +73,13 @@ impl ServingPhysicalRuntime {
             .observation(self.parts.core.lifecycle_generation())
     }
 
+    pub fn physical_allocations(&self) -> super::super::PhysicalScopedAllocationAdmission<'_> {
+        super::super::PhysicalScopedAllocationAdmission::new(
+            self.parts.residency.ports(),
+            self.parts.core.lifecycle_generation(),
+        )
+    }
+
     pub fn records(&self) -> PhysicalRecordReader {
         let read = super::super::CanonicalRecordReadPort::new(
             &self.parts.work_runtime,
