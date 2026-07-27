@@ -4,11 +4,13 @@ pub struct WorthQueryInstalledPackageIndexCounters {
     pub definition_rows_examined: usize,
     pub domain_operation_rows_examined: usize,
     pub artifact_contract_rows_examined: usize,
+    pub application_schema_rows_examined: usize,
     pub equivalent_packages_converged: usize,
     pub installed_package_count: usize,
     pub installed_definition_count: usize,
     pub installed_domain_operation_count: usize,
     pub installed_artifact_contract_count: usize,
+    pub installed_application_schema_count: usize,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

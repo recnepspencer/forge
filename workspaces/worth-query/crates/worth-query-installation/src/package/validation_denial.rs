@@ -12,6 +12,9 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     InvalidDomainOperation,
     DuplicateArtifactContract,
     ConflictingArtifactContract,
+    ApplicationSchemaIdentityMismatch,
+    DuplicateApplicationSchema,
+    ConflictingApplicationSchema,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -106,6 +109,30 @@ impl WorthQueryPortablePackageValidationDenial {
     pub(super) fn conflicting_artifact_contract(subject: impl Into<String>) -> Self {
         Self::new(
             WorthQueryPortablePackageValidationDenialKind::ConflictingArtifactContract,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn application_schema_identity_mismatch(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ApplicationSchemaIdentityMismatch,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn duplicate_application_schema(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::DuplicateApplicationSchema,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conflicting_application_schema(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConflictingApplicationSchema,
             None,
             subject,
         )

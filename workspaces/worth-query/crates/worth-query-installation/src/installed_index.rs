@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod application_schema;
 mod artifact_contract_admission;
 mod artifact_contract_authority;
 mod authority;
@@ -27,6 +28,7 @@ use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallation
 use crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority;
 use crate::installed_operation::WorthQueryInstalledOperationAuthority;
 use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
+use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
 
 #[derive(Debug)]
 struct WorthQueryInstalledPackageRecord {
@@ -43,6 +45,7 @@ pub struct WorthQueryInstalledPackageIndex {
         BTreeMap<(WorthQueryPortableDefinitionKind, String, String), WorthQueryPortableDefinition>,
     domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     artifact_contracts: BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
+    application_schemas: BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
     identity: String,
     counters: WorthQueryInstalledPackageIndexCounters,
     indexed_operation_lookups: AtomicUsize,
@@ -75,6 +78,10 @@ impl WorthQueryInstalledPackageIndex {
 
     pub fn installed_artifact_contract_count(&self) -> usize {
         self.artifact_contracts.len()
+    }
+
+    pub fn installed_application_schema_count(&self) -> usize {
+        self.application_schemas.len()
     }
 
     pub fn indexed_operation_lookups(&self) -> usize {

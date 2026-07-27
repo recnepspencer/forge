@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicUsize;
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
 
 use super::artifact_contract_admission::admit_artifact_contract;
-use super::index_identity::{authority_nonce, index_identity};
+use super::index_identity::{authority_nonce, index_identity, IndexIdentityInput};
 use super::*;
 
 #[derive(Default)]
@@ -14,6 +14,10 @@ struct InstalledIndexConstruction {
     domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     artifact_contracts: BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
     artifact_contract_slots: BTreeMap<(String, u32, u32), (String, String)>,
+    application_schemas: BTreeMap<
+        (String, String),
+        worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration,
+    >,
     counters: WorthQueryInstalledPackageIndexCounters,
 }
 
@@ -58,14 +62,16 @@ impl InstalledIndexConstruction {
         self.counters.installed_definition_count = self.definitions.len();
         self.counters.installed_domain_operation_count = self.domain_operations.len();
         self.counters.installed_artifact_contract_count = self.artifact_contracts.len();
-        let identity = index_identity(
-            &runtime,
+        self.counters.installed_application_schema_count = self.application_schemas.len();
+        let identity = index_identity(IndexIdentityInput {
+            runtime: &runtime,
             generation,
-            &self.records,
-            &self.definitions,
-            &self.domain_operations,
-            &self.artifact_contracts,
-        );
+            records: &self.records,
+            definitions: &self.definitions,
+            domain_operations: &self.domain_operations,
+            artifact_contracts: &self.artifact_contracts,
+            application_schemas: &self.application_schemas,
+        });
         WorthQueryInstalledPackageIndex {
             runtime,
             generation,
@@ -73,6 +79,7 @@ impl InstalledIndexConstruction {
             definitions: self.definitions,
             domain_operations: self.domain_operations,
             artifact_contracts: self.artifact_contracts,
+            application_schemas: self.application_schemas,
             identity,
             counters: self.counters,
             indexed_operation_lookups: AtomicUsize::new(0),
@@ -131,6 +138,20 @@ impl InstalledIndexConstruction {
                 owner,
                 contract,
             )?;
+        }
+        for schema in package.package().application_schemas() {
+            self.counters.application_schema_rows_examined += 1;
+            let key = (owner.to_string(), schema.name().to_string());
+            if let Some(existing) = self.application_schemas.get(&key) {
+                if existing != schema {
+                    return Err(WorthQueryInstalledPackageIndexDenial::new(
+                        WorthQueryInstalledPackageIndexDenialKind::ConflictingApplicationSchema,
+                        schema.name(),
+                    ));
+                }
+                continue;
+            }
+            self.application_schemas.insert(key, schema.clone());
         }
         Ok(())
     }

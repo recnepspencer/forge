@@ -84,7 +84,22 @@ pub(super) fn realized_calls_match<D, O, F, L: BasisOperationLane>(
             )
         })
         .collect::<Vec<_>>();
-    let expected_commits = expected_commit_groups(bound, touch_roles);
+    let separate_touch_roles = bound
+        .definition()
+        .semantics()
+        .graph_reads
+        .roles()
+        .iter()
+        .filter(|read| {
+            touch_roles.contains(&read.role)
+                && matches!(
+                    read.participation,
+                    crate::domain_installation::WorthQueryOperationGraphParticipation::SeparateAuthority { .. }
+                )
+        })
+        .map(|read| read.role.clone())
+        .collect::<Vec<_>>();
+    let expected_commits = expected_commit_groups(bound, &separate_touch_roles);
     let realized = receipts
         .iter()
         .map(|receipt| RealizedCall {
@@ -94,7 +109,12 @@ pub(super) fn realized_calls_match<D, O, F, L: BasisOperationLane>(
             commit_roles: receipt.commit_graph_roles().to_vec(),
         })
         .collect::<Vec<_>>();
-    exact_call_contract_matches(&declared_reads, touch_roles, &expected_commits, &realized)
+    exact_call_contract_matches(
+        &declared_reads,
+        &separate_touch_roles,
+        &expected_commits,
+        &realized,
+    )
 }
 
 fn expected_commit_groups<D, O, F, L: BasisOperationLane>(

@@ -14,6 +14,7 @@ pub enum WorthQueryInstalledPackageIndexDenialKind {
     ConflictingArtifactContract,
     ArtifactContractNotInstalled,
     ArtifactContractSemanticsChanged,
+    ConflictingApplicationSchema,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -36,22 +36,72 @@ schema-bound typed intent
 Milestone 9.17 follows this milestone. Advanced access and computation features
 must be built through the same public front door proven here.
 
-## Migration From The Former 9.15 Draft
+## Work Types And Phase Identity
 
-The split changes milestone ownership without silently dropping the former
-requirements:
+Milestone 9.16 contains three visibly different tracks. Each track has its own
+ordinary phase sequence:
 
-- former Phase 10.1, typed aspect references, is now Phase 2;
-- former Phase 10.2, permission and touched-graph authority, is now Phase 4;
-- former Phase 10.3, ordinary read/mutation/live adoption, is now Phase 7;
-- former Phase 10.4, policy cutover and prohibitions, is now Phases 9–10;
-- former Phase 11, compare-and-commit, is now Phase 6; and
-- the application-relevant facade, cutover, and prohibition obligations from
-  former Phases 19–20 are now Phases 9–10.
+```text
+Runtime Hardening Track   Phase 1 -> Phase 2 -> ... -> Phase N
+Bank World Track          Phase 1 -> Phase 2 -> ... -> Phase N
+Closure Track             Phase 1 -> Phase 2 -> ... -> Phase N
+```
 
-The bank phases around those moved requirements are causal proof, not extra
-showcase work: they demonstrate that the public contracts compose into a real
-application.
+The Runtime Hardening Track owns generic Query product work:
+
+- Runtime Phase 1 establishes schema-bound typed application references;
+- Runtime Phase 2 establishes generic authenticated-principal admission;
+- Runtime Phase 3 establishes installed permission and touched-graph authority;
+- Runtime Phase 4 establishes provider compare-and-commit;
+- Runtime Phase 5 establishes ordinary read, mutation, workflow, and live
+  facades; and
+- Runtime Phase 6 performs public policy cutover and workaround deletion.
+
+Bank phases consume and pressure those runtime capabilities:
+
+- Bank Phase 1 freezes the product, courtroom, and gap ledger;
+- Bank Phase 2 builds the Authentik adapter and dynamic identity fixture;
+- Bank Phase 3 installs the banking domain, accounting, roles, and invariants;
+- Bank Phase 4 builds the temporary HTTP boundary and independent user nodes;
+  and
+- Bank Phase 5 proves the complete consumer journeys.
+
+Closure Phase 1 runs hostile milestone certification and permanent
+prohibitions. Track and phase together form the phase identity; the interleaved
+order below describes causal execution across tracks.
+
+## Discovery Intake And Phase Amendment Rule
+
+The bank world is expected to discover missing behavior. Discovery is an input
+to the milestone, not permission for an ad hoc fix inside whichever phase
+happened to expose it.
+
+Before implementing a discovered requirement, update the gap ledger and
+classify it:
+
+1. **Existing runtime guarantee is incomplete.** Reopen the affected Runtime
+   phase and every downstream ledger guarantee that depended on it.
+2. **New generic Query behavior, API, authority, lifecycle, or performance
+   capability is required.** Add the next appropriately sized phase to the
+   Runtime Hardening Track before implementation.
+3. **Bank-domain meaning or behavior is missing.** Add or reopen the appropriate
+   Bank World phase. Banking semantics must not be generalized into Query.
+4. **Authentik, HTTP, process-fixture, or user-node mechanism is missing.** Add
+   or reopen a Bank World adapter/fixture phase. Transport mechanics do not
+   become runtime authority.
+5. **The discovery changes public cutover, deletion, documentation, or the
+   decisive courtroom.** Add or reopen a Closure phase.
+6. **The discovery has an independent advanced-computation purpose.** Assign it
+   to Milestone 9.17 rather than expanding the bank milestone.
+
+A new phase must be an appropriate vertical slice with one causal guarantee,
+not a ticket-sized patch. It states what proof it consumes, what architecture it
+establishes, what it mechanically forbids, what evidence closes it, and which
+later bank or runtime phase it unblocks.
+
+The bank phase that exposed a generic gap remains blocked until the corresponding
+Runtime Hardening phase closes. The application may not carry a local workaround
+forward to keep the demo moving.
 
 ## Why This Milestone Exists
 
@@ -345,7 +395,7 @@ decision.
 
 ## Phase Plan
 
-### Phase 1: Freeze The Bank World And Build The Gap Ledger
+### Bank World Track — Phase 1: Freeze The Bank World And Build The Gap Ledger
 
 **Requirement**
 
@@ -366,13 +416,13 @@ transcript, and requirement/evidence ledger before changing Query.
 - the cheapest commands for declaration, installation, execution, consumer,
   cross-process, and hostile certification loops.
 
-**Proof before Phase 2**
+**Proof before Runtime Hardening Phase 1**
 
 The ledger covers every courtroom actor and behavior, every requirement has one
 owner, and no test plan relies on a hard-coded principal or privileged fixture
 mutation.
 
-### Phase 2: Schema-Bound Typed Application References
+### Runtime Hardening Track — Phase 1: Schema-Bound Typed Application References
 
 **Requirement**
 
@@ -387,19 +437,53 @@ values.
 - explicit checked dynamic-extension posture, if one exists;
 - early operator, value-family, runtime, and schema-version rejection; and
 - compile-time denial for representative cross-schema, wrong-value,
-  wrong-operation, and illegal-write examples.
+  wrong-operation, and illegal-write examples;
+- dependency compilation distinguishes primary-logical-graph reads and touches
+  from separate-authority provider calls: primary reads and runtime mutations
+  retain their native evidence, while remote reads, touches, and commits still
+  require exact provider receipts.
 
-**Proof before Phase 3**
+**Proof before Runtime Hardening Phase 2 and Bank World Phase 2**
 
-The bank-domain package contains no application aspect strings, and the public
-DX transcript compiles using only declaration-facing types.
+The bank-domain package contains no application aspect strings, the public DX
+transcript compiles using only declaration-facing types, and a typed local
+mutation with an installed primary read completes dependency compilation
+without inventing a provider receipt.
 
-### Phase 3: Authentik And Authenticated Principal Admission
+### Runtime Hardening Track — Phase 2: Authenticated Principal Admission
 
 **Requirement**
 
-Adapt real Authentik OIDC identity into a sealed, time-bounded external-principal
-proof and bind it to an installed bank principal.
+Define the generic boundary through which a validated external identity becomes
+a sealed, time-bounded principal proof eligible for installed graph binding.
+Query must not learn Authentik, OIDC transport, JWT, cookie, or HTTP semantics.
+
+**Must establish**
+
+- typed issuer-and-subject identity;
+- a sealed proof constructor available only to an admitted authentication
+  adapter boundary;
+- audience, validation-time, expiry, authentication-method, and adapter identity
+  bound into the proof where later admission depends on them;
+- installed mapping from authenticated external principal to application
+  principal;
+- unknown, disabled, ambiguous, expired, and cross-runtime denial;
+- request deadline and cancellation carriage; and
+- no deserialization, fixture, token-claim, or host assertion path that can mint
+  the proof.
+
+**Proof before Bank World Phase 2**
+
+A causally admitted test authentication adapter can produce a usable proof,
+while forged data, copied fields, wrong runtime, stale proof, and direct
+deserialization open no principal or operation authority.
+
+### Bank World Track — Phase 2: Authentik Adapter And Dynamic Identity Fixture
+
+**Requirement**
+
+Adapt real Authentik OIDC identity into the generic Runtime Hardening Phase 2 boundary
+and provision all bank identities dynamically.
 
 **Must establish**
 
@@ -407,16 +491,17 @@ proof and bind it to an installed bank principal.
 - `(issuer, subject)` identity, with display claims retained only as attributes;
 - unknown, disabled, ambiguous, expired, revoked, and wrong-audience denial;
 - explicit request deadline and cancellation propagation;
+- no Authentik-specific type or token claim beyond the adapter boundary;
 - no transport or test-only constructor for authenticated proof; and
 - dynamic fixture provisioning through real Authentik administration and token
   acquisition boundaries.
 
-**Proof before Phase 4**
+**Proof before Runtime Hardening Phase 3**
 
 Tokens from the real issuer admit the correct principal, forged or malformed
 tokens fail, and application code cannot create or deserialize the proof.
 
-### Phase 4: Scoped Authorization And Touched-Graph Admission
+### Runtime Hardening Track — Phase 3: Scoped Authorization And Touched-Graph Admission
 
 **Requirement**
 
@@ -437,13 +522,13 @@ exact allowed touched graph.
 - identical scope enforcement for reads, mutations, explanations, history, and
   live delivery.
 
-**Proof before Phase 5**
+**Proof before Bank World Phase 3**
 
 Forged roles, token claims, caller-declared touched sets, route middleware
 booleans, cross-account access, role combination, and post-revocation delivery
 all fail. Valid customer and employee combinations remain usable.
 
-### Phase 5: Double-Entry Banking Operations And Invariants
+### Bank World Track — Phase 3: Double-Entry Banking Operations And Invariants
 
 **Requirement**
 
@@ -462,13 +547,13 @@ effects and execute real monetary invariants over proposed state.
   invariants; and
 - typed idempotency intent bound to the authenticated operation.
 
-**Proof before Phase 6**
+**Proof before Runtime Hardening Phase 4**
 
 Independent accounting oracles recompute balances and journal conservation.
 Overdraft, unbalanced entries, currency mismatch, duplicate approvals,
 self-approval where prohibited, and idempotency-key payload drift all deny.
 
-### Phase 6: Provider Compare-And-Commit
+### Runtime Hardening Track — Phase 4: Provider Compare-And-Commit
 
 **Requirement**
 
@@ -487,13 +572,13 @@ provider-proven compare-and-commit progression.
 - no public construction path from plan, receipt, read-set, invariant result,
   or provider token fragments.
 
-**Proof before Phase 7**
+**Proof before Runtime Hardening Phase 5**
 
 Concurrent transfers cannot overspend, unrelated writes avoid false conflicts,
 the same idempotent request cannot post twice, and failure injection never
 claims atomic commit without provider proof.
 
-### Phase 7: Ordinary Read, Mutation, Workflow, And Live Facades
+### Runtime Hardening Track — Phase 5: Ordinary Read, Mutation, Workflow, And Live Facades
 
 **Requirement**
 
@@ -513,13 +598,13 @@ valid next actions follow typed phase progression.
   by the caller; and
 - bounded work and honest degradation exposed in result metadata.
 
-**Proof before Phase 8**
+**Proof before Bank World Phase 4**
 
 Consumer transcript tests compile and run using only `worth-query-decl` and
 `worth-query-host`. No consumer assembles runtime identities, policies,
 read-sets, provider sessions, receipts, or support snapshots.
 
-### Phase 8: Temporary HTTP Boundary And Per-User Async Nodes
+### Bank World Track — Phase 4: Temporary HTTP Boundary And Per-User Async Nodes
 
 **Requirement**
 
@@ -537,13 +622,13 @@ network boundaries.
 - typed wire representations for semantic outcomes; and
 - no route-local banking policy or direct provider access.
 
-**Proof before Phase 9**
+**Proof before Runtime Hardening Phase 6**
 
 The full courtroom runs over TCP with separate process IDs and runtimes.
 Disconnects, restarts of non-authoritative user nodes, response loss, queue
 saturation, token expiry, and live revocation preserve semantic outcomes.
 
-### Phase 9: Public Cutover, Documentation, And Workaround Deletion
+### Runtime Hardening Track — Phase 6: Public Policy Cutover And Workaround Deletion
 
 **Requirement**
 
@@ -563,12 +648,36 @@ that the bank world or existing consumers no longer need.
   authority builders, and duplicate outcome assembly; and
 - residue checks that prevent their return.
 
-**Proof before Phase 10**
+**Proof before Bank World Phase 5**
 
 A fresh consumer can discover and implement the supported bank paths from the
 public facade and docs without architectural archaeology.
 
-### Phase 10: Hostile Bank Certification And Permanent Prohibitions
+### Bank World Track — Phase 5: Complete Consumer Journeys
+
+**Requirement**
+
+Assemble the runtime phases and bank mechanisms into the complete public bank
+application without internal imports, local authority, or fixture shortcuts.
+
+**Must establish**
+
+- authenticated account discovery and scoped account detail;
+- personal transfer, deposit, and withdrawal;
+- business payment initiation and distinct-user approval;
+- employee teller and auditor journeys with non-equivalent authority;
+- concurrent transfer, idempotent retry, response-loss, and stale outcomes;
+- authorized activity history and live delivery;
+- permission grant, revocation, and live-stream narrowing; and
+- typed explanations for denial, conflict, cancellation, and indeterminacy.
+
+**Proof before Closure Track Phase 1**
+
+Every basic front-door question is answered through public Query and adapter
+surfaces, every process boundary is real, and the gap ledger contains no
+unclassified workaround.
+
+### Closure Track — Phase 1: Hostile Certification And Permanent Prohibitions
 
 **Requirement**
 

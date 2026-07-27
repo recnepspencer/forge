@@ -1,9 +1,10 @@
+mod application_schema_validation;
 mod artifact_closure;
 mod definition;
 mod identity;
+mod member_validation;
 mod validation_denial;
 
-use std::collections::BTreeMap;
 use worth_proof::{
     Artifact, AuthorityMarker, AuthorityProves, AuthorityWitness, CurrentValidity,
     FreshnessScopedBasis, PhaseMarker, Proof, ProofMarker,
@@ -19,12 +20,14 @@ use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::{
     WorthQueryPortableDomainOperationDefinition, WorthQueryValidatedDomainOperation,
 };
-use crate::package::identity::canonical_identity;
+use crate::package::{identity::canonical_identity, member_validation::validate_package_members};
 use crate::package_requirements::{
     WorthQueryInstallationCapabilityFamily, WorthQueryInstallationConfigSectionFamily,
     WorthQueryInstallationContributionCategory, WorthQueryInstallationOperatingRequirement,
 };
-use artifact_closure::{reject_artifact_contract_conflicts, validate_workflow_artifact_closure};
+use worth_query_declaration::facade::application_schema::{
+    ApplicationSchemaDeclaration, ErasedApplicationSchemaDeclaration,
+};
 
 #[derive(Clone, Debug)]
 pub struct WorthQueryPortableDomainPackage {
@@ -35,6 +38,7 @@ pub struct WorthQueryPortableDomainPackage {
     definitions: Vec<WorthQueryPortableDefinition>,
     domain_operations: Vec<WorthQueryPortableDomainOperationDefinition>,
     artifact_contracts: Vec<WorthQueryPortableArtifactContract>,
+    application_schemas: Vec<ErasedApplicationSchemaDeclaration>,
     contributions: Vec<WorthQueryInstallationContributionCategory>,
 }
 
@@ -48,6 +52,7 @@ impl WorthQueryPortableDomainPackage {
             definitions: Vec::new(),
             domain_operations: Vec::new(),
             artifact_contracts: Vec::new(),
+            application_schemas: Vec::new(),
             contributions: Vec::new(),
         }
     }
@@ -88,6 +93,14 @@ impl WorthQueryPortableDomainPackage {
         self
     }
 
+    pub fn application_schema<Schema>(
+        mut self,
+        declaration: ApplicationSchemaDeclaration<Schema>,
+    ) -> Self {
+        self.application_schemas.push(declaration.into_erased());
+        self
+    }
+
     pub fn permits_contribution(mut self, value: impl Into<String>) -> Self {
         self.contributions
             .push(WorthQueryInstallationContributionCategory::new(value));
@@ -98,43 +111,8 @@ impl WorthQueryPortableDomainPackage {
         mut self,
     ) -> Result<WorthQueryValidatedPortableDomainPackage, WorthQueryPortablePackageValidationDenial>
     {
-        validate_required_meaning(&self)?;
-        canonicalize(&mut self.capabilities);
-        canonicalize(&mut self.configuration);
-        canonicalize(&mut self.operating);
-        self.contributions.sort();
-        reject_duplicate_contributions(&self.contributions)?;
-        self.definitions.sort();
-        reject_definition_conflicts(&self.definitions)?;
-        self.domain_operations
-            .sort_by(|left, right| left.identity().cmp(right.identity()));
-        reject_domain_operation_conflicts(&self.domain_operations)?;
-        self.artifact_contracts.sort_by(|left, right| {
-            (
-                left.family(),
-                left.schema_version(),
-                left.protocol_version(),
-            )
-                .cmp(&(
-                    right.family(),
-                    right.schema_version(),
-                    right.protocol_version(),
-                ))
-        });
-        reject_artifact_contract_conflicts(&self.artifact_contracts)?;
-        validate_workflow_artifact_closure(&self.domain_operations, &self.artifact_contracts)?;
-        let mut validated_domain_operations = Vec::with_capacity(self.domain_operations.len());
-        for operation in self.domain_operations.iter().cloned() {
-            let slot = operation.identity().slot();
-            let validated =
-                WorthQueryValidatedDomainOperation::admit(operation).map_err(|reason| {
-                    WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
-                        "{slot}:{reason}"
-                    ))
-                })?;
-            validated_domain_operations.push(validated);
-        }
-
+        validate_package_members(&mut self)?;
+        let validated_domain_operations = admit_domain_operations(&self.domain_operations)?;
         let identity = canonical_identity(&self);
         let authority =
             AuthorityWitness::from_authority_marker(PortablePackageValidationAuthority {
@@ -152,6 +130,22 @@ impl WorthQueryPortableDomainPackage {
             validated_domain_operations,
         })
     }
+}
+
+fn admit_domain_operations(
+    operations: &[WorthQueryPortableDomainOperationDefinition],
+) -> Result<Vec<WorthQueryValidatedDomainOperation>, WorthQueryPortablePackageValidationDenial> {
+    let mut validated = Vec::with_capacity(operations.len());
+    for operation in operations.iter().cloned() {
+        let slot = operation.identity().slot();
+        let operation = WorthQueryValidatedDomainOperation::admit(operation).map_err(|reason| {
+            WorthQueryPortablePackageValidationDenial::invalid_domain_operation(format!(
+                "{slot}:{reason}"
+            ))
+        })?;
+        validated.push(operation);
+    }
+    Ok(validated)
 }
 
 #[derive(Clone, Debug)]
@@ -195,6 +189,7 @@ impl WorthQueryValidatedPortableDomainPackage {
             && self.definitions() == other.definitions()
             && self.domain_operations() == other.domain_operations()
             && self.artifact_contracts() == other.artifact_contracts()
+            && self.application_schemas() == other.application_schemas()
             && self.contribution_policy() == other.contribution_policy()
     }
 
@@ -230,6 +225,10 @@ impl WorthQueryValidatedPortableDomainPackage {
         &self.artifact.payload().artifact_contracts
     }
 
+    pub fn application_schemas(&self) -> &[ErasedApplicationSchemaDeclaration] {
+        &self.artifact.payload().application_schemas
+    }
+
     pub(crate) fn validated_domain_operations(&self) -> &[WorthQueryValidatedDomainOperation] {
         &self.validated_domain_operations
     }
@@ -237,129 +236,4 @@ impl WorthQueryValidatedPortableDomainPackage {
     pub fn contribution_policy(&self) -> &[WorthQueryInstallationContributionCategory] {
         &self.artifact.payload().contributions
     }
-}
-
-fn validate_required_meaning(
-    package: &WorthQueryPortableDomainPackage,
-) -> Result<(), WorthQueryPortablePackageValidationDenial> {
-    if package.identity.owner().trim().is_empty() {
-        return Err(WorthQueryPortablePackageValidationDenial::empty_domain_owner());
-    }
-    if let Some(definition) = package
-        .definitions
-        .iter()
-        .find(|definition| definition.slot().trim().is_empty())
-    {
-        return Err(
-            WorthQueryPortablePackageValidationDenial::empty_definition_slot(definition.kind()),
-        );
-    }
-    if let Some(definition) = package
-        .definitions
-        .iter()
-        .find(|definition| definition.semantics().trim().is_empty())
-    {
-        return Err(
-            WorthQueryPortablePackageValidationDenial::empty_definition_semantics(
-                definition.kind(),
-                definition.slot(),
-            ),
-        );
-    }
-    if let Some(requirement) = empty_requirement(package) {
-        return Err(WorthQueryPortablePackageValidationDenial::empty_requirement(requirement));
-    }
-    Ok(())
-}
-
-fn reject_duplicate_contributions(
-    contributions: &[WorthQueryInstallationContributionCategory],
-) -> Result<(), WorthQueryPortablePackageValidationDenial> {
-    if contributions.windows(2).any(|pair| pair[0] == pair[1]) {
-        return Err(WorthQueryPortablePackageValidationDenial::duplicate_contribution_category());
-    }
-    Ok(())
-}
-
-fn reject_definition_conflicts(
-    definitions: &[WorthQueryPortableDefinition],
-) -> Result<(), WorthQueryPortablePackageValidationDenial> {
-    let mut slots = BTreeMap::new();
-    for definition in definitions {
-        let key = (definition.kind(), definition.slot().to_string());
-        if let Some(existing) = slots.insert(key, definition.semantics().to_string()) {
-            return Err(if existing == definition.semantics() {
-                WorthQueryPortablePackageValidationDenial::duplicate_definition(
-                    definition.kind(),
-                    definition.slot(),
-                )
-            } else {
-                WorthQueryPortablePackageValidationDenial::conflicting_definition(
-                    definition.kind(),
-                    definition.slot(),
-                )
-            });
-        }
-    }
-    Ok(())
-}
-
-fn reject_domain_operation_conflicts(
-    operations: &[WorthQueryPortableDomainOperationDefinition],
-) -> Result<(), WorthQueryPortablePackageValidationDenial> {
-    for pair in operations.windows(2) {
-        if pair[0].identity() != pair[1].identity() {
-            continue;
-        }
-        let slot = pair[1].identity().slot();
-        return Err(if pair[0] == pair[1] {
-            WorthQueryPortablePackageValidationDenial::duplicate_definition(
-                WorthQueryPortableDefinitionKind::DomainOperation,
-                slot,
-            )
-        } else {
-            WorthQueryPortablePackageValidationDenial::conflicting_definition(
-                WorthQueryPortableDefinitionKind::DomainOperation,
-                slot,
-            )
-        });
-    }
-    Ok(())
-}
-
-fn empty_requirement(package: &WorthQueryPortableDomainPackage) -> Option<&'static str> {
-    if package
-        .capabilities
-        .iter()
-        .any(|value| value.as_str().trim().is_empty())
-    {
-        return Some("capability");
-    }
-    if package
-        .configuration
-        .iter()
-        .any(|value| value.as_str().trim().is_empty())
-    {
-        return Some("configuration");
-    }
-    if package
-        .operating
-        .iter()
-        .any(|value| value.as_str().trim().is_empty())
-    {
-        return Some("operating");
-    }
-    if package
-        .contributions
-        .iter()
-        .any(|value| value.as_str().trim().is_empty())
-    {
-        return Some("contribution");
-    }
-    None
-}
-
-fn canonicalize<T: Ord>(values: &mut Vec<T>) {
-    values.sort();
-    values.dedup();
 }

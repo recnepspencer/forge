@@ -19,6 +19,7 @@ dependencies = [
     "worth-foundational",
     "worth-proof",
     "worth-query",
+    "worth-query-decl",
     "worth-query-execution",
     "worth-query-host",
     "worth-query-replay",

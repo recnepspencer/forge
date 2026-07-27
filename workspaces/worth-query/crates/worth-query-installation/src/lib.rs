@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 mod admission;
+mod application_schema;
 mod canonical_hash_encoding;
 mod domain_computation;
 mod domain_operation;
@@ -21,6 +22,8 @@ mod package_requirements;
 
 #[cfg(test)]
 mod admission_profile_tests;
+#[cfg(test)]
+mod application_schema_tests;
 #[cfg(test)]
 mod domain_computation_admission_tests;
 #[cfg(test)]
@@ -59,6 +62,10 @@ pub mod facade {
         WorthQueryAdmittedPortableDomainPackage, WorthQueryArtifactVersionSupport,
         WorthQueryInstallationAdmissionDenial, WorthQueryInstallationAdmissionDenialKind,
         WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus,
+    };
+    pub use crate::application_schema::{
+        WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
+        WorthQueryInstalledApplicationSchemaDenialKind,
     };
     pub use crate::domain_computation::*;
     pub use crate::domain_operation::*;

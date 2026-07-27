@@ -10,7 +10,7 @@ Canonical machine constitution: `tools/boundary-check/config/road1.toml`
 - Deferred next homes:
 
 - Public surface: facade-only
-- Facade exports: `CanonicalQueryArtifact, authoring, binding, canonicalization, collection, diagnostics, identity, identity_authority, schema_view, typed, validation, view_declaration`
+- Facade exports: `CanonicalQueryArtifact, application_schema, authoring, binding, canonicalization, collection, diagnostics, identity, identity_authority, schema_view, typed, validation, view_declaration, worth_query_application_schema, worth_query_aspect, worth_query_currency, worth_query_effect, worth_query_entity, worth_query_field, worth_query_operation, worth_query_operation_creates, worth_query_operation_deletes, worth_query_operation_emits, worth_query_operation_links, worth_query_operation_unlinks, worth_query_operation_writes, worth_query_policy, worth_query_relation`
 - Owned internal modules: `none`
 - Allowed in-tree dependency bands: `none`
 

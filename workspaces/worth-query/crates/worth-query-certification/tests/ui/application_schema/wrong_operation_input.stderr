@@ -1,0 +1,20 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/wrong_operation_input.rs:16:57
+   |
+16 |     let _ = TypedOperationBuilder::new(operation).input(WrongInput);
+   |                                                   ----- ^^^^^^^^^^ expected `ExpectedInput`, found `WrongInput`
+   |                                                   |
+   |                                                   arguments to this method are incorrect
+   |
+help: the return type of this call is `WrongInput` due to the type of the argument passed
+  --> tests/ui/application_schema/wrong_operation_input.rs:16:13
+   |
+16 |     let _ = TypedOperationBuilder::new(operation).input(WrongInput);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------^
+   |                                                         |
+   |                                                         this argument influences the return type of `input`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/mutation_authoring.rs
+   |
+   |     pub fn input(self, input: Input) -> TypedMutationIntentBuilder<Schema, Operation, Input> {
+   |            ^^^^^

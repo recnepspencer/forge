@@ -1,5 +1,9 @@
 //! Public declaration-authority contract.
 
+pub mod application_schema {
+    pub use crate::application_schema::*;
+}
+
 pub mod authoring {
     pub use crate::authoring::*;
 }

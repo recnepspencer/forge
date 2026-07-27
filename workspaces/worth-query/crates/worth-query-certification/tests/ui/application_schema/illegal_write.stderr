@@ -1,0 +1,43 @@
+error[E0277]: the trait bound `Field: OperationWrites<Operation>` is not satisfied
+  --> tests/ui/application_schema/illegal_write.rs:27:14
+   |
+27 |         .set(field, 7_u64);
+   |          --- ^^^^^ unsatisfied trait bound
+   |          |
+   |          required by a bound introduced by this call
+   |
+help: the trait `OperationWrites<Operation>` is not implemented for `Field`
+  --> tests/ui/application_schema/illegal_write.rs:9:1
+   |
+ 9 | struct Field;
+   | ^^^^^^^^^^^^
+note: required by a bound in `TypedMutationIntentBuilder::<Schema, Operation, Input>::set`
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/mutation_authoring.rs
+   |
+   |     pub fn set<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+   |            --- required by a bound in this associated function
+...
+   |         Field: OperationWrites<Operation>,
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `TypedMutationIntentBuilder::<Schema, Operation, Input>::set`
+
+error[E0277]: the trait bound `ReadOnly: WritableCapability` is not satisfied
+  --> tests/ui/application_schema/illegal_write.rs:27:14
+   |
+27 |         .set(field, 7_u64);
+   |          --- ^^^^^ the trait `WritableCapability` is not implemented for `ReadOnly`
+   |          |
+   |          required by a bound introduced by this call
+   |
+help: the trait `WritableCapability` is implemented for `ReadWrite`
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/capabilities.rs
+   |
+   | impl WritableCapability for ReadWrite {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: required by a bound in `TypedMutationIntentBuilder::<Schema, Operation, Input>::set`
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/mutation_authoring.rs
+   |
+   |     pub fn set<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+   |            --- required by a bound in this associated function
+...
+   |         Write: WritableCapability,
+   |                ^^^^^^^^^^^^^^^^^^ required by this bound in `TypedMutationIntentBuilder::<Schema, Operation, Input>::set`

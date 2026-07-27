@@ -15,6 +15,7 @@ worth-query-replay.workspace = true
 trybuild.workspace = true
 worth-foundational.workspace = true
 worth-query.workspace = true
+worth-query-decl.workspace = true
 worth-query-execution = { path = "../worth-query-execution" }
 worth-proof.workspace = true
 worth-relational.workspace = true
@@ -32,6 +33,10 @@ path = "tests/managed_run_compile_fail.rs"
 [[test]]
 name = "convergence_epoch_compile_fail"
 path = "tests/convergence_epoch_compile_fail.rs"
+
+[[test]]
+name = "application_schema_compile_fail"
+path = "tests/application_schema_compile_fail.rs"
 
 [[test]]
 name = "installed_audience_journey"

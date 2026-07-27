@@ -6,7 +6,10 @@
 
 #![forbid(unsafe_code)]
 
+mod application_schema;
 mod authoring;
+#[macro_use]
+mod application_schema_macro;
 mod binding;
 mod canonicalization;
 mod collection;
@@ -25,6 +28,8 @@ mod typed;
 mod validation;
 mod view_declaration;
 
+#[cfg(test)]
+mod application_schema_tests;
 #[cfg(test)]
 mod authoring_contract_tests;
 #[cfg(test)]

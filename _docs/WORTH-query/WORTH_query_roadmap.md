@@ -4665,6 +4665,19 @@ authorities.
 The governing milestone spec is
 [milestone-9.16.md](./milestone-9.16.md).
 
+### Phase Ownership
+
+- the Runtime Hardening Track uses normal Phases 1–N for generic Query product
+  work
+- the Bank World Track uses normal Phases 1–N for the bank domain, Authentik
+  adapter, asynchronous topology, and complete consumer journeys
+- the Closure Track uses normal Phases 1–N for cross-cutting certification and
+  permanent prohibitions
+- a discovered generic runtime gap reopens the affected Runtime Hardening phase
+  or adds the next phase in that track before implementation; bank-specific and
+  adapter-specific discoveries remain in the Bank World Track, and independent
+  advanced computation belongs to Milestone 9.17
+
 ### Must Ship
 
 - schema-derived typed entity, relation, aspect, field, operation, policy, and
