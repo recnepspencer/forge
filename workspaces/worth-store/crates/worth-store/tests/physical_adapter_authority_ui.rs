@@ -6,6 +6,7 @@ fn physical_adapters_receive_observation_without_pool_control() {
         "physical_isolation_supported.rs",
         "blob_streaming_supported.rs",
         "operation_scopes_supported.rs",
+        "successor_scoped_allocations_supported.rs",
     ] {
         cases.pass(format!("tests/physical_adapter_authority/{supported}"));
     }
@@ -15,6 +16,9 @@ fn physical_adapters_receive_observation_without_pool_control() {
         "dirty_mutation_authority_is_sealed.rs",
         "generation_forgery_is_rejected.rs",
         "semantic_residency_inference_is_rejected.rs",
+        "successor_scope_substitution_is_rejected.rs",
+        "successor_allocation_forgery_is_rejected.rs",
+        "successor_lower_grant_is_sealed.rs",
     ] {
         cases.compile_fail(format!("tests/physical_adapter_authority/{denied}"));
     }

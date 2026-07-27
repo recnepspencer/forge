@@ -1768,6 +1768,7 @@ dependencies = [
  "toml",
  "worth-foundational",
  "worth-proof",
+ "worth-store",
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-blob-chunks",

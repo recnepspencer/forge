@@ -16,8 +16,13 @@ boundary-fixtures = [
     "dep:worth-store-physical-format",
     "dep:worth-store-physical-isolation",
 ]
-physical-isolation-fixtures = [
+physical-residency-fixtures = [
     "boundary-fixtures",
+    "dep:worth-store",
+    "dep:worth-store-physical-backend",
+]
+physical-isolation-fixtures = [
+    "physical-residency-fixtures",
     "dep:worth-store-authority",
     "dep:worth-store-budgets",
     "dep:worth-store-buffer-pool",
@@ -58,6 +63,7 @@ toml = "1.0.1"
 tempfile = "3"
 worth-foundational = { path = "../../../../crates/worth-foundational", optional = true }
 worth-proof = { path = "../../../../crates/worth-proof", optional = true }
+worth-store = { workspace = true, optional = true }
 worth-store-aspect-native = { workspace = true, optional = true }
 worth-store-authority = { workspace = true, optional = true }
 worth-store-blob-chunks = { workspace = true, features = ["certification-test-authority"], optional = true }

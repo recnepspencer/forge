@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/physical_adapter_authority/successor_scope_substitution_is_rejected.rs:6:18
+  |
+6 |     consume_blob(allocation);
+  |     ------------ ^^^^^^^^^^ expected `BlobPhysicalAllocation`, found `RecoveryPhysicalAllocation`
+  |     |
+  |     arguments to this function are incorrect
+  |
+note: function defined here
+ --> tests/physical_adapter_authority/successor_scope_substitution_is_rejected.rs:3:4
+  |
+3 | fn consume_blob(_: BlobPhysicalAllocation) {}
+  |    ^^^^^^^^^^^^ -------------------------

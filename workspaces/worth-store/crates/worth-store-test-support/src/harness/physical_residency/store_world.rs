@@ -1,0 +1,225 @@
+use std::path::Path;
+
+use worth_proof::TransitionOutcome;
+use worth_store::physical_runtime::{
+    AbortedRuntime, AdmissionError, ClosedRuntime, FilesystemMediaAdmission,
+    MediaAdmissionInspectionCause, PhysicalRecordInitialization, PhysicalRuntimeAdmission,
+    PhysicalStore, RecordBootstrapDenial, RecordBootstrapFailure, RecordServingRebindReason,
+    RecordServingStaleReason, ServingPhysicalRuntime, ServingShutdownOutcome,
+};
+use worth_store_physical_backend::{
+    FilesystemAccessPosture, MediaQualificationDeferred, MediaQualificationDenial,
+    MediaQualificationRebindRequired, MediaQualificationStale,
+};
+
+use crate::TemporaryDirectory;
+
+use super::configuration::admitted_physical_residency_store_configuration;
+
+#[derive(Debug)]
+pub enum PhysicalResidencyStoreWorldConstructionFailure {
+    Directory(std::io::Error),
+    Runtime(AdmissionError),
+    MediaDenied(MediaQualificationDenial),
+    MediaDeferred(MediaQualificationDeferred),
+    MediaStale(MediaQualificationStale),
+    MediaRebindRequired(MediaQualificationRebindRequired),
+    MediaInspectionRequired(MediaAdmissionInspectionCause),
+    RecordDenied(RecordBootstrapDenial),
+    RecordStale(RecordServingStaleReason),
+    RecordRebindRequired(RecordServingRebindReason),
+    RecordInspectionRequired(RecordBootstrapFailure),
+}
+
+pub struct PhysicalResidencyStoreWorld {
+    root: TemporaryDirectory,
+    serving: Option<ServingPhysicalRuntime>,
+}
+
+impl PhysicalResidencyStoreWorld {
+    pub fn initialize(label: &str) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        let root = TemporaryDirectory::create(label)
+            .map_err(PhysicalResidencyStoreWorldConstructionFailure::Directory)?;
+        let runtime = PhysicalStore::admit(
+            PhysicalRuntimeAdmission::new(root.path())
+                .map_err(PhysicalResidencyStoreWorldConstructionFailure::Runtime)?,
+        )
+        .map_err(PhysicalResidencyStoreWorldConstructionFailure::Runtime)?;
+        let media = admit_media(runtime)?;
+        let configuration = admitted_physical_residency_store_configuration();
+        let request = PhysicalRecordInitialization::new(
+            configuration.format,
+            configuration.placement,
+            configuration.access,
+        )
+        .with_residency_policy(configuration.residency);
+        let serving = admit_record_store(media.initialize_record_store(request))?;
+        Ok(Self {
+            root,
+            serving: Some(serving),
+        })
+    }
+
+    pub fn root(&self) -> &Path {
+        self.root.path()
+    }
+
+    pub fn serving(&self) -> &ServingPhysicalRuntime {
+        self.serving
+            .as_ref()
+            .expect("a live fixture retains its serving runtime")
+    }
+
+    pub fn close(mut self) -> ServingShutdownOutcome<ClosedRuntime> {
+        self.serving
+            .take()
+            .expect("a live fixture closes its serving runtime exactly once")
+            .close()
+    }
+}
+
+impl Drop for PhysicalResidencyStoreWorld {
+    fn drop(&mut self) {
+        if let Some(serving) = self.serving.take() {
+            let _: ServingShutdownOutcome<AbortedRuntime> = serving.abort();
+        }
+    }
+}
+
+fn admit_media(
+    runtime: worth_store::physical_runtime::AdmittedPhysicalRuntime,
+) -> Result<
+    worth_store::physical_runtime::MediaOwnedPhysicalRuntime,
+    PhysicalResidencyStoreWorldConstructionFailure,
+> {
+    match runtime
+        .try_admit_filesystem_media(FilesystemMediaAdmission::production(
+            FilesystemAccessPosture::CoordinatedServiceAccount,
+        ))
+        .into_raw()
+    {
+        TransitionOutcome::Success(media) => Ok(media),
+        TransitionOutcome::Denied(denial) => {
+            let reason = denial.reason().clone();
+            denial.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::MediaDenied(
+                reason,
+            ))
+        }
+        TransitionOutcome::Deferred(deferred) => {
+            let reason = deferred.reason();
+            deferred.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::MediaDeferred(reason))
+        }
+        TransitionOutcome::Stale(stale) => {
+            let reason = stale.reason();
+            stale.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::MediaStale(
+                reason,
+            ))
+        }
+        TransitionOutcome::RebindRequired(rebind) => {
+            let reason = rebind.reason();
+            rebind.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::MediaRebindRequired(reason))
+        }
+        TransitionOutcome::Failed(inspection) => Err(
+            PhysicalResidencyStoreWorldConstructionFailure::MediaInspectionRequired(
+                match inspection.cause() {
+                    MediaAdmissionInspectionCause::BackendFailure(failure) => {
+                        MediaAdmissionInspectionCause::BackendFailure(failure.clone())
+                    }
+                },
+            ),
+        ),
+    }
+}
+
+fn admit_record_store(
+    outcome: worth_store::physical_runtime::RecordStoreInitializationOutcome,
+) -> Result<ServingPhysicalRuntime, PhysicalResidencyStoreWorldConstructionFailure> {
+    match outcome.into_raw() {
+        TransitionOutcome::Success(serving) => Ok(serving),
+        TransitionOutcome::Denied(denial) => {
+            let reason = denial.reason();
+            denial.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::RecordDenied(reason))
+        }
+        TransitionOutcome::Deferred(deferred) => match deferred {},
+        TransitionOutcome::Stale(stale) => {
+            let reason = stale.reason();
+            stale.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::RecordStale(
+                reason,
+            ))
+        }
+        TransitionOutcome::RebindRequired(rebind) => {
+            let reason = rebind.reason();
+            rebind.into_runtime().close();
+            Err(PhysicalResidencyStoreWorldConstructionFailure::RecordRebindRequired(reason))
+        }
+        TransitionOutcome::Failed(inspection) => Err(
+            PhysicalResidencyStoreWorldConstructionFailure::RecordInspectionRequired(
+                inspection.cause(),
+            ),
+        ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU64;
+
+    use worth_store::physical_runtime::PhysicalOperationAllocationScope as Scope;
+
+    use super::PhysicalResidencyStoreWorld;
+    use crate::harness::physical_residency::SUCCESSOR_SCOPE_ALLOCATION_BYTES;
+
+    #[test]
+    fn real_store_world_mints_and_releases_every_exact_successor_scope() {
+        let world = PhysicalResidencyStoreWorld::initialize("physical-residency-scopes").unwrap();
+        assert!(world.root().is_dir());
+        let serving = world.serving();
+        let allocations = serving.physical_allocations();
+        let bytes = NonZeroU64::new(SUCCESSOR_SCOPE_ALLOCATION_BYTES).unwrap();
+        let recovery = allocations.admit_recovery(bytes).unwrap();
+        let scrub = allocations.admit_scrub(bytes).unwrap();
+        let maintenance = allocations.admit_maintenance(bytes).unwrap();
+        let verification = allocations.admit_verification(bytes).unwrap();
+        let blob = allocations.admit_blob(bytes).unwrap();
+        for active_scope in [
+            Scope::Recovery,
+            Scope::Scrub,
+            Scope::Maintenance,
+            Scope::Verification,
+            Scope::Blob,
+        ] {
+            assert_eq!(
+                serving
+                    .residency_observation()
+                    .counters()
+                    .active_operation_bytes_for(active_scope),
+                SUCCESSOR_SCOPE_ALLOCATION_BYTES,
+            );
+        }
+        let pressure = allocations
+            .admit_recovery(bytes)
+            .expect_err("the five live successor allocations exhaust the global envelope")
+            .pressure()
+            .expect("global operation exhaustion is Store pressure");
+        assert_eq!(
+            pressure.dimension(),
+            worth_store::physical_runtime::PhysicalResidencyDimension::OperationBytes,
+        );
+        assert_eq!(pressure.admitted(), SUCCESSOR_SCOPE_ALLOCATION_BYTES * 5,);
+        drop((recovery, scrub, maintenance, verification, blob));
+        assert_eq!(
+            serving
+                .residency_observation()
+                .counters()
+                .active_operation_bytes(),
+            0,
+        );
+        assert!(!world.close().residency().requires_inspection());
+    }
+}

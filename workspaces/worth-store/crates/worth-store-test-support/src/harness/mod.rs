@@ -19,6 +19,8 @@ mod lsm_execution_fixture;
 pub mod physical_isolation;
 #[cfg(feature = "physical-isolation-fixtures")]
 pub mod physical_reference;
+#[cfg(feature = "physical-residency-fixtures")]
+pub mod physical_residency;
 #[cfg(feature = "certification-world")]
 pub mod physical_simulation;
 #[cfg(feature = "certification-world")]
