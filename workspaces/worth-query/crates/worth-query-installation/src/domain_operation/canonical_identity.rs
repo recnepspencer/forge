@@ -21,6 +21,13 @@ pub(super) fn canonical_operation_identity(
         &identity.version().to_string(),
     );
     input_and_graph_contracts::hash_input_and_graph_contracts(&mut hasher, semantics);
+    for family in semantics.decision_facts.required_families() {
+        hash_text_field(
+            &mut hasher,
+            "decision-fact-family",
+            &family.canonical_token(),
+        );
+    }
     hash_text_field(
         &mut hasher,
         "operation-evidence",

@@ -32,3 +32,39 @@ pub trait WorthQueryGraphCommitProvider<C>: Send + Sync + 'static {
         call: &WorthQueryGraphCommitCall,
     ) -> Result<WorthQueryGraphProviderReceipt, WorthQueryGraphProviderFailure>;
 }
+
+/// Physical provider mechanics for the sealed session protocol.
+///
+/// Query supplies the one-use token admission capability. A provider can
+/// acknowledge and name its physical session, but cannot construct Query
+/// session authority or advance the protocol on its own.
+pub trait WorthQueryProviderSessionLifecycle: Send + Sync + 'static {
+    fn readmit_provider_plan(
+        &self,
+        plan: &crate::domain_computation::WorthQueryProviderExecutionPlanView<'_>,
+        admission: crate::domain_computation::WorthQueryProviderSessionTokenAdmission,
+    ) -> Result<
+        crate::domain_computation::WorthQueryProviderSessionToken,
+        crate::domain_computation::WorthQueryProviderSessionFailure,
+    >;
+
+    fn prepare_provider_session(
+        &self,
+        session: &crate::domain_computation::WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), crate::domain_computation::WorthQueryProviderSessionFailure>;
+
+    fn prepare_staged_session(
+        &self,
+        session: &crate::domain_computation::WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), crate::domain_computation::WorthQueryProviderSessionFailure>;
+
+    fn commit_prepared_session(
+        &self,
+        session: &crate::domain_computation::WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, crate::domain_computation::WorthQueryProviderSessionFailure>;
+
+    fn abort_provider_session(
+        &self,
+        session: &crate::domain_computation::WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, crate::domain_computation::WorthQueryProviderSessionFailure>;
+}

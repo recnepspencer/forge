@@ -16,6 +16,7 @@ use crate::domain_computation::operation_binding::{
 use crate::domain_computation::provider_session::WorthQueryGraphProviderCallKind;
 use crate::domain_computation::WorthQueryInstalledOperationExecutionSupport;
 
+mod provider_plan;
 mod runtime_binding;
 mod topology;
 
@@ -32,6 +33,8 @@ pub struct WorthQueryExecutionBoundOperationAuthority {
     semantic_basis: worth_query_admission::facade::basis::NormalizedBasisIntent,
     canonical_query_digest: Arc<str>,
     operation_resource_contract_identity: Arc<str>,
+    provider_plan_declarations:
+        Arc<crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations>,
     commit_posture: WorthQueryExecutionCommitPosture,
     direct_resource_topology: WorthQueryExecutionResourceTopology,
     workflow_stage_resources: Option<BTreeMap<Arc<str>, WorthQueryWorkflowStageResourceAuthority>>,

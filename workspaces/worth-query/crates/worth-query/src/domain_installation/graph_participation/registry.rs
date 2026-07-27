@@ -13,6 +13,8 @@ use super::{
     WorthQueryGraphProviderFailure, WorthQueryGraphProviderReceipt,
 };
 
+mod capability_registration;
+
 pub(crate) trait ErasedGraphCommitProvider: Send + Sync {
     fn admit_commit(
         &self,

@@ -9,10 +9,13 @@ pub use worth_query_declaration::facade::domain_computation::{
     WorthQuerySemanticScaleAxis, WorthQuerySemanticScaleRequest, WorthQueryYieldedStatePosture,
 };
 pub use worth_query_installation::facade::{
+    WorthQueryDecisionFactFamily, WorthQueryDecisionFactKind,
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
     WorthQueryExecutionProviderFamily, WorthQueryExecutionProviderRequirements,
     WorthQueryExecutionResourceContract, WorthQueryExecutionResourceEnvelope,
     WorthQueryExecutionStrategyContract, WorthQueryExecutionStrategyName,
+    WorthQueryInstalledInvariantExecutionRequirement, WorthQueryInvariantEnforcement,
+    WorthQueryInvariantExecutionContract, WorthQueryOperationDecisionFactContract,
     WorthQueryOperationExecutionResourceContract, WorthQueryWorkflowStageExecutionResourceContract,
 };
 

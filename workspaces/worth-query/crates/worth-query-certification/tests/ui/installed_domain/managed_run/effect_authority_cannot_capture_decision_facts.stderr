@@ -1,0 +1,5 @@
+error[E0599]: no method named `capture_decision_read_set` found for struct `WorthQuerySessionEffectAuthority<'session>` in the current scope
+ --> tests/ui/installed_domain/managed_run/effect_authority_cannot_capture_decision_facts.rs:9:23
+  |
+9 |     let _ = authority.capture_decision_read_set([request]);
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQuerySessionEffectAuthority<'_>`

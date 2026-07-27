@@ -40,6 +40,7 @@ pub(super) fn hash_input_and_graph_contracts(
     hash_touches(hasher, &semantics.touches);
     hash_effects(hasher, &semantics.effects);
     hash_invariants(hasher, &semantics.invariants);
+    hash_invariant_execution(hasher, &semantics.invariant_execution);
 }
 
 fn hash_parameters(hasher: &mut Sha256, contract: &WorthQueryOperationParameterContract) {
@@ -215,6 +216,25 @@ fn hash_invariants(hasher: &mut Sha256, contract: &WorthQueryOperationInvariantC
             "invariant-slot",
             invariant_slots.iter().map(String::as_str),
         ),
+    }
+}
+
+fn hash_invariant_execution(hasher: &mut Sha256, contract: &WorthQueryInvariantExecutionContract) {
+    match contract {
+        WorthQueryInvariantExecutionContract::NotRequired => {
+            hash_text_field(hasher, "invariant-execution", "not-required");
+        }
+        WorthQueryInvariantExecutionContract::Declared { requirements } => {
+            hash_text_field(hasher, "invariant-execution", "declared");
+            for requirement in requirements {
+                let parts = requirement.canonical_parts();
+                hash_sequence(
+                    hasher,
+                    "invariant-execution-requirement",
+                    parts.iter().map(String::as_str),
+                );
+            }
+        }
     }
 }
 

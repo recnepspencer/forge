@@ -1,17 +1,23 @@
 mod attempt_evidence;
+mod decision_read_set;
 mod direct_attempt;
 mod execution_attempt_identity;
 pub(crate) mod graph_provider;
+mod protocol;
+mod provisional_attempt;
 pub(crate) mod readmission;
 mod session_identity;
 mod workflow_attempt;
 
 pub use attempt_evidence::WorthQueryExecutionResourceAttemptEvidence;
+pub use decision_read_set::*;
 pub use direct_attempt::{
     WorthQueryDirectExecutionAttemptReleaseReceipt, WorthQueryDirectExecutionResourceAttempt,
 };
 pub use execution_attempt_identity::WorthQueryExecutionAttemptIdentity;
 pub use graph_provider::*;
+pub use protocol::*;
+pub use provisional_attempt::*;
 pub use session_identity::WorthQueryExecutionProviderSession;
 pub use workflow_attempt::{
     WorthQueryWorkflowExecutionAttemptReleaseReceipt, WorthQueryWorkflowExecutionResourceAttempt,

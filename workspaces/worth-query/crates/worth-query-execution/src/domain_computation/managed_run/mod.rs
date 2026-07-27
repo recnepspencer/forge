@@ -19,6 +19,7 @@ mod lower_admission;
 mod managed_graph_execution;
 mod managed_graph_suspension;
 mod provider_execution_release;
+mod provider_plan_admission;
 mod provider_restore;
 mod provider_start;
 mod provider_step_admission;

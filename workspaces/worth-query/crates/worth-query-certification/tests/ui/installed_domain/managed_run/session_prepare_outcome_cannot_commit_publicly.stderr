@@ -1,0 +1,10 @@
+error[E0624]: method `commit` is private
+ --> tests/ui/installed_domain/managed_run/session_prepare_outcome_cannot_commit_publicly.rs:4:22
+  |
+4 |     let _ = prepared.commit();
+  |                      ^^^^^^ private method
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/protocol/terminal_outcome.rs
+  |
+  |     pub(crate) fn commit(mut self) -> WorthQuerySessionCommitOrAbortOutcome {
+  |     ----------------------------------------------------------------------- private method defined here

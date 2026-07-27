@@ -1,7 +1,8 @@
 use super::super::{
-    WorthQueryOperationCollectionContract, WorthQueryOperationEffectContract,
-    WorthQueryOperationGraphReadContract, WorthQueryOperationInvariantContract,
-    WorthQueryOperationParameterContract, WorthQueryOperationTouchContract,
+    WorthQueryInvariantExecutionContract, WorthQueryOperationCollectionContract,
+    WorthQueryOperationEffectContract, WorthQueryOperationGraphReadContract,
+    WorthQueryOperationInvariantContract, WorthQueryOperationParameterContract,
+    WorthQueryOperationTouchContract,
 };
 
 pub(super) fn parameters(contract: &WorthQueryOperationParameterContract) -> usize {
@@ -72,5 +73,15 @@ pub(super) fn invariants(contract: &WorthQueryOperationInvariantContract) -> usi
     match contract {
         WorthQueryOperationInvariantContract::NotRequired => 0,
         WorthQueryOperationInvariantContract::Declared { invariant_slots } => invariant_slots.len(),
+    }
+}
+
+pub(super) fn invariant_execution(contract: &WorthQueryInvariantExecutionContract) -> usize {
+    match contract {
+        WorthQueryInvariantExecutionContract::NotRequired => 0,
+        WorthQueryInvariantExecutionContract::Declared { requirements } => requirements
+            .iter()
+            .map(|requirement| 7 + requirement.state_load_families().len())
+            .sum(),
     }
 }
