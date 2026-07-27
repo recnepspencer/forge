@@ -22,7 +22,10 @@ pub use failure::{
     WorthQueryGraphReceiptAdmissionDenial,
 };
 pub use legacy_work_claim::WorthQueryLegacyProviderWorkClaim;
-pub use provider_contract::{WorthQueryGraphCommitProvider, WorthQueryGraphParticipationProvider};
+pub use provider_contract::{
+    WorthQueryGraphCommitProvider, WorthQueryGraphParticipationProvider,
+    WorthQueryProviderSessionLifecycle,
+};
 pub use read_material::WorthQueryGraphReadMaterial;
 pub use read_product::WorthQueryExecutionGraphReadProduct;
 pub use read_row::{WorthQueryGraphReadRow, WorthQueryGraphReadRowConstructionDenial};

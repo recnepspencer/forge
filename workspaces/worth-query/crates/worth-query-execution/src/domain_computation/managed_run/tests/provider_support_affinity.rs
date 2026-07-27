@@ -92,13 +92,15 @@ impl WorthQueryGraphParticipationProvider<ManagedGraph> for ForeignSafePointProv
 fn compatible_but_independently_minted_provider_support_denies_before_provider_start() {
     let begins = Arc::new(AtomicUsize::new(0));
     let (running, graph, _, _runtime) = managed_graph_run_with_provider_and_admitted_support(
-        WorthQueryOperationGraphAccess::Observe,
         SupportAffinityProvider {
             begins: Arc::clone(&begins),
         },
-        false,
+        ManagedGraphRunConfiguration {
+            access: WorthQueryOperationGraphAccess::Observe,
+            touch: false,
+            binding_identity: "managed-graph-binding",
+        },
         independently_minted_support,
-        "managed-graph-binding",
     );
     let failure = match running.begin_graph_execution(
         &graph,
@@ -127,6 +129,40 @@ fn compatible_but_independently_minted_provider_support_denies_before_provider_s
 
 #[test]
 fn workflow_stage_safe_point_family_must_match_the_running_bridge_basis() {
+    let (running, graph, begins) = foreign_safe_point_workflow();
+    let failure = match running.begin_stage_graph_execution(
+        "stage",
+        &graph,
+        WorthQueryManagedGraphCallRequest::new(
+            WorthQueryGraphProviderCallKind::Observe,
+            "foreign-safe-point",
+        ),
+    ) {
+        Ok(_) => panic!("foreign stage safe-point family entered the managed lane"),
+        Err(failure) => failure,
+    };
+    assert_eq!(
+        failure.kind(),
+        crate::domain_computation::WorthQueryWorkflowGraphExecutionStartFailureKind::StepContract(
+            crate::domain_computation::WorthQueryManagedStepContractDenialKind::SafePointFamilyMismatch,
+        )
+    );
+    assert_eq!(begins.load(Ordering::Relaxed), 0);
+    let terminal = failure
+        .into_running()
+        .completed()
+        .expect("safe-point mismatch must preserve the running authority");
+    match terminal.cleanup() {
+        WorthQueryWorkflowRunCleanupOutcome::Complete(_) => {}
+        _ => panic!("safe-point mismatch must preserve cleanup authority"),
+    }
+}
+
+fn foreign_safe_point_workflow() -> (
+    crate::domain_computation::WorthQueryRunningWorkflowRun,
+    WorthQueryInstalledGraphParticipationAuthority,
+    Arc<AtomicUsize>,
+) {
     let installer = WorthQueryExecutionRuntimeInstaller::new();
     let begins = Arc::new(AtomicUsize::new(0));
     let provider_anchor = Arc::new(
@@ -164,32 +200,7 @@ fn workflow_stage_safe_point_family_must_match_the_running_bridge_basis() {
     );
     let running =
         super::workflow_provider_steps::admitted_workflow(&runtime, &operation, resources);
-    let failure = match running.begin_stage_graph_execution(
-        "stage",
-        &graph,
-        WorthQueryManagedGraphCallRequest::new(
-            WorthQueryGraphProviderCallKind::Observe,
-            "foreign-safe-point",
-        ),
-    ) {
-        Ok(_) => panic!("foreign stage safe-point family entered the managed lane"),
-        Err(failure) => failure,
-    };
-    assert_eq!(
-        failure.kind(),
-        crate::domain_computation::WorthQueryWorkflowGraphExecutionStartFailureKind::StepContract(
-            crate::domain_computation::WorthQueryManagedStepContractDenialKind::SafePointFamilyMismatch,
-        )
-    );
-    assert_eq!(begins.load(Ordering::Relaxed), 0);
-    let terminal = failure
-        .into_running()
-        .completed()
-        .expect("safe-point mismatch must preserve the running authority");
-    match terminal.cleanup() {
-        WorthQueryWorkflowRunCleanupOutcome::Complete(_) => {}
-        _ => panic!("safe-point mismatch must preserve cleanup authority"),
-    }
+    (running, graph, begins)
 }
 
 fn independently_minted_support(

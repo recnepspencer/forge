@@ -109,6 +109,16 @@ pub(super) fn compare_after_conditionals(
         work,
     )?;
     work.submit_variable_items(
+        left.decision_facts.required_families().len()
+            + right.decision_facts.required_families().len(),
+    );
+    require_equal(
+        &left.decision_facts,
+        &right.decision_facts,
+        Dimension::DecisionFacts,
+        work,
+    )?;
+    work.submit_variable_items(
         super::comparison_width::touches(&left.touches)
             + super::comparison_width::touches(&right.touches),
     );
@@ -126,6 +136,16 @@ pub(super) fn compare_after_conditionals(
         &left.invariants,
         &right.invariants,
         Dimension::Invariants,
+        work,
+    )?;
+    work.submit_variable_items(
+        super::comparison_width::invariant_execution(&left.invariant_execution)
+            + super::comparison_width::invariant_execution(&right.invariant_execution),
+    );
+    require_equal(
+        &left.invariant_execution,
+        &right.invariant_execution,
+        Dimension::InvariantExecution,
         work,
     )?;
     require_equal(&left.replay, &right.replay, Dimension::Replay, work)?;

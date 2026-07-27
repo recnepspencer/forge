@@ -1,0 +1,9 @@
+error: cannot construct `WorthQueryDecisionFactEvidence` with struct literal syntax due to private fields
+ --> tests/ui/installed_domain/managed_run/decision_fact_evidence_construction_is_private.rs:4:19
+  |
+4 |     let _forged = WorthQueryDecisionFactEvidence {
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5 |         identity: "forged".into(),
+  |         ------------------------- private field
+  |
+  = note: ...and other private fields `request`, `binding_identity` and `physical_version_evidence` that were not provided

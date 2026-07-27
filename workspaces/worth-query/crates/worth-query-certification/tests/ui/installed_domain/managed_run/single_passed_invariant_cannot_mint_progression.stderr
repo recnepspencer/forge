@@ -1,0 +1,5 @@
+error[E0599]: no method named `admit_blocking_progression` found for struct `WorthQueryPassedInvariantReceipt` in the current scope
+ --> tests/ui/installed_domain/managed_run/single_passed_invariant_cannot_mint_progression.rs:4:20
+  |
+4 |     let _ = passed.admit_blocking_progression();
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `WorthQueryPassedInvariantReceipt`

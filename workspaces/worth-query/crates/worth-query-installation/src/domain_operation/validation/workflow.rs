@@ -115,6 +115,19 @@ pub(super) fn validate_workflow_closure(
     let WorthQueryOperationWorkflowContract::Declared(workflow) = &operation.workflow else {
         return Ok(());
     };
+    validate_publication_stage_count(operation, workflow)?;
+    for stage in workflow.stages() {
+        validate_stage_declarations(operation, stage)?;
+        validate_stage_operation_closure(operation, stage)?;
+        validate_stage_terminal_contract(operation, stage)?;
+    }
+    validate_aggregate_workflow_closure(operation, workflow)
+}
+
+fn validate_publication_stage_count(
+    operation: &WorthQueryDomainOperationSemanticClosure,
+    workflow: &WorthQueryPortableWorkflowDefinition,
+) -> Result<(), &'static str> {
     let publishable_count = workflow
         .stages()
         .iter()
@@ -127,87 +140,127 @@ pub(super) fn validate_workflow_closure(
     if publishable_count != usize::from(operation_publishes) {
         return Err("workflow-publication-stage-count-mismatch");
     }
-    for stage in workflow.stages() {
-        let semantics = stage.semantics();
-        semantics.resources.validate()?;
-        validate_conditional_nodes(&semantics.conditional_nodes)?;
-        if stage
-            .required_capabilities()
-            .iter()
-            .any(|required| !operation.required_capabilities.contains(required))
-        {
-            return Err("workflow-stage-references-undeclared-capability");
-        }
-        if semantics
-            .required_domain_roles
-            .iter()
-            .any(|role| !operation.required_domains.contains(role))
-        {
-            return Err("workflow-stage-references-undeclared-required-domain");
-        }
-        validate_text_sequence(
-            &semantics.graph_read_roles,
-            "empty-workflow-graph-read-role",
-        )?;
-        validate_text_sequence(&semantics.touch_roles, "empty-workflow-touch-role")?;
-        if semantics
-            .effect_roles
-            .windows(2)
-            .any(|pair| pair[0] == pair[1])
-        {
-            return Err("duplicate-workflow-effect-role");
-        }
-        validate_text_sequence(&semantics.invariant_roles, "empty-workflow-invariant-role")?;
-        if semantics
-            .cost_roles
-            .windows(2)
-            .any(|pair| pair[0] == pair[1])
-        {
-            return Err("duplicate-workflow-cost-role");
-        }
-        if semantics.graph_read_roles.iter().any(|role| {
-            !operation
-                .graph_reads
-                .roles()
-                .iter()
-                .any(|read| &read.role == role)
-        }) {
-            return Err("workflow-stage-references-undeclared-graph-read");
-        }
-        if semantics.touch_roles.iter().any(|role| !matches!(&operation.touches, WorthQueryOperationTouchContract::Declared { graph_roles, .. } if graph_roles.contains(role))) {
-            return Err("workflow-stage-references-undeclared-touch");
-        }
-        if semantics.effect_roles.iter().any(|role| !matches!(&operation.effects, WorthQueryOperationEffectContract::Declared { effect_families } if effect_families.contains(role))) {
-            return Err("workflow-stage-references-undeclared-effect");
-        }
-        if semantics.invariant_roles.iter().any(|role| !matches!(&operation.invariants, WorthQueryOperationInvariantContract::Declared { invariant_slots } if invariant_slots.contains(role))) {
-            return Err("workflow-stage-references-undeclared-invariant");
-        }
-        if stage.is_terminal() && semantics.terminal_result_states.is_empty() {
-            return Err("workflow-terminal-missing-result-state");
-        }
-        if !stage.is_terminal() && !semantics.terminal_result_states.is_empty() {
-            return Err("nonterminal-workflow-stage-declares-result-state");
-        }
-        if semantics
-            .terminal_result_states
-            .iter()
-            .any(|state| !operation.terminal.result_states.contains(state))
-        {
-            return Err("workflow-stage-references-undeclared-result-state");
-        }
-        if semantics
-            .failure_classes
-            .iter()
-            .any(|failure| !operation.terminal.failure_classes.contains(failure))
-        {
-            return Err("workflow-stage-references-undeclared-failure-class");
-        }
-        if stage.is_publishable() && semantics.output != WorthQueryWorkflowValueContract::Projection
-        {
-            return Err("workflow-publishable-stage-output-is-not-projection");
-        }
+    Ok(())
+}
+
+fn validate_stage_declarations(
+    operation: &WorthQueryDomainOperationSemanticClosure,
+    stage: &WorthQueryPortableWorkflowStage,
+) -> Result<(), &'static str> {
+    let semantics = stage.semantics();
+    semantics.resources.validate()?;
+    validate_conditional_nodes(&semantics.conditional_nodes)?;
+    if stage
+        .required_capabilities()
+        .iter()
+        .any(|required| !operation.required_capabilities.contains(required))
+    {
+        return Err("workflow-stage-references-undeclared-capability");
     }
+    if semantics
+        .required_domain_roles
+        .iter()
+        .any(|role| !operation.required_domains.contains(role))
+    {
+        return Err("workflow-stage-references-undeclared-required-domain");
+    }
+    validate_text_sequence(
+        &semantics.graph_read_roles,
+        "empty-workflow-graph-read-role",
+    )?;
+    validate_text_sequence(&semantics.touch_roles, "empty-workflow-touch-role")?;
+    if semantics
+        .effect_roles
+        .windows(2)
+        .any(|pair| pair[0] == pair[1])
+    {
+        return Err("duplicate-workflow-effect-role");
+    }
+    validate_text_sequence(&semantics.invariant_roles, "empty-workflow-invariant-role")?;
+    if semantics
+        .cost_roles
+        .windows(2)
+        .any(|pair| pair[0] == pair[1])
+    {
+        return Err("duplicate-workflow-cost-role");
+    }
+    Ok(())
+}
+
+fn validate_stage_operation_closure(
+    operation: &WorthQueryDomainOperationSemanticClosure,
+    stage: &WorthQueryPortableWorkflowStage,
+) -> Result<(), &'static str> {
+    let semantics = stage.semantics();
+    if semantics.graph_read_roles.iter().any(|role| {
+        !operation
+            .graph_reads
+            .roles()
+            .iter()
+            .any(|read| &read.role == role)
+    }) {
+        return Err("workflow-stage-references-undeclared-graph-read");
+    }
+    if semantics.touch_roles.iter().any(|role| !matches!(&operation.touches, WorthQueryOperationTouchContract::Declared { graph_roles, .. } if graph_roles.contains(role))) {
+        return Err("workflow-stage-references-undeclared-touch");
+    }
+    if semantics.effect_roles.iter().any(|role| !matches!(&operation.effects, WorthQueryOperationEffectContract::Declared { effect_families } if effect_families.contains(role))) {
+        return Err("workflow-stage-references-undeclared-effect");
+    }
+    if semantics.invariant_roles.iter().any(|role| !matches!(&operation.invariants, WorthQueryOperationInvariantContract::Declared { invariant_slots } if invariant_slots.contains(role))) {
+        return Err("workflow-stage-references-undeclared-invariant");
+    }
+    if semantics.invariant_roles.iter().any(|slot| {
+        operation
+            .invariant_execution
+            .requirement(slot)
+            .is_some_and(|requirement| {
+                !semantics
+                    .touch_roles
+                    .iter()
+                    .any(|role| role == requirement.executor_role())
+            })
+    }) {
+        return Err("workflow-invariant-executor-does-not-own-stage-provisional-state");
+    }
+    Ok(())
+}
+
+fn validate_stage_terminal_contract(
+    operation: &WorthQueryDomainOperationSemanticClosure,
+    stage: &WorthQueryPortableWorkflowStage,
+) -> Result<(), &'static str> {
+    let semantics = stage.semantics();
+    if stage.is_terminal() && semantics.terminal_result_states.is_empty() {
+        return Err("workflow-terminal-missing-result-state");
+    }
+    if !stage.is_terminal() && !semantics.terminal_result_states.is_empty() {
+        return Err("nonterminal-workflow-stage-declares-result-state");
+    }
+    if semantics
+        .terminal_result_states
+        .iter()
+        .any(|state| !operation.terminal.result_states.contains(state))
+    {
+        return Err("workflow-stage-references-undeclared-result-state");
+    }
+    if semantics
+        .failure_classes
+        .iter()
+        .any(|failure| !operation.terminal.failure_classes.contains(failure))
+    {
+        return Err("workflow-stage-references-undeclared-failure-class");
+    }
+    if stage.is_publishable() && semantics.output != WorthQueryWorkflowValueContract::Projection {
+        return Err("workflow-publishable-stage-output-is-not-projection");
+    }
+    Ok(())
+}
+
+fn validate_aggregate_workflow_closure(
+    operation: &WorthQueryDomainOperationSemanticClosure,
+    workflow: &WorthQueryPortableWorkflowDefinition,
+) -> Result<(), &'static str> {
     let stage_graph_reads = workflow
         .stages()
         .iter()

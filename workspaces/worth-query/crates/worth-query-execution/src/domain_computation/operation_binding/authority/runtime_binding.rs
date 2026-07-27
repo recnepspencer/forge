@@ -55,58 +55,86 @@ impl WorthQueryExecutionRuntime {
             &installed_support,
             &workflow_artifact_contracts,
         )?;
-        Ok(WorthQueryExecutionBoundOperationAuthority {
-            runtime_authority: self.authority_identity(),
-            installation_runtime_ordinal: operation.runtime_ordinal(),
+        Ok(ValidatedOperationBinding {
+            runtime: self,
+            operation,
+            basis,
+            graph_authorities,
+            required_domains,
+            commit_posture,
+            installed_support,
+            workflow_artifact_contracts,
+        }
+        .bind())
+    }
+}
+
+struct ValidatedOperationBinding<'a, L: BasisOperationLane> {
+    runtime: &'a WorthQueryExecutionRuntime,
+    operation: &'a WorthQueryInstalledDomainOperationAuthority,
+    basis: &'a AdmittedBasisCapability<L>,
+    graph_authorities: &'a [&'a WorthQueryInstalledGraphParticipationAuthority],
+    required_domains: &'a [(&'a str, &'a WorthQueryInstalledPackageAuthority)],
+    commit_posture: WorthQueryExecutionCommitPosture,
+    installed_support: WorthQueryInstalledOperationExecutionSupport,
+    workflow_artifact_contracts: BTreeMap<
+        String,
+        crate::domain_computation::artifact_owner::WorthQueryInstalledWorkflowArtifactContracts,
+    >,
+}
+
+impl<L: BasisOperationLane> ValidatedOperationBinding<'_, L> {
+    fn bind(self) -> WorthQueryExecutionBoundOperationAuthority {
+        let semantics = self.operation.definition().semantics();
+        WorthQueryExecutionBoundOperationAuthority {
+            runtime_authority: self.runtime.authority_identity(),
+            installation_runtime_ordinal: self.operation.runtime_ordinal(),
             binding_identity: binding_identity(
-                self,
-                operation,
-                basis,
-                graph_authorities,
-                required_domains,
-                commit_posture,
-                &installed_support,
+                self.runtime,
+                self.operation,
+                self.basis,
+                self.graph_authorities,
+                self.required_domains,
+                self.commit_posture,
+                &self.installed_support,
             )
             .into(),
-            operation_identity: operation.definition().canonical_identity().into(),
-            basis_identity: basis.capability_digest().into(),
-            semantic_basis: basis.normalized().clone(),
-            canonical_query_digest: operation
-                .definition()
-                .semantics()
-                .canonical_query
-                .query()
-                .digest()
-                .as_str()
-                .into(),
-            operation_resource_contract_identity: operation
-                .definition()
-                .semantics()
-                .resources
-                .canonical_identity()
-                .into(),
-            commit_posture,
-            direct_resource_topology: direct_topology(operation, graph_authorities, commit_posture),
+            operation_identity: self.operation.definition().canonical_identity().into(),
+            basis_identity: self.basis.capability_digest().into(),
+            semantic_basis: self.basis.normalized().clone(),
+            canonical_query_digest: semantics.canonical_query.query().digest().as_str().into(),
+            operation_resource_contract_identity: semantics.resources.canonical_identity().into(),
+            provider_plan_declarations: Arc::new(
+                crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::from_semantics(
+                    semantics,
+                ),
+            ),
+            commit_posture: self.commit_posture,
+            direct_resource_topology: direct_topology(
+                self.operation,
+                self.graph_authorities,
+                self.commit_posture,
+            ),
             workflow_stage_resources: workflow_stage_resources(
-                operation,
-                graph_authorities,
-                commit_posture,
-                &workflow_artifact_contracts,
+                self.operation,
+                self.graph_authorities,
+                self.commit_posture,
+                &self.workflow_artifact_contracts,
             ),
             operation_evidence_contract: installed_evidence_contract(
-                operation.owner(),
-                &operation.definition().semantics().evidence,
-                self.installed_packages(),
+                self.operation.owner(),
+                &semantics.evidence,
+                self.runtime.installed_packages(),
             ),
-            installed_support,
+            installed_support: self.installed_support,
             installed_domain:
                 crate::domain_computation::operation_binding::WorthQueryInstalledDomainExecutionAuthority::mint(
-                    self.authority_identity(),
-                    operation.owner(),
-                    operation.generation(),
-                    self.retain_current_generation(),
+                    self.runtime.authority_identity(),
+                    self.operation.owner(),
+                    self.operation.generation(),
+                    self.runtime.retain_current_generation(),
                 ),
-        })
+        }
     }
 }
 

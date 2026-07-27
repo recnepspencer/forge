@@ -33,5 +33,10 @@ path = "tests/managed_run_compile_fail.rs"
 name = "convergence_epoch_compile_fail"
 path = "tests/convergence_epoch_compile_fail.rs"
 
+[[test]]
+name = "installed_audience_journey"
+path = "tests/pass/installed_audience_journey.rs"
+harness = false
+
 [lints]
 workspace = true

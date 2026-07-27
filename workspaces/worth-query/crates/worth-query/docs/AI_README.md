@@ -32,8 +32,8 @@ domain crate / application
 That layering matters. Query is not a thin read helper over lower runtime
 systems. It is the ordinary domain-facing runtime layer. It owns the public
 runtime facade, domain entry, declaration pipelines, support posture, binding,
-orchestration, recovery, inspection, and the public domain capability
-contribution and installed-operation seams.
+inspection, semantic state machines, and proof-carrying phase progression. It
+does not absorb the physical authority of the lower runtimes it coordinates.
 
 `worth-runtime-bridge` owns the causal protocol layer that wires authoritative
 truth to derived computation without collapsing either runtime into the other:
@@ -72,6 +72,14 @@ dependencies, comparator and adaptive tolerance propagation, and first-class
 observation with extensible delivery strategies—all over host snapshots without
 owning truth storage, while exposing execution traces, graph inspection, and
 metrics that explain why work ran, deferred, or delivered change.
+
+Execution-grade installed computation makes this ownership split especially
+visible. Query owns the managed-run and provider-session progression. Runtime
+Bridge binds the exact request to its causal execution basis. Relational owns
+the authoritative basis and eventual truth mutation. Signal owns cancellation,
+pressure, and bounded scheduling state. Registered providers own physical
+sessions, native artifacts, provisional overlays, and invariant-state loading.
+Joining those authorities does not let any participant fabricate another.
 
 Ordinary domain work starts at Query. Use lower layers to understand semantics,
 not as permission to bypass Query.
@@ -120,6 +128,11 @@ If you have no idea where to start, read these first:
 - [Async Resources And Result State](./capabilities/async-resources-and-result-state.md)
 - [Downstream Runtime Integration](./foundations/downstream-runtime-integration.md)
 - [Runtime-Installed Domains](./domain-capabilities/runtime-installed-domains.md)
+- [Installed Computation Artifact Contracts](./domain-capabilities/installed-computation-artifact-contracts.md)
+- [Managed Artifact Ownership And Native Access](./domain-capabilities/managed-artifact-ownership-and-native-access.md)
+- [Execution Resource Admission And Managed Runs](./domain-capabilities/execution-resource-admission-and-managed-runs.md)
+- [Provider Sessions And Decision Read-Sets](./domain-capabilities/provider-sessions-and-decision-read-sets.md)
+- [Provisional State And Invariant Execution](./domain-capabilities/provisional-state-and-invariant-execution.md)
 - [Installed Operation Re-Execution And Replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)
 - [Installed Operation Aftermath](./domain-capabilities/installed-operation-aftermath.md)
 - [Installed Operation Lineage And Promotion](./domain-capabilities/installed-operation-lineage-and-promotion.md)
@@ -203,6 +216,27 @@ An entry-band host can use the narrower host audience:
 use worth_query_host::facade::{domain, installed, runtime};
 ```
 
+Execution-grade installed computation uses more specific host audiences:
+
+```rust
+use worth_query_host::facade::{
+    admission::resource_admission,
+    convergence_epoch,
+    domain,
+    installed::{domain_computation, provider_session},
+    publication,
+    runtime,
+};
+```
+
+`domain` owns callback-free installed meaning. `resource_admission` owns
+capacity admission and reservation. `domain_computation` owns managed artifacts,
+runs, provider-plan progression, decision read-sets, provisional attempts, and
+invariant progression. `provider_session` is the host integration surface for
+physical providers, not an ordinary domain-consumer callback lane.
+`convergence_epoch` observes managed terminal posture. `publication` remains a
+separate authority boundary.
+
 Pure schema and meaning crates remain Query-agnostic. They expose portable
 meaning that an entry-band crate installs through `worth-query-decl` or
 `worth-query-host`; they do not import Query to acquire runtime authority.
@@ -229,18 +263,15 @@ Read next:
 ## Query Operating Modes
 
 Query deliberately supports more than one honest execution posture. The same
-canonical query meaning can run runtime-backed against relational snapshots,
-later run store-backed where admitted without changing query semantics, promote
-to live maintenance without changing the query expression, or exist as
-ephemeral saved-query or host-bound artifacts before durable store support
-closes.
+canonical query meaning can run against an admitted relational snapshot,
+promote to live maintenance without changing the query expression, or exist as
+an ephemeral saved-query or host-bound artifact.
 
 Use this category when the question is not “how do I author the query?” but
 “which execution posture is real today, and what completion debt is still open?”
 
-The mistake to avoid is claiming store-backed, restart-stable, or durable
-cursor semantics because a helper name sounds persistent. Ephemeral and
-store-gated debt must stay explicit.
+The mistake to avoid is claiming a stronger execution or cursor posture because
+a helper name sounds persistent. Only the currently admitted profile is real.
 
 Read next:
 
@@ -467,18 +498,25 @@ cross-runtime, cross-basis, semantic-drift, and exact-counter behavior. Do not
 write a second layer of tests merely to prove that these tests or manifests
 exist.
 
-Milestone 9.14 provider and domain certification enters through the cold
+Installed-operation certification enters through the cold
 `worth-query-certification` crate. That crate depends on
 `worth-query-host` and `worth-query-replay`, never Query implementation
-modules. It owns the generic hostile matrix, complete installed-operation
-journey vocabulary, exact denial/counter evidence, and provider-independent
-parity oracle. A configured downstream certification owner contributes only
-its eight small semantic scenario families: workflow, replay, conditional
-node, semantic-aspect correspondence, reversal, lineage, dependency impact,
-and counter contract, including an independent expected semantic oracle.
-Query derives the generic journey checkpoints and runs the hostile provider
-separately, so domains reproduce neither the generic compile-fail nor hostile
-attack cross-product. Ordinary packages cannot depend on this kit.
+modules. It owns the generic hostile matrix, provider-independent parity
+oracles, exact denial and counter evidence, compile-fail authority checks, and
+executable external-consumer journeys. Ordinary packages cannot depend on this
+kit.
+
+Execution-grade installed computation adds consumer evidence for managed
+artifacts, resource admission, yield and same-runtime readmission, provider
+session ordering, complete decision read-sets, provisional overlays, and real
+invariant execution. Compile-fail cases prove that callers cannot construct
+session tokens, checkpoints, decision facts, proposal bases, provisional
+programs, invariant receipts, or later-phase progression. The passing audience
+journey proves the public host facade can advance from a running managed run
+through fresh decision evidence and invariant progression without importing
+implementation modules. Keep these proofs causal: do not multiply every
+scenario across every category when one representative journey plus
+boundary-specific hostile cases proves the guarantee.
 
 Read next:
 
@@ -802,14 +840,13 @@ Use this category when you need reusable fragments, table/detail/grouped/
 timeline/inspector presentation intent, or saved-query freeze and reuse
 decisions.
 
-The mistake to avoid is treating view shape as UI-only sugar or saved queries
-as durable product completion before store-backed reload is honestly admitted.
+The mistake to avoid is treating view shape as UI-only sugar or an ephemeral
+saved query as a stronger retained product boundary.
 On the runtime-backed application support profile, core view-family support
 rows are already verified for `table`, `detail`, inspector detail, and
 `kanban_grouped` surfaces, and grouped reusable composition/template support is
-now admitted on the same runtime-backed product lane. Remaining grouped
-follow-on work in this neighborhood is about later durable/store-backed
-neighbors, not the grouped view-family row.
+now admitted on the same runtime-backed product lane. That does not strengthen
+the retention posture of neighboring saved-query surfaces.
 
 Read next:
 
@@ -960,6 +997,14 @@ and `WorthQueryWorkspace::domain(...)` returns a handle tied to that runtime
 and exact installation generation. Runtime-installed operations extend that
 same authority into typed execution, publication, consumption, settlement,
 workflow progression, graph participation, and conditional evaluation.
+
+There are two installed execution journeys. The ordinary journey binds an
+operation through one operating world and advances through execution,
+publication, consumption, and settlement as declared. Execution-grade managed
+computation starts from the same installed meaning but adds resource
+reservation, managed-run lifecycle, provider sessions, decision read-sets,
+provisional state, and actual invariant execution. Do not force either journey
+through the other's phase types.
 
 The authority split is deliberate:
 
@@ -1245,6 +1290,240 @@ Read next:
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Consumer Kit](./foundations/consumer-kit.md)
 
+## Execution-Grade Installed Domain Computation
+
+Execution-grade installed computation is the Query path for domain work that
+cannot honestly be represented as one executor callback. Reach for it when an
+installed operation must retain provider-native artifacts, reserve real
+capacity, advance through bounded steps, yield at safe points, stage proposed
+graph changes, or execute invariants against the exact proposed post-state.
+
+This path extends runtime-installed domains; it does not replace the ordinary
+installed-operation journey. A small operation can still follow
+`bound -> executed -> published -> consumed -> settled`. Execution-grade work
+starts from an installed operation and follows a second, more detailed
+authority chain:
+
+```text
+portable computation contracts
+  -> installed artifact and resource authority
+  -> capacity reservation
+  -> managed run
+  -> sealed provider session
+  -> complete fresh decision read-set
+  -> provisional proposed state
+  -> executed invariant receipts
+  -> complete invariant progression for a later publication boundary
+```
+
+The stable entry audiences are:
+
+```rust
+use worth_query_host::facade::{
+    admission::resource_admission,
+    domain,
+    installed::{domain_computation, provider_session},
+    runtime,
+};
+```
+
+`domain` is portable installation meaning. `resource_admission` is capacity
+admission and reservation. `domain_computation` is the ordinary consumer
+progression. `provider_session` is the runtime-host integration contract for
+physical providers.
+
+### Installed computation artifact contracts
+
+Portable artifact contracts declare what candidate sets, compiled plans,
+solver state, checkpoints, or other working artifacts mean before any provider
+allocates them. The contract includes:
+
+- semantic and occurrence identity;
+- payload owner, producer and consumer roles;
+- move, borrow, transfer, retention, reconstruction, and lifecycle posture;
+- reproducibility, comparison, search, and convergence meaning;
+- transformation and loss evidence;
+- installed native access paths;
+- structural counters and decision-record schemas;
+- classification, redaction, retention, compatibility, and retirement.
+
+Every semantic field participates in canonical identity. Equivalent declaration
+order converges; changed units, governance, occurrence policy, comparator,
+reconstruction, or loss posture conflicts.
+
+Structural counters explain real work in declared units. Required foundation
+rows cannot be shadowed, aggregation must be acyclic and unit-compatible, and
+caller-authored work reports cannot satisfy the contract. Decision records
+explain pruning, ranking, or candidate choice. Their classification and
+redaction rules constrain the containing artifact, and their contents never
+authorize execution, mutation, publication, or invariant progression.
+
+Read:
+
+- [Installed Computation Artifact Contracts](./domain-capabilities/installed-computation-artifact-contracts.md)
+
+### Managed artifact ownership and native access
+
+Runtime artifacts are owned through `WorthQueryMoveOnlyArtifactHandle`, not
+`Any` bags or caller-managed IDs. Query can mint lifetime-bound borrows,
+move-only retained leases, admitted workflow transfers, and explicit disposal
+outcomes. The handle proves ownership and lifecycle position; it is not
+mutation, invariant, publication, or commit authority.
+
+`WorthQueryStageArtifactReader` admits the installed row-batch, field-slice,
+bounded-chunk, or provider-native projection path. Scalar fallback is separate
+and explicitly bounded. Borrowed provider memory cannot escape its callback.
+Projected chunk memory counts variable-width heap allocations, not only the
+outer result vector. Pending chunks must be consumed or abandoned before the
+provider advances.
+
+Read:
+
+- [Managed Artifact Ownership And Native Access](./domain-capabilities/managed-artifact-ownership-and-native-access.md)
+
+### Execution resource admission and managed runs
+
+An execution resource request declares scale, memory, concurrency, queue,
+chunk, deadline, safe-point, and cleanup needs. Admission selects an immutable
+strategy and envelope. Reservation then consumes real capacity, so saturation
+is proved by competing reservations and release rather than a caller-supplied
+"insufficient" snapshot.
+
+Managed-run admission joins the installed-operation phase proof and reserved
+attempt with Query, Runtime Bridge, Relational, Signal, provider-session, and
+artifact authority. Query owns the semantic state machine. Bridge owns the
+causal execution-basis binding. Relational owns authoritative basis mechanics.
+Signal owns cancellation and pressure. Providers own physical execution,
+retained memory, and checkpoints.
+
+Providers advance through installed bounded steps. Safe points observe
+cancellation, timeout, rejection, and pressure before and after provider work.
+Pending output blocks another provider step. Provider rejection or panic
+becomes a typed terminal or recovery posture with exact counters.
+
+Yield ends the current attempt but not the logical run. A yielded capability
+owns the retained checkpoint, artifacts, capacity, applied-effect evidence, and
+affinity required for same-runtime readmission. It cannot execute, publish, or
+be reconstructed from checkpoint evidence. Readmission transfers retained
+capacity and mints fresh attempt and provider-session generations.
+
+Convergence consumes managed lifecycle outcomes and distinguishes completed,
+yielded, cancelled, failed, cleanup-pending, and recovery-required work.
+Convergence does not grant decision, invariant, publication, or resolution
+authority.
+
+Read:
+
+- [Execution Resource Admission And Managed Runs](./domain-capabilities/execution-resource-admission-and-managed-runs.md)
+
+### Provider sessions and decision read-sets
+
+A running managed run admits one sealed provider execution plan from the exact
+installed graph participation authority:
+
+```text
+admitted provider plan
+  -> plan readmission
+  -> prepared provider session
+  -> session-bound read and effect authorities
+```
+
+The plan binds provider identity and generation, operation, resource attempt,
+Bridge basis, graph role, decision-fact closure, provisional dimensions, and
+installed invariant requirements. Preparation does not authorize effects.
+Only the staged session exposes separate read and effect authorities; neither
+can perform the other's job.
+
+A decision read-set contains every installed fact family and exact fact count
+that can influence the proposal. Query canonicalizes requests, verifies
+provider evidence affinity, and compares the same evidence again. `Fresh`
+continues. `Stale` requires replanning. Raw hashes, arbitrary callbacks,
+caller-selected subsets, and independently paired facts cannot replace this
+receipt. Freshness still is not mutation or commit authority.
+
+Read:
+
+- [Provider Sessions And Decision Read-Sets](./domain-capabilities/provider-sessions-and-decision-read-sets.md)
+
+### Provisional state and real invariant execution
+
+The session effect authority lowers a provisional program only from the exact
+staged session and fresh decision read-set. The provider stages an isolated
+overlay bound to the provider, session token, basis, program, and attempt
+generation. Ordinary reads continue to observe committed truth.
+
+The caller can inspect, revise, or discard the proposed post-state. Candidate
+scores, decision evidence, overlay identity, and proposed-state identity are
+descriptive; none can publish the proposal.
+
+Invariant registration and provider capability also do not prove a proposal.
+Each installed invariant must select its exact requirement, admit a state-load
+plan, load the required state from the proposal, execute the validator, and
+return a typed passed, advisory, violated, indeterminate, or exhausted receipt.
+Only one complete, exact receipt set for every installed slot can mint
+`WorthQueryInvariantProgressionAuthority`.
+
+The current public boundary stops there. Invariant progression proves the exact
+proposal and attempt generation satisfied its installed posture. It does not
+expose commit preparation or commit. The proposal remains non-authoritative and
+every provisional stage retains a consuming discard path.
+
+The consumer shape is:
+
+```rust
+let staged = running
+    .admit_provider_execution_plan(&graph)?
+    .readmit()?
+    .prepare()?
+    .bind_reads_and_effects();
+
+let captured = staged
+    .read_authority()
+    .capture_decision_read_set(requests)?;
+
+let fresh = match staged
+    .read_authority()
+    .compare_decision_read_set(captured)?
+{
+    domain_computation::WorthQueryDecisionReadSetFreshnessOutcome::Fresh(fresh) => fresh,
+    domain_computation::WorthQueryDecisionReadSetFreshnessOutcome::Stale(stale) => {
+        return replan(stale);
+    }
+};
+
+let program = staged
+    .effect_authority()
+    .lower_provisional_program(&fresh, effect_steps)?;
+
+let inspection = staged
+    .begin_provisional_attempt(fresh, program)?
+    .materialize_proposed_state()
+    .inspect();
+
+let receipt = inspection
+    .select_installed_invariant(invariant_slot)?
+    .admit_state_load_plan(state_load)?
+    .execute()?;
+
+let progression = inspection.admit_invariant_progression([receipt])?;
+inspect_progression(&progression);
+handle_discard(inspection.discard());
+```
+
+Real operations execute every installed invariant and supply the complete
+receipt collection. The example ends with discard because this public
+progression has no commit method.
+
+Read:
+
+- [Provisional State And Invariant Execution](./domain-capabilities/provisional-state-and-invariant-execution.md)
+
+The mistakes to avoid across this category are untyped payloads, caller-made
+work reports, raw checkpoints or session tokens, scalar loops over an admitted
+bulk path, local cancellation protocols, incomplete decision dependencies,
+staged overlays treated as truth, selected invariants treated as executed, one
+passed receipt treated as a complete set, and convergence treated as approval.
+
 ## Conditional Installed Operations
 
 Conditional nodes are portable Query declarations inside an installed
@@ -1468,6 +1747,12 @@ Read next:
 Effects are retained delivery or staging surfaces that react to live or computed
 changes. They are not a general truth-mutation lane.
 
+The provisional effect program used by execution-grade installed computation
+is narrower still: it is bound to one staged provider session and fresh
+decision read-set, and it can only stage an isolated provider overlay. General
+effect authority cannot be substituted for that program, and staging is not
+commit.
+
 Query lowers effect intent once through an authority-scoped pipeline: eligibility,
 scoped plan, lowered execution plan, receipt, and self-describing envelope.
 Executors must consume lowered proofs rather than re-deciding authority, basis,
@@ -1636,6 +1921,12 @@ lower truth semantics through a real public lane. The ownership split is that
 Relational remains the authority, but Query owns the ordinary public access and
 orchestration shape.
 
+For execution-grade installed computation, registration and selected support
+are only prerequisites. Query must admit a state-load plan for the exact
+proposed post-state, the registered provider must load that state and execute
+the validator, and a complete exact set of typed invariant receipts must mint
+progression. A registered or selected invariant is not a passed invariant.
+
 For conditional and derived work, Relational aspects and Signal aspects are
 not interchangeable. Relational publishes authoritative semantic change;
 Signal tracks executable invalidation and computation state. Runtime Bridge
@@ -1774,8 +2065,8 @@ This is the **`CausalInspection` lane** (`admit_causal_inspection`,
 `workspace.inspections()?.inspect`, which is per-target retained evidence only.
 
 `CrossRuntimeCausalExplanation` at reference-only richness is **supported**;
-materialized detail is **advisory**. Durable causal archive and store-backed
-replay reconstruction are **deferred**.
+materialized detail is **advisory**. Archive-backed reconstruction is
+**deferred**.
 
 Construct `CausalInspection` from both the originating receipt and a
 `facade::foundation::ScopedInspectionBasis`. The receipt proves the event chain;
@@ -1957,6 +2248,17 @@ Need domain work/request:
 - use a typed `facade::domain` contribution only when the request contributes
   posture to another Query-owned artifact
 - in both cases, let Query own admission, identity, receipts, and outcomes
+
+Need execution-grade installed computation:
+
+- declare the artifact, evidence, native-access, resource, decision-fact, and
+  invariant meaning in the installed operation
+- reserve capacity before provider allocation, then enter through
+  `WorthQueryExecutionRuntime::managed_run_admission(...)`
+- advance the Query-minted run, provider session, decision read-set,
+  provisional proposal, and invariant phases in order
+- preserve typed cleanup, recovery, stale, discard, and terminal outcomes
+- stop at invariant progression; do not invent a public provider commit
 
 Need identity/deduplication:
 
@@ -2141,6 +2443,24 @@ capability-bound invalidation deltas. Bound collection capabilities now admit
 opaque cursor windows and capability-, generation-, basis-, ordering-, and
 lease-bound query-shaped patch delivery.
 
+The installed-operation surface also includes execution-grade managed
+computation. Portable contracts cover artifact identity, ownership, lifecycle,
+reproducibility, search, convergence, transformation, native access, structural
+counters, decision schemas, resource requirements, bounded steps, and yield
+posture. Runtime authorities cover move-only artifact ownership, bounded native
+access, real capacity reservation, managed direct and workflow runs, safe-point
+cancellation, yield, same-runtime readmission, and managed convergence.
+
+For graph-changing work, a running managed run can admit a sealed provider
+plan, prepare a fresh provider session, capture and compare the complete
+installed decision read-set, stage an isolated provisional overlay, inspect or
+revise the proposed post-state, execute each installed invariant against an
+admitted state load, and mint progression from the complete exact receipt set.
+The boundary currently ends at
+`WorthQueryInvariantProgressionAuthority`. Proposed state is still
+non-authoritative, and commit preparation or commit is not exposed by this
+progression.
+
 Settled direct and workflow projections also expose a sealed consumption-cost
 snapshot. Query owns these operational measurements: lookup, binding, support,
 execution, dependency, and optional native-binding rows come from the real
@@ -2240,6 +2560,24 @@ See [Operational Identity Authority](./foundations/operational-identity-authorit
   `WorthQueryDomainOperationDefinition`; volatile execution, graph,
   conditional, and workflow mechanics are registered separately and retained
   by the runtime.
+- Portable computation-artifact meaning lives in
+  `WorthQueryPortableArtifactContract`; installation mints
+  `WorthQueryInstalledArtifactContractAuthority`, and runtime values are owned
+  by move-only Query artifact handles.
+- Execution-resource authority comes from an admitted plan plus a real capacity
+  reservation bound to the exact installed operation. Support snapshots and
+  counter reports remain descriptive.
+- Managed-run authority joins the exact Query operation and resource attempt
+  with Bridge execution-basis, Relational basis, Signal request, provider
+  session, and artifact authority. Yielded capabilities retain that join for
+  same-runtime readmission.
+- Provider-plan and decision authority comes from the running managed run,
+  installed graph participation, fresh provider-session generation, and
+  complete compared decision read-set.
+- Provisional and invariant authority comes from the exact staged session,
+  fresh decision read-set, provider overlay, proposed-state generation,
+  admitted state-load evidence, and complete installed invariant receipt set.
+  It does not imply publication or commit.
 - Native aspect meaning comes from `worth_foundational::facade::{AspectValue,
   StructAspectValue}` together with Foundational aspect contracts and bindings,
   and is admitted by Query against the active contract.
@@ -2287,9 +2625,10 @@ Before building on a Query category, answer these:
 10. If another runtime depends on Query facts, am I transferring one
     `WorthQueryConsumedProjectionAuthority` rather than pairing basis, receipt,
     source, fact, label, or digest projections locally?
-11. If this is an installed operation, did I import `facade::installed`, enter
-    through one operating world, and preserve the move-only `bound -> executed
-    -> published -> consumed -> settled` authority chain?
+11. If this is an ordinary installed operation, did I import
+    `facade::installed`, enter through one operating world, and preserve the
+    move-only `bound -> executed -> published -> consumed -> settled` authority
+    chain rather than forcing it through managed-computation phases?
 12. If the operation is conditional, did Query author semantic dependencies,
     Runtime Bridge admit the exact correspondence, and Signal produce the
     decision, or did I accidentally build another condition engine?
@@ -2318,6 +2657,28 @@ Before building on a Query category, answer these:
 22. If this is collection delivery, did the exact lease-bound invalidation
     admit the patch, and does the consumer apply the Query patch before deriving
     only domain-local consequences?
+23. If this produces computation artifacts, does the portable contract declare
+    exact identity, ownership, lifecycle, carriage, reproducibility, access,
+    counters, decisions, governance, and compatibility?
+24. If an artifact crosses stages, am I carrying the move-only handle, admitted
+    transfer, borrow, lease, and disposal posture rather than IDs or `Any`
+    payloads?
+25. If this claims bounded native access, does the installed path govern the
+    request, does chunk width bound actual variable-width memory, and is scalar
+    fallback explicit?
+26. If this starts managed work, was real capacity reserved before provider
+    allocation, and which authority releases or transfers that reservation?
+27. If this yields or readmits, am I carrying the exact move-only yielded
+    capability and minting fresh attempt and session generations rather than
+    reconstructing progress from checkpoint evidence?
+28. If this stages provider work, did the sealed plan bind the exact operation,
+    resources, basis, provider generation, and installed decision closure before
+    reads and effects separated?
+29. Does the proposal depend on one complete compared decision read-set, and do
+    stale facts force replanning before any provisional stage?
+30. Is proposed state still non-authoritative, did every installed invariant
+    execute against an admitted state load, and does only the complete exact
+    receipt set mint progression without implying public commit?
 
 If you cannot answer those, read the owning docs before writing code.
 

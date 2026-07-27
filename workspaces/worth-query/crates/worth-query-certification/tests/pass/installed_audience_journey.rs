@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+
+use worth_query_host::facade::installed::domain_computation as execution;
 use worth_query_host::facade::{
     admission::resource_admission::{
         WorthQueryAdmittedExecutionResourcePlan, WorthQueryExecutionResourceAdmissionDenial,
@@ -17,25 +20,17 @@ use worth_query_host::facade::{
             WorthQueryYieldedDirectRun,
         },
         provider_session::{
-            WorthQueryCooperativeGraphProviderExecution, WorthQueryExecutionProviderSession,
-            WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
-            WorthQueryGraphProviderCheckpoint, WorthQueryGraphProviderExecution,
-            WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderFailure,
-            WorthQueryGraphProviderRestoreMemory, WorthQueryGraphProviderRetainedMemory,
-            WorthQueryGraphProviderStep, WorthQueryGraphProviderStepDisposition,
+            WorthQueryExecutionProviderSession, WorthQueryGraphProviderCheckpoint,
+            WorthQueryGraphProviderExecutionStart, WorthQueryGraphProviderRestoreMemory,
+            WorthQueryGraphProviderRetainedMemory,
         },
     },
     publication::domain_computation::WorthQueryDomainEvidenceMaterial,
     runtime::{WorthQueryExecutionRuntime, WorthQueryExecutionRuntimeInstaller},
 };
-use worth_query_host::facade::convergence_epoch::{
-    WorthQueryCandidateSemanticFamilies, WorthQueryConvergenceAssessment,
-    WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure,
-    WorthQueryConvergenceDomainProvider, WorthQueryConvergenceProgress,
-    WorthQueryConvergenceProviderFamilies, WorthQueryConvergenceRepeatedState,
-    WorthQueryIterationSemanticFamilies,
-};
 use worth_query_replay::facade::WorthQueryCertificationReplayCounters;
+
+mod phase_seven_ten_provider;
 
 fn install_and_inspect(
     installer: WorthQueryExecutionRuntimeInstaller,
@@ -44,12 +39,127 @@ fn install_and_inspect(
     let _ = (installer, package);
 }
 
+fn phase_seven_through_ten_consumer_journey(
+    running: &mut execution::WorthQueryRunningDirectRun,
+    graph: &worth_query_host::facade::domain::WorthQueryInstalledGraphParticipationAuthority,
+    requests: Vec<execution::WorthQueryDecisionFactRequest>,
+    steps: Vec<execution::WorthQueryProvisionalEffectStep>,
+    invariant_slot: &str,
+    state_load: Vec<execution::WorthQueryInvariantStateLocator>,
+) {
+    let staged = running
+        .admit_provider_execution_plan(graph)
+        .unwrap()
+        .readmit()
+        .unwrap()
+        .prepare()
+        .unwrap()
+        .bind_reads_and_effects();
+    let read_set = {
+        let reads = staged.read_authority();
+        let captured = reads.capture_decision_read_set(requests).unwrap();
+        match reads.compare_decision_read_set(captured).unwrap() {
+            execution::WorthQueryDecisionReadSetFreshnessOutcome::Fresh(fresh) => fresh,
+            execution::WorthQueryDecisionReadSetFreshnessOutcome::Stale(_) => return,
+        }
+    };
+    let program = staged
+        .effect_authority()
+        .lower_provisional_program(&read_set, steps)
+        .unwrap();
+    let inspection = staged
+        .begin_provisional_attempt(read_set, program)
+        .unwrap()
+        .materialize_proposed_state()
+        .inspect();
+    let receipt = inspection
+        .select_installed_invariant(invariant_slot)
+        .unwrap()
+        .admit_state_load_plan(state_load)
+        .unwrap()
+        .execute()
+        .unwrap();
+    let progression = inspection.admit_invariant_progression([receipt]).unwrap();
+    let _ = progression.receipt_identities();
+    inspection.discard();
+}
+
+fn production_builder_preserves_invariant_provider_capabilities<G: 'static, P>(
+    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
+    marker: G,
+    provider: P,
+) -> worth_query::facade::runtime::WorthQueryRuntimeBuilder
+where
+    P: worth_query_execution::facade::provider_session::WorthQueryGraphParticipationProvider<G>
+        + worth_query_execution::facade::provider_session::WorthQueryProviderSessionLifecycle
+        + worth_query_execution::facade::provider_session::WorthQueryDecisionFactProvider
+        + worth_query_execution::facade::provider_session::WorthQueryProvisionalGraphProvider
+        + worth_query_execution::facade::provider_session::WorthQueryInvariantExecutionProvider,
+{
+    builder.invariant_graph_participation_provider(marker, provider)
+}
+
+fn production_builder_preserves_atomic_invariant_provider_capabilities<G: 'static, C: 'static, P>(
+    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
+    marker: G,
+    provider: P,
+    commit: C,
+) -> worth_query::facade::runtime::WorthQueryRuntimeBuilder
+where
+    P: worth_query_execution::facade::provider_session::WorthQueryGraphParticipationProvider<G>
+        + worth_query_execution::facade::provider_session::WorthQueryProviderSessionLifecycle
+        + worth_query_execution::facade::provider_session::WorthQueryDecisionFactProvider
+        + worth_query_execution::facade::provider_session::WorthQueryProvisionalGraphProvider
+        + worth_query_execution::facade::provider_session::WorthQueryInvariantExecutionProvider,
+{
+    builder.atomic_invariant_graph_participation_provider(marker, provider, commit)
+}
+
+fn production_builder_preserves_convergence_and_invariant_capabilities<G: 'static, P>(
+    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
+    marker: G,
+    provider: P,
+) -> worth_query::facade::runtime::WorthQueryRuntimeBuilder
+where
+    P: worth_query_execution::facade::provider_session::WorthQueryGraphParticipationProvider<G>
+        + worth_query_execution::facade::provider_session::WorthQueryProviderSessionLifecycle
+        + worth_query_execution::facade::provider_session::WorthQueryDecisionFactProvider
+        + worth_query_execution::facade::provider_session::WorthQueryProvisionalGraphProvider
+        + worth_query_execution::facade::provider_session::WorthQueryInvariantExecutionProvider
+        + worth_query_execution::facade::convergence_epoch::WorthQueryConvergenceDomainProvider,
+{
+    builder.convergent_invariant_graph_participation_provider(marker, provider)
+}
+
+fn production_builder_preserves_atomic_convergence_and_invariant_capabilities<
+    G: 'static,
+    C: 'static,
+    P,
+>(
+    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
+    marker: G,
+    provider: P,
+    commit: C,
+) -> worth_query::facade::runtime::WorthQueryRuntimeBuilder
+where
+    P: worth_query_execution::facade::provider_session::WorthQueryGraphParticipationProvider<G>
+        + worth_query_execution::facade::provider_session::WorthQueryProviderSessionLifecycle
+        + worth_query_execution::facade::provider_session::WorthQueryDecisionFactProvider
+        + worth_query_execution::facade::provider_session::WorthQueryProvisionalGraphProvider
+        + worth_query_execution::facade::provider_session::WorthQueryInvariantExecutionProvider
+        + worth_query_execution::facade::convergence_epoch::WorthQueryConvergenceDomainProvider,
+{
+    builder.atomic_convergent_invariant_graph_participation_provider(marker, provider, commit)
+}
+
 fn inspect_runtime_and_installed_operation(
     runtime: &WorthQueryExecutionRuntime,
     operation: &WorthQueryInstalledDomainOperationAuthority,
 ) {
     let _ = runtime.authority_identity();
-    let _ = runtime.installed_packages().validate_domain_operation(operation);
+    let _ = runtime
+        .installed_packages()
+        .validate_domain_operation(operation);
 }
 
 fn inspect_resource_admission(
@@ -129,111 +239,6 @@ fn certification_entry(counters: WorthQueryCertificationReplayCounters) {
     let _ = counters;
 }
 
-struct CompilePassGraph;
-struct CompilePassCommit;
-struct CompilePassProvider;
-struct CompilePassExecution;
-
-impl WorthQueryGraphProviderExecution for CompilePassExecution {
-    fn advance(
-        &mut self,
-        _step: &mut WorthQueryGraphProviderStep,
-    ) -> Result<WorthQueryGraphProviderStepDisposition, WorthQueryGraphProviderFailure> {
-        unimplemented!()
-    }
-
-    fn dispose(&mut self) -> Result<(), WorthQueryGraphProviderFailure> {
-        Ok(())
-    }
-}
-
-impl WorthQueryGraphParticipationProvider<CompilePassGraph> for CompilePassProvider {
-    type Execution = CompilePassExecution;
-
-    fn execution_resource_support(
-        &self,
-    ) -> worth_query_host::facade::admission::resource_admission::WorthQueryExecutionResourceSupport
-    {
-        unimplemented!()
-    }
-
-    fn begin(
-        &self,
-        _call: &WorthQueryGraphProviderCall,
-        start: &mut WorthQueryGraphProviderExecutionStart,
-    ) -> Result<
-        WorthQueryCooperativeGraphProviderExecution<Self::Execution>,
-        WorthQueryGraphProviderFailure,
-    > {
-        start
-            .admit_cooperative_execution(|| CompilePassExecution)
-            .map_err(|denial| WorthQueryGraphProviderFailure::new(denial.detail()))
-    }
-}
-
-impl WorthQueryConvergenceDomainProvider for CompilePassProvider {
-    fn convergence_families(&self) -> &WorthQueryConvergenceProviderFamilies {
-        unimplemented!()
-    }
-
-    fn compare(
-        &self,
-        _assessment: &WorthQueryConvergenceAssessment<'_>,
-    ) -> Result<WorthQueryConvergenceComparison, WorthQueryConvergenceDomainFailure> {
-        unimplemented!()
-    }
-
-    fn measure_progress(
-        &self,
-        _assessment: &WorthQueryConvergenceAssessment<'_>,
-        _comparison: &WorthQueryConvergenceComparison,
-    ) -> Result<WorthQueryConvergenceProgress, WorthQueryConvergenceDomainFailure> {
-        unimplemented!()
-    }
-
-    fn detect_repeated_state(
-        &self,
-        _assessment: &WorthQueryConvergenceAssessment<'_>,
-        _comparison: &WorthQueryConvergenceComparison,
-        _progress: WorthQueryConvergenceProgress,
-    ) -> Result<WorthQueryConvergenceRepeatedState, WorthQueryConvergenceDomainFailure> {
-        unimplemented!()
-    }
-}
-
-fn register_convergent_provider(
-    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
-) {
-    let _ = builder.convergent_graph_participation_provider(
-        CompilePassGraph,
-        CompilePassProvider,
-    );
-}
-
-fn register_atomic_convergent_provider(
-    builder: worth_query::facade::runtime::WorthQueryRuntimeBuilder,
-) {
-    let _ = builder.atomic_convergent_graph_participation_provider(
-        CompilePassGraph,
-        CompilePassProvider,
-        CompilePassCommit,
-    );
-}
-
-fn construct_convergence_families() {
-    let candidate = WorthQueryCandidateSemanticFamilies::new(
-        "universe",
-        "termination",
-        "feasibility",
-        "comparison",
-        "incumbent",
-    )
-    .unwrap();
-    let iteration =
-        WorthQueryIterationSemanticFamilies::new("progress", "comparator", "repeated").unwrap();
-    let _ = WorthQueryConvergenceProviderFamilies::new(candidate, iteration);
-}
-
 fn carry_provider_authoring_contract(
     start: &mut WorthQueryGraphProviderExecutionStart,
     retained: WorthQueryGraphProviderRetainedMemory,
@@ -277,4 +282,6 @@ fn resolve_typed_readmission_recovery(
     }
 }
 
-fn main() {}
+fn main() {
+    phase_seven_ten_provider::exercise_combined_builder();
+}

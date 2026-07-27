@@ -1,16 +1,31 @@
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupport;
 
+use super::semantic_provider_ports::{
+    self, WorthQueryErasedDecisionFactProvider, WorthQueryErasedInvariantExecutionProvider,
+    WorthQueryErasedProvisionalGraphProvider,
+};
 use super::{WorthQueryGraphProviderExecution, WorthQueryGraphProviderExecutionStart};
 use crate::domain_computation::{
+    WorthQueryBoundInvariantExecutionView, WorthQueryDecisionFactAdmission,
+    WorthQueryDecisionFactComparisonAdmission, WorthQueryDecisionFactComparisonEvidence,
+    WorthQueryDecisionFactEvidence, WorthQueryDecisionFactEvidenceView,
+    WorthQueryDecisionFactRequestView, WorthQueryDecisionReadSetFailure,
     WorthQueryGraphParticipationProvider, WorthQueryGraphProviderCall,
-    WorthQueryGraphProviderFailure,
+    WorthQueryGraphProviderFailure, WorthQueryInvariantExecutionFailure,
+    WorthQueryInvariantProviderVerdict, WorthQueryInvariantStateLoadAdmission,
+    WorthQueryInvariantStateLoadEvidence, WorthQueryInvariantStateLoadRequestView,
+    WorthQueryInvariantVerdictAdmission, WorthQueryProviderExecutionPlanView,
+    WorthQueryProviderSessionFailure, WorthQueryProviderSessionLifecycle,
+    WorthQueryProviderSessionToken, WorthQueryProviderSessionTokenAdmission,
+    WorthQueryProviderSessionView, WorthQueryProvisionalEffectProgramView,
+    WorthQueryProvisionalFailure, WorthQueryProvisionalOverlayAdmission,
+    WorthQueryProvisionalOverlayEvidence, WorthQueryProvisionalOverlayEvidenceView,
 };
 
-trait WorthQueryErasedGraphParticipationProvider: Send + Sync {
+pub(super) trait WorthQueryErasedGraphParticipationProvider: Send + Sync {
     fn begin(
         &self,
         call: &WorthQueryGraphProviderCall,
@@ -18,16 +33,42 @@ trait WorthQueryErasedGraphParticipationProvider: Send + Sync {
     ) -> Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure>;
 }
 
+pub(super) trait WorthQueryErasedProviderSessionLifecycle: Send + Sync {
+    fn readmit(
+        &self,
+        plan: &WorthQueryProviderExecutionPlanView<'_>,
+        admission: WorthQueryProviderSessionTokenAdmission,
+    ) -> Result<WorthQueryProviderSessionToken, WorthQueryProviderSessionFailure>;
+
+    fn prepare(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), WorthQueryProviderSessionFailure>;
+
+    fn prepare_staged(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), WorthQueryProviderSessionFailure>;
+
+    fn commit(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, WorthQueryProviderSessionFailure>;
+
+    fn abort(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, WorthQueryProviderSessionFailure>;
+}
+
 pub(crate) enum WorthQueryGraphProviderStartInvocation {
     Returned(Result<Box<dyn WorthQueryGraphProviderExecution>, WorthQueryGraphProviderFailure>),
     Panicked,
 }
 
-static NEXT_GRAPH_PROVIDER_GENERATION: AtomicU64 = AtomicU64::new(1);
-
-struct WorthQueryTypedGraphParticipationProvider<G, P> {
-    provider: Arc<P>,
-    _graph: PhantomData<fn() -> G>,
+pub(super) struct WorthQueryTypedGraphParticipationProvider<G, P> {
+    pub(super) provider: Arc<P>,
+    pub(super) _graph: PhantomData<fn() -> G>,
 }
 
 impl<G: 'static, P: WorthQueryGraphParticipationProvider<G>>
@@ -44,57 +85,58 @@ impl<G: 'static, P: WorthQueryGraphParticipationProvider<G>>
     }
 }
 
+impl<P: WorthQueryProviderSessionLifecycle> WorthQueryErasedProviderSessionLifecycle for P {
+    fn readmit(
+        &self,
+        plan: &WorthQueryProviderExecutionPlanView<'_>,
+        admission: WorthQueryProviderSessionTokenAdmission,
+    ) -> Result<WorthQueryProviderSessionToken, WorthQueryProviderSessionFailure> {
+        self.readmit_provider_plan(plan, admission)
+    }
+
+    fn prepare(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), WorthQueryProviderSessionFailure> {
+        self.prepare_provider_session(session)
+    }
+
+    fn prepare_staged(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), WorthQueryProviderSessionFailure> {
+        self.prepare_staged_session(session)
+    }
+
+    fn commit(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, WorthQueryProviderSessionFailure> {
+        self.commit_prepared_session(session)
+    }
+
+    fn abort(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, WorthQueryProviderSessionFailure> {
+        self.abort_provider_session(session)
+    }
+}
+
 pub struct WorthQueryGraphProviderAnchor {
-    provider: Arc<dyn WorthQueryErasedGraphParticipationProvider>,
-    convergence_provider:
+    pub(super) provider: Arc<dyn WorthQueryErasedGraphParticipationProvider>,
+    pub(super) session_lifecycle: Option<Arc<dyn WorthQueryErasedProviderSessionLifecycle>>,
+    pub(super) decision_fact_provider: Option<Arc<dyn WorthQueryErasedDecisionFactProvider>>,
+    pub(super) provisional_provider: Option<Arc<dyn WorthQueryErasedProvisionalGraphProvider>>,
+    pub(super) invariant_provider: Option<Arc<dyn WorthQueryErasedInvariantExecutionProvider>>,
+    pub(super) convergence_provider:
         Option<Arc<dyn crate::domain_computation::WorthQueryConvergenceDomainProvider>>,
-    provider_identity: &'static str,
-    provider_generation: u64,
-    resource_support: WorthQueryExecutionResourceSupport,
+    pub(super) provider_identity: &'static str,
+    pub(super) provider_generation: u64,
+    pub(super) resource_support: WorthQueryExecutionResourceSupport,
 }
 
 impl WorthQueryGraphProviderAnchor {
-    #[doc(hidden)]
-    pub fn install<G: 'static, P: WorthQueryGraphParticipationProvider<G>>(provider: P) -> Self {
-        let provider = Arc::new(provider);
-        let resource_support = provider.execution_resource_support();
-        Self {
-            provider: Arc::new(WorthQueryTypedGraphParticipationProvider::<G, P> {
-                provider: Arc::clone(&provider),
-                _graph: PhantomData,
-            }),
-            convergence_provider: None,
-            provider_identity: std::any::type_name::<P>(),
-            provider_generation: NEXT_GRAPH_PROVIDER_GENERATION.fetch_add(1, Ordering::Relaxed),
-            resource_support,
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn install_convergent<
-        G: 'static,
-        P: WorthQueryGraphParticipationProvider<G>
-            + crate::domain_computation::WorthQueryConvergenceDomainProvider,
-    >(
-        provider: P,
-    ) -> Self {
-        let provider = Arc::new(provider);
-        let resource_support = provider.execution_resource_support();
-        let convergence_provider: Arc<
-            dyn crate::domain_computation::WorthQueryConvergenceDomainProvider,
-        > = provider.clone();
-        Self {
-            provider: Arc::new(WorthQueryTypedGraphParticipationProvider::<G, P> {
-                provider,
-                _graph: PhantomData,
-            }),
-            convergence_provider: Some(convergence_provider),
-            provider_identity: std::any::type_name::<P>(),
-            provider_generation: NEXT_GRAPH_PROVIDER_GENERATION.fetch_add(1, Ordering::Relaxed),
-            resource_support,
-        }
-    }
-
     #[doc(hidden)]
     pub fn provider_identity(&self) -> &'static str {
         self.provider_identity
@@ -126,5 +168,146 @@ impl WorthQueryGraphProviderAnchor {
         &self,
     ) -> Option<Arc<dyn crate::domain_computation::WorthQueryConvergenceDomainProvider>> {
         self.convergence_provider.as_ref().map(Arc::clone)
+    }
+
+    pub(crate) fn supports_session_protocol(&self) -> bool {
+        self.session_lifecycle.is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn retains_convergence_and_phase_seven_through_ten(&self) -> bool {
+        self.convergence_provider.is_some()
+            && self.session_lifecycle.is_some()
+            && self.decision_fact_provider.is_some()
+            && self.provisional_provider.is_some()
+            && self.invariant_provider.is_some()
+    }
+
+    pub(crate) fn observe_decision_fact(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+        request: WorthQueryDecisionFactRequestView<'_>,
+        admission: WorthQueryDecisionFactAdmission,
+    ) -> Result<WorthQueryDecisionFactEvidence, WorthQueryDecisionReadSetFailure> {
+        semantic_provider_ports::observe_decision_fact(
+            &self.decision_fact_provider,
+            session,
+            request,
+            admission,
+        )
+    }
+
+    pub(crate) fn compare_decision_fact(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+        evidence: WorthQueryDecisionFactEvidenceView<'_>,
+        admission: WorthQueryDecisionFactComparisonAdmission,
+    ) -> Result<WorthQueryDecisionFactComparisonEvidence, WorthQueryDecisionReadSetFailure> {
+        semantic_provider_ports::compare_decision_fact(
+            &self.decision_fact_provider,
+            session,
+            evidence,
+            admission,
+        )
+    }
+
+    pub(crate) fn stage_provisional_overlay(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+        program: WorthQueryProvisionalEffectProgramView<'_>,
+        admission: WorthQueryProvisionalOverlayAdmission,
+    ) -> Result<WorthQueryProvisionalOverlayEvidence, WorthQueryProvisionalFailure> {
+        semantic_provider_ports::stage_provisional_overlay(
+            &self.provisional_provider,
+            session,
+            program,
+            admission,
+        )
+    }
+
+    pub(crate) fn discard_provisional_overlay(
+        &self,
+        evidence: WorthQueryProvisionalOverlayEvidenceView<'_>,
+    ) -> Result<(), WorthQueryProvisionalFailure> {
+        semantic_provider_ports::discard_provisional_overlay(&self.provisional_provider, evidence)
+    }
+
+    pub(crate) fn load_invariant_state(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+        request: WorthQueryInvariantStateLoadRequestView<'_>,
+        admission: WorthQueryInvariantStateLoadAdmission,
+    ) -> Result<WorthQueryInvariantStateLoadEvidence, WorthQueryInvariantExecutionFailure> {
+        semantic_provider_ports::load_invariant_state(
+            &self.invariant_provider,
+            session,
+            request,
+            admission,
+        )
+    }
+
+    pub(crate) fn execute_invariant(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+        execution: WorthQueryBoundInvariantExecutionView<'_>,
+        admission: WorthQueryInvariantVerdictAdmission,
+    ) -> Result<WorthQueryInvariantProviderVerdict, WorthQueryInvariantExecutionFailure> {
+        semantic_provider_ports::execute_invariant(
+            &self.invariant_provider,
+            session,
+            execution,
+            admission,
+        )
+    }
+
+    pub(crate) fn readmit_session(
+        &self,
+        plan: &WorthQueryProviderExecutionPlanView<'_>,
+        admission: WorthQueryProviderSessionTokenAdmission,
+    ) -> Result<WorthQueryProviderSessionToken, WorthQueryProviderSessionFailure> {
+        self.session_lifecycle
+            .as_ref()
+            .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?
+            .readmit(plan, admission)
+    }
+
+    pub(crate) fn prepare_session(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), WorthQueryProviderSessionFailure> {
+        self.session_lifecycle
+            .as_ref()
+            .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?
+            .prepare(session)
+    }
+
+    pub(crate) fn prepare_staged_session(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<(), WorthQueryProviderSessionFailure> {
+        self.session_lifecycle
+            .as_ref()
+            .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?
+            .prepare_staged(session)
+    }
+
+    pub(crate) fn commit_session(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, WorthQueryProviderSessionFailure> {
+        self.session_lifecycle
+            .as_ref()
+            .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?
+            .commit(session)
+    }
+
+    pub(crate) fn abort_session(
+        &self,
+        session: &WorthQueryProviderSessionView<'_>,
+    ) -> Result<String, WorthQueryProviderSessionFailure> {
+        self.session_lifecycle
+            .as_ref()
+            .ok_or_else(WorthQueryProviderSessionFailure::unsupported)?
+            .abort(session)
     }
 }

@@ -14,6 +14,7 @@ const DOMAIN_DECLARATION_FAMILIES: &str =
 const DOMAIN_PACKAGE: &str = "src/domain_installation/package_authority/package.rs";
 const INSTALLED_HANDLE: &str = "src/domain_installation/installed_authority/handle.rs";
 const BUILDER_DOMAIN_PACKAGES: &str = "src/runtime/builder/domain_packages.rs";
+const BUILDER_GRAPH_PARTICIPATION: &str = "src/runtime/builder/graph_participation.rs";
 const RUNTIME_DOMAIN_API: &str = "src/runtime/domain_installation_api.rs";
 const WORKSPACE_DOMAIN_API: &str = "src/runtime/workspace_domain_installation.rs";
 const DOMAIN_FACADE_EXPORTS: &str = "src/facade/exports_domain.rs";
@@ -121,6 +122,17 @@ const CORE_ROWS: &[Row] = &[
         Class::CanonicalInstallation,
         Class::CanonicalInstallation,
         "runtime-domain-installation-registry",
+    ),
+    provider_capability("WorthQueryRuntimeBuilder::session_graph_participation_provider"),
+    provider_capability("WorthQueryRuntimeBuilder::decision_graph_participation_provider"),
+    provider_capability("WorthQueryRuntimeBuilder::provisional_graph_participation_provider"),
+    provider_capability("WorthQueryRuntimeBuilder::invariant_graph_participation_provider"),
+    provider_capability("WorthQueryRuntimeBuilder::atomic_invariant_graph_participation_provider"),
+    provider_capability(
+        "WorthQueryRuntimeBuilder::convergent_invariant_graph_participation_provider",
+    ),
+    provider_capability(
+        "WorthQueryRuntimeBuilder::atomic_convergent_invariant_graph_participation_provider",
     ),
     Row::new(
         "WorthQueryGraphReadOperationRegistry",
@@ -273,5 +285,16 @@ const fn installed_handle(symbol: &'static str, path: &'static str, owner: &'sta
         Class::InstalledHandleCapability,
         Class::InstalledHandleCapability,
         owner,
+    )
+}
+
+const fn provider_capability(symbol: &'static str) -> Row {
+    Row::new(
+        symbol,
+        BUILDER_GRAPH_PARTICIPATION,
+        None,
+        Class::CanonicalInstallation,
+        Class::CanonicalInstallation,
+        "runtime-graph-provider-registry",
     )
 }

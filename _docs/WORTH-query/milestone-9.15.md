@@ -15,6 +15,16 @@ admit bounded cancellation, backpressure, resumable progress, managed access
 products, set-oriented execution, structural cost evidence, and policy-governed
 domain decision records.
 
+The milestone also closes the inherited Milestone 9 and 9.9 policy-adoption
+gap before transactional commit becomes the ordinary product path.
+Schema-bound typed aspects must replace string-carried semantic identity
+through admitted reads, touches, permission rules, decision read-sets, and live
+dependencies. In a policy-governed operating world, every ordinary read,
+mutation, and live delivery must consume owner-minted principal and policy
+authority joined to the exact touched graph. Internal policy artifacts,
+synthetic snapshots, optional policy-aware overloads, and bridge-unbound live
+plans are not authorization.
+
 ## Why This Milestone Exists
 
 Milestone 9.14 closes Query's semantic control plane: installed operation
@@ -42,6 +52,12 @@ can still:
 - scalarize bulk domain work or demand quadratic pairwise independence proof
 - rebuild queryable domain decision logs and structural counters in every
   downstream crate
+- carry aspect names as strings after schema admission, allowing policy,
+  touched-graph, execution, and invalidation surfaces to agree textually while
+  referring to different installed meaning or value shape
+- treat caller-authored policy snapshots, relationship descriptors, optional
+  policy-context overloads, or policy-classification evidence as permission to
+  read, mutate, subscribe to, or continue delivering touched truth
 
 Those failures would force geometry, topology, simulation, routing, compiler,
 and other high-volume domains to regrow local runtimes above Query. Milestone
@@ -129,6 +145,29 @@ advisory evidence must not become admission or resolution authority.
 Relevant mutation, missing negative-space coverage, widened provider scope,
 failed invariant execution, stale attempt generation, and incomplete commit
 knowledge must fail at the exact responsible phase.
+
+A policy-governed agile-board runtime is the decisive inherited-policy
+courtroom. Two boards share the same installed task and membership aspect
+families. One principal may read and edit Board A, may only read Board B, and
+has no access to Board C. The principal opens a live Board A subscription,
+attempts a title update on each board, and then loses Board A membership while
+the subscription is active. Concurrently, an unrelated board changes at high
+frequency. The hostile caller supplies matching aspect text, copied policy
+digests, synthetic grant-shaped values, and a relationship descriptor whose
+topology is valid but whose membership fact is false.
+
+The ordinary public composition root must resolve all selectors to the exact
+installed typed aspects before planning, derive the read/write/live touched
+graph, evaluate the applicable relationship facts against authoritative truth,
+and deny Board B mutation and all Board C contact before provider truth or
+effects are touched. The Board A membership mutation must intersect the live
+permission dependency through the runtime bridge, freeze delivery under the
+old authority, and require owner-minted readmission or terminate the
+subscription. Unrelated-board churn must not re-evaluate or terminate the
+subscription. Replacing typed aspect identity with matching strings, accepting
+synthetic policy inputs, bypassing the governed overload, omitting permission
+dependencies from the bridge subscription, or continuing one delivery after
+revocation must turn this evidence red.
 
 ## Product Decision Lock
 
@@ -238,6 +277,34 @@ The following decisions are frozen for this milestone:
     contains each step separately and carries typed failure and release
     disposition; a string, boolean, destructor side effect, or successful
     semantic transition may not stand in for physical cleanup evidence.
+26. A policy-governed operating world is a distinct installed posture, not an
+    optional method choice. Its ordinary read, write, batch, preview, live, and
+    domain-computation entry surfaces require concrete owner-minted principal,
+    policy, tenant, branch, and relationship authority as applicable. A
+    policy-free overload cannot reach that world's truth or effects. An
+    explicitly ungoverned world remains distinct and cannot be inferred from
+    missing context.
+27. `AspectKey` is a validated name, not complete installed aspect meaning.
+    After schema admission, operational surfaces carry one schema-bound typed
+    aspect or field reference that binds installed schema generation, aspect
+    identity and revision, value shape, entity/collection applicability, and
+    canonical locator. Caller-facing string sugar may exist only before this
+    boundary and terminal text may exist only for display, diagnostics, or
+    external serialization.
+28. Typed aspect references identify meaning but grant no access. Permission
+    requires a separate admitted verdict joining a concrete authenticated
+    principal proof, owner-minted policy/tenant/branch authority, authoritative
+    relationship-fact evidence, typed operation family, and the exact derived
+    read/touch/effect/live-dependency graph. Query owns the join and phase
+    progression; schema/platform, relationship, Relational, and branch owners
+    retain their truth and minting authority.
+29. The runtime bridge carries typed semantic dependencies, invalidation, and
+    subscription lifecycle but never decides application permission. Query
+    lowers the admitted permission basis and its relationship/policy
+    dependencies into bridge subscription admission. Relevant authority drift
+    freezes delivery before another patch and requires fresh owner-minted
+    readmission or termination; matching digests, stale receipts, or a
+    cloneable live-plan value cannot continue the lane.
 
 ## Canonical Capability Progression
 
@@ -292,6 +359,36 @@ No later state accepts raw components from an earlier phase. In particular:
   advisory evidence
 - native admission or identity cannot be reconstructed from source occurrence,
   transformation disposition, or matching correspondence fields
+
+Every graph-contacting lane in a policy-governed operating world additionally
+obeys this progression before the provider plan, proposed-state, commit, or
+delivery phase that consumes it:
+
+```text
+SchemaBoundTypedIntent
+  + AuthenticatedPrincipalAuthority
+  + OwnerMintedPolicyTenantBranchAuthority
+  -> DerivedGraphTouchAndDependencyDescriptor
+  -> AuthorityOwnedRelationshipFactEvaluation
+  -> AdmittedTouchedPermission
+  -> AdmittedOperationGovernance
+  -> PolicyNarrowedRead
+     | PolicyGovernedMutation
+     | PolicyBoundLiveSubscription
+  -> ProviderExecutionOrBridgeDelivery
+```
+
+The relationship evaluation is a real authoritative read whose positive,
+negative, membership, and policy facts enter the decision read-set and realized
+dependency footprint. A relationship-query descriptor, topology validation,
+policy classification, copied digest, or agreeing collection of public values
+cannot substitute for the owner-minted verdict. The admitted permission is
+scoped to the exact operation and touched graph and cannot authorize a wider
+read, effect, subscription, or later attempt. An explicitly ungoverned
+installed world instead mints a distinct `AdmittedUngovernedOperation` proof;
+that proof and `AdmittedTouchedPermission` are the exhaustive inputs to
+`AdmittedOperationGovernance`. Missing governance is never interpreted as
+ungoverned execution.
 
 ## Authority And Destination Topology
 
@@ -372,6 +469,59 @@ worth-query-certification/
       access_product/
       partitioned_execution/
 ```
+
+The inherited policy and typed-aspect closure adds this committed destination
+topology. Existing responsibilities move into these authority packages rather
+than remaining as monolith-owned policy islands:
+
+```text
+worth-foundational/
+  aspects/
+    typed_reference/
+
+worth-query-installation/
+  policy/
+    governed_world_contract/
+    permission_rule_contract/
+
+worth-query-admission/
+  policy/
+    authority_input/
+    relationship_fact/
+    touched_permission/
+
+worth-query-execution/
+  policy/
+    governed_read/
+    governed_mutation/
+    governed_subscription/
+
+worth-query-publication/
+  policy/
+    delivery_envelope/
+    denial_evidence/
+
+worth-query-certification/
+  oracle/
+    policy_adoption/
+    typed_aspect/
+
+worth-runtime-bridge/
+  subscription/
+    semantic_dependency/
+```
+
+`worth-foundational/aspects/typed_reference/` owns schema-neutral typed aspect
+and field-reference meaning; it carries no Query policy or runtime authority.
+Schema/platform installation binds those references to installed schema
+generations. Query policy packages consume owner-minted authority and typed
+references through their audience facades. Runtime Bridge
+`semantic_dependency/` carries dependency identity and invalidation only; it
+cannot import Query policy semantics or mint permission. Stranded
+`policy_live`, `policy_delivery`, synthetic authority constructors, and
+monolith-owned policy execution seams are moved, replaced, restricted to
+fixtures, or removed during the cutover; they do not survive as parallel
+production paths.
 
 The exact leaf split may become finer when one listed responsibility contains
 multiple independently owned mechanisms. It may not become flatter. Generic
@@ -2060,6 +2210,380 @@ admitted advisory outcomes can progress according to the installed contract.
 
 - None.
 
+### Phase 10.1: Schema-Bound Typed Aspect And Field References
+
+Replace name-valid aspect carriers with schema-bound typed references before
+permission and ordinary-path adoption are rebuilt on top of them.
+
+**Relevant subsystems**
+
+- `worth-foundational` aspect identity, contract revision, shape, and value
+  vocabulary
+- schema/platform aspect installation
+- Query declaration, projection, predicate, ordering, mutation, touch, read-set,
+  footprint, and dependency surfaces
+- Runtime Bridge subscription dependency declarations
+
+**Required progression**
+
+```text
+DomainDeclaredAspect<T>
+  + InstalledSchemaGeneration
+  -> InstalledAspect<T>
+  -> InstalledField<T>
+  -> AdmittedSelector<T>
+     | AdmittedMutationTarget<T>
+     | AdmittedTouchTarget
+     | AdmittedDependencyTarget
+```
+
+An installed aspect reference binds the owning schema identity and generation,
+stable aspect identity, contract revision, value shape, applicable entity or
+collection family, and canonical aspect locator. An installed field reference
+adds its canonical field path and field value shape. The generic value
+parameter or equivalent sealed shape witness must make known-schema value
+mismatches unrepresentable. Dynamic external schemas may use an explicitly
+erased admitted value reference, but that reference still carries the installed
+shape witness and validates before it enters an operational plan.
+
+`AspectKey`, dotted text, and authoring names remain ergonomic input only.
+Admission resolves them once. Admitted plans, policy rules, graph touches,
+decision facts, footprints, provider requests, receipts, and bridge
+dependencies retain the native typed reference and project text only at a
+terminal boundary. No downstream phase reparses a string or reconstructs an
+aspect reference from matching names.
+
+**DX target**
+
+```rust
+let task_title: InstalledAspect<String> =
+    installed_schema.bind(TaskAspects::Title)?;
+let task_board: InstalledAspect<EntityRef<Board>> =
+    installed_schema.bind(TaskAspects::Board)?;
+
+let intent = workspace
+    .for_principal(principal)
+    .update(TaskEntity::at(task_id))
+    .set(task_title, "Close Milestone 9.15")
+    .relate(task_board, board_id);
+```
+
+The concrete names may follow existing facade vocabulary, but ordinary
+known-schema code must carry inferred value types and discoverable declared
+aspect names. It must not repeat semantic aspect strings in queries,
+permissions, writes, touched-graph declarations, and live dependencies.
+
+**Warnings**
+
+- `AspectKey` remains useful foundational naming; renaming it does not make it a
+  schema-bound typed reference.
+- A typed aspect reference is semantic identity, not read or mutation
+  authority.
+- A generic `TypedAspect<Value>` with caller-supplied identity, revision, or
+  schema fields is forgeable and does not satisfy this phase.
+- String construction followed by immediate reparsing at every subsystem seam
+  preserves the old authority and performance problem.
+
+**Test requirements**
+
+- Compile-time DX test: a typed string aspect accepts string values and rejects
+  entity references, numbers, or arbitrary `AspectValue`; valid next actions
+  remain inferable from the installed schema root.
+- Schema-collision test: the same `AspectKey` under a different schema,
+  generation, identity, revision, entity family, or value shape cannot match an
+  admitted selector, touch, permission rule, provider request, or dependency.
+- String non-authority test: aspect text, dotted paths, copied identities, and
+  caller-assembled typed-reference-shaped values cannot enter post-admission
+  APIs.
+- End-to-end carriage test: one typed aspect reference remains identical
+  through declaration, touch derivation, permission admission, provider
+  execution, decision read-set, realized footprint, receipt, and bridge
+  invalidation.
+- Warm-path test: repeated execution of an admitted plan performs zero aspect
+  string parsing, zero schema-wide aspect lookup, and no allocation
+  proportional to aspect-name length.
+
+**Engineering decisions**
+
+- Foundational owns schema-neutral typed-reference meaning. Schema/platform
+  owns installation and generation binding. Query consumes those references
+  without owning domain aspect vocabulary.
+- Known-schema typed references and dynamic admitted references share one
+  installed identity and shape contract; the dynamic lane is not a stringly
+  bypass.
+- This phase must close before permission rules or Bridge dependencies can
+  claim exact aspect scope.
+
+**Open questions**
+
+- None.
+
+### Phase 10.2: Owner-Minted Permission Authority And Touched-Graph Admission
+
+Replace synthetic policy agreement and relationship-description validation with
+one real permission admission over authenticated authority, authoritative
+relationship facts, the requested operation, and the exact touched graph.
+
+**Relevant subsystems**
+
+- schema/platform policy authority and governed-world installation
+- tenant and branch authority
+- concrete `worth-proof` principal and owner-specific authority witnesses
+- Relational relationship-fact evaluation
+- Query graph touch derivation and decision read-sets
+
+**Required progression**
+
+```text
+PolicyGovernedWorld
+  + AuthenticatedPrincipalAuthority
+  + OwnerMintedPolicyTenantBranchAuthority
+  + TypedOperationIntent
+  -> DerivedGraphTouchAndDependencyDescriptor
+  -> RelationshipFactReadAdmission
+  -> AuthoritativeRelationshipFactEvidence
+  -> AdmittedTouchedPermission
+     | TypedPermissionDenial
+```
+
+The governed-world installation declares the policy rule family and which
+principal, tenant, branch, relationship, operation, and touched-target facts it
+requires. Query derives the candidate touched graph from already admitted typed
+intent before provider truth or effects are contacted. Relational or the
+designated relationship authority evaluates the installed relationship rule
+against authoritative truth and returns concrete positive, negative,
+membership, epoch, and basis evidence. Query joins that evidence to the exact
+typed operation and touch descriptor.
+
+The resulting permission is move-only or attempt-scoped and binds principal,
+world, policy, tenant, branch, relationship basis, operation family, read
+closure, touch/effect closure, live dependency closure, and attempt generation.
+It can narrow declared scope but cannot widen it. Its relationship and policy
+facts enter the Phase 8 decision read-set and later realized footprint so
+compare-and-commit and live invalidation can observe relevant drift.
+
+An explicitly ungoverned installed world separately mints
+`AdmittedUngovernedOperation` from its installation authority. Query seals that
+proof or `AdmittedTouchedPermission` into `AdmittedOperationGovernance`, which
+is the exhaustive input consumed by shared later phases. The ungoverned proof
+cannot be minted from missing policy context, requested per operation, or
+substituted into a governed world.
+
+Public production constructors for `PolicyRuleSnapshot`,
+`BranchAccessGrant`, relationship success, or equivalent upstream authority
+must be owner-minted through concrete proof-bearing facades. Synthetic
+constructors are confined to certification fixtures that cannot link into an
+ordinary production composition root. Generic `AuthorityMarker` bounds,
+private fields around public synthetic constructors, copied digests, and
+caller-authored agreeing tuples do not satisfy this requirement.
+
+**Warnings**
+
+- A valid relationship-query topology proves only that a question is
+  well-formed; it does not prove the relationship is true.
+- An `OperatingContextGate` selection or policy classification is not a
+  permission verdict.
+- Touched-graph admission must include the requested action. Read, update,
+  delete, membership change, administration, and subscription are not
+  interchangeable grants over the same target.
+- Query must not become the authenticated-principal or relationship-truth
+  authority.
+
+**Test requirements**
+
+- Counterfeit-authority matrix: synthetic snapshots, copied digests, matching
+  public fields, foreign principal proofs, stale policy epochs, wrong tenant or
+  branch authority, and independently valid relationship evidence cannot mint
+  permission.
+- Touched-scope matrix: the same principal and policy yield different verdicts
+  for read, update, delete, membership administration, and subscribe operations
+  over different boards, tasks, relations, and aspects.
+- Authoritative-fact test: present membership admits, absent or broken
+  relationship chains deny, and changing the authoritative fact changes the
+  decision even when every descriptor and digest-shaped input remains equal.
+- Phase-order test: governed provider read, proposed-state creation, effect
+  staging, invariant state load, and Bridge subscription admission are
+  uncallable without the exact `AdmittedTouchedPermission`.
+- Decision-read-set test: every policy and relationship fact that influenced
+  permission is freshness-checked; unrelated principal, board, policy, and
+  aspect changes create no false conflict.
+
+**Engineering decisions**
+
+- The operating world chooses governed or explicitly ungoverned posture during
+  installation. Missing context is denial in a governed world, never implicit
+  ungoverned execution.
+- Query owns typed permission admission and progression. Existing authority
+  owners mint the inputs and evaluate their truth.
+- Permission is scoped execution authority, not a reusable identity token or a
+  policy-description artifact.
+
+**Open questions**
+
+- None.
+
+### Phase 10.3: Ordinary Read, Mutation, And Live Adoption
+
+Make the admitted touched permission unavoidable at the real public composition
+root and lower its live dependencies through Runtime Bridge lifecycle
+authority.
+
+**Relevant subsystems**
+
+- ordinary current, branch, preview, batch, and domain-computation entry
+  surfaces
+- policy-narrowed read planning and authorized projection
+- authoritative mutation obligation dispatch
+- Query live subscription and delivery
+- Runtime Bridge subscription declaration, invalidation, and lifecycle
+
+**Required adoption**
+
+- a governed runtime handle carries its installed governed-world posture and
+  accepts concrete principal authority before an operation is authored
+- ordinary governed reads consume the admitted permission before raw truth and
+  retain authorized projection through delivery
+- ordinary governed scalar and batch mutations consume the permission before
+  provider execution and dispatch every selected operating-context obligation
+- domain-computation provider plans, proposed-state inspection, invariant
+  execution, and commit bind the same `AdmittedOperationGovernance`; governed
+  execution retains its exact permission attempt rather than accepting a nearby
+  policy report
+- live admission lowers typed result dependencies plus policy, relationship,
+  tenant, branch, and principal-scope dependencies into the Bridge subscription
+- Bridge reports relevant dependency change and freezes the affected delivery
+  generation; Query performs fresh permission admission and either installs a
+  new generation or terminates with typed denial
+
+Separate `write_with_policy_context`, internal `_with_policy_context`
+dispatchers, or similar optional siblings are not the governed product. The
+governed runtime's ordinary method is the governed method, and a policy-free
+runtime cannot be obtained by forgetting, dropping, or failing to pass context.
+Explicitly ungoverned runtimes remain a separate installed type and support
+posture.
+
+Runtime Bridge does not inspect roles or decide permission. It carries the
+typed semantic dependencies and lifecycle generation supplied by Query.
+Relevant authority drift stops delivery before the next patch is constructed
+or exposed. Unrelated drift does not globally wake, scan, or re-admit governed
+subscriptions.
+
+**Warnings**
+
+- Post-read masking, post-effect denial, and delivery-time redaction are too
+  late.
+- A public policy-aware overload beside an easier ungoverned method is a bypass,
+  not progressive disclosure.
+- A `PolicyAwareLivePlan` value that does not install a Bridge subscription and
+  govern every delivery generation is only descriptive scaffolding.
+- Revocation cannot be represented as a diagnostic attached after one final
+  unauthorized patch.
+
+**Test requirements**
+
+- Public agile-board journey: through only documented audience facades, create
+  three boards, principals, roles, tasks, and live subscriptions; prove exact
+  read, edit, administration, and subscription verdicts and observe real
+  provider truth/effects independently.
+- Revocation race: revoke membership between Bridge invalidation and the next
+  delivery under hostile scheduling; zero patch, count, ordering, grouping, or
+  masked metadata from the revoked generation reaches the consumer.
+- Unrelated-drift and scale test: mutate unrelated boards and policies under
+  pressure; permission work and Bridge wake breadth remain proportional to the
+  intersecting typed dependency set, not total principals, policies,
+  subscriptions, entities, or aspects.
+- Bypass test: every public and crate-visible governed read/write/live path
+  reaches the same admission join. Deleting or bypassing that join makes a
+  consumer test fail before any internal policy report is inspected.
+- No-contact denial test: missing or denied authority increments zero provider
+  read, effect, invariant, commit, live-registration, and delivery counters.
+
+**Engineering decisions**
+
+- This phase rewires the runtime entry before provider execution even though it
+  is implemented after the historical Phase 7-10 substrate. It may not insert a
+  late authorization check after those phases.
+- For governed paths, one admitted permission basis is carried through read,
+  mutation, domain computation, live, and delivery surfaces; each attempt or
+  live generation still receives fresh scoped authority.
+- Bridge owns invalidation transport and subscription lifecycle. Query owns
+  policy narrowing, re-admission, and typed public denial.
+
+**Open questions**
+
+- None.
+
+### Phase 10.4: Inherited Policy Cutover, Deletion, And Closeout Repair
+
+Remove parallel descriptive policy lanes and make documentation, support
+claims, certification, and reachable production code agree with the adopted
+ordinary path.
+
+**Required closure ledger**
+
+Every Milestone 9 and Milestone 9.9 policy surface is classified with production
+reachability and consumer evidence as exactly one of:
+
+- retained authoritative producer or consumer
+- moved behind its rightful owner facade
+- rewired into the ordinary governed path
+- fixture-only synthetic construction
+- removed redundant or misleading scaffolding
+
+The ledger must cover policy/tenant/branch inputs, relationship proof
+descriptors and verdicts, authorized projection, policy execution seams,
+policy-aware current/branch/live plans, delivery lowering, graph mutation
+policy gates, optional policy-context entrypoints, support rows, harnesses, and
+closeout claims. "Type exists," "fields are private," "matrix row passes," and
+"internal caller can invoke it" are not adopted classifications.
+
+**Required documentation repair**
+
+- revise `_docs/WORTH-query/milestone-9-closeout.md` to remove false closure
+  claims or supersede them with the exact 9.15 adoption evidence
+- revise `_docs/WORTH-query/milestone-9.9-closeout.md` so policy-aware graph
+  mutation is claimed only from the unavoidable ordinary mutation journey
+- revise the canonical policy feature documentation and
+  `workspaces/worth-query/crates/worth-query/docs/AI_README.md` to teach the
+  typed-aspect, touched-permission, and live-revocation model
+- remove or clearly mark any document that teaches synthetic snapshots,
+  optional policy overloads, or standalone live-plan construction as
+  production authorization
+
+The inherited Milestone 9 and 9.9 policy claims are reopened until this phase's
+consumer evidence closes them. A new closeout summary cannot hide unresolved
+rows from the ledger.
+
+**Test requirements**
+
+- Production reachability test: every retained public policy type has a real
+  producer and consumer journey; exported types with fixture-only construction
+  or no ordinary consumer fail closure.
+- Residue test: no production `synthetic_authority`, `synthetic_granted`,
+  policy-free governed entrypoint, optional governed bypass, dormant live-plan
+  producer, or monolith-owned parallel delivery lowerer remains.
+- Consumer compile test: an external crate can build the documented typed agile
+  board permission journey using audience facades only and cannot construct or
+  substitute governed authority.
+- Ledger mutation test: removing the principal join, relationship-fact read,
+  touch scoping, Bridge dependency, delivery freeze, or typed-aspect binding
+  reopens a named guarantee and turns its independent evidence red.
+- Documentation/support parity test: public examples, support rows, facade
+  exports, boundary enforcement, and executable behavior enumerate the same
+  governed surfaces and typed denials.
+
+**Engineering decisions**
+
+- Useful narrowing, touch, obligation, and Bridge machinery is rewired rather
+  than discarded merely because its earlier closeout was dishonest.
+- Descriptive artifacts without production authority or consumers are removed
+  instead of preserved for speculative compatibility.
+- Phase 11 cannot close while this cutover leaves a governed commit bypass.
+
+**Open questions**
+
+- None.
+
 ### Phase 11: Compare-And-Commit, Abort, Partial Effect, And Indeterminate Outcome
 
 Bind decision freshness, proposed effects, invariant receipts, and provider
@@ -2086,6 +2610,7 @@ PreparedProviderSession
   + FreshDecisionReadSet
   + ProposedPostState
   + CompleteRequiredInvariantReceipts
+  + AdmittedOperationGovernance
   -> PreparedCommitAttempt
   -> CommittedAttempt
      | StaleAttempt
@@ -2096,9 +2621,11 @@ PreparedProviderSession
 
 A committed attempt contains one provider/Relational canonical commit artifact
 binding all declared effects, exact read basis, freshness comparison, invariant
-receipts, realized footprint, lineage, artifact disposition, publication
-inputs, structural cost, and session identity. Atomicity is claimed only when
-the authoritative provider proves all effects committed as one transaction.
+receipts, admitted operation-governance basis and governed permission basis
+where applicable, realized footprint, lineage, artifact disposition,
+publication inputs, structural cost, and session identity. Atomicity is claimed
+only when the authoritative provider proves all effects committed as one
+transaction.
 
 `PartialEffectAttempt` is permitted only for declared escaping effects and names
 completed effects, unperformed effects, compensation/reconciliation authority,
@@ -2312,6 +2839,8 @@ predeclared authority closure as a hard upper bound.
 
 - exact consumed entity/relation/aspect/field locators
 - negative, predicate, ordering, cardinality, closure, and membership facts
+- exact principal-scope, policy, tenant, branch, and relationship facts that
+  admitted a governed operation or live dependency
 - artifact/access-product dependencies
 - exact staged and committed touch/effect locators
 - provider partitions and structural proof dependencies
@@ -2732,6 +3261,14 @@ through an installed domain comparator, bound, or distributional equivalence
 contract. Query must gain no specimen, assay, cohort, statistical, or biology
 vocabulary.
 
+The governed agile-board courtroom from Phase 10.3 is the fourth required
+adoption. It must use domain-declared typed task, board, role, and membership
+aspects through the public facade while keeping their vocabulary outside Query.
+Its permission evidence must come from real principal and relationship
+authority, its mutations must pass through the ordinary touched-graph path, and
+its live membership revocation must flow through the real Runtime Bridge
+subscription lifecycle.
+
 **Warnings**
 
 - The facade must not expose internal phase constructors or raw provider tokens.
@@ -2751,10 +3288,14 @@ vocabulary.
 - Research-domain transcript test: the multi-site reference completes the same
   artifact/run/reuse lifecycle while preserving occurrence independence and
   declared non-bitwise reproducibility without Query-owned research semantics.
+- Governed-board transcript test: an external consumer uses only audience
+  facades and typed declared aspects to exercise role-distinct read, write,
+  batch, and live behavior, including revocation before the next delivery.
 - Adoption residue test: covered reference paths contain zero local workflow
   artifact bags, provider-session emulation, invariant-pass fabrication,
-  access-product lifecycle mirrors, scalar batch loops, or Query-authority
-  reconstruction.
+  access-product lifecycle mirrors, scalar batch loops, optional policy
+  bypasses, synthetic grant construction, string-restamped aspect identity, or
+  Query-authority reconstruction.
 - DX denial test: every missing contract or unsupported provider capability
   yields a typed next action before expensive work, not a panic or generic
   string.
@@ -2804,6 +3345,16 @@ semantic correctness from provider self-reporting.
 - no generic write receipt as domain invariant evidence
 - no atomic label without session-bound prepare/commit/abort proof
 - no provider callback widening declared read/touch/effect/resource scope
+- no string, `AspectKey`, dotted path, copied identity, or caller-assembled
+  typed-reference-shaped value serving as post-admission aspect meaning
+- no caller-minted policy, tenant, branch, principal, relationship, or
+  permission authority on a production governed path
+- no optional policy-aware sibling beside a policy-free ordinary entrypoint in
+  a governed operating world
+- no policy-classification row, selected operating-context gate, relationship
+  descriptor, or matching digest serving as permission evidence
+- no policy-bound live claim without a real Bridge subscription carrying typed
+  authority dependencies and freezing delivery on relevant drift
 - no eager-complete result presented as provider streaming/progress
 - no returned-row-only membership dependency for coverage-sensitive results
 - no runtime footprint widening or authority minting
@@ -2837,6 +3388,16 @@ semantic correctness from provider self-reporting.
 - complete positive/negative/structural decision read-sets
 - provisional-state visibility, discard, and generation safety
 - real post-state invariant execution
+- schema-bound typed aspect carriage from authoring through provider, touch,
+  permission, read-set, footprint, receipt, and Bridge dependency
+- owner-minted principal/policy/tenant/branch authority and authoritative
+  relationship-fact evaluation over the exact typed operation and touch
+- unavoidable governed read, mutation, batch, domain-computation, live, and
+  delivery adoption
+- membership and policy revocation before subsequent delivery, with
+  unrelated-drift selectivity
+- Milestone 9 and 9.9 policy-surface reachability, deletion, and documentation
+  closure ledger
 - relevant/unrelated drift and compare-and-commit
 - abort, partial effect, indeterminate commit, and reconciliation
 - access-product strategy parity, coverage, membership, and rebuild
@@ -2874,6 +3435,11 @@ semantic correctness from provider self-reporting.
 - Hostile-provider test: seed scope widening, false completeness, fabricated
   invariant pass, synthetic progress, under-reported bytes, false atomicity,
   stale token reuse, and indeterminate-as-success; each is rejected at its
+  responsible boundary.
+- Hostile-policy test: seed copied authority, synthetic grants, false
+  relationship topology, same-name cross-schema aspects, optional governed
+  bypasses, omitted Bridge permission dependencies, and revocation races; each
+  is rejected before truth, effects, registration, or delivery at its
   responsible boundary.
 - Independent-oracle test: at least two provider implementations or one provider
   plus an independent small-world oracle agree on semantics without sharing the
@@ -2941,6 +3507,15 @@ semantic correctness from provider self-reporting.
   traversal, artifact, and structural decision read-sets
 - provisional graph attempts and proposed-state reads
 - real domain invariant execution over the exact proposed post-state
+- schema-bound typed aspect and field references carried without string
+  reconstruction through every operational and invalidation boundary
+- owner-minted governed-world permission admission joining authenticated
+  principal, policy/tenant/branch authority, authoritative relationship facts,
+  typed operation, and exact touched graph
+- unavoidable governed read, mutation, batch, domain-computation, live, and
+  delivery adoption with Bridge-driven revocation before subsequent delivery
+- inherited Milestone 9 and 9.9 policy cutover ledger, stranded-surface
+  deletion, and corrected closeout/documentation claims
 - provider-proven compare-and-commit with stale, abort, partial-effect, and
   indeterminate outcomes
 - managed domain access products with completeness, membership, lifecycle,
@@ -2980,6 +3555,11 @@ semantic correctness from provider self-reporting.
   replay, reversal, compensation, reconciliation, and reconstruction
 - exact Foundational value/aspect meaning and `worth-proof` phase/basis/
   freshness/witness law behind stronger owner-specific types
+- schema/platform ownership of installed aspect and policy meaning, platform
+  ownership of authenticated principal truth, relationship/Relational
+  ownership of relationship facts, Query ownership of touched permission
+  admission, and Bridge ownership of invalidation transport rather than policy
+  decisions
 - privacy, disclosure, redaction, retention, deletion, legal hold, schema
   evolution, and compatibility law at every boundary
 - cross-runtime ownership of conflict and resolution semantics, participant
@@ -2998,6 +3578,11 @@ semantic correctness from provider self-reporting.
   boundary, or mandatory evidence field described by this milestone may remain
   as generic debt, a support-only row, a fabricated receipt, or a documented
   convention
+- no typed-aspect carrier, governed-world authority producer, touched permission
+  join, ordinary-path adoption, live revocation dependency, or inherited policy
+  cutover described by this milestone may remain as an optional overload,
+  synthetic fixture promoted to production, internal-only matrix, dormant
+  public type, or documentation claim
 - no unsupported runtime-backed family may fall back to strings, blobs, raw
   provider handles, host callbacks, broad scans, caller caches, scalar loops,
   generic success, or silent widening; it must expose its exact missing
@@ -3020,6 +3605,17 @@ Milestone 9.15 is complete only when Query can prove:
   research vocabulary
 - selected obligation support cannot produce a passed invariant outcome; every
   blocking invariant result binds real proposed-state execution evidence
+- an external agile-board consumer can declare typed task, board, role, and
+  membership aspects once, then use them across governed reads, mutations,
+  touched-graph admission, and live subscriptions without repeating semantic
+  aspect strings or constructing policy authority
+- forged principal/policy/branch/relationship inputs, same-name cross-schema
+  aspects, and policy-free governed entrypoints cannot reach truth, effects,
+  subscription registration, or delivery
+- membership or policy revocation freezes the affected Bridge-backed live
+  generation before another delivery and either readmits through fresh
+  owner-minted authority or terminates, while unrelated churn causes no global
+  permission scan or false termination
 - relevant concurrent drift returns stale/replan while unrelated drift commits,
   with exact read-set and false-conflict counters
 - atomic success exists only for one provider-proven transaction; abort,
@@ -3056,8 +3652,8 @@ Milestone 9.15 is complete only when Query can prove:
   sidecars obey disclosure, redaction, retention, deletion, and legal-hold
   posture
 - facade, support matrix, docs, AI orientation, boundary enforcement, residue
-  reports, realistic fixtures, and hostile certification agree on one
-  execution-grade installed operation path
+  reports, inherited policy closure ledger, realistic fixtures, and hostile
+  certification agree on one execution-grade installed operation path
 
 ## Sequencing Notes
 
@@ -3074,15 +3670,23 @@ Phases are intentionally ordered:
    readmission before Phase 6.5 builds convergence as their consumer. Provider
    work cannot claim cancellation, progress, boundedness, resumability, or
    convergence before the responsible slice closes.
-3. Phases 7-11 close the hard transactional attempt from prepared provider
-   session through real invariant execution and honest commit outcomes.
+3. Phases 7-10 establish the provider session, complete decision read-set,
+   proposed state, and real invariant execution. Phases 10.1-10.4 then repair
+   the inherited typed-aspect and policy-authority foundation, make it
+   unavoidable at the ordinary composition root, bind live revocation through
+   Runtime Bridge, and delete the parallel descriptive lanes. Although this
+   repair is implemented after the Phase 7-10 substrate, its runtime admission
+   occurs before provider contact. Phase 11 may then trust both invariant and
+   permission authority when it closes honest commit outcomes.
 4. Phases 12-14 close derived access products, negative-space membership, and
    exact realized dependency carriage.
 5. Phases 15-16 close expressive provider-backed neighborhoods and bulk
    partitioning without domain leakage.
 6. Phases 17-18 close explanation and reuse only after the authoritative
    execution and dependency boundaries exist.
-7. Phases 19-20 close public adoption, deletion, enforcement, and certification.
+7. Phases 19-20 close public adoption, deletion, enforcement, and certification,
+   including the typed agile-board governed consumer and the reopened
+   Milestone 9/9.9 policy claims.
 
 Milestone 9.15 precedes Milestone 13 because provider-independent certification
 must certify the execution-grade provider/session, artifact, invariant,

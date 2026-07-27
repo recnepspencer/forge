@@ -1,0 +1,12 @@
+error[E0624]: method `prepare_for_commit` is private
+ --> tests/ui/installed_domain/managed_run/staged_session_cannot_prepare_without_phase_11.rs:4:20
+  |
+4 |       let _ = staged.prepare_for_commit();
+  |                      ^^^^^^^^^^^^^^^^^^ private method
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/protocol/prepare_outcome.rs
+  |
+  | /     pub(crate) fn prepare_for_commit(
+  | |         mut self,
+  | |     ) -> Result<WorthQuerySessionPrepareOutcome<'run>, WorthQueryProviderSessionFailure> {
+  | |________________________________________________________________________________________- private method defined here

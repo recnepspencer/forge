@@ -59,6 +59,7 @@ fn authority(
         semantic_basis,
         canonical_query_digest: Arc::from("installed-query"),
         operation_resource_contract_identity: Arc::from(contract_identity),
+        provider_plan_declarations: Arc::new(Default::default()),
         commit_posture:
             crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
         direct_resource_topology: Default::default(),
@@ -103,6 +104,31 @@ pub(crate) fn direct_authority_with_graph(
         std::iter::empty(),
         crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
     );
+    authority.provider_plan_declarations = Arc::new(
+        crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::test_direct(
+            graph.role(),
+            Some(access),
+            false,
+        ),
+    );
+    authority
+}
+
+pub(crate) fn direct_authority_with_graph_and_decision_facts(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &WorthQueryAdmittedExecutionResourcePlan,
+    graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    access: worth_query_installation::facade::WorthQueryOperationGraphAccess,
+    families: Vec<worth_query_installation::facade::WorthQueryDecisionFactFamily>,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority = direct_authority_with_graph(runtime, plan, graph, access);
+    authority.provider_plan_declarations = Arc::new(
+        crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::test_direct_with_decision_facts(
+            graph.role(),
+            access,
+            families,
+        ),
+    );
     authority
 }
 
@@ -119,6 +145,50 @@ pub(crate) fn direct_authority_with_graph_effect(
         std::iter::empty(),
         std::iter::once(graph.role()),
         crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
+    );
+    authority.provider_plan_declarations = Arc::new(
+        crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::test_direct(
+            graph.role(),
+            None,
+            true,
+        ),
+    );
+    authority
+}
+
+pub(crate) fn direct_authority_with_graph_effect_and_decision_facts(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &WorthQueryAdmittedExecutionResourcePlan,
+    graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    families: Vec<worth_query_installation::facade::WorthQueryDecisionFactFamily>,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority = direct_authority_with_graph_effect(runtime, plan, graph);
+    authority.provider_plan_declarations = Arc::new(
+        crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::test_effect_with_decision_facts(
+            graph.role(),
+            families,
+        ),
+    );
+    authority
+}
+
+pub(crate) fn direct_authority_with_graph_effect_decision_facts_and_invariants(
+    runtime: &crate::domain_computation::WorthQueryExecutionRuntime,
+    plan: &WorthQueryAdmittedExecutionResourcePlan,
+    graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    families: Vec<worth_query_installation::facade::WorthQueryDecisionFactFamily>,
+    invariants: Vec<
+        worth_query_installation::facade::WorthQueryInstalledInvariantExecutionRequirement,
+    >,
+) -> WorthQueryExecutionBoundOperationAuthority {
+    let mut authority =
+        direct_authority_with_graph_effect_and_decision_facts(runtime, plan, graph, families);
+    authority.provider_plan_declarations = Arc::new(
+        crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::test_effect_with_decision_facts_and_invariants(
+            graph.role(),
+            authority.provider_plan_declarations.decision_fact_families().to_vec(),
+            invariants,
+        ),
     );
     authority
 }
@@ -157,6 +227,7 @@ pub(crate) fn workflow_authority(
         semantic_basis,
         canonical_query_digest: Arc::from("installed-query"),
         operation_resource_contract_identity: Arc::from(plan.operation().contract_identity()),
+        provider_plan_declarations: Arc::new(Default::default()),
         commit_posture:
             crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
         direct_resource_topology: Default::default(),
@@ -211,6 +282,13 @@ pub(crate) fn workflow_authority_with_stage_graph(
         std::iter::once((graph.role(), access)),
         std::iter::empty(),
         crate::domain_computation::operation_binding::WorthQueryExecutionCommitPosture::ReadOnly,
+    );
+    authority.provider_plan_declarations = Arc::new(
+        crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations::test_workflow_stage(
+            stage_identity,
+            graph.role(),
+            access,
+        ),
     );
     authority
 }

@@ -1,7 +1,9 @@
+use super::{
+    WorthQueryOperationDecisionFactContract, WorthQueryOperationNativeProjectionContract,
+    WorthQueryOperationWorkflowContract,
+};
 use worth_foundational::facade::{AspectIdentity, AspectKey};
 use worth_query_declaration::facade::canonicalization::CanonicalQueryBundle;
-
-use super::{WorthQueryOperationNativeProjectionContract, WorthQueryOperationWorkflowContract};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDomainOperationSemanticClosure {
@@ -15,9 +17,11 @@ pub struct WorthQueryDomainOperationSemanticClosure {
     pub evidence: super::WorthQueryDomainEvidenceContract,
     pub conditional_nodes: Vec<super::WorthQueryPortableConditionalNodeDeclaration>,
     pub graph_reads: WorthQueryOperationGraphReadContract,
+    pub decision_facts: WorthQueryOperationDecisionFactContract,
     pub touches: WorthQueryOperationTouchContract,
     pub effects: WorthQueryOperationEffectContract,
     pub invariants: WorthQueryOperationInvariantContract,
+    pub invariant_execution: super::WorthQueryInvariantExecutionContract,
     pub replay: WorthQueryOperationReplayContract,
     pub reversal: WorthQueryOperationReversalContract,
     pub lineage: WorthQueryOperationLineageContract,

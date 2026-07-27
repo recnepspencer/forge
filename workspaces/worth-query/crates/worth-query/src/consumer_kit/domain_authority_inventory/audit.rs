@@ -258,6 +258,13 @@ fn is_candidate_method(owner: &str, name: &str) -> bool {
             ))
         || (owner == "WorthQueryRuntimeBuilder"
             && (name.contains("invariant") || name.contains("graph_obligation")))
+        || (owner == "WorthQueryRuntimeBuilder"
+            && matches!(
+                name,
+                "session_graph_participation_provider"
+                    | "decision_graph_participation_provider"
+                    | "provisional_graph_participation_provider"
+            ))
         || (owner == "WorthQueryGraphReadOperationRegistry"
             && matches!(
                 name,
