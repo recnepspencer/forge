@@ -149,6 +149,22 @@ fn ordinary_graph_gate_rejects_direct_pool_and_feature_mutants() {
     .expect("a ledger-bound Phase 8 optional edge remains explicit until Phase 8");
 }
 
+#[test]
+fn certification_direct_pool_edge_requires_an_exact_phase_eight_row() {
+    inspect_direct_pool_edge(
+        Path::new("crates/worth-store-certification/Cargo.toml"),
+        ConsumerDisposition::CertificationOwner,
+        false,
+    )
+    .expect_err("certification cannot receive a broad direct-pool exemption");
+    inspect_direct_pool_edge(
+        Path::new("crates/worth-store-certification/Cargo.toml"),
+        ConsumerDisposition::CertificationOwner,
+        true,
+    )
+    .expect("a certification edge remains visible only through its exact Phase 8 row");
+}
+
 fn inspect_package(package: &Value, ledger: &str) -> Result<(), String> {
     let manifest = manifest_relative_path(package)?;
     let disposition = disposition(&manifest);
@@ -233,9 +249,12 @@ fn inspect_direct_pool_edge(
     ledger_has_entry: bool,
 ) -> Result<(), String> {
     match disposition {
-        ConsumerDisposition::CanonicalPhysicalOwner | ConsumerDisposition::CertificationOwner => {
-            Ok(())
-        }
+        ConsumerDisposition::CanonicalPhysicalOwner => Ok(()),
+        ConsumerDisposition::CertificationOwner if ledger_has_entry => Ok(()),
+        ConsumerDisposition::CertificationOwner => Err(format!(
+            "Phase 8 certification consumer {} imports buffer-pool authority without an exact removal row",
+            manifest.display()
+        )),
         ConsumerDisposition::Phase8LegacyPhysicalOwner if ledger_has_entry => Ok(()),
         ConsumerDisposition::Phase8LegacyPhysicalOwner => Err(format!(
             "Phase 7 ordinary graph: legacy pool owner {} is not bound to a Phase 8 removal row",

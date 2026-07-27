@@ -15,7 +15,7 @@ deferred cleanup.
 ## Audit Source State
 
 The implementation batch begins from commit
-`2de25589602670ebbb6d5974aa43a67f48d82d4b` with a clean worktree on branch
+`761268304100001eb23680155f620c4c037ae1fd` with a clean worktree on branch
 `worth-store`.
 
 The final source fingerprint is `OPEN` until implementation and all corrections
@@ -42,6 +42,10 @@ have stopped.
   pool leases, frame keys, or legacy views.
 - Recovery, scrub, maintenance, verification, and blob consumers receive
   exact Store-minted scope types, not generic lower grants.
+- Exact successor allocation authority borrows the issuing serving runtime;
+  closing or moving that runtime while authority remains live must not compile.
+- The scheduler owns scheduler policy and execution admission, not copied
+  physical-isolation readiness or Store composition authority.
 - Certification drives the real Store composition or leaves a genuinely local
   pool law with the pool owner.
 - Test support may construct real Store worlds but may not manufacture
@@ -64,14 +68,15 @@ inspected.
 | `C6-P8-P05` | Legacy zero-copy, bounded-copy, materialization-profile, pinned-view, and owning-read-buffer graphs are deleted; integrity and isolation consume the Store borrowed chunk contract. | Public API/source absence, positive Store-view consumers, lifetime and construction compile failures, bounded-copy runtime evidence. | `OPEN` |
 | `C6-P8-P06` | Isolated S.2 background, speculative, queue, allocation-envelope, and evidence-source models are deleted; effectful speculation remains only on the canonical Store runtime. | Module/source absence, canonical speculation tests and counters, no local worker/queue gate, controlled legacy-model mutant. | `OPEN` |
 | `C6-P8-P07` | Direct buffer-pool dependency and source access is limited to exact canonical physical owners; certification, successor domains, and test support cannot import it. | Cargo metadata allowlist, source-import inventory, dependency/source mutants, boundary checker. | `OPEN` |
-| `C6-P8-P08` | Recovery, Scrub, Maintenance, Verification, and Blob allocation authority is Store-minted, generation-bound, move-owned, exact-scope typed, and incapable of exposing or spending the lower grant. | Positive compile specimens, cross-scope/forgery/grant-extraction negatives, real Store admission/pressure/release journey. | `OPEN` |
+| `C6-P8-P08` | Recovery, Scrub, Maintenance, Verification, and Blob allocation authority is Store-minted, runtime-borrow-bound, generation-bound, move-owned, exact-scope typed, and incapable of exposing or spending the lower grant. The issuing serving runtime cannot close or move while any successor authority remains live. | Positive compile specimens; cross-scope, forgery, grant-extraction, clone, move-after-use, runtime-escape, and close-while-live negatives; real Store admission/pressure/release/close journey. | `OPEN` |
 | `C6-P8-P09` | Certification and test fixtures prove the real Store composition or narrow canonical pool laws; no fixture constructs deleted physical truth or self-certifies from copied counters. | Complete fixture/evidence trace, real Store roots and observations, independent oracles, deletion of redundant model evidence. | `OPEN` |
 | `C6-P8-P10` | Mathematical or policy tests retained from S.2 have independent value, make no production-authority claim, and add unique evidence not already owned by canonical pool or Store tests. | QA-tests proof-obligation audit, mutation sensitivity, duplicate-test review, owner placement review. | `OPEN` |
-| `C6-P8-P11` | Store-to-certification dependency direction is one-way: Store owns runtime truth and certification depends on Store; no dependency cycle or public compatibility re-export remains. | Cargo metadata/tree, facade inspection, compile tests, dependency-cycle mutant. | `OPEN` |
+| `C6-P8-P11` | Store-to-successor and Store-to-certification dependency direction is one-way: Store owns runtime truth; successors and certification consume its facade; no normal dependency cycle, peer-owned composition adapter, or public compatibility re-export remains. | Cargo metadata/tree, strongly connected component inspection, facade review, compile tests, dependency-cycle mutant. | `OPEN` |
 | `C6-P8-P12` | Every dependency, feature branch, module export, registry row, test selector, and fixture capability made dead by the cutover is removed. | Warnings-denied builds, metadata diff, dead-reference searches, suite/catalog execution. | `OPEN` |
 | `C6-P8-P13` | The workspace builds and its affected owner, Store, successor, certification, and test-support suites pass with no deleted feature available. | Focused tests, all-target/all-feature checks, workspace test lane, boundary-check, agent-context. | `OPEN` |
 | `C6-P8-P14` | Controlled reintroduction of a legacy feature, direct pool edge, deleted authority identifier, snapshot fixture, or legacy view fails the nearest mechanical gate. | Individually localized mutants for every substitution class. | `OPEN` |
 | `C6-P8-P15` | The resulting directory structure, facade placement, names, file sizes, and function composition preserve current and committed successor responsibilities. | Full dirty inventory, Rust function scrutiny, 400-line gate, composition and domain-topology review. | `OPEN` |
+| `C6-P8-P16` | Scheduler-native policy cannot become physical-isolation or Store authority: the scheduler has no physical-isolation/recovery dependency, copied readiness admission, generic `AuthorityMarker`, or counter-derived execution capability. Cross-domain physical composition occurs only at Store. | Dependency/source absence, public API inspection, policy-versus-authority type review, compile mutants, Store scheduler journeys. | `OPEN` |
 
 ## Requirement Coverage
 
@@ -87,6 +92,7 @@ inspected.
 | Controlled reintroduction fails CI evidence | `P14` |
 | No quarantine, alias, disabled feature, copied fixture, or deferred cleanup | `P01`-`P07`, `P09`, `P12` |
 | Compile-time enforcement and successor handoff honesty | `P05`, `P07`, `P08`, `P11` |
+| No cross-domain dependency cycle or copied scheduler authority | `P11`, `P16` |
 | Ledger completeness and final source truth | `L01`, `L02` |
 | Composition, topology, and test quality | `P09`, `P10`, `P15` |
 
@@ -98,11 +104,13 @@ inspected.
 | Certification exemption hides a second physical world | dependency/source classifier | exact canonical-owner allowlist |
 | Legacy graph is renamed instead of deleted | semantic source inventory | module-family and authority-shape gate |
 | Generic allocation permits cross-scope use | public type boundary | exact concrete scope types and compile failure |
+| Allocation outlives or survives closure of its issuing runtime | lifecycle/type boundary | runtime lifetime on exact capability and close-while-live compile failure |
 | Store scope evidence leaks a lower grant | visibility boundary | grant-extraction negative |
 | View migration copies or owns bytes | adapter API and counters | borrow-check UI plus copy counters |
 | Fixture opens no real Store boundary | test world construction | fixture trace and real-root observation |
 | Legacy test is copied into canonical topology | proof-obligation ownership | QA-tests uniqueness and mutation review |
 | Store depends on its certification consumer | Cargo graph | one-way dependency gate |
+| Scheduler copies physical-isolation counters into self-minted authority | cross-domain composition boundary | dependency absence, concrete public types, and authority-source mutant |
 | Deletion leaves registry or selector sediment | build/catalog boundary | warnings-denied compile and exact selector runs |
 | Search excludes the very consumer it must find | inventory generator | hostile consumer in every former exception class |
 | Cleanup claim rests on an earlier source state | evidence freeze | final exact source fingerprint |
@@ -111,17 +119,66 @@ inspected.
 
 ### `C6-P8-F001` - Phase 1 inventory exempts certification consumers
 
-- status: `OPEN`
+- status: `CORRECTED`
 - affected guarantees: `L02`, `P01`, `P07`, `P09`, `P14`
 - evidence: the Phase 7 classifier names certification crates as unrestricted
   pool owners, while live inspection finds 37 `worth-store-certification`
   files and 7 `worth-store-physical-certification` files importing the pool,
   including parallel-model evidence.
-- required correction: replace broad certification disposition with an exact
-  canonical physical-owner allowlist, add every discovered consumer to the
-  generated removal truth, and migrate or delete it.
-- closing proof: controlled direct-pool consumers in both certification classes
-  fail the final gate, while real Store-bound certification passes.
+- correction: direct-pool discovery now applies to every crate rather than six
+  fixed legacy roots; package-name values and workspace policy declarations
+  are distinguished from real Rust imports and package dependencies;
+  certification direct edges require an exact Phase 8 row; 23 previously
+  hidden certification paths and 7 physical-certification paths were added to
+  the removal ledger.
+- closing proof: the live inventory reconciles, the certification no-row
+  mutant fails at the direct-edge classifier, and the corresponding exact-row
+  control passes. Consumer migration and final direct-edge absence remain open
+  under `P01`, `P07`, and `P09`.
+
+### `C6-P8-F002` - Store's scheduler dependency closes a successor cycle
+
+- status: `OPEN`
+- affected guarantees: `L02`, `P08`, `P11`, `P12`, `P13`, `P16`
+- evidence: the normal graph contains
+  `worth-store -> worth-store-io-scheduler ->
+  worth-store-physical-isolation -> worth-store-recovery-physics`; therefore
+  Recovery cannot consume Store-minted allocation authority without closing a
+  Cargo dependency cycle.
+- required correction: remove scheduler-owned physical-isolation composition
+  and retain only scheduler-native policy/execution contracts. After that
+  cutover, successor crates may depend one-way on the Store facade.
+- closing proof: metadata has no scheduler-to-isolation/recovery edge; a
+  simulated or controlled reintroduction forms the rejected cycle; successor
+  packages compile against Store exact types.
+
+### `C6-P8-F003` - Exact successor allocation authority can escape its runtime
+
+- status: `OPEN`
+- affected guarantees: `L02`, `P08`, `P13`
+- evidence: `PhysicalScopedAllocationAdmission<'runtime>` returns exact
+  allocation values with no lifetime parameter. A caller may retain one,
+  consume or close the issuing `ServingPhysicalRuntime`, and continue holding
+  copied runtime/generation identity plus the lower grant.
+- required correction: bind every exact allocation capability to the lifetime
+  of the issuing serving runtime and propagate that lifetime through successor
+  wrappers.
+- closing proof: positive successor integrations compile while allocation
+  escape and close-while-live specimens fail for the intended borrow cause.
+
+### `C6-P8-F004` - Scheduler projects copied isolation counters into authority
+
+- status: `OPEN`
+- affected guarantees: `L02`, `P06`, `P11`, `P16`
+- evidence: `IoSchedulerIsolationAdmission` copies physical-isolation
+  assumptions and counters; background pacing then mints a generic
+  `AuthorityMarker` witness from copied freshness state. Store consumes neither
+  this admission nor the generic foreground path that requires it.
+- required correction: delete copied readiness/capability surfaces and generic
+  marker authority; retain independently valuable scheduler resource policy
+  only as explicitly non-authoritative policy data.
+- closing proof: source/API/dependency absence, policy-to-authority compile
+  failure, and unchanged real Store physical-instance scheduler journeys.
 
 ## Surviving-Defect Attack
 
@@ -142,6 +199,11 @@ Before closure, answer with evidence:
 13. Can a new direct pool consumer enter outside the checked crate list?
 14. Can source searches pass because policy exclusions are too broad?
 15. Can every row pass while the final source differs from the audited source?
+16. Can an exact successor allocation remain usable after its Store runtime
+    closes or moves?
+17. Can scheduler policy copy isolation counters and mint authority without
+    Store composition?
+18. Can a peer dependency recreate the Store-to-successor Cargo cycle?
 
 Any credible surviving defect reopens the affected guarantees and this ledger's
 completeness claim.

@@ -6,7 +6,10 @@ use std::{
 use super::workspace_source::{read, workspace_relative};
 use crate::workspace_root;
 
+mod direct_pool_reference;
 mod replacement_owner;
+
+use direct_pool_reference::is_direct_pool_consumer;
 
 const REMOVAL_LEDGER: &str = "_docs/worth-store/physical-reconstruction-c6-removal-ledger.csv";
 
@@ -14,15 +17,6 @@ const EXCLUDED_POLICY_SOURCES: &[&str] = &[
     "tools/store-test-runner/src/c5_1_sealing_gate.rs",
     "tools/store-test-runner/src/c5_1_sealing_gate/",
     "tools/store-test-runner/src/physical_residency_boundary_gate/",
-];
-
-const PHASE_8_DIRECT_POOL_ROOTS: &[&str] = &[
-    "crates/worth-store-blob-chunks/",
-    "crates/worth-store-maintenance/",
-    "crates/worth-store-physical-integrity/",
-    "crates/worth-store-physical-isolation/",
-    "crates/worth-store-recovery-physics/",
-    "crates/worth-store-test-support/",
 ];
 
 #[test]
@@ -103,19 +97,13 @@ fn inventory_gate_rejects_unclassified_consumers() {
     );
     assert!(families.contains("legacy-s2-feature"));
 
-    let direct = discover_families(
-        "crates/worth-store-maintenance/src/new_consumer.rs",
-        "use worth_store_buffer_pool::PhysicalResidencyCounters;",
-    );
-    assert!(direct.contains("direct-pool-consumer"));
-
-    let canonical = discover_families(
-        "crates/worth-store/src/physical_runtime/new_owner.rs",
+    let certification = discover_families(
+        "crates/worth-store-certification/src/new_consumer.rs",
         "use worth_store_buffer_pool::PhysicalResidencyCounters;",
     );
     assert!(
-        !canonical.contains("direct-pool-consumer"),
-        "the canonical Store owner must not become Phase 8 legacy inventory"
+        certification.contains("direct-pool-consumer"),
+        "certification is a consumer of Store truth, not a canonical pool owner"
     );
 }
 
@@ -191,13 +179,7 @@ fn discover_families(path: &str, source: &str) -> BTreeSet<String> {
             families.insert(family.to_owned());
         }
     }
-    if families.is_empty()
-        && PHASE_8_DIRECT_POOL_ROOTS
-            .iter()
-            .any(|root| path.starts_with(root))
-        && (source.contains("worth_store_buffer_pool")
-            || source.contains("worth-store-buffer-pool"))
-    {
+    if families.is_empty() && is_direct_pool_consumer(path, source) {
         families.insert("direct-pool-consumer".to_owned());
     }
     families
