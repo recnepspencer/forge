@@ -23,7 +23,7 @@ impl PoolState {
             removed.bytes,
             removed.pins,
             removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
+            removed.origin.is_candidate(),
         );
         self.accounting.record_eviction();
     }
@@ -40,7 +40,7 @@ impl PoolState {
             removed.bytes,
             removed.pins,
             removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
+            removed.origin.is_candidate(),
         );
         self.accounting.record_administrative_drain();
     }

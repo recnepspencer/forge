@@ -216,7 +216,9 @@ fn published_tail_is_validated_before_an_inline_producer_is_consumed() {
     let last = damaged.len() - 1;
     damaged[last] ^= 1;
     std::fs::write(manifest, damaged).unwrap();
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
 
     let reads = Arc::new(AtomicUsize::new(0));
     let error = serving

@@ -11,7 +11,7 @@ use super::{configuration, serving_from_initialization};
 const PAYLOAD: &[u8] = b"canonical cold and hot record read";
 
 #[test]
-fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes() {
+fn cold_read_carries_artifact_proof_so_hot_read_creates_no_physical_work() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
@@ -64,12 +64,10 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     assert_eq!(cold_bytes, PAYLOAD);
     assert_eq!(hot_bytes, PAYLOAD);
     assert_same_semantic_observation(cold, hot);
-    assert!(
-        cold.physical_work_count() > hot.physical_work_count(),
-        "cold fault work must remain visible beyond the hot-hit work"
-    );
-    assert_ne!(cold.first_physical_work(), hot.first_physical_work());
-    assert_ne!(cold.last_physical_work(), hot.last_physical_work());
+    assert!(cold.physical_work_count() > 0);
+    assert_eq!(hot.physical_work_count(), 0);
+    assert_eq!(hot.first_physical_work(), None);
+    assert_eq!(hot.last_physical_work(), None);
     assert_eq!(
         invalidations_after, invalidations_before,
         "successful cold and hot reads must not manufacture dependency changes"
@@ -97,9 +95,11 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
     assert!(settled_after_cold[settled_before..]
         .iter()
         .all(|record| record.backend_operation().is_some()));
-    assert!(settled_after_hot[settled_after_cold.len()..]
-        .iter()
-        .all(|record| record.backend_operation().is_some()));
+    assert_eq!(
+        settled_after_hot.len(),
+        settled_after_cold.len(),
+        "the hot read must create no physical work identity"
+    );
     assert!(settled_after_hot.iter().all(|record| {
         record.derived_completion()
             == Some(worth_store::physical_runtime::PhysicalSignalSettlementOutcome::Committed)
@@ -112,13 +112,14 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
         ) > 0,
         "cold reads must causally expose their metadata effects"
     );
-    assert!(
+    assert_eq!(
         media_role_delta(
             media_after_cold,
             media_after_hot,
             MediaOperationRole::ReadMetadata,
-        ) > 0,
-        "resident frame access still validates artifact metadata through canonical work"
+        ),
+        0,
+        "resident frames must carry their admitted artifact-length proof"
     );
 
     assert!(
@@ -147,14 +148,15 @@ fn cold_and_hot_reads_share_canonical_work_but_only_cold_work_reads_frame_bytes(
         0,
         "a hot frame hit must create no source-range work or Signal authority"
     );
-    assert!(
+    assert_eq!(
         family_work_delta(
             work_after_cold,
             work_after_hot,
             PhysicalWorkOperationFamily::ArtifactMetadataRead,
             PhysicalWorkCounterStage::Terminal,
-        ) > 0,
-        "metadata work remains a real effect even when frame bytes are resident"
+        ),
+        0,
+        "hot reads must not rediscover metadata proof"
     );
     assert_eq!(
         work_delta(

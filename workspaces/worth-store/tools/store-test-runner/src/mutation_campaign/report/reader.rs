@@ -206,7 +206,11 @@ mod tests {
         )
         .unwrap();
         let error = load_physical_work_evidence(&report, temporary.path()).unwrap_err();
-        assert!(error.contains("requires 29 observations"), "{error}");
+        let expected = crate::mutation_campaign::catalog::physical_work_mutations().len();
+        assert!(
+            error.contains(&format!("requires {expected} observations")),
+            "{error}"
+        );
     }
 
     #[test]

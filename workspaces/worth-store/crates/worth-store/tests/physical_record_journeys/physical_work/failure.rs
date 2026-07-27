@@ -2,14 +2,14 @@ use super::{
     executor::admitted_write,
     fault_fixture::serving_from_open_with_positioned_write_fault,
     fixture::{serving_from_initialization_with_work_profile, work_fixture},
-    scheduler::{policy_receipt, write_demand},
+    scheduler::{policy_receipt, secure_demand, write_demand},
 };
 use tempfile::tempdir;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     PhysicalExecutorCommand, PhysicalStoreCloseOutcome, PhysicalWorkEffectFate,
-    PhysicalWorkPreEffectDenial, PhysicalWorkRecoveryDisposition, PhysicalWorkResidencyPosture,
-    PhysicalWorkRetryScheduleOutcome, PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence,
+    PhysicalWorkPreEffectDenial, PhysicalWorkRecoveryDisposition, PhysicalWorkRetryScheduleOutcome,
+    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence,
 };
 use worth_store_physical_backend::MediaFaultDirective;
 
@@ -85,6 +85,7 @@ fn pre_effect_backend_denial_is_the_only_retryable_physical_failure() {
     let backend = serving
         .admit_physical_scheduler_capability(queue.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
     let admitted = serving
         .admit_physical_scheduler_demand(demand, &backend, policy_receipt(queue.requested_budget()))
         .unwrap();
@@ -168,10 +169,6 @@ fn partial_write_retains_exact_prefix_and_revokes_serving_health() {
     assert_eq!(
         failure.scheduler(),
         PhysicalWorkSchedulerPosture::NotObserved
-    );
-    assert_eq!(
-        failure.residency(),
-        PhysicalWorkResidencyPosture::NotParticipating
     );
     let observed = std::fs::read(&catalog).unwrap();
     assert_eq!(&observed[8..11], b"par");

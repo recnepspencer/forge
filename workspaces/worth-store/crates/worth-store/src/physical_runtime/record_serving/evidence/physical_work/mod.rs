@@ -6,6 +6,7 @@ mod hostile_truth;
 #[cfg(test)]
 mod hostile_truth_tests;
 mod hostile_validation;
+mod identity;
 mod lowering;
 mod mutant;
 mod run_provenance;

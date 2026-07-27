@@ -1,6 +1,6 @@
 #[cfg(feature = "certification-test-authority")]
 use worth_store_buffer_pool::{
-    DirtyPhysicalFrame, OperationAllocationGrant, PhysicalDirtyReplacementError,
+    DirtyPhysicalFrame, ForegroundWriteAllocationGrant, PhysicalDirtyReplacementError,
     PhysicalResidencyDenial,
 };
 use worth_store_buffer_pool::{PhysicalFrameKey, PhysicalFrameLease};
@@ -9,8 +9,17 @@ use worth_store_physical_format::RecordFrameCoordinate;
 use super::{FrameLoadFailure, FrameLoadFailureKind};
 use crate::physical_runtime::record_serving::residency::frame_work_trace::FrameWorkTrace;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalFrameAccessOrigin {
+    Hit,
+    Coalesced,
+    Fault,
+}
+
 pub(in crate::physical_runtime::record_serving) struct LoadedPhysicalFrame {
     lease: PhysicalFrameLease,
+    #[cfg(feature = "certification-test-authority")]
+    origin: PhysicalFrameAccessOrigin,
     work: FrameWorkTrace,
     projection_failure:
         Option<crate::physical_runtime::instance::PhysicalProjectionFailureCapability>,
@@ -21,6 +30,7 @@ impl LoadedPhysicalFrame {
         store: worth_store_physical_format::store_namespace::StableStoreIdentity,
         coordinate: RecordFrameCoordinate,
         lease: PhysicalFrameLease,
+        _origin: PhysicalFrameAccessOrigin,
         work: FrameWorkTrace,
         projection_failure: Option<
             crate::physical_runtime::instance::PhysicalProjectionFailureCapability,
@@ -37,9 +47,18 @@ impl LoadedPhysicalFrame {
         }
         Ok(Self {
             lease,
+            #[cfg(feature = "certification-test-authority")]
+            origin: _origin,
             work,
             projection_failure,
         })
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) const fn origin(
+        &self,
+    ) -> PhysicalFrameAccessOrigin {
+        self.origin
     }
 
     pub(in crate::physical_runtime::record_serving) const fn work_trace(&self) -> FrameWorkTrace {
@@ -69,7 +88,7 @@ impl LoadedPhysicalFrame {
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn fill_dirty_candidate<F>(
         self,
-        allocation: &OperationAllocationGrant,
+        allocation: &ForegroundWriteAllocationGrant,
         fill: F,
     ) -> Result<(DirtyPhysicalFrame, FrameWorkTrace), PhysicalResidencyDenial>
     where

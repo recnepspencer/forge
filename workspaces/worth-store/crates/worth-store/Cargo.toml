@@ -77,6 +77,10 @@ path = "tests/physical_runtime_authority_ui.rs"
 required-features = ["certification-test-authority"]
 
 [[test]]
+name = "physical_adapter_authority_ui"
+path = "tests/physical_adapter_authority_ui.rs"
+
+[[test]]
 name = "physical_record_journeys"
 path = "tests/physical_record_journeys.rs"
 required-features = ["certification-test-authority"]

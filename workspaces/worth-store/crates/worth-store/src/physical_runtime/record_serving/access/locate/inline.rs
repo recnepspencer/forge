@@ -26,13 +26,8 @@ impl PhysicalRecordReader {
             .permit()
             .map_err(|_| RecordReadDenial::ServingRequiresInspection)?;
         let artifacts = RecordFrameReader::serving(self.residency.clone());
-        let location = page_location::locate_inline_page(
-            self,
-            placement,
-            observation,
-            &allocation,
-            &artifacts,
-        )?;
+        let location =
+            page_location::locate_inline_page(self, placement, observation, &allocation)?;
         let page = location.load(&allocation, &artifacts, observation)?;
         let projected =
             record_projection::project_inline_record(record_projection::InlineRecordProjection {

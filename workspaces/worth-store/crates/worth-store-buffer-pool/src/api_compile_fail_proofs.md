@@ -200,17 +200,34 @@ Candidate residency cannot be reserved from a raw operation-scope label:
 
 ```compile_fail
 use worth_store_buffer_pool::{
-    PhysicalFrameKey, PhysicalOperationAllocationScope, PhysicalResidencyPool,
+    PhysicalCandidateFrameKey, PhysicalOperationAllocationScope, PhysicalResidencyPool,
 };
 
 fn reserve_candidate_with_scope(
     pool: &PhysicalResidencyPool,
-    key: PhysicalFrameKey,
+    candidate: PhysicalCandidateFrameKey,
 ) {
     let _ = pool.reserve_candidate_frames(
         PhysicalOperationAllocationScope::ForegroundWrite,
-        &[key],
+        &[candidate],
     );
+}
+```
+
+A generic operation grant—even one whose runtime label is
+`ForegroundWrite`—is insufficient mutation authority:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    OperationAllocationGrant, PhysicalCandidateFrameKey, PhysicalResidencyPool,
+};
+
+fn reserve_candidate_with_generic_grant(
+    pool: &PhysicalResidencyPool,
+    grant: &OperationAllocationGrant,
+    candidate: PhysicalCandidateFrameKey,
+) {
+    let _ = pool.reserve_candidate_frames(grant, &[candidate]);
 }
 ```
 
@@ -308,17 +325,159 @@ fn replace_with_scope(clean: PhysicalFrameLease) {
 }
 ```
 
+A generic operation grant cannot authorize prefetch even when its runtime scope
+is foreground-read:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    OperationAllocationGrant, PhysicalResidencyPool,
+};
+use worth_store_physical_format::RecordFrameCoordinate;
+
+fn prefetch_with_erased_scope(
+    pool: &PhysicalResidencyPool,
+    grant: OperationAllocationGrant,
+    coordinate: RecordFrameCoordinate,
+) {
+    let _ = pool.admit_prefetch(grant, coordinate);
+}
+```
+
+Foreground-write authority cannot substitute for foreground-read authority:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    ForegroundWriteAllocationGrant, PhysicalResidencyPool,
+};
+use worth_store_physical_format::RecordFrameCoordinate;
+
+fn prefetch_with_write_authority(
+    pool: &PhysicalResidencyPool,
+    grant: ForegroundWriteAllocationGrant,
+    coordinate: RecordFrameCoordinate,
+) {
+    let _ = pool.admit_prefetch(grant, coordinate);
+}
+```
+
+Caller-bound frame keys cannot choose or forge the Store identity admitted by
+prefetch:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    ForegroundReadAllocationGrant, PhysicalFrameKey, PhysicalResidencyPool,
+};
+
+fn prefetch_with_caller_key(
+    pool: &PhysicalResidencyPool,
+    grant: ForegroundReadAllocationGrant,
+    frame: PhysicalFrameKey,
+) {
+    let _ = pool.admit_prefetch(grant, frame);
+}
+```
+
+Prefetch authority cannot be passed to a read-ahead frame entrypoint:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    PhysicalResidencyPool, PrefetchResidencyGrant,
+};
+
+fn substitute_speculative_kind(
+    pool: &PhysicalResidencyPool,
+    grant: &PrefetchResidencyGrant,
+) {
+    let _ = pool.access_read_ahead_frame(grant);
+}
+```
+
+Prefetch authority also cannot construct read-ahead queue evidence:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    BufferPoolQueueDeclarationContext, BufferPoolReadQueueExecutionDeclaration,
+    PrefetchResidencyGrant,
+};
+
+fn lower_prefetch_as_read_ahead(
+    grant: &PrefetchResidencyGrant,
+    context: BufferPoolQueueDeclarationContext,
+) {
+    let _ = BufferPoolReadQueueExecutionDeclaration::read_ahead(grant, context);
+}
+```
+
+A per-frame read-ahead authority cannot escape the aggregate grant it borrows:
+
+```compile_fail
+use worth_store_buffer_pool::{ReadAheadFrameGrant, ReadAheadResidencyGrant};
+
+fn escape_read_ahead_frame<'grant, 'coordinates>(
+    grant: ReadAheadResidencyGrant<'coordinates>,
+) -> ReadAheadFrameGrant<'grant, 'coordinates> {
+    grant.frame(0).unwrap()
+}
+```
+
+Writeback claims require consumed foreground-write allocation authority; a raw
+frame collection opens no claim:
+
+```compile_fail
+use worth_store_buffer_pool::{PhysicalFrameKey, PhysicalResidencyPool};
+
+fn claim_without_write_authority(
+    pool: &PhysicalResidencyPool,
+    frame: PhysicalFrameKey,
+) {
+    let _ = pool.claim_writeback(&[frame]);
+}
+```
+
+Speculative grants are linear and cannot be cloned:
+
+```compile_fail
+use worth_store_buffer_pool::PrefetchResidencyGrant;
+
+fn duplicate_prefetch(grant: PrefetchResidencyGrant) {
+    let _duplicate = grant.clone();
+}
+```
+
+Aggregate read-ahead grants are linear too:
+
+```compile_fail
+use worth_store_buffer_pool::ReadAheadResidencyGrant;
+
+fn duplicate_read_ahead(grant: ReadAheadResidencyGrant<'_>) {
+    let _duplicate = grant.clone();
+}
+```
+
+Dirty replacement also rejects a scope-erased operation grant at compile time:
+
+```compile_fail
+use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalFrameLease};
+
+fn replace_with_generic_grant(
+    clean: PhysicalFrameLease,
+    grant: &OperationAllocationGrant,
+) {
+    let _ = clean.begin_dirty_replacement(grant);
+}
+```
+
 A dirty-replacement reservation cannot outlive the concrete allocation grant
 it borrows:
 
 ```compile_fail
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, PhysicalDirtyReplacementReservation, PhysicalFrameLease,
+    ForegroundWriteAllocationGrant, PhysicalDirtyReplacementReservation, PhysicalFrameLease,
 };
 
 fn escape_grant<'a>(
     clean: PhysicalFrameLease,
-    grant: OperationAllocationGrant,
+    grant: ForegroundWriteAllocationGrant,
 ) -> PhysicalDirtyReplacementReservation<'a> {
     clean.begin_dirty_replacement(&grant).unwrap()
 }
@@ -328,12 +487,48 @@ Dirty-replacement reservations are move-owned and cannot be cloned:
 
 ```compile_fail
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, PhysicalFrameLease,
+    ForegroundWriteAllocationGrant, PhysicalFrameLease,
 };
 
-fn clone_replacement(clean: PhysicalFrameLease, grant: &OperationAllocationGrant) {
+fn clone_replacement(clean: PhysicalFrameLease, grant: &ForegroundWriteAllocationGrant) {
     let reservation = clean.begin_dirty_replacement(grant).unwrap();
     let _copy = reservation.clone();
+}
+```
+
+Possession of a dirty candidate is not authority to declare it clean:
+
+```compile_fail
+use worth_store_buffer_pool::DirtyPhysicalFrame;
+
+fn bypass_candidate_settlement(dirty: DirtyPhysicalFrame) {
+    let _ = dirty.complete_candidate_publication();
+}
+```
+
+Possession of a writeback claim is not authority to declare its frames clean:
+
+```compile_fail
+use worth_store_buffer_pool::PhysicalWritebackClaim;
+
+fn bypass_writeback_settlement(claim: PhysicalWritebackClaim) {
+    let _ = claim.complete_writeback();
+}
+```
+
+Candidate-publication authority cannot substitute for frame-writeback
+authority:
+
+```compile_fail
+use worth_store_buffer_pool::{
+    CandidateFrameCleanAuthority, PhysicalWritebackClaim,
+};
+
+fn cross_settlement_authority(
+    claim: PhysicalWritebackClaim,
+    candidate: &CandidateFrameCleanAuthority,
+) {
+    let _ = claim.complete_writeback(candidate);
 }
 ```
 

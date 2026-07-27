@@ -1,8 +1,13 @@
 use std::sync::Arc;
 
+#[cfg(feature = "certification-test-authority")]
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, PhysicalOperationAllocationScope, PhysicalResidencyCounters,
-    PhysicalResidencyDenial, PhysicalResidencyLimits, PhysicalResidencyPool,
+    ForegroundReadAllocationGrant, PrefetchResidencyGrant, ReadAheadResidencyGrant,
+};
+use worth_store_buffer_pool::{
+    ForegroundWriteAllocationGrant, FrameWritebackCleanAuthority, OperationAllocationGrant,
+    PhysicalOperationAllocationScope, PhysicalResidencyCounters, PhysicalResidencyDenial,
+    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalResidencyPoolOwner,
     PhysicalResidencyShutdown, PhysicalWritebackClaim,
 };
 use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
@@ -18,12 +23,17 @@ use super::candidate_frame_publishers::{
     BoundedCandidateFramePublisher, CandidateFrameCounterCells,
 };
 use super::frame_loading::BoundedFrameLoader;
+use super::residency_observation::{
+    PhysicalWritebackCounterCells, PhysicalWritebackCounterSnapshot,
+};
 
 #[derive(Clone)]
 pub(in crate::physical_runtime) struct RecordFramePorts {
     pool: PhysicalResidencyPool,
     loader: BoundedFrameLoader,
     publisher: BoundedCandidateFramePublisher,
+    writeback_clean: Arc<FrameWritebackCleanAuthority>,
+    writeback_counters: Arc<PhysicalWritebackCounterCells>,
     #[cfg(feature = "certification-test-authority")]
     candidate_counters: Arc<CandidateFrameCounterCells>,
 }
@@ -33,15 +43,21 @@ impl RecordFramePorts {
         store: StableStoreIdentity,
         limits: PhysicalResidencyLimits,
     ) -> Result<Self, PhysicalResidencyDenial> {
-        let pool = PhysicalResidencyPool::open(store, limits)?;
+        let (pool, candidate_clean, writeback_clean) =
+            PhysicalResidencyPoolOwner::open(store, limits)?.into_parts();
+        let candidate_clean = Arc::new(candidate_clean);
         let candidate_counters = Arc::new(CandidateFrameCounterCells::default());
+        let writeback_counters = Arc::new(PhysicalWritebackCounterCells::default());
         Ok(Self {
             loader: BoundedFrameLoader::new(pool.clone()),
             publisher: BoundedCandidateFramePublisher::new(
                 pool.clone(),
                 Arc::clone(&candidate_counters),
+                candidate_clean,
             ),
             pool,
+            writeback_clean: Arc::new(writeback_clean),
+            writeback_counters,
             #[cfg(feature = "certification-test-authority")]
             candidate_counters,
         })
@@ -66,6 +82,46 @@ impl RecordFramePorts {
         self.pool.begin_operation(scope, bytes)
     }
 
+    pub(in crate::physical_runtime) fn begin_foreground_write_operation(
+        &self,
+        bytes: std::num::NonZeroU64,
+    ) -> Result<ForegroundWriteAllocationGrant, PhysicalResidencyDenial> {
+        self.pool.begin_foreground_write_operation(bytes)
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn begin_foreground_read_operation(
+        &self,
+        bytes: std::num::NonZeroU64,
+    ) -> Result<ForegroundReadAllocationGrant, PhysicalResidencyDenial> {
+        self.pool.begin_foreground_read_operation(bytes)
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn admit_prefetch(
+        &self,
+        allocation: ForegroundReadAllocationGrant,
+        coordinate: RecordFrameCoordinate,
+    ) -> Result<PrefetchResidencyGrant, PhysicalResidencyDenial> {
+        self.pool.admit_prefetch(allocation, coordinate)
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn admit_read_ahead<'coordinates>(
+        &self,
+        allocation: ForegroundReadAllocationGrant,
+        coordinates: &'coordinates [RecordFrameCoordinate],
+    ) -> Result<ReadAheadResidencyGrant<'coordinates>, PhysicalResidencyDenial> {
+        self.pool.admit_read_ahead(allocation, coordinates)
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) const fn speculative_loader(
+        &self,
+    ) -> &BoundedFrameLoader {
+        &self.loader
+    }
+
     pub(in crate::physical_runtime) fn counters(&self) -> PhysicalResidencyCounters {
         self.pool.counters()
     }
@@ -74,10 +130,16 @@ impl RecordFramePorts {
     ) -> worth_store_buffer_pool::PhysicalResidencyAllocationEventObserver {
         self.pool.allocation_events()
     }
+    pub(in crate::physical_runtime) fn writeback_counters(
+        &self,
+    ) -> PhysicalWritebackCounterSnapshot {
+        self.writeback_counters.snapshot()
+    }
     pub(in crate::physical_runtime) fn close(&self) -> PhysicalResidencyShutdown {
         self.pool.close()
     }
 
+    #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn drain_unpinned_clean_frames(&self) -> u64 {
         self.pool.drain_unpinned_clean_frames()
     }
@@ -86,61 +148,65 @@ impl RecordFramePorts {
         &self,
         coordinate: RecordFrameCoordinate,
     ) -> Result<PhysicalWritebackClaim, PhysicalResidencyDenial> {
-        self.pool
-            .claim_writeback(vec![worth_store_buffer_pool::PhysicalFrameKey::new(
+        let bytes = std::num::NonZeroU64::new(u64::from(coordinate.length()))
+            .ok_or(PhysicalResidencyDenial::WriteBackExceedsDirtyPosture)?;
+        let allocation = self.pool.begin_foreground_write_operation(bytes)?;
+        self.pool.claim_writeback(
+            allocation,
+            &[worth_store_buffer_pool::PhysicalFrameKey::new(
                 self.pool.store_identity(),
                 coordinate,
-            )])
+            )],
+        )
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn writeback_clean_authority(
+        &self,
+    ) -> &FrameWritebackCleanAuthority {
+        &self.writeback_clean
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn observe_writeback_attempt(&self) {
+        self.writeback_counters.observe_attempt();
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn observe_exact_writeback_receipt(&self) {
+        self.writeback_counters.observe_exact_receipt();
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn observe_retryable_writeback(&self) {
+        self.writeback_counters.observe_retryable();
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn observe_writeback_inspection(
+        &self,
+        indeterminate: bool,
+    ) {
+        self.writeback_counters
+            .observe_inspection_required(indeterminate);
     }
 
     pub(in crate::physical_runtime::record_serving) fn writeback_declaration(
         &self,
-        coordinate: RecordFrameCoordinate,
-        grouping: worth_store_buffer_pool::BufferPoolQueueGroupingScope,
-        flush_epoch: u64,
-        resource_shape: worth_store_contracts::QueueProducerResourceShape,
-    ) -> Result<worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration, PhysicalResidencyDenial>
-    {
-        worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration::write_back(
-            &self.pool,
-            worth_store_buffer_pool::PhysicalFrameKey::new(self.pool.store_identity(), coordinate),
-            grouping,
-            flush_epoch,
-            resource_shape,
+        claim: &PhysicalWritebackClaim,
+        context: worth_store_buffer_pool::BufferPoolQueueDeclarationContext,
+        durability: worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement,
+    ) -> Result<
+        worth_store_buffer_pool::BufferPoolWritebackQueueExecutionDeclaration,
+        PhysicalResidencyDenial,
+    > {
+        let durability = match durability {
+            worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement::BufferedWrite => {
+                worth_store_buffer_pool::BufferPoolQueueWriteDurability::BufferedWrite
+            }
+            worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement::
+                FileDataSynchronization => {
+                worth_store_buffer_pool::BufferPoolQueueWriteDurability::FileDataSynchronization
+            }
+        };
+        worth_store_buffer_pool::BufferPoolWritebackQueueExecutionDeclaration::for_claim(
+            claim, context, durability,
         )
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub(in crate::physical_runtime::record_serving) fn admit_dirty_for_certification(
-        &self,
-        coordinate: RecordFrameCoordinate,
-        bytes: Vec<u8>,
-    ) -> Result<(), PhysicalResidencyDenial> {
-        let key =
-            worth_store_buffer_pool::PhysicalFrameKey::new(self.pool.store_identity(), coordinate);
-        let allocation_bytes =
-            worth_store_buffer_pool::PhysicalResidencyPool::candidate_batch_operation_bytes(
-                std::num::NonZeroUsize::MIN,
-            )
-            .expect("one candidate batch has a representable operation demand");
-        let allocation = self.pool.begin_operation(
-            PhysicalOperationAllocationScope::ForegroundWrite,
-            allocation_bytes,
-        )?;
-        drop(self.pool.admit_dirty(&allocation, key, bytes)?);
-        Ok(())
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub(in crate::physical_runtime::record_serving) fn writeback_declaration_for_certification(
-        &self,
-        coordinate: RecordFrameCoordinate,
-        grouping: worth_store_buffer_pool::BufferPoolQueueGroupingScope,
-        flush_epoch: u64,
-        resource_shape: worth_store_contracts::QueueProducerResourceShape,
-    ) -> Result<worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration, PhysicalResidencyDenial>
-    {
-        self.writeback_declaration(coordinate, grouping, flush_epoch, resource_shape)
     }
 
     #[cfg(feature = "certification-test-authority")]

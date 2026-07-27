@@ -1,11 +1,14 @@
 mod candidate_allocation;
 mod candidate_identity;
+mod clean_transition_authority;
 mod dependency_boundary;
 mod direct_media;
 mod eviction_eligibility;
 mod failure_projection;
 mod fault_ownership;
+mod foreground_write_authority;
 mod identity_transition;
+mod ordinary_feature_graph;
 mod post_close_observation;
 mod production_trace;
 mod removal_inventory;

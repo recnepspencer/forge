@@ -42,6 +42,7 @@ impl PhysicalRecordReader {
                 artifacts,
                 admitted.artifact,
                 admitted.manifest,
+                admitted.artifact_bytes,
                 self.format.declaration(),
             ))),
             identity: self.read_identity(record),

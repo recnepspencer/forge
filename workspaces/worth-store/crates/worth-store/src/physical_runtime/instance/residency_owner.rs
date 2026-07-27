@@ -39,6 +39,7 @@ impl PhysicalResidencyOwner {
             self.admitted_policy,
             self.ports.counters(),
             self.ports.allocation_events().snapshot(),
+            self.ports.writeback_counters(),
         )
     }
 

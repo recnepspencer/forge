@@ -2,8 +2,8 @@
 mod admission;
 #[path = "physical_store_work_courtroom/arguments.rs"]
 mod arguments;
-#[path = "physical_store_work_courtroom/c6_pressure/mod.rs"]
-mod c6_pressure;
+#[path = "physical_store_work_courtroom/bounded_residency/mod.rs"]
+mod bounded_residency;
 #[path = "physical_store_work_courtroom/checkpoint.rs"]
 mod checkpoint;
 #[path = "physical_store_work_courtroom/configuration.rs"]
@@ -31,6 +31,8 @@ fn run() -> Result<(), String> {
         arguments::CourtroomInvocation::Write(invocation) => write::run(invocation),
         arguments::CourtroomInvocation::Reopen(invocation) => reopen::run(invocation),
         arguments::CourtroomInvocation::Shutdown(invocation) => shutdown::run(invocation),
-        arguments::CourtroomInvocation::C6Pressure(invocation) => c6_pressure::run(invocation),
+        arguments::CourtroomInvocation::BoundedResidency(invocation) => {
+            bounded_residency::run(invocation)
+        }
     }
 }

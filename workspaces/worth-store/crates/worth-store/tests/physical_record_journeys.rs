@@ -40,6 +40,8 @@ mod manifest_fixture;
 mod manifest_scale;
 #[path = "c5/observer.rs"]
 mod observer;
+#[path = "physical_record_journeys/ordinary_writeback_failures.rs"]
+mod ordinary_writeback_failures;
 #[path = "physical_record_journeys/page_packing_oracle.rs"]
 mod page_packing_oracle;
 #[path = "physical_record_journeys/physical_work/mod.rs"]
@@ -62,6 +64,8 @@ mod read_boundaries;
 mod record_chunk_views;
 #[path = "physical_record_journeys/residency_pressure_processes.rs"]
 mod residency_pressure_processes;
+#[path = "physical_record_journeys/residency_writeback_fresh_reopen.rs"]
+mod residency_writeback_fresh_reopen;
 #[path = "physical_record_journeys/residue_safety.rs"]
 mod residue_safety;
 #[path = "physical_record_journeys/reusable_segment_residue.rs"]
@@ -90,8 +94,8 @@ mod segment_truth;
 mod serving_lifecycle;
 #[path = "physical_record_journeys/stream_fixture.rs"]
 mod stream_fixture;
-#[path = "physical_record_journeys/writeback_courtroom.rs"]
-mod writeback_courtroom;
+#[path = "physical_record_journeys/successor_scope_admission.rs"]
+mod successor_scope_admission;
 
 use child_process::run_child;
 use worth_proof::TransitionOutcome;

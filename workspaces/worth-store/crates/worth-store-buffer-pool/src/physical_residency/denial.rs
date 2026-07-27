@@ -11,8 +11,16 @@ pub enum PhysicalResidencyDenial {
     WriteBackFrameNotDirty,
     WriteBackFrameAlreadyClaimed,
     WriteBackReceiptMismatch,
+    CandidateCleanAuthorityMismatch,
+    WritebackCleanAuthorityMismatch,
     AllocationFailed,
     AllocationGrantMismatch,
+    SpeculativeAllocationMismatch {
+        granted: u64,
+        required: u64,
+    },
+    EmptySpeculativeRead,
+    DuplicateSpeculativeFrame,
     CandidatePublicationActive,
     PoolClosed,
     BoundedLoadLimitConflict {

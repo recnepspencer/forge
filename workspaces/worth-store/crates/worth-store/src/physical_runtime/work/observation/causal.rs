@@ -22,6 +22,7 @@ pub struct PhysicalWorkCausalRecord {
     signal_request: ResourceRequestHandle,
     signal_predecessor: Option<ResourceRequestHandle>,
     signal_attempt: ResourceAttemptId,
+    signal_family: super::super::PhysicalWorkSignalFamily,
     signal_binding: PhysicalSignalAspectBindingDigest,
     scheduler_binding: BackendQueueExecutionPlanBinding,
     backend_operation: Option<MediaOperationIdentity>,
@@ -62,6 +63,7 @@ impl PhysicalWorkCausalLedger {
             signal_request: settled.signal_request(),
             signal_predecessor: settled.signal_evidence().replaces,
             signal_attempt: settled.request_attempt(),
+            signal_family: settled.signal_family(),
             signal_binding: settled.signal_binding(),
             scheduler_binding: settled.scheduler_binding(),
             backend_operation: settled
@@ -145,6 +147,10 @@ impl PhysicalWorkCausalRecord {
 
     pub const fn signal_attempt(self) -> ResourceAttemptId {
         self.signal_attempt
+    }
+
+    pub const fn signal_family(self) -> super::super::PhysicalWorkSignalFamily {
+        self.signal_family
     }
 
     pub const fn signal_binding(self) -> PhysicalSignalAspectBindingDigest {

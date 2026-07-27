@@ -16,7 +16,7 @@ use super::{
         admitted_contract, security_scope, serving_from_initialization_with_work_profile,
         validated_value,
     },
-    policy_receipt_for, ready_read_work,
+    policy_receipt_for, ready_read_work, secure_demand,
 };
 
 #[test]
@@ -124,6 +124,7 @@ fn scheduler_admit(
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
     serving
         .admit_physical_scheduler_demand(
             demand,

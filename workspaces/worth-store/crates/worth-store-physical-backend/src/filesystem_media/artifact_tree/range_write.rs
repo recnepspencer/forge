@@ -12,6 +12,27 @@ use crate::{
     BackendQueueExecutionAdaptation, BackendQueueExecutionPlanBinding, BackendQueueSpeculativeScope,
 };
 
+#[derive(Clone, Copy)]
+enum ArtifactRangeWritePosture {
+    ExistingRange,
+    AppendAtEof,
+}
+
+#[derive(Clone, Copy)]
+struct ArtifactRangeWriteRequest<'a> {
+    artifact: &'a ArtifactTreeFile,
+    coordinate: RecordFrameCoordinate,
+    bytes: &'a [u8],
+    durability: ArtifactRangeWriteDurabilityRequirement,
+    posture: ArtifactRangeWritePosture,
+}
+
+struct ScheduledArtifactRangeWriteContext {
+    binding: BackendQueueExecutionPlanBinding,
+    adaptation: BackendQueueExecutionAdaptation,
+    writeback_scope: Option<BackendQueueSpeculativeScope>,
+}
+
 impl ArtifactTreeMedia<'_> {
     #[allow(clippy::too_many_arguments)]
     pub fn write_scheduled_exact_at(
@@ -24,15 +45,34 @@ impl ArtifactTreeMedia<'_> {
         scope: BackendQueueSpeculativeScope,
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> ScheduledArtifactRangeWriteOutcome {
-        self.write_scheduled_exact_at_with_posture(
-            artifact,
-            coordinate,
-            bytes,
-            binding,
-            adaptation,
-            Some(scope),
-            durability,
-            false,
+        self.write_scheduled(
+            ArtifactRangeWriteRequest::existing(artifact, coordinate, bytes, durability),
+            ScheduledArtifactRangeWriteContext {
+                binding,
+                adaptation,
+                writeback_scope: Some(scope),
+            },
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn append_scheduled_writeback_at_eof(
+        &self,
+        artifact: &ArtifactTreeFile,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+        scope: BackendQueueSpeculativeScope,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> ScheduledArtifactRangeWriteOutcome {
+        self.write_scheduled(
+            ArtifactRangeWriteRequest::append(artifact, coordinate, bytes, durability),
+            ScheduledArtifactRangeWriteContext {
+                binding,
+                adaptation,
+                writeback_scope: Some(scope),
+            },
         )
     }
 
@@ -46,8 +86,13 @@ impl ArtifactTreeMedia<'_> {
         adaptation: BackendQueueExecutionAdaptation,
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> ScheduledArtifactRangeWriteOutcome {
-        self.write_scheduled_exact_at_with_posture(
-            artifact, coordinate, bytes, binding, adaptation, None, durability, false,
+        self.write_scheduled(
+            ArtifactRangeWriteRequest::existing(artifact, coordinate, bytes, durability),
+            ScheduledArtifactRangeWriteContext {
+                binding,
+                adaptation,
+                writeback_scope: None,
+            },
         )
     }
 
@@ -61,27 +106,25 @@ impl ArtifactTreeMedia<'_> {
         adaptation: BackendQueueExecutionAdaptation,
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> ScheduledArtifactRangeWriteOutcome {
-        self.write_scheduled_exact_at_with_posture(
-            artifact, coordinate, bytes, binding, adaptation, None, durability, true,
+        self.write_scheduled(
+            ArtifactRangeWriteRequest::append(artifact, coordinate, bytes, durability),
+            ScheduledArtifactRangeWriteContext {
+                binding,
+                adaptation,
+                writeback_scope: None,
+            },
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn write_scheduled_exact_at_with_posture(
+    fn write_scheduled(
         &self,
-        artifact: &ArtifactTreeFile,
-        coordinate: RecordFrameCoordinate,
-        bytes: &[u8],
-        binding: BackendQueueExecutionPlanBinding,
-        adaptation: BackendQueueExecutionAdaptation,
-        writeback_scope: Option<BackendQueueSpeculativeScope>,
-        durability: ArtifactRangeWriteDurabilityRequirement,
-        extend_at_eof: bool,
+        request: ArtifactRangeWriteRequest<'_>,
+        context: ScheduledArtifactRangeWriteContext,
     ) -> ScheduledArtifactRangeWriteOutcome {
         let ticket = match crate::BackendQueueExecutionAuthority::store_owned().issue_ticket(
-            binding,
+            context.binding,
             self.execution_capability,
-            adaptation,
+            context.adaptation,
         ) {
             Ok(ticket) => ticket,
             Err(_) => {
@@ -90,16 +133,10 @@ impl ArtifactTreeMedia<'_> {
                 );
             }
         };
-        match self.write_exact_at_with_durability(
-            artifact,
-            coordinate,
-            bytes,
-            durability,
-            extend_at_eof,
-        ) {
+        match self.write_exact(request) {
             ArtifactRangeWriteOutcome::Completed(physical) => {
                 let queue = ticket.begin_completion().observe_queue_depth(1);
-                let queue = match writeback_scope {
+                let queue = match context.writeback_scope {
                     Some(scope) => queue.observe_write_back(1, scope),
                     None => queue,
                 }
@@ -123,13 +160,12 @@ impl ArtifactTreeMedia<'_> {
         coordinate: RecordFrameCoordinate,
         bytes: &[u8],
     ) -> ArtifactRangeWriteOutcome {
-        self.write_exact_at_with_durability(
+        self.write_exact(ArtifactRangeWriteRequest::existing(
             artifact,
             coordinate,
             bytes,
             ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
-            false,
-        )
+        ))
     }
 
     pub fn append_exact_at_eof(
@@ -138,33 +174,22 @@ impl ArtifactTreeMedia<'_> {
         coordinate: RecordFrameCoordinate,
         bytes: &[u8],
     ) -> ArtifactRangeWriteOutcome {
-        self.write_exact_at_with_durability(
+        self.write_exact(ArtifactRangeWriteRequest::append(
             artifact,
             coordinate,
             bytes,
             ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
-            true,
-        )
+        ))
     }
 
-    fn write_exact_at_with_durability(
-        &self,
-        artifact: &ArtifactTreeFile,
-        coordinate: RecordFrameCoordinate,
-        bytes: &[u8],
-        durability: ArtifactRangeWriteDurabilityRequirement,
-        extend_at_eof: bool,
-    ) -> ArtifactRangeWriteOutcome {
-        if bytes.len() != coordinate.length() as usize
-            || artifact.file_name != coordinate.artifact().file_name()
-        {
-            return ArtifactRangeWriteOutcome::DeniedBeforeEffect(ArtifactTreeFailure::structural(
-                ArtifactTreeFailureKind::AccessLimitExceeded,
-            ));
-        }
+    fn write_exact(&self, request: ArtifactRangeWriteRequest<'_>) -> ArtifactRangeWriteOutcome {
+        let end = match request.validate() {
+            Ok(end) => end,
+            Err(failure) => return ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure),
+        };
         let _coordination = match self
             .owner
-            .begin_artifact_mutation(vec![artifact.coordination_key()])
+            .begin_artifact_mutation(vec![request.artifact.coordination_key()])
         {
             Ok(coordination) => coordination,
             Err(_) => {
@@ -173,38 +198,10 @@ impl ArtifactTreeMedia<'_> {
                 );
             }
         };
-        let directory = match self.open_directory(&artifact.directory) {
-            Ok(directory) => directory,
-            Err(failure) => return ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure),
-        };
-        let mut file = match self.open_mutable_file(&directory, &artifact.file_name) {
+        let mut file = match self.prepare_write_target(request, end) {
             Ok(file) => file,
             Err(failure) => return ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure),
         };
-        let end = match coordinate.offset().checked_add(bytes.len() as u64) {
-            Some(end) => end,
-            None => {
-                return ArtifactRangeWriteOutcome::DeniedBeforeEffect(
-                    ArtifactTreeFailure::structural(ArtifactTreeFailureKind::AccessLimitExceeded),
-                );
-            }
-        };
-        match super::super::artifact_tree_effects::artifact_file_length(self.owner, &file) {
-            Ok(length) if !extend_at_eof && end <= length => {}
-            Ok(length) if extend_at_eof && coordinate.offset() == length => {}
-            Ok(_) => {
-                return ArtifactRangeWriteOutcome::DeniedBeforeEffect(
-                    ArtifactTreeFailure::structural(ArtifactTreeFailureKind::AccessLimitExceeded),
-                );
-            }
-            Err(failure) => return ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure),
-        }
-        if let Err(error) = file.seek(SeekFrom::Start(coordinate.offset())) {
-            return ArtifactRangeWriteOutcome::DeniedBeforeEffect(ArtifactTreeFailure::io(
-                ArtifactTreeFailureKind::DeniedBeforeEffect,
-                &error,
-            ));
-        }
         let sequence_file = match file.try_clone().map(cap_std::fs::File::into_std) {
             Ok(file) => file,
             Err(error) => {
@@ -224,8 +221,37 @@ impl ArtifactTreeMedia<'_> {
             }
         };
         let _sequence = sequence.lock();
-        let requested = bytes.len() as u64;
-        match super::exact_write_effect::execute(self.owner, &mut file, bytes) {
+        let effect = super::exact_write_effect::execute(self.owner, &mut file, request.bytes);
+        self.settle_exact_write(request, &file, effect)
+    }
+
+    fn prepare_write_target(
+        &self,
+        request: ArtifactRangeWriteRequest<'_>,
+        end: u64,
+    ) -> Result<cap_std::fs::File, ArtifactTreeFailure> {
+        let directory = self.open_directory(&request.artifact.directory)?;
+        let mut file = self.open_mutable_file(&directory, &request.artifact.file_name)?;
+        let length = super::super::artifact_tree_effects::artifact_file_length(self.owner, &file)?;
+        if !request.accepts_file_length(length, end) {
+            return Err(ArtifactTreeFailure::structural(
+                ArtifactTreeFailureKind::AccessLimitExceeded,
+            ));
+        }
+        file.seek(SeekFrom::Start(request.coordinate.offset()))
+            .map_err(|error| {
+                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
+            })?;
+        Ok(file)
+    }
+
+    fn settle_exact_write(
+        &self,
+        request: ArtifactRangeWriteRequest<'_>,
+        file: &cap_std::fs::File,
+        effect: super::exact_write_effect::ExactWriteEffect,
+    ) -> ArtifactRangeWriteOutcome {
+        match effect {
             super::exact_write_effect::ExactWriteEffect::DeniedBeforeEffect(failure) => {
                 ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure)
             }
@@ -237,47 +263,111 @@ impl ArtifactTreeMedia<'_> {
                 failure,
                 self.owner.identity(),
                 self.store,
-                coordinate,
-                bytes,
+                request.coordinate,
+                request.bytes,
                 completed_bytes,
                 operation,
             )),
             super::exact_write_effect::ExactWriteEffect::Completed(operation) => {
-                let durability = match durability {
-                    ArtifactRangeWriteDurabilityRequirement::BufferedWrite => {
-                        ArtifactRangeWriteDurability::BufferedWriteCompleted
-                    }
-                    ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization => {
-                        if let Err(failure) =
-                            super::super::artifact_tree_effects::synchronize_file_for_operation(
-                                self.owner, &file, operation,
-                            )
-                        {
-                            return ArtifactRangeWriteOutcome::Indeterminate(
-                                IndeterminateArtifactRangeWrite::new(
-                                    failure,
-                                    self.owner.identity(),
-                                    self.store,
-                                    coordinate,
-                                    bytes,
-                                    requested,
-                                    operation,
-                                ),
-                            );
-                        }
-                        ArtifactRangeWriteDurability::FileDataSynchronized
-                    }
-                };
-                let mut receipt = CompletedArtifactRangeWrite::buffered(
-                    self.owner.identity(),
-                    self.store,
-                    coordinate,
-                    bytes,
-                    operation,
-                );
-                receipt.set_durability(durability);
-                ArtifactRangeWriteOutcome::Completed(receipt)
+                self.complete_exact_write(request, file, operation)
             }
+        }
+    }
+
+    fn complete_exact_write(
+        &self,
+        request: ArtifactRangeWriteRequest<'_>,
+        file: &cap_std::fs::File,
+        operation: crate::filesystem_media::MediaOperationIdentity,
+    ) -> ArtifactRangeWriteOutcome {
+        let durability = match request.durability {
+            ArtifactRangeWriteDurabilityRequirement::BufferedWrite => {
+                ArtifactRangeWriteDurability::BufferedWriteCompleted
+            }
+            ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization => {
+                if let Err(failure) =
+                    super::super::artifact_tree_effects::synchronize_file_for_operation(
+                        self.owner, file, operation,
+                    )
+                {
+                    return ArtifactRangeWriteOutcome::Indeterminate(
+                        IndeterminateArtifactRangeWrite::new(
+                            failure,
+                            self.owner.identity(),
+                            self.store,
+                            request.coordinate,
+                            request.bytes,
+                            request.bytes.len() as u64,
+                            operation,
+                        ),
+                    );
+                }
+                ArtifactRangeWriteDurability::FileDataSynchronized
+            }
+        };
+        let mut receipt = CompletedArtifactRangeWrite::buffered(
+            self.owner.identity(),
+            self.store,
+            request.coordinate,
+            request.bytes,
+            operation,
+        );
+        receipt.set_durability(durability);
+        ArtifactRangeWriteOutcome::Completed(receipt)
+    }
+}
+
+impl<'a> ArtifactRangeWriteRequest<'a> {
+    const fn existing(
+        artifact: &'a ArtifactTreeFile,
+        coordinate: RecordFrameCoordinate,
+        bytes: &'a [u8],
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> Self {
+        Self {
+            artifact,
+            coordinate,
+            bytes,
+            durability,
+            posture: ArtifactRangeWritePosture::ExistingRange,
+        }
+    }
+
+    const fn append(
+        artifact: &'a ArtifactTreeFile,
+        coordinate: RecordFrameCoordinate,
+        bytes: &'a [u8],
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> Self {
+        Self {
+            artifact,
+            coordinate,
+            bytes,
+            durability,
+            posture: ArtifactRangeWritePosture::AppendAtEof,
+        }
+    }
+
+    fn validate(self) -> Result<u64, ArtifactTreeFailure> {
+        if self.bytes.len() != self.coordinate.length() as usize
+            || self.artifact.file_name != self.coordinate.artifact().file_name()
+        {
+            return Err(ArtifactTreeFailure::structural(
+                ArtifactTreeFailureKind::AccessLimitExceeded,
+            ));
+        }
+        self.coordinate
+            .offset()
+            .checked_add(self.bytes.len() as u64)
+            .ok_or_else(|| {
+                ArtifactTreeFailure::structural(ArtifactTreeFailureKind::AccessLimitExceeded)
+            })
+    }
+
+    const fn accepts_file_length(self, length: u64, end: u64) -> bool {
+        match self.posture {
+            ArtifactRangeWritePosture::ExistingRange => end <= length,
+            ArtifactRangeWritePosture::AppendAtEof => self.coordinate.offset() == length,
         }
     }
 }

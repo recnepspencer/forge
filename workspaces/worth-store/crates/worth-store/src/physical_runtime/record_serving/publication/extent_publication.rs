@@ -1,6 +1,6 @@
 use worth_store_physical_format::{
     prepare_extent_chunk_reusing, DurableExtentManifest, ExtentChunkCoordinate, RecordArtifactFile,
-    RecordFrameCoordinate, DURABLE_EXTENT_FRAME_HEADER_BYTES, EXTENT_CHUNK_METADATA_BYTES,
+    DURABLE_EXTENT_FRAME_HEADER_BYTES, EXTENT_CHUNK_METADATA_BYTES,
 };
 
 use super::super::publication::append_observation::PublicationObservation;
@@ -20,6 +20,7 @@ pub(in crate::physical_runtime::record_serving) struct ExtentDataPlan {
 
 pub(in crate::physical_runtime::record_serving) fn write_extent(
     artifacts: &PublicationRecordArtifacts<'_>,
+    writeback: &super::super::residency::FrameWritebackPort,
     format: AdmittedPhysicalRecordFormat,
     plan: &mut ExtentDataPlan,
     residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession<'_>,
@@ -84,23 +85,20 @@ pub(in crate::physical_runtime::record_serving) fn write_extent(
                 plan.artifact,
                 offset,
             );
-        let physical_coordinate = RecordFrameCoordinate::new(
-            plan.artifact,
-            offset,
-            u32::try_from(sealed.len()).expect("extent frames are u32-bounded"),
-        )
-        .expect("extent frames are nonempty and offset-bounded");
         let candidate = super::super::residency::frame_ports::CandidateFrame::new(
             super::super::residency::frame_ports::CandidateFrameRole::ExtentChunk,
             candidate_coordinate,
             sealed,
         );
         let frame = if offset == 0 {
-            stage.write_new_candidate(residency, candidate, plan.artifact)
+            stage
+                .write_new_candidate(residency, candidate, plan.artifact)
+                .map_err(CandidateDataWriteFailure::from_frame_write)?
         } else {
-            stage.append_candidate(residency, candidate, physical_coordinate)
-        }
-        .map_err(CandidateDataWriteFailure::from_frame_write)?;
+            stage
+                .write_existing_artifact_candidate(residency, candidate, writeback)
+                .map_err(CandidateDataWriteFailure::from_writeback)?
+        };
         observation.observe_transfer(frame.frame_bytes() as usize);
         artifact_offset = artifact_offset.saturating_add(frame.frame_bytes());
         scratch = frame.into_reusable_bytes().unwrap_or_default();

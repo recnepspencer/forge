@@ -89,9 +89,6 @@ fn terminal_failure(
                 super::super::RecordReadWorkDenial::SchedulerSettlementRejected,
             ))
         }
-        crate::physical_runtime::PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(
-            reason,
-        ) => RecordAppendError::Denied(RecordAppendDenial::from_residency(reason)),
         crate::physical_runtime::PhysicalWorkTerminalCause::Backend(_)
         | crate::physical_runtime::PhysicalWorkTerminalCause::IncompleteRead { .. } => {
             RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)

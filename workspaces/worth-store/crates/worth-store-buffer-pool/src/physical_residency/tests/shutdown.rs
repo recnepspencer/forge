@@ -61,7 +61,7 @@ fn empty_live_candidate_batch_is_not_a_clean_shutdown() {
     let candidate_bytes = candidate_batch_bytes(1);
     let pool =
         PhysicalResidencyPool::open(identity, limits(128, 1, 1, candidate_bytes, 2)).unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let candidate =
         PhysicalCandidateFrameKey::fragment(PhysicalFrameKey::new(identity, coordinate(1, 16)));
     let batch = pool
@@ -86,11 +86,11 @@ fn empty_live_candidate_batch_is_not_a_clean_shutdown() {
 fn speculative_grant_drop_reconciles_after_close() {
     let identity = store(16);
     let pool = PhysicalResidencyPool::open(identity, limits(128, 1, 1, 64, 2)).unwrap();
-    let allocation = allocation(&pool, READ_SCOPE);
-    let speculative = pool
-        .begin_speculative(&allocation, PhysicalSpeculativeWorkKind::Prefetch, 1)
+    let coordinate = coordinate(1, 16);
+    let allocation = pool
+        .begin_foreground_read_operation(nonzero_bytes(16))
         .unwrap();
-    drop(allocation);
+    let speculative = pool.admit_prefetch(allocation, coordinate).unwrap();
 
     let shutdown = pool.close();
     assert!(shutdown.requires_inspection());
@@ -111,15 +111,51 @@ fn speculative_grant_drop_reconciles_after_close() {
 }
 
 #[test]
+fn read_ahead_grant_drop_reconciles_after_close() {
+    let identity = store(112);
+    let pool = PhysicalResidencyPool::open(identity, limits(128, 2, 1, 64, 2)).unwrap();
+    let coordinates = [coordinate(1, 16), coordinate(2, 16)];
+    let allocation = pool
+        .begin_foreground_read_operation(nonzero_bytes(32))
+        .unwrap();
+    let speculative = pool.admit_read_ahead(allocation, &coordinates).unwrap();
+
+    let shutdown = pool.close();
+    assert!(shutdown.requires_inspection());
+    assert!(shutdown.has_cancellable_work_residue());
+    assert_eq!(
+        shutdown
+            .counters()
+            .active_speculative_frames(PhysicalSpeculativeWorkKind::ReadAhead),
+        2
+    );
+
+    drop(speculative);
+    assert_eq!(
+        pool.counters()
+            .active_speculative_frames(PhysicalSpeculativeWorkKind::ReadAhead),
+        0
+    );
+    assert_eq!(
+        pool.counters()
+            .speculative_completions(PhysicalSpeculativeWorkKind::ReadAhead),
+        1
+    );
+}
+
+#[test]
 fn writeback_claim_drop_after_close_releases_claim_but_retains_dirty_truth() {
     let identity = store(17);
     let candidate_bytes = candidate_batch_bytes(1);
     let pool =
         PhysicalResidencyPool::open(identity, limits(128, 1, 1, candidate_bytes, 2)).unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let key = PhysicalFrameKey::new(identity, coordinate(1, 16));
-    let dirty = pool.admit_dirty(&allocation, key, vec![7; 16]).unwrap();
-    let claim = pool.claim_writeback(vec![key]).unwrap();
+    let dirty = pool
+        .materialize_dirty_candidate(&allocation, key, |bytes| bytes.fill(7))
+        .unwrap();
+    drop(allocation);
+    let claim = writeback_claim(&pool, &[key]);
 
     let shutdown = pool.close();
     assert!(shutdown.requires_inspection());
@@ -141,7 +177,6 @@ fn writeback_claim_drop_after_close_releases_claim_but_retains_dirty_truth() {
     assert_eq!(pool.counters().dirty_frames(), 1);
 
     drop(dirty);
-    drop(allocation);
     assert_eq!(pool.counters().pin_leases(), 0);
     assert_eq!(pool.counters().dirty_frames(), 1);
     assert_eq!(pool.counters().active_operation_bytes(), 0);

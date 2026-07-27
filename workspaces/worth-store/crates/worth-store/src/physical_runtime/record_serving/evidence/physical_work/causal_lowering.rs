@@ -7,10 +7,10 @@ use crate::physical_runtime::{
 };
 
 use super::{
-    super::super::c6_handoff::C6PhysicalWorkHandoffIdentity,
     causal_validation::{
         CausalAttempt, CausalValidation, SignalAttemptLineage, SignalRequestLineage,
     },
+    identity::PhysicalWorkCourtroomIdentity,
     validation::validate_identity,
     vocabulary::{PhysicalWorkCausalIdentity, PhysicalWorkCausalOutcome},
     PhysicalWorkBackendEvidenceClass, PhysicalWorkBackendProfileEvidence,
@@ -21,7 +21,7 @@ use super::{
 };
 
 pub(super) fn lower_causal(
-    expected: C6PhysicalWorkHandoffIdentity,
+    expected: PhysicalWorkCourtroomIdentity,
     records: Box<[crate::physical_runtime::PhysicalWorkCausalRecord]>,
     findings: &mut Vec<PhysicalWorkCourtroomFinding>,
 ) -> (

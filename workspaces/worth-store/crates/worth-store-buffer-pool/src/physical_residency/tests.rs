@@ -40,8 +40,12 @@ mod runtime_pressure;
 mod shutdown;
 #[path = "tests/speculation.rs"]
 mod speculation;
+#[path = "tests/speculation_limits.rs"]
+mod speculation_limits;
 #[path = "tests/writeback_claim_exclusion.rs"]
 mod writeback_claim_exclusion;
+#[path = "tests/writeback_range_posture.rs"]
+mod writeback_range_posture;
 
 fn store(byte: u8) -> StableStoreIdentity {
     StoreNamespaceIdentityRecord::new(
@@ -127,11 +131,9 @@ fn candidate_batch_bytes(candidate_count: usize) -> u64 {
 
 fn candidate_allocation(
     pool: &PhysicalResidencyPool,
-    scope: PhysicalOperationAllocationScope,
     candidate_count: usize,
-) -> OperationAllocationGrant {
-    pool.begin_operation(
-        scope,
+) -> ForegroundWriteAllocationGrant {
+    pool.begin_foreground_write_operation(
         NonZeroU64::new(candidate_batch_bytes(candidate_count)).unwrap(),
     )
     .unwrap()
@@ -146,14 +148,26 @@ fn candidate_batches_bytes(batch_candidate_counts: &[usize]) -> u64 {
 
 fn candidate_batches_allocation(
     pool: &PhysicalResidencyPool,
-    scope: PhysicalOperationAllocationScope,
     batch_candidate_counts: &[usize],
-) -> OperationAllocationGrant {
-    pool.begin_operation(
-        scope,
+) -> ForegroundWriteAllocationGrant {
+    pool.begin_foreground_write_operation(
         NonZeroU64::new(candidate_batches_bytes(batch_candidate_counts)).unwrap(),
     )
     .unwrap()
+}
+
+fn writeback_claim(
+    pool: &PhysicalResidencyPool,
+    frames: &[PhysicalFrameKey],
+) -> PhysicalWritebackClaim {
+    let bytes = frames
+        .iter()
+        .map(|frame| u64::from(frame.coordinate().length()))
+        .sum();
+    let allocation = pool
+        .begin_foreground_write_operation(nonzero_bytes(bytes))
+        .unwrap();
+    pool.claim_writeback(allocation, frames).unwrap()
 }
 
 fn expect_fault(

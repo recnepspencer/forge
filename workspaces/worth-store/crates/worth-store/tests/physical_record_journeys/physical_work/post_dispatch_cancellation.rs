@@ -1,7 +1,8 @@
 use std::time::{Duration, Instant};
 
 use worth_store::physical_runtime::{
-    PhysicalEffectObligation, PhysicalExecutorCommand, PhysicalWorkEffectFate,
+    PhysicalEffectObligation, PhysicalExecutorCommand, PhysicalSignalSettlementOutcome,
+    PhysicalWorkEffectFate,
 };
 use worth_store_physical_backend::MediaOperationRole;
 
@@ -46,6 +47,12 @@ fn cancellation_after_backend_dispatch_retains_terminal_settlement_obligation() 
     assert_eq!(
         settled.settled().evidence().fate(),
         PhysicalWorkEffectFate::WriteCompleted
+    );
+    assert_eq!(
+        settled.signal(),
+        PhysicalSignalSettlementOutcome::ReconciledFromPhysicalTruth,
+        "a cancelled consumer cannot receive a committed Signal completion; \
+         terminal physical settlement must reconcile from physical truth"
     );
     assert_eq!(
         serving

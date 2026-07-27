@@ -34,7 +34,9 @@ Import these from `worth_store::physical_runtime`:
 - `PhysicalSpeculativeWorkKind`
 - `PhysicalRecordInitialization::with_residency_policy(...)`
 - `PhysicalRecordOpen::with_residency_policy(...)`
+- `ServingPhysicalRuntime::records()`
 - `ServingPhysicalRuntime::residency_observation()`
+- `PhysicalRecordReader::{open, open_external}`
 - `PhysicalResidencyObservation`
 - `PhysicalResidencyCounterSnapshot`
 - `PhysicalResidencyAllocationSnapshot`
@@ -50,6 +52,9 @@ Import these from `worth_store::physical_runtime`:
 - `RecordReadError::pressure()`
 - `RecordAppendError::pressure()`
 - `RecordAppendError::pressure_denial()`
+- `PhysicalPrefetchIntent` and `PhysicalPrefetchOutcome`
+- `PhysicalReadAheadIntent` and `PhysicalReadAheadOutcome`
+- `PhysicalWritebackCounterSnapshot`
 
 `PhysicalRecordInitialization::new(...)` and `PhysicalRecordOpen::new(...)`
 already carry the canonical admitted policy. An explicit declaration replaces
@@ -58,6 +63,13 @@ that policy; it does not create a second pool.
 Pool construction, frame tables, eviction controls, allocation grants, and
 lower residency snapshots are not application APIs. Store owns them and
 publishes only read-only Store evidence.
+
+The speculative intent and outcome types are stable physical vocabulary, not
+an ordinary cache-control handle. Direct prefetch, read-ahead, write-behind,
+and exact operation-scope admission currently belong to the
+`certification-test-authority` surface. Ordinary applications and future
+adapters can configure their ceilings and inspect their outcomes, but cannot
+invoke pool operations.
 
 ## Core Mental Model
 
@@ -94,6 +106,14 @@ An operation scope identifies which physical activity owns temporary bytes. It
 does not express priority, fairness, tenant identity, or semantic authority.
 Speculative kinds distinguish prefetch, read-ahead, and write-behind capacity;
 they do not create background workers or retry policy.
+
+Physical adapters consume a deliberately narrow basis: borrowed validated
+bytes, their logical range, stable Store identity, Store generation, physical
+record identity, frame coordinate, pressure, and retry posture. Those values
+are enough for integrity, isolation, and blob layers to bind later physical
+work to the correct Store generation. They are not proof that bytes satisfy an
+integrity policy, belong to a stable semantic snapshot, or form a complete blob.
+Those meanings remain owned by the successor that defines them.
 
 ## How It Executes
 
@@ -317,14 +337,21 @@ the Rust borrow lifetime.
 - Placement and access policies remain separate. They do not imply memory
   capacity and cannot substitute for residency admission.
 - Scheduler capacity controls admitted physical work. It does not own memory.
-- Recovery, scrub, maintenance, verification, and blob code may receive scoped
-  allocation outcomes in later C.6 work, but they do not receive the pool.
-- Signal is used only after the private serving-residency capability reports a
-  real miss. That miss reuses the existing `ReadFault` family with the exact
-  root, artifact, frame, or scan projection basis. A hit and a coalesced waiter
-  create no Signal request, scheduler admission, executor command, or media
-  effect. Residency admission, counters, allocation events, and pressure
-  evidence neither import Signal into the pool nor create a Signal family.
+- Recovery, scrub, maintenance, verification, and blob scopes have exact
+  admitted ceilings in the ordinary policy vocabulary. A certification-only
+  scope probe proves their isolation, aggregate ceiling, pressure, and release
+  behavior. Its move-owned result seals the lower grant and exposes only Store
+  identity, scope, and bytes; it cannot load, dirty, evict, or retry. Successor
+  policy and direct ordinary invocation remain outside this feature.
+- Signal is used only after Store has admitted real effectful physical work. A
+  real read miss, including an effectful prefetch or read-ahead miss, reuses
+  `ReadFault` with the exact root, artifact, frame, or scan projection basis.
+  Exact dirty-frame writeback and effectful write-behind reuse
+  `ExactWriteback`; publication remains `Publication`. A hit, coalesced
+  consumer, or pre-effect pressure denial creates no Signal request, scheduler
+  admission, executor command, or media effect. Residency admission, counters,
+  allocation events, and pressure evidence neither import Signal into the pool
+  nor create another Signal family.
 - Bounded artifact reads are classified by the pool before file-length
   discovery. Only the move-owned bounded fault owner may run the canonical
   metadata and exact-read work; hits and typed waiters receive the resolved
@@ -366,18 +393,20 @@ the Rust borrow lifetime.
   `PhysicalRecordResidencyFailureKind::FrameIdentityConflict`. Neither path
   removes the source, steals in-progress authority, or releases resident
   accounting a second time.
-- `worth-proof` supplies the Store policy-admission denial transition. The
-  admitted policy is then retained by the Store owner. The lower buffer-pool
-  crate has no direct `worth-proof` dependency or source-level proof API and
-  receives only the admitted lower limits inside Store's private runtime
-  boundary. Lower physical-owner dependencies retain their own transitive
-  governed proof dependencies; those do not grant proof authority to the pool.
+- `worth-proof` supplies the governed raw-policy-to-admitted-policy outcome
+  transition. The admitted policy is then retained by the Store owner. It does
+  not issue frame leases, scope grants, retry authority, or semantic proof. The
+  lower buffer-pool crate has no direct `worth-proof` dependency or
+  source-level proof API and receives only admitted lower limits inside Store's
+  private runtime boundary.
 - Foundational is not used to classify physical pressure or frame residency.
-  Those facts carry no semantic truth. Store uses the already-admitted
-  Store-native projection basis only when it constructs real `ReadFault` work;
-  no cache/residency aspect enters the pool. A dedicated Foundational
-  frame-writeback basis belongs to C.6 Phase 5 and is not part of the current
-  observation or pressure API.
+  Those facts carry no semantic truth. Store uses an admitted Store-native
+  projection basis when it constructs real `ReadFault` work and a dedicated
+  frame-writeback basis when it constructs `ExactWriteback`. The publication
+  basis remains publication-only. These bases authorize the corresponding
+  physical-work progression; they do not turn cache state, counters, or
+  pressure into Foundational facts, and no cache/residency aspect enters the
+  pool.
 
 ## Inspection And Debugging
 
@@ -447,22 +476,34 @@ the unit classification without embedding evidence in the denial enum.
   explicit bounded copies through one cursor. Inline and extent views carry
   Store generation, record identity, physical frame basis, and logical range
   without exposing pool authority.
-- Later C.6 phases add ordinary dirty/writeback settlement and speculative work
-  lowering. They are not promised by the current read API.
-- Temporary `C6*` handoff and direct drain/writeback command surfaces are not
-  ordinary application APIs and compile only with certification authority. The
-  handoff's frame-read API and read-capable source were deleted in Phase 3; its
-  remaining writeback responsibilities are replaced in their assigned later
-  phases. Certification uses a separate responsibility-named residency probe
-  that cannot be constructed by ordinary callers.
-- Phase 2 cleanup removed scalar/default admission bypasses, bare budget
-  denials, externally supplied dirty-replacement buffers, loose lifecycle
-  ownership, and lower snapshot types from the Store observation facade.
-- Phase 3 cleanup removed duplicate serving loader composition, fallback
-  serving reads, and temporary handoff frame-read types.
-- Phase 4 cleanup removed the alternate opened-record alias. The only public
-  logical read lease is `RecordReadSession`; no compatibility name or owning
-  conversion remains.
+- Stable now: ordinary publication joins candidate admission, dirty ownership,
+  dedicated frame-writeback basis, `ExactWriteback` Signal readiness,
+  scheduler admission, backend receipt, Store settlement, and exact
+  clean/retry/inspection progression. A pre-effect denial retains the same
+  dirty authority; an indeterminate effect cannot be presented as clean.
+- Stable now: Store lowers prefetch, read-ahead, and write-behind through the
+  inherited physical-work runtime with exact per-kind and per-scope
+  accounting. Cold speculative reads reuse `ReadFault`; write-behind reuses
+  `ExactWriteback`; hits, coalesced consumers, and pre-effect denials invent no
+  work. Direct control remains certification-only rather than becoming an
+  ordinary cache-control API.
+- Stable now: integrity, isolation, and blob adapters compile against borrowed
+  views, physical basis, pressure, observation, and admitted scope vocabulary.
+  Negative compile specimens reject pool construction, eviction, dirty
+  mutation, generation forgery, semantic-residency inference, and ordinary
+  certification access.
+- Stable now: Recovery, Scrub, Maintenance, Verification, and Blob scope
+  admission is exact, isolated, globally bounded, and release-reconciled under
+  certification. `CertificationScopedAllocation` cannot spend its sealed grant
+  on a pool operation. This proves the physical handoff without implementing
+  recovery policy, integrity rules, isolation/QoS policy, or a blob protocol.
+- The temporary milestone handoff, phase-named production/test vocabulary,
+  direct drain/writeback command surfaces, and compatibility aliases are gone.
+  The product graph and removal inventory fail if those predecessors return.
+  Certification uses a responsibility-named residency probe that ordinary
+  callers cannot construct.
+- The only public logical read lease is `RecordReadSession`; no compatibility
+  name, fallback serving loader, or owning whole-record conversion remains.
 - This feature does not define WAL/checkpoint order, reconstruction, integrity,
   semantic stable reads, QoS, or blob protocol.
 

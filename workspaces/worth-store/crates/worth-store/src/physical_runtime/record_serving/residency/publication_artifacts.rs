@@ -51,16 +51,22 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
         residency.write_frame(frame, &mut |bytes| self.write_new_frame(artifact, bytes))
     }
 
-    pub(in crate::physical_runtime::record_serving) fn append_candidate(
+    pub(in crate::physical_runtime::record_serving) fn write_existing_artifact_candidate(
         &mut self,
         residency: &mut StoreCandidateFramePublicationSession<'_>,
         frame: CandidateFrame,
-        coordinate: RecordFrameCoordinate,
+        writeback: &super::FrameWritebackPort,
     ) -> Result<
         CandidateFrameWriteCompletion,
-        CandidateFrameWriteFailure<super::super::CanonicalRecordMutationFailure>,
+        CandidateFrameWriteFailure<super::dirty::PhysicalRecordWritebackFailureEvidence>,
     > {
-        residency.write_frame(frame, &mut |bytes| self.append_frame(coordinate, bytes))
+        let (completion, settlement) = residency.write_frame_via_writeback(frame, writeback)?;
+        self.work.record_settled(
+            self.stage,
+            settlement.identity(),
+            super::super::RecordPublicationWorkSettlement::from_writeback(settlement),
+        );
+        Ok(completion)
     }
 
     fn write_new_frame(
@@ -74,20 +80,6 @@ impl StagedPublicationRecordArtifacts<'_, '_> {
         let physical = candidate_frame(
             self.mutation
                 .prepare_new_artifact(self.stage, coordinate, bytes)?
-                .execute()?,
-        )?;
-        self.record_candidate(&physical);
-        Ok(physical)
-    }
-
-    fn append_frame(
-        &mut self,
-        coordinate: RecordFrameCoordinate,
-        bytes: &[u8],
-    ) -> Result<CandidateFramePhysicalWrite, super::super::CanonicalRecordMutationFailure> {
-        let physical = candidate_frame(
-            self.mutation
-                .prepare_extent_append(self.stage, coordinate, bytes)?
                 .execute()?,
         )?;
         self.record_candidate(&physical);

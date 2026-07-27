@@ -10,7 +10,7 @@ use worth_store_io_scheduler::foreground_reservation::admitted_secure_frame_read
 use worth_store_io_scheduler::{
     admit_queue_execution_plan, admit_secure_frame_backend_capability_for_scheduler_claim,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
-    execute_ready_queue_plan, lower_buffer_pool_queue_declaration, BackgroundResourceBudget,
+    execute_ready_queue_plan, lower_buffer_pool_read_queue_declaration, BackgroundResourceBudget,
     IoSchedulerSecurityScopeAdmission, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
     QueueExecutionReadyPlan, SecureIoOperation, SecureIoPostureRequirement,
     SecureIoPreservationRequest,
@@ -60,7 +60,7 @@ fn secure_frame_read_ahead_plan() -> QueueExecutionReadyPlan {
             .with_read_ahead_windows(1)
             .with_worker_permits(1),
     );
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
         .expect("secure-frame producer work should lower through scheduler");
     let security = io_qos_security_scope_admission();
     let (backend, _) = secure_frame_backend(&security);

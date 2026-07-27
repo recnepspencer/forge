@@ -1,5 +1,6 @@
 use super::*;
 
+mod candidate_materialization;
 mod dimension_reconciliation;
 mod dirty_replacement_release;
 mod fixed_cell_reconciliation;

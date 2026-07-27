@@ -85,10 +85,11 @@ fn classify_failure(
         || combined.contains("error[E")
         || !combined.contains("test result: FAILED")
     {
+        let diagnostics = compiler_diagnostics(&combined);
         return Err(format!(
             "mutant {} did not reach a runtime assertion:\n{}",
             mutation.id,
-            tail(&combined, 30)
+            diagnostics.unwrap_or_else(|| tail(&combined, 30))
         ));
     }
     let failure_line = format!("test {} ... FAILED", mutation.selector);
@@ -242,9 +243,30 @@ fn tail(value: &str, lines: usize) -> String {
         .join("\n")
 }
 
+fn compiler_diagnostics(output: &str) -> Option<String> {
+    let diagnostics = output
+        .lines()
+        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+        .filter(|message| {
+            message.get("reason").and_then(|value| value.as_str()) == Some("compiler-message")
+        })
+        .filter_map(|message| {
+            let diagnostic = message.get("message")?;
+            diagnostic
+                .get("rendered")
+                .and_then(|value| value.as_str())
+                .or_else(|| diagnostic.get("message").and_then(|value| value.as_str()))
+                .map(str::trim)
+                .filter(|rendered| !rendered.is_empty())
+                .map(str::to_owned)
+        })
+        .collect::<Vec<_>>();
+    (!diagnostics.is_empty()).then(|| diagnostics.join("\n"))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{actual_failing_predicate, test_binary};
+    use super::{actual_failing_predicate, compiler_diagnostics, test_binary};
 
     #[test]
     fn mutation_causality_requires_one_runtime_predicate_marker() {
@@ -259,8 +281,9 @@ mod tests {
         )
         .is_err());
         assert_eq!(
-            actual_failing_predicate("panic: C5_PREDICATE:c6-local-scheduler", 43).unwrap(),
-            "c6-local-scheduler"
+            actual_failing_predicate("panic: C5_PREDICATE:local-physical-work-scheduler", 43,)
+                .unwrap(),
+            "local-physical-work-scheduler"
         );
     }
 
@@ -282,5 +305,28 @@ mod tests {
             test_binary(output).unwrap(),
             std::path::PathBuf::from(r"C:\target\debug\deps\proof.exe")
         );
+    }
+
+    #[test]
+    fn cargo_json_preserves_compiler_diagnostics_ahead_of_trailing_artifacts() {
+        let diagnostic = r#"{"reason":"compiler-message","message":{"message":"missing authority","rendered":"error[E0425]: cannot find value `authority`\n"}}"#;
+        let mut output = format!("not-json\n{diagnostic}\n");
+        for ordinal in 0..40 {
+            output.push_str(&format!(
+                "{{\"reason\":\"compiler-artifact\",\"target\":{{\"name\":\"artifact-{ordinal}\"}}}}\n"
+            ));
+        }
+        assert_eq!(
+            compiler_diagnostics(&output).unwrap(),
+            "error[E0425]: cannot find value `authority`"
+        );
+    }
+
+    #[test]
+    fn cargo_json_diagnostic_extraction_ignores_malformed_and_empty_messages() {
+        let output = r#"not-json
+{"reason":"compiler-message","message":{"message":"","rendered":""}}
+{"reason":"build-finished","success":false}"#;
+        assert!(compiler_diagnostics(output).is_none());
     }
 }

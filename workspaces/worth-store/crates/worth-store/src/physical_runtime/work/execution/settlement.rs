@@ -73,14 +73,6 @@ pub enum PhysicalWorkSchedulerPosture {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalWorkResidencyPosture {
-    NotParticipating,
-    Applied,
-    RejectedAfterEffect,
-    Terminal,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkPublicationResiduePosture {
     NotApplicable,
     NoneObserved,
@@ -92,7 +84,6 @@ pub enum PhysicalWorkTerminalCause {
     Backend(ArtifactTreeFailure),
     IncompleteRead { expected: u64, completed: u64 },
     SchedulerRejectedAfterEffect,
-    ResidencyRejectedAfterEffect(worth_store_buffer_pool::PhysicalResidencyDenial),
 }
 
 pub struct PhysicalWorkTerminalFailure {
@@ -102,7 +93,6 @@ pub struct PhysicalWorkTerminalFailure {
     completed_bytes: u64,
     backend_operation: worth_store_physical_backend::MediaOperationIdentity,
     scheduler: PhysicalWorkSchedulerPosture,
-    residency: PhysicalWorkResidencyPosture,
     publication_residue: PhysicalWorkPublicationResiduePosture,
     recovery: PhysicalWorkRecoveryDisposition,
     cause: PhysicalWorkTerminalCause,
@@ -120,15 +110,26 @@ pub(in crate::physical_runtime) struct PhysicalWorkSettlementResult {
     settled: SettledPhysicalWork,
     health_revocation: Option<PhysicalWorkHealthRevocation>,
     effect_activity: super::super::submission::PhysicalEffectActivity,
+    residency_writeback: Option<super::PhysicalResidencyWritebackCompletion>,
 }
 
 impl PhysicalWorkSettlement {
     pub(in crate::physical_runtime) fn settle(
         dispatch: super::PhysicalExecutorDispatch,
     ) -> PhysicalWorkSettlementResult {
-        let (mut dispatched, outcome, recovery_obligation) = dispatch.into_parts();
+        let (mut dispatched, outcome, recovery_obligation, residency_writeback) =
+            dispatch.into_parts();
         let effect_activity = dispatched.take_effect_activity();
         let evidence = classification::classify(&dispatched, outcome);
+        let residency_writeback = match residency_writeback {
+            Some(completion)
+                if completion.identity() == dispatched.intent().identity()
+                    && matches!(evidence, PhysicalWorkSettlementEvidence::Write { .. }) =>
+            {
+                Some(completion)
+            }
+            _ => None,
+        };
         let health_revocation =
             classification::health_revocation(&dispatched, &evidence).or_else(|| {
                 recovery_obligation
@@ -147,6 +148,7 @@ impl PhysicalWorkSettlement {
             ),
             health_revocation,
             effect_activity,
+            residency_writeback,
         }
     }
 }
@@ -158,8 +160,14 @@ impl PhysicalWorkSettlementResult {
         SettledPhysicalWork,
         Option<PhysicalWorkHealthRevocation>,
         super::super::submission::PhysicalEffectActivity,
+        Option<super::PhysicalResidencyWritebackCompletion>,
     ) {
-        (self.settled, self.health_revocation, self.effect_activity)
+        (
+            self.settled,
+            self.health_revocation,
+            self.effect_activity,
+            self.residency_writeback,
+        )
     }
 }
 
@@ -259,10 +267,6 @@ impl PhysicalWorkTerminalFailure {
 
     pub const fn scheduler(&self) -> PhysicalWorkSchedulerPosture {
         self.scheduler
-    }
-
-    pub const fn residency(&self) -> PhysicalWorkResidencyPosture {
-        self.residency
     }
 
     pub const fn publication_residue(&self) -> PhysicalWorkPublicationResiduePosture {

@@ -2,12 +2,14 @@ use worth_store_physical_format::RecordArtifactFile;
 
 pub use self::write_evidence::CandidateFrameContractViolation;
 pub(in crate::physical_runtime::record_serving) use self::write_evidence::{
-    CandidateFramePhysicalWrite, CandidateFrameWriteCompletion, CandidateFrameWriteFailure,
+    CandidateFramePhysicalWrite, CandidateFrameResidencySettlement, CandidateFrameWriteCompletion,
+    CandidateFrameWriteFailure,
 };
 use super::super::RecordAppendDenial;
 
 mod write_evidence;
 mod write_progression;
+mod writeback_progression;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime::record_serving) struct CandidateFrameDeclaration {
@@ -195,22 +197,27 @@ pub(in crate::physical_runtime::record_serving) trait CandidateFrameResidencySes
 }
 
 pub(in crate::physical_runtime::record_serving) trait ResidentCandidateFrame {
+    fn store_identity(&self) -> worth_store_physical_format::store_namespace::StableStoreIdentity;
     fn role(&self) -> CandidateFrameRole;
     fn coordinate(&self) -> CandidateFrameCoordinate;
     fn bytes(&self) -> &[u8];
 
     fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial>;
 
+    fn into_dirty(
+        self: Box<Self>,
+    ) -> Result<worth_store_buffer_pool::DirtyPhysicalFrame, RecordAppendDenial>;
+
     fn publish_clean(
         self: Box<Self>,
-        physical: &CandidateFramePhysicalWrite,
+        settlement: CandidateFrameResidencySettlement,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial>;
 }
 
 pub(in crate::physical_runtime::record_serving) trait CandidateFramePublicationPort {
     fn begin<'allocation>(
         &self,
-        allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &'allocation worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         candidate: &CandidateFrameSet,
     ) -> Result<Box<dyn CandidateFrameResidencySession + 'allocation>, RecordAppendDenial>;
 }
@@ -237,7 +244,7 @@ pub(in crate::physical_runtime::record_serving) struct StoreCandidateFramePublic
 impl<'allocation> StoreCandidateFramePublicationSession<'allocation> {
     pub(in crate::physical_runtime::record_serving) fn begin(
         port: &(dyn CandidateFramePublicationPort + Send + Sync),
-        allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &'allocation worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         declaration: CandidateFrameSet,
     ) -> Result<Self, RecordAppendDenial> {
         let residency = port.begin(allocation, &declaration)?;

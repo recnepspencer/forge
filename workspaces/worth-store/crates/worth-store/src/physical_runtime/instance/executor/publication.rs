@@ -22,7 +22,6 @@ impl PhysicalWorkExecutor {
             coordinate,
             payload,
             payload_digest,
-            posture: _,
         } = command;
         let (dispatched, plan) = work.into_execution_parts(Some(payload_digest))?;
         let prepared = self.prepare_effect_recovery(

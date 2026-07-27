@@ -32,7 +32,7 @@ use worth_store_io_scheduler::{
     admit_background_pacing, admit_queue_execution_plan,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
     admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
-    execute_ready_queue_plan, lower_buffer_pool_queue_declaration,
+    execute_ready_queue_plan, lower_buffer_pool_read_queue_declaration,
     BackgroundCapacityAdmissionRequest, BackgroundIdleCapacityLeaseRequest,
     BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, BandwidthToken,
     CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
@@ -120,7 +120,7 @@ fn queue_outcome() -> QueueExecutionOutcome {
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
     );
-    let mut work = lower_buffer_pool_queue_declaration(producer, reservation).unwrap();
+    let mut work = lower_buffer_pool_read_queue_declaration(producer, reservation).unwrap();
     let backend =
         admit_backend_capability_for_scheduler_claim(&witness, work.backend_requirement()).unwrap();
     let secure_io = admit_secure_io_scope_for_scheduler(

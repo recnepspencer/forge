@@ -34,9 +34,6 @@ mod pinned_frame_view;
 mod pinned_page_lease;
 #[cfg(feature = "legacy-s2-models")]
 mod pinning;
-#[cfg(not(feature = "legacy-s2-models"))]
-#[path = "background_work/queue_execution/declaration.rs"]
-mod queue_execution_declaration;
 #[cfg(feature = "legacy-s2-models")]
 mod record_access;
 #[cfg(feature = "legacy-s2-models")]
@@ -64,8 +61,7 @@ pub use allocation::{
 pub use background_work::{
     AdmittedBackgroundEnvelope, BackgroundEnvelopeAdmission, BackgroundEnvelopeCounterSnapshot,
     BackgroundEnvelopeDenialKind, BackgroundEnvelopeRequest, BackgroundEnvelopeRequestBuilder,
-    BackgroundMemoryInterferenceReport, BufferPoolQueueExecutionDeclaration,
-    BufferPoolQueueExecutionKind, BufferPoolQueueGroupingScope,
+    BackgroundMemoryInterferenceReport,
 };
 #[cfg(feature = "legacy-s2-models")]
 pub use background_work_budget::BackgroundWorkBudgetSnapshot;
@@ -101,10 +97,15 @@ pub use page_lease::PageLease;
 #[cfg(feature = "legacy-s2-models")]
 pub use physical_entry_facts::S2PhysicalEntryFacts;
 pub use physical_residency::{
-    DirtyPhysicalFrame, OperationAllocationGrant, OperationAllocationObservation,
-    PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
-    PhysicalBoundedFrameKey, PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
-    PhysicalCandidateFrameKey, PhysicalCandidateFrameReservation, PhysicalDirtyReplacementError,
+    BufferPoolQueueDeclarationContext, BufferPoolQueueGroupingScope,
+    BufferPoolQueueWriteDurability, BufferPoolReadQueueExecutionDeclaration,
+    BufferPoolReadQueueExecutionKind, BufferPoolWritebackQueueExecutionDeclaration,
+    CandidateFrameCleanAuthority, DirtyPhysicalFrame, ForegroundReadAllocationGrant,
+    ForegroundWriteAllocationGrant, FrameWritebackCleanAuthority, OperationAllocationGrant,
+    OperationAllocationObservation, PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner,
+    PhysicalBoundedFrameFaultWaiter, PhysicalBoundedFrameKey, PhysicalCandidateBatchAdmission,
+    PhysicalCandidateBatchReservation, PhysicalCandidateFrameKey,
+    PhysicalCandidateFrameReservation, PhysicalDirtyReplacementError,
     PhysicalDirtyReplacementReservation, PhysicalFrameAccess, PhysicalFrameFaultError,
     PhysicalFrameFaultOwner, PhysicalFrameFaultWaiter, PhysicalFrameKey, PhysicalFrameLease,
     PhysicalFrameLoadTerminal, PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity,
@@ -112,9 +113,10 @@ pub use physical_residency::{
     PhysicalResidencyAllocationEventObserver, PhysicalResidencyAllocationEventSnapshot,
     PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyDimension,
     PhysicalResidencyIncarnation, PhysicalResidencyLimits, PhysicalResidencyLimitsAdmissionDenial,
-    PhysicalResidencyLimitsBuilder, PhysicalResidencyPool, PhysicalResidencyPressureDenial,
-    PhysicalResidencyShutdown, PhysicalSpeculativeWorkKind, PhysicalWritebackClaim,
-    SpeculativeResidencyGrant,
+    PhysicalResidencyLimitsBuilder, PhysicalResidencyPool, PhysicalResidencyPoolOwner,
+    PhysicalResidencyPressureDenial, PhysicalResidencyShutdown, PhysicalSpeculativeWorkKind,
+    PhysicalWritebackClaim, PhysicalWritebackRangePosture, PrefetchResidencyGrant,
+    ReadAheadFrameGrant, ReadAheadResidencyGrant, WriteBehindResidencyGrant,
 };
 #[cfg(feature = "legacy-s2-models")]
 pub use pinned_frame_view::PinnedFrameView;
@@ -123,10 +125,6 @@ pub use pinned_page_lease::PinnedPageLease;
 #[cfg(feature = "legacy-s2-models")]
 pub use pinning::{
     LeaseLeakReport, PinLifecycleCloseoutReport, PinLifecycleCounterSnapshot, UnpinnedPageReceipt,
-};
-#[cfg(not(feature = "legacy-s2-models"))]
-pub use queue_execution_declaration::{
-    BufferPoolQueueExecutionDeclaration, BufferPoolQueueExecutionKind, BufferPoolQueueGroupingScope,
 };
 #[cfg(feature = "legacy-s2-models")]
 pub use record_access::{RecordCopyCounterSnapshot, RecordViewDenial, RecordViewDenialKind};

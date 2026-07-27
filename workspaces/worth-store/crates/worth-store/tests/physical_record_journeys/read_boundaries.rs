@@ -46,7 +46,9 @@ fn permissive_access_policy_cannot_expand_fixed_page_reads() {
         .unwrap();
     let (format, access) = permissive_access();
     let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
-    reopened.drain_clean_residency();
+    reopened
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
     let before = reopened.media_counters();
     assert!(matches!(
         reopened.records().open_external(

@@ -1,6 +1,7 @@
 use worth_store_buffer_pool::{
-    OperationAllocationGrant, PhysicalOperationAllocationScope, PhysicalResidencyLimits,
-    PhysicalResidencyPool, PhysicalSpeculativeWorkKind,
+    CandidateFrameCleanAuthority, ForegroundWriteAllocationGrant, PhysicalOperationAllocationScope,
+    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalResidencyPoolOwner,
+    PhysicalSpeculativeWorkKind,
 };
 use worth_store_physical_format::store_namespace::{
     ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
@@ -12,17 +13,37 @@ use super::{
 };
 
 pub(super) fn test_pool(identity_byte: u8) -> PhysicalResidencyPool {
+    PhysicalResidencyPool::open(test_store(identity_byte), test_residency_limits()).unwrap()
+}
+
+fn owned_test_pool(
+    identity_byte: u8,
+) -> (
+    PhysicalResidencyPool,
+    std::sync::Arc<CandidateFrameCleanAuthority>,
+) {
+    let (pool, candidate_clean, _) =
+        PhysicalResidencyPoolOwner::open(test_store(identity_byte), test_residency_limits())
+            .unwrap()
+            .into_parts();
+    (pool, std::sync::Arc::new(candidate_clean))
+}
+
+fn test_store(
+    identity_byte: u8,
+) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
     let store = StoreNamespaceIdentityRecord::new(
         StoreNamespaceVersion::CURRENT,
         ProposedStoreIdentity::from_nonzero_bytes([identity_byte; 16]).unwrap(),
     )
     .published_identity();
-    PhysicalResidencyPool::open(store, test_residency_limits()).unwrap()
+    store
 }
 
-pub(super) fn publication_allocation(pool: &PhysicalResidencyPool) -> OperationAllocationGrant {
-    pool.begin_operation(
-        PhysicalOperationAllocationScope::ForegroundWrite,
+pub(super) fn publication_allocation(
+    pool: &PhysicalResidencyPool,
+) -> ForegroundWriteAllocationGrant {
+    pool.begin_foreground_write_operation(
         PhysicalResidencyPool::candidate_batch_operation_bytes(std::num::NonZeroUsize::MIN)
             .unwrap(),
     )
@@ -61,13 +82,14 @@ fn test_residency_limits() -> PhysicalResidencyLimits {
 
 #[test]
 fn foreign_incarnation_grant_is_denied_before_candidate_publication_activity() {
-    let governed_pool = test_pool(106);
+    let (governed_pool, candidate_clean) = owned_test_pool(106);
     let foreign_pool = test_pool(106);
     let foreign_allocation = publication_allocation(&foreign_pool);
     let counters = std::sync::Arc::new(CandidateFrameCounterCells::default());
     let publisher = BoundedCandidateFramePublisher::new(
         governed_pool.clone(),
         std::sync::Arc::clone(&counters),
+        candidate_clean,
     );
     let before = governed_pool.counters();
 
@@ -96,16 +118,16 @@ fn foreign_incarnation_grant_is_denied_before_candidate_publication_activity() {
 
 #[test]
 fn undersized_live_grant_is_denied_before_candidate_projection_or_activity() {
-    let pool = test_pool(107);
+    let (pool, candidate_clean) = owned_test_pool(107);
     let undersized = pool
-        .begin_operation(
-            PhysicalOperationAllocationScope::ForegroundWrite,
-            std::num::NonZeroU64::MIN,
-        )
+        .begin_foreground_write_operation(std::num::NonZeroU64::MIN)
         .unwrap();
     let counters = std::sync::Arc::new(CandidateFrameCounterCells::default());
-    let publisher =
-        BoundedCandidateFramePublisher::new(pool.clone(), std::sync::Arc::clone(&counters));
+    let publisher = BoundedCandidateFramePublisher::new(
+        pool.clone(),
+        std::sync::Arc::clone(&counters),
+        candidate_clean,
+    );
     let before = pool.counters();
 
     let denial = match publisher.begin(&undersized, &declared_inline_frames(&[(0, 3)])) {

@@ -30,23 +30,6 @@ impl CanonicalRecordMutationPort {
         ))
     }
 
-    pub(in crate::physical_runtime) fn prepare_extent_append(
-        &self,
-        stage: RecordPublicationStage,
-        coordinate: RecordFrameCoordinate,
-        payload: impl Into<Box<[u8]>>,
-    ) -> Result<PreparedCanonicalRecordMutation, CanonicalRecordMutationFailure> {
-        let work = self.admit_range(stage, coordinate)?;
-        let identity = work.intent().identity();
-        let command = PhysicalExecutorCommand::publication_append(work, payload)
-            .map_err(|failure| CanonicalRecordMutationFailure::command(identity, failure))?;
-        Ok(self.prepared(
-            command,
-            CanonicalRecordMutationKind::ExactWrite,
-            crate::physical_runtime::PhysicalWorkRecoveryTarget::Range(coordinate),
-        ))
-    }
-
     pub(in crate::physical_runtime::record_serving) fn prepare_publication_effect(
         &self,
         stage: RecordPublicationStage,

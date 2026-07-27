@@ -32,8 +32,44 @@ use worth_store::physical_runtime::{
 
 const BOOTSTRAP_MAGIC: &[u8; 8] = b"WRC5FRM\0";
 
+struct ExactWriteProfileAdmission {
+    witness: StorePhysicalBoundaryWitness,
+    contract: worth_foundational::AspectContract,
+    identity: StoreAspectIdentity,
+    admission: StoreAspectContractAdmission,
+    security: worth_store_security::StoreAuthorityBoundSecurityScopeReceipt,
+}
+
+pub(super) fn profile() -> Result<PhysicalWorkProfileDeclaration, String> {
+    let admitted = admit_profile()?;
+    PhysicalWorkProfileDeclaration::new(admitted.security, [admitted.admission])
+        .map_err(|denial| format!("courtroom physical-work profile denied: {denial:?}"))
+}
+
 pub(super) fn bind() -> Result<(PhysicalWorkProfileDeclaration, PhysicalMutationWorkRequest), String>
 {
+    let admitted = admit_profile()?;
+    let basis = mutation_basis(
+        &admitted.contract,
+        admitted.identity,
+        admitted.witness,
+        admitted.admission.clone(),
+    )?;
+    let profile = PhysicalWorkProfileDeclaration::new(admitted.security, [admitted.admission])
+        .map_err(|denial| format!("courtroom physical-work profile denied: {denial:?}"))?;
+    let coordinate = RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 8)
+        .ok_or_else(|| "courtroom exact-write coordinate was denied".to_owned())?;
+    let request = PhysicalMutationWorkRequest::exact_write(
+        PhysicalWorkScope::one(coordinate),
+        basis,
+        admitted.security,
+        ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+    )
+    .map_err(|denial| format!("courtroom exact-write request denied: {denial:?}"))?;
+    Ok((profile, request))
+}
+
+fn admit_profile() -> Result<ExactWriteProfileAdmission, String> {
     let witness = physical_witness()?;
     let key = aspects()
         .vocabulary()
@@ -54,19 +90,13 @@ pub(super) fn bind() -> Result<(PhysicalWorkProfileDeclaration, PhysicalMutation
         .map_err(|denial| format!("courtroom mutation admission denied: {denial:?}"))?;
     let authority = boundary_fact(&contract, identity.clone(), witness)?;
     let security = security_scope(authority)?;
-    let basis = mutation_basis(&contract, identity, witness, admission.clone())?;
-    let profile = PhysicalWorkProfileDeclaration::new(security, [admission])
-        .map_err(|denial| format!("courtroom physical-work profile denied: {denial:?}"))?;
-    let coordinate = RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 8)
-        .ok_or_else(|| "courtroom exact-write coordinate was denied".to_owned())?;
-    let request = PhysicalMutationWorkRequest::exact_write(
-        PhysicalWorkScope::one(coordinate),
-        basis,
+    Ok(ExactWriteProfileAdmission {
+        witness,
+        contract,
+        identity,
+        admission,
         security,
-        ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
-    )
-    .map_err(|denial| format!("courtroom exact-write request denied: {denial:?}"))?;
-    Ok((profile, request))
+    })
 }
 
 pub(super) fn prepare_command(

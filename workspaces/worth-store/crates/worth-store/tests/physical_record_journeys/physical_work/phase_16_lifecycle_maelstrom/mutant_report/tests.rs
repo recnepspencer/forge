@@ -15,7 +15,7 @@ fn campaign_shape_requires_every_phase_16_mutant_including_c_only_rows() {
         .collect::<Vec<_>>();
     assert!(validate_campaign_shape(&observations).is_ok());
     assert_eq!(observations.len(), complete_mutant_count());
-    assert_eq!(complete_mutant_count(), 29);
+    assert_eq!(complete_mutant_count(), 30);
     observations.swap(26, 27);
     assert!(validate_campaign_shape(&observations).is_err());
     observations.swap(26, 27);

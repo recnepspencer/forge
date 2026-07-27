@@ -205,21 +205,11 @@ const MUTATIONS: &[ControlledMutation] = &[
         13,
         "transfer-allocation-slope",
         "crates/worth-store/src/physical_runtime/record_serving/access/extent_read_session.rs",
-        "let chunk_bytes = (self.manifest.logical_bytes() - self.logical_offset)\n            .min(u64::from(self.manifest.chunk_payload_capacity()))\n            as usize;",
-        "let chunk_bytes = (self.manifest.logical_bytes() - self.logical_offset) as usize;",
+        "let payload_bytes = (self.manifest.logical_bytes() - self.logical_offset)\n            .min(u64::from(self.manifest.chunk_payload_capacity()))\n            as usize;",
+        "let payload_bytes = (self.manifest.logical_bytes() - self.logical_offset) as usize;",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
         "extent_streaming::extent_allocation_peak_is_independent_of_logical_record_length"
-    ),
-    mutation!(
-        14,
-        "publication-ownership",
-        "crates/worth-store/src/physical_runtime/record_serving/residency/candidate_frame_residency/write_progression.rs",
-        "let physical = match store_write(resident.bytes()) {\n            Ok(physical) => physical,\n            Err(failure) => {\n                if failure.effect_fate()\n                    == crate::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect\n                {\n                    resident\n                        .discard()\n                        .map_err(CandidateFrameWriteFailure::Residency)?;\n                }\n                return Err(CandidateFrameWriteFailure::Effect(failure));\n            }\n        };\n        let completion = resident\n            .publish_clean(&physical)\n            .map_err(CandidateFrameWriteFailure::Residency)?;",
-        "let detached = resident.bytes().to_vec();\n        let physical = CandidateFramePhysicalWrite::for_contract_test();\n        let completion = resident\n            .publish_clean(&physical)\n            .map_err(CandidateFrameWriteFailure::Residency)?;\n        store_write(&detached).map_err(CandidateFrameWriteFailure::Effect)?;",
-        "worth-store",
-        MutationTarget::Library,
-        "physical_runtime::record_serving::residency::candidate_frame_residency::tests::publication_ownership::residency_covers_store_write"
     ),
 ];
 
@@ -227,7 +217,7 @@ const MUTATIONS: &[ControlledMutation] = &[
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::mutations;
+    use super::{mutations, ControlledMutation, MutationTarget};
 
     #[test]
     fn every_mutant_is_bound_to_one_current_source_seam() {
@@ -242,17 +232,29 @@ mod tests {
                 "duplicate mutant {}",
                 mutation.id
             );
-            let source = workspace.join(mutation.source);
-            let contents = std::fs::read_to_string(&source)
-                .unwrap_or_else(|error| panic!("cannot read {}: {error}", source.display()));
-            assert_eq!(
-                mutation.source_occurrences(&contents),
-                1,
-                "mutant {} must bind exactly once in {}",
-                mutation.id,
-                source.display()
-            );
         }
+        let failures = binding_failures(mutations(), |source| {
+            let path = workspace.join(source);
+            std::fs::read_to_string(&path)
+                .map_err(|error| format!("cannot read {}: {error}", path.display()))
+        });
+        assert!(
+            failures.is_empty(),
+            "mutation source binding failures:\n{}",
+            failures.join("\n")
+        );
+    }
+
+    #[test]
+    fn binding_audit_reports_every_stale_seam_in_one_execution() {
+        let first = fixture_mutation(201, "missing-first");
+        let second = fixture_mutation(202, "missing-second");
+
+        let failures = binding_failures([&first, &second], |_| Ok("current source".to_owned()));
+
+        assert_eq!(failures.len(), 2);
+        assert!(failures[0].contains("mutant 201"));
+        assert!(failures[1].contains("mutant 202"));
     }
 
     #[test]
@@ -300,5 +302,39 @@ mod tests {
         let mixed_duplicate = format!("{}\r\n{crlf}", mutation.needle);
 
         assert_eq!(mutation.source_occurrences(&mixed_duplicate), 2);
+    }
+
+    fn binding_failures<'mutation>(
+        mutations: impl IntoIterator<Item = &'mutation ControlledMutation>,
+        mut read_source: impl FnMut(&str) -> Result<String, String>,
+    ) -> Vec<String> {
+        mutations
+            .into_iter()
+            .filter_map(|mutation| match read_source(mutation.source) {
+                Ok(source) => {
+                    let occurrences = mutation.source_occurrences(&source);
+                    (occurrences != 1).then(|| {
+                        format!(
+                            "mutant {} must bind exactly once in {}, found {occurrences}",
+                            mutation.id, mutation.source
+                        )
+                    })
+                }
+                Err(error) => Some(format!("mutant {}: {error}", mutation.id)),
+            })
+            .collect()
+    }
+
+    const fn fixture_mutation(id: u8, needle: &'static str) -> ControlledMutation {
+        ControlledMutation {
+            id,
+            predicate: "binding-audit-fixture",
+            source: "fixture.rs",
+            needle,
+            replacement: "replacement",
+            package: "fixture",
+            target: MutationTarget::Library,
+            selector: "fixture",
+        }
     }
 }

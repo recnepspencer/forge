@@ -29,7 +29,7 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
             }
         };
         let settlement = crate::physical_runtime::PhysicalWorkSettlement::settle(execution);
-        let (settled, revocation, effect_activity) = settlement.into_parts();
+        let (settled, revocation, effect_activity, residency_writeback) = settlement.into_parts();
         self.consume_settlement_revocation(&settled, revocation);
         dispatch_guard.disarm();
         self.submission.record_settled_causality(&settled);
@@ -44,7 +44,9 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
         }
         drop(effect_activity);
         Ok(crate::physical_runtime::PhysicalWorkExecutionOutcome::new(
-            settled, signal,
+            settled,
+            signal,
+            residency_writeback,
         ))
     }
 }

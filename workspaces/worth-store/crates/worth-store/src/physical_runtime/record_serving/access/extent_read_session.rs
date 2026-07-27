@@ -28,6 +28,7 @@ pub(in crate::physical_runtime::record_serving) struct ExtentReadState {
     artifacts: super::super::residency::record_frame_reader::RecordFrameReader<'static>,
     artifact: RecordArtifactFile,
     manifest: DurableExtentManifest,
+    artifact_bytes: std::num::NonZeroU64,
     format: PhysicalRecordFormatDeclaration,
     next_ordinal: u32,
     logical_offset: u64,
@@ -42,12 +43,14 @@ impl ExtentReadState {
         artifacts: super::super::residency::record_frame_reader::RecordFrameReader<'static>,
         artifact: RecordArtifactFile,
         manifest: DurableExtentManifest,
+        artifact_bytes: std::num::NonZeroU64,
         format: PhysicalRecordFormatDeclaration,
     ) -> Self {
         Self {
             artifacts,
             artifact,
             manifest,
+            artifact_bytes,
             format,
             next_ordinal: 1,
             logical_offset: 0,
@@ -141,6 +144,9 @@ impl ExtentReadState {
                 self.artifact,
                 self.artifact_offset,
                 plan.frame_bytes as u32,
+                super::super::residency::frame_loading::ExactFrameSourceExtent::CompleteArtifact(
+                    self.artifact_bytes,
+                ),
             )
             .map_err(|failure| {
                 observation.observe_physical_work(failure.work_trace());

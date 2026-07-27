@@ -15,7 +15,7 @@ fn empty_candidate_batch_has_contract_specific_denial() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
 
     assert_eq!(
         pool.reserve_candidate_frames(&allocation, &[]).unwrap_err(),
@@ -30,7 +30,7 @@ fn duplicate_candidate_identity_does_not_impersonate_residency() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(2), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 2);
+    let allocation = candidate_allocation(&pool, 2);
     let frame = candidate(
         identity,
         RecordArtifactFile::RootRoutingBlock {
@@ -54,7 +54,7 @@ fn conflicting_candidate_coverage_has_contract_specific_denial() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(2), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 2);
+    let allocation = candidate_allocation(&pool, 2);
     let artifact = RecordArtifactFile::RootManifest { generation: 4 };
     let complete_coordinate = RecordFrameCoordinate::new(artifact, 0, 16).unwrap();
     let complete = PhysicalCandidateFrameKey::complete_artifact(PhysicalFrameKey::new(
@@ -78,7 +78,7 @@ fn candidate_sequence_conflict_preserves_the_admitted_batch() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(2), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 2);
+    let allocation = candidate_allocation(&pool, 2);
     let first = candidate(
         identity,
         RecordArtifactFile::RootRoutingBlock {
@@ -115,7 +115,7 @@ fn failed_progression_keeps_batch_active_until_exact_drop_then_allows_retry() {
     let operation_bytes = candidate_batches_bytes(&[1, 1]);
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 1, 1, operation_bytes, 4)).unwrap();
-    let allocation = candidate_batches_allocation(&pool, WRITE_SCOPE, &[1, 1]);
+    let allocation = candidate_batches_allocation(&pool, &[1, 1]);
     let first = candidate(
         identity,
         RecordArtifactFile::RootRoutingBlock {

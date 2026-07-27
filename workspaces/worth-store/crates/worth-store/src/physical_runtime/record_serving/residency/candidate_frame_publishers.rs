@@ -4,16 +4,16 @@ use std::sync::{
 };
 
 use worth_store_buffer_pool::{
-    DirtyPhysicalFrame, PhysicalCandidateBatchReservation, PhysicalCandidateFrameKey,
-    PhysicalFrameKey, PhysicalResidencyPool,
+    CandidateFrameCleanAuthority, DirtyPhysicalFrame, PhysicalCandidateBatchReservation,
+    PhysicalCandidateFrameKey, PhysicalFrameKey, PhysicalResidencyPool,
 };
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 use worth_store_physical_format::RecordFrameCoordinate;
 
 use super::super::RecordAppendDenial;
 use super::candidate_frame_residency::{
-    CandidateFrame, CandidateFrameCoordinate, CandidateFramePhysicalWrite,
-    CandidateFramePublicationPort, CandidateFrameResidencySession, CandidateFrameRole,
+    CandidateFrame, CandidateFrameCoordinate, CandidateFramePublicationPort,
+    CandidateFrameResidencySession, CandidateFrameResidencySettlement, CandidateFrameRole,
     CandidateFrameSet, CandidateFrameWriteCompletion, ResidentCandidateFrame,
 };
 
@@ -32,21 +32,27 @@ pub(in crate::physical_runtime::record_serving) struct CandidateFrameCounterCell
 pub(in crate::physical_runtime::record_serving) struct BoundedCandidateFramePublisher {
     pool: PhysicalResidencyPool,
     counters: Arc<CandidateFrameCounterCells>,
+    candidate_clean: Arc<CandidateFrameCleanAuthority>,
 }
 
 impl BoundedCandidateFramePublisher {
     pub(in crate::physical_runtime::record_serving) fn new(
         pool: PhysicalResidencyPool,
         counters: Arc<CandidateFrameCounterCells>,
+        candidate_clean: Arc<CandidateFrameCleanAuthority>,
     ) -> Self {
-        Self { pool, counters }
+        Self {
+            pool,
+            counters,
+            candidate_clean,
+        }
     }
 }
 
 impl CandidateFramePublicationPort for BoundedCandidateFramePublisher {
     fn begin<'allocation>(
         &self,
-        allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &'allocation worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         candidate: &CandidateFrameSet,
     ) -> Result<Box<dyn CandidateFrameResidencySession + 'allocation>, RecordAppendDenial> {
         let candidate_count = std::num::NonZeroUsize::new(candidate.declarations().len())
@@ -82,6 +88,7 @@ impl CandidateFramePublicationPort for BoundedCandidateFramePublisher {
         Ok(Box::new(BoundedCandidateFrameSession {
             pool: self.pool.clone(),
             counters: Arc::clone(&self.counters),
+            candidate_clean: Arc::clone(&self.candidate_clean),
             reservations,
         }))
     }
@@ -90,6 +97,7 @@ impl CandidateFramePublicationPort for BoundedCandidateFramePublisher {
 struct BoundedCandidateFrameSession<'allocation> {
     pool: PhysicalResidencyPool,
     counters: Arc<CandidateFrameCounterCells>,
+    candidate_clean: Arc<CandidateFrameCleanAuthority>,
     reservations: PhysicalCandidateBatchReservation<'allocation>,
 }
 
@@ -126,16 +134,18 @@ impl CandidateFrameResidencySession for BoundedCandidateFrameSession<'_> {
             .reservations
             .reserve_next(candidate)
             .map_err(RecordAppendDenial::from_residency)?
-            .admit(bytes)
+            .materialize(move |resident| resident.copy_from_slice(&bytes))
             .map_err(RecordAppendDenial::from_residency)?;
         self.counters.retained_frames.fetch_add(1, Ordering::AcqRel);
         self.counters
             .retained_bytes
             .fetch_add(u64::from(length), Ordering::AcqRel);
         Ok(Box::new(BoundedResidentCandidateFrame {
+            store: self.pool.store_identity(),
             role,
             coordinate,
             resident,
+            candidate_clean: Arc::clone(&self.candidate_clean),
             #[cfg(feature = "certification-test-authority")]
             counters: Arc::clone(&self.counters),
         }))
@@ -183,14 +193,20 @@ fn candidate_key(
 }
 
 struct BoundedResidentCandidateFrame {
+    store: StableStoreIdentity,
     role: CandidateFrameRole,
     coordinate: CandidateFrameCoordinate,
     resident: DirtyPhysicalFrame,
+    candidate_clean: Arc<CandidateFrameCleanAuthority>,
     #[cfg(feature = "certification-test-authority")]
     counters: Arc<CandidateFrameCounterCells>,
 }
 
 impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
+    fn store_identity(&self) -> StableStoreIdentity {
+        self.store
+    }
+
     fn role(&self) -> CandidateFrameRole {
         self.role
     }
@@ -207,12 +223,15 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
             .map_err(RecordAppendDenial::from_residency)
     }
 
+    fn into_dirty(self: Box<Self>) -> Result<DirtyPhysicalFrame, RecordAppendDenial> {
+        Ok(self.resident)
+    }
+
     fn publish_clean(
         self: Box<Self>,
-        physical: &CandidateFramePhysicalWrite,
+        settlement: CandidateFrameResidencySettlement,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
-        let _work = physical.work();
-        let receipt = physical.receipt();
+        let _settlement = settlement.settlement();
         #[cfg(feature = "certification-test-authority")]
         if self.counters.take_reject_next_publication() {
             return Err(RecordAppendDenial::from_residency(
@@ -221,7 +240,7 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
         }
         let bytes = self.resident.bytes().len() as u64;
         self.resident
-            .publish_clean(receipt)
+            .complete_candidate_publication(&self.candidate_clean)
             .map_err(RecordAppendDenial::from_residency)?;
         Ok(CandidateFrameWriteCompletion::retained(bytes))
     }

@@ -1,6 +1,8 @@
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
+use crate::physical_runtime::PhysicalWorkSignalFamily;
+
 use super::{
     effect_contract::require_effect_contract, PhysicalWorkDeclarationDenial,
     PhysicalWorkDurabilityRequirement, PhysicalWorkEffectClass, PhysicalWorkOperationFamily,
@@ -65,15 +67,54 @@ fn physical_demand_is_derived_from_the_exact_scope() {
     let scope = PhysicalWorkScope::one(
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 8).unwrap(),
     );
-    let demand = PhysicalWorkResourceDemand::derive(
+    let read = PhysicalWorkResourceDemand::derive(
         &scope,
         PhysicalWorkOperationFamily::ArtifactRangeRead,
         PhysicalWorkDurabilityRequirement::ReadOnly,
     )
     .queue_shape();
-    assert_eq!(demand.queue_slots(), 1);
-    assert_eq!(demand.worker_permits(), 1);
-    assert_eq!(demand.bandwidth_tokens(), 8);
+    assert_eq!(read.queue_slots(), 1);
+    assert_eq!(read.worker_permits(), 1);
+    assert_eq!(read.bandwidth_tokens(), 8);
+    assert_eq!(read.write_back_windows(), 0);
+    assert_eq!(read.flush_permits(), 0);
+    assert_eq!(read.sync_debt(), 0);
+
+    let buffered_writeback = PhysicalWorkResourceDemand::derive(
+        &scope,
+        PhysicalWorkOperationFamily::ArtifactRangeWrite,
+        PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
+            ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+        ),
+    )
+    .queue_shape();
+    assert_eq!(buffered_writeback.write_back_windows(), 1);
+    assert_eq!(buffered_writeback.flush_permits(), 0);
+    assert_eq!(buffered_writeback.sync_debt(), 0);
+
+    let synchronized_writeback = PhysicalWorkResourceDemand::derive(
+        &scope,
+        PhysicalWorkOperationFamily::ArtifactRangeWrite,
+        PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
+            ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization,
+        ),
+    )
+    .queue_shape();
+    assert_eq!(synchronized_writeback.write_back_windows(), 1);
+    assert_eq!(synchronized_writeback.flush_permits(), 1);
+    assert_eq!(synchronized_writeback.sync_debt(), 0);
+
+    let publication = PhysicalWorkResourceDemand::derive(
+        &scope,
+        PhysicalWorkOperationFamily::ArtifactPublication,
+        PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
+            ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+        ),
+    )
+    .queue_shape();
+    assert_eq!(publication.write_back_windows(), 0);
+    assert_eq!(publication.flush_permits(), 0);
+    assert_eq!(publication.sync_debt(), 1);
 }
 
 #[test]
@@ -93,6 +134,26 @@ fn effect_contracts_reject_read_write_category_substitution() {
             PhysicalWorkRecoveryDisposition::RetryExact,
         ),
         Err(PhysicalWorkDeclarationDenial::EffectfulContractMismatch)
+    );
+}
+
+#[test]
+fn operation_family_has_one_exact_signal_family() {
+    assert_eq!(
+        PhysicalWorkOperationFamily::ArtifactMetadataRead.required_signal_family(),
+        PhysicalWorkSignalFamily::ReadFault
+    );
+    assert_eq!(
+        PhysicalWorkOperationFamily::ArtifactRangeRead.required_signal_family(),
+        PhysicalWorkSignalFamily::ReadFault
+    );
+    assert_eq!(
+        PhysicalWorkOperationFamily::ArtifactRangeWrite.required_signal_family(),
+        PhysicalWorkSignalFamily::ExactWriteback
+    );
+    assert_eq!(
+        PhysicalWorkOperationFamily::ArtifactPublication.required_signal_family(),
+        PhysicalWorkSignalFamily::Publication
     );
 }
 

@@ -17,7 +17,6 @@ mod scheduler_demand;
 mod semantic_basis;
 mod signal_declaration;
 mod submission;
-pub(in crate::physical_runtime) use execution::PhysicalWritePosture;
 pub(in crate::physical_runtime) use submission::{
     physical_work_abandonment_channel, PhysicalEffectActivity, PhysicalWorkAbandonmentInbox,
     PhysicalWorkAbandonmentPublisher, PhysicalWorkAbandonmentWake, PhysicalWorkSafeCancellation,
@@ -44,9 +43,8 @@ pub use execution::{
     PhysicalPublicationEffect, PhysicalRetryCommand, PhysicalSignalSettlementOutcome,
     PhysicalWorkBatchDenial, PhysicalWorkEffectFate, PhysicalWorkExecutionBatchOutcome,
     PhysicalWorkExecutionOutcome, PhysicalWorkHealthRevocation, PhysicalWorkNoEffectEvidence,
-    PhysicalWorkPublicationResiduePosture, PhysicalWorkResidencyPosture,
-    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause,
-    PhysicalWorkTerminalFailure,
+    PhysicalWorkPublicationResiduePosture, PhysicalWorkSchedulerPosture,
+    PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause, PhysicalWorkTerminalFailure,
 };
 pub use identity::{
     PhysicalEffectIdentity, PhysicalOperationIdentity, PhysicalWorkGeneration, PhysicalWorkIdentity,
@@ -96,8 +94,8 @@ pub(in crate::physical_runtime) use execution::{
     IndeterminatePhysicalPublicationEffect, PhysicalEffectRecoveryObligation,
     PhysicalExecutorDispatch, PhysicalExecutorOutcome, PhysicalMetadataExecutorCommand,
     PhysicalPublicationExecutorCommand, PhysicalReadExecutorCommand,
-    PhysicalResidencyWritebackExecutorCommand, PhysicalRetryPayload, PhysicalWorkSettlement,
-    PhysicalWriteExecutorCommand,
+    PhysicalResidencyWritebackCompletion, PhysicalResidencyWritebackExecutorCommand,
+    PhysicalRetryPayload, PhysicalWorkSettlement, PhysicalWriteExecutorCommand,
 };
 pub use profile::PhysicalSignalAspectBindingSet;
 pub(in crate::physical_runtime) use profile::{

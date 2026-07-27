@@ -42,7 +42,6 @@ pub(in crate::physical_runtime) enum PhysicalRetryPayload {
     Read,
     ExactWrite(Box<[u8]>),
     Publication(Box<[u8]>),
-    PublicationAppend(Box<[u8]>),
     NewArtifact(Box<[u8]>),
     PublicationEffect(PhysicalPublicationEffect),
     ResidencyWriteback,
@@ -64,13 +63,6 @@ pub struct PhysicalWriteExecutorCommand {
     pub(in crate::physical_runtime) coordinate: RecordFrameCoordinate,
     pub(in crate::physical_runtime) payload: Box<[u8]>,
     pub(in crate::physical_runtime) payload_digest: [u8; 32],
-    pub(in crate::physical_runtime) posture: PhysicalWritePosture,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime) enum PhysicalWritePosture {
-    ExactOverwrite,
-    AppendAtEof,
 }
 
 pub struct PhysicalResidencyWritebackExecutorCommand {
@@ -116,9 +108,7 @@ impl PhysicalExecutorCommand {
     ) -> Result<Self, PhysicalExecutorCommandDenial> {
         require_family(&work, PhysicalWorkOperationFamily::ArtifactRangeWrite)?;
         Ok(Self::ExactWrite(PhysicalWriteExecutorCommand::new(
-            work,
-            payload,
-            PhysicalWritePosture::ExactOverwrite,
+            work, payload,
         )?))
     }
 
@@ -128,21 +118,7 @@ impl PhysicalExecutorCommand {
     ) -> Result<Self, PhysicalExecutorCommandDenial> {
         require_family(&work, PhysicalWorkOperationFamily::ArtifactPublication)?;
         Ok(Self::Publication(PhysicalWriteExecutorCommand::new(
-            work,
-            payload,
-            PhysicalWritePosture::ExactOverwrite,
-        )?))
-    }
-
-    pub fn publication_append(
-        work: ResourceAdmittedPhysicalWork,
-        payload: impl Into<Box<[u8]>>,
-    ) -> Result<Self, PhysicalExecutorCommandDenial> {
-        require_family(&work, PhysicalWorkOperationFamily::ArtifactPublication)?;
-        Ok(Self::Publication(PhysicalWriteExecutorCommand::new(
-            work,
-            payload,
-            PhysicalWritePosture::AppendAtEof,
+            work, payload,
         )?))
     }
 
@@ -152,9 +128,7 @@ impl PhysicalExecutorCommand {
     ) -> Result<Self, PhysicalExecutorCommandDenial> {
         require_family(&work, PhysicalWorkOperationFamily::ArtifactPublication)?;
         Ok(Self::NewArtifact(PhysicalWriteExecutorCommand::new(
-            work,
-            payload,
-            PhysicalWritePosture::ExactOverwrite,
+            work, payload,
         )?))
     }
 
@@ -261,9 +235,6 @@ impl PhysicalRetryCommand {
             PhysicalRetryPayload::Publication(payload) => {
                 PhysicalExecutorCommand::publication(work, payload)
             }
-            PhysicalRetryPayload::PublicationAppend(payload) => {
-                PhysicalExecutorCommand::publication_append(work, payload)
-            }
             PhysicalRetryPayload::NewArtifact(payload) => {
                 PhysicalExecutorCommand::new_artifact(work, payload)
             }
@@ -293,7 +264,6 @@ impl PhysicalWriteExecutorCommand {
     fn new(
         work: ResourceAdmittedPhysicalWork,
         payload: impl Into<Box<[u8]>>,
-        posture: PhysicalWritePosture,
     ) -> Result<Self, PhysicalExecutorCommandDenial> {
         let coordinate = exact_coordinate(&work)?;
         let payload = payload.into();
@@ -306,7 +276,6 @@ impl PhysicalWriteExecutorCommand {
             coordinate,
             payload,
             payload_digest,
-            posture,
         })
     }
 }

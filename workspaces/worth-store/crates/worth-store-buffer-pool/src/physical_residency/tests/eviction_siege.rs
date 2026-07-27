@@ -12,7 +12,7 @@ impl<'grant> IneligibleVictimWorld<'grant> {
     fn install(
         pool: &PhysicalResidencyPool,
         read: &OperationAllocationGrant,
-        write: &'grant OperationAllocationGrant,
+        write: &'grant ForegroundWriteAllocationGrant,
         identity: StableStoreIdentity,
     ) -> Self {
         let pinned_key = PhysicalFrameKey::new(identity, coordinate(1, 16));
@@ -28,15 +28,19 @@ impl<'grant> IneligibleVictimWorld<'grant> {
                 Ok::<_, ()>(())
             })
             .unwrap();
-        let dirty = pool.admit_dirty(write, dirty_key, vec![2; 16]).unwrap();
+        let dirty = pool
+            .materialize_dirty_candidate(write, dirty_key, |bytes| bytes.fill(2))
+            .unwrap();
         drop(dirty);
         let loading = expect_fault(pool, read, loading_key);
         let mut candidate_batch = pool
             .reserve_candidate_frames(write, &[candidate_declaration])
             .unwrap();
         let candidate = candidate_batch.reserve_next(candidate_declaration).unwrap();
-        let claimed_dirty = pool.admit_dirty(write, claimed_key, vec![5; 16]).unwrap();
-        let claim = pool.claim_writeback(vec![claimed_key]).unwrap();
+        let claimed_dirty = pool
+            .materialize_dirty_candidate(write, claimed_key, |bytes| bytes.fill(5))
+            .unwrap();
+        let claim = writeback_claim(pool, &[claimed_key]);
         drop(claimed_dirty);
 
         Self {
@@ -83,10 +87,10 @@ impl<'grant> IneligibleVictimWorld<'grant> {
 #[test]
 fn every_nominal_victim_ineligible_denies_before_fault_or_source_load() {
     let identity = store(31);
-    let operation_bytes = candidate_batches_bytes(&[1, 1]) + 1;
+    let operation_bytes = candidate_batches_bytes(&[1, 1]) + 17;
     let pool = PhysicalResidencyPool::open(identity, limits(96, 5, 4, operation_bytes, 5)).unwrap();
     let read = allocation(&pool, READ_SCOPE);
-    let write = candidate_batches_allocation(&pool, WRITE_SCOPE, &[1, 1]);
+    let write = candidate_batches_allocation(&pool, &[1, 1]);
     let world = IneligibleVictimWorld::install(&pool, &read, &write, identity);
     world.assert_installed(&pool, 5);
     let before = pool.counters();
@@ -131,11 +135,11 @@ fn every_nominal_victim_ineligible_denies_before_fault_or_source_load() {
 #[test]
 fn sole_legal_victim_releases_exactly_and_refaults_through_fault_ownership() {
     let identity = store(32);
-    let operation_bytes = candidate_batches_bytes(&[1, 1]) + 1;
+    let operation_bytes = candidate_batches_bytes(&[1, 1]) + 17;
     let pool =
         PhysicalResidencyPool::open(identity, limits(112, 6, 4, operation_bytes, 6)).unwrap();
     let read = allocation(&pool, READ_SCOPE);
-    let write = candidate_batches_allocation(&pool, WRITE_SCOPE, &[1, 1]);
+    let write = candidate_batches_allocation(&pool, &[1, 1]);
     let world = IneligibleVictimWorld::install(&pool, &read, &write, identity);
     let legal_key = PhysicalFrameKey::new(identity, coordinate(6, 16));
     let legal = expect_fault(&pool, &read, legal_key)

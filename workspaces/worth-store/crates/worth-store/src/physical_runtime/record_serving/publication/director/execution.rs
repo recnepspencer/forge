@@ -113,10 +113,9 @@ impl RecordPublicationDirector {
         &self,
         batch: &RecordAppendBatch,
         placement: AdmittedRecordPlacementPolicy,
-    ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, RecordAppendError> {
+    ) -> Result<worth_store_buffer_pool::ForegroundWriteAllocationGrant, RecordAppendError> {
         self.residency
-            .begin_operation(
-                worth_store_buffer_pool::PhysicalOperationAllocationScope::ForegroundWrite,
+            .begin_foreground_write_operation(
                 std::num::NonZeroU64::new(append_operation_allocation_bytes(
                     self.format,
                     placement,
@@ -197,7 +196,7 @@ impl RecordPublicationDirector {
     fn materialize_payload(
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
-        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         plan: RebasableRecordPublicationPlan,
     ) -> Result<RebasableRecordPublicationPlan, RecordAppendError> {
         let RebasableRecordPublicationPlan {
@@ -214,6 +213,7 @@ impl RecordPublicationDirector {
         let before = runtime.executor.record_serving_media().counters();
         let publication = payload_progression::execute(
             &self.mutation,
+            self.residency.writeback(),
             runtime.executor.record_serving_media(),
             self.format,
             publication,
@@ -238,7 +238,7 @@ impl RecordPublicationDirector {
     fn publish_rebased_root(
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
-        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         plan: RebasableRecordPublicationPlan,
         replacement: super::super::super::PreparedCatalogReplacement,
         placement: AdmittedRecordPlacementPolicy,

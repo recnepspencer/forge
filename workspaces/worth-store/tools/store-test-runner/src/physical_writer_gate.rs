@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+mod candidate_publication;
 #[path = "raw_media_owner_gate.rs"]
 mod raw_media_owner_gate;
 mod residency_observation;
@@ -164,13 +165,8 @@ fn c5_record_path_has_no_heap_replay_offline_or_raw_filesystem_substitute() {
         "the separately linked offline observer must not depend on the Store runtime crate"
     );
 
-    let frame_ports = root.join("residency/candidate_frame_residency.rs");
-    let frame_ports = std::fs::read_to_string(frame_ports).expect("read C.6 frame port seam");
-    inspect_candidate_publication_port(&frame_ports).unwrap_or_else(|failure| panic!("{failure}"));
-    let write_evidence = root.join("residency/candidate_frame_residency/write_evidence.rs");
-    let write_evidence =
-        std::fs::read_to_string(write_evidence).expect("read candidate write evidence");
-    inspect_candidate_write_evidence(&write_evidence).unwrap_or_else(|failure| panic!("{failure}"));
+    candidate_publication::inspect_current_sources(&root)
+        .unwrap_or_else(|failure| panic!("{failure}"));
 
     let publication = root.join("publication/director/execution.rs");
     let publication = std::fs::read_to_string(publication).expect("read Store publication owner");
@@ -189,37 +185,6 @@ fn c5_gate_rejects_all_catalogued_substitution_mutants() {
     }
 }
 
-#[test]
-fn c6_candidate_port_cannot_acquire_current_truth_authority() {
-    let mutant = r#"
-        pub(super) trait CandidateFramePublicationPort {
-            fn submit(
-                &self,
-                media: &QualifiedFilesystemMedia,
-                candidate: CandidateFrameSet,
-            ) -> Result<PublishedRecordBatch, RecordAppendError> {
-                publication_progression::execute(media, candidate.into_plan())
-            }
-        }
-    "#;
-    let denial = inspect_candidate_publication_port(mutant)
-        .expect_err("a C.6 port with media and publication authority must be rejected");
-    assert!(denial.contains("physical media"));
-}
-
-#[test]
-fn c6_candidate_write_evidence_rejects_optional_or_test_forged_proof() {
-    for mutant in [
-        "receipt: Option<CompletedArtifactRangeWrite>,",
-        "settlement: Option<CanonicalRecordMutationSettlement>,",
-        "fn for_contract_test() -> Self { todo!() }",
-        "fn completed(receipt: CompletedArtifactRangeWrite) -> Self { todo!() }",
-    ] {
-        inspect_candidate_write_evidence(mutant)
-            .expect_err("incomplete or test-forged physical proof must be rejected");
-    }
-}
-
 fn inspect_record_source(path: &Path, source: &str) -> Result<(), String> {
     let code = without_line_comments(source);
     for (fragment, rule) in FORBIDDEN_RECORD_SUBSTITUTIONS {
@@ -228,109 +193,6 @@ fn inspect_record_source(path: &Path, source: &str) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-fn inspect_candidate_publication_port(source: &str) -> Result<(), String> {
-    let start = source
-        .find("trait CandidateFramePublicationPort")
-        .ok_or_else(|| "C.6 candidate publication port is missing".to_owned())?;
-    let candidate_tail = &source[start..];
-    if candidate_tail.contains("QualifiedFilesystemMedia") {
-        return Err(
-            "C.5/C.6 boundary: CandidateFramePublicationPort acquired physical media authority"
-                .to_owned(),
-        );
-    }
-    let contract = trait_contract(source, "CandidateFramePublicationPort")?;
-    for (fragment, authority) in [
-        ("publication_progression", "publication progression"),
-        ("RecordArtifactFile", "artifact naming"),
-        ("MediaCounterSnapshot", "media-effect evidence"),
-        ("ArtifactTreeFailure", "backend failure"),
-        ("FnMut", "Store-owned write callback"),
-        ("replace_catalog", "catalog replacement"),
-    ] {
-        if contract.contains(fragment) {
-            return Err(format!(
-                "C.5/C.6 boundary: CandidateFramePublicationPort acquired {authority} authority"
-            ));
-        }
-    }
-    if !contract.contains("fn begin<'allocation>(")
-        || !contract
-            .contains("allocation: &'allocation worth_store_buffer_pool::OperationAllocationGrant")
-        || !contract.contains("CandidateFrameResidencySession + 'allocation")
-        || contract.contains("fn submit(")
-    {
-        return Err(
-            "C.5/C.6 boundary: candidate port must borrow exact allocation proof for the full residency session without submitting publication".to_owned(),
-        );
-    }
-    let residency = trait_contract(source, "CandidateFrameResidencySession")?;
-    if !residency.contains("fn retain(")
-        || !residency.contains("Result<Box<dyn ResidentCandidateFrame>, RecordAppendDenial>")
-        || residency.contains("FnMut")
-        || residency.contains("ArtifactTreeFailure")
-    {
-        return Err(
-            "C.5/C.6 boundary: residency must own each frame for the duration of Store's physical write"
-                .to_owned(),
-        );
-    }
-    let resident = trait_contract(source, "ResidentCandidateFrame")?;
-    if !resident.contains("fn role(&self) -> CandidateFrameRole;")
-        || !resident.contains("fn coordinate(&self) -> CandidateFrameCoordinate;")
-        || !resident.contains("fn bytes(&self) -> &[u8];")
-        || !resident.contains("fn publish_clean(")
-        || !resident.contains("Result<CandidateFrameWriteCompletion, RecordAppendDenial>")
-        || resident.contains("FnMut")
-        || resident.contains("ArtifactTreeFailure")
-    {
-        return Err(
-            "C.5/C.6 boundary: the resident guard must expose bytes to Store and release ownership without acquiring write authority"
-                .to_owned(),
-        );
-    }
-    Ok(())
-}
-
-fn inspect_candidate_write_evidence(source: &str) -> Result<(), String> {
-    for forbidden in [
-        "Option<CompletedArtifactRangeWrite>",
-        "Option<crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement>",
-        "for_contract_test",
-    ] {
-        if source.contains(forbidden) {
-            return Err(format!(
-                "C.6 candidate write evidence contains forbidden optional or test-only proof state: {forbidden}"
-            ));
-        }
-    }
-    for required in [
-        "receipt: CompletedArtifactRangeWrite,",
-        "settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,",
-        "receipt: CompletedArtifactRangeWrite,\n        settlement:",
-    ] {
-        if !source.contains(required) {
-            return Err(format!(
-                "C.6 candidate write evidence does not require complete receipt and settlement proof: missing {required}"
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn trait_contract<'source>(source: &'source str, name: &str) -> Result<&'source str, String> {
-    let marker = format!("trait {name}");
-    let start = source
-        .find(&marker)
-        .ok_or_else(|| format!("C.6 `{name}` contract is missing"))?;
-    let tail = &source[start..];
-    let end = tail
-        .find("\n}")
-        .ok_or_else(|| format!("C.6 `{name}` contract is malformed"))?
-        + 2;
-    Ok(&tail[..end])
 }
 
 fn occurrence_is_return_type(source: &str, offset: usize) -> bool {

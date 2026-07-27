@@ -51,6 +51,48 @@ pub const fn reason(self) -> PhysicalRecordResidencyFailureReason {
     assert!(denial.contains("exact Store reason"));
 }
 
+#[test]
+fn failure_projection_gate_reads_forwarding_semantically_across_layouts() {
+    let compact = r#"
+pub const fn reason(self) -> PhysicalRecordResidencyFailureReason {
+    match self.denial {
+        PhysicalResidencyDenial::BoundedLoadLimitConflict { active_limit, requested_limit } =>
+            PhysicalRecordResidencyFailureReason::BoundedLoadLimitConflict {
+                active_limit, requested_limit,
+            },
+        PhysicalResidencyDenial::CandidateCardinalityMismatch {
+            declared,
+            provided,
+        } => PhysicalRecordResidencyFailureReason::CandidateCardinalityMismatch {
+            declared,
+            provided,
+        },
+    }
+}
+"#;
+    require_forwarded_fields(
+        Path::new("compact.rs"),
+        required_body((Path::new("compact.rs"), compact), "pub const fn reason").unwrap(),
+        "BoundedLoadLimitConflict",
+        &["active_limit", "requested_limit"],
+    )
+    .unwrap();
+
+    let dropped = compact.replace(
+        "active_limit, requested_limit,",
+        "active_limit, requested_limit: 1,",
+    );
+    let body = required_body((Path::new("dropped.rs"), &dropped), "pub const fn reason").unwrap();
+    let denial = require_forwarded_fields(
+        Path::new("dropped.rs"),
+        body,
+        "BoundedLoadLimitConflict",
+        &["active_limit", "requested_limit"],
+    )
+    .expect_err("a fixed replacement must not count as forwarded conflict evidence");
+    assert!(denial.contains("does not forward `requested_limit`"));
+}
+
 fn inspect_failure_projection(source: (&Path, &str)) -> Result<(), String> {
     let body = required_body(source, "pub const fn reason")?;
     for (denial, reason) in [
@@ -69,24 +111,87 @@ fn inspect_failure_projection(source: (&Path, &str)) -> Result<(), String> {
             "WritebackFrameAlreadyClaimed",
         ),
         ("WriteBackReceiptMismatch", "WritebackReceiptMismatch"),
+        (
+            "CandidateCleanAuthorityMismatch",
+            "CandidateCleanAuthorityMismatch",
+        ),
+        (
+            "WritebackCleanAuthorityMismatch",
+            "WritebackCleanAuthorityMismatch",
+        ),
     ] {
         require_exact_arm(source.0, body, denial, reason)?;
     }
-    for field in [
-        "active_limit,\n                requested_limit,",
-        "declared,\n                    provided,",
-    ] {
-        if !body.contains(field) {
+    require_forwarded_fields(
+        source.0,
+        body,
+        "BoundedLoadLimitConflict",
+        &["active_limit", "requested_limit"],
+    )?;
+    require_forwarded_fields(
+        source.0,
+        body,
+        "CandidateCardinalityMismatch",
+        &["declared", "provided"],
+    )?;
+    Ok(())
+}
+
+fn require_exact_arm(path: &Path, body: &str, denial: &str, reason: &str) -> Result<(), String> {
+    let arm = exact_arm(path, body, denial)?;
+    let reason_needle = format!("PhysicalRecordResidencyFailureReason::{reason}");
+    if !arm.contains(&reason_needle) {
+        return Err(format!(
+            "failure projection: `{denial}` lacks its exact Store reason in {}",
+            path.display()
+        ));
+    }
+    Ok(())
+}
+
+fn require_forwarded_fields(
+    path: &Path,
+    body: &str,
+    denial: &str,
+    fields: &[&str],
+) -> Result<(), String> {
+    let arm = exact_arm(path, body, denial)?;
+    let (_, projection) = arm.split_once("=>").ok_or_else(|| {
+        format!(
+            "failure projection: `{denial}` has no projection arm in {}",
+            path.display()
+        )
+    })?;
+    for field in fields {
+        if !contains_shorthand_field(projection, field) {
             return Err(format!(
-                "failure projection: actionable conflict fields are not retained in {}",
-                source.0.display()
+                "failure projection: `{denial}` does not forward `{field}` into its Store reason in {}",
+                path.display()
             ));
         }
     }
     Ok(())
 }
 
-fn require_exact_arm(path: &Path, body: &str, denial: &str, reason: &str) -> Result<(), String> {
+fn contains_shorthand_field(projection: &str, field: &str) -> bool {
+    projection.match_indices(field).any(|(start, _)| {
+        let before = projection[..start].chars().next_back();
+        let after = projection[start + field.len()..].chars().next();
+        let identifier_boundary = |value: Option<char>| {
+            value.map_or(true, |character| {
+                !character.is_ascii_alphanumeric() && character != '_'
+            })
+        };
+        if !identifier_boundary(before) || !identifier_boundary(after) {
+            return false;
+        }
+        !projection[start + field.len()..]
+            .trim_start()
+            .starts_with(':')
+    })
+}
+
+fn exact_arm<'body>(path: &Path, body: &'body str, denial: &str) -> Result<&'body str, String> {
     let denial_needle = format!("PhysicalResidencyDenial::{denial}");
     let start = body.find(&denial_needle).ok_or_else(|| {
         format!(
@@ -98,15 +203,7 @@ fn require_exact_arm(path: &Path, body: &str, denial: &str, reason: &str) -> Res
     let end = tail[denial_needle.len()..]
         .find("PhysicalResidencyDenial::")
         .map_or(tail.len(), |offset| denial_needle.len() + offset);
-    let arm = &tail[..end];
-    let reason_needle = format!("PhysicalRecordResidencyFailureReason::{reason}");
-    if !arm.contains(&reason_needle) {
-        return Err(format!(
-            "failure projection: `{denial}` lacks its exact Store reason in {}",
-            path.display()
-        ));
-    }
-    Ok(())
+    Ok(&tail[..end])
 }
 
 fn required_body<'source>(

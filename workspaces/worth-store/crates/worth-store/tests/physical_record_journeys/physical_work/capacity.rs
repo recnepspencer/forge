@@ -10,7 +10,7 @@ use worth_store_physical_backend::MediaOperationRole;
 use super::fixture::{
     family_locality_fixture, serving_from_initialization_with_work_profile, work_fixture,
 };
-use super::scheduler::{policy_receipt, ready_work, write_demand};
+use super::scheduler::{policy_receipt, ready_work, secure_demand, write_demand};
 
 #[test]
 fn bounded_command_arena_defers_without_retaining_an_unadmitted_identity() {
@@ -106,6 +106,7 @@ fn successful_media_settlement_releases_capacity_for_sustained_churn() {
         let backend = serving
             .admit_physical_scheduler_capability(queue.backend_requirement())
             .unwrap();
+        let demand = secure_demand(demand, &backend);
         let admitted = serving
             .admit_physical_scheduler_demand(
                 demand,

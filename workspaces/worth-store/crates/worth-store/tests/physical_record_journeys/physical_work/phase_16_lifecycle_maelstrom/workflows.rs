@@ -4,11 +4,11 @@ use worth_store::physical_runtime::{
     PhysicalExecutorCommand, PhysicalMutationWorkRequest, PhysicalReadWorkRequest,
     PhysicalSchedulerDemand, PhysicalSchedulerDenial, PhysicalSignalSettlementOutcome,
     PhysicalWorkEffectFate, PhysicalWorkReadiness, PhysicalWorkRecoveryDisposition,
-    PhysicalWorkRetryScheduleOutcome, ReadyPhysicalWork, ResourceAdmittedPhysicalWork,
-    ServingPhysicalRuntime,
+    PhysicalWorkRetryScheduleOutcome, PhysicalWritebackExecution, ReadyPhysicalWork,
+    ResourceAdmittedPhysicalWork, ServingPhysicalRuntime,
 };
-use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::QueueExecutionAdmissionDenial;
+use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
 pub(super) fn ready_read(
@@ -57,6 +57,7 @@ pub(super) fn admit_read(
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = super::super::scheduler::secure_demand(demand, &backend);
     serving
         .admit_physical_scheduler_demand(
             demand,
@@ -157,39 +158,36 @@ pub(super) fn retry_write_after_clock_wake(
 
 pub(super) fn execute_exact_writeback(
     serving: &ServingPhysicalRuntime,
-    request: PhysicalMutationWorkRequest,
+    _request: PhysicalMutationWorkRequest,
     bytes: Vec<u8>,
 ) -> worth_store::physical_runtime::PhysicalWorkIdentity {
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();
-    let handoff = serving.c6_physical_work_handoff();
-    let receipt = match handoff.mutation_submission().submit(request).into_raw() {
-        TransitionOutcome::Success(receipt) => receipt,
-        outcome => panic!("Phase 16 writeback submission should succeed: {outcome:?}"),
-    };
-    let admitted = handoff.admit_submitted_work(receipt).unwrap();
-    let ready = expect_ready(handoff.request_work(admitted).unwrap());
-    let residency = handoff.residency_work();
-    let lease = serving
-        .certification_physical_residency()
-        .pin_exact(coordinate)
-        .unwrap();
+    let residency = serving.certification_physical_residency();
+    let lease = residency.pin_exact(coordinate).unwrap();
     let dirty = residency
-        .admit_dirty_frame(&ready, lease, move |_, target| {
+        .admit_dirty_frame(lease, move |_, target| {
             target.copy_from_slice(&bytes);
         })
         .unwrap();
-    let reservation = residency.reserve_writeback(&ready, &dirty).unwrap();
     let prepared = residency
-        .prepare_writeback(ready, reservation, 7, writeback_shape())
+        .prepare_writeback(
+            dirty,
+            ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+        )
         .unwrap();
     let identity = prepared.identity();
-    let admitted = residency.admit_writeback(prepared, dirty).unwrap();
-    let outcome = residency
-        .execute_writeback(admitted)
-        .unwrap()
-        .settled()
-        .expect("unfaulted Phase 16 writeback must settle");
+    let ready = residency.request_writeback(prepared).unwrap();
+    let admitted = residency.admit_writeback(ready).unwrap();
+    let outcome = match residency.execute_writeback(admitted).unwrap() {
+        PhysicalWritebackExecution::Clean(settlement) => settlement,
+        PhysicalWritebackExecution::Retryable(_) => {
+            panic!("unfaulted Phase 16 writeback unexpectedly required retry")
+        }
+        PhysicalWritebackExecution::InspectionRequired(_) => {
+            panic!("unfaulted Phase 16 writeback unexpectedly required inspection")
+        }
+    };
     assert_eq!(
         outcome.effect_fate(),
         PhysicalWorkEffectFate::WriteCompleted
@@ -212,6 +210,7 @@ fn admit_write(
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = super::super::scheduler::secure_demand(demand, &backend);
     serving
         .admit_physical_scheduler_demand(
             demand,
@@ -231,12 +230,4 @@ pub(super) fn expect_ready(readiness: PhysicalWorkReadiness) -> ReadyPhysicalWor
             )
         }
     }
-}
-
-fn writeback_shape() -> QueueProducerResourceShape {
-    QueueProducerResourceShape::new()
-        .with_queue_slots(1)
-        .with_bandwidth_tokens(8)
-        .with_write_back_windows(1)
-        .with_worker_permits(1)
 }

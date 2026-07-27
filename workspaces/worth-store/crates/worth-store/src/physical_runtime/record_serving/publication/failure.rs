@@ -146,6 +146,37 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_physical_work(
     )
 }
 
+pub(in crate::physical_runtime::record_serving) fn unpublished_frame_writeback(
+    media: &QualifiedFilesystemMedia,
+    plan: &PublicationPlan,
+    before: MediaCounterSnapshot,
+    stage: RecordPublicationStage,
+    failure: super::super::PhysicalRecordWritebackFailureEvidence,
+) -> RecordAppendError {
+    let current_effect_fate = if failure.effect_fate()
+        == crate::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect
+    {
+        UnpublishedRecordEffectFate::DeniedBeforeEffect
+    } else {
+        UnpublishedRecordEffectFate::EffectPossible
+    };
+    unpublished(
+        media,
+        plan,
+        before,
+        UnpublishedFailureInput {
+            stage,
+            cause: UnpublishedRecordBatchCause::FrameWriteback {
+                stage,
+                failure: Box::new(failure),
+            },
+            current_effect_fate,
+            world_fate: UnpublishedRecordWorldFate::InspectionRequired,
+            work: plan.work.clone().including_writeback(stage, failure),
+        },
+    )
+}
+
 pub(in crate::physical_runtime::record_serving) fn unpublished_prepared_physical_work(
     media: &QualifiedFilesystemMedia,
     plan: &PublicationPlan,

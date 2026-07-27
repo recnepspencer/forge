@@ -1,7 +1,7 @@
 use worth_store_buffer_pool::{
-    BufferPoolQueueExecutionDeclaration, BufferPoolQueueGroupingScope, PhysicalFrameKey,
-    PhysicalOperationAllocationScope as Scope, PhysicalResidencyLimits, PhysicalResidencyPool,
-    PhysicalSpeculativeWorkKind as Speculation,
+    BufferPoolQueueDeclarationContext, BufferPoolQueueGroupingScope,
+    BufferPoolReadQueueExecutionDeclaration, PhysicalOperationAllocationScope as Scope,
+    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalSpeculativeWorkKind as Speculation,
 };
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_physical_format::{
@@ -14,7 +14,7 @@ pub fn read_ahead_declaration_for_real_pool(
     security: StoreSecurityScopeIdentity,
     flush_epoch: u64,
     resource_shape: QueueProducerResourceShape,
-) -> BufferPoolQueueExecutionDeclaration {
+) -> BufferPoolReadQueueExecutionDeclaration {
     let store = StoreNamespaceIdentityRecord::new(
         StoreNamespaceVersion::CURRENT,
         ProposedStoreIdentity::from_nonzero_bytes([93; 16]).unwrap(),
@@ -46,18 +46,19 @@ pub fn read_ahead_declaration_for_real_pool(
             .unwrap(),
     )
     .unwrap();
-    let frame = PhysicalFrameKey::new(
-        store,
-        RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 64).unwrap(),
-    );
-    BufferPoolQueueExecutionDeclaration::read_ahead(
-        &pool,
-        frame,
+    let coordinate =
+        RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0, 64).unwrap();
+    let allocation = pool
+        .begin_foreground_read_operation(nonzero_bytes(64))
+        .unwrap();
+    let coordinates = [coordinate];
+    let read_ahead = pool.admit_read_ahead(allocation, &coordinates).unwrap();
+    let context = BufferPoolQueueDeclarationContext::new(
         BufferPoolQueueGroupingScope::new(security),
         flush_epoch,
         resource_shape,
-    )
-    .unwrap()
+    );
+    BufferPoolReadQueueExecutionDeclaration::read_ahead(&read_ahead.frame(0).unwrap(), context)
 }
 
 fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {

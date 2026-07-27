@@ -1,7 +1,10 @@
 use worth_store_physical_backend::ArtifactTreeFailure;
 use worth_store_physical_format::RecordArtifactFile;
 
-use super::{FrameLoadFailure, FrameLoadFailureKind, FrameLoadFaultCause, LoadedPhysicalFrame};
+use super::{
+    ExactFrameSourceExtent, FrameLoadFailure, FrameLoadFailureKind, FrameLoadFaultCause,
+    LoadedPhysicalFrame,
+};
 use crate::physical_runtime::{
     record_serving::{residency::frame_work_trace::FrameWorkTrace, CanonicalRecordReadFailure},
     PhysicalWorkIdentity,
@@ -112,6 +115,7 @@ pub(in crate::physical_runtime::record_serving) trait FrameLoadPort {
         artifact: RecordArtifactFile,
         offset: u64,
         length: u32,
+        source_extent: ExactFrameSourceExtent,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure>;
 
     fn load_bounded(
@@ -121,12 +125,6 @@ pub(in crate::physical_runtime::record_serving) trait FrameLoadPort {
         artifact: RecordArtifactFile,
         limit: u32,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure>;
-
-    fn file_length(
-        &self,
-        source: &dyn FrameReadSource,
-        artifact: RecordArtifactFile,
-    ) -> Result<ObservedArtifactLength, FrameLoadFailure>;
 }
 
 pub(super) fn frame_source_failure(failure: FrameReadSourceFailure) -> FrameLoadFailure {

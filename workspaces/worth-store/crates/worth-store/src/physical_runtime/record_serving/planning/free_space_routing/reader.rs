@@ -10,7 +10,7 @@ use super::super::super::access::manifest_routing::{
     ManifestDiscoveryCounterSnapshot, ManifestLookupFailure,
 };
 use super::super::super::residency::{
-    record_frame_reader::RecordFrameReader, ServingFrameResidency,
+    record_frame_reader::RecordFrameReader, PhysicalResidencyWorkPort,
 };
 use super::super::super::{AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy};
 
@@ -41,7 +41,7 @@ impl<'media> FreeSpaceReader<'media> {
     }
 
     pub(in crate::physical_runtime::record_serving) fn serving(
-        residency: ServingFrameResidency,
+        residency: PhysicalResidencyWorkPort,
         format: AdmittedPhysicalRecordFormat,
         access: AdmittedRecordAccessPolicy,
         header: &'media DurableFreeSpaceManifestHeader,

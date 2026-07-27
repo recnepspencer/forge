@@ -41,7 +41,7 @@ pub(super) struct ShutdownInvocation {
     pub(super) configuration: PathBuf,
 }
 
-pub(super) struct C6PressureInvocation {
+pub(super) struct BoundedResidencyInvocation {
     pub(super) root: PathBuf,
     pub(super) configuration: PathBuf,
     pub(super) oracle: PathBuf,
@@ -51,7 +51,7 @@ pub(super) enum CourtroomInvocation {
     Write(WriteInvocation),
     Reopen(ReopenInvocation),
     Shutdown(ShutdownInvocation),
-    C6Pressure(C6PressureInvocation),
+    BoundedResidency(BoundedResidencyInvocation),
 }
 
 impl CourtroomInvocation {
@@ -101,14 +101,15 @@ impl CourtroomInvocation {
                     configuration,
                 }))
             }
-            "c6-pressure" => {
+            "bounded-residency" => {
                 if scenario.is_some() {
-                    return Err("c6-pressure does not accept --scenario".to_owned());
+                    return Err("bounded-residency does not accept --scenario".to_owned());
                 }
-                Ok(Self::C6Pressure(C6PressureInvocation {
+                Ok(Self::BoundedResidency(BoundedResidencyInvocation {
                     root,
                     configuration,
-                    oracle: oracle.ok_or_else(|| "c6-pressure requires --oracle".to_owned())?,
+                    oracle: oracle
+                        .ok_or_else(|| "bounded-residency requires --oracle".to_owned())?,
                 }))
             }
             _ => Err(format!("unknown courtroom mode `{mode}`")),
@@ -194,10 +195,10 @@ mod tests {
     }
 
     #[test]
-    fn c6_pressure_requires_its_parent_declared_oracle() {
+    fn bounded_residency_requires_its_parent_declared_oracle() {
         let denied = CourtroomInvocation::parse(
             [
-                "c6-pressure",
+                "bounded-residency",
                 "--root",
                 "root",
                 "--configuration",
@@ -210,7 +211,7 @@ mod tests {
 
         let admitted = CourtroomInvocation::parse(
             [
-                "c6-pressure",
+                "bounded-residency",
                 "--root",
                 "root",
                 "--configuration",
@@ -222,6 +223,6 @@ mod tests {
             .map(Into::into),
         )
         .unwrap();
-        assert!(matches!(admitted, CourtroomInvocation::C6Pressure(_)));
+        assert!(matches!(admitted, CourtroomInvocation::BoundedResidency(_)));
     }
 }

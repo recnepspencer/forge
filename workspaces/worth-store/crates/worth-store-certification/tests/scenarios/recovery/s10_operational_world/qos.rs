@@ -13,7 +13,7 @@ use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_pacing,
     admit_queue_execution_plan, admit_secure_io_scope_for_scheduler,
     admit_security_scope_for_scheduler, assess_queue_latency_envelope, execute_ready_queue_plan,
-    lower_buffer_pool_queue_declaration,
+    lower_buffer_pool_read_queue_declaration,
     verification_deferred_background_capacity_for_certification_test,
     BackgroundIdleCapacityLeaseRequest, BackgroundInterferenceEvidence, BackgroundIoPressureClass,
     BackgroundResourceBudget, CacheResidencyHint, LatencyEnvelopeClaim, QueueExecutionReadyPlan,
@@ -59,7 +59,7 @@ fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
     );
-    let work = lower_buffer_pool_queue_declaration(producer, reservation).unwrap();
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation).unwrap();
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         work.backend_requirement(),

@@ -19,26 +19,7 @@ impl StoreCandidateFramePublicationSession<'_> {
     where
         EffectFailure: CandidateFrameEffectFailure,
     {
-        let expected = self.validate_submitted_frame(&frame)?;
-        let expectation = RetainedFrameExpectation::capture(expected, &frame);
-        let next_frames = self.resident_frames.saturating_add(1);
-        let next_bytes = self.resident_bytes.saturating_add(expectation.frame_bytes);
-        if next_bytes > self.declaration.total_frame_bytes() {
-            return Err(CandidateFrameWriteFailure::Contract(
-                CandidateFrameContractViolation::FrameBytesExceedDeclaration,
-            ));
-        }
-
-        let resident = self
-            .residency
-            .retain(frame)
-            .map_err(CandidateFrameWriteFailure::Residency)?;
-        if let Err(violation) = verify_retained_frame(resident.as_ref(), expectation) {
-            resident
-                .discard()
-                .map_err(CandidateFrameWriteFailure::Residency)?;
-            return Err(CandidateFrameWriteFailure::Contract(violation));
-        }
+        let (resident, expectation) = self.retain_submitted_frame(frame)?;
         let physical = match store_write(resident.bytes()) {
             Ok(physical) => physical,
             Err(failure) => {
@@ -52,18 +33,62 @@ impl StoreCandidateFramePublicationSession<'_> {
                 return Err(CandidateFrameWriteFailure::Effect(failure));
             }
         };
+        let settlement = physical
+            .settle_residency(
+                resident.store_identity(),
+                resident.coordinate(),
+                resident.bytes(),
+            )
+            .map_err(CandidateFrameWriteFailure::Contract)?;
         let completion = resident
-            .publish_clean(&physical)
+            .publish_clean(settlement)
             .map_err(CandidateFrameWriteFailure::Residency)?;
+        self.complete_frame(expectation, &completion)?;
+        Ok(completion)
+    }
+
+    pub(super) fn retain_submitted_frame<EffectFailure>(
+        &mut self,
+        frame: CandidateFrame,
+    ) -> Result<
+        (Box<dyn ResidentCandidateFrame>, RetainedFrameExpectation),
+        CandidateFrameWriteFailure<EffectFailure>,
+    > {
+        let expected = self.validate_submitted_frame(&frame)?;
+        let expectation = RetainedFrameExpectation::capture(expected, &frame);
+        let next_bytes = self.resident_bytes.saturating_add(expectation.frame_bytes);
+        if next_bytes > self.declaration.total_frame_bytes() {
+            return Err(CandidateFrameWriteFailure::Contract(
+                CandidateFrameContractViolation::FrameBytesExceedDeclaration,
+            ));
+        }
+        let resident = self
+            .residency
+            .retain(frame)
+            .map_err(CandidateFrameWriteFailure::Residency)?;
+        if let Err(violation) = verify_retained_frame(resident.as_ref(), expectation) {
+            resident
+                .discard()
+                .map_err(CandidateFrameWriteFailure::Residency)?;
+            return Err(CandidateFrameWriteFailure::Contract(violation));
+        }
+        Ok((resident, expectation))
+    }
+
+    pub(super) fn complete_frame<EffectFailure>(
+        &mut self,
+        expectation: RetainedFrameExpectation,
+        completion: &CandidateFrameWriteCompletion,
+    ) -> Result<(), CandidateFrameWriteFailure<EffectFailure>> {
         if completion.frame_bytes() != expectation.frame_bytes {
             return Err(CandidateFrameWriteFailure::Contract(
                 CandidateFrameContractViolation::FrameCompletionMismatch,
             ));
         }
-        self.resident_frames = next_frames;
-        self.resident_bytes = next_bytes;
+        self.resident_frames = self.resident_frames.saturating_add(1);
+        self.resident_bytes = self.resident_bytes.saturating_add(expectation.frame_bytes);
         self.next_declaration += 1;
-        Ok(completion)
+        Ok(())
     }
 
     fn validate_submitted_frame<EffectFailure>(
@@ -93,7 +118,7 @@ impl StoreCandidateFramePublicationSession<'_> {
 }
 
 #[derive(Clone, Copy)]
-struct RetainedFrameExpectation {
+pub(super) struct RetainedFrameExpectation {
     declaration: CandidateFrameDeclaration,
     role: CandidateFrameRole,
     coordinate: CandidateFrameCoordinate,
@@ -110,6 +135,10 @@ impl RetainedFrameExpectation {
             frame_bytes: frame.bytes().len() as u64,
             checksum: frame.checksum(),
         }
+    }
+
+    pub(super) const fn frame_bytes(self) -> u64 {
+        self.frame_bytes
     }
 }
 

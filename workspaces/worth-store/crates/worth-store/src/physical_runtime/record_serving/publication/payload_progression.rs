@@ -1,9 +1,9 @@
 use worth_store_physical_backend::{MediaCounterSnapshot, QualifiedFilesystemMedia};
 
 use super::{
-    unpublished_candidate_frame_contract, unpublished_physical_work, unpublished_residency,
-    unpublished_semantic, unpublished_stream, write_candidate_data, CandidateDataArtifact,
-    CandidateDataWriteFailure, PublicationPlan, RecordPublicationStage,
+    unpublished_candidate_frame_contract, unpublished_frame_writeback, unpublished_physical_work,
+    unpublished_residency, unpublished_semantic, unpublished_stream, write_candidate_data,
+    CandidateDataArtifact, CandidateDataWriteFailure, PublicationPlan, RecordPublicationStage,
 };
 use crate::physical_runtime::record_serving::{
     residency::{
@@ -24,6 +24,7 @@ enum PayloadManifestStageFailure {
 
 pub(in crate::physical_runtime::record_serving) fn execute(
     mutation: &super::super::CanonicalRecordMutationPort,
+    writeback: &super::super::residency::FrameWritebackPort,
     media: &QualifiedFilesystemMedia,
     format: AdmittedPhysicalRecordFormat,
     mut plan: PublicationPlan,
@@ -31,7 +32,9 @@ pub(in crate::physical_runtime::record_serving) fn execute(
     before: MediaCounterSnapshot,
 ) -> Result<PublicationPlan, RecordAppendError> {
     let artifacts = PublicationRecordArtifacts::new(mutation);
-    write_data(media, &artifacts, format, &mut plan, residency, before)?;
+    write_data(
+        media, &artifacts, writeback, format, &mut plan, residency, before,
+    )?;
     synchronize_data(media, &artifacts, &mut plan, before)?;
     write_payload_manifests(media, &artifacts, &mut plan, residency, before)?;
     Ok(plan)
@@ -40,6 +43,7 @@ pub(in crate::physical_runtime::record_serving) fn execute(
 fn write_data(
     media: &QualifiedFilesystemMedia,
     artifacts: &PublicationRecordArtifacts<'_>,
+    writeback: &super::super::residency::FrameWritebackPort,
     format: AdmittedPhysicalRecordFormat,
     plan: &mut PublicationPlan,
     residency: &mut StoreCandidateFramePublicationSession<'_>,
@@ -48,8 +52,16 @@ fn write_data(
     for index in 0..plan.data.len() {
         let (data, observation, work) =
             (&mut plan.data[index], &mut plan.observation, &mut plan.work);
-        let failure =
-            write_candidate_data(artifacts, format, data, residency, observation, work).err();
+        let failure = write_candidate_data(
+            artifacts,
+            writeback,
+            format,
+            data,
+            residency,
+            observation,
+            work,
+        )
+        .err();
         let Some(failure) = failure else {
             continue;
         };
@@ -100,6 +112,13 @@ fn write_data(
                     )
                 }
             }
+            CandidateDataWriteFailure::Writeback(failure) => unpublished_frame_writeback(
+                media,
+                plan,
+                before,
+                RecordPublicationStage::CandidateDataWrite,
+                *failure,
+            ),
         });
     }
     Ok(())

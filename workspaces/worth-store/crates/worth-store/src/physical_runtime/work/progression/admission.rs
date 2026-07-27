@@ -2,9 +2,8 @@ use worth_signal::facade::ResourceRequestHandle;
 
 use super::super::submission::{PhysicalEffectActivity, PhysicalWorkCapacityLease};
 use super::super::{
-    AdmittedPhysicalWorkAuthority, PhysicalWorkIntent, PhysicalWorkOperationFamily,
-    PhysicalWorkPressureClass, PhysicalWorkRecoveryDisposition, PhysicalWorkSignalFamily,
-    PhysicalWorkTerminalStage,
+    AdmittedPhysicalWorkAuthority, PhysicalWorkIntent, PhysicalWorkPressureClass,
+    PhysicalWorkRecoveryDisposition, PhysicalWorkSignalFamily, PhysicalWorkTerminalStage,
 };
 
 pub struct AdmittedPhysicalWork {
@@ -74,20 +73,20 @@ impl AdmittedPhysicalWork {
         self.capacity.begin_dispatch()
     }
 
-    pub(super) fn mark_pressure(&self, pressure: PhysicalWorkPressureClass) -> bool {
+    pub(super) fn admit_scheduler_pressure(
+        &self,
+        pressure: PhysicalWorkPressureClass,
+    ) -> Result<(), super::super::PhysicalWorkPreEffectDenial> {
         self.capacity.mark_pressure(pressure)
     }
 
+    pub(super) fn require_consumer_active(
+        &self,
+    ) -> Result<(), super::super::PhysicalWorkPreEffectDenial> {
+        self.capacity.require_consumer_active()
+    }
+
     pub(in crate::physical_runtime) const fn signal_family(&self) -> PhysicalWorkSignalFamily {
-        match self.intent.operation() {
-            PhysicalWorkOperationFamily::ArtifactMetadataRead
-            | PhysicalWorkOperationFamily::ArtifactRangeRead => PhysicalWorkSignalFamily::ReadFault,
-            PhysicalWorkOperationFamily::ArtifactRangeWrite => {
-                PhysicalWorkSignalFamily::ExactWriteback
-            }
-            PhysicalWorkOperationFamily::ArtifactPublication => {
-                PhysicalWorkSignalFamily::Publication
-            }
-        }
+        self.authority.signal_family()
     }
 }

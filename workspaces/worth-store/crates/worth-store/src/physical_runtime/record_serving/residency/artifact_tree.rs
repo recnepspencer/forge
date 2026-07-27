@@ -127,6 +127,27 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::physical_runtime) fn append_scheduled_writeback_at_eof(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+        scope: BackendQueueSpeculativeScope,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> ScheduledArtifactRangeWriteOutcome {
+        self.tree.append_scheduled_writeback_at_eof(
+            &self.artifact(coordinate.artifact()),
+            coordinate,
+            bytes,
+            binding,
+            adaptation,
+            scope,
+            durability,
+        )
+    }
+
     pub(in crate::physical_runtime) fn read_scheduled_exact_at(
         &self,
         coordinate: RecordFrameCoordinate,
@@ -167,25 +188,6 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> ScheduledArtifactRangeWriteOutcome {
         self.tree.write_scheduled_foreground_exact_at(
-            &self.artifact(coordinate.artifact()),
-            coordinate,
-            bytes,
-            binding,
-            adaptation,
-            durability,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(in crate::physical_runtime) fn append_scheduled_foreground_exact_at(
-        &self,
-        coordinate: RecordFrameCoordinate,
-        bytes: &[u8],
-        binding: BackendQueueExecutionPlanBinding,
-        adaptation: BackendQueueExecutionAdaptation,
-        durability: ArtifactRangeWriteDurabilityRequirement,
-    ) -> ScheduledArtifactRangeWriteOutcome {
-        self.tree.append_scheduled_foreground_exact_at(
             &self.artifact(coordinate.artifact()),
             coordinate,
             bytes,

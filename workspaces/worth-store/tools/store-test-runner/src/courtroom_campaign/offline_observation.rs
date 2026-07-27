@@ -18,6 +18,21 @@ pub(super) struct OfflineArtifactObservation {
     recovery_obligation: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum OfflineArtifactContentStability {
+    DurableContent,
+    MutableMutationOwnerDiagnostic,
+}
+
+impl OfflineArtifactContentStability {
+    pub(super) const fn evidence_label(self) -> &'static str {
+        match self {
+            Self::DurableContent => "durable-content",
+            Self::MutableMutationOwnerDiagnostic => "mutable-mutation-owner-diagnostic",
+        }
+    }
+}
+
 impl OfflineArtifactObservation {
     #[cfg(test)]
     pub(super) fn for_test(
@@ -54,6 +69,14 @@ impl OfflineArtifactObservation {
 
     pub(super) const fn is_recovery_obligation(&self) -> bool {
         self.recovery_obligation
+    }
+
+    pub(super) fn content_stability(&self) -> OfflineArtifactContentStability {
+        if self.path() == "namespace/mutation.lock" {
+            OfflineArtifactContentStability::MutableMutationOwnerDiagnostic
+        } else {
+            OfflineArtifactContentStability::DurableContent
+        }
     }
 
     pub(super) fn lower(&self) -> Result<PhysicalWorkHostileArtifactEvidence, String> {
@@ -254,4 +277,31 @@ where
     encoded
         .parse()
         .map_err(|_| format!("{label} is not a valid number"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{OfflineArtifactContentStability, OfflineArtifactObservation};
+
+    #[test]
+    fn only_the_mutation_owner_observation_has_mutable_content() {
+        let durable =
+            OfflineArtifactObservation::for_test("namespace/identity", 1, [1; 32], &[1], false);
+        let coordination = OfflineArtifactObservation::for_test(
+            "namespace/mutation.lock",
+            1,
+            [2; 32],
+            &[2],
+            false,
+        );
+
+        assert_eq!(
+            durable.content_stability(),
+            OfflineArtifactContentStability::DurableContent
+        );
+        assert_eq!(
+            coordination.content_stability(),
+            OfflineArtifactContentStability::MutableMutationOwnerDiagnostic
+        );
+    }
 }

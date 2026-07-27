@@ -115,8 +115,8 @@ mod tests {
     fn mutation_campaign_accepts_one_bounded_selector_mode() {
         let maximum = crate::mutation_campaign::maximum_id();
         let selected =
-            Arguments::parse(["mutants".into(), "--mutant".into(), "14".into()]).unwrap();
-        assert_eq!(selected.mutant, Some(14));
+            Arguments::parse(["mutants".into(), "--mutant".into(), "13".into()]).unwrap();
+        assert_eq!(selected.mutant, Some(13));
         assert_eq!(selected.first_mutant, None);
 
         let resumed =
@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_c6_inheritance_siege_courtroom() {
+    fn parses_bounded_residency_siege_courtroom() {
         let parsed = Arguments::parse([
             "courtrooms".into(),
             "--courtroom".into(),

@@ -32,7 +32,12 @@ fn later_extent_damage_through_a_view_revokes_health_and_releases_read_authority
         .unwrap();
     file.write_all(&[0xa5]).unwrap();
     file.sync_all().unwrap();
-    assert!(serving.drain_clean_residency() > 0);
+    assert!(
+        serving
+            .certification_physical_residency()
+            .drain_unpinned_clean_frames()
+            > 0
+    );
     let mut session = serving
         .records()
         .open(

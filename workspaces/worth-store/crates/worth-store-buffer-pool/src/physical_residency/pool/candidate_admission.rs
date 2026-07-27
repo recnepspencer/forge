@@ -299,6 +299,25 @@ impl PoolInner {
         self.changed.notify_all();
     }
 
+    pub(crate) fn candidate_allocator_failed(&self, key: PhysicalFrameKey) {
+        let mut state = self.lock();
+        if matches!(
+            state.frames.get(&key.coordinate).map(|entry| &entry.state),
+            Some(FrameState::CandidateReserved)
+        ) {
+            let entry = state
+                .frames
+                .remove(&key.coordinate)
+                .expect("candidate reservation remains present");
+            state
+                .accounting
+                .candidate_allocator_failed(entry.bytes, entry.pins);
+            state.loading_frames -= 1;
+            state.accounting.finish_loading();
+        }
+        self.changed.notify_all();
+    }
+
     pub(crate) fn discard_dirty_candidate(
         &self,
         key: PhysicalFrameKey,
@@ -316,7 +335,7 @@ impl PoolInner {
                 PhysicalResidencyDenial::FrameNotDirty,
             ));
         }
-        if entry.origin != FrameOrigin::Candidate
+        if !entry.origin.is_candidate()
             || entry.pins != 1
             || entry.writeback_claimed
             || !matches!(entry.state, FrameState::Resident(_))
@@ -334,7 +353,7 @@ impl PoolInner {
             removed.bytes,
             removed.pins,
             removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
+            removed.origin.is_candidate(),
         );
         state.accounting.record_administrative_drain();
         self.changed.notify_all();
@@ -355,7 +374,7 @@ fn cancel_candidate_locked(state: &mut PoolState, coordinate: RecordFrameCoordin
             entry.bytes,
             entry.pins,
             entry.dirty,
-            entry.origin == FrameOrigin::Candidate,
+            entry.origin.is_candidate(),
         );
         state.loading_frames -= 1;
         state.accounting.finish_loading();

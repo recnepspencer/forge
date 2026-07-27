@@ -160,6 +160,8 @@ mod tests {
 
         assert!(validate_selectors(MutationCampaignScope::All, Some(absent), None).is_err());
         assert!(validate_selectors(MutationCampaignScope::All, None, Some(absent)).is_err());
+        assert!(validate_selectors(MutationCampaignScope::All, Some(14), None).is_err());
+        assert!(validate_selectors(MutationCampaignScope::All, None, Some(14)).is_err());
     }
 
     #[test]
@@ -170,8 +172,8 @@ mod tests {
             .map(|mutation| mutation.id)
             .collect::<Vec<_>>();
 
-        assert_eq!(ids, (15..=43).collect::<Vec<_>>());
-        assert_eq!(ids.len(), 29);
+        assert_eq!(ids, (15..=44).collect::<Vec<_>>());
+        assert_eq!(ids.len(), 30);
         assert!(!MutationCampaignScope::PhysicalWork.contains(14));
     }
 

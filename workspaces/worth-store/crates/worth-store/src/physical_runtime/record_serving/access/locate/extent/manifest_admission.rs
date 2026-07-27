@@ -13,6 +13,7 @@ use crate::physical_runtime::record_serving::{
 pub(super) struct AdmittedExtentManifest {
     pub(super) artifact: RecordArtifactFile,
     pub(super) manifest: DurableExtentManifest,
+    pub(super) artifact_bytes: std::num::NonZeroU64,
 }
 
 pub(super) struct ExtentManifestAdmission<'admission, 'media> {
@@ -32,8 +33,12 @@ pub(super) fn admit_extent_manifest(
         extent: admission.placement.extent().get(),
         generation: admission.placement.extent_generation(),
     };
-    admission.require_complete_extent(artifact, &manifest)?;
-    Ok(AdmittedExtentManifest { artifact, manifest })
+    let artifact_bytes = complete_extent_bytes(&manifest);
+    Ok(AdmittedExtentManifest {
+        artifact,
+        manifest,
+        artifact_bytes,
+    })
 }
 
 impl ExtentManifestAdmission<'_, '_> {
@@ -90,25 +95,11 @@ impl ExtentManifestAdmission<'_, '_> {
         }
         Ok(manifest)
     }
+}
 
-    fn require_complete_extent(
-        &mut self,
-        artifact: RecordArtifactFile,
-        manifest: &DurableExtentManifest,
-    ) -> Result<(), RecordReadDenial> {
-        let expected = manifest.logical_bytes()
-            + u64::from(manifest.chunk_count())
-                * (DURABLE_EXTENT_FRAME_HEADER_BYTES + EXTENT_CHUNK_METADATA_BYTES) as u64;
-        let extent_length = self.artifacts.file_length(artifact).map_err(|failure| {
-            self.observation.observe_physical_work(failure.work_trace());
-            read_failure(failure)
-        })?;
-        self.observation
-            .observe_physical_work(extent_length.work_trace());
-        if extent_length.bytes() != expected {
-            extent_length.reject_structural_damage();
-            return Err(RecordReadDenial::ArtifactDamaged);
-        }
-        Ok(())
-    }
+fn complete_extent_bytes(manifest: &DurableExtentManifest) -> std::num::NonZeroU64 {
+    let bytes = manifest.logical_bytes()
+        + u64::from(manifest.chunk_count())
+            * (DURABLE_EXTENT_FRAME_HEADER_BYTES + EXTENT_CHUNK_METADATA_BYTES) as u64;
+    std::num::NonZeroU64::new(bytes).expect("an admitted extent has nonzero artifact bytes")
 }

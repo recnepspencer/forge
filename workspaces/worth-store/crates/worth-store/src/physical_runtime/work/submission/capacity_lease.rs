@@ -41,10 +41,29 @@ impl PhysicalWorkCapacityLease {
     pub(in crate::physical_runtime::work) fn mark_pressure(
         &self,
         pressure: crate::physical_runtime::PhysicalWorkPressureClass,
-    ) -> bool {
-        self.state
-            .upgrade()
-            .is_some_and(|state| state.commands.mark_pressure(self.identity, pressure))
+    ) -> Result<(), crate::physical_runtime::PhysicalWorkPreEffectDenial> {
+        let Some(state) = self.state.upgrade() else {
+            return Err(crate::physical_runtime::PhysicalWorkPreEffectDenial::AdmissionStopped);
+        };
+        if state.commands.mark_pressure(self.identity, pressure) {
+            return Ok(());
+        }
+        if self.release.is_cancelled() {
+            return Err(crate::physical_runtime::PhysicalWorkPreEffectDenial::ConsumerCancelled);
+        }
+        if !state.accepts_work() {
+            return Err(crate::physical_runtime::PhysicalWorkPreEffectDenial::AdmissionStopped);
+        }
+        Err(crate::physical_runtime::PhysicalWorkPreEffectDenial::CommandAbsent)
+    }
+
+    pub(in crate::physical_runtime::work) fn require_consumer_active(
+        &self,
+    ) -> Result<(), crate::physical_runtime::PhysicalWorkPreEffectDenial> {
+        if self.release.is_cancelled() {
+            return Err(crate::physical_runtime::PhysicalWorkPreEffectDenial::ConsumerCancelled);
+        }
+        Ok(())
     }
 
     pub(in crate::physical_runtime::work) fn bind_signal(

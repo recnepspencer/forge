@@ -2,12 +2,14 @@ use tempfile::tempdir;
 use worth_foundational::FoundationalPerformanceWorkClass;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    PhysicalSchedulerDemand, PhysicalSchedulerDenial, PhysicalWorkOperationFamily,
-    PhysicalWorkReadiness,
+    PhysicalEffectObligation, PhysicalSchedulerDemand, PhysicalSchedulerDenial,
+    PhysicalWorkOperationFamily, PhysicalWorkPreEffectDenial, PhysicalWorkReadiness,
 };
 use worth_store_io_scheduler::{
-    foreground_reservation::ForegroundIoLaneKind, QueueDurabilityClass,
-    QueueExecutionAdmissionDenial,
+    admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
+    foreground_reservation::ForegroundIoLaneKind, IoSchedulerBackendCapabilityAdmission,
+    QueueDurabilityClass, QueueExecutionAdmissionDenial, SecureIoOperation,
+    SecureIoPreservationRequest,
 };
 
 use super::fixture::{
@@ -37,6 +39,7 @@ fn ready_work_lowers_exact_budget_and_admits_without_effects() {
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
     let admitted = serving
         .admit_physical_scheduler_demand(demand, &backend, policy_receipt(work.requested_budget()))
         .unwrap();
@@ -72,6 +75,7 @@ fn budget_mismatch_preserves_the_scheduler_denial() {
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
     assert!(matches!(
         serving.admit_physical_scheduler_demand(
             demand,
@@ -95,6 +99,7 @@ fn policy_receipt_for_planning_cannot_admit_authoritative_physical_io() {
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
 
     assert!(matches!(
         serving.admit_physical_scheduler_demand(
@@ -133,6 +138,49 @@ fn operation_family_cannot_be_laundered_into_an_incompatible_lane() {
 }
 
 #[test]
+fn cancelled_ready_work_is_denied_before_scheduler_demand_admission() {
+    let root = tempdir().unwrap();
+    let (profile, _, mutation_request) = work_fixture();
+    let serving = serving_from_initialization_with_work_profile(root.path(), profile);
+    let ready = ready_work(&serving, mutation_request);
+    let consumer = ready.consumer_handle();
+    let capacity_before = serving.physical_scheduler_capacity();
+    serving
+        .advance_physical_signal_clock(
+            consumer,
+            worth_signal::facade::ClockAdvanceRequest::new(
+                worth_signal::facade::ClockDomain::MonotonicExecution,
+                worth_signal::facade::ClockTick::new(1_000),
+            ),
+        )
+        .unwrap();
+    let timeout = serving.timeout_physical_work(consumer).unwrap();
+
+    assert_eq!(
+        timeout.obligation(),
+        PhysicalEffectObligation::NotDispatched
+    );
+    assert!(matches!(
+        PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(&serving), None,),
+        Err(PhysicalSchedulerDenial::PreEffect(
+            PhysicalWorkPreEffectDenial::ConsumerCancelled
+        ))
+    ));
+    let capacity_after = serving.physical_scheduler_capacity();
+    assert_eq!(capacity_after.active_reservations(), 0);
+    assert_eq!(capacity_after.available(), capacity_before.available());
+    assert_eq!(
+        capacity_after.admitted_reservations(),
+        capacity_before.admitted_reservations() + 1
+    );
+    assert_eq!(
+        capacity_after.released_reservations(),
+        capacity_before.released_reservations() + 1
+    );
+    serving.close();
+}
+
+#[test]
 fn disjoint_ready_work_admits_independently_and_a_denial_does_not_mutate_admitted_plans() {
     let root = tempdir().unwrap();
     let (profile, first_request, second_request) = disjoint_mutation_fixture();
@@ -151,6 +199,9 @@ fn disjoint_ready_work_admits_independently_and_a_denial_does_not_mutate_admitte
     let backend = serving
         .admit_physical_scheduler_capability(first_demand.queue_work().backend_requirement())
         .unwrap();
+    let first_demand = secure_demand(first_demand, &backend);
+    let second_demand = secure_demand(second_demand, &backend);
+    let third_demand = secure_demand(third_demand, &backend);
 
     let start = std::sync::Barrier::new(3);
     let (first, second) = std::thread::scope(|scope| {
@@ -251,6 +302,33 @@ pub(super) fn write_demand(
     ready: worth_store::physical_runtime::ReadyPhysicalWork,
 ) -> PhysicalSchedulerDemand {
     PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(serving), None).unwrap()
+}
+
+pub(super) fn secure_demand(
+    demand: PhysicalSchedulerDemand,
+    backend: &IoSchedulerBackendCapabilityAdmission,
+) -> PhysicalSchedulerDemand {
+    let work = demand.queue_work();
+    let admitted_scope = worth_store_security::admitted_security_scope_for_identity_for_test(
+        work.security_scope_identity(),
+    );
+    let scheduler_security = admit_security_scope_for_scheduler(&admitted_scope)
+        .expect("the physical-work fixture uses the scheduler's Store-internal security scope");
+    let budget = work.requested_budget();
+    let operation = if budget.read_ahead_window() > 0 {
+        SecureIoOperation::ReadAhead
+    } else if budget.write_back_window() > 0 {
+        SecureIoOperation::WriteBack
+    } else {
+        SecureIoOperation::BatchedWrite
+    };
+    let secure_io = admit_secure_io_scope_for_scheduler(SecureIoPreservationRequest::new(
+        operation,
+        &scheduler_security,
+        backend,
+    ))
+    .expect("the physical-work fixture binds secure I/O to its exact scope and backend");
+    demand.with_secure_io(secure_io)
 }
 
 pub(crate) fn ready_work(

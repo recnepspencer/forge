@@ -170,11 +170,17 @@ impl ReadyPhysicalWork {
         self.signal.payload_contract.as_str()
     }
 
-    pub(in crate::physical_runtime::work) fn mark_pressure(
+    pub(in crate::physical_runtime::work) fn admit_scheduler_pressure(
         &self,
         pressure: PhysicalWorkPressureClass,
-    ) -> bool {
-        self.admitted.mark_pressure(pressure)
+    ) -> Result<(), super::super::PhysicalWorkPreEffectDenial> {
+        self.admitted.admit_scheduler_pressure(pressure)
+    }
+
+    pub(in crate::physical_runtime) fn require_consumer_active(
+        &self,
+    ) -> Result<(), super::super::PhysicalWorkPreEffectDenial> {
+        self.admitted.require_consumer_active()
     }
 
     pub(in crate::physical_runtime) fn into_signal_parts(

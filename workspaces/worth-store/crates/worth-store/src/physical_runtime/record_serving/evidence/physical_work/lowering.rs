@@ -1,5 +1,6 @@
 use crate::physical_runtime::{PhysicalWorkObservation, PhysicalWorkShutdownObservation};
 
+use super::identity::PhysicalWorkCourtroomIdentity;
 use super::{
     causal_lowering::lower_causal,
     evidence::{
@@ -10,11 +11,11 @@ use super::{
     PhysicalWorkArtifactBinding, PhysicalWorkCourtroomEvidence, PhysicalWorkCourtroomRunBinding,
     PhysicalWorkMutantLocalization, PhysicalWorkOracleEvidence,
 };
-
-use super::super::super::c6_handoff::C6PhysicalWorkHandoffIdentity;
+use crate::physical_runtime::{LifecycleGeneration, RuntimeIdentity};
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 pub struct PhysicalWorkCourtroomBinding {
-    identity: C6PhysicalWorkHandoffIdentity,
+    identity: PhysicalWorkCourtroomIdentity,
     observation: PhysicalWorkObservation,
 }
 
@@ -25,11 +26,13 @@ pub enum PhysicalWorkCourtroomFinishDenial {
 
 impl PhysicalWorkCourtroomBinding {
     pub(in crate::physical_runtime) const fn new(
-        identity: C6PhysicalWorkHandoffIdentity,
+        store: StableStoreIdentity,
+        runtime: RuntimeIdentity,
+        generation: LifecycleGeneration,
         observation: PhysicalWorkObservation,
     ) -> Self {
         Self {
-            identity,
+            identity: PhysicalWorkCourtroomIdentity::new(store, runtime, generation),
             observation,
         }
     }

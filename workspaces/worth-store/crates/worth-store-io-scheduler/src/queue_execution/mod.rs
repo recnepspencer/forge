@@ -29,11 +29,12 @@ pub use observation::{
     QueueExecutionCounterSnapshot, QueueExecutionPlanBinding, QueueExecutionReplayIdentity,
 };
 pub use policy::{
-    lower_background_queue_lease, lower_buffer_pool_queue_declaration,
-    lower_physical_foreground_work, lower_wal_queue_declaration, QueueBackpressureCause,
-    QueueDurabilityClass, QueueGroupingBasis, QueueLocalityIdentity, QueueLocalityRange,
-    QueueLocalityRelation, QueueReadAheadBasis, QueueRecoveryOrdering, QueueWorkClass,
-    QueueWorkDeclaration, QueueWriteBackBasis, QueueWritebackPolicy,
+    lower_background_queue_lease, lower_buffer_pool_read_queue_declaration,
+    lower_buffer_pool_writeback_queue_declaration, lower_physical_foreground_work,
+    lower_wal_queue_declaration, QueueBackpressureCause, QueueDurabilityClass, QueueGroupingBasis,
+    QueueLocalityIdentity, QueueLocalityRange, QueueLocalityRelation, QueueReadAheadBasis,
+    QueueRecoveryOrdering, QueueWorkClass, QueueWorkDeclaration, QueueWriteBackBasis,
+    QueueWritebackPolicy,
 };
 #[cfg(test)]
 pub(crate) use test_execution::execute_admitted_queue_plan;

@@ -10,6 +10,7 @@ pub enum PhysicalSignalSettlementOutcome {
 pub struct PhysicalWorkExecutionOutcome {
     settled: SettledPhysicalWork,
     signal: PhysicalSignalSettlementOutcome,
+    residency_writeback: Option<super::PhysicalResidencyWritebackCompletion>,
 }
 
 pub struct PhysicalWorkExecutionBatchOutcome {
@@ -27,8 +28,13 @@ impl PhysicalWorkExecutionOutcome {
     pub(in crate::physical_runtime) const fn new(
         settled: SettledPhysicalWork,
         signal: PhysicalSignalSettlementOutcome,
+        residency_writeback: Option<super::PhysicalResidencyWritebackCompletion>,
     ) -> Self {
-        Self { settled, signal }
+        Self {
+            settled,
+            signal,
+            residency_writeback,
+        }
     }
 
     pub const fn settled(&self) -> &SettledPhysicalWork {
@@ -41,6 +47,16 @@ impl PhysicalWorkExecutionOutcome {
 
     pub fn into_settled(self) -> SettledPhysicalWork {
         self.settled
+    }
+
+    pub(in crate::physical_runtime) fn into_residency_writeback_parts(
+        self,
+    ) -> (
+        SettledPhysicalWork,
+        PhysicalSignalSettlementOutcome,
+        Option<super::PhysicalResidencyWritebackCompletion>,
+    ) {
+        (self.settled, self.signal, self.residency_writeback)
     }
 }
 

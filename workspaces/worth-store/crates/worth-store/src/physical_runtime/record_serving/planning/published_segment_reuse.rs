@@ -12,7 +12,7 @@ pub(in crate::physical_runtime::record_serving) struct ReusableSegmentContext<'p
     pub(in crate::physical_runtime::record_serving) allocation:
         &'plan worth_store_buffer_pool::OperationAllocationGrant,
     pub(in crate::physical_runtime::record_serving) residency:
-        super::super::residency::ServingFrameResidency,
+        super::super::residency::PhysicalResidencyWorkPort,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access:
         super::super::AdmittedRecordAccessPolicy,

@@ -4,10 +4,10 @@ use worth_store_security::StoreSecurityScopeIdentity;
 use crate::foreground_reservation::ForegroundReservationReceipt;
 use crate::SecureIoPreservationReceipt;
 
+use super::resource_budget::budget_from_shape;
 use super::{
-    work::budget_from_shape, QueueDurabilityClass, QueueExecutionAdmissionDenial,
-    QueueGroupingBasis, QueueLocalityIdentity, QueueRecoveryOrdering, QueueWorkDeclaration,
-    QueueWritebackPolicy,
+    QueueDurabilityClass, QueueExecutionAdmissionDenial, QueueGroupingBasis, QueueLocalityIdentity,
+    QueueRecoveryOrdering, QueueWorkDeclaration, QueueWritebackPolicy,
 };
 
 #[allow(clippy::too_many_arguments)]

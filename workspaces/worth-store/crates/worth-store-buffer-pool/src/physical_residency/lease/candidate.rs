@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, num::NonZeroUsize, sync::Arc};
 
+use super::candidate_allocation::{CandidateFrameAllocator, ProcessCandidateFrameAllocator};
 use crate::physical_residency::{
     operation_allocation::OperationAllocationUse, pool::PoolInner, DirtyPhysicalFrame,
     PhysicalCandidateFrameKey, PhysicalFrameKey, PhysicalResidencyDenial,
@@ -75,14 +76,31 @@ impl PhysicalCandidateFrameReservation {
         self.candidate.frame_key()
     }
 
-    pub fn admit(mut self, bytes: Vec<u8>) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
+    pub fn materialize<F>(self, fill: F) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial>
+    where
+        F: FnOnce(&mut [u8]),
+    {
+        self.materialize_with_allocator(&ProcessCandidateFrameAllocator, fill)
+    }
+
+    pub(crate) fn materialize_with_allocator<F>(
+        mut self,
+        allocator: &dyn CandidateFrameAllocator,
+        fill: F,
+    ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial>
+    where
+        F: FnOnce(&mut [u8]),
+    {
         let key = self.candidate.frame_key();
-        if bytes.len() != key.coordinate().length() as usize {
-            return Err(self
-                .owner
-                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
-        }
-        let bytes = Arc::new(bytes);
+        let length = usize::try_from(key.coordinate().length())
+            .expect("physical frame lengths are admitted from u32 coordinates");
+        let mut buffer = allocator.allocate(length).map_err(|()| {
+            self.owner.candidate_allocator_failed(key);
+            self.armed = false;
+            PhysicalResidencyDenial::AllocationFailed
+        })?;
+        fill(buffer.as_mut_slice());
+        let bytes = buffer.into_resident();
         let frame = self.owner.finish_candidate(key, bytes)?;
         self.armed = false;
         Ok(frame)

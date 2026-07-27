@@ -4,16 +4,25 @@ use worth_store_buffer_pool::{
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
-use super::read_source::{frame_source_failure, frame_source_fault, FrameReadSource};
+#[cfg(feature = "certification-test-authority")]
+use super::read_source::FrameReadSourceFailure;
+use super::read_source::{
+    frame_source_failure, frame_source_fault, FrameReadSource, PreparedFrameRead,
+};
 use super::{
-    FrameLoadFailure, FrameLoadFailureKind, FrameLoadFaultCause, FrameLoadPort,
-    LoadedPhysicalFrame, ObservedArtifactLength,
+    ExactFrameSourceExtent, FrameLoadFailure, FrameLoadFailureKind, FrameLoadFaultCause,
+    FrameLoadPort, LoadedPhysicalFrame, PhysicalFrameAccessOrigin,
 };
 use crate::physical_runtime::record_serving::residency::frame_work_trace::FrameWorkTrace;
 
 #[derive(Clone)]
 pub(in crate::physical_runtime::record_serving) struct BoundedFrameLoader {
-    pool: PhysicalResidencyPool,
+    pub(super) pool: PhysicalResidencyPool,
+}
+
+struct PreparedExactFrameRead<'source> {
+    preceding_work: FrameWorkTrace,
+    prepared: Box<dyn PreparedFrameRead + 'source>,
 }
 
 impl BoundedFrameLoader {
@@ -32,6 +41,7 @@ impl FrameLoadPort for BoundedFrameLoader {
         artifact: RecordArtifactFile,
         offset: u64,
         length: u32,
+        source_extent: ExactFrameSourceExtent,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
         let coordinate = RecordFrameCoordinate::new(artifact, offset, length).ok_or(
             FrameLoadFailure::new(FrameLoadFailureKind::InvalidCoordinate),
@@ -41,51 +51,16 @@ impl FrameLoadPort for BoundedFrameLoader {
             .pool
             .access_frame(allocation, key)
             .map_err(|reason| FrameLoadFailure::new(FrameLoadFailureKind::Residency(reason)))?;
-        let (lease, work, projection_failure) = match access {
-            PhysicalFrameAccess::Hit(lease) => (lease, FrameWorkTrace::none(), None),
-            PhysicalFrameAccess::Coalesced(waiter) => {
-                let terminal = waiter.wait().map_err(|terminal| {
-                    FrameLoadFailure::new(FrameLoadFailureKind::CoalescedFault(terminal))
-                })?;
-                (terminal, FrameWorkTrace::none(), None)
-            }
-            PhysicalFrameAccess::Fault(fault) => {
-                let prepared = match source.prepare_exact(artifact, offset, length) {
-                    Ok(prepared) => prepared,
-                    Err(failure) => {
-                        let terminal = fault.reject_before_source();
-                        return Err(frame_source_fault(failure, terminal));
-                    }
-                };
-                let work = FrameWorkTrace::one(prepared.identity());
-                let mut projection_failure = None;
-                let lease = fault
-                    .load(|target| {
-                        projection_failure = prepared.execute(target)?;
-                        Ok(())
-                    })
-                    .map_err(|failure| match failure {
-                        PhysicalFrameFaultError::Residency { terminal, denial } => {
-                            FrameLoadFailure::new(FrameLoadFailureKind::FaultTerminated {
-                                terminal,
-                                cause: FrameLoadFaultCause::Residency(denial),
-                            })
-                            .with_complete_work_trace(work)
-                        }
-                        PhysicalFrameFaultError::Source { terminal, failure } => {
-                            frame_source_fault(failure, terminal).with_complete_work_trace(work)
-                        }
-                    })?;
-                (lease, work, projection_failure)
-            }
-        };
-        LoadedPhysicalFrame::bind(
-            self.pool.store_identity(),
-            coordinate,
-            lease,
-            work,
-            projection_failure,
-        )
+        self.load_admitted_exact_with_source_extent(coordinate, access, || {
+            let preceding_work = validate_source_extent(source, artifact, source_extent)?;
+            let prepared = source
+                .prepare_exact(artifact, offset, length)
+                .map_err(frame_source_failure)?;
+            Ok(PreparedExactFrameRead {
+                preceding_work,
+                prepared,
+            })
+        })
     }
 
     fn load_bounded(
@@ -105,61 +80,189 @@ impl FrameLoadPort for BoundedFrameLoader {
             .map_err(|reason| FrameLoadFailure::new(FrameLoadFailureKind::Residency(reason)))?;
         let work = std::cell::Cell::new(FrameWorkTrace::none());
         let mut projection_failure = None;
-        let lease = match access {
-            PhysicalBoundedFrameAccess::Hit(lease) => lease,
-            PhysicalBoundedFrameAccess::Coalesced(waiter) => waiter.wait().map_err(|terminal| {
-                FrameLoadFailure::new(FrameLoadFailureKind::CoalescedFault(terminal))
-            })?,
-            PhysicalBoundedFrameAccess::Fault(owner) => owner
-                .load(
-                    |admitted_limit| {
-                        let length = source.file_length(artifact).map_err(frame_source_failure)?;
-                        if length.bytes() == 0
-                            || length.bytes() > u64::from(admitted_limit)
-                            || length.bytes() > u64::from(u32::MAX)
-                        {
-                            let observed = length.reject_structural_damage();
-                            work.set(observed);
-                            return Err(FrameLoadFailure::new(
-                                FrameLoadFailureKind::AccessLimitExceeded,
-                            )
-                            .with_complete_work_trace(observed));
-                        }
-                        work.set(length.work_trace());
-                        Ok(length.bytes() as u32)
-                    },
-                    |target: &mut [u8]| {
-                        let prepared = source
-                            .prepare_exact(artifact, 0, target.len() as u32)
-                            .map_err(|failure| {
+        let (lease, origin) = match access {
+            PhysicalBoundedFrameAccess::Hit(lease) => (lease, PhysicalFrameAccessOrigin::Hit),
+            PhysicalBoundedFrameAccess::Coalesced(waiter) => (
+                waiter.wait().map_err(|terminal| {
+                    FrameLoadFailure::new(FrameLoadFailureKind::CoalescedFault(terminal))
+                })?,
+                PhysicalFrameAccessOrigin::Coalesced,
+            ),
+            PhysicalBoundedFrameAccess::Fault(owner) => (
+                owner
+                    .load(
+                        |admitted_limit| {
+                            let length =
+                                source.file_length(artifact).map_err(frame_source_failure)?;
+                            if length.bytes() == 0
+                                || length.bytes() > u64::from(admitted_limit)
+                                || length.bytes() > u64::from(u32::MAX)
+                            {
+                                let observed = length.reject_structural_damage();
+                                work.set(observed);
+                                return Err(FrameLoadFailure::new(
+                                    FrameLoadFailureKind::AccessLimitExceeded,
+                                )
+                                .with_complete_work_trace(observed));
+                            }
+                            work.set(length.work_trace());
+                            Ok(length.bytes() as u32)
+                        },
+                        |target: &mut [u8]| {
+                            let prepared = source
+                                .prepare_exact(artifact, 0, target.len() as u32)
+                                .map_err(|failure| {
                                 frame_source_failure(failure).preceded_by(work.get())
                             })?;
-                        work.set(work.get().then(FrameWorkTrace::one(prepared.identity())));
-                        projection_failure = prepared.execute(target).map_err(|failure| {
-                            frame_source_failure(failure).with_complete_work_trace(work.get())
-                        })?;
-                        Ok(())
-                    },
-                )
-                .map_err(|failure| bounded_fault_failure(failure, work.get()))?,
+                            work.set(work.get().then(FrameWorkTrace::one(prepared.identity())));
+                            projection_failure = prepared.execute(target).map_err(|failure| {
+                                frame_source_failure(failure).with_complete_work_trace(work.get())
+                            })?;
+                            Ok(())
+                        },
+                    )
+                    .map_err(|failure| bounded_fault_failure(failure, work.get()))?,
+                PhysicalFrameAccessOrigin::Fault,
+            ),
         };
         let coordinate = lease.key().coordinate();
         LoadedPhysicalFrame::bind(
             self.pool.store_identity(),
             coordinate,
             lease,
+            origin,
             work.get(),
             projection_failure,
         )
     }
+}
 
-    fn file_length(
+impl BoundedFrameLoader {
+    #[cfg(feature = "certification-test-authority")]
+    pub(super) fn load_admitted_exact<'source>(
         &self,
-        source: &dyn FrameReadSource,
-        artifact: RecordArtifactFile,
-    ) -> Result<ObservedArtifactLength, FrameLoadFailure> {
-        source.file_length(artifact).map_err(frame_source_failure)
+        coordinate: RecordFrameCoordinate,
+        access: PhysicalFrameAccess,
+        prepare: impl FnOnce() -> Result<Box<dyn PreparedFrameRead + 'source>, FrameReadSourceFailure>,
+    ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
+        self.load_admitted_exact_with_source_extent(coordinate, access, || {
+            let prepared = prepare().map_err(frame_source_failure)?;
+            Ok(PreparedExactFrameRead {
+                preceding_work: FrameWorkTrace::none(),
+                prepared,
+            })
+        })
     }
+
+    fn load_admitted_exact_with_source_extent<'source>(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        access: PhysicalFrameAccess,
+        prepare: impl FnOnce() -> Result<PreparedExactFrameRead<'source>, FrameLoadFailure>,
+    ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
+        let (lease, origin, work, projection_failure) = match access {
+            PhysicalFrameAccess::Hit(lease) => (
+                lease,
+                PhysicalFrameAccessOrigin::Hit,
+                FrameWorkTrace::none(),
+                None,
+            ),
+            PhysicalFrameAccess::Coalesced(waiter) => {
+                let terminal = waiter.wait().map_err(|terminal| {
+                    FrameLoadFailure::new(FrameLoadFailureKind::CoalescedFault(terminal))
+                })?;
+                (
+                    terminal,
+                    PhysicalFrameAccessOrigin::Coalesced,
+                    FrameWorkTrace::none(),
+                    None,
+                )
+            }
+            PhysicalFrameAccess::Fault(fault) => {
+                let prepared = match prepare() {
+                    Ok(prepared) => prepared,
+                    Err(failure) => {
+                        let terminal = fault.reject_before_source();
+                        return Err(exact_preparation_failure(failure, terminal));
+                    }
+                };
+                let work = prepared
+                    .preceding_work
+                    .then(FrameWorkTrace::one(prepared.prepared.identity()));
+                let mut projection_failure = None;
+                let lease = fault
+                    .load(|target| {
+                        projection_failure = prepared.prepared.execute(target)?;
+                        Ok(())
+                    })
+                    .map_err(|failure| match failure {
+                        PhysicalFrameFaultError::Residency { terminal, denial } => {
+                            FrameLoadFailure::new(FrameLoadFailureKind::FaultTerminated {
+                                terminal,
+                                cause: FrameLoadFaultCause::Residency(denial),
+                            })
+                            .with_complete_work_trace(work)
+                        }
+                        PhysicalFrameFaultError::Source { terminal, failure } => {
+                            frame_source_fault(failure, terminal).with_complete_work_trace(work)
+                        }
+                    })?;
+                (
+                    lease,
+                    PhysicalFrameAccessOrigin::Fault,
+                    work,
+                    projection_failure,
+                )
+            }
+        };
+        LoadedPhysicalFrame::bind(
+            self.pool.store_identity(),
+            coordinate,
+            lease,
+            origin,
+            work,
+            projection_failure,
+        )
+    }
+}
+
+fn validate_source_extent(
+    source: &dyn FrameReadSource,
+    artifact: RecordArtifactFile,
+    source_extent: ExactFrameSourceExtent,
+) -> Result<FrameWorkTrace, FrameLoadFailure> {
+    match source_extent {
+        #[cfg(feature = "certification-test-authority")]
+        ExactFrameSourceExtent::CoordinateOnly => Ok(FrameWorkTrace::none()),
+        ExactFrameSourceExtent::CompleteArtifact(expected) => {
+            let observed = source.file_length(artifact).map_err(frame_source_failure)?;
+            let work = observed.work_trace();
+            if observed.bytes() != expected.get() {
+                observed.reject_structural_damage();
+                return Err(
+                    FrameLoadFailure::new(FrameLoadFailureKind::ArtifactLengthMismatch)
+                        .with_complete_work_trace(work),
+                );
+            }
+            Ok(work)
+        }
+    }
+}
+
+fn exact_preparation_failure(
+    failure: FrameLoadFailure,
+    terminal: worth_store_buffer_pool::PhysicalFrameLoadTerminal,
+) -> FrameLoadFailure {
+    let cause = match failure.kind() {
+        FrameLoadFailureKind::Backend(cause) => Some(FrameLoadFaultCause::Backend(cause)),
+        FrameLoadFailureKind::Work(cause) => Some(FrameLoadFaultCause::Work(cause)),
+        FrameLoadFailureKind::Residency(cause) => Some(FrameLoadFaultCause::Residency(cause)),
+        _ => None,
+    };
+    cause.map_or(failure, |cause| {
+        FrameLoadFailure::new(FrameLoadFailureKind::FaultTerminated { terminal, cause })
+            .with_complete_work_trace(failure.work_trace())
+    })
 }
 
 fn bounded_fault_failure(

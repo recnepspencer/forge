@@ -27,7 +27,7 @@ impl PoolInner {
             removed.bytes,
             removed.pins,
             removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
+            removed.origin.is_candidate(),
         );
         Ok(())
     }
@@ -152,7 +152,7 @@ impl PoolInner {
                 removed.bytes,
                 removed.pins,
                 removed.dirty,
-                removed.origin == FrameOrigin::Candidate,
+                removed.origin.is_candidate(),
             );
         }
         let entry = state

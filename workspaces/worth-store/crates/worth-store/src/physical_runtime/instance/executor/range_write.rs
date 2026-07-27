@@ -7,9 +7,8 @@ use super::recovery_obligation::scheduler_recovery;
 use super::PhysicalWorkExecutor;
 use crate::physical_runtime::{
     record_serving::residency::artifact_tree::PhysicalRecordArtifactTree,
-    work::{PhysicalRetryPayload, PhysicalWritePosture},
-    PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
-    PhysicalWriteExecutorCommand,
+    work::PhysicalRetryPayload, PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch,
+    PhysicalExecutorOutcome, PhysicalWriteExecutorCommand,
 };
 
 #[derive(Clone, Copy)]
@@ -46,7 +45,6 @@ impl PhysicalWorkExecutor {
             coordinate,
             payload,
             payload_digest,
-            posture,
         } = command;
         let durability = write_durability(work.intent().durability());
         let (dispatched, plan) = work.into_execution_parts(Some(payload_digest))?;
@@ -56,26 +54,15 @@ impl PhysicalWorkExecutor {
             Some(payload_digest),
         )?;
         let tree = PhysicalRecordArtifactTree::new(&self.media);
-        let physical = match posture {
-            PhysicalWritePosture::ExactOverwrite => tree.write_scheduled_foreground_exact_at(
-                coordinate,
-                &payload,
-                plan.backend_completion_binding()
-                    .backend_execution_binding(),
-                BackendQueueExecutionAdaptation::None,
-                durability,
-            ),
-            PhysicalWritePosture::AppendAtEof => tree.append_scheduled_foreground_exact_at(
-                coordinate,
-                &payload,
-                plan.backend_completion_binding()
-                    .backend_execution_binding(),
-                BackendQueueExecutionAdaptation::None,
-                durability,
-            ),
-        };
-        let (outcome, physical_recovery) =
-            self.classify_range_write(plan, physical, payload, posture, role);
+        let physical = tree.write_scheduled_foreground_exact_at(
+            coordinate,
+            &payload,
+            plan.backend_completion_binding()
+                .backend_execution_binding(),
+            BackendQueueExecutionAdaptation::None,
+            durability,
+        );
+        let (outcome, physical_recovery) = self.classify_range_write(plan, physical, payload, role);
         let recovery = self.finish_effect_recovery(prepared, physical_recovery);
         Ok(PhysicalExecutorDispatch::new(dispatched, outcome, recovery))
     }
@@ -85,7 +72,6 @@ impl PhysicalWorkExecutor {
         plan: worth_store_io_scheduler::QueueExecutionReadyPlan,
         physical: ScheduledArtifactRangeWriteOutcome,
         payload: Box<[u8]>,
-        posture: PhysicalWritePosture,
         role: PhysicalRangeWriteRole,
     ) -> (PhysicalExecutorOutcome, PhysicalEffectRecoveryObligation) {
         match physical {
@@ -117,7 +103,7 @@ impl PhysicalWorkExecutor {
             ScheduledArtifactRangeWriteOutcome::DeniedBeforeEffect(failure) => (
                 PhysicalExecutorOutcome::DeniedBeforeEffect {
                     failure,
-                    retry: retry_payload(role, posture, payload),
+                    retry: retry_payload(role, payload),
                 },
                 PhysicalEffectRecoveryObligation::Cleared,
             ),
@@ -142,18 +128,9 @@ fn write_durability(
     }
 }
 
-fn retry_payload(
-    role: PhysicalRangeWriteRole,
-    posture: PhysicalWritePosture,
-    payload: Box<[u8]>,
-) -> PhysicalRetryPayload {
-    match (role, posture) {
-        (PhysicalRangeWriteRole::ExactWrite, _) => PhysicalRetryPayload::ExactWrite(payload),
-        (PhysicalRangeWriteRole::Publication, PhysicalWritePosture::ExactOverwrite) => {
-            PhysicalRetryPayload::Publication(payload)
-        }
-        (PhysicalRangeWriteRole::Publication, PhysicalWritePosture::AppendAtEof) => {
-            PhysicalRetryPayload::PublicationAppend(payload)
-        }
+fn retry_payload(role: PhysicalRangeWriteRole, payload: Box<[u8]>) -> PhysicalRetryPayload {
+    match role {
+        PhysicalRangeWriteRole::ExactWrite => PhysicalRetryPayload::ExactWrite(payload),
+        PhysicalRangeWriteRole::Publication => PhysicalRetryPayload::Publication(payload),
     }
 }

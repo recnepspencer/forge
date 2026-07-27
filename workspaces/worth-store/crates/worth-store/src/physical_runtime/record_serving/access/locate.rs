@@ -5,7 +5,7 @@ use worth_store_physical_format::{CurrentPhysicalRecordPlacement, DurablePhysica
 
 use super::super::{
     access::{extent_read_session::ExtentReadState, record_chunk_view::RecordReadIdentity},
-    residency::{frame_loading::LoadedPhysicalFrame, ServingFrameResidency},
+    residency::{frame_loading::LoadedPhysicalFrame, PhysicalResidencyWorkPort},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, ExternalPhysicalRecordLocator,
     PhysicalLocatorReadmissionOutcome, PhysicalRecordId, RecordReadDenial, RecordReadError,
     RecordReadLimits, RecordReadObservation,
@@ -54,7 +54,7 @@ pub struct PhysicalRecordReader {
         std::sync::Weak<crate::physical_runtime::instance::PhysicalStoreWorkRuntime>,
     pub(in crate::physical_runtime::record_serving) lifecycle:
         super::super::lifecycle::record_lifecycle::RecordReaderLease,
-    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
+    pub(in crate::physical_runtime::record_serving) residency: PhysicalResidencyWorkPort,
 }
 
 impl PhysicalRecordReader {

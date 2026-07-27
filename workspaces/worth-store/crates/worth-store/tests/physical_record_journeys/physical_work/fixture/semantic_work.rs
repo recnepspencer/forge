@@ -17,7 +17,7 @@ use super::authority::{
     admitted_contract, admitted_named_contract, security_scope, validated_value,
 };
 
-pub(in crate::physical_work) const EXPECTED_NATIVE_RECORD_BINDING_COUNT: u16 = 5;
+pub(in crate::physical_work) const EXPECTED_NATIVE_RECORD_BINDING_COUNT: u16 = 6;
 
 pub(crate) fn work_fixture() -> (
     PhysicalWorkProfileDeclaration,

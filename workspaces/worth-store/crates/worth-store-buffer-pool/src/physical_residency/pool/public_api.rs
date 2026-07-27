@@ -1,21 +1,6 @@
 use super::*;
 
 impl PhysicalResidencyPool {
-    pub(crate) fn bind_queue_frame(
-        &self,
-        key: PhysicalFrameKey,
-    ) -> Result<
-        (
-            worth_store_physical_format::store_namespace::StableStoreIdentity,
-            PhysicalResidencyIncarnation,
-            worth_store_physical_format::RecordFrameCoordinate,
-        ),
-        PhysicalResidencyDenial,
-    > {
-        self.inner.validate_key(key)?;
-        Ok((key.store(), self.inner.incarnation, key.coordinate()))
-    }
-
     pub fn open(
         store: StableStoreIdentity,
         limits: PhysicalResidencyLimits,
@@ -117,29 +102,27 @@ impl PhysicalResidencyPool {
         self.inner.access_bounded_frame(scope, key)
     }
 
-    pub fn admit_dirty(
+    pub fn materialize_dirty_candidate<F>(
         &self,
-        allocation: &OperationAllocationGrant,
+        allocation: &ForegroundWriteAllocationGrant,
         key: PhysicalFrameKey,
-        bytes: Vec<u8>,
-    ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
+        fill: F,
+    ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial>
+    where
+        F: FnOnce(&mut [u8]),
+    {
         self.allocation_scope(allocation)?;
         self.inner
             .validate_key(key)
             .map_err(|reason| self.inner.record_denial(reason))?;
-        if bytes.len() != key.coordinate.length() as usize {
-            return Err(self
-                .inner
-                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
-        }
         let candidate = PhysicalCandidateFrameKey::fragment(key);
         let mut batch = self.reserve_candidate_frames(allocation, &[candidate])?;
-        batch.reserve_next(candidate)?.admit(bytes)
+        batch.reserve_next(candidate)?.materialize(fill)
     }
 
     pub fn reserve_candidate_frames<'grant>(
         &self,
-        allocation: &'grant OperationAllocationGrant,
+        allocation: &'grant ForegroundWriteAllocationGrant,
         keys: &[PhysicalCandidateFrameKey],
     ) -> Result<PhysicalCandidateBatchReservation<'grant>, PhysicalResidencyDenial> {
         self.allocation_scope(allocation)?;
@@ -153,7 +136,7 @@ impl PhysicalResidencyPool {
 
     pub fn begin_candidate_batch<'grant>(
         &self,
-        allocation: &'grant OperationAllocationGrant,
+        allocation: &'grant ForegroundWriteAllocationGrant,
         candidate_count: std::num::NonZeroUsize,
     ) -> Result<PhysicalCandidateBatchAdmission<'grant>, PhysicalResidencyDenial> {
         self.allocation_scope(allocation)?;
@@ -196,30 +179,22 @@ impl PhysicalResidencyPool {
         })
     }
 
-    pub fn begin_speculative(
-        &self,
-        allocation: &OperationAllocationGrant,
-        kind: crate::PhysicalSpeculativeWorkKind,
-        frames: u32,
-    ) -> Result<SpeculativeResidencyGrant, PhysicalResidencyDenial> {
-        let scope = self.allocation_scope(allocation)?;
-        self.inner.reserve_speculative(scope, kind, frames)?;
-        Ok(SpeculativeResidencyGrant {
-            owner: Arc::clone(&self.inner),
-            kind,
-            frames,
-        })
-    }
-
     pub fn claim_writeback(
         &self,
-        frames: Vec<PhysicalFrameKey>,
+        allocation: ForegroundWriteAllocationGrant,
+        frames: &[PhysicalFrameKey],
     ) -> Result<PhysicalWritebackClaim, PhysicalResidencyDenial> {
-        let bytes = self.inner.claim_writeback(&frames)?;
+        allocation.scope_for(&self.inner)?;
+        let claimed = self.inner.claim_writeback(&allocation, frames)?;
         Ok(PhysicalWritebackClaim {
             owner: Arc::clone(&self.inner),
-            frames,
-            bytes,
+            writebehind: WriteBehindResidencyGrant::new(
+                Arc::clone(&self.inner),
+                allocation,
+                claimed.frames,
+            ),
+            bytes: claimed.resident_bytes,
+            range_postures: claimed.range_postures,
             armed: true,
         })
     }

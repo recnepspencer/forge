@@ -142,6 +142,10 @@ pub enum UnpublishedRecordBatchCause {
         stage: RecordPublicationStage,
         failure: Box<super::super::PhysicalRecordMutationFailureEvidence>,
     },
+    FrameWriteback {
+        stage: RecordPublicationStage,
+        failure: Box<super::super::PhysicalRecordWritebackFailureEvidence>,
+    },
     Stream(RecordStreamFailure),
 }
 

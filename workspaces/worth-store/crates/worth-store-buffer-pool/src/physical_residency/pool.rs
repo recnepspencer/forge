@@ -1,6 +1,6 @@
 use super::{
-    DirtyPhysicalFrame, OperationAllocationGrant, PhysicalBoundedFrameAccess,
-    PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
+    DirtyPhysicalFrame, ForegroundWriteAllocationGrant, OperationAllocationGrant,
+    PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
     PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
     PhysicalCandidateFrameReservation, PhysicalFrameAccess, PhysicalFrameFaultOwner,
     PhysicalFrameFaultWaiter, PhysicalFrameLease, PhysicalFrameLoadTerminal,
@@ -8,7 +8,7 @@ use super::{
     PhysicalResidencyAccounting, PhysicalResidencyAllocationEventObserver,
     PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyDimension,
     PhysicalResidencyLimits, PhysicalResidencyPressureDemand, PhysicalResidencyPressureDenial,
-    PhysicalResidencyShutdown, PhysicalWritebackClaim, SpeculativeResidencyGrant,
+    PhysicalResidencyShutdown, PhysicalWritebackClaim, WriteBehindResidencyGrant,
 };
 use std::{
     collections::HashMap,
@@ -210,6 +210,7 @@ enum FrameState {
 enum FrameOrigin {
     Fault,
     Candidate,
+    DirtyReplacement,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -217,6 +218,23 @@ enum FrameArtifactPosture {
     Fragment,
     CompleteCandidate,
     CompleteResident,
+}
+
+impl FrameOrigin {
+    const fn is_candidate(self) -> bool {
+        matches!(self, Self::Candidate | Self::DirtyReplacement)
+    }
+
+    const fn writeback_range_posture(
+        self,
+        coordinate: RecordFrameCoordinate,
+    ) -> crate::PhysicalWritebackRangePosture {
+        if matches!(self, Self::Candidate) && coordinate.offset() > 0 {
+            crate::PhysicalWritebackRangePosture::CandidateArtifactTail
+        } else {
+            crate::PhysicalWritebackRangePosture::ExistingRange
+        }
+    }
 }
 
 impl PoolInner {
@@ -244,7 +262,10 @@ impl PoolInner {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    fn validate_key(&self, key: PhysicalFrameKey) -> Result<(), PhysicalResidencyDenial> {
+    pub(crate) fn validate_key(
+        &self,
+        key: PhysicalFrameKey,
+    ) -> Result<(), PhysicalResidencyDenial> {
         if key.store != self.store {
             return Err(PhysicalResidencyDenial::WrongStore);
         }

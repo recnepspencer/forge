@@ -6,9 +6,8 @@ use worth_store_physical_backend::{
 
 use super::{
     PhysicalWorkEffectFate, PhysicalWorkHealthRevocation, PhysicalWorkNoEffectEvidence,
-    PhysicalWorkPublicationResiduePosture, PhysicalWorkResidencyPosture,
-    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause,
-    PhysicalWorkTerminalFailure,
+    PhysicalWorkPublicationResiduePosture, PhysicalWorkSchedulerPosture,
+    PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause, PhysicalWorkTerminalFailure,
 };
 use crate::physical_runtime::work::{
     DispatchedPhysicalWork, PhysicalExecutorOutcome, PhysicalWorkOperationFamily,
@@ -53,13 +52,6 @@ pub(super) fn classify(
             physical,
             scheduler,
         },
-        PhysicalExecutorOutcome::ResidencyTerminal {
-            physical,
-            scheduler,
-            denial,
-        } if dispatched.matches_write(&physical) => {
-            residency_terminal(dispatched, physical, scheduler, denial)
-        }
         PhysicalExecutorOutcome::PublicationCompleted {
             physical,
             scheduler,
@@ -97,26 +89,6 @@ pub(super) fn classify(
     }
 }
 
-fn residency_terminal(
-    dispatched: &DispatchedPhysicalWork,
-    physical: CompletedArtifactRangeWrite,
-    scheduler: QueueExecutionOutcome,
-    denial: worth_store_buffer_pool::PhysicalResidencyDenial,
-) -> PhysicalWorkSettlementEvidence {
-    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
-        identity: dispatched.intent().identity(),
-        effect_fate: PhysicalWorkEffectFate::WriteCompleted,
-        target: PhysicalWorkRecoveryTarget::Range(physical.coordinate()),
-        completed_bytes: physical.completed_bytes(),
-        backend_operation: physical.operation(),
-        scheduler: scheduler_posture(scheduler),
-        residency: PhysicalWorkResidencyPosture::Terminal,
-        publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
-        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
-        cause: PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(denial),
-    })
-}
-
 fn classify_completed_read(
     dispatched: &DispatchedPhysicalWork,
     physical: CompletedArtifactRangeRead,
@@ -138,7 +110,6 @@ fn classify_completed_read(
         completed_bytes: physical.completed_bytes(),
         backend_operation: physical.operation(),
         scheduler: scheduler_posture(scheduler),
-        residency: PhysicalWorkResidencyPosture::NotParticipating,
         publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
         cause: PhysicalWorkTerminalCause::IncompleteRead {
@@ -159,7 +130,6 @@ fn indeterminate_terminal(
         completed_bytes: physical.completed_bytes(),
         backend_operation: physical.operation(),
         scheduler: PhysicalWorkSchedulerPosture::NotObserved,
-        residency: PhysicalWorkResidencyPosture::NotParticipating,
         publication_residue: indeterminate_publication_residue(dispatched),
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
         cause: PhysicalWorkTerminalCause::Backend(physical.failure()),
@@ -230,7 +200,6 @@ fn terminal_scheduler_failure(
         completed_bytes: physical.completed_bytes(),
         backend_operation: physical.operation(),
         scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
-        residency: PhysicalWorkResidencyPosture::NotParticipating,
         publication_residue: if publication {
             PhysicalWorkPublicationResiduePosture::MayExist
         } else {
@@ -259,7 +228,6 @@ fn classify_completed_new_artifact(
             completed_bytes: physical.write().completed_bytes(),
             backend_operation: physical.write().operation(),
             scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
-            residency: PhysicalWorkResidencyPosture::NotParticipating,
             publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
             recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
             cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
@@ -285,7 +253,6 @@ fn classify_completed_publication_effect(
             completed_bytes: 0,
             backend_operation: physical.physical().operation(),
             scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
-            residency: PhysicalWorkResidencyPosture::NotParticipating,
             publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
             recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
             cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
@@ -306,7 +273,6 @@ fn indeterminate_new_artifact(
             .write_operation()
             .unwrap_or_else(|| physical.create_operation()),
         scheduler: PhysicalWorkSchedulerPosture::NotObserved,
-        residency: PhysicalWorkResidencyPosture::NotParticipating,
         publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
         cause: PhysicalWorkTerminalCause::Backend(physical.failure()),
@@ -324,7 +290,6 @@ fn indeterminate_publication_effect(
         completed_bytes: 0,
         backend_operation: physical.physical().operation(),
         scheduler: PhysicalWorkSchedulerPosture::NotObserved,
-        residency: PhysicalWorkResidencyPosture::NotParticipating,
         publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
         cause: PhysicalWorkTerminalCause::Backend(physical.physical().failure()),

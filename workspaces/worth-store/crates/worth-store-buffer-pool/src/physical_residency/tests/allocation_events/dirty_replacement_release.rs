@@ -7,7 +7,13 @@ fn allocator_failure_after_grant_releases_replacement_authority_before_fill() {
     impl super::super::super::lease::dirty_replacement_allocation::DirtyReplacementAllocator
         for RejectingAllocator
     {
-        fn allocate(&self, _length: usize) -> Result<Vec<u8>, ()> {
+        fn allocate(
+            &self,
+            _length: usize,
+        ) -> Result<
+            super::super::super::lease::dirty_replacement_allocation::DirtyReplacementBuffer,
+            (),
+        > {
             Err(())
         }
     }
@@ -15,7 +21,9 @@ fn allocator_failure_after_grant_releases_replacement_authority_before_fill() {
     let identity = store(103);
     let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
     let observer = pool.allocation_events();
-    let grant = pool.begin_operation(WRITE_SCOPE, nonzero_bytes(8)).unwrap();
+    let grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(8))
+        .unwrap();
     let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
     let clean = load_clean(&pool, &grant, key, 1);
 
@@ -45,6 +53,7 @@ fn allocator_failure_after_grant_releases_replacement_authority_before_fill() {
     assert_clean_replacement_posture(&pool, events);
     let clean = load_clean_hit(&pool, &grant, key);
     assert_eq!(clean.as_ref(), &[1; 8]);
+    drop(clean.begin_dirty_replacement(&grant).unwrap());
 }
 
 #[test]
@@ -52,7 +61,9 @@ fn panic_during_fill_unwinds_every_replacement_grant_and_preserves_source() {
     let identity = store(104);
     let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
     let observer = pool.allocation_events();
-    let grant = pool.begin_operation(WRITE_SCOPE, nonzero_bytes(8)).unwrap();
+    let grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(8))
+        .unwrap();
     let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
     let clean = load_clean(&pool, &grant, key, 1);
 
@@ -66,6 +77,73 @@ fn panic_during_fill_unwinds_every_replacement_grant_and_preserves_source() {
     assert_clean_replacement_posture(&pool, observer.snapshot());
     let clean = load_clean_hit(&pool, &grant, key);
     assert_eq!(clean.as_ref(), &[1; 8]);
+    drop(clean.begin_dirty_replacement(&grant).unwrap());
+}
+
+#[test]
+fn undersized_operation_grant_denies_before_dirty_replacement_admission() {
+    let identity = store(106);
+    let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
+    let observer = pool.allocation_events();
+    let load_grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(8))
+        .unwrap();
+    let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
+    let clean = load_clean(&pool, &load_grant, key, 1);
+    drop(load_grant);
+    let undersized = pool
+        .begin_foreground_write_operation(nonzero_bytes(4))
+        .unwrap();
+
+    let denial = clean.begin_dirty_replacement(&undersized).unwrap_err();
+
+    assert!(matches!(
+        denial,
+        PhysicalResidencyDenial::Pressure(pressure)
+            if pressure.dimension() == PhysicalResidencyDimension::OperationBytes
+                && pressure.requested() == 8
+                && pressure.current() == 0
+                && pressure.limit() == 4
+    ));
+    assert_clean_replacement_posture(&pool, observer.snapshot());
+    let clean = load_clean_hit(&pool, &undersized, key);
+    assert_eq!(clean.as_ref(), &[1; 8]);
+}
+
+#[test]
+fn one_operation_grant_cannot_back_two_live_dirty_replacements() {
+    let identity = store(107);
+    let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
+    let load_grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(16))
+        .unwrap();
+    let first_key = PhysicalFrameKey::new(identity, coordinate(1, 8));
+    let second_key = PhysicalFrameKey::new(identity, coordinate(2, 8));
+    let first = load_clean(&pool, &load_grant, first_key, 1);
+    let second = load_clean(&pool, &load_grant, second_key, 2);
+    drop(load_grant);
+    let replacement_grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(8))
+        .unwrap();
+
+    let held = first.begin_dirty_replacement(&replacement_grant).unwrap();
+    let denial = second
+        .begin_dirty_replacement(&replacement_grant)
+        .unwrap_err();
+
+    assert!(matches!(
+        denial,
+        PhysicalResidencyDenial::Pressure(pressure)
+            if pressure.dimension() == PhysicalResidencyDimension::OperationBytes
+                && pressure.requested() == 8
+                && pressure.current() == 8
+                && pressure.limit() == 8
+    ));
+    assert_eq!(pool.counters().dirty_replacement_bytes(), 8);
+    drop(held);
+    assert_eq!(pool.counters().dirty_replacement_bytes(), 0);
+    let second = load_clean_hit(&pool, &replacement_grant, second_key);
+    drop(second.begin_dirty_replacement(&replacement_grant).unwrap());
 }
 
 #[test]
@@ -74,7 +152,7 @@ fn held_replacement_denies_one_past_its_exact_byte_ceiling() {
     let pool = PhysicalResidencyPool::open(identity, replacement_ceiling_limits()).unwrap();
     let observer = pool.allocation_events();
     let grant = pool
-        .begin_operation(WRITE_SCOPE, nonzero_bytes(16))
+        .begin_foreground_write_operation(nonzero_bytes(16))
         .unwrap();
     let first_key = PhysicalFrameKey::new(identity, coordinate(1, 8));
     let second_key = PhysicalFrameKey::new(identity, coordinate(2, 8));
@@ -105,6 +183,7 @@ fn held_replacement_denies_one_past_its_exact_byte_ceiling() {
         .unwrap()
         .replace(|source, target| {
             assert_eq!(source, &[2; 8]);
+            assert_eq!(target.len(), 8);
             target.copy_from_slice(&[3; 8]);
             Ok::<_, ()>(())
         })

@@ -1,8 +1,8 @@
-use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
+use worth_store_buffer_pool::BufferPoolReadQueueExecutionDeclaration;
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_secure_io_scope_for_scheduler, lower_buffer_pool_queue_declaration,
+    admit_secure_io_scope_for_scheduler, lower_buffer_pool_read_queue_declaration,
     reject_lower_authority_secure_io_scope_source, IoSchedulerBackendCapabilityRequirement,
     QueueExecutionAdmissionRequest, SecureIoOperation, SecureIoPostureRequirement,
     SecureIoPreservationDenial, SecureIoPreservationRequest,
@@ -34,7 +34,7 @@ fn secure_io_receipt_is_required_for_secure_queue_admission() {
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
     )
     .expect("scope-preserving direct I/O should admit secure-I/O preservation");
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
         .expect("buffer-pool producer should lower")
         .with_secure_io_scope(secure_io);
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
@@ -54,7 +54,7 @@ fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
     let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
         .expect("buffer-pool producer should lower");
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
@@ -93,7 +93,7 @@ fn secure_io_receipt_operation_cannot_be_laundered() {
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
     )
     .expect("background secure-I/O receipt should admit");
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
         .expect("buffer-pool producer should lower")
         .with_secure_io_scope(secure_io);
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
@@ -162,7 +162,7 @@ fn lower_authority_sources_report_secure_io_classifier_denials() {
 fn read_ahead_producer(
     security: worth_store_security::StoreSecurityScopeIdentity,
     budget: worth_store_io_scheduler::BackgroundResourceBudget,
-) -> BufferPoolQueueExecutionDeclaration {
+) -> BufferPoolReadQueueExecutionDeclaration {
     read_ahead_declaration_for_real_pool(
         security,
         11,

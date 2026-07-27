@@ -1,10 +1,13 @@
 mod allocations;
 mod counters;
+mod writeback;
 
 pub use allocations::{
     PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationSnapshot,
 };
 pub use counters::PhysicalResidencyCounterSnapshot;
+pub(super) use writeback::PhysicalWritebackCounterCells;
+pub use writeback::PhysicalWritebackCounterSnapshot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalResidencyObservation {
@@ -13,6 +16,7 @@ pub struct PhysicalResidencyObservation {
     admitted_policy: crate::physical_runtime::record_serving::AdmittedPhysicalRecordResidencyPolicy,
     counters: PhysicalResidencyCounterSnapshot,
     allocations: PhysicalResidencyAllocationSnapshot,
+    writebacks: PhysicalWritebackCounterSnapshot,
 }
 
 impl PhysicalResidencyObservation {
@@ -23,6 +27,7 @@ impl PhysicalResidencyObservation {
             crate::physical_runtime::record_serving::AdmittedPhysicalRecordResidencyPolicy,
         counters: worth_store_buffer_pool::PhysicalResidencyCounters,
         allocations: worth_store_buffer_pool::PhysicalResidencyAllocationEventSnapshot,
+        writebacks: PhysicalWritebackCounterSnapshot,
     ) -> Self {
         Self {
             store,
@@ -30,6 +35,7 @@ impl PhysicalResidencyObservation {
             admitted_policy,
             counters: PhysicalResidencyCounterSnapshot::new(counters),
             allocations: PhysicalResidencyAllocationSnapshot::new(allocations),
+            writebacks,
         }
     }
 
@@ -55,5 +61,9 @@ impl PhysicalResidencyObservation {
 
     pub const fn allocations(self) -> PhysicalResidencyAllocationSnapshot {
         self.allocations
+    }
+
+    pub const fn writebacks(self) -> PhysicalWritebackCounterSnapshot {
+        self.writebacks
     }
 }

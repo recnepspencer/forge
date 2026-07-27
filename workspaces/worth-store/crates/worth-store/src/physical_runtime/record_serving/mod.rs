@@ -1,8 +1,6 @@
 mod access;
 mod access_policy;
 mod admission;
-#[cfg(feature = "certification-test-authority")]
-mod c6_handoff;
 mod canonical_read_execution;
 mod evidence;
 mod identity;
@@ -12,8 +10,8 @@ mod planning;
 mod publication;
 mod read_work_port;
 mod record_queue_policy;
-mod record_work_admission;
 pub(in crate::physical_runtime) mod residency;
+mod work_semantics;
 
 pub use access::locate::{PhysicalRecordReader, RecordReadCancellation, RecordReadSession};
 pub use access::read_observation::{
@@ -54,14 +52,6 @@ pub use admission::residency_policy::{
     PhysicalRecordResidencyPolicy, PhysicalRecordResidencyPolicyBuilder,
     PhysicalRecordResidencyPolicyDenial, PhysicalRecordResidencyPolicyOutcome,
     PhysicalResidencyDimension, PhysicalSpeculativeWorkKind,
-};
-#[cfg(feature = "certification-test-authority")]
-pub use c6_handoff::{
-    C6AdmittedDirtyFrame, C6AdmittedPhysicalWriteback, C6PhysicalResidencyWork,
-    C6PhysicalWorkHandoff, C6PhysicalWorkHandoffFailure, C6PhysicalWorkHandoffIdentity,
-    C6PhysicalWorkSettlement, C6PhysicalWritebackExecution, C6PhysicalWritebackReservation,
-    C6PhysicalWritebackTransitionFailure, C6PreparedPhysicalWriteback,
-    C6RetryablePhysicalWriteback,
 };
 use canonical_read_execution::PreparedCanonicalMetadataRead;
 pub(in crate::physical_runtime) use canonical_read_execution::PreparedCanonicalRecordRead;
@@ -154,9 +144,6 @@ pub(in crate::physical_runtime) use publication::{
 pub(in crate::physical_runtime) use read_work_port::{
     CanonicalRecordReadFailure, CanonicalRecordReadPort,
 };
-pub(in crate::physical_runtime) use record_work_admission::{
-    RecordReadPartition, RecordWorkAdmission,
-};
 pub use residency::candidate_frame_residency::CandidateFrameContractViolation;
 pub(in crate::physical_runtime) use residency::frame_ports::RecordFramePorts;
 #[cfg(feature = "certification-test-authority")]
@@ -164,15 +151,28 @@ pub use residency::frame_ports::{FramePortCounterObserver, FramePortCounterSnaps
 pub use residency::scheduled_writeback::PhysicalScheduledWritebackAdmissionDenial;
 #[cfg(feature = "certification-test-authority")]
 pub use residency::{
-    CertificationFrameFaultCause, CertificationFrameReadFailure, CertificationFrameWorkFailure,
-    CertificationResidentFrame, PhysicalResidencyCertification,
+    AdmittedDirtyFrame, AdmittedPhysicalWriteback, CertificationFrameFaultCause,
+    CertificationFrameReadFailure, CertificationFrameWorkFailure, CertificationResidentFrame,
+    CertificationScopeAdmissionFailure, CertificationScopePressure, CertificationScopedAllocation,
+    PhysicalDirtyTransitionFailure, PhysicalResidencyCertification, PhysicalWritebackExecution,
+    PhysicalWritebackInspectionRequired, PhysicalWritebackSettlement,
+    PhysicalWritebackTransitionFailure, PreparedPhysicalWriteback, ReadyPhysicalWriteback,
+    RetryablePhysicalWriteback,
 };
 pub use residency::{
-    PhysicalRecordPressureBasis, PhysicalRecordPressureEvidence, PhysicalRecordResidencyFailure,
-    PhysicalRecordResidencyFailureKind, PhysicalRecordResidencyFailureReason,
-    PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationSnapshot,
-    PhysicalResidencyCounterSnapshot, PhysicalResidencyObservation, PhysicalResidencyRetryPosture,
+    PhysicalFrameFaultCause, PhysicalFrameReadFailure, PhysicalFrameWorkFailure,
+    PhysicalPrefetchIntent, PhysicalPrefetchOutcome, PhysicalReadAheadBatch,
+    PhysicalReadAheadFrameOutcome, PhysicalReadAheadIntent, PhysicalReadAheadIntentDenial,
+    PhysicalReadAheadOutcome, PhysicalRecordPressureBasis, PhysicalRecordPressureEvidence,
+    PhysicalRecordResidencyFailure, PhysicalRecordResidencyFailureKind,
+    PhysicalRecordResidencyFailureReason, PhysicalRecordWritebackFailureCause,
+    PhysicalRecordWritebackFailureEvidence, PhysicalResidencyAllocationEventSnapshot,
+    PhysicalResidencyAllocationSnapshot, PhysicalResidencyCounterSnapshot,
+    PhysicalResidencyObservation, PhysicalResidencyRetryPosture, PhysicalSpeculativeReadDrop,
+    PhysicalSpeculativeReadFailure, PhysicalWritebackCounterSnapshot,
+    PhysicalWritebackFailureCause,
 };
+pub(in crate::physical_runtime) use work_semantics::{RecordReadPartition, RecordWorkAdmission};
 pub use worth_store_physical_format::{
     PhysicalPageSizeClass, PhysicalRecordByteOrder, PhysicalRecordFormatDeclaration,
     PhysicalRecordFormatDeclarationBuilder, PhysicalRecordFormatDenial,

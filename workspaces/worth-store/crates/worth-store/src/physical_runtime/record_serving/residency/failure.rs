@@ -14,8 +14,10 @@ pub enum PhysicalRecordResidencyFailureKind {
     ConfigurationIncompatible,
     PhysicalPressure,
     WritebackStateConflict,
+    SettlementAuthorityMismatch,
     AllocationUnavailable,
     AllocationAuthorityMismatch,
+    SpeculativeContractConflict,
     PublicationConflict,
     LifecycleClosed,
     FrameLoadTerminated,
@@ -35,8 +37,16 @@ pub enum PhysicalRecordResidencyFailureReason {
     WritebackFrameNotDirty,
     WritebackFrameAlreadyClaimed,
     WritebackReceiptMismatch,
+    CandidateCleanAuthorityMismatch,
+    WritebackCleanAuthorityMismatch,
     AllocationFailed,
     AllocationGrantMismatch,
+    SpeculativeAllocationMismatch {
+        granted: u64,
+        required: u64,
+    },
+    EmptySpeculativeRead,
+    DuplicateSpeculativeFrame,
     CandidatePublicationActive,
     PoolClosed,
     BoundedLoadLimitConflict {
@@ -93,11 +103,29 @@ impl PhysicalRecordResidencyFailure {
             PhysicalResidencyDenial::WriteBackReceiptMismatch => {
                 PhysicalRecordResidencyFailureReason::WritebackReceiptMismatch
             }
+            PhysicalResidencyDenial::CandidateCleanAuthorityMismatch => {
+                PhysicalRecordResidencyFailureReason::CandidateCleanAuthorityMismatch
+            }
+            PhysicalResidencyDenial::WritebackCleanAuthorityMismatch => {
+                PhysicalRecordResidencyFailureReason::WritebackCleanAuthorityMismatch
+            }
             PhysicalResidencyDenial::AllocationFailed => {
                 PhysicalRecordResidencyFailureReason::AllocationFailed
             }
             PhysicalResidencyDenial::AllocationGrantMismatch => {
                 PhysicalRecordResidencyFailureReason::AllocationGrantMismatch
+            }
+            PhysicalResidencyDenial::SpeculativeAllocationMismatch { granted, required } => {
+                PhysicalRecordResidencyFailureReason::SpeculativeAllocationMismatch {
+                    granted,
+                    required,
+                }
+            }
+            PhysicalResidencyDenial::EmptySpeculativeRead => {
+                PhysicalRecordResidencyFailureReason::EmptySpeculativeRead
+            }
+            PhysicalResidencyDenial::DuplicateSpeculativeFrame => {
+                PhysicalRecordResidencyFailureReason::DuplicateSpeculativeFrame
             }
             PhysicalResidencyDenial::CandidatePublicationActive => {
                 PhysicalRecordResidencyFailureReason::CandidatePublicationActive
@@ -198,11 +226,20 @@ impl From<PhysicalResidencyDenial> for PhysicalRecordResidencyFailure {
             | PhysicalResidencyDenial::WriteBackReceiptMismatch => {
                 PhysicalRecordResidencyFailureKind::WritebackStateConflict
             }
+            PhysicalResidencyDenial::CandidateCleanAuthorityMismatch
+            | PhysicalResidencyDenial::WritebackCleanAuthorityMismatch => {
+                PhysicalRecordResidencyFailureKind::SettlementAuthorityMismatch
+            }
             PhysicalResidencyDenial::AllocationFailed => {
                 PhysicalRecordResidencyFailureKind::AllocationUnavailable
             }
             PhysicalResidencyDenial::AllocationGrantMismatch => {
                 PhysicalRecordResidencyFailureKind::AllocationAuthorityMismatch
+            }
+            PhysicalResidencyDenial::SpeculativeAllocationMismatch { .. }
+            | PhysicalResidencyDenial::EmptySpeculativeRead
+            | PhysicalResidencyDenial::DuplicateSpeculativeFrame => {
+                PhysicalRecordResidencyFailureKind::SpeculativeContractConflict
             }
             PhysicalResidencyDenial::CandidatePublicationActive => {
                 PhysicalRecordResidencyFailureKind::PublicationConflict

@@ -13,7 +13,7 @@ use super::fixture::{
     serving_from_initialization_with_work_profile, work_fixture,
 };
 use super::scheduler::{
-    policy_receipt, policy_receipt_for, ready_read_work, ready_work, write_demand,
+    policy_receipt, policy_receipt_for, ready_read_work, ready_work, secure_demand, write_demand,
 };
 
 #[test]
@@ -26,6 +26,7 @@ fn write_settles_physical_truth_before_signal_completion() {
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
     let admitted = serving
         .admit_physical_scheduler_demand(demand, &backend, policy_receipt(work.requested_budget()))
         .unwrap();
@@ -314,6 +315,7 @@ fn mixed_route_batch_completes_each_settlement_on_its_admitted_signal_route() {
     let read_backend = serving
         .admit_physical_scheduler_capability(read_work.backend_requirement())
         .unwrap();
+    let read_demand = secure_demand(read_demand, &read_backend);
     let read = serving
         .admit_physical_scheduler_demand(
             read_demand,
@@ -365,6 +367,7 @@ pub(super) fn admitted_write(
     let backend = serving
         .admit_physical_scheduler_capability(work.backend_requirement())
         .unwrap();
+    let demand = secure_demand(demand, &backend);
     serving
         .admit_physical_scheduler_demand(demand, &backend, policy_receipt(work.requested_budget()))
         .unwrap()

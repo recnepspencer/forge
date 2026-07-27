@@ -6,12 +6,23 @@ use std::{
 use super::workspace_source::{read, workspace_relative};
 use crate::workspace_root;
 
+mod replacement_owner;
+
 const REMOVAL_LEDGER: &str = "_docs/worth-store/physical-reconstruction-c6-removal-ledger.csv";
 
 const EXCLUDED_POLICY_SOURCES: &[&str] = &[
     "tools/store-test-runner/src/c5_1_sealing_gate.rs",
     "tools/store-test-runner/src/c5_1_sealing_gate/",
     "tools/store-test-runner/src/physical_residency_boundary_gate/",
+];
+
+const PHASE_8_DIRECT_POOL_ROOTS: &[&str] = &[
+    "crates/worth-store-blob-chunks/",
+    "crates/worth-store-maintenance/",
+    "crates/worth-store-physical-integrity/",
+    "crates/worth-store-physical-isolation/",
+    "crates/worth-store-recovery-physics/",
+    "crates/worth-store-test-support/",
 ];
 
 #[test]
@@ -27,7 +38,7 @@ fn every_removal_row_has_a_future_owner_and_mechanical_absence_gate() {
         assert!(
             matches!(
                 row.deletion_phase.as_str(),
-                "phase-3" | "phase-5" | "phase-7" | "phase-8"
+                "phase-3" | "phase-5" | "phase-6" | "phase-7" | "phase-8"
             ),
             "{} has invalid deletion phase {}",
             row.path,
@@ -55,6 +66,27 @@ fn every_removal_row_has_a_future_owner_and_mechanical_absence_gate() {
 }
 
 #[test]
+fn every_completed_phase_six_row_has_a_present_source_owner() {
+    assert_completed_rows_have_present_replacement("phase-6");
+}
+
+#[test]
+fn every_completed_phase_five_row_has_a_present_replacement_owner() {
+    assert_completed_rows_have_present_replacement("phase-5");
+}
+
+#[test]
+fn every_completed_phase_seven_row_has_a_present_replacement_owner() {
+    assert_completed_rows_have_present_replacement("phase-7");
+}
+
+fn assert_completed_rows_have_present_replacement(phase: &str) {
+    let ledger = removal_ledger().expect("parse C.6 removal ledger");
+    replacement_owner::assert_completed_rows_have_present_replacement(phase, &ledger)
+        .unwrap_or_else(|denial| panic!("{denial}"));
+}
+
+#[test]
 fn inventory_gate_rejects_unclassified_consumers() {
     let mut discovered = BTreeMap::new();
     discovered.insert(
@@ -71,6 +103,20 @@ fn inventory_gate_rejects_unclassified_consumers() {
     );
     assert!(families.contains("legacy-s2-feature"));
 
+    let direct = discover_families(
+        "crates/worth-store-maintenance/src/new_consumer.rs",
+        "use worth_store_buffer_pool::PhysicalResidencyCounters;",
+    );
+    assert!(direct.contains("direct-pool-consumer"));
+
+    let canonical = discover_families(
+        "crates/worth-store/src/physical_runtime/new_owner.rs",
+        "use worth_store_buffer_pool::PhysicalResidencyCounters;",
+    );
+    assert!(
+        !canonical.contains("direct-pool-consumer"),
+        "the canonical Store owner must not become Phase 8 legacy inventory"
+    );
 }
 
 #[test]
@@ -119,6 +165,9 @@ fn discover_families(path: &str, source: &str) -> BTreeSet<String> {
     if path.contains("c6_handoff") {
         families.insert("temporary-handoff".to_owned());
     }
+    if path.contains("crates/worth-store-buffer-pool/src/background_work/queue_execution") {
+        families.insert("isolated-speculative-queue".to_owned());
+    }
     if path_tokens(path)
         .chain(path_tokens(source))
         .any(|token| token.starts_with("C6") || token.starts_with("c6_"))
@@ -141,6 +190,15 @@ fn discover_families(path: &str, source: &str) -> BTreeSet<String> {
         if source.contains(fragment) {
             families.insert(family.to_owned());
         }
+    }
+    if families.is_empty()
+        && PHASE_8_DIRECT_POOL_ROOTS
+            .iter()
+            .any(|root| path.starts_with(root))
+        && (source.contains("worth_store_buffer_pool")
+            || source.contains("worth-store-buffer-pool"))
+    {
+        families.insert("direct-pool-consumer".to_owned());
     }
     families
 }
@@ -289,7 +347,10 @@ impl RemovalStatus {
             return Ok(Self::InventoryOpen);
         }
         if let Some(phase) = value.strip_prefix("deleted-") {
-            if matches!(phase, "phase-3" | "phase-5" | "phase-7" | "phase-8") {
+            if matches!(
+                phase,
+                "phase-3" | "phase-5" | "phase-6" | "phase-7" | "phase-8"
+            ) {
                 return Ok(Self::Deleted(phase.to_owned()));
             }
         }

@@ -13,7 +13,7 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     cases.pass("tests/physical_runtime_authority/supported_admission.rs");
     cases.pass("tests/physical_runtime_authority/supported_physical_work.rs");
     cases.pass("tests/physical_runtime_authority/admitted_residency_policy_supported.rs");
-    cases.pass("tests/physical_runtime_authority/c6_handoff_supported.rs");
+    cases.pass("tests/physical_runtime_authority/responsibility_named_store_facade_supported.rs");
     cases.compile_fail(
         "tests/physical_runtime_authority/runtime_duplication_and_reconstruction_are_sealed.rs",
     );
@@ -30,7 +30,7 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
         "tests/physical_runtime_authority/independent_scan_and_mutation_capabilities_compile.rs",
     );
     cases.compile_fail("tests/physical_runtime_authority/frame_view_cannot_outlive_lease.rs");
-    cases.compile_fail("tests/physical_runtime_authority/generic_completion_cannot_clean.rs");
+    cases.compile_fail("tests/physical_runtime_authority/lower_clean_authority_is_required.rs");
     cases.compile_fail(
         "tests/physical_runtime_authority/physical_receipt_construction_is_sealed.rs",
     );
@@ -45,7 +45,9 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     cases.compile_fail(
         "tests/physical_runtime_authority/legacy_mutation_and_writeback_routes_are_absent.rs",
     );
-    cases.compile_fail("tests/physical_runtime_authority/c6_handoff_internals_are_sealed.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/residency_writeback_internals_are_sealed.rs",
+    );
     cases
         .compile_fail("tests/physical_runtime_authority/raw_residency_policy_cannot_enter_open.rs");
     cases.compile_fail("tests/physical_runtime_authority/admitted_residency_policy_is_sealed.rs");

@@ -1,0 +1,5 @@
+error[E0599]: no method named `evict_resident_frame` found for reference `&ServingPhysicalRuntime` in the current scope
+ --> tests/physical_adapter_authority/eviction_authority_is_sealed.rs:4:13
+  |
+4 |     serving.evict_resident_frame();
+  |             ^^^^^^^^^^^^^^^^^^^^ method not found in `&ServingPhysicalRuntime`

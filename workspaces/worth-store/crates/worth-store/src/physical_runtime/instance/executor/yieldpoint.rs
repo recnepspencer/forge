@@ -4,7 +4,9 @@ use std::time::{Duration, Instant};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CertificationPhysicalExecutionCheckpoint {
     BeforeBackendDispatch,
+    AfterReadBeforeSchedulerSettlement,
     AfterExactWriteBeforeSchedulerSettlement,
+    AfterResidencyWriteBeforeSchedulerSettlement,
     AfterCatalogReplacementBeforeSchedulerSettlement,
 }
 
@@ -12,8 +14,10 @@ impl CertificationPhysicalExecutionCheckpoint {
     const fn index(self) -> usize {
         match self {
             Self::BeforeBackendDispatch => 0,
-            Self::AfterExactWriteBeforeSchedulerSettlement => 1,
-            Self::AfterCatalogReplacementBeforeSchedulerSettlement => 2,
+            Self::AfterReadBeforeSchedulerSettlement => 1,
+            Self::AfterExactWriteBeforeSchedulerSettlement => 2,
+            Self::AfterResidencyWriteBeforeSchedulerSettlement => 3,
+            Self::AfterCatalogReplacementBeforeSchedulerSettlement => 4,
         }
     }
 }
@@ -35,13 +39,19 @@ struct PauseProgress {
 }
 
 pub(super) struct PhysicalExecutorYieldpointOwner {
-    gates: [Mutex<Option<CertificationPhysicalExecutionPauseGate>>; 3],
+    gates: [Mutex<Option<CertificationPhysicalExecutionPauseGate>>; 5],
 }
 
 impl PhysicalExecutorYieldpointOwner {
     pub(super) fn new() -> Self {
         Self {
-            gates: [Mutex::new(None), Mutex::new(None), Mutex::new(None)],
+            gates: [
+                Mutex::new(None),
+                Mutex::new(None),
+                Mutex::new(None),
+                Mutex::new(None),
+                Mutex::new(None),
+            ],
         }
     }
 
@@ -175,8 +185,13 @@ mod tests {
         let owner = PhysicalExecutorYieldpointOwner::new();
         let pre_dispatch =
             owner.install(CertificationPhysicalExecutionCheckpoint::BeforeBackendDispatch);
+        let post_read = owner
+            .install(CertificationPhysicalExecutionCheckpoint::AfterReadBeforeSchedulerSettlement);
         let post_write = owner.install(
             CertificationPhysicalExecutionCheckpoint::AfterExactWriteBeforeSchedulerSettlement,
+        );
+        let post_residency_write = owner.install(
+            CertificationPhysicalExecutionCheckpoint::AfterResidencyWriteBeforeSchedulerSettlement,
         );
         let post_catalog = owner.install(
             CertificationPhysicalExecutionCheckpoint::
@@ -187,7 +202,9 @@ mod tests {
             owner.pause(CertificationPhysicalExecutionCheckpoint::BeforeBackendDispatch);
         });
         assert!(pre_dispatch.await_arrival());
+        assert_eq!(post_read.arrival_count(), 0);
         assert_eq!(post_write.arrival_count(), 0);
+        assert_eq!(post_residency_write.arrival_count(), 0);
         assert_eq!(post_catalog.arrival_count(), 0);
         pre_dispatch.release();
         execution.join().unwrap();

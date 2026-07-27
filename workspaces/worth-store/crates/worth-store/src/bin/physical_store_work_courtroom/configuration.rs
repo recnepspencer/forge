@@ -7,8 +7,8 @@ use worth_store::physical_runtime::{
 };
 
 const CONFIGURATION_SCHEMA: &str = "worth.store.c5_1.physical-work-courtroom.configuration.v1";
-pub(super) const C6_PRESSURE_CONFIGURATION_SCHEMA: &str =
-    "worth.store.c5_1.c6-inheritance-siege.configuration.v1";
+pub(super) const BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA: &str =
+    "worth.store.physical-work-courtroom.bounded-residency.configuration.v1";
 
 pub(super) struct CourtroomConfiguration {
     payload_bytes: usize,
@@ -68,7 +68,9 @@ pub(super) fn validate_supported(path: &Path) -> Result<(), String> {
         .map_err(|error| format!("cannot read courtroom configuration: {error}"))?;
     match encoded.lines().next() {
         Some(CONFIGURATION_SCHEMA) => CourtroomConfiguration::read(path).map(|_| ()),
-        Some(C6_PRESSURE_CONFIGURATION_SCHEMA) => super::c6_pressure::validate_configuration(path),
+        Some(BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA) => {
+            super::bounded_residency::validate_configuration(path)
+        }
         _ => Err("unsupported courtroom configuration schema".to_owned()),
     }
 }

@@ -33,7 +33,12 @@ fn streamed_read_damage_retains_the_completed_logical_range() {
     file.seek(SeekFrom::Start((16_384 + 120) as u64)).unwrap();
     file.write_all(&[0xa5]).unwrap();
     file.sync_all().unwrap();
-    assert!(serving.drain_clean_residency() > 0);
+    assert!(
+        serving
+            .certification_physical_residency()
+            .drain_unpinned_clean_frames()
+            > 0
+    );
     let mut session = serving
         .records()
         .open(

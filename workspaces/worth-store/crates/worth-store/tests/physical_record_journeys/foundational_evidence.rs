@@ -119,7 +119,9 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
     assert_rows_fail_closed(&append);
 
     let record = published.record_id(0).unwrap();
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
     let mut read = serving
         .records()
         .open(

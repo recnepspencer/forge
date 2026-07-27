@@ -17,6 +17,8 @@ use super::{
     ResourceAdmittedPhysicalWork,
 };
 
+mod residency;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalSchedulerDenial {
     PreEffect(super::PhysicalWorkPreEffectDenial),
@@ -43,10 +45,14 @@ impl PhysicalSchedulerDemand {
         reservation: PhysicalInstanceForegroundReservation,
         secure_io: Option<SecureIoPreservationReceipt>,
     ) -> Result<Self, PhysicalSchedulerDenial> {
+        ready
+            .require_consumer_active()
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
         let intent = ready.intent();
         require_lane(intent.operation(), reservation.receipt().lane())?;
-        let pressure_marked = ready.mark_pressure(pressure_class(reservation.receipt().lane()));
-        debug_assert!(pressure_marked);
+        ready
+            .admit_scheduler_pressure(pressure_class(reservation.receipt().lane()))
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
         let (receipt, capacity) = reservation.into_parts();
         let resources = intent.resources();
         let (durability, recovery, writeback) = scheduler_posture(intent);
@@ -62,40 +68,6 @@ impl PhysicalSchedulerDemand {
             secure_io,
         )
         .map_err(PhysicalSchedulerDenial::Queue)?;
-        Ok(Self {
-            ready,
-            work,
-            capacity,
-        })
-    }
-
-    pub fn residency_writeback(
-        ready: ReadyPhysicalWork,
-        declaration: worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration,
-        reservation: PhysicalInstanceForegroundReservation,
-        secure_io: Option<SecureIoPreservationReceipt>,
-    ) -> Result<Self, PhysicalSchedulerDenial> {
-        let intent = ready.intent();
-        let [coordinate] = intent.scope().coordinates() else {
-            return Err(PhysicalSchedulerDenial::ResidencyWorkMismatch);
-        };
-        if intent.operation() != PhysicalWorkOperationFamily::ArtifactRangeWrite
-            || declaration.store() != intent.identity().store()
-            || declaration.frame() != *coordinate
-            || declaration.grouping_scope().security_scope_identity() != intent.security()
-        {
-            return Err(PhysicalSchedulerDenial::ResidencyWorkMismatch);
-        }
-        require_lane(intent.operation(), reservation.receipt().lane())?;
-        let pressure_marked = ready.mark_pressure(pressure_class(reservation.receipt().lane()));
-        debug_assert!(pressure_marked);
-        let (receipt, capacity) = reservation.into_parts();
-        let mut work =
-            worth_store_io_scheduler::lower_buffer_pool_queue_declaration(declaration, receipt)
-                .map_err(PhysicalSchedulerDenial::Queue)?;
-        if let Some(secure_io) = secure_io {
-            work = work.with_secure_io_scope(secure_io);
-        }
         Ok(Self {
             ready,
             work,

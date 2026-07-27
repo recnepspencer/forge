@@ -29,9 +29,9 @@ impl PoolInner {
             .frames
             .get_mut(&key.coordinate)
             .expect("validated clean frame remains resident");
-        let was_candidate = entry.origin == FrameOrigin::Candidate;
+        let was_candidate = entry.origin.is_candidate();
         entry.state = FrameState::Resident(replacement);
-        entry.origin = FrameOrigin::Candidate;
+        entry.origin = FrameOrigin::DirtyReplacement;
         entry.dirty = true;
         state.accounting.mark_dirty(!was_candidate);
         Ok(())
