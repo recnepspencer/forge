@@ -1,0 +1,37 @@
+[package]
+name = "worth-ui-platform-pulse"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+autotests = false
+
+[lib]
+name = "worth_ui_platform_pulse"
+path = "src/lib.rs"
+
+[[bin]]
+name = "worth-ui-platform-pulse"
+path = "src/main.rs"
+
+[features]
+executable-world = []
+
+[[test]]
+name = "executable_world"
+path = "tests/executable_world.rs"
+required-features = ["executable-world"]
+
+[lints]
+workspace = true
+
+[dependencies]
+eframe = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+worth-ui = { workspace = true }
+worth-ui-host-egui = { workspace = true }
+
+[target.'cfg(windows)'.dev-dependencies]
+uiautomation = { workspace = true }
+winsafe = { workspace = true }
+xcap = { workspace = true }

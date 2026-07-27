@@ -262,3 +262,38 @@ fn turn_outcome(
         Err(denial) => UiAllocationFrameTurnOutcome::Denied { denial, counters },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn inline_transport_slots_do_not_multiply_full_source_truth() {
+        assert!(
+            std::mem::size_of::<crate::runtime::UiAdmittedAllocationStreamIngress>()
+                < std::mem::size_of::<crate::runtime::UiAllocationFrameSourceFact>()
+        );
+        assert!(std::mem::size_of::<super::UiPreparedFrameReplacementCommit>() <= 24 * 1024);
+    }
+
+    #[test]
+    fn replacement_preparation_completes_on_a_bounded_stack() {
+        std::thread::Builder::new()
+            .stack_size(512 * 1024)
+            .spawn(|| {
+                let initial = crate::runtime::WorthUiRuntimeFrameEpoch::initial();
+                let scheduler = super::UiAllocationFrameFrameworkScheduler::launch(initial);
+                let mut prepared = scheduler
+                    .prepare_replacement_commit()
+                    .expect("quiescent scheduler prepares replacement");
+                let assignment = prepared.assignment();
+                let _transition = prepared.take_transition_for_receipt();
+                prepared.commit_once();
+                assert_eq!(
+                    scheduler.state(),
+                    crate::runtime::UiAllocationFrameDispatcherState::Open(assignment.epoch())
+                );
+            })
+            .expect("bounded-stack test thread launches")
+            .join()
+            .expect("replacement preparation stays within the bounded stack");
+    }
+}

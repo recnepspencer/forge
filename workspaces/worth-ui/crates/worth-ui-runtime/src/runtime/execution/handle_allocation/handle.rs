@@ -37,12 +37,6 @@ macro_rules! typed_runtime_handle {
             pub fn locator(self) -> WorthUiRuntimeHandleLocator {
                 self.locator
             }
-
-            pub(crate) fn from_runtime_handle(handle: WorthUiRuntimeHandle) -> Self {
-                Self {
-                    locator: handle.locator(),
-                }
-            }
         }
     };
 }
@@ -53,6 +47,29 @@ typed_runtime_handle!(WorthUiTokenHandle);
 typed_runtime_handle!(WorthUiChildRangeHandle);
 typed_runtime_handle!(WorthUiViewBindingHandle);
 typed_runtime_handle!(WorthUiStateSlotHandle);
+
+macro_rules! typed_runtime_handle_projection {
+    ($($name:ident),+ $(,)?) => {
+        $(
+            impl $name {
+                pub(crate) fn from_runtime_handle(handle: WorthUiRuntimeHandle) -> Self {
+                    Self {
+                        locator: handle.locator(),
+                    }
+                }
+            }
+        )+
+    };
+}
+
+typed_runtime_handle_projection!(WorthUiChildRangeHandle, WorthUiViewBindingHandle);
+#[cfg(any(test, feature = "certification-support"))]
+typed_runtime_handle_projection!(
+    WorthUiComponentHandle,
+    WorthUiCommandHandle,
+    WorthUiTokenHandle,
+    WorthUiStateSlotHandle,
+);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct WorthUiLaneHandle {

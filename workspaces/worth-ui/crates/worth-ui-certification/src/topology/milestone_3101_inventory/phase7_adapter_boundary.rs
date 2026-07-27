@@ -5,7 +5,7 @@ use syn::visit::Visit;
 use crate::topology::WorkspaceSourceInventory;
 
 const HEADLESS_ADAPTER_ROOT: &str = "crates/worth-ui-runtime/src/host/adapter";
-const ALLOWED_USE_ROOTS: &[&str] = &["std", "super", "worth_ui_host_contract"];
+const ALLOWED_USE_ROOTS: &[&str] = &["self", "std", "super", "worth_ui_host_contract"];
 const FORBIDDEN_SEGMENTS: &[&str] = &[
     "source_ingress",
     "worth_ui_dsl",
@@ -87,6 +87,23 @@ fn use_roots(tree: &syn::UseTree) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::reject_source_authority;
+
+    #[test]
+    fn headless_adapter_may_compose_its_own_private_mechanics_module() {
+        let source = r#"
+            mod static_paint;
+            use self::static_paint::UiHeadlessFilledRectMechanic;
+
+            fn record(mechanic: UiHeadlessFilledRectMechanic) {
+                drop(mechanic);
+            }
+        "#;
+        reject_source_authority(
+            "crates/worth-ui-runtime/src/host/adapter/headless_transcript.rs",
+            source,
+        )
+        .expect("private adapter composition should remain local to the adapter");
+    }
 
     #[test]
     fn headless_adapter_cannot_disguise_runtime_source_authority_as_mechanics() {

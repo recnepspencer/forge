@@ -1,11 +1,13 @@
 use crate::runtime::{
     WorthUiPlanNodeInput, WorthUiQueryBindingIdentity, WorthUiQuerySettledFactLink,
 };
+#[cfg(any(test, feature = "certification-support"))]
 use std::rc::Rc;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum WorthUiQueryLaneFactLinkScope {
     PlanAdmission,
+    #[cfg(any(test, feature = "certification-support"))]
     ActiveApplication {
         generation: Rc<
             crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
@@ -23,6 +25,7 @@ pub struct WorthUiQueryLaneFactLink {
 }
 
 impl WorthUiQueryLaneFactLink {
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn from_active_plan(
         plan_index: u32,
         binding_identity: WorthUiQueryBindingIdentity,
@@ -75,6 +78,7 @@ impl WorthUiQueryLaneFactLink {
     {
         match &self.scope {
             WorthUiQueryLaneFactLinkScope::PlanAdmission => None,
+            #[cfg(any(test, feature = "certification-support"))]
             WorthUiQueryLaneFactLinkScope::ActiveApplication { generation, .. } => Some(generation),
         }
     }
@@ -83,10 +87,18 @@ impl WorthUiQueryLaneFactLink {
         &self,
         witness: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationWitness,
     ) -> bool {
-        matches!(
-            &self.scope,
-            WorthUiQueryLaneFactLinkScope::ActiveApplication { witness: owned, .. }
-                if owned == witness
-        )
+        #[cfg(any(test, feature = "certification-support"))]
+        {
+            matches!(
+                &self.scope,
+                WorthUiQueryLaneFactLinkScope::ActiveApplication { witness: owned, .. }
+                    if owned == witness
+            )
+        }
+        #[cfg(not(any(test, feature = "certification-support")))]
+        {
+            let _ = witness;
+            false
+        }
     }
 }

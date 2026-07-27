@@ -1027,9 +1027,70 @@ one sealed UI consequence boundary for later rebind and projection work.
 - boundary, agent-context, line-cap, format, clippy, workspace, compile-
   contract, and certification gates pass without new build topology
 
+**Permanent 3.x platform-pulse and executable-world contract**
+
+Milestones 3.10 through 3.23 carry one deliberately small, file-authored
+Platform Pulse Page forward as cumulative product evidence. Milestone 3.10.2
+supplies the retroactive visible seed; Milestone 3.10.3 supplies the permanent
+executable-world foundation. Both gates close before 3.11 begins. The pulse is
+one permanent downstream product exercise, not a disposable sample, a
+replacement for each milestone's adversarial courtroom, or a new test topology
+per milestone. It is the smallest continuing page on which a human and an
+external product-world runner can see that newly closed architecture has
+reached the real product.
+
+- The pulse starts from actual `.wui` bytes in an isolated filesystem
+  workspace, enters through the production filesystem reader and watcher,
+  crosses the public application lifecycle, and presents through the canonical
+  mounted host contract. Deterministic integration observation uses the
+  production headless adapter; native-visible product claims additionally
+  launch the exact Cargo-built pulse binary through the required
+  executable-world lane.
+- The page keeps one stable logical scenario identity across milestones.
+  Milestones extend its authored source and evidence instead of replacing it
+  with a milestone-local fixture, screenshot, mock-data page, or inspector-only
+  reenactment.
+- Every milestone adds one bounded visible behavior and proves both sides of
+  it: a human can run the pulse and see the promised change, and independent
+  receipts or inspection evidence trace that change through the milestone's
+  real authority boundary.
+- Pulse requirements are cumulative. A later milestone must preserve the
+  earlier visible behaviors and their identity/evidence chain unless it
+  explicitly specifies a migration.
+- Injected source, forged watcher events, handwritten adapter transcripts,
+  renderer-local meaning, fake Query values, replay-only output, or screenshots
+  detached from frame identity cannot satisfy the pulse.
+- Automated pulse proof has two explicit owners. The existing consolidated
+  application-contract target owns fast in-process integration. The pulse
+  package's sole `executable_world` target owns real product entry, native
+  process/window evidence, external actions, and teardown. Human use and
+  executable certification run exactly one permanent downstream pulse binary.
+  Later milestones extend both evidence lanes inside their existing targets;
+  they must not create another binary, executable-world target, composition
+  root, or bespoke harness per milestone.
+- `workspaces/worth-ui/docs/application-lifecycle.md` is the continuing human
+  run authority. Each milestone must revise its `Platform Pulse` section with
+  the exact launch command, the one user action or source edit, the visible
+  result, the receipt or inspection handle that proves the result came from the
+  real boundary, and the executable-world command that exercises the same
+  product entry. If those workflows cannot be stated and run, the pulse
+  requirement is not closed.
+- A green pulse cannot compensate for failed local, hostile, compile-boundary,
+  cost, or authority evidence. Its purpose is to catch the opposite dishonesty:
+  locally correct architecture that never produces a coherent visible product.
+- The executable world is cumulative. Later milestones add typed world deltas,
+  actions, observations, and adjudications to the existing progression. By the
+  milestone after 3.23, product launch, action, observation, identity
+  correlation, failure-artifact retention, and teardown are mature
+  infrastructure; that milestone may not become the first honest product entry.
+
 ### Milestone 3.10: Mounted Receipts and Host Contract
 
 Detailed spec: [milestone-3.10.md](./milestone-3.10.md)
+
+Status: Complete (2026-07-25). Milestone 3.10.2 subsequently closed the
+human-visible pulse seed. Milestone 3.10.3 owns the later-discovered
+executable-world evidence correction and blocks 3.11.
 
 This slice closes the host boundary: host code may render and observe, but may
 not own visible UI meaning. It extends/refines Milestone 3.9's minimal sealed
@@ -1044,6 +1105,21 @@ runtime publication is atomic, while native multi-surface effects retain honest
 rejection-before-effects, in-flight, complete-presentation, and indeterminate
 outcomes. Application replacement does not become current until complete
 presentation is followed by the matching infallible runtime publication.
+
+**Platform pulse**
+
+Post-completion obligation: seed the Platform Pulse Page from real `.wui` bytes
+and mount, execute, and visibly render it through the public application
+lifecycle and canonical host contract. Milestone 3.10.2 closed that product
+capability; Milestone 3.10.3 closes required automation through the actual
+product binary and native event loop. This paragraph is not a claim that the
+original 3.10 close produced native shapes or executable-world evidence.
+Machine evidence must bind the exact filesystem snapshot, published
+mounted-frame receipt, complete static-paint mechanics, post-translation
+headless or egui observation, and the externally observed product process where
+the claim is native-visible. Injected source, a fake watcher, direct preview
+paint, an in-process reenactment, or a host stub that does no adapter work
+cannot satisfy executable product entry.
 
 **Must ship**
 
@@ -1144,6 +1220,17 @@ precedes visual snapshots. It aligns physical and public topology with the
 already-declared architecture before later milestones harden the wrong source
 owner, broaden a runtime macro-boundary, or consume transitional phase APIs.
 
+**Platform pulse**
+
+Post-completion verification obligation: Milestone 3.10.2 routed the
+file-authored pulse through the DSL-owned sealed handoff and its mounted
+execution through the condensed public facade. Milestone 3.10.3 must prove the
+same route from the exact product binary rather than an in-process shell
+reenactment. Milestone 3.10.1 itself added no pulse feature and did not prove
+native-visible rendering or executable product entry. The complete catch-up
+must show that no loose-source path, public midpoint, compatibility wrapper, or
+test-only constructor is needed.
+
 **Must ship**
 
 - `worth-ui-dsl` as the sole production owner of authored syntax, source AST,
@@ -1196,14 +1283,204 @@ owner, broaden a runtime macro-boundary, or consume transitional phase APIs.
   allocator/counter/build evidence proves the migration added no hidden source
   work or build-topology expansion
 
+### Milestone 3.10.2: Platform Pulse Seed and Visible Lifecycle Closure
+
+Status: Product capability complete. A later evidence audit found that the
+automated pulse worlds stop below the executable composition root. Milestone
+3.10.3 owns that corrective proof gate and now blocks Milestone 3.11.
+
+Detailed spec: [milestone-3.10.2.md](./milestone-3.10.2.md)
+
+This successor gate catches the human-visible requirement adopted after 3.10
+and 3.10.1 closed. It preserves their architectural truth while filling one
+concrete product gap: the current real egui lifecycle intentionally accepts
+only a no-effect frame and emits no native shapes because mounted paint rows
+carry counts rather than complete static-paint mechanics.
+
+**Platform pulse**
+
+Check in one small `.wui` page and one permanent downstream pulse executable.
+A human launches that page through the production filesystem reader and public
+application lifecycle and sees at least one runtime-defined filled rectangle
+presented through the canonical mounted host contract and real egui adapter.
+Changing the page's admitted static color through a real file replacement must
+visibly publish one coherent successor while an invalid edit preserves the last
+admitted visible page. This replacement proof does not claim Milestone 3.12's
+bounded semantic rebind.
+
+**Must ship**
+
+- one checked-in canonical pulse source and stable scenario identity
+- one permanent `worth-ui-platform-pulse` downstream application package that
+  imports only public product facades and the egui host adapter
+- one minimal complete static filled-rectangle contract joining admitted
+  authored color, committed allocation, mounted identity, layer, and frame
+  authority before effects
+- egui translation of that complete mechanic into real native shapes, with no
+  adapter-selected color, geometry, visibility, or fallback appearance
+- production headless observation of the same complete mechanic and real egui
+  observation of the native consequence
+- production filesystem/watcher replacement and malformed-edit predecessor
+  preservation through the existing application transaction
+- exact human launch/edit/visible-result/evidence instructions in the existing
+  application lifecycle documentation
+- consolidated adversarial and cost proof in the existing
+  `application_contracts` target
+
+**Must preserve**
+
+- all completed 3.10 mounted identity, receipt, effect, publication,
+  reconciliation, replacement, and cost guarantees
+- all completed 3.10.1 DSL ownership, runtime subsystem, facade, and topology
+  guarantees
+- runtime ownership of complete paint meaning and host ownership of native
+  mechanical translation only
+- 3.11 ownership of pixel-to-mounted identity, 3.12 ownership of bounded hot
+  rebind, and 3.16 ownership of appearance roles, state axes, theme switching,
+  and rich component styling
+- one pulse executable for all later milestones, the existing consolidated
+  in-process proof owner, and the one successor executable-world owner added by
+  3.10.3
+
+**Acceptance evidence**
+
+- a clean checkout can run the documented command and show a non-empty egui
+  frame whose shapes derive only from the published mounted projection
+- exact source snapshot identity, mounted frame identity, paint primitive
+  identity, adapter observation, and native shape counts agree without sharing
+  an expected-value generator
+- a real watched valid edit changes the visible admitted color only after the
+  complete successor publishes; a malformed edit leaves predecessor pixels and
+  publication current with a typed source denial
+- removing the authored color, committed allocation, paint payload, native
+  paint capability, or canonical frame call makes the courtroom red at the
+  owning boundary
+- direct egui drawing, an adapter default, injected source, forged watcher
+  delivery, certification-only construction, or a detached screenshot cannot
+  satisfy the pulse
+- the new executable's link/build cost is measured and accepted explicitly;
+  ordinary in-process tests do not launch a window or add a nested Cargo
+  invocation
+
+The 3.10.2 automated courtroom proves real source, watcher, application,
+mounted, and egui integration in-process. Its separately measured human launch
+proves that the product binary can reach publication, and that launch found the
+main-thread stack defect the automated suite missed. It does not count as
+automated executable-world certification. Milestone 3.10.3 preserves both
+valid evidence classes and closes their missing join through the actual binary.
+
+### Milestone 3.10.3: Executable World Certification Foundation
+
+Status: Closed on 2026-07-27. Phases 1 through 5 are closed; this corrective
+gate is complete and Milestone 3.11 may inherit its permanent executable world.
+
+Detailed spec: [milestone-3.10.3.md](./milestone-3.10.3.md)
+
+This successor gate makes product entry a permanent proof boundary. It does not
+add another product feature. It classifies the existing egui-context and
+watched-lifecycle tests honestly as in-process integration, then adds one
+separately budgeted executable-world target that launches the exact Cargo-built
+pulse binary through `main`, `eframe::run_native`, the operating-system native
+event loop, `PlatformPulseNativeFrame`, its watcher worker, and normal native
+shutdown.
+
+**Platform pulse**
+
+Copy the exact checked-in pulse source into one isolated installation, launch
+the real product binary against that source root, externally observe a stable
+blue native client area, apply the real green edit, preserve green after a
+malformed edit, recover blue, and close the native window normally. The runner
+must correlate external process/window/pixel facts with versioned product-
+issued lifecycle observations without importing runtime internals or treating
+either evidence class as sufficient alone.
+
+**Must ship**
+
+- one honest evidence-lane classification for every existing pulse claim
+- one ordinary `--source-root` launch configuration with no test-only
+  composition root
+- one typed, versioned, monotonic, derived lifecycle-observation contract
+- one pulse library facade exposing only that observation contract
+- one explicit `executable_world` target in the existing pulse package
+- one sealed typestate from installation through first frame, replacement,
+  preservation, recovery, and shutdown
+- one immutable canonical source baseline with isolated semantic deltas
+- one Windows process-bound native window, client-pixel, liveness, and close
+  adapter
+- one cumulative real-process courtroom with independent pixel and causal
+  observations
+- mutation-sensitive event-only, pixel-only, premature-exit, wrong-reason,
+  direct-paint, injection, forced-termination, and skipped-platform controls
+- bounded failure artifacts, build/runtime budgets, and residue-free teardown
+- committed additive homes for every 3.11 through 3.23 pulse extension
+
+**Must preserve**
+
+- every real 3.10 through 3.10.2 product and authority guarantee
+- the sole checked-in pulse source, product binary, application lifecycle, and
+  runtime-to-host path
+- the consolidated fast integration target as a distinct cheaper proof lane
+- no test-only product branch, hidden constructor, injected authority, nested
+  Cargo invocation, or ordinary-frame observation cost
+- 3.11 ownership of pixel-to-mounted identity and every later milestone's
+  declared semantic authority
+- explicit Windows executable certification without claiming unexecuted Linux
+  or macOS platforms
+
+**Acceptance evidence**
+
+- the required Windows lane launches Cargo's exact child binary rather than an
+  app function and executes at least one courtroom scenario
+- first publication is followed by a 500-millisecond live process hold, a
+  process-bound native window, independently expected blue client pixels, and
+  matching product causal observation
+- external blue-to-green edit, typed malformed denial with exact predecessor
+  preservation, canonical blue recovery, native close, typed shutdown,
+  successful exit, and zero residue all occur in the same child
+- runner typestate makes assertion before observation, denial as success,
+  consumed-world reuse, and completion without teardown unavailable
+- dependency and topology checks forbid product internals, feature-dependent
+  product semantics, second binaries, second executable targets, and zero-test
+  certification
+- build, launch, action, observation, artifact, timeout, retry, and cleanup
+  budgets pass on exact final source
+
 Milestone 3.11 inherits the closed `application`-owned replacement preparation
-and commit boundary. It must add visual snapshot truth there without reopening
-source ownership, public midpoint execution, or session-owned replacement.
+and commit boundary, the visible pulse seed, and
+`PulseExecutableWorld<Published>`. It adds visual snapshot truth to that same
+live process without reopening source ownership, public midpoint execution,
+session-owned replacement, static-paint authority, or product-entry
+infrastructure.
+
+Closing evidence preserves three separate lanes: 3/3 observation-protocol
+tests, 4/4 consolidated in-process pulse integration tests, and 6/6 Windows
+executable-world tests through the exact Cargo-built binary. The cumulative
+native journey proves blue publication, green replacement, malformed-source
+predecessor preservation, canonical blue recovery, normal close, typed
+shutdown, successful exit, and zero residue in one child with zero scenario
+retries. Windows is executable-certified; unexecuted native platforms remain
+compile-only. Clean and warm executable-target builds, journey duration,
+observation bytes, captures, launches, retained failure evidence, and teardown
+all remain inside the frozen Phase 1 budgets.
 
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
 This slice makes screenshots, hit testing, and visible-region targeting
 identity-backed runtime evidence instead of loose image bytes.
+
+**Platform pulse**
+
+Capture the running Platform Pulse Page, choose a visibly identifiable point
+inside one mounted node, and make the point-to-node result visible as a
+targeted overlay or equivalent human-readable trace. The selected pixel must
+resolve through the current frame to one mounted receipt identity and onward to
+graph, declaration, and evidence; a loose PNG, coordinate-only answer, or
+reconstructed parallel tree does not close the pulse.
+
+Executable-world closure extends the inherited
+`PulseExecutableWorld<Published>` with external client-area capture and the
+point-to-mounted adjudication. An in-process egui capture or new screenshot
+harness cannot substitute for the inherited product process.
 
 **Must ship**
 
@@ -1233,6 +1510,21 @@ refresh. Query-backed changes enter only as the sealed UI source consequences
 admitted by 3.9.2's framework-turn boundary. This milestone classifies their
 affected UI scope and decides preservation or remounting; it does not reopen
 Query leases, deltas, rows, ordering, patches, or identity.
+
+**Platform pulse**
+
+Edit the real pulse `.wui` file and visibly change one bounded part of the
+already-running page without restarting the application. Operating-system
+watcher delivery must reach semantic observation admission and a typed rebind
+plan; an unaffected visible region must remain stable where preservation is
+admitted. A second invalid edit must leave the last admitted page visibly
+current and expose the typed denial instead of blanking, partially replacing,
+or renderer-refreshing the page.
+
+Executable-world closure applies the edit through the inherited world's
+external source delta, and the same child process must prove affected and
+unaffected native consequences plus the typed rebind receipt. Direct
+in-process replacement does not close the executable pulse.
 
 **Must ship**
 
@@ -1272,6 +1564,21 @@ generalizes 3.9.2's contract-derived access and admitted-source pattern; it may
 not restore field scans, positional fact bags, printable Query identity, or raw
 Query patch types as a convenience layer.
 
+**Platform pulse**
+
+Replace one static pulse value with a scalar or small collection obtained from
+a real installed Query projection and show its honest result posture on the
+page. A human must see real projected data and at least one non-current posture
+such as pending, stale, denied, or schema-mismatch; receipt evidence must bind
+the visible value and posture to the admitted projection facts. Literal fixture
+values, renderer-side querying, or a local loading/error enum do not close the
+pulse.
+
+Executable-world closure must install Query meaning through the production
+installation boundary before launch or through a declared external world
+delta, then observe the real child process. The runner cannot inject projection
+facts, Query receipts, or a product-local substitute.
+
 **Must ship**
 
 - `UiProjectionBinding`
@@ -1304,6 +1611,20 @@ Query patch types as a convenience layer.
 
 This slice turns host observations into runtime-routed intents instead of
 widget callbacks.
+
+**Platform pulse**
+
+Add one visible operable control to the pulse and route a real host interaction
+through intent admission. The page must visibly distinguish admitted,
+completed, and denied or confirmation-required posture so a click alone cannot
+masquerade as mutation success. The control, host adapter, and renderer may
+project the result but may not own callback meaning or assemble an
+authority-bearing payload locally.
+
+Executable-world closure must send the interaction through the cumulative
+target's current native-platform input adapter and correlate the visible
+consequence with the typed intent outcome. Calling the intent facade directly
+from certification is integration evidence only.
 
 **Must ship**
 
@@ -1345,6 +1666,21 @@ widget callbacks.
 This slice closes the cross-cutting service lanes that the certification
 vertical slice depends on.
 
+**Platform pulse**
+
+Extend the pulse control into one anchored portal interaction: opening it
+visibly creates the portal, moves focus through the admitted focus route,
+applies one receipt-derived motion transition, and dismisses through the
+declared service rules. A human must be able to follow the open/focus/move/
+dismiss sequence, while receipts preserve logical owner, anchor, layer, focus,
+and motion provenance. Adapter-local popup, focus, or animation state does not
+close the pulse.
+
+Executable-world closure requires the inherited child to receive the native
+open and dismiss actions and expose externally observable portal, focus, and
+motion consequences. A scripted host remains useful service integration
+evidence but cannot close the product pulse.
+
 **Must ship**
 
 - first-class service lanes for:
@@ -1372,6 +1708,21 @@ This slice closes runtime-owned visual semantics before Milestone 9 broadens
 into a professional component set. Theme and style meaning already belong to
 Worth UI; this milestone makes that meaning admitted, inspectable, and
 rebind-safe rather than renderer-local or component-folklore.
+
+**Platform pulse**
+
+Give the running pulse a visibly coherent runtime-decided appearance and show
+at least two state-axis outcomes already earned by the page, such as focused,
+disabled, selected, validation-bearing, hovered, or pressed. Change an admitted
+theme or appearance input and visibly update only the affected consumers;
+mounted appearance facts must explain the rendered background, foreground,
+border, radius, opacity, or outline. Adapter-default styling or a screenshot
+without appearance receipts does not close the pulse.
+
+Executable-world closure extends the same world with appearance deltas and
+native input, and external client pixels must agree with mounted appearance
+observations from that child. A new visual fixture, renderer default, or
+detached golden image cannot replace the cumulative world.
 
 **Must ship**
 
@@ -1415,6 +1766,20 @@ rebind-safe rather than renderer-local or component-folklore.
 This slice makes authored conditions and computed semantic values part of the
 real language rather than helper sugar or renderer-side convenience.
 
+**Platform pulse**
+
+Author one pulse condition or derived value that visibly controls presence,
+operability, appearance, options, or payload shaping. Edit the expression in
+the real source file and observe the bounded result through hot rebind, while
+inspection explains its consumed facts/aspects and true, false, stale, or
+denied outcome. Rust closures, arbitrary code, renderer conditionals, or
+ambient environment reads do not close the pulse.
+
+Executable-world closure applies the expression edit as an authored-source
+delta to the inherited live product process. Its external visible consequence
+and product-issued evaluation/rebind evidence must join in the existing
+executable adjudication.
+
 **Must ship**
 
 - canonical expression artifact families for pure DSL evaluation
@@ -1449,6 +1814,20 @@ This slice makes the DSL feel like a real language with reusable composition,
 module-scale structure, and honest sugar that lowers into the same runtime
 truth rather than creating a second semantic path.
 
+**Platform pulse**
+
+Refactor the same pulse source into at least two authored modules with one
+reusable, typed fragment while preserving the page's visible and receipt-backed
+meaning. Editing the shared fragment must visibly affect exactly its intended
+instances, and an introduced import, symbol, or expansion error must point back
+to the authored span. A copied widget helper, textual include, or alternate
+lowering lane does not close the pulse.
+
+Executable-world closure grows the installation from one file to a causally
+compiled module world inside the existing sandbox. Cross-file edits, failures,
+visible consequences, and cleanup extend the same process progression; a
+second module-only harness cannot close product composition.
+
 **Must ship**
 
 - module and import boundaries for authored DSL source
@@ -1475,6 +1854,21 @@ truth rather than creating a second semantic path.
 This slice makes denials, support gaps, and rebind decisions typed, mountable,
 and inspectable instead of spooky.
 
+**Platform pulse**
+
+Trigger one visible pulse denial—such as an invalid edit, unsupported
+appearance, or denied intent—and mount its typed diagnostic without losing the
+last admitted page. Selecting the affected visible node or edit must yield a
+bounded causal report that explains whether it was preserved, rebound,
+remounted, or denied and names the relevant authority evidence. String-only
+errors, log archaeology, or an explanation synthesized from private renderer
+state do not close the pulse.
+
+Executable-world closure observes the diagnostic from the inherited child
+after a real external action, while the last admitted native consequence
+remains independently visible. The runner may retain the diagnostic
+observation but may not become its truth source.
+
 **Must ship**
 
 - `UiDiagnosticArtifact`
@@ -1498,6 +1892,20 @@ and inspectable instead of spooky.
 This slice lets the runtime answer alignment, spacing, symmetry, and visual
 consistency questions from receipt-backed geometry first and screenshot pixels
 second.
+
+**Platform pulse**
+
+Declare one alignment or spacing invariant over visible pulse nodes and render
+its receipt-backed evaluation as a human-visible overlay or focused finding.
+Then introduce one deliberate source edit that violates the invariant and show
+the changed finding linked to mounted identity, declaration, and source span.
+Pixel-only guessing or an overlay detached from the current frame does not
+close the pulse.
+
+Executable-world closure treats both the valid and violating worlds as deltas
+of the cumulative installation. External pixels confirm the visible overlay
+while receipt-backed geometry remains the causal oracle; neither an in-process
+layout world nor pixel-only comparison closes the claim.
 
 **Must ship**
 
@@ -1531,6 +1939,20 @@ second.
 This slice turns the evidence substrate into a real agent-facing repair and
 inspection interface.
 
+**Platform pulse**
+
+Against the live pulse, an agent must inspect a visible point, identify the
+same mounted node a human sees, compare the before/after receipts for the last
+file edit, and replay that edit to its first denial or successful rebind point.
+The response must stay targeted to the selected page evidence and preserve its
+frame/edit identity; giant dumps, a parallel agent-only model, or replay that
+opens ordinary runtime authority do not close the pulse.
+
+Executable-world closure attaches the agent tools to the already-running child
+and starts from its externally selected visible point and recorded edit. They
+may not launch an agent-only composition root, import runner artifacts as
+runtime truth, or replace the existing process with replay.
+
 **Must ship**
 
 - formal AI tool registry over the runtime inspection substrate
@@ -1557,6 +1979,20 @@ inspection interface.
 
 This slice adds the human-facing runtime inspector as a projection over the
 same evidence substrate the AI harness already uses.
+
+**Platform pulse**
+
+Attach the Worth Inspector to the same running pulse rather than a special
+inspector fixture. A human must click a visible pulse node and navigate its
+declaration, graph, mounted receipt, Query binding, service, diagnostic,
+rebind, replay, and visual-evaluation evidence as applicable. The inspector and
+the 3.21 agent tools must agree on identity and causal evidence, and neither may
+become the truth source.
+
+Executable-world closure opens and drives the inspector inside the inherited
+product world. Native click, visible selection, agent result, and inspector
+navigation must agree for the same child and frame; an inspector-only test
+application cannot close the pulse.
 
 **Must ship**
 
@@ -1593,6 +2029,11 @@ Workflow Editor Page
   right: selected step inspector
 ```
 
+This is the second canonical executable-world regime, not the first executable
+entry. It reuses 3.10.3's product-process progression, platform actions,
+external observations, failure artifacts, and teardown while adding the
+workflow-specific installed world and adversarial sequence.
+
 **Must prove**
 
 - hot page/mosaic edits change graph topology through declarations
@@ -1623,11 +2064,21 @@ Workflow Editor Page
   runtime-owned artifacts instead of renderer-local helpers
 - steady-state frame execution proves source parsing, artifact validation,
   registry string lookup, and broad artifact scans remain absent
+- every human-visible pulse claim runs through the exact product binary in the
+  sole cumulative executable-world target and joins external native
+  consequences to product-issued causal evidence
+- in-process integration, executable product entry, replay, and inspection
+  remain distinct proof lanes; no aggregate of narrower evidence silently
+  claims a stronger boundary
+- the hostile Workflow Editor world reuses established installation, process,
+  platform, action, observation, artifact, and teardown infrastructure
 
 ### Sequencing Notes
 
-- Milestone 3.1 through 3.22 replace the old single Milestone 3 runtime lump
+- Milestone 3.1 through 3.23 replace the old single Milestone 3 runtime lump
   with a narrower authority-first sequence
+- Milestone 3.10.3 is the permanent executable-world foundation; every later
+  pulse milestone extends it rather than creating its first real product entry
 - `ai-diagnostics.md` co-develops across the full 3.x series; each runtime
   family must become inspectable as it lands instead of waiting for the end
 - the formal AI inspection harness begins in Milestone 3.1; later milestones
@@ -1639,6 +2090,10 @@ Workflow Editor Page
   runtime authority, layout truth, Query posture, or interaction ownership
 - detailed specs should split into milestone-3.x docs as each slice begins
   rather than trying to keep one giant Milestone 3 spec honest
+- any future Milestone 3.24 begins after executable installation, launch,
+  native action, observation, identity correlation, failure retention, and
+  teardown are already mature. Its work may refine quality and polish but may
+  not introduce the series' first honest product-world machinery.
 
 ## Milestone 4: Application Shell and Workspace Layout
 

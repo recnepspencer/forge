@@ -34,8 +34,9 @@ pub use command_projection::{
 };
 pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry};
 pub use component::{
-    ComponentAccessibilitySupport, ComponentCanvasSpatialContract, ComponentChildPolicy,
-    ComponentDescriptor, ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema,
+    ComponentAccessibilitySupport, ComponentAllocationMeasurementContract,
+    ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor,
+    ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema,
     ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
     ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
     ComponentStateOwnership, FrozenComponentCapabilities,

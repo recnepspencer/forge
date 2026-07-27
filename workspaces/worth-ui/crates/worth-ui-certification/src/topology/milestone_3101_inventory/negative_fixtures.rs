@@ -3,7 +3,9 @@ use std::path::Path;
 
 use crate::topology::WorkspaceSourceInventory;
 
-use super::{facade_runtime, ledger, runtime_language_ownership, source_semantics};
+use super::{
+    certification_surfaces, facade_runtime, ledger, runtime_language_ownership, source_semantics,
+};
 
 fn workspace_inventory() -> WorkspaceSourceInventory {
     WorkspaceSourceInventory::capture(
@@ -26,6 +28,19 @@ fn source_ledger() -> toml::Value {
         &repository_root.join("_docs/worth-ui/milestone-3.10.1-source-semantics-inventory.toml"),
     )
     .expect("source ledger")
+}
+
+fn facade_ledger() -> toml::Value {
+    let repository_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .expect("repository root");
+    ledger::load(
+        &repository_root.join("_docs/worth-ui/milestone-3.10.1-facade-runtime-inventory.toml"),
+    )
+    .expect("facade ledger")
 }
 
 #[test]
@@ -181,4 +196,44 @@ fn milestone_3101_rejects_a_second_runtime_semantic_spec_constructor() {
     )
     .expect_err("a second direct runtime semantic-spec constructor should fail");
     assert!(error.contains("direct DSL semantic-spec constructions"));
+}
+
+#[test]
+fn milestone_3101_rejects_collapsing_successor_topology_into_the_old_owner() {
+    let mut document = facade_ledger();
+    let rows = document
+        .get_mut("certification_surface")
+        .and_then(toml::Value::as_array_mut)
+        .expect("certification surface rows");
+    let old_owner = rows
+        .iter_mut()
+        .find(|row| row.get("id").and_then(toml::Value::as_str) == Some("certification-topology"))
+        .expect("old topology owner");
+    old_owner
+        .as_table_mut()
+        .expect("surface row")
+        .remove("exclude_prefixes");
+    let error = certification_surfaces::audit(&workspace_inventory(), rows)
+        .expect_err("the old owner must not absorb a successor family");
+    assert!(
+        error.contains("certification file count changed"),
+        "{error}"
+    );
+}
+
+#[test]
+fn milestone_3101_rejects_an_unclassified_successor_topology_family() {
+    let mut document = facade_ledger();
+    let rows = document
+        .get_mut("certification_surface")
+        .and_then(toml::Value::as_array_mut)
+        .expect("certification surface rows");
+    rows.retain(|row| {
+        row.get("id").and_then(toml::Value::as_str)
+            != Some("certification-topology-3102-pulse-seed")
+    });
+    let error = certification_surfaces::audit(&workspace_inventory(), rows)
+        .expect_err("successor topology must remain explicitly classified");
+    assert!(error.contains("inventory is incomplete"), "{error}");
+    assert!(error.contains("milestone_3102_pulse_seed"), "{error}");
 }

@@ -14,14 +14,18 @@ use super::{
     UiHeadlessUnperformedEffect,
 };
 
+mod static_paint;
+
 pub(super) fn translate_headless_frame(
     view: &UiMountedFrameConsumptionView<'_>,
     capacity: UiHeadlessRecorderCapacity,
 ) -> Result<UiHeadlessMountedFrameTranscript, UiHostSurfacePresentationDenial> {
     let projection = view.projection();
+    static_paint::validate_protocol(view)?;
     validate_mechanic_capacity(projection, capacity)?;
     validate_external_batch_alignment(projection)?;
     let clips = translate_clips(projection)?;
+    let filled_rects = static_paint::translate_filled_rects(projection)?;
     let mut paint_batches = translate_paint_batches(projection)?;
     paint_batches.sort_by_key(paint_order);
     let nodes = translate_nodes(projection)?;
@@ -35,6 +39,7 @@ pub(super) fn translate_headless_frame(
             binding: view.requirement().binding(),
             nodes,
             clips,
+            filled_rects,
             paint_batches,
             unperformed_effects,
         },
@@ -77,6 +82,7 @@ fn validate_mechanic_capacity(
     let count = [
         projection.nodes().len(),
         projection.clips().rows().len(),
+        projection.filled_rects().rows().len(),
         projection.paint_batches().rows().len(),
         projection.spatial_batches().rows().len(),
         projection.realtime_batches().rows().len(),
@@ -205,13 +211,20 @@ fn translate_nodes(
                 UiMountedPaintProjection::Omitted(reason) => {
                     UiHeadlessNodePaintMechanic::Omitted(reason)
                 }
-                UiMountedPaintProjection::Batch(reference) => {
+                UiMountedPaintProjection::CountOnlyBatch(reference) => {
                     projection
                         .paint_batches()
                         .rows()
                         .get(usize::from(reference.index()))
                         .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?;
-                    UiHeadlessNodePaintMechanic::Batch(reference.index())
+                    UiHeadlessNodePaintMechanic::CountOnlyBatch(reference.index())
+                }
+                UiMountedPaintProjection::FilledRect(reference) => {
+                    projection
+                        .filled_rects()
+                        .resolve(reference)
+                        .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?;
+                    UiHeadlessNodePaintMechanic::FilledRect(reference.index())
                 }
             };
             Ok(UiHeadlessNodeMechanic::new(UiHeadlessNodeMechanicInput {
@@ -233,7 +246,7 @@ fn unperformed_effects(
     projection: &UiMountedProjectionView,
 ) -> Result<Vec<UiHeadlessUnperformedEffect>, UiHostSurfacePresentationDenial> {
     let mut effects = vec![UiHeadlessUnperformedEffect::NativePaint {
-        paint_batch_count: u32::try_from(projection.paint_batches().rows().len())
+        filled_rect_count: u32::try_from(projection.filled_rects().rows().len())
             .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
         preview_node_count: matching_node_count(projection, |node| {
             matches!(

@@ -9,6 +9,15 @@ Status: Complete (2026-07-25)
 Milestone 3.10.1 is a corrective architecture gate after Milestone 3.10 and
 before Milestone 3.11.
 
+The milestone completed before the human-visible Platform Pulse requirement was
+adopted. Milestone 3.10.2 subsequently proved that the pulse traverses the
+DSL-owned sealed handoff and condensed public facade established here in both
+the human workflow and automated in-process integration. Milestone 3.10.3 now
+owns the later-discovered requirement to prove the same route through the exact
+product binary and native event loop. That successor gate is mandatory before
+3.11, but neither successor is retroactive evidence for this already-completed
+milestone.
+
 Milestone 3.10 establishes the complete mounted-frame and host-contract truth
 that later visual, observation, rebind, interaction, service, and appearance
 work will consume. The implementation review performed after that milestone

@@ -25,6 +25,7 @@ pub struct UiMountedProjectionView {
     nodes: Box<[UiMountedNodeProjectionView]>,
     clips: super::UiMountedClipTable,
     layers: super::UiMountedLayerTable,
+    filled_rects: super::UiMountedFilledRectTable,
     paint_batches: super::UiMountedPaintBatchTable,
     spatial_batches: super::UiMountedSpatialBatchTable,
     realtime_batches: super::UiMountedRealtimeBatchTable,
@@ -51,6 +52,7 @@ pub struct UiMountedProjectionViewInput {
     pub nodes: Vec<UiMountedNodeProjectionView>,
     pub clips: super::UiMountedClipTable,
     pub layers: super::UiMountedLayerTable,
+    pub filled_rects: super::UiMountedFilledRectTable,
     pub paint_batches: super::UiMountedPaintBatchTable,
     pub spatial_batches: super::UiMountedSpatialBatchTable,
     pub realtime_batches: super::UiMountedRealtimeBatchTable,
@@ -113,6 +115,7 @@ impl UiMountedProjectionView {
             nodes: input.nodes.into_boxed_slice(),
             clips: input.clips,
             layers: input.layers,
+            filled_rects: input.filled_rects,
             paint_batches: input.paint_batches,
             spatial_batches: input.spatial_batches,
             realtime_batches: input.realtime_batches,
@@ -136,6 +139,9 @@ impl UiMountedProjectionView {
     }
     pub fn layers(&self) -> &super::UiMountedLayerTable {
         &self.layers
+    }
+    pub fn filled_rects(&self) -> &super::UiMountedFilledRectTable {
+        &self.filled_rects
     }
     pub fn paint_batches(&self) -> &super::UiMountedPaintBatchTable {
         &self.paint_batches

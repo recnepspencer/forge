@@ -12,6 +12,6 @@ pub(crate) use worth_ui_resolved_artifact_input_module::WorthUiResolvedArtifactI
 pub(crate) use worth_ui_resolved_artifact_input_node::{
     WorthUiResolvedArtifactInputBindingNode, WorthUiResolvedArtifactInputComponentNode,
     WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputSurfaceNode,
-    WorthUiResolvedArtifactInputThemeTokenNode,
+    WorthUiResolvedArtifactInputThemeTokenNode, WorthUiResolvedThemeTokenBindingTarget,
 };
 pub(crate) use worth_ui_runtime_semantic_import::WorthUiRuntimeSemanticImport;

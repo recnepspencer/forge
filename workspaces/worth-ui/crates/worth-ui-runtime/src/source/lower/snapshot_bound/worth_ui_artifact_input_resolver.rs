@@ -6,7 +6,7 @@ use crate::source::{
     WorthUiResolvedArtifactInputBindingNode, WorthUiResolvedArtifactInputComponentNode,
     WorthUiResolvedArtifactInputModule, WorthUiResolvedArtifactInputNode,
     WorthUiResolvedArtifactInputSurfaceNode, WorthUiResolvedArtifactInputThemeTokenNode,
-    WorthUiRuntimeSemanticImport,
+    WorthUiResolvedThemeTokenBindingTarget, WorthUiRuntimeSemanticImport,
 };
 use worth_ui_dsl::{
     WorthUiSealedSemanticPackage, WorthUiSemanticDeclaration, WorthUiSourceModuleId,
@@ -129,10 +129,16 @@ fn resolve_node(
                 token_node.name_text(),
                 provenance,
             )?;
+            let binding_target = WorthUiResolvedThemeTokenBindingTarget::from_ingress(
+                token_node.value_text(),
+                entry.resolved_target_id(),
+                provenance,
+            );
             Ok(Some(WorthUiResolvedArtifactInputNode::Token(
                 WorthUiResolvedArtifactInputThemeTokenNode::new(
                     theme_token,
                     entry,
+                    binding_target,
                     token_node.authored_identity().map(str::to_owned),
                     provenance.clone(),
                 ),

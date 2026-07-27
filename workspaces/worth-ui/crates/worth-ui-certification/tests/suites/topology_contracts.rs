@@ -66,6 +66,18 @@ mod measurement_boundary_purity_audit;
 mod measurement_growth_posture_audit;
 #[path = "../milestone_3101_inventory_audit.rs"]
 mod milestone_3101_inventory_audit;
+#[path = "../milestone_3102_pulse_seed_audit.rs"]
+mod milestone_3102_pulse_seed_audit;
+#[path = "../milestone_3103_cost_closure_audit.rs"]
+mod milestone_3103_cost_closure_audit;
+#[path = "../milestone_3103_executable_world_audit.rs"]
+mod milestone_3103_executable_world_audit;
+#[path = "../milestone_3103_external_world_audit.rs"]
+mod milestone_3103_external_world_audit;
+#[path = "../milestone_3103_product_contract_audit.rs"]
+mod milestone_3103_product_contract_audit;
+#[path = "../milestone_3103_watched_replacement_audit.rs"]
+mod milestone_3103_watched_replacement_audit;
 #[path = "../milestone_37_structural_inventory_audit.rs"]
 mod milestone_37_structural_inventory_audit;
 #[path = "../obligation_boundary_bypass.rs"]

@@ -8,6 +8,8 @@ use super::super::UiMountedNodeReceipt;
 pub(in crate::mounting::projection) struct UiMountedProjectionNodeRecord {
     pub(in crate::mounting::projection) receipt: UiMountedNodeReceipt,
     pub(in crate::mounting::projection) plan_index: Option<u32>,
+    pub(in crate::mounting::projection) static_paint:
+        Option<super::super::static_paint::UiMountedStaticPaintSeed>,
 }
 
 #[derive(Clone, Copy)]
@@ -152,6 +154,16 @@ impl UiMountedSemanticProjection {
         self.nodes.len()
     }
 
+    pub(in crate::mounting::projection) fn nodes_in_order(
+        &self,
+    ) -> impl Iterator<Item = &UiMountedProjectionNodeRecord> {
+        self.order.iter().map(|instance| {
+            self.nodes
+                .get(instance)
+                .expect("mounted semantic order names an indexed node")
+        })
+    }
+
     pub(in crate::mounting::projection) fn surface_instance_count(
         &self,
         surfaces: &[UiSemanticSurfaceIdentity],
@@ -164,5 +176,15 @@ impl UiMountedSemanticProjection {
                     .is_some_and(|node| surfaces.contains(&node.receipt.semantic_surface()))
             })
             .count()
+    }
+
+    pub(in crate::mounting::projection) fn surface_for(
+        &self,
+        surface: UiSemanticSurfaceIdentity,
+    ) -> Option<UiMountedProjectionSurface> {
+        self.binding_by_surface
+            .get(&surface)
+            .and_then(|binding| self.surfaces.get(binding))
+            .copied()
     }
 }

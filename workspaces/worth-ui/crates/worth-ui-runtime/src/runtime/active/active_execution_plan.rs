@@ -24,6 +24,28 @@ impl WorthUiActiveExecutionPlan {
         self.bundle.mounted_projection_plan_index(provenance)
     }
 
+    pub(crate) fn mounted_projection_ordinary_meaning(
+        &self,
+        plan_index: u32,
+    ) -> Option<
+        std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+    > {
+        self.bundle.mounted_projection_ordinary_meaning(plan_index)
+    }
+
+    pub(crate) fn mounted_projection_theme_token(
+        &self,
+        token_id: &crate::capability::ThemeTokenId,
+    ) -> Result<
+        Option<(
+            u32,
+            std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+        )>,
+        (),
+    > {
+        self.bundle.mounted_projection_theme_token(token_id)
+    }
+
     pub(crate) fn classify_candidate(
         &self,
         candidate: &super::WorthUiSealedExecutionPlanBundle,
@@ -72,6 +94,7 @@ impl WorthUiActiveExecutionPlan {
         self.bundle.query_fact_link_for_plan_index(plan_index)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn query_fact_link_for_binding_id(
         &self,
         binding_id: &crate::capability::ViewBindingId,
@@ -136,6 +159,7 @@ impl WorthUiActiveExecutionPlan {
         self.bundle.execute_realtime(target)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn realtime_summary(
         &self,
         handle: crate::runtime::WorthUiRendererSurfaceHandle,
@@ -189,6 +213,7 @@ impl WorthUiActiveExecutionPlan {
         self.bundle.execute_ordinary(target)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn ordinary_summary(
         &self,
         request: crate::runtime::WorthUiOrdinaryPlanSummaryRequest,

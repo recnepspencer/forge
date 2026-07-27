@@ -73,8 +73,7 @@ fn unreadable_source_diagnostic(
 ) -> Diagnostic {
     Diagnostic::new(
         DiagnosticCode::Bc2001BandDependencyViolation,
-        &path
-            .strip_prefix(workspace)
+        path.strip_prefix(workspace)
             .unwrap_or(path)
             .display()
             .to_string(),

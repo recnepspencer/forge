@@ -82,6 +82,7 @@ fn lower_node(
                 WorthUiLegallyStructuredArtifactInputThemeTokenNode::new(
                     token_node.theme_token().clone(),
                     token_node.entry().clone(),
+                    token_node.binding_target().clone(),
                     token_node.authored_identity().map(str::to_owned),
                     token_node.provenance().clone(),
                 ),

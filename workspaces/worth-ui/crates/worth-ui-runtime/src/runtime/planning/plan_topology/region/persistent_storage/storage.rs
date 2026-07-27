@@ -38,6 +38,10 @@ pub(crate) struct WorthUiPlanRegionStore {
         u64,
         crate::runtime::persistent_index::UiPersistentOrdSet<u32>,
     >,
+    mounted_theme_token_index: crate::runtime::persistent_index::UiPersistentOrdMap<
+        crate::capability::ThemeTokenId,
+        crate::runtime::persistent_index::UiPersistentOrdSet<u32>,
+    >,
     root_shell_count: usize,
     region_count: usize,
     next_stable_slot: u64,

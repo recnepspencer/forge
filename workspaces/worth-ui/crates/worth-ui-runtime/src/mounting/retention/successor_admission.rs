@@ -159,6 +159,11 @@ fn prepare_candidate(
             .collect::<Vec<_>>(),
         frame.presented_receipt_basis().clone(),
         frame.cost_report(),
+        frame.static_paint_structural_bytes().ok_or(
+            UiMountedFrameRetentionDenial::AccountingOverflow {
+                class: UiMountedRetentionClass::InFlight,
+            },
+        )?,
     )
     .map(Rc::new)
     .ok_or(UiMountedFrameRetentionDenial::AccountingOverflow {

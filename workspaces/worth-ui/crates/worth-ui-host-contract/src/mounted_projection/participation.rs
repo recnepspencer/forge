@@ -54,7 +54,8 @@ pub struct UiMountedParticipationInput {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedPaintProjection {
-    Batch(super::UiMountedPaintBatchReference),
+    CountOnlyBatch(super::UiMountedPaintBatchReference),
+    FilledRect(super::UiMountedFilledRectReference),
     Omitted(UiMountedOmissionReason),
 }
 

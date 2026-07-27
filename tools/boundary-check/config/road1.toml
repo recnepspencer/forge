@@ -98,6 +98,51 @@ forbidden_targets = [
 ]
 guidance = "Milestone 3.10.1: DSL owns authored language meaning and may not import runtime, host, Query, inspection, product-session, or mounted authority"
 
+[[source_dependency_allowlists]]
+workspace_manifest = "workspaces/worth-ui/Cargo.toml"
+sources = ["worth-ui-platform-pulse"]
+allowed_targets = ["eframe", "serde", "serde_json", "uiautomation", "winsafe", "worth-ui", "worth-ui-host-egui", "xcap"]
+guidance = "Milestone 3.10.3 Phase 4: the permanent pulse remains a downstream application composition root; its sole executable-world test may add exact Windows observation and atomic-replacement dependencies, while runtime, DSL, certification, test-support, and future convenience dependencies require an explicit architectural amendment"
+
+[[source_dependency_allowlists.dependency_contracts]]
+target = "eframe"
+version_requirement = "=0.31.1"
+uses_default_features = false
+features = ["default_fonts", "glow", "wayland", "x11"]
+
+[[source_dependency_allowlists.dependency_contracts]]
+target = "uiautomation"
+version_requirement = "=0.25.0"
+uses_default_features = false
+features = ["control", "input"]
+
+[[source_dependency_allowlists.dependency_contracts]]
+target = "winsafe"
+version_requirement = "=0.0.28"
+uses_default_features = true
+features = ["kernel", "user"]
+
+[[source_dependency_allowlists.dependency_contracts]]
+target = "xcap"
+version_requirement = "=0.9.7"
+uses_default_features = false
+features = []
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/apps/platform-pulse/tests/executable_world"
+forbidden_identifiers = [
+  "Screenshot",
+  "capture_as_image",
+  "eframe",
+  "egui",
+  "worth_ui_certification",
+  "worth_ui_dsl",
+  "worth_ui_runtime",
+  "worth_ui_test_support",
+]
+forbidden_identifier_fragments = []
+guidance = "Milestone 3.10.3 Phase 3: the executable runner observes the Cargo-built product through typed stdout, PID-bound native APIs, and independent pixels; it cannot import product internals, certification authority, adapter mechanics, or desktop-screenshot shortcuts"
+
 [[source_identifier_denials]]
 root = "workspaces/worth-store/crates/worth-store/src/physical_runtime"
 forbidden_identifiers = [
@@ -182,6 +227,15 @@ forbidden_identifiers = [
   "WorthUiVirtualizedPlan",
 ]
 guidance = "Milestone 3.10.1: DSL owns authored meaning but must not define or import runtime generation, plan, allocation, mounted, publication, or host-session authority"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/crates/worth-ui-host-egui/src"
+forbidden_identifiers = [
+  "UiMountedFilledRectCompletionInput",
+  "complete_from_runtime_mounting",
+  "from_runtime_mounting",
+]
+guidance = "Milestone 3.10.2: egui may validate and mechanically translate complete static paint, but only runtime mounting may construct or enrich mounted filled-rectangle authority"
 
 [machine_authority]
 canonical_config = "tools/boundary-check/config/road1.toml"

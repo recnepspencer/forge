@@ -50,4 +50,8 @@ pub(crate) struct CargoMetadataPackage {
 #[derive(Deserialize)]
 pub(crate) struct CargoMetadataDependency {
     pub(crate) name: String,
+    pub(crate) req: String,
+    #[serde(default)]
+    pub(crate) features: Vec<String>,
+    pub(crate) uses_default_features: bool,
 }

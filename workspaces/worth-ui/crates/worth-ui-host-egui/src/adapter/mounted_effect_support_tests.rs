@@ -75,6 +75,7 @@ fn effect_projection(motion: bool, diagnostic: bool) -> UiMountedProjectionView 
         )],
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
+        filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),

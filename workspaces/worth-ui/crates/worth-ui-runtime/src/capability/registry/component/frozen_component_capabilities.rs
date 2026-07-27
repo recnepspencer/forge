@@ -90,12 +90,18 @@ fn fold_component_descriptor(accumulator: u64, descriptor: &ComponentDescriptor)
             .map_or(0, super::ComponentCanvasSpatialContract::digest_basis)
             .to_le_bytes(),
     );
-    fold_bytes(
+    let with_realtime = fold_bytes(
         with_canvas,
         &descriptor
             .realtime_overlay_contract()
             .map_or(0, super::ComponentRealtimeOverlayContract::digest_basis)
             .to_le_bytes(),
+    );
+    fold_optional_str(
+        with_realtime,
+        descriptor
+            .allocation_measurement_contract()
+            .map(|contract| contract.digest_basis().to_owned()),
     )
 }
 
@@ -123,8 +129,8 @@ mod tests {
     use std::collections::BTreeSet;
 
     use crate::capability::{
-        CommandId, ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
-        ComponentStateOwnership,
+        CommandId, ComponentAllocationMeasurementContract, ComponentChildPolicy,
+        ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentStateOwnership,
     };
 
     use super::{ComponentAcceptedRegistrationProof, FrozenComponentCapabilities};
@@ -144,6 +150,18 @@ mod tests {
 
         assert_ne!(combined.descriptors(), split.descriptors());
         assert_ne!(combined.digest_basis(), split.digest_basis());
+    }
+
+    #[test]
+    fn fill_viewport_contract_participates_in_the_frozen_descriptor_digest() {
+        let unconstrained = freeze_component(component_descriptor("workspace.component.pulse"));
+        let fill_viewport = freeze_component(
+            component_descriptor("workspace.component.pulse").with_allocation_measurement_contract(
+                ComponentAllocationMeasurementContract::fill_viewport(),
+            ),
+        );
+
+        assert_ne!(unconstrained.digest_basis(), fill_viewport.digest_basis());
     }
 
     fn freeze_component(descriptor: ComponentDescriptor) -> FrozenComponentCapabilities {

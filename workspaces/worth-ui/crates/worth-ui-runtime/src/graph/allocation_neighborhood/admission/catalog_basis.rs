@@ -12,21 +12,7 @@ pub enum UiAllocationCatalogBasisAdmissionDenial {
 /// Graph-owned complete partition of admitted allocation planning inputs.
 #[derive(Clone, Debug)]
 pub struct UiAdmittedAllocationCatalogBasisSet {
-    #[cfg_attr(
-        not(any(test, feature = "certification-support")),
-        expect(
-            dead_code,
-            reason = "complete-catalog consumption is certification-only"
-        )
-    )]
     pub(crate) snapshot: crate::graph::UiGraphSnapshot,
-    #[cfg_attr(
-        not(any(test, feature = "certification-support")),
-        expect(
-            dead_code,
-            reason = "complete-catalog consumption is certification-only"
-        )
-    )]
     pub(crate) entries: Box<
         [(
             crate::evidence::UiMeasurementBasis,

@@ -24,6 +24,7 @@ pub struct UiMountedProjectionFrame {
     receipt_basis: super::super::UiMountedNodeReceiptBasis,
     plan_digest: u64,
     semantic: UiMountedSemanticProjection,
+    filled_rects: Vec<worth_ui_host_contract::UiMountedFilledRectMechanic>,
     paint_batches: Vec<UiMountedPaintBatchRow>,
     layers: Vec<UiMountedLayerRow>,
     spatial_batches: Vec<UiMountedSpatialBatchRow>,
@@ -52,6 +53,7 @@ impl UiMountedProjectionFrame {
             receipt_basis,
             plan_digest,
             semantic,
+            filled_rects: Vec::new(),
             paint_batches: Vec::new(),
             layers: Vec::new(),
             spatial_batches: Vec::new(),
@@ -84,6 +86,12 @@ impl UiMountedProjectionFrame {
         self.counters.finish()
     }
 
+    pub(crate) fn static_paint_structural_bytes(&self) -> Option<usize> {
+        self.filled_rects.len().checked_mul(std::mem::size_of::<
+            worth_ui_host_contract::UiMountedFilledRectMechanic,
+        >())
+    }
+
     pub(super) fn record_ordinary(
         &mut self,
         receipt: &crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
@@ -93,10 +101,21 @@ impl UiMountedProjectionFrame {
             receipt.touch().row_count() as u32,
             0,
             None,
-            UiMountedPaintPrimitiveKind::FilledRect,
+            UiMountedPaintPrimitiveKind::OrdinaryLaneSummary,
         )?;
         self.ordinary_paint_selector =
             Some(UiMountedOrdinaryPaintSelector::new(receipt.clone(), batch));
+        Ok(())
+    }
+
+    pub(super) fn complete_static_paint(&mut self) -> Result<(), UiMountedProjectionDenial> {
+        let rows = super::static_paint::complete_static_filled_rects(
+            self.frame,
+            &self.receipt_basis,
+            &self.semantic,
+        )?;
+        self.record_rows::<worth_ui_host_contract::UiMountedFilledRectMechanic>(rows.len())?;
+        self.filled_rects.extend(rows);
         Ok(())
     }
 
@@ -110,8 +129,12 @@ impl UiMountedProjectionFrame {
             .row_count()
             .checked_mul(range.column_count())
             .ok_or(UiMountedProjectionDenial::TableCapacityExceeded)?;
-        let batch =
-            self.push_lane_batch(count, 1, None, UiMountedPaintPrimitiveKind::FilledRect)?;
+        let batch = self.push_lane_batch(
+            count,
+            1,
+            None,
+            UiMountedPaintPrimitiveKind::VirtualizedLaneSummary,
+        )?;
         self.push_plan_index_selector([receipt.touched_plan_index()], batch);
         Ok(())
     }
@@ -203,6 +226,7 @@ impl UiMountedProjectionFrame {
             surface.binding = replacement.binding_generation();
             rebound.semantic.surfaces.insert(surface.binding, surface);
         }
+        super::static_paint::rebind_filled_rects(&mut rebound.filled_rects, replacements)?;
         Ok(rebound)
     }
 

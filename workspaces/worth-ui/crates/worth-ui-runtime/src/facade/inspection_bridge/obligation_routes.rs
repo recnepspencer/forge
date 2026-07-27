@@ -122,6 +122,15 @@ pub(crate) fn try_query_touch_for_node(
     )
 }
 
+pub(crate) fn try_allocation_touch_for_node(
+    app: &WorthUiApp,
+    graph_node_identity: UiGraphNodeIdentity,
+) -> Result<UiGraphTouchDescriptor, UiGraphTouchDenial> {
+    try_query_touch_for_node(app, graph_node_identity).or_else(|query_denial| {
+        structural_touch_for_node(app, graph_node_identity).ok_or(query_denial)
+    })
+}
+
 fn structural_touch_for_node(
     app: &WorthUiApp,
     graph_node_identity: UiGraphNodeIdentity,

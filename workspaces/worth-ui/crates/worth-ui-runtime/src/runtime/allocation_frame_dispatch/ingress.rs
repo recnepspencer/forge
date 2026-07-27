@@ -174,7 +174,7 @@ impl UiAllocationFrameSourceLease {
             source_generation,
             identity,
             source_order,
-            source_fact,
+            source_fact: Box::new(source_fact),
         }
     }
 
@@ -251,7 +251,7 @@ pub struct UiAdmittedAllocationStreamIngress {
     source_generation: UiAllocationFrameSourceGeneration,
     identity: UiAllocationFrameIngressIdentity,
     source_order: UiAdmittedAllocationSourceOrder,
-    source_fact: super::gateway::UiAllocationFrameSourceFact,
+    source_fact: Box<super::gateway::UiAllocationFrameSourceFact>,
 }
 
 impl UiAdmittedAllocationStreamIngress {
@@ -269,13 +269,13 @@ impl UiAdmittedAllocationStreamIngress {
             source_generation: lease.source_generation,
             identity,
             source_order,
-            source_fact: super::gateway::UiAllocationFrameSourceFact::Interaction(
+            source_fact: Box::new(super::gateway::UiAllocationFrameSourceFact::Interaction(
                 crate::runtime::WorthUiAdmittedTransientInteraction::for_dispatcher_test(
                     crate::graph::UiGraphNodeIdentity::new(identity.as_u64()),
                     lease.source_generation.as_u64(),
                     source_order.as_u64(),
                 ),
-            ),
+            )),
         }
     }
 
@@ -304,7 +304,7 @@ impl UiAdmittedAllocationStreamIngress {
     }
 
     pub fn source_fact(&self) -> &super::gateway::UiAllocationFrameSourceFact {
-        &self.source_fact
+        self.source_fact.as_ref()
     }
 
     pub fn key(&self) -> UiAllocationFrameIngressKey {
@@ -325,7 +325,7 @@ impl UiAdmittedAllocationStreamIngress {
     }
 
     pub(crate) fn into_source_fact(self) -> super::gateway::UiAllocationFrameSourceFact {
-        self.source_fact
+        *self.source_fact
     }
 }
 
@@ -339,7 +339,7 @@ impl Clone for UiAdmittedAllocationStreamIngress {
             source_generation: self.source_generation,
             identity: self.identity,
             source_order: self.source_order,
-            source_fact: self.source_fact.clone(),
+            source_fact: Box::new(self.source_fact.as_ref().clone()),
         }
     }
 }

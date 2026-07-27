@@ -12,11 +12,15 @@ mod builder;
 mod measurement_exchange;
 mod mounted_allocation_denial;
 mod mounted_allocation_establishment;
+mod mounted_allocation_inspection;
 mod mounted_frame_execution;
 mod mounted_identity;
 mod mounted_inspection;
 mod mounted_preview;
 mod mounted_publication;
+mod native_application_replacement;
+mod native_application_shell;
+mod native_replacement_allocation;
 mod observation_report;
 pub use crate::runtime::exports::WorthUiAllocationCatalogActivationDenial;
 pub use active_application_session::{
@@ -52,6 +56,10 @@ pub use mounted_allocation_establishment::WorthUiMountedAllocationCertificationE
 pub use mounted_allocation_establishment::{
     UiMountedAllocationMeasurementRequest, WorthUiMountedAllocationEstablishmentReceipt,
 };
+pub use mounted_allocation_inspection::{
+    WorthUiMountedAllocationInspectionCertificationExt,
+    WorthUiMountedAllocationProjectionInspectionDenial,
+};
 pub use mounted_frame_execution::{
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
 };
@@ -62,4 +70,11 @@ pub use mounted_preview::{
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
     WorthUiMountedPreviewRetentionRejection, WorthUiPendingMountedPreview,
     WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
+};
+pub use native_application_replacement::{
+    WorthUiNativeApplicationReplacementDenial, WorthUiNativeApplicationReplacementOutcome,
+};
+pub use native_application_shell::{
+    WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
+    WorthUiNativeApplicationShutdownReceipt,
 };

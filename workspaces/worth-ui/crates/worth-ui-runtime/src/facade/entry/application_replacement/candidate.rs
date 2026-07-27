@@ -88,6 +88,17 @@ impl WorthUiPreparedApplicationReplacement {
         self.next_app.try_query_touch_for_node(graph_node_identity)
     }
 
+    pub(crate) fn try_candidate_allocation_touch_for_node(
+        &self,
+        graph_node_identity: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        crate::obligations::touch::UiGraphTouchDescriptor,
+        crate::obligations::touch::UiGraphTouchDenial,
+    > {
+        self.next_app
+            .try_allocation_touch_for_node(graph_node_identity)
+    }
+
     pub fn admit_candidate_allocation_catalog(
         &self,
         entries: Vec<(

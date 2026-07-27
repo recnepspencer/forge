@@ -1,6 +1,19 @@
 use super::WorthUiApplicationSessionState;
 
 impl WorthUiApplicationSessionState {
+    pub(crate) fn mounted_allocation_projection_for(
+        &self,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        Option<worth_ui_host_contract::UiMountedAllocationProjection>,
+        crate::runtime::UiMountedAllocationProjectionDenial,
+    > {
+        self.runtime
+            .allocation_receipt_ledger
+            .mounted_projection_source(None)
+            .projection(graph_node)
+    }
+
     pub(crate) fn measurement_policy_for(
         &self,
         declaration: &crate::declaration::UiDeclarationIdentity,

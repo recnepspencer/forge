@@ -93,7 +93,8 @@ pub(crate) use resolved::{
     WorthUiResolvedArtifactInput, WorthUiResolvedArtifactInputBindingNode,
     WorthUiResolvedArtifactInputComponentNode, WorthUiResolvedArtifactInputModule,
     WorthUiResolvedArtifactInputNode, WorthUiResolvedArtifactInputSurfaceNode,
-    WorthUiResolvedArtifactInputThemeTokenNode, WorthUiRuntimeSemanticImport,
+    WorthUiResolvedArtifactInputThemeTokenNode, WorthUiResolvedThemeTokenBindingTarget,
+    WorthUiRuntimeSemanticImport,
 };
 #[cfg(test)]
 pub(crate) use structured::WorthUiLegallyStructuredArtifactInputEquivalentShape;

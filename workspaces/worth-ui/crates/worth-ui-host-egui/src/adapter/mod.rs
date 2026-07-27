@@ -4,6 +4,7 @@ mod mounted_effect_support;
 mod mounted_effect_support_tests;
 mod mounted_projection_preparation;
 mod mounted_resource_cache;
+mod native_paint;
 
 pub use egui_host::WorthUiHostEgui;
 pub use mounted_projection_preparation::{

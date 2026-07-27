@@ -91,6 +91,14 @@ impl UiMountedNodeReceiptIdentity {
                 .diagnostic_value()
                 .wrapping_mul(0x9e37_79b9_7f4a_7c15)
     }
+
+    pub(crate) const fn frame(self) -> UiMountedFrameIdentity {
+        self.frame
+    }
+
+    pub(crate) const fn mounted_instance(self) -> UiMountedInstanceIdentity {
+        self.mounted_instance
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

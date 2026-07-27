@@ -3,8 +3,10 @@ mod denial;
 mod frame_storage;
 mod geometry;
 mod lowering;
+mod mechanical_role;
 mod node_receipt;
 mod participation;
+mod static_paint;
 
 pub use denial::UiMountedProjectionDenial;
 pub use frame_storage::UiMountedProjectionFrame;

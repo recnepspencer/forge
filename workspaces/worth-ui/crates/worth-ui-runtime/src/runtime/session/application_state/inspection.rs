@@ -4,6 +4,7 @@ use super::WorthUiApplicationSessionState;
 use crate::facade::inspection_bridge::{
     UiInspectionClosureReport, UiInspectionFacadeObservation, UiInspectionReceipt,
 };
+#[cfg(any(test, feature = "certification-support"))]
 use crate::runtime::{WorthUiActiveRuntimeObservation, WorthUiStateQueryResidueScan};
 
 impl WorthUiApplicationSessionState {
@@ -11,10 +12,12 @@ impl WorthUiApplicationSessionState {
         self.app.inspect(query)
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_active_runtime(&self) -> WorthUiActiveRuntimeObservation {
         self.runtime.inspect_active()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_query_state_residue(&self) -> WorthUiStateQueryResidueScan {
         self.runtime.inspect_query_state_residue()
     }

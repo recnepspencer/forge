@@ -32,7 +32,9 @@ file = "facade/app.rs"
 audience = "application-author"
 responsibility = "application construction and lifecycle"
 disposition = "retain"
-fingerprint = "fb9cadf2443bd5f2"
+# Milestone 3.10.2 Phase 3 adds the curated native application shell, typed
+# replacement outcome and denial, and observable shutdown receipt.
+fingerprint = "08927281b0e87d44"
 forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
 
 [[surface]]
@@ -84,7 +86,8 @@ file = "facade/declaration.rs"
 audience = "application-author"
 responsibility = "curated declaration contract"
 disposition = "retain"
-fingerprint = "b3f8ec9c57dd639c"
+# Milestone 3.10.2 exposes the typed FillViewport component contract here.
+fingerprint = "d4c250b6480c98f1"
 forbidden_shortcut = "reopen declaration source authority"
 
 [[surface]]
@@ -197,10 +200,12 @@ forbidden_shortcut = "make certification reports runtime lifecycle authority"
 id = "certification-scenario"
 path = "scenario"
 match = "directory"
-expected_files = 17
-content_fingerprint = "d20af5ebe6772cb8"
+expected_files = 18
+# Milestone 3.10.2 corrects candidate allocation certification to use
+# allocation-touch authority through the certification-only extension route.
+content_fingerprint = "f7d77e73c29cd0b7"
 audience = "certification-support"
-responsibility = "real-boundary certification scenario construction"
+responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
 forbidden_shortcut = "route scenario builders into the ordinary app facade"
 
@@ -208,12 +213,102 @@ forbidden_shortcut = "route scenario builders into the ordinary app facade"
 id = "certification-topology"
 path = "topology"
 match = "directory"
+exclude_prefixes = [
+  "topology/milestone_3102_pulse_seed",
+  "topology/milestone_3103_executable_world",
+  "topology/milestone_3103_product_contract",
+  "topology/milestone_3103_external_world",
+  "topology/milestone_3103_watched_replacement",
+  "topology/milestone_3103_cost_closure",
+]
 expected_files = 61
-content_fingerprint = "dac46d562750fbf1"
+# Milestone 3.10.2 Phase 2 teaches the adapter-boundary audit to distinguish
+# explicit private `self` composition from forbidden source/DSL authority and
+# excludes the successor pulse scenario from the frozen Phase 7 source count.
+# Milestone 3.10.3 registers its executable-world audit as a second explicit
+# successor rather than enlarging this predecessor bucket.
+# Milestone 3.10.3 Phase 2 registers its live product-contract audit separately
+# so product topology remains independently removable from executable-world
+# evidence classification.
+# Phases 3 through 5 likewise retain separate external-world, watched-
+# replacement, and cost-closure owners instead of enlarging this predecessor.
+content_fingerprint = "8da7a76c805ef114"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
 forbidden_shortcut = "treat audit helpers as product authority"
+
+[[certification_surface]]
+id = "certification-topology-3102-pulse-seed"
+path = "topology/milestone_3102_pulse_seed"
+match = "directory"
+expected_files = 8
+# Milestone 3.10.2 Phase 2 amends the courtroom origin to the exact
+# runtime-derived full-viewport box at 0,0. Phase 4 adds the machine-audited
+# closing evidence owner. Milestone 3.10.3 corrects its successor handoff so
+# product completion and executable-world certification remain distinct, and
+# Phase 2 recognizes the bounded serialization dependencies added by the
+# observation-only library contract.
+content_fingerprint = "7df33a4c0d43d30f"
+audience = "certification-support"
+responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
+disposition = "retain"
+forbidden_shortcut = "move pulse audit authority into the product facade, adapter, application, or test-only fixture"
+
+[[certification_surface]]
+id = "certification-topology-3103-executable-world"
+path = "topology/milestone_3103_executable_world"
+match = "directory"
+expected_files = 6
+content_fingerprint = "ecb051c18dbc00c8"
+audience = "certification-support"
+responsibility = "Milestone 3.10.3 executable-world evidence classification, courtroom freeze, historical opening posture, and cost topology"
+disposition = "retain"
+forbidden_shortcut = "move executable-world runner mechanics into worth-ui-certification or treat compile topology as product execution"
+
+[[certification_surface]]
+id = "certification-topology-3103-product-contract"
+path = "topology/milestone_3103_product_contract"
+match = "directory"
+expected_files = 4
+content_fingerprint = "60c42723b0271e23"
+audience = "certification-support"
+responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
+disposition = "retain"
+forbidden_shortcut = "use an implementation phase flag as product authority or move executable-world runner mechanics into the product"
+
+[[certification_surface]]
+id = "certification-topology-3103-external-world"
+path = "topology/milestone_3103_external_world"
+match = "directory"
+expected_files = 4
+content_fingerprint = "5b86647ccdb0d2a5"
+audience = "certification-support"
+responsibility = "Milestone 3.10.3 real executable process, native boundary, teardown, and external observation topology"
+disposition = "retain"
+forbidden_shortcut = "substitute an in-process host double, synthetic pixels, or forced teardown for the real executable world"
+
+[[certification_surface]]
+id = "certification-topology-3103-watched-replacement"
+path = "topology/milestone_3103_watched_replacement"
+match = "directory"
+expected_files = 3
+content_fingerprint = "d236bd3fd32cdd7c"
+audience = "certification-support"
+responsibility = "Milestone 3.10.3 watched replacement, denial preservation, recovery, and normal-close topology"
+disposition = "retain"
+forbidden_shortcut = "inject replacement state directly or admit event-only and pixel-only replacement claims"
+
+[[certification_surface]]
+id = "certification-topology-3103-cost-closure"
+path = "topology/milestone_3103_cost_closure"
+match = "directory"
+expected_files = 3
+content_fingerprint = "46e1bdf42abbc81b"
+audience = "certification-support"
+responsibility = "Milestone 3.10.3 causal cost, platform posture, proof-lane separation, successor handoff, and mature-world closure"
+disposition = "retain"
+forbidden_shortcut = "close the milestone with over-budget evidence, blurred proof lanes, platform overclaim, residue, or immature 3.24 entry infrastructure"
 
 [[lifecycle_entry]]
 symbol = "WorthUiApplicationBuilder"

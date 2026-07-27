@@ -19,6 +19,7 @@ pub struct ComponentDescriptor {
     execution_lane: ComponentExecutionLane,
     canvas_spatial_contract: Option<super::ComponentCanvasSpatialContract>,
     realtime_overlay_contract: Option<super::ComponentRealtimeOverlayContract>,
+    allocation_measurement_contract: Option<super::ComponentAllocationMeasurementContract>,
 }
 
 impl ComponentDescriptor {
@@ -40,6 +41,7 @@ impl ComponentDescriptor {
             execution_lane: ComponentExecutionLane::Passive,
             canvas_spatial_contract: None,
             realtime_overlay_contract: None,
+            allocation_measurement_contract: None,
         }
     }
 
@@ -60,6 +62,7 @@ impl ComponentDescriptor {
             execution_lane: ComponentExecutionLane::Passive,
             canvas_spatial_contract: None,
             realtime_overlay_contract: None,
+            allocation_measurement_contract: None,
         }
     }
 
@@ -80,6 +83,7 @@ impl ComponentDescriptor {
             execution_lane: ComponentExecutionLane::Passive,
             canvas_spatial_contract: None,
             realtime_overlay_contract: None,
+            allocation_measurement_contract: None,
         }
     }
 
@@ -134,6 +138,14 @@ impl ComponentDescriptor {
         self
     }
 
+    pub fn with_allocation_measurement_contract(
+        mut self,
+        contract: super::ComponentAllocationMeasurementContract,
+    ) -> Self {
+        self.allocation_measurement_contract = Some(contract);
+        self
+    }
+
     pub fn id(&self) -> &ComponentId {
         &self.id
     }
@@ -176,5 +188,11 @@ impl ComponentDescriptor {
 
     pub fn realtime_overlay_contract(&self) -> Option<super::ComponentRealtimeOverlayContract> {
         self.realtime_overlay_contract
+    }
+
+    pub fn allocation_measurement_contract(
+        &self,
+    ) -> Option<super::ComponentAllocationMeasurementContract> {
+        self.allocation_measurement_contract
     }
 }

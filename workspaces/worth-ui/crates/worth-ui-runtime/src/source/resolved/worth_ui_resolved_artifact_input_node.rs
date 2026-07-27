@@ -47,8 +47,15 @@ pub(crate) struct WorthUiResolvedArtifactInputBindingNode {
 pub(crate) struct WorthUiResolvedArtifactInputThemeTokenNode {
     theme_token: AdmittedCapability<ThemeTokenId>,
     entry: FrozenThemeTokenEntry,
+    binding_target: WorthUiResolvedThemeTokenBindingTarget,
     authored_identity: Option<String>,
     provenance: WorthUiArtifactInputProvenance,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum WorthUiResolvedThemeTokenBindingTarget {
+    FileAuthoredReference(String),
+    RustAuthoredRegisteredTarget(ThemeTokenId),
 }
 
 impl WorthUiResolvedArtifactInputComponentNode {
@@ -169,12 +176,14 @@ impl WorthUiResolvedArtifactInputThemeTokenNode {
     pub(crate) fn new(
         theme_token: AdmittedCapability<ThemeTokenId>,
         entry: FrozenThemeTokenEntry,
+        binding_target: WorthUiResolvedThemeTokenBindingTarget,
         authored_identity: Option<String>,
         provenance: WorthUiArtifactInputProvenance,
     ) -> Self {
         Self {
             theme_token,
             entry,
+            binding_target,
             authored_identity,
             provenance,
         }
@@ -188,11 +197,39 @@ impl WorthUiResolvedArtifactInputThemeTokenNode {
         &self.entry
     }
 
+    pub(crate) fn binding_target(&self) -> &WorthUiResolvedThemeTokenBindingTarget {
+        &self.binding_target
+    }
+
     pub(crate) fn authored_identity(&self) -> Option<&str> {
         self.authored_identity.as_deref()
     }
 
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         &self.provenance
+    }
+}
+
+impl WorthUiResolvedThemeTokenBindingTarget {
+    pub(crate) fn from_ingress(
+        authored_target_text: &str,
+        registered_target: &ThemeTokenId,
+        provenance: &WorthUiArtifactInputProvenance,
+    ) -> Self {
+        match provenance {
+            WorthUiArtifactInputProvenance::ParsedSourceDeclaration { .. } => {
+                Self::FileAuthoredReference(authored_target_text.to_owned())
+            }
+            WorthUiArtifactInputProvenance::RustAuthoredDeclaration { .. } => {
+                Self::RustAuthoredRegisteredTarget(registered_target.clone())
+            }
+        }
+    }
+
+    pub(crate) fn reference_text(&self) -> &str {
+        match self {
+            Self::FileAuthoredReference(reference) => reference,
+            Self::RustAuthoredRegisteredTarget(target) => target.as_str(),
+        }
     }
 }

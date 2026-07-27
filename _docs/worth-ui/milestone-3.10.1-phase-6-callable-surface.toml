@@ -55,6 +55,7 @@ feature = "production-default"
 sources = [
   "crates/worth-ui-runtime/src/facade/entry/app.rs",
   "crates/worth-ui-runtime/src/facade/app_inspection_closeout.rs",
+  "crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs",
 ]
 [surface.callers]
 capabilities = "crates/worth-ui/tests/capability_snapshot/snapshot_lookup_cost_cases.rs"
@@ -72,9 +73,37 @@ inspection_observation = "crates/worth-ui-certification/tests/declaration_eviden
 inspection_support_report = "crates/worth-ui-certification/tests/declaration_support_snapshot_runtime.rs"
 inspection_support_report_for = "crates/worth-ui-runtime/src/declaration/support_inspection_tests.rs"
 launch = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_replacement.rs"
+launch_native_surface = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
 obligation_closeout_report = "crates/worth-ui-certification/tests/obligation_closeout_runtime.rs"
 resolve_query_view = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/settled_snapshot_preservation.rs"
 runtime_support_inventory = "crates/worth-ui-certification/tests/topology_audit.rs"
+
+[[surface]]
+kind = "inherent"
+owner = "WorthUiNativeApplicationShell"
+audience = "ordinary-native-app"
+feature = "production-default"
+sources = [
+  "crates/worth-ui-runtime/src/facade/entry/native_application_replacement.rs",
+  "crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs",
+]
+[surface.callers]
+capabilities = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+generation_identity = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
+present_frame = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
+replace_application = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+shutdown = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
+
+[[surface]]
+kind = "inherent"
+owner = "WorthUiNativeApplicationShutdownReceipt"
+audience = "ordinary-native-app-cleanup-observation"
+feature = "production-default"
+sources = ["crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs"]
+[surface.callers]
+host_session_released = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+mounted_shutdown_attempt_count = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+released_surface_count = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
 
 [[surface]]
 kind = "inherent"
@@ -245,6 +274,15 @@ feature = "test-support-only"
 sources = ["crates/worth-ui-runtime/src/certification_support/application_builder.rs"]
 [surface.callers]
 with_graph_world_profile = "crates/worth-ui-certification/tests/graph_authority_runtime.rs"
+
+[[surface]]
+kind = "extension_trait"
+owner = "WorthUiApplicationReplacementCertificationExt"
+audience = "certification-support"
+feature = "test-support-only"
+sources = ["crates/worth-ui-runtime/src/certification_support/application_replacement.rs"]
+[surface.callers]
+candidate_allocation_touch_for_node = "crates/worth-ui-certification/src/scenario/application_authority_closure/candidate_catalog.rs"
 
 [[surface]]
 kind = "extension_trait"

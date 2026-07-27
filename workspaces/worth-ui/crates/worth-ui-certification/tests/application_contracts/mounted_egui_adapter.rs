@@ -23,6 +23,7 @@ fn real_wui_no_effect_frame_publishes_without_synthetic_egui_shapes() {
         host.operational_capability_report().observed_capabilities(),
         &[
             WorthUiHostCapability::DpiObservation,
+            WorthUiHostCapability::NativePaint,
             WorthUiHostCapability::ViewportObservation,
         ]
     );
