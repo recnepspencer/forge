@@ -199,11 +199,16 @@ fn fenced_rust_after<'a>(document: &'a str, marker: &str) -> &'a str {
         .expect("compile-source marker exists")
         .1;
     let after_open = after_marker
-        .split_once("```rust\n")
+        .split_once("```rust")
         .expect("compile-source marker is followed by a Rust fence")
         .1;
+    let after_open = after_open
+        .strip_prefix("\r\n")
+        .or_else(|| after_open.strip_prefix('\n'))
+        .expect("Rust fence body begins on the next line");
     after_open
-        .split_once("\n```")
+        .split_once("\r\n```")
+        .or_else(|| after_open.split_once("\n```"))
         .expect("compile-source fence closes")
         .0
 }

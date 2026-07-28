@@ -84,6 +84,8 @@ mod mounted_publication;
 mod mounted_static_paint;
 #[path = "../application_contracts/multi_removal_filesystem.rs"]
 mod multi_removal_filesystem;
+#[path = "../application_contracts/observation_rebind.rs"]
+mod observation_rebind;
 #[path = "../application_contracts/phase7_adapter_parity.rs"]
 mod phase7_adapter_parity;
 #[path = "../application_contracts/phase7_denial_preservation.rs"]

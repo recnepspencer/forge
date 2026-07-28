@@ -8,6 +8,8 @@ Milestone 3.11 closed on 2026-07-27. Milestone 3.12 inherits its final
 application, mounting, host, visual-snapshot, overlay, mounted-trace,
 disclosure, resource, executable-world, and teardown contracts without
 relocation or reinterpretation.
+Identity-aware predecessor/successor comparison remains a Milestone 3.12
+capability.
 
 Milestones 3.10 and 3.10.3 established the one-way runtime-to-host contract and
 the permanent Platform Pulse: one real file-authored application, operating-

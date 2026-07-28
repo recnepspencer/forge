@@ -253,8 +253,9 @@ fn assert_structural_admission_and_replacement(inventory: &WorkspaceSourceInvent
 fn assert_overlay_and_shutdown_accounting(inventory: &WorkspaceSourceInventory) {
     let overlay =
         inventory.text("crates/worth-ui-runtime/src/inspection/visual_snapshot/overlay/seal.rs");
+    let normalized_overlay = overlay.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(overlay.contains("published_overlay_cost"));
-    assert!(overlay.contains("4,\n        1,\n        retained_structural_bytes"));
+    assert!(normalized_overlay.contains("4, 1, retained_structural_bytes"));
     assert!(overlay.contains("from_runtime_projection([0; 11])"));
 
     let shutdown = inventory.text("apps/platform-pulse/src/observation_contract/lifecycle.rs");

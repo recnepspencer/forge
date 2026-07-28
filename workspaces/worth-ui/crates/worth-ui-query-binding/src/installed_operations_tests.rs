@@ -9,8 +9,9 @@ use crate::installed_domain::{
         WorthUiMeasurementRecordingFamily, IDENTIFY_STAGE, RECORD_STAGE,
     },
     snapshot_measurement::{
-        snapshot_measurement_definition_with_value_alias, WorthUiSnapshotMeasurement,
-        WorthUiSnapshotMeasurementFamily, WorthUiSnapshotMeasurementValueAliasExecutor,
+        snapshot_measurement_definition, snapshot_measurement_definition_with_value_alias,
+        WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily,
+        WorthUiSnapshotMeasurementValueAliasExecutor,
     },
 };
 use crate::{
@@ -20,6 +21,19 @@ use crate::{
 
 #[path = "installed_operations_tests/reference_convergence.rs"]
 mod reference_convergence;
+
+#[test]
+fn snapshot_measurement_declares_no_decision_fact_or_invariant_execution_authority() {
+    let definition = snapshot_measurement_definition();
+    assert_eq!(
+        definition.semantics().decision_facts,
+        domain::WorthQueryOperationDecisionFactContract::NotRequired
+    );
+    assert_eq!(
+        definition.semantics().invariant_execution,
+        domain::WorthQueryInvariantExecutionContract::NotRequired
+    );
+}
 
 #[test]
 fn installed_snapshot_identity_converges_and_semantic_drift_changes_it() {
