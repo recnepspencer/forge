@@ -2,12 +2,6 @@ use std::collections::BTreeSet;
 use std::sync::{Arc, OnceLock};
 
 use worth_foundational::facade::{AspectMask, ProjectionMask};
-use worth_query_declaration::facade::authoring::{
-    AspectFieldSelector, AuthoredQueryBundleRequest, AuthoredResultShapeField, DetailQueryBuilder,
-    DetailResultShapeBuilder, RootEntityKey,
-};
-use worth_query_declaration::facade::binding::QueryBindingDescriptor;
-use worth_query_declaration::facade::canonicalization::canonicalize_request;
 use worth_query_installation::facade as query;
 
 use super::semantic_fixture::{contract, field_path};
@@ -15,6 +9,10 @@ use super::{
     AspectBinding, AuthoritativeAspectChangeKind, BridgeSemanticDependencyCandidate,
     BridgeSemanticLocality, MAX_ASPECTS,
 };
+
+mod canonical_bundle;
+
+use canonical_bundle::canonical_bundle;
 
 static DEPENDENCIES: OnceLock<Vec<(String, BridgeSemanticDependencyCandidate)>> = OnceLock::new();
 
@@ -142,9 +140,11 @@ fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOpe
                 semantic_reads: vec![native_projection],
             }],
         },
+        decision_facts: query::WorthQueryOperationDecisionFactContract::NotRequired,
         touches: query::WorthQueryOperationTouchContract::NotRequired,
         effects: query::WorthQueryOperationEffectContract::NotRequired,
         invariants: query::WorthQueryOperationInvariantContract::NotRequired,
+        invariant_execution: query::WorthQueryInvariantExecutionContract::NotRequired,
         replay: query::WorthQueryOperationReplayContract::ReExecutable,
         reversal: query::WorthQueryOperationReversalContract::Irreversible,
         lineage: query::WorthQueryOperationLineageContract::NotRequired,
@@ -377,23 +377,5 @@ fn conditional_node_with_posture(
     )
     .output_relationship(query::WorthQueryOutputRelationship::ContributesToOperationOutput)
     .finish()
-    .unwrap()
-}
-
-fn canonical_bundle() -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
-    let selector = AspectFieldSelector::new("profile", "name").unwrap();
-    let query = DetailQueryBuilder::new(RootEntityKey::new("BridgeFixture").unwrap())
-        .project(selector)
-        .build()
-        .unwrap()
-        .into_raw();
-    let shape = DetailResultShapeBuilder::new()
-        .field(AuthoredResultShapeField::new("profile", "name", "name").unwrap())
-        .build()
-        .unwrap()
-        .into_raw();
-    canonicalize_request(
-        AuthoredQueryBundleRequest::new(query, shape, QueryBindingDescriptor::new()).unwrap(),
-    )
     .unwrap()
 }

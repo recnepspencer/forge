@@ -1,8 +1,8 @@
 use sha2::{Digest, Sha256};
 
-use super::{
-    ApplicationOperationProgramTarget, ApplicationSchemaIdentity, ApplicationSchemaMember,
-};
+use super::canonical_authorization_identity::hash_authorization_path;
+use super::canonical_operation_identity::hash_operation_target;
+use super::{ApplicationSchemaIdentity, ApplicationSchemaMember};
 
 pub(super) struct ApplicationSchemaCanonicalHeader<'a> {
     pub owner: &'a str,
@@ -16,7 +16,7 @@ pub(super) fn canonical_identity(
     members: &[ApplicationSchemaMember],
 ) -> ApplicationSchemaIdentity {
     let mut hash = Sha256::new();
-    hash_field(&mut hash, "scheme", "worth-query-application-schema-v1");
+    hash_field(&mut hash, "scheme", "worth-query-application-schema-v3");
     hash_field(&mut hash, "owner", header.owner);
     hash_field(&mut hash, "name", header.name);
     hash_field(&mut hash, "major", &header.major.to_string());
@@ -45,6 +45,9 @@ fn hash_member(hash: &mut Sha256, member: &ApplicationSchemaMember) {
             hash_field(hash, "from", from);
             hash_field(hash, "to", to);
         }
+        ApplicationSchemaMember::PrincipalBinding { .. } => {
+            hash_principal_binding(hash, member);
+        }
         ApplicationSchemaMember::Operation {
             operation,
             input_type,
@@ -62,6 +65,38 @@ fn hash_member(hash: &mut Sha256, member: &ApplicationSchemaMember) {
             hash_field(hash, "member-kind", "policy");
             hash_field(hash, "policy", policy);
         }
+        ApplicationSchemaMember::Ability {
+            ability,
+            scope_entity,
+        } => {
+            hash_field(hash, "member-kind", "ability");
+            hash_field(hash, "ability", ability);
+            hash_field(hash, "scope-entity", scope_entity);
+        }
+        ApplicationSchemaMember::OperationAbility {
+            operation,
+            ability,
+            scope_entity,
+        } => {
+            hash_field(hash, "member-kind", "operation-ability");
+            hash_field(hash, "operation", operation);
+            hash_field(hash, "ability", ability);
+            hash_field(hash, "scope-entity", scope_entity);
+        }
+        ApplicationSchemaMember::AbilityPolicy {
+            ability,
+            scope_entity,
+            policy,
+            paths,
+        } => {
+            hash_field(hash, "member-kind", "ability-policy");
+            hash_field(hash, "ability", ability);
+            hash_field(hash, "scope-entity", scope_entity);
+            hash_field(hash, "policy", policy);
+            for path in paths {
+                hash_authorization_path(hash, path);
+            }
+        }
         ApplicationSchemaMember::Currency { currency } => {
             hash_field(hash, "member-kind", "currency");
             hash_field(hash, "currency", currency);
@@ -75,6 +110,47 @@ fn hash_member(hash: &mut Sha256, member: &ApplicationSchemaMember) {
             hash_field(hash, "payload-type", payload_type);
         }
     }
+}
+
+fn hash_principal_binding(hash: &mut Sha256, member: &ApplicationSchemaMember) {
+    let ApplicationSchemaMember::PrincipalBinding {
+        binding,
+        mapping_entity,
+        identity_aspect,
+        identity_field,
+        status_aspect,
+        status_field,
+        target_relation,
+        principal_entity,
+        principal_identity_aspect,
+        principal_identity_field,
+        principal_identity_scalar_family,
+        principal_identity_value_type,
+    } = member
+    else {
+        unreachable!("hash_principal_binding requires a principal binding")
+    };
+    hash_field(hash, "member-kind", "principal-binding");
+    hash_field(hash, "binding", binding);
+    hash_field(hash, "mapping-entity", mapping_entity);
+    hash_field(hash, "identity-aspect", identity_aspect);
+    hash_field(hash, "identity-field", identity_field);
+    hash_field(hash, "status-aspect", status_aspect);
+    hash_field(hash, "status-field", status_field);
+    hash_field(hash, "target-relation", target_relation);
+    hash_field(hash, "principal-entity", principal_entity);
+    hash_field(hash, "principal-identity-aspect", principal_identity_aspect);
+    hash_field(hash, "principal-identity-field", principal_identity_field);
+    hash_field(
+        hash,
+        "principal-identity-scalar-family",
+        principal_identity_scalar_family.canonical_name(),
+    );
+    hash_field(
+        hash,
+        "principal-identity-value-type",
+        principal_identity_value_type,
+    );
 }
 
 fn hash_schema_field(hash: &mut Sha256, member: &ApplicationSchemaMember) {
@@ -110,45 +186,6 @@ fn hash_schema_field(hash: &mut Sha256, member: &ApplicationSchemaMember) {
     );
 }
 
-fn hash_operation_target(hash: &mut Sha256, target: &ApplicationOperationProgramTarget) {
-    match target {
-        ApplicationOperationProgramTarget::Create { entity } => {
-            hash_field(hash, "program-action", "create");
-            hash_field(hash, "entity", entity);
-        }
-        ApplicationOperationProgramTarget::Delete { entity } => {
-            hash_field(hash, "program-action", "delete");
-            hash_field(hash, "entity", entity);
-        }
-        ApplicationOperationProgramTarget::Write {
-            entity,
-            aspect,
-            field,
-        } => {
-            hash_field(hash, "program-action", "write");
-            hash_field(hash, "entity", entity);
-            hash_field(hash, "aspect", aspect);
-            hash_field(hash, "field", field);
-        }
-        ApplicationOperationProgramTarget::Link { relation, from, to } => {
-            hash_field(hash, "program-action", "link");
-            hash_field(hash, "relation", relation);
-            hash_field(hash, "from", from);
-            hash_field(hash, "to", to);
-        }
-        ApplicationOperationProgramTarget::Unlink { relation, from, to } => {
-            hash_field(hash, "program-action", "unlink");
-            hash_field(hash, "relation", relation);
-            hash_field(hash, "from", from);
-            hash_field(hash, "to", to);
-        }
-        ApplicationOperationProgramTarget::Emit { effect } => {
-            hash_field(hash, "program-action", "emit");
-            hash_field(hash, "effect", effect);
-        }
-    }
-}
-
 const fn bool_identity(value: bool) -> &'static str {
     if value {
         "true"
@@ -157,165 +194,17 @@ const fn bool_identity(value: bool) -> &'static str {
     }
 }
 
-fn hash_field(hash: &mut Sha256, label: &str, value: &str) {
-    hash.update(label.len().to_le_bytes());
+pub(super) fn hash_field(hash: &mut Sha256, label: &str, value: &str) {
+    hash.update(canonical_length(label).to_le_bytes());
     hash.update(label.as_bytes());
-    hash.update(value.len().to_le_bytes());
+    hash.update(canonical_length(value).to_le_bytes());
     hash.update(value.as_bytes());
 }
 
-#[cfg(test)]
-mod tests {
-    use worth_foundational::facade::ScalarAspectType;
-
-    use super::*;
-
-    #[test]
-    fn every_application_schema_member_family_changes_identity() {
-        let empty = identity(&[]);
-        for member in [
-            ApplicationSchemaMember::Entity {
-                entity: "Entity".to_string(),
-            },
-            ApplicationSchemaMember::Aspect {
-                entity: "Entity".to_string(),
-                aspect: "Aspect".to_string(),
-            },
-            field((ScalarAspectType::UInt64, "u64", None, false, false)),
-            ApplicationSchemaMember::Relation {
-                relation: "Relation".to_string(),
-                from: "From".to_string(),
-                to: "To".to_string(),
-            },
-            ApplicationSchemaMember::Operation {
-                operation: "Operation".to_string(),
-                input_type: "Input".to_string(),
-            },
-            ApplicationSchemaMember::OperationProgram {
-                operation: "Operation".to_string(),
-                target: ApplicationOperationProgramTarget::Create {
-                    entity: "Entity".to_string(),
-                },
-            },
-            ApplicationSchemaMember::Policy {
-                policy: "Policy".to_string(),
-            },
-            ApplicationSchemaMember::Currency {
-                currency: "USD".to_string(),
-            },
-            ApplicationSchemaMember::Effect {
-                effect: "Effect".to_string(),
-                payload_type: "Payload".to_string(),
-            },
-        ] {
-            assert_ne!(identity(&[member]), empty);
-        }
-    }
-
-    #[test]
-    fn every_field_capability_and_type_dimension_changes_identity() {
-        let base = identity(&[field((ScalarAspectType::UInt64, "u64", None, false, false))]);
-        for changed in [
-            field((ScalarAspectType::Int64, "u64", None, false, false)),
-            field((ScalarAspectType::UInt64, "Other", None, false, false)),
-            field((ScalarAspectType::UInt64, "u64", Some("USD"), false, false)),
-            field((ScalarAspectType::UInt64, "u64", None, true, false)),
-            field((ScalarAspectType::UInt64, "u64", None, false, true)),
-        ] {
-            assert_ne!(identity(&[changed]), base);
-        }
-    }
-
-    #[test]
-    fn operation_input_effect_payload_and_schema_version_change_identity() {
-        let operation = ApplicationSchemaMember::Operation {
-            operation: "Operation".to_string(),
-            input_type: "Input".to_string(),
-        };
-        let changed_operation = ApplicationSchemaMember::Operation {
-            operation: "Operation".to_string(),
-            input_type: "OtherInput".to_string(),
-        };
-        assert_ne!(identity(&[operation]), identity(&[changed_operation]));
-
-        let effect = ApplicationSchemaMember::Effect {
-            effect: "Effect".to_string(),
-            payload_type: "Payload".to_string(),
-        };
-        let changed_effect = ApplicationSchemaMember::Effect {
-            effect: "Effect".to_string(),
-            payload_type: "OtherPayload".to_string(),
-        };
-        assert_ne!(identity(&[effect]), identity(&[changed_effect]));
-
-        let initial = canonical_identity(header(0), &[]);
-        let successor = canonical_identity(header(1), &[]);
-        assert_ne!(initial, successor);
-    }
-
-    #[test]
-    fn every_operation_program_action_changes_identity() {
-        let base = identity(&[]);
-        for target in [
-            ApplicationOperationProgramTarget::Create {
-                entity: "Entity".to_string(),
-            },
-            ApplicationOperationProgramTarget::Delete {
-                entity: "Entity".to_string(),
-            },
-            ApplicationOperationProgramTarget::Write {
-                entity: "Entity".to_string(),
-                aspect: "Aspect".to_string(),
-                field: "Field".to_string(),
-            },
-            ApplicationOperationProgramTarget::Link {
-                relation: "Relation".to_string(),
-                from: "From".to_string(),
-                to: "To".to_string(),
-            },
-            ApplicationOperationProgramTarget::Unlink {
-                relation: "Relation".to_string(),
-                from: "From".to_string(),
-                to: "To".to_string(),
-            },
-            ApplicationOperationProgramTarget::Emit {
-                effect: "Effect".to_string(),
-            },
-        ] {
-            let program = ApplicationSchemaMember::OperationProgram {
-                operation: "Operation".to_string(),
-                target,
-            };
-            assert_ne!(identity(&[program]), base);
-        }
-    }
-
-    fn identity(members: &[ApplicationSchemaMember]) -> ApplicationSchemaIdentity {
-        canonical_identity(header(0), members)
-    }
-
-    fn header(minor: u32) -> ApplicationSchemaCanonicalHeader<'static> {
-        ApplicationSchemaCanonicalHeader {
-            owner: "owner",
-            name: "Schema",
-            major: 1,
-            minor,
-        }
-    }
-
-    fn field(
-        dimensions: (ScalarAspectType, &str, Option<&str>, bool, bool),
-    ) -> ApplicationSchemaMember {
-        let (scalar_family, value_type, currency, writable, equality_queryable) = dimensions;
-        ApplicationSchemaMember::Field {
-            entity: "Entity".to_string(),
-            aspect: "Aspect".to_string(),
-            field: "Field".to_string(),
-            scalar_family,
-            value_type: value_type.to_string(),
-            currency: currency.map(str::to_string),
-            writable,
-            equality_queryable,
-        }
-    }
+fn canonical_length(value: &str) -> u64 {
+    u64::try_from(value.len()).expect("application schema identifiers are bounded below u64::MAX")
 }
+
+#[cfg(test)]
+#[path = "canonical_identity_tests.rs"]
+mod tests;

@@ -30,6 +30,7 @@ worth_query_relation!(
 worth_query_relation!(pub InstitutionAccount in BankSchema, Institution => Account);
 worth_query_relation!(pub PaymentSource in BankSchema, PaymentIntent => Account);
 worth_query_relation!(pub PaymentDestination in BankSchema, PaymentIntent => Account);
+worth_query_relation!(pub PaymentInitiator in BankSchema, Principal => PaymentIntent);
 worth_query_relation!(pub PaymentApproval in BankSchema, PaymentIntent => Approval);
 worth_query_relation!(pub ApprovalPrincipal in BankSchema, Approval => Principal);
 worth_query_relation!(pub JournalPosting in BankSchema, JournalEntry => Posting);

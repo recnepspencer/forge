@@ -1,3 +1,4 @@
+mod authentication;
 mod entities;
 mod fields;
 mod governance;
@@ -7,6 +8,7 @@ mod program_manifest;
 mod relations;
 mod values;
 
+pub use authentication::*;
 pub use entities::*;
 pub use fields::*;
 pub use governance::*;

@@ -8,6 +8,9 @@ use worth_query_installation::facade::{
 };
 
 use super::{WorthQueryExecutionRuntimeInstallation, WorthQueryRuntimeAuthorityIdentity};
+use crate::domain_computation::primary_graph::{
+    WorthQueryPrimaryGraph, WorthQueryPrimaryGraphIntegrationHandle,
+};
 
 /// Execution-owned root for one installed Query operating world.
 ///
@@ -18,6 +21,7 @@ pub struct WorthQueryExecutionRuntime {
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     installed_packages: Arc<WorthQueryInstalledPackageIndex>,
     current_generation: Arc<AtomicU64>,
+    primary_graph: Option<WorthQueryPrimaryGraph>,
 }
 
 /// Move-only construction authority for one execution runtime.
@@ -60,6 +64,7 @@ impl WorthQueryExecutionRuntimeInstaller {
                 authority_identity: self.authority_identity,
                 current_generation: Arc::new(AtomicU64::new(generation.ordinal())),
                 installed_packages: Arc::new(installed_packages),
+                primary_graph: None,
             },
         ))
     }
@@ -82,6 +87,22 @@ impl WorthQueryExecutionRuntime {
 
     pub fn retain_installed_packages(&self) -> Arc<WorthQueryInstalledPackageIndex> {
         Arc::clone(&self.installed_packages)
+    }
+
+    pub fn primary_graph(&self) -> Option<&WorthQueryPrimaryGraph> {
+        self.primary_graph.as_ref()
+    }
+
+    pub(crate) fn retain_primary_graph_integration_handle(
+        &self,
+    ) -> Option<WorthQueryPrimaryGraphIntegrationHandle> {
+        self.primary_graph
+            .as_ref()
+            .map(WorthQueryPrimaryGraph::integration_handle)
+    }
+
+    pub(crate) fn install_primary_graph(&mut self, graph: WorthQueryPrimaryGraph) {
+        self.primary_graph = Some(graph);
     }
 
     pub(crate) fn retain_current_generation(&self) -> Arc<AtomicU64> {

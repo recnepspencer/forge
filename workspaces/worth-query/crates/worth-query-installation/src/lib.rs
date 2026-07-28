@@ -7,6 +7,9 @@
 #![forbid(unsafe_code)]
 
 mod admission;
+mod application_ability;
+mod application_operation;
+mod application_principal_binding;
 mod application_schema;
 mod canonical_hash_encoding;
 mod domain_computation;
@@ -22,6 +25,8 @@ mod package_requirements;
 
 #[cfg(test)]
 mod admission_profile_tests;
+#[cfg(test)]
+mod application_principal_binding_tests;
 #[cfg(test)]
 mod application_schema_tests;
 #[cfg(test)]
@@ -58,10 +63,37 @@ mod domain_computation_workflow_test_support;
 mod package_validation_tests;
 
 pub mod facade {
+    pub use worth_query_declaration::facade::application_schema::{
+        ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
+        ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
+        ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldCurrency,
+        ApplicationFieldRef, ApplicationRelationRef, ApplicationSchema,
+        ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
+        EqualityPredicate, ErasedApplicationSchemaDeclaration, TypedApplicationIdentityValue,
+        TypedApplicationValue, WritePosture,
+    };
+    pub use worth_query_declaration::facade::authentication::{
+        WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
+    };
+
     pub use crate::admission::{
         WorthQueryAdmittedPortableDomainPackage, WorthQueryArtifactVersionSupport,
         WorthQueryInstallationAdmissionDenial, WorthQueryInstallationAdmissionDenialKind,
         WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus,
+    };
+    pub use crate::application_ability::{
+        WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
+        WorthQueryInstalledAbility,
+    };
+    pub use crate::application_operation::{
+        WorthQueryApplicationOperationInstallationDenial,
+        WorthQueryApplicationOperationInstallationDenialKind,
+        WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
+        WorthQueryInstalledApplicationOperation,
+    };
+    pub use crate::application_principal_binding::{
+        WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
+        WorthQueryPrincipalBindingInstallationDenialKind,
     };
     pub use crate::application_schema::{
         WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,

@@ -1,5 +1,6 @@
 use bank_domain::model::{
-    AccountAuthorizationId, AccountId, BankPrincipalId, CustomerRole, Money, PaymentId, USD,
+    AccountAuthorizationId, AccountId, BankPrincipalId, CustomerRole, Money, PaymentId,
+    SignedMoney, USD,
 };
 use bank_domain::schema::*;
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
@@ -59,7 +60,7 @@ fn installed_money_mutation_and_effect_program_are_usable() {
         .create(Posting::reference())
         .set(
             PostingAmount::reference(),
-            Money::<USD>::from_signed_minor(-1_250),
+            SignedMoney::<USD>::from_minor(-1_250),
         )
         .build()
         .unwrap();
@@ -165,7 +166,7 @@ fn forged_field_capability_type_and_currency_are_denied_independently() {
         Account,
         AccountState,
         PostingAmount,
-        Money<USD>,
+        SignedMoney<USD>,
         ReadWrite,
         EqualityPredicate,
         DeclaredApplicationCurrency<UsdCurrency, USD>,
@@ -177,7 +178,7 @@ fn forged_field_capability_type_and_currency_are_denied_independently() {
             recipient,
             amount,
         })
-        .set(forged_write, Money::<USD>::from_signed_minor(99))
+        .set(forged_write, SignedMoney::<USD>::from_minor(99))
         .build()
         .unwrap_err();
     assert_denial(
@@ -222,7 +223,7 @@ fn assert_forged_currency_denied(bank: &WorthQueryInstalledApplicationSchema<Ban
         Account,
         AccountState,
         AvailableBalance,
-        Money<USD>,
+        SignedMoney<USD>,
         ReadOnly,
         worth_query_decl::facade::application_schema::NoEqualityPredicate,
     >::from_schema_identifiers("Account", "AccountState", "AvailableBalance");
@@ -327,11 +328,14 @@ fn installed_bank() -> (
     WorthQueryInstalledPackageIndex,
     WorthQueryInstalledApplicationSchema<BankSchema>,
 ) {
-    let package =
-        WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new("bank", 1, 0))
-            .application_schema(BankSchema::declaration().unwrap())
-            .validate()
-            .unwrap();
+    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        "WORTH.bank",
+        1,
+        0,
+    ))
+    .application_schema(BankSchema::declaration().unwrap())
+    .validate()
+    .unwrap();
     let admitted = WorthQueryInstallationAdmissionProfile::new("support-v1", "config-v1")
         .admit(package)
         .unwrap();

@@ -9,6 +9,7 @@ publish = false
 [dependencies]
 worth-foundational.workspace = true
 worth-query-decl.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 worth-query-host.workspace = true

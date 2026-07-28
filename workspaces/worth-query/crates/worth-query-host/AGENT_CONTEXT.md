@@ -10,7 +10,7 @@ Canonical machine constitution: `tools/boundary-check/config/road1.toml`
 - Deferred next homes:
 
 - Public surface: facade-only
-- Facade exports: `admission, convergence_epoch, declaration, domain, installed, publication, runtime`
+- Facade exports: `admission, convergence_epoch, declaration, domain, installed, primary_graph, publication, runtime`
 - Owned internal modules: `none`
 - Allowed in-tree dependency bands: `none`
 

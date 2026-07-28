@@ -1,0 +1,110 @@
+use crate::application::{WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
+use crate::domain_installation::{
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainIdentityName,
+    WorthQueryDomainIdentityNamespace, WorthQueryDomainPackage, WorthQueryDomainSemanticVersion,
+};
+use worth_query_declaration::facade::authentication::{
+    WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
+};
+use worth_query_declaration::{
+    worth_query_application_schema, worth_query_aspect, worth_query_entity, worth_query_field,
+    worth_query_principal_binding, worth_query_relation,
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct PrimaryGraphDomain;
+
+impl WorthQueryDomainEntryMarker for PrimaryGraphDomain {
+    fn domain_key(&self) -> &'static str {
+        "WORTH.tests.primary-graph"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "Primary Graph Composition"
+    }
+
+    fn required_capability_families(&self) -> &'static [WorthQueryCapabilityFamily] {
+        &[]
+    }
+}
+
+worth_query_application_schema! {
+    pub(super) schema PrimaryGraphCompositionSchema {
+        owner: "WORTH.tests.primary-graph",
+        version: (1, 0),
+        members: |schema| {
+            schema
+                .entity(ExternalMapping::reference())
+                .entity(Principal::reference())
+                .aspect(ExternalMapping::reference(), ExternalIdentity::reference())
+                .aspect(Principal::reference(), PrincipalIdentity::reference())
+                .field(ExternalMapping::reference(), ExternalIdentityField::reference())
+                .field(ExternalMapping::reference(), MappingStatusField::reference())
+                .field(Principal::reference(), PrincipalIdentityField::reference())
+                .relation(
+                    MappingTarget::reference(),
+                    ExternalMapping::reference(),
+                    Principal::reference(),
+                )
+                .principal_binding(IdentityBinding::reference())
+        }
+    }
+}
+
+worth_query_entity!(pub(super) ExternalMapping in PrimaryGraphCompositionSchema);
+worth_query_entity!(pub(super) Principal in PrimaryGraphCompositionSchema);
+worth_query_aspect!(
+    pub(super) ExternalIdentity in PrimaryGraphCompositionSchema,
+    ExternalMapping
+);
+worth_query_field!(
+    pub(super) ExternalIdentityField in PrimaryGraphCompositionSchema,
+    ExternalMapping,
+    ExternalIdentity:
+    WorthQueryExternalPrincipalIdentity, read_only, equality
+);
+worth_query_aspect!(
+    pub(super) PrincipalIdentity in PrimaryGraphCompositionSchema,
+    Principal
+);
+worth_query_field!(
+    pub(super) PrincipalIdentityField in PrimaryGraphCompositionSchema,
+    Principal,
+    PrincipalIdentity:
+    u64, read_only, equality
+);
+worth_query_field!(
+    pub(super) MappingStatusField in PrimaryGraphCompositionSchema,
+    ExternalMapping,
+    ExternalIdentity:
+    WorthQueryPrincipalMappingStatus, read_write, equality
+);
+worth_query_relation!(
+    pub(super) MappingTarget in PrimaryGraphCompositionSchema,
+    ExternalMapping => Principal
+);
+worth_query_principal_binding!(
+    pub(super) IdentityBinding in PrimaryGraphCompositionSchema,
+    mapping ExternalMapping {
+        identity: ExternalIdentityField,
+        status: MappingStatusField,
+        target: MappingTarget => Principal,
+        principal_identity: PrincipalIdentityField
+    }
+);
+
+pub(super) fn primary_graph_domain_package() -> WorthQueryDomainPackage<PrimaryGraphDomain> {
+    WorthQueryDomainPackage::declare(
+        PrimaryGraphDomain,
+        WorthQueryDomainIdentityDeclaration::new(
+            WorthQueryDomainIdentityNamespace::new("WORTH.tests")
+                .expect("test namespace should admit"),
+            WorthQueryDomainIdentityName::new("primary-graph")
+                .expect("test domain name should admit"),
+            WorthQueryDomainSemanticVersion::new(1, 0),
+        ),
+    )
+    .application_schema(
+        PrimaryGraphCompositionSchema::declaration().expect("test schema should declare"),
+    )
+}

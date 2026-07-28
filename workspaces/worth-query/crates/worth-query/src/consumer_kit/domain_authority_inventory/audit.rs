@@ -61,8 +61,8 @@ pub fn audit_domain_authority_sources(
 
     for row in rows {
         require_site(row.defining_path(), row.symbol(), &observed, &mut findings);
-        if let Some(exporting_path) = row.exporting_path() {
-            if exporting_path != row.defining_path() {
+        for exporting_path in row.exporting_paths() {
+            if *exporting_path != row.defining_path() {
                 require_site(exporting_path, row.symbol(), &observed, &mut findings);
             }
         }
@@ -95,7 +95,7 @@ fn row_matches_site(
     site: &WorthQueryDomainAuthoritySourceSite,
 ) -> bool {
     row.symbol() == site.symbol()
-        && (row.defining_path() == site.path() || row.exporting_path() == Some(site.path()))
+        && (row.defining_path() == site.path() || row.exporting_paths().contains(&site.path()))
 }
 
 fn is_physical_adapter_site(site: &WorthQueryDomainAuthoritySourceSite) -> bool {

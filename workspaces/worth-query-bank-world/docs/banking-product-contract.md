@@ -31,8 +31,10 @@ authoritative.
 
 Customer powers derive from current graph relationships:
 
-- one external-principal mapping resolves to one bank principal, while one
-  principal may carry customer and employee relationships independently;
+- one external-principal mapping resolves through the primary graph to one
+  principal row carrying its read-only typed `BankPrincipalId`; no parallel
+  external-identity-to-bank-ID registry exists, while one principal may carry
+  customer and employee relationships independently;
 - a personal account has exactly one personal owner;
 - a business has one or more owners and owns its business accounts;
 - every account authorization joins one principal to one account with exactly
@@ -94,8 +96,10 @@ adapter offers a composed user journey.
 
 ## Monetary invariants
 
-- Money is an exact signed minor-unit value paired with a typed currency.
-- Requested movement amounts are positive and bounded.
+- `Money<Currency>` is an exact, strictly positive requested movement amount.
+- `SignedMoney<Currency>` is the distinct exact signed minor-unit value used
+  by postings and derived balances; it cannot inhabit a movement input.
+- Requested movement amounts are bounded by the exact minor-unit scalar.
 - Every journal entry contains at least two postings and sums to zero in one
   currency.
 - Deposit, withdrawal, transfer, opening funding, and reversal have distinct

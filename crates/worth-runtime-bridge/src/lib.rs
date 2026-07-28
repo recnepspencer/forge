@@ -67,6 +67,7 @@
 #![forbid(unsafe_code)]
 
 mod adapter;
+mod authorization;
 mod builder;
 mod canonical_basis;
 mod clone_budget;

@@ -1,5 +1,7 @@
 //! Public API boundary for `worth-relational`.
 
+#[path = "facade/authorization.rs"]
+pub mod authorization;
 mod runtime_validation_exports;
 pub mod config {
     pub use crate::config::data::{
@@ -103,12 +105,8 @@ pub mod history {
     pub use crate::history::logic::{HistoryAccess, HistoryAuthority};
 }
 
-pub mod identity {
-    pub use crate::identity::data::{
-        EntityId, EntityStorageId, Generation, KindId, LineageId, LocalSlot, PartitionId,
-        RelationId, RelationStorageId, StructuralFingerprint, VersionBound, VersionId,
-    };
-}
+#[path = "facade/identity.rs"]
+pub mod identity;
 
 pub mod identity_authority {
     pub use crate::identity_authority::*;
@@ -139,14 +137,8 @@ pub mod inspection {
     pub use crate::inspection::logic::InspectionAccess;
 }
 
-pub mod indexes {
-    pub use crate::indexes::data::{
-        DerivedIndexApplicability, DerivedIndexArtifacts, DerivedIndexBuildOutcome,
-        DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexEntries,
-        DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind,
-        DerivedIndexPublicationStatus,
-    };
-}
+#[path = "facade/indexes.rs"]
+pub mod indexes;
 
 pub mod lineage {
     pub use crate::lineage::data::{
@@ -231,6 +223,8 @@ pub mod runtime {
         CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
         ComplexityContract, ComplexityStatus, EntityProjectionRecord, EntityRecordProjection,
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
+        RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
+        RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
         RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
         RuntimeComplexityCounters, SimulationAccess, SimulationAuthority, SnapshotGuard,
         TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
@@ -361,7 +355,10 @@ pub mod visibility {
 }
 
 pub mod storage {
-    pub use crate::storage::data::RecordLifecycleState;
+    pub use crate::storage::data::{
+        authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
+        RecordLifecycleState,
+    };
 }
 
 pub mod symbols {

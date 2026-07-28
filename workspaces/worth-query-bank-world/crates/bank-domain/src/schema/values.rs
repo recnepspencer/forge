@@ -1,9 +1,12 @@
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 use worth_query_decl::facade::application_schema::{
-    TypedApplicationValue, TypedCurrencyApplicationValue,
+    TypedApplicationIdentityValue, TypedApplicationValue, TypedCurrencyApplicationValue,
 };
 
-use crate::model::{Currency, CustomerRole, EmployeeRole, Money};
+use crate::model::{
+    AccountId, AccountName, BankPrincipalId, BusinessId, Currency, CustomerRole, EmployeeRole,
+    InstitutionId, Money, PaymentId, SignedMoney,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AccountKind {
@@ -90,6 +93,45 @@ string_application_value!(EmployeeRole, {
     EmployeeRole::Auditor => "auditor",
 });
 
+macro_rules! identity_application_value {
+    ($($Type:ty),+ $(,)?) => {
+        $(
+            impl TypedApplicationValue for $Type {
+                const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::UInt64;
+
+                fn into_foundational_value(self) -> AspectValue {
+                    AspectValue::UInt64(self.get())
+                }
+            }
+        )+
+    };
+}
+
+identity_application_value!(
+    AccountId,
+    BankPrincipalId,
+    BusinessId,
+    InstitutionId,
+    PaymentId
+);
+
+impl TypedApplicationIdentityValue for BankPrincipalId {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+        match value {
+            AspectValue::UInt64(value) => BankPrincipalId::new(*value),
+            _ => None,
+        }
+    }
+}
+
+impl TypedApplicationValue for AccountName {
+    const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::String;
+
+    fn into_foundational_value(self) -> AspectValue {
+        AspectValue::String(InternedString::from(self.into_string()))
+    }
+}
+
 impl<C: Currency> TypedApplicationValue for Money<C> {
     const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::Int64;
 
@@ -99,5 +141,17 @@ impl<C: Currency> TypedApplicationValue for Money<C> {
 }
 
 impl<C: Currency> TypedCurrencyApplicationValue for Money<C> {
+    type Currency = C;
+}
+
+impl<C: Currency> TypedApplicationValue for SignedMoney<C> {
+    const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::Int64;
+
+    fn into_foundational_value(self) -> AspectValue {
+        AspectValue::Int64(self.minor_units())
+    }
+}
+
+impl<C: Currency> TypedCurrencyApplicationValue for SignedMoney<C> {
     type Currency = C;
 }

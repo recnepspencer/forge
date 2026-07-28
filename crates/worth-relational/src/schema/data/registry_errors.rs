@@ -10,6 +10,8 @@ use super::{ContractId, SchemaVersionId};
 pub enum SchemaRegistryErrorClass {
     UnknownEntityKind(KindId),
     UnknownRelationKind(KindId),
+    DuplicateEntityKind(KindId),
+    DuplicateRelationKind(KindId),
     EntityRelationKindCollision(KindId),
     SchemaVersionMismatch {
         expected: SchemaVersionId,
@@ -51,6 +53,12 @@ impl SchemaRegistryError {
             }
             SchemaRegistryErrorClass::UnknownRelationKind(kind_id) => {
                 format!("unknown relation kind {:?}", kind_id)
+            }
+            SchemaRegistryErrorClass::DuplicateEntityKind(kind_id) => {
+                format!("entity kind {:?} is already registered", kind_id)
+            }
+            SchemaRegistryErrorClass::DuplicateRelationKind(kind_id) => {
+                format!("relation kind {:?} is already registered", kind_id)
             }
             SchemaRegistryErrorClass::EntityRelationKindCollision(kind_id) => {
                 format!(
@@ -108,6 +116,14 @@ impl SchemaRegistryError {
 
     pub fn unknown_relation_kind(kind_id: KindId) -> Self {
         Self::new(SchemaRegistryErrorClass::UnknownRelationKind(kind_id))
+    }
+
+    pub fn duplicate_entity_kind(kind_id: KindId) -> Self {
+        Self::new(SchemaRegistryErrorClass::DuplicateEntityKind(kind_id))
+    }
+
+    pub fn duplicate_relation_kind(kind_id: KindId) -> Self {
+        Self::new(SchemaRegistryErrorClass::DuplicateRelationKind(kind_id))
     }
 
     pub fn entity_relation_kind_collision(kind_id: KindId) -> Self {

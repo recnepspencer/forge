@@ -16,6 +16,23 @@ pub mod provider_session {
     pub use crate::domain_computation::provider_session::*;
 }
 
+pub mod primary_graph {
+    pub use crate::domain_computation::primary_graph::{
+        WorthQueryAdmittedApplicationOperation, WorthQueryApplicationEntityIdentity,
+        WorthQueryApplicationEntityKey, WorthQueryApplicationEntityKeyDenial,
+        WorthQueryApplicationEntitySeed, WorthQueryApplicationPrincipalIdentity,
+        WorthQueryApplicationPrincipalKey, WorthQueryApplicationPrincipalKeyDenial,
+        WorthQueryApplicationRelationSeed, WorthQueryAuthenticatedPrincipal,
+        WorthQueryEntityResolutionDenial, WorthQueryEntityResolutionDenialKind,
+        WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+        WorthQueryOperationScopeFingerprint, WorthQueryPrimaryGraph,
+        WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrimaryGraphBootstrap,
+        WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
+        WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
+        WorthQueryPrincipalResolutionDenialKind, WorthQueryPrincipalResolutionMode,
+    };
+}
+
 pub mod convergence_epoch {
     pub use crate::domain_computation::convergence_epoch::*;
 }
@@ -26,12 +43,63 @@ pub mod installed {
 
 #[doc(hidden)]
 pub mod integration {
+    use worth_query_installation::facade::{
+        ApplicationSchema, WorthQueryInstalledApplicationSchema,
+    };
+    use worth_relational::facade::runtime::RelationalRuntime;
+
+    use crate::domain_computation::execution_runtime::{
+        WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
+    };
+    use crate::domain_computation::primary_graph::{
+        WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphInstallationDenial,
+        WorthQueryPrimaryGraphPublication,
+    };
+
     pub use crate::domain_computation::artifact_owner::{
         WorthQueryArtifactAccessAuthority, WorthQueryArtifactProductionAuthority,
         WorthQueryArtifactTransferAdmission, WorthQueryWorkflowArtifactAuthority,
         WorthQueryWorkflowArtifactRegistry,
     };
     pub use crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor;
+    pub use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphIntegrationHandle;
+    pub use crate::domain_computation::primary_graph::{
+        WorthQueryPrimaryGraphIndexRefreshDenial,
+        WorthQueryPrimaryGraphIndexRefreshDenialKind,
+    };
+
+    pub fn prepare_primary_graph_with_relational_runtime<Schema>(
+        authority: &WorthQueryExecutionInstallationAuthority,
+        runtime: &WorthQueryExecutionRuntime,
+        installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+        relational_runtime: RelationalRuntime,
+    ) -> Result<WorthQueryPrimaryGraphBootstrap<Schema>, WorthQueryPrimaryGraphInstallationDenial>
+    where
+        Schema: ApplicationSchema,
+    {
+        authority.prepare_primary_graph_with_relational_runtime(
+            runtime,
+            installed_schema,
+            relational_runtime,
+        )
+    }
+
+    pub fn retain_primary_graph_integration_handle(
+        runtime: &WorthQueryExecutionRuntime,
+    ) -> Option<WorthQueryPrimaryGraphIntegrationHandle> {
+        runtime.retain_primary_graph_integration_handle()
+    }
+
+    pub fn publish_primary_graph<Schema>(
+        bootstrap: WorthQueryPrimaryGraphBootstrap<Schema>,
+        runtime: &mut WorthQueryExecutionRuntime,
+        authority: &WorthQueryExecutionInstallationAuthority,
+    ) -> Result<WorthQueryPrimaryGraphPublication, WorthQueryPrimaryGraphInstallationDenial>
+    where
+        Schema: ApplicationSchema,
+    {
+        bootstrap.publish(runtime, authority)
+    }
 
     #[doc(hidden)]
     pub mod legacy_provider_execution {

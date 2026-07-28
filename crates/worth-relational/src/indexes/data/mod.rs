@@ -1,3 +1,11 @@
+mod bounded_entity_field_lookup;
+
+pub use bounded_entity_field_lookup::{
+    BoundedEntityFieldLookupDenial, BoundedEntityFieldLookupDenialKind,
+    BoundedEntityFieldLookupOutcome, BoundedEntityFieldLookupRequest, BoundedIndexParityMode,
+    MAX_BOUNDED_INDEX_CANDIDATES,
+};
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};

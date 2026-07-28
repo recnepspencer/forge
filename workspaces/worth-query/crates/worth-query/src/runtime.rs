@@ -248,6 +248,7 @@ mod ordinary_workflow_authority;
 mod ordinary_workflow_branch_name;
 mod ordinary_workflow_execution;
 mod preview;
+mod primary_graph;
 pub(crate) use installed_domain_substrate_provenance::WorthQueryInstalledDomainSubstrateProvenance;
 mod public_api;
 mod published_artifacts;
@@ -368,19 +369,22 @@ pub use backend::{
     SubscriptionActivationReceipt, WorthQueryBackendEntityLookup, WorthQueryBackendInspectionError,
     WorthQueryBackendInspectionErrorKind, WorthQueryBackendMergeAuthority,
     WorthQueryBridgeBackedRuntimeBackend, WorthQueryIntentAuthorityAdapter,
-    WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
+    WorthQueryPrimaryGraphBackendHandle, WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
     WorthQueryRuntimeDeclarationInitializationAdapter,
     WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeInspectorEvidenceAdapter,
     WorthQueryRuntimeIntentAuthorityAdapter, WorthQueryRuntimePreviewBasisAdapter,
     WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
     WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
     WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeWriteAuthorityAdapter,
-    WriteAuthorityExecutionReceipt,
+    WorthQueryUnpublishedPrimaryGraphRuntime, WriteAuthorityExecutionReceipt,
 };
 pub use branch::WorthQueryBranchSession;
 pub(crate) use branch::WorthQueryRuntimeBranchComparisonBasis;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
-pub use builder::WorthQueryRuntimeBuilder;
+pub use builder::{
+    WorthQueryPrimaryGraphConfiguration, WorthQueryPrimaryGraphConfigurationDenial,
+    WorthQueryPrimaryGraphConfigurationDenialKind, WorthQueryRuntimeBuilder,
+};
 use computed::{
     admit_derived_view_declaration, insert_derived_runtime,
     retained_live_view_names_for_candidates, route_derived_view_patches,
@@ -904,6 +908,12 @@ pub use workspace_declaration::{
 };
 pub use workspace_inspection::WorthQueryWorkspaceInspectionLane;
 pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
+pub use worth_query_execution::facade::primary_graph::{
+    WorthQueryApplicationPrincipalIdentity, WorthQueryApplicationPrincipalKey,
+    WorthQueryApplicationPrincipalKeyDenial, WorthQueryAuthenticatedPrincipal,
+    WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
+    WorthQueryPrincipalResolutionDenialKind, WorthQueryPrincipalResolutionMode,
+};
 pub(crate) use worth_query_execution::facade::runtime::WorthQueryRuntimeAuthorityIdentity;
 
 pub struct WorthQueryRuntime {
@@ -913,6 +923,8 @@ pub struct WorthQueryRuntime {
     execution_runtime: worth_query_execution::facade::runtime::WorthQueryExecutionRuntime,
     execution_installation_authority:
         worth_query_execution::facade::runtime::WorthQueryExecutionInstallationAuthority,
+    primary_graph_publication:
+        Option<worth_query_execution::facade::primary_graph::WorthQueryPrimaryGraphPublication>,
     domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
     domain_operation_executor_registry:
         crate::domain_installation::WorthQueryDomainOperationExecutorRegistry,

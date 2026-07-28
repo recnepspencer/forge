@@ -1,3 +1,4 @@
+mod bounded_entity_field_lookup;
 mod branch_scope;
 mod entity_field_lookup;
 mod parity_observability;
@@ -31,7 +32,7 @@ fn sampled_plan_key_for(
 ) -> crate::facade::query::DeterministicQueryPlanKey {
     for key in 1u128..512 {
         let sample_key = key ^ ((generation_id.0 as u128) << 64) ^ (version_id.0 as u128);
-        let sampled = sample_key % 8 == 0;
+        let sampled = sample_key.is_multiple_of(8);
         if sampled == should_sample {
             return crate::facade::query::DeterministicQueryPlanKey(key);
         }

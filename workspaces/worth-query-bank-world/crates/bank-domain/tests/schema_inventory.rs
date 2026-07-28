@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use bank_domain::schema::BankSchema;
+use bank_domain::schema::{BankPrincipalBinding, BankSchema};
 use worth_query_decl::facade::application_schema::{
     ApplicationOperationProgramTarget, ApplicationSchemaMember,
 };
@@ -15,6 +15,19 @@ fn bank_manifest_matches_the_frozen_phase_one_world() {
     assert_account_creation_programs(members);
     assert_money_programs(members);
     assert_payment_and_authorization_programs(members);
+    assert_eq!(
+        declaration.erased().owner(),
+        "WORTH.bank",
+        "host package and application schema must share one canonical owner"
+    );
+    let binding = BankPrincipalBinding::reference();
+    assert_eq!(binding.mapping_entity(), "ExternalPrincipalMapping");
+    assert_eq!(binding.identity_field(), "ExternalIdentityKey");
+    assert_eq!(binding.status_field(), "ExternalMappingStatus");
+    assert_eq!(binding.target_relation(), "ExternalPrincipal");
+    assert_eq!(binding.principal_entity(), "Principal");
+    assert_eq!(binding.principal_identity_aspect(), "PrincipalIdentity");
+    assert_eq!(binding.principal_identity_field(), "PrincipalIdentityField");
 }
 
 fn assert_entity_and_relation_inventory(members: &[ApplicationSchemaMember]) {
@@ -51,6 +64,7 @@ fn assert_entity_and_relation_inventory(members: &[ApplicationSchemaMember]) {
             "JournalPosting",
             "PaymentApproval",
             "PaymentDestination",
+            "PaymentInitiator",
             "PaymentSource",
             "PersonalOwner",
             "PostingAccount",
@@ -87,9 +101,14 @@ fn assert_field_and_governance_inventory(members: &[ApplicationSchemaMember]) {
             "AccountState",
             "AuthorizationScope",
             "EmployeeScope",
+            "ExternalPrincipalIdentity",
             "Identity",
+            "BusinessIdentity",
+            "InstitutionIdentity",
+            "PaymentIdentity",
             "PaymentState",
             "PostingValue",
+            "PrincipalIdentity",
         ])
     );
     assert_eq!(
@@ -100,9 +119,15 @@ fn assert_field_and_governance_inventory(members: &[ApplicationSchemaMember]) {
             "AssignmentRole",
             "AuthorizationRole",
             "AvailableBalance",
+            "BusinessIdentityField",
+            "ExternalIdentityKey",
+            "ExternalMappingStatus",
             "Kind",
+            "InstitutionIdentityField",
+            "PaymentIdentityField",
             "PaymentStatusField",
             "PostingAmount",
+            "PrincipalIdentityField",
             "Purpose",
             "Status",
         ])
@@ -213,6 +238,7 @@ fn assert_payment_and_authorization_programs(members: &[ApplicationSchemaMember]
 fn bank_schema_source_has_no_raw_query_descriptor_or_dynamic_key_lane() {
     let schema_sources = [
         include_str!("../src/schema/entities.rs"),
+        include_str!("../src/schema/authentication.rs"),
         include_str!("../src/schema/fields.rs"),
         include_str!("../src/schema/governance.rs"),
         include_str!("../src/schema/manifest.rs"),

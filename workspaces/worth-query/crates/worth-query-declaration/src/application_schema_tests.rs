@@ -20,8 +20,30 @@ struct CurrencyValue;
 struct ProgramSchema;
 struct ProgramEntity;
 struct ProgramOperation;
+struct NamespacedSchema;
+struct InvalidOwnerSchema;
+struct DottedMemberSchema;
+struct IdentifierEntity;
+
+crate::worth_query_application_schema! {
+    schema MacroNamespacedSchema {
+        owner: "bank.world",
+        version: (1, 0),
+        members: |schema| {
+            schema.entity(MacroNamespacedEntity::reference())
+        }
+    }
+}
+
+crate::worth_query_entity!(MacroNamespacedEntity in MacroNamespacedSchema);
 
 impl OperationCreates<ProgramOperation> for ProgramEntity {}
+
+#[test]
+fn application_schema_macro_accepts_the_canonical_namespace_qualified_owner() {
+    let declaration = MacroNamespacedSchema::declaration().unwrap();
+    assert_eq!(declaration.erased().owner(), "bank.world");
+}
 
 impl ApplicationCurrencyMarker<Usd> for UsdCurrency {
     const NAME: &'static str = "UsdCurrency";
@@ -64,6 +86,73 @@ impl ApplicationSchema for ProgramSchema {
             .operation(program_operation())
             .build()
     }
+}
+
+impl ApplicationSchema for NamespacedSchema {
+    const OWNER: &'static str = "bank.world";
+    const NAME: &'static str = "NamespacedSchema";
+    const MAJOR: u32 = 1;
+    const MINOR: u32 = 0;
+
+    fn declaration(
+    ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial> {
+        ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
+            .entity(
+                ApplicationEntityRef::<Self, IdentifierEntity>::from_schema_identifier(
+                    "IdentifierEntity",
+                ),
+            )
+            .build()
+    }
+}
+
+impl ApplicationSchema for InvalidOwnerSchema {
+    const OWNER: &'static str = "bank..world";
+    const NAME: &'static str = "InvalidOwnerSchema";
+    const MAJOR: u32 = 1;
+    const MINOR: u32 = 0;
+
+    fn declaration(
+    ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial> {
+        ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
+            .entity(
+                ApplicationEntityRef::<Self, IdentifierEntity>::from_schema_identifier(
+                    "IdentifierEntity",
+                ),
+            )
+            .build()
+    }
+}
+
+impl ApplicationSchema for DottedMemberSchema {
+    const OWNER: &'static str = "bank.world";
+    const NAME: &'static str = "DottedMemberSchema";
+    const MAJOR: u32 = 1;
+    const MINOR: u32 = 0;
+
+    fn declaration(
+    ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial> {
+        ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
+            .entity(
+                ApplicationEntityRef::<Self, IdentifierEntity>::from_schema_identifier(
+                    "Identifier.Entity",
+                ),
+            )
+            .build()
+    }
+}
+
+#[test]
+fn namespace_qualified_owner_is_valid_but_empty_segments_and_dotted_members_are_not() {
+    NamespacedSchema::declaration().unwrap();
+    assert_eq!(
+        InvalidOwnerSchema::declaration().unwrap_err(),
+        ApplicationSchemaDeclarationDenial::InvalidIdentifier
+    );
+    assert_eq!(
+        DottedMemberSchema::declaration().unwrap_err(),
+        ApplicationSchemaDeclarationDenial::InvalidIdentifier
+    );
 }
 
 #[test]

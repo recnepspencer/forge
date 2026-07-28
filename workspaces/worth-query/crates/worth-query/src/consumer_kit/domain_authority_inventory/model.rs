@@ -29,7 +29,7 @@ impl WorthQueryDomainAuthorityClass {
 pub struct WorthQueryDomainAuthorityInventoryRow {
     symbol: &'static str,
     defining_path: &'static str,
-    exporting_path: Option<&'static str>,
+    exporting_paths: &'static [&'static str],
     current_class: WorthQueryDomainAuthorityClass,
     target_class: WorthQueryDomainAuthorityClass,
     final_owner: &'static str,
@@ -39,7 +39,7 @@ impl WorthQueryDomainAuthorityInventoryRow {
     pub(crate) const fn new(
         symbol: &'static str,
         defining_path: &'static str,
-        exporting_path: Option<&'static str>,
+        exporting_paths: &'static [&'static str],
         current_class: WorthQueryDomainAuthorityClass,
         target_class: WorthQueryDomainAuthorityClass,
         final_owner: &'static str,
@@ -47,7 +47,7 @@ impl WorthQueryDomainAuthorityInventoryRow {
         Self {
             symbol,
             defining_path,
-            exporting_path,
+            exporting_paths,
             current_class,
             target_class,
             final_owner,
@@ -60,8 +60,8 @@ impl WorthQueryDomainAuthorityInventoryRow {
     pub fn defining_path(&self) -> &'static str {
         self.defining_path
     }
-    pub fn exporting_path(&self) -> Option<&'static str> {
-        self.exporting_path
+    pub fn exporting_paths(&self) -> &'static [&'static str] {
+        self.exporting_paths
     }
     pub fn current_class(&self) -> WorthQueryDomainAuthorityClass {
         self.current_class

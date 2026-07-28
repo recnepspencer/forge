@@ -60,6 +60,57 @@ named_reference!(ApplicationAspectRef, Schema, Entity, Aspect);
 named_reference!(ApplicationPolicyRef, Schema, Policy);
 named_reference!(ApplicationCurrencyRef, Schema, Currency);
 
+pub struct ApplicationAbilityRef<Schema, Ability, Scope> {
+    name: &'static str,
+    scope: &'static str,
+    _marker: PhantomData<fn() -> (Schema, Ability, Scope)>,
+}
+
+impl<Schema, Ability, Scope> Copy for ApplicationAbilityRef<Schema, Ability, Scope> {}
+
+impl<Schema, Ability, Scope> Clone for ApplicationAbilityRef<Schema, Ability, Scope> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Schema, Ability, Scope> ApplicationAbilityRef<Schema, Ability, Scope> {
+    #[doc(hidden)]
+    pub const fn from_schema_identifiers(name: &'static str, scope: &'static str) -> Self {
+        Self {
+            name,
+            scope,
+            _marker: PhantomData,
+        }
+    }
+
+    pub const fn name(&self) -> &'static str {
+        self.name
+    }
+
+    pub const fn scope(&self) -> &'static str {
+        self.scope
+    }
+}
+
+impl<Schema, Ability, Scope> std::fmt::Debug for ApplicationAbilityRef<Schema, Ability, Scope> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ApplicationAbilityRef")
+            .field("name", &self.name)
+            .field("scope", &self.scope)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<Schema, Ability, Scope> PartialEq for ApplicationAbilityRef<Schema, Ability, Scope> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.name, self.scope) == (other.name, other.scope)
+    }
+}
+
+impl<Schema, Ability, Scope> Eq for ApplicationAbilityRef<Schema, Ability, Scope> {}
+
 pub struct ApplicationRelationRef<Schema, Relation, From, To> {
     name: &'static str,
     from: &'static str,

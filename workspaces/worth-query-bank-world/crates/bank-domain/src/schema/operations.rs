@@ -5,8 +5,8 @@ use worth_query_decl::facade::{
 };
 
 use crate::model::{
-    AccountAuthorizationId, AccountId, BankPrincipalId, BusinessId, CustomerRole, InstitutionId,
-    JournalEntryId, Money, PaymentId, USD,
+    AccountAuthorizationId, AccountId, AccountName, BankPrincipalId, BusinessId, CustomerRole,
+    InstitutionId, JournalEntryId, Money, PaymentId, USD,
 };
 
 use super::entities::{
@@ -18,8 +18,8 @@ use super::fields::{
 use super::governance::AccountActivityEffect;
 use super::relations::{
     AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount,
-    InstitutionAccount, JournalPosting, PaymentApproval, PaymentDestination, PaymentSource,
-    PersonalOwner, PostingAccount,
+    InstitutionAccount, JournalPosting, PaymentApproval, PaymentDestination, PaymentInitiator,
+    PaymentSource, PersonalOwner, PostingAccount,
 };
 use super::BankSchema;
 
@@ -27,14 +27,14 @@ use super::BankSchema;
 pub struct CreatePersonalAccount {
     pub institution: InstitutionId,
     pub owner: BankPrincipalId,
-    pub display_name: String,
+    pub display_name: AccountName,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CreateBusinessAccount {
     pub institution: InstitutionId,
     pub business: BusinessId,
-    pub display_name: String,
+    pub display_name: AccountName,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -166,7 +166,7 @@ worth_query_operation_links!(ReverseJournalOperation => [JournalPosting, Posting
 
 worth_query_operation_creates!(InitiateBusinessPaymentOperation => [PaymentIntent]);
 worth_query_operation_links!(
-    InitiateBusinessPaymentOperation => [PaymentSource, PaymentDestination]
+    InitiateBusinessPaymentOperation => [PaymentSource, PaymentDestination, PaymentInitiator]
 );
 worth_query_operation_creates!(ApprovePaymentOperation => [Approval]);
 worth_query_operation_links!(

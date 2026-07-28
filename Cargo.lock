@@ -2148,6 +2148,7 @@ dependencies = [
 name = "worth-query-admission"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "sha2",
  "worth-foundational",
  "worth-query-declaration",
@@ -2166,6 +2167,7 @@ dependencies = [
 name = "worth-query-execution"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "sha2",
  "stats_alloc",
  "worth-foundational",

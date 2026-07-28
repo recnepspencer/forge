@@ -101,6 +101,15 @@ impl WorthQueryPortableDomainPackage {
         self
     }
 
+    #[doc(hidden)]
+    pub fn application_schema_erased(
+        mut self,
+        declaration: ErasedApplicationSchemaDeclaration,
+    ) -> Self {
+        self.application_schemas.push(declaration);
+        self
+    }
+
     pub fn permits_contribution(mut self, value: impl Into<String>) -> Self {
         self.contributions
             .push(WorthQueryInstallationContributionCategory::new(value));

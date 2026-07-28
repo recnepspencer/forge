@@ -6,6 +6,8 @@ pub trait WritePosture {
 
 pub trait WritableCapability: WritePosture {}
 
+pub trait OperationRequiresAbility<Operation> {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadOnly;
 

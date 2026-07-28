@@ -1,3 +1,4 @@
+mod bounded_entity_field_lookup;
 mod execution;
 mod routing;
 mod scratch;

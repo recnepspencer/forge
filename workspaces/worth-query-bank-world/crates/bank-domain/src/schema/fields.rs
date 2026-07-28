@@ -1,13 +1,22 @@
 use worth_query_decl::facade::{worth_query_aspect, worth_query_field};
 
-use crate::model::{CustomerRole, EmployeeRole, Money, USD};
+use crate::model::{
+    AccountId, AccountName, BusinessId, CustomerRole, EmployeeRole, InstitutionId, PaymentId,
+    SignedMoney, USD,
+};
 
-use super::entities::{Account, AccountAuthorization, EmployeeAssignment, PaymentIntent, Posting};
+use super::entities::{
+    Account, AccountAuthorization, Business, EmployeeAssignment, Institution, PaymentIntent,
+    Posting,
+};
 use super::governance::UsdCurrency;
 use super::values::{AccountKind, AccountStatus, PaymentStatus, PostingPurpose};
 use super::BankSchema;
 
 worth_query_aspect!(pub Identity in BankSchema, Account);
+worth_query_aspect!(pub InstitutionIdentity in BankSchema, Institution);
+worth_query_aspect!(pub BusinessIdentity in BankSchema, Business);
+worth_query_aspect!(pub PaymentIdentity in BankSchema, PaymentIntent);
 worth_query_aspect!(pub AccountProfile in BankSchema, Account);
 worth_query_aspect!(pub AccountState in BankSchema, Account);
 worth_query_aspect!(pub AuthorizationScope in BankSchema, AccountAuthorization);
@@ -17,11 +26,23 @@ worth_query_aspect!(pub PaymentState in BankSchema, PaymentIntent);
 
 worth_query_field!(
     pub AccountIdentity in BankSchema, Account, Identity:
-    u64, read_only, equality
+    AccountId, read_only, equality
+);
+worth_query_field!(
+    pub InstitutionIdentityField in BankSchema, Institution, InstitutionIdentity:
+    InstitutionId, read_only, equality
+);
+worth_query_field!(
+    pub BusinessIdentityField in BankSchema, Business, BusinessIdentity:
+    BusinessId, read_only, equality
+);
+worth_query_field!(
+    pub PaymentIdentityField in BankSchema, PaymentIntent, PaymentIdentity:
+    PaymentId, read_only, equality
 );
 worth_query_field!(
     pub AccountDisplayName in BankSchema, Account, AccountProfile:
-    String, read_write, equality
+    AccountName, read_write, equality
 );
 worth_query_field!(
     pub Kind in BankSchema, Account, AccountProfile:
@@ -29,7 +50,7 @@ worth_query_field!(
 );
 worth_query_field!(
     pub AvailableBalance in BankSchema, Account, AccountState:
-    Money<USD>, currency UsdCurrency, read_only, no_equality
+    SignedMoney<USD>, currency UsdCurrency, read_only, no_equality
 );
 worth_query_field!(
     pub Status in BankSchema, Account, AccountState:
@@ -45,7 +66,7 @@ worth_query_field!(
 );
 worth_query_field!(
     pub PostingAmount in BankSchema, Posting, PostingValue:
-    Money<USD>, currency UsdCurrency, read_write, no_equality
+    SignedMoney<USD>, currency UsdCurrency, read_write, no_equality
 );
 worth_query_field!(
     pub Purpose in BankSchema, Posting, PostingValue:

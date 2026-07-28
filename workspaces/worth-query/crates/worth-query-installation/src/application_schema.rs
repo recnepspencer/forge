@@ -1,12 +1,24 @@
 use std::marker::PhantomData;
 
 use worth_query_declaration::facade::application_schema::{
-    ApplicationEntityRef, ApplicationOperationRef, ApplicationSchema,
-    ApplicationSchemaAuthoringContext, ApplicationSchemaBindingIdentity,
-    ApplicationSchemaDeclaration, ErasedApplicationSchemaDeclaration, TypedEffectIntentBuilder,
+    ApplicationAbilityRef, ApplicationEntityRef, ApplicationOperationRef,
+    ApplicationPrincipalBindingRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
+    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration, ApplicationSchemaMember,
+    ErasedApplicationSchemaDeclaration, TypedApplicationValue, TypedEffectIntentBuilder,
     TypedOperationBuilder, TypedReadDeclarationBuilder,
 };
 
+use crate::application_ability::{
+    WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
+    WorthQueryInstalledAbility,
+};
+use crate::application_operation::{
+    WorthQueryApplicationOperationInstallationDenial, WorthQueryInstalledApplicationOperation,
+};
+use crate::application_principal_binding::{
+    WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
+    WorthQueryPrincipalBindingInstallationDenialKind,
+};
 use crate::installed_index::WorthQueryInstalledPackageAuthority;
 use crate::package::WorthQueryPortableDomainPackageIdentity;
 
@@ -116,6 +128,15 @@ where
         )
     }
 
+    /// Returns the descriptive schema meaning retained by this installed proof.
+    ///
+    /// The declaration itself carries no installation authority. Callers must
+    /// retain this handle when an operation requires proof of the installed
+    /// runtime and generation.
+    pub fn installed_declaration(&self) -> &ErasedApplicationSchemaDeclaration {
+        &self.schema
+    }
+
     pub fn query<Entity>(
         &self,
         entity: ApplicationEntityRef<Schema, Entity>,
@@ -136,6 +157,162 @@ where
     ) -> TypedEffectIntentBuilder<Schema, Operation, Input> {
         TypedEffectIntentBuilder::new(operation).with_installed_context(self.authoring_context())
     }
+
+    pub fn principal_binding<Binding, Mapping, Principal, PrincipalIdentity>(
+        &self,
+        binding: ApplicationPrincipalBindingRef<
+            Schema,
+            Binding,
+            Mapping,
+            Principal,
+            PrincipalIdentity,
+        >,
+    ) -> Result<
+        WorthQueryInstalledPrincipalBinding<Schema, Binding, Mapping, Principal, PrincipalIdentity>,
+        WorthQueryPrincipalBindingInstallationDenial,
+    >
+    where
+        PrincipalIdentity: TypedApplicationValue,
+    {
+        let installed = self
+            .schema
+            .members()
+            .iter()
+            .find(|member| principal_binding_name(member) == Some(binding.name()))
+            .ok_or_else(|| {
+                WorthQueryPrincipalBindingInstallationDenial::new(
+                    WorthQueryPrincipalBindingInstallationDenialKind::BindingNotInstalled,
+                    binding.name(),
+                )
+            })?;
+        if !principal_binding_matches(installed, binding) {
+            return Err(WorthQueryPrincipalBindingInstallationDenial::new(
+                WorthQueryPrincipalBindingInstallationDenialKind::BindingMeaningChanged,
+                binding.name(),
+            ));
+        }
+        Ok(WorthQueryInstalledPrincipalBinding::from_installed_schema(
+            self,
+            binding.name(),
+            binding.mapping_entity(),
+            binding.identity_aspect(),
+            binding.identity_field(),
+            binding.status_aspect(),
+            binding.status_field(),
+            binding.target_relation(),
+            binding.principal_entity(),
+            binding.principal_identity_aspect(),
+            binding.principal_identity_field(),
+            binding.principal_identity_scalar_family(),
+            binding.principal_identity_value_type(),
+        ))
+    }
+
+    pub fn ability<Ability, Scope>(
+        &self,
+        ability: ApplicationAbilityRef<Schema, Ability, Scope>,
+    ) -> Result<
+        WorthQueryInstalledAbility<Schema, Ability, Scope>,
+        WorthQueryAbilityInstallationDenial,
+    > {
+        let installed = self
+            .schema
+            .members()
+            .iter()
+            .find(|member| {
+                matches!(
+                    member,
+                    ApplicationSchemaMember::Ability {
+                        ability: installed,
+                        ..
+                    } if installed == ability.name()
+                )
+            })
+            .ok_or_else(|| {
+                WorthQueryAbilityInstallationDenial::new(
+                    WorthQueryAbilityInstallationDenialKind::AbilityNotInstalled,
+                    ability.name(),
+                )
+            })?;
+        let ApplicationSchemaMember::Ability {
+            ability: installed_name,
+            scope_entity,
+        } = installed
+        else {
+            unreachable!("ability lookup returned a non-ability member")
+        };
+        if installed_name != ability.name() || scope_entity != ability.scope() {
+            return Err(WorthQueryAbilityInstallationDenial::new(
+                WorthQueryAbilityInstallationDenialKind::AbilityMeaningChanged,
+                ability.name(),
+            ));
+        }
+        Ok(WorthQueryInstalledAbility::from_installed_schema(
+            self,
+            installed_name,
+            scope_entity,
+        ))
+    }
+
+    pub fn installed_operation<Operation, Input>(
+        &self,
+        operation: ApplicationOperationRef<Schema, Operation, Input>,
+    ) -> Result<
+        WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+        WorthQueryApplicationOperationInstallationDenial,
+    > {
+        WorthQueryInstalledApplicationOperation::from_installed_schema(self, operation.name())
+    }
+}
+
+fn principal_binding_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::PrincipalBinding { binding, .. } => Some(binding),
+        _ => None,
+    }
+}
+
+fn principal_binding_matches<Schema, Binding, Mapping, Principal, PrincipalIdentity>(
+    member: &ApplicationSchemaMember,
+    reference: ApplicationPrincipalBindingRef<
+        Schema,
+        Binding,
+        Mapping,
+        Principal,
+        PrincipalIdentity,
+    >,
+) -> bool
+where
+    PrincipalIdentity: TypedApplicationValue,
+{
+    matches!(
+        member,
+        ApplicationSchemaMember::PrincipalBinding {
+            binding,
+            mapping_entity,
+            identity_aspect,
+            identity_field,
+            status_aspect,
+            status_field,
+            target_relation,
+            principal_entity,
+            principal_identity_aspect,
+            principal_identity_field,
+            principal_identity_scalar_family,
+            principal_identity_value_type,
+        } if binding == reference.name()
+            && mapping_entity == reference.mapping_entity()
+            && identity_aspect == reference.identity_aspect()
+            && identity_field == reference.identity_field()
+            && status_aspect == reference.status_aspect()
+            && status_field == reference.status_field()
+            && target_relation == reference.target_relation()
+            && principal_entity == reference.principal_entity()
+            && principal_identity_aspect == reference.principal_identity_aspect()
+            && principal_identity_field == reference.principal_identity_field()
+            && *principal_identity_scalar_family == reference.principal_identity_scalar_family()
+            && principal_identity_value_type == reference.principal_identity_value_type()
+    )
 }
 
 impl<Schema> std::fmt::Debug for WorthQueryInstalledApplicationSchema<Schema> {

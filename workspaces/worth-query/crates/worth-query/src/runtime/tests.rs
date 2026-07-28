@@ -43,6 +43,7 @@ mod native_value_identity_basis;
 #[allow(deprecated)]
 mod preview;
 mod preview_branch_obligation_dispatch;
+mod primary_graph_composition;
 mod program;
 mod read_composition;
 mod read_obligation_dispatch;

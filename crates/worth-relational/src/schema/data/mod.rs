@@ -1,5 +1,6 @@
 mod aspect_contracts;
 mod aspect_traces;
+mod authority_snapshot;
 mod continuity;
 mod registry_errors;
 mod relation_integrity;
@@ -7,12 +8,10 @@ mod structural_invariants;
 
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
+use serde::{Deserialize, Serialize};
 
 pub use aspect_contracts::{
     AspectBinding, AspectContractPlanCatalog, AspectContractPlanRevision,
@@ -21,6 +20,10 @@ pub use aspect_contracts::{
 };
 pub use aspect_traces::{
     AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace, AspectLoweringTraceRow,
+};
+pub use authority_snapshot::{
+    schema_authority_snapshot_digest_bytes, SchemaAuthorityKindSnapshot,
+    SchemaAuthorityRelationSnapshot, SchemaAuthoritySnapshot,
 };
 pub use continuity::{
     runtime_descriptor_canonical_basis_policy, runtime_descriptor_semantics_policy,
@@ -90,33 +93,6 @@ pub struct KindResolution {
     pub schema_version_id: SchemaVersionId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SchemaAuthoritySnapshot {
-    pub primary_schema_id: Option<SchemaId>,
-    pub primary_schema_version_id: Option<SchemaVersionId>,
-    pub entity_kinds: Vec<SchemaAuthorityKindSnapshot>,
-    pub relation_kinds: Vec<SchemaAuthorityRelationSnapshot>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SchemaAuthorityKindSnapshot {
-    pub kind_id: KindId,
-    pub kind_name: String,
-    pub schema_id: SchemaId,
-    pub schema_version_id: SchemaVersionId,
-    pub aspect_plan_revision: AspectContractPlanRevision,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SchemaAuthorityRelationSnapshot {
-    pub kind_id: KindId,
-    pub kind_name: String,
-    pub schema_id: SchemaId,
-    pub schema_version_id: SchemaVersionId,
-    pub aspect_plan_revision: AspectContractPlanRevision,
-    pub relation_integrity_plan_revision: RelationIntegrityPlanRevision,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RelationalSchemaRegistry {
     pub entity_kinds: BTreeMap<KindId, EntityKindRegistration>,
@@ -132,6 +108,11 @@ impl RelationalSchemaRegistry {
         mut self,
         registration: EntityKindRegistration,
     ) -> Result<Self, SchemaRegistryError> {
+        if self.entity_kinds.contains_key(&registration.kind_id) {
+            return Err(SchemaRegistryError::duplicate_entity_kind(
+                registration.kind_id,
+            ));
+        }
         if self.relation_kinds.contains_key(&registration.kind_id) {
             return Err(SchemaRegistryError::entity_relation_kind_collision(
                 registration.kind_id,
@@ -146,6 +127,11 @@ impl RelationalSchemaRegistry {
         mut self,
         registration: RelationKindRegistration,
     ) -> Result<Self, SchemaRegistryError> {
+        if self.relation_kinds.contains_key(&registration.kind_id) {
+            return Err(SchemaRegistryError::duplicate_relation_kind(
+                registration.kind_id,
+            ));
+        }
         if self.entity_kinds.contains_key(&registration.kind_id) {
             return Err(SchemaRegistryError::entity_relation_kind_collision(
                 registration.kind_id,
@@ -154,6 +140,21 @@ impl RelationalSchemaRegistry {
         let registration = crate::schema::logic::canonicalize_relation_registration(registration)?;
         self.relation_kinds
             .insert(registration.kind_id, registration);
+        Ok(self)
+    }
+
+    /// Extends this registry without allowing an existing kind authority to be
+    /// replaced by the incoming registry.
+    pub fn extend(
+        mut self,
+        additions: RelationalSchemaRegistry,
+    ) -> Result<Self, SchemaRegistryError> {
+        for registration in additions.entity_kinds.into_values() {
+            self = self.register_entity_kind(registration)?;
+        }
+        for registration in additions.relation_kinds.into_values() {
+            self = self.register_relation_kind(registration)?;
+        }
         Ok(self)
     }
 
@@ -346,46 +347,4 @@ impl RelationalSchemaRegistry {
     pub fn authority_digest_bytes(&self) -> [u8; 32] {
         schema_authority_snapshot_digest_bytes(&self.authority_snapshot())
     }
-}
-
-pub fn schema_authority_snapshot_digest_bytes(snapshot: &SchemaAuthoritySnapshot) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    if let Some(schema_id) = &snapshot.primary_schema_id {
-        hasher.update(b"primary_schema_id:");
-        hasher.update(schema_id.0.as_bytes());
-    } else {
-        hasher.update(b"primary_schema_id:none");
-    }
-    if let Some(schema_version_id) = snapshot.primary_schema_version_id {
-        hasher.update(b"primary_schema_version:");
-        hasher.update(schema_version_id.0.to_le_bytes());
-    } else {
-        hasher.update(b"primary_schema_version:none");
-    }
-    for entity_kind in &snapshot.entity_kinds {
-        hasher.update(b"entity_kind");
-        hasher.update(entity_kind.kind_id.0.to_le_bytes());
-        hasher.update(entity_kind.kind_name.as_bytes());
-        hasher.update(entity_kind.schema_id.0.as_bytes());
-        hasher.update(entity_kind.schema_version_id.0.to_le_bytes());
-        hasher.update(entity_kind.aspect_plan_revision.0.to_le_bytes());
-    }
-    for relation_kind in &snapshot.relation_kinds {
-        hasher.update(b"relation_kind");
-        hasher.update(relation_kind.kind_id.0.to_le_bytes());
-        hasher.update(relation_kind.kind_name.as_bytes());
-        hasher.update(relation_kind.schema_id.0.as_bytes());
-        hasher.update(relation_kind.schema_version_id.0.to_le_bytes());
-        hasher.update(relation_kind.aspect_plan_revision.0.to_le_bytes());
-        hasher.update(
-            relation_kind
-                .relation_integrity_plan_revision
-                .0
-                .to_le_bytes(),
-        );
-    }
-    let digest = hasher.finalize();
-    let mut out = [0_u8; 32];
-    out.copy_from_slice(&digest);
-    out
 }

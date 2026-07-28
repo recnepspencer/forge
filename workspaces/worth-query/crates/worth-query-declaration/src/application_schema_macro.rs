@@ -2,7 +2,40 @@
 macro_rules! worth_query_application_schema {
     (
         $vis:vis schema $Schema:ident {
+            owner: $owner:literal,
+            version: ($major:expr, $minor:expr),
+            members: |$builder:ident| $body:block
+        }
+    ) => {
+        $crate::worth_query_application_schema!(
+            @define
+            $vis schema $Schema {
+                owner: $owner,
+                version: ($major, $minor),
+                members: |$builder| $body
+            }
+        );
+    };
+    (
+        $vis:vis schema $Schema:ident {
             owner: $owner:ident,
+            version: ($major:expr, $minor:expr),
+            members: |$builder:ident| $body:block
+        }
+    ) => {
+        $crate::worth_query_application_schema!(
+            @define
+            $vis schema $Schema {
+                owner: stringify!($owner),
+                version: ($major, $minor),
+                members: |$builder| $body
+            }
+        );
+    };
+    (
+        @define
+        $vis:vis schema $Schema:ident {
+            owner: $owner:expr,
             version: ($major:expr, $minor:expr),
             members: |$builder:ident| $body:block
         }
@@ -11,7 +44,7 @@ macro_rules! worth_query_application_schema {
         $vis struct $Schema;
 
         impl $crate::facade::application_schema::ApplicationSchema for $Schema {
-            const OWNER: &'static str = stringify!($owner);
+            const OWNER: &'static str = $owner;
             const NAME: &'static str = stringify!($Schema);
             const MAJOR: u32 = $major;
             const MINOR: u32 = $minor;
@@ -79,6 +112,10 @@ macro_rules! worth_query_field {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Field;
 
+        impl $crate::facade::application_schema::DeclaredApplicationFieldValue for $Field {
+            type Value = $Value;
+        }
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -107,6 +144,10 @@ macro_rules! worth_query_field {
     ) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Field;
+
+        impl $crate::facade::application_schema::DeclaredApplicationFieldValue for $Field {
+            type Value = $Value;
+        }
 
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
@@ -152,125 +193,82 @@ macro_rules! worth_query_relation {
 }
 
 #[macro_export]
-macro_rules! worth_query_operation {
-    ($vis:vis $Operation:ident($Input:ty) in $Schema:ty) => {
+macro_rules! worth_query_principal_binding {
+    (
+        $vis:vis $Binding:ident in $Schema:ty,
+        mapping $Mapping:ty {
+            identity: $IdentityField:ty,
+            status: $StatusField:ty,
+            target: $TargetRelation:ty => $Principal:ty,
+            principal_identity: $PrincipalIdentityField:ty
+        }
+    ) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        $vis struct $Operation;
+        $vis struct $Binding;
 
-        impl $Operation {
-            pub const fn reference() -> $crate::facade::application_schema::ApplicationOperationRef<$Schema, Self, $Input> {
-                $crate::facade::application_schema::ApplicationOperationRef::from_schema_identifier(
-                    stringify!($Operation),
+        impl $Binding {
+            pub fn reference() -> $crate::facade::application_schema::ApplicationPrincipalBindingRef<
+                $Schema,
+                Self,
+                $Mapping,
+                $Principal,
+                <$PrincipalIdentityField as $crate::facade::application_schema::DeclaredApplicationFieldValue>::Value,
+            > {
+                let identity: $crate::facade::application_schema::ApplicationFieldRef<
+                    $Schema,
+                    $Mapping,
+                    _,
+                    $IdentityField,
+                    $crate::facade::authentication::WorthQueryExternalPrincipalIdentity,
+                    _,
+                    $crate::facade::application_schema::EqualityPredicate,
+                    _,
+                > = <$IdentityField>::reference();
+                let status: $crate::facade::application_schema::ApplicationFieldRef<
+                    $Schema,
+                    $Mapping,
+                    _,
+                    $StatusField,
+                    $crate::facade::authentication::WorthQueryPrincipalMappingStatus,
+                    _,
+                    _,
+                    _,
+                > = <$StatusField>::reference();
+                let target: $crate::facade::application_schema::ApplicationRelationRef<
+                    $Schema,
+                    $TargetRelation,
+                    $Mapping,
+                    $Principal,
+                > = <$TargetRelation>::reference();
+                let principal_identity: $crate::facade::application_schema::ApplicationFieldRef<
+                    $Schema,
+                    $Principal,
+                    _,
+                    $PrincipalIdentityField,
+                    _,
+                    $crate::facade::application_schema::ReadOnly,
+                    $crate::facade::application_schema::EqualityPredicate,
+                    _,
+                > = <$PrincipalIdentityField>::reference();
+                $crate::facade::application_schema::ApplicationPrincipalBindingRef::<
+                    $Schema,
+                    Self,
+                    $Mapping,
+                    $Principal,
+                    <$PrincipalIdentityField as $crate::facade::application_schema::DeclaredApplicationFieldValue>::Value,
+                >::from_schema_identifiers(
+                    stringify!($Binding),
+                    identity.entity(),
+                    identity.aspect(),
+                    identity.field(),
+                    status.aspect(),
+                    status.field(),
+                    target.name(),
+                    target.to(),
+                    principal_identity.aspect(),
+                    principal_identity.field(),
                 )
             }
         }
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_policy {
-    ($vis:vis $Policy:ident in $Schema:ty) => {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        $vis struct $Policy;
-
-        impl $Policy {
-            pub const fn reference() -> $crate::facade::application_schema::ApplicationPolicyRef<$Schema, Self> {
-                $crate::facade::application_schema::ApplicationPolicyRef::from_schema_identifier(
-                    stringify!($Policy),
-                )
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_currency {
-    ($vis:vis $Currency:ident($DomainCurrency:ty) in $Schema:ty) => {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        $vis struct $Currency;
-
-        impl $crate::facade::application_schema::ApplicationCurrencyMarker<$DomainCurrency>
-            for $Currency
-        {
-            const NAME: &'static str = stringify!($Currency);
-        }
-
-        impl $Currency {
-            pub const fn reference() -> $crate::facade::application_schema::ApplicationCurrencyRef<$Schema, Self> {
-                $crate::facade::application_schema::ApplicationCurrencyRef::from_schema_identifier(
-                    stringify!($Currency),
-                )
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_effect {
-    ($vis:vis $Effect:ident($Payload:ty) in $Schema:ty) => {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        $vis struct $Effect;
-
-        impl $Effect {
-            pub const fn reference() -> $crate::facade::application_schema::ApplicationEffectRef<$Schema, Self, $Payload> {
-                $crate::facade::application_schema::ApplicationEffectRef::from_schema_identifier(
-                    stringify!($Effect),
-                )
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_operation_writes {
-    ($Operation:ty => [$($Field:ty),+ $(,)?]) => {
-        $(
-            impl $crate::facade::application_schema::OperationWrites<$Operation> for $Field {}
-        )+
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_operation_creates {
-    ($Operation:ty => [$($Entity:ty),+ $(,)?]) => {
-        $(
-            impl $crate::facade::application_schema::OperationCreates<$Operation> for $Entity {}
-        )+
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_operation_deletes {
-    ($Operation:ty => [$($Entity:ty),+ $(,)?]) => {
-        $(
-            impl $crate::facade::application_schema::OperationDeletes<$Operation> for $Entity {}
-        )+
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_operation_links {
-    ($Operation:ty => [$($Relation:ty),+ $(,)?]) => {
-        $(
-            impl $crate::facade::application_schema::OperationLinks<$Operation> for $Relation {}
-        )+
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_operation_unlinks {
-    ($Operation:ty => [$($Relation:ty),+ $(,)?]) => {
-        $(
-            impl $crate::facade::application_schema::OperationUnlinks<$Operation> for $Relation {}
-        )+
-    };
-}
-
-#[macro_export]
-macro_rules! worth_query_operation_emits {
-    ($Operation:ty => [$($Effect:ty),+ $(,)?]) => {
-        $(
-            impl $crate::facade::application_schema::OperationEmits<$Operation> for $Effect {}
-        )+
     };
 }

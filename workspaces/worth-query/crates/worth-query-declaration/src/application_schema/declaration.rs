@@ -1,14 +1,17 @@
 use std::marker::PhantomData;
 
-use worth_foundational::facade::ScalarAspectType;
-
+use super::authorization_policy::ApplicationAuthorizationPath;
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::capabilities::{ApplicationFieldCurrency, EqualityPosture, WritePosture};
+use super::identifier_validation::{validate_member_identifiers, validate_schema_header};
 use super::member_closure::validate_member_closure;
+use super::principal_binding_reference::ApplicationPrincipalBindingRef;
 use super::references::{
-    ApplicationAspectRef, ApplicationCurrencyRef, ApplicationEffectRef, ApplicationEntityRef,
-    ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef,
+    ApplicationAbilityRef, ApplicationAspectRef, ApplicationCurrencyRef, ApplicationEffectRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
+    ApplicationRelationRef,
 };
+use super::schema_member::ApplicationSchemaMember;
 use super::values::TypedApplicationValue;
 
 pub trait ApplicationSchema: Sized + 'static {
@@ -19,78 +22,6 @@ pub trait ApplicationSchema: Sized + 'static {
 
     fn declaration(
     ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial>;
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum ApplicationOperationProgramTarget {
-    Create {
-        entity: String,
-    },
-    Delete {
-        entity: String,
-    },
-    Write {
-        entity: String,
-        aspect: String,
-        field: String,
-    },
-    Link {
-        relation: String,
-        from: String,
-        to: String,
-    },
-    Unlink {
-        relation: String,
-        from: String,
-        to: String,
-    },
-    Emit {
-        effect: String,
-    },
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum ApplicationSchemaMember {
-    Entity {
-        entity: String,
-    },
-    Aspect {
-        entity: String,
-        aspect: String,
-    },
-    Field {
-        entity: String,
-        aspect: String,
-        field: String,
-        scalar_family: ScalarAspectType,
-        value_type: String,
-        currency: Option<String>,
-        writable: bool,
-        equality_queryable: bool,
-    },
-    Relation {
-        relation: String,
-        from: String,
-        to: String,
-    },
-    Operation {
-        operation: String,
-        input_type: String,
-    },
-    OperationProgram {
-        operation: String,
-        target: ApplicationOperationProgramTarget,
-    },
-    Policy {
-        policy: String,
-    },
-    Currency {
-        currency: String,
-    },
-    Effect {
-        effect: String,
-        payload_type: String,
-    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -274,6 +205,37 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         self
     }
 
+    pub fn principal_binding<Binding, Mapping, Principal, PrincipalIdentity>(
+        mut self,
+        binding: ApplicationPrincipalBindingRef<
+            Schema,
+            Binding,
+            Mapping,
+            Principal,
+            PrincipalIdentity,
+        >,
+    ) -> Self
+    where
+        PrincipalIdentity: TypedApplicationValue,
+    {
+        self.members
+            .push(ApplicationSchemaMember::PrincipalBinding {
+                binding: binding.name().to_string(),
+                mapping_entity: binding.mapping_entity().to_string(),
+                identity_aspect: binding.identity_aspect().to_string(),
+                identity_field: binding.identity_field().to_string(),
+                status_aspect: binding.status_aspect().to_string(),
+                status_field: binding.status_field().to_string(),
+                target_relation: binding.target_relation().to_string(),
+                principal_entity: binding.principal_entity().to_string(),
+                principal_identity_aspect: binding.principal_identity_aspect().to_string(),
+                principal_identity_field: binding.principal_identity_field().to_string(),
+                principal_identity_scalar_family: binding.principal_identity_scalar_family(),
+                principal_identity_value_type: binding.principal_identity_value_type().to_string(),
+            });
+        self
+    }
+
     pub fn operation<Operation, Input>(
         mut self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
@@ -288,6 +250,52 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     pub fn policy<Policy>(mut self, policy: ApplicationPolicyRef<Schema, Policy>) -> Self {
         self.members.push(ApplicationSchemaMember::Policy {
             policy: policy.name().to_string(),
+        });
+        self
+    }
+
+    pub fn ability<Ability, Scope>(
+        mut self,
+        ability: ApplicationAbilityRef<Schema, Ability, Scope>,
+    ) -> Self {
+        self.members.push(ApplicationSchemaMember::Ability {
+            ability: ability.name().to_string(),
+            scope_entity: ability.scope().to_string(),
+        });
+        self
+    }
+
+    pub fn operation_requires_ability<Operation, Input, Ability, Scope>(
+        mut self,
+        operation: ApplicationOperationRef<Schema, Operation, Input>,
+        ability: ApplicationAbilityRef<Schema, Ability, Scope>,
+    ) -> Self
+    where
+        Ability: super::capabilities::OperationRequiresAbility<Operation>,
+    {
+        self.members
+            .push(ApplicationSchemaMember::OperationAbility {
+                operation: operation.name().to_string(),
+                ability: ability.name().to_string(),
+                scope_entity: ability.scope().to_string(),
+            });
+        self
+    }
+
+    pub fn ability_policy<Ability, Scope, Policy>(
+        mut self,
+        ability: ApplicationAbilityRef<Schema, Ability, Scope>,
+        policy: ApplicationPolicyRef<Schema, Policy>,
+        paths: impl IntoIterator<Item = ApplicationAuthorizationPath>,
+    ) -> Self {
+        let mut paths = paths.into_iter().collect::<Vec<_>>();
+        paths.sort();
+        paths.dedup();
+        self.members.push(ApplicationSchemaMember::AbilityPolicy {
+            ability: ability.name().to_string(),
+            scope_entity: ability.scope().to_string(),
+            policy: policy.name().to_string(),
+            paths,
         });
         self
     }
@@ -316,8 +324,8 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     pub fn build(
         mut self,
     ) -> Result<ApplicationSchemaDeclaration<Schema>, ApplicationSchemaDeclarationDenial> {
-        validate_identifier(self.owner, "owner")?;
-        validate_identifier(self.name, "schema")?;
+        validate_schema_header(self.owner, self.name)?;
+        validate_member_identifiers(&self.members)?;
         self.members.sort();
         if self.members.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(ApplicationSchemaDeclarationDenial::DuplicateMember);
@@ -353,7 +361,11 @@ pub enum ApplicationSchemaDeclarationDenial {
     MissingEntity,
     MissingAspect,
     MissingCurrency,
+    MissingPrincipalBindingDependency,
     MissingOperationProgramDependency,
+    MissingAbilityDependency,
+    MissingAbilityPolicyDependency,
+    InvalidAbilityPolicy,
 }
 
 impl std::fmt::Display for ApplicationSchemaDeclarationDenial {
@@ -363,14 +375,3 @@ impl std::fmt::Display for ApplicationSchemaDeclarationDenial {
 }
 
 impl std::error::Error for ApplicationSchemaDeclarationDenial {}
-
-fn validate_identifier(value: &str, _kind: &str) -> Result<(), ApplicationSchemaDeclarationDenial> {
-    if value.is_empty()
-        || value.trim() != value
-        || value.chars().any(char::is_whitespace)
-        || value.contains('.')
-    {
-        return Err(ApplicationSchemaDeclarationDenial::InvalidIdentifier);
-    }
-    Ok(())
-}

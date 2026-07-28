@@ -7,6 +7,7 @@ impl WorthQueryRuntimeBuilder {
         let conditional_signal_graph = self.conditional_signal_graph.take();
         let pending_conditional_installations =
             std::mem::take(&mut self.pending_conditional_installations);
+        let pending_primary_graph_installation = self.pending_primary_graph_installation.take();
         if self.backend.is_some() && !self.backend_parts.is_empty() {
             return Err(WorthQueryRuntimeError::InvariantRegistration {
                 stage: "runtime_backend_authority_selection",
@@ -20,7 +21,7 @@ impl WorthQueryRuntimeBuilder {
             });
         }
         self.assemble_graph_obligation_registration_catalog()?;
-        let backend = self
+        let mut backend = self
             .backend
             .ok_or(WorthQueryRuntimeError::MissingBackend)??;
         let consumer_support_profile =
@@ -57,8 +58,17 @@ impl WorthQueryRuntimeBuilder {
                     .map(|artifact| artifact.portable_package.clone()),
             )
             .expect("locally admitted packages must build the execution installed index");
-        let (execution_runtime, execution_installation_authority) =
+        let (mut execution_runtime, execution_installation_authority) =
             execution_runtime_installation.into_parts();
+        let primary_graph_publication = pending_primary_graph_installation
+            .map(|pending| {
+                pending.install(
+                    &mut execution_runtime,
+                    &execution_installation_authority,
+                    backend.as_mut(),
+                )
+            })
+            .transpose()?;
         let domain_installation_registry =
             crate::domain_installation::WorthQueryDomainInstallationRegistry::from_artifacts(
                 installed_domain_artifacts,
@@ -108,6 +118,7 @@ impl WorthQueryRuntimeBuilder {
             authority_identity,
             execution_runtime,
             execution_installation_authority,
+            primary_graph_publication,
             domain_installation_registry,
             domain_operation_executor_registry,
             workflow_stage_executor_registry,

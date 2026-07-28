@@ -5,5 +5,9 @@
 
 #![forbid(unsafe_code)]
 
+pub mod accounting;
+pub mod authorization;
 pub mod model;
+pub mod payments;
+pub mod proposals;
 pub mod schema;

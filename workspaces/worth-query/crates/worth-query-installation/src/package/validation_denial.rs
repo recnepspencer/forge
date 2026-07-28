@@ -162,3 +162,15 @@ impl WorthQueryPortablePackageValidationDenial {
         &self.slot
     }
 }
+
+impl std::fmt::Display for WorthQueryPortablePackageValidationDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "portable package validation denied: {:?} ({})",
+            self.kind, self.slot
+        )
+    }
+}
+
+impl std::error::Error for WorthQueryPortablePackageValidationDenial {}

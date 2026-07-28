@@ -1,5 +1,9 @@
 //! Public admission-authority contract.
 
+pub mod authenticated_principal {
+    pub use crate::authenticated_principal::*;
+}
+
 pub mod domain_computation {
     pub use crate::domain_computation::*;
 }

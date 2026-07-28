@@ -15,9 +15,14 @@ mod domain_operation_executors;
 mod domain_packages;
 mod graph_participation;
 mod lowering;
+mod primary_graph;
 mod queued_graph_obligation_registrations;
 mod workflow_parallel_admission;
 mod workflow_stage_executors;
+pub use primary_graph::{
+    WorthQueryPrimaryGraphConfiguration, WorthQueryPrimaryGraphConfigurationDenial,
+    WorthQueryPrimaryGraphConfigurationDenialKind,
+};
 use queued_graph_obligation_registrations::{
     graph_obligation_registration_error, QueuedGraphObligationRegistrations,
 };
@@ -85,6 +90,8 @@ pub struct WorthQueryRuntimeBuilder {
     conditional_signal_graph: Option<worth_signal::facade::SignalGraph>,
     pending_conditional_installations:
         Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
+    pending_primary_graph_installation:
+        Option<Box<dyn primary_graph::PendingPrimaryGraphInstallation>>,
 }
 
 impl WorthQueryRuntimeBuilder {

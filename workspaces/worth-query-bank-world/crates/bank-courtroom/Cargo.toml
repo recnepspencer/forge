@@ -1,0 +1,29 @@
+[package]
+name = "bank-courtroom"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+cold-docker-courtroom = ["bank-http-adapter/cold-certification"]
+
+[dependencies]
+bank-domain.workspace = true
+bank-http-adapter.workspace = true
+bank-server.workspace = true
+rand.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+thirtyfour.workspace = true
+tokio.workspace = true
+url.workspace = true
+worth-query-host.workspace = true
+
+[[test]]
+name = "async_identity_courtroom"
+path = "tests/async_identity_courtroom.rs"
+required-features = ["cold-docker-courtroom"]
+
+[lints]
+workspace = true

@@ -1,0 +1,128 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, Mutex};
+
+use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
+use worth_relational::facade::indexes::{DerivedIndexDefinition, DerivedIndexKind};
+use worth_relational::facade::runtime::RelationalRuntime;
+
+use super::schema_layout::WorthQueryPrimaryGraphLayout;
+
+/// Execution-owned primary logical graph for one installed application schema.
+///
+/// This surface exposes graph identity rather than raw Relational access.
+/// Query integration code receives a separate hidden handle so product
+/// consumers cannot bypass installed Query authority.
+pub struct WorthQueryPrimaryGraph {
+    binding_identity: ApplicationSchemaBindingIdentity,
+    pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
+    runtime: Arc<Mutex<RelationalRuntime>>,
+}
+
+impl WorthQueryPrimaryGraph {
+    pub(super) fn new(
+        binding_identity: ApplicationSchemaBindingIdentity,
+        mut layout: WorthQueryPrimaryGraphLayout,
+        mut runtime: RelationalRuntime,
+    ) -> Self {
+        let mut indexes_by_locator = BTreeMap::new();
+        for (binding, binding_layout) in layout.principal_bindings_mut() {
+            let installed = runtime.index_authority().register(DerivedIndexDefinition {
+                index_id: worth_relational::facade::indexes::DerivedIndexId(0),
+                name: format!("application-principal.{binding}"),
+                kind: DerivedIndexKind::EntityField {
+                    field_locator: binding_layout.identity_locator.clone(),
+                },
+                branch_scoped: false,
+            });
+            binding_layout.index_id = installed.index_id;
+            indexes_by_locator.insert(binding_layout.identity_locator.clone(), installed.index_id);
+        }
+        for ((entity, aspect, field), field_layout) in layout.equality_fields_mut() {
+            let index_id = indexes_by_locator
+                .get(&field_layout.locator)
+                .copied()
+                .unwrap_or_else(|| {
+                    let installed = runtime.index_authority().register(DerivedIndexDefinition {
+                        index_id: worth_relational::facade::indexes::DerivedIndexId(0),
+                        name: format!("application-entity.{entity}.{aspect}.{field}"),
+                        kind: DerivedIndexKind::EntityField {
+                            field_locator: field_layout.locator.clone(),
+                        },
+                        branch_scoped: false,
+                    });
+                    indexes_by_locator.insert(field_layout.locator.clone(), installed.index_id);
+                    installed.index_id
+                });
+            field_layout.equality_index_id = Some(index_id);
+        }
+        Self {
+            binding_identity,
+            layout: Arc::new(layout),
+            runtime: Arc::new(Mutex::new(runtime)),
+        }
+    }
+
+    pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
+        &self.binding_identity
+    }
+
+    pub(crate) fn integration_handle(&self) -> WorthQueryPrimaryGraphIntegrationHandle {
+        let principal_identity_index_ids = self
+            .layout
+            .principal_bindings()
+            .map(|(_, binding)| binding.index_id)
+            .collect::<BTreeSet<_>>();
+        let primary_index_ids = principal_identity_index_ids
+            .iter()
+            .copied()
+            .chain(self.layout.equality_index_ids())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .into();
+        WorthQueryPrimaryGraphIntegrationHandle {
+            runtime: Arc::clone(&self.runtime),
+            primary_index_ids,
+        }
+    }
+}
+
+impl std::fmt::Debug for WorthQueryPrimaryGraph {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthQueryPrimaryGraph")
+            .field("binding_identity", &self.binding_identity)
+            .finish_non_exhaustive()
+    }
+}
+
+/// Hidden composition handle for sharing the one primary graph with Query's
+/// existing runtime backend.
+#[doc(hidden)]
+#[derive(Clone)]
+pub struct WorthQueryPrimaryGraphIntegrationHandle {
+    pub(super) runtime: Arc<Mutex<RelationalRuntime>>,
+    pub(super) primary_index_ids: Arc<[worth_relational::facade::indexes::DerivedIndexId]>,
+}
+
+impl WorthQueryPrimaryGraphIntegrationHandle {
+    #[doc(hidden)]
+    pub fn with_runtime<T>(&self, read: impl FnOnce(&RelationalRuntime) -> T) -> T {
+        let runtime = self
+            .runtime
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        read(&runtime)
+    }
+
+    pub(crate) fn with_runtime_mut<T>(
+        &self,
+        mutate: impl FnOnce(&mut RelationalRuntime) -> T,
+    ) -> T {
+        let mut runtime = self
+            .runtime
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        mutate(&mut runtime)
+    }
+}

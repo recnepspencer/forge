@@ -22,7 +22,10 @@ macro_rules! domain_id {
 domain_id!(AccountId);
 domain_id!(AccountAuthorizationId);
 domain_id!(BankPrincipalId);
+domain_id!(BankSnapshotVersion);
 domain_id!(BusinessId);
+domain_id!(EmployeeAssignmentId);
 domain_id!(InstitutionId);
 domain_id!(JournalEntryId);
 domain_id!(PaymentId);
+domain_id!(PostingId);

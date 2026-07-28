@@ -4,6 +4,10 @@ pub mod application_schema {
     pub use crate::application_schema::*;
 }
 
+pub mod authentication {
+    pub use crate::authentication::*;
+}
+
 pub mod authoring {
     pub use crate::authoring::*;
 }

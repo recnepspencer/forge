@@ -1,6 +1,6 @@
 //! Arena-based signal graph with dependency storage.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -424,6 +424,8 @@ pub struct SignalGraph {
     pub(crate) aspect_lowering_owner: Option<SignalAspectLoweringOwner>,
     #[serde(skip, default)]
     pub(crate) conditional_dependency_versions: BTreeMap<NodeId, Vec<u64>>,
+    #[serde(skip, default)]
+    pub(crate) authorization_policy_identities: BTreeSet<[u8; 32]>,
 }
 
 const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
@@ -444,6 +446,7 @@ impl Clone for SignalGraph {
             schema_registry: self.schema_registry.clone(),
             aspect_lowering_owner: None,
             conditional_dependency_versions: self.conditional_dependency_versions.clone(),
+            authorization_policy_identities: self.authorization_policy_identities.clone(),
         }
     }
 }
@@ -477,6 +480,7 @@ impl SignalGraph {
             schema_registry: SignalSchemaRegistry::default(),
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
+            authorization_policy_identities: BTreeSet::new(),
         }
     }
 
@@ -642,6 +646,7 @@ impl SignalGraph {
             schema_registry: SignalSchemaRegistry::default(),
             aspect_lowering_owner: None,
             conditional_dependency_versions: BTreeMap::new(),
+            authorization_policy_identities: BTreeSet::new(),
         }
     }
 

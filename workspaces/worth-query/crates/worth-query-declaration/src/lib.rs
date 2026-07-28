@@ -7,9 +7,12 @@
 #![forbid(unsafe_code)]
 
 mod application_schema;
+mod authentication;
 mod authoring;
 #[macro_use]
 mod application_schema_macro;
+#[macro_use]
+mod application_operation_macro;
 mod binding;
 mod canonicalization;
 mod collection;
@@ -29,6 +32,8 @@ mod validation;
 mod view_declaration;
 
 #[cfg(test)]
+mod ability_declaration_tests;
+#[cfg(test)]
 mod application_schema_tests;
 #[cfg(test)]
 mod authoring_contract_tests;
@@ -38,6 +43,8 @@ mod binding_contract_tests;
 mod canonical_identity_tests;
 #[cfg(test)]
 mod canonicalization_normalization_tests;
+#[cfg(test)]
+mod principal_binding_tests;
 #[cfg(test)]
 mod typed_contract_tests;
 

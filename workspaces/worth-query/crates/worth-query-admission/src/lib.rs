@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 mod admission_digest;
+mod authenticated_principal;
 mod domain_computation;
 
 pub mod facade;

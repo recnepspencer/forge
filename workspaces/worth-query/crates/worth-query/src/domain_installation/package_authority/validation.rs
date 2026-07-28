@@ -164,6 +164,7 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
     let operation_graph_participations = package.operation_graph_participations;
     let operation_required_domains = package.operation_required_domains;
     let artifact_contracts = package.artifact_contracts;
+    let application_schemas = package.application_schemas;
     let mut contribution_policy = package.contribution_policy;
 
     validate_invariant_predicates(&invariant_definitions)?;
@@ -189,6 +190,7 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
             declaration_families: &declaration_families,
             domain_operations: &domain_operations,
             artifact_contracts: &artifact_contracts,
+            application_schemas: &application_schemas,
             contribution_policy: &contribution_policy,
         },
     )

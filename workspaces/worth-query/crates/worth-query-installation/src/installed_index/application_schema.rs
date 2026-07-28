@@ -2,6 +2,18 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaDeclaration,
 };
 
+use crate::application_ability::{
+    WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
+    WorthQueryInstalledAbility,
+};
+use crate::application_operation::{
+    WorthQueryApplicationOperationInstallationDenial,
+    WorthQueryApplicationOperationInstallationDenialKind, WorthQueryInstalledApplicationOperation,
+};
+use crate::application_principal_binding::{
+    WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
+    WorthQueryPrincipalBindingInstallationDenialKind,
+};
 use crate::application_schema::{
     WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
     WorthQueryInstalledApplicationSchemaDenialKind,
@@ -77,6 +89,229 @@ impl WorthQueryInstalledPackageIndex {
         }
         Ok(())
     }
+
+    pub fn validate_principal_binding<Schema, Binding, Mapping, Principal, PrincipalIdentity>(
+        &self,
+        installed: &WorthQueryInstalledPrincipalBinding<
+            Schema,
+            Binding,
+            Mapping,
+            Principal,
+            PrincipalIdentity,
+        >,
+    ) -> Result<(), WorthQueryPrincipalBindingInstallationDenial> {
+        let identity = installed.binding_identity();
+        if identity.runtime_ordinal() != self.runtime_ordinal() {
+            return Err(principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::ForeignRuntime,
+                installed,
+            ));
+        }
+        if identity.generation() != self.generation().ordinal() {
+            return Err(principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::StaleGeneration,
+                installed,
+            ));
+        }
+        let schema = self
+            .application_schemas
+            .get(&(
+                installed.owner().to_string(),
+                installed.schema_name().to_string(),
+            ))
+            .ok_or_else(|| {
+                principal_binding_denial(
+                    WorthQueryPrincipalBindingInstallationDenialKind::SchemaMeaningChanged,
+                    installed,
+                )
+            })?;
+        if schema.identity() != identity.schema_identity() {
+            return Err(principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::SchemaMeaningChanged,
+                installed,
+            ));
+        }
+        let package = self.domain(installed.owner()).map_err(|_| {
+            principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::PackageIdentityChanged,
+                installed,
+            )
+        })?;
+        if package.package_identity().as_str() != identity.package_identity() {
+            return Err(principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::PackageIdentityChanged,
+                installed,
+            ));
+        }
+        if !installed.authority_matches(&package) {
+            return Err(principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::AuthorityMismatch,
+                installed,
+            ));
+        }
+        let meaning_matches = schema
+            .members()
+            .iter()
+            .any(|member| installed.meaning_matches(member));
+        if !meaning_matches {
+            return Err(principal_binding_denial(
+                WorthQueryPrincipalBindingInstallationDenialKind::BindingMeaningChanged,
+                installed,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_ability<Schema, Ability, Scope>(
+        &self,
+        installed: &WorthQueryInstalledAbility<Schema, Ability, Scope>,
+    ) -> Result<(), WorthQueryAbilityInstallationDenial> {
+        let identity = installed.binding_identity();
+        if identity.runtime_ordinal() != self.runtime_ordinal() {
+            return Err(ability_denial(
+                WorthQueryAbilityInstallationDenialKind::ForeignRuntime,
+                installed,
+            ));
+        }
+        if identity.generation() != self.generation().ordinal() {
+            return Err(ability_denial(
+                WorthQueryAbilityInstallationDenialKind::StaleGeneration,
+                installed,
+            ));
+        }
+        let schema = self
+            .application_schemas
+            .get(&(
+                installed.owner().to_string(),
+                installed.schema_name().to_string(),
+            ))
+            .ok_or_else(|| {
+                ability_denial(
+                    WorthQueryAbilityInstallationDenialKind::SchemaMeaningChanged,
+                    installed,
+                )
+            })?;
+        if schema.identity() != identity.schema_identity() {
+            return Err(ability_denial(
+                WorthQueryAbilityInstallationDenialKind::SchemaMeaningChanged,
+                installed,
+            ));
+        }
+        let package = self.domain(installed.owner()).map_err(|_| {
+            ability_denial(
+                WorthQueryAbilityInstallationDenialKind::PackageIdentityChanged,
+                installed,
+            )
+        })?;
+        if package.package_identity().as_str() != identity.package_identity() {
+            return Err(ability_denial(
+                WorthQueryAbilityInstallationDenialKind::PackageIdentityChanged,
+                installed,
+            ));
+        }
+        if !installed.authority_matches(&package) {
+            return Err(ability_denial(
+                WorthQueryAbilityInstallationDenialKind::AuthorityMismatch,
+                installed,
+            ));
+        }
+        if !installed.meaning_matches(schema.members()) {
+            return Err(ability_denial(
+                WorthQueryAbilityInstallationDenialKind::AbilityMeaningChanged,
+                installed,
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn validate_application_operation<Schema, Operation, Input>(
+        &self,
+        installed: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+    ) -> Result<(), WorthQueryApplicationOperationInstallationDenial> {
+        let identity = installed.binding_identity();
+        if identity.runtime_ordinal() != self.runtime_ordinal() {
+            return Err(application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::ForeignRuntime,
+                installed,
+            ));
+        }
+        if identity.generation() != self.generation().ordinal() {
+            return Err(application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::StaleGeneration,
+                installed,
+            ));
+        }
+        let schema = self
+            .application_schemas
+            .get(&(
+                installed.owner().to_string(),
+                installed.schema_name().to_string(),
+            ))
+            .ok_or_else(|| {
+                application_operation_denial(
+                    WorthQueryApplicationOperationInstallationDenialKind::SchemaMeaningChanged,
+                    installed,
+                )
+            })?;
+        if schema.identity() != identity.schema_identity() {
+            return Err(application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::SchemaMeaningChanged,
+                installed,
+            ));
+        }
+        let package = self.domain(installed.owner()).map_err(|_| {
+            application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::PackageIdentityChanged,
+                installed,
+            )
+        })?;
+        if package.package_identity().as_str() != identity.package_identity() {
+            return Err(application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::PackageIdentityChanged,
+                installed,
+            ));
+        }
+        if !installed.authority_matches(&package) {
+            return Err(application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::AuthorityMismatch,
+                installed,
+            ));
+        }
+        if !installed.meaning_matches(schema.members()) {
+            return Err(application_operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::OperationMeaningChanged,
+                installed,
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn ability_denial<Schema, Ability, Scope>(
+    kind: WorthQueryAbilityInstallationDenialKind,
+    installed: &WorthQueryInstalledAbility<Schema, Ability, Scope>,
+) -> WorthQueryAbilityInstallationDenial {
+    WorthQueryAbilityInstallationDenial::new(kind, installed.ability())
+}
+
+fn application_operation_denial<Schema, Operation, Input>(
+    kind: WorthQueryApplicationOperationInstallationDenialKind,
+    installed: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+) -> WorthQueryApplicationOperationInstallationDenial {
+    WorthQueryApplicationOperationInstallationDenial::new(kind, installed.operation())
+}
+
+fn principal_binding_denial<Schema, Binding, Mapping, Principal, PrincipalIdentity>(
+    kind: WorthQueryPrincipalBindingInstallationDenialKind,
+    installed: &WorthQueryInstalledPrincipalBinding<
+        Schema,
+        Binding,
+        Mapping,
+        Principal,
+        PrincipalIdentity,
+    >,
+) -> WorthQueryPrincipalBindingInstallationDenial {
+    WorthQueryPrincipalBindingInstallationDenial::new(kind, installed.binding())
 }
 
 fn map_index_denial_to_schema_denial(

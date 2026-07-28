@@ -1,0 +1,50 @@
+use crate::identity::data::KindId;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RelationalAuthorizationPlanDenial {
+    NoPaths,
+    NoAllowPath,
+    PathStartsAtWrongKind {
+        path: usize,
+        expected: KindId,
+        actual: KindId,
+    },
+    DiscontinuousTraversal {
+        path: usize,
+        traversal: usize,
+        expected: KindId,
+        actual: KindId,
+    },
+    PathEndsAtWrongKind {
+        path: usize,
+        expected: KindId,
+        actual: KindId,
+    },
+    PredicateOutsidePath {
+        path: usize,
+        ordinal: usize,
+        traversals: usize,
+    },
+    PredicateTargetsWrongKind {
+        path: usize,
+        ordinal: usize,
+        expected: KindId,
+        actual: KindId,
+    },
+    PredicateFieldPathNotSingle {
+        path: usize,
+        ordinal: usize,
+        fields: usize,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RelationalAuthorizationObservationDenial {
+    ForeignRuntime {
+        expected_runtime_instance_id: u64,
+        actual_runtime_instance_id: u64,
+    },
+    SnapshotUnavailable,
+    PrincipalUnavailableOrWrongKind,
+    ScopeUnavailableOrWrongKind,
+}

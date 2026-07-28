@@ -321,6 +321,7 @@ not commit authority.
 ```text
 worth-query-decl
     schema-derived typed references
+    typed external identity and principal-binding declarations
     operation, authz, read, mutation, workflow, and live declarations
 
 worth-query-installation
@@ -329,11 +330,14 @@ worth-query-installation
     monetary operation and invariant contribution admission
 
 worth-query-admission
+    admitted authentication adapters and sealed external-principal proof
     authenticated-principal-bound operation admission
     touched-graph and policy decision admission
     compare-and-commit admission
 
 worth-query-execution
+    one installed primary Relational graph authority
+    indexed external-principal-to-application-principal binding
     policy-evaluated attempts
     provider compare-and-commit progression
     idempotent typed outcomes
@@ -343,7 +347,7 @@ worth-query-publication
     and live-publication contracts
 
 worth-query-host
-    ordinary host composition
+    ordinary host composition without raw Relational exposure
 
 worth-query-certification
     hostile public-consumer, authority, concurrency, and replay proof
@@ -461,12 +465,52 @@ Query must not learn Authentik, OIDC transport, JWT, cookie, or HTTP semantics.
 **Must establish**
 
 - typed issuer-and-subject identity;
+- a collision-free canonical representation of the pair for indexed graph
+  lookup, without exposing a raw application string key;
+- a first-class principal-binding member in canonical application-schema
+  identity, closure, installation, and runtime-generation validation;
+- application schemas carried through the ordinary host domain-package grammar
+  into the exact installed portable package index; a declaration that exists
+  only in a side-built installation index is not host composition;
+- one compatible canonical owner grammar across host domain packages and
+  application schemas; namespace-qualified owners are allowed without allowing
+  dots in schema or member identifiers;
 - a sealed proof constructor available only to an admitted authentication
   adapter boundary;
 - audience, validation-time, expiry, authentication-method, and adapter identity
   bound into the proof where later admission depends on them;
-- installed mapping from authenticated external principal to application
-  principal;
+- one execution-owned primary Relational graph root shared by ordinary runtime
+  paths, rather than a fixture registry, parallel map, or separate-provider
+  graph-participation lane;
+- a purpose-scoped host composition terminal that installs and publishes that
+  primary graph without requiring bridge, read, mutation, live, signal, or
+  inspection adapters whose authority is not exercised in this phase;
+- publishing the purpose-scoped terminal consumes the raw execution root and
+  installation authority; unrelated ordinary facade families and explicit
+  backend/backend-part assembly are absent from its public type at compile
+  time;
+- the primary graph retains the Relational schema, invariant, and runtime
+  configuration already installed by ordinary Query composition rather than
+  replacing it with a freshly defaulted runtime;
+- a consumed, installation-only typed bootstrap path for principal and mapping
+  rows; no privileged identity mutation path survives runtime publication;
+- installed, indexed mapping from authenticated external principal to
+  application principal, with exact mapping, relation, and typed
+  target-principal identity freshness evidence;
+- the target-principal identity field is a first-class, read-only,
+  equality-capable principal-binding dimension whose scalar family and Rust
+  value type participate in declaration closure, canonical schema identity,
+  installation, runtime resolution, and freshness;
+- the sealed Query principal proof returns that typed application identity from
+  the exact mapped primary-graph row; a parallel external-identity-to-product-ID
+  registry is forbidden;
+- target-principal identities are canonically unique within each installed
+  principal binding, and bootstrap admission of external identity, principal
+  key, and typed identity is atomic on denial;
+- a Relational-owned bounded equality-index lookup contract whose ordinary
+  path examines at most the declared candidate cap and whose cold
+  certification path proves the same classification against authoritative
+  storage;
 - unknown, disabled, ambiguous, expired, and cross-runtime denial;
 - request deadline and cancellation carriage; and
 - no deserialization, fixture, token-claim, or host assertion path that can mint
@@ -476,7 +520,23 @@ Query must not learn Authentik, OIDC transport, JWT, cookie, or HTTP semantics.
 
 A causally admitted test authentication adapter can produce a usable proof,
 while forged data, copied fields, wrong runtime, stale proof, and direct
-deserialization open no principal or operation authority.
+deserialization open no principal or operation authority. The indexed mapping
+must prove storage parity and bounded candidate work. Mutable or wrong-typed
+target-principal identity fields and copied binding identifiers paired with a
+different identity type must deny. Changing the mapped principal's typed
+identity must stale the proof. Two different Principal rows carrying the same
+typed application identity must deny without poisoning a corrected bootstrap
+retry. Primary identity facts
+must not require a graph-participation provider receipt. A lawful
+`worth-query-host` consumer must build the purpose-scoped runtime without
+constructing unused adapter ceremony, while attempted ordinary read, mutation,
+workflow, live, raw execution-root extraction, and replay actions fail to
+compile against the purpose-scoped terminal.
+
+This phase intentionally establishes the narrow primary-graph composition that
+later authorization and ordinary-facade phases consume. It does not claim the
+general read, mutation, workflow, or live front door owned by Runtime Hardening
+Phase 5.
 
 ### Bank World Track — Phase 2: Authentik Adapter And Dynamic Identity Fixture
 
@@ -488,13 +548,30 @@ and provision all bank identities dynamically.
 **Must establish**
 
 - issuer/audience/signature/time validation and key rotation behavior;
+- HTTPS is mandatory for the issuer, introspection, and revocation endpoints,
+  and secret-bearing control endpoints must share the issuer origin; the cold
+  courtroom may trust its ephemeral self-signed certificate only through
+  certification-gated clients;
+- cryptographic ID-token/access-token pair binding plus exact introspection
+  client affinity; two independently valid users' credentials must not compose
+  when their token halves are crossed;
 - `(issuer, subject)` identity, with display claims retained only as attributes;
 - unknown, disabled, ambiguous, expired, revoked, and wrong-audience denial;
+- access-token introspection or equally authoritative online revocation
+  evidence; decoding a locally valid ID token is not revocation proof;
+- a real Authorization Code with PKCE browser flow carrying state and nonce;
+- one bounded JWKS refresh-and-retry on an otherwise admissible token whose
+  signing key is absent from the installed cache;
 - explicit request deadline and cancellation propagation;
 - no Authentik-specific type or token claim beyond the adapter boundary;
 - no transport or test-only constructor for authenticated proof; and
-- dynamic fixture provisioning through real Authentik administration and token
-  acquisition boundaries.
+- dynamic fixture provisioning, signing-key rotation, token revocation, and
+  teardown through real Authentik administration and token acquisition
+  boundaries;
+- teardown proof covers containers, volumes, networks, and the secret-bearing
+  fixture directory after both success and an intentionally failed body;
+- a cold Docker courtroom lane that runs real Authentik, PostgreSQL, and browser
+  automation without entering ordinary bank edit/test loops.
 
 **Proof before Runtime Hardening Phase 3**
 
@@ -512,15 +589,32 @@ exact allowed touched graph.
 **Must establish**
 
 - personal, business, and institution-scoped ability declarations;
+- schema-typed application-operation requirements that compile into the
+  existing installed domain-operation graph-read, touch, effect, invariant,
+  and conditional contracts rather than creating a parallel application lane;
+- a move-only, schema-typed primary-graph installation phase for the entity,
+  relation, and field facts required by policy evaluation, with no retained
+  product mutation bypass after publication;
 - current relationship-backed role evaluation;
 - distinct-actor approval rules;
 - positive, negative, membership, and revocation dependencies;
-- Relational-owned touched-graph evidence for reads and effects;
+- Relational-owned touched-graph evidence for the policy facts actually read;
+- Query-owned binding of the admitted operation to its installed allowed
+  touched-graph contract, without pretending that not-yet-proposed record
+  identities are realized effects;
 - runtime-bridge lowering through installed correspondence;
 - Signal-owned decision evidence;
 - Query-owned composition into an operation admission proof; and
-- identical scope enforcement for reads, mutations, explanations, history, and
-  live delivery.
+- retention of the exact authentication lifetime and live request
+  cancellation/deadline authority in that operation proof, so later governed
+  phases can reject authority that expired or was interrupted after admission;
+- a Query-minted stable operation-scope fingerprint over the runtime,
+  installed operation, authenticated principal, and typed scope for downstream
+  idempotency binding; it excludes the observation snapshot so an equivalent
+  authorized retry remains the same intent; and
+- one lane-independent admitted-scope proof family that later read, mutation,
+  explanation, history, and live facades must consume; Phase 3 does not invent
+  those Phase 5 facades merely to claim integration.
 
 **Proof before Bank World Phase 3**
 
@@ -533,7 +627,9 @@ all fail. Valid customer and employee combinations remain usable.
 **Requirement**
 
 Implement the bank domain as ordinary installed operations that emit typed
-effects and execute real monetary invariants over proposed state.
+effects and execute real monetary invariants over proposed state. This phase
+produces immutable invariant-approved proposals; it does not create a
+bank-local commit path ahead of Runtime Hardening Phase 4.
 
 **Must establish**
 
@@ -545,13 +641,21 @@ effects and execute real monetary invariants over proposed state.
 - immutable journal entries and postings;
 - exact balance, available-funds, currency, account-status, and balancing
   invariants; and
+- private causal binding of each invariant witness to the exact in-memory
+  snapshot basis used to mint it; an independently built snapshot with the
+  same descriptive version is not the same basis;
 - typed idempotency intent bound to the authenticated operation.
+- no authoritative mutation or `Committed`/`AlreadyCommitted` outcome before
+  provider compare-and-commit.
 
 **Proof before Runtime Hardening Phase 4**
 
-Independent accounting oracles recompute balances and journal conservation.
+Independent accounting oracles recompute proposed balances and journal
+conservation.
 Overdraft, unbalanced entries, currency mismatch, duplicate approvals,
 self-approval where prohibited, and idempotency-key payload drift all deny.
+Equivalent payloads produce the same typed idempotency intent; Runtime
+Hardening Phase 4 owns retry resolution and `AlreadyCommitted`.
 
 ### Runtime Hardening Track — Phase 4: Provider Compare-And-Commit
 
@@ -563,6 +667,9 @@ provider-proven compare-and-commit progression.
 **Must establish**
 
 - complete decision read-set validation;
+- exact proposed-effect evidence from the Bank Phase 3 proposal and proof that
+  every realized read and effect is a subset of the operation admission's
+  installed allowed touched graph;
 - relevant versus unrelated drift classification;
 - atomic effect application by the in-memory provider;
 - one terminal attempt outcome;
@@ -593,6 +700,10 @@ valid next actions follow typed phase progression.
   outcomes;
 - business initiation/approval workflow progression;
 - authorization-scoped live account and activity delivery;
+- proof that reads, mutations, explanations, history, and live delivery all
+  consume the Runtime Phase 3 admitted-scope proof family;
+- live re-evaluation on permission dependencies so revocation closes or
+  narrows delivery before another unauthorized event;
 - explanation surfaces for denials, stale attempts, and indeterminate outcomes;
 - cancellation, deadline, consistency, idempotency, and delivery controls owned
   by the caller; and
