@@ -5,26 +5,20 @@ use crate::{
     IoSchedulerBackendCapabilityRequirement, SecureIoOperation, SecureIoPreservationDenial,
 };
 
-use super::{
-    QueueExecutionAdmissionDenial, QueueExecutionReadyPlan, QueuePolicyAdmissionReceipt,
-    QueueWorkDeclaration,
-};
+use super::{QueueExecutionAdmissionDenial, QueueExecutionReadyPlan, QueuePolicyAdmissionReceipt};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct QueueExecutionAdmissionRequest<'a> {
-    work: QueueWorkDeclaration,
     backend: &'a IoSchedulerBackendCapabilityAdmission,
     policy_receipt: QueuePolicyAdmissionReceipt,
 }
 
 impl<'a> QueueExecutionAdmissionRequest<'a> {
     pub fn new(
-        work: QueueWorkDeclaration,
-        backend: &'a IoSchedulerBackendCapabilityAdmission,
         policy_receipt: QueuePolicyAdmissionReceipt,
+        backend: &'a IoSchedulerBackendCapabilityAdmission,
     ) -> Self {
         Self {
-            work,
             backend,
             policy_receipt,
         }
@@ -34,24 +28,17 @@ impl<'a> QueueExecutionAdmissionRequest<'a> {
 pub fn admit_queue_execution_plan(
     request: QueueExecutionAdmissionRequest<'_>,
 ) -> Result<QueueExecutionReadyPlan, QueueExecutionAdmissionDenial> {
-    if request.policy_receipt.work() != request.work {
-        return Err(
-            QueueExecutionAdmissionDenial::PolicyReceiptContextMismatch {
-                expected_work: super::policy_receipt::expected_work_class(&request.work),
-            },
-        );
-    }
-    let budget = request.work.requested_budget();
+    let work = request.policy_receipt.work();
+    let budget = work.requested_budget();
     if budget.is_empty() {
         return Err(QueueExecutionAdmissionDenial::MissingQueueWorkBudget);
     }
-    let grouping_basis = request
-        .work
+    let grouping_basis = work
         .grouping_basis()
         .cloned()
         .ok_or(QueueExecutionAdmissionDenial::MissingGroupingBasis)?;
-    let security_identity = request.work.security_scope_identity();
-    if grouping_basis.security_scope_identity() != request.work.security_scope_identity() {
+    let security_identity = work.security_scope_identity();
+    if grouping_basis.security_scope_identity() != work.security_scope_identity() {
         return Err(QueueExecutionAdmissionDenial::GroupingDenied(
             super::QueueGroupingDenial::SecurityScopeMismatch,
         ));
@@ -71,27 +58,27 @@ pub fn admit_queue_execution_plan(
             super::QueueGroupingDenial::AuthenticityRequirementMismatch,
         ));
     }
-    if grouping_basis.durability_class() != request.work.durability_class() {
+    if grouping_basis.durability_class() != work.durability_class() {
         return Err(QueueExecutionAdmissionDenial::GroupingDenied(
             super::QueueGroupingDenial::DurabilityClassMismatch,
         ));
     }
-    if grouping_basis.work_class() != request.work.class() {
+    if grouping_basis.work_class() != work.class() {
         return Err(QueueExecutionAdmissionDenial::GroupingDenied(
             super::QueueGroupingDenial::WorkClassMismatch,
         ));
     }
-    if request.backend.requirement() != request.work.backend_requirement() {
+    if request.backend.requirement() != work.backend_requirement() {
         return Err(QueueExecutionAdmissionDenial::BackendRequirementMismatch {
-            required: request.work.backend_requirement(),
+            required: work.backend_requirement(),
             admitted: request.backend.requirement(),
         });
     }
     require_secure_io_preservation(&request)?;
     require_policy_receipt(request.policy_receipt.foundational(), budget)?;
-    let policy_receipt = request.policy_receipt.into_foundational();
+    let (work, policy_receipt) = request.policy_receipt.into_parts();
     Ok(super::AdmittedQueueExecutionPlan::new(
-        request.work,
+        work,
         request.backend.profile(),
         request.backend.evidence_class(),
         policy_receipt,
@@ -108,10 +95,11 @@ fn require_secure_io_preservation(
     if !queue_work_requires_secure_io(request) {
         return Ok(());
     }
-    let Some(secure_io) = request.work.secure_io() else {
+    let work = request.policy_receipt.work();
+    let Some(secure_io) = work.secure_io() else {
         return Err(QueueExecutionAdmissionDenial::MissingSecureIoPreservation);
     };
-    if secure_io.identity() != request.work.security_scope_identity() {
+    if secure_io.identity() != work.security_scope_identity() {
         return Err(QueueExecutionAdmissionDenial::SecureIoDenied(
             SecureIoPreservationDenial::ScopeMismatch {
                 operation: secure_io.operation(),
@@ -138,13 +126,14 @@ fn require_secure_io_preservation(
 }
 
 fn queue_work_requires_secure_io(request: &QueueExecutionAdmissionRequest<'_>) -> bool {
-    let budget = request.work.requested_budget();
+    let work = request.policy_receipt.work();
+    let budget = work.requested_budget();
     request.backend.requirement() == IoSchedulerBackendCapabilityRequirement::SecureFrameIo
         || budget.read_ahead_window() > 0
         || budget.write_back_window() > 0
-        || request.work.secure_io().is_some()
+        || work.secure_io().is_some()
         || matches!(
-            request.work.class(),
+            work.class(),
             crate::QueueWorkClass::Background(
                 crate::BackgroundIoPressureClass::BackupPrepRead
                     | crate::BackgroundIoPressureClass::RepairScan
@@ -154,22 +143,23 @@ fn queue_work_requires_secure_io(request: &QueueExecutionAdmissionRequest<'_>) -
 }
 
 fn expected_secure_operation(request: &QueueExecutionAdmissionRequest<'_>) -> SecureIoOperation {
+    let work = request.policy_receipt.work();
     if matches!(
-        request.work.class(),
+        work.class(),
         crate::QueueWorkClass::Background(crate::BackgroundIoPressureClass::RepairScan)
     ) {
         return SecureIoOperation::RepairScan;
     }
     if matches!(
-        request.work.class(),
+        work.class(),
         crate::QueueWorkClass::Background(crate::BackgroundIoPressureClass::VerificationPressure)
     ) {
         return SecureIoOperation::VerificationPressure;
     }
-    if matches!(request.work.class(), crate::QueueWorkClass::Background(_)) {
+    if matches!(work.class(), crate::QueueWorkClass::Background(_)) {
         return SecureIoOperation::BackgroundLease;
     }
-    let budget = request.work.requested_budget();
+    let budget = work.requested_budget();
     if budget.read_ahead_window() > 0 {
         SecureIoOperation::ReadAhead
     } else if budget.write_back_window() > 0 {

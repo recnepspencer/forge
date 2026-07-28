@@ -96,8 +96,6 @@ pub fn admit_physical_instance_foreground_reservation(
         lane.requested_budget(),
         request.available,
         lane.requested_budget(),
-        0,
-        0,
     );
     Ok(ForegroundReservationReceipt::admitted(
         lane.lane(),

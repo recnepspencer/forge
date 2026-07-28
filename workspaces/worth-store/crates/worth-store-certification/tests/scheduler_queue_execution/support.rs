@@ -50,10 +50,9 @@ pub(super) fn admitted_plan() -> worth_store_io_scheduler::QueueExecutionReadyPl
     )
     .expect("read-ahead secure-I/O scope should admit");
     let work = work.with_secure_io_scope(secure_io);
-    let policy =
-        worth_store_io_scheduler::admit_queue_policy_receipt(work.clone(), policy_receipt(budget))
-            .expect("policy receipt should bind the exact queue work");
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(work, policy_receipt(budget))
+        .expect("policy receipt should bind the exact queue work");
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
         .expect("queue work should admit")
 }
 pub(super) fn point_read_budget() -> BackgroundResourceBudget {

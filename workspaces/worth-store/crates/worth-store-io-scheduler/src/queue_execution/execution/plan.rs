@@ -12,7 +12,7 @@ use super::{
     QueueGroupingBasis, QueueWorkDeclaration,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct AdmittedQueueExecutionPlan {
     work: QueueWorkDeclaration,
     backend_profile: BackendTargetProfile,
@@ -68,8 +68,8 @@ impl AdmittedQueueExecutionPlan {
         }
     }
 
-    pub fn work(&self) -> QueueWorkDeclaration {
-        self.work.clone()
+    pub const fn work(&self) -> &QueueWorkDeclaration {
+        &self.work
     }
 
     pub const fn backend_profile(&self) -> BackendTargetProfile {
@@ -106,7 +106,7 @@ impl QueueExecutionReadyPlan {
         &self.admitted
     }
 
-    pub fn work(&self) -> QueueWorkDeclaration {
+    pub const fn work(&self) -> &QueueWorkDeclaration {
         self.admitted.work()
     }
 
@@ -159,7 +159,7 @@ impl QueueExecutedPlan {
         &self.admitted
     }
 
-    pub fn work(&self) -> QueueWorkDeclaration {
+    pub const fn work(&self) -> &QueueWorkDeclaration {
         self.admitted.work()
     }
 

@@ -144,8 +144,8 @@ fn admit_plan_with_basis(
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let policy = policy_receipt(work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
 }
 
 fn base_grouping_basis() -> QueueGroupingBasis {

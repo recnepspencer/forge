@@ -30,7 +30,7 @@ enum BufferPoolQueueExecutionEvidence {
     Writeback(BufferPoolWritebackQueueExecutionDeclaration),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct QueueWorkDeclaration {
     class: QueueWorkClass,
     backend_requirement: IoSchedulerBackendCapabilityRequirement,

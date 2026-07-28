@@ -22,6 +22,11 @@ The scheduler-authority cutover batch begins from commit
 `0dfc0ac0c5271f36c4339194defb0a62cd9045a3` after the Phase 8 inventory
 classifier was hardened and its controlled mutants passed.
 
+The move-owned scheduler execution batch resumes from checkpoint
+`6f8a5e6c837ee4ff604bde40add364cf3469d014`. Its first bounded owner compile
+exposed seven mixed-cutover errors and proved that background authority still
+becomes clonable after lease lowering.
+
 The final source fingerprint is `OPEN` until implementation and all corrections
 have stopped.
 
@@ -81,7 +86,7 @@ inspected.
 | `C6-P8-P14` | Controlled reintroduction of a legacy feature, direct pool edge, deleted authority identifier, snapshot fixture, or legacy view fails the nearest mechanical gate. | Individually localized mutants for every substitution class. | `OPEN` |
 | `C6-P8-P15` | The resulting directory structure, facade placement, names, file sizes, and function composition preserve current and committed successor responsibilities. | Full dirty inventory, Rust function scrutiny, 400-line gate, composition and domain-topology review. | `OPEN` |
 | `C6-P8-P16` | Scheduler-native policy cannot become physical-isolation or Store authority: the scheduler has no physical-isolation/recovery dependency, copied readiness admission, generic `AuthorityMarker`, or counter-derived execution capability. Cross-domain physical composition occurs only at Store. | Dependency/source absence, public API inspection, policy-versus-authority type review, compile mutants, Store scheduler journeys. | `OPEN` |
-| `C6-P8-P17` | Scheduler execution capacity is concrete, move-owned, and single-consumption: a background lease cannot be cloned or copied, non-admitted outcomes and observations mint no lease, and a consuming domain cannot self-admit or lower the same admission twice. | Public API inspection, move-after-use and duplicate-lowering compile failures, positive queue-lowering specimen, consumer-construction mutant. | `OPEN` |
+| `C6-P8-P17` | Scheduler execution capacity is concrete, move-owned, and single-consumption through lease, queue declaration, policy admission, ready plan, and consuming-domain handoff: none can be cloned to admit or execute the same capacity twice; non-admitted outcomes and observations mint no authority; a consuming domain cannot self-admit. | Public API inspection, clone/copy/move-after-use and duplicate-lowering/admission compile failures at every authority-bearing stage, positive queue and compaction progressions, consumer-construction mutant. | `OPEN` |
 | `C6-P8-P18` | Tiering and blob placement consume only class-relevant physical authority: inline and external placement require no cold-tier or scheduler readiness, cold placement consumes the exact cold posture, and layout projection cannot promote scheduler counters into placement truth. | Public API/source inspection, class-specific positive specimens, cold-scope negative, copied-readiness absence and reintroduction mutant. | `OPEN` |
 
 ## Requirement Coverage
@@ -120,6 +125,7 @@ inspected.
 | Store depends on its certification consumer | Cargo graph | one-way dependency gate |
 | Scheduler copies physical-isolation counters into self-minted authority | cross-domain composition boundary | dependency absence, concrete public types, and authority-source mutant |
 | Scheduler capacity is copied or lowered twice | scheduler-to-queue type boundary | move-only lease and move-after-use compile failure |
+| A move-only lease becomes duplicable after queue lowering | queue policy and execution progression | move-only declaration/admission/ready plan and duplicate-admission compile failure |
 | Blob compaction self-admits or discards scheduler admission into booleans | consumer handoff | sealed scheduler-derived pacing admission and construction mutant |
 | Inline/external blob placement requires irrelevant cold readiness | placement intent type boundary | class-specific intent variants and cold-only scope validation |
 | Deletion leaves registry or selector sediment | build/catalog boundary | warnings-denied compile and exact selector runs |
@@ -226,6 +232,24 @@ inspected.
   journeys; copy, clone, duplicate-lowering, unpaced-planning, and consumer
   self-admission compile failures; source absence for the bypass constructors.
 
+### `C6-P8-F007` - Queue lowering restores duplicability after a move-owned lease
+
+- status: `OPEN`
+- affected guarantees: `L02`, `P13`, `P16`, `P17`
+- evidence: `BackgroundIdleCapacityLease` is now move-owned, but
+  `QueueWorkDeclaration`, `QueuePolicyAdmissionReceipt`,
+  `QueueExecutionAdmissionRequest`, and `AdmittedQueueExecutionPlan` remain
+  `Clone`. `QueuePolicyAdmissionReceipt` also stores a cloned work declaration
+  while queue admission accepts a second declaration, so one lowered
+  background capacity can be copied into multiple executable progressions.
+- required correction: make every authority-bearing queue stage move-owned;
+  consume the work declaration into policy admission; consume that joined
+  stage into execution admission; expose borrowed observation rather than
+  cloned authority.
+- closing proof: one positive lease-to-executed-plan progression plus
+  declaration clone, policy clone, duplicate admission, and ready-plan reuse
+  compile failures.
+
 ## Surviving-Defect Attack
 
 Before closure, answer with evidence:
@@ -257,6 +281,10 @@ Before closure, answer with evidence:
     pacing admission?
 22. Can inline or external placement be forced to carry cold-tier or scheduler
     readiness that has no authority over that placement class?
+23. Can a move-owned background lease become duplicable after it is lowered
+    into a queue declaration or policy receipt?
+24. Can one policy-admitted queue work value be used to construct two ready
+    execution plans?
 
 Any credible surviving defect reopens the affected guarantees and this ledger's
 completeness claim.

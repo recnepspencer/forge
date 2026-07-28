@@ -79,8 +79,8 @@ impl PhysicalSchedulerDemand {
         self.ready.intent()
     }
 
-    pub fn queue_work(&self) -> QueueWorkDeclaration {
-        self.work.clone()
+    pub const fn queue_work(&self) -> &QueueWorkDeclaration {
+        &self.work
     }
 
     pub fn with_secure_io(mut self, secure_io: SecureIoPreservationReceipt) -> Self {
@@ -218,11 +218,10 @@ impl PhysicalWorkScheduler {
             work,
             capacity,
         } = demand;
-        let policy = admit_queue_policy_receipt(work.clone(), policy)
+        let policy =
+            admit_queue_policy_receipt(work, policy).map_err(PhysicalSchedulerDenial::Queue)?;
+        let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, backend))
             .map_err(PhysicalSchedulerDenial::Queue)?;
-        let plan =
-            admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, backend, policy))
-                .map_err(PhysicalSchedulerDenial::Queue)?;
         Ok(ResourceAdmittedPhysicalWork::new(ready, plan, capacity))
     }
 }

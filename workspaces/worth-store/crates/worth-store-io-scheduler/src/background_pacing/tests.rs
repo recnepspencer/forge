@@ -82,6 +82,7 @@ fn background_admits_with_debt_and_revocable_lease() {
         admitted_with_debt.debt().kind(),
         BackgroundDebtKind::CompactionDebt
     );
+    assert_eq!(admitted_with_debt.counters().compaction_debt(), debt_limit);
     let revocation = admitted_with_debt
         .into_lease()
         .revoke_for_foreground_pressure(NonZeroU64::new(1).unwrap());
@@ -93,7 +94,6 @@ fn background_admits_with_debt_and_revocable_lease() {
     assert_eq!(revocation.counters().revoked_budget(), admitted);
     assert_eq!(revocation.counters().revoke_events(), 1);
     assert_eq!(revocation.counters().foreground_pressure_events(), 1);
-    assert_eq!(admitted_with_debt.counters().compaction_debt(), debt_limit);
 }
 
 #[test]

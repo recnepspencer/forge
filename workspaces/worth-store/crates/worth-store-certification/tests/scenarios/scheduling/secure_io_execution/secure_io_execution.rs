@@ -70,12 +70,10 @@ fn secure_frame_read_ahead_plan() -> QueueExecutionReadyPlan {
     )
     .expect("secure-frame read-ahead secure-I/O should admit");
     let work = work.with_secure_io_scope(secure_io);
-    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
-        work.clone(),
-        policy_receipt(work.requested_budget()),
-    )
-    .expect("policy receipt should bind the exact queue work");
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let budget = work.requested_budget();
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(work, policy_receipt(budget))
+        .expect("policy receipt should bind the exact queue work");
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
         .expect("secure-frame work should admit into a ready queue plan")
 }
 

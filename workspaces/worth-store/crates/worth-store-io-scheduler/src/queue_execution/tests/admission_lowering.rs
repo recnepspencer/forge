@@ -27,27 +27,25 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work.clone(),
-        &backend,
-        policy,
-    ))
-    .expect("matching queue work should lower to an admitted execution plan");
+    let expected_security_scope = work.security_scope_identity();
+    let expected_class = work.class();
+    let expected_durability = work.durability_class();
+    let policy = policy_receipt(work);
+    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect("matching queue work should lower to an admitted execution plan");
 
-    assert_eq!(plan.work(), work);
     assert_eq!(
         plan.progression(),
         QueueExecutionProgression::ExecutionReady
     );
     assert_eq!(
         plan.grouping_basis(),
-        &grouping_for(work.security_scope_identity())
+        &grouping_for(expected_security_scope)
     );
-    assert_eq!(plan.replay_identity().work_class(), work.class());
+    assert_eq!(plan.replay_identity().work_class(), expected_class);
     assert_eq!(
         plan.replay_identity().durability_class(),
-        work.durability_class()
+        expected_durability
     );
     assert_eq!(plan.replay_identity().requested_budget(), budget);
     assert_eq!(
@@ -77,20 +75,15 @@ fn producer_declaration_lowers_through_scheduler_admission() {
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work.clone(),
-        &backend,
-        policy,
-    ))
-    .expect("lowered producer work should admit through scheduler");
+    let expected_class = work.class();
+    let expected_budget = work.requested_budget();
+    let policy = policy_receipt(work);
+    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect("lowered producer work should admit through scheduler");
 
-    assert_eq!(plan.work().class(), work.class());
+    assert_eq!(plan.work().class(), expected_class);
     assert_eq!(plan.grouping_basis().flush_epoch(), 7);
-    assert_eq!(
-        plan.replay_identity().requested_budget(),
-        work.requested_budget()
-    );
+    assert_eq!(plan.replay_identity().requested_budget(), expected_budget);
 }
 
 #[test]
@@ -220,13 +213,12 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
+    let policy = policy_receipt(work);
 
-    let denial =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .expect_err(
-                "C5_PREDICATE:scheduler-admission: durability mismatch must not silently admit",
-            );
+    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect_err(
+            "C5_PREDICATE:scheduler-admission: durability mismatch must not silently admit",
+        );
 
     assert_eq!(
         denial,

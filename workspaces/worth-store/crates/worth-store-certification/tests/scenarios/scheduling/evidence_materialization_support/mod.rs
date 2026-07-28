@@ -130,13 +130,12 @@ fn queue_outcome() -> QueueExecutionOutcome {
     .unwrap();
     work = work.with_secure_io_scope(secure_io);
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
-        work.clone(),
+        work,
         policy_receipt(budget, FoundationalPerformanceWorkClass::AuthoritativeRead),
     )
     .expect("policy receipt should bind the exact queue work");
     let plan =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .unwrap();
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend)).unwrap();
     let posture = BackendQueueExecutionPosture::from_admitted_capability(
         &witness,
         BackendQueueExecutionAdaptation::None,

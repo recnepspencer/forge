@@ -52,8 +52,8 @@ pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let policy = policy_receipt(work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
         .expect("write-back queue work should admit")
 }
 
@@ -71,8 +71,8 @@ pub(crate) fn admitted_plan_for_backend_profile(
     let backend = backend_for_profile(&work, profile);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let policy = policy_receipt(work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
         .expect("test plan should admit")
 }
 
@@ -314,7 +314,7 @@ impl TestBackendQueueCompletionBuilder {
     }
 }
 
-pub(crate) fn policy_receipt(work: &QueueWorkDeclaration) -> crate::QueuePolicyAdmissionReceipt {
+pub(crate) fn policy_receipt(work: QueueWorkDeclaration) -> crate::QueuePolicyAdmissionReceipt {
     let budget = work.requested_budget();
     let work_class = match work.durability_class() {
         QueueDurabilityClass::ReadOnly => FoundationalPerformanceWorkClass::AuthoritativeRead,
@@ -360,8 +360,7 @@ pub(crate) fn policy_receipt(work: &QueueWorkDeclaration) -> crate::QueuePolicyA
         )
         .finish()
         .expect("policy receipt should build");
-    crate::admit_queue_policy_receipt(work.clone(), receipt)
-        .expect("policy receipt should bind exact work")
+    crate::admit_queue_policy_receipt(work, receipt).expect("policy receipt should bind exact work")
 }
 
 fn backend_witness_for_profile(
