@@ -16,5 +16,8 @@ pub use application_preparation_denial::{
 };
 pub(crate) use application_preparation_source::WorthUiApplicationPreparationSource;
 pub(crate) use bootstrap::WorthUiFacadeLifecycleBootstrap;
-pub(crate) use freeze::{prepare_application_authority, prepare_successor_application_authority};
+pub(crate) use freeze::{
+    prepare_application_authority, prepare_successor_application_authority,
+    WorthUiApplicationPreparationInput,
+};
 pub(crate) use graph_evidence::build_graph_evidence_indexes;

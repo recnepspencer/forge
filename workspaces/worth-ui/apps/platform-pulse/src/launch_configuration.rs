@@ -152,6 +152,14 @@ mod tests {
         .expect("explicit launch");
         let prepared = crate::application::prepare(eframe::egui::Context::default(), &admitted)
             .expect("isolated source reaches real filesystem and application preparation");
+        assert!(
+            prepared.app.declaration_artifacts().iter().any(|artifact| {
+                artifact.identity().authored_semantic_name()
+                    == worth_ui_platform_pulse::visual_identity_pulse::
+                        PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME
+            }),
+            "the checked-in target's family-qualified authored semantic identity survives lowering"
+        );
         prepared
             .watcher
             .shutdown()

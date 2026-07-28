@@ -2,6 +2,10 @@
 pub enum UiDeclaredMeasurementMode {
     HugHeight,
     FillViewport,
+    ViewportInset {
+        horizontal_logical_points: u16,
+        vertical_logical_points: u16,
+    },
 }
 
 pub(crate) fn measurement_mode_claim(claim: &str) -> Option<UiDeclaredMeasurementMode> {

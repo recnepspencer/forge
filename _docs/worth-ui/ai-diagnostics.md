@@ -443,45 +443,69 @@ The wrong alternatives are:
 
 ## Visual Snapshots
 
-Worth UI should absolutely support screenshots.
+Worth UI supports screenshots, but a screenshot is not the public truth
+object. The implemented public object is
+`UiVisualSnapshotReceipt<ArtifactPosture>`: a bounded, immutable evidence
+bundle for one exact presentation basis.
 
-But a screenshot is not enough.
-
-The public object should be a receipt-backed visual snapshot.
-
-Example shape:
+Its implemented shape includes:
 
 ```text
-UiVisualSnapshotReceipt {
-  snapshot_identity
-  frame_identity
-  viewport_observation_identity
-  mounted_frame_receipt_identity
-  visible_node_regions
-  hit_test_regions
-  overlay_options
-  capture_time
+UiVisualSnapshotReceipt<ArtifactPosture> {
+  UiVisualSnapshotIdentity
+  UiVisualSnapshotAffinity {
+    presentation_attempt
+    frame
+    semantic_surface
+    host_surface
+    binding_generation
+    presentation_epoch
+    relation
+  }
+  UiVisualCoordinateObservation
+  UiVisibleRegionIndexIdentity
+  UiHitTestRegionIndexIdentity
+  optional or required UiVisualPixelArtifact
+  UiVisualInspectionCostReceipt
+  UiVisualSnapshotEvidence
 }
 ```
 
-The point is:
+Coordinates created through `UiVisualCoordinateScope` cannot escape their
+snapshot. Point and region adjudication keep visible contributors distinct from
+the total-ordered hit-test target. Each result may carry
+`UiVisualIdentityTrace`, which follows mounted receipt and incarnation through
+graph and declaration identity to authored source provenance and typed evidence
+references.
 
-- a screenshot region maps back to mounted receipt identity
-- a mounted receipt maps back to declaration and graph identity
-- a frame maps back to the exact runtime evidence neighborhood that produced it
+The host supplies capture and presentation observations. The runtime supplies
+the meaning those observations explain. AI and human consumers project the
+same receipt, omission, denial, indeterminate posture, cost, and lifecycle
+evidence; neither consumer reconstructs authority from pixels.
 
-That is what makes the screenshot useful to AI rather than decorative.
+### Implemented Visual Snapshot Closure: Milestone 3.11
 
-### Visual Snapshot Closure
+The 3.11 snapshot lane is honest because the system can:
 
-The snapshot lane is only honest if the system can do all of the following:
+- capture the current frame, a retained presentation, a selected mounted node,
+  or a snapshot-scoped region;
+- map a client physical point or region to distinct visible and hit-test
+  outcomes;
+- map mounted receipt identity to graph, declaration, authored source, and
+  evidence references;
+- retain, supersede, expire, cancel, dispose, and shut down snapshots through
+  typed bounded lifecycle outcomes;
+- publish and clear a fixed identity overlay through successor mounted frames;
+  and
+- keep optional pixels as disposable evidence rather than truth.
 
-- capture the current frame
-- capture a single node or region
-- map screen point -> mounted receipt identity
-- map screenshot region -> mounted receipt identity
-- map mounted receipt identity -> declaration / source / evidence
-- diff two frames with identity-aware meaning rather than raw pixel diff alone
+### Committed Successor: Milestone 3.12
+
+Identity-aware predecessor/successor snapshot comparison is not a 3.11
+capability. Milestone 3.12 owns the first admitted comparison that can relate
+changed facts, preserved identity, remount decisions, and bounded hot rebind.
+Until that contract exists, neither raw pixel diff nor local identity matching
+may be presented as semantic rebind evidence.
 
 ## Replay
 

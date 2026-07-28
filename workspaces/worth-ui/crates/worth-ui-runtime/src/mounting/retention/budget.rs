@@ -11,7 +11,8 @@ pub struct UiMountedFrameRetentionBudget {
     observation_basis: UiMountedRetentionClassBudget,
     predecessor_inspection: UiMountedRetentionClassBudget,
     diagnostic: UiMountedRetentionClassBudget,
-    future_snapshot: UiMountedRetentionClassBudget,
+    visual_snapshot: UiMountedRetentionClassBudget,
+    visual_overlay: UiMountedRetentionClassBudget,
     expired_identity_limit: usize,
 }
 
@@ -22,7 +23,8 @@ pub struct UiMountedFrameRetentionBudgetInput {
     pub observation_basis: UiMountedRetentionClassBudget,
     pub predecessor_inspection: UiMountedRetentionClassBudget,
     pub diagnostic: UiMountedRetentionClassBudget,
-    pub future_snapshot: UiMountedRetentionClassBudget,
+    pub visual_snapshot: UiMountedRetentionClassBudget,
+    pub visual_overlay: UiMountedRetentionClassBudget,
     pub expired_identity_limit: usize,
 }
 
@@ -34,7 +36,8 @@ pub enum UiMountedRetentionClass {
     PredecessorInspection,
     Diagnostic,
     Quarantine,
-    FutureSnapshot,
+    VisualSnapshot,
+    VisualOverlay,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,7 +82,8 @@ impl UiMountedFrameRetentionBudget {
             observation_basis: input.observation_basis,
             predecessor_inspection: input.predecessor_inspection,
             diagnostic: input.diagnostic,
-            future_snapshot: input.future_snapshot,
+            visual_snapshot: input.visual_snapshot,
+            visual_overlay: input.visual_overlay,
             expired_identity_limit: input.expired_identity_limit,
         }
     }
@@ -104,8 +108,12 @@ impl UiMountedFrameRetentionBudget {
         self.diagnostic
     }
 
-    pub const fn future_snapshot(self) -> UiMountedRetentionClassBudget {
-        self.future_snapshot
+    pub const fn visual_snapshot(self) -> UiMountedRetentionClassBudget {
+        self.visual_snapshot
+    }
+
+    pub const fn visual_overlay(self) -> UiMountedRetentionClassBudget {
+        self.visual_overlay
     }
 
     pub const fn expired_identity_limit(self) -> usize {
@@ -122,7 +130,8 @@ impl Default for UiMountedFrameRetentionBudget {
             observation_basis: UiMountedRetentionClassBudget::new(64, 256 * MIB),
             predecessor_inspection: UiMountedRetentionClassBudget::new(8, 256 * MIB),
             diagnostic: UiMountedRetentionClassBudget::new(8, 16 * MIB),
-            future_snapshot: UiMountedRetentionClassBudget::new(4, 128 * MIB),
+            visual_snapshot: UiMountedRetentionClassBudget::new(4, 128 * MIB),
+            visual_overlay: UiMountedRetentionClassBudget::new(4, 32 * MIB),
             expired_identity_limit: 64,
         })
     }

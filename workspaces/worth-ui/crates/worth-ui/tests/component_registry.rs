@@ -12,6 +12,8 @@ use worth_ui::facade::{
 mod component_registry_assertions;
 #[path = "component_registry/component_registry_fixtures.rs"]
 mod component_registry_fixtures;
+#[path = "component_registry/component_visual_contracts.rs"]
+mod component_visual_contracts;
 
 use component_registry_assertions::{
     assert_dependency_diagnostics, assert_diagnostic_codes, assert_diagnostic_codes_and_identities,

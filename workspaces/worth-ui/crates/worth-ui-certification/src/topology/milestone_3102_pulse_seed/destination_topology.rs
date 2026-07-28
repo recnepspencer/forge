@@ -27,7 +27,8 @@ const ALLOWED_DEPENDENCIES: &[&str] = &[
     "xcap",
 ];
 const EFRAME_VERSION: &str = "=0.31.1";
-const EFRAME_FEATURES: &[&str] = &["default_fonts", "glow", "wayland", "x11"];
+const WORKSPACE_EFRAME_FEATURES: &[&str] = &["default_fonts", "glow", "wayland", "x11"];
+const PULSE_EFRAME_FEATURES: &[&str] = &["default_fonts", "glow", "wayland", "wgpu", "x11"];
 
 pub(super) fn audit(
     inventory: &WorkspaceSourceInventory,
@@ -119,7 +120,10 @@ fn audit_native_shell_dependency_contract(row: &toml::Value) -> Result<(), Strin
             .and_then(toml::Value::as_bool)
             != Some(false)
         || string_set(contract, "features")?
-            != EFRAME_FEATURES.iter().copied().collect::<BTreeSet<_>>()
+            != PULSE_EFRAME_FEATURES
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
     {
         return Err("pulse native-shell dependency contract drifted".to_owned());
     }
@@ -169,7 +173,10 @@ fn audit_workspace_native_shell(manifest: &toml::Value) -> Result<(), String> {
             .iter()
             .filter_map(toml::Value::as_str)
             .collect::<BTreeSet<_>>()
-            != EFRAME_FEATURES.iter().copied().collect::<BTreeSet<_>>()
+            != WORKSPACE_EFRAME_FEATURES
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
     {
         return Err("workspace eframe dependency should match the frozen native shell".to_owned());
     }

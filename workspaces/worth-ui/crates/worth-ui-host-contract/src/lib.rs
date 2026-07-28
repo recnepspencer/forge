@@ -4,6 +4,7 @@ mod mounted_projection;
 mod observation_report;
 mod operational_adapter;
 mod runtime;
+mod visual_snapshot;
 
 pub use inspection::WorthUiInspectionHostContract;
 pub use mounted_frame::{
@@ -32,26 +33,29 @@ pub use mounted_frame::{
 pub use mounted_projection::{
     UiHeadlessMountedParticipationRecord, UiHeadlessMountedResourceHandle,
     UiMountedAccessibilityProjection, UiMountedAllocationBasis, UiMountedAllocationProjection,
-    UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedClipProjection,
-    UiMountedClipReference, UiMountedClipRow, UiMountedClipTable, UiMountedCoordinateSpace,
-    UiMountedDiagnosticProjection, UiMountedDiagnosticReference,
-    UiMountedFilledRectCompletionDenial, UiMountedFilledRectCompletionInput,
-    UiMountedFilledRectMechanic, UiMountedFilledRectReference, UiMountedFilledRectTable,
-    UiMountedFilledRectTableDenial, UiMountedGeometryDenial, UiMountedGeometryPosture,
-    UiMountedLayerProjection, UiMountedLayerReference, UiMountedLayerRow, UiMountedLayerTable,
-    UiMountedMechanicalRole, UiMountedMotionProjection, UiMountedNodeProjectionView,
-    UiMountedNodeProjectionViewInput, UiMountedOmissionReason, UiMountedPaintBatchReference,
-    UiMountedPaintBatchRow, UiMountedPaintBatchTable, UiMountedPaintPrimitiveKind,
-    UiMountedPaintProjection, UiMountedParticipation, UiMountedParticipationFact,
-    UiMountedParticipationInput, UiMountedParticipationStatus, UiMountedPreviewProjection,
-    UiMountedProjectionAudience, UiMountedProjectionView, UiMountedProjectionViewInput,
-    UiMountedRealtimeBatchReference, UiMountedRealtimeBatchRow, UiMountedRealtimeBatchTable,
-    UiMountedResourceEntry, UiMountedResourceKind, UiMountedResourceReference,
-    UiMountedResourceTable, UiMountedRgba8, UiMountedSpatialBatchReference,
-    UiMountedSpatialBatchRow, UiMountedSpatialBatchTable, UiMountedStaticPaintSchemaVersion,
-    UiMountedTableProjectionStatus, UiMountedTransformProjection,
-    WorthUiHeadlessMountedProjectionRecord, WorthUiHeadlessMountedResourceCache,
-    WorthUiMountedResourceCacheDenial,
+    UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedClientCoordinateBasis,
+    UiMountedClientPhysicalRect, UiMountedClipProjection, UiMountedClipReference, UiMountedClipRow,
+    UiMountedClipTable, UiMountedCoordinateSpace, UiMountedDiagnosticProjection,
+    UiMountedDiagnosticReference, UiMountedFilledRectCompletionDenial,
+    UiMountedFilledRectCompletionInput, UiMountedFilledRectMechanic, UiMountedFilledRectReference,
+    UiMountedFilledRectTable, UiMountedFilledRectTableDenial, UiMountedGeometryDenial,
+    UiMountedGeometryPosture, UiMountedHitTestCompletionDenial, UiMountedHitTestCompletionInput,
+    UiMountedHitTestMechanic, UiMountedHitTestOrder, UiMountedHitTestProjection,
+    UiMountedHitTestReference, UiMountedHitTestTable, UiMountedIdentityOverlayMechanic,
+    UiMountedIdentityOverlayMechanicInput, UiMountedLayerProjection, UiMountedLayerReference,
+    UiMountedLayerRow, UiMountedLayerTable, UiMountedMechanicalRole, UiMountedMotionProjection,
+    UiMountedNodeProjectionView, UiMountedNodeProjectionViewInput, UiMountedOmissionReason,
+    UiMountedPaintBatchReference, UiMountedPaintBatchRow, UiMountedPaintBatchTable,
+    UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedParticipation,
+    UiMountedParticipationFact, UiMountedParticipationInput, UiMountedParticipationStatus,
+    UiMountedPreviewProjection, UiMountedProjectionAudience, UiMountedProjectionView,
+    UiMountedProjectionViewInput, UiMountedRealtimeBatchReference, UiMountedRealtimeBatchRow,
+    UiMountedRealtimeBatchTable, UiMountedResourceEntry, UiMountedResourceKind,
+    UiMountedResourceReference, UiMountedResourceTable, UiMountedRgba8,
+    UiMountedSpatialBatchReference, UiMountedSpatialBatchRow, UiMountedSpatialBatchTable,
+    UiMountedStaticPaintSchemaVersion, UiMountedTableProjectionStatus,
+    UiMountedTransformProjection, WorthUiHeadlessMountedProjectionRecord,
+    WorthUiHeadlessMountedResourceCache, WorthUiMountedResourceCacheDenial,
 };
 pub use observation_report::{
     UiHostObservationBatch, UiHostObservationBatchConstructionDenial, UiHostObservationBatchInput,
@@ -85,4 +89,14 @@ pub use runtime::{
     WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityPosture,
     WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostKind,
     WorthUiMeasurementHostAdapter,
+};
+pub use visual_snapshot::{
+    UiHostCaptureAffinity, UiHostCaptureArtifactBudget, UiHostCaptureCancellationOutcome,
+    UiHostCaptureCapability, UiHostCaptureFrameAffinity, UiHostCaptureObservation,
+    UiHostCaptureObservationOutcome, UiHostCaptureRequestIdentity, UiHostCaptureSurfaceAffinity,
+    UiHostClientAreaObservation, UiHostCoordinateOrientation, UiHostCoordinatePosture,
+    UiHostCoordinateRounding, UiHostCoordinateTransform, UiHostPixelArtifact,
+    UiHostPixelColorSpace, UiHostPresentationEpoch, UiHostRealizedGeometry, UiHostRealizedOrdering,
+    UiHostRealizedRegion, UiHostRealizedRegionParticipation, UiHostViewportTransformObservation,
+    UiHostVisualCaptureRequest,
 };

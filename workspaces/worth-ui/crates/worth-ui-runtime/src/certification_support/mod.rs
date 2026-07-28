@@ -8,6 +8,7 @@ mod active_session_observation;
 mod application_builder;
 mod application_replacement;
 mod framework_turn_execution;
+mod identity_overlay_projection;
 mod layout_admission;
 mod mounted_frame_execution;
 mod planning;
@@ -33,10 +34,14 @@ pub use active_session_observation::WorthUiActiveSessionCertificationExt;
 pub use application_builder::WorthUiApplicationBuilderCertificationExt;
 pub use application_replacement::WorthUiApplicationReplacementCertificationExt;
 pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
+pub use identity_overlay_projection::{
+    identity_overlay_projection_for_certification, UiIdentityOverlayProjectionCertificationMutation,
+};
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;
 pub use mounted_frame_execution::{
-    WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
+    UiMountedVisualOverlayLeaseCertificationReceipt, WorthUiMountedFrameExecutionCertificationExt,
+    WorthUiMountedPublicationCertificationExt,
 };
 pub use planning::planning_pair_for_certification_suite;
 pub use runtime_launch::launch_empty_runtime_for_certification;

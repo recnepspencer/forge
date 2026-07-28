@@ -33,6 +33,7 @@ impl WorthUiHostCapabilityReport {
                 WorthUiHostCapability::DpiObservation,
                 WorthUiHostCapability::FontMetrics,
                 WorthUiHostCapability::Ime,
+                WorthUiHostCapability::IdentityOverlay,
                 WorthUiHostCapability::NativeControlIntrinsicMeasurement,
                 WorthUiHostCapability::PortalAnchorObservation,
                 WorthUiHostCapability::ScrollContainerObservation,

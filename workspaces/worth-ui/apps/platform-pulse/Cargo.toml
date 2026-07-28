@@ -25,7 +25,7 @@ required-features = ["executable-world"]
 workspace = true
 
 [dependencies]
-eframe = { workspace = true }
+eframe = { workspace = true, features = ["wgpu"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 worth-ui = { workspace = true }
@@ -34,4 +34,4 @@ worth-ui-host-egui = { workspace = true }
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
 winsafe = { workspace = true }
-xcap = { workspace = true }
+xcap = { workspace = true, features = ["wgc"] }

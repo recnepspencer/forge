@@ -1,6 +1,9 @@
 use crate::adjudication::{
     ExecutableFirstFrameEvidence, ExecutableLifecycleCleanupEvidence,
     ExecutablePredecessorPreservationEvidence, ExecutableReplacementEvidence,
+    ExecutableVisualClearEvidence, ExecutableVisualOverlayEvidence,
+    ExecutableVisualRetirementEvidence, ExecutableVisualSnapshotEvidence,
+    ExecutableVisualTraceEvidence,
 };
 use crate::external_observation::PlatformPulseLifecycleStream;
 use crate::failure_teardown::{
@@ -50,15 +53,46 @@ pub(crate) struct InitialBlue {
     pub(super) launch_to_first_publication: Duration,
 }
 
+pub(crate) struct SnapshotCaptured<Stage> {
+    pub(super) prior: Stage,
+    pub(super) evidence: ExecutableVisualSnapshotEvidence,
+}
+
+pub(crate) struct IdentityTraced<Stage> {
+    pub(super) snapshot: SnapshotCaptured<Stage>,
+    pub(super) evidence: ExecutableVisualTraceEvidence,
+}
+
+pub(crate) struct OverlayPublished<Stage> {
+    pub(super) trace: IdentityTraced<Stage>,
+    pub(super) evidence: ExecutableVisualOverlayEvidence,
+}
+
+pub(crate) struct OverlayCleared<Stage> {
+    pub(super) overlay: OverlayPublished<Stage>,
+    pub(super) evidence: ExecutableVisualClearEvidence,
+}
+
+impl OverlayCleared<InitialBlue> {
+    pub(super) fn initial(&self) -> &InitialBlue {
+        &self.overlay.trace.snapshot.prior
+    }
+
+    pub(super) fn snapshot_evidence(&self) -> &ExecutableVisualSnapshotEvidence {
+        &self.overlay.trace.snapshot.evidence
+    }
+}
+
 pub(crate) struct AwaitingReplacement {
     pub(super) world: NativeBoundExecutableWorld,
-    pub(super) initial: InitialBlue,
+    pub(super) initial: OverlayCleared<InitialBlue>,
     pub(super) action: AppliedPulseSourceDelta<GreenPulseSourceDelta>,
 }
 
 pub(crate) struct GreenSuccessor {
-    pub(super) initial: InitialBlue,
+    pub(super) initial: OverlayCleared<InitialBlue>,
     pub(super) evidence: ExecutableReplacementEvidence<GreenPulseSourceDelta>,
+    pub(super) retirement: ExecutableVisualRetirementEvidence,
 }
 
 pub(crate) struct AwaitingPreservation {
@@ -140,9 +174,41 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
     }
 }
 
+impl PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>> {
+    pub(crate) fn evidence(&self) -> &ExecutableVisualSnapshotEvidence {
+        &self.state.stage.evidence
+    }
+}
+
+impl PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>> {
+    pub(crate) fn evidence(&self) -> &ExecutableVisualTraceEvidence {
+        &self.state.stage.evidence
+    }
+}
+
+impl PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>> {
+    pub(crate) fn evidence(&self) -> &ExecutableVisualOverlayEvidence {
+        &self.state.stage.evidence
+    }
+}
+
+impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>> {
+    pub(crate) fn evidence(&self) -> &ExecutableVisualClearEvidence {
+        &self.state.stage.evidence
+    }
+
+    pub(crate) fn initial_evidence(&self) -> &ExecutableFirstFrameEvidence {
+        &self.state.stage.initial().evidence
+    }
+}
+
 impl PulseExecutableWorld<Published<GreenSuccessor>> {
     pub(crate) fn evidence(&self) -> &ExecutableReplacementEvidence<GreenPulseSourceDelta> {
         &self.state.stage.evidence
+    }
+
+    pub(crate) fn retirement_evidence(&self) -> ExecutableVisualRetirementEvidence {
+        self.state.stage.retirement
     }
 }
 

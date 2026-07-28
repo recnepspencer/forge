@@ -225,8 +225,9 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         "workspaces/worth-ui/apps/platform-pulse/src/observation_contract/envelope.rs",
     )?;
     for required in [
-        "adapter_cost.translated_rows(), 6",
-        "adapter_cost.translated_bytes(), 560",
+        "adapter_cost.translated_rows(), 8",
+        "std::mem::size_of::<UiMountedNodeProjectionView>()",
+        "std::mem::size_of::<UiMountedFilledRectMechanic>()",
         "adapter_cost.native_resource_cache_hits(), 0",
     ] {
         if !courtroom.contains(required) {

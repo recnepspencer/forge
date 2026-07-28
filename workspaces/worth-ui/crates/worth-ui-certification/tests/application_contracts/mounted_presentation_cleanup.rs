@@ -82,6 +82,7 @@ fn indeterminate_cost_preserves_every_adapter_translation_already_performed() {
         worth_ui_host_contract::UiHostSurfacePresentationOutcome::Presented(
             worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
                 UiHostSurfacePresentationMode::RecordOnly,
+                worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(2),
                 worth_ui_host_contract::UiMountedCompletedEffects::new(vec![
                     worth_ui_host_contract::UiMountedEffectFamily::RecordedProjection,
                     worth_ui_host_contract::UiMountedEffectFamily::NativePaint,
@@ -121,6 +122,7 @@ fn completion_with_cost(
     worth_ui_host_contract::UiHostSurfacePresentationOutcome::Presented(
         worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
+            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
             crate::mounted_host_protocol::scripted_host::recorded_effects(),
             adapter_cost(rows, bytes, cache_hit),
         ),

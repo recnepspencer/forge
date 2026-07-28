@@ -293,12 +293,63 @@ cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pu
 
 The process watches
 `workspaces/worth-ui/apps/platform-pulse/app/main.wui`. On first launch, the
-160-by-96 native window is filled with the admitted blue `#2f81f7` rectangle.
-The rectangle is mounted runtime meaning translated through the canonical host
-contract; the eframe shell does not draw a second application-owned shape.
-Successful first publication prints
+160-by-96 native client area contains an admitted blue `#2f81f7` background
+and a yellow `#f2cc60` inset target. The target occupies the half-open logical
+region `[48, 24]` through `[112, 72]`; `[80, 48]` is its inspection point and
+`[16, 16]` is the background control point. Both shapes are mounted runtime
+meaning translated through the canonical host contract; the eframe shell does
+not draw a second application-owned shape. Successful first publication prints
 `WORTH_UI_PLATFORM_PULSE_PUBLISHED` with the active application generation and
 mounted frame identity.
+
+After first publication, the application captures that exact mounted frame,
+resolves both points, and temporarily publishes a magenta identity border
+around the inset target. The border remains visible for two seconds and then
+clears through another successor mounted frame. The console emits this
+version-2 sequence:
+
+```text
+VisualSnapshotCaptured
+VisualPointTrace
+VisualOverlayPublished
+VisualOverlayCleared
+```
+
+Each is a `WORTH_UI_PLATFORM_PULSE_EVENT ` prefixed JSON envelope. The snapshot
+event binds the captured pixels to snapshot, presentation-attempt, frame,
+surface, binding-generation, and presentation-epoch identity. In
+`VisualPointTrace`, inspect:
+
+```text
+outcome.VisualPointTrace.snapshot
+outcome.VisualPointTrace.target.hit.mounted.node_receipt
+outcome.VisualPointTrace.target.hit.authored_semantic_name
+outcome.VisualPointTrace.target.hit.source_artifact_path
+outcome.VisualPointTrace.background.hit.mounted.node_receipt
+```
+
+The target authored name is
+`component:platform.pulse.component.identity_target`. Its mounted receipt must
+differ from the background receipt. `VisualOverlayPublished.base_frame` is the
+captured frame; `published_frame` is its overlay successor.
+
+For a pretty-printed human view of the same observation stream, run:
+
+```powershell
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse |
+  ForEach-Object {
+    if ($_ -like 'WORTH_UI_PLATFORM_PULSE_EVENT *') {
+      ($_ -replace '^WORTH_UI_PLATFORM_PULSE_EVENT ', '') |
+        ConvertFrom-Json |
+        ConvertTo-Json -Depth 20
+    } else {
+      $_
+    }
+  }
+```
+
+This projection is for reading the receipt stream. It does not create visual
+truth or grant authority back to the console.
 
 To exercise a valid replacement, change only this line:
 
@@ -313,10 +364,13 @@ token theme.platform_pulse.fill = "theme.platform_pulse.green";
 ```
 
 After the operating-system watcher settles the file, the complete successor is
-prepared and published atomically. The window becomes admitted green
-`#3fb950`, and `WORTH_UI_PLATFORM_PULSE_REPLACED` reports the predecessor,
-successor, and published frame identities. This is whole-application
-replacement, not Milestone 3.12 semantic rebind.
+prepared and published atomically. The background becomes admitted green
+`#3fb950` while the yellow inset target remains distinct, and
+`WORTH_UI_PLATFORM_PULSE_REPLACED` reports the predecessor, successor, and
+published frame identities. `VisualSnapshotRetired` then proves that the
+predecessor snapshot became explicitly superseded and its registered resource
+was released. This is whole-application replacement, not Milestone 3.12
+semantic rebind or identity-aware frame comparison.
 
 To see denial preservation, replace the file temporarily with:
 
@@ -330,13 +384,22 @@ checked-in source exactly:
 
 ```text
 component platform.pulse.component.seed {}
+component platform.pulse.component.identity_target {}
 surface platform.pulse.surface.main {}
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
+token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
 ```
 
 The watcher then publishes the recovered blue application. Close the native
 window normally to shut down the operating-system watcher, release the
-registered host surface, and consume the active application shutdown path.
+registered host surface, and consume the active application shutdown path. The
+terminal `Shutdown` observation must report zero live captures, snapshots,
+pixel bytes, structural bytes, pending overlays, published overlays, and
+clearing overlays. The exact fields are
+`cancelled_visual_capture_count`, `disposed_visual_snapshot_count`,
+`disposed_visual_pixel_bytes`, `disposed_visual_structural_bytes`,
+`cancelled_pending_overlay_count`, `disposed_published_overlay_count`, and
+`disposed_clearing_overlay_count`.
 
 ### Current Certification Posture
 

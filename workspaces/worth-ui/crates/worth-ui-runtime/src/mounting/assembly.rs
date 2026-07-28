@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use worth_ui_host_contract::{
     UiMountedFrameCanonicalCore, UiMountedFrameIntegrity, UiMountedFrameManifest,
     UiMountedProjectionView, UiMountedSurfaceBindingRequirement, UiSemanticSurfaceIdentity,
@@ -10,6 +9,8 @@ use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGen
 pub struct UiMountedFrameRequest {
     surfaces: UiMountedSurfaceSelection,
     virtualized_range: Option<crate::runtime::WorthUiVisibleRange>,
+    visual_overlay_revision: u64,
+    visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
     reuse_identity: UiMountedFrameRequestIdentity,
 }
 
@@ -30,6 +31,7 @@ pub enum UiMountedFramePreparationDenial {
     LaneWorkUnavailable(worth_ui_host_contract::UiMountedLaneParticipation),
     Lane(crate::facade::WorthUiMountedLaneProjectionDenial),
     Projection(super::UiMountedProjectionDenial),
+    TraceSourceGenerationMismatch,
     IncompleteManifest,
     IntegrityMismatch,
 }
@@ -55,8 +57,20 @@ pub struct UiPreparedMountedFrame {
     canonical_core: UiMountedFrameCanonicalCore,
     integrity: UiMountedFrameIntegrity,
     surfaces: Box<[UiMountedSurfaceReceipt]>,
+    identity_trace_basis: super::UiMountedIdentityTraceBasis,
     cost: super::UiMountCostReport,
     reuse_contract: super::UiMountedFrameReuseContract,
+}
+
+pub(crate) struct UiPreparedMountedFrameAdmission {
+    pub candidate: super::UiProjectedMountedFrameCandidate,
+    pub generation: WorthUiPreparedApplicationGenerationIdentity,
+    pub manifest: UiMountedFrameManifest,
+    pub graph_world: u64,
+    pub allocation_truth_revision: u64,
+    pub trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
+    pub reuse_contract: super::UiMountedFrameReuseContract,
 }
 
 impl UiMountedFrameRequest {
@@ -64,6 +78,8 @@ impl UiMountedFrameRequest {
         Self {
             surfaces: UiMountedSurfaceSelection::AllBound,
             virtualized_range: None,
+            visual_overlay_revision: 0,
+            visual_overlay: None,
             reuse_identity: UiMountedFrameRequestIdentity(std::rc::Rc::new(())),
         }
     }
@@ -72,6 +88,8 @@ impl UiMountedFrameRequest {
         Self {
             surfaces: UiMountedSurfaceSelection::Exact(surfaces.into()),
             virtualized_range: None,
+            visual_overlay_revision: 0,
+            visual_overlay: None,
             reuse_identity: UiMountedFrameRequestIdentity(std::rc::Rc::new(())),
         }
     }
@@ -84,6 +102,27 @@ impl UiMountedFrameRequest {
 
     pub fn virtualized_range(&self) -> Option<crate::runtime::WorthUiVisibleRange> {
         self.virtualized_range
+    }
+
+    pub(crate) fn with_visual_overlay(
+        mut self,
+        revision: u64,
+        visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
+    ) -> Self {
+        self.visual_overlay_revision = revision;
+        self.visual_overlay = visual_overlay;
+        self.reuse_identity = UiMountedFrameRequestIdentity(std::rc::Rc::new(()));
+        self
+    }
+
+    pub(crate) const fn visual_overlay_revision(&self) -> u64 {
+        self.visual_overlay_revision
+    }
+
+    pub(crate) const fn visual_overlay(
+        &self,
+    ) -> Option<super::UiMountedVisualOverlayProjectionInput> {
+        self.visual_overlay
     }
 
     pub(crate) fn reuse_identity(&self) -> UiMountedFrameRequestIdentity {
@@ -121,7 +160,10 @@ impl UiMountedFrameRequest {
 
 impl PartialEq for UiMountedFrameRequest {
     fn eq(&self, other: &Self) -> bool {
-        self.surfaces == other.surfaces && self.virtualized_range == other.virtualized_range
+        self.surfaces == other.surfaces
+            && self.virtualized_range == other.virtualized_range
+            && self.visual_overlay_revision == other.visual_overlay_revision
+            && self.visual_overlay == other.visual_overlay
     }
 }
 
@@ -175,14 +217,21 @@ impl UiMountedFrameReceipt {
 
 impl UiPreparedMountedFrame {
     pub(crate) fn admit(
-        candidate: super::UiProjectedMountedFrameCandidate,
-        generation: WorthUiPreparedApplicationGenerationIdentity,
-        manifest: UiMountedFrameManifest,
-        graph_world: u64,
-        allocation_truth_revision: u64,
-        reuse_contract: super::UiMountedFrameReuseContract,
+        admission: UiPreparedMountedFrameAdmission,
     ) -> Result<Self, UiMountedFramePreparationDenial> {
-        validate_manifest(&manifest)?;
+        let UiPreparedMountedFrameAdmission {
+            candidate,
+            generation,
+            manifest,
+            graph_world,
+            allocation_truth_revision,
+            trace_source,
+            reuse_contract,
+        } = admission;
+        if trace_source.generation() != &generation {
+            return Err(UiMountedFramePreparationDenial::TraceSourceGenerationMismatch);
+        }
+        super::validate_manifest(&manifest)?;
         let surfaces = manifest
             .surfaces()
             .iter()
@@ -209,6 +258,7 @@ impl UiPreparedMountedFrame {
             return Err(UiMountedFramePreparationDenial::IntegrityMismatch);
         }
         let cost = candidate.frame().cost_report();
+        let identity_trace_basis = candidate.frame().identity_trace_basis(trace_source);
         Ok(Self {
             candidate,
             generation,
@@ -216,6 +266,7 @@ impl UiPreparedMountedFrame {
             canonical_core,
             integrity,
             surfaces: surfaces.into_boxed_slice(),
+            identity_trace_basis,
             cost,
             reuse_contract,
         })
@@ -258,8 +309,15 @@ impl UiPreparedMountedFrame {
         &self.reuse_contract
     }
 
-    pub(crate) fn static_paint_structural_bytes(&self) -> Option<usize> {
-        self.candidate.frame().static_paint_structural_bytes()
+    pub(crate) fn visual_region_basis(&self) -> super::UiMountedVisualRegionBasis {
+        super::UiMountedVisualRegionBasis::new(
+            self.candidate.frame().static_paint_rows(),
+            self.candidate.frame().hit_test_rows(),
+        )
+    }
+
+    pub(crate) fn identity_trace_basis(&self) -> &super::UiMountedIdentityTraceBasis {
+        &self.identity_trace_basis
     }
 
     pub fn is_unpublished(&self) -> bool {
@@ -287,56 +345,6 @@ impl UiPreparedMountedFrame {
     }
 }
 
-pub(crate) fn validate_manifest(
-    manifest: &UiMountedFrameManifest,
-) -> Result<(), UiMountedFramePreparationDenial> {
-    let mut surfaces = BTreeSet::new();
-    let mut bindings = BTreeSet::new();
-    for requirement in manifest.surfaces() {
-        if !surfaces.insert(requirement.semantic_surface())
-            || !bindings.insert(requirement.binding())
-        {
-            return Err(UiMountedFramePreparationDenial::IncompleteManifest);
-        }
-    }
-    let expected = surfaces
-        .iter()
-        .flat_map(|surface| {
-            [
-                (
-                    *surface,
-                    worth_ui_host_contract::UiMountedLaneParticipation::Ordinary,
-                ),
-                (
-                    *surface,
-                    worth_ui_host_contract::UiMountedLaneParticipation::Virtualized,
-                ),
-                (
-                    *surface,
-                    worth_ui_host_contract::UiMountedLaneParticipation::CanvasSpatial,
-                ),
-                (
-                    *surface,
-                    worth_ui_host_contract::UiMountedLaneParticipation::Realtime,
-                ),
-                (
-                    *surface,
-                    worth_ui_host_contract::UiMountedLaneParticipation::Preview,
-                ),
-            ]
-        })
-        .collect::<BTreeSet<_>>();
-    let actual = manifest
-        .lane_contributions()
-        .iter()
-        .map(|cell| (cell.surface(), cell.lane()))
-        .collect::<BTreeSet<_>>();
-    if actual != expected || actual.len() != manifest.lane_contributions().len() {
-        return Err(UiMountedFramePreparationDenial::IncompleteManifest);
-    }
-    Ok(())
-}
-
 fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
     surfaces.iter().fold(0_u64, |digest, receipt| {
         let view = receipt.projection();
@@ -344,6 +352,7 @@ fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
             view.nodes().len(),
             view.clips().rows().len(),
             view.layers().rows().len(),
+            view.hit_tests().rows().len(),
             view.paint_batches().rows().len(),
             view.spatial_batches().rows().len(),
             view.realtime_batches().rows().len(),
@@ -362,6 +371,13 @@ fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
                 .fold(0_u64, |paint_digest, row| {
                     paint_digest.rotate_left(9) ^ row.semantic_digest()
                 })
+            ^ view
+                .hit_tests()
+                .rows()
+                .iter()
+                .fold(0_u64, |hit_digest, row| {
+                    hit_digest.rotate_left(9) ^ row.semantic_digest()
+                })
     })
 }
 
@@ -377,3 +393,7 @@ pub(crate) fn binding_requirement(
         binding.presentation_mode(),
     )
 }
+
+#[cfg(test)]
+#[path = "assembly_visual_overlay_tests.rs"]
+mod visual_overlay_tests;

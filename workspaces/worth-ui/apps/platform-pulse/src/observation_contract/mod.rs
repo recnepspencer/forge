@@ -2,6 +2,11 @@ mod envelope;
 mod lifecycle;
 mod projection;
 mod terminal_projection;
+mod visual;
+mod visual_projection;
+#[cfg(test)]
+mod visual_tests;
+mod visual_value_projection;
 
 pub use envelope::{
     PlatformPulseLifecycleObservationCodecDenial, PlatformPulseLifecycleObservationEnvelope,
@@ -22,4 +27,18 @@ pub use lifecycle::{
 };
 pub use projection::{
     PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
+};
+pub use visual::{
+    PlatformPulseVisualCoordinateObservation, PlatformPulseVisualCoordinateOrientationObservation,
+    PlatformPulseVisualCoordinateRoundingObservation, PlatformPulseVisualEvidenceFamilyObservation,
+    PlatformPulseVisualEvidenceObservation, PlatformPulseVisualIdentityTraceObservation,
+    PlatformPulseVisualMountedNodeObservation, PlatformPulseVisualOverlayCleared,
+    PlatformPulseVisualOverlayPublished, PlatformPulseVisualPixelColorSpaceObservation,
+    PlatformPulseVisualPixelObservation, PlatformPulseVisualPointResolutionObservation,
+    PlatformPulseVisualPointTrace, PlatformPulseVisualSnapshotAffinityObservation,
+    PlatformPulseVisualSnapshotCaptured, PlatformPulseVisualSnapshotRelationObservation,
+    PlatformPulseVisualSnapshotRetired,
+};
+pub use visual_projection::{
+    PlatformPulseVisualPointObservation, PlatformPulseVisualPointTraceInput,
 };

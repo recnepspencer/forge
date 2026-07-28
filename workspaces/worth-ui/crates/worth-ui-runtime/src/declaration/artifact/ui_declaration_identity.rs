@@ -12,6 +12,7 @@ pub enum UiDeclarationEquivalenceContract {
 pub struct UiDeclarationIdentity {
     contract: UiDeclarationEquivalenceContract,
     digest: UiDeclarationIdentityDigest,
+    authored_semantic_name: Box<str>,
 }
 
 impl UiDeclarationIdentity {
@@ -33,6 +34,7 @@ impl UiDeclarationIdentity {
         Self {
             contract: UiDeclarationEquivalenceContract::AuthoredSemanticMeaning,
             digest,
+            authored_semantic_name: key_basis.into(),
         }
     }
 
@@ -42,6 +44,10 @@ impl UiDeclarationIdentity {
 
     pub fn digest(&self) -> UiDeclarationIdentityDigest {
         self.digest
+    }
+
+    pub fn authored_semantic_name(&self) -> &str {
+        &self.authored_semantic_name
     }
 
     pub fn inspection_identity(&self) -> worth_ui_inspection::UiInspectionDeclarationIdentity {

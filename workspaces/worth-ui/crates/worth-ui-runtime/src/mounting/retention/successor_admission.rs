@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use super::authority::{UiMountedFrameRetentionAuthority, UiMountedRetainedFrameState};
+use super::evidence::UiRetainedPresentedFrameInput;
 use super::{
     UiMountedFrameRetentionDenial, UiMountedRetentionClass, UiRetainedMountedDiagnostics,
     UiRetainedPresentedFrame,
@@ -149,22 +150,19 @@ fn remove_diagnostics(
 fn prepare_candidate(
     frame: &super::super::UiPreparedMountedFrame,
 ) -> Result<Rc<UiRetainedPresentedFrame>, UiMountedFrameRetentionDenial> {
-    UiRetainedPresentedFrame::prepare(
-        frame.canonical_core().frame(),
-        &frame
+    UiRetainedPresentedFrame::prepare(UiRetainedPresentedFrameInput {
+        frame: frame.canonical_core().frame(),
+        bindings: frame
             .manifest()
             .surfaces()
             .iter()
             .map(|surface| surface.binding())
-            .collect::<Vec<_>>(),
-        frame.presented_receipt_basis().clone(),
-        frame.cost_report(),
-        frame.static_paint_structural_bytes().ok_or(
-            UiMountedFrameRetentionDenial::AccountingOverflow {
-                class: UiMountedRetentionClass::InFlight,
-            },
-        )?,
-    )
+            .collect(),
+        receipts: frame.presented_receipt_basis().clone(),
+        mount_cost: frame.cost_report(),
+        visual_regions: frame.visual_region_basis(),
+        identity_trace_basis: frame.identity_trace_basis().clone(),
+    })
     .map(Rc::new)
     .ok_or(UiMountedFrameRetentionDenial::AccountingOverflow {
         class: UiMountedRetentionClass::InFlight,

@@ -9,6 +9,8 @@ struct WorthUiCutoverGenerationBasis {
 
 struct WorthUiPreparedCutoverEvidence {
     generations: WorthUiCutoverGenerationBasis,
+    visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
     runtime_basis: crate::runtime::session::WorthUiRuntimePublicationBasis,
     host_session: crate::facade::WorthUiHostSessionIdentity,
@@ -84,6 +86,7 @@ impl WorthUiActiveApplicationSession {
         }
         let generations = self.validate_cutover_generation_basis(&pending, &admitted_delta)?;
         let reload_cost_seed = pending.reload_cost_seed;
+        let visual_trace_source = pending.next_app.visual_trace_source();
         let active_graph = self.application.graph_snapshot().clone();
         let prepared =
             self.application
@@ -108,6 +111,7 @@ impl WorthUiActiveApplicationSession {
                 .map_err(WorthUiApplicationCutoverDenial::Activation)?;
         let evidence = WorthUiPreparedCutoverEvidence {
             generations,
+            visual_trace_source,
             reload_cost_seed,
             runtime_basis: self.application.runtime_publication_basis(),
             host_session: self.host_session.identity(),
@@ -197,6 +201,12 @@ impl WorthUiActiveApplicationSession {
 }
 
 impl WorthUiPreparedApplicationActivation {
+    pub(super) fn visual_trace_source(
+        &self,
+    ) -> crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource {
+        self.visual_trace_source.clone()
+    }
+
     pub(super) fn candidate_plan(&self) -> &crate::runtime::WorthUiActiveExecutionPlan {
         self.prepared_transition().candidate_plan()
     }
@@ -295,6 +305,7 @@ fn seal_prepared_activation(
                 active_generation: evidence.generations.active,
             }),
             publication: Box::new(publication),
+            visual_trace_source: evidence.visual_trace_source,
             reload_cost,
             transition: Some(WorthUiApplicationCutoverTransition::Prepared(activation)),
         },

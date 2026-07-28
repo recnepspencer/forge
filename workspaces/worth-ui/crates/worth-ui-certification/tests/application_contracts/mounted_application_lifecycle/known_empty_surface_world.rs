@@ -43,6 +43,23 @@ where
     scenario.prepare_application_with_host(submission, host)
 }
 
+pub(crate) fn mounted_application_with_host_and_visual_policy<Host>(
+    label: &str,
+    host: Host,
+    policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
+) -> worth_ui::facade::app::WorthUiApp
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    let scenario = FilesystemApplicationLifecycleScenario::new(label);
+    let submission = mounted_submission(
+        label,
+        &FilesystemApplicationLifecycleScenario::ordinary_execution_source_text(),
+        &scenario,
+    );
+    scenario.prepare_application_with_host_and_visual_policy(submission, host, policy)
+}
+
 pub(crate) fn mounted_application_with_host_and_retention_budget<Host>(
     label: &str,
     host: Host,

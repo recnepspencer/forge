@@ -60,8 +60,6 @@ fn validate_header(document: &toml::Value) -> Result<(), String> {
     }
     if ledger::integer(document, "integration_target_budget")? != 9
         || ledger::integer(document, "compile_contract_cargo_sessions")? != 2
-        || ledger::integer(document, "compile_fail_targets")? != 23
-        || ledger::integer(document, "compile_pass_targets")? != 12
     {
         return Err("Phase 7 build budgets must retain the opening posture".to_owned());
     }

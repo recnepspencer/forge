@@ -1,5 +1,6 @@
 mod manifest_contract;
 mod source_contract;
+mod visual_identity_contract;
 
 use std::fs;
 use std::path::Path;
@@ -28,7 +29,8 @@ fn audit_live_product_contract(inventory: &WorkspaceSourceInventory) -> Result<(
         inventory.text("Cargo.toml"),
         inventory.text("apps/platform-pulse/Cargo.toml"),
     )?;
-    source_contract::audit(inventory)
+    source_contract::audit(inventory)?;
+    visual_identity_contract::audit(inventory)
 }
 
 fn audit_ledger(text: &str) -> Result<(), String> {

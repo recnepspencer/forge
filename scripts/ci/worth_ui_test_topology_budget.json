@@ -174,8 +174,8 @@
     "worth-ui": {
       "inventory": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_cases.csv",
       "execution": "workspaces/worth-ui/crates/worth-ui/tests/suites/compile_contract_execution.csv",
-      "inventory_count": 257,
-      "execution_count": 24,
+      "inventory_count": 270,
+      "execution_count": 37,
       "aggregation_groups": [
         {
           "name": "facade_construction",

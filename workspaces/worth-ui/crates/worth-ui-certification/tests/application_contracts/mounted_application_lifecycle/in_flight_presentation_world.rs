@@ -5,7 +5,10 @@ use worth_ui_test_support::{
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
 
-use super::known_empty_surface_world::{first_node, mounted_application_with_host, profile};
+use super::known_empty_surface_world::{
+    first_node, mounted_application_with_host, mounted_application_with_host_and_visual_policy,
+    profile,
+};
 use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 
 pub(crate) struct InFlightPresentationWorld {
@@ -43,7 +46,36 @@ pub(crate) fn mounted_session(
     worth_ui::facade::app::WorthUiActiveApplicationSession,
     Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
 ) {
-    let mut session = mounted_application_with_host(label, host).launch().unwrap();
+    mount_surfaces(
+        mounted_application_with_host(label, host).launch().unwrap(),
+        surface_count,
+    )
+}
+
+pub(crate) fn mounted_session_with_visual_policy(
+    host: ScriptedPresentationHost,
+    label: &str,
+    surface_count: usize,
+    policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
+) -> (
+    worth_ui::facade::app::WorthUiActiveApplicationSession,
+    Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
+) {
+    mount_surfaces(
+        mounted_application_with_host_and_visual_policy(label, host, policy)
+            .launch()
+            .unwrap(),
+        surface_count,
+    )
+}
+
+fn mount_surfaces(
+    mut session: worth_ui::facade::app::WorthUiActiveApplicationSession,
+    surface_count: usize,
+) -> (
+    worth_ui::facade::app::WorthUiActiveApplicationSession,
+    Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
+) {
     let node = first_node(&session);
     let mut bindings = Vec::new();
     for epoch in 0..surface_count {

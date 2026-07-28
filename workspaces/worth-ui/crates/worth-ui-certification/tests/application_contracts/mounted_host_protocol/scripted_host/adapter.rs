@@ -59,6 +59,40 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         )
     }
 
+    fn visual_capture_capability(&self) -> worth_ui_host_contract::UiHostCaptureCapability {
+        self.state.lock().unwrap().visual_capture_capability
+    }
+
+    fn capture_visual_presentation(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureObservationOutcome {
+        if !authority.admits_visual_capture(request) {
+            return worth_ui_host_contract::UiHostCaptureObservationOutcome::Unsupported;
+        }
+        let mut state = self.state.lock().unwrap();
+        state.visual_capture_calls.push(request);
+        let script = state
+            .visual_captures
+            .pop_front()
+            .expect("script names every visual capture outcome");
+        visual_capture_script::observe(request, script)
+    }
+
+    fn cancel_visual_capture(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureCancellationOutcome {
+        if !authority.admits_visual_capture(request) {
+            return worth_ui_host_contract::UiHostCaptureCancellationOutcome::CleanupIndeterminate;
+        }
+        let mut state = self.state.lock().unwrap();
+        state.visual_cancellation_calls.push(request);
+        state.visual_cancellation_outcome
+    }
+
     fn register_surface(
         &self,
         authority: &UiHostAdapterSessionAuthority,

@@ -19,6 +19,16 @@ pub(crate) fn workspace_source_inventory() -> &'static WorkspaceSourceInventory 
     &WORKSPACE_SOURCE_INVENTORY
 }
 
+pub(crate) fn repository_document(relative_path: &str) -> String {
+    let repository_root = workspace_source_inventory()
+        .root()
+        .parent()
+        .and_then(Path::parent)
+        .expect("workspace sits below the repository root");
+    std::fs::read_to_string(repository_root.join(relative_path))
+        .unwrap_or_else(|error| panic!("{relative_path} should be readable: {error}"))
+}
+
 #[test]
 fn topology_suite_uses_one_stable_workspace_source_inventory() {
     let first = workspace_source_inventory();
@@ -78,6 +88,16 @@ mod milestone_3103_external_world_audit;
 mod milestone_3103_product_contract_audit;
 #[path = "../milestone_3103_watched_replacement_audit.rs"]
 mod milestone_3103_watched_replacement_audit;
+#[path = "../milestone_311_phase1_contract_audit.rs"]
+mod milestone_311_phase1_contract_audit;
+#[path = "../milestone_311_phase2_contract_audit.rs"]
+mod milestone_311_phase2_contract_audit;
+#[path = "../milestone_311_phase3_contract_audit.rs"]
+mod milestone_311_phase3_contract_audit;
+#[path = "../milestone_311_phase4_contract_audit.rs"]
+mod milestone_311_phase4_contract_audit;
+#[path = "../milestone_311_phase5_contract_audit.rs"]
+mod milestone_311_phase5_contract_audit;
 #[path = "../milestone_37_structural_inventory_audit.rs"]
 mod milestone_37_structural_inventory_audit;
 #[path = "../obligation_boundary_bypass.rs"]

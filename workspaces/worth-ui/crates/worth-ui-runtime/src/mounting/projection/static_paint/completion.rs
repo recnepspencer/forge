@@ -13,59 +13,83 @@ pub(in crate::mounting::projection) fn complete_static_filled_rects(
 ) -> Result<Vec<UiMountedFilledRectMechanic>, UiMountedProjectionDenial> {
     let mut rows = Vec::new();
     for node in semantic.nodes_in_order() {
-        let mounted_instance = node.receipt.mounted_instance();
-        let Some(seed) = node.static_paint else {
-            continue;
-        };
-        if node.receipt.participation().paint().status() != UiMountedParticipationStatus::Admitted
-            || node.receipt.participation().clip().status()
-                != UiMountedParticipationStatus::Admitted
-        {
-            return Err(UiMountedProjectionDenial::StaticPaintParticipationWithheld(
-                node.receipt.graph_node(),
-            ));
-        }
-        let (bounds, allocation_basis) = match node.receipt.allocation() {
-            UiMountedAllocationProjection::Known { bounds, basis } => (bounds, basis),
-            UiMountedAllocationProjection::PortalAnchorObservation { .. } => {
-                return Err(UiMountedProjectionDenial::UnsupportedStaticPaintAllocation(
-                    node.receipt.graph_node(),
-                ));
-            }
-            UiMountedAllocationProjection::Omitted(_) => {
-                return Err(UiMountedProjectionDenial::MissingStaticPaintAllocation(
-                    node.receipt.graph_node(),
-                ));
-            }
-        };
-        let surface = semantic
-            .surface_for(node.receipt.semantic_surface())
-            .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
-        let node_receipt = receipt_basis
-            .receipt_for(mounted_instance)
-            .ok_or(UiMountedProjectionDenial::StaticPaintNodeReceiptMismatch)?;
         if rows.len() >= worth_ui_host_contract::UiMountedFilledRectTable::MAX_ROWS {
             return Err(UiMountedProjectionDenial::StaticPaintCapacityExceeded);
         }
-        rows.push(
-            UiMountedFilledRectMechanic::complete_from_runtime_mounting(
-                UiMountedFilledRectCompletionInput {
-                    frame,
-                    surface: surface.surface,
-                    binding: surface.binding,
-                    mounted_instance,
-                    node_receipt,
-                    allocation_basis,
-                    bounds,
-                    color: seed.color(),
-                    layer_semantic_order: 0,
-                    clip_bounds: bounds,
-                },
-            )
-            .map_err(UiMountedProjectionDenial::StaticPaintCompletion)?,
-        );
+        if let Some(row) = complete_static_filled_rect(frame, receipt_basis, semantic, node)? {
+            rows.push(row);
+        }
     }
     Ok(rows)
+}
+
+fn complete_static_filled_rect(
+    frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    receipt_basis: &super::super::super::UiMountedNodeReceiptBasis,
+    semantic: &UiMountedSemanticProjection,
+    node: &super::super::frame_storage::UiMountedProjectionNodeRecord,
+) -> Result<Option<UiMountedFilledRectMechanic>, UiMountedProjectionDenial> {
+    let Some(seed) = node.static_paint else {
+        return Ok(None);
+    };
+    require_static_paint_participation(node)?;
+    let (bounds, allocation_basis) = require_static_paint_allocation(node)?;
+    let surface = semantic
+        .surface_for(node.receipt.semantic_surface())
+        .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
+    let mounted_instance = node.receipt.mounted_instance();
+    let node_receipt = receipt_basis
+        .receipt_for(mounted_instance)
+        .ok_or(UiMountedProjectionDenial::StaticPaintNodeReceiptMismatch)?;
+    UiMountedFilledRectMechanic::complete_from_runtime_mounting(
+        UiMountedFilledRectCompletionInput {
+            frame,
+            surface: surface.surface,
+            binding: surface.binding,
+            mounted_instance,
+            node_receipt,
+            allocation_basis,
+            bounds,
+            color: seed.color(),
+            layer_semantic_order: seed.layer_semantic_order(),
+            clip_bounds: bounds,
+        },
+    )
+    .map(Some)
+    .map_err(UiMountedProjectionDenial::StaticPaintCompletion)
+}
+
+fn require_static_paint_participation(
+    node: &super::super::frame_storage::UiMountedProjectionNodeRecord,
+) -> Result<(), UiMountedProjectionDenial> {
+    if node.receipt.participation().paint().status() == UiMountedParticipationStatus::Admitted
+        && node.receipt.participation().clip().status() == UiMountedParticipationStatus::Admitted
+    {
+        return Ok(());
+    }
+    Err(UiMountedProjectionDenial::StaticPaintParticipationWithheld(
+        node.receipt.graph_node(),
+    ))
+}
+
+fn require_static_paint_allocation(
+    node: &super::super::frame_storage::UiMountedProjectionNodeRecord,
+) -> Result<
+    (
+        worth_ui_host_contract::UiMountedCanonicalBox,
+        worth_ui_host_contract::UiMountedAllocationBasis,
+    ),
+    UiMountedProjectionDenial,
+> {
+    match node.receipt.allocation() {
+        UiMountedAllocationProjection::Known { bounds, basis } => Ok((bounds, basis)),
+        UiMountedAllocationProjection::PortalAnchorObservation { .. } => Err(
+            UiMountedProjectionDenial::UnsupportedStaticPaintAllocation(node.receipt.graph_node()),
+        ),
+        UiMountedAllocationProjection::Omitted(_) => Err(
+            UiMountedProjectionDenial::MissingStaticPaintAllocation(node.receipt.graph_node()),
+        ),
+    }
 }
 
 pub(in crate::mounting::projection) fn rebind_filled_rects(

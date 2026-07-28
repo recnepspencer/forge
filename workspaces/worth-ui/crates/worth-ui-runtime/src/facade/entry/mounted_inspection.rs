@@ -17,3 +17,12 @@ impl WorthUiActiveApplicationSession {
         )
     }
 }
+
+impl super::WorthUiNativeApplicationShell {
+    pub fn inspect_mounted_frame(
+        &self,
+        request: crate::inspection::mounted_frame::UiMountedInspectionRequest,
+    ) -> crate::inspection::mounted_frame::UiMountedInspectionReceipt {
+        self.session.inspect_mounted_frame(request)
+    }
+}

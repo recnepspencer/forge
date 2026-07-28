@@ -36,6 +36,24 @@ pub trait WorthUiHostMechanicsAdapter: crate::WorthUiMeasurementHostAdapter {
         crate::UiHostMeasurementEnvironmentReport::unsupported()
     }
 
+    fn mechanical_visual_capture_capability(&self) -> crate::UiHostCaptureCapability {
+        crate::UiHostCaptureCapability::Unsupported
+    }
+
+    fn perform_visual_capture(
+        &self,
+        _request: crate::UiHostVisualCaptureRequest,
+    ) -> crate::UiHostCaptureObservationOutcome {
+        crate::UiHostCaptureObservationOutcome::Unsupported
+    }
+
+    fn perform_visual_capture_cancellation(
+        &self,
+        _request: crate::UiHostVisualCaptureRequest,
+    ) -> crate::UiHostCaptureCancellationOutcome {
+        crate::UiHostCaptureCancellationOutcome::ReadbackMayHaveBegun
+    }
+
     fn perform_mounted_surface_presentation(
         &self,
         _view: &crate::UiMountedFrameConsumptionView<'_>,

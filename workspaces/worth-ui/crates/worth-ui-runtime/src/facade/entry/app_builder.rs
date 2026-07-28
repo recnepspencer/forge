@@ -2,7 +2,7 @@ use crate::facade::entry::CapabilityRegistrationBuilder;
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::lifecycle::{
     prepare_application_authority, WorthUiApplicationPreparationDenial,
-    WorthUiApplicationPreparationSource,
+    WorthUiApplicationPreparationInput, WorthUiApplicationPreparationSource,
 };
 use crate::facade::measurement_exchange::WorthUiOperationalHostAdapter;
 use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
@@ -29,6 +29,7 @@ pub struct WorthUiApplicationBuilder {
     inner: CapabilityRegistrationBuilder,
     preparation_source: WorthUiApplicationBuilderPreparationSource,
     host_session_plan: WorthUiHostSessionPlan,
+    visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     graph_world_profile: UiGraphWorldProfile,
     runtime_instance_basis_admissions: Vec<crate::graph::UiRuntimeInstanceBasisAdmission>,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
@@ -45,6 +46,12 @@ impl WorthUiApplicationBuilder {
             host_session_plan: WorthUiHostSessionPlan::prepare(
                 crate::host::adapter::WorthUiHeadlessHost,
             ),
+            visual_inspection_policy:
+                worth_ui_inspection::UiVisualInspectionPolicy::production_default(
+                    worth_ui_inspection::UiVisualInspectionDisclosure::local_development_unredacted(
+                    ),
+                )
+                .expect("the governed default visual inspection policy is valid"),
             graph_world_profile: UiGraphWorldProfile::authoritative(),
             runtime_instance_basis_admissions: Vec::new(),
             measurement_inspection_evidence: Vec::new(),
@@ -108,6 +115,16 @@ impl WorthUiApplicationBuilder {
     ) -> Self {
         self.host_session_plan
             .set_mounted_frame_retention_budget(budget);
+        self
+    }
+
+    /// Declare the immutable visual-inspection disclosure and resource policy
+    /// that launch will seal into this application's session authority.
+    pub fn with_visual_inspection_policy(
+        mut self,
+        policy: worth_ui_inspection::UiVisualInspectionPolicy,
+    ) -> Self {
+        self.visual_inspection_policy = policy;
         self
     }
 
@@ -279,15 +296,20 @@ impl WorthUiApplicationBuilder {
             }
         };
         Ok(WorthUiApp::from_prepared_authority(
-            prepare_application_authority(
+            prepare_application_authority(WorthUiApplicationPreparationInput {
                 capability_snapshot,
                 preparation_source,
-                self.host_session_plan,
-                self.graph_world_profile,
-                self.runtime_instance_basis_admissions.into_boxed_slice(),
-                self.measurement_inspection_evidence.into_boxed_slice(),
-                self.query_binding_plan,
-            )?,
+                host_session_plan: self.host_session_plan,
+                visual_inspection_policy: self.visual_inspection_policy,
+                graph_world_profile: self.graph_world_profile,
+                runtime_instance_basis_admissions: self
+                    .runtime_instance_basis_admissions
+                    .into_boxed_slice(),
+                measurement_inspection_evidence: self
+                    .measurement_inspection_evidence
+                    .into_boxed_slice(),
+                query_binding_plan: self.query_binding_plan,
+            })?,
         ))
     }
 

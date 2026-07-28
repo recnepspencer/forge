@@ -8,6 +8,7 @@ pub enum UiMountedInspectionReceipt {
 pub struct UiMountedInspectedFrame {
     frame: UiMountedFrameIdentity,
     relation: UiMountedInspectionRelation,
+    presentation: crate::mounting::UiMountedPresentationReceipt,
     presented_binding_count: usize,
     mounted_instance_count: usize,
     selected_node_receipt: Option<UiMountedNodeReceiptIdentity>,
@@ -45,6 +46,14 @@ pub enum UiMountedDiagnosticInspectionOmission {
 pub enum UiMountedInspectionRelation {
     Current,
     RetainedPredecessor,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiMountedVisualTargetDenial {
+    NotCurrentPresentation,
+    NotRetainedPredecessor,
+    NodeSelectionRequired,
+    SurfaceSelectionRequired,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -95,6 +104,7 @@ impl UiMountedInspectionReceipt {
                     UiMountedInspectionRelation::RetainedPredecessor
                 }
             },
+            presentation: basis.presentation,
             presented_binding_count: basis.presented_binding_count,
             mounted_instance_count: basis.mounted_instance_count,
             selected_node_receipt: basis.selected_node_receipt,
@@ -153,6 +163,10 @@ impl UiMountedInspectedFrame {
         self.relation
     }
 
+    pub const fn presentation(&self) -> &crate::mounting::UiMountedPresentationReceipt {
+        &self.presentation
+    }
+
     pub const fn presented_binding_count(&self) -> usize {
         self.presented_binding_count
     }
@@ -191,6 +205,70 @@ impl UiMountedInspectedFrame {
 
     pub fn into_retention_lease(self) -> crate::mounting::UiMountedRetentionLease {
         self.lease
+    }
+
+    pub fn current_visual_target(
+        self,
+    ) -> Result<
+        crate::inspection::visual_snapshot::UiCurrentPresentedSurfaceTarget,
+        UiMountedVisualTargetDenial,
+    > {
+        if self.relation != UiMountedInspectionRelation::Current {
+            return Err(UiMountedVisualTargetDenial::NotCurrentPresentation);
+        }
+        let basis = self.visual_surface_basis()?;
+        Ok(crate::inspection::visual_snapshot::seal_current_surface_target(basis, self.lease))
+    }
+
+    pub fn retained_visual_target(
+        self,
+    ) -> Result<
+        crate::inspection::visual_snapshot::UiRetainedPresentedSurfaceTarget,
+        UiMountedVisualTargetDenial,
+    > {
+        if self.relation != UiMountedInspectionRelation::RetainedPredecessor {
+            return Err(UiMountedVisualTargetDenial::NotRetainedPredecessor);
+        }
+        let basis = self.visual_surface_basis()?;
+        Ok(crate::inspection::visual_snapshot::seal_retained_surface_target(basis, self.lease))
+    }
+
+    pub fn node_visual_target(
+        self,
+    ) -> Result<
+        crate::inspection::visual_snapshot::UiMountedNodeVisualTarget,
+        UiMountedVisualTargetDenial,
+    > {
+        let receipt = self
+            .selected_node_receipt
+            .ok_or(UiMountedVisualTargetDenial::NodeSelectionRequired)?;
+        let basis = self.visual_surface_basis()?;
+        Ok(
+            crate::inspection::visual_snapshot::seal_mounted_node_target(
+                basis, receipt, self.lease,
+            ),
+        )
+    }
+
+    fn visual_surface_basis(
+        &self,
+    ) -> Result<
+        crate::inspection::visual_snapshot::UiVisualSurfaceCaptureBasis,
+        UiMountedVisualTargetDenial,
+    > {
+        let [surface] = self.presentation.surfaces() else {
+            return Err(UiMountedVisualTargetDenial::SurfaceSelectionRequired);
+        };
+        Ok(
+            crate::inspection::visual_snapshot::UiVisualSurfaceCaptureBasis {
+                frame: self.frame,
+                presentation_attempt: self.presentation.attempt(),
+                semantic_surface: surface.semantic_surface(),
+                host_surface: surface.host_surface(),
+                binding: surface.binding(),
+                epoch: surface.epoch(),
+            },
+        )
     }
 }
 
@@ -251,6 +329,7 @@ impl std::fmt::Debug for UiMountedInspectedFrame {
             .debug_struct("UiMountedInspectedFrame")
             .field("frame", &self.frame)
             .field("relation", &self.relation)
+            .field("presentation", &self.presentation)
             .field("presented_binding_count", &self.presented_binding_count)
             .field("mounted_instance_count", &self.mounted_instance_count)
             .field("selected_node_receipt", &self.selected_node_receipt)

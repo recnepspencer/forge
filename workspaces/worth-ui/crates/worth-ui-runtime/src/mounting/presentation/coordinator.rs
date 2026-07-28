@@ -49,6 +49,22 @@ struct UiMountedPresentationSettlement<'host> {
     host: UiHostEffectPort<'host>,
 }
 
+struct UiMountedPresentationStart<'host, 'authority> {
+    frame: super::super::UiPreparedMountedFrame,
+    retention: super::super::retention::UiMountedRetentionReservation,
+    attempt: UiMountedPresentationAttemptIdentity,
+    deadline: UiPresentationDeadline,
+    host: UiHostEffectPort<'host>,
+    authority: UiMountedHostPresentationAuthority<'authority>,
+}
+
+#[derive(Default)]
+struct UiMountedPresentationProgress {
+    pending: Vec<super::state::UiPendingMountedSurface>,
+    rejected: Vec<UiMountedSurfacePresentationRejection>,
+    completed: Vec<UiMountedSurfacePresentationReceipt>,
+}
+
 impl Default for UiMountedPresentationCoordinator {
     fn default() -> Self {
         Self {
@@ -58,6 +74,85 @@ impl Default for UiMountedPresentationCoordinator {
             in_flight: BTreeMap::new(),
             host_truth: Default::default(),
         }
+    }
+}
+
+fn present_one_surface(
+    start: &UiMountedPresentationStart<'_, '_>,
+    surface: &super::super::UiMountedSurfaceReceipt,
+    progress: &mut UiMountedPresentationProgress,
+) -> Result<(), UiIndeterminatePresentationEvidence> {
+    let requirement = surface.requirement();
+    let view = start.authority.bind(UiRuntimeMountedFrameConsumptionInput {
+        attempt: start.attempt,
+        deadline: start.deadline,
+        requirement,
+        projection: surface.projection(),
+    });
+    match start
+        .host
+        .adapter()
+        .present_mounted_surface(start.host.authority(), &view)
+    {
+        UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial) => {
+            progress
+                .rejected
+                .push(UiMountedSurfacePresentationRejection::new(
+                    requirement.binding(),
+                    denial,
+                ));
+            Ok(())
+        }
+        UiHostSurfacePresentationOutcome::InFlight(token) => {
+            progress
+                .pending
+                .push(super::state::UiPendingMountedSurface {
+                    binding: requirement.binding(),
+                    token,
+                });
+            Ok(())
+        }
+        UiHostSurfacePresentationOutcome::PresentationIndeterminate => Err(
+            terminalize_surface_uncertainty(progress, start.host, requirement.binding(), None),
+        ),
+        UiHostSurfacePresentationOutcome::Presented(completion) => {
+            if !completion_satisfies(surface, &completion) {
+                return Err(terminalize_surface_uncertainty(
+                    progress,
+                    start.host,
+                    requirement.binding(),
+                    Some(completion.cost()),
+                ));
+            }
+            let (epoch, effects, adapter_cost) = completion.into_parts();
+            progress
+                .completed
+                .push(UiMountedSurfacePresentationReceipt::new(
+                    requirement,
+                    epoch,
+                    effects,
+                    adapter_cost,
+                ));
+            Ok(())
+        }
+    }
+}
+
+fn terminalize_surface_uncertainty(
+    progress: &mut UiMountedPresentationProgress,
+    host: UiHostEffectPort<'_>,
+    binding: UiSurfaceBindingGeneration,
+    additional_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
+) -> UiIndeterminatePresentationEvidence {
+    let mut affected =
+        aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
+    affected.push(binding);
+    settlement::cancel_all(std::mem::take(&mut progress.pending), host);
+    let evidence =
+        UiIndeterminatePresentationEvidence::new(affected, std::mem::take(&mut progress.completed));
+    match additional_cost {
+        Some(cost) => evidence.with_additional_adapter_cost(cost),
+        None => evidence,
     }
 }
 
@@ -78,7 +173,14 @@ impl UiMountedPresentationCoordinator {
             );
             return rejected_outcome(attempt, frame, retention, rejections);
         }
-        self.present_all(frame, retention, attempt, deadline, host, authority)
+        self.present_all(UiMountedPresentationStart {
+            frame,
+            retention,
+            attempt,
+            deadline,
+            host,
+            authority,
+        })
     }
 
     pub fn reconcile(
@@ -123,83 +225,29 @@ impl UiMountedPresentationCoordinator {
 
     fn present_all(
         &mut self,
-        frame: super::super::UiPreparedMountedFrame,
-        retention: super::super::retention::UiMountedRetentionReservation,
-        attempt: UiMountedPresentationAttemptIdentity,
-        deadline: UiPresentationDeadline,
-        host: UiHostEffectPort<'_>,
-        authority: UiMountedHostPresentationAuthority<'_>,
+        start: UiMountedPresentationStart<'_, '_>,
     ) -> UiMountedPresentationOutcome {
-        if let Err(rejections) = validate_before_effects(&frame, host.adapter(), authority) {
-            self.active.borrow_mut().remove(&attempt);
-            return rejected_outcome(attempt, frame, retention, rejections);
+        if let Err(rejections) =
+            validate_before_effects(&start.frame, start.host.adapter(), start.authority)
+        {
+            self.active.borrow_mut().remove(&start.attempt);
+            return rejected_outcome(start.attempt, start.frame, start.retention, rejections);
         }
-        let mut pending = Vec::new();
-        let mut rejected = Vec::new();
-        let mut completed = Vec::new();
-        for surface in frame.surfaces() {
-            let requirement = surface.requirement();
-            let view = authority.bind(UiRuntimeMountedFrameConsumptionInput {
-                attempt,
-                deadline,
-                requirement,
-                projection: surface.projection(),
-            });
-            match host
-                .adapter()
-                .present_mounted_surface(host.authority(), &view)
-            {
-                UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial) => {
-                    rejected.push(UiMountedSurfacePresentationRejection::new(
-                        requirement.binding(),
-                        denial,
-                    ));
-                }
-                UiHostSurfacePresentationOutcome::PresentationIndeterminate => {
-                    let mut affected = aggregate_affected(&completed, &pending, &rejected);
-                    affected.push(requirement.binding());
-                    settlement::cancel_all(pending, host);
-                    return self.indeterminate(
-                        frame,
-                        retention,
-                        attempt,
-                        UiIndeterminatePresentationEvidence::new(affected, completed),
-                    );
-                }
-                UiHostSurfacePresentationOutcome::InFlight(token) => {
-                    pending.push(super::state::UiPendingMountedSurface {
-                        binding: requirement.binding(),
-                        token,
-                    })
-                }
-                UiHostSurfacePresentationOutcome::Presented(completion) => {
-                    if !completion_satisfies(surface, &completion) {
-                        let mut affected = aggregate_affected(&completed, &pending, &rejected);
-                        affected.push(requirement.binding());
-                        settlement::cancel_all(pending, host);
-                        let evidence =
-                            UiIndeterminatePresentationEvidence::new(affected, completed)
-                                .with_additional_adapter_cost(completion.cost());
-                        return self.indeterminate(frame, retention, attempt, evidence);
-                    }
-                    let (effects, adapter_cost) = completion.into_parts();
-                    completed.push(UiMountedSurfacePresentationReceipt::new(
-                        requirement.binding(),
-                        effects,
-                        adapter_cost,
-                    ));
-                }
+        let mut progress = UiMountedPresentationProgress::default();
+        for surface in start.frame.surfaces() {
+            if let Err(evidence) = present_one_surface(&start, surface, &mut progress) {
+                return self.indeterminate(start.frame, start.retention, start.attempt, evidence);
             }
         }
         self.finish_or_wait(UiMountedPresentationSettlement {
-            frame,
-            retention,
-            attempt,
-            deadline,
-            pending,
-            rejected,
-            completed,
-            host,
+            frame: start.frame,
+            retention: start.retention,
+            attempt: start.attempt,
+            deadline: start.deadline,
+            pending: progress.pending,
+            rejected: progress.rejected,
+            completed: progress.completed,
+            host: start.host,
         })
     }
 
@@ -207,85 +255,113 @@ impl UiMountedPresentationCoordinator {
         &mut self,
         settlement: UiMountedPresentationSettlement<'_>,
     ) -> UiMountedPresentationOutcome {
-        let UiMountedPresentationSettlement {
-            frame,
-            retention,
-            attempt,
-            deadline,
-            pending,
-            rejected,
-            mut completed,
-            host,
-        } = settlement;
-        if !pending.is_empty() {
-            let cost =
-                match UiMountedPresentationReceipt::compose_cost(frame.cost_report(), &completed) {
-                    Ok(cost) => cost,
-                    Err(_) => {
-                        let affected = aggregate_affected(&completed, &pending, &rejected);
-                        settlement::cancel_all(pending, host);
-                        return self.indeterminate(
-                            frame,
-                            retention,
-                            attempt,
-                            UiIndeterminatePresentationEvidence::new(affected, completed),
-                        );
-                    }
-                };
-            let state = super::state::UiMountedPresentationInFlightState {
-                frame,
-                retention,
-                attempt,
-                deadline,
-                pending,
-                rejected,
-                completed,
-            };
-            let handle = UiMountedPresentationInFlight::from_state(&state, cost);
-            self.in_flight.insert(attempt, state);
-            return UiMountedPresentationOutcome::InFlight(handle);
+        if !settlement.pending.is_empty() {
+            return self.retain_in_flight(settlement);
         }
-        if completed.is_empty() {
-            self.active.borrow_mut().remove(&attempt);
-            return rejected_outcome(attempt, frame, retention, rejected);
+        if settlement.completed.is_empty() {
+            return self.finish_rejected(settlement);
         }
-        if !rejected.is_empty() {
-            let affected = aggregate_affected(&completed, &[], &rejected);
-            return self.indeterminate(
-                frame,
-                retention,
-                attempt,
-                UiIndeterminatePresentationEvidence::new(affected, completed),
-            );
+        if !settlement.rejected.is_empty() {
+            return self.finish_partially_presented(settlement);
         }
-        self.active.borrow_mut().remove(&attempt);
-        completed.sort_by_key(UiMountedSurfacePresentationReceipt::binding);
-        let cost = match UiMountedPresentationReceipt::compose_cost(frame.cost_report(), &completed)
-        {
+        self.finish_presented(settlement)
+    }
+
+    fn retain_in_flight(
+        &mut self,
+        settlement: UiMountedPresentationSettlement<'_>,
+    ) -> UiMountedPresentationOutcome {
+        let cost = match UiMountedPresentationReceipt::compose_cost(
+            settlement.frame.cost_report(),
+            &settlement.completed,
+        ) {
             Ok(cost) => cost,
             Err(_) => {
-                let affected = frame
+                let affected = aggregate_affected(
+                    &settlement.completed,
+                    &settlement.pending,
+                    &settlement.rejected,
+                );
+                settlement::cancel_all(settlement.pending, settlement.host);
+                return self.indeterminate(
+                    settlement.frame,
+                    settlement.retention,
+                    settlement.attempt,
+                    UiIndeterminatePresentationEvidence::new(affected, settlement.completed),
+                );
+            }
+        };
+        let state = super::state::UiMountedPresentationInFlightState {
+            frame: settlement.frame,
+            retention: settlement.retention,
+            attempt: settlement.attempt,
+            deadline: settlement.deadline,
+            pending: settlement.pending,
+            rejected: settlement.rejected,
+            completed: settlement.completed,
+        };
+        let handle = UiMountedPresentationInFlight::from_state(&state, cost);
+        self.in_flight.insert(state.attempt, state);
+        UiMountedPresentationOutcome::InFlight(handle)
+    }
+
+    fn finish_rejected(
+        &mut self,
+        settlement: UiMountedPresentationSettlement<'_>,
+    ) -> UiMountedPresentationOutcome {
+        self.active.borrow_mut().remove(&settlement.attempt);
+        rejected_outcome(
+            settlement.attempt,
+            settlement.frame,
+            settlement.retention,
+            settlement.rejected,
+        )
+    }
+
+    fn finish_partially_presented(
+        &mut self,
+        settlement: UiMountedPresentationSettlement<'_>,
+    ) -> UiMountedPresentationOutcome {
+        let affected = aggregate_affected(&settlement.completed, &[], &settlement.rejected);
+        self.indeterminate(
+            settlement.frame,
+            settlement.retention,
+            settlement.attempt,
+            UiIndeterminatePresentationEvidence::new(affected, settlement.completed),
+        )
+    }
+
+    fn finish_presented(
+        &mut self,
+        mut settlement: UiMountedPresentationSettlement<'_>,
+    ) -> UiMountedPresentationOutcome {
+        self.active.borrow_mut().remove(&settlement.attempt);
+        let attempt = settlement.attempt;
+        let frame_identity = settlement.frame.canonical_core().frame();
+        let frame_cost = settlement.frame.cost_report();
+        let mut completed = std::mem::take(&mut settlement.completed);
+        completed.sort_by_key(UiMountedSurfacePresentationReceipt::binding);
+        let cost = match UiMountedPresentationReceipt::compose_cost(frame_cost, &completed) {
+            Ok(cost) => cost,
+            Err(_) => {
+                let affected = settlement
+                    .frame
                     .surfaces()
                     .iter()
                     .map(|surface| surface.requirement().binding())
                     .collect();
                 return self.indeterminate(
-                    frame,
-                    retention,
+                    settlement.frame,
+                    settlement.retention,
                     attempt,
                     UiIndeterminatePresentationEvidence::new(affected, completed),
                 );
             }
         };
-        let receipt = UiMountedPresentationReceipt::new(
-            attempt,
-            frame.canonical_core().frame(),
-            cost,
-            completed,
-        );
+        let receipt = UiMountedPresentationReceipt::new(attempt, frame_identity, cost, completed);
         UiMountedPresentationOutcome::Presented(UiMountedPresentedFrame::new(
-            frame,
-            retention,
+            settlement.frame,
+            settlement.retention,
             receipt,
             UiMountedPresentationWitness::new(attempt),
         ))

@@ -11,7 +11,7 @@ use super::report::{
     ExecutableWorldFailureTeardown, InstallationOnlyFailureTeardown, NativeBoundFailureTeardown,
     PulseExecutableWorldFailure, PulseExecutableWorldFailureReport, UnboundFailureTeardown,
 };
-use super::retained_artifact::FailureArtifactInputs;
+use super::retained_artifact::{FailureArtifactInputs, FailureNativeCaptureInput};
 
 const FAILURE_TEARDOWN_BUDGET: Duration = Duration::from_secs(5);
 
@@ -51,6 +51,7 @@ pub(crate) fn teardown_installed_world(
         FailureArtifactInputs {
             source_snapshot,
             lifecycle: None,
+            native_capture: None,
         },
     )
 }
@@ -80,6 +81,7 @@ pub(crate) fn teardown_unbound_world(
         FailureArtifactInputs {
             source_snapshot,
             lifecycle: Some(lifecycle_snapshot),
+            native_capture: None,
         },
     )
 }
@@ -96,12 +98,16 @@ pub(crate) fn teardown_native_bound_world(
                 lifecycle,
             },
         platform,
-        native_client: _native_client,
+        native_client,
     } = resources;
     let process_id = process.id();
     let deadline = Instant::now() + FAILURE_TEARDOWN_BUDGET;
     let source_snapshot = installation.failure_source_snapshot();
     let lifecycle_snapshot = lifecycle.failure_snapshot();
+    let native_capture = Some(match platform.capture_client_area(&native_client) {
+        Ok(capture) => FailureNativeCaptureInput::Captured(capture),
+        Err(failure) => FailureNativeCaptureInput::Failed(failure.to_string()),
+    });
     let process = process.terminate_after_failure(deadline);
     let lifecycle = lifecycle.teardown_after_failure(deadline);
     let native_window = platform.verify_process_window_released(process_id);
@@ -117,6 +123,7 @@ pub(crate) fn teardown_native_bound_world(
         FailureArtifactInputs {
             source_snapshot,
             lifecycle: Some(lifecycle_snapshot),
+            native_capture,
         },
     )
 }

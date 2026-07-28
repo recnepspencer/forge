@@ -102,13 +102,13 @@ guidance = "Milestone 3.10.1: DSL owns authored language meaning and may not imp
 workspace_manifest = "workspaces/worth-ui/Cargo.toml"
 sources = ["worth-ui-platform-pulse"]
 allowed_targets = ["eframe", "serde", "serde_json", "uiautomation", "winsafe", "worth-ui", "worth-ui-host-egui", "xcap"]
-guidance = "Milestone 3.10.3 Phase 4: the permanent pulse remains a downstream application composition root; its sole executable-world test may add exact Windows observation and atomic-replacement dependencies, while runtime, DSL, certification, test-support, and future convenience dependencies require an explicit architectural amendment"
+guidance = "Milestones 3.10.3 and 3.11: the permanent pulse remains a downstream application composition root; its sole executable-world test may add exact Windows observation and atomic-replacement dependencies, and 3.11 selects the WGPU renderer plus exact-HWND WGC capture so independent pixels remain reachable; runtime, DSL, certification, test-support, and future convenience dependencies require an explicit architectural amendment"
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "eframe"
 version_requirement = "=0.31.1"
 uses_default_features = false
-features = ["default_fonts", "glow", "wayland", "x11"]
+features = ["default_fonts", "glow", "wayland", "wgpu", "x11"]
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "uiautomation"
@@ -120,13 +120,13 @@ features = ["control", "input"]
 target = "winsafe"
 version_requirement = "=0.0.28"
 uses_default_features = true
-features = ["kernel", "user"]
+features = ["dwm", "kernel", "user"]
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "xcap"
 version_requirement = "=0.9.7"
 uses_default_features = false
-features = []
+features = ["wgc"]
 
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/apps/platform-pulse/tests/executable_world"

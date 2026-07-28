@@ -3,7 +3,6 @@
 mod active_application_admission;
 mod active_application_inspection;
 mod active_application_session;
-mod active_application_session_identity;
 mod active_framework_turn;
 mod app;
 mod app_builder;
@@ -22,11 +21,13 @@ mod native_application_replacement;
 mod native_application_shell;
 mod native_replacement_allocation;
 mod observation_report;
+mod visual_overlay;
+mod visual_snapshot;
+pub use crate::lifecycle::WorthUiActiveApplicationSessionIdentity;
 pub use crate::runtime::exports::WorthUiAllocationCatalogActivationDenial;
 pub use active_application_session::{
     WorthUiActiveApplicationSession, WorthUiActiveInspectionReceipt,
 };
-pub use active_application_session_identity::WorthUiActiveApplicationSessionIdentity;
 pub use active_framework_turn::{
     WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
     WorthUiActiveFrameworkTurnExecution, WorthUiActiveOrdinaryFrameCompletion,

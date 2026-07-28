@@ -77,6 +77,7 @@ pub struct UiMountedDiagnosticReference(u16);
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedDiagnosticProjection {
     Reference(UiMountedDiagnosticReference),
+    IdentityOverlay(super::UiMountedIdentityOverlayMechanic),
     Omitted(UiMountedOmissionReason),
 }
 

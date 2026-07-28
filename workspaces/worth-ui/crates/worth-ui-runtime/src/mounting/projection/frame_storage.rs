@@ -10,9 +10,8 @@ use super::UiMountedProjectionDenial;
 mod semantic_projection;
 mod view;
 
-pub(super) use semantic_projection::{
-    UiMountedProjectionNodeRecord, UiMountedProjectionSurface, UiMountedSemanticProjection,
-};
+pub(in crate::mounting) use semantic_projection::UiMountedSemanticProjection;
+pub(super) use semantic_projection::{UiMountedProjectionNodeRecord, UiMountedProjectionSurface};
 use view::{UiMountedOrdinaryPaintSelector, UiMountedPlanIndexPaintSelector};
 
 const TABLE_LIMIT: usize = 2_048;
@@ -25,6 +24,7 @@ pub struct UiMountedProjectionFrame {
     plan_digest: u64,
     semantic: UiMountedSemanticProjection,
     filled_rects: Vec<worth_ui_host_contract::UiMountedFilledRectMechanic>,
+    hit_tests: Vec<worth_ui_host_contract::UiMountedHitTestMechanic>,
     paint_batches: Vec<UiMountedPaintBatchRow>,
     layers: Vec<UiMountedLayerRow>,
     spatial_batches: Vec<UiMountedSpatialBatchRow>,
@@ -37,23 +37,27 @@ pub struct UiMountedProjectionFrame {
     ordinary_paint_selector: Option<UiMountedOrdinaryPaintSelector>,
     plan_index_paint_selectors: Vec<UiMountedPlanIndexPaintSelector>,
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
+    visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     counters: super::super::UiMountStageCounters,
 }
 
+pub(super) struct UiMountedProjectionFrameInput {
+    pub frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    pub receipt_basis: super::super::UiMountedNodeReceiptBasis,
+    pub plan_digest: u64,
+    pub semantic: UiMountedSemanticProjection,
+    pub counters: super::super::UiMountStageCounters,
+}
+
 impl UiMountedProjectionFrame {
-    pub(super) fn new(
-        frame: worth_ui_host_contract::UiMountedFrameIdentity,
-        receipt_basis: super::super::UiMountedNodeReceiptBasis,
-        plan_digest: u64,
-        semantic: UiMountedSemanticProjection,
-        counters: super::super::UiMountStageCounters,
-    ) -> Self {
+    pub(super) fn new(input: UiMountedProjectionFrameInput) -> Self {
         Self {
-            frame,
-            receipt_basis,
-            plan_digest,
-            semantic,
+            frame: input.frame,
+            receipt_basis: input.receipt_basis,
+            plan_digest: input.plan_digest,
+            semantic: input.semantic,
             filled_rects: Vec::new(),
+            hit_tests: Vec::new(),
             paint_batches: Vec::new(),
             layers: Vec::new(),
             spatial_batches: Vec::new(),
@@ -66,7 +70,8 @@ impl UiMountedProjectionFrame {
             ordinary_paint_selector: None,
             plan_index_paint_selectors: Vec::new(),
             preview: None,
-            counters,
+            visual_overlay: None,
+            counters: input.counters,
         }
     }
 
@@ -86,10 +91,25 @@ impl UiMountedProjectionFrame {
         self.counters.finish()
     }
 
-    pub(crate) fn static_paint_structural_bytes(&self) -> Option<usize> {
-        self.filled_rects.len().checked_mul(std::mem::size_of::<
-            worth_ui_host_contract::UiMountedFilledRectMechanic,
-        >())
+    pub(crate) fn static_paint_rows(
+        &self,
+    ) -> Box<[worth_ui_host_contract::UiMountedFilledRectMechanic]> {
+        self.filled_rects.clone().into_boxed_slice()
+    }
+
+    pub(crate) fn hit_test_rows(&self) -> Box<[worth_ui_host_contract::UiMountedHitTestMechanic]> {
+        self.hit_tests.clone().into_boxed_slice()
+    }
+
+    pub(in crate::mounting) fn identity_trace_basis(
+        &self,
+        source: crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
+    ) -> super::super::UiMountedIdentityTraceBasis {
+        super::super::UiMountedIdentityTraceBasis::new(
+            self.receipt_basis.clone(),
+            self.semantic.clone(),
+            source,
+        )
     }
 
     pub(super) fn record_ordinary(
@@ -116,6 +136,14 @@ impl UiMountedProjectionFrame {
         )?;
         self.record_rows::<worth_ui_host_contract::UiMountedFilledRectMechanic>(rows.len())?;
         self.filled_rects.extend(rows);
+        Ok(())
+    }
+
+    pub(super) fn complete_hit_tests(&mut self) -> Result<(), UiMountedProjectionDenial> {
+        let rows =
+            super::hit_test::complete_hit_tests(self.frame, &self.receipt_basis, &self.semantic)?;
+        self.record_rows::<worth_ui_host_contract::UiMountedHitTestMechanic>(rows.len())?;
+        self.hit_tests.extend(rows);
         Ok(())
     }
 
@@ -204,6 +232,25 @@ impl UiMountedProjectionFrame {
         Ok(())
     }
 
+    pub(super) fn record_visual_overlay(
+        &mut self,
+        overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    ) -> Result<(), UiMountedProjectionDenial> {
+        if let Some(overlay) = overlay {
+            let instance = overlay.target_receipt.mounted_instance();
+            let target = self
+                .semantic
+                .nodes
+                .get(&instance)
+                .ok_or(UiMountedProjectionDenial::VisualOverlayTargetMissing)?;
+            if target.receipt.semantic_surface() != overlay.surface {
+                return Err(UiMountedProjectionDenial::VisualOverlaySurfaceMismatch);
+            }
+            self.visual_overlay = Some(overlay);
+        }
+        Ok(())
+    }
+
     pub(crate) fn rebound(
         &self,
         replacements: &[(
@@ -227,6 +274,7 @@ impl UiMountedProjectionFrame {
             rebound.semantic.surfaces.insert(surface.binding, surface);
         }
         super::static_paint::rebind_filled_rects(&mut rebound.filled_rects, replacements)?;
+        super::hit_test::rebind_hit_tests(&mut rebound.hit_tests, replacements)?;
         Ok(rebound)
     }
 

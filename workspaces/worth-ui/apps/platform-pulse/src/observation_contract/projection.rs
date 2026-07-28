@@ -26,6 +26,7 @@ pub struct PlatformPulseLifecycleObservationStream {
     run: PlatformPulseObservationRunIdentity,
     next_sequence: u64,
     pub(super) state: PlatformPulseObservationState,
+    pub(super) visual_state: PlatformPulseVisualObservationState,
 }
 
 pub(super) enum PlatformPulseObservationState {
@@ -39,6 +40,42 @@ pub(super) enum PlatformPulseObservationState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum PlatformPulseVisualObservationState {
+    AwaitingFirstFrame,
+    AwaitingSnapshot {
+        frame: u64,
+    },
+    SnapshotCaptured {
+        snapshot: u64,
+        frame: u64,
+    },
+    IdentityTraced {
+        snapshot: u64,
+        frame: u64,
+        target_receipt: u64,
+    },
+    OverlayPublished {
+        snapshot: u64,
+        snapshot_frame: u64,
+        overlay: u64,
+        published_frame: u64,
+    },
+    OverlayCleared {
+        snapshot: u64,
+        snapshot_frame: u64,
+        overlay: u64,
+        published_frame: u64,
+        cleared_frame: u64,
+    },
+    AwaitingRetirement {
+        snapshot: u64,
+        snapshot_frame: u64,
+        successor_frame: u64,
+    },
+    Retired,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlatformPulseLifecycleObservationProjectionDenial {
     SequenceExhausted,
     FirstFrameAlreadyPublished,
@@ -46,6 +83,15 @@ pub enum PlatformPulseLifecycleObservationProjectionDenial {
     PriorGenerationMismatch,
     ActiveGenerationMismatch,
     OutcomeIsNotFailure,
+    VisualObservationOutOfOrder,
+    VisualAffinityMismatch,
+    VisualPointUnsupported,
+    VisualPointIdentityMismatch,
+    VisualOverlayMismatch,
+    VisualPulseIncomplete,
+    VisualRetirementMismatch,
+    VisualResourceNotReleased,
+    ObservationValueOverflow,
     StreamTerminated,
 }
 
@@ -63,6 +109,7 @@ impl PlatformPulseLifecycleObservationStream {
                 run,
                 next_sequence: 2,
                 state: PlatformPulseObservationState::Started,
+                visual_state: PlatformPulseVisualObservationState::AwaitingFirstFrame,
             },
             started,
         )
@@ -99,6 +146,9 @@ impl PlatformPulseLifecycleObservationStream {
             generation_observation,
             frame,
         };
+        self.visual_state = PlatformPulseVisualObservationState::AwaitingSnapshot {
+            frame: frame.diagnostic_value,
+        };
         Ok(envelope)
     }
 
@@ -126,6 +176,9 @@ impl PlatformPulseLifecycleObservationStream {
         let frame = PlatformPulseMountedFrameObservation {
             diagnostic_value: mounted.frame().diagnostic_value(),
         };
+        let next_visual_state = self
+            .visual_state
+            .after_replacement(frame.diagnostic_value)?;
         let outcome = PlatformPulseLifecycleObservation::ReplacementPublished(
             PlatformPulseReplacementPublished {
                 source: PlatformPulseSourceSnapshotObservation::from_revision(source),
@@ -144,6 +197,7 @@ impl PlatformPulseLifecycleObservationStream {
             generation_observation,
             frame,
         };
+        self.visual_state = next_visual_state;
         Ok(envelope)
     }
 
@@ -235,6 +289,36 @@ impl PlatformPulseLifecycleObservationStream {
             }
             PlatformPulseObservationState::Terminal => {
                 PlatformPulseLifecycleObservationProjectionDenial::StreamTerminated
+            }
+        }
+    }
+}
+
+impl PlatformPulseVisualObservationState {
+    pub(super) fn after_replacement(
+        self,
+        successor_frame: u64,
+    ) -> Result<Self, PlatformPulseLifecycleObservationProjectionDenial> {
+        match self {
+            Self::AwaitingSnapshot { .. } => Ok(Self::AwaitingSnapshot {
+                frame: successor_frame,
+            }),
+            Self::OverlayCleared {
+                snapshot,
+                snapshot_frame,
+                ..
+            } => Ok(Self::AwaitingRetirement {
+                snapshot,
+                snapshot_frame,
+                successor_frame,
+            }),
+            Self::Retired => Ok(Self::Retired),
+            Self::AwaitingFirstFrame
+            | Self::SnapshotCaptured { .. }
+            | Self::IdentityTraced { .. }
+            | Self::OverlayPublished { .. }
+            | Self::AwaitingRetirement { .. } => {
+                Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete)
             }
         }
     }

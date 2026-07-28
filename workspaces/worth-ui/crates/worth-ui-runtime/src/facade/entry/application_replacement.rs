@@ -94,6 +94,8 @@ enum WorthUiApplicationCutoverTransition {
 pub(super) struct WorthUiPreparedApplicationActivation {
     identity: Box<WorthUiApplicationCutoverIdentityEvidence>,
     publication: Box<WorthUiApplicationPublicationObservation>,
+    visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     reload_cost: Result<
         crate::runtime::WorthUiReloadLoweringCounterReceipt,
         crate::runtime::WorthUiReloadCounterBoundaryDenial,

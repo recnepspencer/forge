@@ -40,6 +40,17 @@ pub(crate) enum ExecutableLifecycleCleanupFailure {
     ProcessIdentityMismatch,
     HostSessionNotReleased,
     MountedPresentationNotQuiescent(u64),
+    VisualCaptureResidue {
+        cancelled: u64,
+        disposed_snapshots: u64,
+        disposed_pixel_bytes: u64,
+        disposed_structural_bytes: u64,
+    },
+    VisualOverlayResidue {
+        pending: u64,
+        published: u64,
+        clearing: u64,
+    },
     NoReleasedSurface,
     InstallationResidue,
 }
@@ -57,6 +68,23 @@ impl fmt::Display for ExecutableLifecycleCleanupFailure {
             Self::MountedPresentationNotQuiescent(count) => write!(
                 formatter,
                 "{count} exceptional mounted presentation shutdown attempt(s) remained"
+            ),
+            Self::VisualCaptureResidue {
+                cancelled,
+                disposed_snapshots,
+                disposed_pixel_bytes,
+                disposed_structural_bytes,
+            } => write!(
+                formatter,
+                "visual capture residue: cancelled={cancelled}, snapshots={disposed_snapshots}, pixel_bytes={disposed_pixel_bytes}, structural_bytes={disposed_structural_bytes}"
+            ),
+            Self::VisualOverlayResidue {
+                pending,
+                published,
+                clearing,
+            } => write!(
+                formatter,
+                "visual overlay residue: pending={pending}, published={published}, clearing={clearing}"
             ),
             Self::NoReleasedSurface => formatter.write_str("shutdown released no host surface"),
             Self::InstallationResidue => {
@@ -93,6 +121,7 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
             ),
         );
     }
+    require_zero_visual_residue(shutdown)?;
     if shutdown.released_surface_count() == 0 {
         return Err(ExecutableLifecycleCleanupFailure::NoReleasedSurface);
     }
@@ -107,6 +136,38 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
         successful_exit,
         installation_cleanup,
     })
+}
+
+fn require_zero_visual_residue(
+    shutdown: PlatformPulseShutdownCompleted,
+) -> Result<(), ExecutableLifecycleCleanupFailure> {
+    let capture = (
+        shutdown.cancelled_visual_capture_count(),
+        shutdown.disposed_visual_snapshot_count(),
+        shutdown.disposed_visual_pixel_bytes(),
+        shutdown.disposed_visual_structural_bytes(),
+    );
+    if capture != (0, 0, 0, 0) {
+        return Err(ExecutableLifecycleCleanupFailure::VisualCaptureResidue {
+            cancelled: capture.0,
+            disposed_snapshots: capture.1,
+            disposed_pixel_bytes: capture.2,
+            disposed_structural_bytes: capture.3,
+        });
+    }
+    let overlay = (
+        shutdown.cancelled_pending_overlay_count(),
+        shutdown.disposed_published_overlay_count(),
+        shutdown.disposed_clearing_overlay_count(),
+    );
+    if overlay != (0, 0, 0) {
+        return Err(ExecutableLifecycleCleanupFailure::VisualOverlayResidue {
+            pending: overlay.0,
+            published: overlay.1,
+            clearing: overlay.2,
+        });
+    }
+    Ok(())
 }
 
 impl CausalLifecycleCleanupObservationSet {

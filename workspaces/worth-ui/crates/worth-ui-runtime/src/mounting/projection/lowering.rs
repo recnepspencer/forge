@@ -5,21 +5,10 @@ use super::geometry::lower_allocation;
 use super::mechanical_role::mechanical_role;
 use super::node_receipt::UiMountedNodeReceiptInput;
 use super::participation::lower_participation;
-use super::{UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame};
+use super::prepared_projection::{UiPreparedMountedProjection, UiPreparedMountedProjectionInput};
+use super::{UiMountedNodeReceipt, UiMountedProjectionDenial};
 
 mod delta;
-
-pub(crate) struct UiPreparedMountedProjection {
-    plan_digest: u64,
-    semantic: UiMountedSemanticProjection,
-    ordinary: Option<crate::runtime::WorthUiOrdinaryLaneFrameReceipt>,
-    virtualized: Option<crate::runtime::WorthUiVirtualizedDataFrameReceipt>,
-    canvas: Option<(crate::runtime::WorthUiCanvasSpatialFrameReceipt, u64)>,
-    realtime: Option<crate::runtime::WorthUiRealtimeFrameReceipt>,
-    preview: Option<UiMountedPreviewProjectionInput>,
-    projection_changes: super::super::UiMountedProjectionChangeSnapshot,
-    counters: super::super::UiMountStageCounters,
-}
 
 pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) graph: crate::graph::UiGraphAuthority<'graph>,
@@ -28,6 +17,7 @@ pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) allocation_source: &'input crate::runtime::UiMountedAllocationProjectionSource,
     pub(crate) requested_surfaces: &'input [worth_ui_host_contract::UiSemanticSurfaceIdentity],
     pub(crate) preview: Option<UiMountedPreviewProjectionInput>,
+    pub(crate) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
 }
 
 #[derive(Clone, Copy)]
@@ -58,131 +48,21 @@ struct UiMountedProjectionNodeDraft {
     allocation: worth_ui_host_contract::UiMountedAllocationProjection,
     plan_index: Option<u32>,
     static_paint: Option<super::static_paint::UiMountedStaticPaintSeed>,
+    hit_test: Option<super::hit_test::UiMountedHitTestSeed>,
+}
+
+struct UiMountedFullProjectionInput<'basis, 'input, 'graph> {
+    state: &'basis super::super::UiMountedIdentityState,
+    lowering: &'basis UiMountedNodeLoweringContext<'input, 'graph>,
+    requested_surfaces: &'basis [worth_ui_host_contract::UiSemanticSurfaceIdentity],
+    has_published_frame: bool,
+    changes: &'basis super::super::UiMountedProjectionChangeSnapshot,
 }
 
 struct UiMountedProjectionBuild {
     semantic: UiMountedSemanticProjection,
     cost: super::cost_accounting::UiMountedProjectionCostInput,
     replaced_order_rows: usize,
-}
-
-#[derive(Clone)]
-pub struct UiProjectedMountedFrameCandidate {
-    pub(in crate::mounting) frame: UiMountedProjectionFrame,
-    pub(in crate::mounting) identity_candidate:
-        super::super::identity_state::UiMountedIdentityFrameCandidate,
-    pub(in crate::mounting) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
-}
-
-impl UiProjectedMountedFrameCandidate {
-    pub fn frame(&self) -> &UiMountedProjectionFrame {
-        &self.frame
-    }
-
-    pub fn is_unpublished(&self) -> bool {
-        let _ = &self.identity_candidate;
-        true
-    }
-
-    pub(crate) fn presented_receipt_basis(&self) -> &super::super::UiMountedNodeReceiptBasis {
-        self.identity_candidate.receipt_basis()
-    }
-
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        UiMountedProjectionFrame,
-        super::super::identity_state::UiMountedIdentityFrameCandidate,
-        super::super::UiMountedProjectionChangeSnapshot,
-    ) {
-        (self.frame, self.identity_candidate, self.projection_changes)
-    }
-}
-
-impl UiPreparedMountedProjection {
-    pub(crate) fn record_ordinary(
-        &mut self,
-        receipt: &crate::runtime::WorthUiOrdinaryLaneFrameReceipt,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_vacant(&self.ordinary)?;
-        self.ordinary = Some(receipt.clone());
-        Ok(())
-    }
-
-    pub(crate) fn record_virtualized(
-        &mut self,
-        receipt: &crate::runtime::WorthUiVirtualizedDataFrameReceipt,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_vacant(&self.virtualized)?;
-        self.virtualized = Some(receipt.clone());
-        Ok(())
-    }
-
-    pub(crate) fn record_canvas(
-        &mut self,
-        receipt: &crate::runtime::WorthUiCanvasSpatialFrameReceipt,
-        resource_content_identity: u64,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_vacant(&self.canvas)?;
-        self.canvas = Some((receipt.clone(), resource_content_identity));
-        Ok(())
-    }
-
-    pub(crate) fn record_realtime(
-        &mut self,
-        receipt: &crate::runtime::WorthUiRealtimeFrameReceipt,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_vacant(&self.realtime)?;
-        self.realtime = Some(receipt.clone());
-        Ok(())
-    }
-
-    pub(crate) fn finish(
-        self,
-        state: &super::super::UiMountedIdentityState,
-    ) -> Result<UiProjectedMountedFrameCandidate, UiMountedProjectionDenial> {
-        self.validate_capacity()?;
-        let identity_candidate = state.prepare_frame_candidate_for(self.semantic.membership())?;
-        let mut frame = UiMountedProjectionFrame::new(
-            identity_candidate.frame(),
-            identity_candidate.receipt_basis().clone(),
-            self.plan_digest,
-            self.semantic,
-            self.counters,
-        );
-        frame.complete_static_paint()?;
-        if let Some(receipt) = self.ordinary.as_ref() {
-            frame.record_ordinary(receipt)?;
-        }
-        if let Some(receipt) = self.virtualized.as_ref() {
-            frame.record_virtualized(receipt)?;
-        }
-        if let Some((receipt, resource)) = self.canvas.as_ref() {
-            frame.record_canvas(receipt, *resource)?;
-        }
-        if let Some(receipt) = self.realtime.as_ref() {
-            frame.record_realtime(receipt)?;
-        }
-        if let Some(preview) = self.preview {
-            frame.record_preview(preview)?;
-        }
-        Ok(UiProjectedMountedFrameCandidate {
-            frame,
-            identity_candidate,
-            projection_changes: self.projection_changes,
-        })
-    }
-
-    fn validate_capacity(&self) -> Result<(), UiMountedProjectionDenial> {
-        let paint_rows = usize::from(self.ordinary.is_some())
-            + usize::from(self.virtualized.is_some())
-            + usize::from(self.canvas.is_some())
-            + usize::from(self.realtime.is_some());
-        if paint_rows > 2_048 {
-            return Err(UiMountedProjectionDenial::TableCapacityExceeded);
-        }
-        Ok(())
-    }
 }
 
 pub(crate) fn prepare_projection(
@@ -220,55 +100,57 @@ pub(crate) fn prepare_projection(
     };
     let build = match delta {
         Some(build) => build,
-        None => build_full_projection(
+        None => build_full_projection(UiMountedFullProjectionInput {
             state,
-            &lowering,
-            input.requested_surfaces,
-            state.has_published_frame(),
-            &projection_changes,
-        )?,
+            lowering: &lowering,
+            requested_surfaces: input.requested_surfaces,
+            has_published_frame: state.has_published_frame(),
+            changes: &projection_changes,
+        })?,
     };
-    let mut counters = super::cost_accounting::begin_projection_cost(build.cost)?;
-    if build.replaced_order_rows > 0 {
+    let counters = begin_build_counters(build.cost, build.replaced_order_rows)?;
+    Ok(UiPreparedMountedProjection::new(
+        UiPreparedMountedProjectionInput {
+            plan_digest: input.plan_digest,
+            semantic: build.semantic,
+            preview: input.preview,
+            visual_overlay: input.visual_overlay,
+            projection_changes,
+            counters,
+        },
+    ))
+}
+
+fn begin_build_counters(
+    cost: super::cost_accounting::UiMountedProjectionCostInput,
+    replaced_order_rows: usize,
+) -> Result<super::super::UiMountStageCounters, UiMountedProjectionDenial> {
+    let mut counters = super::cost_accounting::begin_projection_cost(cost)?;
+    if replaced_order_rows > 0 {
         counters
-            .replace_rows::<worth_ui_host_contract::UiMountedInstanceIdentity>(
-                build.replaced_order_rows,
-            )
+            .replace_rows::<worth_ui_host_contract::UiMountedInstanceIdentity>(replaced_order_rows)
             .map_err(|_| UiMountedProjectionDenial::CostCounterOverflow)?;
     }
-    Ok(UiPreparedMountedProjection {
-        plan_digest: input.plan_digest,
-        semantic: build.semantic,
-        ordinary: None,
-        virtualized: None,
-        canvas: None,
-        realtime: None,
-        preview: input.preview,
-        projection_changes,
-        counters,
-    })
+    Ok(counters)
 }
 
 fn build_full_projection(
-    state: &super::super::UiMountedIdentityState,
-    lowering: &UiMountedNodeLoweringContext<'_, '_>,
-    requested_surfaces: &[worth_ui_host_contract::UiSemanticSurfaceIdentity],
-    has_published_frame: bool,
-    changes: &super::super::UiMountedProjectionChangeSnapshot,
+    input: UiMountedFullProjectionInput<'_, '_, '_>,
 ) -> Result<UiMountedProjectionBuild, UiMountedProjectionDenial> {
-    let instances = state.projection_instances(requested_surfaces);
+    let instances = input.state.projection_instances(input.requested_surfaces);
     let nodes = instances
         .iter()
         .map(|instance| {
-            lowering
+            input
+                .lowering
                 .lower(instance)
                 .map(UiMountedProjectionNodeDraft::materialize)
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let surfaces = projection_surfaces(state, requested_surfaces)?;
+    let surfaces = projection_surfaces(input.state, input.requested_surfaces)?;
     let node_count = nodes.len();
     let surface_count = surfaces.len();
-    let work_class = if has_published_frame {
+    let work_class = if input.has_published_frame {
         super::super::UiMountWorkClass::ComparisonRequired
     } else {
         super::super::UiMountWorkClass::InitialMount
@@ -286,11 +168,11 @@ fn build_full_projection(
                 .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?,
             projected_instances: node_count,
             surface_instance_pairs: node_count,
-            changed_bindings: usize::from(!has_published_frame) * surface_count,
+            changed_bindings: usize::from(!input.has_published_frame) * surface_count,
             reused: 0,
             retired: 0,
-            coalesced: changes.coalesced(),
-            overflowed: changes.overflowed(),
+            coalesced: input.changes.coalesced(),
+            overflowed: input.changes.overflowed(),
         },
         replaced_order_rows: node_count,
     })
@@ -336,8 +218,12 @@ impl UiMountedNodeLoweringContext<'_, '_> {
                 .projection(instance.graph_node_identity()),
         )?;
         let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
-        let participation =
-            lower_participation(graph_node.participation_posture(), static_paint.is_some());
+        let hit_test = super::hit_test::lower_hit_test_seed(self.plan, plan_index)?;
+        let participation = lower_participation(
+            graph_node.participation_posture(),
+            static_paint.is_some(),
+            hit_test.is_some(),
+        );
         Ok(UiMountedProjectionNodeDraft {
             mounted_instance: instance.identity(),
             graph_node: instance.graph_node_identity(),
@@ -349,6 +235,7 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             allocation,
             plan_index,
             static_paint,
+            hit_test,
         })
     }
 }
@@ -368,12 +255,7 @@ impl UiMountedProjectionNodeDraft {
             }),
             plan_index: self.plan_index,
             static_paint: self.static_paint,
+            hit_test: self.hit_test,
         }
     }
-}
-
-fn require_vacant<T>(slot: &Option<T>) -> Result<(), UiMountedProjectionDenial> {
-    slot.is_none()
-        .then_some(())
-        .ok_or(UiMountedProjectionDenial::DuplicateLaneContribution)
 }

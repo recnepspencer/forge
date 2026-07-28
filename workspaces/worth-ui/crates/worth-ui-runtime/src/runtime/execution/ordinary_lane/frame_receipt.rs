@@ -13,23 +13,25 @@ pub struct WorthUiOrdinaryLaneFrameReceipt {
     work_scope: WorthUiFrameWorkScope,
 }
 
+pub(super) struct WorthUiOrdinaryLaneFrameReceiptInput {
+    pub(super) target: WorthUiOrdinaryFrameTarget,
+    pub(super) touch: WorthUiOrdinaryLaneTouchReceipt,
+    pub(super) counters: WorthUiOrdinaryLaneCounters,
+    pub(super) certification: WorthUiOrdinaryLaneCertification,
+    pub(super) requested_breadth: usize,
+}
+
 impl WorthUiOrdinaryLaneFrameReceipt {
-    pub(crate) fn new(
-        target: WorthUiOrdinaryFrameTarget,
-        touch: WorthUiOrdinaryLaneTouchReceipt,
-        counters: WorthUiOrdinaryLaneCounters,
-        certification: WorthUiOrdinaryLaneCertification,
-        requested_breadth: usize,
-    ) -> Self {
-        let executed_breadth = touch.row_count();
+    pub(super) fn new(input: WorthUiOrdinaryLaneFrameReceiptInput) -> Self {
+        let executed_breadth = input.touch.row_count();
         Self {
-            target,
-            touch,
-            counters,
-            certification,
+            target: input.target,
+            touch: input.touch,
+            counters: input.counters,
+            certification: input.certification,
             resolution_evidence: None,
             work_scope: WorthUiFrameWorkScope::new(
-                requested_breadth as u64,
+                input.requested_breadth as u64,
                 executed_breadth as u64,
             ),
         }
@@ -65,5 +67,9 @@ impl WorthUiOrdinaryLaneFrameReceipt {
 
     pub fn work_scope(&self) -> WorthUiFrameWorkScope {
         self.work_scope
+    }
+
+    pub fn visual_inspection_cost(&self) -> worth_ui_inspection::UiVisualInspectionCostReceipt {
+        worth_ui_inspection::UiVisualInspectionCostReceipt::default()
     }
 }

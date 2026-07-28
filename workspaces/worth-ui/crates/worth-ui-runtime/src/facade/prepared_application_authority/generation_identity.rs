@@ -20,27 +20,34 @@ struct WorthUiPreparedApplicationGenerationIdentityInner {
     graph_authority_digest: u64,
     query_binding: WorthUiPreparedQueryBindingPlanIdentity,
     host_session_plan: WorthUiHostSessionPlan,
+    visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
+}
+
+pub(super) struct WorthUiPreparedGenerationIdentityInput<'plan> {
+    pub(super) capability_snapshot: CapabilitySnapshotDigest,
+    pub(super) canonical_artifact: WorthUiPreparedApplicationArtifactIdentity,
+    pub(super) declaration_source: WorthUiPreparedDeclarationSourceIdentity,
+    pub(super) semantic_package: worth_ui_dsl::WorthUiSemanticPackageIdentity,
+    pub(super) graph_authority_digest: u64,
+    pub(super) query_binding_plan: &'plan worth_ui_query_binding::WorthUiQueryBindingPlan,
+    pub(super) host_session_plan: &'plan WorthUiHostSessionPlan,
+    pub(super) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
 }
 
 impl WorthUiPreparedApplicationGenerationIdentity {
-    pub(super) fn derive(
-        capability_snapshot: CapabilitySnapshotDigest,
-        canonical_artifact: WorthUiPreparedApplicationArtifactIdentity,
-        declaration_source: WorthUiPreparedDeclarationSourceIdentity,
-        semantic_package: worth_ui_dsl::WorthUiSemanticPackageIdentity,
-        graph_authority_digest: u64,
-        query_binding_plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
-        host_session_plan: &WorthUiHostSessionPlan,
-    ) -> Self {
+    pub(super) fn derive(input: WorthUiPreparedGenerationIdentityInput<'_>) -> Self {
         Self {
             inner: Rc::new(WorthUiPreparedApplicationGenerationIdentityInner {
-                capability_snapshot,
-                canonical_artifact,
-                declaration_source,
-                semantic_package,
-                graph_authority_digest,
-                query_binding: WorthUiPreparedQueryBindingPlanIdentity::derive(query_binding_plan),
-                host_session_plan: host_session_plan.clone(),
+                capability_snapshot: input.capability_snapshot,
+                canonical_artifact: input.canonical_artifact,
+                declaration_source: input.declaration_source,
+                semantic_package: input.semantic_package,
+                graph_authority_digest: input.graph_authority_digest,
+                query_binding: WorthUiPreparedQueryBindingPlanIdentity::derive(
+                    input.query_binding_plan,
+                ),
+                host_session_plan: input.host_session_plan.clone(),
+                visual_inspection_policy: input.visual_inspection_policy,
             }),
         }
     }

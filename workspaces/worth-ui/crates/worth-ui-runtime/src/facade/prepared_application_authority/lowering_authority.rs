@@ -20,6 +20,16 @@ struct WorthUiPreparedApplicationLoweringFacts {
     execution_lane_support: WorthUiExecutionLaneSupport,
 }
 
+pub(super) struct WorthUiPreparedApplicationLoweringInput {
+    pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) source_candidate_basis: WorthUiReplacementCandidateBasis,
+    pub(super) source_artifact_authority: Rc<crate::source::WorthUiArtifact>,
+    pub(super) graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
+    pub(super) capability_snapshot: Rc<CapabilitySnapshot>,
+    pub(super) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    pub(super) host_session_plan: WorthUiHostSessionPlan,
+}
+
 /// Retained exact authority for every prepared constituent that can affect
 /// execution-plan lowering. Cloning this value shares one sealed authority; it
 /// does not recreate authority from comparison-safe identities or digests.
@@ -29,15 +39,16 @@ pub(crate) struct WorthUiPreparedApplicationLoweringAuthority {
 }
 
 impl WorthUiPreparedApplicationLoweringAuthority {
-    pub(super) fn seal(
-        generation_identity: WorthUiPreparedApplicationGenerationIdentity,
-        source_candidate_basis: WorthUiReplacementCandidateBasis,
-        source_artifact_authority: Rc<crate::source::WorthUiArtifact>,
-        graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
-        capability_snapshot: Rc<CapabilitySnapshot>,
-        query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
-        host_session_plan: WorthUiHostSessionPlan,
-    ) -> Self {
+    pub(super) fn seal(input: WorthUiPreparedApplicationLoweringInput) -> Self {
+        let WorthUiPreparedApplicationLoweringInput {
+            generation_identity,
+            source_candidate_basis,
+            source_artifact_authority,
+            graph_authority_identity,
+            capability_snapshot,
+            query_binding_plan,
+            host_session_plan,
+        } = input;
         let execution_lane_support = WorthUiExecutionLaneSupport::for_prepared_application(
             host_session_plan.host_kind(),
             !query_binding_plan.is_query_free(),
@@ -110,15 +121,15 @@ impl WorthUiPreparedApplicationLoweringAuthority {
         &self,
         admitted: &WorthUiAdmittedReplacementCandidate,
     ) -> Self {
-        Self::seal(
-            self.facts.generation_identity.clone(),
-            admitted.candidate().basis(),
-            admitted.artifact_bundle().artifact_authority(),
-            self.facts.graph_authority_identity,
-            Rc::clone(&self.facts.capability_snapshot),
-            self.facts.query_binding_plan.clone(),
-            self.facts.host_session_plan.clone(),
-        )
+        Self::seal(WorthUiPreparedApplicationLoweringInput {
+            generation_identity: self.facts.generation_identity.clone(),
+            source_candidate_basis: admitted.candidate().basis(),
+            source_artifact_authority: admitted.artifact_bundle().artifact_authority(),
+            graph_authority_identity: self.facts.graph_authority_identity,
+            capability_snapshot: Rc::clone(&self.facts.capability_snapshot),
+            query_binding_plan: self.facts.query_binding_plan.clone(),
+            host_session_plan: self.facts.host_session_plan.clone(),
+        })
     }
 
     #[cfg(any(test, feature = "certification-support"))]
@@ -127,15 +138,15 @@ impl WorthUiPreparedApplicationLoweringAuthority {
         artifact: Rc<crate::source::WorthUiArtifact>,
         artifact_digest: crate::source::WorthUiArtifactDigest,
     ) -> Self {
-        Self::seal(
-            self.facts.generation_identity.clone(),
-            WorthUiReplacementCandidateBasis::new(artifact_digest, 0, 0),
-            artifact,
-            self.facts.graph_authority_identity,
-            Rc::clone(&self.facts.capability_snapshot),
-            self.facts.query_binding_plan.clone(),
-            self.facts.host_session_plan.clone(),
-        )
+        Self::seal(WorthUiPreparedApplicationLoweringInput {
+            generation_identity: self.facts.generation_identity.clone(),
+            source_candidate_basis: WorthUiReplacementCandidateBasis::new(artifact_digest, 0, 0),
+            source_artifact_authority: artifact,
+            graph_authority_identity: self.facts.graph_authority_identity,
+            capability_snapshot: Rc::clone(&self.facts.capability_snapshot),
+            query_binding_plan: self.facts.query_binding_plan.clone(),
+            host_session_plan: self.facts.host_session_plan.clone(),
+        })
     }
 }
 

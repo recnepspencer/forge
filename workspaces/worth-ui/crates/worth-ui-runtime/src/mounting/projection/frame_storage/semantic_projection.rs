@@ -10,6 +10,8 @@ pub(in crate::mounting::projection) struct UiMountedProjectionNodeRecord {
     pub(in crate::mounting::projection) plan_index: Option<u32>,
     pub(in crate::mounting::projection) static_paint:
         Option<super::super::static_paint::UiMountedStaticPaintSeed>,
+    pub(in crate::mounting::projection) hit_test:
+        Option<super::super::hit_test::UiMountedHitTestSeed>,
 }
 
 #[derive(Clone, Copy)]
@@ -20,7 +22,7 @@ pub(in crate::mounting::projection) struct UiMountedProjectionSurface {
 }
 
 #[derive(Clone)]
-pub(in crate::mounting::projection) struct UiMountedSemanticProjection {
+pub(in crate::mounting) struct UiMountedSemanticProjection {
     pub(super) nodes: crate::runtime::persistent_index::UiPersistentOrdMap<
         worth_ui_host_contract::UiMountedInstanceIdentity,
         UiMountedProjectionNodeRecord,
@@ -162,6 +164,26 @@ impl UiMountedSemanticProjection {
                 .get(instance)
                 .expect("mounted semantic order names an indexed node")
         })
+    }
+
+    pub(in crate::mounting) fn node_receipt_with_probes(
+        &self,
+        mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> (Option<&UiMountedNodeReceipt>, usize) {
+        let (record, probes) = self.nodes.get_with_probes(&mounted_instance);
+        (record.map(|record| &record.receipt), probes)
+    }
+
+    pub(in crate::mounting) fn retained_structural_bytes(&self) -> Option<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(self.nodes.retained_structural_bytes()?)?
+            .checked_add(self.order.len().checked_mul(std::mem::size_of::<
+                worth_ui_host_contract::UiMountedInstanceIdentity,
+            >())?)?
+            .checked_add(self.membership.retained_structural_bytes()?)?
+            .checked_add(self.semantic_surfaces.retained_structural_bytes()?)?
+            .checked_add(self.binding_by_surface.retained_structural_bytes()?)?
+            .checked_add(self.surfaces.retained_structural_bytes()?)
     }
 
     pub(in crate::mounting::projection) fn surface_instance_count(

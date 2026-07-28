@@ -103,7 +103,7 @@ fn audit_typestate(progression: &str, source_action: &str) -> Result<(), String>
         require(progression, required, "Phase 4 typestate")?;
     }
     for required in [
-        "impl PulseExecutableWorld<Published<InitialBlue>>",
+        "impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>",
         "fn apply_green(",
         "impl PulseExecutableWorld<Published<GreenSuccessor>>",
         "fn apply_malformed(",

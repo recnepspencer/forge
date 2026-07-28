@@ -6,6 +6,7 @@ pub enum UiMountedEffectFamily {
     Focus,
     Motion,
     Diagnostic,
+    IdentityOverlay,
     CanvasSpatial,
     Realtime,
 }
@@ -18,6 +19,7 @@ pub struct UiMountedCompletedEffects {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMountedSurfacePresentationCompletion {
     mode: crate::UiHostSurfacePresentationMode,
+    epoch: crate::UiHostPresentationEpoch,
     effects: UiMountedCompletedEffects,
     cost: super::presentation_cost::UiHostPresentationCostReport,
 }
@@ -256,11 +258,13 @@ impl UiMountedCompletedEffects {
 impl UiMountedSurfacePresentationCompletion {
     pub fn new(
         mode: crate::UiHostSurfacePresentationMode,
+        epoch: crate::UiHostPresentationEpoch,
         effects: UiMountedCompletedEffects,
         cost: super::presentation_cost::UiHostPresentationCostReport,
     ) -> Self {
         Self {
             mode,
+            epoch,
             effects,
             cost,
         }
@@ -268,6 +272,10 @@ impl UiMountedSurfacePresentationCompletion {
 
     pub fn mode(&self) -> crate::UiHostSurfacePresentationMode {
         self.mode
+    }
+
+    pub fn epoch(&self) -> crate::UiHostPresentationEpoch {
+        self.epoch
     }
 
     pub fn effects(&self) -> &UiMountedCompletedEffects {
@@ -281,10 +289,11 @@ impl UiMountedSurfacePresentationCompletion {
     pub fn into_parts(
         self,
     ) -> (
+        crate::UiHostPresentationEpoch,
         UiMountedCompletedEffects,
         super::presentation_cost::UiHostPresentationCostReport,
     ) {
-        (self.effects, self.cost)
+        (self.epoch, self.effects, self.cost)
     }
 }
 

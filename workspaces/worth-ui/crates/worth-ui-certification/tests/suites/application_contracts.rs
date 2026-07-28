@@ -130,3 +130,7 @@ mod realtime_overlay_replacement;
 mod source_event_ingress_journey;
 #[path = "../application_contracts/source_transport_diagnostic_parity.rs"]
 mod source_transport_diagnostic_parity;
+#[path = "../application_contracts/visual_identity.rs"]
+mod visual_identity;
+#[path = "../application_contracts/visual_snapshot.rs"]
+mod visual_snapshot;

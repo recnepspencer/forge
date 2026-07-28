@@ -29,6 +29,9 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
     )?;
     audit_native_boundary(
         inventory.text("apps/platform-pulse/tests/executable_world/native_platform/windows.rs"),
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
+        ),
     )?;
     let courtroom = format!(
         "{}\n{}",
@@ -64,6 +67,7 @@ fn audit_required_topology(inventory: &WorkspaceSourceInventory) -> Result<(), S
         "executable_world/native_platform/contract.rs",
         "executable_world/native_platform/mod.rs",
         "executable_world/native_platform/windows.rs",
+        "executable_world/native_platform/windows/client_capture.rs",
         "executable_world/product_process/launch.rs",
         "executable_world/product_process/first_frame_progression.rs",
         "executable_world/product_process/mod.rs",
@@ -140,7 +144,8 @@ fn audit_process(
         ".stdout(Stdio::piped())",
         "typed stdout lifecycle stream",
     )?;
-    if launch.contains("Command::new(\"cargo\")") {
+    let nested_cargo_command = ["Command", "::new(", "\"cargo\"", ")"].concat();
+    if launch.contains(&nested_cargo_command) {
         return Err("the runner cannot recursively launch Cargo".to_owned());
     }
     for state in [
@@ -193,34 +198,80 @@ fn audit_failure_teardown(report: &str, cleanup: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn audit_native_boundary(source: &str) -> Result<(), String> {
+pub(super) fn audit_native_boundary(owner: &str, capture: &str) -> Result<(), String> {
     for required in [
         "win::SetProcessDPIAware()",
         "win::EnumWindows(",
         "GetWindowThreadProcessId()",
+        "owner_process_id == process_id",
+        "window.IsWindowVisible()",
+        "!window.IsIconic()",
         "GetClientRect()",
         "ClientToScreenRc(",
-        "Window::all()",
-        "window.pid().ok() == Some(process_id)",
-        ".capture_image()",
+        "owner_process_id != bound.observation.process_id()",
+        "client_bounds(&bound.window)? != bound.observation.bounds()",
+        "Monitor::from_point(",
+        "monitor_capture_region(",
+        "client_capture::exact_window(process_id, candidate.window.ptr() as u32)?",
+        "capture_window: Window",
+        "struct WindowsCaptureExposure<'bound>",
+        "HwndPlace::Place(co::HWND_PLACE::TOP)",
+        "win::DwmFlush()",
+        "let exposure = self.expose_bound_client_area(bound)?",
+        "Self::capture_exposed_client_area(exposure)",
+        "client_capture::capture_client(&bound.capture_window, client)?",
+        "NativeClientPixelCapture::new(",
         "get_pattern::<UIWindowPattern>()",
         ".and_then(|pattern| pattern.close())",
     ] {
-        require(source, required, "Windows native boundary")?;
+        require(owner, required, "Windows HWND owner")?;
     }
     for forbidden in [
         "Screenshot",
+        "Window::all()",
+        "window.pid()",
+        ".capture_image()",
+        ".capture_region(",
         "capture_as_image",
         "get_name()",
         "title() ==",
         "Stop-Process",
         "taskkill",
     ] {
-        if source.contains(forbidden) {
+        if owner.contains(forbidden) {
             return Err(format!(
-                "Windows native boundary retained forbidden shortcut `{forbidden}`"
+                "Windows HWND owner retained forbidden shortcut `{forbidden}`"
             ));
         }
+    }
+    audit_wgc_capture(capture)?;
+    for resampling in ["imageops::resize", "FilterType::Nearest", "scale_floor("] {
+        if owner.contains(resampling) || capture.contains(resampling) {
+            return Err(format!(
+                "Windows native boundary retained forbidden shortcut `{resampling}`"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn audit_wgc_capture(source: &str) -> Result<(), String> {
+    for required in [
+        "Window::all()",
+        "window.pid().ok() == Some(process_id)",
+        "window.id().ok() == Some(window_id)",
+        "window.capture_image()",
+        "crop_client(screenshot, window_left, window_top, client)",
+        "right > screenshot.width() || bottom > screenshot.height()",
+        "let raw = screenshot.into_raw()",
+        "cropped.extend_from_slice(",
+    ] {
+        require(source, required, "exact-HWND WGC capture")?;
+    }
+    if source.matches("Window::all()").count() != 1
+        || source.matches("window.capture_image()").count() != 1
+    {
+        return Err("exact-HWND WGC capture must enumerate and capture exactly once".to_owned());
     }
     Ok(())
 }

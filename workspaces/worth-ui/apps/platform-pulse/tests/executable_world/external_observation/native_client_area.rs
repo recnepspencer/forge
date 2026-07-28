@@ -50,6 +50,14 @@ impl NativeClientAreaBounds {
         self.top
     }
 
+    pub(crate) fn right(self) -> i32 {
+        self.right
+    }
+
+    pub(crate) fn bottom(self) -> i32 {
+        self.bottom
+    }
+
     pub(crate) fn width(self) -> u32 {
         (self.right - self.left) as u32
     }

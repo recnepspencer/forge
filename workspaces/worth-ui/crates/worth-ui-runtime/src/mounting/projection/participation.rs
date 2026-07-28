@@ -10,6 +10,7 @@ use worth_ui_host_contract::{
 pub(super) fn lower_participation(
     posture: UiGraphParticipationPosture,
     admits_static_paint: bool,
+    admits_hit_test: bool,
 ) -> UiMountedParticipation {
     UiMountedParticipation::new(UiMountedParticipationInput {
         paint: projected_fact(
@@ -22,7 +23,10 @@ pub(super) fn lower_participation(
         ),
         input: fact(posture.axis(UiGraphParticipationAxis::Input)),
         focus: fact(posture.axis(UiGraphParticipationAxis::Focus)),
-        hit_test: fact(posture.axis(UiGraphParticipationAxis::HitTest)),
+        hit_test: projected_fact(
+            posture.axis(UiGraphParticipationAxis::HitTest),
+            admits_hit_test,
+        ),
         accessibility: fact(posture.axis(UiGraphParticipationAxis::Accessibility)),
         motion: UiMountedParticipationFact::new(UiMountedParticipationStatus::Deferred),
         diagnostic: fact(posture.axis(UiGraphParticipationAxis::Diagnostic)),

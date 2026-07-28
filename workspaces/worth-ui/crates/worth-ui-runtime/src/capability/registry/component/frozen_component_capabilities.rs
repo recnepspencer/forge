@@ -97,11 +97,23 @@ fn fold_component_descriptor(accumulator: u64, descriptor: &ComponentDescriptor)
             .map_or(0, super::ComponentRealtimeOverlayContract::digest_basis)
             .to_le_bytes(),
     );
-    fold_optional_str(
+    let with_static_paint = fold_optional_str(
         with_realtime,
         descriptor
+            .static_paint_contract()
+            .map(|contract| contract.digest_basis()),
+    );
+    let with_hit_test = fold_optional_str(
+        with_static_paint,
+        descriptor
+            .hit_test_contract()
+            .map(super::ComponentHitTestContract::digest_basis),
+    );
+    fold_optional_str(
+        with_hit_test,
+        descriptor
             .allocation_measurement_contract()
-            .map(|contract| contract.digest_basis().to_owned()),
+            .map(|contract| contract.digest_basis()),
     )
 }
 
@@ -162,6 +174,45 @@ mod tests {
         );
 
         assert_ne!(unconstrained.digest_basis(), fill_viewport.digest_basis());
+    }
+
+    #[test]
+    fn static_paint_order_participates_in_the_frozen_descriptor_digest() {
+        use crate::capability::{
+            ComponentStaticPaintContract, ComponentStaticPaintOrder, ThemeTokenId,
+        };
+
+        let component_with_order = |rank| {
+            component_descriptor("workspace.component.pulse").with_static_paint(
+                ComponentStaticPaintContract::opaque_fill(
+                    ThemeTokenId::new("theme.pulse.fill").expect("valid token"),
+                    ComponentStaticPaintOrder::back_to_front(rank),
+                ),
+                ComponentAllocationMeasurementContract::fill_viewport(),
+            )
+        };
+        let back = freeze_component(component_with_order(0));
+        let front = freeze_component(component_with_order(1));
+
+        assert_ne!(back.digest_basis(), front.digest_basis());
+    }
+
+    #[test]
+    fn hit_test_order_participates_in_the_frozen_descriptor_digest() {
+        use crate::capability::{ComponentHitTestContract, ComponentHitTestOrder};
+
+        let component_with_order = |rank| {
+            component_descriptor("workspace.component.target").with_hit_test(
+                ComponentHitTestContract::allocation_bounds(
+                    ComponentHitTestOrder::front_to_back(rank),
+                    ComponentAllocationMeasurementContract::fill_viewport(),
+                ),
+            )
+        };
+        let front = freeze_component(component_with_order(0));
+        let back = freeze_component(component_with_order(1));
+
+        assert_ne!(front.digest_basis(), back.digest_basis());
     }
 
     fn freeze_component(descriptor: ComponentDescriptor) -> FrozenComponentCapabilities {

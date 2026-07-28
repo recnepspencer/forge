@@ -36,10 +36,11 @@ pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry
 pub use component::{
     ComponentAccessibilitySupport, ComponentAllocationMeasurementContract,
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor,
-    ComponentExecutionLane, ComponentFocusSupport, ComponentPropSchema,
-    ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
+    ComponentExecutionLane, ComponentFocusSupport, ComponentHitTestContract, ComponentHitTestOrder,
+    ComponentPropSchema, ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
     ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
-    ComponentStateOwnership, FrozenComponentCapabilities,
+    ComponentStateOwnership, ComponentStaticPaintContract, ComponentStaticPaintOrder,
+    ComponentViewportInset, FrozenComponentCapabilities,
 };
 pub(crate) use family_names::{
     COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,

@@ -40,7 +40,15 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
         "observation_contract/mod.rs",
         "observation_contract/projection.rs",
         "observation_contract/terminal_projection.rs",
+        "observation_contract/visual.rs",
+        "observation_contract/visual_projection.rs",
+        "observation_contract/visual_tests.rs",
+        "observation_contract/visual_value_projection.rs",
         "source_watch.rs",
+        "visual_identity_adjudication.rs",
+        "visual_identity_execution.rs",
+        "visual_identity_pulse.rs",
+        "visual_observation_publication.rs",
     ]
     .into_iter()
     .map(|path| Path::new(SOURCE_ROOT).join(path))
@@ -60,15 +68,26 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
 pub(super) fn audit_library_surface(source: &str) -> Result<(), String> {
     let syntax =
         syn::parse_file(source).map_err(|error| format!("pulse library should parse: {error}"))?;
-    let only_observation_module = matches!(
-        syntax.items.as_slice(),
-        [Item::Mod(module)]
-            if module.ident == "observation_contract"
-                && matches!(module.vis, Visibility::Public(_))
-                && module.content.is_none()
-    );
-    if !only_observation_module {
-        return Err("pulse library may export only the lifecycle observation contract".to_owned());
+    let public_modules = syntax
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Mod(module)
+                if matches!(module.vis, Visibility::Public(_)) && module.content.is_none() =>
+            {
+                Some(module.ident.to_string())
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    let expected = BTreeSet::from([
+        "observation_contract".to_owned(),
+        "visual_identity_pulse".to_owned(),
+    ]);
+    if public_modules != expected || syntax.items.len() != expected.len() {
+        return Err(format!(
+            "pulse library exports {public_modules:?}; expected only lifecycle observation and permanent visual pulse contracts"
+        ));
     }
     Ok(())
 }
@@ -159,7 +178,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
 
 pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), String> {
     if !envelope.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
-        || !envelope.contains("SCHEMA_VERSION: u16 = 1")
+        || !envelope.contains("SCHEMA_VERSION: u16 = 2")
         || !envelope.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
         || !envelope.contains("MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576")
     {
@@ -183,6 +202,11 @@ pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), Stri
     let expected = [
         "ProcessStarted",
         "FirstFramePublished",
+        "VisualSnapshotCaptured",
+        "VisualPointTrace",
+        "VisualOverlayPublished",
+        "VisualOverlayCleared",
+        "VisualSnapshotRetired",
         "ReplacementPublished",
         "ReplacementDeniedPreserving",
         "ShutdownCompleted",

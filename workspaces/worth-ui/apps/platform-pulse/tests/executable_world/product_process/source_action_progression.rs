@@ -7,10 +7,11 @@ use crate::source_delta::{
 
 use super::{
     AwaitingPreservation, AwaitingRecovery, AwaitingReplacement, GreenSuccessor, InitialBlue,
-    PreservedPredecessor, PreservedPredecessorEvidence, Published, PulseExecutableWorld,
+    OverlayCleared, PreservedPredecessor, PreservedPredecessorEvidence, Published,
+    PulseExecutableWorld,
 };
 
-impl PulseExecutableWorld<Published<InitialBlue>> {
+impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>> {
     pub(crate) fn apply_green(
         self,
         delta: GreenPulseSourceDelta,

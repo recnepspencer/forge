@@ -12,7 +12,15 @@ mod publication_identity;
 mod replacement_to_pixel;
 #[cfg(target_os = "windows")]
 mod source_to_pixel;
+#[cfg(target_os = "windows")]
+mod visual_overlay_pixels;
 
+#[cfg(target_os = "windows")]
+pub(crate) use identity_trace::{
+    adjudicate_visual_retirement, adjudicate_visual_snapshot, adjudicate_visual_trace,
+    ExecutableVisualIdentityFailure, ExecutableVisualRetirementEvidence,
+    ExecutableVisualSnapshotEvidence, ExecutableVisualTraceEvidence,
+};
 #[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{
     adjudicate_lifecycle_cleanup, CausalLifecycleCleanupObservationSet,
@@ -38,4 +46,9 @@ pub(crate) use replacement_to_pixel::{
 pub(crate) use source_to_pixel::{
     adjudicate_first_frame, CausalFirstFrameObservationSet, ExecutableFirstFrameEvidence,
     ExecutableFirstFrameFailure,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use visual_overlay_pixels::{
+    adjudicate_overlay_pixels, adjudicate_restored_pixels, ExecutableVisualClearEvidence,
+    ExecutableVisualOverlayEvidence,
 };

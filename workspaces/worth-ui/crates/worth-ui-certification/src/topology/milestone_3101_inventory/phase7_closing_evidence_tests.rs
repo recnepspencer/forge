@@ -103,6 +103,12 @@ fn phase7_inventory_excludes_only_named_successor_sources() {
     assert!(!belongs_to_phase7_inventory(
         "crates/worth-ui-certification/src/topology/milestone_3102_pulse_seed/mod.rs"
     ));
+    assert!(!belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/scenario/application_authority_closure/visual_identity_application.rs"
+    ));
+    assert!(!belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/visual_identity.rs"
+    ));
     assert!(belongs_to_phase7_inventory(
         "crates/worth-ui-certification/src/topology/unadjudicated_future.rs"
     ));

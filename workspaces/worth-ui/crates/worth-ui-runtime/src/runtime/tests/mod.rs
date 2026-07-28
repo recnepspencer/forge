@@ -6,6 +6,8 @@ pub(crate) mod support;
 mod activation_staging_boundary_tests;
 #[path = "activation/activation_staging_test_support.rs"]
 pub(crate) mod activation_staging_test_support;
+#[path = "source_ingress/active_application_candidate_catalog_test_support.rs"]
+mod active_application_candidate_catalog_test_support;
 #[path = "source_ingress/active_application_replacement_tests.rs"]
 mod active_application_cutover_tests;
 #[path = "source_ingress/active_application_evidence_authority_tests.rs"]

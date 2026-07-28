@@ -3,6 +3,10 @@ use worth_ui::facade::measurement_exchange::{
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_host_contract::{
+    UiMountedFilledRectMechanic, UiMountedLayerRow, UiMountedNodeProjectionView,
+    UiMountedPaintBatchRow,
+};
 use worth_ui_host_egui::WorthUiHostEgui;
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
@@ -28,6 +32,7 @@ fn in_process_checked_in_pulse_produces_independently_expected_egui_shape() {
     let host = WorthUiHostEgui::new(context.clone());
     let mut session = launch_and_mount_pulse(host);
     let mut outcome = None;
+    let mut projection_counts = None;
     let native = context.run(raw_input(), |_| {
         establish_viewport_allocation(&mut session);
         let prepared = session
@@ -37,6 +42,18 @@ fn in_process_checked_in_pulse_produces_independently_expected_egui_shape() {
             .unwrap_or_else(|_| panic!("pulse ordinary execution is admitted"))
             .prepare_mounted_frame(UiMountedFrameRequest::all_bound_surfaces())
             .expect("runtime completes the pulse mechanic");
+        let projection = prepared.surfaces()[0].projection();
+        projection_counts = Some([
+            projection.nodes().len(),
+            projection.clips().rows().len(),
+            projection.layers().rows().len(),
+            projection.filled_rects().rows().len(),
+            projection.hit_tests().rows().len(),
+            projection.paint_batches().rows().len(),
+            projection.spatial_batches().rows().len(),
+            projection.realtime_batches().rows().len(),
+            projection.resources().entries().len(),
+        ]);
         outcome = Some(session.present_prepared_mounted_frame(
             prepared,
             UiPresentationDeadline::at_tick(10),
@@ -54,12 +71,21 @@ fn in_process_checked_in_pulse_produces_independently_expected_egui_shape() {
         }
         _ => panic!("complete native pulse should publish"),
     };
-    assert_eq!(native.shapes.len(), 1);
-    assert_native_blue_viewport_rect(&native.shapes[0]);
+    assert_native_pulse(&native.shapes, egui::Color32::from_rgb(47, 129, 247));
     let adapter_cost = publication.cost_report().adapter();
+    assert_eq!(projection_counts.unwrap(), [4, 0, 1, 2, 0, 1, 0, 0, 0]);
     assert_eq!(adapter_cost.presented_surfaces(), 1);
-    assert_eq!(adapter_cost.translated_rows(), 6);
-    assert_eq!(adapter_cost.translated_bytes(), 560);
+    assert_eq!(adapter_cost.translated_rows(), 8);
+    assert_eq!(
+        adapter_cost.translated_bytes(),
+        u64::try_from(
+            4 * std::mem::size_of::<UiMountedNodeProjectionView>()
+                + std::mem::size_of::<UiMountedLayerRow>()
+                + 2 * std::mem::size_of::<UiMountedFilledRectMechanic>()
+                + std::mem::size_of::<UiMountedPaintBatchRow>(),
+        )
+        .expect("the exact pulse projection tables fit the cost receipt")
+    );
     assert_eq!(adapter_cost.native_resource_cache_hits(), 0);
     assert_eq!(adapter_cost.native_resource_cache_misses(), 0);
     assert_eq!(adapter_cost.asynchronous_handoffs(), 0);
@@ -87,8 +113,7 @@ fn in_process_public_native_shell_launches_without_mounted_construction_apis() {
         shell = Some(launched);
     });
     assert!(published);
-    assert_eq!(native.shapes.len(), 1);
-    assert_native_blue_viewport_rect(&native.shapes[0]);
+    assert_native_pulse(&native.shapes, egui::Color32::from_rgb(47, 129, 247));
     shell.expect("native shell remains owned").shutdown();
 }
 
@@ -111,11 +136,10 @@ fn egui_host_replays_admitted_pulse_paint_until_the_shell_releases_it() {
         ));
         shell = Some(launched);
     });
-    assert_native_blue_viewport_rect(&first.shapes[0]);
+    assert_native_pulse(&first.shapes, egui::Color32::from_rgb(47, 129, 247));
 
     let retained = context.run(raw_input(), |_| host.repaint_retained_surfaces());
-    assert_eq!(retained.shapes.len(), 1);
-    assert_native_blue_viewport_rect(&retained.shapes[0]);
+    assert_native_pulse(&retained.shapes, egui::Color32::from_rgb(47, 129, 247));
 
     let shutdown = shell.expect("native shell remains owned").shutdown();
     assert!(shutdown.host_session_released());
@@ -123,7 +147,7 @@ fn egui_host_replays_admitted_pulse_paint_until_the_shell_releases_it() {
     assert!(released.shapes.is_empty());
 }
 
-fn launch_and_mount_pulse(
+pub(super) fn launch_and_mount_pulse(
     host: WorthUiHostEgui,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession {
     let mut session = prepare_pulse_application(host)
@@ -163,7 +187,7 @@ fn prepare_pulse_application(host: WorthUiHostEgui) -> worth_ui::facade::app::Wo
     scenario.prepare_platform_pulse_application_with_host(submission, host)
 }
 
-fn establish_viewport_allocation(
+pub(super) fn establish_viewport_allocation(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) {
     let capability = session.host_measurement_capability();
@@ -184,19 +208,27 @@ fn establish_viewport_allocation(
         .expect("egui viewport observation establishes the pulse allocation");
 }
 
-fn assert_native_blue_viewport_rect(shape: &egui::epaint::ClippedShape) {
+fn assert_native_pulse(shapes: &[egui::epaint::ClippedShape], expected_background: egui::Color32) {
+    assert_eq!(shapes.len(), 2);
+    let viewport = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(160.0, 96.0));
+    let target = egui::Rect::from_min_size(egui::pos2(48.0, 24.0), egui::vec2(64.0, 48.0));
+    let observed = shapes
+        .iter()
+        .map(|shape| {
+            let egui::epaint::Shape::Rect(rect) = &shape.shape else {
+                panic!("pulse native effects must be egui rectangles");
+            };
+            assert_eq!(shape.clip_rect, rect.rect);
+            (rect.rect, rect.fill)
+        })
+        .collect::<Vec<_>>();
     assert_eq!(
-        shape.clip_rect,
-        egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(160.0, 96.0))
+        observed,
+        vec![
+            (viewport, expected_background),
+            (target, egui::Color32::from_rgb(242, 204, 96)),
+        ]
     );
-    let egui::epaint::Shape::Rect(rect) = &shape.shape else {
-        panic!("pulse native effect must be an egui rectangle");
-    };
-    assert_eq!(
-        rect.rect,
-        egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(160.0, 96.0))
-    );
-    assert_eq!(rect.fill, egui::Color32::from_rgb(47, 129, 247));
 }
 
 fn raw_input() -> egui::RawInput {

@@ -32,6 +32,7 @@ pub enum UiMountedFrameReuseDependency {
     MountedPresentationSchema,
     CapabilityGeneration,
     CapabilityProfile,
+    VisualOverlay,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,6 +51,7 @@ pub struct UiMountedFrameReuseContract {
     protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
+    visual_overlay_revision: u64,
 }
 
 pub(crate) struct UiMountedFrameReuseExternalBasis {
@@ -64,6 +66,7 @@ pub(crate) struct UiMountedFrameReuseExternalBasis {
     pub protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     pub capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     pub capability_profile_digest: u64,
+    pub visual_overlay_revision: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -97,6 +100,7 @@ impl UiMountedFrameReuseContract {
             protocol,
             capability_generation,
             capability_profile_digest,
+            visual_overlay_revision,
         } = basis;
         Self {
             generation,
@@ -112,6 +116,7 @@ impl UiMountedFrameReuseContract {
             protocol,
             capability_generation,
             capability_profile_digest,
+            visual_overlay_revision,
         }
     }
 
@@ -137,6 +142,7 @@ impl UiMountedFrameReuseContract {
             UiMountedFrameReuseDependency::MountedPresentationSchema,
             UiMountedFrameReuseDependency::CapabilityGeneration,
             UiMountedFrameReuseDependency::CapabilityProfile,
+            UiMountedFrameReuseDependency::VisualOverlay,
         ]
     }
 
@@ -166,6 +172,10 @@ impl UiMountedFrameReuseContract {
 
     pub const fn surface_binding_revision(&self) -> u64 {
         self.surface_binding_revision
+    }
+
+    pub const fn visual_overlay_revision(&self) -> u64 {
+        self.visual_overlay_revision
     }
 
     pub(in crate::mounting) fn reconciled(

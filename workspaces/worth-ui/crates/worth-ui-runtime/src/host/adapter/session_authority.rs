@@ -42,6 +42,13 @@ impl UiHostAdapterSessionAuthority {
         self.presentation_lease_gate.admits_token(token)
     }
 
+    pub fn admits_visual_capture(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> bool {
+        request.host_session_identity() == self.host_session_identity
+    }
+
     pub(crate) fn claim_mounted_presentation_lease(
         &self,
     ) -> Result<
@@ -58,5 +65,41 @@ impl std::fmt::Debug for UiHostAdapterSessionAuthority {
             .debug_struct("UiHostAdapterSessionAuthority")
             .field("host_session_identity", &self.host_session_identity)
             .finish_non_exhaustive()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use worth_ui_host_contract::{
+        UiHostCaptureArtifactBudget, UiHostCaptureFrameAffinity, UiHostCaptureRequestIdentity,
+        UiHostCaptureSurfaceAffinity, UiHostPresentationEpoch, UiHostSurfaceIdentity,
+        UiHostVisualCaptureRequest, UiMountedFrameIdentity, UiMountedPresentationAttemptIdentity,
+        UiSurfaceBindingGeneration,
+    };
+
+    use super::UiHostAdapterSessionAuthority;
+
+    #[test]
+    fn visual_capture_authority_rejects_foreign_host_sessions() {
+        let authority = UiHostAdapterSessionAuthority::activate(7);
+        assert!(authority.admits_visual_capture(capture_request(7)));
+        assert!(!authority.admits_visual_capture(capture_request(8)));
+    }
+
+    fn capture_request(host_session_identity: u64) -> UiHostVisualCaptureRequest {
+        UiHostVisualCaptureRequest::admitted_by_runtime(
+            UiHostCaptureRequestIdentity::issued_by_runtime(1),
+            UiHostCaptureFrameAffinity::observed_by_runtime(
+                UiMountedFrameIdentity::mint_unbound().unwrap(),
+                UiMountedPresentationAttemptIdentity::mint_unbound().unwrap(),
+            ),
+            UiHostCaptureSurfaceAffinity::observed_by_runtime(
+                host_session_identity,
+                UiHostSurfaceIdentity::mint_unbound().unwrap(),
+                UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+                UiHostPresentationEpoch::issued_by_host(1),
+            ),
+            UiHostCaptureArtifactBudget::admitted_by_runtime(false, 0),
+        )
     }
 }

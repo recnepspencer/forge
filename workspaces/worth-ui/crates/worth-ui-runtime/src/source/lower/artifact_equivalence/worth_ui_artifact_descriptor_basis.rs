@@ -31,9 +31,14 @@ pub(super) fn component_descriptor_basis(descriptor: &ComponentDescriptor) -> St
         format!("theme_token_dependencies:[{theme_token_dependencies}]"),
         format!("command_binding_slots:[{command_binding_slots}]"),
         descriptor.execution_lane().as_str().to_owned(),
-        option_text_basis(
+        option_digest_basis(
             descriptor
                 .allocation_measurement_contract()
+                .map(|contract| contract.digest_basis()),
+        ),
+        option_digest_basis(
+            descriptor
+                .static_paint_contract()
                 .map(|contract| contract.digest_basis()),
         ),
     ]

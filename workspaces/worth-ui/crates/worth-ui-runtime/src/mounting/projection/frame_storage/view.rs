@@ -1,6 +1,8 @@
 use worth_ui_host_contract::{
     UiMountedAccessibilityProjection, UiMountedClipTable, UiMountedDiagnosticProjection,
-    UiMountedFilledRectReference, UiMountedFilledRectTable, UiMountedLayerTable,
+    UiMountedFilledRectMechanic, UiMountedFilledRectReference, UiMountedFilledRectTable,
+    UiMountedHitTestMechanic, UiMountedHitTestProjection, UiMountedHitTestReference,
+    UiMountedHitTestTable, UiMountedInstanceIdentity, UiMountedLayerTable,
     UiMountedNodeProjectionView, UiMountedNodeProjectionViewInput, UiMountedOmissionReason,
     UiMountedPaintBatchReference, UiMountedPaintBatchTable, UiMountedPaintProjection,
     UiMountedParticipationStatus, UiMountedPreviewProjection, UiMountedProjectionAudience,
@@ -9,7 +11,28 @@ use worth_ui_host_contract::{
 };
 
 use super::super::{UiMountedNodeReceipt, UiMountedProjectionDenial};
-use super::{UiMountedProjectionFrame, UiMountedProjectionNodeRecord};
+use super::{UiMountedProjectionFrame, UiMountedProjectionNodeRecord, UiMountedProjectionSurface};
+
+type UiMountedFilledRectReferenceIndex =
+    std::collections::BTreeMap<UiMountedInstanceIdentity, UiMountedFilledRectReference>;
+type UiMountedHitTestReferenceIndex =
+    std::collections::BTreeMap<UiMountedInstanceIdentity, UiMountedHitTestReference>;
+
+struct UiMountedFilledRectViewRows {
+    rows: Vec<UiMountedFilledRectMechanic>,
+    references: UiMountedFilledRectReferenceIndex,
+}
+
+struct UiMountedHitTestViewRows {
+    rows: Vec<UiMountedHitTestMechanic>,
+    references: UiMountedHitTestReferenceIndex,
+}
+
+struct UiMountedNodeViewContext<'a> {
+    surface: UiMountedProjectionSurface,
+    filled_rect_by_instance: &'a UiMountedFilledRectReferenceIndex,
+    hit_test_by_instance: &'a UiMountedHitTestReferenceIndex,
+}
 
 #[derive(Clone)]
 pub(super) struct UiMountedOrdinaryPaintSelector {
@@ -34,13 +57,52 @@ impl UiMountedProjectionFrame {
             .get(&binding)
             .copied()
             .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
-        let filled_rects = self
+        let filled_rects = self.filled_rect_view_rows(surface)?;
+        let hit_tests = self.hit_test_view_rows(surface)?;
+        let node_view_context = UiMountedNodeViewContext {
+            surface,
+            filled_rect_by_instance: &filled_rects.references,
+            hit_test_by_instance: &hit_tests.references,
+        };
+        let nodes = self
+            .semantic
+            .order
+            .iter()
+            .filter_map(|instance| self.semantic.nodes.get(instance))
+            .filter(|node| node.receipt.semantic_surface() == surface.surface)
+            .map(|node| self.audience_node_view(node, &node_view_context))
+            .collect();
+        let filled_rects = UiMountedFilledRectTable::from_runtime_mounting(filled_rects.rows)
+            .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)?;
+        let hit_tests = UiMountedHitTestTable::from_runtime_mounting(hit_tests.rows)
+            .ok_or(UiMountedProjectionDenial::HitTestCapacityExceeded)?;
+        Ok(UiMountedProjectionView::new(UiMountedProjectionViewInput {
+            frame: self.frame,
+            surface: surface.surface,
+            binding,
+            nodes,
+            clips: UiMountedClipTable::produced(Vec::new()),
+            layers: UiMountedLayerTable::produced(self.layers.clone()),
+            filled_rects,
+            hit_tests,
+            paint_batches: UiMountedPaintBatchTable::new(self.paint_batches.clone()),
+            spatial_batches: UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
+            realtime_batches: UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
+            resources: UiMountedResourceTable::new(self.resources.clone()),
+        }))
+    }
+
+    fn filled_rect_view_rows(
+        &self,
+        surface: UiMountedProjectionSurface,
+    ) -> Result<UiMountedFilledRectViewRows, UiMountedProjectionDenial> {
+        let rows = self
             .filled_rects
             .iter()
             .copied()
-            .filter(|row| row.surface() == surface.surface && row.binding() == binding)
+            .filter(|row| row.surface() == surface.surface && row.binding() == surface.binding)
             .collect::<Vec<_>>();
-        let filled_rect_by_instance = filled_rects
+        let references = rows
             .iter()
             .enumerate()
             .map(|(index, row)| {
@@ -53,42 +115,44 @@ impl UiMountedProjectionFrame {
                     })
                     .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)
             })
-            .collect::<Result<std::collections::BTreeMap<_, _>, _>>()?;
-        let nodes = self
-            .semantic
-            .order
+            .collect::<Result<UiMountedFilledRectReferenceIndex, _>>()?;
+        Ok(UiMountedFilledRectViewRows { rows, references })
+    }
+
+    fn hit_test_view_rows(
+        &self,
+        surface: UiMountedProjectionSurface,
+    ) -> Result<UiMountedHitTestViewRows, UiMountedProjectionDenial> {
+        let rows = self
+            .hit_tests
             .iter()
-            .filter_map(|instance| self.semantic.nodes.get(instance))
-            .filter(|node| node.receipt.semantic_surface() == surface.surface)
-            .map(|node| self.audience_node_view(node, surface.audience, &filled_rect_by_instance))
-            .collect();
-        let filled_rects = UiMountedFilledRectTable::from_runtime_mounting(filled_rects)
-            .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)?;
-        Ok(UiMountedProjectionView::new(UiMountedProjectionViewInput {
-            frame: self.frame,
-            surface: surface.surface,
-            binding,
-            nodes,
-            clips: UiMountedClipTable::produced(Vec::new()),
-            layers: UiMountedLayerTable::produced(self.layers.clone()),
-            filled_rects,
-            paint_batches: UiMountedPaintBatchTable::new(self.paint_batches.clone()),
-            spatial_batches: UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
-            realtime_batches: UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
-            resources: UiMountedResourceTable::new(self.resources.clone()),
-        }))
+            .copied()
+            .filter(|row| row.surface() == surface.surface && row.binding() == surface.binding)
+            .collect::<Vec<_>>();
+        let references = rows
+            .iter()
+            .enumerate()
+            .map(|(index, row)| {
+                u32::try_from(index)
+                    .map(|index| {
+                        (
+                            row.mounted_instance(),
+                            UiMountedHitTestReference::from_runtime_mounting(index),
+                        )
+                    })
+                    .map_err(|_| UiMountedProjectionDenial::HitTestCapacityExceeded)
+            })
+            .collect::<Result<UiMountedHitTestReferenceIndex, _>>()?;
+        Ok(UiMountedHitTestViewRows { rows, references })
     }
 
     fn audience_node_view(
         &self,
         node: &UiMountedProjectionNodeRecord,
-        audience: UiMountedProjectionAudience,
-        filled_rect_by_instance: &std::collections::BTreeMap<
-            worth_ui_host_contract::UiMountedInstanceIdentity,
-            UiMountedFilledRectReference,
-        >,
+        context: &UiMountedNodeViewContext<'_>,
     ) -> UiMountedNodeProjectionView {
         let receipt = &node.receipt;
+        let audience = context.surface.audience;
         let accessibility = if audience.accessibility_disclosed() {
             receipt.accessibility()
         } else {
@@ -96,11 +160,7 @@ impl UiMountedProjectionFrame {
                 UiMountedOmissionReason::SurfacePolicyWithheld,
             )
         };
-        let diagnostic = if audience.diagnostics_disclosed() {
-            receipt.diagnostic()
-        } else {
-            UiMountedDiagnosticProjection::Omitted(UiMountedOmissionReason::SurfacePolicyWithheld)
-        };
+        let diagnostic = self.diagnostic_for(receipt, context.surface, audience);
         UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
             mounted_instance: receipt.mounted_instance(),
             node_receipt: self
@@ -111,20 +171,51 @@ impl UiMountedProjectionFrame {
             participation: receipt.participation(),
             allocation: receipt.allocation(),
             preview: self.preview_for(receipt),
-            paint: self.paint_for(node, filled_rect_by_instance),
+            paint: self.paint_for(node, context.filled_rect_by_instance),
+            hit_test: context
+                .hit_test_by_instance
+                .get(&receipt.mounted_instance())
+                .copied()
+                .map_or_else(
+                    || {
+                        UiMountedHitTestProjection::Omitted(
+                            UiMountedOmissionReason::NotProducedByExecutedLane,
+                        )
+                    },
+                    UiMountedHitTestProjection::Region,
+                ),
             accessibility,
             motion: receipt.motion(),
             diagnostic,
         })
     }
 
+    fn diagnostic_for(
+        &self,
+        receipt: &UiMountedNodeReceipt,
+        surface: UiMountedProjectionSurface,
+        audience: UiMountedProjectionAudience,
+    ) -> UiMountedDiagnosticProjection {
+        if !audience.diagnostics_disclosed() {
+            return UiMountedDiagnosticProjection::Omitted(
+                UiMountedOmissionReason::SurfacePolicyWithheld,
+            );
+        }
+        self.visual_overlay
+            .filter(|overlay| {
+                overlay.target_receipt.mounted_instance() == receipt.mounted_instance()
+            })
+            .and_then(|overlay| overlay.mechanic_for(self.frame, surface.surface, surface.binding))
+            .map_or_else(
+                || receipt.diagnostic(),
+                UiMountedDiagnosticProjection::IdentityOverlay,
+            )
+    }
+
     fn paint_for(
         &self,
         node: &UiMountedProjectionNodeRecord,
-        filled_rect_by_instance: &std::collections::BTreeMap<
-            worth_ui_host_contract::UiMountedInstanceIdentity,
-            UiMountedFilledRectReference,
-        >,
+        filled_rect_by_instance: &UiMountedFilledRectReferenceIndex,
     ) -> UiMountedPaintProjection {
         if node.receipt.participation().paint().status() != UiMountedParticipationStatus::Admitted {
             return UiMountedPaintProjection::Omitted(

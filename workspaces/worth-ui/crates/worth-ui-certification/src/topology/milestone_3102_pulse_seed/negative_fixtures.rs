@@ -163,6 +163,36 @@ fn drifting_the_boundary_native_shell_contract_is_rejected() {
 }
 
 #[test]
+fn widening_the_boundary_native_shell_features_is_rejected() {
+    let config_text =
+        std::fs::read_to_string(repository_root().join("tools/boundary-check/config/road1.toml"))
+            .expect("boundary config");
+    let mut config = config_text.parse::<toml::Value>().expect("valid config");
+    let pulse = config
+        .get_mut("source_dependency_allowlists")
+        .and_then(toml::Value::as_array_mut)
+        .expect("source allowlist rows")
+        .iter_mut()
+        .find(|row| {
+            row.get("sources")
+                .and_then(toml::Value::as_array)
+                .is_some_and(|sources| {
+                    sources
+                        .iter()
+                        .any(|source| source.as_str() == Some("worth-ui-platform-pulse"))
+                })
+        })
+        .expect("pulse rule");
+    pulse["dependency_contracts"][0]["features"]
+        .as_array_mut()
+        .expect("eframe features")
+        .push(toml::Value::String("shortcut-renderer".to_owned()));
+    let error = destination_topology::audit_boundary_config(&config)
+        .expect_err("unplanned renderer feature should fail");
+    assert!(error.contains("dependency contract drifted"), "{error}");
+}
+
+#[test]
 fn increasing_the_integration_target_budget_is_rejected() {
     let path =
         repository_root().join("_docs/worth-ui/milestone-3.10.2-phase-1-opening-baseline.json");
