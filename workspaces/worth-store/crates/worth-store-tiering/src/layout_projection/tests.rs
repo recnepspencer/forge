@@ -1,4 +1,3 @@
-use worth_store_io_scheduler::IoSchedulerIsolationAdmission;
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReclaimRegion,
     PhysicalRecordSlot, PhysicalReference, PhysicalReferenceAuthority, PhysicalSegmentId,
@@ -14,21 +13,18 @@ use worth_store_reclaim_policy::{
 };
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
-use crate::{admit_tier_placement_io, ColdTierIoPosture};
+use crate::ColdTierIoPosture;
 
 #[test]
 fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
     let posture = real_cold_tier_posture();
-    let admission = admit_tier_placement_io(
-        IoSchedulerIsolationAdmission::for_certification_test(),
-        posture.clone(),
-    );
 
-    let placement = admission.project_tier_placement_layout();
+    let placement = posture.project_tier_placement_layout();
     assert_eq!(placement.declared_budget().reclaim_permits(), 1);
+    assert_eq!(placement.declared_budget().region_bytes(), 4096);
     assert_eq!(placement.reclaim_region().byte_len(), 4096);
     assert_eq!(placement.security_scope(), posture.security_scope());
-    assert_eq!(placement.exact_counters(), admission.scheduler().counters());
+    assert_eq!(placement.exact_counters().executed(), 1);
 
     let recall = posture.project_cold_recall_layout();
     assert_eq!(recall.declared_budget().reclaim_permits(), 1);

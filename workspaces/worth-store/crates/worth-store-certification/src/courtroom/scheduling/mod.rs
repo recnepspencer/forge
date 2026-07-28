@@ -13,7 +13,6 @@ mod flush_durability;
 mod foreground_reservation;
 #[cfg(test)]
 mod foreground_reservation_tests;
-mod io_qos_readiness_handoff;
 mod latency_interference;
 mod materialized_closeout;
 mod queue_execution;
@@ -41,8 +40,6 @@ pub use foreground_reservation::{
     certify_io_qos_foreground_reservation, S6ForegroundReservationCertificationDenial,
     S6ForegroundReservationCertificationEvidence,
 };
-pub(crate) use io_qos_readiness_handoff::verify_executed_closeout_handoff_admissible;
-pub use io_qos_readiness_handoff::S6IoQosReadinessHandoffMaterializationDenial;
 pub use latency_interference::{
     S6LatencyInterferenceCertificationDenial, S6LatencyInterferenceEvidence,
 };

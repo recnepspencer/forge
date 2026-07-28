@@ -45,14 +45,9 @@ pub(crate) fn verify_class_backend_capability(
                     },
                 );
             }
-            let Some(recoverability) = intent.external_recoverability() else {
-                return Err(
-                    BlobPlacementAdmissionDenial::ExternalPlacementMissingRecoverability {
-                        counters: BlobPlacementCounterSnapshot::for_class(intent.class())
-                            .record_external_read(),
-                    },
-                );
-            };
+            let recoverability = intent
+                .external_recoverability()
+                .expect("external intent variants carry recoverability or explicit denial");
             if !basis.admits_external_recoverability(recoverability) {
                 return Err(
                     BlobPlacementAdmissionDenial::ExternalPlacementRecoverabilityBasisMismatch {

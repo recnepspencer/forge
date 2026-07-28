@@ -1,5 +1,4 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_io_scheduler::IoSchedulerIsolationAdmission;
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilityKind,
     BackendCapabilitySupportPosture, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
@@ -9,7 +8,7 @@ use worth_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreKeyVersionPosture, StoreSecurityScopeIdentity, StoreTenantScope,
 };
-use worth_store_tiering::{admit_tier_placement_io, ColdPlacementState, TierPlacementIoAdmission};
+use worth_store_tiering::{ColdPlacementState, ColdTierIoPosture};
 
 use crate::lifecycle::generation_registry_test_support::{
     lifecycle_receipt_for_publication, root_publication,
@@ -20,8 +19,8 @@ use crate::{
 };
 
 use super::test_support::{
-    admitted_backend, external_recovery, external_recovery_for_digest,
-    external_recovery_for_digest_and_scope, readiness, residue_observation,
+    admitted_backend, cold_posture, external_recovery, external_recovery_for_digest,
+    external_recovery_for_digest_and_scope, residue_observation,
 };
 
 #[test]
@@ -31,21 +30,21 @@ fn placement_classes_preserve_blob_facts_with_distinct_counters() {
     let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
 
     let inline = authority
-        .admit(
-            reachability,
-            BlobPlacementIntent::inline(readiness(reachability)),
-        )
+        .admit(reachability, BlobPlacementIntent::inline())
         .expect("inline placement should admit");
     let external = authority
         .admit(
             reachability,
-            BlobPlacementIntent::external(readiness(reachability), external_recovery(reachability)),
+            BlobPlacementIntent::external(external_recovery(reachability)),
         )
         .expect("external placement should admit");
     let cold = authority
         .admit(
             reachability,
-            BlobPlacementIntent::cold(readiness(reachability), ColdPlacementState::ColdAvailable),
+            BlobPlacementIntent::cold(
+                cold_posture(reachability),
+                ColdPlacementState::ColdAvailable,
+            ),
         )
         .expect("cold placement should admit");
 
@@ -84,16 +83,19 @@ fn placement_classes_preserve_blob_facts_with_distinct_counters() {
 }
 
 #[test]
-fn copied_readiness_seed_security_scope_denies_before_placement_admission() {
-    let receipt = receipt("phase16-copied-readiness-seed");
+fn wrong_cold_posture_scope_denies_before_cold_placement_admission() {
+    let receipt = receipt("phase16-wrong-cold-posture-scope");
     let reachability = receipt.reachability();
     let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
 
     match authority.admit(
         reachability,
-        BlobPlacementIntent::inline(readiness_for_security_scope(mismatched_security_scope())),
+        BlobPlacementIntent::cold(
+            cold_posture_for_security_scope(mismatched_security_scope()),
+            ColdPlacementState::ColdAvailable,
+        ),
     ) {
-        Err(BlobPlacementAdmissionDenial::PlacementReadinessBasisMismatch { counters }) => {
+        Err(BlobPlacementAdmissionDenial::ColdPostureScopeMismatch { counters }) => {
             assert_eq!(counters.inline_reads(), 0);
             assert_eq!(counters.external_reads(), 0);
             assert_eq!(counters.cold_fetches(), 0);
@@ -111,7 +113,7 @@ fn unsupported_backend_capability_denies_before_publication() {
 
     match authority.admit(
         reachability,
-        BlobPlacementIntent::external(readiness(reachability), external_recovery(reachability)),
+        BlobPlacementIntent::external(external_recovery(reachability)),
     ) {
         Err(BlobPlacementAdmissionDenial::BackendCapability { counters, .. }) => {
             assert_eq!(counters.external_reads(), 0);
@@ -128,10 +130,9 @@ fn unrelated_external_recovery_denies_before_placement_admission() {
 
     match authority.admit(
         reachability,
-        BlobPlacementIntent::external(
-            readiness(reachability),
-            external_recovery_for_digest("s7:stored:unrelated-external-manifest"),
-        ),
+        BlobPlacementIntent::external(external_recovery_for_digest(
+            "s7:stored:unrelated-external-manifest",
+        )),
     ) {
         Err(BlobPlacementAdmissionDenial::ExternalPlacementRecoverabilityBasisMismatch {
             counters,
@@ -149,10 +150,10 @@ fn same_digest_external_recovery_with_wrong_security_scope_denies() {
 
     match authority.admit(
         reachability,
-        BlobPlacementIntent::external(
-            readiness(reachability),
-            external_recovery_for_digest_and_scope(digest, mismatched_security_scope()),
-        ),
+        BlobPlacementIntent::external(external_recovery_for_digest_and_scope(
+            digest,
+            mismatched_security_scope(),
+        )),
     ) {
         Err(BlobPlacementAdmissionDenial::ExternalPlacementRecoverabilityBasisMismatch {
             counters,
@@ -172,7 +173,10 @@ fn unavailable_cold_chunks_deny_with_cold_state() {
     assert_eq!(
         authority.admit(
             reachability,
-            BlobPlacementIntent::cold(readiness(reachability), ColdPlacementState::ColdUnavailable)
+            BlobPlacementIntent::cold(
+                cold_posture(reachability),
+                ColdPlacementState::ColdUnavailable
+            )
         ),
         Err(BlobPlacementAdmissionDenial::ColdChunkUnavailable {
             state: ColdPlacementState::ColdUnavailable,
@@ -195,10 +199,7 @@ fn external_sidecar_without_store_authority_denies() {
 
     match authority.admit(
         reachability,
-        BlobPlacementIntent::external_sidecar_without_store_authority(
-            readiness(reachability),
-            sidecar,
-        ),
+        BlobPlacementIntent::external_sidecar_without_store_authority(sidecar),
     ) {
         Err(BlobPlacementAdmissionDenial::ExternalSidecarWithoutStoreAuthority {
             counters,
@@ -219,11 +220,9 @@ fn receipt(case: &str) -> crate::LifecycleReceipt {
     )
 }
 
-fn readiness_for_security_scope(scope: StoreSecurityScopeIdentity) -> TierPlacementIoAdmission {
-    let cold = worth_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(scope);
-    admit_tier_placement_io(
-        IoSchedulerIsolationAdmission::for_certification_test(),
-        cold,
+fn cold_posture_for_security_scope(scope: StoreSecurityScopeIdentity) -> ColdTierIoPosture {
+    worth_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
+        scope,
     )
 }
 

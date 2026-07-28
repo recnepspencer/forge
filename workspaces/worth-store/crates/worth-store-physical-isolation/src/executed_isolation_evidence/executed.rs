@@ -6,17 +6,13 @@ use crate::publication::PhysicalPublicationReceipt;
 use crate::reclaim_reachability::ReclaimEligibilityProof;
 use crate::stable_read_execution::StablePhysicalReadReceipt;
 
-use crate::readiness::isolation_evidence::basis::{
-    ExecutedIsolationBasis, FoundationalIsolationCounterReceipt,
-};
-use crate::{IsolationReadinessDenial, PhysicalIsolationCounterSnapshot};
+use super::basis::ExecutedIsolationBasis;
+use crate::{ExecutedIsolationEvidenceDenial, PhysicalIsolationCounterSnapshot};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutedIsolationEvidence {
     basis: ExecutedIsolationBasis,
     counters: PhysicalIsolationCounterSnapshot,
-    foundational_counter_receipt: FoundationalIsolationCounterReceipt,
-    proof_progression_identity: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +29,7 @@ pub struct ExecutedIsolationReceipts<'a> {
 impl ExecutedIsolationEvidence {
     pub fn from_physical_isolation_receipts(
         receipts: ExecutedIsolationReceipts<'_>,
-    ) -> Result<Self, IsolationReadinessDenial> {
+    ) -> Result<Self, ExecutedIsolationEvidenceDenial> {
         assemble_executed_physical_isolation_closeout(receipts)
     }
 
@@ -41,7 +37,7 @@ impl ExecutedIsolationEvidence {
     pub fn from_foreground_reservation_test_counts(
         wait_count: u64,
         retry_count: u64,
-    ) -> Result<Self, IsolationReadinessDenial> {
+    ) -> Result<Self, ExecutedIsolationEvidenceDenial> {
         let counters = PhysicalIsolationCounterSnapshot::from_store_executed_counts(
             1,
             wait_count,
@@ -53,18 +49,11 @@ impl ExecutedIsolationEvidence {
             1,
             4096,
         )?;
-        let foundational_counter_receipt =
-            super::performance_receipt::construct_io_qos_foundational_counter_receipt(counters)?;
         let proof_progression_identity =
             super::project_counters::foreground_reservation_test_progression_identity(counters);
         let basis =
             ExecutedIsolationBasis::from_executed_isolation(proof_progression_identity, counters);
-        Ok(Self {
-            basis,
-            counters,
-            foundational_counter_receipt,
-            proof_progression_identity,
-        })
+        Ok(Self { basis, counters })
     }
 
     pub const fn basis(&self) -> ExecutedIsolationBasis {
@@ -74,31 +63,14 @@ impl ExecutedIsolationEvidence {
     pub const fn counters(&self) -> PhysicalIsolationCounterSnapshot {
         self.counters
     }
-
-    pub(crate) const fn foundational_counter_receipt(
-        &self,
-    ) -> &FoundationalIsolationCounterReceipt {
-        &self.foundational_counter_receipt
-    }
-
-    pub(crate) const fn proof_progression_identity(&self) -> u64 {
-        self.proof_progression_identity
-    }
 }
 
 fn assemble_executed_physical_isolation_closeout(
     receipts: ExecutedIsolationReceipts<'_>,
-) -> Result<ExecutedIsolationEvidence, IsolationReadinessDenial> {
+) -> Result<ExecutedIsolationEvidence, ExecutedIsolationEvidenceDenial> {
     let _latch_order_proof = receipts.latch_order_proof;
     let counters = super::project_counters::project_closeout_counters(receipts)?;
-    let foundational_counter_receipt =
-        super::performance_receipt::construct_io_qos_foundational_counter_receipt(counters)?;
     let identity = super::project_counters::proof_progression_identity(receipts, counters);
     let basis = ExecutedIsolationBasis::from_executed_isolation(identity, counters);
-    Ok(ExecutedIsolationEvidence {
-        basis,
-        counters,
-        foundational_counter_receipt,
-        proof_progression_identity: identity,
-    })
+    Ok(ExecutedIsolationEvidence { basis, counters })
 }

@@ -1,6 +1,5 @@
 #![cfg_attr(not(test), allow(dead_code, unused_imports))]
 
-use worth_store_io_scheduler::IoSchedulerIsolationAdmission;
 use worth_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
     BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet, BackendMediaAssumptionSet,
@@ -19,7 +18,7 @@ use worth_store_physical_backend::{
     StoreOwnedBlobBackendResidueScan, StoreOwnedBlobPhysicalManifestTraversal,
     StoreOwnedExternalPlacementCleanup, StoreOwnedExternalPlacementRecoveryProbe,
 };
-use worth_store_tiering::{admit_tier_placement_io, ColdPlacementState, TierPlacementIoAdmission};
+use worth_store_tiering::{ColdPlacementState, ColdTierIoPosture};
 
 use crate::{
     AdmittedBlobPlacement, BlobChunkReachabilityProofSet, BlobPlacementAdmissionAuthority,
@@ -31,10 +30,7 @@ pub(crate) fn admit_inline_placement(
 ) -> AdmittedBlobPlacement {
     let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
     authority
-        .admit(
-            reachability,
-            BlobPlacementIntent::inline(readiness(reachability)),
-        )
+        .admit(reachability, BlobPlacementIntent::inline())
         .expect("inline placement should admit")
 }
 
@@ -45,7 +41,7 @@ pub(crate) fn admit_external_placement(
     authority
         .admit(
             reachability,
-            BlobPlacementIntent::external(readiness(reachability), external_recovery(reachability)),
+            BlobPlacementIntent::external(external_recovery(reachability)),
         )
         .expect("external placement should admit")
 }
@@ -57,7 +53,10 @@ pub(crate) fn admit_cold_placement(
     authority
         .admit(
             reachability,
-            BlobPlacementIntent::cold(readiness(reachability), ColdPlacementState::ColdAvailable),
+            BlobPlacementIntent::cold(
+                cold_posture(reachability),
+                ColdPlacementState::ColdAvailable,
+            ),
         )
         .expect("cold placement should admit")
 }
@@ -99,13 +98,9 @@ pub(crate) fn external_recovery_for_digest_and_scope(
         .expect("external recoverability should admit")
 }
 
-pub(crate) fn readiness(reachability: &BlobChunkReachabilityProofSet) -> TierPlacementIoAdmission {
-    let cold_posture = worth_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
+pub(crate) fn cold_posture(reachability: &BlobChunkReachabilityProofSet) -> ColdTierIoPosture {
+    worth_store_tiering::certification_test_support::cold_tier_io_posture_for_certification_test(
         reachability.security_metadata().identity(),
-    );
-    admit_tier_placement_io(
-        IoSchedulerIsolationAdmission::for_certification_test(),
-        cold_posture,
     )
 }
 

@@ -12,7 +12,6 @@ pub enum S6BackgroundPacingOutcomeKind {
     Yield,
     Deferred,
     Denied,
-    StaleRebindRequired,
     Throttled,
     AdmittedWithDebt,
     Violation,
@@ -64,11 +63,6 @@ impl S6BackgroundPacingCertificationEvidence {
             },
             BackgroundPacingOutcome::Denied(receipt) => Self {
                 outcome: S6BackgroundPacingOutcomeKind::Denied,
-                counters: receipt.counters(),
-                debt: None,
-            },
-            BackgroundPacingOutcome::StaleRebindRequired(receipt) => Self {
-                outcome: S6BackgroundPacingOutcomeKind::StaleRebindRequired,
                 counters: receipt.counters(),
                 debt: None,
             },

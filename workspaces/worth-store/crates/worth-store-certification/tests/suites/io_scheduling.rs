@@ -10,9 +10,6 @@ mod evidence_materialization;
 #[path = "../scenarios/scheduling/flush_durability/flush_durability.rs"]
 mod flush_durability;
 
-#[path = "../scenarios/scheduling/io_qos_readiness_handoff/io_qos_readiness_handoff.rs"]
-mod io_qos_readiness_handoff;
-
 #[path = "../scenarios/scheduling/latency_interference/latency_interference.rs"]
 mod latency_interference;
 

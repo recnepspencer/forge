@@ -13,6 +13,7 @@ mod post_close_observation;
 mod production_trace;
 mod removal_inventory;
 mod runtime_ownership;
+mod scheduler_authority_boundary;
 mod serving_capability;
 mod shutdown_cleanup;
 mod shutdown_residue;

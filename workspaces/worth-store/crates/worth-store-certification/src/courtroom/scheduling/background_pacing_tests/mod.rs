@@ -9,19 +9,16 @@ use worth_store_io_scheduler::foreground_reservation::admitted_point_read_reserv
 use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
     admit_background_pacing, admit_secure_io_scope_for_scheduler,
-    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
-    BackgroundCapacityAdmissionRequest, BackgroundDebtKind, BackgroundIdleCapacityLeaseRequest,
-    BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundPacingProgressionDrift,
-    BackgroundPacingProgressionEvidence, BackgroundResourceBudget,
-    IoSchedulerBackendCapabilityRequirement, QueueSlot, SecureIoOperation,
-    SecureIoPreservationRequest,
+    admit_security_scope_for_scheduler, BackgroundCapacityAdmissionRequest, BackgroundDebtKind,
+    BackgroundIdleCapacityLeaseRequest, BackgroundIoPressureShape, BackgroundPacingOutcome,
+    BackgroundResourceBudget, IoSchedulerBackendCapabilityRequirement, QueueSlot,
+    SecureIoOperation, SecureIoPreservationRequest,
 };
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::{
@@ -48,12 +45,6 @@ fn io_qos_background_pacing_certification_preserves_all_outcomes() {
             producer_denied_outcome(),
             direct_denied_outcome(),
             S6BackgroundPacingOutcomeKind::Denied,
-            None,
-        ),
-        (
-            producer_stale_outcome(),
-            direct_stale_outcome(),
-            S6BackgroundPacingOutcomeKind::StaleRebindRequired,
             None,
         ),
         (

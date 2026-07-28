@@ -1,7 +1,7 @@
 use worth_store_physical_backend::{
     BlobBackendResidueObservation, StoreExternalPlacementRecoverabilityEvidence,
 };
-use worth_store_tiering::{ColdPlacementState, TierPlacementIoAdmission};
+use worth_store_tiering::{ColdPlacementState, ColdTierIoPosture};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobPlacementClass {
@@ -11,78 +11,74 @@ pub enum BlobPlacementClass {
 }
 
 #[derive(Debug, Clone)]
-pub struct BlobPlacementIntent {
-    class: BlobPlacementClass,
-    readiness: TierPlacementIoAdmission,
-    cold_state: Option<ColdPlacementState>,
-    external_recoverability: Option<StoreExternalPlacementRecoverabilityEvidence>,
-    external_sidecar_denial: Option<BlobBackendResidueObservation>,
+pub enum BlobPlacementIntent {
+    Inline,
+    External {
+        recoverability: StoreExternalPlacementRecoverabilityEvidence,
+    },
+    ExternalSidecarWithoutStoreAuthority {
+        observation: BlobBackendResidueObservation,
+    },
+    Cold {
+        posture: ColdTierIoPosture,
+        state: ColdPlacementState,
+    },
 }
 
 impl BlobPlacementIntent {
-    pub fn inline(readiness: TierPlacementIoAdmission) -> Self {
-        Self {
-            class: BlobPlacementClass::Inline,
-            readiness,
-            cold_state: None,
-            external_recoverability: None,
-            external_sidecar_denial: None,
-        }
+    pub const fn inline() -> Self {
+        Self::Inline
     }
 
-    pub fn external(
-        readiness: TierPlacementIoAdmission,
-        recoverability: StoreExternalPlacementRecoverabilityEvidence,
-    ) -> Self {
-        Self {
-            class: BlobPlacementClass::External,
-            readiness,
-            cold_state: None,
-            external_recoverability: Some(recoverability),
-            external_sidecar_denial: None,
-        }
+    pub fn external(recoverability: StoreExternalPlacementRecoverabilityEvidence) -> Self {
+        Self::External { recoverability }
     }
 
     pub fn external_sidecar_without_store_authority(
-        readiness: TierPlacementIoAdmission,
-        denial: BlobBackendResidueObservation,
+        observation: BlobBackendResidueObservation,
     ) -> Self {
-        Self {
-            class: BlobPlacementClass::External,
-            readiness,
-            cold_state: None,
-            external_recoverability: None,
-            external_sidecar_denial: Some(denial),
-        }
+        Self::ExternalSidecarWithoutStoreAuthority { observation }
     }
 
-    pub fn cold(readiness: TierPlacementIoAdmission, state: ColdPlacementState) -> Self {
-        Self {
-            class: BlobPlacementClass::Cold,
-            readiness,
-            cold_state: Some(state),
-            external_recoverability: None,
-            external_sidecar_denial: None,
-        }
+    pub fn cold(posture: ColdTierIoPosture, state: ColdPlacementState) -> Self {
+        Self::Cold { posture, state }
     }
 
     pub const fn class(&self) -> BlobPlacementClass {
-        self.class
+        match self {
+            Self::Inline => BlobPlacementClass::Inline,
+            Self::External { .. } | Self::ExternalSidecarWithoutStoreAuthority { .. } => {
+                BlobPlacementClass::External
+            }
+            Self::Cold { .. } => BlobPlacementClass::Cold,
+        }
     }
 
-    pub const fn readiness(&self) -> &TierPlacementIoAdmission {
-        &self.readiness
+    pub const fn cold_posture(&self) -> Option<&ColdTierIoPosture> {
+        match self {
+            Self::Cold { posture, .. } => Some(posture),
+            _ => None,
+        }
     }
 
     pub const fn cold_state(&self) -> Option<ColdPlacementState> {
-        self.cold_state
+        match self {
+            Self::Cold { state, .. } => Some(*state),
+            _ => None,
+        }
     }
 
     pub fn external_recoverability(&self) -> Option<&StoreExternalPlacementRecoverabilityEvidence> {
-        self.external_recoverability.as_ref()
+        match self {
+            Self::External { recoverability } => Some(recoverability),
+            _ => None,
+        }
     }
 
     pub fn external_sidecar_denial(&self) -> Option<&BlobBackendResidueObservation> {
-        self.external_sidecar_denial.as_ref()
+        match self {
+            Self::ExternalSidecarWithoutStoreAuthority { observation } => Some(observation),
+            _ => None,
+        }
     }
 }

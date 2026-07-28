@@ -1,13 +1,9 @@
-use worth_store_io_scheduler::admit_store_published_isolation_capability;
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReclaimRegion,
     PhysicalRecordSlot, PhysicalReferenceAdmissionWitness, PhysicalReferenceAuthority,
     PhysicalSegmentId, ReclaimedByteInterpretation,
 };
-use worth_store_physical_isolation::{
-    publish_scheduler_isolation_capability_for_certification_test,
-    GenerationCountedPhysicalReference, ReclaimEligibilityProof,
-};
+use worth_store_physical_isolation::{GenerationCountedPhysicalReference, ReclaimEligibilityProof};
 use worth_store_reclaim_policy::{
     PhysicalStoreReclaimPolicyExecutor, ReclaimPermit, ReclaimPolicyAdmission,
     ReclaimPolicyExecutionObservation, ReclaimPolicyExecutionReceipt,
@@ -18,24 +14,16 @@ use worth_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreSecurityScopeAdmissionExpectation,
     StoreSecurityScopeAdmissionRequest, StoreSecurityScopeIdentity,
 };
-use worth_store_tiering::admit_tier_placement_io;
 
 use super::super::backend::{admitted_backend, current_authority};
 
-pub(in crate::harness_execution) fn placement_readiness(
+pub(in crate::harness_execution) fn cold_posture(
     security_scope: StoreSecurityScopeIdentity,
-) -> worth_store_tiering::TierPlacementIoAdmission {
-    let published_readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
-        .expect("published scheduler readiness");
-    let scheduler_readiness = admit_store_published_isolation_capability(&published_readiness)
-        .expect("scheduler readiness");
-    admit_tier_placement_io(
-        scheduler_readiness,
-        worth_store_tiering::ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
-            security_scope,
-        ))
-        .expect("cold-tier posture"),
-    )
+) -> worth_store_tiering::ColdTierIoPosture {
+    worth_store_tiering::ColdTierIoPosture::from_reclaim_receipt(cold_tier_reclaim_receipt(
+        security_scope,
+    ))
+    .expect("cold-tier posture")
 }
 
 fn cold_tier_reclaim_receipt(

@@ -74,6 +74,11 @@ fn every_completed_phase_seven_row_has_a_present_replacement_owner() {
     assert_completed_rows_have_present_replacement("phase-7");
 }
 
+#[test]
+fn every_completed_phase_eight_row_has_a_present_replacement_owner() {
+    assert_completed_rows_have_present_replacement("phase-8");
+}
+
 fn assert_completed_rows_have_present_replacement(phase: &str) {
     let ledger = removal_ledger().expect("parse C.6 removal ledger");
     replacement_owner::assert_completed_rows_have_present_replacement(phase, &ledger)
@@ -174,10 +179,43 @@ fn discover_families(path: &str, source: &str) -> BTreeSet<String> {
         ("ZeroCopyRecordView", "legacy-record-view"),
         ("BoundedCopyRecordView", "legacy-record-view"),
         ("RecordViewMaterializationProfile", "legacy-record-view"),
+        (
+            "SchedulerIsolationCapability",
+            "scheduler-isolation-publication",
+        ),
+        (
+            "IoSchedulerIsolationAdmission",
+            "scheduler-isolation-publication",
+        ),
+        (
+            "TierPlacementIoAdmission",
+            "scheduler-isolation-publication",
+        ),
+        (
+            "BackgroundPacingProgressionEvidence",
+            "scheduler-isolation-publication",
+        ),
     ] {
         if source.contains(fragment) {
             families.insert(family.to_owned());
         }
+    }
+    if [
+        "readiness/scheduler_capability.rs",
+        "readiness/isolation_denial.rs",
+        "readiness/isolation_evidence/basis.rs",
+        "readiness/interference/assumptions.rs",
+        "executed_isolation_evidence/performance_receipt.rs",
+        "io_readiness/mod.rs",
+        "io_readiness/placement.rs",
+        "io_qos_readiness_handoff.rs",
+        "placement/admission/verification/readiness_basis_match.rs",
+        "certification_test_authority/placement_readiness.rs",
+    ]
+    .iter()
+    .any(|deleted| path.ends_with(deleted))
+    {
+        families.insert("scheduler-isolation-publication".to_owned());
     }
     if families.is_empty() && is_direct_pool_consumer(path, source) {
         families.insert("direct-pool-consumer".to_owned());

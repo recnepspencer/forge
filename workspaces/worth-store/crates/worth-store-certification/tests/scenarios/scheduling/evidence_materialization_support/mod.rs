@@ -31,14 +31,13 @@ use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
     admit_background_pacing, admit_queue_execution_plan,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
-    execute_ready_queue_plan, lower_buffer_pool_read_queue_declaration,
-    BackgroundCapacityAdmissionRequest, BackgroundIdleCapacityLeaseRequest,
-    BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, BandwidthToken,
-    CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
-    QueueExecutionOutcome, QueueSlot, ReadAheadWindow, SecureIoOperation,
-    SecureIoPostureRequirement, SecureIoPreservationReceipt, SecureIoPreservationRequest,
-    WorkerPermit,
+    admit_security_scope_for_scheduler, execute_ready_queue_plan,
+    lower_buffer_pool_read_queue_declaration, BackgroundCapacityAdmissionRequest,
+    BackgroundIdleCapacityLeaseRequest, BackgroundIoPressureShape, BackgroundPacingOutcome,
+    BackgroundResourceBudget, BandwidthToken, CacheResidencyHint,
+    IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
+    QueueSlot, ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement,
+    SecureIoPreservationReceipt, SecureIoPreservationRequest, WorkerPermit,
 };
 use worth_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
@@ -50,7 +49,6 @@ use worth_store_physical_certification::{
     io_pressure_test_replay_bundle_for, IoPressureHarnessEvidence, IoPressureHarnessScenario,
     PhysicalFaultEvidenceClass, PhysicalSimulationProfile,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 pub fn sources() -> StoreOwnedS6CertificationMaterializationSources {
@@ -169,7 +167,6 @@ fn background_pacing_outcome() -> BackgroundPacingOutcome {
     let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
     let pressure = BackgroundIoPressureShape::repair_scan().requesting(requested);
     let foreground = admitted_point_read_reservation_for_certification_test();
-    let readiness = scheduler_readiness();
     let security = security_scope();
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
@@ -186,7 +183,6 @@ fn background_pacing_outcome() -> BackgroundPacingOutcome {
             pressure,
             &foreground,
             &backend,
-            &readiness,
             policy_receipt(
                 requested,
                 FoundationalPerformanceWorkClass::ValidationPlanning,
@@ -253,11 +249,6 @@ fn queue_backend_witness() -> AdmittedBackendCapabilityWitness {
             BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
         ))
         .unwrap()
-}
-
-fn scheduler_readiness() -> worth_store_io_scheduler::IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1).unwrap();
-    admit_store_published_isolation_capability(&readiness).unwrap()
 }
 
 fn security_scope() -> worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission {

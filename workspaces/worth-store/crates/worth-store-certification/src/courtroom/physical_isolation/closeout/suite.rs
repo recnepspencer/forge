@@ -1,8 +1,7 @@
 use super::S5CloseoutReservationSet;
-use crate::courtroom::scheduling::verify_executed_closeout_handoff_admissible;
 use crate::{
     physical_isolation_required_mutation_rows, PhysicalIsolationMutationEvidence,
-    S5ExecutedIsolationEvidenceBundle, S6IoQosReadinessHandoffMaterializationDenial,
+    S5ExecutedIsolationEvidenceBundle,
 };
 use worth_store_physical_certification::{
     CertifiedPhysicalScenario, CoverageSurfaceKind, GeneratedCoverageMatrix, HarnessCoverageStage,
@@ -30,7 +29,6 @@ pub enum PhysicalIsolationCloseoutDenial {
     MissingProofProjection,
     ExecutedEvidenceReplayBasisMismatch,
     ProjectionCouldMintAuthority,
-    S6(S6IoQosReadinessHandoffMaterializationDenial),
 }
 
 #[derive(Debug, Clone)]
@@ -50,9 +48,9 @@ pub struct PhysicalIsolationCloseoutSuite {
     reservations: S5CloseoutReservationSet,
 }
 
-/// Certification-only handoff evidence sealing an executed S5 closeout for production admission.
+/// Certification evidence joining the hostile suite to executed physical-isolation receipts.
 #[derive(Debug, Clone)]
-pub struct PhysicalIsolationCloseoutHandoffEvidence {
+pub struct PhysicalIsolationExecutedCloseoutEvidence {
     suite: PhysicalIsolationCloseoutSuite,
     executed_closeout: ExecutedIsolationEvidence,
 }
@@ -270,13 +268,11 @@ impl PhysicalIsolationCloseoutSuite {
         Ok(suite)
     }
 
-    pub fn seal_executed_closeout_handoff(
+    pub fn seal_executed_closeout_evidence(
         self,
         closeout: ExecutedIsolationEvidence,
-    ) -> Result<PhysicalIsolationCloseoutHandoffEvidence, PhysicalIsolationCloseoutDenial> {
-        verify_executed_closeout_handoff_admissible(closeout.clone())
-            .map_err(PhysicalIsolationCloseoutDenial::S6)?;
-        Ok(PhysicalIsolationCloseoutHandoffEvidence {
+    ) -> Result<PhysicalIsolationExecutedCloseoutEvidence, PhysicalIsolationCloseoutDenial> {
+        Ok(PhysicalIsolationExecutedCloseoutEvidence {
             suite: self,
             executed_closeout: closeout,
         })
@@ -314,7 +310,7 @@ impl PhysicalIsolationCloseoutSuite {
     }
 }
 
-impl PhysicalIsolationCloseoutHandoffEvidence {
+impl PhysicalIsolationExecutedCloseoutEvidence {
     pub const fn suite(&self) -> &PhysicalIsolationCloseoutSuite {
         &self.suite
     }

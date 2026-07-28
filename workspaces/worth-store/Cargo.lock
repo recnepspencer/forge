@@ -1793,10 +1793,8 @@ name = "worth-store-tiering"
 version = "0.1.0"
 dependencies = [
  "worth-store-contracts",
- "worth-store-io-scheduler",
  "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-isolation",
  "worth-store-reclaim-policy",
  "worth-store-security",
 ]

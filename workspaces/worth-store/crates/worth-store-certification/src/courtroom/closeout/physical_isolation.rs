@@ -1,6 +1,6 @@
 pub use crate::courtroom::physical_isolation::closeout::{
-    PhysicalIsolationCloseoutDenial, PhysicalIsolationCloseoutHandoffEvidence,
-    PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
+    PhysicalIsolationCloseoutDenial, PhysicalIsolationCloseoutLaneEvidence,
+    PhysicalIsolationCloseoutSuite, PhysicalIsolationExecutedCloseoutEvidence,
     S5CloseoutReservationSet, S5CloseoutReservedScope,
 };
 pub use crate::evidence::physical_isolation::{

@@ -17,31 +17,11 @@ pub(super) fn direct_deferred_outcome() -> BackgroundPacingOutcome {
 }
 
 pub(super) fn producer_denied_outcome() -> BackgroundPacingOutcome {
-    drifted_outcome(
-        producer_repair_pressure(),
-        BackgroundPacingProgressionDrift::DeniedReadinessCounters,
-    )
+    denied_outcome(producer_repair_pressure())
 }
 
 pub(super) fn direct_denied_outcome() -> BackgroundPacingOutcome {
-    drifted_outcome(
-        direct_repair_pressure(),
-        BackgroundPacingProgressionDrift::DeniedReadinessCounters,
-    )
-}
-
-pub(super) fn producer_stale_outcome() -> BackgroundPacingOutcome {
-    drifted_outcome(
-        producer_repair_pressure(),
-        BackgroundPacingProgressionDrift::StaleReadinessCounters,
-    )
-}
-
-pub(super) fn direct_stale_outcome() -> BackgroundPacingOutcome {
-    drifted_outcome(
-        direct_repair_pressure(),
-        BackgroundPacingProgressionDrift::StaleReadinessCounters,
-    )
+    denied_outcome(direct_repair_pressure())
 }
 
 pub(super) fn deferred_outcome(pressure: BackgroundIoPressureShape) -> BackgroundPacingOutcome {
@@ -51,22 +31,14 @@ pub(super) fn deferred_outcome(pressure: BackgroundIoPressureShape) -> Backgroun
         requested,
         BackgroundResourceBudget::new(),
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     ))
 }
 
-pub(super) fn drifted_outcome(
-    pressure: BackgroundIoPressureShape,
-    drift: BackgroundPacingProgressionDrift,
-) -> BackgroundPacingOutcome {
+pub(super) fn denied_outcome(pressure: BackgroundIoPressureShape) -> BackgroundPacingOutcome {
     let requested = pressure.requested_budget();
-    admit_background_pacing(request_with(
-        pressure,
-        requested,
-        requested,
-        BackgroundResourceBudget::new(),
-        progression_drift(drift),
-    ))
+    let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
+    let debt_limit = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
+    admit_background_pacing(request_with(pressure, admitted, admitted, debt_limit))
 }
 
 pub(super) fn producer_throttle_outcome() -> BackgroundPacingOutcome {
@@ -76,7 +48,6 @@ pub(super) fn producer_throttle_outcome() -> BackgroundPacingOutcome {
         admitted,
         admitted,
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     ))
 }
 
@@ -87,7 +58,6 @@ pub(super) fn direct_throttle_outcome() -> BackgroundPacingOutcome {
         admitted,
         admitted,
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     ))
 }
 
@@ -113,13 +83,7 @@ pub(super) fn admitted_or_violation(
 ) -> BackgroundPacingOutcome {
     let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
     let requested = pressure.requested_budget();
-    let mut request = request_with(
-        pressure,
-        admitted,
-        admitted,
-        requested,
-        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
-    );
+    let mut request = request_with(pressure, admitted, admitted, requested);
     if late_yield {
         request = request.with_foreground_pressure_events(1).with_late_yield();
     }
@@ -133,7 +97,6 @@ pub(super) fn request(pressure: BackgroundIoPressureShape) -> BackgroundIdleCapa
         requested,
         requested,
         BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(&io_qos_readiness()),
     )
 }
 
@@ -142,7 +105,6 @@ pub(super) fn request_with(
     idle_available: BackgroundResourceBudget,
     policy_admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
-    progression: BackgroundPacingProgressionEvidence,
 ) -> BackgroundIdleCapacityLeaseRequest {
     let security = Box::leak(Box::new(io_qos_security_scope_admission()));
     let foreground = Box::leak(Box::new(
@@ -151,7 +113,6 @@ pub(super) fn request_with(
         ),
     ));
     let backend = Box::leak(Box::new(backend_admission()));
-    let readiness = Box::leak(Box::new(io_qos_readiness()));
     let secure_io = admit_secure_io_scope_for_scheduler(SecureIoPreservationRequest::new(
         SecureIoOperation::RepairScan,
         security,
@@ -163,13 +124,11 @@ pub(super) fn request_with(
             pressure,
             foreground,
             backend,
-            readiness,
             policy_receipt(pressure.requested_budget(), policy_admitted),
         )
         .with_idle_available(idle_available)
         .with_policy_admitted(policy_admitted)
         .with_debt_limit(debt_limit)
-        .with_progression_evidence(progression)
         .with_secure_io_scope(secure_io),
     )
     .expect("background capacity should admit");
@@ -194,36 +153,10 @@ pub(super) fn counters_for(
         BackgroundPacingOutcome::Yield(value) => value.counters(),
         BackgroundPacingOutcome::Deferred(value) => value.counters(),
         BackgroundPacingOutcome::Denied(value) => value.counters(),
-        BackgroundPacingOutcome::StaleRebindRequired(value) => value.counters(),
         BackgroundPacingOutcome::Throttled(value) => value.counters(),
         BackgroundPacingOutcome::AdmittedWithDebt(value) => value.counters(),
         BackgroundPacingOutcome::Violation(value) => value.counters(),
     }
-}
-
-pub(super) fn progression_drift(
-    drift: BackgroundPacingProgressionDrift,
-) -> BackgroundPacingProgressionEvidence {
-    let readiness = io_qos_readiness();
-    BackgroundPacingProgressionEvidence::from_readiness_counter_drift(
-        &readiness,
-        mismatched_counters(readiness.counters()),
-        drift,
-    )
-    .expect("mismatched readiness counters should produce progression evidence")
-}
-
-pub(super) fn mismatched_counters(
-    counters: worth_store_io_scheduler::IoSchedulerIsolationCounterSnapshot,
-) -> worth_store_io_scheduler::IoSchedulerIsolationCounterSnapshot {
-    let alternate = publish_scheduler_isolation_capability_for_certification_test(
-        counters.wait_count() + 3,
-        counters.retry_count() + 1,
-    )
-    .expect("alternate S.6 readiness should publish");
-    admit_store_published_isolation_capability(&alternate)
-        .expect("alternate scheduler readiness should admit")
-        .counters()
 }
 
 pub(super) fn backend_admission() -> worth_store_io_scheduler::IoSchedulerBackendCapabilityAdmission
@@ -251,13 +184,6 @@ pub(super) fn backend_admission() -> worth_store_io_scheduler::IoSchedulerBacken
         IoSchedulerBackendCapabilityRequirement::DirectIo,
     )
     .expect("scheduler should admit backend")
-}
-
-pub(super) fn io_qos_readiness() -> worth_store_io_scheduler::IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
-        .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_isolation_capability(&readiness)
-        .expect("scheduler should admit readiness")
 }
 
 pub(super) fn io_qos_security_scope_admission(
