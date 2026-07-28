@@ -135,6 +135,7 @@ sources = [
   "crates/worth-ui-runtime/src/facade/entry/mounted_frame_execution.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_inspection.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_publication.rs",
+  "crates/worth-ui-runtime/src/facade/entry/observation.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_overlay.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_snapshot/capture_poll.rs",
@@ -143,6 +144,7 @@ sources = [
 activate_prepared_replacement = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle.rs"
 begin_visual_geometry_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 begin_visual_pixel_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+begin_observation_turn = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
 cancel_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation.rs"
 cancel_visual_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 capabilities = "crates/worth-ui/tests/view_binding_registry/view_binding_determinism_cases.rs"
@@ -266,13 +268,12 @@ audience = "observation_report"
 feature = "production-default"
 sources = ["crates/worth-ui-runtime/src/facade/observation_report.rs"]
 [surface.callers]
-host_observation_ingress = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
+drain_and_validate_host_observation_batches = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 host_observation_work_report = "crates/worth-ui-certification/tests/application_contracts/host_observation_reporting.rs"
 quarantined_host_observation_batch_count = "crates/worth-ui-certification/tests/application_contracts/quarantine_capacity.rs"
 quarantined_host_observation_byte_count = "crates/worth-ui-certification/tests/application_contracts/quarantine_capacity.rs"
 retained_host_observation_byte_count = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 retained_host_observation_report_count = "crates/worth-ui-certification/tests/application_contracts/host_observation_reporting.rs"
-validate_enqueued_host_observation_batches = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 validate_host_observation_batch = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/mixed_real_lifecycle/hostile_mounted_journey.rs"
 
 [[surface]]

@@ -195,8 +195,8 @@ fn projection_rejects_replacing_a_publication_receipt_with_a_raw_frame() {
 #[test]
 fn projection_rejects_caller_supplied_preserved_generation() {
     let live = canonical_live_projection().replace(
-        "denial: &WorthUiWatchedCandidateSubmissionDenial,",
-        "generation: u64, denial: &WorthUiWatchedCandidateSubmissionDenial,",
+        "denial: &UiSourceRebindAttemptFailure,",
+        "generation: u64, denial: &UiSourceRebindAttemptFailure,",
     );
     let error = source_contract::audit_projection_contract(&live, canonical_terminal(), "")
         .expect_err("preservation must use stream-owned predecessor");
@@ -310,7 +310,7 @@ pub fn project_replacement(
 pub fn project_preserved_predecessor(
     &mut self,
     source: &WorthUiSourcePackageRevision,
-    denial: &WorthUiWatchedCandidateSubmissionDenial,
+    denial: &UiSourceRebindAttemptFailure,
 ) {}
 "#
     .to_owned()

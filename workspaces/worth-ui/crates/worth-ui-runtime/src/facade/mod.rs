@@ -25,6 +25,7 @@ mod measurement_inspection_test_support;
 mod measurement_inspection_tests;
 pub mod mounted;
 pub mod obligations;
+pub mod observation;
 pub mod observation_report;
 pub mod prepared_application_authority;
 pub mod query_binding;

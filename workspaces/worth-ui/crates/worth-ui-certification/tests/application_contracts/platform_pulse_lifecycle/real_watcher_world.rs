@@ -6,8 +6,8 @@ use worth_ui::facade::app::{
     WorthUiPreparedApplicationGenerationIdentity,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher, WorthUiSourcePackageRevision,
-    WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
+    WorthUiSourcePackageRevision,
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_host_egui::WorthUiHostEgui;
@@ -55,7 +55,7 @@ impl RealWatcherPulseWorld {
             .expect("ready watcher should publish one initial snapshot");
         let source = initial.source_revision().clone();
         let submission = initial
-            .lower_to_candidate_submission(capabilities.capabilities())
+            .attempt_candidate_for_certification(capabilities.capabilities())
             .expect("canonical blue pulse source should lower");
         let app = self
             .scenario
@@ -102,7 +102,7 @@ impl RealWatcherPulseWorld {
             .expect("real watcher should settle an atomic valid edit");
         let source = snapshot.source_revision().clone();
         let submission = snapshot
-            .lower_to_candidate_submission(shell.capabilities())
+            .attempt_candidate_for_certification(shell.capabilities())
             .expect("valid pulse edit should lower");
         let mut submission = Some(submission);
         let mut outcome = None;
@@ -144,12 +144,18 @@ impl RealWatcherPulseWorld {
             .expect("stable malformed bytes still form a filesystem snapshot");
         let source = snapshot.source_revision().clone();
         let denial = snapshot
-            .lower_to_candidate_submission(shell.capabilities())
+            .attempt_source_rebind(shell.capabilities())
+            .into_candidate_submission()
             .expect_err("malformed authored source must deny before replacement");
-        let WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report) = &denial else {
+        let UiSourceRebindAttemptFailure::CompilationDenied(receipt) = &denial else {
             panic!("malformed pulse source should retain the DSL owner's typed denial");
         };
-        assert!(!report.diagnostics().is_empty());
+        assert!(!receipt.report().diagnostics().is_empty());
+        assert_eq!(receipt.basis().source_revision(), &source);
+        assert_eq!(
+            receipt.basis().capability_basis(),
+            shell.capabilities().digest()
+        );
         let generation = shell.generation_identity().clone();
         let native = self.context.run(raw_input(), |_| {
             assert!(matches!(
@@ -214,7 +220,7 @@ pub(super) struct PublishedPulseReplacement {
 
 pub(super) struct PreservedPulseReplacement {
     pub(super) source: WorthUiSourcePackageRevision,
-    pub(super) denial: WorthUiWatchedCandidateSubmissionDenial,
+    pub(super) denial: UiSourceRebindAttemptFailure,
     pub(super) generation: WorthUiPreparedApplicationGenerationIdentity,
 }
 

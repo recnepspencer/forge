@@ -33,6 +33,18 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         self.state.lock().unwrap().protocol
     }
 
+    fn drain_host_observations(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(self
+            .observation_retention
+            .drain(authority.host_session_identity()))
+    }
+
     fn measurement_environment_report(
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
@@ -277,6 +289,8 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         for token in session_tokens {
             clear_token_state(&mut state, token);
         }
+        self.observation_retention
+            .release_session(authority.host_session_identity());
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
             authority.host_session_identity(),
             before - state.registrations.len(),
@@ -292,19 +306,16 @@ fn clear_token_state(state: &mut ScriptedPresentationState, identity: u64) {
 
 fn dispatch_queued_ingress(
     host: &ScriptedPresentationHost,
-    observation: Option<(
-        worth_ui::facade::observation_report::WorthUiHostObservationIngress,
-        worth_ui::facade::observation_report::UiHostObservationBatch,
-    )>,
+    observation: Option<worth_ui::facade::observation_report::UiHostObservationBatch>,
     measurement: Option<(
         worth_ui::facade::measurement_exchange::WorthUiHostMeasurementIngress,
         worth_ui::facade::measurement_exchange::UiHostMeasurementCompletion,
     )>,
 ) {
-    if let Some((ingress, batch)) = observation {
-        ingress
-            .enqueue(batch)
-            .expect("scripted in-call raw report fits ingress");
+    if let Some(batch) = observation {
+        host.observation_retention
+            .retain(batch)
+            .expect("scripted in-call raw report fits adapter retention");
         host.state
             .lock()
             .unwrap()

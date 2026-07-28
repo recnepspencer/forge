@@ -24,7 +24,8 @@ file = "facade/mod.rs"
 audience = "product"
 responsibility = "named audience modules"
 disposition = "retain"
-fingerprint = "5f3ae69d30a14fb5"
+# Milestone 3.12 adds the named observation audience without broadening the root.
+fingerprint = "2a1cd16ee36459bf"
 forbidden_shortcut = "add a broad prelude or wildcard export"
 
 [[surface]]
@@ -130,8 +131,17 @@ file = "facade/observation_report.rs"
 audience = "inspection-consumer"
 responsibility = "observation reports"
 disposition = "retain"
-fingerprint = "d0181a64084ab5ac"
+# Milestone 3.12 removes the mutable ingress owner and exposes only typed drain denial.
+fingerprint = "b40ae4ebc3eb41e0"
 forbidden_shortcut = "become a mutable runtime facade"
+
+[[surface]]
+file = "facade/observation.rs"
+audience = "application-author"
+responsibility = "typed observation profiles, turn admission outcomes, and read-only admitted evidence for advanced active-session callers"
+disposition = "retain"
+fingerprint = "c5fc51634fff0122"
+forbidden_shortcut = "export observation state ownership, raw construction, or mutable runtime internals"
 
 [[surface]]
 file = "facade/query_binding.rs"
@@ -155,7 +165,8 @@ file = "facade/source.rs"
 audience = "application-author"
 responsibility = "runtime source transport, watcher settlement, and candidate ingress"
 disposition = "retain"
-fingerprint = "92f304e3f11d0dca"
+# Milestone 3.12 exposes the typed, basis-carrying source rebind attempt outcome.
+fingerprint = "34867054bd2f3d05"
 forbidden_shortcut = "export parser, AST, or watcher internals"
 
 [[surface]]
@@ -207,7 +218,7 @@ expected_files = 22
 # Milestone 3.11 extracts the two-node platform pulse application builder into
 # its named scenario home and adds visual-identity capability and filesystem
 # lifecycle worlds while preserving certification-only construction.
-content_fingerprint = "7416a9503a5243eb"
+content_fingerprint = "ac442afe71034517"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
@@ -282,8 +293,9 @@ path = "topology/milestone_3103_product_contract"
 match = "directory"
 expected_files = 5
 # Milestone 3.11 recognizes the product-owned permanent visual pulse contract
-# without admitting executable-world or workflow authority.
-content_fingerprint = "047be668db0a1aa4"
+# without admitting executable-world or workflow authority. Milestone 3.12
+# replaces the predecessor source-lowering denial with its typed attempt failure.
+content_fingerprint = "499c099790a75294"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -494,7 +506,7 @@ disposition = "retain"
 [[subsystem]]
 name = "runtime"
 owner = "active application execution"
-allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "graph", "host", "inspection", "mounting", "obligations", "source"]
+allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "graph", "host", "host_exchange", "inspection", "mounting", "obligations", "source"]
 target = "split runtime/application/replacement owners"
 disposition = "split"
 exit_phase = 5

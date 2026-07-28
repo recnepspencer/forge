@@ -117,7 +117,7 @@ current_entry = "Platform Pulse application.rs and native_frame.rs call lower_to
 current_owner = "worth-ui-platform-pulse"
 current_terminal = "candidate submission or predecessor-preserving denial"
 disposition = "deleted predecessor"
-successor_home = "worth-ui facade move-only UiSourceRebindRequest"
+successor_home = "Platform Pulse application.rs and native_frame.rs call WorthUiSettledSourceSnapshot::attempt_source_rebind"
 cutover_phase = 2
 
 [[route]]

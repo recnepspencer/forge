@@ -43,11 +43,11 @@ content_fingerprint = "73f1d98759278af5"
 [[scope]]
 id = "runtime-source-ingress"
 root = "crates/worth-ui-runtime/src/runtime/source_ingress"
-expected_files = 31
-path_set_fingerprint = "25acc1eb1a009e65"
+expected_files = 34
+path_set_fingerprint = "c23680f10e513ceb"
 # Milestone 3.11 carries ViewportInset's two authored axes through the semantic
 # handoff beside FillViewport without creating a parallel ingress lane.
-content_fingerprint = "ab3048819afec831"
+content_fingerprint = "7439491f5ecaa3fa"
 
 [[scope]]
 id = "runtime-replacement"
@@ -383,6 +383,23 @@ cost = "candidate bounded"
 destination = "worth-ui-runtime/application"
 disposition = "retain"
 forbidden_shortcut = "reparse or reconstruct authored semantics"
+
+[[classification]]
+id = "source-ingress-rebind-attempt"
+scope = "runtime-source-ingress"
+match = "directory"
+path = "source_rebind_attempt"
+current_owner = "worth-ui-runtime"
+responsibility = "bind one settled source revision, ordering receipt, ingress counters, capability snapshot, compiler outcome, and candidate admission into one typed source attempt"
+capabilities = ["compiler-invocation", "candidate-preparation", "runtime-admission"]
+authority_in = ["ordered source revision", "capability snapshot"]
+authority_out = ["typed source attempt outcome"]
+lifecycle = "settled source observation through candidate submission"
+failure_owner = "DSL compilation or runtime admission"
+cost = "candidate bounded"
+destination = "worth-ui-runtime/source_ingress/source_rebind_attempt"
+disposition = "retain"
+forbidden_shortcut = "return raw compiler internals, discard attempt basis, or expose generic candidate extraction"
 
 [[classification]]
 id = "source-ingress-semantic-handoff"

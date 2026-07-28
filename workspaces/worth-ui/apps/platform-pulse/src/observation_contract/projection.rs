@@ -5,7 +5,7 @@ use worth_ui::facade::app::{
     WorthUiPreparedApplicationGenerationIdentity,
 };
 use worth_ui::facade::source::{
-    WorthUiSourcePackageRevision, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptDenial, UiSourceRebindAttemptFailure, WorthUiSourcePackageRevision,
 };
 
 use super::envelope::{
@@ -204,25 +204,27 @@ impl PlatformPulseLifecycleObservationStream {
     pub fn project_preserved_predecessor(
         &mut self,
         source: &WorthUiSourcePackageRevision,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
         let (_, generation, frame) = self.published_predecessor()?;
         let denial_family = match denial {
-            WorthUiWatchedCandidateSubmissionDenial::DslCompilation(_) => {
+            UiSourceRebindAttemptFailure::CompilationDenied(_) => {
                 PlatformPulseReplacementDenialFamily::DslCompilation
             }
-            WorthUiWatchedCandidateSubmissionDenial::SourceIngress(_) => {
-                PlatformPulseReplacementDenialFamily::SourceIngress
-            }
-            WorthUiWatchedCandidateSubmissionDenial::RuntimePreparation(_) => {
-                PlatformPulseReplacementDenialFamily::RuntimePreparation
-            }
-            WorthUiWatchedCandidateSubmissionDenial::Candidate(_) => {
-                PlatformPulseReplacementDenialFamily::Candidate
-            }
+            UiSourceRebindAttemptFailure::Denied(receipt) => match receipt.denial() {
+                UiSourceRebindAttemptDenial::SourceIngress(_) => {
+                    PlatformPulseReplacementDenialFamily::SourceIngress
+                }
+                UiSourceRebindAttemptDenial::RuntimePreparation(_) => {
+                    PlatformPulseReplacementDenialFamily::RuntimePreparation
+                }
+                UiSourceRebindAttemptDenial::Candidate(_) => {
+                    PlatformPulseReplacementDenialFamily::Candidate
+                }
+            },
         };
         self.next_envelope(
             PlatformPulseLifecycleObservation::ReplacementDeniedPreserving(

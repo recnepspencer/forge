@@ -9,8 +9,8 @@ use worth_ui::facade::app::{
     WorthUiNativeApplicationShutdownReceipt,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherShutdownReceipt,
-    WorthUiSourcePackageRevision, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherDenial,
+    WorthUiFilesystemWatcherShutdownReceipt, WorthUiSourcePackageRevision,
 };
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLifecycleObservationCodecDenial,
@@ -89,7 +89,7 @@ impl PlatformPulseObservationPublisher {
 
     pub(crate) fn candidate_submission_failure(
         &self,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publication| {
             publication.project(|stream| stream.project_candidate_submission_failure(denial))
@@ -156,7 +156,7 @@ impl PlatformPulseObservationPublisher {
     pub(crate) fn preserved_predecessor(
         &self,
         source: &WorthUiSourcePackageRevision,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
             publisher.project(|stream| stream.project_preserved_predecessor(source, denial))

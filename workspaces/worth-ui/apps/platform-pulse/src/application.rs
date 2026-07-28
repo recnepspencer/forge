@@ -14,9 +14,8 @@ use worth_ui::facade::inspection::{
     UiVisualInspectionRegionCapacity,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision,
-    WorthUiWatchedCandidateSubmissionDenial,
 };
 use worth_ui_host_egui::WorthUiHostEgui;
 
@@ -44,7 +43,7 @@ pub(crate) enum PlatformPulsePreparationDenial {
     WatcherStart(WorthUiFilesystemWatcherDenial),
     InitialSourceSettlement(WorthUiFilesystemWatcherDenial),
     CapabilityApplication(WorthUiApplicationPreparationDenial),
-    InitialSourceLowering(WorthUiWatchedCandidateSubmissionDenial),
+    InitialSourceLowering(UiSourceRebindAttemptFailure),
     FileApplication(WorthUiApplicationPreparationDenial),
 }
 
@@ -65,7 +64,8 @@ pub(crate) fn prepare(
             .freeze()
             .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
         let submission = snapshot
-            .lower_to_candidate_submission(capability_app.capabilities())
+            .attempt_source_rebind(capability_app.capabilities())
+            .into_candidate_submission()
             .map_err(PlatformPulsePreparationDenial::InitialSourceLowering)?;
         builder(host.clone())
             .with_candidate_submission(submission)

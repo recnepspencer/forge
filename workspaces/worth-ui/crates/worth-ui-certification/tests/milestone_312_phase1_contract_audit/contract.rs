@@ -121,6 +121,17 @@ fn validate_route_anchor(
     {
         return Err("R-03 omits the initial product source-lowering caller".to_owned());
     }
+    if id == "R-03"
+        && !predecessor_is_active
+        && [
+            "apps/platform-pulse/src/application.rs",
+            "apps/platform-pulse/src/native_frame.rs",
+        ]
+        .iter()
+        .any(|path| !inventory.text(path).contains("attempt_source_rebind"))
+    {
+        return Err("R-03 omits a committed Platform Pulse source-attempt caller".to_owned());
+    }
     Ok(())
 }
 
@@ -188,15 +199,15 @@ fn route_successor_anchors() -> BTreeMap<&'static str, (&'static str, &'static s
         (
             "R-03",
             (
-                "crates/worth-ui/src/facade/source.rs",
-                "UiSourceRebindRequest",
+                "apps/platform-pulse/src/native_frame.rs",
+                "attempt_source_rebind",
             ),
         ),
         (
             "R-05",
             (
-                "crates/worth-ui-runtime/src/runtime/observation/admission/host/mod.rs",
-                "UiHostObservation",
+                "crates/worth-ui-host-contract/src/observation_report/drain.rs",
+                "UiHostObservationRetention",
             ),
         ),
         (

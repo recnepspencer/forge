@@ -59,6 +59,18 @@ impl PartialEq for WorthUiCollectionChangeSourceReference {
 
 impl Eq for WorthUiCollectionChangeSourceReference {}
 
+impl PartialOrd for WorthUiCollectionChangeSourceReference {
+    fn partial_cmp(&self, candidate: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(candidate))
+    }
+}
+
+impl Ord for WorthUiCollectionChangeSourceReference {
+    fn cmp(&self, candidate: &Self) -> std::cmp::Ordering {
+        std::sync::Arc::as_ptr(&self.authority).cmp(&std::sync::Arc::as_ptr(&candidate.authority))
+    }
+}
+
 impl std::fmt::Debug for WorthUiCollectionChangeSourceReference {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter

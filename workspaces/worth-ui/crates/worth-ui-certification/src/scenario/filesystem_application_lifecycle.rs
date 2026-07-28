@@ -344,7 +344,7 @@ impl FilesystemApplicationLifecycleScenario {
         capabilities: &CapabilitySnapshot,
     ) -> WorthUiWatchedCandidateSubmission {
         snapshot
-            .lower_to_candidate_submission(capabilities)
+            .attempt_candidate_for_certification(capabilities)
             .expect("stable filesystem source should lower")
     }
 

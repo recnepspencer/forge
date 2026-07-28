@@ -147,6 +147,9 @@ impl WorthUiRuntime {
             host_plan_binding,
             durable_resize_source: Default::default(),
             scroll_offset_projection: Default::default(),
+            observation: crate::runtime::observation::UiObservationRuntimeState::new(
+                crate::runtime::observation::UiObservationProfile::platform_pulse(),
+            ),
         })
     }
 }

@@ -159,7 +159,7 @@ pub(crate) fn submission(
         .expect("production filesystem acquisition reads real Query-bound .wui bytes");
     workspace.close();
     snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("filesystem source lowers against exact capabilities")
 }
 

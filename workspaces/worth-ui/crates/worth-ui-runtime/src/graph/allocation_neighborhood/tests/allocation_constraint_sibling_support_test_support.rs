@@ -43,7 +43,7 @@ pub(super) fn mosaic_peer_app_with_contracts(
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(package_name)])
         .expect("source-backed mosaic provider should debounce to one candidate batch")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed mosaic candidate should lower through source ingress");
     mosaic_peer_builder(world_profile, include_alternate_contract)
         .with_candidate_submission(submission)

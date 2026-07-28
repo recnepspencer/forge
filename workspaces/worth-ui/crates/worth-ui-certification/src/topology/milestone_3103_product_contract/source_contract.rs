@@ -170,7 +170,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
     )?;
     require_contains(
         &application,
-        "lower_to_candidate_submission(capability_app.capabilities())",
+        "attempt_source_rebind(capability_app.capabilities())",
         "source lowering",
     )?;
     Ok(())
@@ -261,7 +261,7 @@ pub(super) fn audit_projection_contract(
     for required in [
         "pubfnproject_first_frame(&mutself,source:&WorthUiSourcePackageRevision,publication:&UiMountedFramePublicationReceipt,)",
         "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,application:&WorthUiApplicationCutoverReceipt,mounted:&UiMountedFramePublicationReceipt,)",
-        "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&WorthUiWatchedCandidateSubmissionDenial,)",
+        "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&UiSourceRebindAttemptFailure,)",
         "actual_native_effect_count:publication.cost_report().adapter().translated_rows()",
         "actual_native_effect_count:mounted.cost_report().adapter().translated_rows()",
     ] {

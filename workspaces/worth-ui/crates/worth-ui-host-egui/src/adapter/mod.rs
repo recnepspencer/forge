@@ -1,4 +1,6 @@
 mod egui_host;
+#[cfg(test)]
+mod egui_host_tests;
 mod identity_overlay;
 mod mounted_effect_support;
 #[cfg(test)]

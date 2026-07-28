@@ -10,6 +10,41 @@ struct ScrollViewportAdapter {
     height: f32,
 }
 
+#[test]
+fn committed_scroll_truth_enters_observation_without_runtime_effects() {
+    let (mut runtime, _, _, _, _, _, _, _) =
+        super::production_catalog_activation_test_support::runtime_with_scroll_catalog();
+    let truth = runtime.allocation_truth_revision();
+    let catalog_len = runtime.allocation_invalidation_index.borrow().catalog.len();
+    let dispatcher = runtime.allocation_frame_dispatcher_state();
+    let counters = runtime.allocation_frame_dispatcher_counters();
+    let session =
+        crate::facade::WorthUiActiveApplicationSessionIdentity::from_host_session_value(91);
+
+    let mut turn = runtime.begin_observation_turn(session, 77).unwrap();
+    let receipt = turn.admit_committed_runtime_state().unwrap();
+    assert_eq!(receipt.admitted().len(), 1);
+    let admitted = turn.seal().unwrap();
+    let scroll = admitted.observations()[0]
+        .committed_scroll_extent()
+        .expect("scroll catalog emits only committed scroll truth");
+    assert_eq!(scroll.allocation_truth_revision(), truth);
+    assert!(!scroll.source_identity_digests().is_empty());
+    assert_eq!(runtime.allocation_truth_revision(), truth);
+    assert_eq!(
+        runtime.allocation_invalidation_index.borrow().catalog.len(),
+        catalog_len
+    );
+    assert_eq!(runtime.allocation_frame_dispatcher_state(), dispatcher);
+    assert_eq!(runtime.allocation_frame_dispatcher_counters(), counters);
+
+    let mut repeated = runtime.begin_observation_turn(session, 77).unwrap();
+    assert_eq!(
+        repeated.admit_committed_runtime_state(),
+        Err(crate::runtime::observation::UiObservationAdmissionDenial::HistoricalOwnerOrder)
+    );
+}
+
 impl WorthUiMeasurementHostAdapter for ScrollViewportAdapter {
     fn observe_measurement(
         &self,

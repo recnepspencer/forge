@@ -20,6 +20,7 @@ mod mounted_publication;
 mod native_application_replacement;
 mod native_application_shell;
 mod native_replacement_allocation;
+mod observation;
 mod observation_report;
 mod visual_overlay;
 mod visual_snapshot;

@@ -30,7 +30,7 @@ pub(super) fn source_backed_submission(
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(provider_revision)])
         .expect("source-backed provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed provider should lower through ingress")
 }
 

@@ -16,6 +16,7 @@ pub use publication::{
     WorthUiCollectionChangeHandoffRetryDenial, WorthUiCollectionChangePublicationReceipt,
     WorthUiCollectionChangeStagingReceipt, WorthUiOperationLiveChangeObservation,
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
+    WorthUiValidatedCollectionChangeObservation,
 };
 pub use refresh_request::WorthUiOperationLiveRefreshRequest;
 #[cfg(any(test, feature = "certification-construction"))]

@@ -43,7 +43,6 @@ pub(super) struct UiHostObservationBatchFingerprint {
 }
 
 pub struct UiHostObservationReportValidation {
-    ingress: super::WorthUiHostObservationIngress,
     pub(super) capacity: UiHostObservationCapacity,
     pub(super) partitions: BTreeMap<UiSurfaceBindingGeneration, UiHostObservationPartition>,
     pub(super) global_reports: usize,
@@ -71,7 +70,6 @@ impl Default for UiHostObservationReportValidation {
 impl UiHostObservationReportValidation {
     pub fn new(capacity: UiHostObservationCapacity) -> Self {
         Self {
-            ingress: super::WorthUiHostObservationIngress::new(),
             capacity,
             partitions: BTreeMap::new(),
             global_reports: 0,
@@ -140,7 +138,6 @@ impl UiHostObservationReportValidation {
     }
 
     pub(crate) fn shutdown(&mut self) {
-        self.ingress.shutdown();
         self.shutdown = true;
         self.partitions.clear();
         self.observation_bases.clear();
@@ -193,14 +190,6 @@ impl UiHostObservationReportValidation {
         self.observation_bases
             .get(&frame)
             .map(|basis| basis.lease.clone())
-    }
-
-    pub(crate) fn ingress(&self) -> super::WorthUiHostObservationIngress {
-        self.ingress.clone()
-    }
-
-    pub(crate) fn drain_ingress(&self) -> Vec<worth_ui_host_contract::UiHostObservationBatch> {
-        self.ingress.drain()
     }
 }
 

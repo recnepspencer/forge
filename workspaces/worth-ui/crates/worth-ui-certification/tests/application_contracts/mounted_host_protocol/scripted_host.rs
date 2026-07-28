@@ -16,6 +16,7 @@ use visual_capture_script::ScriptedVisualCapture;
 #[derive(Clone, Default)]
 pub(crate) struct ScriptedPresentationHost {
     state: Arc<Mutex<ScriptedPresentationState>>,
+    observation_retention: Arc<worth_ui_host_contract::UiHostObservationRetention>,
 }
 
 enum ScriptedPresentationStart {
@@ -51,10 +52,7 @@ struct ScriptedPresentationState {
     viewport_environment_generation: u64,
     font_environment_generation: u64,
     adapter_environment_generation: u64,
-    queued_observation: Option<(
-        worth_ui::facade::observation_report::WorthUiHostObservationIngress,
-        worth_ui::facade::observation_report::UiHostObservationBatch,
-    )>,
+    queued_observation: Option<worth_ui::facade::observation_report::UiHostObservationBatch>,
     queued_measurement: Option<(
         worth_ui::facade::measurement_exchange::WorthUiHostMeasurementIngress,
         worth_ui::facade::measurement_exchange::UiHostMeasurementCompletion,
@@ -216,10 +214,13 @@ impl ScriptedPresentationHost {
 
     pub(crate) fn enqueue_observation_during_next_presentation(
         &self,
-        ingress: worth_ui::facade::observation_report::WorthUiHostObservationIngress,
         batch: worth_ui::facade::observation_report::UiHostObservationBatch,
     ) {
-        self.state.lock().unwrap().queued_observation = Some((ingress, batch));
+        self.state.lock().unwrap().queued_observation = Some(batch);
+    }
+
+    pub(crate) fn pending_observation_batch_count(&self) -> usize {
+        self.observation_retention.pending_batch_count()
     }
 
     pub(crate) fn enqueue_measurement_during_next_presentation(

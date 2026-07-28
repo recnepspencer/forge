@@ -40,6 +40,13 @@ pub trait WorthUiHostMechanicsAdapter: crate::WorthUiMeasurementHostAdapter {
         crate::UiHostCaptureCapability::Unsupported
     }
 
+    fn drain_mechanical_host_observations(
+        &self,
+        _host_session_identity: u64,
+    ) -> Result<crate::UiHostObservationDrain, crate::UiHostObservationDrainDenial> {
+        Ok(crate::UiHostObservationDrain::empty())
+    }
+
     fn perform_visual_capture(
         &self,
         _request: crate::UiHostVisualCaptureRequest,

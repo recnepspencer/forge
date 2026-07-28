@@ -162,7 +162,10 @@ impl PlatformPulseNativeFrame {
             return;
         };
         let source = snapshot.source_revision().clone();
-        let submission = match (*snapshot).lower_to_candidate_submission(shell.capabilities()) {
+        let submission = match (*snapshot)
+            .attempt_source_rebind(shell.capabilities())
+            .into_candidate_submission()
+        {
             Ok(submission) => submission,
             Err(denial) => {
                 let observation = self.publisher.preserved_predecessor(&source, &denial);

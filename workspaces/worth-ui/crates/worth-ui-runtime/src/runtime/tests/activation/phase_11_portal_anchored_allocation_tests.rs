@@ -3,6 +3,36 @@ use super::phase_11_portal_test_support::{
 };
 use worth_ui_host_contract::UiPortalAnchorRectObservation;
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
+
+#[test]
+fn committed_portal_truth_enters_observation_without_runtime_effects() {
+    let (mut runtime, _, _, _) =
+        super::production_catalog_activation_test_support::runtime_with_portal_catalog();
+    let truth = runtime.allocation_truth_revision();
+    let catalog_len = runtime.allocation_invalidation_index.borrow().catalog.len();
+    let dispatcher = runtime.allocation_frame_dispatcher_state();
+    let counters = runtime.allocation_frame_dispatcher_counters();
+    let session =
+        crate::facade::WorthUiActiveApplicationSessionIdentity::from_host_session_value(92);
+
+    let mut turn = runtime.begin_observation_turn(session, 78).unwrap();
+    let receipt = turn.admit_committed_runtime_state().unwrap();
+    assert_eq!(receipt.admitted().len(), 1);
+    let admitted = turn.seal().unwrap();
+    let portal = admitted.observations()[0]
+        .committed_portal_anchor()
+        .expect("portal catalog emits only committed portal truth");
+    assert_eq!(portal.allocation_truth_revision(), truth);
+    assert!(!portal.source_identity_digests().is_empty());
+    assert_eq!(runtime.allocation_truth_revision(), truth);
+    assert_eq!(
+        runtime.allocation_invalidation_index.borrow().catalog.len(),
+        catalog_len
+    );
+    assert_eq!(runtime.allocation_frame_dispatcher_state(), dispatcher);
+    assert_eq!(runtime.allocation_frame_dispatcher_counters(), counters);
+}
+
 #[test]
 fn moved_rect_preserves_identity_and_replans_only_graph_owned_portal_locality() {
     let (mut runtime, roots, active_receipt, _) =

@@ -46,7 +46,7 @@ fn real_watcher_distinguishes_dsl_and_runtime_denials_while_preserving_predecess
     let invalid = watcher
         .settle(SETTLEMENT_TIMEOUT)
         .expect("invalid stable bytes remain observable source truth")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect_err("malformed source must stop in the DSL");
     assert!(matches!(
         invalid,
@@ -61,7 +61,7 @@ fn real_watcher_distinguishes_dsl_and_runtime_denials_while_preserving_predecess
     let unsupported = watcher
         .settle(SETTLEMENT_TIMEOUT)
         .expect("valid unsupported bytes settle through the OS watcher")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect_err("valid syntax must stop at runtime capability resolution");
     assert!(matches!(
         unsupported,
@@ -74,7 +74,7 @@ fn real_watcher_distinguishes_dsl_and_runtime_denials_while_preserving_predecess
     watcher
         .settle(SETTLEMENT_TIMEOUT)
         .expect("restored source settles")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("restored registered source crosses DSL and runtime preparation");
     assert_predecessor(&session, &generation, &predecessor);
     let _ = session.shutdown();

@@ -41,6 +41,16 @@ pub struct WorthUiCollectionChangeAdmissionStop {
     consequence: crate::WorthUiCollectionChangeConsequence,
 }
 
+/// Move-only Query-owned consequence after validation against the exact
+/// retained operation-live resource.
+///
+/// Validation does not stage or publish the consequence. Runtime observation
+/// may retain this handoff without mutating Query binding truth.
+pub struct WorthUiValidatedCollectionChangeObservation {
+    consequence: crate::WorthUiCollectionChangeConsequence,
+    receipt: WorthUiCollectionChangeStagingReceipt,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiOperationLiveSourceRefreshOutcome {
     NoSemanticDelivery,
@@ -137,6 +147,48 @@ impl WorthUiCollectionChangeAdmissionStop {
 
     pub fn into_consequence(self) -> crate::WorthUiCollectionChangeConsequence {
         self.consequence
+    }
+}
+
+impl WorthUiValidatedCollectionChangeObservation {
+    pub(crate) fn seal(
+        consequence: crate::WorthUiCollectionChangeConsequence,
+        receipt: WorthUiCollectionChangeStagingReceipt,
+    ) -> Self {
+        Self {
+            consequence,
+            receipt,
+        }
+    }
+
+    pub fn source(&self) -> &crate::WorthUiCollectionChangeSourceReference {
+        self.receipt.source()
+    }
+
+    pub fn change_order(&self) -> u64 {
+        self.receipt.change_order()
+    }
+
+    pub fn counters(&self) -> crate::WorthUiCollectionChangeCounters {
+        self.receipt.counters()
+    }
+
+    pub fn query_work(&self) -> crate::WorthUiCollectionQueryWorkInspection {
+        self.receipt.query_work()
+    }
+
+    pub fn into_consequence(self) -> crate::WorthUiCollectionChangeConsequence {
+        self.consequence
+    }
+}
+
+impl std::fmt::Debug for WorthUiValidatedCollectionChangeObservation {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthUiValidatedCollectionChangeObservation")
+            .field("receipt", &self.receipt)
+            .field("consequence", &"sealed UI consequence")
+            .finish()
     }
 }
 

@@ -1,9 +1,8 @@
+use crate::milestone_312_ledger as ledger;
 use crate::{repository_document, workspace_source_inventory};
 
 #[path = "milestone_312_phase1_contract_audit/contract.rs"]
 mod contract;
-#[path = "milestone_312_phase1_contract_audit/ledger.rs"]
-mod ledger;
 #[path = "milestone_312_phase1_contract_audit/protocol.rs"]
 mod protocol;
 #[path = "milestone_312_phase1_contract_audit/protocol_contract.rs"]

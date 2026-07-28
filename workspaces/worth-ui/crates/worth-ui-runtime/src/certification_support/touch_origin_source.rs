@@ -31,7 +31,7 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
             touch_runtime_graph_provider_revision(),
         )])
         .expect("touch-origin graph provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("touch-origin graph provider should lower to a composition");
 
     touch_runtime_builder()

@@ -58,7 +58,7 @@ pub(super) fn query_bound_submission(
         .expect("production filesystem acquisition reads real Query-bound .wui bytes");
     filesystem.close();
     source_snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("Query-bound source lowers to one inseparable candidate submission")
 }
 
@@ -88,7 +88,7 @@ fn file_submission(
         .expect("production filesystem acquisition reads real .wui bytes");
     filesystem.close();
     source_snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("the real file source lowers to one candidate submission")
 }
 
@@ -106,7 +106,7 @@ fn two_query_binding_submission(
         .expect("production filesystem acquisition reads both Query bindings");
     filesystem.close();
     source_snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("two Query bindings lower as one candidate submission")
 }
 
@@ -126,6 +126,6 @@ pub(super) fn query_bound_rust_submission(
     ingress
         .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
         .expect("Rust-authored Query source settles")
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("Rust-authored Query source lowers to one candidate submission")
 }

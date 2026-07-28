@@ -36,6 +36,7 @@ pub struct WorthUiRuntimeFrameworkLoop {
         crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority,
     pub(crate) scroll_offset_projection:
         crate::runtime::scroll_owned_allocation::UiScrollOffsetProjectionLedger,
+    pub(crate) observation: crate::runtime::observation::UiObservationRuntimeState,
 }
 
 /// Established facade name for the canonical framework-loop owner.

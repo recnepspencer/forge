@@ -346,7 +346,7 @@ fn file_app(
         .read()
         .expect("production filesystem reader acquires source");
     let submission = snapshot
-        .lower_to_candidate_submission(capabilities.capabilities())
+        .attempt_candidate_for_certification(capabilities.capabilities())
         .expect("real source lowers through production semantics");
     builder()
         .with_candidate_submission(submission)

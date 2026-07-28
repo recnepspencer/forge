@@ -138,7 +138,7 @@ fn filesystem_submission(
     WorthUiFilesystemSourceProvider::new(workspace.root())
         .read()
         .expect("production filesystem provider should read committed bytes")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("real source should lower through production semantics")
 }
 
@@ -159,7 +159,7 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
     let submission = WorthUiFilesystemSourceProvider::new(workspace.root())
         .read()
         .expect("baseline should be read from disk")
-        .lower_to_candidate_submission(capabilities.capabilities())
+        .attempt_candidate_for_certification(capabilities.capabilities())
         .expect("baseline should lower");
     builder()
         .with_candidate_submission(submission)

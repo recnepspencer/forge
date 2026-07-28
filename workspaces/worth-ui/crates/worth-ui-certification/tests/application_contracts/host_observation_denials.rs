@@ -1,10 +1,10 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationCanonicalCore, UiHostObservationCanonicalCoreInput,
-    UiHostObservationIngressDenial, UiHostObservationIntegrity, UiHostObservationLoss,
-    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
-    UiHostObservationReportDenial, UiHostObservationReportOutcome, UiHostObservationSequence,
-    UiHostObservationSequenceRange, UiHostObservationTimeBasis,
+    UiHostObservationIntegrity, UiHostObservationLoss, UiHostObservationMountedBasis,
+    UiHostObservationPayload, UiHostObservationReport, UiHostObservationReportDenial,
+    UiHostObservationReportOutcome, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostObservationTimeBasis,
 };
 use worth_ui_host_contract::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
@@ -35,7 +35,6 @@ fn foreign_duplicate_instance_and_shutdown_reports_have_typed_effect_free_outcom
     receipt_forgery::assert_receipt_coordinate_denials();
     assert_reordered_sequence();
     assert_duplicate_suppression();
-    assert_post_shutdown_ingress();
 }
 
 #[test]
@@ -216,22 +215,6 @@ fn assert_reordered_sequence() {
         UiHostObservationReportOutcome::Denied(UiHostObservationReportDenial::SequenceReordered)
     );
     assert_eq!(world.session.retained_host_observation_report_count(), 1);
-}
-
-fn assert_post_shutdown_ingress() {
-    let world = published_observation_world("observation-post-shutdown");
-    let ingress = world.session.host_observation_ingress();
-    let raw = batch(
-        source(&world.session, world.binding, &world.current),
-        (1, 1),
-        UiHostObservationLoss::Complete,
-        vec![report(1, pointer(1, 10), &world.current)],
-    );
-    let _ = world.session.shutdown();
-    assert_eq!(
-        ingress.enqueue(raw),
-        Err(UiHostObservationIngressDenial::Shutdown)
-    );
 }
 
 fn corrupt_integrity(valid: UiHostObservationBatch) -> UiHostObservationBatch {

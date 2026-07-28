@@ -54,6 +54,17 @@ impl WorthUiApplicationSessionState {
         self.runtime.source_event_ingress(provider)
     }
 
+    pub(crate) fn begin_observation_turn(
+        &mut self,
+        session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    ) -> Result<
+        crate::facade::observation::UiObservationTurn<'_>,
+        crate::facade::observation::UiObservationTurnDenial,
+    > {
+        let source_basis = self.app.capabilities().digest().as_u64();
+        self.runtime.begin_observation_turn(session, source_basis)
+    }
+
     pub(crate) fn admission(&self) -> crate::admission::UiAdmissionBoundary<'_> {
         self.app.admission()
     }

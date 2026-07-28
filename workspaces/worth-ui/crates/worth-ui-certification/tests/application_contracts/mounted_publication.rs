@@ -331,7 +331,7 @@ pub(super) fn stage_replacement(
         .read()
         .expect("replacement source settles through production filesystem acquisition");
     let submission = snapshot
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("replacement bytes lower through production semantics");
     let mut prepared = session.prepare_replacement(submission).unwrap();
     let catalog = admit_candidate_catalog(session, &mut prepared);

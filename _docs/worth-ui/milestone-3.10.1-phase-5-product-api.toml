@@ -56,6 +56,11 @@ audience = "observation_report"
 path = "crates/worth-ui-certification/tests/application_contracts/arrival_schedule.rs"
 
 [[journey]]
+id = "semantic-observation-admission"
+audience = "observation"
+path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
+
+[[journey]]
 id = "installed-query-view"
 audience = "query_binding"
 path = "crates/worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
@@ -876,9 +881,9 @@ symbols = [
   "UiHostObservationCapacityInput",
   "UiHostObservationCoalescingIdentity",
   "UiHostObservationDisposition",
+  "UiHostObservationDrainDenial",
   "UiHostObservationFamily",
   "UiHostObservationFrameRelation",
-  "UiHostObservationIngressDenial",
   "UiHostObservationIntegrity",
   "UiHostObservationLoss",
   "UiHostObservationMountedBasis",
@@ -896,8 +901,44 @@ symbols = [
   "UiQuarantinedHostObservationBatch",
   "UiValidatedHostObservationBatch",
   "UiValidatedHostObservationReport",
-  "WorthUiHostObservationIngress",
   "WorthUiHostObservationSessionExt",
+]
+
+[[export_group]]
+audience = "observation"
+source = "facade/observation.rs"
+stability = "evolving-product-contract"
+authority = "typed semantic observation profiles, turn admission outcomes, and read-only admitted evidence"
+caller = "semantic-observation-admission"
+symbols = [
+  "UiAdmittedObservation",
+  "UiAdmittedObservationSet",
+  "UiAdmittedSourceObservation",
+  "UiCommittedPortalAnchorObservation",
+  "UiCommittedRuntimeStateAdmissionReceipt",
+  "UiCommittedScrollExtentObservation",
+  "UiHostObservation",
+  "UiHostObservationAdmissionStop",
+  "UiHostObservationBatchAdmissionReceipt",
+  "UiHostObservationSuccessorOwner",
+  "UiHostObservationUnavailable",
+  "UiObservationAdmissionDenial",
+  "UiObservationAdmissionReceipt",
+  "UiObservationCoalescingPolicy",
+  "UiObservationDuplicatePolicy",
+  "UiObservationFamily",
+  "UiObservationFamilyDefinition",
+  "UiObservationLossPolicy",
+  "UiObservationOwner",
+  "UiObservationProfile",
+  "UiObservationProfileConstructionDenial",
+  "UiObservationProfileInput",
+  "UiObservationResetPolicy",
+  "UiObservationSetSummary",
+  "UiObservationTurn",
+  "UiObservationTurnDenial",
+  "UiObservationTurnIdentity",
+  "UiQueryObservationAdmissionStop",
 ]
 
 [[export_group]]
@@ -929,6 +970,12 @@ stability = "evolving-product-contract"
 authority = "authored source acquisition and candidate ingress"
 caller = "authored-source-ingress"
 symbols = [
+  "UiSourceCompilationDenialReceipt",
+  "UiSourceRebindAttemptBasis",
+  "UiSourceRebindAttemptDenial",
+  "UiSourceRebindAttemptDenialReceipt",
+  "UiSourceRebindAttemptFailure",
+  "UiSourceRebindAttemptOutcome",
   "WorthUiCandidateComposition",
   "WorthUiCandidateCompositionBasis",
   "WorthUiCandidateOrderingReceipt",

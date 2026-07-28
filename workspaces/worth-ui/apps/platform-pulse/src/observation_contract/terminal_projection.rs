@@ -4,8 +4,8 @@ use worth_ui::facade::app::{
     WorthUiNativeApplicationShutdownReceipt,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial,
+    WorthUiFilesystemWatcherShutdownReceipt,
 };
 
 use super::envelope::PlatformPulseLifecycleObservationEnvelope;
@@ -85,7 +85,7 @@ impl PlatformPulseLifecycleObservationStream {
 
     pub fn project_candidate_submission_failure(
         &mut self,
-        _denial: &WorthUiWatchedCandidateSubmissionDenial,
+        _denial: &UiSourceRebindAttemptFailure,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,

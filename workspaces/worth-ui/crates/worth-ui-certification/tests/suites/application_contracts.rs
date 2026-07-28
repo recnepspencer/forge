@@ -36,6 +36,8 @@ mod host_observation_overflow;
 mod host_observation_pressure;
 #[path = "../application_contracts/host_observation_reporting.rs"]
 mod host_observation_reporting;
+#[path = "../application_contracts/milestone_312_observation_admission.rs"]
+mod milestone_312_observation_admission;
 #[path = "../application_contracts/mounted_application_lifecycle/mod.rs"]
 mod mounted_application_lifecycle;
 #[path = "../application_contracts/mounted_cost_evidence.rs"]

@@ -25,7 +25,7 @@ fn file_source_ingress_derives_sealed_source_backed_package_without_helper_sidec
             "source-backed-package-boundary",
         )])
         .expect("source-backed provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed provider should lower through ingress");
     let app = prepare_source_backed_submission(submission, source_backed_boundary_sizing());
 
@@ -101,7 +101,7 @@ component workspace.component.source_backed_boundary.peer {
             "source-backed-same-file",
         )])
         .expect("same-file source-backed provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("same-file source-backed provider should lower through ingress");
     let app = two_component_source_backed_builder()
         .with_candidate_submission(submission)
@@ -160,7 +160,7 @@ component workspace.component.source_backed_boundary.peer {
             "source-backed-reorder-a",
         )])
         .expect("reorder-a provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("reorder-a provider should lower through ingress");
     let second = runtime_from_artifact(empty_artifact())
         .source_event_ingress(
@@ -185,7 +185,7 @@ component workspace.component.source_backed_boundary {
             "source-backed-reorder-b",
         )])
         .expect("reorder-b provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("reorder-b provider should lower through ingress");
     let first = two_component_source_backed_builder()
         .with_candidate_submission(first)

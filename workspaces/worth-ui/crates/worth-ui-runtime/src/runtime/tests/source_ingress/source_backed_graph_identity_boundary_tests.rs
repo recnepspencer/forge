@@ -72,7 +72,7 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(provider_revision)])
         .expect("source-backed graph reorder provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed graph reorder provider should lower through ingress");
     WorthUi::app()
         .with_candidate_submission(submission)

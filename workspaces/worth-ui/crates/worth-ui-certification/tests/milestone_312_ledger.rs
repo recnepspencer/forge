@@ -26,6 +26,34 @@ pub(super) fn validate_phase_1(contract: &toml::Value, ledger: &str) -> Result<(
     validate_rows(&rows, &expected, Some(&commands), closed)
 }
 
+pub(super) fn validate_phase_2(contract: &toml::Value, ledger: &str) -> Result<(), String> {
+    let expected = (1..=15)
+        .map(|number| format!("P2-{number:02}"))
+        .collect::<Vec<_>>();
+    let gates = contract["phase_gate"]
+        .as_array()
+        .ok_or_else(|| "Phase 2 gates are not an array".to_owned())?;
+    let gate_ids = gates
+        .iter()
+        .map(|gate| required_text(gate, "id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    if gate_ids != expected {
+        return Err("Phase 2 contract gates are not exactly P2-01 through P2-15".to_owned());
+    }
+    for gate in gates {
+        required_text(gate, "owner")?;
+        required_text(gate, "claim")?;
+        required_text(gate, "command")?;
+    }
+    let commands = gates
+        .iter()
+        .map(|gate| required_text(gate, "command"))
+        .collect::<Result<Vec<_>, _>>()?;
+    let closed = contract["status"].as_str() == Some("closed");
+    let rows = parse_ledger(ledger)?;
+    validate_rows(&rows, &expected, Some(&commands), closed)
+}
+
 pub(super) fn validate_phase_5(
     contract: &toml::Value,
     ledger: &str,
