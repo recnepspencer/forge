@@ -7,6 +7,11 @@ use serde::{Deserialize, Serialize};
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    VisualSnapshotCaptured(super::visual::PlatformPulseVisualSnapshotCaptured),
+    VisualPointTrace(super::visual::PlatformPulseVisualPointTrace),
+    VisualOverlayPublished(super::visual::PlatformPulseVisualOverlayPublished),
+    VisualOverlayCleared(super::visual::PlatformPulseVisualOverlayCleared),
+    VisualSnapshotRetired(super::visual::PlatformPulseVisualSnapshotRetired),
     ReplacementPublished(PlatformPulseReplacementPublished),
     ReplacementDeniedPreserving(PlatformPulseReplacementPreserved),
     ShutdownCompleted(PlatformPulseShutdownCompleted),
@@ -73,6 +78,13 @@ pub struct PlatformPulseShutdownCompleted {
     pub(super) mounted_shutdown_attempt_count: u64,
     pub(super) host_session_released: bool,
     pub(super) released_surface_count: u64,
+    pub(super) cancelled_visual_capture_count: u64,
+    pub(super) disposed_visual_snapshot_count: u64,
+    pub(super) disposed_visual_pixel_bytes: u64,
+    pub(super) disposed_visual_structural_bytes: u64,
+    pub(super) cancelled_pending_overlay_count: u64,
+    pub(super) disposed_published_overlay_count: u64,
+    pub(super) disposed_clearing_overlay_count: u64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -98,6 +110,7 @@ pub enum PlatformPulseTerminalFailureFamily {
     NativeSurfaceLaunch,
     MountedFrameExecution,
     NativeApplicationReplacement,
+    VisualIdentity,
     SourceWorkerPanicked,
     NativeEventLoop,
 }
@@ -203,6 +216,13 @@ accessors!(
     mounted_shutdown_attempt_count: u64,
     host_session_released: bool,
     released_surface_count: u64,
+    cancelled_visual_capture_count: u64,
+    disposed_visual_snapshot_count: u64,
+    disposed_visual_pixel_bytes: u64,
+    disposed_visual_structural_bytes: u64,
+    cancelled_pending_overlay_count: u64,
+    disposed_published_overlay_count: u64,
+    disposed_clearing_overlay_count: u64,
 );
 accessors!(
     PlatformPulseTerminalFailure,

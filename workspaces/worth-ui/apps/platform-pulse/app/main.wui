@@ -1,3 +1,5 @@
 component platform.pulse.component.seed {}
+component platform.pulse.component.identity_target {}
 surface platform.pulse.surface.main {}
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
+token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";

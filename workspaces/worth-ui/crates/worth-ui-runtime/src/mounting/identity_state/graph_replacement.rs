@@ -40,6 +40,7 @@ impl UiMountedIdentityState {
             current_manifest: None,
             current_core: None,
             current_publication: None,
+            current_trace_source: None,
             current_reuse_contract: None,
             pending_projection_changes,
             semantic_revision,

@@ -3,6 +3,7 @@ use std::fmt;
 use crate::adjudication::{
     ExecutableFirstFrameFailure, ExecutableLifecycleCleanupFailure,
     ExecutablePredecessorPreservationFailure, ExecutableReplacementFailure,
+    ExecutableVisualIdentityFailure,
 };
 use crate::external_observation::{
     PlatformPulseLifecycleStreamFailure, PlatformPulseLifecycleTeardownEvidence,
@@ -32,6 +33,7 @@ pub(crate) enum PulseExecutableWorldFailure {
     Liveness(StableProcessLivenessFailure),
     Native(NativePlatformFailure),
     FirstFrame(ExecutableFirstFrameFailure),
+    VisualIdentity(ExecutableVisualIdentityFailure),
     SourceAction(PulseSourceActionFailure),
     WatchedObservation(WatchedPulseObservationFailure),
     Replacement(ExecutableReplacementFailure),
@@ -241,6 +243,9 @@ impl fmt::Display for PulseExecutableWorldFailure {
             Self::Native(failure) => write!(formatter, "native platform: {failure}"),
             Self::FirstFrame(failure) => {
                 write!(formatter, "first-frame adjudication: {failure}")
+            }
+            Self::VisualIdentity(failure) => {
+                write!(formatter, "visual-identity adjudication: {failure}")
             }
             Self::SourceAction(failure) => write!(formatter, "source action: {failure}"),
             Self::WatchedObservation(failure) => {

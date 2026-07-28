@@ -1,4 +1,5 @@
 family,path,symbol,disposition,owner_phase,reason
+execution_plan,workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/execution_plan_input/ordinary_meaning/component.rs,with_static_paint_order_for_test,below_authority_injection,11,typed static-paint ordering pressure belongs below canonical plan authority and may not construct or publish an ordinary application plan
 execution_plan,workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/execution_plan_input/node_input_test_support.rs,without_egui_boundary_for_test,delete,11,egui-specific canonical-plan meaning was removed when the host-neutral output boundary closed
 execution_plan,workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/execution_plan_input/node_input_test_support.rs,without_topology_input_for_test,below_authority_injection,3,missing topology pressure belongs below canonical lowering authority
 execution_plan,workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/planning/execution_plan_input/node_input_test_support.rs,with_family_for_test,below_authority_injection,3,family mismatch pressure must not create a public plan path

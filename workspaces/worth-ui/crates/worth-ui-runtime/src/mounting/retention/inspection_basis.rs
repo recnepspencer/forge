@@ -16,6 +16,7 @@ pub(crate) enum UiMountedFrameInspectionTarget {
 pub(crate) struct UiMountedFrameInspectionBasis {
     pub(crate) frame: UiMountedFrameIdentity,
     pub(crate) relation: super::UiPresentedFrameBasisRelation,
+    pub(crate) presentation: super::super::UiMountedPresentationReceipt,
     pub(crate) presented_binding_count: usize,
     pub(crate) mounted_instance_count: usize,
     pub(crate) selected_node_receipt: Option<UiMountedNodeReceiptIdentity>,

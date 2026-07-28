@@ -1,10 +1,15 @@
 mod egui_host;
+mod identity_overlay;
 mod mounted_effect_support;
 #[cfg(test)]
 mod mounted_effect_support_tests;
+mod mounted_presentation;
 mod mounted_projection_preparation;
 mod mounted_resource_cache;
 mod native_paint;
+mod native_regions;
+mod presentation_cost;
+mod visual_snapshot;
 
 pub use egui_host::WorthUiHostEgui;
 pub use mounted_projection_preparation::{

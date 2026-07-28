@@ -58,10 +58,16 @@ pub(crate) fn compose(
         diagnostic_row(mounted),
         quarantine_row(observations),
         evidence_row(
-            crate::mounting::UiMountedRetentionClass::FutureSnapshot,
-            UiMountedRetentionEvictionPosture::Reserved,
-            mounted.future_snapshot,
-            mounted.budget.future_snapshot(),
+            crate::mounting::UiMountedRetentionClass::VisualSnapshot,
+            UiMountedRetentionEvictionPosture::LeaseProtected,
+            mounted.visual_snapshot,
+            mounted.budget.visual_snapshot(),
+        ),
+        evidence_row(
+            crate::mounting::UiMountedRetentionClass::VisualOverlay,
+            UiMountedRetentionEvictionPosture::LeaseProtected,
+            mounted.visual_overlay,
+            mounted.budget.visual_overlay(),
         ),
     ];
     UiMountedRetentionReport {

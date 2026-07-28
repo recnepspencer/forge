@@ -5,7 +5,7 @@ mod retention_report;
 pub use receipt::{
     UiMountedDiagnosticInspection, UiMountedDiagnosticInspectionOmission,
     UiMountedInspectedDiagnostics, UiMountedInspectedFrame, UiMountedInspectionOmission,
-    UiMountedInspectionReceipt, UiMountedInspectionRelation,
+    UiMountedInspectionReceipt, UiMountedInspectionRelation, UiMountedVisualTargetDenial,
 };
 pub use request::{UiMountedInspectionRequest, UiMountedInspectionTarget};
 pub use retention_report::{

@@ -200,6 +200,18 @@ impl PlatformPulseObservationPublisher {
         publish(&mut publication)
     }
 
+    pub(super) fn project_observation(
+        &self,
+        projection: impl FnOnce(
+            &mut PlatformPulseLifecycleObservationStream,
+        ) -> Result<
+            PlatformPulseLifecycleObservationEnvelope,
+            PlatformPulseLifecycleObservationProjectionDenial,
+        >,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publication| publication.project(projection))
+    }
+
     fn lock(
         &self,
     ) -> Result<

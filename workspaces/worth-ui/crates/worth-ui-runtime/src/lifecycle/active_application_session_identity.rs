@@ -8,12 +8,8 @@ pub struct WorthUiActiveApplicationSessionIdentity {
 }
 
 impl WorthUiActiveApplicationSessionIdentity {
-    pub(super) fn from_host_session(
-        host_session: crate::facade::WorthUiHostSessionIdentity,
-    ) -> Self {
-        Self {
-            value: host_session.as_u64(),
-        }
+    pub(crate) const fn from_host_session_value(value: u64) -> Self {
+        Self { value }
     }
 
     pub fn as_u64(self) -> u64 {

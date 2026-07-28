@@ -60,7 +60,13 @@ pub(in crate::runtime::source_ingress) fn prepare_declaration_material(
 
 fn runtime_component_measurement_claims(
     structured: &WorthUiLegallyStructuredArtifactInput,
-) -> BTreeMap<RuntimeStructuralClaimKey, UiDeclaredMeasurementBasisSource> {
+) -> BTreeMap<
+    RuntimeStructuralClaimKey,
+    (
+        UiDeclaredMeasurementBasisSource,
+        crate::declaration::UiDeclaredMeasurementMode,
+    ),
+> {
     let mut claims = BTreeMap::new();
     for module_id in structured.module_ids() {
         let Some(module) = structured.module(module_id) else {
@@ -73,9 +79,19 @@ fn runtime_component_measurement_claims(
             let Some(contract) = component.descriptor().allocation_measurement_contract() else {
                 continue;
             };
-            let basis = match contract {
-                crate::capability::ComponentAllocationMeasurementContract::FillViewport => {
-                    UiDeclaredMeasurementBasisSource::ViewportExtent
+            let (basis, mode) = match contract {
+                crate::capability::ComponentAllocationMeasurementContract::FillViewport => (
+                    UiDeclaredMeasurementBasisSource::ViewportExtent,
+                    crate::declaration::UiDeclaredMeasurementMode::FillViewport,
+                ),
+                crate::capability::ComponentAllocationMeasurementContract::ViewportInset(inset) => {
+                    (
+                        UiDeclaredMeasurementBasisSource::ViewportExtent,
+                        crate::declaration::UiDeclaredMeasurementMode::ViewportInset {
+                            horizontal_logical_points: inset.horizontal_logical_points(),
+                            vertical_logical_points: inset.vertical_logical_points(),
+                        },
+                    )
                 }
             };
             claims.insert(
@@ -83,7 +99,7 @@ fn runtime_component_measurement_claims(
                     component.provenance().module_path().to_owned(),
                     component.provenance().declaration_index(),
                 ),
-                basis,
+                (basis, mode),
             );
         }
     }
@@ -92,7 +108,13 @@ fn runtime_component_measurement_claims(
 
 fn admit_component_measurement_claims(
     artifacts: &mut [UiDeclarationArtifact],
-    claims: &BTreeMap<RuntimeStructuralClaimKey, UiDeclaredMeasurementBasisSource>,
+    claims: &BTreeMap<
+        RuntimeStructuralClaimKey,
+        (
+            UiDeclaredMeasurementBasisSource,
+            crate::declaration::UiDeclaredMeasurementMode,
+        ),
+    >,
 ) {
     for artifact in artifacts {
         let provenance = artifact.provenance().source_provenance();
@@ -100,10 +122,8 @@ fn admit_component_measurement_claims(
             provenance.module_path().to_owned(),
             provenance.declaration_index(),
         );
-        if let Some(basis) = claims.get(&key).copied() {
-            artifact.admit_source_backed_measurement_mode(Some(
-                crate::declaration::UiDeclaredMeasurementMode::FillViewport,
-            ));
+        if let Some((basis, mode)) = claims.get(&key).copied() {
+            artifact.admit_source_backed_measurement_mode(Some(mode));
             artifact.admit_source_backed_measurement_basis_source(Some(basis));
         }
     }

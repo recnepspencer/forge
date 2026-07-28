@@ -5,6 +5,8 @@ use crate::runtime::{WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion};
 
 pub(crate) struct WorthUiApplicationFrameworkTurnCompletion<'session> {
     generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     graph: UiGraphAuthority<'session>,
     active_plan_digest: u64,
     completion: WorthUiFrameworkTurnCompletion<'session>,
@@ -16,11 +18,13 @@ impl WorthUiApplicationSessionState {
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
     ) -> WorthUiApplicationFrameworkTurnCompletion<'_> {
         let generation_identity = self.app.generation_identity().clone();
+        let visual_trace_source = self.app.visual_trace_source();
         let graph = self.app.graph();
         let active_plan_digest = self.runtime.active.active_plan_ref().digest().as_u64();
         let completion = self.runtime.execute_framework_turn(collect_sources);
         WorthUiApplicationFrameworkTurnCompletion {
             generation_identity,
+            visual_trace_source,
             graph,
             active_plan_digest,
             completion,
@@ -43,12 +47,14 @@ impl<'session> WorthUiApplicationFrameworkTurnCompletion<'session> {
         self,
     ) -> (
         WorthUiPreparedApplicationGenerationIdentity,
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
         UiGraphAuthority<'session>,
         u64,
         WorthUiFrameworkTurnCompletion<'session>,
     ) {
         (
             self.generation_identity,
+            self.visual_trace_source,
             self.graph,
             self.active_plan_digest,
             self.completion,

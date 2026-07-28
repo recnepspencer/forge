@@ -13,6 +13,7 @@ pub(crate) struct UiMountedFrameRetentionSnapshot {
     pub(crate) observation_basis: UiMountedRetentionUsageSnapshot,
     pub(crate) predecessor_inspection: UiMountedRetentionUsageSnapshot,
     pub(crate) diagnostic: UiMountedRetentionUsageSnapshot,
-    pub(crate) future_snapshot: UiMountedRetentionUsageSnapshot,
+    pub(crate) visual_snapshot: UiMountedRetentionUsageSnapshot,
+    pub(crate) visual_overlay: UiMountedRetentionUsageSnapshot,
     pub(crate) budget: super::UiMountedFrameRetentionBudget,
 }

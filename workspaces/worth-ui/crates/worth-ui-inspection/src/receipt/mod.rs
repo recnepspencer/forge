@@ -27,4 +27,23 @@ pub use measurement::{
     UiInspectionMeasurementQueryUnsupportedReason, UiInspectionQueryWorldCompatibilityFailure,
 };
 pub use scope_support_row::UiInspectionScopeSupportRow;
+pub use snapshot::{
+    UiClientPhysicalPixel, UiClientPhysicalRect, UiHitTestRegionIndexIdentity,
+    UiHostSurfaceLogicalPoint, UiNativeScreenPhysicalPixel, UiViewportLogicalPoint,
+    UiVisibleRegionIndexIdentity, UiVisualAuthoredProvenance, UiVisualContributorStack,
+    UiVisualCoordinateDenial, UiVisualCoordinateObservation, UiVisualCoordinateObservationInput,
+    UiVisualCoordinateOrientation, UiVisualCoordinateRounding, UiVisualDeclarationRef,
+    UiVisualDerivedPixelArtifactInput, UiVisualEvidenceRef, UiVisualGraphNodeRef,
+    UiVisualHitTestOutcome, UiVisualHitTestTarget, UiVisualIdentityTrace,
+    UiVisualIdentityTraceInput, UiVisualInspectionCostLane, UiVisualInspectionCostReceipt,
+    UiVisualMountedNodeRef, UiVisualNativePixelArtifactInput, UiVisualOverlayDenial,
+    UiVisualPixelArtifact, UiVisualPixelArtifactValidity, UiVisualPixelCaptureSource,
+    UiVisualPixelColorSpace, UiVisualPixelFormat, UiVisualPixelRetentionDisposition,
+    UiVisualPointAdjudication, UiVisualQueryBudget, UiVisualRegionAdjudication,
+    UiVisualRegionCompleteness, UiVisualRegionIntersection, UiVisualSnapshotAffinity,
+    UiVisualSnapshotArtifactPosture, UiVisualSnapshotDenial, UiVisualSnapshotEvidence,
+    UiVisualSnapshotEvidenceInput, UiVisualSnapshotIndeterminate, UiVisualSnapshotOmission,
+    UiVisualSnapshotRelation, UiVisualSnapshotSuperseded, UiVisualVisibleContributor,
+    UiVisualVisibleOutcome,
+};
 pub use support_report::UiInspectionSupportReport;

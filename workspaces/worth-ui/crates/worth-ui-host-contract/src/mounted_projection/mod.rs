@@ -1,6 +1,8 @@
 mod geometry;
 mod headless_cache;
 mod headless_observation;
+mod hit_test;
+mod identity_overlay;
 mod participation;
 mod preview;
 mod resource;
@@ -19,6 +21,15 @@ pub use headless_cache::{
 };
 pub use headless_observation::{
     UiHeadlessMountedParticipationRecord, WorthUiHeadlessMountedProjectionRecord,
+};
+pub use hit_test::{
+    UiMountedHitTestCompletionDenial, UiMountedHitTestCompletionInput, UiMountedHitTestMechanic,
+    UiMountedHitTestOrder, UiMountedHitTestProjection, UiMountedHitTestReference,
+    UiMountedHitTestTable,
+};
+pub use identity_overlay::{
+    UiMountedClientCoordinateBasis, UiMountedClientPhysicalRect, UiMountedIdentityOverlayMechanic,
+    UiMountedIdentityOverlayMechanicInput,
 };
 pub use participation::{
     UiMountedAccessibilityProjection, UiMountedDiagnosticProjection, UiMountedDiagnosticReference,

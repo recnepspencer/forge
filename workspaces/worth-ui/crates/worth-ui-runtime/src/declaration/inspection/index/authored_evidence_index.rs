@@ -103,6 +103,21 @@ impl UiDeclarationAuthoredEvidenceIndex {
             .get(provenance)
             .map(UiDeclarationAuthoredLookup::authored_provenance_hit)
     }
+
+    pub(crate) fn minimum_retained_structural_bytes(&self) -> Option<usize> {
+        let declaration_bytes = self.by_declaration_identity.iter().try_fold(
+            std::mem::size_of::<Self>(),
+            |bytes, (_, neighborhood)| {
+                retained_neighborhood_bytes::<UiInspectionDeclarationIdentity>(bytes, neighborhood)
+            },
+        )?;
+        self.by_authored_provenance.iter().try_fold(
+            declaration_bytes,
+            |bytes, (_, neighborhood)| {
+                retained_neighborhood_bytes::<UiAuthoredSourceProvenanceRef>(bytes, neighborhood)
+            },
+        )
+    }
 }
 
 impl UiDeclarationAuthoredEvidenceNeighborhood {
@@ -209,4 +224,19 @@ fn authored_admission_ref_for_artifact(
     ));
 
     Some(report.evidence_ref())
+}
+
+fn retained_neighborhood_bytes<Key>(
+    bytes: usize,
+    neighborhood: &UiDeclarationAuthoredEvidenceNeighborhood,
+) -> Option<usize> {
+    bytes
+        .checked_add(std::mem::size_of::<Key>())?
+        .checked_add(std::mem::size_of::<UiDeclarationAuthoredEvidenceNeighborhood>())?
+        .checked_add(
+            neighborhood
+                .refs
+                .len()
+                .checked_mul(std::mem::size_of::<UiEvidenceRef>())?,
+        )
 }

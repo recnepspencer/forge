@@ -1,8 +1,8 @@
 use worth_ui_host_egui::WorthUiHostEgui;
 use worth_ui_runtime::facade::host::{WorthUiHostCapability, WorthUiOperationalHostAdapter};
 use worth_ui_runtime::facade::mounted::{
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedEffectFamily,
-    UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedPaintProjection,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedDiagnosticProjection,
+    UiMountedEffectFamily, UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedPaintProjection,
     UiMountedParticipationStatus, UiPresentationDeadline,
 };
 use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
@@ -16,13 +16,14 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
 };
 
 #[test]
-fn real_wui_no_effect_frame_publishes_without_synthetic_egui_shapes() {
+fn real_wui_overlay_capable_no_effect_frame_publishes_without_synthetic_shapes() {
     let context = egui::Context::default();
     let host = WorthUiHostEgui::new(context.clone());
     assert_eq!(
         host.operational_capability_report().observed_capabilities(),
         &[
             WorthUiHostCapability::DpiObservation,
+            WorthUiHostCapability::IdentityOverlay,
             WorthUiHostCapability::NativePaint,
             WorthUiHostCapability::ViewportObservation,
         ]
@@ -123,6 +124,10 @@ fn assert_no_native_effect_precondition(
         .nodes()
         .iter()
         .all(|node| matches!(node.paint(), UiMountedPaintProjection::Omitted(_))));
+    assert!(projection
+        .nodes()
+        .iter()
+        .all(|node| matches!(node.diagnostic(), UiMountedDiagnosticProjection::Omitted(_))));
     assert!(
         !projection.paint_batches().rows().is_empty(),
         "the control must contain count-only paint evidence that egui refuses to invent"

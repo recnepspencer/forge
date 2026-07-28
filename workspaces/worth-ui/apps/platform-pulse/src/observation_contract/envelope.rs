@@ -4,7 +4,7 @@ use super::lifecycle::PlatformPulseLifecycleObservation;
 
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY: &str =
     "worth-ui.platform-pulse.lifecycle-observation";
-pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 1;
+pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 2;
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX: &str =
     "WORTH_UI_PLATFORM_PULSE_EVENT ";
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
@@ -169,7 +169,7 @@ mod tests {
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(json),
             Err(PlatformPulseLifecycleObservationCodecDenial::MissingPrefix)
         );
-        let unsupported = encoded.replace("\"schema_version\":1", "\"schema_version\":2");
+        let unsupported = encoded.replace("\"schema_version\":2", "\"schema_version\":1");
         assert_eq!(
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(&unsupported),
             Err(PlatformPulseLifecycleObservationCodecDenial::UnsupportedVersion)

@@ -255,6 +255,9 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         self.state.borrow_mut().transcripts.push_back(transcript);
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
+            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
+                view.attempt().diagnostic_value(),
+            ),
             UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection]),
             adapter_cost,
         ))

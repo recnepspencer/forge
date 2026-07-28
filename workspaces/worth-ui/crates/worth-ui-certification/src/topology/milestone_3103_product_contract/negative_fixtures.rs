@@ -2,7 +2,9 @@ use std::path::{Path, PathBuf};
 
 use crate::topology::WorkspaceSourceInventory;
 
-use super::{audit_live_product_contract, manifest_contract, source_contract};
+use super::{
+    audit_live_product_contract, manifest_contract, source_contract, visual_identity_contract,
+};
 
 const WORKSPACE: &str = r#"
 [workspace]
@@ -26,7 +28,7 @@ name = "executable_world"
 path = "tests/executable_world.rs"
 required-features = ["executable-world"]
 [dependencies]
-eframe = { workspace = true }
+eframe = { workspace = true, features = ["wgpu"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 worth-ui = { workspace = true }
@@ -34,7 +36,7 @@ worth-ui-host-egui = { workspace = true }
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
 winsafe = { workspace = true }
-xcap = { workspace = true }
+xcap = { workspace = true, features = ["wgc"] }
 "#;
 
 #[test]
@@ -66,6 +68,25 @@ fn manifest_rejects_an_extra_workflow_feature() {
 }
 
 #[test]
+fn manifest_rejects_renderer_and_capture_feature_drift() {
+    let missing_renderer = MANIFEST.replace(
+        r#"eframe = { workspace = true, features = ["wgpu"] }"#,
+        "eframe = { workspace = true }",
+    );
+    let error = manifest_contract::audit(WORKSPACE, &missing_renderer)
+        .expect_err("missing governed renderer feature must fail");
+    assert!(error.contains("`eframe` contract drifted"), "{error}");
+
+    let widened_capture = MANIFEST.replace(
+        r#"xcap = { workspace = true, features = ["wgc"] }"#,
+        r#"xcap = { workspace = true, features = ["wgc", "shortcut"] }"#,
+    );
+    let error = manifest_contract::audit(WORKSPACE, &widened_capture)
+        .expect_err("unplanned native capture feature must fail");
+    assert!(error.contains("`xcap` contract drifted"), "{error}");
+}
+
+#[test]
 fn library_rejects_exporting_application_implementation() {
     let error = source_contract::audit_library_surface(
         "pub mod observation_contract;\npub mod application;",
@@ -87,7 +108,7 @@ fn product_source_rejects_an_executable_world_feature_branch() {
 #[test]
 fn protocol_rejects_a_missing_lifecycle_outcome() {
     let envelope = r#"
-const SCHEMA_VERSION: u16 = 1;
+const SCHEMA_VERSION: u16 = 2;
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
 const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
 const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
@@ -96,12 +117,22 @@ const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    VisualSnapshotCaptured(PlatformPulseVisualSnapshotCaptured),
+    VisualPointTrace(PlatformPulseVisualPointTrace),
+    VisualOverlayPublished(PlatformPulseVisualOverlayPublished),
+    VisualOverlayCleared(PlatformPulseVisualOverlayCleared),
+    VisualSnapshotRetired(PlatformPulseVisualSnapshotRetired),
     ReplacementPublished(PlatformPulseReplacementPublished),
     ShutdownCompleted(PlatformPulseShutdownCompleted),
     TerminalFailure(PlatformPulseTerminalFailure),
 }
 pub struct PlatformPulseProcessStarted {}
 pub struct PlatformPulseFirstFramePublished { value: u64 }
+pub struct PlatformPulseVisualSnapshotCaptured { value: u64 }
+pub struct PlatformPulseVisualPointTrace { value: u64 }
+pub struct PlatformPulseVisualOverlayPublished { value: u64 }
+pub struct PlatformPulseVisualOverlayCleared { value: u64 }
+pub struct PlatformPulseVisualSnapshotRetired { value: u64 }
 pub struct PlatformPulseReplacementPublished { value: u64 }
 pub struct PlatformPulseShutdownCompleted { value: u64 }
 pub struct PlatformPulseTerminalFailure { value: u64 }
@@ -114,7 +145,7 @@ pub struct PlatformPulseTerminalFailure { value: u64 }
 #[test]
 fn protocol_rejects_public_raw_payload_fields() {
     let envelope = r#"
-const SCHEMA_VERSION: u16 = 1;
+const SCHEMA_VERSION: u16 = 2;
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
 const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
 const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
@@ -123,6 +154,11 @@ const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    VisualSnapshotCaptured(PlatformPulseVisualSnapshotCaptured),
+    VisualPointTrace(PlatformPulseVisualPointTrace),
+    VisualOverlayPublished(PlatformPulseVisualOverlayPublished),
+    VisualOverlayCleared(PlatformPulseVisualOverlayCleared),
+    VisualSnapshotRetired(PlatformPulseVisualSnapshotRetired),
     ReplacementPublished(PlatformPulseReplacementPublished),
     ReplacementDeniedPreserving(PlatformPulseReplacementPreserved),
     ShutdownCompleted(PlatformPulseShutdownCompleted),
@@ -130,6 +166,11 @@ pub enum PlatformPulseLifecycleObservation {
 }
 pub struct PlatformPulseProcessStarted {}
 pub struct PlatformPulseFirstFramePublished { pub frame: u64 }
+pub struct PlatformPulseVisualSnapshotCaptured { value: u64 }
+pub struct PlatformPulseVisualPointTrace { value: u64 }
+pub struct PlatformPulseVisualOverlayPublished { value: u64 }
+pub struct PlatformPulseVisualOverlayCleared { value: u64 }
+pub struct PlatformPulseVisualSnapshotRetired { value: u64 }
 pub struct PlatformPulseReplacementPublished { value: u64 }
 pub struct PlatformPulseReplacementPreserved { value: u64 }
 pub struct PlatformPulseShutdownCompleted { value: u64 }
@@ -168,6 +209,89 @@ fn unchanged_frame_rejects_observation_publication() {
     let error = source_contract::audit_unchanged_frame(source)
         .expect_err("unchanged frame publication must fail");
     assert!(error.contains("zero observation work"));
+}
+
+#[test]
+fn visual_product_rejects_test_only_and_direct_egui_shortcuts() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = visual_identity_contract::ProductVisualIdentitySources::capture(&inventory);
+
+    let mut test_only = sources.clone();
+    test_only
+        .execution
+        .push_str("\n#[cfg(test)] fn pulse() {}\n");
+    let error = visual_identity_contract::audit_sources(&test_only)
+        .expect_err("test-only product behavior must fail");
+    assert!(error.contains("#[cfg(test)]"));
+
+    let mut direct_egui = sources;
+    direct_egui
+        .execution
+        .push_str("\nfn paint(context: &egui::Context) {}\n");
+    let error = visual_identity_contract::audit_sources(&direct_egui)
+        .expect_err("direct product egui drawing must fail");
+    assert!(error.contains("egui::"));
+}
+
+#[test]
+fn visual_product_rejects_missing_grant_and_wrong_target_oracles() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = visual_identity_contract::ProductVisualIdentitySources::capture(&inventory);
+
+    let mut missing_grant = sources.clone();
+    missing_grant.execution = mutate_required_edge(
+        &missing_grant.execution,
+        "issue_overlay_grant()",
+        "assume_overlay_authority()",
+    );
+    let error = visual_identity_contract::audit_sources(&missing_grant)
+        .expect_err("missing overlay grant must fail");
+    assert!(error.contains("issue_overlay_grant"));
+
+    let mut wrong_target = sources;
+    wrong_target.adjudication = wrong_target.adjudication.replace(
+        "PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME",
+        "CALLER_SUPPLIED_TARGET_NAME",
+    );
+    let error = visual_identity_contract::audit_sources(&wrong_target)
+        .expect_err("wrong target oracle must fail");
+    assert!(error.contains("PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME"));
+}
+
+#[test]
+fn visual_wire_rejects_pixel_payload_and_authority_reentry() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = visual_identity_contract::ProductVisualIdentitySources::capture(&inventory);
+
+    let mut pixel_payload = sources.clone();
+    pixel_payload
+        .wire
+        .push_str("\ntype CounterfeitScreenshot = Vec<u8>;\n");
+    let error = visual_identity_contract::audit_sources(&pixel_payload)
+        .expect_err("wire screenshot bytes must fail");
+    assert!(error.contains("Vec<u8>"));
+
+    let mut reentry = sources;
+    reentry
+        .projection
+        .push_str("\nfn counterfeit() { UiVisualOverlayTarget::from_wire(); }\n");
+    let error = visual_identity_contract::audit_sources(&reentry)
+        .expect_err("wire identity re-entry must fail");
+    assert!(error.contains("UiVisualOverlayTarget::"));
+}
+
+#[test]
+fn visual_publication_rejects_reopening_positional_point_adjudication() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let mut sources = visual_identity_contract::ProductVisualIdentitySources::capture(&inventory);
+    sources.publication = sources.publication.replace(
+        "input: PlatformPulseVisualPointTraceInput<'_>",
+        "target_point: UiClientPhysicalPixel,\n        target: &UiVisualPointAdjudication,\n        \
+         background_point: UiClientPhysicalPixel,\n        background: &UiVisualPointAdjudication",
+    );
+    let error = visual_identity_contract::audit_sources(&sources)
+        .expect_err("positional point/adjudication pairs must fail");
+    assert!(error.contains("typed visual trace publication"), "{error}");
 }
 
 fn canonical_live_projection() -> String {
@@ -209,4 +333,12 @@ fn workspace_root() -> PathBuf {
         .parent()
         .expect("workspace")
         .to_path_buf()
+}
+
+fn mutate_required_edge(source: &str, edge: &str, counterfeit: &str) -> String {
+    assert!(
+        source.contains(edge),
+        "negative fixture cannot exercise absent edge `{edge}`"
+    );
+    source.replacen(edge, counterfeit, 1)
 }

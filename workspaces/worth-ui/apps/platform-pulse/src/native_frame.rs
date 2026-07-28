@@ -16,6 +16,9 @@ use crate::lifecycle_observation_publication::{
 use crate::source_watch::{
     PlatformPulseSourceEvent, PlatformPulseSourceWatch, PlatformPulseSourceWatchShutdownDenial,
 };
+use crate::visual_identity_execution::{
+    PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
+};
 
 pub(crate) struct PlatformPulseNativeFrame {
     prepared: Option<WorthUiApp>,
@@ -27,6 +30,7 @@ pub(crate) struct PlatformPulseNativeFrame {
     terminal_error: Option<PlatformPulseTerminalError>,
     observation_error: Option<PlatformPulseObservationPublicationDenial>,
     terminal_reported: bool,
+    visual_identity: PlatformPulseVisualIdentityExecution,
     tick: u64,
 }
 
@@ -37,6 +41,7 @@ enum PlatformPulseTerminalError {
     FrameExecution,
     UnexpectedInitialFrame,
     NativeReplacement(WorthUiNativeApplicationReplacementDenial),
+    VisualIdentity(PlatformPulseVisualExecutionDenial),
     ObservationPublication,
 }
 
@@ -54,6 +59,9 @@ impl fmt::Display for PlatformPulseTerminalError {
             Self::UnexpectedInitialFrame => formatter.write_str("initial frame did not publish"),
             Self::NativeReplacement(denial) => {
                 write!(formatter, "native application replacement: {denial:?}")
+            }
+            Self::VisualIdentity(denial) => {
+                write!(formatter, "visual identity pulse: {denial}")
             }
             Self::ObservationPublication => {
                 formatter.write_str("lifecycle observation publication")
@@ -82,6 +90,7 @@ impl PlatformPulseNativeFrame {
                     terminal_error: Some(PlatformPulseTerminalError::Preparation(denial)),
                     observation_error,
                     terminal_reported: false,
+                    visual_identity: PlatformPulseVisualIdentityExecution::new(),
                     tick: 0,
                 }
             }
@@ -102,6 +111,7 @@ impl PlatformPulseNativeFrame {
             terminal_error: None,
             observation_error: None,
             terminal_reported: false,
+            visual_identity: PlatformPulseVisualIdentityExecution::new(),
             tick: 0,
         }
     }
@@ -181,6 +191,13 @@ impl PlatformPulseNativeFrame {
                         PlatformPulseTerminalError::ObservationPublication,
                         Err(error),
                     );
+                    return;
+                }
+                if let Err(denial) = self
+                    .visual_identity
+                    .retire_after_replacement(shell, &self.publisher)
+                {
+                    self.fail_visual_identity(denial);
                 }
             }
             Ok(WorthUiNativeApplicationReplacementOutcome::SemanticNoOp(_)) => {}
@@ -195,6 +212,13 @@ impl PlatformPulseNativeFrame {
     }
 
     fn present(&mut self) {
+        // The permanent pulse has no animation-driven ordinary frame loop.
+        // Once the first publication exists, explicit overlay and replacement
+        // transitions own every later presentation attempt. Re-presenting here
+        // could supersede an exact in-flight visual capture between polls.
+        if self.initial_source.is_none() {
+            return;
+        }
         let Some(shell) = self.shell.as_mut() else {
             return;
         };
@@ -213,6 +237,13 @@ impl PlatformPulseNativeFrame {
                         PlatformPulseTerminalError::ObservationPublication,
                         Err(error),
                     );
+                    return;
+                }
+                if let Err(denial) = self
+                    .visual_identity
+                    .arm_after_first_frame(std::time::Instant::now())
+                {
+                    self.fail_visual_identity(denial);
                 }
             }
             Ok(UiMountedFrameOutcome::Unchanged(_)) if self.initial_source.is_none() => {}
@@ -239,6 +270,29 @@ impl PlatformPulseNativeFrame {
         self.observation_error = observation.err();
     }
 
+    fn advance_visual_identity(&mut self) {
+        let Some(shell) = self.shell.as_mut() else {
+            return;
+        };
+        let result = self.visual_identity.advance(
+            shell,
+            &self.publisher,
+            &mut self.tick,
+            std::time::Instant::now(),
+        );
+        if let Err(denial) = result {
+            self.fail_visual_identity(denial);
+        }
+    }
+
+    fn fail_visual_identity(&mut self, denial: PlatformPulseVisualExecutionDenial) {
+        let observation = self.publisher.visual_identity_failure();
+        self.fail(
+            PlatformPulseTerminalError::VisualIdentity(denial),
+            observation,
+        );
+    }
+
     fn report_terminal(&mut self, context: &egui::Context) {
         if self.terminal_reported {
             return;
@@ -263,6 +317,7 @@ impl eframe::App for PlatformPulseNativeFrame {
             self.ensure_launched();
             self.poll_source();
             self.present();
+            self.advance_visual_identity();
         }
         if self.terminal_error.is_some() {
             self.report_terminal(context);

@@ -1,4 +1,5 @@
 mod runner_contract;
+mod visual_identity_contract;
 
 use std::fs;
 use std::path::Path;
@@ -11,6 +12,7 @@ pub fn audit_milestone_3103_phase4_watched_replacement(
     inventory: &WorkspaceSourceInventory,
 ) -> Result<(), String> {
     runner_contract::audit(inventory)?;
+    visual_identity_contract::audit(inventory)?;
     let repository_root = inventory
         .root()
         .parent()

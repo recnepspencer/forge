@@ -67,6 +67,13 @@ fn add_component_descriptor_diagnostics(
         ));
     }
 
+    if descriptor.has_conflicting_allocation_contracts() {
+        candidate = candidate.with_descriptor_diagnostic(RegistrationCandidateDiagnostic::new(
+            CapabilityDiagnosticCode::ConflictingComponentAllocationContract,
+            "component paint, hit-test, and allocation contracts must agree on one allocation",
+        ));
+    }
+
     candidate
 }
 

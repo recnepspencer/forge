@@ -1,18 +1,26 @@
 mod component_accepted_registration_proof;
+mod component_allocation_contract_state;
 mod component_allocation_measurement_contract;
 mod component_child_policy;
 mod component_descriptor;
+mod component_hit_test_contract;
+mod component_hit_test_order;
 mod component_prop_schema;
 mod component_registration;
 mod component_registry;
 mod component_rendering_contracts;
 mod component_state_ownership;
+mod component_static_paint_contract;
+mod component_static_paint_order;
+mod component_viewport_inset;
 mod frozen_component_capabilities;
 
 pub(crate) use component_accepted_registration_proof::ComponentAcceptedRegistrationProof;
 pub use component_allocation_measurement_contract::ComponentAllocationMeasurementContract;
 pub use component_child_policy::ComponentChildPolicy;
 pub use component_descriptor::ComponentDescriptor;
+pub use component_hit_test_contract::ComponentHitTestContract;
+pub use component_hit_test_order::ComponentHitTestOrder;
 pub use component_prop_schema::ComponentPropSchema;
 pub(crate) use component_registry::ComponentRegistry;
 pub use component_rendering_contracts::{
@@ -22,4 +30,7 @@ pub use component_rendering_contracts::{
     ComponentRealtimeOverlayPriority,
 };
 pub use component_state_ownership::ComponentStateOwnership;
+pub use component_static_paint_contract::ComponentStaticPaintContract;
+pub use component_static_paint_order::ComponentStaticPaintOrder;
+pub use component_viewport_inset::ComponentViewportInset;
 pub use frozen_component_capabilities::FrozenComponentCapabilities;

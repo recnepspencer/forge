@@ -12,7 +12,7 @@ use worth_ui::facade::source::{
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_host_egui::WorthUiHostEgui;
 
-use super::native_oracle::{assert_one_viewport_rect, raw_input, BLUE, GREEN};
+use super::native_oracle::{assert_background_and_target, raw_input, BLUE, GREEN};
 use super::observed_lifecycle::ObservedPulseLifecycle;
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -81,7 +81,7 @@ impl RealWatcherPulseWorld {
         else {
             panic!("initial mounted frame should publish");
         };
-        assert_one_viewport_rect(&native.shapes, BLUE);
+        assert_background_and_target(&native.shapes, BLUE);
         InitialPulsePublication {
             shell: shell.expect("native shell remains application-owned"),
             source,
@@ -124,7 +124,7 @@ impl RealWatcherPulseWorld {
         else {
             panic!("changing the pulse color is not a semantic no-op");
         };
-        assert_one_viewport_rect(&native.shapes, edit.color());
+        assert_background_and_target(&native.shapes, edit.color());
         PublishedPulseReplacement {
             source,
             application,
@@ -159,7 +159,7 @@ impl RealWatcherPulseWorld {
                     | Ok(UiMountedFrameOutcome::Reconciled(_))
             ));
         });
-        assert_one_viewport_rect(&native.shapes, GREEN);
+        assert_background_and_target(&native.shapes, GREEN);
         assert_eq!(shell.generation_identity(), &generation);
         PreservedPulseReplacement {
             source,

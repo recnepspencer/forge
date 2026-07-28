@@ -223,6 +223,8 @@ fn complete_projection(mutation: ProjectionMutation) -> UiMountedProjectionView 
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::from_runtime_mounting(vec![row]).unwrap(),
+        hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
+            .unwrap(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
@@ -249,6 +251,9 @@ fn count_only_projection() -> UiMountedProjectionView {
         allocation: complete.allocation(),
         preview: complete.preview(),
         paint: UiMountedPaintProjection::CountOnlyBatch(UiMountedPaintBatchReference::new(0)),
+        hit_test: worth_ui_host_contract::UiMountedHitTestProjection::Omitted(
+            UiMountedOmissionReason::NotDefinedByCurrentRuntime,
+        ),
         accessibility: complete.accessibility(),
         motion: complete.motion(),
         diagnostic: complete.diagnostic(),
@@ -261,6 +266,8 @@ fn count_only_projection() -> UiMountedProjectionView {
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::empty(),
+        hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
+            .unwrap(),
         paint_batches: UiMountedPaintBatchTable::new(vec![UiMountedPaintBatchRow::new(
             1,
             worth_ui_host_contract::UiMountedLayerProjection::Omitted(
@@ -303,6 +310,7 @@ fn complete_node(
         paint: UiMountedPaintProjection::FilledRect(
             UiMountedFilledRectReference::from_runtime_mounting(0),
         ),
+        hit_test: worth_ui_host_contract::UiMountedHitTestProjection::Omitted(omitted),
         accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
         motion: UiMountedMotionProjection::Omitted(omitted),
         diagnostic: UiMountedDiagnosticProjection::Omitted(omitted),

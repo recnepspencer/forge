@@ -565,7 +565,7 @@ the runtime.
 - local plan changes can identify a typed affected neighborhood instead of
   widening immediately to whole-page planning
 
-### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate â€” **Closed**
+### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate — **Closed**
 
 This slice is a structural cleanup gate, not a product-capability expansion
 milestone. It hardened the shipped 3.1 through 3.6b runtime surfaces before
@@ -625,7 +625,7 @@ transitions; stream policy without that dispatcher is incomplete.
 - planning: `plan_allocation` after admitted measurement basis + neighborhood +
   constraint pipeline
 - replacement continuity: identity match report after impact narrow
-- measurement: host observation â†’ admit measurement basis â†’ inspection projectors
+- measurement: host observation → admit measurement basis → inspection projectors
 - public facade lifecycle order; no deep-import pressure into private runtime
   modules
 - fixtures only via SUPPORT AUTHORITY (`worth-ui-test-support`); not production
@@ -1465,51 +1465,102 @@ all remain inside the frozen Phase 1 budgets.
 
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
+Detailed spec: [milestone-3.11.md](./milestone-3.11.md)
+
+Status: Closed on 2026-07-27. Phases 1 through 5 are complete and all nine
+visual-snapshot scenario rows are proved on final source.
+
 This slice makes screenshots, hit testing, and visible-region targeting
-identity-backed runtime evidence instead of loose image bytes.
+identity-backed runtime evidence instead of loose image bytes. Visible paint
+attribution and input hit testing are separate results bound to one exact
+presentation; neither may be guessed from the other.
 
 **Platform pulse**
 
-Capture the running Platform Pulse Page, choose a visibly identifiable point
-inside one mounted node, and make the point-to-node result visible as a
-targeted overlay or equivalent human-readable trace. The selected pixel must
-resolve through the current frame to one mounted receipt identity and onward to
-graph, declaration, and evidence; a loose PNG, coordinate-only answer, or
-reconstructed parallel tree does not close the pulse.
+Extend the checked-in Platform Pulse Page into a deliberately nondegenerate
+world with distinct background and inset target regions. Capture the running
+page, choose independently known target and background points, and make the
+target result visible as a canonical mounted overlay and human-readable trace.
+For the target point, the independently represented visible contributor and
+hit-test target deliberately agree on one mounted receipt; the supporting
+scenario portfolio must also prove cases where paint and hit testing diverge.
+The receipt must resolve through the exact captured presentation to graph,
+declaration, provenance, and evidence. A sole-node fallback, loose PNG,
+coordinate-only answer, current-at-completion lookup, renderer-local overlay,
+or reconstructed parallel tree does not close the pulse.
 
 Executable-world closure extends the inherited
-`PulseExecutableWorld<Published>` with external client-area capture and the
-point-to-mounted adjudication. An in-process egui capture or new screenshot
-harness cannot substitute for the inherited product process.
+`PulseExecutableWorld<Published<InitialBlue>>` with external client-area
+capture and the point-to-mounted adjudication. An in-process egui capture or
+new screenshot harness cannot substitute for the inherited product process.
+
+The permanent Platform Pulse now renders distinct blue background and yellow
+target regions, captures the WGPU product window through the process-and-HWND
+bound WGC observer, traces independently chosen target and background pixels
+to mounted identity, publishes and clears a magenta mounted overlay, survives
+valid and malformed source replacement, closes normally, and reports zero
+visual residue. The final courtroom uses one child and window, six native
+captures, eleven lifecycle events, and no retry path.
 
 **Must ship**
 
 - `UiVisualSnapshotReceipt`
+- concrete visual-inspection grant and artifact/disclosure policy
+- presentation-bound host capture observation
+- host-issued presentation epoch and exact readback fence
+- managed capture polling, cancellation, timeout, and disposal
+- compiler-enforced target, artifact-policy, grant, coordinate-scope, capture,
+  and overlay phase progression
+- typed screen/client/viewport/host coordinate transform
 - frame capture by identity
 - node capture by identity
 - region capture by identity
+- immutable visible-region map
 - hit-test region map
-- visible mounted node overlay support
-- `screen point -> mounted receipt identity`
-- `screenshot region -> mounted receipt identity`
-- `mounted receipt identity -> declaration / graph / evidence` bridge
+- explicit total per-surface hit-test order
+- separate visible-contributor and hit-test point outcomes
+- bounded many-to-many region adjudication
+- visible mounted node overlay through a successor canonical mounted frame
+- `screen/client point -> mounted receipt identity trace`
+- `screenshot region -> mounted receipt identity traces`
+- `mounted receipt identity -> mounted instance / incarnation / declaration /
+  graph / provenance / evidence` bridge
+- bounded snapshot, pixel, overlay, and retained-frame lifecycle
 
 **Acceptance evidence**
 
-- the runtime can capture the current frame without creating a second visual
-  truth path
-- an agent can ask what node is under a pixel and receive mounted identity
-- a screenshot region can be traced back to mounted receipt, graph node,
-  declaration, and evidence
-- screenshot support is tied to frame identity rather than loose PNG bytes
+- the runtime can capture the current or retained frame without creating a
+  second visual truth path or relabeling a capture across replacement
+- an agent can ask what painted a pixel and what would receive input there and
+  receive separately typed mounted identity results
+- a screenshot region can be traced as a bounded many-to-many result back to
+  mounted receipts, graph nodes, declarations, provenance, and evidence
+- the visible target overlay is externally observable but was published
+  through the same mounted host contract and cites its base snapshot
+- screenshot support is tied to exact presentation, surface binding, viewport,
+  retention, disclosure, and cost rather than loose PNG bytes
 
 ### Milestone 3.12: Observation Intake and Hot Rebind Planner
+
+Detailed spec: [milestone-3.12.md](./milestone-3.12.md)
+
+Predecessor status: Milestone 3.11 closed on 2026-07-27. This milestone
+inherits its snapshot, overlay, mounted-trace, disclosure, resource, and
+teardown contracts without relocation or reinterpretation. Identity-aware
+predecessor/successor comparison remains a Milestone 3.12 capability.
 
 This slice makes hot reload real as bounded rebind rather than renderer
 refresh. Query-backed changes enter only as the sealed UI source consequences
 admitted by 3.9.2's framework-turn boundary. This milestone classifies their
 affected UI scope and decides preservation or remounting; it does not reopen
 Query leases, deltas, rows, ordering, patches, or identity.
+
+The operating-system watcher remains transport only. A watched edit must settle
+to one exact source revision, compile through `worth-ui-dsl`, and reach
+invalidation only as canonical declaration-lane facts constrained by declared
+aspect contracts. This slice also establishes bounded source-span, changed-fact,
+stop-point, and rebind-decision evidence references for later human and agent
+diagnostics; it does not pull 3.19 diagnostics or 3.21 replay forward.
 
 **Platform pulse**
 
@@ -1526,16 +1577,32 @@ external source delta, and the same child process must prove affected and
 unaffected native consequences plus the typed rebind receipt. Direct
 in-process replacement does not close the executable pulse.
 
+The comparison consumes Milestone 3.11's retained predecessor and successor
+visual snapshot identities. It may relate mounted identity and visible regions,
+but it may not reinterpret old pixels as current or replace semantic rebind
+evidence with a raw pixel diff.
+
 **Must ship**
 
+- exact watcher hint -> settled revision -> DSL compile outcome -> sealed
+  candidate -> canonical declaration delta bridge
+- typed DSL compile-stop receipt that cannot expose observation, scope, or plan
+  identities
 - `UiHostObservation`
 - `UiRebindPlan`
 - `UiRebindReceipt`
-- changed-fact classification
+- concrete visual-comparison grant, borrowed predecessor/successor/rebind
+  request, typed comparison outcome, and identity-aware receipt
+- typed no-change, evidence-only-source, and changed-fact classification
+  branches
 - affected-aspect detection
 - consumed-fact and consumed-aspect index lookup
 - preserve/remount decisions
 - invalidated measurement, binding, and obligation sets
+- explicit observation/rebind profiles with the frozen Platform Pulse limits
+- exact-generation authored-span and production-projected rebind inspection
+  targets with bounded evidence-reference lookup
+- self-audited Phase 5 command registry and RB-01/TT-01..TT-12 closure ledger
 
 **Must handle**
 
@@ -1543,15 +1610,27 @@ in-process replacement does not close the executable pulse.
 - viewport resize
 - host measurement results
 - Query-backed fact changes
-- service-event changes
+- existing committed scroll-extent and portal-anchor consequences; general
+  service input remains owned by Milestone 3.15
 
 **Acceptance evidence**
 
+- one valid file edit is causally joined from exact settlement and DSL lowering
+  through canonical declaration/aspect consequences to the published rebind
+- one invalid file edit retains the exact typed DSL report and source span,
+  constructs no later-phase identity, and preserves the last admitted page
 - local source edits do not rebuild the whole page
 - appearance changes do not invalidate structure
 - layout changes do not invalidate Query binding unless declared
 - resize invalidates allocation without broad graph rebind
 - invalid hot edits preserve the last admitted mounted truth
+- a valid edit retains exact predecessor and successor snapshots through one
+  budgeted identity-aware comparison, then disposes both without treating
+  pixel equality or difference as semantic rebind evidence
+- the exact Phase 5 command registry and all thirteen causal proof-ledger rows
+  close on final source
+- rebind summary/evidence-reference inspection is available while causal
+  diagnostic materialization and replay remain explicitly deferred
 
 ### Milestone 3.13: Query Binding and Projection Consumption Substrate
 

@@ -103,6 +103,9 @@ fn supports_effect(report: &WorthUiHostCapabilityReport, effect: UiMountedEffect
         }
         UiMountedEffectFamily::Focus => report.supports(WorthUiHostCapability::NativeFocus),
         UiMountedEffectFamily::Motion | UiMountedEffectFamily::Diagnostic => false,
+        UiMountedEffectFamily::IdentityOverlay => {
+            report.supports(WorthUiHostCapability::IdentityOverlay)
+        }
         UiMountedEffectFamily::CanvasSpatial => supports_canvas(report),
         UiMountedEffectFamily::Realtime => supports_realtime(report),
     }

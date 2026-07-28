@@ -23,6 +23,7 @@ mod staging_transition;
 pub(crate) use staging_transition::WorthUiActivationStagingPlans;
 
 pub use launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
+pub(crate) use lifecycle_state::WorthUiPendingActivationInput;
 pub use lifecycle_state::{
     WorthUiPendingActivation, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
     WorthUiRuntimeShutdownReceipt,

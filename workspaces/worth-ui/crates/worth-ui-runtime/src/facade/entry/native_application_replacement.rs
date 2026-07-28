@@ -5,6 +5,19 @@ use super::{
 use crate::mounting::{UiMountedFramePublicationReceipt, UiMountedFrameRequest};
 use worth_ui_host_contract::UiPresentationDeadline;
 
+#[cfg(test)]
+#[path = "native_application_identity_trace_test_support.rs"]
+mod native_application_identity_trace_test_support;
+#[cfg(test)]
+#[path = "native_application_identity_trace_tests.rs"]
+mod native_application_identity_trace_tests;
+#[cfg(test)]
+#[path = "native_identity_trace_audit.rs"]
+mod native_identity_trace_audit;
+#[cfg(test)]
+#[path = "native_identity_trace_host.rs"]
+mod native_identity_trace_host;
+
 pub enum WorthUiNativeApplicationReplacementOutcome {
     Published {
         application: WorthUiApplicationCutoverReceipt,

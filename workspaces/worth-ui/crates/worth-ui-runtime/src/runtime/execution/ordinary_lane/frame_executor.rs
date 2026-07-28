@@ -8,6 +8,8 @@ use crate::runtime::{
     WorthUiRuntimeHandle,
 };
 
+use super::frame_receipt::WorthUiOrdinaryLaneFrameReceiptInput;
+
 pub(crate) struct WorthUiOrdinaryLaneFrameExecutor;
 
 impl WorthUiOrdinaryLaneFrameExecutor {
@@ -16,64 +18,10 @@ impl WorthUiOrdinaryLaneFrameExecutor {
         target: WorthUiOrdinaryFrameTarget,
     ) -> Result<WorthUiOrdinaryLaneFrameReceipt, WorthUiOrdinaryLaneFrameDenial> {
         let counters = WorthUiOrdinaryLaneCounters::default();
-        match target.kind() {
-            WorthUiOrdinaryFrameTargetKind::RootShell => execute_root_shell(plan, target, counters),
-            WorthUiOrdinaryFrameTargetKind::Component(handle) => execute_indexed_target(
-                plan,
-                target,
-                WorthUiIndexedTargetSpec::new(
-                    handle.locator(),
-                    WorthUiPlanNodeInputFamily::ComponentInvocation,
-                    WorthUiOrdinaryExecutionLane::WidgetShell,
-                    WorthUiTargetBreadth::Subtree,
-                ),
-                counters,
-            ),
-            WorthUiOrdinaryFrameTargetKind::ChildRange(handle) => execute_indexed_target(
-                plan,
-                target,
-                WorthUiIndexedTargetSpec::new(
-                    handle.locator(),
-                    WorthUiPlanNodeInputFamily::ChildRange,
-                    WorthUiOrdinaryExecutionLane::ChildRangeTraversal,
-                    WorthUiTargetBreadth::Subtree,
-                ),
-                counters,
-            ),
-            WorthUiOrdinaryFrameTargetKind::Command(handle) => execute_indexed_target(
-                plan,
-                target,
-                WorthUiIndexedTargetSpec::new(
-                    handle.locator(),
-                    WorthUiPlanNodeInputFamily::Command,
-                    WorthUiOrdinaryExecutionLane::CommandSurface,
-                    WorthUiTargetBreadth::Direct,
-                ),
-                counters,
-            ),
-            WorthUiOrdinaryFrameTargetKind::TokenSupport(handle) => execute_indexed_target(
-                plan,
-                target,
-                WorthUiIndexedTargetSpec::new(
-                    handle.locator(),
-                    WorthUiPlanNodeInputFamily::TokenStyle,
-                    WorthUiOrdinaryExecutionLane::TokenStyleSupport,
-                    WorthUiTargetBreadth::Direct,
-                ),
-                counters,
-            ),
-            WorthUiOrdinaryFrameTargetKind::StateSlot(handle) => execute_indexed_target(
-                plan,
-                target,
-                WorthUiIndexedTargetSpec::new(
-                    handle.locator(),
-                    WorthUiPlanNodeInputFamily::StateSlot,
-                    WorthUiOrdinaryExecutionLane::StateSlotSupport,
-                    WorthUiTargetBreadth::Direct,
-                ),
-                counters,
-            ),
-        }
+        let Some(spec) = WorthUiIndexedTargetSpec::from_target_kind(target.kind()) else {
+            return execute_root_shell(plan, target, counters);
+        };
+        execute_indexed_target(plan, target, spec, counters)
     }
 }
 
@@ -92,6 +40,42 @@ struct WorthUiIndexedTargetSpec {
 }
 
 impl WorthUiIndexedTargetSpec {
+    fn from_target_kind(target: WorthUiOrdinaryFrameTargetKind) -> Option<Self> {
+        match target {
+            WorthUiOrdinaryFrameTargetKind::RootShell => None,
+            WorthUiOrdinaryFrameTargetKind::Component(handle) => Some(Self::new(
+                handle.locator(),
+                WorthUiPlanNodeInputFamily::ComponentInvocation,
+                WorthUiOrdinaryExecutionLane::WidgetShell,
+                WorthUiTargetBreadth::Subtree,
+            )),
+            WorthUiOrdinaryFrameTargetKind::ChildRange(handle) => Some(Self::new(
+                handle.locator(),
+                WorthUiPlanNodeInputFamily::ChildRange,
+                WorthUiOrdinaryExecutionLane::ChildRangeTraversal,
+                WorthUiTargetBreadth::Subtree,
+            )),
+            WorthUiOrdinaryFrameTargetKind::Command(handle) => Some(Self::new(
+                handle.locator(),
+                WorthUiPlanNodeInputFamily::Command,
+                WorthUiOrdinaryExecutionLane::CommandSurface,
+                WorthUiTargetBreadth::Direct,
+            )),
+            WorthUiOrdinaryFrameTargetKind::TokenSupport(handle) => Some(Self::new(
+                handle.locator(),
+                WorthUiPlanNodeInputFamily::TokenStyle,
+                WorthUiOrdinaryExecutionLane::TokenStyleSupport,
+                WorthUiTargetBreadth::Direct,
+            )),
+            WorthUiOrdinaryFrameTargetKind::StateSlot(handle) => Some(Self::new(
+                handle.locator(),
+                WorthUiPlanNodeInputFamily::StateSlot,
+                WorthUiOrdinaryExecutionLane::StateSlotSupport,
+                WorthUiTargetBreadth::Direct,
+            )),
+        }
+    }
+
     fn new(
         locator: crate::runtime::WorthUiRuntimeHandleLocator,
         expected_family: WorthUiPlanNodeInputFamily,
@@ -163,15 +147,17 @@ fn execute_root_shell(
 
     counters.record_root_shell_rows(touches.row_count);
     Ok(WorthUiOrdinaryLaneFrameReceipt::new(
-        target,
-        WorthUiOrdinaryLaneTouchReceipt::root_shell(
-            roots.clone(),
-            touches.row_count,
-            touches.digest,
-        ),
-        counters,
-        plan.certification(WorthUiOrdinaryExecutionLane::WidgetShell),
-        plan.counters().ordinary_plan_row_count(),
+        WorthUiOrdinaryLaneFrameReceiptInput {
+            target,
+            touch: WorthUiOrdinaryLaneTouchReceipt::root_shell(
+                roots.clone(),
+                touches.row_count,
+                touches.digest,
+            ),
+            counters,
+            certification: plan.certification(WorthUiOrdinaryExecutionLane::WidgetShell),
+            requested_breadth: plan.counters().ordinary_plan_row_count(),
+        },
     ))
 }
 
@@ -216,28 +202,44 @@ fn execute_indexed_target(
         WorthUiTargetBreadth::Direct => 1,
         WorthUiTargetBreadth::Subtree => plan.counters().ordinary_plan_row_count(),
     };
-    let touch = match spec.breadth {
+    let touch = match collect_indexed_touch(plan, &row, spec.breadth, &mut counters) {
+        Ok(touch) => touch,
+        Err(()) => return invalid_active_plan(plan_index, counters),
+    };
+    Ok(
+        WorthUiOrdinaryLaneFrameReceipt::new(WorthUiOrdinaryLaneFrameReceiptInput {
+            target,
+            touch,
+            counters,
+            certification: plan.certification(spec.expected_lane),
+            requested_breadth,
+        })
+        .with_resolution_evidence(resolution_evidence),
+    )
+}
+
+fn collect_indexed_touch(
+    plan: &WorthUiOrdinaryLanePlan,
+    row: &WorthUiOrdinaryLaneNode,
+    breadth: WorthUiTargetBreadth,
+    counters: &mut WorthUiOrdinaryLaneCounters,
+) -> Result<WorthUiOrdinaryLaneTouchReceipt, ()> {
+    match breadth {
         WorthUiTargetBreadth::Direct => {
-            touch_row(&row, &mut counters);
-            WorthUiOrdinaryLaneTouchReceipt::single(&row)
+            touch_row(row, counters);
+            Ok(WorthUiOrdinaryLaneTouchReceipt::single(row))
         }
         WorthUiTargetBreadth::Subtree => {
             let mut touches = WorthUiTouchAccumulator::new();
-            if touch_subtree(plan, &row, &mut touches, &mut counters).is_err() {
-                return invalid_active_plan(plan_index, counters);
-            }
+            touch_subtree(plan, row, &mut touches, counters)?;
             counters.record_intentional_subtree_rows(touches.row_count);
-            WorthUiOrdinaryLaneTouchReceipt::subtree(&row, touches.row_count, touches.digest)
+            Ok(WorthUiOrdinaryLaneTouchReceipt::subtree(
+                row,
+                touches.row_count,
+                touches.digest,
+            ))
         }
-    };
-    Ok(WorthUiOrdinaryLaneFrameReceipt::new(
-        target,
-        touch,
-        counters,
-        plan.certification(spec.expected_lane),
-        requested_breadth,
-    )
-    .with_resolution_evidence(resolution_evidence))
+    }
 }
 
 fn touch_subtree(

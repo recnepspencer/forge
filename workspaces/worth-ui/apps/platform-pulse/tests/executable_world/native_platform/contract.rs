@@ -20,12 +20,13 @@ pub(crate) enum NativePlatformFailure {
     WindowEnumeration(String),
     WindowLookupDeadline,
     AmbiguousProcessWindows(usize),
-    CaptureWindowMissing,
-    CaptureWindowAmbiguous(usize),
     ClientCapture(String),
+    ClientExposure(String),
     InvalidCaptureWindowBounds,
     BoundWindowMissing,
     BoundWindowOwnerChanged,
+    BoundClientAreaChanged,
+    ClientOutsideCaptureMonitor,
     InvalidClientCapture {
         image_width: u32,
         image_height: u32,
@@ -51,13 +52,10 @@ impl fmt::Display for NativePlatformFailure {
             Self::AmbiguousProcessWindows(count) => {
                 write!(formatter, "found {count} visible process windows")
             }
-            Self::CaptureWindowMissing => {
-                formatter.write_str("process-bound native capture window is missing")
-            }
-            Self::CaptureWindowAmbiguous(count) => {
-                write!(formatter, "found {count} process-bound native capture windows")
-            }
             Self::ClientCapture(error) => write!(formatter, "capture native client area: {error}"),
+            Self::ClientExposure(error) => {
+                write!(formatter, "expose native client area for capture: {error}")
+            }
             Self::InvalidCaptureWindowBounds => {
                 formatter.write_str("native capture window reported invalid bounds")
             }
@@ -66,6 +64,12 @@ impl fmt::Display for NativePlatformFailure {
             }
             Self::BoundWindowOwnerChanged => {
                 formatter.write_str("the bound native window no longer belongs to the child")
+            }
+            Self::BoundClientAreaChanged => {
+                formatter.write_str("the bound native client area changed after observation")
+            }
+            Self::ClientOutsideCaptureMonitor => {
+                formatter.write_str("the native client area is not contained by one monitor")
             }
             Self::InvalidClientCapture {
                 image_width,

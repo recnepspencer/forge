@@ -104,6 +104,7 @@ impl CompletionFixture {
                 static_paint: Some(UiMountedStaticPaintSeed::for_test(UiMountedRgba8::new(
                     47, 129, 247, 255,
                 ))),
+                hit_test: None,
             }],
             vec![UiMountedProjectionSurface {
                 surface,

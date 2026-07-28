@@ -8,6 +8,10 @@ use super::{
     UiMountedRetentionUsageSnapshot, UiPresentedFrameBasisRelation, UiRetainedPresentedFrame,
 };
 
+mod pin_accounting;
+
+use pin_accounting::{UiMountedFramePinCounts, UiMountedPinAdmission};
+
 #[derive(Clone, Default)]
 pub(super) struct UiMountedRetainedFrameState {
     pub(super) current: Option<Rc<UiRetainedPresentedFrame>>,
@@ -38,6 +42,8 @@ pub(super) struct UiMountedFrameRetentionAuthority {
     inspection_usage: UiMountedRetentionUsageSnapshot,
     observation_basis_usage: UiMountedRetentionUsageSnapshot,
     diagnostic_usage: UiMountedRetentionUsageSnapshot,
+    visual_snapshot_usage: UiMountedRetentionUsageSnapshot,
+    visual_overlay_usage: UiMountedRetentionUsageSnapshot,
 }
 
 pub(super) enum UiMountedRetainedFrameLookup<'a> {
@@ -64,13 +70,6 @@ pub(super) enum UiMountedRetentionPinAdmissionDenial {
     AccountingOverflow,
 }
 
-#[derive(Clone, Copy, Default)]
-struct UiMountedFramePinCounts {
-    inspection: usize,
-    observation_basis: usize,
-    diagnostic: usize,
-}
-
 impl UiMountedFrameRetentionAuthority {
     pub(super) fn new(budget: UiMountedFrameRetentionBudget) -> Self {
         Self {
@@ -83,6 +82,8 @@ impl UiMountedFrameRetentionAuthority {
             inspection_usage: Default::default(),
             observation_basis_usage: Default::default(),
             diagnostic_usage: Default::default(),
+            visual_snapshot_usage: Default::default(),
+            visual_overlay_usage: Default::default(),
         }
     }
 
@@ -150,57 +151,19 @@ impl UiMountedFrameRetentionAuthority {
         structural_bytes: usize,
     ) -> Result<(), UiMountedRetentionPinAdmissionDenial> {
         let existing = self.pins.get(&frame).copied().unwrap_or_default();
-        let (frame_pin_count, usage, budget) = match class {
-            UiMountedRetentionClass::PredecessorInspection => (
-                existing.inspection,
-                self.inspection_usage,
-                self.budget.predecessor_inspection(),
-            ),
-            UiMountedRetentionClass::ObservationBasis => (
-                existing.observation_basis,
-                self.observation_basis_usage,
-                self.budget.observation_basis(),
-            ),
-            UiMountedRetentionClass::Diagnostic => (
-                existing.diagnostic,
-                self.diagnostic_usage,
-                self.budget.diagnostic(),
-            ),
-            _ => unreachable!("only lease-backed retention classes reserve pins"),
-        };
-        let next_frame_pin_count = frame_pin_count
-            .checked_add(1)
-            .ok_or(UiMountedRetentionPinAdmissionDenial::AccountingOverflow)?;
-        let required_leases = usage
-            .active_leases
-            .checked_add(1)
-            .ok_or(UiMountedRetentionPinAdmissionDenial::AccountingOverflow)?;
-        let required_structural_bytes = usage
-            .lease_charged_structural_bytes
-            .checked_add(structural_bytes)
-            .ok_or(UiMountedRetentionPinAdmissionDenial::AccountingOverflow)?;
-        if !budget.admits(required_leases, required_structural_bytes) {
-            return Err(UiMountedRetentionPinAdmissionDenial::CapacityExceeded {
-                required_leases,
-                required_structural_bytes,
-                budget,
-            });
-        }
-
-        let pins = self.pins.entry(frame).or_default();
-        match class {
-            UiMountedRetentionClass::PredecessorInspection => {
-                pins.inspection = next_frame_pin_count
-            }
-            UiMountedRetentionClass::ObservationBasis => {
-                pins.observation_basis = next_frame_pin_count
-            }
-            UiMountedRetentionClass::Diagnostic => pins.diagnostic = next_frame_pin_count,
-            _ => unreachable!("only lease-backed retention classes reserve pins"),
-        }
+        let admission = UiMountedPinAdmission::admit(
+            existing.count(class),
+            self.pin_usage(class),
+            self.pin_budget(class),
+            structural_bytes,
+        )?;
+        self.pins
+            .entry(frame)
+            .or_default()
+            .set_count(class, admission.next_frame_pin_count);
         let usage = self.pin_usage_mut(class);
-        usage.active_leases = required_leases;
-        usage.lease_charged_structural_bytes = required_structural_bytes;
+        usage.active_leases = admission.required_leases;
+        usage.lease_charged_structural_bytes = admission.required_structural_bytes;
         Ok(())
     }
 
@@ -217,44 +180,20 @@ impl UiMountedFrameRetentionAuthority {
             );
             return;
         };
-        let active_for_class = match class {
-            UiMountedRetentionClass::PredecessorInspection => existing.inspection,
-            UiMountedRetentionClass::ObservationBasis => existing.observation_basis,
-            UiMountedRetentionClass::Diagnostic => existing.diagnostic,
-            _ => {
-                debug_assert!(false, "only lease-backed retention classes release pins");
-                return;
-            }
-        };
-        if active_for_class == 0 {
+        if existing.count(class) == 0 {
             debug_assert!(
                 false,
                 "a retention lease cannot release an absent class pin"
             );
             return;
         }
-
-        let usage = self.pin_usage_mut(class);
-        usage.active_leases = usage
-            .active_leases
-            .checked_sub(1)
-            .expect("retention lease accounting includes the released lease");
-        usage.lease_charged_structural_bytes = usage
-            .lease_charged_structural_bytes
-            .checked_sub(structural_bytes)
-            .expect("retention byte accounting includes the released lease");
-
+        self.release_pin_usage(class, structural_bytes);
         let pins = self
             .pins
             .get_mut(&frame)
             .expect("the frame pin was present before accounting");
-        match class {
-            UiMountedRetentionClass::PredecessorInspection => pins.inspection -= 1,
-            UiMountedRetentionClass::ObservationBasis => pins.observation_basis -= 1,
-            UiMountedRetentionClass::Diagnostic => pins.diagnostic -= 1,
-            _ => unreachable!("non-lease classes returned above"),
-        }
-        if pins.inspection == 0 && pins.observation_basis == 0 && pins.diagnostic == 0 {
+        pins.decrement(class);
+        if pins.is_empty() {
             self.pins.remove(&frame);
         }
     }
@@ -262,13 +201,13 @@ impl UiMountedFrameRetentionAuthority {
     pub(super) fn frame_is_pinned(&self, frame: UiMountedFrameIdentity) -> bool {
         self.pins
             .get(&frame)
-            .is_some_and(|pins| pins.inspection > 0 || pins.observation_basis > 0)
+            .is_some_and(|pins| pins.protects_frame())
     }
 
     pub(super) fn diagnostic_is_pinned(&self, frame: UiMountedFrameIdentity) -> bool {
         self.pins
             .get(&frame)
-            .is_some_and(|pins| pins.diagnostic > 0)
+            .is_some_and(|pins| pins.protects_diagnostics())
     }
 
     pub(super) fn diagnostics(
@@ -304,7 +243,8 @@ impl UiMountedFrameRetentionAuthority {
                     .diagnostic_usage
                     .lease_charged_structural_bytes,
             },
-            future_snapshot: Default::default(),
+            visual_snapshot: self.visual_snapshot_usage,
+            visual_overlay: self.visual_overlay_usage,
             budget: self.budget,
         }
     }
@@ -317,8 +257,44 @@ impl UiMountedFrameRetentionAuthority {
             UiMountedRetentionClass::PredecessorInspection => &mut self.inspection_usage,
             UiMountedRetentionClass::ObservationBasis => &mut self.observation_basis_usage,
             UiMountedRetentionClass::Diagnostic => &mut self.diagnostic_usage,
+            UiMountedRetentionClass::VisualSnapshot => &mut self.visual_snapshot_usage,
+            UiMountedRetentionClass::VisualOverlay => &mut self.visual_overlay_usage,
             _ => unreachable!("only lease-backed retention classes own usage"),
         }
+    }
+
+    fn pin_usage(&self, class: UiMountedRetentionClass) -> UiMountedRetentionUsageSnapshot {
+        match class {
+            UiMountedRetentionClass::PredecessorInspection => self.inspection_usage,
+            UiMountedRetentionClass::ObservationBasis => self.observation_basis_usage,
+            UiMountedRetentionClass::Diagnostic => self.diagnostic_usage,
+            UiMountedRetentionClass::VisualSnapshot => self.visual_snapshot_usage,
+            UiMountedRetentionClass::VisualOverlay => self.visual_overlay_usage,
+            _ => unreachable!("only lease-backed retention classes own usage"),
+        }
+    }
+
+    fn pin_budget(&self, class: UiMountedRetentionClass) -> UiMountedRetentionClassBudget {
+        match class {
+            UiMountedRetentionClass::PredecessorInspection => self.budget.predecessor_inspection(),
+            UiMountedRetentionClass::ObservationBasis => self.budget.observation_basis(),
+            UiMountedRetentionClass::Diagnostic => self.budget.diagnostic(),
+            UiMountedRetentionClass::VisualSnapshot => self.budget.visual_snapshot(),
+            UiMountedRetentionClass::VisualOverlay => self.budget.visual_overlay(),
+            _ => unreachable!("only lease-backed retention classes own budgets"),
+        }
+    }
+
+    fn release_pin_usage(&mut self, class: UiMountedRetentionClass, structural_bytes: usize) {
+        let usage = self.pin_usage_mut(class);
+        usage.active_leases = usage
+            .active_leases
+            .checked_sub(1)
+            .expect("retention lease accounting includes the released lease");
+        usage.lease_charged_structural_bytes = usage
+            .lease_charged_structural_bytes
+            .checked_sub(structural_bytes)
+            .expect("retention byte accounting includes the released lease");
     }
 }
 

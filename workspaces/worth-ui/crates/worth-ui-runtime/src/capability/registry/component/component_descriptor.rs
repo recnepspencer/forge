@@ -19,7 +19,10 @@ pub struct ComponentDescriptor {
     execution_lane: ComponentExecutionLane,
     canvas_spatial_contract: Option<super::ComponentCanvasSpatialContract>,
     realtime_overlay_contract: Option<super::ComponentRealtimeOverlayContract>,
-    allocation_measurement_contract: Option<super::ComponentAllocationMeasurementContract>,
+    allocation_contracts:
+        super::component_allocation_contract_state::ComponentAllocationContractState,
+    static_paint_contract: Option<super::ComponentStaticPaintContract>,
+    hit_test_contract: Option<super::ComponentHitTestContract>,
 }
 
 impl ComponentDescriptor {
@@ -41,7 +44,11 @@ impl ComponentDescriptor {
             execution_lane: ComponentExecutionLane::Passive,
             canvas_spatial_contract: None,
             realtime_overlay_contract: None,
-            allocation_measurement_contract: None,
+            allocation_contracts:
+                super::component_allocation_contract_state::ComponentAllocationContractState::empty(
+                ),
+            static_paint_contract: None,
+            hit_test_contract: None,
         }
     }
 
@@ -62,7 +69,11 @@ impl ComponentDescriptor {
             execution_lane: ComponentExecutionLane::Passive,
             canvas_spatial_contract: None,
             realtime_overlay_contract: None,
-            allocation_measurement_contract: None,
+            allocation_contracts:
+                super::component_allocation_contract_state::ComponentAllocationContractState::empty(
+                ),
+            static_paint_contract: None,
+            hit_test_contract: None,
         }
     }
 
@@ -83,7 +94,11 @@ impl ComponentDescriptor {
             execution_lane: ComponentExecutionLane::Passive,
             canvas_spatial_contract: None,
             realtime_overlay_contract: None,
-            allocation_measurement_contract: None,
+            allocation_contracts:
+                super::component_allocation_contract_state::ComponentAllocationContractState::empty(
+                ),
+            static_paint_contract: None,
+            hit_test_contract: None,
         }
     }
 
@@ -142,7 +157,30 @@ impl ComponentDescriptor {
         mut self,
         contract: super::ComponentAllocationMeasurementContract,
     ) -> Self {
-        self.allocation_measurement_contract = Some(contract);
+        self.allocation_contracts = self.allocation_contracts.record(contract);
+        self
+    }
+
+    pub fn with_static_paint(
+        mut self,
+        contract: super::ComponentStaticPaintContract,
+        allocation: super::ComponentAllocationMeasurementContract,
+    ) -> Self {
+        if !self
+            .theme_token_dependencies
+            .contains(contract.theme_token())
+        {
+            self.theme_token_dependencies
+                .push(contract.theme_token().clone());
+        }
+        self.allocation_contracts = self.allocation_contracts.record(allocation);
+        self.static_paint_contract = Some(contract);
+        self
+    }
+
+    pub fn with_hit_test(mut self, contract: super::ComponentHitTestContract) -> Self {
+        self.allocation_contracts = self.allocation_contracts.record(contract.allocation());
+        self.hit_test_contract = Some(contract);
         self
     }
 
@@ -193,6 +231,18 @@ impl ComponentDescriptor {
     pub fn allocation_measurement_contract(
         &self,
     ) -> Option<super::ComponentAllocationMeasurementContract> {
-        self.allocation_measurement_contract
+        self.allocation_contracts.resolved()
+    }
+
+    pub fn static_paint_contract(&self) -> Option<&super::ComponentStaticPaintContract> {
+        self.static_paint_contract.as_ref()
+    }
+
+    pub fn hit_test_contract(&self) -> Option<super::ComponentHitTestContract> {
+        self.hit_test_contract
+    }
+
+    pub(crate) fn has_conflicting_allocation_contracts(&self) -> bool {
+        self.allocation_contracts.is_conflicting()
     }
 }

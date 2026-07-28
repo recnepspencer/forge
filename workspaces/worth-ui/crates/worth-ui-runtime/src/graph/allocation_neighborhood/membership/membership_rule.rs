@@ -10,6 +10,9 @@ pub(crate) fn classify_allocation_neighborhood_membership_rule(
     basis: &UiMeasurementBasis,
     operator_kind: UiDeclarationPlanningOperatorKind,
 ) -> UiAllocationNeighborhoodMembershipRule {
+    if is_independent_viewport_contract(basis.declared_measurement_policy().mode()) {
+        return UiAllocationNeighborhoodMembershipRule::RootOnly;
+    }
     let neighborhood_class =
         UiAllocationNeighborhoodClass::from_measurement_hint(basis.neighborhood_class_hint());
     let dependency_entries = basis.dependency_map().entries();
@@ -45,6 +48,18 @@ pub(crate) fn classify_allocation_neighborhood_membership_rule(
     }
 
     UiAllocationNeighborhoodMembershipRule::RootOnly
+}
+
+fn is_independent_viewport_contract(
+    mode: Option<crate::declaration::UiDeclaredMeasurementMode>,
+) -> bool {
+    matches!(
+        mode,
+        Some(
+            crate::declaration::UiDeclaredMeasurementMode::FillViewport
+                | crate::declaration::UiDeclaredMeasurementMode::ViewportInset { .. }
+        )
+    )
 }
 
 fn classify_special_scope_membership_rule(
@@ -87,4 +102,27 @@ fn operator_supports_child_intrinsic_return(
             | UiDeclarationPlanningOperatorKind::Overlay
             | UiDeclarationPlanningOperatorKind::Scroll
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_independent_viewport_contract;
+    use crate::declaration::UiDeclaredMeasurementMode;
+
+    #[test]
+    fn absolute_viewport_modes_own_independent_allocation_neighborhoods() {
+        assert!(is_independent_viewport_contract(Some(
+            UiDeclaredMeasurementMode::FillViewport
+        )));
+        assert!(is_independent_viewport_contract(Some(
+            UiDeclaredMeasurementMode::ViewportInset {
+                horizontal_logical_points: 48,
+                vertical_logical_points: 24,
+            }
+        )));
+        assert!(!is_independent_viewport_contract(Some(
+            UiDeclaredMeasurementMode::HugHeight
+        )));
+        assert!(!is_independent_viewport_contract(None));
+    }
 }

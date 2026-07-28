@@ -52,6 +52,27 @@ fn phase5_manifest_rejects_unmanifested_public_growth() {
 }
 
 #[test]
+fn phase5_manifest_requires_overlay_observation_exports() {
+    let inventory = workspace_inventory();
+    let mut document = product_manifest();
+    let overlay = overlay_export_group_mut(&mut document);
+    let symbols = overlay["symbols"].as_array_mut().expect("overlay symbols");
+    let removed = symbols.pop().expect("overlay group has a public symbol");
+    let error = audit(&inventory, &document).expect_err("missing overlay export must fail");
+    assert!(error.contains("differs from its exact manifest"));
+    assert!(error.contains(removed.as_str().expect("symbol text")));
+}
+
+#[test]
+fn phase5_overlay_observations_cannot_leave_the_inspection_audience() {
+    let inventory = workspace_inventory();
+    let mut document = product_manifest();
+    overlay_export_group_mut(&mut document)["audience"] = toml::Value::String("app".to_owned());
+    let error = audit(&inventory, &document).expect_err("overlay audience reassignment must fail");
+    assert!(error.contains("belongs to another audience"), "{error}");
+}
+
+#[test]
 fn phase5_manifest_rejects_duplicate_audience_ownership() {
     let document = product_manifest();
     let journeys = super::audit_journeys(
@@ -138,4 +159,16 @@ fn phase5_inspection_audience_rejects_storage_or_materialization_authority() {
             .expect_err("forbidden inspection authority should fail");
         assert!(error.contains(forbidden));
     }
+}
+
+fn overlay_export_group_mut(document: &mut toml::Value) -> &mut toml::Value {
+    document["export_group"]
+        .as_array_mut()
+        .expect("export groups")
+        .iter_mut()
+        .find(|row| {
+            row["authority"].as_str()
+                == Some("snapshot-bound overlay identity, typed failure, and shutdown observation")
+        })
+        .expect("overlay observation export group")
 }

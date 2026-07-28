@@ -14,6 +14,11 @@ const PROCESS_POLL_SLICE: Duration = Duration::from_millis(25);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WatchedPulseTransition {
+    VisualSnapshot,
+    VisualIdentityTrace,
+    VisualOverlayPublished,
+    VisualOverlayCleared,
+    VisualSnapshotRetired,
     GreenReplacement,
     MalformedPreservation,
     CanonicalBlueRecovery,

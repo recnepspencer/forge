@@ -24,6 +24,19 @@ pub trait WorthUiMountedPublicationCertificationExt {
         deadline: worth_ui_host_contract::UiPresentationDeadline,
         now: u64,
     ) -> crate::mounting::UiMountedFrameOutcome;
+
+    fn acquire_visual_overlay_lease(
+        &self,
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    ) -> Result<
+        UiMountedVisualOverlayLeaseCertificationReceipt,
+        crate::mounting::UiMountedRetentionClass,
+    >;
+}
+
+pub struct UiMountedVisualOverlayLeaseCertificationReceipt {
+    lease: crate::mounting::UiMountedVisualOverlayLease,
 }
 
 impl<'session> WorthUiMountedFrameExecutionCertificationExt
@@ -55,5 +68,41 @@ impl WorthUiMountedPublicationCertificationExt for WorthUiActiveApplicationSessi
         now: u64,
     ) -> crate::mounting::UiMountedFrameOutcome {
         self.present_prepared_mounted_frame_internal(frame, deadline, now)
+    }
+
+    fn acquire_visual_overlay_lease(
+        &self,
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    ) -> Result<
+        UiMountedVisualOverlayLeaseCertificationReceipt,
+        crate::mounting::UiMountedRetentionClass,
+    > {
+        self.acquire_visual_overlay_for_certification(frame, binding)
+            .map(|lease| UiMountedVisualOverlayLeaseCertificationReceipt { lease })
+            .map_err(visual_retention_denial_class)
+    }
+}
+
+impl UiMountedVisualOverlayLeaseCertificationReceipt {
+    pub fn frame(&self) -> worth_ui_host_contract::UiMountedFrameIdentity {
+        self.lease.frame()
+    }
+
+    pub fn structural_bytes(&self) -> usize {
+        self.lease.structural_bytes()
+    }
+}
+
+fn visual_retention_denial_class(
+    denial: crate::mounting::UiMountedVisualRetentionDenial,
+) -> crate::mounting::UiMountedRetentionClass {
+    match denial {
+        crate::mounting::UiMountedVisualRetentionDenial::CapacityExceeded { class, .. }
+        | crate::mounting::UiMountedVisualRetentionDenial::AccountingOverflow { class } => class,
+        crate::mounting::UiMountedVisualRetentionDenial::ExpiredFrame
+        | crate::mounting::UiMountedVisualRetentionDenial::UnknownFrame => {
+            crate::mounting::UiMountedRetentionClass::VisualOverlay
+        }
     }
 }

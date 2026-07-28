@@ -9,6 +9,9 @@ use worth_ui_runtime::facade::mounted::{
 };
 
 mod adapter;
+mod visual_capture_script;
+
+use visual_capture_script::ScriptedVisualCapture;
 
 #[derive(Clone, Default)]
 pub(crate) struct ScriptedPresentationHost {
@@ -57,6 +60,11 @@ struct ScriptedPresentationState {
         worth_ui::facade::measurement_exchange::UiHostMeasurementCompletion,
     )>,
     observation_events: Vec<&'static str>,
+    visual_capture_capability: worth_ui_host_contract::UiHostCaptureCapability,
+    visual_captures: VecDeque<ScriptedVisualCapture>,
+    visual_capture_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
+    visual_cancellation_outcome: worth_ui_host_contract::UiHostCaptureCancellationOutcome,
+    visual_cancellation_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
 }
 
 impl Default for ScriptedPresentationState {
@@ -79,6 +87,12 @@ impl Default for ScriptedPresentationState {
             queued_observation: None,
             queued_measurement: None,
             observation_events: Vec::new(),
+            visual_capture_capability: worth_ui_host_contract::UiHostCaptureCapability::Unsupported,
+            visual_captures: VecDeque::new(),
+            visual_capture_calls: Vec::new(),
+            visual_cancellation_outcome:
+                worth_ui_host_contract::UiHostCaptureCancellationOutcome::CancelledBeforeReadback,
+            visual_cancellation_calls: Vec::new(),
         }
     }
 }
@@ -104,6 +118,7 @@ pub(crate) fn presented_completion() -> ScriptedSurfaceCompletion {
     ScriptedSurfaceCompletion::Presented(
         worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
+            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
             recorded_effects(),
             scripted_presentation_cost(),
         ),
@@ -123,6 +138,7 @@ impl ScriptedPresentationHost {
         self.push_presentation(UiHostSurfacePresentationOutcome::Presented(
             worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
                 UiHostSurfacePresentationMode::RecordOnly,
+                worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
                 recorded_effects(),
                 scripted_presentation_cost(),
             ),

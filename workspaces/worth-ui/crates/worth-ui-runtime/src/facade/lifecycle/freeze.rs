@@ -10,15 +10,32 @@ use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::graph::{admit_graph_handoffs, UiGraphWorldProfile};
 use std::rc::Rc;
 
+pub(crate) struct WorthUiApplicationPreparationInput {
+    pub(crate) capability_snapshot: CapabilitySnapshot,
+    pub(crate) preparation_source: WorthUiApplicationPreparationSource,
+    pub(crate) host_session_plan:
+        crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
+    pub(crate) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
+    pub(crate) graph_world_profile: UiGraphWorldProfile,
+    pub(crate) runtime_instance_basis_admissions:
+        Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
+    pub(crate) measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
+    pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+}
+
 pub(crate) fn prepare_application_authority(
-    capability_snapshot: CapabilitySnapshot,
-    preparation_source: WorthUiApplicationPreparationSource,
-    host_session_plan: crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
-    graph_world_profile: UiGraphWorldProfile,
-    runtime_instance_basis_admissions: Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
-    measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
-    query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    input: WorthUiApplicationPreparationInput,
 ) -> Result<WorthUiPreparedApplicationAuthority, WorthUiApplicationPreparationDenial> {
+    let WorthUiApplicationPreparationInput {
+        capability_snapshot,
+        preparation_source,
+        host_session_plan,
+        visual_inspection_policy,
+        graph_world_profile,
+        runtime_instance_basis_admissions,
+        measurement_inspection_evidence,
+        query_binding_plan,
+    } = input;
     let capability_snapshot = Rc::new(capability_snapshot);
     let (canonical_artifact, declaration_source_identity, semantic_handoff, declaration_artifacts) =
         preparation_source.into_prepared_parts();
@@ -48,6 +65,7 @@ pub(crate) fn prepare_application_authority(
             lifecycle,
             query_binding_plan,
             host_session_plan,
+            visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence: retained_measurement_inspection_evidence,
         },
@@ -108,6 +126,7 @@ pub(crate) fn prepare_successor_application_authority(
             lifecycle,
             query_binding_plan: current.query_binding_plan().clone(),
             host_session_plan: current.host_session_plan().clone(),
+            visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),
             measurement_inspection_evidence,
         });

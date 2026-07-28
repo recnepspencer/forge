@@ -199,7 +199,8 @@ fn two_predecessor_budget() -> UiMountedFrameRetentionBudget {
         observation_basis: UiMountedRetentionClassBudget::new(8, LARGE),
         predecessor_inspection: UiMountedRetentionClassBudget::new(2, LARGE),
         diagnostic: UiMountedRetentionClassBudget::new(0, 0),
-        future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_overlay: UiMountedRetentionClassBudget::new(0, 0),
         expired_identity_limit: 64,
     })
 }

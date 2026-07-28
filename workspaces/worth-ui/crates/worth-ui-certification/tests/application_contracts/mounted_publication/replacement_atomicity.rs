@@ -190,7 +190,8 @@ fn retention_denial_precedes_host_effects_and_preserves_active_truth() {
         observation_basis: UiMountedRetentionClassBudget::new(8, 128 * 1024 * 1024),
         predecessor_inspection: UiMountedRetentionClassBudget::new(8, 128 * 1024 * 1024),
         diagnostic: UiMountedRetentionClassBudget::new(0, 0),
-        future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_overlay: UiMountedRetentionClassBudget::new(0, 0),
         expired_identity_limit: 64,
     });
     let mut session = mounted_application_with_host_and_retention_budget(

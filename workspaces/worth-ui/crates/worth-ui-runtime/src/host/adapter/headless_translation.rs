@@ -298,6 +298,7 @@ fn node_unperformed_effects(
         matches!(
             node.diagnostic(),
             worth_ui_host_contract::UiMountedDiagnosticProjection::Reference(_)
+                | worth_ui_host_contract::UiMountedDiagnosticProjection::IdentityOverlay(_)
         )
     })?;
     if diagnostic_count > 0 {
@@ -376,6 +377,7 @@ fn has_diagnostic(projection: &UiMountedProjectionView) -> bool {
         matches!(
             node.diagnostic(),
             worth_ui_host_contract::UiMountedDiagnosticProjection::Reference(_)
+                | worth_ui_host_contract::UiMountedDiagnosticProjection::IdentityOverlay(_)
         )
     })
 }

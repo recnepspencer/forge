@@ -21,6 +21,10 @@ use super::application_authority_closure::candidate_catalog::admit_candidate_cat
 
 #[path = "filesystem_application_lifecycle/platform_pulse.rs"]
 mod platform_pulse;
+#[path = "filesystem_application_lifecycle/visual_identity.rs"]
+mod visual_identity;
+#[path = "filesystem_application_lifecycle/visual_inspection.rs"]
+mod visual_inspection;
 
 pub struct FilesystemApplicationLifecycleScenario {
     query: WorthUiInstalledQueryTestFixture,

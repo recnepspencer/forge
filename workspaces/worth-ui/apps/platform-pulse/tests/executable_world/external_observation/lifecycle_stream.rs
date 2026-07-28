@@ -295,6 +295,17 @@ impl LifecycleTraceEntry {
         let outcome = match envelope.outcome() {
             PlatformPulseLifecycleObservation::ProcessStarted(_) => "process_started",
             PlatformPulseLifecycleObservation::FirstFramePublished(_) => "first_frame_published",
+            PlatformPulseLifecycleObservation::VisualSnapshotCaptured(_) => {
+                "visual_snapshot_captured"
+            }
+            PlatformPulseLifecycleObservation::VisualPointTrace(_) => "visual_point_trace",
+            PlatformPulseLifecycleObservation::VisualOverlayPublished(_) => {
+                "visual_overlay_published"
+            }
+            PlatformPulseLifecycleObservation::VisualOverlayCleared(_) => "visual_overlay_cleared",
+            PlatformPulseLifecycleObservation::VisualSnapshotRetired(_) => {
+                "visual_snapshot_retired"
+            }
             PlatformPulseLifecycleObservation::ReplacementPublished(_) => "replacement_published",
             PlatformPulseLifecycleObservation::ReplacementDeniedPreserving(_) => {
                 "replacement_denied_preserving"

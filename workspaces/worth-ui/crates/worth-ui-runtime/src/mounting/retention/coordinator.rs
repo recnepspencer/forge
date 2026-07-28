@@ -22,6 +22,8 @@ use super::{
     UiRetentionPreparedMountedFrame,
 };
 
+mod visual_lease;
+
 pub(crate) struct UiMountedFrameRetentionCoordinator {
     authority: Rc<RefCell<UiMountedFrameRetentionAuthority>>,
 }
@@ -170,6 +172,10 @@ impl UiMountedFrameRetentionCoordinator {
         Ok(UiSelectedMountedFrameInspection {
             frame: evidence.frame(),
             relation,
+            presentation: evidence
+                .presentation_receipt()
+                .expect("published retained frames carry completed presentation truth")
+                .clone(),
             presented_binding_count: evidence.presented_binding_count(),
             mounted_instance_count: evidence.mounted_instance_count(),
             selected_node_receipt,
@@ -198,6 +204,7 @@ impl UiMountedFrameRetentionCoordinator {
         Ok(UiMountedFrameInspectionBasis {
             frame: selected.frame,
             relation: selected.relation,
+            presentation: selected.presentation,
             presented_binding_count: selected.presented_binding_count,
             mounted_instance_count: selected.mounted_instance_count,
             selected_node_receipt: selected.selected_node_receipt,
@@ -256,6 +263,7 @@ impl Default for UiMountedFrameRetentionCoordinator {
 struct UiSelectedMountedFrameInspection {
     frame: UiMountedFrameIdentity,
     relation: UiPresentedFrameBasisRelation,
+    presentation: super::super::UiMountedPresentationReceipt,
     presented_binding_count: usize,
     mounted_instance_count: usize,
     selected_node_receipt: Option<UiMountedNodeReceiptIdentity>,

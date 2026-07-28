@@ -96,7 +96,7 @@ impl UiMountedNodeReceiptIdentity {
         self.frame
     }
 
-    pub(crate) const fn mounted_instance(self) -> UiMountedInstanceIdentity {
+    pub const fn mounted_instance(self) -> UiMountedInstanceIdentity {
         self.mounted_instance
     }
 }

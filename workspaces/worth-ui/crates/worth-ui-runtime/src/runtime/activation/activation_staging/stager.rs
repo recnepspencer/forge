@@ -134,11 +134,13 @@ impl WorthUiActivationStager {
             query_rebind_plan: query_rebind_plan.clone(),
         });
         Ok(WorthUiPendingActivation::new(
-            frame_epoch,
-            candidate_application_authority,
-            staged_replacement,
-            readiness,
-            report,
+            crate::runtime::launch::WorthUiPendingActivationInput {
+                frame_epoch,
+                candidate_application_authority,
+                staged_replacement,
+                readiness,
+                staging_report: report,
+            },
         ))
     }
 }

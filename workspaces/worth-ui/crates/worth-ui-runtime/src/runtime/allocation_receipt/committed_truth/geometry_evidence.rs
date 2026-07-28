@@ -52,7 +52,7 @@ pub struct UiPortalAnchorObservationGeometryEvidence {
 impl UiCommittedAllocationGeometryEvidence {
     pub(super) fn from_candidate(candidate: &super::UiAllocationCandidate) -> Self {
         let portal_anchor_observation = portal_anchor_observation(candidate);
-        let bounds = fill_viewport_bounds(candidate)
+        let bounds = viewport_contract_bounds(candidate)
             .map(UiAllocationGeometryKnowledge::Known)
             .unwrap_or(UiAllocationGeometryKnowledge::NotKnownAtAllocation);
         Self {
@@ -102,14 +102,13 @@ impl UiCommittedAllocationGeometryEvidence {
     }
 }
 
-fn fill_viewport_bounds(
+fn viewport_contract_bounds(
     candidate: &super::UiAllocationCandidate,
 ) -> Option<UiAllocationAxisAlignedBounds> {
     let basis = candidate.measurement_basis();
     let policy = basis.declared_measurement_policy();
-    if policy.mode() != Some(crate::declaration::UiDeclaredMeasurementMode::FillViewport)
-        || policy.basis_source()
-            != Some(crate::declaration::UiDeclaredMeasurementBasisSource::ViewportExtent)
+    if policy.basis_source()
+        != Some(crate::declaration::UiDeclaredMeasurementBasisSource::ViewportExtent)
     {
         return None;
     }
@@ -118,11 +117,30 @@ fn fill_viewport_bounds(
         let crate::evidence::UiMeasurementValue::ViewportExtent(extent) = result.value() else {
             return None;
         };
+        let (x, y, width, height) = match policy.mode()? {
+            crate::declaration::UiDeclaredMeasurementMode::FillViewport => {
+                (0.0, 0.0, extent.width, extent.height)
+            }
+            crate::declaration::UiDeclaredMeasurementMode::ViewportInset {
+                horizontal_logical_points,
+                vertical_logical_points,
+            } => {
+                let horizontal = f32::from(horizontal_logical_points);
+                let vertical = f32::from(vertical_logical_points);
+                let width = extent.width - horizontal * 2.0;
+                let height = extent.height - vertical * 2.0;
+                if width <= 0.0 || height <= 0.0 {
+                    return None;
+                }
+                (horizontal, vertical, width, height)
+            }
+            crate::declaration::UiDeclaredMeasurementMode::HugHeight => return None,
+        };
         Some(UiAllocationAxisAlignedBounds {
-            x: 0.0,
-            y: 0.0,
-            width: extent.width,
-            height: extent.height,
+            x,
+            y,
+            width,
+            height,
             coordinate_space: result.coordinate_space(),
         })
     })

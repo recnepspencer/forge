@@ -12,6 +12,7 @@ pub struct UiMountedNodeProjectionView {
     allocation: super::UiMountedAllocationProjection,
     preview: super::UiMountedPreviewProjection,
     paint: super::UiMountedPaintProjection,
+    hit_test: super::UiMountedHitTestProjection,
     accessibility: super::UiMountedAccessibilityProjection,
     motion: super::UiMountedMotionProjection,
     diagnostic: super::UiMountedDiagnosticProjection,
@@ -26,6 +27,7 @@ pub struct UiMountedProjectionView {
     clips: super::UiMountedClipTable,
     layers: super::UiMountedLayerTable,
     filled_rects: super::UiMountedFilledRectTable,
+    hit_tests: super::UiMountedHitTestTable,
     paint_batches: super::UiMountedPaintBatchTable,
     spatial_batches: super::UiMountedSpatialBatchTable,
     realtime_batches: super::UiMountedRealtimeBatchTable,
@@ -40,6 +42,7 @@ pub struct UiMountedNodeProjectionViewInput {
     pub allocation: super::UiMountedAllocationProjection,
     pub preview: super::UiMountedPreviewProjection,
     pub paint: super::UiMountedPaintProjection,
+    pub hit_test: super::UiMountedHitTestProjection,
     pub accessibility: super::UiMountedAccessibilityProjection,
     pub motion: super::UiMountedMotionProjection,
     pub diagnostic: super::UiMountedDiagnosticProjection,
@@ -53,6 +56,7 @@ pub struct UiMountedProjectionViewInput {
     pub clips: super::UiMountedClipTable,
     pub layers: super::UiMountedLayerTable,
     pub filled_rects: super::UiMountedFilledRectTable,
+    pub hit_tests: super::UiMountedHitTestTable,
     pub paint_batches: super::UiMountedPaintBatchTable,
     pub spatial_batches: super::UiMountedSpatialBatchTable,
     pub realtime_batches: super::UiMountedRealtimeBatchTable,
@@ -69,6 +73,7 @@ impl UiMountedNodeProjectionView {
             allocation: input.allocation,
             preview: input.preview,
             paint: input.paint,
+            hit_test: input.hit_test,
             accessibility: input.accessibility,
             motion: input.motion,
             diagnostic: input.diagnostic,
@@ -95,6 +100,9 @@ impl UiMountedNodeProjectionView {
     pub fn paint(&self) -> super::UiMountedPaintProjection {
         self.paint
     }
+    pub fn hit_test(&self) -> super::UiMountedHitTestProjection {
+        self.hit_test
+    }
     pub fn accessibility(&self) -> super::UiMountedAccessibilityProjection {
         self.accessibility
     }
@@ -116,6 +124,7 @@ impl UiMountedProjectionView {
             clips: input.clips,
             layers: input.layers,
             filled_rects: input.filled_rects,
+            hit_tests: input.hit_tests,
             paint_batches: input.paint_batches,
             spatial_batches: input.spatial_batches,
             realtime_batches: input.realtime_batches,
@@ -142,6 +151,9 @@ impl UiMountedProjectionView {
     }
     pub fn filled_rects(&self) -> &super::UiMountedFilledRectTable {
         &self.filled_rects
+    }
+    pub fn hit_tests(&self) -> &super::UiMountedHitTestTable {
+        &self.hit_tests
     }
     pub fn paint_batches(&self) -> &super::UiMountedPaintBatchTable {
         &self.paint_batches

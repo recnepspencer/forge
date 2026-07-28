@@ -11,6 +11,16 @@ audience = "app"
 path = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
 
 [[journey]]
+id = "governed-visual-snapshot-app"
+audience = "app"
+path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+
+[[journey]]
+id = "governed-visual-snapshot-inspection"
+audience = "inspection"
+path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+
+[[journey]]
 id = "authored-application"
 audience = "declaration"
 path = "crates/worth-ui/tests/ui/facade_visibility/pass/facade_only_app_remains_ergonomic.rs"
@@ -148,6 +158,19 @@ symbols = [
 ]
 
 [[export_group]]
+audience = "app"
+source = "facade/app.rs"
+stability = "evolving-product-contract"
+authority = "runtime-originated mounted inspection selection and target denial"
+caller = "governed-visual-snapshot-app"
+symbols = [
+  "UiMountedInspectedFrame",
+  "UiMountedInspectionReceipt",
+  "UiMountedInspectionRequest",
+  "UiMountedVisualTargetDenial",
+]
+
+[[export_group]]
 audience = "declaration"
 source = "facade/declaration.rs"
 stability = "evolving-product-contract"
@@ -180,6 +203,8 @@ symbols = [
   "ComponentDescriptor",
   "ComponentExecutionLane",
   "ComponentFocusSupport",
+  "ComponentHitTestContract",
+  "ComponentHitTestOrder",
   "ComponentId",
   "ComponentPropSchema",
   "ComponentRealtimeOverlayContract",
@@ -187,6 +212,9 @@ symbols = [
   "ComponentRealtimeOverlayContractDenialReason",
   "ComponentRealtimeOverlayPriority",
   "ComponentStateOwnership",
+  "ComponentStaticPaintContract",
+  "ComponentStaticPaintOrder",
+  "ComponentViewportInset",
   "IconAccessibilityPosture",
   "IconColorSupport",
   "IconDescriptor",
@@ -519,6 +547,7 @@ stability = "evolving-product-contract"
 authority = "compact read-only evidence"
 caller = "compact-inspection"
 symbols = [
+  "SealedPixelArtifactPolicy",
   "UiAllocationInspectionAnchorPosture",
   "UiAllocationInspectionAttemptResult",
   "UiAllocationInspectionAxis",
@@ -546,6 +575,11 @@ symbols = [
   "UiAllocationReceiptDenialInspectionReceipt",
   "UiAllocationReceiptInspectionReceipt",
   "UiAuthoredSourceProvenanceRef",
+  "UiClearedVisualOverlayReceipt",
+  "UiClientPhysicalPixel",
+  "UiClientPhysicalRect",
+  "UiClientRegionVisualTarget",
+  "UiCurrentPresentedSurfaceTarget",
   "UiEvidenceAuthorityArtifactIdentity",
   "UiEvidenceAuthorityBinding",
   "UiEvidenceAuthorityGeneration",
@@ -566,6 +600,8 @@ symbols = [
   "UiEvidenceSlice",
   "UiEvidenceSliceOmission",
   "UiEvidenceSliceRef",
+  "UiGeometryOnly",
+  "UiHostSurfaceLogicalPoint",
   "UiInspectionAdmissionHostCapability",
   "UiInspectionAdmissionPosture",
   "UiInspectionAdmissionQueryBasis",
@@ -643,8 +679,109 @@ symbols = [
   "UiInspectionUnsupportedPosture",
   "UiInspectionWrongWorldPosture",
   "UiMeasurementInspectionEvidenceBundle",
+  "UiMountedNodeVisualTarget",
+  "UiNativeScreenPhysicalPixel",
+  "UiPendingVisualCapture",
+  "UiPendingVisualOverlay",
+  "UiPixelsOptional",
+  "UiPixelsRequired",
+  "UiPublishedVisualOverlay",
   "UiRelevanceFamily",
   "UiRelevanceFilter",
+  "UiRetainedPresentedSurfaceTarget",
+  "UiSnapshotClientPixel",
+  "UiViewportLogicalPoint",
+  "UiVisualArtifactPolicy",
+  "UiVisualAuthoredProvenance",
+  "UiVisualCancellationPosture",
+  "UiVisualCancellationReceipt",
+  "UiVisualCaptureCancellation",
+  "UiVisualCaptureDeadline",
+  "UiVisualCapturePoll",
+  "UiVisualCaptureShutdownReport",
+  "UiVisualContributorStack",
+  "UiVisualCoordinateDenial",
+  "UiVisualCoordinateObservation",
+  "UiVisualCoordinateOrientation",
+  "UiVisualCoordinateRounding",
+  "UiVisualCoordinateScope",
+  "UiVisualDeclarationRef",
+  "UiVisualEvidenceRef",
+  "UiVisualGeometryGrant",
+  "UiVisualGraphNodeRef",
+  "UiVisualGrantLifetime",
+  "UiVisualGrantScope",
+  "UiVisualGrantSurfaceScope",
+  "UiVisualHitTestOutcome",
+  "UiVisualHitTestTarget",
+  "UiVisualIdentityTrace",
+  "UiVisualInspectionAudience",
+  "UiVisualInspectionByteBudget",
+  "UiVisualInspectionCapacity",
+  "UiVisualInspectionDisclosure",
+  "UiVisualInspectionCostLane",
+  "UiVisualInspectionCostReceipt",
+  "UiVisualInspectionPolicy",
+  "UiVisualInspectionPolicyDenial",
+  "UiVisualInspectionRegionCapacity",
+  "UiVisualMountedNodeRef",
+  "UiVisualOverlayGrant",
+  "UiVisualOverlayTarget",
+  "UiVisualPixelArtifact",
+  "UiVisualPixelCaptureGrant",
+  "UiVisualPixelColorSpace",
+  "UiVisualPixelFormat",
+  "UiVisualPixelRedaction",
+  "UiVisualPixelRetentionDisposition",
+  "UiVisualPointAdjudication",
+  "UiVisualRegionAdjudication",
+  "UiVisualRegionCompleteness",
+  "UiVisualRegionIntersection",
+  "UiVisualSnapshotAffinity",
+  "UiVisualSnapshotArtifactPosture",
+  "UiVisualSnapshotDenial",
+  "UiVisualSnapshotDisposalReceipt",
+  "UiVisualSnapshotEvidence",
+  "UiVisualSnapshotIdentity",
+  "UiVisualSnapshotIndeterminate",
+  "UiVisualSnapshotOmission",
+  "UiVisualSnapshotOutcome",
+  "UiVisualSnapshotReceipt",
+  "UiVisualSnapshotRelation",
+  "UiVisualSnapshotRequest",
+  "UiVisualSnapshotSuperseded",
+  "UiVisualTarget",
+  "UiVisualVisibleContributor",
+  "UiVisualVisibleOutcome",
+  "WorthUiVisualInspectionAuthority",
+]
+
+[[export_group]]
+audience = "inspection"
+source = "facade/inspection.rs"
+stability = "evolving-product-contract"
+authority = "snapshot-scoped coordinates and immutable index and pixel provenance"
+caller = "governed-visual-snapshot-inspection"
+symbols = [
+  "UiHitTestRegionIndexIdentity",
+  "UiSnapshotClientRegion",
+  "UiVisibleRegionIndexIdentity",
+  "UiVisualPixelCaptureSource",
+  "UiVisualQueryBudget",
+]
+
+[[export_group]]
+audience = "inspection"
+source = "facade/inspection.rs"
+stability = "evolving-product-contract"
+authority = "snapshot-bound overlay identity, typed failure, and shutdown observation"
+caller = "governed-visual-snapshot-inspection"
+symbols = [
+  "UiVisualOverlayClearFailure",
+  "UiVisualOverlayDenial",
+  "UiVisualOverlayIdentity",
+  "UiVisualOverlayPublicationFailure",
+  "UiVisualOverlayShutdownReport",
 ]
 
 [[export_group]]

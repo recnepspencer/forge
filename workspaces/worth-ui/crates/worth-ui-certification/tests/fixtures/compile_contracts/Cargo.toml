@@ -156,3 +156,55 @@ path = "../../ui/host/external_callers_cannot_forge_mounted_consumption.rs"
 [[bin]]
 name = "certification-shared-inspection-contract"
 path = "../../ui/inspection/ai_and_human_callers_share_inspection_contract.rs"
+
+[[bin]]
+name = "product-visual-snapshot-lifecycle"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+
+[[bin]]
+name = "product-visual-snapshot-wrong-grant"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/grant_substitution_is_rejected.rs"
+
+[[bin]]
+name = "product-visual-snapshot-pixel-grant-geometry"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/pixel_grant_cannot_authorize_geometry.rs"
+
+[[bin]]
+name = "product-visual-snapshot-overlay-grant-pixels"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/overlay_grant_cannot_authorize_pixels.rs"
+
+[[bin]]
+name = "product-visual-snapshot-geometry-pixels"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/geometry_receipt_has_no_pixels.rs"
+
+[[bin]]
+name = "product-visual-snapshot-raw-target"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/raw_target_construction_is_rejected.rs"
+
+[[bin]]
+name = "product-visual-snapshot-coordinate-escape"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/snapshot_coordinate_cannot_escape.rs"
+
+[[bin]]
+name = "product-visual-snapshot-region-escape"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/snapshot_region_cannot_escape.rs"
+
+[[bin]]
+name = "product-visual-snapshot-cancelled-reuse"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/cancelled_capture_cannot_be_reused.rs"
+
+[[bin]]
+name = "product-visual-snapshot-explicit-hit-order"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/hit_test_requires_distinct_explicit_order.rs"
+
+[[bin]]
+name = "product-visual-snapshot-index-non-substitution"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/hit_test_index_cannot_replace_visible_index.rs"
+
+[[bin]]
+name = "product-visual-overlay-wrong-grant"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/pixel_grant_cannot_publish_overlay.rs"
+
+[[bin]]
+name = "product-visual-overlay-consumed-clear"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/published_overlay_cannot_clear_twice.rs"

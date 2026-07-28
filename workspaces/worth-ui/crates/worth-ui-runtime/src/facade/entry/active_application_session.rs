@@ -16,6 +16,12 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) host_session: crate::facade::WorthUiHostSessionAuthority,
     pub(super) mounted: crate::mounting::WorthUiMountedSessionState,
     pub(super) host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) visual_inspection:
+        crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
+    pub(super) next_visual_capture_identity: u64,
+    pub(super) next_visual_overlay_identity: u64,
+    pub(super) visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry,
+    pub(super) visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry,
 }
 
 /// Inspection evidence bound to the exact generation currently executing.
@@ -30,10 +36,12 @@ impl WorthUiActiveApplicationSession {
         runtime: WorthUiRuntime,
         host_session: crate::facade::WorthUiHostSessionAuthority,
     ) -> Result<Self, crate::runtime::WorthUiRuntimeLaunchDenial> {
-        let identity =
-            WorthUiActiveApplicationSessionIdentity::from_host_session(host_session.identity());
+        let identity = WorthUiActiveApplicationSessionIdentity::from_host_session_value(
+            host_session.identity().as_u64(),
+        );
         let mounted_frame_retention_budget = app.mounted_frame_retention_budget();
         let host_observation_capacity = app.host_observation_capacity();
+        let visual_policy = app.visual_inspection_policy();
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
@@ -41,6 +49,11 @@ impl WorthUiActiveApplicationSession {
             mounted_frame_retention_budget,
         )
         .map_err(|_| crate::runtime::WorthUiRuntimeLaunchDenial::MountedIdentityExhausted)?;
+        let visual_inspection =
+            crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority::seal(
+                identity,
+                visual_policy,
+            );
         Ok(Self {
             identity,
             application,
@@ -49,6 +62,13 @@ impl WorthUiActiveApplicationSession {
             host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState::new(
                 host_observation_capacity,
             ),
+            visual_inspection,
+            next_visual_capture_identity: 1,
+            next_visual_overlay_identity: 1,
+            visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry::new(
+                visual_policy,
+            ),
+            visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry::new(),
         })
     }
 
@@ -108,9 +128,11 @@ impl WorthUiActiveApplicationSession {
         }
         let host_session_identity = self.host_session.identity();
         let turn = self.application.execute_framework_turn(collect_sources);
-        let (generation_identity, graph, active_plan_digest, completion) = turn.into_parts();
+        let (generation_identity, visual_trace_source, graph, active_plan_digest, completion) =
+            turn.into_parts();
         Ok(WorthUiActiveFrameworkTurnCompletion {
             generation_identity,
+            visual_trace_source,
             graph,
             active_plan_digest,
             host_session_identity,
@@ -224,6 +246,8 @@ impl WorthUiActiveApplicationSession {
     }
 
     pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
+        let visual_capture = self.visual_captures.shutdown();
+        let visual_overlay = self.visual_overlays.shutdown();
         let (mounted_presentation, outcomes) =
             self.mounted.shutdown_presentation(&self.host_session);
         for outcome in outcomes {
@@ -234,6 +258,8 @@ impl WorthUiActiveApplicationSession {
         let host_session_release = self.host_session.release_adapter_session();
         self.application
             .shutdown()
+            .bind_visual_capture(visual_capture)
+            .bind_visual_overlay(visual_overlay)
             .bind_mounted_presentation(mounted_presentation)
             .bind_host_session_release(host_session_release)
     }

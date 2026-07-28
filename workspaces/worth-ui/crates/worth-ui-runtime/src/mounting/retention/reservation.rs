@@ -54,14 +54,20 @@ impl UiMountedRetentionReservation {
         }
     }
 
-    pub(crate) fn commit(mut self, mount_cost: super::super::UiMountCostReport) {
+    pub(crate) fn commit(
+        mut self,
+        mount_cost: super::super::UiMountCostReport,
+        presentation: super::super::UiMountedPresentationReceipt,
+    ) {
         let mut authority = self.authority.borrow_mut();
         debug_assert_eq!(
             authority.revision, self.expected_revision,
             "retention authority cannot change while its presentation is in flight"
         );
         if let Some(current) = self.successor.current.as_mut() {
-            Rc::make_mut(current).set_mount_cost(mount_cost);
+            let current = Rc::make_mut(current);
+            current.set_mount_cost(mount_cost);
+            current.set_presentation_receipt(presentation);
         }
         authority.frames = std::mem::take(&mut self.successor);
         authority.revision = self.successor_revision;

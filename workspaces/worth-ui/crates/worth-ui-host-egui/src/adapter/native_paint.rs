@@ -6,6 +6,7 @@ use worth_ui_host_contract::{
 
 #[derive(Clone)]
 pub(super) struct UiEguiPreparedNativePaint {
+    layer: egui::LayerId,
     filled_rects: Vec<UiEguiPreparedFilledRect>,
 }
 
@@ -40,7 +41,10 @@ impl UiEguiPreparedNativePaint {
             return Err(UiHostSurfacePresentationDenial::MalformedProjection);
         }
         filled_rects.sort_by_key(|row| row.layer_semantic_order);
-        Ok(Self { filled_rects })
+        Ok(Self {
+            layer: surface_layer(projection.binding()),
+            filled_rects,
+        })
     }
 
     pub(super) fn is_empty(&self) -> bool {
@@ -48,17 +52,21 @@ impl UiEguiPreparedNativePaint {
     }
 
     pub(super) fn paint(&self, context: &egui::Context) {
+        let painter = context.layer_painter(self.layer);
         for row in &self.filled_rects {
-            let layer = egui::LayerId::new(
-                egui::Order::Middle,
-                egui::Id::new(("worth-ui-mounted", row.layer_semantic_order)),
-            );
-            context
-                .layer_painter(layer)
+            painter
+                .clone()
                 .with_clip_rect(row.clip_rect)
                 .rect_filled(row.rect, 0.0, row.color);
         }
     }
+}
+
+fn surface_layer(binding: worth_ui_host_contract::UiSurfaceBindingGeneration) -> egui::LayerId {
+    egui::LayerId::new(
+        egui::Order::Middle,
+        egui::Id::new(("worth-ui-mounted-surface", binding.diagnostic_value())),
+    )
 }
 
 fn validate_protocol(
@@ -148,3 +156,7 @@ fn egui_rect(bounds: worth_ui_host_contract::UiMountedCanonicalBox) -> egui::Rec
         egui::vec2(bounds.width(), bounds.height()),
     )
 }
+
+#[cfg(test)]
+#[path = "native_paint_tests.rs"]
+mod tests;

@@ -11,6 +11,7 @@ mod lowering_authority;
 mod query_binding_plan_identity;
 #[cfg(test)]
 mod tests;
+mod visual_trace_source;
 
 pub(crate) use application_artifact::WorthUiPreparedApplicationArtifact;
 pub use application_artifact::WorthUiPreparedApplicationArtifactPosture;
@@ -25,3 +26,4 @@ pub(crate) use generation_witness::WorthUiPreparedApplicationGenerationWitness;
 pub use host_session_plan::WorthUiHostSessionPlan;
 pub(crate) use launch_admission::WorthUiPreparedLaunchAdmission;
 pub(crate) use lowering_authority::WorthUiPreparedApplicationLoweringAuthority;
+pub(crate) use visual_trace_source::WorthUiPreparedVisualTraceSource;

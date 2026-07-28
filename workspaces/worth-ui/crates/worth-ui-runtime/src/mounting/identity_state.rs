@@ -66,6 +66,8 @@ pub(crate) struct UiMountedIdentityState {
     current_manifest: Option<worth_ui_host_contract::UiMountedFrameManifest>,
     current_core: Option<worth_ui_host_contract::UiMountedFrameCanonicalCore>,
     current_publication: Option<super::UiMountedFramePublicationReceipt>,
+    current_trace_source:
+        Option<crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource>,
     current_reuse_contract: Option<super::UiMountedFrameReuseContract>,
     pending_projection_changes: super::UiMountedProjectionChanges,
     semantic_revision: u64,
@@ -99,6 +101,7 @@ impl UiMountedIdentityState {
             current_manifest: None,
             current_core: None,
             current_publication: None,
+            current_trace_source: None,
             current_reuse_contract: None,
             pending_projection_changes: Default::default(),
             semantic_revision,

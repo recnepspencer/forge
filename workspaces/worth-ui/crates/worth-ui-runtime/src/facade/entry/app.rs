@@ -79,10 +79,22 @@ impl WorthUiApp {
             .host_observation_capacity()
     }
 
+    pub(super) const fn visual_inspection_policy(
+        &self,
+    ) -> worth_ui_inspection::UiVisualInspectionPolicy {
+        self.prepared.visual_inspection_policy()
+    }
+
     /// Borrow the sealed prepared authority without transferring any
     /// independently launchable constituent.
     pub(crate) fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
         &self.prepared
+    }
+
+    pub(crate) fn visual_trace_source(
+        &self,
+    ) -> crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource {
+        self.prepared.visual_trace_source()
     }
 
     /// Inspect the immutable capability snapshot owned by this app.

@@ -29,6 +29,8 @@ impl PlatformPulseLifecycleObservationStream {
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
         self.published_predecessor()?;
+        let visual_capture = application.visual_capture();
+        let visual_overlay = application.visual_overlay();
         let outcome =
             PlatformPulseLifecycleObservation::ShutdownCompleted(PlatformPulseShutdownCompleted {
                 watcher_backend: watcher_backend(watcher.backend()),
@@ -36,6 +38,13 @@ impl PlatformPulseLifecycleObservationStream {
                 mounted_shutdown_attempt_count: application.mounted_shutdown_attempt_count() as u64,
                 host_session_released: application.host_session_released(),
                 released_surface_count: application.released_surface_count() as u64,
+                cancelled_visual_capture_count: visual_capture.cancelled_capture_count() as u64,
+                disposed_visual_snapshot_count: visual_capture.disposed_snapshot_count() as u64,
+                disposed_visual_pixel_bytes: visual_capture.disposed_pixel_bytes(),
+                disposed_visual_structural_bytes: visual_capture.disposed_structural_bytes(),
+                cancelled_pending_overlay_count: visual_overlay.cancelled_pending_count() as u64,
+                disposed_published_overlay_count: visual_overlay.disposed_published_count() as u64,
+                disposed_clearing_overlay_count: visual_overlay.disposed_clearing_count() as u64,
             });
         let envelope = self.next_envelope(outcome)?;
         self.state = PlatformPulseObservationState::Terminal;
@@ -145,6 +154,15 @@ impl PlatformPulseLifecycleObservationStream {
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
         self.project_terminal(PlatformPulseTerminalFailureFamily::SourceWorkerPanicked)
+    }
+
+    pub fn project_visual_identity_failure(
+        &mut self,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(PlatformPulseTerminalFailureFamily::VisualIdentity)
     }
 
     pub fn project_native_event_loop_failure(
