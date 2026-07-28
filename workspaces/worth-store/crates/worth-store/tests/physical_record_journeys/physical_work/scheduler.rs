@@ -36,17 +36,16 @@ fn ready_work_lowers_exact_budget_and_admits_without_effects() {
     assert_eq!(work.durability_class(), QueueDurabilityClass::BufferedWrite);
     assert_eq!(work.requested_budget().queue_slots(), 1);
     assert_eq!(work.requested_budget().bandwidth_tokens(), 8);
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     let admitted = serving
-        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(work.requested_budget()))
+        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(requested_budget))
         .unwrap();
-    assert_eq!(
-        admitted.queue_plan().admitted_budget(),
-        work.requested_budget()
-    );
+    assert_eq!(admitted.queue_plan().admitted_budget(), requested_budget);
     let grouping = admitted.queue_plan().grouping_basis();
     assert_eq!(
         grouping.security_scope_identity(),
@@ -72,15 +71,17 @@ fn budget_mismatch_preserves_the_scheduler_denial() {
         PhysicalSchedulerDemand::foreground(ready, super::reserved_page_write(&serving), None)
             .unwrap();
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     assert!(matches!(
         serving.admit_physical_scheduler_demand(
             demand,
             &backend,
-            mismatched_policy_receipt(work.requested_budget())
+            mismatched_policy_receipt(requested_budget)
         ),
         Err(PhysicalSchedulerDenial::Queue(
             QueueExecutionAdmissionDenial::PolicyReceiptBudgetMismatch { .. }
@@ -96,8 +97,10 @@ fn policy_receipt_for_planning_cannot_admit_authoritative_physical_io() {
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let demand = write_demand(&serving, ready_work(&serving, mutation_request));
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
 
@@ -106,7 +109,7 @@ fn policy_receipt_for_planning_cannot_admit_authoritative_physical_io() {
             demand,
             &backend,
             policy_receipt_for(
-                work.requested_budget(),
+                requested_budget,
                 0,
                 FoundationalPerformanceWorkClass::ValidationPlanning,
             ),
@@ -277,17 +280,15 @@ fn a_scheduler_demand_cannot_cross_store_owners() {
     let second = serving_from_initialization_with_work_profile(second_root.path(), profile);
     let demand = write_demand(&first, ready_work(&first, mutation_request));
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = second
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let before = second.media_counters();
 
     assert!(matches!(
-        second.admit_physical_scheduler_demand(
-            demand,
-            &backend,
-            policy_receipt(work.requested_budget())
-        ),
+        second.admit_physical_scheduler_demand(demand, &backend, policy_receipt(requested_budget)),
         Err(PhysicalSchedulerDenial::PreEffect(
             worth_store::physical_runtime::PhysicalWorkPreEffectDenial::ForeignStore
         ))

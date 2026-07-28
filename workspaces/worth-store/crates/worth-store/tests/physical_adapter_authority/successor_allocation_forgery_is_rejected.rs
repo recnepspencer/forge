@@ -6,7 +6,7 @@ fn unavailable<T>() -> T {
     }
 }
 
-fn forge() -> RecoveryPhysicalAllocation {
+fn forge() -> RecoveryPhysicalAllocation<'static> {
     RecoveryPhysicalAllocation {
         allocation: unavailable(),
     }

@@ -1,0 +1,12 @@
+error[E0505]: cannot move out of `runtime` because it is borrowed
+  --> tests/physical_adapter_authority/successor_runtime_cannot_close_with_live_allocation.rs:10:19
+   |
+ 5 | fn close_with_live_allocation(runtime: ServingPhysicalRuntime, bytes: NonZeroU64) {
+   |                               ------- binding `runtime` declared here
+ 6 |     let allocation = runtime
+   |                      ------- borrow of `runtime` occurs here
+...
+10 |     let _closed = runtime.close();
+   |                   ^^^^^^^ move out of `runtime` occurs here
+11 |     drop(allocation);
+   |          ---------- borrow later used here

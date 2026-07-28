@@ -54,8 +54,10 @@ pub(super) fn admit_read(
     )
     .unwrap();
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = super::super::scheduler::secure_demand(demand, &backend);
     serving
@@ -63,7 +65,7 @@ pub(super) fn admit_read(
             demand,
             &backend,
             super::super::scheduler::policy_receipt_for(
-                work.requested_budget(),
+                requested_budget,
                 0,
                 FoundationalPerformanceWorkClass::AuthoritativeRead,
             ),
@@ -84,15 +86,17 @@ pub(super) fn deny_scheduler_breadth(
     )
     .unwrap();
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     assert!(matches!(
         serving.admit_physical_scheduler_demand(
             demand,
             &backend,
             super::super::scheduler::exhausted_policy_receipt(
-                work.requested_budget(),
+                requested_budget,
                 FoundationalPerformanceWorkClass::AuthoritativeRead,
             ),
         ),
@@ -207,15 +211,17 @@ fn admit_write(
 ) -> ResourceAdmittedPhysicalWork {
     let demand = super::super::scheduler::write_demand(serving, ready);
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = super::super::scheduler::secure_demand(demand, &backend);
     serving
         .admit_physical_scheduler_demand(
             demand,
             &backend,
-            super::super::policy_receipt(work.requested_budget()),
+            super::super::policy_receipt(requested_budget),
         )
         .unwrap()
 }

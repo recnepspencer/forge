@@ -82,12 +82,14 @@ fn pre_effect_backend_denial_is_the_only_retryable_physical_failure() {
     let (ready, retry_command, _signal) = admission.into_parts();
     let demand = write_demand(&serving, ready);
     let queue = demand.queue_work();
+    let backend_requirement = queue.backend_requirement();
+    let requested_budget = queue.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(queue.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     let admitted = serving
-        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(queue.requested_budget()))
+        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(requested_budget))
         .unwrap();
     let retry_outcome = serving
         .execute_physical_work(retry_command.bind(admitted).unwrap())

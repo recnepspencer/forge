@@ -6,10 +6,12 @@ use std::{
 use super::workspace_source::{read, workspace_relative};
 use crate::workspace_root;
 
+mod consumer_family;
 mod direct_pool_reference;
+mod legacy_module_closure;
 mod replacement_owner;
 
-use direct_pool_reference::is_direct_pool_consumer;
+use consumer_family::discover_families;
 
 const REMOVAL_LEDGER: &str = "_docs/worth-store/physical-reconstruction-c6-removal-ledger.csv";
 
@@ -102,6 +104,19 @@ fn inventory_gate_rejects_unclassified_consumers() {
     );
     assert!(families.contains("legacy-s2-feature"));
 
+    let indirect_alias = discover_families(
+        "crates/example/Cargo.toml",
+        r#"
+[features]
+bridge = ["worth-store-buffer-pool/legacy-s2-models"]
+certification = ["bridge"]
+"#,
+    );
+    assert!(
+        indirect_alias.contains("legacy-s2-feature"),
+        "the manifest edge is legacy even when an aggregate alias gates independent modules"
+    );
+
     let certification = discover_families(
         "crates/worth-store-certification/src/new_consumer.rs",
         "use worth_store_buffer_pool::PhysicalResidencyCounters;",
@@ -135,8 +150,10 @@ fn inventory_gate_rejects_stale_open_and_rediscovered_deleted_rows() {
 }
 
 fn discover_consumers() -> Result<BTreeMap<String, BTreeSet<String>>, String> {
+    let workspace = workspace_root();
+    let sources = inventory_sources(&workspace)?;
     let mut discovered = BTreeMap::new();
-    for path in inventory_sources(&workspace_root())? {
+    for path in &sources {
         let relative = workspace_relative(&path);
         if EXCLUDED_POLICY_SOURCES
             .iter()
@@ -150,81 +167,17 @@ fn discover_consumers() -> Result<BTreeMap<String, BTreeSet<String>>, String> {
             discovered.insert(relative, families);
         }
     }
-    Ok(discovered)
-}
-
-fn discover_families(path: &str, source: &str) -> BTreeSet<String> {
-    let mut families = BTreeSet::new();
-    if path.contains("c6_handoff") {
-        families.insert("temporary-handoff".to_owned());
-    }
-    if path.contains("crates/worth-store-buffer-pool/src/background_work/queue_execution") {
-        families.insert("isolated-speculative-queue".to_owned());
-    }
-    if path_tokens(path)
-        .chain(path_tokens(source))
-        .any(|token| token.starts_with("C6") || token.starts_with("c6_"))
-    {
-        families.insert("c6-identifier".to_owned());
-    }
-    for (fragment, family) in [
-        ("legacy-s2-models", "legacy-s2-feature"),
-        (
-            "legacy-certification-models",
-            "legacy-certification-feature",
-        ),
-        ("S2PhysicalResidencyEntry", "snapshot-residency-authority"),
-        ("S2PhysicalEntryFacts", "snapshot-residency-authority"),
-        ("ResidentFrameTable", "legacy-frame-table"),
-        ("ZeroCopyRecordView", "legacy-record-view"),
-        ("BoundedCopyRecordView", "legacy-record-view"),
-        ("RecordViewMaterializationProfile", "legacy-record-view"),
-        (
-            "SchedulerIsolationCapability",
-            "scheduler-isolation-publication",
-        ),
-        (
-            "IoSchedulerIsolationAdmission",
-            "scheduler-isolation-publication",
-        ),
-        (
-            "TierPlacementIoAdmission",
-            "scheduler-isolation-publication",
-        ),
-        (
-            "BackgroundPacingProgressionEvidence",
-            "scheduler-isolation-publication",
-        ),
-    ] {
-        if source.contains(fragment) {
-            families.insert(family.to_owned());
+    for (path, families) in legacy_module_closure::discover(&workspace, &sources)? {
+        let relative = workspace_relative(&path);
+        if EXCLUDED_POLICY_SOURCES
+            .iter()
+            .any(|excluded| relative == *excluded || relative.starts_with(excluded))
+        {
+            continue;
         }
+        discovered.entry(relative).or_insert(families);
     }
-    if [
-        "readiness/scheduler_capability.rs",
-        "readiness/isolation_denial.rs",
-        "readiness/isolation_evidence/basis.rs",
-        "readiness/interference/assumptions.rs",
-        "executed_isolation_evidence/performance_receipt.rs",
-        "io_readiness/mod.rs",
-        "io_readiness/placement.rs",
-        "io_qos_readiness_handoff.rs",
-        "placement/admission/verification/readiness_basis_match.rs",
-        "certification_test_authority/placement_readiness.rs",
-    ]
-    .iter()
-    .any(|deleted| path.ends_with(deleted))
-    {
-        families.insert("scheduler-isolation-publication".to_owned());
-    }
-    if families.is_empty() && is_direct_pool_consumer(path, source) {
-        families.insert("direct-pool-consumer".to_owned());
-    }
-    families
-}
-
-fn path_tokens(value: &str) -> impl Iterator<Item = &str> {
-    value.split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+    Ok(discovered)
 }
 
 fn removal_ledger() -> Result<BTreeMap<String, RemovalRow>, String> {

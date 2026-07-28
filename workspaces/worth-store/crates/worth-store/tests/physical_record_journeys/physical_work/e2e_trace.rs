@@ -223,8 +223,10 @@ fn assert_scheduler_breadth_exhaustion(
     )
     .unwrap();
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     assert!(matches!(
@@ -232,7 +234,7 @@ fn assert_scheduler_breadth_exhaustion(
             demand,
             &backend,
             exhausted_policy_receipt(
-                work.requested_budget(),
+                requested_budget,
                 FoundationalPerformanceWorkClass::AuthoritativeRead,
             ),
         ),
@@ -256,8 +258,10 @@ fn admitted_read(
     )
     .unwrap();
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     serving
@@ -265,7 +269,7 @@ fn admitted_read(
             demand,
             &backend,
             policy_receipt_for(
-                work.requested_budget(),
+                requested_budget,
                 0,
                 FoundationalPerformanceWorkClass::AuthoritativeRead,
             ),

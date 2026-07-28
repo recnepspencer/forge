@@ -1,0 +1,8 @@
+error: lifetime may not live long enough
+ --> tests/physical_adapter_authority/successor_allocation_cannot_escape_runtime.rs:9:5
+  |
+6 |     runtime: &ServingPhysicalRuntime,
+  |              - let's call the lifetime of this reference `'1`
+...
+9 |     runtime.physical_allocations().admit_blob(bytes).unwrap()
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ returning this value requires that `'1` must outlive `'static`

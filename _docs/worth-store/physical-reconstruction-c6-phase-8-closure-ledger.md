@@ -27,6 +27,12 @@ The move-owned scheduler execution batch resumes from checkpoint
 exposed seven mixed-cutover errors and proved that background authority still
 becomes clonable after lease lowering.
 
+The legacy-module closure audit resumes from clean commit
+`4473a9d58313ec01f1e1d7c94612424a0f3f2a6e`. The strengthened inventory
+generator exposed 46 identifier-free Rust files beneath legacy-gated module
+roots that the prior leaf-identifier classifier did not require the removal
+ledger to classify.
+
 The final source fingerprint is `OPEN` until implementation and all corrections
 have stopped.
 
@@ -88,6 +94,8 @@ inspected.
 | `C6-P8-P16` | Scheduler-native policy cannot become physical-isolation or Store authority: the scheduler has no physical-isolation/recovery dependency, copied readiness admission, generic `AuthorityMarker`, or counter-derived execution capability. Cross-domain physical composition occurs only at Store. | Dependency/source absence, public API inspection, policy-versus-authority type review, compile mutants, Store scheduler journeys. | `OPEN` |
 | `C6-P8-P17` | Scheduler execution capacity is concrete, move-owned, and single-consumption through lease, queue declaration, policy admission, ready plan, and consuming-domain handoff: none can be cloned to admit or execute the same capacity twice; non-admitted outcomes and observations mint no authority; a consuming domain cannot self-admit. | Public API inspection, clone/copy/move-after-use and duplicate-lowering/admission compile failures at every authority-bearing stage, positive queue and compaction progressions, consumer-construction mutant. | `OPEN` |
 | `C6-P8-P18` | Tiering and blob placement consume only class-relevant physical authority: inline and external placement require no cold-tier or scheduler readiness, cold placement consumes the exact cold posture, and layout projection cannot promote scheduler counters into placement truth. | Public API/source inspection, class-specific positive specimens, cold-scope negative, copied-readiness absence and reintroduction mutant. | `OPEN` |
+| `C6-P8-P19` | Every background-consuming blob path carries an exact scheduler class lease into the effectful operation and retains it through completion. Yielded, deferred, denied, violated, or zero-capacity throttled outcomes fail before source polling, verification, mutation, or publication. | Ingest, verification-read, and compaction authority traces; exact-class negatives; fail-before-effect runtime oracles; non-clone and move-after-use compile failures. | `OPEN` |
+| `C6-P8-P20` | The removal inventory covers the complete filesystem closure of every legacy-gated Rust module, including descendants with no legacy identifier of their own. An identifier-free file cannot survive merely because only its ancestor carries the feature gate. | Module-resolution inventory, exact ledger reconciliation, directory-style and file-style hostile module mutants, stale and rediscovered-row mutants. | `OPEN` |
 
 ## Requirement Coverage
 
@@ -106,6 +114,8 @@ inspected.
 | No cross-domain dependency cycle or copied scheduler authority | `P11`, `P16` |
 | Move-owned scheduler execution capacity with no consumer self-admission | `P16`, `P17` |
 | Placement consumes only class-relevant physical authority | `P06`, `P11`, `P16`, `P18` |
+| Fail-closed exact scheduler capacity through every blob consumer | `P17`, `P19` |
+| Complete legacy-gated module closure, including identifier-free descendants | `P01`, `P12`, `P14`, `P20` |
 | Ledger completeness and final source truth | `L01`, `L02` |
 | Composition, topology, and test quality | `P09`, `P10`, `P15` |
 
@@ -130,6 +140,7 @@ inspected.
 | Inline/external blob placement requires irrelevant cold readiness | placement intent type boundary | class-specific intent variants and cold-only scope validation |
 | Deletion leaves registry or selector sediment | build/catalog boundary | warnings-denied compile and exact selector runs |
 | Search excludes the very consumer it must find | inventory generator | hostile consumer in every former exception class |
+| Identifier-free files survive under a legacy-gated module root | Rust module-resolution boundary | complete gated-module filesystem closure and directory/file-style mutants |
 | Cleanup claim rests on an earlier source state | evidence freeze | final exact source fingerprint |
 
 ## Finding History
@@ -250,6 +261,71 @@ inspected.
   declaration clone, policy clone, duplicate admission, and ready-plan reuse
   compile failures.
 
+### `C6-P8-F008` - Blob streaming continued after non-admitted scheduler outcomes
+
+- status: `CORRECTED`
+- affected guarantees: `L02`, `P13`, `P16`, `P17`, `P19`
+- evidence: blob ingest and verification-read classification previously
+  projected scheduler outcomes into counters and allowed yielded or
+  zero-capacity throttled work to continue. Admitted leases were not retained
+  through the effectful session, so copied observations could outlive the
+  authority they purported to describe.
+- correction: ingest and verification read now require exact class leases,
+  retain them in their execution sessions, and convert every non-admitted
+  outcome into a typed denial before source polling or verification.
+- closing proof: focused fail-before-source tests and the affected blob suite
+  pass. Exact consumer clone/move compile evidence and final cross-consumer
+  reassessment remain open under `P17` and `P19`.
+
+### `C6-P8-F009` - Identifier-only inventory omitted legacy module descendants
+
+- status: `CORRECTED`
+- affected guarantees: `L02`, `P01`, `P12`, `P14`, `P20`
+- evidence: the former inventory classified each source independently. A Rust
+  file beneath a `legacy-s2-models` module root escaped when it contained no
+  legacy identifier itself. The first strengthened run rejected 46 such
+  unclassified buffer-pool files.
+- correction: `legacy_module_closure` resolves both directory-style and
+  file-style cfg-gated module roots, inventories every Rust descendant, and
+  merges that closure into discovery without weakening stronger leaf
+  classifications. All 46 descendants now have exact Phase 8 rows and
+  path-bound replacement owners.
+- closing proof: all 19 removal-inventory tests pass with warnings denied,
+  including identifier-free directory/file modules, multiline cfg, path
+  override, workspace escape, cfg_attr precision, indirect manifest alias, and
+  stale or rediscovered-row mutants. Final deletion and
+  rediscovered-deleted rejection remain open under `P20`.
+
+### `C6-P8-F010` - Multiline cfg attributes escaped module-closure discovery
+
+- status: `CORRECTED`
+- affected guarantees: `L02`, `P01`, `P14`, `P20`
+- evidence: the first module-closure parser inspected one source line at a
+  time. A valid multiline `#[cfg(... feature = "legacy-s2-models" ...)]`
+  attribute separated the feature name from the opening attribute line, so an
+  identifier-free gated module could survive while every initial mutant
+  passed.
+- correction: module discovery now accumulates complete Rust attributes before
+  classifying legacy features or path overrides.
+- closing proof: the dedicated multiline hostile mutant discovers both the
+  gated root and its identifier-free descendant in the warnings-denied
+  19-test inventory suite. Final physical deletion remains open under `P20`.
+
+### `C6-P8-F011` - cfg_attr overclassified canonical module descendants
+
+- status: `CORRECTED`
+- affected guarantees: `L02`, `P01`, `P10`, `P20`
+- evidence: the corrected multiline parser initially treated any complete Rust
+  attribute containing a legacy feature name as a module gate. A
+  `cfg_attr(feature = "legacy-s2-models", ...)` conditionally changes metadata
+  but does not remove the module, so its canonical descendants would have been
+  falsely assigned deletion dispositions.
+- correction: module-closure feature extraction now accepts only actual
+  `#[cfg(...)]` predicates; path attributes remain independently accumulated.
+- closing proof: a dedicated cfg_attr control retains an ordinary module
+  outside the legacy closure while the leaf feature reference remains visible
+  to normal source-family discovery.
+
 ## Surviving-Defect Attack
 
 Before closure, answer with evidence:
@@ -285,6 +361,10 @@ Before closure, answer with evidence:
     into a queue declaration or policy receipt?
 24. Can one policy-admitted queue work value be used to construct two ready
     execution plans?
+25. Can an identifier-free Rust file survive beneath a legacy-gated module
+    because only its ancestor contains the feature name?
+26. Can blob ingest, verification read, or compaction begin effects after a
+    yielded or zero-capacity scheduler outcome?
 
 Any credible surviving defect reopens the affected guarantees and this ledger's
 completeness claim.

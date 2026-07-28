@@ -135,9 +135,9 @@ pub(super) fn prepare_command(
         .map_err(|denial| format!("courtroom write reservation denied: {denial:?}"))?;
     let demand = PhysicalSchedulerDemand::foreground(ready, reservation, None)
         .map_err(|denial| format!("courtroom write demand denied: {denial:?}"))?;
-    let queue = demand.queue_work();
+    let requested_budget = demand.queue_work().requested_budget();
     let admitted = serving
-        .admit_physical_scheduler_demand(demand, &backend, policy(queue.requested_budget()))
+        .admit_physical_scheduler_demand(demand, &backend, policy(requested_budget))
         .map_err(|denial| format!("courtroom scheduler admission denied: {denial:?}"))?;
     PhysicalExecutorCommand::exact_write(admitted, BOOTSTRAP_MAGIC.as_slice())
         .map_err(|denial| format!("courtroom exact-write command denied: {denial:?}"))

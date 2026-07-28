@@ -23,12 +23,14 @@ fn write_settles_physical_truth_before_signal_completion() {
     let serving = serving_from_initialization_with_work_profile(root.path(), profile);
     let demand = write_demand(&serving, ready_work(&serving, mutation_request));
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     let admitted = serving
-        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(work.requested_budget()))
+        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(requested_budget))
         .unwrap();
     let consumer = admitted.consumer_handle();
     let before = serving.media_counters();
@@ -104,15 +106,17 @@ fn read_returns_the_exact_bounded_destination() {
     )
     .unwrap();
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let admitted = serving
         .admit_physical_scheduler_demand(
             demand,
             &backend,
             policy_receipt_for(
-                work.requested_budget(),
+                requested_budget,
                 0,
                 FoundationalPerformanceWorkClass::AuthoritativeRead,
             ),
@@ -312,8 +316,10 @@ fn mixed_route_batch_completes_each_settlement_on_its_admitted_signal_route() {
     )
     .unwrap();
     let read_work = read_demand.queue_work();
+    let backend_requirement = read_work.backend_requirement();
+    let requested_budget = read_work.requested_budget();
     let read_backend = serving
-        .admit_physical_scheduler_capability(read_work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let read_demand = secure_demand(read_demand, &read_backend);
     let read = serving
@@ -321,7 +327,7 @@ fn mixed_route_batch_completes_each_settlement_on_its_admitted_signal_route() {
             read_demand,
             &read_backend,
             policy_receipt_for(
-                read_work.requested_budget(),
+                requested_budget,
                 0,
                 FoundationalPerformanceWorkClass::AuthoritativeRead,
             ),
@@ -364,11 +370,13 @@ pub(super) fn admitted_write(
 ) -> worth_store::physical_runtime::ResourceAdmittedPhysicalWork {
     let demand = write_demand(serving, ready_work(serving, request));
     let work = demand.queue_work();
+    let backend_requirement = work.backend_requirement();
+    let requested_budget = work.requested_budget();
     let backend = serving
-        .admit_physical_scheduler_capability(work.backend_requirement())
+        .admit_physical_scheduler_capability(backend_requirement)
         .unwrap();
     let demand = secure_demand(demand, &backend);
     serving
-        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(work.requested_budget()))
+        .admit_physical_scheduler_demand(demand, &backend, policy_receipt(requested_budget))
         .unwrap()
 }

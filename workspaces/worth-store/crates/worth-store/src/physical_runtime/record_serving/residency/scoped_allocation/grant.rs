@@ -1,25 +1,41 @@
+use std::fmt;
+
 use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalOperationAllocationScope};
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
-use crate::physical_runtime::{LifecycleGeneration, RuntimeIdentity};
+use crate::physical_runtime::{
+    record_serving::residency::frame_ports::RecordFramePorts, LifecycleGeneration, RuntimeIdentity,
+};
 
-#[derive(Debug)]
-pub(super) struct StoreScopedAllocation {
+pub(super) struct StoreScopedAllocation<'runtime> {
     grant: OperationAllocationGrant,
+    _runtime_owner: &'runtime RecordFramePorts,
     runtime: RuntimeIdentity,
     generation: LifecycleGeneration,
+}
+
+impl fmt::Debug for StoreScopedAllocation<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("StoreScopedAllocation")
+            .field("grant", &self.grant)
+            .field("runtime", &self.runtime)
+            .field("generation", &self.generation)
+            .finish_non_exhaustive()
+    }
 }
 
 macro_rules! exact_scope_allocation {
     ($name:ident, $scope:ident) => {
         #[derive(Debug)]
-        pub struct $name {
-            allocation: StoreScopedAllocation,
+        pub struct $name<'runtime> {
+            allocation: StoreScopedAllocation<'runtime>,
         }
 
-        impl $name {
+        impl<'runtime> $name<'runtime> {
             pub(super) fn bind(
                 grant: OperationAllocationGrant,
+                runtime_owner: &'runtime RecordFramePorts,
                 runtime: RuntimeIdentity,
                 generation: LifecycleGeneration,
             ) -> Self {
@@ -27,6 +43,7 @@ macro_rules! exact_scope_allocation {
                 Self {
                     allocation: StoreScopedAllocation {
                         grant,
+                        _runtime_owner: runtime_owner,
                         runtime,
                         generation,
                     },

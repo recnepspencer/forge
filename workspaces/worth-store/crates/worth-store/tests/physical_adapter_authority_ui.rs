@@ -19,6 +19,8 @@ fn physical_adapters_receive_observation_without_pool_control() {
         "successor_scope_substitution_is_rejected.rs",
         "successor_allocation_forgery_is_rejected.rs",
         "successor_lower_grant_is_sealed.rs",
+        "successor_allocation_cannot_escape_runtime.rs",
+        "successor_runtime_cannot_close_with_live_allocation.rs",
     ] {
         cases.compile_fail(format!("tests/physical_adapter_authority/{denied}"));
     }
