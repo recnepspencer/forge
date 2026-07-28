@@ -18,6 +18,10 @@ The implementation batch begins from commit
 `761268304100001eb23680155f620c4c037ae1fd` with a clean worktree on branch
 `worth-store`.
 
+The scheduler-authority cutover batch begins from commit
+`0dfc0ac0c5271f36c4339194defb0a62cd9045a3` after the Phase 8 inventory
+classifier was hardened and its controlled mutants passed.
+
 The final source fingerprint is `OPEN` until implementation and all corrections
 have stopped.
 
@@ -77,6 +81,8 @@ inspected.
 | `C6-P8-P14` | Controlled reintroduction of a legacy feature, direct pool edge, deleted authority identifier, snapshot fixture, or legacy view fails the nearest mechanical gate. | Individually localized mutants for every substitution class. | `OPEN` |
 | `C6-P8-P15` | The resulting directory structure, facade placement, names, file sizes, and function composition preserve current and committed successor responsibilities. | Full dirty inventory, Rust function scrutiny, 400-line gate, composition and domain-topology review. | `OPEN` |
 | `C6-P8-P16` | Scheduler-native policy cannot become physical-isolation or Store authority: the scheduler has no physical-isolation/recovery dependency, copied readiness admission, generic `AuthorityMarker`, or counter-derived execution capability. Cross-domain physical composition occurs only at Store. | Dependency/source absence, public API inspection, policy-versus-authority type review, compile mutants, Store scheduler journeys. | `OPEN` |
+| `C6-P8-P17` | Scheduler execution capacity is concrete, move-owned, and single-consumption: a background lease cannot be cloned or copied, non-admitted outcomes and observations mint no lease, and a consuming domain cannot self-admit or lower the same admission twice. | Public API inspection, move-after-use and duplicate-lowering compile failures, positive queue-lowering specimen, consumer-construction mutant. | `OPEN` |
+| `C6-P8-P18` | Tiering and blob placement consume only class-relevant physical authority: inline and external placement require no cold-tier or scheduler readiness, cold placement consumes the exact cold posture, and layout projection cannot promote scheduler counters into placement truth. | Public API/source inspection, class-specific positive specimens, cold-scope negative, copied-readiness absence and reintroduction mutant. | `OPEN` |
 
 ## Requirement Coverage
 
@@ -93,6 +99,8 @@ inspected.
 | No quarantine, alias, disabled feature, copied fixture, or deferred cleanup | `P01`-`P07`, `P09`, `P12` |
 | Compile-time enforcement and successor handoff honesty | `P05`, `P07`, `P08`, `P11` |
 | No cross-domain dependency cycle or copied scheduler authority | `P11`, `P16` |
+| Move-owned scheduler execution capacity with no consumer self-admission | `P16`, `P17` |
+| Placement consumes only class-relevant physical authority | `P06`, `P11`, `P16`, `P18` |
 | Ledger completeness and final source truth | `L01`, `L02` |
 | Composition, topology, and test quality | `P09`, `P10`, `P15` |
 
@@ -111,6 +119,9 @@ inspected.
 | Legacy test is copied into canonical topology | proof-obligation ownership | QA-tests uniqueness and mutation review |
 | Store depends on its certification consumer | Cargo graph | one-way dependency gate |
 | Scheduler copies physical-isolation counters into self-minted authority | cross-domain composition boundary | dependency absence, concrete public types, and authority-source mutant |
+| Scheduler capacity is copied or lowered twice | scheduler-to-queue type boundary | move-only lease and move-after-use compile failure |
+| Blob compaction self-admits or discards scheduler admission into booleans | consumer handoff | sealed scheduler-derived pacing admission and construction mutant |
+| Inline/external blob placement requires irrelevant cold readiness | placement intent type boundary | class-specific intent variants and cold-only scope validation |
 | Deletion leaves registry or selector sediment | build/catalog boundary | warnings-denied compile and exact selector runs |
 | Search excludes the very consumer it must find | inventory generator | hostile consumer in every former exception class |
 | Cleanup claim rests on an earlier source state | evidence freeze | final exact source fingerprint |
@@ -180,6 +191,41 @@ inspected.
 - closing proof: source/API/dependency absence, policy-to-authority compile
   failure, and unchanged real Store physical-instance scheduler journeys.
 
+### `C6-P8-F005` - Tier placement promotes irrelevant scheduler readiness
+
+- status: `OPEN`
+- affected guarantees: `L02`, `P06`, `P11`, `P16`, `P18`
+- evidence: `TierPlacementIoAdmission` joins a copied
+  `IoSchedulerIsolationAdmission` to `ColdTierIoPosture`; every blob placement
+  class must carry that joined value even though admission reads only the cold
+  posture's security scope. Tier layout projection then publishes copied
+  scheduler counters as placement interference truth.
+- required correction: delete tier placement scheduler readiness, represent
+  blob placement classes with only their relevant authority, validate cold
+  posture only for cold placement, and project tier layout from exact cold-tier
+  posture alone.
+- closing proof: class-specific positive placement tests, wrong-scope cold
+  denial, copied-readiness source/API/dependency absence, and a controlled
+  scheduler-readiness reintroduction rejected by the boundary gate.
+
+### `C6-P8-F006` - Background capacity is duplicable and blob compaction self-admits
+
+- status: `OPEN`
+- affected guarantees: `L02`, `P06`, `P11`, `P16`, `P17`
+- evidence: `BackgroundIdleCapacityLease` is `Copy`,
+  `BackgroundPacingCapability` is `Clone`, and
+  `BlobCompactionPacingAdmission::admitted_compaction` constructs admitted
+  pacing directly from a declaration. Blob compaction constructors install
+  that bypass by default, while the scheduler-capability conversion discards
+  the capability into booleans.
+- required correction: make scheduler execution admission move-owned and
+  single-consumption, let only genuinely admitted scheduler outcomes yield it,
+  carry it into blob compaction without boolean laundering, and make an
+  unpaced compaction basis unable to enter planning.
+- closing proof: positive scheduler-to-queue and scheduler-to-compaction
+  journeys; copy, clone, duplicate-lowering, unpaced-planning, and consumer
+  self-admission compile failures; source absence for the bypass constructors.
+
 ## Surviving-Defect Attack
 
 Before closure, answer with evidence:
@@ -204,6 +250,13 @@ Before closure, answer with evidence:
 17. Can scheduler policy copy isolation counters and mint authority without
     Store composition?
 18. Can a peer dependency recreate the Store-to-successor Cargo cycle?
+19. Can one background admission lower two queue declarations?
+20. Can yield, deferred, denied, or observational counters mint executable
+    background capacity?
+21. Can blob compaction enter planning without consuming scheduler-issued
+    pacing admission?
+22. Can inline or external placement be forced to carry cold-tier or scheduler
+    readiness that has no authority over that placement class?
 
 Any credible surviving defect reopens the affected guarantees and this ledger's
 completeness claim.

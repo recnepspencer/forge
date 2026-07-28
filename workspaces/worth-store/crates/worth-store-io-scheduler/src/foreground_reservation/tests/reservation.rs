@@ -7,8 +7,7 @@ use super::super::*;
 use super::common::*;
 
 #[test]
-fn foreground_reservation_admits_with_backend_stability_security_and_envelope() {
-    let readiness = io_qos_readiness_admission();
+fn foreground_reservation_admits_with_backend_security_and_envelope() {
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
@@ -16,7 +15,6 @@ fn foreground_reservation_admits_with_backend_stability_security_and_envelope() 
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -26,7 +24,6 @@ fn foreground_reservation_admits_with_backend_stability_security_and_envelope() 
     let receipt = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -47,8 +44,6 @@ fn foreground_reservation_admits_with_backend_stability_security_and_envelope() 
         receipt.security_scope_identity(),
         security.permission().identity()
     );
-    assert_eq!(receipt.counters().stable_read_wait_count(), 2);
-    assert_eq!(receipt.counters().stable_read_retry_count(), 1);
 }
 
 #[test]
@@ -78,7 +73,6 @@ fn foreground_capacity_pressure_denies_before_reservation_receipt() {
             point_read_lane(),
             ForegroundReservationCapacityBasis::new(
                 &backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo),
-                &io_qos_readiness_admission(),
                 &io_qos_security_scope_admission(),
             ),
             ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead),
@@ -104,7 +98,6 @@ fn foreground_capacity_pressure_denies_before_reservation_receipt() {
 
 #[test]
 fn reservation_request_consumes_sealed_capacity_admission() {
-    let readiness = io_qos_readiness_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let security = io_qos_security_scope_admission();
     let lane = point_read_lane();
@@ -112,7 +105,6 @@ fn reservation_request_consumes_sealed_capacity_admission() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -121,7 +113,6 @@ fn reservation_request_consumes_sealed_capacity_admission() {
     let receipt = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -146,7 +137,6 @@ fn reservation_request_consumes_sealed_capacity_admission() {
 #[test]
 fn arbitrary_lane_backend_remap_cannot_mint_store_lane_contract() {
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::Fsync);
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let lane = ForegroundLaneDeclaration::point_read()
         .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
@@ -158,7 +148,6 @@ fn arbitrary_lane_backend_remap_cannot_mint_store_lane_contract() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -167,7 +156,6 @@ fn arbitrary_lane_backend_remap_cannot_mint_store_lane_contract() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -186,7 +174,6 @@ fn arbitrary_lane_backend_remap_cannot_mint_store_lane_contract() {
 
 #[test]
 fn secure_frame_reservation_requires_bound_security_scope() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let witness = admitted_backend_witness();
     let backend =
@@ -203,7 +190,6 @@ fn secure_frame_reservation_requires_bound_security_scope() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -213,7 +199,6 @@ fn secure_frame_reservation_requires_bound_security_scope() {
     let receipt = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -233,7 +218,6 @@ fn secure_frame_reservation_requires_bound_security_scope() {
 
 #[test]
 fn lane_specific_missing_resource_denies_before_capacity_accounting() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::Fsync);
     let lane = ForegroundLaneDeclaration::commit_critical_wal_write()
@@ -249,7 +233,6 @@ fn lane_specific_missing_resource_denies_before_capacity_accounting() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -259,7 +242,6 @@ fn lane_specific_missing_resource_denies_before_capacity_accounting() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -316,7 +298,6 @@ fn every_foreground_lane_has_distinct_fairness_class_without_laundering() {
 
 #[test]
 fn admission_consumes_arbitration_and_denies_priority_laundering() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
@@ -324,7 +305,6 @@ fn admission_consumes_arbitration_and_denies_priority_laundering() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -334,7 +314,6 @@ fn admission_consumes_arbitration_and_denies_priority_laundering() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::InteractiveRead),
         &capacity,

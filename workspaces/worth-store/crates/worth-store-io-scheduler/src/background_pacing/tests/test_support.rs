@@ -3,7 +3,6 @@ use worth_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use super::policy_receipts::{background_policy_receipt, foreground_policy_receipt};
@@ -18,20 +17,16 @@ use crate::foreground_reservation::{
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
-    admit_store_published_isolation_capability, BackgroundCapacityAdmissionRequest,
-    BackgroundIdleCapacityLeaseRequest, BackgroundIoPressureShape,
-    BackgroundPacingProgressionDrift, BackgroundPacingProgressionEvidence,
-    BackgroundResourceBudget, BandwidthToken, CacheResidencyHint, FlushPermit,
-    IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission, QueueSlot, ReadAheadWindow,
-    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
-    WriteBackWindow,
+    BackgroundCapacityAdmissionRequest, BackgroundIdleCapacityLeaseRequest,
+    BackgroundIoPressureShape, BackgroundResourceBudget, BandwidthToken, CacheResidencyHint,
+    FlushPermit, IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
+    IoSchedulerSecurityScopeAdmission, QueueSlot, ReadAheadWindow, SecureIoOperation,
+    SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit, WriteBackWindow,
 };
 
 pub(super) struct World {
     foreground: ForegroundReservationReceipt,
     backend: IoSchedulerBackendCapabilityAdmission,
-    readiness: IoSchedulerIsolationAdmission,
     security: IoSchedulerSecurityScopeAdmission,
 }
 
@@ -57,7 +52,6 @@ impl World {
         lane: ForegroundLaneDeclaration,
         lane_kind: ForegroundIoLaneKind,
     ) -> Self {
-        let readiness = io_qos_readiness();
         let security = security_scope();
         let backend = backend_admission(requirement);
         let arbitration = ForegroundArbitrationDeclaration::for_lane(lane_kind);
@@ -65,7 +59,7 @@ impl World {
             ForegroundReservationCapacityAdmissionRequest::new(
                 lane,
                 crate::foreground_reservation::ForegroundReservationCapacityBasis::new(
-                    &backend, &readiness, &security,
+                    &backend, &security,
                 ),
                 arbitration,
                 lane.requested_budget(),
@@ -77,7 +71,6 @@ impl World {
         let foreground = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
             lane,
             &backend,
-            &readiness,
             &security,
             arbitration,
             &capacity,
@@ -87,7 +80,6 @@ impl World {
         Self {
             foreground,
             backend,
-            readiness,
             security,
         }
     }
@@ -101,7 +93,6 @@ impl World {
             pressure.requested_budget(),
             pressure.requested_budget(),
             BackgroundResourceBudget::new(),
-            BackgroundPacingProgressionEvidence::current(&self.readiness),
         )
     }
 
@@ -111,14 +102,12 @@ impl World {
         idle_available: BackgroundResourceBudget,
         policy_admitted: BackgroundResourceBudget,
         debt_limit: BackgroundResourceBudget,
-        progression: BackgroundPacingProgressionEvidence,
     ) -> BackgroundIdleCapacityLeaseRequest {
         let capacity = admit_background_capacity(self.capacity_request_with(
             pressure,
             idle_available,
             policy_admitted,
             debt_limit,
-            progression,
         ))
         .expect("background capacity should admit");
         BackgroundIdleCapacityLeaseRequest::new(capacity)
@@ -130,19 +119,16 @@ impl World {
         idle_available: BackgroundResourceBudget,
         policy_admitted: BackgroundResourceBudget,
         debt_limit: BackgroundResourceBudget,
-        progression: BackgroundPacingProgressionEvidence,
     ) -> BackgroundCapacityAdmissionRequest<'_> {
         let request = BackgroundCapacityAdmissionRequest::new(
             pressure,
             &self.foreground,
             &self.backend,
-            &self.readiness,
             background_policy_receipt(pressure.requested_budget(), policy_admitted),
         )
         .with_idle_available(idle_available)
         .with_policy_admitted(policy_admitted)
-        .with_debt_limit(debt_limit)
-        .with_progression_evidence(progression);
+        .with_debt_limit(debt_limit);
         if !pressure.secure_scope_required()
             && pressure.backend_requirement()
                 != IoSchedulerBackendCapabilityRequirement::SecureFrameIo
@@ -159,29 +145,7 @@ impl World {
         policy_admitted: BackgroundResourceBudget,
         debt_limit: BackgroundResourceBudget,
     ) -> BackgroundIdleCapacityLeaseRequest {
-        self.request_with(
-            pressure,
-            idle_available,
-            policy_admitted,
-            debt_limit,
-            BackgroundPacingProgressionEvidence::current(&self.readiness),
-        )
-    }
-
-    pub(super) fn progression_from_counter_drift(
-        &self,
-        drift: BackgroundPacingProgressionDrift,
-    ) -> BackgroundPacingProgressionEvidence {
-        BackgroundPacingProgressionEvidence::from_readiness_counter_drift(
-            &self.readiness,
-            mismatched_readiness_counters(self.readiness.counters()),
-            drift,
-        )
-        .expect("mismatched counters should produce pacing progression evidence")
-    }
-
-    pub(super) const fn readiness(&self) -> &IoSchedulerIsolationAdmission {
-        &self.readiness
+        self.request_with(pressure, idle_available, policy_admitted, debt_limit)
     }
 
     pub(super) const fn foreground(&self) -> &ForegroundReservationReceipt {
@@ -200,7 +164,6 @@ impl World {
             pressure,
             &self.foreground,
             &self.backend,
-            &self.readiness,
             background_policy_receipt(read_pressure_budget(), read_pressure_budget()),
         ))
         .expect_err("background capacity should deny")
@@ -216,7 +179,6 @@ impl World {
                 pressure,
                 &self.foreground,
                 &self.backend,
-                &self.readiness,
                 background_policy_receipt(pressure.requested_budget(), pressure.requested_budget()),
             )
             .with_secure_io_scope(secure_io),
@@ -327,13 +289,6 @@ fn foreground_capacity_budget() -> ForegroundResourceBudget {
         .with_cache_residency(CacheResidencyHint::frames(8).unwrap())
 }
 
-fn io_qos_readiness() -> IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
-        .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_isolation_capability(&readiness)
-        .expect("scheduler should admit readiness")
-}
-
 fn security_scope() -> IoSchedulerSecurityScopeAdmission {
     let security_scope = admitted_store_internal_security_scope_for_io_qos_test();
     admit_security_scope_for_scheduler(&security_scope)
@@ -375,17 +330,4 @@ fn backend_admission(
         .expect("backend should admit");
     admit_backend_capability_for_scheduler_claim(&witness, requirement)
         .expect("scheduler backend should admit")
-}
-
-fn mismatched_readiness_counters(
-    counters: crate::IoSchedulerIsolationCounterSnapshot,
-) -> crate::IoSchedulerIsolationCounterSnapshot {
-    let alternate = publish_scheduler_isolation_capability_for_certification_test(
-        counters.wait_count() + 3,
-        counters.retry_count() + 1,
-    )
-    .expect("alternate S.6 readiness should publish");
-    admit_store_published_isolation_capability(&alternate)
-        .expect("alternate scheduler readiness should admit")
-        .counters()
 }

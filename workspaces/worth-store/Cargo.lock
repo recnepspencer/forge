@@ -1417,7 +1417,6 @@ dependencies = [
  "worth-store-contracts",
  "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-isolation",
  "worth-store-security",
  "worth-store-wal",
 ]

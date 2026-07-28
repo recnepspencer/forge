@@ -6,7 +6,7 @@ use super::{
 };
 use crate::SecureIoPreservationReceipt;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BackgroundIdleCapacityLease {
     class: BackgroundIoPressureClass,
     admitted: BackgroundResourceBudget,
@@ -44,22 +44,22 @@ impl BackgroundIdleCapacityLease {
         }
     }
 
-    pub const fn class(self) -> BackgroundIoPressureClass {
+    pub const fn class(&self) -> BackgroundIoPressureClass {
         self.class
     }
-    pub const fn admitted_budget(self) -> BackgroundResourceBudget {
+    pub const fn admitted_budget(&self) -> BackgroundResourceBudget {
         self.admitted
     }
-    pub const fn debt(self) -> BackgroundIoDebt {
+    pub const fn debt(&self) -> BackgroundIoDebt {
         self.debt
     }
-    pub const fn basis(self) -> BackgroundPacingAdmissionBasis {
+    pub const fn basis(&self) -> BackgroundPacingAdmissionBasis {
         self.basis
     }
-    pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
+    pub const fn counters(&self) -> BackgroundPacingCounterSnapshot {
         self.counters
     }
-    pub const fn secure_io(self) -> Option<SecureIoPreservationReceipt> {
+    pub const fn secure_io(&self) -> Option<SecureIoPreservationReceipt> {
         self.secure_io
     }
 

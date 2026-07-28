@@ -5,7 +5,6 @@ use super::common::*;
 
 #[test]
 fn certification_only_envelope_is_held_not_execution_ready() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = ForegroundLaneDeclaration::point_read()
@@ -17,7 +16,6 @@ fn certification_only_envelope_is_held_not_execution_ready() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -27,7 +25,6 @@ fn certification_only_envelope_is_held_not_execution_ready() {
     let outcome = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -66,10 +63,6 @@ fn raw_shortcuts_are_typed_denials_not_reservation_authority() {
     assert_eq!(
         reject_semantic_priority_as_foreground_reservation(),
         Err(ForegroundReservationAdmissionDenial::SemanticPriorityCannotReserve)
-    );
-    assert_eq!(
-        reject_copied_physical_isolation_counters_as_foreground_reservation(),
-        Err(ForegroundReservationAdmissionDenial::CopiedIsolationCountersCannotReserve)
     );
     assert_eq!(
         reject_copied_security_scope_fields_as_foreground_reservation(),

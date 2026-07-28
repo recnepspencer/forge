@@ -57,13 +57,10 @@ pub fn admit_foreground_reservation(
     if let Err(denial) = require_capacity_admission_matches_request(&request) {
         return denied(&request, denial);
     }
-    let readiness_counters = request.stable_readiness().counters();
     let reservation_counters = ForegroundReservationCounterSnapshot::admitted(
         lane.requested_budget(),
         request.capacity_admission().assumed_backend_limits(),
         request.capacity_admission().admitted_budget(),
-        readiness_counters.wait_count(),
-        readiness_counters.retry_count(),
     );
     let security_identity = request.security_scope().permission().identity();
 
@@ -117,14 +114,6 @@ fn require_capacity_admission_matches_request(
     }
     if capacity.security_scope_identity() != request.security_scope().permission().identity() {
         return Err(ForegroundReservationAdmissionDenial::CapacityAdmissionSecurityScopeMismatch);
-    }
-    let readiness_counters = request.stable_readiness().counters();
-    if capacity.stable_read_wait_count() != readiness_counters.wait_count()
-        || capacity.stable_read_retry_count() != readiness_counters.retry_count()
-    {
-        return Err(
-            ForegroundReservationAdmissionDenial::CapacityAdmissionReadinessCounterMismatch,
-        );
     }
     Ok(())
 }

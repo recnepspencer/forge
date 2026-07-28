@@ -3,12 +3,11 @@ use super::{
     BackgroundPacingCounterSnapshot, BackgroundPacingDenial, BackgroundResourceBudget,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum BackgroundPacingOutcome {
     Yield(BackgroundPacingYield),
     Deferred(BackgroundPacingDeferred),
     Denied(BackgroundPacingDenied),
-    StaleRebindRequired(BackgroundPacingStaleRebindRequired),
     Throttled(Box<BackgroundPacingThrottle>),
     AdmittedWithDebt(Box<BackgroundPacingAdmittedWithDebt>),
     Violation(BackgroundPacingViolation),
@@ -26,7 +25,6 @@ impl BackgroundPacingOutcome {
             Self::Yield(outcome) => outcome.class(),
             Self::Deferred(outcome) => outcome.class(),
             Self::Denied(outcome) => outcome.class(),
-            Self::StaleRebindRequired(outcome) => outcome.class(),
             Self::Throttled(outcome) => outcome.class(),
             Self::AdmittedWithDebt(outcome) => outcome.class(),
             Self::Violation(outcome) => outcome.class(),
@@ -47,28 +45,16 @@ pub struct BackgroundPacingDenied {
     counters: BackgroundPacingCounterSnapshot,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BackgroundPacingStaleRebindKind {
-    Stale,
-    RebindRequired,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct BackgroundPacingStaleRebindRequired {
-    class: BackgroundIoPressureClass,
-    kind: BackgroundPacingStaleRebindKind,
-    counters: BackgroundPacingCounterSnapshot,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BackgroundPacingThrottle {
     class: BackgroundIoPressureClass,
     admitted: BackgroundResourceBudget,
     throttled: BackgroundResourceBudget,
     counters: BackgroundPacingCounterSnapshot,
+    lease: Option<BackgroundIdleCapacityLease>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BackgroundPacingAdmittedWithDebt {
     lease: BackgroundIdleCapacityLease,
 }
@@ -135,56 +121,37 @@ impl BackgroundPacingDenied {
     }
 }
 
-impl BackgroundPacingStaleRebindRequired {
-    pub(crate) const fn new(
-        class: BackgroundIoPressureClass,
-        kind: BackgroundPacingStaleRebindKind,
-        counters: BackgroundPacingCounterSnapshot,
-    ) -> Self {
-        Self {
-            class,
-            kind,
-            counters,
-        }
-    }
-
-    pub const fn class(self) -> BackgroundIoPressureClass {
-        self.class
-    }
-    pub const fn kind(self) -> BackgroundPacingStaleRebindKind {
-        self.kind
-    }
-    pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
-        self.counters
-    }
-}
-
 impl BackgroundPacingThrottle {
     pub(crate) const fn new(
         class: BackgroundIoPressureClass,
         admitted: BackgroundResourceBudget,
         throttled: BackgroundResourceBudget,
         counters: BackgroundPacingCounterSnapshot,
+        lease: Option<BackgroundIdleCapacityLease>,
     ) -> Self {
         Self {
             class,
             admitted,
             throttled,
             counters,
+            lease,
         }
     }
 
-    pub const fn class(self) -> BackgroundIoPressureClass {
+    pub const fn class(&self) -> BackgroundIoPressureClass {
         self.class
     }
-    pub const fn admitted_budget(self) -> BackgroundResourceBudget {
+    pub const fn admitted_budget(&self) -> BackgroundResourceBudget {
         self.admitted
     }
-    pub const fn throttled_budget(self) -> BackgroundResourceBudget {
+    pub const fn throttled_budget(&self) -> BackgroundResourceBudget {
         self.throttled
     }
-    pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
+    pub const fn counters(&self) -> BackgroundPacingCounterSnapshot {
         self.counters
+    }
+    pub fn into_lease(self) -> Option<BackgroundIdleCapacityLease> {
+        self.lease
     }
 }
 
@@ -193,16 +160,16 @@ impl BackgroundPacingAdmittedWithDebt {
         Self { lease }
     }
 
-    pub const fn lease(self) -> BackgroundIdleCapacityLease {
+    pub const fn into_lease(self) -> BackgroundIdleCapacityLease {
         self.lease
     }
-    pub const fn class(self) -> BackgroundIoPressureClass {
+    pub const fn class(&self) -> BackgroundIoPressureClass {
         self.lease.class()
     }
-    pub const fn debt(self) -> BackgroundIoDebt {
+    pub const fn debt(&self) -> BackgroundIoDebt {
         self.lease.debt()
     }
-    pub const fn counters(self) -> BackgroundPacingCounterSnapshot {
+    pub const fn counters(&self) -> BackgroundPacingCounterSnapshot {
         self.lease.counters()
     }
 }

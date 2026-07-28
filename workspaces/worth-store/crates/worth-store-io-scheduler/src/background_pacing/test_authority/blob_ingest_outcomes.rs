@@ -1,8 +1,5 @@
 use crate::foreground_reservation::{ForegroundLaneDeclaration, ForegroundLatencyEnvelope};
-use crate::{
-    BackgroundCapacityAdmission, BackgroundIoPressureShape, BackgroundPacingProgressionDrift,
-    BackgroundResourceBudget,
-};
+use crate::{BackgroundCapacityAdmission, BackgroundIoPressureShape, BackgroundResourceBudget};
 
 pub fn blob_ingest_throttled_background_capacity_for_certification_test(
     requested: BackgroundResourceBudget,
@@ -13,7 +10,6 @@ pub fn blob_ingest_throttled_background_capacity_for_certification_test(
         admitted,
         admitted,
         BackgroundResourceBudget::new(),
-        None,
     )
 }
 
@@ -25,7 +21,6 @@ pub fn blob_ingest_deferred_background_capacity_for_certification_test(
         requested,
         BackgroundResourceBudget::new(),
         BackgroundResourceBudget::new(),
-        None,
     )
 }
 
@@ -35,31 +30,7 @@ pub fn blob_ingest_denied_background_capacity_for_certification_test(
     debt_limit: BackgroundResourceBudget,
 ) -> BackgroundCapacityAdmission {
     blob_ingest_page_write_background_capacity_with_limits(
-        requested, admitted, admitted, debt_limit, None,
-    )
-}
-
-pub fn blob_ingest_stale_background_capacity_for_certification_test(
-    budget: BackgroundResourceBudget,
-) -> BackgroundCapacityAdmission {
-    blob_ingest_page_write_background_capacity_with_limits(
-        budget,
-        budget,
-        budget,
-        BackgroundResourceBudget::new(),
-        Some(BackgroundPacingProgressionDrift::StaleReadinessCounters),
-    )
-}
-
-pub fn blob_ingest_rebind_background_capacity_for_certification_test(
-    budget: BackgroundResourceBudget,
-) -> BackgroundCapacityAdmission {
-    blob_ingest_page_write_background_capacity_with_limits(
-        budget,
-        budget,
-        budget,
-        BackgroundResourceBudget::new(),
-        Some(BackgroundPacingProgressionDrift::RebindRequiredReadinessCounters),
+        requested, admitted, admitted, debt_limit,
     )
 }
 
@@ -68,7 +39,6 @@ fn blob_ingest_page_write_background_capacity_with_limits(
     idle_available: BackgroundResourceBudget,
     policy_admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
-    drift: Option<BackgroundPacingProgressionDrift>,
 ) -> BackgroundCapacityAdmission {
     let lane = ForegroundLaneDeclaration::ordinary_page_write()
         .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
@@ -82,6 +52,5 @@ fn blob_ingest_page_write_background_capacity_with_limits(
         idle_available,
         policy_admitted,
         debt_limit,
-        drift,
     )
 }

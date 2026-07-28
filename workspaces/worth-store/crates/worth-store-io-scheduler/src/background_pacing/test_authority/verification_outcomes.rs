@@ -2,9 +2,8 @@ use crate::foreground_reservation::{
     ForegroundLaneDeclaration, ForegroundLatencyEnvelope, ForegroundResourceBudget,
 };
 use crate::{
-    BackgroundCapacityAdmission, BackgroundIoPressureShape, BackgroundPacingProgressionDrift,
-    BackgroundResourceBudget, BandwidthToken, CacheResidencyHint, QueueSlot, ReadAheadWindow,
-    WorkerPermit,
+    BackgroundCapacityAdmission, BackgroundIoPressureShape, BackgroundResourceBudget,
+    BandwidthToken, CacheResidencyHint, QueueSlot, ReadAheadWindow, WorkerPermit,
 };
 
 pub fn verification_throttled_background_capacity_for_certification_test(
@@ -16,7 +15,6 @@ pub fn verification_throttled_background_capacity_for_certification_test(
         admitted,
         admitted,
         BackgroundResourceBudget::new(),
-        None,
     )
 }
 
@@ -28,7 +26,6 @@ pub fn verification_zero_admitted_throttle_background_capacity_for_certification
         BackgroundResourceBudget::new(),
         requested,
         requested,
-        None,
     )
 }
 
@@ -40,7 +37,6 @@ pub fn verification_deferred_background_capacity_for_certification_test(
         requested,
         BackgroundResourceBudget::new(),
         BackgroundResourceBudget::new(),
-        None,
     )
 }
 
@@ -49,31 +45,7 @@ pub fn verification_denied_background_capacity_for_certification_test(
     admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
 ) -> BackgroundCapacityAdmission {
-    verification_background_capacity_with_limits(requested, admitted, admitted, debt_limit, None)
-}
-
-pub fn verification_stale_background_capacity_for_certification_test(
-    budget: BackgroundResourceBudget,
-) -> BackgroundCapacityAdmission {
-    verification_background_capacity_with_limits(
-        budget,
-        budget,
-        budget,
-        BackgroundResourceBudget::new(),
-        Some(BackgroundPacingProgressionDrift::StaleReadinessCounters),
-    )
-}
-
-pub fn verification_rebind_background_capacity_for_certification_test(
-    budget: BackgroundResourceBudget,
-) -> BackgroundCapacityAdmission {
-    verification_background_capacity_with_limits(
-        budget,
-        budget,
-        budget,
-        BackgroundResourceBudget::new(),
-        Some(BackgroundPacingProgressionDrift::RebindRequiredReadinessCounters),
-    )
+    verification_background_capacity_with_limits(requested, admitted, admitted, debt_limit)
 }
 
 fn verification_background_capacity_with_limits(
@@ -81,7 +53,6 @@ fn verification_background_capacity_with_limits(
     idle_available: BackgroundResourceBudget,
     policy_admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
-    drift: Option<BackgroundPacingProgressionDrift>,
 ) -> BackgroundCapacityAdmission {
     let lane = ForegroundLaneDeclaration::point_read()
         .with_latency_envelope(ForegroundLatencyEnvelope::bounded_interference(
@@ -95,7 +66,6 @@ fn verification_background_capacity_with_limits(
         idle_available,
         policy_admitted,
         debt_limit,
-        drift,
     )
 }
 

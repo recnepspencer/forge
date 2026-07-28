@@ -24,7 +24,6 @@ fn every_required_resource_unit_denies_when_capacity_is_insufficient() {
     for case in capacity_shortfall_cases() {
         let lane = lane_with_budget(case.lane, budget_for_lane(case.lane));
         let backend = backend_admission(lane.backend_requirement());
-        let readiness = io_qos_readiness_admission();
         let security = io_qos_security_scope_admission();
         let arbitration = ForegroundArbitrationDeclaration::for_lane(case.lane);
         let requested = lane.requested_budget();
@@ -33,7 +32,7 @@ fn every_required_resource_unit_denies_when_capacity_is_insufficient() {
         let denial = admit_foreground_reservation_capacity(
             ForegroundReservationCapacityAdmissionRequest::new(
                 lane,
-                ForegroundReservationCapacityBasis::new(&backend, &readiness, &security),
+                ForegroundReservationCapacityBasis::new(&backend, &security),
                 arbitration,
                 requested,
                 available,
@@ -52,13 +51,11 @@ fn every_required_resource_unit_denies_when_capacity_is_insufficient() {
 fn assert_missing_required_unit(lane_kind: ForegroundIoLaneKind, unit: ForegroundResourceUnitKind) {
     let lane = lane_with_budget(lane_kind, budget_for_lane_except(lane_kind, unit));
     let backend = backend_admission(lane.backend_requirement());
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane_kind);
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -68,7 +65,6 @@ fn assert_missing_required_unit(lane_kind: ForegroundIoLaneKind, unit: Foregroun
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,

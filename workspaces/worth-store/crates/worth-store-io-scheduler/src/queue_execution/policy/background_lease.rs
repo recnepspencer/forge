@@ -8,17 +8,18 @@ use super::{
 pub fn lower_background_queue_lease(lease: BackgroundIdleCapacityLease) -> QueueWorkDeclaration {
     let basis = lease.basis();
     let security_identity = basis.security_scope_identity();
+    let class = lease.class();
     let work = QueueWorkDeclaration::background(lease);
     work.with_grouping_basis(QueueGroupingBasis::new(
         security_identity,
         security_identity.tenant_scope(),
         security_identity.key_scope(),
         security_identity.authenticity_requirement(),
-        durability_for_background(lease.class()),
-        background_flush_epoch(lease.class()),
-        QueueWorkClass::Background(lease.class()),
-        recovery_ordering_for_background(lease.class()),
-        writeback_policy_for_background(lease.class()),
+        durability_for_background(class),
+        background_flush_epoch(class),
+        QueueWorkClass::Background(class),
+        recovery_ordering_for_background(class),
+        writeback_policy_for_background(class),
     ))
 }
 

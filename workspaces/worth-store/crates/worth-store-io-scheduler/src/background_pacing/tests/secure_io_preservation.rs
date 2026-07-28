@@ -120,7 +120,7 @@ fn admitted_background_queue_plan(
     else {
         panic!("secure background pressure should admit before queue lowering");
     };
-    let work = lower_background_queue_lease(admitted.lease());
+    let work = lower_background_queue_lease(admitted.into_lease());
     let policy = crate::admit_queue_policy_receipt(
         work.clone(),
         background_policy_receipt(work.requested_budget(), work.requested_budget()),

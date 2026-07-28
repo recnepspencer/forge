@@ -26,8 +26,6 @@ fn physical_instance_basis_admits_without_claiming_isolation_counters() {
     assert_eq!(receipt.lane(), ForegroundIoLaneKind::PointRead);
     assert_eq!(receipt.counters().requested(), read_budget());
     assert_eq!(receipt.counters().admitted_budget(), read_budget());
-    assert_eq!(receipt.counters().stable_read_wait_count(), 0);
-    assert_eq!(receipt.counters().stable_read_retry_count(), 0);
 }
 
 #[test]

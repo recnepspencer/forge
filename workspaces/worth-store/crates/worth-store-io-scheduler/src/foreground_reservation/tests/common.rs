@@ -10,18 +10,15 @@ use worth_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::{
-    admit_backend_capability_for_scheduler_claim, admit_store_published_isolation_capability,
-    IoSchedulerBackendCapabilityRequirement,
+    admit_backend_capability_for_scheduler_claim, IoSchedulerBackendCapabilityRequirement,
 };
 
 use super::super::*;
 
 pub(super) fn admit_point_read_reservation() -> ForegroundReservationReceipt {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
@@ -29,7 +26,6 @@ pub(super) fn admit_point_read_reservation() -> ForegroundReservationReceipt {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -39,28 +35,12 @@ pub(super) fn admit_point_read_reservation() -> ForegroundReservationReceipt {
     admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
     ))
     .into_result()
     .expect("point read reservation should admit")
-}
-
-pub(super) fn io_qos_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
-    io_qos_readiness_admission_with_counts(2, 1)
-}
-
-pub(super) fn io_qos_readiness_admission_with_counts(
-    wait_count: u64,
-    retry_count: u64,
-) -> crate::IoSchedulerIsolationAdmission {
-    let readiness =
-        publish_scheduler_isolation_capability_for_certification_test(wait_count, retry_count)
-            .expect("S.5 closeout should publish S.6 readiness through production path");
-    admit_store_published_isolation_capability(&readiness)
-        .expect("scheduler should admit Store-published S.6 readiness")
 }
 
 pub(super) fn point_read_lane() -> ForegroundLaneDeclaration {
@@ -98,7 +78,6 @@ pub(super) fn full_capacity_budget() -> ForegroundResourceBudget {
 pub(super) fn capacity_admission(
     lane: ForegroundLaneDeclaration,
     backend: &crate::IoSchedulerBackendCapabilityAdmission,
-    readiness: &crate::IoSchedulerIsolationAdmission,
     security: &crate::IoSchedulerSecurityScopeAdmission,
     arbitration: ForegroundArbitrationDeclaration,
     requested: ForegroundResourceBudget,
@@ -106,7 +85,7 @@ pub(super) fn capacity_admission(
 ) -> ForegroundReservationCapacityAdmission {
     admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
         lane,
-        ForegroundReservationCapacityBasis::new(backend, readiness, security),
+        ForegroundReservationCapacityBasis::new(backend, security),
         arbitration,
         requested,
         available,

@@ -19,7 +19,6 @@ fn mismatched_policy_receipt_denies_background_capacity() {
         shape,
         world.foreground(),
         world.backend(),
-        world.readiness(),
         background_policy_receipt(requested, BackgroundResourceBudget::new()),
     )
     .with_policy_admitted(requested);
