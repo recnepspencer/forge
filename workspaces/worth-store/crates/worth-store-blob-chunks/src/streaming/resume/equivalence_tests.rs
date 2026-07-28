@@ -5,8 +5,7 @@ use worth_store_io_scheduler::{
 use worth_store_physical_backend::BlobBackendChunkWriteSession;
 use worth_store_security::StoreTenantScope;
 
-use crate::test_support::physical_payload_for_bytes;
-use crate::test_support::{blob_allocation_grant, blob_scope};
+use crate::test_support::{blob_scope, physical_payload_for_bytes, with_blob_allocation};
 use crate::{
     BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission, BlobStreamingChunkWriter,
     BlobStreamingIngest, BlobStreamingIngestDenial, BlobStreamingIngestRequest,
@@ -32,9 +31,9 @@ fn semantic_result_and_bounded_residency_are_stable_across_source_window_sizes()
         large.residency().peak_resident_bytes()
     );
     assert_ne!(
-        small.residency().allocation().allocation().pool(),
-        large.residency().allocation().allocation().pool(),
-        "independent streaming sessions must retain distinct pool provenance"
+        small.residency().allocation().runtime_identity(),
+        large.residency().allocation().runtime_identity(),
+        "independent streaming sessions must retain distinct runtime provenance"
     );
     assert_eq!(
         small.frontier().chunk_tree_root(),
@@ -63,17 +62,19 @@ fn run_ingest(
     window_bytes: u64,
     allocation_bytes: u64,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(window_bytes)?,
-            blob_allocation_grant(allocation_bytes),
-            pressure_admission(),
-            CounterEvidenceStrength::Exact,
-        ),
-        frames,
-        &mut TestChunkWriter,
-    )
+    with_blob_allocation(allocation_bytes, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(window_bytes)?,
+                allocation,
+                pressure_admission(),
+                CounterEvidenceStrength::Exact,
+            ),
+            frames,
+            &mut TestChunkWriter,
+        )
+    })
 }
 
 fn request() -> BlobStreamingIngestRequest {

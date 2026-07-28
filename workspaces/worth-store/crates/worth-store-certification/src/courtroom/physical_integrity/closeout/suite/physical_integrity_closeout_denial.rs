@@ -40,16 +40,18 @@ pub enum IntegrityCloseoutDenialBoundary {
     DigestAsChecksum,
     ChecksumAsAuthenticity,
     StoreAuthorityMismatch,
+    VerificationAllocationCoverage,
     CopiedQuarantineRecord,
     OverBudgetScrubPlan,
 }
 
 impl IntegrityCloseoutDenialBoundary {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::ForgedChecksum,
         Self::DigestAsChecksum,
         Self::ChecksumAsAuthenticity,
         Self::StoreAuthorityMismatch,
+        Self::VerificationAllocationCoverage,
         Self::CopiedQuarantineRecord,
         Self::OverBudgetScrubPlan,
     ];

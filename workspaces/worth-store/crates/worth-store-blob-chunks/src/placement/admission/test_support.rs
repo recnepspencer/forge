@@ -38,11 +38,9 @@ pub(crate) fn admit_external_placement(
     reachability: &BlobChunkReachabilityProofSet,
 ) -> AdmittedBlobPlacement {
     let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
+    let recoverability = external_recovery(reachability);
     authority
-        .admit(
-            reachability,
-            BlobPlacementIntent::external(external_recovery(reachability)),
-        )
+        .admit(reachability, BlobPlacementIntent::external(&recoverability))
         .expect("external placement should admit")
 }
 
@@ -50,13 +48,11 @@ pub(crate) fn admit_cold_placement(
     reachability: &BlobChunkReachabilityProofSet,
 ) -> AdmittedBlobPlacement {
     let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
+    let posture = cold_posture(reachability);
     authority
         .admit(
             reachability,
-            BlobPlacementIntent::cold(
-                cold_posture(reachability),
-                ColdPlacementState::ColdAvailable,
-            ),
+            BlobPlacementIntent::cold(&posture, ColdPlacementState::ColdAvailable),
         )
         .expect("cold placement should admit")
 }

@@ -11,36 +11,38 @@ pub enum BlobPlacementClass {
 }
 
 #[derive(Debug, Clone)]
-pub enum BlobPlacementIntent {
+pub enum BlobPlacementIntent<'evidence> {
     Inline,
     External {
-        recoverability: StoreExternalPlacementRecoverabilityEvidence,
+        recoverability: &'evidence StoreExternalPlacementRecoverabilityEvidence,
     },
     ExternalSidecarWithoutStoreAuthority {
-        observation: BlobBackendResidueObservation,
+        observation: &'evidence BlobBackendResidueObservation,
     },
     Cold {
-        posture: ColdTierIoPosture,
+        posture: &'evidence ColdTierIoPosture,
         state: ColdPlacementState,
     },
 }
 
-impl BlobPlacementIntent {
+impl<'evidence> BlobPlacementIntent<'evidence> {
     pub const fn inline() -> Self {
         Self::Inline
     }
 
-    pub fn external(recoverability: StoreExternalPlacementRecoverabilityEvidence) -> Self {
+    pub const fn external(
+        recoverability: &'evidence StoreExternalPlacementRecoverabilityEvidence,
+    ) -> Self {
         Self::External { recoverability }
     }
 
-    pub fn external_sidecar_without_store_authority(
-        observation: BlobBackendResidueObservation,
+    pub const fn external_sidecar_without_store_authority(
+        observation: &'evidence BlobBackendResidueObservation,
     ) -> Self {
         Self::ExternalSidecarWithoutStoreAuthority { observation }
     }
 
-    pub fn cold(posture: ColdTierIoPosture, state: ColdPlacementState) -> Self {
+    pub const fn cold(posture: &'evidence ColdTierIoPosture, state: ColdPlacementState) -> Self {
         Self::Cold { posture, state }
     }
 
@@ -54,9 +56,9 @@ impl BlobPlacementIntent {
         }
     }
 
-    pub const fn cold_posture(&self) -> Option<&ColdTierIoPosture> {
+    pub const fn cold_posture(&self) -> Option<&'evidence ColdTierIoPosture> {
         match self {
-            Self::Cold { posture, .. } => Some(posture),
+            Self::Cold { posture, .. } => Some(*posture),
             _ => None,
         }
     }
@@ -68,16 +70,20 @@ impl BlobPlacementIntent {
         }
     }
 
-    pub fn external_recoverability(&self) -> Option<&StoreExternalPlacementRecoverabilityEvidence> {
+    pub const fn external_recoverability(
+        &self,
+    ) -> Option<&'evidence StoreExternalPlacementRecoverabilityEvidence> {
         match self {
-            Self::External { recoverability } => Some(recoverability),
+            Self::External { recoverability } => Some(*recoverability),
             _ => None,
         }
     }
 
-    pub fn external_sidecar_denial(&self) -> Option<&BlobBackendResidueObservation> {
+    pub const fn external_sidecar_denial(
+        &self,
+    ) -> Option<&'evidence BlobBackendResidueObservation> {
         match self {
-            Self::ExternalSidecarWithoutStoreAuthority { observation } => Some(observation),
+            Self::ExternalSidecarWithoutStoreAuthority { observation } => Some(*observation),
             _ => None,
         }
     }

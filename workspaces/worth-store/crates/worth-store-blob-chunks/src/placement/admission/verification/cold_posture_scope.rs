@@ -5,7 +5,7 @@ use crate::placement::admission::{
 
 pub(crate) fn verify_cold_posture_scope(
     basis: &BlobPlacementReachabilityBasis,
-    intent: &BlobPlacementIntent,
+    intent: &BlobPlacementIntent<'_>,
 ) -> Result<(), BlobPlacementAdmissionDenial> {
     if let Some(posture) = intent.cold_posture() {
         if !basis.admits_cold_posture(posture) {

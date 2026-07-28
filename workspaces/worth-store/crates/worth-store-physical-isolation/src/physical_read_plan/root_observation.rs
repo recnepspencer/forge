@@ -168,6 +168,7 @@ fn add_reference_epoch(
                 .epoch(),
         )),
         worth_store_physical_format::PhysicalCellReuseDomain::ExtentAllocation
+        | worth_store_physical_format::PhysicalCellReuseDomain::RecordExtentAllocation
         | worth_store_physical_format::PhysicalCellReuseDomain::FreeSpaceReuse => Ok(builder
             .with_extent(
                 root.admit_extent_publication_epoch(reference.current_generation())?

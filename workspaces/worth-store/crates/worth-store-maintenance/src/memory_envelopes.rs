@@ -1,34 +1,25 @@
-use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationObservation, PhysicalOperationAllocationScope,
-    PhysicalResidencyCounters,
+use worth_store::physical_runtime::{
+    MaintenancePhysicalAllocation, PhysicalOperationAllocationScope,
 };
 
 #[derive(Debug)]
-pub struct CompactionPlanningMemoryEnvelope {
-    allocation: OperationAllocationGrant,
+pub struct CompactionPlanningMemoryEnvelope<'runtime> {
+    allocation: MaintenancePhysicalAllocation<'runtime>,
 }
 
-impl CompactionPlanningMemoryEnvelope {
-    pub fn from_allocation_grant(
-        allocation: OperationAllocationGrant,
-    ) -> Result<Self, MaintenanceMemoryEnvelopeDenial> {
-        require_maintenance_scope(allocation).map(|allocation| Self { allocation })
+impl<'runtime> CompactionPlanningMemoryEnvelope<'runtime> {
+    pub const fn from_store_allocation(
+        allocation: MaintenancePhysicalAllocation<'runtime>,
+    ) -> Self {
+        Self { allocation }
     }
 
     pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
-        self.allocation.scope()
+        PhysicalOperationAllocationScope::Maintenance
     }
 
     pub const fn allocation_bytes(&self) -> u64 {
         self.allocation.bytes()
-    }
-
-    pub fn allocation_observation(&self) -> OperationAllocationObservation {
-        self.allocation.observation()
-    }
-
-    pub fn counters(&self) -> PhysicalResidencyCounters {
-        self.allocation.observation().counters()
     }
 
     pub const fn proves_compaction_validity(&self) -> bool {
@@ -41,31 +32,23 @@ impl CompactionPlanningMemoryEnvelope {
 }
 
 #[derive(Debug)]
-pub struct ImportExportMemoryEnvelope {
-    allocation: OperationAllocationGrant,
+pub struct ImportExportMemoryEnvelope<'runtime> {
+    allocation: MaintenancePhysicalAllocation<'runtime>,
 }
 
-impl ImportExportMemoryEnvelope {
-    pub fn from_allocation_grant(
-        allocation: OperationAllocationGrant,
-    ) -> Result<Self, MaintenanceMemoryEnvelopeDenial> {
-        require_maintenance_scope(allocation).map(|allocation| Self { allocation })
+impl<'runtime> ImportExportMemoryEnvelope<'runtime> {
+    pub const fn from_store_allocation(
+        allocation: MaintenancePhysicalAllocation<'runtime>,
+    ) -> Self {
+        Self { allocation }
     }
 
     pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
-        self.allocation.scope()
+        PhysicalOperationAllocationScope::Maintenance
     }
 
     pub const fn allocation_bytes(&self) -> u64 {
         self.allocation.bytes()
-    }
-
-    pub fn allocation_observation(&self) -> OperationAllocationObservation {
-        self.allocation.observation()
-    }
-
-    pub fn counters(&self) -> PhysicalResidencyCounters {
-        self.allocation.observation().counters()
     }
 
     pub const fn proves_import_export_semantic_correctness(&self) -> bool {
@@ -74,24 +57,5 @@ impl ImportExportMemoryEnvelope {
 
     pub const fn proves_replication_correctness(&self) -> bool {
         false
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MaintenanceMemoryEnvelopeDenial {
-    WrongAllocationScope {
-        actual: PhysicalOperationAllocationScope,
-    },
-}
-
-fn require_maintenance_scope(
-    allocation: OperationAllocationGrant,
-) -> Result<OperationAllocationGrant, MaintenanceMemoryEnvelopeDenial> {
-    if allocation.scope() == PhysicalOperationAllocationScope::Maintenance {
-        Ok(allocation)
-    } else {
-        Err(MaintenanceMemoryEnvelopeDenial::WrongAllocationScope {
-            actual: allocation.scope(),
-        })
     }
 }

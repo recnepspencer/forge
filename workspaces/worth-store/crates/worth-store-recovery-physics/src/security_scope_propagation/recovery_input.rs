@@ -157,7 +157,7 @@ pub struct RecoveryRootSecurityMetadataEnvelope {
 
 impl RecoveryRootSecurityMetadataEnvelope {
     pub fn from_recovery_entry(
-        recovery_entry: &RecoveryEntryAdmission,
+        recovery_entry: &RecoveryEntryAdmission<'_>,
         admitted_scope: &StoreAdmittedSecurityScope,
         key_version_posture: StoreKeyVersionPosture,
         legacy_posture: StoreLegacySecurityPosture,
@@ -207,7 +207,7 @@ impl RecoverySecurityScopePropagationInput {
         wal_record: &RecoveryWalRecordSecurityMetadataEnvelope,
         checkpoint_record: &RecoveryCheckpointRecordSecurityMetadataEnvelope,
         recovery_root: &RecoveryRootSecurityMetadataEnvelope,
-        recovery_entry: &RecoveryEntryAdmission,
+        recovery_entry: &RecoveryEntryAdmission<'_>,
     ) -> Self {
         Self {
             wal_record_identity: wal_record.identity(),

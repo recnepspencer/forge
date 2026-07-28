@@ -3,9 +3,7 @@ use std::num::NonZeroU64;
 use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
     validation, with_store_checked_frame,
 };
-use worth_store::physical_runtime::{
-    PhysicalOperationAllocationScope, ServingPhysicalRuntime,
-};
+use worth_store::physical_runtime::{PhysicalOperationAllocationScope, ServingPhysicalRuntime};
 use worth_store_maintenance::PhysicalIntegrityScrubWorkflow;
 use worth_store_physical_integrity::{
     CompactionSourceIntegrityClearance, OfflineScrubInspectionInput, ScrubCounterSnapshot,
@@ -115,34 +113,30 @@ fn scrub_plan_denies_before_inspection_when_exact_limits_are_exceeded() {
         assert_eq!(zero_yield_denial.counters(), ScrubCounterSnapshot::empty());
     });
 
-    with_store_checked_frame(
-        b"read-limit",
-        validation(1, 2, 3, 7),
-        |serving, checked| {
-            let protected = checked.checked_bytes();
-            let denial = ScrubPlan::build(ScrubPlanRequest::online(
-                serving
-                    .physical_allocations()
-                    .admit_scrub(nonzero(64))
-                    .unwrap(),
-                vec![
-                    ScrubWindow::online_from_protected_view(ordinal(0), protected),
-                    ScrubWindow::online_from_protected_view(ordinal(1), protected),
-                ],
-                policy(64, 1),
-            ))
-            .unwrap_err();
+    with_store_checked_frame(b"read-limit", validation(1, 2, 3, 7), |serving, checked| {
+        let protected = checked.checked_bytes();
+        let denial = ScrubPlan::build(ScrubPlanRequest::online(
+            serving
+                .physical_allocations()
+                .admit_scrub(nonzero(64))
+                .unwrap(),
+            vec![
+                ScrubWindow::online_from_protected_view(ordinal(0), protected),
+                ScrubWindow::online_from_protected_view(ordinal(1), protected),
+            ],
+            policy(64, 1),
+        ))
+        .unwrap_err();
 
-            assert_eq!(
-                denial.kind(),
-                ScrubPlanDenialKind::ProtectedReadLimitExceeded {
-                    requested: 2,
-                    limit: 1,
-                }
-            );
-            assert_eq!(denial.counters(), ScrubCounterSnapshot::empty());
-        },
-    );
+        assert_eq!(
+            denial.kind(),
+            ScrubPlanDenialKind::ProtectedReadLimitExceeded {
+                requested: 2,
+                limit: 1,
+            }
+        );
+        assert_eq!(denial.counters(), ScrubCounterSnapshot::empty());
+    });
 }
 
 #[test]
@@ -152,7 +146,8 @@ fn online_scrub_rejects_an_allocation_from_another_store() {
         b"same-store-required",
         validation(1, 2, 3, 7),
         |_serving, checked| {
-            let other = PhysicalResidencyStoreWorld::initialize("foreign-scrub-allocation").unwrap();
+            let other =
+                PhysicalResidencyStoreWorld::initialize("foreign-scrub-allocation").unwrap();
             let request = ScrubPlanRequest::online(
                 other
                     .serving()
@@ -270,7 +265,9 @@ fn scrub_plan_denial(
     .unwrap_err()
 }
 
-fn completed(outcome: ScrubExecutionOutcome<'_, '_>) -> worth_store_physical_integrity::ScrubExecutionReceipt {
+fn completed(
+    outcome: ScrubExecutionOutcome<'_, '_>,
+) -> worth_store_physical_integrity::ScrubExecutionReceipt {
     match outcome {
         ScrubExecutionOutcome::Completed(receipt) => receipt,
         ScrubExecutionOutcome::Yielded(_) => panic!("the scrub plan should complete in this slice"),

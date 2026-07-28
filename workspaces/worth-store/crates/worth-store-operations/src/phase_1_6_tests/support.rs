@@ -30,7 +30,7 @@ pub(super) use worth_store_physical_isolation::{
     BackupCutReadmissionDenial, BackupReachabilityLeaseRegistry,
     CurrentGenerationPhysicalReference, ExecutedReachabilityEvidence,
     GenerationCountedPhysicalReference, HazardLeaseTable, HazardLeaseTableCapacity, ReclaimDenial,
-    ReclaimEligibilityProof,
+    ReclaimEligibilityProof, UntrustedBackupArtifactClaim,
 };
 
 pub(crate) struct BackupScenario {

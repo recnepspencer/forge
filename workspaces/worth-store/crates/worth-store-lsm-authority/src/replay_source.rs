@@ -40,8 +40,6 @@ pub enum LsmReplaySourceDenial {
     CheckpointDoesNotBindMembership,
     PartialPublicationAmbiguous,
     TornPublication,
-    UnsafeNoUndoPosture,
-    RecoveryDeferred,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -176,21 +174,13 @@ fn classify_partial_publication(
         | UnacknowledgedPublicationOutcome::WalAppendedButNotDurable
         | UnacknowledgedPublicationOutcome::DurableWalReplayable
         | UnacknowledgedPublicationOutcome::RejectedNonAuthoritativePromotion => Ok(false),
-        UnacknowledgedPublicationOutcome::AcknowledgedBeforePageFlush
-        | UnacknowledgedPublicationOutcome::NoUndoPostureSatisfied
-        | UnacknowledgedPublicationOutcome::RollbackImageProtected => Ok(true),
+        UnacknowledgedPublicationOutcome::AcknowledgedBeforePageFlush => Ok(true),
         UnacknowledgedPublicationOutcome::CheckpointCutoverAmbiguous
         | UnacknowledgedPublicationOutcome::Ambiguous => {
             Err(LsmReplaySourceDenial::PartialPublicationAmbiguous)
         }
         UnacknowledgedPublicationOutcome::TornPublicationRejected => {
             Err(LsmReplaySourceDenial::TornPublication)
-        }
-        UnacknowledgedPublicationOutcome::RejectedNoUndoHazard => {
-            Err(LsmReplaySourceDenial::UnsafeNoUndoPosture)
-        }
-        UnacknowledgedPublicationOutcome::UndoCapableRecoveryDeferred => {
-            Err(LsmReplaySourceDenial::RecoveryDeferred)
         }
     }
 }

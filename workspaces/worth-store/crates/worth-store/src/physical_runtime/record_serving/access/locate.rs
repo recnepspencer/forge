@@ -58,10 +58,6 @@ pub struct PhysicalRecordReader {
 }
 
 impl PhysicalRecordReader {
-    const fn read_identity(&self, record: PhysicalRecordId) -> RecordReadIdentity {
-        RecordReadIdentity::new(self.store, self.generation, record)
-    }
-
     pub fn open(
         &self,
         record: PhysicalRecordId,

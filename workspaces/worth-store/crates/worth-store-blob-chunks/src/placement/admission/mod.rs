@@ -9,6 +9,8 @@
 //! - **Reachability basis** enters from [`BlobChunkReachabilityProofSet`] and is matched against
 //!   placement intent recoverability for external class.
 //! - **Backend capability evidence** enters through per-class `verify_class_backend_capability`.
+//! - **Class-specific evidence** is borrowed for this synchronous admission and is not retained
+//!   or promoted by [`AdmittedBlobPlacement`].
 //!
 //! Downstream movement assumes source/target placements admitted here; compaction intent carries
 //! the same admitted placement witness.

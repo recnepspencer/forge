@@ -1,6 +1,3 @@
-#[path = "../support/physical_isolation/checkpoint_read_fixture/checkpoint_read_fixture.rs"]
-mod checkpoint_read_fixture;
-
 #[path = "../scenarios/scheduling/access_policy/access_policy.rs"]
 mod access_policy;
 

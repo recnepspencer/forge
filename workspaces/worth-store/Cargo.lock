@@ -602,7 +602,11 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
+ "trybuild",
+ "worth-proof",
  "worth-store",
+ "worth-store-io-scheduler",
+ "worth-store-physical-isolation",
 ]
 
 [[package]]
@@ -1250,10 +1254,10 @@ dependencies = [
  "tempfile",
  "worth-foundational",
  "worth-proof",
+ "worth-store",
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-budgets",
- "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-io-scheduler",
  "worth-store-offline-verifier",
@@ -1290,12 +1294,8 @@ dependencies = [
 name = "worth-store-buffer-pool"
 version = "0.1.0"
 dependencies = [
- "sha2",
- "worth-store-budgets",
  "worth-store-contracts",
- "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-readiness",
  "worth-store-security",
 ]
 
@@ -1324,7 +1324,6 @@ dependencies = [
  "worth-store-authority",
  "worth-store-blob-chunks",
  "worth-store-budgets",
- "worth-store-buffer-pool",
  "worth-store-claim-boundaries",
  "worth-store-compatibility",
  "worth-store-contracts",
@@ -1412,7 +1411,6 @@ name = "worth-store-io-scheduler"
 version = "0.1.0"
 dependencies = [
  "worth-foundational",
- "worth-proof",
  "worth-store-budgets",
  "worth-store-buffer-pool",
  "worth-store-contracts",
@@ -1472,11 +1470,12 @@ dependencies = [
 name = "worth-store-maintenance"
 version = "0.1.0"
 dependencies = [
- "worth-store-buffer-pool",
+ "worth-store",
  "worth-store-contracts",
  "worth-store-layout-indexes",
  "worth-store-physical-format",
  "worth-store-physical-integrity",
+ "worth-store-test-support",
 ]
 
 [[package]]
@@ -1573,11 +1572,11 @@ dependencies = [
  "tempfile",
  "worth-foundational",
  "worth-proof",
+ "worth-store",
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-blob-chunks",
  "worth-store-budgets",
- "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-formal-models",
  "worth-store-io-scheduler",
@@ -1634,9 +1633,9 @@ dependencies = [
  "tempfile",
  "worth-foundational",
  "worth-proof",
+ "worth-store",
  "worth-store-authority",
  "worth-store-budgets",
- "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-physical-backend",
  "worth-store-physical-format",
@@ -1679,16 +1678,17 @@ dependencies = [
  "tempfile",
  "worth-foundational",
  "worth-proof",
+ "worth-store",
  "worth-store-aspect-native",
  "worth-store-authority",
  "worth-store-budgets",
- "worth-store-buffer-pool",
  "worth-store-contracts",
  "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-physical-integrity",
  "worth-store-readiness",
  "worth-store-security",
+ "worth-store-test-support",
  "worth-store-wal",
 ]
 
@@ -1773,7 +1773,6 @@ dependencies = [
  "worth-store-authority",
  "worth-store-blob-chunks",
  "worth-store-budgets",
- "worth-store-buffer-pool",
  "worth-store-compatibility",
  "worth-store-contracts",
  "worth-store-io-scheduler",

@@ -29,6 +29,8 @@ mod pressure;
 pub mod production_facade;
 #[cfg(feature = "physical-isolation-fixtures")]
 pub mod recovery;
+#[cfg(feature = "scheduling-fixtures")]
+pub mod scheduling;
 #[cfg(feature = "certification-world")]
 mod security_scope;
 #[cfg(feature = "physical-isolation-fixtures")]

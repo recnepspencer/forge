@@ -1,3 +1,4 @@
+mod background_capacity_boundary;
 mod candidate_allocation;
 mod candidate_identity;
 mod clean_transition_authority;
@@ -11,6 +12,7 @@ mod identity_transition;
 mod ordinary_feature_graph;
 mod post_close_observation;
 mod production_trace;
+mod queue_authority_boundary;
 mod removal_inventory;
 mod runtime_ownership;
 mod scheduler_authority_boundary;

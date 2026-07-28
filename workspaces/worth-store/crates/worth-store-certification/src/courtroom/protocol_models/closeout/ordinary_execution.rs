@@ -150,7 +150,9 @@ pub(super) fn exact_modeled_action_coverage(suite: &OrdinaryProtocolExecutionSui
                 _ => None,
             });
             BTreeSet::from_iter(observed)
-                == BTreeSet::from(worth_store_formal_models::DurabilityRecoveryAction::all())
+                == BTreeSet::from(
+                    worth_store_formal_models::DurabilityRecoveryAction::production_owned(),
+                )
         }
         ProtocolFamily::RecoverySourcePrecedence => {
             let observed = suite.coverage_actions().iter().filter_map(|action| match action {

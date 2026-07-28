@@ -232,22 +232,17 @@ impl ExecutedIntegrityBoundaryDenialEvidence {
         }
     }
 
-    pub fn from_store_authority_denial(
-        denial: IntegrityEntryDenial,
-    ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
-        if matches!(
-            denial.kind(),
+    pub fn from_integrity_entry_denial(denial: IntegrityEntryDenial) -> Self {
+        let boundary = match denial.kind() {
             IntegrityEntryDenialKind::VerificationStoreMismatch
-                | IntegrityEntryDenialKind::VerificationGenerationMismatch
-        ) {
-            Ok(Self::new(
-                IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch,
-            ))
-        } else {
-            Err(PhysicalIntegrityCloseoutDenial::UnexecutedBoundaryDenial(
-                IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch,
-            ))
-        }
+            | IntegrityEntryDenialKind::VerificationGenerationMismatch => {
+                IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch
+            }
+            IntegrityEntryDenialKind::VerificationAllocationTooSmall { .. } => {
+                IntegrityCloseoutDenialBoundary::VerificationAllocationCoverage
+            }
+        };
+        Self::new(boundary)
     }
 
     pub fn from_copied_quarantine_record_denial(

@@ -5,10 +5,7 @@ use super::PhysicalWorkExecutor;
 use crate::physical_runtime::{
     record_serving::residency::{
         artifact_tree::PhysicalRecordArtifactTree,
-        scheduled_writeback::{
-            PhysicalScheduledWriteback, PhysicalScheduledWritebackDispatch,
-            PhysicalScheduledWritebackOutcome,
-        },
+        scheduled_writeback::{PhysicalScheduledWriteback, PhysicalScheduledWritebackOutcome},
     },
     PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
     PhysicalResidencyWritebackCompletion, PhysicalResidencyWritebackExecutorCommand,
@@ -37,8 +34,8 @@ impl PhysicalWorkExecutor {
             BackendQueueExecutionAdaptation::None,
         );
         let physical = match physical {
-            PhysicalScheduledWritebackDispatch::Terminal(outcome) => outcome,
-            PhysicalScheduledWritebackDispatch::EffectCompleted(effect) => {
+            Err(outcome) => *outcome,
+            Ok(effect) => {
                 #[cfg(feature = "certification-test-authority")]
                 self.certification_yieldpoints.pause(
                     super::CertificationPhysicalExecutionCheckpoint::

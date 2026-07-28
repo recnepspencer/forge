@@ -1,11 +1,3 @@
-use worth_store_blob_chunks::certification_test_authority::{
-    execute_blob_harness, materialize_blob_executed_lifecycle_evidence, BlobHarnessExecutionInput,
-    ExecutedBlobLifecycleEvidenceBundle,
-};
-use worth_store_buffer_pool::{
-    streaming_window_allocation_receipt, AllocationAdmission, BufferPoolExecutedEvidenceSource,
-};
-
 use crate::{
     admit_physical_counter_evidence, BlobByteEqualityOracle, BlobChunkOrderingOracle,
     BlobConstantMemoryOracle, BlobDigestChecksumDistinctionOracle, BlobHarnessLoweredSeedPlan,
@@ -20,6 +12,10 @@ use crate::{
     PhysicalSimulationDriver, PhysicalSimulationObserver, ProductionBackedFixtureMaterialization,
     ReplaySeed, ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationReplayBundle,
     StateSpaceBudget,
+};
+use worth_store_blob_chunks::certification_test_authority::{
+    execute_blob_harness, materialize_blob_executed_lifecycle_evidence, BlobHarnessExecutionInput,
+    ExecutedBlobLifecycleEvidenceBundle,
 };
 
 use super::lower_blob_simulation_seed_plan;
@@ -100,23 +96,17 @@ fn counter_receipt(
         schedule,
         trace,
         witness,
-        buffer_pool_evidence(lowered.plan(), witness),
+        crate::observe_real_store_residency(
+            "physical-certification-blob",
+            crate::CertificationResidencyWorkload::Blob,
+            witness.allocation_bytes(),
+        ),
         io_queue_evidence(lowered.plan()),
     )
     .unwrap();
     let evidence =
         PhysicalExecutedCounterEvidence::from_execution_sources(lowered.plan(), sources).unwrap();
     admit_physical_counter_evidence(lowered.plan(), evidence).unwrap()
-}
-
-fn buffer_pool_evidence(
-    plan: &crate::PhysicalSimulationPlan,
-    witness: &BlobHarnessExecutedActorEvidence,
-) -> BufferPoolExecutedEvidenceSource {
-    let mut allocation =
-        AllocationAdmission::from_declaration(plan.resource_envelope().allocation());
-    streaming_window_allocation_receipt(&mut allocation, witness.allocation_bytes()).unwrap();
-    BufferPoolExecutedEvidenceSource::from_allocation_execution(&allocation).unwrap()
 }
 
 fn io_queue_evidence(

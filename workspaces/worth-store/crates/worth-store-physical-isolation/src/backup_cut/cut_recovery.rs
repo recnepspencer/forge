@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use worth_store_authority::StoreCurrentAuthorityIdentity;
-use worth_store_physical_format::{BackupBundleFormatAuthority, BackupBundleManifest};
+use worth_store_physical_format::{
+    BackupBundleFormatAuthority, BackupBundleManifest, BackupBundleManifestDeclaration,
+    BackupBundleManifestIdentity, BackupBundleRecoveryCoordinates,
+};
 
 use super::cut_manifest::portable_row;
 use super::cut_recovery_codec::{
@@ -96,16 +99,22 @@ impl BackupCutRecoveryRecord {
         let coordinates = cut.coordinates();
         let security = cut.security_scope().receipt_id();
         let manifest = BackupBundleManifest::canonical_checked(
-            cut.identity(),
-            coordinates.store_lineage(),
-            coordinates.root_generation(),
-            coordinates.manifest_generation(),
-            coordinates.checkpoint_identity(),
-            coordinates.durable_checkpoint_lsn(),
-            coordinates.wal_half_open_interval(),
-            coordinates.acknowledged_frontier(),
-            security.security_scope_fingerprint(),
-            rows,
+            BackupBundleManifestDeclaration::new(
+                BackupBundleManifestIdentity {
+                    cut_identity: cut.identity(),
+                    store_lineage: coordinates.store_lineage().to_owned(),
+                    root_generation: coordinates.root_generation(),
+                    manifest_generation: coordinates.manifest_generation(),
+                },
+                BackupBundleRecoveryCoordinates {
+                    checkpoint_identity: coordinates.checkpoint_identity().to_owned(),
+                    durable_checkpoint_lsn: coordinates.durable_checkpoint_lsn(),
+                    wal_half_open_interval: coordinates.wal_half_open_interval(),
+                    acknowledged_frontier: coordinates.acknowledged_frontier(),
+                },
+                security.security_scope_fingerprint(),
+                rows,
+            ),
         )
         .map_err(|denial| match denial {
             worth_store_physical_format::BackupBundleManifestConstructionDenial::InvalidManifest => {

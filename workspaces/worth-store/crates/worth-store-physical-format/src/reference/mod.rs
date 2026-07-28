@@ -2,6 +2,8 @@ mod authority;
 mod counters;
 mod denials;
 mod future_chunk;
+#[cfg(test)]
+mod record_extent_owner_tests;
 mod references;
 mod scope;
 #[cfg(test)]

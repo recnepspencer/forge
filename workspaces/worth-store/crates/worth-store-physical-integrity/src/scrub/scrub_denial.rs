@@ -13,7 +13,9 @@ pub enum ScrubOverBudgetClass {
 pub enum ScrubPlanDenialKind {
     EmptyWindowSet,
     ZeroYieldWindowBudget,
-    EmptyWindow { ordinal: ScrubWindowOrdinal },
+    EmptyWindow {
+        ordinal: ScrubWindowOrdinal,
+    },
     OnlineWindowStoreMismatch {
         ordinal: ScrubWindowOrdinal,
         expected: StableStoreIdentity,
@@ -24,9 +26,18 @@ pub enum ScrubPlanDenialKind {
         expected: LifecycleGeneration,
         actual: LifecycleGeneration,
     },
-    AllocationLimitExceeded { requested: u64, limit: u64 },
-    StreamingWindowLimitExceeded { requested: u64, limit: u64 },
-    ProtectedReadLimitExceeded { requested: u64, limit: u64 },
+    AllocationLimitExceeded {
+        requested: u64,
+        limit: u64,
+    },
+    StreamingWindowLimitExceeded {
+        requested: u64,
+        limit: u64,
+    },
+    ProtectedReadLimitExceeded {
+        requested: u64,
+        limit: u64,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

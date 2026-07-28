@@ -1,5 +1,4 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 use worth_store_io_scheduler::{
     foreground_reservation::{
         ForegroundIoLaneKind, ForegroundReservationAdmissionDenial, ForegroundReservationState,
@@ -28,14 +27,10 @@ pub enum BlobStreamingReadDenial {
     MissingExactCounters {
         actual: CounterEvidenceStrength,
     },
-    AllocationScopeMismatch {
-        actual: PhysicalOperationAllocationScope,
-    },
     AllocationWindowExceeded {
         window_bytes: u64,
         allocation_bytes: u64,
     },
-    AllocationCountersUnavailable,
     ForegroundReservationNotAdmitted {
         lane: ForegroundIoLaneKind,
         state: ForegroundReservationState,
@@ -44,7 +39,7 @@ pub enum BlobStreamingReadDenial {
     ForegroundReservationLaneMismatch {
         lane: ForegroundIoLaneKind,
     },
-    StablePhysicalReadDenied(PhysicalReadExecutionDenial),
+    StablePhysicalReadDenied(Box<PhysicalReadExecutionDenial>),
     VerificationPressureClassMismatch {
         actual: BackgroundIoPressureClass,
     },
@@ -106,9 +101,6 @@ pub enum BlobStreamingReadDenial {
 impl From<BlobStreamingAllocationDenial> for BlobStreamingReadDenial {
     fn from(denial: BlobStreamingAllocationDenial) -> Self {
         match denial {
-            BlobStreamingAllocationDenial::WrongScope { actual } => {
-                Self::AllocationScopeMismatch { actual }
-            }
             BlobStreamingAllocationDenial::WindowExceedsAllocation {
                 window_bytes,
                 allocation_bytes,
@@ -116,9 +108,6 @@ impl From<BlobStreamingAllocationDenial> for BlobStreamingReadDenial {
                 window_bytes,
                 allocation_bytes,
             },
-            BlobStreamingAllocationDenial::CountersUnavailable => {
-                Self::AllocationCountersUnavailable
-            }
         }
     }
 }

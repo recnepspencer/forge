@@ -166,7 +166,7 @@ impl CanonicalRecordMutationPort {
         )
         .map_err(|failure| CanonicalRecordMutationFailure::pre_effect(identity, failure))?;
         let policy =
-            super::super::record_queue_policy::admit_record_queue_policy(&demand.queue_work());
+            super::super::record_queue_policy::admit_record_queue_policy(demand.queue_work());
         crate::physical_runtime::PhysicalWorkScheduler::admit(demand, &backend, policy)
             .map_err(|failure| CanonicalRecordMutationFailure::scheduler(identity, failure))
     }

@@ -23,9 +23,7 @@ use worth_store_physical_integrity::{
 };
 use worth_store_recovery_physics::WalLsnRange;
 
-use crate::harness::physical_residency::{
-    PhysicalResidencyStoreWorld, SUCCESSOR_SCOPE_ALLOCATION_BYTES,
-};
+use crate::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 pub(super) fn inspect_wal_payload(
     payload: &[u8],
@@ -43,19 +41,17 @@ pub(super) fn inspect_wal_payload_for_owner(
     let world = PhysicalResidencyStoreWorld::initialize("wal-integrity-entry").unwrap();
     let inspection = world
         .with_record_chunk(&frame, |serving, chunk| {
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
             let verification = serving
                 .physical_allocations()
                 .admit_verification(
-                    NonZeroU64::new(SUCCESSOR_SCOPE_ALLOCATION_BYTES)
-                        .expect("fixture allocation is nonzero"),
+                    NonZeroU64::new(protected.len_bytes() as u64)
+                        .expect("a Store record chunk is nonempty"),
                 )
                 .expect("real Store verification allocation admits");
-            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
-            let inspection_lease = IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(
-                protected,
-                verification,
-            ))
-            .expect("matching real Store integrity entry admits");
+            let inspection_lease =
+                IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(protected, verification))
+                    .expect("matching real Store integrity entry admits");
             let checksum_scope = checksum_scope();
             let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
                 .with_checksum_claim(

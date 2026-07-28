@@ -12,9 +12,7 @@ use worth_store_physical_integrity::{
     PhysicalIntegrityAdmissionSeed, ProtectedPhysicalByteView,
 };
 
-use crate::harness::physical_residency::{
-    PhysicalResidencyStoreWorld, SUCCESSOR_SCOPE_ALLOCATION_BYTES,
-};
+use crate::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 pub(super) fn with_protected_page_view(
     payload: &[u8],
@@ -52,22 +50,19 @@ pub(super) fn with_protected_frame_view(
 
 fn with_protected_physical_bytes(
     bytes: &[u8],
-    run: impl FnOnce(
-        PhysicalIntegrityAdmissionSeed<'_, '_>,
-        ProtectedPhysicalByteView<'_>,
-    ),
+    run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_, '_>, ProtectedPhysicalByteView<'_>),
 ) {
     let world = PhysicalResidencyStoreWorld::initialize("recovery-integrity-entry").unwrap();
     world
         .with_record_chunk(bytes, |serving, chunk| {
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
             let verification = serving
                 .physical_allocations()
                 .admit_verification(
-                    NonZeroU64::new(SUCCESSOR_SCOPE_ALLOCATION_BYTES)
-                        .expect("fixture allocation is nonzero"),
+                    NonZeroU64::new(protected.len_bytes() as u64)
+                        .expect("a Store record chunk is nonempty"),
                 )
                 .expect("real Store verification allocation admits");
-            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
             let lease =
                 IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(protected, verification))
                     .expect("matching real Store integrity entry admits");

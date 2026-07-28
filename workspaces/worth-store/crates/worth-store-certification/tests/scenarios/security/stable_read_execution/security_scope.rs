@@ -25,41 +25,43 @@ use worth_store_security::{
 
 #[test]
 fn logical_decode_rejects_matching_guard_with_mismatched_carrier_basis_before_bytes() {
-    use super::execution_support::bounded_copy_for_reference;
+    use super::execution_support::with_record_chunk;
     use super::plan_admission::{admit_plan, protected_set};
-    use super::support::{current_generation_page_reference, current_root_from_authority};
+    use super::support::current_root_from_authority;
     use worth_store_physical_isolation::{
         PhysicalByteGuard, PhysicalReadExecutionDenial, StablePhysicalReadExecution,
     };
 
-    let authority = super::support::physical_authority_from_complete_closeout();
-    let root = current_root_from_authority(&authority);
-    let reference = current_generation_page_reference(120);
-    let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
-    let handle = plan.into_execution_ready_handle();
-    let scope = PhysicalByteGuardScope::for_owned_read_buffer(reference);
-    let decode_entry = logical_decode_entry_for_handle_with_carrier_generation(
-        &handle,
-        scope,
-        1,
-        "carrier-basis-mismatch",
-    );
-    let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(handle);
-    let guard_admission = execution.admit_byte_guard(scope).unwrap();
-    let guard = PhysicalByteGuard::from_bounded_copy(
-        guard_admission,
-        bounded_copy_for_reference(reference, b"copy"),
-    )
-    .unwrap();
+    with_record_chunk("stable-read-carrier-basis", b"copy", |_serving, chunk| {
+        let authority = super::support::physical_authority_from_complete_closeout();
+        let root = current_root_from_authority(&authority);
+        let scope = PhysicalByteGuardScope::for_record_chunk(&chunk);
+        let reference = scope.reference();
+        let plan = admit_plan(&authority, root, protected_set([reference], 4), 8, 4);
+        let handle = plan.into_execution_ready_handle();
+        let mismatched_carrier_generation = match scope.reference().generation().get() {
+            1 => 2,
+            _ => 1,
+        };
+        let decode_entry = logical_decode_entry_for_handle_with_carrier_generation(
+            &handle,
+            scope,
+            mismatched_carrier_generation,
+            "carrier-basis-mismatch",
+        );
+        let mut execution = StablePhysicalReadExecution::from_execution_ready_handle(handle);
+        let guard_admission = execution.admit_byte_guard(scope).unwrap();
+        let guard = PhysicalByteGuard::from_record_chunk(guard_admission, chunk).unwrap();
 
-    let denial = execution
-        .read_guarded_bytes_with_security_scope(&guard, decode_entry)
-        .unwrap_err();
+        let denial = execution
+            .read_guarded_bytes_with_security_scope(&guard, decode_entry)
+            .unwrap_err();
 
-    assert!(matches!(
-        denial,
-        PhysicalReadExecutionDenial::LogicalDecodeScopeCarrierMismatch { .. }
-    ));
+        assert!(matches!(
+            denial,
+            PhysicalReadExecutionDenial::LogicalDecodeScopeCarrierMismatch { .. }
+        ));
+    });
 }
 
 pub fn logical_decode_entry_for_handle(

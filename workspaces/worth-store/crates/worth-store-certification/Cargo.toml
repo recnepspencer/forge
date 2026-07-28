@@ -15,7 +15,6 @@ worth-store-aspect-native.workspace = true
 worth-store-authority.workspace = true
 worth-store-blob-chunks = { workspace = true, features = ["certification-test-authority"] }
 worth-store-budgets.workspace = true
-worth-store-buffer-pool.workspace = true
 worth-store-claim-boundaries.workspace = true
 worth-store-compatibility.workspace = true
 worth-store-contracts.workspace = true

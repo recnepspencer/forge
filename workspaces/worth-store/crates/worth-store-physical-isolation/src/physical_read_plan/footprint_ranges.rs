@@ -32,6 +32,9 @@ enum PhysicalReferenceRangeFamily {
         segment_id: u64,
         generation: u64,
     },
+    RecordExtent {
+        generation: u64,
+    },
     Page {
         segment_id: u64,
         generation: u64,
@@ -211,6 +214,10 @@ fn range_coordinate_for_owner(
             },
             owner.extent_id()?.get(),
         )),
+        PhysicalCellReuseDomain::RecordExtentAllocation => Some((
+            PhysicalReferenceRangeFamily::RecordExtent { generation },
+            owner.extent_id()?.get(),
+        )),
         PhysicalCellReuseDomain::Page => Some((
             PhysicalReferenceRangeFamily::Page {
                 segment_id: owner.segment_id()?.get(),
@@ -248,6 +255,7 @@ impl PhysicalReferenceRangeFamily {
                 segment_id,
                 generation,
             } => 0x10_0000_0000 | segment_id ^ generation.rotate_left(11),
+            Self::RecordExtent { generation } => 0x60_0000_0000 ^ generation.rotate_left(29),
             Self::Page {
                 segment_id,
                 generation,
@@ -267,5 +275,43 @@ fn mix_u64(digest: &mut u64, value: u64) {
     for byte in value.to_le_bytes() {
         *digest ^= u64::from(byte);
         *digest = digest.wrapping_mul(0x100000001b3);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use worth_store_physical_format::{
+        PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority, PhysicalSegmentId,
+    };
+
+    #[test]
+    fn top_level_record_extent_range_never_collapses_into_segment_owned_extent_range() {
+        let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
+        let generation = PhysicalGeneration::from_raw(5).expect("generation");
+        let extent = PhysicalExtentId::from_raw(13).expect("extent");
+        let record_owner = generations
+            .record_extent_cell(extent)
+            .with_extent_generation(generation)
+            .owner();
+        let segment_owner = generations
+            .extent_cell(PhysicalSegmentId::from_raw(1).expect("segment"), extent)
+            .with_extent_generation(generation)
+            .owner();
+        let (record_family, coordinate) =
+            range_coordinate_for_owner(record_owner).expect("record extent range");
+        let (segment_family, _) =
+            range_coordinate_for_owner(segment_owner).expect("segment extent range");
+        let ranges = ProtectedReferenceRangeSet {
+            ranges: vec![ProtectedReferenceRange::new(
+                record_family,
+                coordinate,
+                coordinate,
+            )],
+        };
+
+        assert_ne!(record_family, segment_family);
+        assert!(ranges.contains_owner(record_owner));
+        assert!(!ranges.contains_owner(segment_owner));
     }
 }

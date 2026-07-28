@@ -7,93 +7,122 @@ use worth_store_physical_format::{
 
 use super::{ManifestDiscoveryCounterSnapshot, ManifestLookupFailure, ManifestReader};
 
-pub(in crate::physical_runtime::record_serving) struct CapacityRebuild {
-    pub(in crate::physical_runtime::record_serving) root: Option<ManifestBlockReference>,
-    pub(in crate::physical_runtime::record_serving) next_block: u64,
-    pub(in crate::physical_runtime::record_serving) blocks: Vec<(RecordArtifactFile, Vec<u8>)>,
-    pub(in crate::physical_runtime::record_serving) discovery: ManifestDiscoveryCounterSnapshot,
-    pub(in crate::physical_runtime::record_serving) inserted: u64,
+pub(super) struct CapacityRebuild {
+    pub(super) root: Option<ManifestBlockReference>,
+    pub(super) next_block: u64,
+    pub(super) blocks: Vec<(RecordArtifactFile, Vec<u8>)>,
+    pub(super) discovery: ManifestDiscoveryCounterSnapshot,
+    pub(super) inserted: u64,
 }
 
-pub(in crate::physical_runtime::record_serving) fn rebuild_capacity(
+pub(super) struct CapacityRebuildRequest {
+    pub(super) current_root: ManifestBlockReference,
+    pub(super) tree_identity: u64,
+    pub(super) successor_generation: u64,
+    pub(super) successor_capacity: u16,
+    pub(super) next_block: u64,
+    pub(super) updates: BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
+}
+
+pub(super) fn rebuild_capacity(
     reader: &ManifestReader<'_>,
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
-    current_root: ManifestBlockReference,
+    request: CapacityRebuildRequest,
+) -> Result<CapacityRebuild, ManifestLookupFailure> {
+    let CapacityRebuildRequest {
+        current_root,
+        tree_identity,
+        successor_generation,
+        successor_capacity,
+        next_block,
+        updates,
+    } = request;
+    if !super::super::super::planning::policy_units::manifest_capacity_can_branch(
+        successor_capacity,
+    ) {
+        return Err(ManifestLookupFailure::Damaged);
+    }
+    let writer = StreamingTreeWriter::new(StreamingTreeDeclaration {
+        format: reader.format_declaration(),
+        tree_identity,
+        generation: successor_generation,
+        capacity: successor_capacity,
+        next_block,
+    });
+    let mut traversal = CapacityRebuildTraversal {
+        reader,
+        allocation,
+        discovery: ManifestDiscoveryCounterSnapshot::default(),
+        updates,
+        inserted: 0,
+        writer,
+    };
+    traversal.walk(current_root)?;
+    traversal.finish()
+}
+
+struct CapacityRebuildTraversal<'context, 'media> {
+    reader: &'context ManifestReader<'media>,
+    allocation: &'context worth_store_buffer_pool::OperationAllocationGrant,
+    discovery: ManifestDiscoveryCounterSnapshot,
+    updates: BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
+    inserted: u64,
+    writer: StreamingTreeWriter,
+}
+
+impl CapacityRebuildTraversal<'_, '_> {
+    fn walk(&mut self, reference: ManifestBlockReference) -> Result<(), ManifestLookupFailure> {
+        match self
+            .reader
+            .read_block(self.allocation, reference, &mut self.discovery)?
+        {
+            PhysicalRootRoutingBlock::Leaf { entries, .. } => {
+                for existing in entries {
+                    while self
+                        .updates
+                        .first_key_value()
+                        .is_some_and(|(record, _)| *record < existing.record())
+                    {
+                        let (_, placement) = self.updates.pop_first().expect("first update exists");
+                        self.inserted = self.inserted.saturating_add(1);
+                        self.writer.push_entry(placement)?;
+                    }
+                    let selected = self.updates.remove(&existing.record()).unwrap_or(existing);
+                    self.writer.push_entry(selected)?;
+                }
+                Ok(())
+            }
+            PhysicalRootRoutingBlock::Branch { children, .. } => {
+                for child in children {
+                    self.walk(child)?;
+                }
+                Ok(())
+            }
+        }
+    }
+
+    fn finish(mut self) -> Result<CapacityRebuild, ManifestLookupFailure> {
+        for (_, placement) in std::mem::take(&mut self.updates) {
+            self.inserted = self.inserted.saturating_add(1);
+            self.writer.push_entry(placement)?;
+        }
+        let root = self.writer.finish()?;
+        Ok(CapacityRebuild {
+            root,
+            next_block: self.writer.next_block,
+            blocks: self.writer.blocks,
+            discovery: self.discovery,
+            inserted: self.inserted,
+        })
+    }
+}
+
+struct StreamingTreeDeclaration {
+    format: worth_store_physical_format::PhysicalRecordFormatDeclaration,
     tree_identity: u64,
     generation: u64,
     capacity: u16,
     next_block: u64,
-    mut updates: BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
-) -> Result<CapacityRebuild, ManifestLookupFailure> {
-    if !super::super::super::planning::policy_units::manifest_capacity_can_branch(capacity) {
-        return Err(ManifestLookupFailure::Damaged);
-    }
-    let mut writer = StreamingTreeWriter::new(
-        reader.format_declaration(),
-        tree_identity,
-        generation,
-        capacity,
-        next_block,
-    );
-    let mut discovery = ManifestDiscoveryCounterSnapshot::default();
-    let mut inserted = 0_u64;
-    walk_entries(
-        reader,
-        allocation,
-        current_root,
-        &mut discovery,
-        &mut updates,
-        &mut inserted,
-        &mut writer,
-    )?;
-    for (_, placement) in updates {
-        inserted = inserted.saturating_add(1);
-        writer.push_entry(placement)?;
-    }
-    let root = writer.finish()?;
-    Ok(CapacityRebuild {
-        root,
-        next_block: writer.next_block,
-        blocks: writer.blocks,
-        discovery,
-        inserted,
-    })
-}
-
-fn walk_entries(
-    reader: &ManifestReader<'_>,
-    allocation: &worth_store_buffer_pool::OperationAllocationGrant,
-    reference: ManifestBlockReference,
-    discovery: &mut ManifestDiscoveryCounterSnapshot,
-    updates: &mut BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
-    inserted: &mut u64,
-    writer: &mut StreamingTreeWriter,
-) -> Result<(), ManifestLookupFailure> {
-    match reader.read_block(allocation, reference, discovery)? {
-        PhysicalRootRoutingBlock::Leaf { entries, .. } => {
-            for existing in entries {
-                while updates
-                    .first_key_value()
-                    .is_some_and(|(record, _)| *record < existing.record())
-                {
-                    let (_, placement) = updates.pop_first().expect("first update exists");
-                    *inserted = inserted.saturating_add(1);
-                    writer.push_entry(placement)?;
-                }
-                let selected = updates.remove(&existing.record()).unwrap_or(existing);
-                writer.push_entry(selected)?;
-            }
-            Ok(())
-        }
-        PhysicalRootRoutingBlock::Branch { children, .. } => {
-            for child in children {
-                walk_entries(
-                    reader, allocation, child, discovery, updates, inserted, writer,
-                )?;
-            }
-            Ok(())
-        }
-    }
 }
 
 struct StreamingTreeWriter {
@@ -108,21 +137,15 @@ struct StreamingTreeWriter {
 }
 
 impl StreamingTreeWriter {
-    fn new(
-        format: worth_store_physical_format::PhysicalRecordFormatDeclaration,
-        tree_identity: u64,
-        generation: u64,
-        capacity: u16,
-        next_block: u64,
-    ) -> Self {
+    fn new(declaration: StreamingTreeDeclaration) -> Self {
         Self {
-            format,
-            tree_identity,
-            generation,
-            capacity: usize::from(capacity),
-            next_block,
+            format: declaration.format,
+            tree_identity: declaration.tree_identity,
+            generation: declaration.generation,
+            capacity: usize::from(declaration.capacity),
+            next_block: declaration.next_block,
             blocks: Vec::new(),
-            pending_entries: Vec::with_capacity(usize::from(capacity)),
+            pending_entries: Vec::with_capacity(usize::from(declaration.capacity)),
             pending_levels: Vec::new(),
         }
     }

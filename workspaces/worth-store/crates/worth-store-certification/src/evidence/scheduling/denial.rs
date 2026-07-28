@@ -1,5 +1,5 @@
 use super::S6CanonicalMaterializationDenial;
-use crate::FoundationalBoundaryEvidenceDenial;
+use crate::FoundationalPerformanceEvidenceDenial;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum S6CertificationMaterializationDenial {
@@ -15,13 +15,11 @@ pub enum S6CertificationMaterializationDenial {
     MissingFlushDurabilityEvidence,
     EmptyQualificationMatrix,
     MissingHarnessReplayEvidence,
-    FoundationalPerformance(FoundationalBoundaryEvidenceDenial),
+    FoundationalPerformance(FoundationalPerformanceEvidenceDenial),
     Canonical(S6CanonicalMaterializationDenial),
 }
 
-use crate::{
-    S6ForegroundReservationCertificationDenial, S6QueueExecutionCertificationDenial,
-};
+use crate::{S6ForegroundReservationCertificationDenial, S6QueueExecutionCertificationDenial};
 
 impl From<S6ForegroundReservationCertificationDenial> for S6CertificationMaterializationDenial {
     fn from(denial: S6ForegroundReservationCertificationDenial) -> Self {
@@ -35,8 +33,8 @@ impl From<S6QueueExecutionCertificationDenial> for S6CertificationMaterializatio
     }
 }
 
-impl From<FoundationalBoundaryEvidenceDenial> for S6CertificationMaterializationDenial {
-    fn from(denial: FoundationalBoundaryEvidenceDenial) -> Self {
+impl From<FoundationalPerformanceEvidenceDenial> for S6CertificationMaterializationDenial {
+    fn from(denial: FoundationalPerformanceEvidenceDenial) -> Self {
         Self::FoundationalPerformance(denial)
     }
 }

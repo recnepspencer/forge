@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::{num::NonZeroU64, sync::Arc};
 
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
@@ -18,10 +18,17 @@ use super::{
 /// source or retain the source while bypassing residency admission.
 #[derive(Clone)]
 pub(in crate::physical_runtime::record_serving) struct PhysicalResidencyWorkPort {
-    frame_ports: RecordFramePorts,
+    access: Arc<PhysicalResidencyWorkAccess>,
     source: CanonicalFrameReadSource,
+}
+
+struct PhysicalResidencyWorkAccess {
+    frame_ports: RecordFramePorts,
     writeback: FrameWritebackPort,
 }
+
+const _: () =
+    assert!(std::mem::size_of::<PhysicalResidencyWorkPort>() <= std::mem::size_of::<usize>() * 4);
 
 impl PhysicalResidencyWorkPort {
     pub(in crate::physical_runtime::record_serving) fn new(
@@ -30,9 +37,11 @@ impl PhysicalResidencyWorkPort {
         writeback: FrameWritebackPort,
     ) -> Self {
         Self {
-            frame_ports,
+            access: Arc::new(PhysicalResidencyWorkAccess {
+                frame_ports,
+                writeback,
+            }),
             source,
-            writeback,
         }
     }
 
@@ -49,7 +58,7 @@ impl PhysicalResidencyWorkPort {
         worth_store_buffer_pool::OperationAllocationGrant,
         worth_store_buffer_pool::PhysicalResidencyDenial,
     > {
-        self.frame_ports.begin_operation(scope, bytes)
+        self.access.frame_ports.begin_operation(scope, bytes)
     }
 
     pub(in crate::physical_runtime::record_serving) fn begin_foreground_write_operation(
@@ -59,7 +68,9 @@ impl PhysicalResidencyWorkPort {
         worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         worth_store_buffer_pool::PhysicalResidencyDenial,
     > {
-        self.frame_ports.begin_foreground_write_operation(bytes)
+        self.access
+            .frame_ports
+            .begin_foreground_write_operation(bytes)
     }
 
     pub(in crate::physical_runtime::record_serving) fn load_exact(
@@ -68,7 +79,7 @@ impl PhysicalResidencyWorkPort {
         coordinate: RecordFrameCoordinate,
         source_extent: ExactFrameSourceExtent,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.frame_ports.loader().load_exact(
+        self.access.frame_ports.loader().load_exact(
             allocation,
             &self.source,
             coordinate.artifact(),
@@ -84,7 +95,8 @@ impl PhysicalResidencyWorkPort {
         artifact: RecordArtifactFile,
         limit: u32,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.frame_ports
+        self.access
+            .frame_ports
             .loader()
             .load_bounded(allocation, &self.source, artifact, limit)
     }
@@ -99,8 +111,13 @@ impl PhysicalResidencyWorkPort {
     > {
         let bytes = NonZeroU64::new(u64::from(coordinate.length()))
             .expect("a physical frame coordinate has nonzero length");
-        let allocation = self.frame_ports.begin_foreground_read_operation(bytes)?;
-        self.frame_ports.admit_prefetch(allocation, coordinate)
+        let allocation = self
+            .access
+            .frame_ports
+            .begin_foreground_read_operation(bytes)?;
+        self.access
+            .frame_ports
+            .admit_prefetch(allocation, coordinate)
     }
 
     #[cfg(feature = "certification-test-authority")]
@@ -112,8 +129,13 @@ impl PhysicalResidencyWorkPort {
         worth_store_buffer_pool::ReadAheadResidencyGrant<'coordinates>,
         worth_store_buffer_pool::PhysicalResidencyDenial,
     > {
-        let allocation = self.frame_ports.begin_foreground_read_operation(bytes)?;
-        self.frame_ports.admit_read_ahead(allocation, coordinates)
+        let allocation = self
+            .access
+            .frame_ports
+            .begin_foreground_read_operation(bytes)?;
+        self.access
+            .frame_ports
+            .admit_read_ahead(allocation, coordinates)
     }
 
     #[cfg(feature = "certification-test-authority")]
@@ -121,7 +143,8 @@ impl PhysicalResidencyWorkPort {
         &self,
         grant: &worth_store_buffer_pool::PrefetchResidencyGrant,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.frame_ports
+        self.access
+            .frame_ports
             .speculative_loader()
             .load_prefetch(grant, &self.source)
     }
@@ -131,7 +154,8 @@ impl PhysicalResidencyWorkPort {
         &self,
         grant: &worth_store_buffer_pool::ReadAheadFrameGrant<'_, '_>,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.frame_ports
+        self.access
+            .frame_ports
             .speculative_loader()
             .load_read_ahead(grant, &self.source)
     }
@@ -143,7 +167,7 @@ impl PhysicalResidencyWorkPort {
     ) -> Result<StoreCandidateFramePublicationSession<'allocation>, super::super::RecordAppendDenial>
     {
         StoreCandidateFramePublicationSession::begin(
-            self.frame_ports.publisher(),
+            self.access.frame_ports.publisher(),
             allocation,
             declaration,
         )
@@ -153,18 +177,16 @@ impl PhysicalResidencyWorkPort {
     pub(in crate::physical_runtime::record_serving) fn counters(
         &self,
     ) -> worth_store_buffer_pool::PhysicalResidencyCounters {
-        self.frame_ports.counters()
+        self.access.frame_ports.counters()
     }
 
-    pub(in crate::physical_runtime::record_serving) const fn writeback(
-        &self,
-    ) -> &FrameWritebackPort {
-        &self.writeback
+    pub(in crate::physical_runtime::record_serving) fn writeback(&self) -> &FrameWritebackPort {
+        &self.access.writeback
     }
 
     #[cfg(feature = "certification-test-authority")]
     pub(super) fn drain_unpinned_clean_frames(&self) -> u64 {
-        self.frame_ports.drain_unpinned_clean_frames()
+        self.access.frame_ports.drain_unpinned_clean_frames()
     }
 
     #[cfg(feature = "certification-test-authority")]
@@ -172,6 +194,9 @@ impl PhysicalResidencyWorkPort {
         &self,
         coordinate: RecordFrameCoordinate,
     ) -> Result<(), worth_store_buffer_pool::PhysicalResidencyDenial> {
-        self.frame_ports.claim_writeback(coordinate).map(drop)
+        self.access
+            .frame_ports
+            .claim_writeback(coordinate)
+            .map(drop)
     }
 }

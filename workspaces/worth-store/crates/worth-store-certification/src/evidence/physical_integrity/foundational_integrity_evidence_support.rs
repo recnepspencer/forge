@@ -34,10 +34,7 @@ pub(super) fn with_scrub_plan_authority(
         .unwrap();
     run(
         allocation,
-        ScrubPlanPolicy::bounded(
-            NonZeroU64::new(64).unwrap(),
-            NonZeroU64::new(1).unwrap(),
-        ),
+        ScrubPlanPolicy::bounded(NonZeroU64::new(64).unwrap(), NonZeroU64::new(1).unwrap()),
     );
     assert!(!world.close().residency().requires_inspection());
 }

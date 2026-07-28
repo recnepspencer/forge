@@ -41,8 +41,10 @@ pub use backup_bundle::{
     backup_canonical_artifact_closure_digest, BackupBundleArtifactCoverage,
     BackupBundleArtifactFamily, BackupBundleArtifactFormat, BackupBundleArtifactManifestRow,
     BackupBundleFormatAuthority, BackupBundleFormatDenial, BackupBundleManifest,
-    BackupBundleManifestConstructionDenial, BackupBundleManifestReadLimits,
-    BackupBundleManifestReadObservation, BackupBundlePhysicalOwner, MaterializedBackupBundle,
+    BackupBundleManifestConstructionDenial, BackupBundleManifestDeclaration,
+    BackupBundleManifestIdentity, BackupBundleManifestReadLimits,
+    BackupBundleManifestReadObservation, BackupBundlePhysicalOwner,
+    BackupBundleRecoveryCoordinates, MaterializedBackupBundle,
 };
 pub use binary_format::{
     AllocationClassKind, FreeSpaceMapVocabulary, PhysicalAlgorithmReviewConclusion,

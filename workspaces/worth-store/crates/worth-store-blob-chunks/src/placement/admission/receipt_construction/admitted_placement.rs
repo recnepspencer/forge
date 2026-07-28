@@ -8,7 +8,7 @@ use crate::placement::admission::{
 pub(crate) fn construct_admitted_placement(
     basis: BlobPlacementReachabilityBasis,
     reachability: &BlobChunkReachabilityProofSet,
-    intent: BlobPlacementIntent,
+    intent: BlobPlacementIntent<'_>,
     counters: BlobPlacementCounterSnapshot,
 ) -> AdmittedBlobPlacement {
     AdmittedBlobPlacement {

@@ -8,9 +8,11 @@ use super::AdmittedDirtyFrame;
 #[must_use = "writeback execution must be classified as clean, retryable, or inspection-required"]
 pub enum PhysicalWritebackExecution {
     Clean(PhysicalWritebackSettlement),
-    Retryable(RetryablePhysicalWriteback),
+    Retryable(Box<RetryablePhysicalWriteback>),
     InspectionRequired(PhysicalWritebackInspectionRequired),
 }
+
+const _: () = assert!(std::mem::size_of::<PhysicalWritebackExecution>() <= 128);
 
 pub struct RetryablePhysicalWriteback {
     #[cfg(feature = "certification-test-authority")]

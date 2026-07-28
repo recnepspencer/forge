@@ -53,23 +53,23 @@ impl AdmittedRecoveryWorkBounds {
 }
 
 #[derive(Debug)]
-pub struct BoundedRecoveryPlan {
+pub struct BoundedRecoveryPlan<'runtime> {
     checkpoint: CheckpointBaseAdmission,
     tail: WalTailRedoSource,
     redo_plan: RecoveryRedoPlan,
     evidence: RecoveryWorkBudgetEvidence,
-    memory_allocation: RecoveryMemoryAllocation,
+    memory_allocation: RecoveryMemoryAllocation<'runtime>,
     store_footprint: RecoveryStoreFootprint,
     work_bounds: AdmittedRecoveryWorkBounds,
 }
 
-impl BoundedRecoveryPlan {
+impl<'runtime> BoundedRecoveryPlan<'runtime> {
     pub(crate) fn new(
         checkpoint: CheckpointBaseAdmission,
         tail: WalTailRedoSource,
         redo_plan: RecoveryRedoPlan,
         evidence: RecoveryWorkBudgetEvidence,
-        memory_allocation: RecoveryMemoryAllocation,
+        memory_allocation: RecoveryMemoryAllocation<'runtime>,
         store_footprint: RecoveryStoreFootprint,
         work_bounds: AdmittedRecoveryWorkBounds,
     ) -> Self {

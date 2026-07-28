@@ -20,7 +20,7 @@ pub struct S6FoundationalPerformanceReceipts {
 impl S6FoundationalPerformanceReceipts {
     pub(crate) fn from_sources(
         sources: &S6CertificationEvidenceSources,
-    ) -> Result<Self, crate::FoundationalBoundaryEvidenceDenial> {
+    ) -> Result<Self, crate::FoundationalPerformanceEvidenceDenial> {
         Ok(Self {
             runtime_execution: counter_receipt(
                 "store.s6.certification.runtime-execution",

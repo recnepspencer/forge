@@ -1,5 +1,4 @@
 #![doc = include_str!("courtroom/cross_cutting/certification_compile_fail_proofs.md")]
-#![doc = include_str!("courtroom/cross_cutting/receipt_authority_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
 //! Store certification courtroom: evidence, replay, scenario, and closeout surfaces.

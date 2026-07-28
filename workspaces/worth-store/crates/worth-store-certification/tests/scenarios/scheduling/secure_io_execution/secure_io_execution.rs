@@ -7,13 +7,13 @@ use worth_foundational::{
 };
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::foreground_reservation::admitted_secure_frame_read_reservation_for_certification_test;
+use worth_store_io_scheduler::queue_execution::QueueExecutionViolationCause;
 use worth_store_io_scheduler::{
     admit_queue_execution_plan, admit_secure_frame_backend_capability_for_scheduler_claim,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
-    execute_ready_queue_plan, lower_buffer_pool_read_queue_declaration, BackgroundResourceBudget,
-    IoSchedulerSecurityScopeAdmission, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
-    QueueExecutionReadyPlan, SecureIoOperation, SecureIoPostureRequirement,
-    SecureIoPreservationRequest,
+    execute_ready_queue_plan, BackgroundResourceBudget, IoSchedulerSecurityScopeAdmission,
+    QueueExecutionAdmissionRequest, QueueExecutionOutcome, QueueExecutionReadyPlan,
+    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest,
 };
 use worth_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
@@ -47,21 +47,24 @@ fn secure_frame_queue_execution_consumes_backend_secure_io_preservation() {
     let QueueExecutionOutcome::Violation(violation) = outcome else {
         panic!("secure-frame completion with cross-key speculation must violate");
     };
+    assert_eq!(
+        violation.cause(),
+        QueueExecutionViolationCause::BackendContradictedWitness
+    );
     assert_eq!(violation.counters().read_ahead_units(), 1);
     assert_eq!(violation.counters().violation_events(), 1);
 }
 fn secure_frame_read_ahead_plan() -> QueueExecutionReadyPlan {
     let reservation = admitted_secure_frame_read_reservation_for_certification_test();
-    let producer = worth_store_test_support::read_ahead_declaration_for_real_pool(
-        reservation.security_scope_identity(),
+    let work = worth_store_test_support::harness::scheduling::scheduler_foreground_read_work(
+        reservation,
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(1)
             .with_read_ahead_windows(1)
             .with_worker_permits(1),
-    );
-    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
-        .expect("secure-frame producer work should lower through scheduler");
+    )
+    .expect("secure-frame foreground read should lower through scheduler");
     let security = io_qos_security_scope_admission();
     let (backend, _) = secure_frame_backend(&security);
     let secure_io = admit_secure_io_scope_for_scheduler(

@@ -21,7 +21,7 @@ mod integrity_vetted_records;
 mod layout_readmission;
 mod memory_allocation;
 mod offline_verifier;
-mod page_lsn_publication;
+mod page_redo;
 mod partial_publication;
 mod point_in_time_recovery;
 mod publication;
@@ -137,8 +137,7 @@ pub use layout_readmission::{
     RecoveryLayoutReadmissionWitness,
 };
 pub use memory_allocation::{
-    RecoveryMemoryAllocation, RecoveryMemoryAllocationDenial, RecoveryMemoryCounterSnapshot,
-    RecoveryMemoryObservation,
+    RecoveryMemoryAllocation, RecoveryMemoryCounterSnapshot, RecoveryMemoryObservation,
 };
 pub use offline_verifier::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
@@ -157,28 +156,21 @@ pub use offline_verifier::{
     RuntimeRecoveryComparisonReport, RuntimeRecoveryReport, RuntimeRecoveryReportDenial,
     WalRedoFrameMaterialization,
 };
-pub use page_lsn_publication::{
-    DirtyPublicationEvidence, NoUndoPublicationEligibility, NoUndoPublicationProof,
-    PageFlushRecoveryReceipt, PageLsn, PageLsnPublicationCounterSnapshot, PageRedoApplicationBasis,
+pub use page_redo::{
+    PageLsn, PageRedoApplicationBasis, PageRedoCounterSnapshot, PageRedoDenial, PageRedoDenialKind,
     PageRedoDigestState, PageRedoEligibility, PageRedoEligibilityKind,
-    PhysicalDirtyPublicationCounters, RecoveryDirtyPageIdentity, ReopenedPageRecoveryEvidence,
-    RollbackImagePublicationDeclaration, RollbackImagePublicationPosture,
-    StalePageRecoveryClassification, StalePageRecoveryClassificationKind,
-    UnadmittedDirtyPagePublicationDenial, UnadmittedDirtyPagePublicationDenialKind,
-    WalBeforeDataOrderingProof,
 };
 pub use partial_publication::{
-    AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
-    NonAuthoritativePublicationDenial, NonAuthoritativePublicationSource,
-    PartialPublicationBeforeWalReplayRead, PartialPublicationClassification,
-    PartialPublicationCounterSnapshot, PartialPublicationCrashEdge, PartialPublicationEvidence,
+    AmbiguousPublicationReport, NonAuthoritativePublicationDenial,
+    NonAuthoritativePublicationSource, PartialPublicationBeforeWalReplayRead,
+    PartialPublicationClassification, PartialPublicationCounterSnapshot,
+    PartialPublicationCrashEdge, PartialPublicationEvidence,
     PartialPublicationObservationAdmission, PartialPublicationObservationSet,
     PartialPublicationObservedSource, PartialPublicationPersistedBytes,
     PartialPublicationReplayReadArtifact, PartialPublicationReplayReadDenial,
     PartialPublicationReplayReadRecord, PartialPublicationReplayReadWitness,
     PartialPublicationReplayedCrashEdge, RecoveredOrRejectedPartialPublication,
-    RollbackImageRequiredPosture, TornPublicationDenial, UnacknowledgedDurableWal,
-    UnacknowledgedPublicationOutcome, UnadmittedDurablePageMutationDenial,
+    TornPublicationDenial, UnacknowledgedDurableWal, UnacknowledgedPublicationOutcome,
 };
 pub use point_in_time_recovery::{
     ExactRecoveryFrontier, FrontierPartialOrder, PitrCandidatePosture,

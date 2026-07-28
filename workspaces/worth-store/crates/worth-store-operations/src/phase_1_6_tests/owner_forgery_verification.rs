@@ -2,8 +2,8 @@ use super::support::*;
 use sha2::{Digest, Sha256};
 use worth_store_offline_verifier::BackupArtifactSemanticDefectKind;
 use worth_store_physical_format::{
-    BackupBundleArtifactFamily, BackupBundleArtifactManifestRow, MaterializedBackupBundle,
-    PHYSICAL_HEADER_LENGTH,
+    BackupBundleArtifactFamily, BackupBundleArtifactManifestRow, BackupBundleManifestDeclaration,
+    MaterializedBackupBundle, PHYSICAL_HEADER_LENGTH,
 };
 
 const OWNER_SECONDARY_START: usize = 26;
@@ -139,16 +139,7 @@ fn publish_rehashed_manifest(
         .map(|row| rehashed_row(row, target, forged_digest))
         .collect();
     let forged = BackupBundleManifest::canonical(
-        manifest.cut_identity(),
-        manifest.store_lineage(),
-        manifest.root_generation(),
-        manifest.manifest_generation(),
-        manifest.checkpoint_identity(),
-        manifest.durable_checkpoint_lsn(),
-        manifest.wal_half_open_interval(),
-        manifest.acknowledged_frontier(),
-        manifest.security_scope_fingerprint(),
-        rows,
+        BackupBundleManifestDeclaration::from_manifest_with_artifacts(manifest, rows),
     )
     .expect("attacker can recompute all unauthenticated outer metadata");
     std::fs::write(

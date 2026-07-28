@@ -12,7 +12,7 @@ pub struct RecoveryEntryCounters {
 impl RecoveryEntryCounters {
     pub(crate) fn from_entry_inputs(
         integrity_readiness: &AdmittedRecoveryIntegrityInput,
-        memory_allocation: &RecoveryMemoryAllocation,
+        memory_allocation: &RecoveryMemoryAllocation<'_>,
     ) -> Self {
         Self {
             vetted_record_count: integrity_readiness.counters().vetted_record_count(),

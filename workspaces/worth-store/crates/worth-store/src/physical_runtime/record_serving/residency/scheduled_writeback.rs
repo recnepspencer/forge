@@ -57,16 +57,19 @@ pub(in crate::physical_runtime) enum PhysicalScheduledWritebackOutcome {
     },
 }
 
-pub(in crate::physical_runtime) enum PhysicalScheduledWritebackDispatch {
-    Terminal(PhysicalScheduledWritebackOutcome),
-    EffectCompleted(PhysicalScheduledWritebackEffect),
-}
-
 pub(in crate::physical_runtime) struct PhysicalScheduledWritebackEffect {
     plan: QueueExecutionReadyPlan,
     claim: PhysicalWritebackClaim,
     completed: Box<CompletedScheduledArtifactRangeWrite>,
 }
+
+pub(in crate::physical_runtime) type PhysicalScheduledWritebackEffectResult =
+    Result<PhysicalScheduledWritebackEffect, Box<PhysicalScheduledWritebackOutcome>>;
+
+const _: () = assert!(
+    std::mem::size_of::<PhysicalScheduledWritebackEffectResult>()
+        <= std::mem::size_of::<PhysicalScheduledWritebackEffect>() + std::mem::size_of::<usize>()
+);
 
 impl PhysicalScheduledWriteback {
     pub(in crate::physical_runtime) fn admit(
@@ -125,7 +128,7 @@ impl PhysicalScheduledWriteback {
         self,
         artifacts: &PhysicalRecordArtifactTree<'_>,
         adaptation: BackendQueueExecutionAdaptation,
-    ) -> PhysicalScheduledWritebackDispatch {
+    ) -> PhysicalScheduledWritebackEffectResult {
         let grouping = self.plan.grouping_basis();
         let scope = BackendQueueSpeculativeScope::admitted(
             grouping.security_scope_identity(),
@@ -159,18 +162,18 @@ impl PhysicalScheduledWriteback {
         };
         let completed = match physical {
             ScheduledArtifactRangeWriteOutcome::DeniedBeforeEffect(failure) => {
-                return PhysicalScheduledWritebackDispatch::Terminal(
+                return Err(Box::new(
                     PhysicalScheduledWritebackOutcome::RetryableBeforeEffect(failure),
-                );
+                ));
             }
             ScheduledArtifactRangeWriteOutcome::Indeterminate(failure) => {
-                return PhysicalScheduledWritebackDispatch::Terminal(
+                return Err(Box::new(
                     PhysicalScheduledWritebackOutcome::InspectionRequired(failure),
-                );
+                ));
             }
             ScheduledArtifactRangeWriteOutcome::Completed(completed) => completed,
         };
-        PhysicalScheduledWritebackDispatch::EffectCompleted(PhysicalScheduledWritebackEffect {
+        Ok(PhysicalScheduledWritebackEffect {
             plan: self.plan,
             claim: self.claim,
             completed,

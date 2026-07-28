@@ -50,6 +50,14 @@ impl BackupBundlePhysicalOwner {
                         && self.root.is_none()
                         && self.allocation == 0
                 }
+                7 => {
+                    self.extent.is_some()
+                        && self.segment.is_none()
+                        && self.page.is_none()
+                        && self.slot.is_none()
+                        && self.root.is_none()
+                        && self.allocation == 0
+                }
                 3 => {
                     self.segment.is_some()
                         && self.root.is_none()
@@ -109,6 +117,10 @@ impl BackupBundlePhysicalOwner {
                 )
                 .with_extent_generation(generation)
                 .owner(),
+            7 => authority
+                .record_extent_cell(crate::PhysicalExtentId::from_raw(self.extent?).ok()?)
+                .with_extent_generation(generation)
+                .owner(),
             4 => authority
                 .root_publication_cell(crate::PhysicalRootReference::from_raw(self.root?).ok()?)
                 .with_root_publication_generation(generation)
@@ -145,6 +157,7 @@ impl BackupBundlePhysicalOwner {
                         BackupBundleArtifactFamily::Extent | BackupBundleArtifactFamily::BlobChunk,
                         2
                     )
+                    | (BackupBundleArtifactFamily::Extent, 7)
                     | (
                         BackupBundleArtifactFamily::CheckpointManifest
                             | BackupBundleArtifactFamily::Index,
@@ -217,6 +230,7 @@ const fn domain_tag(domain: PhysicalCellReuseDomain) -> u8 {
     match domain {
         PhysicalCellReuseDomain::SlotAllocation => 1,
         PhysicalCellReuseDomain::ExtentAllocation => 2,
+        PhysicalCellReuseDomain::RecordExtentAllocation => 7,
         PhysicalCellReuseDomain::FreeSpaceReuse => 3,
         PhysicalCellReuseDomain::RootPublication => 4,
         PhysicalCellReuseDomain::Page => 5,

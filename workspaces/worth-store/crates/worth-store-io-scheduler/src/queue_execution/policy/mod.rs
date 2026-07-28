@@ -16,7 +16,7 @@ pub use grouping::{
     QueueGroupingBasis, QueueLocalityIdentity, QueueLocalityRange, QueueLocalityRelation,
     QueueRecoveryOrdering, QueueWritebackPolicy,
 };
-pub use physical_work::lower_physical_foreground_work;
+pub use physical_work::{lower_physical_foreground_work, PhysicalForegroundWorkDeclaration};
 pub use producer_lowering::{
     lower_buffer_pool_read_queue_declaration, lower_buffer_pool_writeback_queue_declaration,
     lower_wal_queue_declaration,

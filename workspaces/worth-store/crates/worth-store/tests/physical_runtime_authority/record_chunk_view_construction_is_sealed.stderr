@@ -1,18 +1,11 @@
-error[E0624]: associated function `new` is private
+error[E0599]: no function or associated item named `new` found for struct `PhysicalRecordChunkBasis` in the current scope
   --> tests/physical_runtime_authority/record_chunk_view_construction_is_sealed.rs:11:31
    |
-11 |       PhysicalRecordChunkBasis::new(store, generation, record, frame)
-   |                                 ^^^ private associated function
+11 |     PhysicalRecordChunkBasis::new(store, generation, record, frame)
+   |                               ^^^ function or associated item not found in `PhysicalRecordChunkBasis`
    |
-  ::: src/physical_runtime/record_serving/access/record_chunk_view.rs
-   |
-   | /     const fn new(
-   | |         store: StableStoreIdentity,
-   | |         generation: LifecycleGeneration,
-   | |         record: PhysicalRecordId,
-   | |         frame: RecordFrameCoordinate,
-   | |     ) -> Self {
-   | |_____________- private associated function defined here
+help: there is a method `ne` with a similar name, but with different arguments
+  --> $RUST/core/src/cmp.rs
 
 error[E0624]: associated function `new` is private
   --> tests/physical_runtime_authority/record_chunk_view_construction_is_sealed.rs:18:30

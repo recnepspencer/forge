@@ -1,6 +1,10 @@
+mod backend_capability;
 mod capacity_binding;
-mod common;
+mod capacity_policy;
+mod foreground_case;
 mod outcomes;
 mod physical_instance;
 mod reservation;
+mod resource_budget;
 mod resource_units;
+mod security_scope;

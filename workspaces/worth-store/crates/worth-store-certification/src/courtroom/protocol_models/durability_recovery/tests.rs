@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use worth_store_formal_models::{
     map_executed_wal_durability, DurabilityRecoveryAction, DurabilityRecoveryDenial,
     DurabilityRecoveryFrontier,
@@ -16,12 +18,33 @@ use super::scenario::{
 };
 
 #[test]
-fn ordinary_owner_execution_covers_every_durability_recovery_action() {
+fn ordinary_owner_execution_covers_every_production_owned_durability_action() {
     let mut observed = execute_ordinary_durability_recovery();
     observed.sort_unstable();
     observed.dedup();
 
-    assert_eq!(observed, DurabilityRecoveryAction::all());
+    assert_eq!(observed, DurabilityRecoveryAction::production_owned());
+}
+
+#[test]
+fn page_flush_policy_actions_are_explicitly_not_production_owned() {
+    let all = BTreeSet::from(DurabilityRecoveryAction::all());
+    let production = BTreeSet::from(DurabilityRecoveryAction::production_owned());
+    let policy = BTreeSet::from(DurabilityRecoveryAction::policy_only());
+
+    assert!(production.is_disjoint(&policy));
+    assert_eq!(
+        production.union(&policy).copied().collect::<BTreeSet<_>>(),
+        all
+    );
+    assert_eq!(
+        policy,
+        BTreeSet::from([
+            DurabilityRecoveryAction::PageFlushRequested,
+            DurabilityRecoveryAction::PageFlushCompleted,
+            DurabilityRecoveryAction::PageFlushDurabilityUncertain,
+        ])
+    );
 }
 
 #[test]

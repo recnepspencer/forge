@@ -40,9 +40,9 @@ impl FrameWritebackPort {
         let settlement = PhysicalWritebackSettlement::from_settled(&settled, signal);
         if settled.retry_is_physically_safe() && completion.is_none() {
             self.frame_ports.observe_retryable_writeback();
-            return Ok(PhysicalWritebackExecution::Retryable(
+            return Ok(PhysicalWritebackExecution::Retryable(Box::new(
                 RetryablePhysicalWriteback::new(settled, settlement, dirty),
-            ));
+            )));
         }
         let settled_success = settlement.effect_fate() == PhysicalWorkEffectFate::WriteCompleted
             && settlement.recovery() != PhysicalWorkRecoveryDisposition::InspectionRequired;

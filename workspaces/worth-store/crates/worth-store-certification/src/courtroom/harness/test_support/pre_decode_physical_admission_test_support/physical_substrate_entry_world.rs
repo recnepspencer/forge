@@ -4,17 +4,15 @@ use super::{
     checksum_fixture::checksum_declaration,
     physical_substrate_witness_world::{current_frame_bytes, current_validation, frame_witness},
 };
+use worth_store::physical_runtime::ServingPhysicalRuntime;
 use worth_store_physical_format::{
     PhysicalHeaderDecodeWitness, PhysicalReferenceValidationWitness,
 };
-use worth_store::physical_runtime::ServingPhysicalRuntime;
 use worth_store_physical_integrity::{
     IntegrityEntryAdmission, IntegrityEntryRequest, PhysicalIntegrityAdmission,
     PhysicalIntegrityAdmissionSeed, ProtectedPhysicalByteView,
 };
-use worth_store_test_support::harness::physical_residency::{
-    PhysicalResidencyStoreWorld, SUCCESSOR_SCOPE_ALLOCATION_BYTES,
-};
+use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 pub(crate) fn with_pre_decode_admission(
     payload: &[u8],
@@ -45,14 +43,14 @@ pub(crate) fn with_store_entry_seed(
     let world = PhysicalResidencyStoreWorld::initialize("physical-integrity-store-entry").unwrap();
     world
         .with_record_chunk(protected_bytes, |serving, chunk| {
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
             let verification = serving
                 .physical_allocations()
                 .admit_verification(
-                    NonZeroU64::new(SUCCESSOR_SCOPE_ALLOCATION_BYTES)
-                        .expect("fixture allocation is nonzero"),
+                    NonZeroU64::new(protected.len_bytes() as u64)
+                        .expect("a Store record chunk is nonempty"),
                 )
                 .expect("real Store verification allocation admits");
-            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
             let request = IntegrityEntryRequest::new(protected, verification);
             let lease = IntegrityEntryAdmission::admit(request)
                 .expect("real Store view and verification authority admit");

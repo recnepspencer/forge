@@ -1,5 +1,5 @@
 use crate::courtroom::harness::test_support::integrity_handoff_test_support::intact_integrity_model_input;
-use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::recovery_memory_allocation;
+use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::with_recovery_memory_allocation;
 use worth_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };
@@ -29,116 +29,123 @@ use worth_store_wal::{
 
 #[test]
 fn recovery_scope_propagation_uses_wal_checkpoint_carrier_identities() {
-    let admission = admit_entry("wal-carrier");
-    let security_scope = recovery_scope_from_wal_carriers(
-        &admission,
-        "wal-carrier",
-        StoreKeyVersionPosture::Current,
-        StoreKeyVersionPosture::Current,
-        StoreKeyVersionPosture::Current,
-    )
-    .unwrap();
+    with_admitted_entry("wal-carrier", |admission| {
+        let security_scope = recovery_scope_from_wal_carriers(
+            &admission,
+            "wal-carrier",
+            StoreKeyVersionPosture::Current,
+            StoreKeyVersionPosture::Current,
+            StoreKeyVersionPosture::Current,
+        )
+        .unwrap();
 
-    let gate = match RecoveryReplayEntryGate::before_source_precedence(admission, security_scope) {
-        TransitionOutcome::Success(gate) => gate,
-        other => panic!("matching recovery entry and WAL-carried scope should gate: {other:?}"),
-    };
+        let gate =
+            match RecoveryReplayEntryGate::before_source_precedence(admission, security_scope) {
+                TransitionOutcome::Success(gate) => gate,
+                other => {
+                    panic!("matching recovery entry and WAL-carried scope should gate: {other:?}")
+                }
+            };
 
-    assert_eq!(gate.security_scope().wal_record_identity().sequence(), 42);
-    assert_eq!(
-        gate.security_scope()
-            .checkpoint_record_identity()
-            .checkpoint_epoch(),
-        7
-    );
-    assert_eq!(
-        gate.security_scope()
-            .counters()
-            .wal_checkpoint_store_counters()
-            .preserved(),
-        1
-    );
-    assert_eq!(
-        gate.security_scope()
-            .counters()
-            .root_store_counters()
-            .preserved(),
-        1
-    );
+        assert_eq!(gate.security_scope().wal_record_identity().sequence(), 42);
+        assert_eq!(
+            gate.security_scope()
+                .checkpoint_record_identity()
+                .checkpoint_epoch(),
+            7
+        );
+        assert_eq!(
+            gate.security_scope()
+                .counters()
+                .wal_checkpoint_store_counters()
+                .preserved(),
+            1
+        );
+        assert_eq!(
+            gate.security_scope()
+                .counters()
+                .root_store_counters()
+                .preserved(),
+            1
+        );
+    });
 }
 
 #[test]
 fn recovery_scope_denies_stale_wal_scope_before_replay_publication() {
-    let admission = admit_entry("stale-wal");
-    let denial = recovery_scope_from_wal_carriers(
-        &admission,
-        "stale-wal",
-        StoreKeyVersionPosture::Stale,
-        StoreKeyVersionPosture::Current,
-        StoreKeyVersionPosture::Current,
-    )
-    .unwrap_err();
+    with_admitted_entry("stale-wal", |admission| {
+        let denial = recovery_scope_from_wal_carriers(
+            &admission,
+            "stale-wal",
+            StoreKeyVersionPosture::Stale,
+            StoreKeyVersionPosture::Current,
+            StoreKeyVersionPosture::Current,
+        )
+        .unwrap_err();
 
-    assert_eq!(
-        denial.store_denial().kind(),
-        StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
-    );
-    assert_eq!(denial.store_denial().counters().stale(), 1);
+        assert_eq!(
+            denial.store_denial().kind(),
+            StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
+        );
+        assert_eq!(denial.store_denial().counters().stale(), 1);
+    });
 }
 
 #[test]
 fn recovery_scope_denies_unsupported_wal_checkpoint_scope_before_replay_publication() {
-    let admission = admit_entry("bad-ckpt");
-    let denial = recovery_scope_from_wal_carriers(
-        &admission,
-        "bad-ckpt",
-        StoreKeyVersionPosture::Unsupported,
-        StoreKeyVersionPosture::Unsupported,
-        StoreKeyVersionPosture::Current,
-    )
-    .unwrap_err();
+    with_admitted_entry("bad-ckpt", |admission| {
+        let denial = recovery_scope_from_wal_carriers(
+            &admission,
+            "bad-ckpt",
+            StoreKeyVersionPosture::Unsupported,
+            StoreKeyVersionPosture::Unsupported,
+            StoreKeyVersionPosture::Current,
+        )
+        .unwrap_err();
 
-    assert_eq!(
-        denial.store_denial().kind(),
-        StoreSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope
-    );
-    assert_eq!(denial.store_denial().counters().unsupported(), 1);
+        assert_eq!(
+            denial.store_denial().kind(),
+            StoreSecurityScopePropagationDenialKind::UnsupportedPropagatedSecurityScope
+        );
+        assert_eq!(denial.store_denial().counters().unsupported(), 1);
+    });
 }
 
 #[test]
 fn recovery_scope_missing_root_denies_before_replay_publication() {
-    let admission = admit_entry("missing-root");
-    let admitted = platform_recovery_scope("missing-root");
-    let wal = RecoveryWalRecordSecurityMetadataEnvelope::from_wal_record_envelope(&wal_record(
-        &admitted,
-        StoreKeyVersionPosture::Current,
-    ));
-    let checkpoint =
-        RecoveryCheckpointRecordSecurityMetadataEnvelope::from_checkpoint_record_envelope(
-            &checkpoint_record(&admitted, StoreKeyVersionPosture::Current),
+    with_admitted_entry("missing-root", |admission| {
+        let admitted = platform_recovery_scope("missing-root");
+        let wal = RecoveryWalRecordSecurityMetadataEnvelope::from_wal_record_envelope(&wal_record(
+            &admitted,
+            StoreKeyVersionPosture::Current,
+        ));
+        let checkpoint =
+            RecoveryCheckpointRecordSecurityMetadataEnvelope::from_checkpoint_record_envelope(
+                &checkpoint_record(&admitted, StoreKeyVersionPosture::Current),
+            );
+
+        let outcome = RecoverySecurityScopePropagation::admit_required(
+            Some(&wal),
+            Some(&checkpoint),
+            None,
+            &admission,
         );
 
-    let outcome = RecoverySecurityScopePropagation::admit_required(
-        Some(&wal),
-        Some(&checkpoint),
-        None,
-        &admission,
-    );
-
-    match outcome {
-        TransitionOutcome::Denied(denial) => {
-            assert_eq!(
-                denial.store_denial().kind(),
-                StoreSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope
-            );
-            assert_eq!(denial.store_denial().counters().missing(), 1);
+        match outcome {
+            TransitionOutcome::Denied(denial) => {
+                assert_eq!(
+                    denial.store_denial().kind(),
+                    StoreSecurityScopePropagationDenialKind::MissingPropagatedSecurityScope
+                );
+                assert_eq!(denial.store_denial().counters().missing(), 1);
+            }
+            other => panic!("missing recovery root scope must deny before replay: {other:?}"),
         }
-        other => panic!("missing recovery root scope must deny before replay: {other:?}"),
-    }
+    });
 }
 
 fn recovery_scope_from_wal_carriers(
-    admission: &RecoveryEntryAdmission,
+    admission: &RecoveryEntryAdmission<'_>,
     identity: &str,
     wal_key_version: StoreKeyVersionPosture,
     checkpoint_key_version: StoreKeyVersionPosture,
@@ -205,16 +212,18 @@ fn checkpoint_record(
     )
 }
 
-fn admit_entry(identity: &str) -> RecoveryEntryAdmission {
-    let decision = RecoveryEntryAdmission::admit(
-        intact_integrity_model_input(identity),
-        recovery_memory_allocation(),
-        physical_authority(),
-    );
-    let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
-        panic!("intact typed S.3/S.2/S.1 evidence admits recovery entry");
-    };
-    *admission
+fn with_admitted_entry<R>(identity: &str, run: impl FnOnce(RecoveryEntryAdmission<'_>) -> R) -> R {
+    with_recovery_memory_allocation(|memory_allocation| {
+        let decision = RecoveryEntryAdmission::admit(
+            intact_integrity_model_input(identity),
+            memory_allocation,
+            physical_authority(),
+        );
+        let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
+            panic!("intact typed S.3/S.2/S.1 evidence admits recovery entry");
+        };
+        run(*admission)
+    })
 }
 
 fn physical_authority() -> PhysicalAuthorityRecap {

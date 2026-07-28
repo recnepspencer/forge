@@ -37,110 +37,177 @@ pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
     current: &DurablePhysicalRootManifest,
     request: RootManifestUpdateRequest,
 ) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
-    let RootManifestUpdateRequest {
-        successor_generation,
-        successor_capacity,
-        free_space_checksum,
-        free_space_root,
-        segment_root,
-        next_segment_block,
-        placements: updates,
-        last_inline_record,
-        last_inline_segment,
-    } = request;
-    if !super::super::super::planning::policy_units::manifest_capacity_can_branch(
-        successor_capacity,
-    ) || !super::super::super::planning::policy_units::manifest_capacity_can_branch(
-        current.node_capacity(),
-    ) {
-        return Err(ManifestLookupFailure::Damaged);
-    }
-    if successor_capacity != current.node_capacity() {
-        if let Some(current_root) = current.routing_root() {
-            let rebuilt = super::capacity_rebuild::rebuild_capacity(
-                reader,
-                allocation,
-                current_root,
-                current.tree_identity(),
-                successor_generation,
-                successor_capacity,
-                current.next_block(),
-                updates,
-            )?;
-            let record_count = current
-                .record_count()
-                .checked_add(rebuilt.inserted)
-                .ok_or(ManifestLookupFailure::Damaged)?;
-            let root = DurablePhysicalRootManifest::builder(
-                successor_generation,
-                current.tree_identity(),
-                successor_capacity,
-                free_space_checksum,
-            )
-            .record_count(record_count)
-            .next_block(rebuilt.next_block)
-            .next_segment_block(next_segment_block)
-            .routing_root(rebuilt.root)
-            .segment_root(segment_root)
-            .free_space_root(free_space_root)
-            .last_inline_record(last_inline_record)
-            .last_inline_segment(last_inline_segment)
-            .admit()
-            .ok_or(ManifestLookupFailure::Damaged)?;
-            return Ok(ManifestPublicationPlan {
-                root,
-                blocks: rebuilt.blocks,
-                discovery: rebuilt.discovery,
-            });
-        }
-    }
-    let mut planner = UpdatePlanner {
-        allocation,
+    ManifestUpdatePlanning {
         reader,
+        allocation,
         current,
-        successor_generation,
-        successor_capacity,
-        next_block: current.next_block(),
-        blocks: Vec::new(),
-        discovery: ManifestDiscoveryCounterSnapshot::default(),
-        inserted: 0,
-    };
-    let mut roots = match current.routing_root() {
-        Some(root) => planner.rewrite(root, &updates)?,
-        None => {
-            planner.inserted = updates.len() as u64;
-            planner.write_leaves(updates.into_values().collect())?
-        }
-    };
-    while roots.len() > 1 {
-        roots = planner.write_parent_level(roots)?;
+        request,
     }
-    let routing_root = roots.pop();
-    let record_count = current
-        .record_count()
-        .checked_add(planner.inserted)
+    .plan()
+}
+
+struct ManifestUpdatePlanning<'context, 'media> {
+    reader: &'context ManifestReader<'media>,
+    allocation: &'context worth_store_buffer_pool::OperationAllocationGrant,
+    current: &'context DurablePhysicalRootManifest,
+    request: RootManifestUpdateRequest,
+}
+
+impl ManifestUpdatePlanning<'_, '_> {
+    fn plan(self) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
+        self.require_branchable_capacities()?;
+        if self.request.successor_capacity != self.current.node_capacity() {
+            if let Some(current_root) = self.current.routing_root() {
+                return self.rebuild_for_successor_capacity(current_root);
+            }
+        }
+        self.rewrite_at_successor_capacity()
+    }
+
+    fn require_branchable_capacities(&self) -> Result<(), ManifestLookupFailure> {
+        let can_build_successor =
+            super::super::super::planning::policy_units::manifest_capacity_can_branch(
+                self.request.successor_capacity,
+            );
+        let can_read_current =
+            super::super::super::planning::policy_units::manifest_capacity_can_branch(
+                self.current.node_capacity(),
+            );
+        if can_build_successor && can_read_current {
+            Ok(())
+        } else {
+            Err(ManifestLookupFailure::Damaged)
+        }
+    }
+
+    fn rebuild_for_successor_capacity(
+        self,
+        current_root: ManifestBlockReference,
+    ) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
+        let Self {
+            reader,
+            allocation,
+            current,
+            request,
+        } = self;
+        let RootManifestUpdateRequest {
+            successor_generation,
+            successor_capacity,
+            free_space_checksum,
+            free_space_root,
+            segment_root,
+            next_segment_block,
+            placements: updates,
+            last_inline_record,
+            last_inline_segment,
+        } = request;
+        let rebuilt = super::capacity_rebuild::rebuild_capacity(
+            reader,
+            allocation,
+            super::capacity_rebuild::CapacityRebuildRequest {
+                current_root,
+                tree_identity: current.tree_identity(),
+                successor_generation,
+                successor_capacity,
+                next_block: current.next_block(),
+                updates,
+            },
+        )?;
+        let record_count = current
+            .record_count()
+            .checked_add(rebuilt.inserted)
+            .ok_or(ManifestLookupFailure::Damaged)?;
+        let root = DurablePhysicalRootManifest::builder(
+            successor_generation,
+            current.tree_identity(),
+            successor_capacity,
+            free_space_checksum,
+        )
+        .record_count(record_count)
+        .next_block(rebuilt.next_block)
+        .next_segment_block(next_segment_block)
+        .routing_root(rebuilt.root)
+        .segment_root(segment_root)
+        .free_space_root(free_space_root)
+        .last_inline_record(last_inline_record)
+        .last_inline_segment(last_inline_segment)
+        .admit()
         .ok_or(ManifestLookupFailure::Damaged)?;
-    let root = DurablePhysicalRootManifest::builder(
-        successor_generation,
-        current.tree_identity(),
-        successor_capacity,
-        free_space_checksum,
-    )
-    .record_count(record_count)
-    .next_block(planner.next_block)
-    .next_segment_block(next_segment_block)
-    .routing_root(routing_root)
-    .segment_root(segment_root)
-    .free_space_root(free_space_root)
-    .last_inline_record(last_inline_record)
-    .last_inline_segment(last_inline_segment)
-    .admit()
-    .ok_or(ManifestLookupFailure::Damaged)?;
-    Ok(ManifestPublicationPlan {
-        root,
-        blocks: planner.blocks,
-        discovery: planner.discovery,
-    })
+        Ok(ManifestPublicationPlan {
+            root,
+            blocks: rebuilt.blocks,
+            discovery: rebuilt.discovery,
+        })
+    }
+
+    fn rewrite_at_successor_capacity(
+        self,
+    ) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
+        let Self {
+            reader,
+            allocation,
+            current,
+            request,
+        } = self;
+        let RootManifestUpdateRequest {
+            successor_generation,
+            successor_capacity,
+            free_space_checksum,
+            free_space_root,
+            segment_root,
+            next_segment_block,
+            placements: updates,
+            last_inline_record,
+            last_inline_segment,
+        } = request;
+        let mut planner = UpdatePlanner {
+            allocation,
+            reader,
+            current,
+            successor_generation,
+            successor_capacity,
+            next_block: current.next_block(),
+            blocks: Vec::new(),
+            discovery: ManifestDiscoveryCounterSnapshot::default(),
+            inserted: 0,
+        };
+        let mut roots = match current.routing_root() {
+            Some(root) => planner.rewrite(root, &updates)?,
+            None => {
+                planner.inserted = updates.len() as u64;
+                planner.write_leaves(updates.into_values().collect())?
+            }
+        };
+        while roots.len() > 1 {
+            roots = planner.write_parent_level(roots)?;
+        }
+        let routing_root = roots.pop();
+        let record_count = current
+            .record_count()
+            .checked_add(planner.inserted)
+            .ok_or(ManifestLookupFailure::Damaged)?;
+        let root = DurablePhysicalRootManifest::builder(
+            successor_generation,
+            current.tree_identity(),
+            successor_capacity,
+            free_space_checksum,
+        )
+        .record_count(record_count)
+        .next_block(planner.next_block)
+        .next_segment_block(next_segment_block)
+        .routing_root(routing_root)
+        .segment_root(segment_root)
+        .free_space_root(free_space_root)
+        .last_inline_record(last_inline_record)
+        .last_inline_segment(last_inline_segment)
+        .admit()
+        .ok_or(ManifestLookupFailure::Damaged)?;
+        Ok(ManifestPublicationPlan {
+            root,
+            blocks: planner.blocks,
+            discovery: planner.discovery,
+        })
+    }
 }
 
 struct UpdatePlanner<'reader> {

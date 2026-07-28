@@ -4,14 +4,7 @@ use worth_store_aspect_native::{
     StoreAspectAuthorityInput, StoreAspectBoundaryFact, StoreAspectIdentity,
     StorePhysicalBoundaryWitness,
 };
-use worth_store_buffer_pool::{
-    PhysicalOperationAllocationScope, PhysicalResidencyLimits, PhysicalResidencyPool,
-    PhysicalSpeculativeWorkKind,
-};
 use worth_store_contracts::{StorePhysicalAuthorityWitness, ROADMAP_2_ASPECT_NATIVE_GATE_SCOPE};
-use worth_store_physical_format::store_namespace::{
-    ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
-};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceScope,
     PhysicalSegmentId,
@@ -19,6 +12,7 @@ use worth_store_physical_format::{
 use worth_store_recovery_physics::{
     LogSequenceNumber, RecoveryCandidateDiscoveryTrace, RecoveryMemoryAllocation, WalLsnRange,
 };
+use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 pub fn wal_range(start: u64, end: u64) -> WalLsnRange {
     WalLsnRange::new(LogSequenceNumber::new(start), LogSequenceNumber::new(end)).unwrap()
@@ -94,59 +88,19 @@ pub(super) fn generation(value: u64) -> PhysicalGeneration {
     PhysicalGeneration::from_raw(value).unwrap()
 }
 
-pub(super) fn recovery_memory_allocation() -> RecoveryMemoryAllocation {
-    let pool = PhysicalResidencyPool::open(
-        StoreNamespaceIdentityRecord::new(
-            StoreNamespaceVersion::CURRENT,
-            ProposedStoreIdentity::from_nonzero_bytes([0x42; 16]).unwrap(),
-        )
-        .published_identity(),
-        recovery_limits(),
-    )
-    .unwrap();
-    let allocation = pool
-        .begin_operation(
-            PhysicalOperationAllocationScope::Recovery,
-            std::num::NonZeroU64::new(128).unwrap(),
-        )
-        .unwrap();
-    RecoveryMemoryAllocation::from_allocation_grant(allocation).unwrap()
-}
-
-fn recovery_limits() -> PhysicalResidencyLimits {
-    use PhysicalOperationAllocationScope as Scope;
-    use PhysicalSpeculativeWorkKind as Speculation;
-
-    PhysicalResidencyLimits::builder()
-        .total_bytes(nonzero_bytes(5632))
-        .resident_bytes(nonzero_bytes(512))
-        .metadata_bytes(nonzero_bytes(4096))
-        .frame_entries(nonzero_count(1))
-        .pinned_frames(nonzero_count(1))
-        .pin_leases(nonzero_count(1))
-        .dirty_frames(nonzero_count(1))
-        .dirty_replacement_bytes(nonzero_bytes(512))
-        .operation_bytes(nonzero_bytes(512))
-        .scope_bytes(Scope::ForegroundRead, nonzero_bytes(512))
-        .scope_bytes(Scope::ForegroundWrite, nonzero_bytes(512))
-        .scope_bytes(Scope::Recovery, nonzero_bytes(512))
-        .scope_bytes(Scope::Scrub, nonzero_bytes(512))
-        .scope_bytes(Scope::Maintenance, nonzero_bytes(512))
-        .scope_bytes(Scope::Verification, nonzero_bytes(512))
-        .scope_bytes(Scope::Blob, nonzero_bytes(512))
-        .speculative_frames(Speculation::Prefetch, nonzero_count(1))
-        .speculative_frames(Speculation::ReadAhead, nonzero_count(1))
-        .speculative_frames(Speculation::WriteBehind, nonzero_count(1))
-        .admit(std::num::NonZeroU64::MIN)
-        .unwrap()
-}
-
-fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
-    std::num::NonZeroU64::new(value).unwrap()
-}
-
-fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
-    std::num::NonZeroU32::new(value).unwrap()
+pub(super) fn with_recovery_memory_allocation<R>(
+    run: impl FnOnce(RecoveryMemoryAllocation<'_>) -> R,
+) -> R {
+    let world =
+        PhysicalResidencyStoreWorld::initialize("btree-recovery-allocation").expect("Store world");
+    let allocation = world
+        .serving()
+        .physical_allocations()
+        .admit_recovery(std::num::NonZeroU64::new(128).expect("fixture bytes are nonzero"))
+        .expect("real Store recovery allocation should admit");
+    let result = run(RecoveryMemoryAllocation::from_store_allocation(allocation));
+    assert!(!world.close().residency().requires_inspection());
+    result
 }
 
 fn seed_basis(seed: &str) -> u64 {

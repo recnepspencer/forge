@@ -113,6 +113,10 @@ fn policy_admitted_capacity_bounds_execution_even_when_idle_exists() {
     };
     assert_eq!(throttled.admitted_budget(), policy_admitted);
     assert!(throttled.throttled_budget().bandwidth_tokens() > 0);
+    let lease = throttled
+        .into_lease()
+        .expect("nonzero policy-admitted capacity must remain move-owned in the throttle");
+    assert_eq!(lease.admitted_budget(), policy_admitted);
 }
 
 #[test]
@@ -132,6 +136,10 @@ fn debt_limit_cannot_mint_execution_lease_without_admitted_capacity() {
     };
     assert_eq!(throttled.admitted_budget(), no_capacity);
     assert_eq!(throttled.throttled_budget(), requested);
+    assert!(
+        throttled.into_lease().is_none(),
+        "debt without admitted capacity must not mint execution authority"
+    );
 }
 
 #[test]
@@ -210,6 +218,10 @@ fn partial_idle_capacity_throttles_without_debt_authority() {
     };
     assert_eq!(throttled.admitted_budget(), admitted);
     assert!(throttled.throttled_budget().bandwidth_tokens() > 0);
+    let lease = throttled
+        .into_lease()
+        .expect("partially admitted idle capacity must remain move-owned in the throttle");
+    assert_eq!(lease.admitted_budget(), admitted);
 }
 
 #[test]

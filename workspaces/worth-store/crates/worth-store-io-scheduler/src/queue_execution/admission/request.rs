@@ -5,7 +5,10 @@ use crate::{
     IoSchedulerBackendCapabilityRequirement, SecureIoOperation, SecureIoPreservationDenial,
 };
 
-use super::{QueueExecutionAdmissionDenial, QueueExecutionReadyPlan, QueuePolicyAdmissionReceipt};
+use super::{
+    QueueExecutionAdmissionDenial, QueueExecutionReadyPlan, QueuePolicyAdmissionReceipt,
+    ValidatedQueueExecutionAdmission,
+};
 
 #[derive(Debug)]
 pub struct QueueExecutionAdmissionRequest<'a> {
@@ -76,16 +79,13 @@ pub fn admit_queue_execution_plan(
     }
     require_secure_io_preservation(&request)?;
     require_policy_receipt(request.policy_receipt.foundational(), budget)?;
-    let (work, policy_receipt) = request.policy_receipt.into_parts();
-    Ok(super::AdmittedQueueExecutionPlan::new(
-        work,
-        request.backend.profile(),
-        request.backend.evidence_class(),
-        policy_receipt,
+    let validated = ValidatedQueueExecutionAdmission::from_checked_request(
+        request.policy_receipt,
+        request.backend,
         grouping_basis,
         budget,
-    )
-    .into_execution_ready())
+    );
+    Ok(super::AdmittedQueueExecutionPlan::from_validated(validated).into_execution_ready())
 }
 
 fn require_secure_io_preservation(

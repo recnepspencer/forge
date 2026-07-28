@@ -4,7 +4,8 @@ use worth_store_physical_backend::{PhysicalBackupMaterializationSession, Physica
 use worth_store_physical_format::{
     BackupBundleArtifactCoverage, BackupBundleArtifactFamily, BackupBundleArtifactManifestRow,
     BackupBundleFormatAuthority, BackupBundleManifest, BackupBundleManifestConstructionDenial,
-    BackupBundlePhysicalOwner,
+    BackupBundleManifestDeclaration, BackupBundleManifestIdentity, BackupBundlePhysicalOwner,
+    BackupBundleRecoveryCoordinates,
 };
 use worth_store_physical_isolation::{
     AdmittedBackupCut, BackupArtifactCoverage, BackupArtifactFamily, BackupArtifactReference,
@@ -104,29 +105,34 @@ impl AdmittedOnlineBackup {
         let (sources, rows) =
             prepare_materialization_declarations(self.cut.manifest().artifacts())?;
         let coordinates = self.cut.coordinates();
-        let manifest = BackupBundleManifest::canonical_checked(
-            self.cut.identity(),
-            coordinates.store_lineage(),
-            coordinates.root_generation(),
-            coordinates.manifest_generation(),
-            coordinates.checkpoint_identity(),
-            coordinates.durable_checkpoint_lsn(),
-            coordinates.wal_half_open_interval(),
-            coordinates.acknowledged_frontier(),
-            self.cut
-                .security_scope()
-                .receipt_id()
-                .security_scope_fingerprint(),
-            rows,
-        )
-        .map_err(|denial| match denial {
-            BackupBundleManifestConstructionDenial::InvalidManifest => {
-                BackupMaterializationDenial::AdmittedCutInvariant
-            }
-            BackupBundleManifestConstructionDenial::AllocationFailed => {
-                BackupMaterializationDenial::PreparationAllocationFailed
-            }
-        })?;
+        let manifest =
+            BackupBundleManifest::canonical_checked(BackupBundleManifestDeclaration::new(
+                BackupBundleManifestIdentity {
+                    cut_identity: self.cut.identity(),
+                    store_lineage: coordinates.store_lineage().to_owned(),
+                    root_generation: coordinates.root_generation(),
+                    manifest_generation: coordinates.manifest_generation(),
+                },
+                BackupBundleRecoveryCoordinates {
+                    checkpoint_identity: coordinates.checkpoint_identity().to_owned(),
+                    durable_checkpoint_lsn: coordinates.durable_checkpoint_lsn(),
+                    wal_half_open_interval: coordinates.wal_half_open_interval(),
+                    acknowledged_frontier: coordinates.acknowledged_frontier(),
+                },
+                self.cut
+                    .security_scope()
+                    .receipt_id()
+                    .security_scope_fingerprint(),
+                rows,
+            ))
+            .map_err(|denial| match denial {
+                BackupBundleManifestConstructionDenial::InvalidManifest => {
+                    BackupMaterializationDenial::AdmittedCutInvariant
+                }
+                BackupBundleManifestConstructionDenial::AllocationFailed => {
+                    BackupMaterializationDenial::PreparationAllocationFailed
+                }
+            })?;
         let plan = BackupMaterializationRecoveryPlan::prepare(
             self.cut.identity(),
             &target_parent,

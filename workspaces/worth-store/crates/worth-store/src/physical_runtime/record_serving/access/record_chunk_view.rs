@@ -1,6 +1,9 @@
 use std::ops::Range;
 
-use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
+use worth_store_physical_format::{
+    store_namespace::StableStoreIdentity, PhysicalGenerationOwner, RecordExtentGenerationCell,
+    RecordFrameCoordinate, SlotGenerationCell,
+};
 
 use crate::physical_runtime::LifecycleGeneration;
 
@@ -11,23 +14,40 @@ pub(in crate::physical_runtime::record_serving::access) struct RecordReadIdentit
     store: StableStoreIdentity,
     generation: LifecycleGeneration,
     record: PhysicalRecordId,
+    physical_owner: PhysicalGenerationOwner,
 }
 
 impl RecordReadIdentity {
-    pub(in crate::physical_runtime::record_serving::access) const fn new(
+    pub(in crate::physical_runtime::record_serving::access) const fn for_inline(
         store: StableStoreIdentity,
         generation: LifecycleGeneration,
         record: PhysicalRecordId,
+        slot: SlotGenerationCell,
     ) -> Self {
         Self {
             store,
             generation,
             record,
+            physical_owner: slot.owner(),
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving::access) const fn for_extent(
+        store: StableStoreIdentity,
+        generation: LifecycleGeneration,
+        record: PhysicalRecordId,
+        extent: RecordExtentGenerationCell,
+    ) -> Self {
+        Self {
+            store,
+            generation,
+            record,
+            physical_owner: extent.owner(),
         }
     }
 
     const fn chunk_basis(self, frame: RecordFrameCoordinate) -> PhysicalRecordChunkBasis {
-        PhysicalRecordChunkBasis::new(self.store, self.generation, self.record, frame)
+        PhysicalRecordChunkBasis::from_read_identity(self, frame)
     }
 
     pub(in crate::physical_runtime::record_serving::access) fn chunk_view<'session>(
@@ -45,20 +65,20 @@ pub struct PhysicalRecordChunkBasis {
     store: StableStoreIdentity,
     generation: LifecycleGeneration,
     record: PhysicalRecordId,
+    physical_owner: PhysicalGenerationOwner,
     frame: RecordFrameCoordinate,
 }
 
 impl PhysicalRecordChunkBasis {
-    const fn new(
-        store: StableStoreIdentity,
-        generation: LifecycleGeneration,
-        record: PhysicalRecordId,
+    const fn from_read_identity(
+        identity: RecordReadIdentity,
         frame: RecordFrameCoordinate,
     ) -> Self {
         Self {
-            store,
-            generation,
-            record,
+            store: identity.store,
+            generation: identity.generation,
+            record: identity.record,
+            physical_owner: identity.physical_owner,
             frame,
         }
     }
@@ -73,6 +93,10 @@ impl PhysicalRecordChunkBasis {
 
     pub const fn record(self) -> PhysicalRecordId {
         self.record
+    }
+
+    pub const fn physical_owner(self) -> PhysicalGenerationOwner {
+        self.physical_owner
     }
 
     pub const fn frame_coordinate(self) -> RecordFrameCoordinate {

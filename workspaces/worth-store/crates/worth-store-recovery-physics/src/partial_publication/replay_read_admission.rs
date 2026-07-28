@@ -70,7 +70,7 @@ impl PartialPublicationReplayReadArtifact {
     }
 
     pub(crate) fn from_replay_entry_gate(
-        replay_entry: &RecoveryReplayEntryGate,
+        replay_entry: &RecoveryReplayEntryGate<'_>,
         bytes: PartialPublicationPersistedBytes,
     ) -> Result<Self, PartialPublicationReplayReadDenial> {
         let persisted_bytes_digest = bytes.persisted_bytes_digest();

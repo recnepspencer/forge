@@ -66,7 +66,7 @@ impl BlobStreamingReadAdmission {
     pub fn reject_physical_read_denial(
         denial: PhysicalReadExecutionDenial,
     ) -> BlobStreamingReadDenial {
-        BlobStreamingReadDenial::StablePhysicalReadDenied(denial)
+        BlobStreamingReadDenial::StablePhysicalReadDenied(Box::new(denial))
     }
 
     pub(crate) const fn seed_counters(

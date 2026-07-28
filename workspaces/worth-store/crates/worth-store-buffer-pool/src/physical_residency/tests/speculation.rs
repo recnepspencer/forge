@@ -158,70 +158,69 @@ fn read_ahead_authority_binds_exact_frames_and_reconciles_every_terminal() {
         3
     );
 
-    let admitted_coordinates = [first, second];
-    let admitted = pool
-        .admit_read_ahead(
-            pool.begin_foreground_read_operation(nonzero_bytes(16))
-                .unwrap(),
-            &admitted_coordinates,
-        )
-        .unwrap();
-    assert_eq!(admitted.coordinates(), [first, second]);
-    assert!(std::ptr::eq(
-        admitted.coordinates(),
-        admitted_coordinates.as_slice()
-    ));
-    let first_grant = admitted.frame(0).unwrap();
-    let lease = match pool.access_read_ahead_frame(&first_grant).unwrap() {
-        PhysicalFrameAccess::Fault(fault) => fault.load(|bytes| fill(bytes, 7)).unwrap(),
-        _ => panic!("first exact read-ahead access must own the cold fault"),
-    };
-    assert_eq!(&*lease, &[7; 8]);
-    drop(lease);
+    {
+        let admitted_coordinates = [first, second];
+        let admitted = pool
+            .admit_read_ahead(
+                pool.begin_foreground_read_operation(nonzero_bytes(16))
+                    .unwrap(),
+                &admitted_coordinates,
+            )
+            .unwrap();
+        assert_eq!(admitted.coordinates(), [first, second]);
+        assert!(std::ptr::eq(
+            admitted.coordinates(),
+            admitted_coordinates.as_slice()
+        ));
+        let first_grant = admitted.frame(0).unwrap();
+        let lease = match pool.access_read_ahead_frame(&first_grant).unwrap() {
+            PhysicalFrameAccess::Fault(fault) => fault.load(|bytes| fill(bytes, 7)).unwrap(),
+            _ => panic!("first exact read-ahead access must own the cold fault"),
+        };
+        assert_eq!(&*lease, &[7; 8]);
+        drop(lease);
 
-    let overflow = pool
-        .begin_foreground_read_operation(nonzero_bytes(8))
-        .unwrap();
-    assert_eq!(
-        pool.admit_read_ahead(overflow, &[third]).unwrap_err(),
-        PhysicalResidencyDenial::Pressure(PhysicalResidencyPressureDenial::new(
-            identity,
-            pool.incarnation(),
-            PhysicalResidencyPressureDemand {
-                dimension: PhysicalResidencyDimension::SpeculativeFrames(
-                    PhysicalSpeculativeWorkKind::ReadAhead,
-                ),
-                scope: READ_SCOPE,
-                requested: 1,
-                current: 2,
-                limit: 2,
-            },
-        ))
-    );
-    let counters = pool.counters();
-    assert_eq!(
-        counters.speculative_attempts(PhysicalSpeculativeWorkKind::ReadAhead),
-        5
-    );
-    assert_eq!(
-        counters.speculative_admissions(PhysicalSpeculativeWorkKind::ReadAhead),
-        1
-    );
-    assert_eq!(
-        counters.speculative_denials(PhysicalSpeculativeWorkKind::ReadAhead),
-        4
-    );
-    assert_eq!(
-        counters.active_speculative_frames(PhysicalSpeculativeWorkKind::ReadAhead),
-        2
-    );
-    assert_eq!(
-        counters.peak_speculative_frames(PhysicalSpeculativeWorkKind::ReadAhead),
-        2
-    );
-
-    drop(first_grant);
-    drop(admitted);
+        let overflow = pool
+            .begin_foreground_read_operation(nonzero_bytes(8))
+            .unwrap();
+        assert_eq!(
+            pool.admit_read_ahead(overflow, &[third]).unwrap_err(),
+            PhysicalResidencyDenial::Pressure(PhysicalResidencyPressureDenial::new(
+                identity,
+                pool.incarnation(),
+                PhysicalResidencyPressureDemand {
+                    dimension: PhysicalResidencyDimension::SpeculativeFrames(
+                        PhysicalSpeculativeWorkKind::ReadAhead,
+                    ),
+                    scope: READ_SCOPE,
+                    requested: 1,
+                    current: 2,
+                    limit: 2,
+                },
+            ))
+        );
+        let counters = pool.counters();
+        assert_eq!(
+            counters.speculative_attempts(PhysicalSpeculativeWorkKind::ReadAhead),
+            5
+        );
+        assert_eq!(
+            counters.speculative_admissions(PhysicalSpeculativeWorkKind::ReadAhead),
+            1
+        );
+        assert_eq!(
+            counters.speculative_denials(PhysicalSpeculativeWorkKind::ReadAhead),
+            4
+        );
+        assert_eq!(
+            counters.active_speculative_frames(PhysicalSpeculativeWorkKind::ReadAhead),
+            2
+        );
+        assert_eq!(
+            counters.peak_speculative_frames(PhysicalSpeculativeWorkKind::ReadAhead),
+            2
+        );
+    }
     let counters = pool.counters();
     assert_eq!(
         counters.speculative_completions(PhysicalSpeculativeWorkKind::ReadAhead),

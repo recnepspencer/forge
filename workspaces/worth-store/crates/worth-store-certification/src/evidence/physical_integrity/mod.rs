@@ -10,6 +10,5 @@ pub(crate) mod physical_complexity_evidence;
 pub(crate) mod physical_complexity_evidence_tests;
 pub(crate) mod physical_foundation_evidence;
 pub(crate) mod physical_identity_evidence;
-pub(crate) mod protected_integrity_view_evidence;
 #[cfg(test)]
 pub(crate) mod quarantine_receipt_binding_tests;

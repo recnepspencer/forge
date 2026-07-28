@@ -11,7 +11,7 @@ pub struct BlobStreamingReadResidencyProof {
 
 impl BlobStreamingReadResidencyProof {
     pub(crate) fn from_executed_streaming_session(
-        allocation: &AdmittedBlobStreamingAllocation,
+        allocation: &AdmittedBlobStreamingAllocation<'_>,
         counters: BlobStreamingReadCounterSnapshot,
     ) -> Result<Self, BlobStreamingReadDenial> {
         let peak_resident_bytes = counters.peak_resident_bytes();

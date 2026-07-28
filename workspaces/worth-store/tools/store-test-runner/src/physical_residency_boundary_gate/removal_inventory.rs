@@ -6,12 +6,16 @@ use std::{
 use super::workspace_source::{read, workspace_relative};
 use crate::workspace_root;
 
+#[cfg(test)]
+mod classifier_tests;
 mod consumer_family;
 mod direct_pool_reference;
+mod ledger_document;
 mod legacy_module_closure;
 mod replacement_owner;
 
 use consumer_family::discover_families;
+use ledger_document::{parse_removal_ledger, RemovalDisposition, RemovalRow, RemovalStatus};
 
 const REMOVAL_LEDGER: &str = "_docs/worth-store/physical-reconstruction-c6-removal-ledger.csv";
 
@@ -30,7 +34,8 @@ fn every_temporary_and_legacy_consumer_has_a_removal_disposition() {
 
 #[test]
 fn every_removal_row_has_a_future_owner_and_mechanical_absence_gate() {
-    for row in removal_ledger().expect("parse C.6 removal ledger").values() {
+    let ledger = removal_ledger().expect("parse C.6 removal ledger");
+    for row in ledger.values() {
         assert!(
             matches!(
                 row.deletion_phase.as_str(),
@@ -50,6 +55,22 @@ fn every_removal_row_has_a_future_owner_and_mechanical_absence_gate() {
             "{} lacks a mechanical absence gate",
             row.path
         );
+        assert!(
+            !row.disposition_basis.is_empty(),
+            "{} has no disposition basis",
+            row.path
+        );
+        assert_disposition_path_fate(row).unwrap_or_else(|denial| panic!("{denial}"));
+        match row.disposition {
+            RemovalDisposition::Preserve => {
+                assert!(
+                    matches!(row.status, RemovalStatus::InventoryOpen),
+                    "{} cannot be both preserved and recorded as deleted",
+                    row.path
+                );
+            }
+            RemovalDisposition::Narrow | RemovalDisposition::Delete => {}
+        }
         match &row.status {
             RemovalStatus::InventoryOpen => {}
             RemovalStatus::Deleted(phase) => assert_eq!(
@@ -58,6 +79,29 @@ fn every_removal_row_has_a_future_owner_and_mechanical_absence_gate() {
                 row.path
             ),
         }
+    }
+    replacement_owner::assert_all_rows_have_present_replacement(&ledger)
+        .unwrap_or_else(|denial| panic!("{denial}"));
+}
+
+fn assert_disposition_path_fate(row: &RemovalRow) -> Result<(), String> {
+    let exists = workspace_root().join(&row.path).exists();
+    match (row.disposition, exists) {
+        (RemovalDisposition::Preserve, true)
+        | (RemovalDisposition::Narrow, true)
+        | (RemovalDisposition::Delete, false) => Ok(()),
+        (RemovalDisposition::Preserve, false) => Err(format!(
+            "{} is marked preserve but the path is absent",
+            row.path
+        )),
+        (RemovalDisposition::Narrow, false) => Err(format!(
+            "{} is marked narrow but the retained path is absent",
+            row.path
+        )),
+        (RemovalDisposition::Delete, true) => Err(format!(
+            "{} is marked delete but the path is present",
+            row.path
+        )),
     }
 }
 
@@ -88,65 +132,6 @@ fn assert_completed_rows_have_present_replacement(phase: &str) {
 }
 
 #[test]
-fn inventory_gate_rejects_unclassified_consumers() {
-    let mut discovered = BTreeMap::new();
-    discovered.insert(
-        "crates/worth-store/src/physical_runtime/foreign.rs".to_owned(),
-        BTreeSet::from(["c6-identifier".to_owned()]),
-    );
-    let denial = compare_inventory(&discovered, &BTreeMap::new())
-        .expect_err("an unclassified consumer must be denied");
-    assert!(denial.contains("unclassified consumers"));
-
-    let families = discover_families(
-        "crates/example/Cargo.toml",
-        r#"legacy = { features = ["legacy-s2-models"] }"#,
-    );
-    assert!(families.contains("legacy-s2-feature"));
-
-    let indirect_alias = discover_families(
-        "crates/example/Cargo.toml",
-        r#"
-[features]
-bridge = ["worth-store-buffer-pool/legacy-s2-models"]
-certification = ["bridge"]
-"#,
-    );
-    assert!(
-        indirect_alias.contains("legacy-s2-feature"),
-        "the manifest edge is legacy even when an aggregate alias gates independent modules"
-    );
-
-    let certification = discover_families(
-        "crates/worth-store-certification/src/new_consumer.rs",
-        "use worth_store_buffer_pool::PhysicalResidencyCounters;",
-    );
-    assert!(
-        certification.contains("direct-pool-consumer"),
-        "certification is a consumer of Store truth, not a canonical pool owner"
-    );
-
-    for source in [
-        "pub enum S2AcceptanceSuiteKind {}",
-        "pub struct HarnessCloseoutEvidenceReport;",
-        "pub struct HarnessCloseoutTranscriptEvidence;",
-        "pub struct BoundedMemoryResidencySuite;",
-        "mod bounded_memory_harness_closeout;",
-        "mod bounded_memory_residency_suite;",
-        "mod acceptance_suite_transcript;",
-    ] {
-        assert!(
-            discover_families(
-                "crates/worth-store-certification/src/orphaned_closeout.rs",
-                source,
-            )
-            .contains("legacy-certification-closeout"),
-            "the orphaned S.2 closeout family must remain mechanically discoverable: {source}"
-        );
-    }
-}
-
-#[test]
 fn inventory_gate_rejects_stale_open_and_rediscovered_deleted_rows() {
     let open = removal_row("phase-3", RemovalStatus::InventoryOpen);
     let denial = compare_inventory(
@@ -168,19 +153,88 @@ fn inventory_gate_rejects_stale_open_and_rediscovered_deleted_rows() {
     assert!(denial.contains("rediscovered deleted rows"));
 }
 
+#[test]
+fn disposition_path_fate_enforces_preserve_narrow_and_delete() {
+    let mut row = removal_row("phase-8", RemovalStatus::Deleted("phase-8".to_owned()));
+    row.path = "Cargo.toml".to_owned();
+    assert!(assert_disposition_path_fate(&row).is_err());
+
+    row.disposition = RemovalDisposition::Narrow;
+    assert!(assert_disposition_path_fate(&row).is_ok());
+    row.disposition = RemovalDisposition::Preserve;
+    assert!(assert_disposition_path_fate(&row).is_ok());
+
+    row.path = "controlled-absent-removal-ledger-path.rs".to_owned();
+    assert!(assert_disposition_path_fate(&row).is_err());
+    row.disposition = RemovalDisposition::Narrow;
+    assert!(assert_disposition_path_fate(&row).is_err());
+    row.disposition = RemovalDisposition::Delete;
+    assert!(assert_disposition_path_fate(&row).is_ok());
+}
+
+#[test]
+fn inventory_discovery_unions_leaf_and_module_closure_families() {
+    let mut discovered = BTreeMap::from([(
+        "crates/example/src/legacy_leaf.rs".to_owned(),
+        BTreeSet::from(["legacy-frame-table".to_owned()]),
+    )]);
+
+    merge_discovered_families(
+        &mut discovered,
+        "crates/example/src/legacy_leaf.rs".to_owned(),
+        BTreeSet::from(["legacy-s2-module-closure".to_owned()]),
+    );
+
+    assert_eq!(
+        discovered["crates/example/src/legacy_leaf.rs"],
+        BTreeSet::from([
+            "legacy-frame-table".to_owned(),
+            "legacy-s2-module-closure".to_owned(),
+        ])
+    );
+}
+
+#[test]
+fn inventory_gate_reports_every_family_mismatch_in_one_denial() {
+    let discovered = BTreeMap::from([
+        (
+            "crates/example/src/first.rs".to_owned(),
+            BTreeSet::from(["legacy-frame-table".to_owned()]),
+        ),
+        (
+            "crates/example/src/second.rs".to_owned(),
+            BTreeSet::from(["legacy-record-view".to_owned()]),
+        ),
+    ]);
+    let mut first = removal_row("phase-8", RemovalStatus::InventoryOpen);
+    first.path = "crates/example/src/first.rs".to_owned();
+    let mut second = removal_row("phase-8", RemovalStatus::InventoryOpen);
+    second.path = "crates/example/src/second.rs".to_owned();
+    let ledger = BTreeMap::from([
+        ("crates/example/src/first.rs".to_owned(), first),
+        ("crates/example/src/second.rs".to_owned(), second),
+    ]);
+
+    let denial = compare_inventory(&discovered, &ledger)
+        .expect_err("every mismatched row must be reported together");
+
+    assert!(denial.contains("crates/example/src/first.rs"));
+    assert!(denial.contains("crates/example/src/second.rs"));
+}
+
 fn discover_consumers() -> Result<BTreeMap<String, BTreeSet<String>>, String> {
     let workspace = workspace_root();
     let sources = inventory_sources(&workspace)?;
     let mut discovered = BTreeMap::new();
     for path in &sources {
-        let relative = workspace_relative(&path);
+        let relative = workspace_relative(path);
         if EXCLUDED_POLICY_SOURCES
             .iter()
             .any(|excluded| relative == *excluded || relative.starts_with(excluded))
         {
             continue;
         }
-        let source = read(&path)?;
+        let source = read(path)?;
         let families = discover_families(&relative, &source);
         if !families.is_empty() {
             discovered.insert(relative, families);
@@ -194,44 +248,22 @@ fn discover_consumers() -> Result<BTreeMap<String, BTreeSet<String>>, String> {
         {
             continue;
         }
-        discovered.entry(relative).or_insert(families);
+        merge_discovered_families(&mut discovered, relative, families);
     }
     Ok(discovered)
 }
 
+fn merge_discovered_families(
+    discovered: &mut BTreeMap<String, BTreeSet<String>>,
+    path: String,
+    families: BTreeSet<String>,
+) {
+    discovered.entry(path).or_default().extend(families);
+}
+
 fn removal_ledger() -> Result<BTreeMap<String, RemovalRow>, String> {
     let document = read(&repository_root().join(REMOVAL_LEDGER))?;
-    let mut rows = BTreeMap::new();
-    for (index, line) in document.lines().enumerate() {
-        if index == 0 || line.trim().is_empty() {
-            continue;
-        }
-        let columns = line.split(',').map(str::trim).collect::<Vec<_>>();
-        if columns.len() != 6 {
-            return Err(format!(
-                "removal ledger row {} has {} columns, expected 6",
-                index + 1,
-                columns.len()
-            ));
-        }
-        let path = columns[0].to_owned();
-        let families = columns[1]
-            .split(';')
-            .map(str::to_owned)
-            .collect::<BTreeSet<_>>();
-        let row = RemovalRow {
-            path: path.clone(),
-            families,
-            deletion_phase: columns[2].to_owned(),
-            replacement_owner: columns[3].to_owned(),
-            absence_gate: columns[4].to_owned(),
-            status: RemovalStatus::parse(columns[5])?,
-        };
-        if rows.insert(path.clone(), row).is_some() {
-            return Err(format!("duplicate removal ledger row for {path}"));
-        }
-    }
-    Ok(rows)
+    parse_removal_ledger(&document)
 }
 
 fn compare_inventory(
@@ -267,17 +299,25 @@ fn compare_inventory(
             "physical residency removal ledger mismatch; unclassified consumers: {unclassified:?}; stale open rows: {stale_open:?}; rediscovered deleted rows: {rediscovered_deleted:?}"
         ));
     }
-    for (path, families) in discovered {
-        let row = ledger.get(path).expect("path sets are equal");
-        if !matches!(row.status, RemovalStatus::InventoryOpen) {
-            continue;
-        }
-        if &row.families != families {
-            return Err(format!(
-                "physical residency removal ledger family mismatch for {path}; discovered {families:?}, recorded {:?}",
-                row.families
-            ));
-        }
+    let family_mismatches = discovered
+        .iter()
+        .filter_map(|(path, families)| {
+            let row = ledger.get(path).expect("path sets are equal");
+            (matches!(row.status, RemovalStatus::InventoryOpen) && &row.families != families).then(
+                || {
+                    format!(
+                        "{path}: discovered {families:?}, recorded {:?}",
+                        row.families
+                    )
+                },
+            )
+        })
+        .collect::<Vec<_>>();
+    if !family_mismatches.is_empty() {
+        return Err(format!(
+            "physical residency removal ledger family mismatches: {}",
+            family_mismatches.join("; ")
+        ));
     }
     Ok(())
 }
@@ -299,15 +339,23 @@ fn inventory_sources(root: &Path) -> Result<Vec<PathBuf>, String> {
                 ) {
                     pending.push(path);
                 }
-            } else if path.extension().and_then(|value| value.to_str()) == Some("rs")
-                || path.file_name().and_then(|value| value.to_str()) == Some("Cargo.toml")
-            {
+            } else if is_inventory_source(&path) {
                 sources.push(path);
             }
         }
     }
     sources.sort();
     Ok(sources)
+}
+
+fn is_inventory_source(path: &Path) -> bool {
+    let extension = path.extension().and_then(|value| value.to_str());
+    extension == Some("rs")
+        || path.file_name().and_then(|value| value.to_str()) == Some("Cargo.toml")
+        || extension == Some("md")
+            && path
+                .components()
+                .any(|component| matches!(component.as_os_str().to_str(), Some("src" | "tests")))
 }
 
 fn repository_root() -> PathBuf {
@@ -318,38 +366,6 @@ fn repository_root() -> PathBuf {
         .to_path_buf()
 }
 
-struct RemovalRow {
-    path: String,
-    families: BTreeSet<String>,
-    deletion_phase: String,
-    replacement_owner: String,
-    absence_gate: String,
-    status: RemovalStatus,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum RemovalStatus {
-    InventoryOpen,
-    Deleted(String),
-}
-
-impl RemovalStatus {
-    fn parse(value: &str) -> Result<Self, String> {
-        if value == "inventory-open" {
-            return Ok(Self::InventoryOpen);
-        }
-        if let Some(phase) = value.strip_prefix("deleted-") {
-            if matches!(
-                phase,
-                "phase-3" | "phase-5" | "phase-6" | "phase-7" | "phase-8"
-            ) {
-                return Ok(Self::Deleted(phase.to_owned()));
-            }
-        }
-        Err(format!("invalid removal status {value}"))
-    }
-}
-
 fn removal_row(deletion_phase: &str, status: RemovalStatus) -> RemovalRow {
     RemovalRow {
         path: "controlled-mutant.rs".to_owned(),
@@ -358,5 +374,7 @@ fn removal_row(deletion_phase: &str, status: RemovalStatus) -> RemovalRow {
         replacement_owner: "controlled replacement".to_owned(),
         absence_gate: "source-and-metadata-absence".to_owned(),
         status,
+        disposition: RemovalDisposition::Delete,
+        disposition_basis: "controlled test disposition".to_owned(),
     }
 }

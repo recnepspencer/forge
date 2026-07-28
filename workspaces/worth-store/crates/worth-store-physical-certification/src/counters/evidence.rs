@@ -1,15 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_foundational::{
-    FoundationalAuthoritativePerformanceClaim, FoundationalCounterBackedPerformanceReceipt,
-};
-use worth_store_buffer_pool::AllocationScope;
-
 use super::{
     build_foundational_receipt, CounterContractKind, CounterExpectationKind,
     CounterMismatchEvidence, PhysicalCounterContract, PhysicalExecutedCounterEvidence,
+    PhysicalResidencyEvidenceSource,
 };
 use crate::{PhysicalSimulationPlan, PhysicalSimulationPlanIdentity, PhysicalSimulationProfile};
+use worth_foundational::{
+    FoundationalAuthoritativePerformanceClaim, FoundationalCounterBackedPerformanceReceipt,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalCounterEvidenceRow {
@@ -102,6 +101,7 @@ impl PhysicalResourceEnvelopeObservation {
 pub struct PhysicalCounterEvidenceReceipt {
     plan_identity: PhysicalSimulationPlanIdentity,
     rows: Vec<PhysicalCounterEvidenceRow>,
+    residency_source: PhysicalResidencyEvidenceSource,
     foundational:
         FoundationalCounterBackedPerformanceReceipt<FoundationalAuthoritativePerformanceClaim>,
 }
@@ -113,6 +113,10 @@ impl PhysicalCounterEvidenceReceipt {
 
     pub fn rows(&self) -> &[PhysicalCounterEvidenceRow] {
         &self.rows
+    }
+
+    pub const fn residency_source(&self) -> PhysicalResidencyEvidenceSource {
+        self.residency_source
     }
 
     pub const fn foundational_receipt(
@@ -134,6 +138,7 @@ pub fn admit_physical_counter_evidence(
     Ok(PhysicalCounterEvidenceReceipt {
         plan_identity: plan.identity().clone(),
         rows,
+        residency_source: evidence.residency_source,
         foundational,
     })
 }
@@ -294,15 +299,12 @@ pub(crate) fn require_resource_observation_within_envelope(
     }
     require_resource_bound(
         CounterContractKind::AllocationBytes,
-        envelope
-            .allocation()
-            .budget(AllocationScope::Foreground)
-            .as_bytes(),
+        envelope.allocation_bytes(),
         observation.allocation_bytes,
     )?;
     require_resource_bound(
         CounterContractKind::ResidentBytes,
-        envelope.resident_bytes().as_bytes(),
+        envelope.resident_bytes(),
         observation.resident_bytes,
     )?;
     require_resource_bound(

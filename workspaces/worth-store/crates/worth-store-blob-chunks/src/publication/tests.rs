@@ -5,9 +5,9 @@ use worth_store_recovery_physics::{
 };
 
 use crate::publication::test_support::{
-    chunk_write_replay_evidence, durable_wal_publication, generic_recovery_replay_entry,
-    publication_inputs, publication_inputs_with_bytes_and_chunk_size, publish_generation,
-    recovery_cases, recovery_replay_entry, replayable_wal_classification,
+    chunk_write_replay_evidence, durable_wal_publication, publication_inputs,
+    publication_inputs_with_bytes_and_chunk_size, publish_generation, recovery_cases,
+    replayable_wal_classification, with_generic_recovery_replay_entry, with_recovery_replay_entry,
 };
 use crate::{
     reject_copied_publication_record_as_blob_visibility, reject_root_candidate_as_blob_visibility,
@@ -198,13 +198,14 @@ fn replay_read_witness_rejects_copied_bytes_for_wrong_operation() {
     let digest = candidate.intent().logical_content_digest().clone();
     let operation =
         BlobPublicationPreWalReplayEvidence::chunk_write_recovery_operation_digest(&digest);
-    let replay_entry = recovery_replay_entry(operation.as_str());
-    let replay = PartialPublicationReplayedCrashEdge::from_replay_read_artifact(
-        replay_entry
-            .read_partial_publication_before_wal_append()
-            .expect("protected before-WAL replay bytes should read"),
-    )
-    .expect("replayed bytes admit as their own before-WAL source");
+    let replay = with_recovery_replay_entry(operation.as_str(), |replay_entry| {
+        PartialPublicationReplayedCrashEdge::from_replay_read_artifact(
+            replay_entry
+                .read_partial_publication_before_wal_append()
+                .expect("protected before-WAL replay bytes should read"),
+        )
+        .expect("replayed bytes admit as their own before-WAL source")
+    });
 
     assert!(matches!(
         BlobPublicationPreWalReplayEvidence::from_checksum_admitted_replay(&digest, &replay),
@@ -218,13 +219,14 @@ fn copied_replay_bytes_cannot_be_readmitted_for_another_operation() {
     let digest = candidate.intent().logical_content_digest().clone();
     let operation =
         BlobPublicationPreWalReplayEvidence::checksum_admitted_recovery_operation_digest(&digest);
-    let replay_entry = recovery_replay_entry(operation.as_str());
-    let replay = PartialPublicationReplayedCrashEdge::from_replay_read_artifact(
-        replay_entry
-            .read_partial_publication_before_wal_append()
-            .expect("protected before-WAL replay bytes should read"),
-    )
-    .expect("replayed bytes admit as their own before-WAL source");
+    let replay = with_recovery_replay_entry(operation.as_str(), |replay_entry| {
+        PartialPublicationReplayedCrashEdge::from_replay_read_artifact(
+            replay_entry
+                .read_partial_publication_before_wal_append()
+                .expect("protected before-WAL replay bytes should read"),
+        )
+        .expect("replayed bytes admit as their own before-WAL source")
+    });
 
     assert!(matches!(
         BlobPublicationPreWalReplayEvidence::from_chunk_write_replay(&digest, &replay),
@@ -234,31 +236,35 @@ fn copied_replay_bytes_cannot_be_readmitted_for_another_operation() {
 
 #[test]
 fn bytes_without_before_wal_operation_are_denied_before_witness() {
-    let replay_entry = generic_recovery_replay_entry("phase6-no-before-wal-operation");
-    assert!(matches!(
-        replay_entry.read_partial_publication_before_wal_append(),
-        Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend { .. })
-    ));
+    with_generic_recovery_replay_entry("phase6-no-before-wal-operation", |replay_entry| {
+        assert!(matches!(
+            replay_entry.read_partial_publication_before_wal_append(),
+            Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend { .. })
+        ));
+    });
 }
 
 #[test]
 fn generic_recovery_entry_cannot_mint_before_wal_replay_read_artifact() {
-    let replay_entry = generic_recovery_replay_entry("phase6-generic-entry-no-pre-wal-read");
-    assert!(matches!(
-        replay_entry.read_partial_publication_before_wal_append(),
-        Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
-            actual_operation_digest: None
-        })
-    ));
+    with_generic_recovery_replay_entry("phase6-generic-entry-no-pre-wal-read", |replay_entry| {
+        assert!(matches!(
+            replay_entry.read_partial_publication_before_wal_append(),
+            Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend {
+                actual_operation_digest: None
+            })
+        ));
+    });
 }
 
 #[test]
 fn checkpoint_cutover_bytes_are_denied_before_wal_witness() {
-    let replay_entry = generic_recovery_replay_entry("phase6-no-before-wal-operation");
-    assert!(matches!(
-        replay_entry.read_partial_publication_checkpoint_cutover("phase6-no-before-wal-operation"),
-        Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend { .. })
-    ));
+    with_generic_recovery_replay_entry("phase6-no-before-wal-operation", |replay_entry| {
+        assert!(matches!(
+            replay_entry
+                .read_partial_publication_checkpoint_cutover("phase6-no-before-wal-operation"),
+            Err(PartialPublicationReplayReadDenial::NotBeforeWalAppend { .. })
+        ));
+    });
 }
 
 #[test]
@@ -267,12 +273,13 @@ fn replay_read_admission_token_no_longer_exists_for_reuse() {
     let digest = candidate.intent().logical_content_digest().clone();
     let operation =
         BlobPublicationPreWalReplayEvidence::chunk_write_recovery_operation_digest(&digest);
-    let replay_entry = recovery_replay_entry(operation.as_str());
-    let replay = PartialPublicationReplayedCrashEdge::from_replay_read_artifact(
-        replay_entry
-            .read_partial_publication_before_wal_append()
-            .expect("protected before-WAL replay bytes should read"),
-    );
+    let replay = with_recovery_replay_entry(operation.as_str(), |replay_entry| {
+        PartialPublicationReplayedCrashEdge::from_replay_read_artifact(
+            replay_entry
+                .read_partial_publication_before_wal_append()
+                .expect("protected before-WAL replay bytes should read"),
+        )
+    });
 
     assert!(replay.is_ok());
 }

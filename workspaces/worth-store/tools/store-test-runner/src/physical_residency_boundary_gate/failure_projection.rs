@@ -178,9 +178,7 @@ fn contains_shorthand_field(projection: &str, field: &str) -> bool {
         let before = projection[..start].chars().next_back();
         let after = projection[start + field.len()..].chars().next();
         let identifier_boundary = |value: Option<char>| {
-            value.map_or(true, |character| {
-                !character.is_ascii_alphanumeric() && character != '_'
-            })
+            value.is_none_or(|character| !character.is_ascii_alphanumeric() && character != '_')
         };
         if !identifier_boundary(before) || !identifier_boundary(after) {
             return false;

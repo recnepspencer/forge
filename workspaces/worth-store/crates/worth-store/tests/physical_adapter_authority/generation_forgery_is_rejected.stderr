@@ -1,13 +1,25 @@
-error[E0451]: fields `store`, `generation`, `record` and `frame` of struct `PhysicalRecordChunkBasis` are private
-  --> tests/physical_adapter_authority/generation_forgery_is_rejected.rs:11:9
+error: cannot construct `PhysicalRecordChunkBasis` with struct literal syntax due to private fields
+  --> tests/physical_adapter_authority/generation_forgery_is_rejected.rs:10:5
    |
 10 |     PhysicalRecordChunkBasis {
-   |     ------------------------ in this type
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
 11 |         store: unavailable(),
-   |         ^^^^^ private field
+   |         -------------------- private field
 12 |         generation: unavailable(),
-   |         ^^^^^^^^^^ private field
+   |         ------------------------- private field
 13 |         record: unavailable(),
-   |         ^^^^^^ private field
+   |         --------------------- private field
 14 |         frame: unavailable(),
-   |         ^^^^^ private field
+   |         -------------------- private field
+   |
+   = note: ...and other private field `physical_owner` that was not provided
+help: you might have meant to use the `from_read_identity` associated function
+   |
+10 -     PhysicalRecordChunkBasis {
+11 -         store: unavailable(),
+12 -         generation: unavailable(),
+13 -         record: unavailable(),
+14 -         frame: unavailable(),
+15 -     }
+10 +     PhysicalRecordChunkBasis::from_read_identity(_, _)
+   |

@@ -17,4 +17,8 @@ impl IntegrityEntryDenial {
 pub enum IntegrityEntryDenialKind {
     VerificationStoreMismatch,
     VerificationGenerationMismatch,
+    VerificationAllocationTooSmall {
+        protected_bytes: u64,
+        allocation_bytes: u64,
+    },
 }

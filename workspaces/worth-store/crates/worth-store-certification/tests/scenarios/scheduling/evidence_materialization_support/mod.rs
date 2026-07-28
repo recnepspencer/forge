@@ -32,12 +32,12 @@ use worth_store_io_scheduler::{
     admit_background_pacing, admit_queue_execution_plan,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
     admit_security_scope_for_scheduler, execute_ready_queue_plan,
-    lower_buffer_pool_read_queue_declaration, BackgroundCapacityAdmissionRequest,
-    BackgroundIdleCapacityLeaseRequest, BackgroundIoPressureShape, BackgroundPacingOutcome,
-    BackgroundResourceBudget, BandwidthToken, CacheResidencyHint,
-    IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest, QueueExecutionOutcome,
-    QueueSlot, ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement,
-    SecureIoPreservationReceipt, SecureIoPreservationRequest, WorkerPermit,
+    BackgroundCapacityAdmissionRequest, BackgroundIdleCapacityLeaseRequest,
+    BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, BandwidthToken,
+    CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
+    QueueExecutionOutcome, QueueSlot, ReadAheadWindow, SecureIoOperation,
+    SecureIoPostureRequirement, SecureIoPreservationReceipt, SecureIoPreservationRequest,
+    WorkerPermit,
 };
 use worth_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
@@ -108,8 +108,8 @@ fn queue_outcome() -> QueueExecutionOutcome {
     let witness = queue_backend_witness();
     let reservation = admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = worth_store_test_support::read_ahead_declaration_for_real_pool(
-        reservation.security_scope_identity(),
+    let mut work = worth_store_test_support::harness::scheduling::scheduler_foreground_read_work(
+        reservation,
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
@@ -117,8 +117,8 @@ fn queue_outcome() -> QueueExecutionOutcome {
             .with_read_ahead_windows(budget.read_ahead_window())
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
-    );
-    let mut work = lower_buffer_pool_read_queue_declaration(producer, reservation).unwrap();
+    )
+    .unwrap();
     let backend =
         admit_backend_capability_for_scheduler_claim(&witness, work.backend_requirement()).unwrap();
     let secure_io = admit_secure_io_scope_for_scheduler(

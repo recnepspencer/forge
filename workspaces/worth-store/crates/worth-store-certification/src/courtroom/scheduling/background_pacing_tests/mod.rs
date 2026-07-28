@@ -21,9 +21,7 @@ use worth_store_physical_backend::{
 };
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
-use crate::{
-    certify_io_qos_background_pacing, S6BackgroundPacingOutcomeKind,
-};
+use crate::{certify_io_qos_background_pacing, S6BackgroundPacingOutcomeKind};
 
 #[test]
 fn io_qos_background_pacing_certification_preserves_all_outcomes() {

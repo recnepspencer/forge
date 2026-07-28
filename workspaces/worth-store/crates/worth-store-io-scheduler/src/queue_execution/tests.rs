@@ -3,3 +3,4 @@ mod backend_completion_replay_binding;
 mod backpressure_budget_denials;
 mod execution_observations_violations;
 mod grouping;
+mod physical_work_declaration;

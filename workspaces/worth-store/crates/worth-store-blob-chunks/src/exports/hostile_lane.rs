@@ -82,8 +82,8 @@ pub use crate::retention_reclaim::{
 };
 // --- Streaming ---
 pub use crate::streaming::{
-    reject_allocation_denial_as_streaming_ingest, reject_full_blob_vec_as_streaming_ingest,
-    reject_full_blob_vec_as_streaming_read, reject_scalar_backend_api_as_streaming_ingest,
+    reject_full_blob_vec_as_streaming_ingest, reject_full_blob_vec_as_streaming_read,
+    reject_scalar_backend_api_as_streaming_ingest,
 };
 pub use crate::{
     reject_chunk_tree_root_as_blob_object_layout_authority,

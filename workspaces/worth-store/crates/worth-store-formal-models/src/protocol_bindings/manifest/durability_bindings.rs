@@ -82,12 +82,6 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             DurableAuthoritativeReceipt,
             OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::PageFlushRecoveryReceipt>(
-            DurabilityRecovery,
-            RecoveryPhysics,
-            PageFlushRecovery,
-            DurableAuthoritativeReceipt,
-        ),
         OwnerBoundaryBinding::to_polymorphic::<
             worth_store_physical_backend::StoreDurabilityExecutionProof<&'static str>,
         >(

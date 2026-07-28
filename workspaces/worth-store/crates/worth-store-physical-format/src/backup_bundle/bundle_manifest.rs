@@ -1,9 +1,13 @@
 use std::path::{Path, PathBuf};
 mod artifact_manifest_row;
+mod declaration;
 
 pub use artifact_manifest_row::{
     BackupBundleArtifactCoverage, BackupBundleArtifactFamily, BackupBundleArtifactFormat,
     BackupBundleArtifactManifestRow,
+};
+pub use declaration::{
+    BackupBundleManifestDeclaration, BackupBundleManifestIdentity, BackupBundleRecoveryCoordinates,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,78 +27,42 @@ pub struct BackupBundleManifest {
 }
 
 impl BackupBundleManifest {
-    #[allow(clippy::too_many_arguments)]
-    pub fn canonical(
-        cut_identity: [u8; 32],
-        store_lineage: impl Into<String>,
-        root_generation: u64,
-        manifest_generation: u64,
-        checkpoint_identity: impl Into<String>,
-        durable_checkpoint_lsn: u64,
-        wal_interval: (u64, u64),
-        acknowledged_frontier: u64,
-        security_scope_fingerprint: u64,
-        artifacts: Vec<BackupBundleArtifactManifestRow>,
-    ) -> Option<Self> {
-        Self::canonical_checked(
+    pub fn canonical(declaration: BackupBundleManifestDeclaration) -> Option<Self> {
+        Self::canonical_checked(declaration).ok()
+    }
+
+    pub fn canonical_checked(
+        declaration: BackupBundleManifestDeclaration,
+    ) -> Result<Self, BackupBundleManifestConstructionDenial> {
+        let BackupBundleManifestDeclaration {
+            identity,
+            recovery,
+            security_scope_fingerprint,
+            artifacts,
+        } = declaration;
+        let BackupBundleManifestIdentity {
             cut_identity,
             store_lineage,
             root_generation,
             manifest_generation,
+        } = identity;
+        let BackupBundleRecoveryCoordinates {
             checkpoint_identity,
             durable_checkpoint_lsn,
-            wal_interval,
+            wal_half_open_interval,
             acknowledged_frontier,
-            security_scope_fingerprint,
-            artifacts,
-        )
-        .ok()
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn canonical_checked(
-        cut_identity: [u8; 32],
-        store_lineage: impl Into<String>,
-        root_generation: u64,
-        manifest_generation: u64,
-        checkpoint_identity: impl Into<String>,
-        durable_checkpoint_lsn: u64,
-        wal_interval: (u64, u64),
-        acknowledged_frontier: u64,
-        security_scope_fingerprint: u64,
-        mut artifacts: Vec<BackupBundleArtifactManifestRow>,
-    ) -> Result<Self, BackupBundleManifestConstructionDenial> {
-        let store_lineage = store_lineage.into();
-        let checkpoint_identity = checkpoint_identity.into();
-        artifacts.sort_by(|left, right| {
-            left.family()
-                .cmp(&right.family())
-                .then_with(|| left.identity().cmp(right.identity()))
-                .then_with(|| left.output_name().cmp(right.output_name()))
-        });
-        let unique_semantic_identities = artifacts.windows(2).all(|pair| {
-            pair[0].family() != pair[1].family() || pair[0].identity() != pair[1].identity()
-        });
-        let unique_output_names = output_name_index(&artifacts)
-            .map_err(|_| BackupBundleManifestConstructionDenial::AllocationFailed)?
-            .0;
-        let valid_rows = artifacts
-            .iter()
-            .all(BackupBundleArtifactManifestRow::is_valid);
+        } = recovery;
         if store_lineage.trim().is_empty()
             || checkpoint_identity.trim().is_empty()
             || root_generation == 0
             || manifest_generation == 0
-            || artifacts.is_empty()
-            || !unique_semantic_identities
-            || !unique_output_names
-            || !valid_rows
-            || wal_interval.0 > durable_checkpoint_lsn
-            || durable_checkpoint_lsn > wal_interval.1
-            || acknowledged_frontier < wal_interval.1
+            || wal_half_open_interval.0 > durable_checkpoint_lsn
+            || durable_checkpoint_lsn > wal_half_open_interval.1
+            || acknowledged_frontier < wal_half_open_interval.1
         {
             return Err(BackupBundleManifestConstructionDenial::InvalidManifest);
         }
+        let artifacts = canonicalize_declared_artifacts(artifacts)?;
         Ok(Self {
             cut_identity,
             store_lineage,
@@ -102,8 +70,8 @@ impl BackupBundleManifest {
             manifest_generation,
             checkpoint_identity,
             durable_checkpoint_lsn,
-            wal_start_lsn: wal_interval.0,
-            wal_end_exclusive_lsn: wal_interval.1,
+            wal_start_lsn: wal_half_open_interval.0,
+            wal_end_exclusive_lsn: wal_half_open_interval.1,
             acknowledged_frontier,
             security_scope_fingerprint,
             artifact_closure_digest: super::backup_canonical_artifact_closure_digest(&artifacts),
@@ -144,30 +112,26 @@ impl BackupBundleManifest {
         self.artifact_closure_digest
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_decoded_parts(
-        cut_identity: [u8; 32],
-        store_lineage: String,
-        root_generation: u64,
-        manifest_generation: u64,
-        checkpoint_identity: String,
-        durable_checkpoint_lsn: u64,
-        wal_interval: (u64, u64),
-        acknowledged_frontier: u64,
-        security_scope_fingerprint: u64,
-        artifacts: Vec<BackupBundleArtifactManifestRow>,
+        declaration: BackupBundleManifestDeclaration,
         artifact_closure_digest: [u8; 32],
     ) -> Self {
+        let BackupBundleManifestDeclaration {
+            identity,
+            recovery,
+            security_scope_fingerprint,
+            artifacts,
+        } = declaration;
         Self {
-            cut_identity,
-            store_lineage,
-            root_generation,
-            manifest_generation,
-            checkpoint_identity,
-            durable_checkpoint_lsn,
-            wal_start_lsn: wal_interval.0,
-            wal_end_exclusive_lsn: wal_interval.1,
-            acknowledged_frontier,
+            cut_identity: identity.cut_identity,
+            store_lineage: identity.store_lineage,
+            root_generation: identity.root_generation,
+            manifest_generation: identity.manifest_generation,
+            checkpoint_identity: recovery.checkpoint_identity,
+            durable_checkpoint_lsn: recovery.durable_checkpoint_lsn,
+            wal_start_lsn: recovery.wal_half_open_interval.0,
+            wal_end_exclusive_lsn: recovery.wal_half_open_interval.1,
+            acknowledged_frontier: recovery.acknowledged_frontier,
             security_scope_fingerprint,
             artifacts,
             artifact_closure_digest,
@@ -255,6 +219,26 @@ impl BackupBundleManifest {
     }
 }
 
+fn canonicalize_declared_artifacts(
+    mut artifacts: Vec<BackupBundleArtifactManifestRow>,
+) -> Result<Vec<BackupBundleArtifactManifestRow>, BackupBundleManifestConstructionDenial> {
+    artifacts.sort_by(artifact_order);
+    let unique_semantic_identities = artifacts.windows(2).all(|pair| {
+        pair[0].family() != pair[1].family() || pair[0].identity() != pair[1].identity()
+    });
+    let unique_output_names = output_name_index(&artifacts)
+        .map_err(|_| BackupBundleManifestConstructionDenial::AllocationFailed)?
+        .0;
+    let valid_rows = artifacts
+        .iter()
+        .all(BackupBundleArtifactManifestRow::is_valid);
+    if artifacts.is_empty() || !unique_semantic_identities || !unique_output_names || !valid_rows {
+        Err(BackupBundleManifestConstructionDenial::InvalidManifest)
+    } else {
+        Ok(artifacts)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackupBundleManifestConstructionDenial {
     InvalidManifest,
@@ -334,5 +318,7 @@ impl MaterializedBackupBundle {
     }
 }
 
+#[cfg(test)]
+mod record_extent_owner_tests;
 #[cfg(test)]
 mod tests;

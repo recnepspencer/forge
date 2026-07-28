@@ -195,7 +195,7 @@ fn prepare_command(
     PhysicalWorkAdmission::require_current(&runtime.submission, demand.intent(), &runtime.health)
         .map_err(CanonicalRecordReadFailure::PreEffect)
         .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;
-    let policy = super::super::record_queue_policy::admit_record_queue_policy(&demand.queue_work());
+    let policy = super::super::record_queue_policy::admit_record_queue_policy(demand.queue_work());
     let work = crate::physical_runtime::PhysicalWorkScheduler::admit(demand, &backend, policy)
         .map_err(CanonicalRecordReadFailure::Scheduler)
         .map_err(|failure| CanonicalRecordReadFailureEvidence::during_work(failure, identity))?;

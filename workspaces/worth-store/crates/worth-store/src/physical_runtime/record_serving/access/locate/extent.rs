@@ -1,6 +1,6 @@
 use worth_store_physical_format::DurableExtentRecordPlacement;
 
-use super::{PhysicalRecordReader, ReadPlacement, RecordReadSession};
+use super::{PhysicalRecordReader, ReadPlacement, RecordReadIdentity, RecordReadSession};
 use crate::physical_runtime::record_serving::{
     access::extent_read_session::ExtentReadState,
     residency::record_frame_reader::RecordFrameReader, PhysicalRecordId, RecordReadDenial,
@@ -45,7 +45,12 @@ impl PhysicalRecordReader {
                 admitted.artifact_bytes,
                 self.format.declaration(),
             ))),
-            identity: self.read_identity(record),
+            identity: RecordReadIdentity::for_extent(
+                self.store,
+                self.generation,
+                record,
+                placement.extent_cell(),
+            ),
             observation: *observation,
             runtime: self.runtime.clone(),
             health_permit,

@@ -1,5 +1,8 @@
 use crate::CurrentGenerationPhysicalReference;
 
+mod untrusted_claim;
+pub use untrusted_claim::UntrustedBackupArtifactClaim;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BackupArtifactFamily {
     RootManifest,
@@ -53,41 +56,36 @@ impl BackupArtifactReference {
     /// It never grants backup-cut authority; Operations must independently
     /// decode the source through its named owner before persisting a lease.
     pub fn declare_untrusted_physical_observation(
-        family: BackupArtifactFamily,
-        format: worth_store_physical_format::BackupBundleArtifactFormat,
-        identity: impl Into<String>,
-        generation: u64,
-        coverage: BackupArtifactCoverage,
+        claim: UntrustedBackupArtifactClaim,
         observation: worth_store_physical_backend::PhysicalBackupArtifactObservation,
         reclaim_reference: CurrentGenerationPhysicalReference,
     ) -> Option<Self> {
-        let identity = identity.into();
         let source_path = observation.path().to_path_buf();
         let bytes = observation.bytes();
         let content_digest = observation.content_digest();
         let physical_identity = observation.physical_identity();
-        if identity.trim().is_empty()
+        if claim.identity.trim().is_empty()
             || source_path.as_os_str().is_empty()
-            || generation == 0
+            || claim.generation == 0
             || bytes == 0
-            || !format.matches_family(bundle_family(family))
-            || reclaim_reference.generation().get() != generation
-            || !coverage.matches_family(family)
-            || !reclaim_domain_matches_family(family, reclaim_reference)
+            || !claim.format.matches_family(bundle_family(claim.family))
+            || reclaim_reference.generation().get() != claim.generation
+            || !claim.coverage.matches_family(claim.family)
+            || !reclaim_domain_matches_family(claim.family, reclaim_reference)
         {
             None
         } else {
             Some(Self {
-                family,
-                format,
-                identity,
+                family: claim.family,
+                format: claim.format,
+                identity: claim.identity,
                 source_path,
-                generation,
+                generation: claim.generation,
                 bytes,
                 content_digest,
                 physical_identity,
                 reclaim_reference,
-                coverage,
+                coverage: claim.coverage,
             })
         }
     }
@@ -171,6 +169,9 @@ fn reclaim_domain_matches_family(
         ) | (
             BackupArtifactFamily::WalSegment,
             PhysicalCellReuseDomain::Segment
+        ) | (
+            BackupArtifactFamily::Extent,
+            PhysicalCellReuseDomain::RecordExtentAllocation
         ) | (
             BackupArtifactFamily::Extent | BackupArtifactFamily::BlobChunk,
             PhysicalCellReuseDomain::ExtentAllocation

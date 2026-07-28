@@ -1,6 +1,6 @@
 use worth_store_physical_format::DurableInlineRecordPlacement;
 
-use super::{PhysicalRecordReader, ReadPlacement, RecordReadSession};
+use super::{PhysicalRecordReader, ReadPlacement, RecordReadIdentity, RecordReadSession};
 use crate::physical_runtime::record_serving::{
     residency::record_frame_reader::RecordFrameReader, PhysicalRecordId, RecordReadDenial,
     RecordReadObservation,
@@ -45,7 +45,12 @@ impl PhysicalRecordReader {
                 payload: projected.payload,
                 offset: 0,
             },
-            identity: self.read_identity(record),
+            identity: RecordReadIdentity::for_inline(
+                self.store,
+                self.generation,
+                record,
+                placement.slot_cell(),
+            ),
             observation: *observation,
             runtime: self.runtime.clone(),
             health_permit,

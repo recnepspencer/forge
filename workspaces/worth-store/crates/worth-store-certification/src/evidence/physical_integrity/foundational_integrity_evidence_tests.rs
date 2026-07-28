@@ -177,8 +177,7 @@ fn planned_work_role_is_derived_from_a_real_pre_execution_scrub_plan() {
             (ScrubWindowOrdinal::from_zero_based(1), b"bravo".as_slice()),
         ])
         .unwrap();
-        let plan =
-            ScrubPlan::build(ScrubPlanRequest::offline(allocation, input, policy)).unwrap();
+        let plan = ScrubPlan::build(ScrubPlanRequest::offline(allocation, input, policy)).unwrap();
         let report = StorePlannedWorkBoundaryReport::from_scrub_plan(&plan);
 
         assert_eq!(report.kind(), StorePlannedWorkBoundaryKind::ScrubPlan);

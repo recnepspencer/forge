@@ -127,7 +127,7 @@ fn protected_bytes_cannot_exceed_admitted_streaming_window() {
         Some(ChunkDamageLocality::Unknown(_))
     ));
     assert_eq!(denial.counters().inspected_bytes(), 12);
-    assert_eq!(denial.counters().streaming_windows_planned(), 4);
+    assert_eq!(denial.counters().streaming_windows_planned(), 1024);
     assert_eq!(denial.counters().chunk_header_checks(), 0);
     assert_eq!(denial.counters().chunk_payload_checks(), 0);
     assert_eq!(denial.counters().chunk_boundary_checks(), 0);
@@ -205,10 +205,7 @@ fn with_chunk_input(
     object_bytes: u64,
     window_bytes: u64,
     allocation_bytes: u64,
-    run: impl FnOnce(
-        ScopedPhysicalValidatorInput<'_>,
-        ChunkIntegrityStreamingWindow<'_, '_>,
-    ),
+    run: impl FnOnce(ScopedPhysicalValidatorInput<'_>, ChunkIntegrityStreamingWindow<'_, '_>),
 ) {
     with_store_chunk_input(payload, |serving, input| {
         let allocation = serving

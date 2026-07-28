@@ -12,7 +12,7 @@ pub enum PhysicalResidencyRecordWorldFailure {
     PayloadTooLarge,
     Batch(RecordAppendDenial),
     Append(RecordAppendError),
-    Read(RecordReadError),
+    Read(Box<RecordReadError>),
     Stream(RecordStreamFailure),
     MissingChunk,
 }
@@ -43,7 +43,7 @@ impl PhysicalResidencyStoreWorld {
                     .expect("one admitted record produces one identity"),
                 RecordReadLimits::new(limit),
             )
-            .map_err(PhysicalResidencyRecordWorldFailure::Read)?;
+            .map_err(|error| PhysicalResidencyRecordWorldFailure::Read(Box::new(error)))?;
         let chunk = session
             .next_chunk()
             .map_err(PhysicalResidencyRecordWorldFailure::Stream)?

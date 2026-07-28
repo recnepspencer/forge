@@ -31,14 +31,12 @@ impl BlobStreamingVerifiedRead {
         )
         .observe_read_window(bytes_read)
         .record_verified_chunk();
-        let allocation = AdmittedBlobStreamingAllocation::admit(
-            crate::test_support::blob_allocation_grant(bytes_read),
-            bytes_read,
-        )
-        .unwrap();
-        let residency =
+        let residency = crate::test_support::with_blob_allocation(bytes_read, |_, allocation| {
+            let allocation =
+                AdmittedBlobStreamingAllocation::admit(allocation, bytes_read).unwrap();
             BlobStreamingReadResidencyProof::from_executed_streaming_session(&allocation, counters)
-                .unwrap();
+                .unwrap()
+        });
         let performance = counter_backed_streaming_read_performance_receipt(counters);
         Self {
             object_id,

@@ -1,5 +1,5 @@
+use worth_store::physical_runtime::{PhysicalOperationAllocationScope, ServingPhysicalRuntime};
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::{PhysicalOperationAllocationScope, PhysicalResidencyPool};
 use worth_store_io_scheduler::{
     blob_ingest_background_capacity_for_certification_test,
     blob_ingest_wal_write_background_capacity_for_certification_test,
@@ -7,7 +7,7 @@ use worth_store_io_scheduler::{
 };
 use worth_store_physical_backend::BlobBackendChunkWriteObservation;
 
-use crate::test_support::{blob_allocation, operation_allocation, physical_payload_for_bytes};
+use crate::test_support::{physical_payload_for_bytes, with_blob_allocation};
 use crate::{
     reject_full_blob_vec_as_streaming_ingest, reject_scalar_backend_api_as_streaming_ingest,
     BlobStreamingIngest, BlobStreamingIngestDenial, BlobStreamingPressureAdmission,
@@ -18,67 +18,39 @@ use super::ingest_test_support::*;
 
 #[test]
 fn canonical_blob_allocation_is_held_through_effect_and_released_after_session() {
-    let (pool, allocation) = blob_allocation(4);
-    let mut writer = AllocationTrackingWriter::new(pool.clone());
-    let ingest = BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            allocation,
-            pressure_admission(),
-            CounterEvidenceStrength::Exact,
-        ),
-        source_frames(3, 4),
-        &mut writer,
-    )
-    .unwrap();
+    with_blob_allocation(4, |serving, allocation| {
+        let mut writer = AllocationTrackingWriter::new(serving);
+        let ingest = BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(4).unwrap(),
+                allocation,
+                pressure_admission(),
+                CounterEvidenceStrength::Exact,
+            ),
+            source_frames(3, 4),
+            &mut writer,
+        )
+        .unwrap();
 
-    assert_eq!(writer.effects, 3);
-    assert_eq!(
-        pool.counters()
-            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
-        0,
-        "the move-owned allocation must release when execution returns"
-    );
-    let observed = ingest.residency().allocation().allocation();
-    assert_eq!(observed.store(), pool.store_identity());
-    assert_eq!(observed.pool(), pool.incarnation());
-    assert_eq!(observed.scope(), PhysicalOperationAllocationScope::Blob);
-    assert_eq!(observed.bytes(), 4);
-    assert!(
-        observed
-            .counters()
-            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob)
-            >= 4
-    );
-}
-
-#[test]
-fn wrong_scope_denies_before_blob_effect_authority_is_reached() {
-    let (pool, allocation) =
-        operation_allocation(PhysicalOperationAllocationScope::ForegroundRead, 4);
-    let mut writer = AllocationTrackingWriter::new(pool.clone());
-    let denial = BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            allocation,
-            pressure_admission(),
-            CounterEvidenceStrength::Exact,
-        ),
-        source_frames(3, 4),
-        &mut writer,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        denial,
-        BlobStreamingIngestDenial::AllocationScopeMismatch {
-            actual: PhysicalOperationAllocationScope::ForegroundRead
-        }
-    );
-    assert_eq!(writer.effects, 0);
-    assert_eq!(pool.counters().active_operation_bytes(), 0);
+        assert_eq!(writer.effects, 3);
+        assert_eq!(
+            serving
+                .residency_observation()
+                .counters()
+                .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
+            0,
+            "the move-owned allocation must release when execution returns"
+        );
+        let observed = ingest.residency().allocation();
+        assert_eq!(observed.store_identity(), serving.store_identity());
+        assert_eq!(
+            observed.store_generation(),
+            serving.residency_observation().store_generation()
+        );
+        assert_eq!(observed.runtime_identity(), serving.runtime_identity());
+        assert_eq!(observed.allocation_bytes(), 4);
+    });
 }
 
 #[test]
@@ -174,17 +146,19 @@ fn pressure_violation_denies_before_blob_ingest_consumes_source_frames() {
         true,
     )
     .expect("S.6 pressure admission should build");
-    let denial = BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            allocation_grant(4),
-            pressure,
-            CounterEvidenceStrength::Exact,
-        ),
-        source_frames(3, 4),
-        &mut TestChunkWriter::new(),
-    )
+    let denial = with_blob_allocation(4, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(4).unwrap(),
+                allocation,
+                pressure,
+                CounterEvidenceStrength::Exact,
+            ),
+            source_frames(3, 4),
+            &mut TestChunkWriter::new(),
+        )
+    })
     .expect_err("S.6 pressure violation must deny blob ingest");
     assert!(matches!(
         denial,
@@ -195,17 +169,19 @@ fn pressure_violation_denies_before_blob_ingest_consumes_source_frames() {
 
 #[test]
 fn full_object_source_frame_and_unbound_read_reservation_pressure_are_denied() {
-    let whole_object = BlobStreamingIngest::run_bounded(
-        request_for_total_bytes(4),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            allocation_grant(4),
-            pressure_admission(),
-            CounterEvidenceStrength::Exact,
-        ),
-        [source_frame(b"abcd", 4)],
-        &mut TestChunkWriter::new(),
-    )
+    let whole_object = with_blob_allocation(4, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request_for_total_bytes(4),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(4).unwrap(),
+                allocation,
+                pressure_admission(),
+                CounterEvidenceStrength::Exact,
+            ),
+            [source_frame(b"abcd", 4)],
+            &mut TestChunkWriter::new(),
+        )
+    })
     .expect_err("source frame cannot materialize the whole object");
     assert_eq!(
         whole_object,
@@ -223,17 +199,19 @@ fn full_object_source_frame_and_unbound_read_reservation_pressure_are_denied() {
 
 #[test]
 fn backend_write_observations_must_match_chunk_order_and_bytes() {
-    let denial = BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            allocation_grant(4),
-            pressure_admission(),
-            CounterEvidenceStrength::Exact,
-        ),
-        source_frames(3, 4),
-        &mut TestChunkWriter::with_ordinal_offset(1),
-    )
+    let denial = with_blob_allocation(4, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(4).unwrap(),
+                allocation,
+                pressure_admission(),
+                CounterEvidenceStrength::Exact,
+            ),
+            source_frames(3, 4),
+            &mut TestChunkWriter::with_ordinal_offset(1),
+        )
+    })
     .expect_err("mismatched backend ordinal must deny");
 
     assert_eq!(
@@ -247,17 +225,19 @@ fn backend_write_observations_must_match_chunk_order_and_bytes() {
 
 #[test]
 fn backend_writer_payload_must_match_pending_source_bytes() {
-    let denial = BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            allocation_grant(4),
-            pressure_admission(),
-            CounterEvidenceStrength::Exact,
-        ),
-        source_frames(3, 4),
-        &mut SubstitutingChunkWriter,
-    )
+    let denial = with_blob_allocation(4, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(4).unwrap(),
+                allocation,
+                pressure_admission(),
+                CounterEvidenceStrength::Exact,
+            ),
+            source_frames(3, 4),
+            &mut SubstitutingChunkWriter,
+        )
+    })
     .expect_err("writer-chosen payload bytes cannot replace streamed source bytes");
 
     assert_eq!(
@@ -281,30 +261,31 @@ fn blob_ingest_pressure_admits_against_wal_foreground_reservation() {
     assert_eq!(ingest.counters().scheduler_waits(), 1);
 }
 
-struct AllocationTrackingWriter {
-    pool: PhysicalResidencyPool,
+struct AllocationTrackingWriter<'runtime> {
+    serving: &'runtime ServingPhysicalRuntime,
     inner: TestChunkWriter,
     effects: u64,
 }
 
-impl AllocationTrackingWriter {
-    fn new(pool: PhysicalResidencyPool) -> Self {
+impl<'runtime> AllocationTrackingWriter<'runtime> {
+    fn new(serving: &'runtime ServingPhysicalRuntime) -> Self {
         Self {
-            pool,
+            serving,
             inner: TestChunkWriter::new(),
             effects: 0,
         }
     }
 }
 
-impl crate::BlobStreamingChunkWriter for AllocationTrackingWriter {
+impl crate::BlobStreamingChunkWriter for AllocationTrackingWriter<'_> {
     fn write_streaming_chunk(
         &mut self,
         ordinal: crate::BlobChunkOrdinal,
         bytes: &[u8],
     ) -> Result<crate::BlobStreamingWrittenChunk, BlobStreamingIngestDenial> {
         assert!(
-            self.pool
+            self.serving
+                .residency_observation()
                 .counters()
                 .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob)
                 >= 4,

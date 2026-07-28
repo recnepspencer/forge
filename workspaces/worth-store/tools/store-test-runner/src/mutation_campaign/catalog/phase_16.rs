@@ -17,7 +17,7 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
         id: 16,
         predicate: "scheduler-admission",
         source: "crates/worth-store-io-scheduler/src/queue_execution/admission/request.rs",
-        needle: "    if grouping_basis.durability_class() != request.work.durability_class() {\n        return Err(QueueExecutionAdmissionDenial::GroupingDenied(\n            super::QueueGroupingDenial::DurabilityClassMismatch,\n        ));\n    }\n",
+        needle: "    if grouping_basis.durability_class() != work.durability_class() {\n        return Err(QueueExecutionAdmissionDenial::GroupingDenied(\n            super::QueueGroupingDenial::DurabilityClassMismatch,\n        ));\n    }\n",
         replacement: "",
         package: "worth-store-io-scheduler",
         target: MutationTarget::Library,

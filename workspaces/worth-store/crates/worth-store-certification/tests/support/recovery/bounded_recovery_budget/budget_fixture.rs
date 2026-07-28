@@ -5,7 +5,7 @@ use worth_store_recovery_physics::{
     RedoApplicationPageFact, WalTailRedoSource, WalTailReplayBudget,
 };
 
-use super::memory_budget_fixture::recovery_memory_allocation;
+use super::memory_budget_fixture::with_recovery_memory_allocation;
 use super::redo_replay_fixture::{
     cursor, frame, grammar_for, page_lsn, redo_eligibility, redo_eligibility_for_page, valid_prefix,
 };
@@ -17,11 +17,62 @@ pub struct EquivalentEnvelopeResult {
     pub counters: RecoveryCounterSnapshot,
 }
 
+#[derive(Clone, Copy)]
+pub struct RecoveryBudgetLimits {
+    max_tail_interval_frames: usize,
+    max_replay_frames: usize,
+    max_scanned_segments: usize,
+    max_page_redos: usize,
+    max_memory_bytes: u64,
+    max_allocation_bytes: u64,
+    max_checkpoint_candidates: usize,
+}
+
+impl RecoveryBudgetLimits {
+    pub const fn bounded_single_frame_fixture() -> Self {
+        Self {
+            max_tail_interval_frames: 4,
+            max_replay_frames: 4,
+            max_scanned_segments: 2,
+            max_page_redos: 4,
+            max_memory_bytes: 128,
+            max_allocation_bytes: 128,
+            max_checkpoint_candidates: 2,
+        }
+    }
+
+    pub const fn with_max_tail_interval_frames(mut self, max: usize) -> Self {
+        self.max_tail_interval_frames = max;
+        self
+    }
+
+    pub const fn with_max_scanned_segments(mut self, max: usize) -> Self {
+        self.max_scanned_segments = max;
+        self
+    }
+
+    pub const fn with_max_memory_bytes(mut self, max: u64) -> Self {
+        self.max_memory_bytes = max;
+        self
+    }
+
+    pub const fn with_max_allocation_bytes(mut self, max: u64) -> Self {
+        self.max_allocation_bytes = max;
+        self
+    }
+
+    pub const fn with_max_checkpoint_candidates(mut self, max: usize) -> Self {
+        self.max_checkpoint_candidates = max;
+        self
+    }
+}
+
 pub fn execute_equivalent_envelope(total_store_pages: u64) -> EquivalentEnvelopeResult {
     let fixture = budget_fixture();
-    let receipt = admit_bounded_with_store_pages(&fixture, total_store_pages)
-        .execute(&fixture.cursor_from_lsn(19, "checkpoint-page"))
-        .unwrap();
+    let receipt = with_admitted_bounded_and_store_pages(&fixture, total_store_pages, |plan| {
+        plan.execute(&fixture.cursor_from_lsn(19, "checkpoint-page"))
+            .unwrap()
+    });
     EquivalentEnvelopeResult {
         total_store_pages,
         recovered_root: receipt
@@ -52,13 +103,18 @@ impl BudgetFixture {
 pub fn budget_fixture() -> BudgetFixture {
     let (checkpoint, cutover) = checkpoint_base(10, 20, 19, 1);
     let tail = wal_tail_for_checkpoint(&cutover, 21, 2);
-    let source_admission = budget_with(4, 4, 2, 4, 128, 128, 2)
-        .source_precedence_graph("strict-test-profile")
-        .discover(RecoverySourceCandidate::checkpoint_base(checkpoint.clone()))
-        .unwrap()
-        .discover(RecoverySourceCandidate::wal_tail(tail.clone()))
-        .unwrap()
-        .admit_sources();
+    let source_admission = with_budget(
+        RecoveryBudgetLimits::bounded_single_frame_fixture(),
+        |budget| {
+            budget
+                .source_precedence_graph("strict-test-profile")
+                .discover(RecoverySourceCandidate::checkpoint_base(checkpoint.clone()))
+                .unwrap()
+                .discover(RecoverySourceCandidate::wal_tail(tail.clone()))
+                .unwrap()
+                .admit_sources()
+        },
+    );
     let prefix = valid_prefix(source_admission.source(), 20, 21, [frame(20)]);
     let eligibility = redo_eligibility(19, 20);
     let grammar = grammar_for(&eligibility, 20, page_lsn(20)).unwrap();
@@ -81,15 +137,22 @@ pub fn multi_frame_budget_fixture() -> BudgetFixture {
     let (checkpoint, cutover) = checkpoint_base(10, 20, 19, 1);
     let tail = wal_tail_for_checkpoint(&cutover, 23, 2);
     let decoy_tail = wal_tail_for_checkpoint(&cutover, 24, 3);
-    let source_admission = budget_with(4, 4, 3, 4, 128, 128, 3)
-        .source_precedence_graph("strict-test-profile")
-        .discover(RecoverySourceCandidate::checkpoint_base(checkpoint.clone()))
-        .unwrap()
-        .discover(RecoverySourceCandidate::wal_tail(decoy_tail))
-        .unwrap()
-        .discover(RecoverySourceCandidate::wal_tail(tail.clone()))
-        .unwrap()
-        .admit_sources();
+    let source_admission = with_budget(
+        RecoveryBudgetLimits::bounded_single_frame_fixture()
+            .with_max_scanned_segments(3)
+            .with_max_checkpoint_candidates(3),
+        |budget| {
+            budget
+                .source_precedence_graph("strict-test-profile")
+                .discover(RecoverySourceCandidate::checkpoint_base(checkpoint.clone()))
+                .unwrap()
+                .discover(RecoverySourceCandidate::wal_tail(decoy_tail))
+                .unwrap()
+                .discover(RecoverySourceCandidate::wal_tail(tail.clone()))
+                .unwrap()
+                .admit_sources()
+        },
+    );
     let prefix = valid_prefix(
         source_admission.source(),
         20,
@@ -120,20 +183,25 @@ pub fn multi_frame_budget_fixture() -> BudgetFixture {
 pub fn residue_budget_fixture() -> BudgetFixture {
     let (checkpoint, cutover) = checkpoint_base(10, 20, 19, 1);
     let tail = wal_tail_for_checkpoint(&cutover, 21, 3);
-    let source_admission = budget_with(4, 4, 2, 4, 128, 128, 3)
-        .source_precedence_graph("strict-test-profile")
-        .discover(RecoverySourceCandidate::checkpoint_base(checkpoint.clone()))
-        .unwrap()
-        .discover(RecoverySourceCandidate::backend_residue(
-            BackendResidueRejection::new(
-                BackendResidueKind::BackendDirectoryResidue,
-                trace("backend-residue", 2),
-            ),
-        ))
-        .unwrap()
-        .discover(RecoverySourceCandidate::wal_tail(tail.clone()))
-        .unwrap()
-        .admit_sources();
+    let source_admission = with_budget(
+        RecoveryBudgetLimits::bounded_single_frame_fixture().with_max_checkpoint_candidates(3),
+        |budget| {
+            budget
+                .source_precedence_graph("strict-test-profile")
+                .discover(RecoverySourceCandidate::checkpoint_base(checkpoint.clone()))
+                .unwrap()
+                .discover(RecoverySourceCandidate::backend_residue(
+                    BackendResidueRejection::new(
+                        BackendResidueKind::BackendDirectoryResidue,
+                        trace("backend-residue", 2),
+                    ),
+                ))
+                .unwrap()
+                .discover(RecoverySourceCandidate::wal_tail(tail.clone()))
+                .unwrap()
+                .admit_sources()
+        },
+    );
     let prefix = valid_prefix(source_admission.source(), 20, 21, [frame(20)]);
     let eligibility = redo_eligibility(19, 20);
     let grammar = grammar_for(&eligibility, 20, page_lsn(20)).unwrap();
@@ -152,63 +220,81 @@ pub fn residue_budget_fixture() -> BudgetFixture {
     }
 }
 
-pub fn admit_bounded(fixture: &BudgetFixture) -> worth_store_recovery_physics::BoundedRecoveryPlan {
-    admit_bounded_with_store_pages(fixture, 1_024)
+pub fn with_admitted_bounded<R>(
+    fixture: &BudgetFixture,
+    run: impl FnOnce(worth_store_recovery_physics::BoundedRecoveryPlan<'_>) -> R,
+) -> R {
+    with_admitted_bounded_and_store_pages(fixture, 1_024, run)
 }
 
-pub fn admit_bounded_with_store_pages(
+pub fn with_admitted_bounded_and_store_pages<R>(
     fixture: &BudgetFixture,
     total_store_pages: u64,
-) -> worth_store_recovery_physics::BoundedRecoveryPlan {
-    budget_with(4, 4, 2, 4, 128, 128, 2)
-        .with_store_footprint(RecoveryStoreFootprint::admitted_persisted_pages(
-            total_store_pages,
-        ))
-        .admit_recovery(fixture.source_admission.clone(), fixture.redo_plan.clone())
-        .unwrap()
+    run: impl FnOnce(worth_store_recovery_physics::BoundedRecoveryPlan<'_>) -> R,
+) -> R {
+    with_budget(
+        RecoveryBudgetLimits::bounded_single_frame_fixture(),
+        |budget| {
+            let plan = budget
+                .with_store_footprint(RecoveryStoreFootprint::admitted_persisted_pages(
+                    total_store_pages,
+                ))
+                .admit_recovery(fixture.source_admission.clone(), fixture.redo_plan.clone())
+                .unwrap();
+            run(plan)
+        },
+    )
 }
 
-pub fn admit_hostile_bounded(
+pub fn with_admitted_hostile_bounded<R>(
     fixture: &BudgetFixture,
-) -> worth_store_recovery_physics::BoundedRecoveryPlan {
-    budget_with(4, 4, 2, 4, 128, 128, 3)
-        .admit_recovery(fixture.source_admission.clone(), fixture.redo_plan.clone())
-        .unwrap()
+    run: impl FnOnce(worth_store_recovery_physics::BoundedRecoveryPlan<'_>) -> R,
+) -> R {
+    with_budget(
+        RecoveryBudgetLimits::bounded_single_frame_fixture().with_max_checkpoint_candidates(3),
+        |budget| {
+            run(budget
+                .admit_recovery(fixture.source_admission.clone(), fixture.redo_plan.clone())
+                .unwrap())
+        },
+    )
 }
 
 pub fn wrong_same_count_source_admission(
     fixture: &BudgetFixture,
 ) -> BoundedRecoverySourceAdmission {
-    budget_with(4, 4, 2, 4, 128, 128, 2)
-        .source_precedence_graph("strict-test-profile")
-        .discover(RecoverySourceCandidate::wal_tail(fixture.tail.clone()))
-        .unwrap()
-        .discover(RecoverySourceCandidate::wal_tail(
-            fixture.mismatched_tail.clone(),
-        ))
-        .unwrap()
-        .admit_sources()
+    with_budget(
+        RecoveryBudgetLimits::bounded_single_frame_fixture(),
+        |budget| {
+            budget
+                .source_precedence_graph("strict-test-profile")
+                .discover(RecoverySourceCandidate::wal_tail(fixture.tail.clone()))
+                .unwrap()
+                .discover(RecoverySourceCandidate::wal_tail(
+                    fixture.mismatched_tail.clone(),
+                ))
+                .unwrap()
+                .admit_sources()
+        },
+    )
 }
 
-pub fn budget_with(
-    max_tail_interval_frames: usize,
-    max_replay_frames: usize,
-    max_scanned_segments: usize,
-    max_page_redos: usize,
-    max_memory_bytes: u64,
-    max_allocation_bytes: u64,
-    max_checkpoint_candidates: usize,
-) -> RecoveryBudget {
-    RecoveryBudget::new(
-        CheckpointIntervalContract::max_tail_frames(max_tail_interval_frames),
-        WalTailReplayBudget::max_frames(max_replay_frames)
-            .with_max_scanned_segments(max_scanned_segments)
-            .with_max_page_redos(max_page_redos),
-        recovery_memory_allocation(),
-    )
-    .with_max_memory_envelope_bytes(max_memory_bytes)
-    .with_max_allocation_bytes(max_allocation_bytes)
-    .with_checkpoint_discovery_candidates(max_checkpoint_candidates)
+pub fn with_budget<R>(
+    limits: RecoveryBudgetLimits,
+    run: impl FnOnce(RecoveryBudget<'_>) -> R,
+) -> R {
+    with_recovery_memory_allocation(|memory_allocation| {
+        run(RecoveryBudget::new(
+            CheckpointIntervalContract::max_tail_frames(limits.max_tail_interval_frames),
+            WalTailReplayBudget::max_frames(limits.max_replay_frames)
+                .with_max_scanned_segments(limits.max_scanned_segments)
+                .with_max_page_redos(limits.max_page_redos),
+            memory_allocation,
+        )
+        .with_max_memory_envelope_bytes(limits.max_memory_bytes)
+        .with_max_allocation_bytes(limits.max_allocation_bytes)
+        .with_checkpoint_discovery_candidates(limits.max_checkpoint_candidates))
+    })
 }
 
 pub fn multi_page_cursor(pages: [(u64, u64, u64); 3]) -> RedoApplicationCursor {

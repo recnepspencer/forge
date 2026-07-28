@@ -20,6 +20,7 @@ pub(crate) const fn owner_domain_token(domain: PhysicalCellReuseDomain) -> &'sta
     match domain {
         PhysicalCellReuseDomain::SlotAllocation => "slot-allocation",
         PhysicalCellReuseDomain::ExtentAllocation => "extent-allocation",
+        PhysicalCellReuseDomain::RecordExtentAllocation => "record-extent-allocation",
         PhysicalCellReuseDomain::FreeSpaceReuse => "free-space-reuse",
         PhysicalCellReuseDomain::RootPublication => "root-publication",
         PhysicalCellReuseDomain::Page => "page",

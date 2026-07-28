@@ -17,6 +17,19 @@ fn protected_page() -> BackupProtectedPhysicalOwner {
     }
 }
 
+fn protected_record_extent() -> BackupProtectedPhysicalOwner {
+    BackupProtectedPhysicalOwner {
+        domain: PhysicalCellReuseDomain::RecordExtentAllocation,
+        segment: None,
+        page: None,
+        extent: Some(13),
+        slot: None,
+        root: None,
+        allocation: None,
+        generation: 5,
+    }
+}
+
 #[test]
 fn sealed_lease_round_trips_exact_physical_ownership() {
     let encoded = encode([9; 32], &[protected_page()]).expect("encode");
@@ -25,6 +38,15 @@ fn sealed_lease_round_trips_exact_physical_ownership() {
     assert_eq!(recovered.cut_identity(), [9; 32]);
     assert_eq!(recovered.protection(), &[protected_page()]);
     assert_eq!(recovered.recovery_bytes(), encoded);
+}
+
+#[test]
+fn top_level_record_extent_round_trips_without_segment_ownership() {
+    let encoded = encode([8; 32], &[protected_record_extent()]).expect("encode");
+    let recovered = BackupReachabilityLeasePersistenceRecord::recover(&encoded)
+        .expect("canonical record extent lease");
+
+    assert_eq!(recovered.protection(), &[protected_record_extent()]);
 }
 
 #[test]

@@ -1,4 +1,4 @@
-use crate::{LogSequenceNumber, UnadmittedDirtyPagePublicationDenial};
+use crate::LogSequenceNumber;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TornPublicationDenial {
@@ -53,22 +53,5 @@ impl NonAuthoritativePublicationDenial {
 
     pub fn persisted_digest(&self) -> &str {
         &self.persisted_digest
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UnadmittedDurablePageMutationDenial {
-    denial: UnadmittedDirtyPagePublicationDenial,
-}
-
-impl UnadmittedDurablePageMutationDenial {
-    pub const fn from_page_publication_denial(
-        denial: UnadmittedDirtyPagePublicationDenial,
-    ) -> Self {
-        Self { denial }
-    }
-
-    pub const fn page_denial(&self) -> &UnadmittedDirtyPagePublicationDenial {
-        &self.denial
     }
 }

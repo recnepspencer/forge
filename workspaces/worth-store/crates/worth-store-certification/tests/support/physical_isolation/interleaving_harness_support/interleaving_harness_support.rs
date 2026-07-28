@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::sync::OnceLock;
+
 use crate::independent_verifier_observation;
 use crate::physical_isolation_shortcut_report as shortcut_report;
 use worth_store_test_support::harness::physical_isolation::interleaving_resources as resources;
@@ -23,10 +25,15 @@ use worth_store_physical_isolation::{
 };
 
 pub(crate) fn complete_context() -> SimulationPlanningContext {
-    worth_store_certification::physical_isolation_ci_certification_planning_context(
-        physical_isolation_lane_registration(),
-        compaction_mutation_support::compaction_mutation_origin(),
-    )
+    static CONTEXT: OnceLock<SimulationPlanningContext> = OnceLock::new();
+    CONTEXT
+        .get_or_init(|| {
+            worth_store_certification::physical_isolation_ci_certification_planning_context(
+                physical_isolation_lane_registration(),
+                compaction_mutation_support::compaction_mutation_origin(),
+            )
+        })
+        .clone()
 }
 
 pub(crate) fn context_without_physical_isolation_lane_registration() -> SimulationPlanningContext {
@@ -67,6 +74,7 @@ pub(crate) fn replay_bundle_from_trace(
         schedule,
         &resources::production_fixture(),
         trace,
+        resources::store_residency_observation(plan),
         expected_fault,
     )
 }
@@ -129,6 +137,11 @@ fn physical_isolation_lane_registration() -> PhysicalIsolationCertificationLaneR
 }
 
 pub(crate) fn simulation_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
+    static RECEIPT: OnceLock<PhysicalIsolationHarnessReadinessReceipt> = OnceLock::new();
+    RECEIPT.get_or_init(build_harness_readiness_receipt).clone()
+}
+
+fn build_harness_readiness_receipt() -> PhysicalIsolationHarnessReadinessReceipt {
     let plan = coverage_support::lowered_ci_plan();
     let replay = coverage_support::replay_bundle(&plan);
     let matrix = coverage_support::complete_registry(&plan, &replay)

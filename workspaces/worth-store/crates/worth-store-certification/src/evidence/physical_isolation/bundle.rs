@@ -124,7 +124,7 @@ pub fn materialize_physical_isolation_executed_isolation_evidence(
 pub enum S5ExecutedIsolationMaterializationDenial {
     Source(ExecutedPhysicalIsolationSourceDenial),
     Diagnostics(FoundationalDiagnosticMaterializationDenial),
-    Performance(crate::FoundationalBoundaryEvidenceDenial),
+    Performance(crate::FoundationalPerformanceEvidenceDenial),
     Canonical(S5CanonicalMaterializationDenial),
 }
 
@@ -142,8 +142,10 @@ impl From<FoundationalDiagnosticMaterializationDenial>
     }
 }
 
-impl From<crate::FoundationalBoundaryEvidenceDenial> for S5ExecutedIsolationMaterializationDenial {
-    fn from(denial: crate::FoundationalBoundaryEvidenceDenial) -> Self {
+impl From<crate::FoundationalPerformanceEvidenceDenial>
+    for S5ExecutedIsolationMaterializationDenial
+{
+    fn from(denial: crate::FoundationalPerformanceEvidenceDenial) -> Self {
         Self::Performance(denial)
     }
 }

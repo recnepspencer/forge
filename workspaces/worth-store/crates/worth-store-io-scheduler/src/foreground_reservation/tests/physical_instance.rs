@@ -3,9 +3,9 @@ use super::super::{
     ForegroundLaneDeclaration, ForegroundLatencyEnvelope, ForegroundReservationAdmissionDenial,
     PhysicalInstanceForegroundAdmissionDenial, PhysicalInstanceForegroundAdmissionRequest,
 };
-use super::common::{
-    backend_admission, full_capacity_budget, io_qos_security_scope_admission, read_budget,
-};
+use super::backend_capability::backend_admission;
+use super::resource_budget::{full_capacity_budget, read_budget};
+use super::security_scope::io_qos_security_scope_admission;
 use crate::IoSchedulerBackendCapabilityRequirement;
 
 #[test]

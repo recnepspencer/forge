@@ -9,7 +9,6 @@ pub use frontier::{
 };
 pub use owner_mapping::{
     map_checkpoint_cutover, map_checkpoint_selection, map_directory_sync_failure,
-    map_executed_wal_durability, map_page_flush_receipt, map_recovery_completion,
-    map_redo_execution, map_redo_generation_denial, map_reopened_recovery_artifact,
-    map_uncertain_reopened_page, DurabilityOwnerMappingDenial,
+    map_executed_wal_durability, map_recovery_completion, map_redo_execution,
+    map_redo_generation_denial, map_reopened_recovery_artifact, DurabilityOwnerMappingDenial,
 };

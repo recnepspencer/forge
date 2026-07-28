@@ -178,7 +178,7 @@ fn admit_scheduler_demand(
     demand: PhysicalSchedulerDemand,
     backend: &IoSchedulerBackendCapabilityAdmission,
 ) -> Result<ResourceAdmittedPhysicalWork, PhysicalWritebackFailureCause> {
-    let policy = admit_record_queue_policy(&demand.queue_work());
+    let policy = admit_record_queue_policy(demand.queue_work());
     PhysicalWorkScheduler::admit(demand, backend, policy)
         .map_err(PhysicalWritebackFailureCause::Scheduler)
 }

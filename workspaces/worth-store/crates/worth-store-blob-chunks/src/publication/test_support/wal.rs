@@ -48,26 +48,47 @@ pub(crate) fn replayable_wal_classification(frame_digest: &str) -> CrashBoundary
 pub(crate) fn pre_wal_replay_edge(
     operation_digest: &BlobPublicationRecoveryOperationDigest,
 ) -> PartialPublicationReplayedCrashEdge {
-    let replay_entry = recovery_replay_entry(operation_digest.as_str());
-    let artifact = replay_entry
-        .read_partial_publication_before_wal_append()
-        .expect("test recovery entry carries protected before-WAL replay bytes");
-    PartialPublicationReplayedCrashEdge::from_replay_read_artifact(artifact)
-        .expect("test pre-wal replay witness should admit through production readmission")
+    with_recovery_replay_entry(operation_digest.as_str(), |replay_entry| {
+        let artifact = replay_entry
+            .read_partial_publication_before_wal_append()
+            .expect("test recovery entry carries protected before-WAL replay bytes");
+        PartialPublicationReplayedCrashEdge::from_replay_read_artifact(artifact)
+            .expect("test pre-wal replay witness should admit through production readmission")
+    })
 }
 
-pub(crate) fn recovery_entry(operation_digest: &str) -> RecoveryEntryAdmission {
-    worth_store_test_support::admitted_recovery_partial_publication_recovery_entry(operation_digest)
+pub(crate) fn with_recovery_entry<R>(
+    operation_digest: &str,
+    run: impl FnOnce(RecoveryEntryAdmission<'_>) -> R,
+) -> R {
+    worth_store_test_support::with_admitted_recovery_partial_publication_entry(
+        operation_digest,
+        run,
+    )
 }
 
-pub(crate) fn recovery_replay_entry(operation_digest: &str) -> RecoveryReplayEntryGate {
-    let recovery_entry = recovery_entry(operation_digest);
-    replay_entry_from_recovery_entry(operation_digest, recovery_entry)
+pub(crate) fn with_recovery_replay_entry<R>(
+    operation_digest: &str,
+    run: impl FnOnce(RecoveryReplayEntryGate<'_>) -> R,
+) -> R {
+    with_recovery_entry(operation_digest, |recovery_entry| {
+        run(replay_entry_from_recovery_entry(
+            operation_digest,
+            recovery_entry,
+        ))
+    })
 }
 
-pub(crate) fn generic_recovery_replay_entry(operation_digest: &str) -> RecoveryReplayEntryGate {
-    let recovery_entry = worth_store_test_support::admitted_recovery_entry(operation_digest);
-    replay_entry_from_recovery_entry(operation_digest, recovery_entry)
+pub(crate) fn with_generic_recovery_replay_entry<R>(
+    operation_digest: &str,
+    run: impl FnOnce(RecoveryReplayEntryGate<'_>) -> R,
+) -> R {
+    worth_store_test_support::with_admitted_recovery_entry(operation_digest, |recovery_entry| {
+        run(replay_entry_from_recovery_entry(
+            operation_digest,
+            recovery_entry,
+        ))
+    })
 }
 
 pub(crate) fn chunk_write_replay_evidence(
@@ -80,10 +101,10 @@ pub(crate) fn chunk_write_replay_evidence(
         .expect("chunk-write replay evidence should admit")
 }
 
-fn replay_entry_from_recovery_entry(
+fn replay_entry_from_recovery_entry<'runtime>(
     operation_digest: &str,
-    recovery_entry: RecoveryEntryAdmission,
-) -> RecoveryReplayEntryGate {
+    recovery_entry: RecoveryEntryAdmission<'runtime>,
+) -> RecoveryReplayEntryGate<'runtime> {
     let admitted_scope = recovery_security_scope(operation_digest);
     let wal_record = RecoveryWalRecordSecurityMetadataEnvelope::from_admitted_scope(
         RecoveryWalRecordSecurityMetadataIdentity::new(7),

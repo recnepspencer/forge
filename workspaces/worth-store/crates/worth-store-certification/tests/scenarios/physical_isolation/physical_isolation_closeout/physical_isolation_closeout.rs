@@ -1,5 +1,7 @@
 #[path = "../../../support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
+use std::sync::OnceLock;
+
 use crate::physical_interleaving_support as harness_support;
 use worth_store_test_support::harness::physical_isolation::epoch_scope as support;
 use worth_store_test_support::harness::physical_isolation::publication as publication_support;
@@ -214,6 +216,11 @@ fn simulation_harness_readiness(
 }
 
 fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
+    static ROWS: OnceLock<Vec<PhysicalIsolationCloseoutLaneEvidence>> = OnceLock::new();
+    ROWS.get_or_init(build_closeout_rows).clone()
+}
+
+fn build_closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
     physical_isolation_lanes()
         .into_iter()
         .map(|lane| {

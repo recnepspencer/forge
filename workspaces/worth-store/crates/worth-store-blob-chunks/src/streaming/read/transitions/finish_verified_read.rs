@@ -9,7 +9,7 @@ use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
 pub(crate) fn finish_verified_read(
     verifier: StreamingReadVerifier,
     counters: BlobStreamingReadCounterSnapshot,
-    allocation: AdmittedBlobStreamingAllocation,
+    allocation: AdmittedBlobStreamingAllocation<'_>,
 ) -> Result<super::super::types::BlobStreamingVerifiedRead, BlobStreamingReadDenial> {
     frontier_coverage::verify_all_leaves_consumed(
         &verifier.request,

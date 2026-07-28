@@ -8,6 +8,23 @@
 //!     worth_store_physical_isolation::execute_admitted_compaction_rewrite_for_plan;
 //! ```
 //!
+//! A byte-guard scope derives its protected reference from the Store chunk.
+//! A caller cannot pair an unrelated reference with borrowed bytes:
+//!
+//! ```compile_fail
+//! use worth_store::physical_runtime::PhysicalRecordChunkView;
+//! use worth_store_physical_isolation::{
+//!     CurrentGenerationPhysicalReference, PhysicalByteGuardScope,
+//! };
+//!
+//! fn pair_unrelated_reference(
+//!     reference: CurrentGenerationPhysicalReference,
+//!     chunk: &PhysicalRecordChunkView<'_>,
+//! ) {
+//!     let _ = PhysicalByteGuardScope::for_record_chunk(reference, chunk);
+//! }
+//! ```
+//!
 //! Replica bootstrap cannot lease a caller-built raw source request. It must
 //! consume the cut resolved by Recovery Physics from independently reopened
 //! media:
@@ -62,7 +79,7 @@ pub use backup_cut::{
     BackupReachabilityLeaseRegistry, BackupReachabilityLeaseRegistryDenial,
     BackupReachabilityLeaseReleaseRecord, InvalidBackupReachabilityLeaseReleaseRecord,
     PendingBackupLeaseAdmission, PendingBackupLeaseRelease, PersistedBackupReachabilityLease,
-    PreparedBackupCutAbandonment, ReleasedBackupReachabilityLease,
+    PreparedBackupCutAbandonment, ReleasedBackupReachabilityLease, UntrustedBackupArtifactClaim,
 };
 pub use blob_orphan_reclaim::{
     BlobOrphanReclaimBarrier, BlobOrphanReclaimCounterSnapshot, BlobOrphanReclaimCoverage,
@@ -71,7 +88,6 @@ pub use blob_orphan_reclaim::{
 };
 pub use byte_guard::{
     ByteGuardReleaseReceipt, PhysicalByteGuard, PhysicalByteGuardDenial, PhysicalByteGuardScope,
-    PhysicalByteGuardScopeKind,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use checkpoint_interlock::read_during_checkpoint_verdict_for_certification_test;

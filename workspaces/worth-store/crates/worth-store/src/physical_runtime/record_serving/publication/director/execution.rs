@@ -23,6 +23,14 @@ struct PublishedTailReservation {
     active: bool,
 }
 
+struct PreparedRootPublication {
+    plan: RebasableRecordPublicationPlan,
+    replacement: super::super::super::PreparedCatalogReplacement,
+    placement: AdmittedRecordPlacementPolicy,
+    capacity_transition: ManifestCapacityTransition,
+    counters_before: worth_store_physical_backend::MediaCounterSnapshot,
+}
+
 impl RecordPublicationDirector {
     pub(super) fn preflight(
         &self,
@@ -96,11 +104,13 @@ impl RecordPublicationDirector {
                         self.publish_rebased_root(
                             &runtime,
                             &allocation,
-                            plan,
-                            replacement,
-                            placement,
-                            capacity_transition,
-                            counters_before,
+                            PreparedRootPublication {
+                                plan,
+                                replacement,
+                                placement,
+                                capacity_transition,
+                                counters_before,
+                            },
                         )
                     })
                     .map(|published| (published, reservation))
@@ -239,12 +249,15 @@ impl RecordPublicationDirector {
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
         allocation: &worth_store_buffer_pool::ForegroundWriteAllocationGrant,
-        plan: RebasableRecordPublicationPlan,
-        replacement: super::super::super::PreparedCatalogReplacement,
-        placement: AdmittedRecordPlacementPolicy,
-        capacity_transition: ManifestCapacityTransition,
-        counters_before: worth_store_physical_backend::MediaCounterSnapshot,
+        prepared: PreparedRootPublication,
     ) -> Result<PublishedRecordBatch, RecordAppendError> {
+        let PreparedRootPublication {
+            plan,
+            replacement,
+            placement,
+            capacity_transition,
+            counters_before,
+        } = prepared;
         let mut state = self
             .state
             .lock()

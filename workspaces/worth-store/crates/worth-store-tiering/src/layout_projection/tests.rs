@@ -7,13 +7,13 @@ use worth_store_reclaim_policy::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority, PhysicalStoreReclaimPolicyExecutor, ReclaimPermit,
-    ReclaimPolicyAdmission, ReclaimPolicyExecutionObservation, ReclaimPolicyExecutionRequest,
-    ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority, ReclaimPolicyReachabilityProof,
-    ReclaimPolicyRequest, ReclaimPolicySecurityScope,
+    ReclaimPolicyAdmission, ReclaimPolicyCounterSnapshot, ReclaimPolicyExecutionObservation,
+    ReclaimPolicyExecutionRequest, ReclaimPolicyExecutionSession, ReclaimPolicyProofAuthority,
+    ReclaimPolicyReachabilityProof, ReclaimPolicyRequest, ReclaimPolicySecurityScope,
 };
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
-use crate::ColdTierIoPosture;
+use crate::{ColdTierIoPosture, TierPlacementInterferencePosture};
 
 #[test]
 fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
@@ -24,7 +24,12 @@ fn tiering_layout_reports_preserve_budget_and_owner_identity_basis() {
     assert_eq!(placement.declared_budget().region_bytes(), 4096);
     assert_eq!(placement.reclaim_region().byte_len(), 4096);
     assert_eq!(placement.security_scope(), posture.security_scope());
-    assert_eq!(placement.exact_counters().executed(), 1);
+    assert_eq!(
+        placement.interference_posture(),
+        TierPlacementInterferencePosture::ColdTierMovementPosture
+    );
+    let placement_counters: ReclaimPolicyCounterSnapshot = placement.exact_counters();
+    assert_eq!(placement_counters.executed(), 1);
 
     let recall = posture.project_cold_recall_layout();
     assert_eq!(recall.declared_budget().reclaim_permits(), 1);

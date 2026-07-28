@@ -3,9 +3,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use worth_store_formal_models::{
     map_checkpoint_cutover, map_checkpoint_selection, map_directory_sync_failure,
-    map_executed_wal_durability, map_page_flush_receipt, map_recovery_completion,
-    map_redo_execution, map_redo_generation_denial, map_reopened_recovery_artifact,
-    map_uncertain_reopened_page, DurabilityRecoveryAction,
+    map_executed_wal_durability, map_recovery_completion, map_redo_execution,
+    map_redo_generation_denial, map_reopened_recovery_artifact, DurabilityRecoveryAction,
 };
 #[cfg(not(windows))]
 use worth_store_physical_backend::PosixFileFsyncDirFsyncProfile;
@@ -27,9 +26,8 @@ use worth_store_recovery_physics::{
     CheckpointDurabilityEvidenceSet, CheckpointPublicationPlan, DurableAckReceipt,
     ExecutedWalDurabilityOutcome, LogSequenceNumber, RecoveryRedoPlan, RedoRecordGrammar,
     RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding, RedoRecordOperationForm,
-    RedoRecordTargetGeneration, ReopenedPageRecoveryEvidence, StalePageRecoveryClassification,
-    WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange, WalSegmentGeneration,
-    WalSegmentId,
+    RedoRecordTargetGeneration, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
+    WalSegmentGeneration, WalSegmentId,
 };
 use worth_store_test_support::harness::recovery::{
     checkpoint_basis, checkpoint_durability, closeout, redo_replay, source_precedence,
@@ -58,7 +56,6 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
     let wal_directory = worth_store_test_support::TemporaryDirectory::create("protocol-wal")
         .expect("protocol WAL directory");
     let wal = map_executed_wal_durability(&execute_ordinary_wal(wal_directory.path()));
-    let page = execute_page_flush();
     let checkpoint = execute_checkpoint();
     let directory_failure = execute_directory_sync_crash(61);
     let redo = execute_redo_traces();
@@ -72,7 +69,6 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
     let stable_setup = wal
         .iter()
         .copied()
-        .chain(page[..2].iter().copied())
         .chain(checkpoint.iter().copied())
         .collect::<Vec<_>>();
     let applied_recovery = stable_setup
@@ -81,11 +77,9 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
         .chain(redo[0].iter().copied())
         .chain(completion)
         .collect();
-    let uncertain_page = vec![page[0], page[2]];
     let failed_directory_sync = wal
         .iter()
         .copied()
-        .chain(page[..2].iter().copied())
         .chain(checkpoint[..2].iter().copied())
         .chain(directory_failure)
         .chain([reopen])
@@ -101,7 +95,6 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
         .collect();
     vec![
         applied_recovery,
-        uncertain_page,
         failed_directory_sync,
         skipped_recovery,
         rejected_generation,
@@ -130,18 +123,6 @@ pub(in crate::courtroom::protocol_models) fn replay_acknowledgment_ordering_guar
 ) -> Vec<DurabilityRecoveryAction> {
     let actions = execute_directory_sync_crash(seed);
     assert!(!actions.contains(&DurabilityRecoveryAction::WalAcknowledgmentLegal));
-    actions
-}
-
-fn execute_page_flush() -> Vec<DurabilityRecoveryAction> {
-    let receipt = redo_replay::flush_receipt_for_page(20, 2);
-    let mut actions = map_page_flush_receipt(&receipt).to_vec();
-    let uncertain = StalePageRecoveryClassification::classify_reopened_page(
-        ReopenedPageRecoveryEvidence::from_reopened_page(receipt.page_generation(), None),
-        &receipt,
-    )
-    .unwrap_err();
-    actions.push(map_uncertain_reopened_page(&uncertain).unwrap());
     actions
 }
 

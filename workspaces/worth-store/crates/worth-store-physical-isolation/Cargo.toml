@@ -11,9 +11,9 @@ fs4 = "0.8"
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store.workspace = true
 worth-store-authority.workspace = true
 worth-store-budgets.workspace = true
-worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-physical-backend.workspace = true
 worth-store-physical-format.workspace = true
@@ -23,8 +23,7 @@ worth-store-security.workspace = true
 worth-store-wal.workspace = true
 
 [features]
-certification-authority = ["legacy-certification-models", "worth-store-recovery-physics/certification-test-authority", "worth-store-wal/certification-authority"]
-legacy-certification-models = ["worth-store-buffer-pool/legacy-s2-models"]
+certification-authority = ["worth-store-recovery-physics/certification-test-authority", "worth-store-wal/certification-authority"]
 phase20-layout-rule-construction = []
 
 [dev-dependencies]

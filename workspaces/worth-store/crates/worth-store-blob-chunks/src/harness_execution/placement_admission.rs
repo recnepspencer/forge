@@ -12,15 +12,21 @@ pub(super) fn admit_placement(
     placement_class: BlobHarnessPlacementClass,
 ) -> crate::AdmittedBlobPlacement {
     let authority = BlobPlacementAdmissionAuthority::from_admitted_backend(admitted_backend());
-    let intent = match placement_class {
-        BlobHarnessPlacementClass::StoreLocal => BlobPlacementIntent::inline(),
-        BlobHarnessPlacementClass::ExternalPlacementObserved => {
-            BlobPlacementIntent::external(external_recovery(reachability))
+    match placement_class {
+        BlobHarnessPlacementClass::StoreLocal => {
+            authority.admit(reachability, BlobPlacementIntent::inline())
         }
-        BlobHarnessPlacementClass::ColdTierObserved => BlobPlacementIntent::cold(
-            cold_posture(reachability.security_metadata().identity()),
-            ColdPlacementState::ColdAvailable,
-        ),
-    };
-    authority.admit(reachability, intent).expect("placement")
+        BlobHarnessPlacementClass::ExternalPlacementObserved => {
+            let recoverability = external_recovery(reachability);
+            authority.admit(reachability, BlobPlacementIntent::external(&recoverability))
+        }
+        BlobHarnessPlacementClass::ColdTierObserved => {
+            let posture = cold_posture(reachability.security_metadata().identity());
+            authority.admit(
+                reachability,
+                BlobPlacementIntent::cold(&posture, ColdPlacementState::ColdAvailable),
+            )
+        }
+    }
+    .expect("placement")
 }

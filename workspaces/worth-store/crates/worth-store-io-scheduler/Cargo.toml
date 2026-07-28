@@ -14,7 +14,6 @@ certification-test-authority = [
 
 [dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
-worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-budgets.workspace = true
 worth-store-contracts.workspace = true
 worth-store-buffer-pool.workspace = true

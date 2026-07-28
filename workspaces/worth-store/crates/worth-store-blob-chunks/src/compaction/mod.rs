@@ -1,3 +1,5 @@
+#![doc = include_str!("compile_fail_proofs.md")]
+
 //! # STATE GRAPH
 //!
 //! Compaction rewrite admission composes physical interlock, reachability, placement, and pacing

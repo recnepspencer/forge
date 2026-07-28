@@ -6,7 +6,7 @@ use worth_store_offline_verifier::{
 };
 use worth_store_physical_format::{
     BackupBundleArtifactFamily, BackupBundleArtifactManifestRow, BackupBundleFormatAuthority,
-    BackupBundleManifest, PhysicalRecordSlot,
+    BackupBundleManifest, BackupBundleManifestDeclaration, PhysicalRecordSlot,
 };
 use worth_store_physical_isolation::BackupReachabilityLeaseRegistry;
 
@@ -133,16 +133,7 @@ fn apply_self_consistent_multi_fault_attack(
         })
         .collect();
     let forged = BackupBundleManifest::canonical(
-        manifest.cut_identity(),
-        manifest.store_lineage(),
-        manifest.root_generation(),
-        manifest.manifest_generation(),
-        manifest.checkpoint_identity(),
-        manifest.durable_checkpoint_lsn(),
-        manifest.wal_half_open_interval(),
-        manifest.acknowledged_frontier(),
-        manifest.security_scope_fingerprint(),
-        rows,
+        BackupBundleManifestDeclaration::from_manifest_with_artifacts(manifest, rows),
     )
     .expect("attacker can recompute unauthenticated outer manifest digests");
     std::fs::write(

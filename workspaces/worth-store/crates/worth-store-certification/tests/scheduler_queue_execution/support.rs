@@ -10,9 +10,9 @@ use worth_store_io_scheduler::foreground_reservation::admitted_point_read_reserv
 use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
-    lower_buffer_pool_read_queue_declaration, BackgroundResourceBudget, BandwidthToken,
-    CacheResidencyHint, QueueExecutionAdmissionRequest, QueueSlot, ReadAheadWindow,
-    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
+    BackgroundResourceBudget, BandwidthToken, CacheResidencyHint, QueueExecutionAdmissionRequest,
+    QueueSlot, ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement,
+    SecureIoPreservationRequest, WorkerPermit,
 };
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
@@ -21,13 +21,13 @@ use worth_store_physical_backend::{
     BackendTargetProfile, PhysicalBackendCapabilityAdmissionAuthority,
 };
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
-use worth_store_test_support::read_ahead_declaration_for_real_pool;
+use worth_store_test_support::harness::scheduling::scheduler_foreground_read_work;
 
 pub(super) fn admitted_plan() -> worth_store_io_scheduler::QueueExecutionReadyPlan {
     let reservation = admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_declaration_for_real_pool(
-        reservation.security_scope_identity(),
+    let work = scheduler_foreground_read_work(
+        reservation,
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
@@ -35,9 +35,8 @@ pub(super) fn admitted_plan() -> worth_store_io_scheduler::QueueExecutionReadyPl
             .with_read_ahead_windows(budget.read_ahead_window())
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
-    );
-    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
-        .expect("buffer-pool producer should lower to queue work");
+    )
+    .expect("scheduler-native foreground read should lower to queue work");
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         work.backend_requirement(),

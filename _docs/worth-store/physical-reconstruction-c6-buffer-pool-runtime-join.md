@@ -369,6 +369,7 @@ impl PhysicalRecordChunkBasis {
     pub fn store_identity(self) -> StableStoreIdentity;
     pub fn store_generation(self) -> LifecycleGeneration;
     pub fn record(self) -> PhysicalRecordId;
+    pub fn physical_owner(self) -> PhysicalGenerationOwner;
     pub fn frame_coordinate(self) -> RecordFrameCoordinate;
 }
 ```
@@ -377,9 +378,31 @@ The view borrows the session mutably used to advance the stream. Therefore the
 caller cannot retain one chunk while advancing to or evicting its successor.
 `bytes()` returns only the payload range admitted by physical-format decode;
 headers, neighboring slots, and unvalidated bytes are not exposed.
-`PhysicalRecordChunkBasis` has no public constructor and is observation only:
-its coordinate and generations cannot create a session, lease, fault,
-writeback, retry, or semantic-residency claim.
+`PhysicalRecordChunkBasis` has no public constructor and is observation only.
+Its `physical_owner` is minted from the exact durable inline slot or top-level
+record-extent generation cell that produced the chunk; callers cannot pair a
+different owner with the basis. Its coordinate, owners, and generations cannot
+create a session, lease, fault, writeback, retry, or semantic-residency claim.
+
+The isolation adapter derives its reference from that Store-minted owner:
+
+```rust
+impl CurrentGenerationPhysicalReference {
+    pub fn for_record_chunk(
+        chunk: &PhysicalRecordChunkView<'_>,
+    ) -> CurrentGenerationPhysicalReference;
+}
+
+impl PhysicalByteGuardScope {
+    pub fn for_record_chunk(
+        chunk: &PhysicalRecordChunkView<'_>,
+    ) -> PhysicalByteGuardScope;
+}
+```
+
+There is deliberately no overload accepting a separately selected physical
+reference. A caller cannot pair reference A with Store chunk B and ask later
+runtime validation to notice the substitution.
 
 `read_next` is the explicit copy API. It copies only into caller-owned storage,
 never allocates a result, and advances the same cursor as `next_chunk`.

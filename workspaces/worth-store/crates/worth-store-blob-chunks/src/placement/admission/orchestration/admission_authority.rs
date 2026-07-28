@@ -23,7 +23,7 @@ impl BlobPlacementAdmissionAuthority {
     pub fn admit(
         &self,
         reachability: &BlobChunkReachabilityProofSet,
-        intent: BlobPlacementIntent,
+        intent: BlobPlacementIntent<'_>,
     ) -> Result<AdmittedBlobPlacement, BlobPlacementAdmissionDenial> {
         let basis = BlobPlacementReachabilityBasis::from_reachability(reachability);
         verify_cold_posture_scope(&basis, &intent)?;
