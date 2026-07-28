@@ -47,10 +47,14 @@ impl BlobStreamingVerifiedRead {
             execution.allocation,
             execution.window.max_resident_bytes(),
         )?;
-        let mut counters =
+        let (mut counters, admission) =
             admit_read::admit_read(execution.admission, &request, execution.counter_strength)?;
-        let mut verifier =
-            StreamingReadVerifier::new(request, execution.window, execution.quarantine_authority);
+        let mut verifier = StreamingReadVerifier::new(
+            admission,
+            request,
+            execution.window,
+            execution.quarantine_authority,
+        );
         for observation in observations {
             observe_chunk_window::observe_chunk_window(&mut verifier, observation, &mut counters)?;
         }

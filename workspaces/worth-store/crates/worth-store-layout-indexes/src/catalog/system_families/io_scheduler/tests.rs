@@ -32,7 +32,7 @@ fn pacing_projection_preserves_real_outcome_budget_and_exact_counters() {
     let capacity =
         blob_ingest_throttled_background_capacity_for_certification_test(requested, admitted);
     let outcome = admit_background_pacing(BackgroundIdleCapacityLeaseRequest::new(capacity));
-    let report = project_background_pacing(outcome);
+    let report = project_background_pacing(&outcome);
 
     assert_eq!(report.family_id().label(), "background_pacing_record");
     assert_eq!(

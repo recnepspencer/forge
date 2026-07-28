@@ -169,6 +169,9 @@ impl BackgroundPacingAdmittedWithDebt {
     pub const fn debt(&self) -> BackgroundIoDebt {
         self.lease.debt()
     }
+    pub const fn admitted_budget(&self) -> BackgroundResourceBudget {
+        self.lease.admitted_budget()
+    }
     pub const fn counters(&self) -> BackgroundPacingCounterSnapshot {
         self.lease.counters()
     }

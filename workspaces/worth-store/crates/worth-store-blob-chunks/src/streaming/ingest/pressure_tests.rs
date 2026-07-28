@@ -1,12 +1,12 @@
 use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::{
+    blob_ingest_background_capacity_for_certification_test,
     blob_ingest_deferred_background_capacity_for_certification_test,
     blob_ingest_denied_background_capacity_for_certification_test,
-    blob_ingest_rebind_background_capacity_for_certification_test,
-    blob_ingest_stale_background_capacity_for_certification_test,
     blob_ingest_throttled_background_capacity_for_certification_test,
-    checkpoint_flush_wal_background_capacity_for_certification_test, BackgroundIoPressureClass,
-    BackgroundPacingStaleRebindKind, BackgroundResourceBudget, QueueSlot,
+    blob_ingest_zero_admitted_throttle_background_capacity_for_certification_test,
+    checkpoint_flush_wal_background_capacity_for_certification_test, BackgroundCapacityAdmission,
+    BackgroundIoPressureClass, BackgroundResourceBudget, QueueSlot,
 };
 use worth_store_physical_backend::BlobBackendChunkWriteSession;
 use worth_store_security::StoreTenantScope;
@@ -37,16 +37,17 @@ fn non_blob_io_qos_background_capacity_cannot_enter_blob_ingest_pressure() {
 }
 
 #[test]
-fn throttled_blob_pressure_paces_ingest_with_exact_scheduler_counters() {
-    let requested = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(2).unwrap());
-    let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
+fn throttled_blob_pressure_carries_admitted_capacity_through_ingest() {
+    let requested = two_slot_budget();
+    let admitted = background_budget();
     let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_throttled_background_capacity_for_certification_test(requested, admitted),
         0,
         false,
     )
     .expect("throttled S.6 blob pressure should admit into blob pressure");
-    let ingest = run_ingest(pressure).expect("throttled blob pressure should pace ingest");
+    let ingest =
+        run_ingest(pressure, source_frames()).expect("partial capacity should pace ingest");
 
     assert_eq!(ingest.counters().scheduler_throttles(), 1);
     assert_eq!(ingest.counters().scheduler_admissions(), 1);
@@ -55,52 +56,88 @@ fn throttled_blob_pressure_paces_ingest_with_exact_scheduler_counters() {
 }
 
 #[test]
-fn deferred_denied_and_stale_blob_pressure_deny_before_source_consumption() {
-    let requested = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(3).unwrap());
-    let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
-    let debt_limit = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
-
-    assert_pressure_denial(
-        blob_ingest_deferred_background_capacity_for_certification_test(requested),
-        BlobStreamingIngestDenial::BackgroundPressureDeferred,
+fn non_admitted_pressure_denies_before_source_consumption() {
+    let deferred = deny_before_source(
+        blob_ingest_deferred_background_capacity_for_certification_test(background_budget()),
+        0,
+        false,
     );
-    assert_pressure_denial(
+    assert!(matches!(
+        deferred,
+        BlobStreamingIngestDenial::BackgroundPressureDeferred { counters }
+            if counters.denials() == 1
+    ));
+
+    let denied = deny_before_source(
         blob_ingest_denied_background_capacity_for_certification_test(
-            requested, admitted, debt_limit,
+            three_slot_budget(),
+            background_budget(),
+            background_budget(),
         ),
-        BlobStreamingIngestDenial::BackgroundPressureDenied,
+        0,
+        false,
     );
-    assert_pressure_denial(
-        blob_ingest_stale_background_capacity_for_certification_test(background_budget()),
-        BlobStreamingIngestDenial::BackgroundPressureStale {
-            kind: BackgroundPacingStaleRebindKind::Stale,
-        },
+    assert!(matches!(
+        denied,
+        BlobStreamingIngestDenial::BackgroundPressureDenied { counters, .. }
+            if counters.denials() == 1
+    ));
+
+    let yielded = deny_before_source(
+        blob_ingest_background_capacity_for_certification_test(background_budget()),
+        1,
+        false,
     );
-    assert_pressure_denial(
-        blob_ingest_rebind_background_capacity_for_certification_test(background_budget()),
-        BlobStreamingIngestDenial::BackgroundPressureStale {
-            kind: BackgroundPacingStaleRebindKind::RebindRequired,
-        },
+    assert!(matches!(
+        yielded,
+        BlobStreamingIngestDenial::BackgroundPressureYielded { counters }
+            if counters.scheduler_yields() == 1 && counters.denials() == 1
+    ));
+
+    let zero_capacity_throttle = deny_before_source(
+        blob_ingest_zero_admitted_throttle_background_capacity_for_certification_test(
+            background_budget(),
+        ),
+        0,
+        false,
     );
+    assert!(matches!(
+        zero_capacity_throttle,
+        BlobStreamingIngestDenial::BackgroundPressureThrottledWithoutAdmittedCapacity {
+            counters
+        } if counters.scheduler_throttles() == 1
+    ));
+
+    let violation = deny_before_source(
+        blob_ingest_background_capacity_for_certification_test(background_budget()),
+        1,
+        true,
+    );
+    assert!(matches!(
+        violation,
+        BlobStreamingIngestDenial::BackgroundPressureViolation { counters }
+            if counters.denials() == 1
+    ));
 }
 
-fn background_budget() -> BackgroundResourceBudget {
-    BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap())
-}
-
-fn assert_pressure_denial(
-    capacity: worth_store_io_scheduler::BackgroundCapacityAdmission,
-    expected: BlobStreamingIngestDenial,
-) {
-    let pressure =
-        BlobStreamingPressureAdmission::from_io_qos_background_capacity(capacity, 0, false)
-            .expect("S.6 blob pressure admission should build");
-    let denial = run_ingest(pressure).expect_err("non-current blob pressure must deny ingest");
-    assert_eq!(denial, expected);
+fn deny_before_source(
+    capacity: BackgroundCapacityAdmission,
+    foreground_pressure_events: u64,
+    late_yield: bool,
+) -> BlobStreamingIngestDenial {
+    let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
+        capacity,
+        foreground_pressure_events,
+        late_yield,
+    )
+    .expect("class-correct S.6 blob pressure admission should build");
+    run_ingest(pressure, PanicOnSourcePoll)
+        .expect_err("non-admitted pressure must deny before polling source frames")
 }
 
 fn run_ingest(
     pressure: BlobStreamingPressureAdmission,
+    source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
     BlobStreamingIngest::run_bounded(
         request(),
@@ -110,7 +147,7 @@ fn run_ingest(
             pressure,
             CounterEvidenceStrength::Exact,
         ),
-        source_frames(),
+        source_frames,
         &mut TestChunkWriter,
     )
 }
@@ -138,6 +175,28 @@ fn source_frames() -> Vec<BlobStreamingSourceFrame> {
             .expect("bounded source frame should admit")
         })
         .collect()
+}
+
+fn background_budget() -> BackgroundResourceBudget {
+    BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap())
+}
+
+fn two_slot_budget() -> BackgroundResourceBudget {
+    BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(2).unwrap())
+}
+
+fn three_slot_budget() -> BackgroundResourceBudget {
+    BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(3).unwrap())
+}
+
+struct PanicOnSourcePoll;
+
+impl Iterator for PanicOnSourcePoll {
+    type Item = BlobStreamingSourceFrame;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        panic!("scheduler denial must occur before source consumption")
+    }
 }
 
 struct TestChunkWriter;

@@ -20,6 +20,13 @@ impl BlobCompactionPhysicalInterlock {
             Self::Denied(denial) => Some(*denial),
         }
     }
+
+    pub(crate) fn into_admitted(self) -> Option<CompactionReadInterlockPlan> {
+        match self {
+            Self::Admitted(plan) => Some(*plan),
+            Self::Denied(_) => None,
+        }
+    }
 }
 
 #[allow(dead_code)]

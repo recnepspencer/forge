@@ -9,7 +9,7 @@ use worth_store_io_scheduler::{
 
 use crate::BlobStreamingIngestDenial;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BlobStreamingPressureAdmission {
     basis: BackgroundPacingAdmissionBasis,
     outcome: BackgroundPacingOutcome,

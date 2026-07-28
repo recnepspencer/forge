@@ -4,7 +4,7 @@ use worth_store_io_scheduler::{
     foreground_reservation::{
         ForegroundIoLaneKind, ForegroundReservationAdmissionDenial, ForegroundReservationState,
     },
-    BackgroundIoPressureClass, BackgroundPacingDenial, BackgroundPacingStaleRebindKind,
+    BackgroundIoPressureClass, BackgroundPacingDenial,
 };
 use worth_store_physical_isolation::PhysicalReadExecutionDenial;
 
@@ -59,10 +59,6 @@ pub enum BlobStreamingReadDenial {
     },
     VerificationPressureDenied {
         denial: BackgroundPacingDenial,
-        counters: BlobStreamingReadCounterSnapshot,
-    },
-    VerificationPressureStaleRebindRequired {
-        kind: BackgroundPacingStaleRebindKind,
         counters: BlobStreamingReadCounterSnapshot,
     },
     VerificationPressureViolation {

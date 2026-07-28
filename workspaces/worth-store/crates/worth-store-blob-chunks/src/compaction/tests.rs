@@ -1,24 +1,25 @@
 use super::test_support::{
-    active_read_hold, authority, compacted_rewritten_publication, intent,
-    intent_without_reachability, mismatched_read_hold, mismatched_verdict_for_rewrite, pacing,
-    physical_interlock_denial, quarantine_guard, rewritten_publication_with_bytes,
-    stale_dedupe_reference, unavailable_cold, verdict_for_plan, verdict_for_rewrite,
-    verified_read_for_rewritten,
+    active_read_hold, authority, compacted_rewritten_publication, ingest_lease, intent,
+    intent_basis, intent_without_reachability, mismatched_read_hold,
+    mismatched_verdict_for_rewrite, pace, physical_interlock_denial, quarantine_guard,
+    rewritten_publication_with_bytes, stale_dedupe_reference, unavailable_cold, verdict_for_plan,
+    verdict_for_rewrite, verified_read_for_rewritten,
 };
 use crate::{
-    BlobCompactionDenial, BlobCompactionEquivalence, BlobCompactionPacingAdmission,
+    BlobCompactionDenial, BlobCompactionEquivalence, BlobCompactionPacingDenial,
     BlobCompactionRestartOutcome,
 };
+use worth_store_io_scheduler::BackgroundIoPressureClass;
 
 #[test]
 fn compaction_plan_admits_blob_owned_rewrite_basis() {
     let plan = authority("phase18-plan")
-        .plan_compaction(intent("phase18-plan").with_pacing_admission(pacing()))
+        .plan_compaction(intent("phase18-plan"))
         .expect("compaction plan should admit");
 
     assert_eq!(plan.counters().chunks_scanned(), 1);
     assert_eq!(plan.counters().references_transferred(), 1);
-    assert_eq!(plan.counters().foreground_yields(), 2);
+    assert_eq!(plan.counters().foreground_yields(), 0);
     assert_eq!(plan.counters().physical().publication_swaps(), 0);
 }
 
@@ -31,54 +32,63 @@ fn compaction_denies_missing_reachability_active_read_cold_and_pacing() {
     ));
 
     assert!(matches!(
-        authority("phase18-active-read")
-            .plan_compaction(intent("phase18-active-read").with_read_hold(active_read_hold())),
+        authority("phase18-active-read").plan_compaction(pace(
+            intent_basis("phase18-active-read").with_read_hold(active_read_hold())
+        )),
         Err(BlobCompactionDenial::ActiveReadHold { .. })
     ));
 
     assert!(matches!(
-        authority("phase18-wrong-read")
-            .plan_compaction(intent("phase18-wrong-read").with_read_hold(mismatched_read_hold())),
+        authority("phase18-wrong-read").plan_compaction(pace(
+            intent_basis("phase18-wrong-read").with_read_hold(mismatched_read_hold())
+        )),
         Err(BlobCompactionDenial::ReadHoldPlanMismatch { .. })
     ));
 
     assert!(matches!(
-        authority("phase18-cold")
-            .plan_compaction(intent("phase18-cold").with_cold_readiness(unavailable_cold())),
+        authority("phase18-cold").plan_compaction(pace(
+            intent_basis("phase18-cold").with_cold_readiness(unavailable_cold())
+        )),
         Err(BlobCompactionDenial::UnavailableColdChunk { .. })
     ));
 
     assert!(matches!(
-        authority("phase18-pacing").plan_compaction(
-            intent("phase18-pacing")
-                .with_pacing_admission(BlobCompactionPacingAdmission::Unsupported)
-        ),
-        Err(BlobCompactionDenial::UnsupportedSchedulerPacing { .. })
-    ));
-
-    assert!(matches!(
-        authority("phase18-quarantine").plan_compaction(
-            intent("phase18-quarantine")
+        authority("phase18-quarantine").plan_compaction(pace(
+            intent_basis("phase18-quarantine")
                 .with_quarantine_holds([quarantine_guard("phase18-quarantine")])
-        ),
+        )),
         Err(BlobCompactionDenial::QuarantineHold { .. })
     ));
 
     assert!(matches!(
-        authority("phase18-physical-denial").plan_compaction(
-            intent("phase18-physical-denial")
+        authority("phase18-physical-denial").plan_compaction(pace(
+            intent_basis("phase18-physical-denial")
                 .with_physical_interlock_denial(physical_interlock_denial())
-        ),
+        )),
         Err(BlobCompactionDenial::PhysicalInterlockDenied { .. })
     ));
 
     assert!(matches!(
-        authority("phase18-stale-dedupe").plan_compaction(
-            intent("phase18-stale-dedupe")
+        authority("phase18-stale-dedupe").plan_compaction(pace(
+            intent_basis("phase18-stale-dedupe")
                 .with_dedupe_references([stale_dedupe_reference("phase18-stale-dedupe")])
-        ),
+        )),
         Err(BlobCompactionDenial::StaleDedupeReference { .. })
     ));
+}
+
+#[test]
+fn non_compaction_scheduler_lease_cannot_pace_compaction() {
+    let denial = intent_basis("phase18-wrong-pacing-class")
+        .with_scheduler_pacing(ingest_lease())
+        .expect_err("ingest execution capacity must not pace compaction");
+
+    assert_eq!(
+        denial,
+        BlobCompactionPacingDenial::WrongSchedulerClass {
+            actual: BackgroundIoPressureClass::IngestPressure,
+        }
+    );
 }
 
 #[test]
@@ -163,26 +173,29 @@ fn admitted_compaction_executes_and_publishes_through_lower_physical_verdict() {
     let equivalence =
         BlobCompactionEquivalence::from_rewritten_root_and_verified_read(&plan, &rewritten, &read)
             .expect("rewritten root should prove equivalent to admitted basis");
+    let expected_object_id = plan.basis().object_id().clone();
+    let expected_generation = plan.basis().generation();
+    let expected_old_root = plan.old_root().clone();
+    let expected_logical_digest = plan.basis().logical_digest().clone();
+    let expected_security = plan.basis().security();
+    let expected_canonical_basis = plan.old_canonical_basis().clone();
+    let verdict = verdict_for_rewrite(&plan, &rewritten);
     let execution = authority
-        .execute_rewrite(
-            plan.clone(),
-            equivalence,
-            verdict_for_rewrite(&plan, &rewritten),
-        )
+        .execute_rewrite(plan, equivalence, verdict)
         .expect("matching lower physical verdict should execute rewrite");
     let published = authority
         .publish_rewrite(execution)
         .expect("executed rewrite should publish observation");
 
-    assert_eq!(published.object_id(), plan.basis().object_id());
-    assert_eq!(published.generation(), plan.basis().generation());
-    assert_eq!(published.old_root(), plan.old_root());
+    assert_eq!(published.object_id(), &expected_object_id);
+    assert_eq!(published.generation(), expected_generation);
+    assert_eq!(published.old_root(), &expected_old_root);
     assert_eq!(published.new_root(), rewritten.chunk_tree_root());
-    assert_eq!(published.logical_digest(), plan.basis().logical_digest());
-    assert_eq!(published.security_metadata(), plan.basis().security());
+    assert_eq!(published.logical_digest(), &expected_logical_digest);
+    assert_eq!(published.security_metadata(), expected_security);
     assert_eq!(
         published.equivalence().uncompacted_canonical_basis(),
-        plan.old_canonical_basis()
+        &expected_canonical_basis
     );
 }
 
@@ -197,13 +210,10 @@ fn same_plan_wrong_lower_verdict_cannot_publish_rewritten_root() {
     let equivalence =
         BlobCompactionEquivalence::from_rewritten_root_and_verified_read(&plan, &rewritten, &read)
             .expect("equivalence should admit for current plan");
+    let verdict = mismatched_verdict_for_rewrite(&plan, &rewritten);
 
     assert!(matches!(
-        authority.execute_rewrite(
-            plan.clone(),
-            equivalence,
-            mismatched_verdict_for_rewrite(&plan, &rewritten)
-        ),
+        authority.execute_rewrite(plan, equivalence, verdict),
         Err(BlobCompactionDenial::MixedChunkTreePublication { .. })
     ));
 }
@@ -225,13 +235,10 @@ fn copied_equivalence_from_same_old_root_cannot_execute_another_plan() {
         &read,
     )
     .expect("source equivalence should admit");
+    let verdict = verdict_for_plan(&execution_plan);
 
     assert!(matches!(
-        authority.execute_rewrite(
-            execution_plan.clone(),
-            copied_equivalence,
-            verdict_for_plan(&execution_plan)
-        ),
+        authority.execute_rewrite(execution_plan, copied_equivalence, verdict),
         Err(BlobCompactionDenial::MixedChunkTreePublication { .. })
     ));
 }

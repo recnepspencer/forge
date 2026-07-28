@@ -110,7 +110,7 @@ fn bounded_window_size_drives_source_streaming_without_changing_chunk_sequence()
     assert_eq!(large.counters().backend_write_observations(), 3);
     assert_eq!(small.residency().peak_resident_bytes(), 4);
     assert_eq!(large.residency().peak_resident_bytes(), 4);
-    assert_eq!(small.counters().scheduler_yields(), 1);
+    assert_eq!(small.counters().scheduler_yields(), 0);
     assert_eq!(small.counters().scheduler_waits(), 1);
     assert!(small
         .counter_backed_performance_receipt()
@@ -186,10 +186,11 @@ fn pressure_violation_denies_before_blob_ingest_consumes_source_frames() {
         &mut TestChunkWriter::new(),
     )
     .expect_err("S.6 pressure violation must deny blob ingest");
-    assert_eq!(
+    assert!(matches!(
         denial,
-        BlobStreamingIngestDenial::BackgroundPressureViolation
-    );
+        BlobStreamingIngestDenial::BackgroundPressureViolation { counters }
+            if counters.denials() == 1
+    ));
 }
 
 #[test]
@@ -269,12 +270,14 @@ fn backend_writer_payload_must_match_pending_source_bytes() {
 fn blob_ingest_pressure_admits_against_wal_foreground_reservation() {
     let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_wal_write_background_capacity_for_certification_test(background_budget()),
-        1,
+        0,
         false,
     )
     .expect("S.6 foreground WAL backed blob pressure should admit");
-    let ingest = run_ingest_with_pressure(pressure).expect("WAL foreground pressure should yield");
-    assert_eq!(ingest.counters().scheduler_yields(), 1);
+    let ingest =
+        run_ingest_with_pressure(pressure).expect("WAL-backed ingest pressure should admit");
+    assert_eq!(ingest.counters().scheduler_yields(), 0);
+    assert_eq!(ingest.counters().scheduler_admissions(), 1);
     assert_eq!(ingest.counters().scheduler_waits(), 1);
 }
 

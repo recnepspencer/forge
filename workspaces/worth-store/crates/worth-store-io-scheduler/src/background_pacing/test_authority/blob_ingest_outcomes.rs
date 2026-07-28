@@ -13,6 +13,17 @@ pub fn blob_ingest_throttled_background_capacity_for_certification_test(
     )
 }
 
+pub fn blob_ingest_zero_admitted_throttle_background_capacity_for_certification_test(
+    requested: BackgroundResourceBudget,
+) -> BackgroundCapacityAdmission {
+    blob_ingest_page_write_background_capacity_with_limits(
+        requested,
+        BackgroundResourceBudget::new(),
+        requested,
+        requested,
+    )
+}
+
 pub fn blob_ingest_deferred_background_capacity_for_certification_test(
     requested: BackgroundResourceBudget,
 ) -> BackgroundCapacityAdmission {

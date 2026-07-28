@@ -3,7 +3,7 @@ use crate::compaction::types::BlobCompactionRewritePlan;
 use crate::compaction::{BlobCompactionDenial, BlobCompactionEquivalence};
 use worth_store_physical_isolation::ReadDuringCompactionVerdict;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BlobCompactionRewriteExecution {
     plan: BlobCompactionRewritePlan,
     binding: BlobCompactionPhysicalRewriteBinding,

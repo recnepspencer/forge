@@ -3,7 +3,7 @@ use worth_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPostu
 
 use worth_store_io_scheduler::{
     BackgroundIoPressureClass, BackgroundPacingCounterSnapshot, BackgroundPacingOutcome,
-    BackgroundPacingStaleRebindKind, BackgroundResourceBudget,
+    BackgroundResourceBudget,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,8 +11,6 @@ pub enum BackgroundPacingInterferencePosture {
     Yield,
     Deferred,
     Denied,
-    Stale,
-    RebindRequired,
     Throttled,
     AdmittedWithDebt,
     Violation,
@@ -30,8 +28,10 @@ pub struct BackgroundPacingLayoutReport {
     counters: BackgroundPacingCounterSnapshot,
 }
 
-pub fn project_background_pacing(outcome: BackgroundPacingOutcome) -> BackgroundPacingLayoutReport {
-    let (interference_posture, admitted_budget, counters) = pacing_basis(&outcome);
+pub fn project_background_pacing(
+    outcome: &BackgroundPacingOutcome,
+) -> BackgroundPacingLayoutReport {
+    let (interference_posture, admitted_budget, counters) = pacing_basis(outcome);
     BackgroundPacingLayoutReport {
         family_id: DurableArtifactFamilyId::BackgroundPacingRecord,
         access_shape: AccessShape::BoundedScan,
@@ -101,18 +101,6 @@ fn pacing_basis(
             BackgroundResourceBudget::new(),
             outcome.counters(),
         ),
-        BackgroundPacingOutcome::StaleRebindRequired(outcome) => (
-            match outcome.kind() {
-                BackgroundPacingStaleRebindKind::Stale => {
-                    BackgroundPacingInterferencePosture::Stale
-                }
-                BackgroundPacingStaleRebindKind::RebindRequired => {
-                    BackgroundPacingInterferencePosture::RebindRequired
-                }
-            },
-            BackgroundResourceBudget::new(),
-            outcome.counters(),
-        ),
         BackgroundPacingOutcome::Throttled(outcome) => (
             BackgroundPacingInterferencePosture::Throttled,
             outcome.admitted_budget(),
@@ -120,7 +108,7 @@ fn pacing_basis(
         ),
         BackgroundPacingOutcome::AdmittedWithDebt(outcome) => (
             BackgroundPacingInterferencePosture::AdmittedWithDebt,
-            outcome.lease().admitted_budget(),
+            outcome.admitted_budget(),
             outcome.counters(),
         ),
         BackgroundPacingOutcome::Violation(outcome) => (

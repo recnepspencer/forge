@@ -5,9 +5,9 @@
 //!
 //! - **Stable-read evidence** enters through released [`BlobCompactionReadHold`] matched to
 //!   [`CompactionReadInterlockPlan`].
-//! - **I/O admission evidence** enters through [`BlobCompactionPacingAdmission`] — prefer
-//!   [`BlobCompactionPacingAdmission::from_scheduler_capability`] from scheduler pacing capability with
-//!   readmission verification; certification paths may use [`BlobCompactionPacingAdmission::admitted_compaction`].
+//! - **I/O execution authority** enters only when [`BlobCompactionIntentBasis`] consumes a
+//!   scheduler-issued `BackgroundIdleCapacityLease` for compaction rewrite. An unpaced basis is
+//!   not accepted by [`BlobCompactionAuthority::plan_compaction`].
 //! - **Cold-tier posture** enters through [`BlobCompactionColdReadiness`] classified via tiering
 //!   [`cold_posture_permits_compaction`].
 //! - **Placement witness** must match lifecycle reachability via admitted [`AdmittedBlobPlacement`].
@@ -37,6 +37,7 @@ pub use receipt_construction::published_observation::BlobCompactionPublishedObse
 pub use recovery::{BlobCompactionResidue, BlobCompactionRestartOutcome};
 pub use transitions::execute_rewrite::BlobCompactionRewriteExecution;
 pub use types::{
-    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPacingAdmission,
-    BlobCompactionPhysicalInterlock, BlobCompactionReadHold, BlobCompactionRewritePlan,
+    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionIntentBasis,
+    BlobCompactionPacingDenial, BlobCompactionPhysicalInterlock, BlobCompactionReadHold,
+    BlobCompactionRewritePlan,
 };

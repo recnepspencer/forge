@@ -10,14 +10,15 @@ pub(crate) fn admit_read(
     admission: BlobStreamingReadAdmission,
     request: &BlobStreamingReadRequest,
     counter_strength: CounterEvidenceStrength,
-) -> Result<BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial> {
+) -> Result<(BlobStreamingReadCounterSnapshot, BlobStreamingReadAdmission), BlobStreamingReadDenial>
+{
     let counters = admission
         .seed_counters(BlobStreamingReadCounterSnapshot::start(counter_strength))
         .record_allocation();
     stable_read_bytes::require_stable_read_bytes(
-        admission,
+        &admission,
         request.frontier().proof_frontier().total_bytes(),
         counters,
     )?;
-    Ok(counters)
+    Ok((counters, admission))
 }

@@ -24,7 +24,7 @@ fn public_streaming_ingest_requires_and_records_resume_session_admission() {
     let resume_admission = BlobStreamingResumeAdmission::from_admitted_resume_session(&session);
     let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
-        1,
+        0,
         false,
     )
     .unwrap();
@@ -55,7 +55,7 @@ fn public_streaming_ingest_denies_request_not_bound_to_resume_session() {
     let resume_admission = BlobStreamingResumeAdmission::from_admitted_resume_session(&session);
     let pressure = BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
-        1,
+        0,
         false,
     )
     .unwrap();

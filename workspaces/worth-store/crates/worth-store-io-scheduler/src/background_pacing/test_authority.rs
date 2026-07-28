@@ -34,6 +34,7 @@ pub use blob_ingest_outcomes::{
     blob_ingest_deferred_background_capacity_for_certification_test,
     blob_ingest_denied_background_capacity_for_certification_test,
     blob_ingest_throttled_background_capacity_for_certification_test,
+    blob_ingest_zero_admitted_throttle_background_capacity_for_certification_test,
 };
 use foreground_budgets::{
     full_foreground_capacity, page_write_budget, point_read_budget, wal_write_budget,

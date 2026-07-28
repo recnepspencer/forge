@@ -3,8 +3,6 @@ use worth_store_io_scheduler::{
     foreground_reservation::admitted_point_read_reservation_for_certification_test,
     verification_deferred_background_capacity_for_certification_test,
     verification_denied_background_capacity_for_certification_test,
-    verification_rebind_background_capacity_for_certification_test,
-    verification_stale_background_capacity_for_certification_test,
     verification_throttled_background_capacity_for_certification_test,
     verification_zero_admitted_throttle_background_capacity_for_certification_test,
     BackgroundIdleCapacityLeaseRequest, BackgroundPacingOutcome, BackgroundResourceBudget,
@@ -40,20 +38,6 @@ fn verification_pressure_outcomes_drive_read_facade() {
         denied,
         BlobStreamingReadDenial::VerificationPressureDenied { counters, .. }
             if counters.pressure_denied_denials() == 1
-    ));
-
-    let stale = pressure_denial(stale_verification_pressure());
-    assert!(matches!(
-        stale,
-        BlobStreamingReadDenial::VerificationPressureStaleRebindRequired { counters, .. }
-            if counters.pressure_stale_denials() == 1 && counters.stale_read_denials() == 1
-    ));
-
-    let rebind = pressure_denial(rebind_verification_pressure());
-    assert!(matches!(
-        rebind,
-        BlobStreamingReadDenial::VerificationPressureStaleRebindRequired { counters, .. }
-            if counters.pressure_stale_denials() == 1
     ));
 
     let violation = pressure_denial(violation_verification_pressure());
@@ -136,18 +120,6 @@ fn denied_verification_pressure() -> BackgroundPacingOutcome {
             one_slot_budget(),
             one_slot_budget(),
         ),
-    ))
-}
-
-fn stale_verification_pressure() -> BackgroundPacingOutcome {
-    admit_background_pacing(BackgroundIdleCapacityLeaseRequest::new(
-        verification_stale_background_capacity_for_certification_test(read_pressure_budget()),
-    ))
-}
-
-fn rebind_verification_pressure() -> BackgroundPacingOutcome {
-    admit_background_pacing(BackgroundIdleCapacityLeaseRequest::new(
-        verification_rebind_background_capacity_for_certification_test(read_pressure_budget()),
     ))
 }
 

@@ -16,7 +16,6 @@ pub struct BlobStreamingReadCounterSnapshot {
     pressure_yield_denials: u64,
     pressure_deferred_denials: u64,
     pressure_denied_denials: u64,
-    pressure_stale_denials: u64,
     pressure_throttles: u64,
     pressure_admitted_with_debt: u64,
     pressure_violations: u64,
@@ -45,7 +44,6 @@ impl BlobStreamingReadCounterSnapshot {
             pressure_yield_denials: 0,
             pressure_deferred_denials: 0,
             pressure_denied_denials: 0,
-            pressure_stale_denials: 0,
             pressure_throttles: 0,
             pressure_admitted_with_debt: 0,
             pressure_violations: 0,
@@ -63,13 +61,6 @@ impl BlobStreamingReadCounterSnapshot {
     pub(crate) const fn record_allocation(self) -> Self {
         Self {
             allocation_count: self.allocation_count + 1,
-            ..self
-        }
-    }
-
-    pub(crate) const fn record_foreground_scheduler_waits(self, waits: u64) -> Self {
-        Self {
-            scheduler_waits: self.scheduler_waits + waits,
             ..self
         }
     }
@@ -93,7 +84,6 @@ impl BlobStreamingReadCounterSnapshot {
             pressure_deferred_denials: self.pressure_deferred_denials
                 + other.pressure_deferred_denials,
             pressure_denied_denials: self.pressure_denied_denials + other.pressure_denied_denials,
-            pressure_stale_denials: self.pressure_stale_denials + other.pressure_stale_denials,
             pressure_throttles: self.pressure_throttles + other.pressure_throttles,
             pressure_admitted_with_debt: self.pressure_admitted_with_debt
                 + other.pressure_admitted_with_debt,
@@ -118,7 +108,6 @@ impl BlobStreamingReadCounterSnapshot {
             pressure_yield_denials: self.pressure_yield_denials + counters.yield_events(),
             pressure_deferred_denials: self.pressure_deferred_denials + counters.deferred_events(),
             pressure_denied_denials: self.pressure_denied_denials + counters.denied_events(),
-            pressure_stale_denials: self.pressure_stale_denials,
             pressure_throttles: self.pressure_throttles + counters.throttle_events(),
             pressure_admitted_with_debt: self.pressure_admitted_with_debt
                 + counters.admitted_with_debt_events(),
@@ -187,14 +176,6 @@ impl BlobStreamingReadCounterSnapshot {
         }
     }
 
-    pub(crate) const fn record_pressure_stale_denial(self) -> Self {
-        Self {
-            pressure_stale_denials: self.pressure_stale_denials + 1,
-            stale_read_denials: self.stale_read_denials + 1,
-            ..self
-        }
-    }
-
     pub const fn windows_observed(self) -> u64 {
         self.windows_observed
     }
@@ -230,9 +211,6 @@ impl BlobStreamingReadCounterSnapshot {
     }
     pub const fn pressure_denied_denials(self) -> u64 {
         self.pressure_denied_denials
-    }
-    pub const fn pressure_stale_denials(self) -> u64 {
-        self.pressure_stale_denials
     }
     pub const fn pressure_throttles(self) -> u64 {
         self.pressure_throttles

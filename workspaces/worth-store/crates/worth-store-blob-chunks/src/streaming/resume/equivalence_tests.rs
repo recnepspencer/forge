@@ -104,7 +104,7 @@ fn source_frames(frame_bytes: usize, window_bytes: u64) -> Vec<BlobStreamingSour
 fn pressure_admission() -> BlobStreamingPressureAdmission {
     BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
-        1,
+        0,
         false,
     )
     .expect("S.6 blob pressure should admit")
