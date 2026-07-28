@@ -232,14 +232,20 @@ impl ExecutedIntegrityBoundaryDenialEvidence {
         }
     }
 
-    pub fn from_raw_byte_entry_denial(
+    pub fn from_store_authority_denial(
         denial: IntegrityEntryDenial,
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
-        if denial.kind() == IntegrityEntryDenialKind::MissingProtectedPhysicalByteView {
-            Ok(Self::new(IntegrityCloseoutDenialBoundary::RawByteEntry))
+        if matches!(
+            denial.kind(),
+            IntegrityEntryDenialKind::VerificationStoreMismatch
+                | IntegrityEntryDenialKind::VerificationGenerationMismatch
+        ) {
+            Ok(Self::new(
+                IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch,
+            ))
         } else {
             Err(PhysicalIntegrityCloseoutDenial::UnexecutedBoundaryDenial(
-                IntegrityCloseoutDenialBoundary::RawByteEntry,
+                IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch,
             ))
         }
     }
@@ -263,9 +269,7 @@ impl ExecutedIntegrityBoundaryDenialEvidence {
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
         if matches!(
             denial.kind(),
-            ScrubPlanDenialKind::ResidentMemoryLimitExceeded { .. }
-                | ScrubPlanDenialKind::PinPageLimitExceeded { .. }
-                | ScrubPlanDenialKind::AllocationLimitExceeded { .. }
+            ScrubPlanDenialKind::AllocationLimitExceeded { .. }
                 | ScrubPlanDenialKind::StreamingWindowLimitExceeded { .. }
                 | ScrubPlanDenialKind::ProtectedReadLimitExceeded { .. }
         ) {

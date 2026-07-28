@@ -36,7 +36,6 @@ physical-isolation-fixtures = [
 physical-compaction-fixtures = [
     "physical-isolation-fixtures",
     "worth-store-physical-backend/certification-test-authority",
-    "worth-store-physical-integrity/legacy-certification-models",
     "worth-store-physical-isolation/certification-authority",
     "worth-store-recovery-physics/certification-test-authority",
     "worth-store-security/certification-test-authority",

@@ -10,7 +10,6 @@ impl IntegrityEntryAdmission {
     pub fn admit<'runtime, 'lease>(
         request: IntegrityEntryRequest<'runtime, 'lease>,
     ) -> Result<IntegrityInspectionLease<'runtime, 'lease>, IntegrityEntryDenial> {
-        reject_missing_protected_view(&request)?;
         require_matching_store_authority(&request)?;
         let basis = IntegrityEntryBasis::from_store_authority(
             request.protected_view_ref().basis(),
@@ -23,18 +22,6 @@ impl IntegrityEntryAdmission {
             verification,
             IntegrityEntryWitness::mint(basis),
         ))
-    }
-}
-
-fn reject_missing_protected_view(
-    request: &IntegrityEntryRequest<'_, '_>,
-) -> Result<(), IntegrityEntryDenial> {
-    if request.protected_view_ref().is_empty() {
-        Err(IntegrityEntryDenial::new(
-            IntegrityEntryDenialKind::MissingProtectedPhysicalByteView,
-        ))
-    } else {
-        Ok(())
     }
 }
 

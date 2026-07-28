@@ -16,6 +16,7 @@ impl<'runtime, 'lease> ScrubPlan<'runtime, 'lease> {
         let mut cumulative_bytes = 0_u64;
         let mut planned = Vec::with_capacity(request.windows.len());
         for (index, window) in request.windows.iter().copied().enumerate() {
+            require_matching_online_store_authority(window, &request)?;
             let status = if request.skipped_ordinals.contains(&window.ordinal()) {
                 PlannedScrubWindowStatus::Skip
             } else {
@@ -53,6 +54,34 @@ impl<'runtime, 'lease> ScrubPlan<'runtime, 'lease> {
             plan_identity,
         })
     }
+}
+
+fn require_matching_online_store_authority(
+    window: ScrubWindow<'_>,
+    request: &ScrubPlanRequest<'_, '_>,
+) -> Result<(), ScrubPlanDenial> {
+    let Some(chunk) = window.store_chunk_basis() else {
+        return Ok(());
+    };
+    let expected_store = request.allocation.store_identity();
+    if chunk.store_identity() != expected_store {
+        return Err(denial(ScrubPlanDenialKind::OnlineWindowStoreMismatch {
+            ordinal: window.ordinal(),
+            expected: expected_store,
+            actual: chunk.store_identity(),
+        }));
+    }
+    let expected_generation = request.allocation.store_generation();
+    if chunk.store_generation() != expected_generation {
+        return Err(denial(
+            ScrubPlanDenialKind::OnlineWindowGenerationMismatch {
+                ordinal: window.ordinal(),
+                expected: expected_generation,
+                actual: chunk.store_generation(),
+            },
+        ));
+    }
+    Ok(())
 }
 
 fn classify_window(

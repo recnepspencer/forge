@@ -39,7 +39,7 @@ pub enum IntegrityCloseoutDenialBoundary {
     ForgedChecksum,
     DigestAsChecksum,
     ChecksumAsAuthenticity,
-    RawByteEntry,
+    StoreAuthorityMismatch,
     CopiedQuarantineRecord,
     OverBudgetScrubPlan,
 }
@@ -49,7 +49,7 @@ impl IntegrityCloseoutDenialBoundary {
         Self::ForgedChecksum,
         Self::DigestAsChecksum,
         Self::ChecksumAsAuthenticity,
-        Self::RawByteEntry,
+        Self::StoreAuthorityMismatch,
         Self::CopiedQuarantineRecord,
         Self::OverBudgetScrubPlan,
     ];

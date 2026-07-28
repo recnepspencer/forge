@@ -1,77 +1,80 @@
-use worth_store_buffer_pool::{
-    PhysicalFrameAccess, PhysicalFrameKey, PhysicalOperationAllocationScope,
-    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalSpeculativeWorkKind,
-};
+use std::num::NonZeroU64;
+
 use worth_store_physical_format::{
-    store_namespace::{
-        ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
-        StoreNamespaceVersion,
-    },
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalFrameKind, PhysicalGeneration,
     PhysicalGenerationAuthority, PhysicalGenerationOwner, PhysicalHeaderAuthority,
     PhysicalHeaderDecodeWitness, PhysicalPageId, PhysicalPageKind, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalReferenceValidationWitness, PhysicalRootManifest,
-    PhysicalRootReference, PhysicalSegmentId, RecordArtifactFile, RecordFrameCoordinate,
-    SlotGenerationCell,
+    PhysicalRootReference, PhysicalSegmentId, SlotGenerationCell,
 };
-use worth_store_physical_integrity::ProtectedPhysicalByteView;
+use worth_store_physical_integrity::{
+    IntegrityEntryAdmission, IntegrityEntryRequest, PhysicalIntegrityAdmission,
+    PhysicalIntegrityAdmissionSeed, ProtectedPhysicalByteView,
+};
+
+use crate::harness::physical_residency::{
+    PhysicalResidencyStoreWorld, SUCCESSOR_SCOPE_ALLOCATION_BYTES,
+};
 
 pub(super) fn with_protected_page_view(
     payload: &[u8],
     cell: PageGenerationCell,
-    run: impl FnOnce(ProtectedPhysicalByteView<'_>, PhysicalHeaderDecodeWitness),
+    run: impl FnOnce(
+        PhysicalIntegrityAdmissionSeed<'_, '_>,
+        ProtectedPhysicalByteView<'_>,
+        PhysicalHeaderDecodeWitness,
+    ),
 ) {
     let page = page_bytes(cell, payload);
     let witness = header_authority()
         .decode_page_header(cell, &page, PhysicalPageKind::DataPage)
         .unwrap()
         .witness();
-    with_protected_physical_bytes(&page, cell.owner().page_id().unwrap().get(), |protected| {
-        run(protected, witness);
-    });
+    with_protected_physical_bytes(&page, |seed, protected| run(seed, protected, witness));
 }
 
 pub(super) fn with_protected_frame_view(
     payload: &[u8],
     validation: PhysicalReferenceValidationWitness,
-    run: impl FnOnce(ProtectedPhysicalByteView<'_>, PhysicalHeaderDecodeWitness),
+    run: impl FnOnce(
+        PhysicalIntegrityAdmissionSeed<'_, '_>,
+        ProtectedPhysicalByteView<'_>,
+        PhysicalHeaderDecodeWitness,
+    ),
 ) {
     let frame = frame_bytes(slot_cell_for_owner(validation.owner()), payload);
     let witness = header_authority()
         .decode_frame_header(validation, &frame, PhysicalFrameKind::RecordFrame)
         .unwrap()
         .witness();
-    with_protected_physical_bytes(
-        &frame,
-        validation.owner().page_id().unwrap().get(),
-        |protected| run(protected, witness),
-    );
+    with_protected_physical_bytes(&frame, |seed, protected| run(seed, protected, witness));
 }
 
 fn with_protected_physical_bytes(
     bytes: &[u8],
-    page: u64,
-    run: impl FnOnce(ProtectedPhysicalByteView<'_>),
+    run: impl FnOnce(
+        PhysicalIntegrityAdmissionSeed<'_, '_>,
+        ProtectedPhysicalByteView<'_>,
+    ),
 ) {
-    let store = physical_residency_store();
-    let pool = PhysicalResidencyPool::open(store, physical_residency_limits()).unwrap();
-    let allocation = pool
-        .begin_operation(
-            PhysicalOperationAllocationScope::Recovery,
-            std::num::NonZeroU64::MIN,
-        )
-        .unwrap();
-    let key = PhysicalFrameKey::new(store, frame_coordinate(page, bytes.len()));
-    let PhysicalFrameAccess::Fault(fault) = pool.access_frame(&allocation, key).unwrap() else {
-        panic!("a fresh recovery fixture pool must issue the sole frame fault");
-    };
-    let lease = fault
-        .load(|target| {
-            target.copy_from_slice(bytes);
-            Ok::<_, std::convert::Infallible>(())
+    let world = PhysicalResidencyStoreWorld::initialize("recovery-integrity-entry").unwrap();
+    world
+        .with_record_chunk(bytes, |serving, chunk| {
+            let verification = serving
+                .physical_allocations()
+                .admit_verification(
+                    NonZeroU64::new(SUCCESSOR_SCOPE_ALLOCATION_BYTES)
+                        .expect("fixture allocation is nonzero"),
+                )
+                .expect("real Store verification allocation admits");
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
+            let lease =
+                IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(protected, verification))
+                    .expect("matching real Store integrity entry admits");
+            run(PhysicalIntegrityAdmission::from_entry(lease), protected);
         })
         .unwrap();
-    run(ProtectedPhysicalByteView::from_physical_frame(&lease));
+    assert!(!world.close().residency().requires_inspection());
 }
 
 pub(super) fn page_payload_with_record(payload: &[u8]) -> Vec<u8> {
@@ -205,60 +208,4 @@ fn record_slot(value: u64) -> PhysicalRecordSlot {
 
 fn physical_generation(value: u64) -> PhysicalGeneration {
     PhysicalGeneration::from_raw(value).unwrap()
-}
-
-fn physical_residency_store() -> StableStoreIdentity {
-    StoreNamespaceIdentityRecord::new(
-        StoreNamespaceVersion::CURRENT,
-        ProposedStoreIdentity::from_nonzero_bytes([0x52; 16]).unwrap(),
-    )
-    .published_identity()
-}
-
-fn physical_residency_limits() -> PhysicalResidencyLimits {
-    use PhysicalOperationAllocationScope as Scope;
-    use PhysicalSpeculativeWorkKind as Speculation;
-
-    PhysicalResidencyLimits::builder()
-        .total_bytes(nonzero_bytes(25_088))
-        .resident_bytes(nonzero_bytes(8192))
-        .metadata_bytes(nonzero_bytes(8192))
-        .frame_entries(nonzero_count(4))
-        .pinned_frames(nonzero_count(4))
-        .pin_leases(nonzero_count(4))
-        .dirty_frames(nonzero_count(1))
-        .dirty_replacement_bytes(nonzero_bytes(8192))
-        .operation_bytes(nonzero_bytes(512))
-        .scope_bytes(Scope::ForegroundRead, nonzero_bytes(512))
-        .scope_bytes(Scope::ForegroundWrite, nonzero_bytes(512))
-        .scope_bytes(Scope::Recovery, nonzero_bytes(512))
-        .scope_bytes(Scope::Scrub, nonzero_bytes(512))
-        .scope_bytes(Scope::Maintenance, nonzero_bytes(512))
-        .scope_bytes(Scope::Verification, nonzero_bytes(512))
-        .scope_bytes(Scope::Blob, nonzero_bytes(512))
-        .speculative_frames(Speculation::Prefetch, nonzero_count(4))
-        .speculative_frames(Speculation::ReadAhead, nonzero_count(4))
-        .speculative_frames(Speculation::WriteBehind, nonzero_count(1))
-        .admit(std::num::NonZeroU64::MIN)
-        .unwrap()
-}
-
-fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
-    std::num::NonZeroU64::new(value).unwrap()
-}
-
-fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
-    std::num::NonZeroU32::new(value).unwrap()
-}
-
-fn frame_coordinate(page: u64, frame_bytes: usize) -> RecordFrameCoordinate {
-    RecordFrameCoordinate::new(
-        RecordArtifactFile::RootRoutingBlock {
-            generation: 7,
-            block: page,
-        },
-        0,
-        u32::try_from(frame_bytes).expect("fixture frame length fits the physical coordinate"),
-    )
-    .unwrap()
 }

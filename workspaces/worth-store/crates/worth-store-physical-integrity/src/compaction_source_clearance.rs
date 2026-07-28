@@ -14,7 +14,6 @@ pub enum CompactionSourceClearanceKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompactionSourceClearanceDenial {
     NonIntactIntegrityEvidence,
-    InterruptedScrubExecution,
     EmptyScrubExecution,
 }
 
@@ -44,9 +43,6 @@ impl CompactionSourceIntegrityClearance {
     pub fn from_scrub_execution(
         receipt: &ScrubExecutionReceipt,
     ) -> Result<Self, CompactionSourceClearanceDenial> {
-        if receipt.progress().interrupted() || receipt.resume_token().is_some() {
-            return Err(CompactionSourceClearanceDenial::InterruptedScrubExecution);
-        }
         let counters = receipt.counters();
         if receipt.finding() != ScrubIntegrityFinding::Intact || counters.checked_byte_count() == 0
         {

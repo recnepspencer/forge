@@ -7,6 +7,7 @@ use super::{
 use worth_store_physical_format::{
     PhysicalHeaderDecodeWitness, PhysicalReferenceValidationWitness,
 };
+use worth_store::physical_runtime::ServingPhysicalRuntime;
 use worth_store_physical_integrity::{
     IntegrityEntryAdmission, IntegrityEntryRequest, PhysicalIntegrityAdmission,
     PhysicalIntegrityAdmissionSeed, ProtectedPhysicalByteView,
@@ -34,6 +35,13 @@ pub(crate) fn with_entry_seed(
     protected_bytes: &[u8],
     run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_, '_>),
 ) {
+    with_store_entry_seed(protected_bytes, |_serving, seed| run(seed));
+}
+
+pub(crate) fn with_store_entry_seed(
+    protected_bytes: &[u8],
+    run: impl FnOnce(&ServingPhysicalRuntime, PhysicalIntegrityAdmissionSeed<'_, '_>),
+) {
     let world = PhysicalResidencyStoreWorld::initialize("physical-integrity-store-entry").unwrap();
     world
         .with_record_chunk(protected_bytes, |serving, chunk| {
@@ -48,7 +56,7 @@ pub(crate) fn with_entry_seed(
             let request = IntegrityEntryRequest::new(protected, verification);
             let lease = IntegrityEntryAdmission::admit(request)
                 .expect("real Store view and verification authority admit");
-            run(PhysicalIntegrityAdmission::from_entry(lease));
+            run(serving, PhysicalIntegrityAdmission::from_entry(lease));
         })
         .expect("real Store record chunk world");
     assert!(!world.close().residency().requires_inspection());

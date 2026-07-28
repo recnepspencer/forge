@@ -91,8 +91,8 @@ fn runtime_rows(sources: &S6CertificationEvidenceSources) -> [(&'static str, u64
             u64::from(queue.peak_queue_depth()),
         ),
         (
-            "store.s6.foreground.wait",
-            foreground.stable_read_wait_count(),
+            "store.s6.foreground.denied_capacity",
+            foreground.denied_capacity_events(),
         ),
         ("store.s6.background.yield", background.yield_events()),
         ("store.s6.background.denied", background.denied_events()),

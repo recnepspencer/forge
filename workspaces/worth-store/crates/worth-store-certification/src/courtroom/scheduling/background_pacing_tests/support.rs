@@ -35,7 +35,6 @@ pub(super) fn deferred_outcome(pressure: BackgroundIoPressureShape) -> Backgroun
 }
 
 pub(super) fn denied_outcome(pressure: BackgroundIoPressureShape) -> BackgroundPacingOutcome {
-    let requested = pressure.requested_budget();
     let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
     let debt_limit = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
     admit_background_pacing(request_with(pressure, admitted, admitted, debt_limit))

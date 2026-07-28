@@ -50,6 +50,15 @@ impl<'lease> PhysicalScopeAdmission<'lease> {
         self.basis.family()
     }
 
+    pub(crate) const fn store_chunk_basis(
+        &self,
+    ) -> worth_store::physical_runtime::PhysicalRecordChunkBasis {
+        match &self.checked {
+            ScopedCheckedPhysicalForm::Page(page) => page.checked_bytes().basis(),
+            ScopedCheckedPhysicalForm::Frame(frame) => frame.checked_bytes().basis(),
+        }
+    }
+
     pub(crate) const fn checked_page(&self) -> Option<&IntegrityCheckedPage<'lease>> {
         match &self.checked {
             ScopedCheckedPhysicalForm::Page(page) => Some(page),

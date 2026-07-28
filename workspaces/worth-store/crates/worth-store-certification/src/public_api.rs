@@ -51,23 +51,16 @@ pub use crate::courtroom::foundational::canonical_basis_source_inventory::{
     current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
     StoreCanonicalBasisInventoryRow,
 };
-pub use crate::courtroom::memory::bounded_memory_closeout::{
-    BoundedMemoryCloseoutDenial, BoundedMemoryCloseoutReport,
-};
 pub use crate::courtroom::memory::bounded_memory_residency_suite::{
     BoundedMemoryOperationKind, BoundedMemoryResidencySuite, BoundedMemoryResidencySuiteDenial,
     BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport, MemoryBoundaryDenialKind,
-};
-pub use crate::courtroom::memory::buffer_pool_certification_bundle::{
-    BufferPoolCertificationBundle, BufferPoolCertificationBundleDenial,
 };
 pub use crate::evidence::by_substrate::{
     certify_aspect_native_boundary_audit, offline_observer_requires_physical_references,
     AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
     AllocationEnvelopeEvidenceRow, AllocationEnvelopePerformanceReceipt,
-    AspectNativeBoundaryCertificationDenial, BackgroundClassEnvelopeEvidence,
-    BackgroundEnvelopeEvidenceBundle, BackgroundEnvelopeEvidenceDenial,
-    BinaryPhysicalFormatEvidence, BinaryPhysicalFormatEvidenceDenial,
+    AspectNativeBoundaryCertificationDenial, BinaryPhysicalFormatEvidence,
+    BinaryPhysicalFormatEvidenceDenial,
     BufferPoolProvenanceAttachment, CompletedResidencyBoundaryReceipt,
     CopyMaterializationPerformanceReceipt, DirtyPublicationEvidenceDenial,
     DirtyPublicationEvidenceReport, DirtyPublicationEvidenceRow, EvictionProtectionEvidenceDenial,
@@ -92,7 +85,7 @@ pub use crate::evidence::by_substrate::{
     PhysicalPageRecordFramingEvidenceRow, PinLifecycleEvidenceDenial, PinLifecycleEvidenceReport,
     PinLifecycleEvidenceRow, ProtectedIntegrityViewEvidence, ProtectedIntegrityViewEvidenceDenial,
     RecordViewEvidenceDenial, RecordViewEvidenceReport, RecordViewEvidenceRow,
-    RequiredInterferenceKind, ResidentFrameAuthorityEvidenceDenial,
+    ResidentFrameAuthorityEvidenceDenial,
     ResidentFrameAuthorityEvidenceReport, ResidentFrameAuthorityEvidenceRow,
     ResidentMemoryPerformanceReceipt, S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport,
     S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt, SpeculativeWorkEvidenceDenial,
@@ -177,8 +170,8 @@ pub use crate::courtroom::scheduling::{
     IoPressureHarnessCloseoutEvidence, S6AccessPolicyEvidenceOutcomeKind,
     S6AccessPolicyEvidenceRow, S6BackendCapabilityAdmissionCertificationEvidence,
     S6BackendCapabilityReadinessPublication, S6BackendQualificationMatrixCertification,
-    S6BackendQualificationRowOutcome, S6BackgroundPacingCertificationDenial,
-    S6BackgroundPacingCertificationEvidence, S6BackgroundPacingOutcomeKind,
+    S6BackendQualificationRowOutcome, S6BackgroundPacingCertificationEvidence,
+    S6BackgroundPacingOutcomeKind,
     S6CanonicalEvidenceBasis, S6CanonicalMaterializationDenial,
     S6CertificationEvidenceAdoptionReceipt, S6CertificationMaterializationDenial,
     S6CertificationProofTrace, S6CertificationRuntimeAuthorityDenial,

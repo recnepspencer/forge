@@ -1,6 +1,7 @@
 use worth_store::physical_runtime::{
     PhysicalRecordChunkView, RecordAppendBatch, RecordAppendDenial, RecordAppendError,
-    RecordByteLimit, RecordReadError, RecordReadLimits, ServingPhysicalRuntime,
+    RecordByteLimit, RecordReadError, RecordReadLimits, RecordStreamFailure,
+    ServingPhysicalRuntime,
 };
 
 use super::PhysicalResidencyStoreWorld;
@@ -12,6 +13,7 @@ pub enum PhysicalResidencyRecordWorldFailure {
     Batch(RecordAppendDenial),
     Append(RecordAppendError),
     Read(RecordReadError),
+    Stream(RecordStreamFailure),
     MissingChunk,
 }
 
@@ -44,7 +46,7 @@ impl PhysicalResidencyStoreWorld {
             .map_err(PhysicalResidencyRecordWorldFailure::Read)?;
         let chunk = session
             .next_chunk()
-            .map_err(PhysicalResidencyRecordWorldFailure::Read)?
+            .map_err(PhysicalResidencyRecordWorldFailure::Stream)?
             .ok_or(PhysicalResidencyRecordWorldFailure::MissingChunk)?;
         Ok(run(self.serving(), chunk))
     }

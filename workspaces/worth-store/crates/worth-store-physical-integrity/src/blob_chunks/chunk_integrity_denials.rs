@@ -4,6 +4,8 @@ use worth_store_physical_format::{PhysicalGenerationOwner, PhysicalReferenceScop
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkIntegrityDenialKind {
     WrongPhysicalFamily,
+    BlobAllocationStoreMismatch,
+    BlobAllocationGenerationMismatch,
     MissingCheckedChunkWindow,
     UnboundedWholeObjectWindow,
     ProtectedWindowExceedsStreamingWindow,

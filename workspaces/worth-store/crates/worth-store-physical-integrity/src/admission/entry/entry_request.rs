@@ -18,10 +18,6 @@ impl<'runtime, 'lease> IntegrityEntryRequest<'runtime, 'lease> {
         }
     }
 
-    pub const fn protected_view(self) -> ProtectedPhysicalByteView<'lease> {
-        self.protected_view
-    }
-
     pub(crate) const fn protected_view_ref(&self) -> ProtectedPhysicalByteView<'lease> {
         self.protected_view
     }

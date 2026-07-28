@@ -70,6 +70,7 @@ impl<'allocation, 'runtime, 'lease> ChunkIntegrityInspectionRequest<'allocation,
         streaming_window: ChunkIntegrityStreamingWindow<'allocation, 'runtime>,
     ) -> Result<Self, ChunkIntegrityDenial> {
         reject_non_chunk_family(&input)?;
+        reject_mismatched_store_authority(&input, streaming_window.allocation())?;
         Ok(Self {
             input,
             streaming_window,
@@ -85,6 +86,28 @@ impl<'allocation, 'runtime, 'lease> ChunkIntegrityInspectionRequest<'allocation,
     ) -> ChunkIntegrityStreamingWindow<'allocation, 'runtime> {
         self.streaming_window
     }
+}
+
+fn reject_mismatched_store_authority(
+    input: &ScopedPhysicalValidatorInput<'_>,
+    allocation: &BlobPhysicalAllocation<'_>,
+) -> Result<(), ChunkIntegrityDenial> {
+    let chunk = input.admission().store_chunk_basis();
+    if chunk.store_identity() != allocation.store_identity() {
+        return Err(ChunkIntegrityDenial::new(
+            ChunkIntegrityDenialKind::BlobAllocationStoreMismatch,
+            ChunkIntegrityCounters::start(1, 1, 0),
+        )
+        .with_basis(input.admission().basis().clone()));
+    }
+    if chunk.store_generation() != allocation.store_generation() {
+        return Err(ChunkIntegrityDenial::new(
+            ChunkIntegrityDenialKind::BlobAllocationGenerationMismatch,
+            ChunkIntegrityCounters::start(1, 1, 0),
+        )
+        .with_basis(input.admission().basis().clone()));
+    }
+    Ok(())
 }
 
 fn reject_non_chunk_family(

@@ -8,7 +8,6 @@ pub enum S6CertificationMaterializationDenial {
     StoreEvidenceSecurityScopeBindingMismatch,
     StoreEvidenceReadmissionBindingMismatch,
     ForegroundReservation(S6ForegroundReservationCertificationDenial),
-    BackgroundPacing(S6BackgroundPacingCertificationDenial),
     QueueExecution(S6QueueExecutionCertificationDenial),
     MissingAccessPolicyEvidence,
     MissingPostAdmissionViolationEvidence,
@@ -21,19 +20,12 @@ pub enum S6CertificationMaterializationDenial {
 }
 
 use crate::{
-    S6BackgroundPacingCertificationDenial, S6ForegroundReservationCertificationDenial,
-    S6QueueExecutionCertificationDenial,
+    S6ForegroundReservationCertificationDenial, S6QueueExecutionCertificationDenial,
 };
 
 impl From<S6ForegroundReservationCertificationDenial> for S6CertificationMaterializationDenial {
     fn from(denial: S6ForegroundReservationCertificationDenial) -> Self {
         Self::ForegroundReservation(denial)
-    }
-}
-
-impl From<S6BackgroundPacingCertificationDenial> for S6CertificationMaterializationDenial {
-    fn from(denial: S6BackgroundPacingCertificationDenial) -> Self {
-        Self::BackgroundPacing(denial)
     }
 }
 

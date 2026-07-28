@@ -15,7 +15,6 @@ impl IntegrityEntryDenial {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntegrityEntryDenialKind {
-    MissingProtectedPhysicalByteView,
     VerificationStoreMismatch,
     VerificationGenerationMismatch,
 }

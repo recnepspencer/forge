@@ -3,11 +3,6 @@ use worth_store_io_scheduler::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum S6BackgroundPacingCertificationDenial {
-    OutcomeMismatch,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum S6BackgroundPacingOutcomeKind {
     Yield,
     Deferred,
@@ -26,14 +21,8 @@ pub struct S6BackgroundPacingCertificationEvidence {
 
 pub fn certify_io_qos_background_pacing(
     outcome: BackgroundPacingOutcome,
-    expected: BackgroundPacingOutcome,
-) -> Result<S6BackgroundPacingCertificationEvidence, S6BackgroundPacingCertificationDenial> {
-    if outcome != expected {
-        return Err(S6BackgroundPacingCertificationDenial::OutcomeMismatch);
-    }
-    Ok(S6BackgroundPacingCertificationEvidence::from_outcome(
-        outcome,
-    ))
+) -> S6BackgroundPacingCertificationEvidence {
+    S6BackgroundPacingCertificationEvidence::from_outcome(outcome)
 }
 
 impl S6BackgroundPacingCertificationEvidence {

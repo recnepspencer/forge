@@ -31,8 +31,8 @@ pub use backend_qualification::{
     S6BackendQualificationRowOutcome,
 };
 pub use background_pacing::{
-    certify_io_qos_background_pacing, S6BackgroundPacingCertificationDenial,
-    S6BackgroundPacingCertificationEvidence, S6BackgroundPacingOutcomeKind,
+    certify_io_qos_background_pacing, S6BackgroundPacingCertificationEvidence,
+    S6BackgroundPacingOutcomeKind,
 };
 pub use closeout::*;
 pub use flush_durability::S6FlushDurabilityEvidenceRow;

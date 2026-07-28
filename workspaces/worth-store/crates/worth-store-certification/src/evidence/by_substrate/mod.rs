@@ -3,7 +3,6 @@
 mod blob;
 mod buffer_pool;
 mod foundational;
-mod io_scheduler;
 mod isolation;
 mod physical_format;
 mod physical_integrity;
@@ -33,10 +32,6 @@ pub use foundational::{
     PhysicalFoundationEvidenceIdentity, ResidentMemoryPerformanceReceipt,
     S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
     S2ForbiddenEntryAttempt, ZeroCopyLayoutPostureReport,
-};
-pub use io_scheduler::{
-    BackgroundClassEnvelopeEvidence, BackgroundEnvelopeEvidenceBundle,
-    BackgroundEnvelopeEvidenceDenial, RequiredInterferenceKind,
 };
 pub use physical_format::{
     BinaryPhysicalFormatEvidence, BinaryPhysicalFormatEvidenceDenial,

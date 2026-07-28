@@ -1,11 +1,9 @@
+use std::num::NonZeroU64;
+
 use crate::courtroom::harness::test_support::physical_scope_admission_test_support::{
-    extent_validation, root_with_extent, scope_membership, with_checked_frame,
+    extent_validation, root_with_extent, scope_membership, with_store_checked_frame,
 };
-use worth_store_buffer_pool::{
-    AdmittedBackgroundEnvelope, AllocationAdmission, AllocationByteBudget,
-    AllocationEnvelopeDeclaration, BackgroundEnvelopeAdmission, BackgroundEnvelopeRequest,
-    BackgroundWorkBudgetSnapshot, BackgroundWorkClass, FixedMetadataReservation,
-};
+use worth_store::physical_runtime::{BlobPhysicalAllocation, ServingPhysicalRuntime};
 use worth_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
@@ -15,6 +13,7 @@ use worth_store_physical_integrity::{
     ChunkIntegrityStreamingWindowDenial, PhysicalScopeAdmission, PhysicalScopeAdmissionRequest,
     ScopedPhysicalValidatorInput,
 };
+use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 #[test]
 fn independent_bounded_chunk_windows_converge_without_blob_lifecycle_claims() {
@@ -65,23 +64,53 @@ fn chunk_damage_localizes_header_payload_chunk_boundary_and_extent_boundary() {
 
 #[test]
 fn whole_object_window_is_denied_before_chunk_inspection() {
-    let envelope = admitted_streaming_envelope(4096, 4096);
-
-    assert!(ChunkIntegrityStreamingWindow::from_admitted_streaming_envelope(envelope).is_err());
+    with_blob_allocation(4096, |allocation| {
+        let denial =
+            ChunkIntegrityStreamingWindow::admit(allocation, 4096, nonzero(4096)).unwrap_err();
+        assert_eq!(
+            denial,
+            ChunkIntegrityStreamingWindowDenial::WholeObjectWindow
+        );
+    });
 }
 
 #[test]
-fn non_streaming_background_envelope_cannot_mint_chunk_window() {
-    let denial = ChunkIntegrityStreamingWindow::from_admitted_streaming_envelope(
-        admitted_non_streaming_envelope(),
-    )
-    .unwrap_err();
+fn window_larger_than_the_exact_blob_allocation_is_denied() {
+    with_blob_allocation(512, |allocation| {
+        let denial =
+            ChunkIntegrityStreamingWindow::admit(allocation, 4096, nonzero(1024)).unwrap_err();
+        assert_eq!(
+            denial,
+            ChunkIntegrityStreamingWindowDenial::WindowExceedsBlobAllocation {
+                requested: 1024,
+                allocation: 512,
+            }
+        );
+    });
+}
+
+#[test]
+fn blob_allocation_from_another_store_is_denied_before_chunk_inspection() {
+    let mut observed = None;
+    with_store_chunk_input(chunk_payload("ok", b"DATA"), |_, input| {
+        let other = PhysicalResidencyStoreWorld::initialize("foreign-blob-allocation").unwrap();
+        let allocation = other
+            .serving()
+            .physical_allocations()
+            .admit_blob(nonzero(1024))
+            .unwrap();
+        let window = ChunkIntegrityStreamingWindow::admit(&allocation, 4096, nonzero(1024))
+            .expect("the foreign allocation is internally large enough");
+        observed = Some(
+            ChunkIntegrityInspectionRequest::from_store_blob_window(input, window).unwrap_err(),
+        );
+        drop(allocation);
+        assert!(!other.close().residency().requires_inspection());
+    });
 
     assert_eq!(
-        denial,
-        ChunkIntegrityStreamingWindowDenial::WrongBackgroundEnvelopeClass {
-            actual: BackgroundWorkClass::ScrubPlanning
-        }
+        observed.unwrap().kind(),
+        ChunkIntegrityDenialKind::BlobAllocationStoreMismatch
     );
 }
 
@@ -98,7 +127,7 @@ fn protected_bytes_cannot_exceed_admitted_streaming_window() {
         Some(ChunkDamageLocality::Unknown(_))
     ));
     assert_eq!(denial.counters().inspected_bytes(), 12);
-    assert_eq!(denial.counters().streaming_windows_planned(), 1024);
+    assert_eq!(denial.counters().streaming_windows_planned(), 4);
     assert_eq!(denial.counters().chunk_header_checks(), 0);
     assert_eq!(denial.counters().chunk_payload_checks(), 0);
     assert_eq!(denial.counters().chunk_boundary_checks(), 0);
@@ -115,27 +144,33 @@ pub(crate) fn inspect_chunk_denial(
     window_bytes: u64,
 ) -> ChunkIntegrityDenial {
     let mut denial = None;
-    with_chunk_input(chunk_payload(status, body), |input| {
-        let request = ChunkIntegrityInspectionRequest::from_admitted_chunk_window(
-            input,
-            admitted_chunk_window(4096, window_bytes),
-        )
-        .unwrap();
-        denial = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap_err());
-    });
+    with_chunk_input(
+        chunk_payload(status, body),
+        4096,
+        window_bytes,
+        window_bytes,
+        |input, window| {
+            let request =
+                ChunkIntegrityInspectionRequest::from_store_blob_window(input, window).unwrap();
+            denial = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap_err());
+        },
+    );
     denial.unwrap()
 }
 
 fn inspect_intact_chunk_window() -> worth_store_physical_integrity::ChunkIntegrityReport {
     let mut report = None;
-    with_chunk_input(chunk_payload("ok", b"DATA"), |input| {
-        let request = ChunkIntegrityInspectionRequest::from_admitted_chunk_window(
-            input,
-            admitted_chunk_window(4096, 1024),
-        )
-        .unwrap();
-        report = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap());
-    });
+    with_chunk_input(
+        chunk_payload("ok", b"DATA"),
+        4096,
+        1024,
+        1024,
+        |input, window| {
+            let request =
+                ChunkIntegrityInspectionRequest::from_store_blob_window(input, window).unwrap();
+            report = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap());
+        },
+    );
     report.unwrap()
 }
 
@@ -146,12 +181,9 @@ fn assert_chunk_damage(
     expected_locality: impl FnOnce(ChunkDamageLocality) -> bool,
 ) {
     let mut denial = None;
-    with_chunk_input(payload, |input| {
-        let request = ChunkIntegrityInspectionRequest::from_admitted_chunk_window(
-            input,
-            admitted_chunk_window(4096, 1024),
-        )
-        .unwrap();
+    with_chunk_input(payload, 4096, 1024, 1024, |input, window| {
+        let request =
+            ChunkIntegrityInspectionRequest::from_store_blob_window(input, window).unwrap();
         denial = Some(ChunkIntegrityAuthority::new().inspect(request).unwrap_err());
     });
     let denial = denial.unwrap();
@@ -168,12 +200,37 @@ fn assert_chunk_damage(
     assert_eq!(denial.counters().skipped_whole_object_reads(), 1);
 }
 
-fn with_chunk_input(payload: Vec<u8>, run: impl FnOnce(ScopedPhysicalValidatorInput<'_>)) {
+fn with_chunk_input(
+    payload: Vec<u8>,
+    object_bytes: u64,
+    window_bytes: u64,
+    allocation_bytes: u64,
+    run: impl FnOnce(
+        ScopedPhysicalValidatorInput<'_>,
+        ChunkIntegrityStreamingWindow<'_, '_>,
+    ),
+) {
+    with_store_chunk_input(payload, |serving, input| {
+        let allocation = serving
+            .physical_allocations()
+            .admit_blob(nonzero(allocation_bytes))
+            .unwrap();
+        let window =
+            ChunkIntegrityStreamingWindow::admit(&allocation, object_bytes, nonzero(window_bytes))
+                .unwrap();
+        run(input, window);
+    });
+}
+
+fn with_store_chunk_input(
+    payload: Vec<u8>,
+    run: impl FnOnce(&ServingPhysicalRuntime, ScopedPhysicalValidatorInput<'_>),
+) {
     let validation = extent_validation(1, 9, 7);
     let scope = PhysicalReferenceScope::chunk_like(validation);
     let root = root_with_extent(1, 9, 7);
     let membership = scope_membership(&root, scope);
-    with_checked_frame(&payload, validation, |checked| {
+    with_store_checked_frame(&payload, validation, |serving, checked| {
         let request = PhysicalScopeAdmissionRequest::frame(
             scope,
             membership,
@@ -182,8 +239,23 @@ fn with_chunk_input(payload: Vec<u8>, run: impl FnOnce(ScopedPhysicalValidatorIn
             checked.gate_evidence().coverage_basis().clone(),
         );
         let admission = PhysicalScopeAdmission::admit_frame(checked, request).unwrap();
-        run(ScopedPhysicalValidatorInput::chunk_like(admission).unwrap());
+        run(
+            serving,
+            ScopedPhysicalValidatorInput::chunk_like(admission).unwrap(),
+        );
     });
+}
+
+fn with_blob_allocation(bytes: u64, run: impl FnOnce(&BlobPhysicalAllocation<'_>)) {
+    let world = PhysicalResidencyStoreWorld::initialize("blob-window-allocation").unwrap();
+    let allocation = world
+        .serving()
+        .physical_allocations()
+        .admit_blob(nonzero(bytes))
+        .unwrap();
+    run(&allocation);
+    drop(allocation);
+    assert!(!world.close().residency().requires_inspection());
 }
 
 fn chunk_payload(status: &str, body: &[u8]) -> Vec<u8> {
@@ -192,61 +264,6 @@ fn chunk_payload(status: &str, body: &[u8]) -> Vec<u8> {
     payload
 }
 
-fn admitted_chunk_window(object_bytes: u64, window_bytes: u64) -> ChunkIntegrityStreamingWindow {
-    ChunkIntegrityStreamingWindow::from_admitted_streaming_envelope(admitted_streaming_envelope(
-        object_bytes,
-        window_bytes,
-    ))
-    .unwrap()
-}
-
-fn admitted_streaming_envelope(object_bytes: u64, window_bytes: u64) -> AdmittedBackgroundEnvelope {
-    BackgroundEnvelopeAdmission::new()
-        .admit(
-            BackgroundEnvelopeRequest::large_record_streaming()
-                .resident_frames(1)
-                .resident_bytes(window_bytes)
-                .pin_pages_for_bounded_step(1)
-                .allocation_bytes(window_bytes)
-                .copied_bytes(window_bytes)
-                .streaming_window(object_bytes, window_bytes)
-                .finish(),
-            BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16),
-            &mut allocation_admission(window_bytes),
-        )
-        .unwrap()
-}
-
-fn admitted_non_streaming_envelope() -> AdmittedBackgroundEnvelope {
-    BackgroundEnvelopeAdmission::new()
-        .admit(
-            BackgroundEnvelopeRequest::scrub_planning()
-                .resident_frames(1)
-                .resident_bytes(128)
-                .pin_pages_for_bounded_step(1)
-                .allocation_bytes(128)
-                .finish(),
-            BackgroundWorkBudgetSnapshot::foreground_reserved(16, 4, 0, 16),
-            &mut allocation_admission(512),
-        )
-        .unwrap()
-}
-
-fn allocation_admission(window_bytes: u64) -> AllocationAdmission {
-    AllocationAdmission::from_declaration(
-        AllocationEnvelopeDeclaration::declare()
-            .foreground(bytes(512))
-            .maintenance(bytes(512))
-            .recovery(bytes(512))
-            .scrub(bytes(512))
-            .import_export(bytes(512))
-            .streaming(bytes(window_bytes))
-            .fixed_metadata(FixedMetadataReservation::constant_bytes(64).unwrap())
-            .seal()
-            .unwrap(),
-    )
-}
-
-fn bytes(bytes: u64) -> AllocationByteBudget {
-    AllocationByteBudget::bytes(bytes).unwrap()
+fn nonzero(value: u64) -> NonZeroU64 {
+    NonZeroU64::new(value).unwrap()
 }
