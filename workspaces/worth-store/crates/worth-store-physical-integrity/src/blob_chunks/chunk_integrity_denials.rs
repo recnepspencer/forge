@@ -1,6 +1,4 @@
 use crate::{ChunkIntegrityCounters, PhysicalScopeBasis};
-#[cfg(feature = "legacy-certification-models")]
-use worth_store_buffer_pool::BackgroundWorkClass;
 use worth_store_physical_format::{PhysicalGenerationOwner, PhysicalReferenceScope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -79,13 +77,6 @@ impl ChunkIntegrityDenial {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkIntegrityStreamingWindowDenial {
-    WrongAllocationScope {
-        actual: worth_store_buffer_pool::PhysicalOperationAllocationScope,
-    },
-    #[cfg(feature = "legacy-certification-models")]
-    WrongBackgroundEnvelopeClass {
-        actual: BackgroundWorkClass,
-    },
-    EmptyWindow,
+    WindowExceedsBlobAllocation { requested: u64, allocation: u64 },
     WholeObjectWindow,
 }

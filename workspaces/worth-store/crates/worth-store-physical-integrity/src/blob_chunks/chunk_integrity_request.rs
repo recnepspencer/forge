@@ -2,61 +2,51 @@ use crate::{
     ChunkIntegrityCounters, ChunkIntegrityDenial, ChunkIntegrityDenialKind,
     ChunkIntegrityStreamingWindowDenial, ScopedPhysicalValidatorInput,
 };
-#[cfg(feature = "legacy-certification-models")]
-use worth_store_buffer_pool::{AdmittedBackgroundEnvelope, BackgroundWorkClass};
-use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalOperationAllocationScope};
+use std::num::NonZeroU64;
+use worth_store::physical_runtime::BlobPhysicalAllocation;
 use worth_store_physical_format::PhysicalScopeFamily;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ChunkIntegrityStreamingWindow {
+#[derive(Debug, Clone, Copy)]
+pub struct ChunkIntegrityStreamingWindow<'allocation, 'runtime> {
+    allocation: &'allocation BlobPhysicalAllocation<'runtime>,
     object_bytes: u64,
     window_bytes: u64,
 }
 
-impl ChunkIntegrityStreamingWindow {
-    pub fn from_allocation_grant(
+impl<'allocation, 'runtime> ChunkIntegrityStreamingWindow<'allocation, 'runtime> {
+    pub fn admit(
+        allocation: &'allocation BlobPhysicalAllocation<'runtime>,
         object_bytes: u64,
-        allocation: &OperationAllocationGrant,
+        window_bytes: NonZeroU64,
     ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {
-        if allocation.scope() != PhysicalOperationAllocationScope::Blob {
-            return Err(ChunkIntegrityStreamingWindowDenial::WrongAllocationScope {
-                actual: allocation.scope(),
-            });
-        }
-        Self::bounded(object_bytes, allocation.bytes())
-    }
-
-    #[cfg(feature = "legacy-certification-models")]
-    pub fn from_admitted_streaming_envelope(
-        envelope: AdmittedBackgroundEnvelope,
-    ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {
-        if envelope.work_class() != BackgroundWorkClass::LargeRecordStreaming {
+        if window_bytes.get() > allocation.bytes() {
             return Err(
-                ChunkIntegrityStreamingWindowDenial::WrongBackgroundEnvelopeClass {
-                    actual: envelope.work_class(),
+                ChunkIntegrityStreamingWindowDenial::WindowExceedsBlobAllocation {
+                    requested: window_bytes.get(),
+                    allocation: allocation.bytes(),
                 },
             );
         }
-        Self::bounded(
-            envelope.streaming_object_bytes(),
-            envelope.streaming_window_bytes(),
-        )
+        Self::bounded(allocation, object_bytes, window_bytes.get())
     }
 
     fn bounded(
+        allocation: &'allocation BlobPhysicalAllocation<'runtime>,
         object_bytes: u64,
         window_bytes: u64,
     ) -> Result<Self, ChunkIntegrityStreamingWindowDenial> {
-        if window_bytes == 0 {
-            return Err(ChunkIntegrityStreamingWindowDenial::EmptyWindow);
-        }
         if window_bytes >= object_bytes {
             return Err(ChunkIntegrityStreamingWindowDenial::WholeObjectWindow);
         }
         Ok(Self {
+            allocation,
             object_bytes,
             window_bytes,
         })
+    }
+
+    pub const fn allocation(&self) -> &'allocation BlobPhysicalAllocation<'runtime> {
+        self.allocation
     }
 
     pub const fn object_bytes(self) -> u64 {
@@ -68,16 +58,16 @@ impl ChunkIntegrityStreamingWindow {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChunkIntegrityInspectionRequest<'lease> {
+#[derive(Debug)]
+pub struct ChunkIntegrityInspectionRequest<'allocation, 'runtime, 'lease> {
     input: ScopedPhysicalValidatorInput<'lease>,
-    streaming_window: ChunkIntegrityStreamingWindow,
+    streaming_window: ChunkIntegrityStreamingWindow<'allocation, 'runtime>,
 }
 
-impl<'lease> ChunkIntegrityInspectionRequest<'lease> {
-    pub fn from_admitted_chunk_window(
+impl<'allocation, 'runtime, 'lease> ChunkIntegrityInspectionRequest<'allocation, 'runtime, 'lease> {
+    pub fn from_store_blob_window(
         input: ScopedPhysicalValidatorInput<'lease>,
-        streaming_window: ChunkIntegrityStreamingWindow,
+        streaming_window: ChunkIntegrityStreamingWindow<'allocation, 'runtime>,
     ) -> Result<Self, ChunkIntegrityDenial> {
         reject_non_chunk_family(&input)?;
         Ok(Self {
@@ -90,7 +80,9 @@ impl<'lease> ChunkIntegrityInspectionRequest<'lease> {
         &self.input
     }
 
-    pub(crate) const fn streaming_window(&self) -> ChunkIntegrityStreamingWindow {
+    pub(crate) const fn streaming_window(
+        &self,
+    ) -> ChunkIntegrityStreamingWindow<'allocation, 'runtime> {
         self.streaming_window
     }
 }

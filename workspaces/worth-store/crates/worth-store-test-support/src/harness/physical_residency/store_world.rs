@@ -2,10 +2,11 @@ use std::path::Path;
 
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    AbortedRuntime, AdmissionError, ClosedRuntime, FilesystemMediaAdmission,
-    MediaAdmissionInspectionCause, PhysicalRecordInitialization, PhysicalRuntimeAdmission,
-    PhysicalStore, RecordBootstrapDenial, RecordBootstrapFailure, RecordServingRebindReason,
-    RecordServingStaleReason, ServingPhysicalRuntime, ServingShutdownOutcome,
+    AbortedRuntime, AdmissionError, AdmittedRecordPlacementPolicy, ClosedRuntime,
+    FilesystemMediaAdmission, MediaAdmissionInspectionCause, PhysicalRecordInitialization,
+    PhysicalRuntimeAdmission, PhysicalStore, RecordBootstrapDenial, RecordBootstrapFailure,
+    RecordServingRebindReason, RecordServingStaleReason, ServingPhysicalRuntime,
+    ServingShutdownOutcome,
 };
 use worth_store_physical_backend::{
     FilesystemAccessPosture, MediaQualificationDeferred, MediaQualificationDenial,
@@ -34,6 +35,7 @@ pub enum PhysicalResidencyStoreWorldConstructionFailure {
 pub struct PhysicalResidencyStoreWorld {
     root: TemporaryDirectory,
     serving: Option<ServingPhysicalRuntime>,
+    pub(super) placement: AdmittedRecordPlacementPolicy,
 }
 
 impl PhysicalResidencyStoreWorld {
@@ -57,6 +59,7 @@ impl PhysicalResidencyStoreWorld {
         Ok(Self {
             root,
             serving: Some(serving),
+            placement: configuration.placement,
         })
     }
 
