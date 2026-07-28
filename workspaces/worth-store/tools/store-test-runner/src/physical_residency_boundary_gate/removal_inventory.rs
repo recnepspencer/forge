@@ -125,6 +125,25 @@ certification = ["bridge"]
         certification.contains("direct-pool-consumer"),
         "certification is a consumer of Store truth, not a canonical pool owner"
     );
+
+    for source in [
+        "pub enum S2AcceptanceSuiteKind {}",
+        "pub struct HarnessCloseoutEvidenceReport;",
+        "pub struct HarnessCloseoutTranscriptEvidence;",
+        "pub struct BoundedMemoryResidencySuite;",
+        "mod bounded_memory_harness_closeout;",
+        "mod bounded_memory_residency_suite;",
+        "mod acceptance_suite_transcript;",
+    ] {
+        assert!(
+            discover_families(
+                "crates/worth-store-certification/src/orphaned_closeout.rs",
+                source,
+            )
+            .contains("legacy-certification-closeout"),
+            "the orphaned S.2 closeout family must remain mechanically discoverable: {source}"
+        );
+    }
 }
 
 #[test]

@@ -57,6 +57,31 @@ fn classify_identifier_families(source: &str, families: &mut BTreeSet<String>) {
             "BackgroundPacingProgressionEvidence",
             "scheduler-isolation-publication",
         ),
+        ("S2AcceptanceSuiteKind", "legacy-certification-closeout"),
+        (
+            "HarnessCloseoutEvidenceReport",
+            "legacy-certification-closeout",
+        ),
+        (
+            "HarnessCloseoutTranscriptEvidence",
+            "legacy-certification-closeout",
+        ),
+        (
+            "BoundedMemoryResidencySuite",
+            "legacy-certification-closeout",
+        ),
+        (
+            "bounded_memory_harness_closeout",
+            "legacy-certification-closeout",
+        ),
+        (
+            "bounded_memory_residency_suite",
+            "legacy-certification-closeout",
+        ),
+        (
+            "acceptance_suite_transcript",
+            "legacy-certification-closeout",
+        ),
     ] {
         if source.contains(fragment) {
             families.insert(family.to_owned());

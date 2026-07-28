@@ -15,7 +15,7 @@ use worth_store_physical_backend::{
 
 use crate::TemporaryDirectory;
 
-use super::configuration::admitted_physical_residency_store_configuration;
+use super::configuration::{record_publication_configuration, PhysicalResidencyStoreConfiguration};
 
 #[derive(Debug)]
 pub enum PhysicalResidencyStoreWorldConstructionFailure {
@@ -40,6 +40,13 @@ pub struct PhysicalResidencyStoreWorld {
 
 impl PhysicalResidencyStoreWorld {
     pub fn initialize(label: &str) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
+        Self::initialize_with_configuration(label, record_publication_configuration())
+    }
+
+    fn initialize_with_configuration(
+        label: &str,
+        configuration: PhysicalResidencyStoreConfiguration,
+    ) -> Result<Self, PhysicalResidencyStoreWorldConstructionFailure> {
         let root = TemporaryDirectory::create(label)
             .map_err(PhysicalResidencyStoreWorldConstructionFailure::Directory)?;
         let runtime = PhysicalStore::admit(
@@ -48,7 +55,6 @@ impl PhysicalResidencyStoreWorld {
         )
         .map_err(PhysicalResidencyStoreWorldConstructionFailure::Runtime)?;
         let media = admit_media(runtime)?;
-        let configuration = admitted_physical_residency_store_configuration();
         let request = PhysicalRecordInitialization::new(
             configuration.format,
             configuration.placement,
@@ -176,11 +182,17 @@ mod tests {
     use worth_store::physical_runtime::PhysicalOperationAllocationScope as Scope;
 
     use super::PhysicalResidencyStoreWorld;
-    use crate::harness::physical_residency::SUCCESSOR_SCOPE_ALLOCATION_BYTES;
+    use crate::harness::physical_residency::{
+        configuration::successor_scope_pressure_configuration, SUCCESSOR_SCOPE_ALLOCATION_BYTES,
+    };
 
     #[test]
     fn real_store_world_mints_and_releases_every_exact_successor_scope() {
-        let world = PhysicalResidencyStoreWorld::initialize("physical-residency-scopes").unwrap();
+        let world = PhysicalResidencyStoreWorld::initialize_with_configuration(
+            "physical-residency-scopes",
+            successor_scope_pressure_configuration(),
+        )
+        .unwrap();
         assert!(world.root().is_dir());
         let serving = world.serving();
         let allocations = serving.physical_allocations();

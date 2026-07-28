@@ -51,22 +51,17 @@ pub use crate::courtroom::foundational::canonical_basis_source_inventory::{
     current_store_canonical_basis_inventory, StoreCanonicalBasisInventoryDenial,
     StoreCanonicalBasisInventoryRow,
 };
-pub use crate::courtroom::memory::bounded_memory_residency_suite::{
-    BoundedMemoryOperationKind, BoundedMemoryResidencySuite, BoundedMemoryResidencySuiteDenial,
-    BoundedOperationEnvelopeCounters, BoundedOperationEnvelopeReport, MemoryBoundaryDenialKind,
-};
 pub use crate::evidence::by_substrate::{
     certify_aspect_native_boundary_audit, offline_observer_requires_physical_references,
     AllocationEnvelopeEvidenceDenial, AllocationEnvelopeEvidenceReport,
     AllocationEnvelopeEvidenceRow, AllocationEnvelopePerformanceReceipt,
     AspectNativeBoundaryCertificationDenial, BinaryPhysicalFormatEvidence,
-    BinaryPhysicalFormatEvidenceDenial,
-    BufferPoolProvenanceAttachment, CompletedResidencyBoundaryReceipt,
-    CopyMaterializationPerformanceReceipt, DirtyPublicationEvidenceDenial,
-    DirtyPublicationEvidenceReport, DirtyPublicationEvidenceRow, EvictionProtectionEvidenceDenial,
-    EvictionProtectionEvidenceReport, EvictionProtectionEvidenceRow,
-    FoundationalBoundaryAuthorityResult, FoundationalBoundaryEvidenceDenial,
-    FoundationalEvidenceProfile, FoundationalEvidenceRichness,
+    BinaryPhysicalFormatEvidenceDenial, BufferPoolProvenanceAttachment,
+    CompletedResidencyBoundaryReceipt, CopyMaterializationPerformanceReceipt,
+    DirtyPublicationEvidenceDenial, DirtyPublicationEvidenceReport, DirtyPublicationEvidenceRow,
+    EvictionProtectionEvidenceDenial, EvictionProtectionEvidenceReport,
+    EvictionProtectionEvidenceRow, FoundationalBoundaryAuthorityResult,
+    FoundationalBoundaryEvidenceDenial, FoundationalEvidenceProfile, FoundationalEvidenceRichness,
     InMemoryPhysicalFormatModelEvidenceDenial, InMemoryPhysicalFormatModelEvidenceReport,
     InMemoryPhysicalFormatModelEvidenceRow, LargeStorePressureEvidenceBundle,
     LargeStorePressureEvidenceDenial, LargeStoreShortcutAttempt, MaterializationProfileReport,
@@ -85,14 +80,11 @@ pub use crate::evidence::by_substrate::{
     PhysicalPageRecordFramingEvidenceRow, PinLifecycleEvidenceDenial, PinLifecycleEvidenceReport,
     PinLifecycleEvidenceRow, ProtectedIntegrityViewEvidence, ProtectedIntegrityViewEvidenceDenial,
     RecordViewEvidenceDenial, RecordViewEvidenceReport, RecordViewEvidenceRow,
-    ResidentFrameAuthorityEvidenceDenial,
-    ResidentFrameAuthorityEvidenceReport, ResidentFrameAuthorityEvidenceRow,
-    ResidentMemoryPerformanceReceipt, S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport,
-    S2EntryBoundaryEvidenceRow, S2ForbiddenEntryAttempt, SpeculativeWorkEvidenceDenial,
-    SpeculativeWorkEvidenceReport, SpeculativeWorkEvidenceRow, ZeroCopyLayoutPostureReport,
-};
-pub use crate::scenario::memory::bounded_memory_harness_closeout::{
-    HarnessCloseoutEvidenceReport, HarnessCloseoutTranscriptEvidence,
+    ResidentFrameAuthorityEvidenceDenial, ResidentFrameAuthorityEvidenceReport,
+    ResidentFrameAuthorityEvidenceRow, ResidentMemoryPerformanceReceipt,
+    S2EntryBoundaryEvidenceDenial, S2EntryBoundaryEvidenceReport, S2EntryBoundaryEvidenceRow,
+    S2ForbiddenEntryAttempt, SpeculativeWorkEvidenceDenial, SpeculativeWorkEvidenceReport,
+    SpeculativeWorkEvidenceRow, ZeroCopyLayoutPostureReport,
 };
 pub use crate::scenario::memory::buffer_pool_scenario_definitions::{
     LargeStoreMemoryPressureScenario, LargeStoreScenarioDenial,
@@ -171,8 +163,7 @@ pub use crate::courtroom::scheduling::{
     S6AccessPolicyEvidenceRow, S6BackendCapabilityAdmissionCertificationEvidence,
     S6BackendCapabilityReadinessPublication, S6BackendQualificationMatrixCertification,
     S6BackendQualificationRowOutcome, S6BackgroundPacingCertificationEvidence,
-    S6BackgroundPacingOutcomeKind,
-    S6CanonicalEvidenceBasis, S6CanonicalMaterializationDenial,
+    S6BackgroundPacingOutcomeKind, S6CanonicalEvidenceBasis, S6CanonicalMaterializationDenial,
     S6CertificationEvidenceAdoptionReceipt, S6CertificationMaterializationDenial,
     S6CertificationProofTrace, S6CertificationRuntimeAuthorityDenial,
     S6CertifiedQueueExecutionEvidence, S6CounterStrengthDeclaration, S6CounterStrengthFamily,
@@ -225,4 +216,3 @@ pub use crate::courtroom::scenario::{
 pub use crate::courtroom::cross_cutting::lanes::{
     LaneFamilyExtension, PhysicalSubstrateLane, RoadmapLaneFamily,
 };
-pub use crate::courtroom::physical_substrate::S2AcceptanceSuiteKind;
