@@ -6,6 +6,18 @@
 
 pub use worth_ui_runtime::facade::entry::WorthUiQueryViewRegistrationError;
 pub use worth_ui_runtime::facade::query_binding::{
+    UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionBinding,
+    UiCollectionProjectionBindingAdmission, UiCollectionProjectionFactReceipt,
+    UiCollectionProjectionRowReference, UiCollectionProjectionTextRow, UiCollectionProjectionValue,
+    UiCollectionSchemaRequirement, UiNativeTextValue, UiPresentProjection,
+    UiProjectionAvailability, UiProjectionBinding, UiProjectionBindingCompatibilityProof,
+    UiProjectionBindingStopKind, UiProjectionBindingStopReceipt, UiProjectionConsumptionBudget,
+    UiProjectionConsumptionBudgetError, UiProjectionConsumptionLimits, UiProjectionFactReceipt,
+    UiProjectionFactStopKind, UiProjectionFactStopReceipt, UiProjectionFieldRequirement,
+    UiProjectionFieldRequirementError, UiProjectionLifecycleRequirement, UiProjectionNativeFamily,
+    UiProjectionRetainedActivityKind, UiProjectionRetainedActivityReceipt, UiProjectionShape,
+    UiProjectionUnavailableKind, UiProjectionUnavailableReceipt, UiScalarProjectionBinding,
+    UiScalarProjectionBindingAdmission, UiScalarProjectionFactReceipt, UiScalarSchemaRequirement,
     WorthUiInstalledQueryDomain, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
     WorthUiQueryBindingRegistrationDenial, WorthUiQueryBindingRegistrationDenialKind,
     WorthUiQueryViewDeclarationDenial, WorthUiQueryViewDefinition, WorthUiQueryViewIdentity,

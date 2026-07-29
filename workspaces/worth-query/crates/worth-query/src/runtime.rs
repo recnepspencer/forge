@@ -177,7 +177,11 @@ use worth_runtime_bridge::facade::{
 };
 
 mod aspect_api_closeout;
+mod async_result_identity;
 mod async_result_state;
+mod async_source_binding;
+mod async_source_transition;
+mod async_source_transition_plan;
 mod authoritative_mutation_evidence_bridge_alignment;
 mod authoritative_mutation_evidence_closeout;
 mod authoritative_mutation_evidence_support;
@@ -349,6 +353,10 @@ const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
 pub use aspect_api_closeout::WorthQueryAspectApiFinalizationCloseout;
 pub use async_result_state::{
     WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeAsyncResultStateKind,
+};
+pub use async_source_binding::{
+    WorthQueryAsyncResultTransitionBatch, WorthQueryAsyncSourceBindingError,
+    WorthQueryAsyncSourceBindingErrorKind,
 };
 pub use authoritative_mutation_evidence_closeout::WorthQueryAuthoritativeMutationEvidenceCloseout;
 pub use authoritative_mutation_evidence_support::{

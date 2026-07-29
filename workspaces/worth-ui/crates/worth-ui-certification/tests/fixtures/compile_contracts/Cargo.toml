@@ -158,6 +158,26 @@ name = "product-installed-view-registration"
 path = "../../../../worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
 
 [[bin]]
+name = "product-projection-contract-shapes"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/pass/projection_contract_is_shape_specific.rs"
+
+[[bin]]
+name = "product-projection-binding-construction"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_binding_construction_is_private.rs"
+
+[[bin]]
+name = "product-projection-fact-construction"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.rs"
+
+[[bin]]
+name = "product-scalar-projection-continuation"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/scalar_fact_has_no_continuation.rs"
+
+[[bin]]
+name = "product-projection-fact-affinity"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_fact_is_affine.rs"
+
+[[bin]]
 name = "certification-second-host-adapter"
 path = "../../ui/host/second_adapter_implements_contract.rs"
 

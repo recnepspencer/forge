@@ -62,6 +62,10 @@ impl LoweredBridgeAsyncSourceDeclaration {
         &self.declaration_identity
     }
 
+    pub fn declaration_identity_for_reporting(&self) -> &str {
+        self.declaration_identity.as_str()
+    }
+
     pub fn family_kind(&self) -> BridgeAsyncSourceDeclarationFamilyKind {
         self.family_kind
     }

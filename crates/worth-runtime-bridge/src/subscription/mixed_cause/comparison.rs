@@ -12,6 +12,7 @@ use crate::subscription::{
     BridgeTemporalCauseClassification, BridgeTemporalCauseRecord, BridgeTemporalRoutingLaneKind,
 };
 
+use super::async_result_transition::BridgeMixedCauseAsyncResultTransitionSeed;
 use super::ordering::{BridgeMixedCauseDeniedKind, BridgeMixedCauseOrderFamilyKind};
 use super::request::BridgeMixedCauseOrderingInput;
 
@@ -126,6 +127,7 @@ pub(super) struct Candidate {
     pub(super) precedence: u8,
     pub(super) preview_local: bool,
     pub(super) stale_or_nondeliverable: Option<BridgeMixedCauseDeniedKind>,
+    pub(super) async_result_transition: Option<BridgeMixedCauseAsyncResultTransitionSeed>,
 }
 
 impl Candidate {
@@ -175,6 +177,7 @@ impl Candidate {
             precedence: 0,
             preview_local: false,
             stale_or_nondeliverable: None,
+            async_result_transition: None,
         }
     }
 
@@ -200,6 +203,7 @@ impl Candidate {
                 BridgeTemporalRoutingLaneKind::Preview
             ),
             stale_or_nondeliverable: None,
+            async_result_transition: None,
         }
     }
 
@@ -218,6 +222,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: None,
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_completion(completion),
+            ),
         }
     }
 
@@ -237,6 +244,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: Some(BridgeMixedCauseDeniedKind::AsyncStaleCauseRejected),
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_classified_denied(denied),
+            ),
         }
     }
 
@@ -255,6 +265,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: Some(BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable),
+            async_result_transition: Some(BridgeMixedCauseAsyncResultTransitionSeed::from_retry(
+                lineage,
+            )),
         }
     }
 
@@ -273,6 +286,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: Some(BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable),
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_revalidation(lineage),
+            ),
         }
     }
 }

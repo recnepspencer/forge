@@ -257,13 +257,14 @@ pub use lifecycle::{
     BridgeSubscriptionLifecycleRecord, BridgeSubscriptionLifecycleStateKind,
 };
 pub use mixed_cause::{
-    BridgeDeniedMixedCause, BridgeMixedCauseComparisonEvidence,
-    BridgeMixedCauseComparisonReasonKind, BridgeMixedCauseDeliveryWindowPlan,
-    BridgeMixedCauseDeliveryWindowRejection, BridgeMixedCauseDeliveryWindowRejectionKind,
-    BridgeMixedCauseDeniedKind, BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering,
-    BridgeMixedCauseOrderingInput, BridgeMixedCauseOrderingLaneKind,
-    BridgeMixedCauseOrderingRequest, BridgeMixedCauseSuppressedKind, BridgeOrderedMixedCause,
-    BridgeSuppressedMixedCause,
+    BridgeDeniedMixedCause, BridgeMixedCauseAsyncResultCause,
+    BridgeMixedCauseAsyncResultDisposition, BridgeMixedCauseAsyncResultTransition,
+    BridgeMixedCauseComparisonEvidence, BridgeMixedCauseComparisonReasonKind,
+    BridgeMixedCauseDeliveryWindowPlan, BridgeMixedCauseDeliveryWindowRejection,
+    BridgeMixedCauseDeliveryWindowRejectionKind, BridgeMixedCauseDeniedKind,
+    BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering, BridgeMixedCauseOrderingInput,
+    BridgeMixedCauseOrderingLaneKind, BridgeMixedCauseOrderingRequest,
+    BridgeMixedCauseSuppressedKind, BridgeOrderedMixedCause, BridgeSuppressedMixedCause,
 };
 pub use preview::{
     BridgePreviewActiveSubscription, BridgeSubscriptionPreviewBasisBinding,

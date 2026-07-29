@@ -1,4 +1,5 @@
 use super::async_result_state::WorthQueryRuntimeAsyncResultProjection;
+use super::async_source_binding::WorthQueryRuntimeAsyncSourceBinding;
 use super::*;
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
@@ -18,9 +19,50 @@ impl WorthQueryRuntime {
         self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
         let name = name.into();
         admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
-        let activation =
-            self.install_live_subscription_for_request(&name, &request, schema_view.clone())?;
-        self.finish_live_view_declaration(name, request, schema_view, activation)
+        let activation = self.install_live_subscription_for_request(
+            &name,
+            &request,
+            schema_view.clone(),
+            crate::subscription::QuerySubscriptionFutureSelection::ordinary(),
+        )?;
+        self.finish_live_view_declaration(name, request, schema_view, activation, None)
+    }
+
+    pub fn declare_bridge_async_live_view<T>(
+        &mut self,
+        name: impl Into<String>,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+        bridge_request: &worth_runtime_bridge::facade::AdmittedBridgeAsyncRequestIdentity,
+    ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
+        let name = name.into();
+        admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
+        let future_selection =
+            crate::subscription::QuerySubscriptionFutureSelection::async_resource_with_identity(
+                true,
+                vec![
+                    crate::subscription::QuerySubscriptionAsyncRequestIdentityPart::new(
+                        "bridge-declaration",
+                        bridge_request
+                            .lowered()
+                            .declaration_identity_for_reporting(),
+                    ),
+                    crate::subscription::QuerySubscriptionAsyncRequestIdentityPart::new(
+                        "bridge-request",
+                        bridge_request.request_identity_for_reporting(),
+                    ),
+                ],
+            );
+        let activation = self.install_live_subscription_for_request(
+            &name,
+            &request,
+            schema_view.clone(),
+            future_selection,
+        )?;
+        let binding = WorthQueryRuntimeAsyncSourceBinding::admit(&name, bridge_request);
+        self.finish_live_view_declaration(name, request, schema_view, activation, Some(binding))
     }
 
     pub(crate) fn declare_live_view_from_read_binding<T>(
@@ -50,7 +92,7 @@ impl WorthQueryRuntime {
         let schema_view = binding.read_family().read_graph().schema_view().clone();
         admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
         let activation = self.install_live_subscription_for_read_binding(&name, binding)?;
-        self.finish_live_view_declaration(name, request, schema_view, activation)
+        self.finish_live_view_declaration(name, request, schema_view, activation, None)
     }
 
     fn finish_live_view_declaration<T>(
@@ -59,6 +101,7 @@ impl WorthQueryRuntime {
         request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
         activation: WorthQueryRuntimeLiveSubscriptionActivation,
+        async_source_binding: Option<WorthQueryRuntimeAsyncSourceBinding>,
     ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
         let handle = declare_live_view_source_handle(
             &mut *self.backend,
@@ -97,6 +140,7 @@ impl WorthQueryRuntime {
                 delivery_batches: Vec::new(),
                 last_delivery: None,
                 async_result_state: None,
+                async_source_binding,
                 remask_posture: activation.remask_posture,
                 read_authority_binding: activation.read_authority_binding,
             },

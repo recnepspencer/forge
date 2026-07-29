@@ -1,6 +1,8 @@
 pub use crate::runtime::{
     WorthQueryAdmittedBranchName, WorthQueryAdmittedNativeFieldFamily,
-    WorthQueryBackendMergeAuthority, WorthQueryGraphReadAccessRequirementDerivationError,
+    WorthQueryAsyncResultTransitionBatch, WorthQueryAsyncSourceBindingError,
+    WorthQueryAsyncSourceBindingErrorKind, WorthQueryBackendMergeAuthority,
+    WorthQueryGraphReadAccessRequirementDerivationError,
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
     WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementRow,
     WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessRequirementSetDigest,

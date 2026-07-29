@@ -17,7 +17,6 @@ use super::{
 };
 
 static DEPENDENCIES: OnceLock<Vec<(String, BridgeSemanticDependencyCandidate)>> = OnceLock::new();
-
 pub(super) fn dependency(label: &str) -> BridgeSemanticDependencyCandidate {
     installed_dependencies()
         .iter()
@@ -142,9 +141,11 @@ fn operation_definition(labels: &[String]) -> query::WorthQueryPortableDomainOpe
                 semantic_reads: vec![native_projection],
             }],
         },
+        decision_facts: query::WorthQueryOperationDecisionFactContract::NotRequired,
         touches: query::WorthQueryOperationTouchContract::NotRequired,
         effects: query::WorthQueryOperationEffectContract::NotRequired,
         invariants: query::WorthQueryOperationInvariantContract::NotRequired,
+        invariant_execution: query::WorthQueryInvariantExecutionContract::NotRequired,
         replay: query::WorthQueryOperationReplayContract::ReExecutable,
         reversal: query::WorthQueryOperationReversalContract::Irreversible,
         lineage: query::WorthQueryOperationLineageContract::NotRequired,

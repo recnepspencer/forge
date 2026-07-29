@@ -4,7 +4,7 @@ use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
-use crate::runtime::async_result_state::runtime_async_causality_identity;
+use crate::runtime::async_result_identity::runtime_async_causality_identity;
 use crate::runtime::computed::WorthQueryDerivedViewRuntime;
 use crate::runtime::evidence_identities::{
     shared_read_bind_retained_artifact_label_identity, shared_read_republishing_causality_identity,

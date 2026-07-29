@@ -16,6 +16,8 @@ mod inspection;
 mod installed_domain;
 mod native_aspect_contracts;
 mod operation_live;
+mod projection_binding;
+mod projection_consumption;
 #[cfg(test)]
 mod snapshot_derivation_denial_tests;
 #[cfg(test)]
@@ -57,10 +59,12 @@ pub use collection_delivery::{
     WorthUiCollectionResultPosture, WorthUiCollectionRowReference, WorthUiCollectionWarningPosture,
 };
 pub use declaration::{
-    WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
-    WorthUiQueryViewDeclarationDenial, WorthUiQueryViewDefinition,
-    WorthUiQueryViewDefinitionDigest, WorthUiQueryViewIdentity, WorthUiQueryViewIdentityError,
-    WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
+    UiCollectionSchemaRequirement, UiProjectionFieldRequirement, UiProjectionFieldRequirementError,
+    UiProjectionLifecycleRequirement, UiProjectionNativeFamily, UiProjectionShape,
+    UiScalarSchemaRequirement, WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView,
+    WorthUiInstalledSnapshotQueryView, WorthUiQueryViewDeclarationDenial,
+    WorthUiQueryViewDefinition, WorthUiQueryViewDefinitionDigest, WorthUiQueryViewIdentity,
+    WorthUiQueryViewIdentityError, WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
 };
 pub use domain_marker::WorthUiDomainEntry;
 pub use domain_package::worth_ui_domain_package;
@@ -109,8 +113,25 @@ pub use operation_live::{
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
     WorthUiValidatedCollectionChangeObservation,
 };
+pub use projection_binding::{
+    UiCollectionProjectionBinding, UiCollectionProjectionBindingAdmission, UiProjectionBinding,
+    UiProjectionBindingCompatibilityProof, UiProjectionBindingStopKind,
+    UiProjectionBindingStopReceipt, UiScalarProjectionBinding, UiScalarProjectionBindingAdmission,
+};
+pub use projection_consumption::{
+    UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionFactReceipt,
+    UiCollectionProjectionRowReference, UiCollectionProjectionTextRow, UiCollectionProjectionValue,
+    UiNativeTextValue, UiPresentProjection, UiProjectionAvailability,
+    UiProjectionConsumptionBudget, UiProjectionConsumptionBudgetError,
+    UiProjectionConsumptionLimits, UiProjectionFactReceipt, UiProjectionFactStopKind,
+    UiProjectionFactStopReceipt, UiProjectionRetainedActivityKind,
+    UiProjectionRetainedActivityReceipt, UiProjectionUnavailableKind,
+    UiProjectionUnavailableReceipt, UiScalarProjectionFactReceipt,
+};
 
 #[cfg(test)]
 mod installed_operations_tests;
 #[cfg(test)]
 mod operation_live_tests;
+#[cfg(test)]
+mod projection_contract_tests;

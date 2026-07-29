@@ -12,9 +12,20 @@ use super::binding::ValidatedBridgeAsyncRequestBasisBinding;
 use super::counters::BridgeAsyncRequestIdentityCounters;
 use super::subscription_instance::BridgeAsyncRequestSubscriptionInstance;
 
-pub(super) type BridgeAsyncRequestIdentity = BridgeIdentity<AsyncRequestIdentityTag>;
+pub type BridgeAsyncRequestIdentity = BridgeIdentity<AsyncRequestIdentityTag>;
 pub(super) type BridgeAsyncInFlightRequestIdentityHandle =
     BridgeIdentity<AsyncInFlightRequestIdentityTag>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BridgeAsyncRequestRuntimeIdentity {
+    key: u64,
+}
+
+impl BridgeAsyncRequestRuntimeIdentity {
+    pub(crate) fn new(key: u64) -> Self {
+        Self { key }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BridgeAsyncRequestFamilyAdmission {
@@ -194,8 +205,16 @@ impl AdmittedBridgeAsyncRequestIdentity {
         self.bridge_runtime_key
     }
 
+    pub fn bridge_runtime_identity(&self) -> BridgeAsyncRequestRuntimeIdentity {
+        BridgeAsyncRequestRuntimeIdentity::new(self.bridge_runtime_key)
+    }
+
     pub fn request_identity(&self) -> &BridgeAsyncRequestIdentity {
         &self.request_identity
+    }
+
+    pub fn request_identity_for_reporting(&self) -> &str {
+        self.request_identity.as_str()
     }
 
     pub fn lowered(&self) -> &LoweredBridgeAsyncSourceDeclaration {

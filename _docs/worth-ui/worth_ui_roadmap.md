@@ -1656,48 +1656,69 @@ generalizes 3.9.2's contract-derived access and admitted-source pattern; it may
 not restore field scans, positional fact bags, printable Query identity, or raw
 Query patch types as a convenience layer.
 
+Detailed spec: [milestone-3.13.md](./milestone-3.13.md)
+
 **Platform pulse**
 
-Replace one static pulse value with a scalar or small collection obtained from
-a real installed Query projection and show its honest result posture on the
-page. A human must see real projected data and at least one non-current posture
-such as pending, stale, denied, or schema-mismatch; receipt evidence must bind
-the visible value and posture to the admitted projection facts. Literal fixture
-values, renderer-side querying, or a local loading/error enum do not close the
-pulse.
+Add one small semantic-text status group bound to a real installed scalar
+Query projection. Its stable value and posture slots use distinct mounted
+receipts. The production process starts with Query meaning installed and an
+external value absent, visibly presents Query-owned `pending`, then consumes an
+atomically published external value through an application-owned source
+adapter and visibly presents its exact native text without restarting. A
+second value, valid but schema-incompatible `.wui` binding edit, recovery,
+stable control pixels, and close complete the journey.
+
+This remains one cumulative Pulse process: it also repeats the 3.11
+snapshot/identity/overlay round trip and the 3.12 valid, malformed,
+preservation, and recovery sequence. Adding Query evidence may not replace
+those inherited operations.
 
 Executable-world closure must install Query meaning through the production
-installation boundary before launch or through a declared external world
-delta, then observe the real child process. The runner cannot inject projection
-facts, Query receipts, or a product-local substitute.
+declaration/host audience facades and observe the real child process. The
+runner may mutate external source bytes; it cannot inject Query workspaces,
+projection facts, Query receipts, UI posture, mounted content, or a
+product-local substitute. External screenshots, mounted receipts, Query and UI
+evidence, and stable control pixels jointly prove the result.
 
 **Must ship**
 
 - `UiProjectionBinding`
 - `UiProjectionFactReceipt`
-- schema/view-shape binding posture
-- projected scalar value and projected collection lanes
+- shape-specific scalar and collection bindings and receipts
+- contract-derived field and row identity
+- schema/view-shape and payload-shape admission
 - binding invalidation
-- payload-shape requirement posture
-- minimum binding postures:
-  - `ready`
-  - `pending`
-  - `current`
-  - `stale`
-  - `revalidating`
-  - `denied`
-  - `unsupported`
-  - `schema-mismatch`
-  - `wrong-world`
-  - `rebind-required`
+- mounted host-neutral semantic text and native egui presentation
+- orthogonal posture axes:
+  - admission: `ready` or `denied` / `unsupported` / `schema-mismatch` /
+    `wrong-world` / `rebind-required`
+  - availability: `pending` or present
+  - present currency: `current` or `stale`
+  - stale refresh: idle or `revalidating`
+  - collection completeness and continuation
+- exhaustive Query posture mapping and production reachability for every
+  claimed transition; WUI may not simulate a missing upstream producer
+- explicit application dependency grammar through `worth-ui`,
+  `worth-query-decl`, and `worth-query-host`, never raw Query or a direct Pulse
+  dependency on `worth-ui-query-binding`
 
 **Acceptance evidence**
 
-- selected-inspector fields come from Query projection facts
+- the permanent Pulse visibly progresses pending -> first current value ->
+  second current value -> schema-mismatch preservation/diagnostic -> recovered
+  current value in one process
+- selected fields come from exact Query projection contracts with work
+  independent of unrelated projection width
 - schema-swap rebinding preserves compatible field identity where admitted
+- stale and revalidating can coexist without a flat local status enum
+- collection reorder preserves Query-authorized row identity, never position
 - invalid schema/payload posture emits typed mounted diagnostics
-- no local loading/error enum replaces Query posture
-- no renderer-side query builder exists
+- mixed Query/source/viewport changes reuse the 3.12 observation, rebind, and
+  publication path
+- Query-free and unchanged-frame paths perform zero projection work
+- no local loading/error enum, renderer-side query builder, raw Query patch,
+  or diagnostic-to-authority path exists
 
 ### Milestone 3.14: Intent, Operability, and Interaction Substrate
 
