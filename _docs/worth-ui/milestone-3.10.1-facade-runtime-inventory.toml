@@ -65,9 +65,9 @@ audience = "inspection-consumer"
 responsibility = "read-only inspection projections"
 disposition = "split"
 exit_phase = 5
-# Milestone 3.11 adds curated query, receipt, target, grant, and linear capture
-# types without exporting runtime-owned construction authority.
-fingerprint = "8e66e85b95569304"
+# Milestones 3.11 and 3.12 add curated visual and rebind-decision projections
+# without exporting runtime-owned construction or mutation authority.
+fingerprint = "41457d733dab347b"
 forbidden_shortcut = "export certification-only reconstruction or mutable runtime authority"
 
 [[surface]]
@@ -284,8 +284,11 @@ expected_files = 8
 # product completion and executable-world certification remain distinct, and
 # Phase 2 recognizes the bounded serialization dependencies added by the
 # observation-only library contract. Milestone 3.11 updates the exact
-# nondegenerate pulse row and byte-cost witnesses.
-content_fingerprint = "3fdfb3c04e3d11fa"
+# nondegenerate pulse row and byte-cost witnesses. Milestone 3.12 updates the
+# continuing product-doc witness from both retired debug markers to the
+# versioned FirstFramePublished, RebindPublished, and VisualComparison
+# observations.
+content_fingerprint = "f0316e3fd53297f6"
 audience = "certification-support"
 responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
 disposition = "retain"

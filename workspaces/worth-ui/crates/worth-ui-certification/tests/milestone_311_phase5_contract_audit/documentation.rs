@@ -49,7 +49,7 @@ pub(super) fn assert_phase_5d_documentary_closure() {
         ),
         (
             successor.as_str(),
-            "Identity-aware predecessor/successor comparison remains a Milestone 3.12 capability",
+            "Identity-aware predecessor/successor comparison is now a shipped Milestone 3.12 capability",
         ),
     ] {
         assert!(
@@ -89,7 +89,6 @@ fn assert_visual_topics(visual: &str) {
         "UiClearedVisualOverlayReceipt",
         "UiVisualCancellationPosture",
         "dispose_visual_snapshot",
-        "Milestone 3.12",
     ] {
         assert!(
             visual.contains(required),
@@ -102,7 +101,7 @@ fn assert_small_compile_fragment(visual: &str) {
     let fragment = fenced_rust_after(visual, SMALL_EXAMPLE_MARKER);
     let source = repository_document(PASS_SOURCE);
     assert!(
-        normalize_terminal_newline(&source).contains(normalize_terminal_newline(fragment)),
+        normalized_source(&source).contains(&normalized_source(fragment)),
         "small visual inspection example is not compiled by the existing pass source"
     );
 }
@@ -116,8 +115,8 @@ fn assert_exact_compile_source(visual: &str) {
     let documented = fenced_rust_after(visual, FENCE_MARKER);
     let source = repository_document(PASS_SOURCE);
     assert_eq!(
-        normalize_terminal_newline(documented),
-        normalize_terminal_newline(&source),
+        normalized_source(documented),
+        normalized_source(&source),
         "documented public example drifted from the existing compile-pass source"
     );
 }
@@ -213,8 +212,8 @@ fn fenced_rust_after<'a>(document: &'a str, marker: &str) -> &'a str {
         .0
 }
 
-fn normalize_terminal_newline(text: &str) -> &str {
-    text.trim_end_matches(['\r', '\n'])
+fn normalized_source(text: &str) -> String {
+    text.replace("\r\n", "\n").trim_end_matches('\n').to_owned()
 }
 
 fn normalized_whitespace(text: &str) -> String {

@@ -144,8 +144,9 @@ fn audit_documentation(repository_root: &Path) -> Result<(), String> {
         "theme.platform_pulse.blue",
         "theme.platform_pulse.green",
         "component platform.pulse.component.seed {",
-        "WORTH_UI_PLATFORM_PULSE_PUBLISHED",
-        "WORTH_UI_PLATFORM_PULSE_REPLACED",
+        "FirstFramePublished",
+        "RebindPublished",
+        "VisualComparison",
         "Close the native window normally",
     ] {
         if !normalized.contains(required) {

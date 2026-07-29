@@ -23,8 +23,16 @@ Milestone 3.11 closed on 2026-07-27. Milestone 3.12 inherits its final
 application, mounting, host, visual-snapshot, overlay, mounted-trace,
 disclosure, resource, executable-world, and teardown contracts without
 relocation or reinterpretation.
-Identity-aware predecessor/successor comparison remains a Milestone 3.12
-capability.
+Identity-aware predecessor/successor comparison is now a shipped Milestone
+3.12 capability.
+
+A post-close completion audit on 2026-07-29 found that the required continuing
+documentation still described the 3.11 comparison deferral and omitted the
+hot-rebind guide. The closure repair updated all seven continuing documents,
+compiled the ordinary, advanced, and comparison examples in the existing
+two-session harness, and added a Phase 5 documentation topology audit. The
+behavioral ledger rows remained proved; the broader documentary closure claim
+was reopened until this evidence existed.
 
 Milestones 3.10 and 3.10.3 established the one-way runtime-to-host contract and
 the permanent Platform Pulse: one real file-authored application, operating-

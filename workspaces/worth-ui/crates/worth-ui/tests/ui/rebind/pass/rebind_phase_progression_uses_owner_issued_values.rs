@@ -1,6 +1,33 @@
-use worth_ui::facade::app::WorthUiActiveApplicationSession;
+use worth_ui::facade::app::{
+    WorthUiActiveApplicationSession, WorthUiNativeApplicationShell,
+    WorthUiNativeSourceRebindDenial,
+};
+use worth_ui::facade::inspection::{UiRebindDecisionLookup, UiRebindDecisionRecord};
 use worth_ui::facade::observation::UiChangeClassificationOutcome;
-use worth_ui::facade::rebind::{UiRebindExecutionPolicy, UiRebindPlanningDenial};
+use worth_ui::facade::rebind::{
+    UiRebindExecutionPolicy, UiRebindOutcome, UiRebindPlanningDenial, UiRebindReceipt,
+    UiSourceRebindRequest,
+};
+use worth_ui::facade::source::WorthUiSettledSourceSnapshot;
+
+fn begin_settled_source_rebind<'shell>(
+    shell: &'shell mut WorthUiNativeApplicationShell,
+    snapshot: WorthUiSettledSourceSnapshot,
+    now_tick: u64,
+) -> Result<UiRebindOutcome<'shell>, WorthUiNativeSourceRebindDenial> {
+    let request = UiSourceRebindRequest::new(snapshot)
+        .with_deadline(shell.rebind_deadline_at(now_tick.saturating_add(1)))
+        .observed_at_tick(now_tick);
+    shell.begin_source_rebind(request)
+}
+
+fn inspect_rebind_decision(receipt: &UiRebindReceipt) -> Option<UiRebindDecisionRecord> {
+    let record = receipt.decision_record();
+    match receipt.decision_index().lookup(record.key()) {
+        UiRebindDecisionLookup::Found(exact) => Some(*exact),
+        UiRebindDecisionLookup::Expired | UiRebindDecisionLookup::Unavailable => None,
+    }
+}
 
 fn compile_owner_issued_change(
     session: &WorthUiActiveApplicationSession,
@@ -26,5 +53,9 @@ fn compile_owner_issued_change(
 }
 
 fn main() {
-    let _ = compile_owner_issued_change;
+    let _ = (
+        begin_settled_source_rebind,
+        inspect_rebind_decision,
+        compile_owner_issued_change,
+    );
 }
