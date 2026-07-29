@@ -33,6 +33,7 @@ Import application-owned visual inspection types from
 - `WorthUiVisualInspectionAuthority::issue_geometry_grant()`
 - `WorthUiVisualInspectionAuthority::issue_pixel_grant()`
 - `WorthUiVisualInspectionAuthority::issue_overlay_grant()`
+- `WorthUiVisualInspectionAuthority::issue_comparison_grant()`
 - `WorthUiNativeApplicationShell::begin_visual_geometry_snapshot(...)`
 - `WorthUiNativeApplicationShell::begin_visual_pixel_snapshot(...)`
 - `WorthUiNativeApplicationShell::poll_visual_snapshot(...)`
@@ -41,9 +42,8 @@ Import application-owned visual inspection types from
 - `WorthUiNativeApplicationShell::show_identity_overlay(...)`
 - `WorthUiNativeApplicationShell::present_visual_overlay(...)`
 - `WorthUiNativeApplicationShell::clear_visual_overlay(...)`
-
-The comparison of predecessor and successor snapshots is deferred. Do not look
-for a comparison API in the 3.11 facade.
+- `WorthUiNativeApplicationShell::compare_visual_snapshots(...)`
+- `UiUnbudgetedVisualSnapshotComparisonRequest::between(...)`
 
 ## Core Mental Model
 
@@ -77,6 +77,8 @@ select one current, retained, node, or snapshot-scoped region target
 -> Captured | Superseded | Omitted | Denied | Indeterminate
 -> inspect points, regions, identity traces, pixels, and cost
 -> optionally publish and clear one identity overlay
+-> optionally compare exact predecessor and successor receipts through a
+   published rebind receipt
 -> explicitly dispose the retained snapshot or shut down the application
 ```
 
@@ -268,9 +270,12 @@ use worth_ui::facade::inspection::{
     UiClientPhysicalPixel, UiClientPhysicalRect, UiClientRegionVisualTarget,
     UiCurrentPresentedSurfaceTarget, UiGeometryOnly, UiHitTestRegionIndexIdentity,
     UiMountedNodeVisualTarget, UiPixelsRequired, UiVisibleRegionIndexIdentity,
+    UiUnbudgetedVisualSnapshotComparisonRequest, UiVisualComparisonPixelPolicy,
     UiVisualOverlayDenial, UiVisualOverlayGrant, UiVisualOverlayTarget, UiVisualQueryBudget,
-    UiVisualSnapshotDenial, UiVisualSnapshotReceipt, UiVisualSnapshotRequest,
+    UiVisualSnapshotComparisonBudget, UiVisualSnapshotComparisonOutcome, UiVisualSnapshotDenial,
+    UiVisualSnapshotReceipt, UiVisualSnapshotRequest,
 };
+use worth_ui::facade::rebind::UiRebindReceipt;
 
 struct GovernedRequestInputs {
     geometry_target: UiCurrentPresentedSurfaceTarget,
@@ -304,6 +309,25 @@ fn governed_requests_typecheck(
 
 fn required_pixels_are_total(receipt: &UiVisualSnapshotReceipt<UiPixelsRequired>) {
     let _ = receipt.pixel_artifact().bytes();
+}
+
+fn compare_rebound_snapshots(
+    shell: &mut WorthUiNativeApplicationShell,
+    predecessor: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    successor: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    rebind: &UiRebindReceipt,
+) -> UiVisualSnapshotComparisonOutcome {
+    let grant = shell
+        .visual_inspection_authority()
+        .issue_comparison_grant();
+    let request =
+        UiUnbudgetedVisualSnapshotComparisonRequest::between(predecessor, successor, rebind)
+            .with_pixel_observation(UiVisualComparisonPixelPolicy::IfAlreadyRetained)
+            .with_budget(
+                UiVisualSnapshotComparisonBudget::bounded(128)
+                    .expect("comparison budget is nonzero"),
+            );
+    shell.compare_visual_snapshots(&grant, request)
 }
 
 fn coordinate_brand_is_usable(receipt: &UiVisualSnapshotReceipt<UiGeometryOnly>) {
@@ -391,6 +415,7 @@ fn main() {
     let _ = (
         governed_requests_typecheck,
         required_pixels_are_total,
+        compare_rebound_snapshots,
         coordinate_brand_is_usable,
         shell_disposes_owned_snapshot,
         live_selected_node_seals_target,
@@ -433,12 +458,26 @@ it does not own a diagnostic shortcut.
 - Building a renderer-local debug overlay that bypasses the mounted successor
   frame.
 
-## Current Limits
+## Predecessor And Successor Comparison
 
-Milestone 3.11 can explain one snapshot and its mounted identity exactly.
-Identity-aware comparison between predecessor and successor snapshots belongs
-to Milestone 3.12. Until that successor exists, compare neither pixels nor
-identities as if they were an admitted semantic rebind decision.
+Comparison is admitted only when the caller supplies two retained snapshot
+receipts and the exact published `UiRebindReceipt` that relates their mounted
+frames. The comparison grant is minted by the same running visual authority.
+This makes session, frame, presentation, and identity affinity explicit rather
+than inferring continuity from equal pixels.
+
+`UiVisualComparisonPixelPolicy::IfAlreadyRetained` may examine pixels already
+owned by both receipts. Comparison never recaptures either frame.
+`UiVisualComparisonPixelPolicy::Omit` still returns structural and identity
+continuity. A bounded `UiVisualSnapshotComparisonBudget` limits structural
+records examined.
+
+The result is `Compared`, `Omitted`, `Expired`, `Incompatible`, or `Denied`.
+Foreign sessions, unrelated frames, expired receipts, wrong grants, and
+insufficient budgets remain named outcomes. Dispose predecessor and successor
+receipts independently after the comparison is no longer needed.
+
+## Current Limits
 
 Pixel capture depends on the selected host capability and policy. Historical
 pixels may be unavailable even when historical mounted identity remains
@@ -449,6 +488,7 @@ a successful compile.
 ## Related Docs
 
 - [Application lifecycle](./application-lifecycle.md)
+- [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Worth UI architecture](./architecture.md)
 - [AI diagnostics architecture](../../../_docs/worth-ui/ai-diagnostics.md)

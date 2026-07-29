@@ -62,7 +62,7 @@ allows_removed_routes = false
 
 [[document]]
 path = "workspaces/worth-ui/docs/runtime-subsystems.md"
-required_headings = ["# Runtime Subsystems", "## The Seven Owners", "## Allowed Dependency Direction", "## Future Insertion Points"]
+required_headings = ["# Runtime Subsystems", "## Runtime Owners", "## Allowed Dependency Direction", "## Successor Homes"]
 allows_removed_routes = false
 
 [[document]]

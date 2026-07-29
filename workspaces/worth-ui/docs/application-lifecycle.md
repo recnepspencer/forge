@@ -21,10 +21,14 @@ publication, and generation state coherent. Application code holds one
 - `WorthUiApplicationBuilder::freeze()`
 - `WorthUiApp::launch()`
 - `WorthUiActiveApplicationSession::execute_mounted_frame(...)`
+- `WorthUiNativeApplicationShell::begin_source_rebind(...)`
 - `WorthUiActiveApplicationSession::inspect(...)`
 - `WorthUiActiveApplicationSession::shutdown()`
 - `UiMountedFrameOutcome`
 - `WorthUiMountedFrameExecutionStop`
+- `UiSourceRebindRequest`
+- `UiRebindOutcome`
+- `WorthUiNativeSourceRebindDenial`
 
 Mounted request, deadline, outcome, and recovery types are re-exported by
 `worth_ui::facade::app`. Application code does not import a mounted runtime
@@ -41,6 +45,11 @@ assembles all required surfaces, presents through the host contract, and
 publishes only a complete frame. A receipt reports what happened; it cannot be
 used to execute or publish another frame.
 
+After launch, `begin_source_rebind` is the ordinary bridge from one settled
+filesystem snapshot to semantic classification, bounded consequence planning,
+canonical host presentation, and atomic successor publication. It borrows the
+same running shell; it does not launch or swap in a second application.
+
 ## How It Executes
 
 ```text
@@ -54,6 +63,10 @@ WorthUi::app()
    | RejectedBeforeEffects | InFlight | PresentationIndeterminate
    | RetentionDenied | AdmissionDenied | CompletionDenied
 -> inspect or continue through the returned typed outcome
+-> for a settled edit, begin_source_rebind
+-> Published | ObservedNoChange | Duplicate | SupersededBeforeEffects
+   | TimedOutBeforeEffects | CancelledBeforeEffects
+   | RejectedBeforeEffects | InFlight | Indeterminate
 -> shutdown
 ```
 
@@ -300,14 +313,14 @@ region `[48, 24]` through `[112, 72]`; `[80, 48]` is its inspection point and
 `[16, 16]` is the background control point. Both shapes are mounted runtime
 meaning translated through the canonical host contract; the eframe shell does
 not draw a second application-owned shape. Successful first publication prints
-`WORTH_UI_PLATFORM_PULSE_PUBLISHED` with the active application generation and
-mounted frame identity.
+`FirstFramePublished` in the `WORTH_UI_PLATFORM_PULSE_EVENT ` stream with the
+active application generation and mounted frame identity.
 
 After first publication, the application captures that exact mounted frame,
 resolves both points, and temporarily publishes a magenta identity border
 around the inset target. The border remains visible for two seconds and then
-clears through another successor mounted frame. The console emits this
-version-2 sequence:
+clears through another successor mounted frame. The console emits this initial
+visual sequence inside the current version-3 lifecycle protocol:
 
 ```text
 VisualSnapshotCaptured
@@ -364,14 +377,20 @@ to:
 token theme.platform_pulse.fill = "theme.platform_pulse.green";
 ```
 
-After the operating-system watcher settles the file, the complete successor is
-prepared and published atomically. The background becomes admitted green
-`#3fb950` while the yellow inset target remains distinct, and
-`WORTH_UI_PLATFORM_PULSE_REPLACED` reports the predecessor, successor, and
-published frame identities. `VisualSnapshotRetired` then proves that the
-predecessor snapshot became explicitly superseded and its registered resource
-was released. This is whole-application replacement, not Milestone 3.12
-semantic rebind or identity-aware frame comparison.
+After the operating-system watcher settles the file, the held snapshot enters
+`begin_source_rebind`. Semantic classification selects the affected consumers,
+the immutable plan preserves stable authored identity for this color-only
+change, and the canonical host publishes one successor. The background becomes
+admitted green `#3fb950` while the yellow inset target remains distinct.
+`RebindPublished` reports predecessor generation, successor generation, source
+revision, planned and realized work, and mounted frame identities.
+
+The Pulse then captures the exact successor and emits `VisualComparison`.
+That comparison borrows the predecessor snapshot, successor snapshot, and
+published rebind receipt. It reports preserved identity and differing retained
+pixels without recapturing either frame. `VisualSnapshotRetired` proves that
+the predecessor snapshot was explicitly superseded and its registered resource
+was released.
 
 To see denial preservation, replace the file temporarily with:
 
@@ -379,8 +398,9 @@ To see denial preservation, replace the file temporarily with:
 component platform.pulse.component.seed {
 ```
 
-The source compiler reports a typed diagnostic. No successor publishes, and
-the last admitted green generation and pixels remain visible. Restore the
+The source compiler reports a typed diagnostic through
+`RebindDeniedPreserving`. No successor publishes, and the exact green
+generation, mounted frame, window, and pixels remain current. Restore the
 checked-in source exactly:
 
 ```text
@@ -391,12 +411,13 @@ token theme.platform_pulse.fill = "theme.platform_pulse.blue";
 token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
 ```
 
-The watcher then publishes the recovered blue application. Close the native
-window normally to shut down the operating-system watcher, release the
-registered host surface, and consume the active application shutdown path. The
-terminal `Shutdown` observation must report zero live captures, snapshots,
+The same process and window then publish the recovered blue successor through
+the same rebind path. Close the native window normally to shut down the
+operating-system watcher, release the registered host surface, and consume the
+active application shutdown path. The terminal `Shutdown` observation must
+report zero live captures, snapshots, comparison projections, rebind handles,
 pixel bytes, structural bytes, pending overlays, published overlays, and
-clearing overlays. The exact fields are
+clearing overlays. The visual fields include
 `cancelled_visual_capture_count`, `disposed_visual_snapshot_count`,
 `disposed_visual_pixel_bytes`, `disposed_visual_structural_bytes`,
 `cancelled_pending_overlay_count`, `disposed_published_overlay_count`, and
@@ -457,5 +478,6 @@ composition root or universal fixture.
 
 - [Worth UI architecture](./architecture.md)
 - [Authored composition](./authored-composition.md)
+- [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Query-backed UI views](./query-binding.md)

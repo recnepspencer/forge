@@ -9,9 +9,12 @@ use worth_ui::facade::inspection::{
     UiClientPhysicalPixel, UiClientPhysicalRect, UiClientRegionVisualTarget,
     UiCurrentPresentedSurfaceTarget, UiGeometryOnly, UiHitTestRegionIndexIdentity,
     UiMountedNodeVisualTarget, UiPixelsRequired, UiVisibleRegionIndexIdentity,
+    UiUnbudgetedVisualSnapshotComparisonRequest, UiVisualComparisonPixelPolicy,
     UiVisualOverlayDenial, UiVisualOverlayGrant, UiVisualOverlayTarget, UiVisualQueryBudget,
-    UiVisualSnapshotDenial, UiVisualSnapshotReceipt, UiVisualSnapshotRequest,
+    UiVisualSnapshotComparisonBudget, UiVisualSnapshotComparisonOutcome, UiVisualSnapshotDenial,
+    UiVisualSnapshotReceipt, UiVisualSnapshotRequest,
 };
+use worth_ui::facade::rebind::UiRebindReceipt;
 
 struct GovernedRequestInputs {
     geometry_target: UiCurrentPresentedSurfaceTarget,
@@ -45,6 +48,25 @@ fn governed_requests_typecheck(
 
 fn required_pixels_are_total(receipt: &UiVisualSnapshotReceipt<UiPixelsRequired>) {
     let _ = receipt.pixel_artifact().bytes();
+}
+
+fn compare_rebound_snapshots(
+    shell: &mut WorthUiNativeApplicationShell,
+    predecessor: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    successor: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    rebind: &UiRebindReceipt,
+) -> UiVisualSnapshotComparisonOutcome {
+    let grant = shell
+        .visual_inspection_authority()
+        .issue_comparison_grant();
+    let request =
+        UiUnbudgetedVisualSnapshotComparisonRequest::between(predecessor, successor, rebind)
+            .with_pixel_observation(UiVisualComparisonPixelPolicy::IfAlreadyRetained)
+            .with_budget(
+                UiVisualSnapshotComparisonBudget::bounded(128)
+                    .expect("comparison budget is nonzero"),
+            );
+    shell.compare_visual_snapshots(&grant, request)
 }
 
 fn coordinate_brand_is_usable(receipt: &UiVisualSnapshotReceipt<UiGeometryOnly>) {
@@ -132,6 +154,7 @@ fn main() {
     let _ = (
         governed_requests_typecheck,
         required_pixels_are_total,
+        compare_rebound_snapshots,
         coordinate_brand_is_usable,
         shell_disposes_owned_snapshot,
         live_selected_node_seals_target,

@@ -4,7 +4,23 @@ phase = 5
 status = "closed"
 ledger = "_docs/worth-ui/milestone-3.12-phase-5-proof-ledger.csv"
 ledger_header = "id,production_claim,fixture_provenance,typed_result,mutation_control,structural_cost,teardown,evidence_command,status,evidence"
-closure_claim = "the real watched-edit journey and all twelve supporting guarantees close through existing proof targets with one canonical executor and zero open ledger rows"
+closure_claim = "the real watched-edit journey, all twelve supporting guarantees, compiled public examples, and continuing documentation close through existing proof targets with one canonical executor and zero open ledger rows"
+
+[documentation]
+status = "closed"
+audit_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test topology_contracts milestone_312_phase5_documentation -- --nocapture"
+evidence = "five documentation topology tests pass, including exact tracked-source examples and two hostile mutations; the canonical compile runner passes 37 negative and 14 positive targets in exactly two Cargo sessions"
+documents = [
+    "workspaces/worth-ui/docs/application-lifecycle.md",
+    "workspaces/worth-ui/docs/hot-rebind.md",
+    "workspaces/worth-ui/docs/inspection.md",
+    "workspaces/worth-ui/docs/visual-inspection.md",
+    "workspaces/worth-ui/docs/authored-composition.md",
+    "workspaces/worth-ui/docs/architecture.md",
+    "workspaces/worth-ui/docs/runtime-subsystems.md",
+]
+rebind_compile_source = "workspaces/worth-ui/crates/worth-ui/tests/ui/rebind/pass/rebind_phase_progression_uses_owner_issued_values.rs"
+visual_compile_source = "workspaces/worth-ui/crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 
 [[scenario]]
 id = "RB-01"
