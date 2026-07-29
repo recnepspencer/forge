@@ -17,6 +17,10 @@ use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 
 #[test]
 fn rebind_planning_denies_exhaustion_and_stale_basis() {
+    prove_rebind_planning_denies_exhaustion_and_stale_basis();
+}
+
+pub(crate) fn prove_rebind_planning_denies_exhaustion_and_stale_basis() {
     classification_denies_before_changed_fact_retention();
     scope_denies_before_widening();
     planning_denies_before_plan_retention();

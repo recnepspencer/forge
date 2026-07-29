@@ -1,7 +1,7 @@
 schema = "worth-ui.milestone-3.12.phase-5-contract.v1"
 milestone = "3.12"
 phase = 5
-status = "implementation"
+status = "closed"
 ledger = "_docs/worth-ui/milestone-3.12-phase-5-proof-ledger.csv"
 ledger_header = "id,production_claim,fixture_provenance,typed_result,mutation_control,structural_cost,teardown,evidence_command,status,evidence"
 closure_claim = "the real watched-edit journey and all twelve supporting guarantees close through existing proof targets with one canonical executor and zero open ledger rows"

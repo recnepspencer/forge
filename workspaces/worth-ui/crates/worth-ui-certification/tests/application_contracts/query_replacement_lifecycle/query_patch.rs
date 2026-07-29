@@ -9,7 +9,7 @@ use worth_ui_query_binding::{
 };
 use worth_ui_test_support::WorthUiFrameworkTurnCertificationExt;
 
-pub(super) fn apply_real_live_patch(
+pub(crate) fn apply_real_live_patch(
     session: &mut WorthUiActiveApplicationSession,
     reference: &WorthUiInstalledQueryBindingReference,
     measurement: &WorthQueryEntityIdentity,
@@ -43,7 +43,10 @@ pub(super) fn apply_real_live_patch(
     assert_eq!(staging.query_work().unrelated_consumer_scans(), 0);
 }
 
-fn update_measurement(measurement: &WorthQueryEntityIdentity, workspace: &mut WorthQueryWorkspace) {
+pub(crate) fn update_measurement(
+    measurement: &WorthQueryEntityIdentity,
+    workspace: &mut WorthQueryWorkspace,
+) {
     workspace
         .update(measurement.clone(), |entity| {
             entity.set_aspect(

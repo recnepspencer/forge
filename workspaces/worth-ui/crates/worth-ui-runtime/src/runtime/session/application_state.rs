@@ -96,6 +96,34 @@ impl WorthUiApplicationSessionState {
         self.runtime.allocation_truth_revision()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn refresh_query_change_for_certification(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    > {
+        self.runtime.query_binding.refresh_operation_live(request)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn measurement_basis_sources_for_certification(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
+        self.app
+            .declaration_artifacts()
+            .iter()
+            .filter_map(|artifact| artifact.graph_handoff().ok())
+            .filter_map(|handoff| {
+                handoff
+                    .measurement_policy()
+                    .admitted()
+                    .and_then(|policy| policy.basis_source())
+            })
+            .collect()
+    }
+
     pub(crate) fn host_measurement_collector(
         &self,
     ) -> crate::host::WorthUiHostMeasurementCollector {

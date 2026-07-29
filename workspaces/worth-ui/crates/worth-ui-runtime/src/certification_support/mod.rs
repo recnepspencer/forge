@@ -6,6 +6,7 @@
 mod activation_interruption;
 mod active_session_observation;
 mod application_builder;
+mod application_graph;
 mod application_replacement;
 mod framework_turn_execution;
 mod identity_overlay_projection;
@@ -22,7 +23,7 @@ pub use crate::admission::{
     UiMeasurementUnsupportedReason, UiQueryMeasurementEligibilityPosture,
     UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
-pub use crate::declaration::UiDeclaredMeasurementMode;
+pub use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementMode};
 pub use crate::facade::entry::{
     WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedIdentityCertificationExt,
@@ -37,6 +38,9 @@ pub use activation_interruption::{
 };
 pub use active_session_observation::WorthUiActiveSessionCertificationExt;
 pub use application_builder::WorthUiApplicationBuilderCertificationExt;
+pub use application_graph::{
+    UiRepeatedInstanceIdentityCertificationRow, WorthUiApplicationGraphCertificationExt,
+};
 pub use application_replacement::WorthUiApplicationReplacementCertificationExt;
 pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 pub use identity_overlay_projection::{

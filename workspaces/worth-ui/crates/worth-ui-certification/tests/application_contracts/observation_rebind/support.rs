@@ -3,7 +3,7 @@ use worth_ui::facade::observation::UiChangeClassificationOutcome;
 use worth_ui::facade::rebind::{
     UiPreparedRebind, UiRebindExecutionPolicy, UiRebindExecutionRequest,
 };
-use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
+use worth_ui::facade::source::{WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher};
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameRequest, UiPresentationDeadline,
@@ -20,6 +20,7 @@ use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 pub(crate) struct RebindExecutionWorld {
     scenario: FilesystemApplicationLifecycleScenario,
     workspace: FilesystemContractWorkspace,
+    watcher: WorthUiFilesystemSourceWatcher,
     pub(crate) host: ScriptedPresentationHost,
     pub(crate) session: WorthUiActiveApplicationSession,
 }
@@ -33,9 +34,13 @@ impl RebindExecutionWorld {
             &FilesystemApplicationLifecycleScenario::dual_generation_scope_initial_source_text(),
         );
         let provider = WorthUiFilesystemSourceProvider::new(workspace.root());
+        let mut watcher = WorthUiFilesystemSourceWatcher::start(provider)
+            .expect("production filesystem watcher starts");
         let capabilities = scenario.capability_application();
         let submission = FilesystemApplicationLifecycleScenario::lower_snapshot(
-            provider.read().expect("initial filesystem source reads"),
+            watcher
+                .take_initial_snapshot()
+                .expect("watcher owns the initial settled source"),
             capabilities.capabilities(),
         );
         let host = ScriptedPresentationHost::default();
@@ -55,6 +60,7 @@ impl RebindExecutionWorld {
         Self {
             scenario,
             workspace,
+            watcher,
             host,
             session,
         }
@@ -68,13 +74,14 @@ impl RebindExecutionWorld {
     }
 
     pub(super) fn changed_plan(&mut self) -> worth_ui::facade::rebind::UiRebindPlan {
-        self.workspace.write(
+        self.workspace.write_atomic(
             "app/main.wui",
             &FilesystemApplicationLifecycleScenario::dual_generation_scope_candidate_source_text(),
         );
-        let snapshot = WorthUiFilesystemSourceProvider::new(self.workspace.root())
-            .read()
-            .expect("candidate filesystem source reads");
+        let snapshot = self
+            .watcher
+            .settle(Duration::from_secs(5))
+            .expect("candidate filesystem source settles");
         let candidate = snapshot
             .attempt_candidate_for_certification(self.session.capabilities())
             .expect("candidate filesystem source lowers");
@@ -96,10 +103,38 @@ impl RebindExecutionWorld {
             .expect("changed lifecycle compiles to one exact plan")
     }
 
+    pub(crate) fn evidence_only_plan(&mut self) -> worth_ui::facade::rebind::UiRebindPlan {
+        let source = format!(
+            "{}\n",
+            FilesystemApplicationLifecycleScenario::dual_generation_scope_initial_source_text()
+        );
+        self.workspace.write_atomic("app/main.wui", &source);
+        let snapshot = self
+            .watcher
+            .settle(Duration::from_secs(5))
+            .expect("evidence-only filesystem source settles");
+        let candidate = snapshot
+            .attempt_candidate_for_certification(self.session.capabilities())
+            .expect("evidence-only filesystem source lowers");
+        let mut turn = self.session.begin_observation_turn().unwrap();
+        turn.admit_source(candidate).unwrap();
+        let admitted = turn.seal().unwrap();
+        let evidence = match self.session.classify_observations(admitted).unwrap() {
+            UiChangeClassificationOutcome::EvidenceOnly(evidence) => evidence,
+            _ => panic!("provenance-only source edit must preserve semantics"),
+        };
+        self.session
+            .compile_preservation_rebind(evidence, UiRebindExecutionPolicy::ordinary())
+            .expect("evidence-only succession compiles to a preservation plan")
+    }
+
     pub(crate) fn close(self) {
         let shutdown = self.session.shutdown();
         assert!(shutdown.rebind().is_empty());
         assert!(shutdown.mounted_presentation().is_empty());
+        self.watcher
+            .shutdown()
+            .expect("production filesystem watcher shuts down");
         self.workspace.close();
         drop(self.scenario);
     }
@@ -133,3 +168,4 @@ fn publish_predecessor(session: &mut WorthUiActiveApplicationSession) {
         _ => panic!("scripted initial frame must publish"),
     };
 }
+use std::time::Duration;

@@ -1,5 +1,5 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum AuthoredMeaningDelta {
+pub(in super::super) enum AuthoredMeaningDelta {
     None,
     ProvenanceOnly,
     Appearance,
@@ -9,20 +9,23 @@ enum AuthoredMeaningDelta {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum PixelDelta {
+pub(in super::super) enum PixelDelta {
     Equal,
     Different,
     Unavailable,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ExpectedChangePosture {
+pub(in super::super) enum ExpectedChangePosture {
     ObservedNoChange,
     EvidenceOnly,
     Changed,
 }
 
-fn expected_change(meaning: AuthoredMeaningDelta, _pixels: PixelDelta) -> ExpectedChangePosture {
+pub(in super::super) fn expected_change(
+    meaning: AuthoredMeaningDelta,
+    _pixels: PixelDelta,
+) -> ExpectedChangePosture {
     match meaning {
         AuthoredMeaningDelta::None => ExpectedChangePosture::ObservedNoChange,
         AuthoredMeaningDelta::ProvenanceOnly => ExpectedChangePosture::EvidenceOnly,

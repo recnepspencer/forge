@@ -156,7 +156,7 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
         self
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn with_runtime_instance_basis_admissions(
         mut self,
         admissions: impl IntoIterator<Item = crate::graph::UiRuntimeInstanceBasisAdmission>,

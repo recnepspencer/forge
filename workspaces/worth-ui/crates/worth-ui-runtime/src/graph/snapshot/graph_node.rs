@@ -1,7 +1,7 @@
 use crate::declaration::{
     stable_text_digest, UiAspectContract, UiDeclarationIdentity, UiDeclarationPlanningOperatorKind,
     UiDeclarationRepetitionPosture, UiDeclarationStructuralDigest, UiDeclarationStructuralRole,
-    UiDeclaredMeasurementConstraintModifier,
+    UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementConstraintModifier,
 };
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphNodeIdentity, UiGraphParticipationPosture,
@@ -18,6 +18,7 @@ pub struct UiGraphNode {
     operator_kind: UiDeclarationPlanningOperatorKind,
     repetition_posture: UiDeclarationRepetitionPosture,
     measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
     authored_provenance_digest: u64,
     repeated_instance_basis: UiRepeatedInstanceBasis,
     attachment_posture: UiGraphAttachmentPosture,
@@ -33,6 +34,7 @@ pub(crate) struct UiGraphNodeInput {
     pub(crate) operator_kind: UiDeclarationPlanningOperatorKind,
     pub(crate) repetition_posture: UiDeclarationRepetitionPosture,
     pub(crate) measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    pub(crate) measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
     pub(crate) authored_provenance_digest: u64,
     pub(crate) repeated_instance_basis: UiRepeatedInstanceBasis,
     pub(crate) attachment_posture: UiGraphAttachmentPosture,
@@ -50,6 +52,7 @@ impl UiGraphNode {
             operator_kind,
             repetition_posture,
             measurement_constraint_modifier,
+            measurement_basis_source,
             authored_provenance_digest,
             repeated_instance_basis,
             attachment_posture,
@@ -64,6 +67,7 @@ impl UiGraphNode {
             operator_kind,
             repetition_posture,
             measurement_constraint_modifier,
+            measurement_basis_source,
             authored_provenance_digest,
             repeated_instance_basis,
             attachment_posture,
@@ -109,6 +113,10 @@ impl UiGraphNode {
         self.measurement_constraint_modifier
     }
 
+    pub fn measurement_basis_source(&self) -> Option<UiDeclaredMeasurementBasisSource> {
+        self.measurement_basis_source
+    }
+
     pub fn authored_provenance_digest(&self) -> u64 {
         self.authored_provenance_digest
     }
@@ -131,9 +139,25 @@ impl UiGraphNode {
             ^ (self.repetition_posture as u64).rotate_left(13)
             ^ measurement_constraint_modifier_digest(self.measurement_constraint_modifier)
                 .rotate_left(15)
+            ^ measurement_basis_source_digest(self.measurement_basis_source).rotate_left(16)
             ^ u64::from(self.attachment_posture.query_binding_attached()).rotate_left(17)
             ^ u64::from(self.attachment_posture.service_usage_attached()).rotate_left(19)
             ^ self.participation_posture.identity_digest().rotate_left(23)
+    }
+}
+
+fn measurement_basis_source_digest(source: Option<UiDeclaredMeasurementBasisSource>) -> u64 {
+    match source {
+        Some(UiDeclaredMeasurementBasisSource::ViewportExtent) => {
+            stable_text_digest("graph-node.basis.viewport")
+        }
+        Some(UiDeclaredMeasurementBasisSource::ScrollViewport) => {
+            stable_text_digest("graph-node.basis.scroll")
+        }
+        Some(UiDeclaredMeasurementBasisSource::PortalAnchor) => {
+            stable_text_digest("graph-node.basis.portal")
+        }
+        None => stable_text_digest("graph-node.basis.none"),
     }
 }
 

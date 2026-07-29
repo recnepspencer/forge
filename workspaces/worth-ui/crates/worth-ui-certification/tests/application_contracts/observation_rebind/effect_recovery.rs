@@ -2,8 +2,12 @@ use worth_ui::facade::rebind::{
     UiRebindDenialCause, UiRebindDisposition, UiRebindOutcome, UiRebindStoppedPhase,
     UiRebindValidNextAction,
 };
+use worth_ui_runtime::facade::mounted::UiHostSurfaceCancellationOutcome;
 
 use super::support::RebindExecutionWorld;
+use crate::mounted_host_protocol::scripted_host::{
+    presented_completion, ScriptedSurfaceCompletion,
+};
 
 #[test]
 fn changed_rebind_uses_host_effects_and_one_atomic_publication() {
@@ -85,4 +89,47 @@ fn pre_effect_host_rejection_returns_the_exact_retry_authority() {
     assert_eq!(receipt.prior_generation(), &prior);
     drop(receipt);
     world.close();
+}
+
+#[test]
+fn pending_and_uncertain_effects_never_publish_early() {
+    let mut pending = RebindExecutionWorld::new("phase-312-effect-pending");
+    let predecessor = pending.session.generation_identity().clone();
+    pending.host.push_in_flight(
+        vec![ScriptedSurfaceCompletion::Pending, presented_completion()],
+        UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
+    );
+    let prepared = pending.prepare_changed();
+    let candidate = prepared.candidate_generation().clone();
+    let completion = match prepared.execute(1) {
+        UiRebindOutcome::InFlight(completion) => completion,
+        _ => panic!("pending host effects must retain completion authority"),
+    };
+    let completion = match completion.complete(2) {
+        UiRebindOutcome::InFlight(completion) => completion,
+        _ => panic!("pending host effects remain managed"),
+    };
+    let receipt = match completion.complete(3) {
+        UiRebindOutcome::Published(receipt) => receipt,
+        _ => panic!("completed host effects publish exactly once"),
+    };
+    assert_eq!(receipt.prior_generation(), &predecessor);
+    assert_eq!(receipt.active_generation(), &candidate);
+    drop(receipt);
+    pending.close();
+
+    let mut uncertain = RebindExecutionWorld::new("phase-312-effect-uncertain");
+    let predecessor = uncertain.session.generation_identity().clone();
+    uncertain.host.push_presentation(
+        worth_ui_runtime::facade::mounted::UiHostSurfacePresentationOutcome::
+            PresentationIndeterminate,
+    );
+    let recovery = match uncertain.prepare_changed().execute(1) {
+        UiRebindOutcome::Indeterminate(recovery) => recovery,
+        _ => panic!("uncertain effects must retain recovery authority"),
+    };
+    let session = recovery.into_session_for_shutdown();
+    assert_eq!(session.generation_identity(), &predecessor);
+    let _ = session;
+    uncertain.close();
 }

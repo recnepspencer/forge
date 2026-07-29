@@ -35,6 +35,10 @@ struct CostWorldReceipt {
 
 #[test]
 fn rebind_post_classification_cost_is_independent_of_unrelated_width() {
+    prove_rebind_post_classification_cost_is_independent_of_unrelated_width();
+}
+
+pub(crate) fn prove_rebind_post_classification_cost_is_independent_of_unrelated_width() {
     let baseline = compile_platform_pulse_plan("phase-312-cost-baseline", 0);
     let inflated = compile_platform_pulse_plan("phase-312-cost-inflated", INFLATED_UNRELATED_WIDTH);
 

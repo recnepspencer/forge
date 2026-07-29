@@ -27,6 +27,11 @@ The governing rules remain:
 - desktop UX, runtime honesty, and performance certification are all part of
   product completeness
 
+Delivery cadence is phase- and milestone-bound: commit and push only after a
+phase ledger is closed; merge to `master` only after the milestone ledger and
+status are closed. The working branch is then synchronized from the resulting
+`master` merge.
+
 Worth UI must remain strong enough for workbenches, editors, topology and CAD
 tools, AI-native editing systems, operational apps, data-heavy consoles,
 simulation tools, plugin-driven products, and real-time visualization or HUD
@@ -1544,10 +1549,18 @@ captures, eleven lifecycle events, and no retry path.
 
 Detailed spec: [milestone-3.12.md](./milestone-3.12.md)
 
-Predecessor status: Milestone 3.11 closed on 2026-07-27. This milestone
-inherits its snapshot, overlay, mounted-trace, disclosure, resource, and
-teardown contracts without relocation or reinterpretation. Identity-aware
-predecessor/successor comparison remains a Milestone 3.12 capability.
+Status: Closed on 2026-07-28. Phases 1 through 5 and all thirteen Phase 5
+courtroom rows are complete. The permanent Platform Pulse performs valid,
+malformed, recovery, comparison, close, and cleanup work in one real process;
+supporting evidence closes source affinity, semantic/pixel independence,
+identity, mixed-owner ordering, Query consequences, effects/recovery,
+cost/capacity, visual affinity, lifecycle cleanup, and compile boundaries.
+
+Milestone 3.12 inherits Milestone 3.11's snapshot, overlay, mounted-trace,
+disclosure, resource, and teardown contracts without relocation or
+reinterpretation. Its closing QA additionally corrected real authored portal
+measurement authority being absorbed by a broader unscoped allocation
+neighborhood.
 
 This slice makes hot reload real as bounded rebind rather than renderer
 refresh. Query-backed changes enter only as the sealed UI source consequences

@@ -1,4 +1,4 @@
 #[path = "model/change.rs"]
-mod change;
+pub(super) mod change;
 #[path = "model/ordering.rs"]
 mod ordering;

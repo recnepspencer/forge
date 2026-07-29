@@ -231,7 +231,7 @@ expected_files = 25
 # Milestone 3.11 extracts the two-node platform pulse application builder into
 # its named scenario home and adds visual-identity capability and filesystem
 # lifecycle worlds while preserving certification-only construction.
-content_fingerprint = "01e1eab91d21ccaa"
+content_fingerprint = "72463c67577c0472"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"

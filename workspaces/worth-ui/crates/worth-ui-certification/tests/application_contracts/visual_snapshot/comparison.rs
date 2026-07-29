@@ -2,8 +2,9 @@ use crate::observation_rebind::support::RebindExecutionWorld;
 use worth_ui::facade::inspection::{
     UiPixelsRequired, UiUnbudgetedVisualSnapshotComparisonRequest, UiVisualCaptureDeadline,
     UiVisualCapturePoll, UiVisualComparisonPixelPolicy, UiVisualIdentityContinuity,
-    UiVisualSnapshotComparisonBudget, UiVisualSnapshotComparisonOutcome, UiVisualSnapshotOutcome,
-    UiVisualSnapshotReceipt, UiVisualSnapshotRequest,
+    UiVisualSnapshotComparisonBudget, UiVisualSnapshotComparisonIncompatibility,
+    UiVisualSnapshotComparisonOutcome, UiVisualSnapshotOutcome, UiVisualSnapshotReceipt,
+    UiVisualSnapshotRequest,
 };
 use worth_ui::facade::rebind::{UiIdentityLifecycleDecision, UiRebindOutcome};
 use worth_ui_runtime::facade::mounted::{UiMountedInspectionReceipt, UiMountedInspectionRequest};
@@ -59,6 +60,36 @@ fn comparison_borrows_exact_rebind_snapshots_without_recapture_or_pixel_identity
         capture_call_count,
         "comparison must not recapture either frame"
     );
+    let omitted_pixels = world.session.compare_visual_snapshots(
+        &grant,
+        UiUnbudgetedVisualSnapshotComparisonRequest::between(&predecessor, &successor, &rebind)
+            .with_pixel_observation(UiVisualComparisonPixelPolicy::Omit)
+            .with_budget(UiVisualSnapshotComparisonBudget::bounded(128).unwrap()),
+    );
+    match omitted_pixels {
+        UiVisualSnapshotComparisonOutcome::Compared(compared) => {
+            assert_eq!(compared.retained_pixels_differ(), None)
+        }
+        other => panic!("pixel omission must not relabel structural evidence: {other:?}"),
+    }
+    let foreign = RebindExecutionWorld::new("phase-312-visual-comparison-foreign");
+    let foreign_grant = foreign
+        .session
+        .visual_inspection_authority()
+        .issue_comparison_grant();
+    let incompatible = world.session.compare_visual_snapshots(
+        &foreign_grant,
+        UiUnbudgetedVisualSnapshotComparisonRequest::between(&predecessor, &successor, &rebind)
+            .with_budget(UiVisualSnapshotComparisonBudget::bounded(128).unwrap()),
+    );
+    assert!(matches!(
+        incompatible,
+        UiVisualSnapshotComparisonOutcome::Incompatible(
+            UiVisualSnapshotComparisonIncompatibility::ForeignSession
+        )
+    ));
+    foreign.close();
+    assert_eq!(world.host.visual_capture_calls().len(), capture_call_count);
     world.session.dispose_visual_snapshot(predecessor);
     world.session.dispose_visual_snapshot(successor);
     drop(rebind);

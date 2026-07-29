@@ -182,6 +182,26 @@ impl WorthUiActiveApplicationSession {
         self.application.inspect_query_state_residue()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn refresh_query_change_for_certification(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    > {
+        self.application
+            .refresh_query_change_for_certification(request)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn measurement_basis_sources_for_certification(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
+        self.application
+            .measurement_basis_sources_for_certification()
+    }
+
     pub(crate) fn execute_framework_turn(
         &mut self,
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),

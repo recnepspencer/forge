@@ -17,6 +17,12 @@ struct NativeSourceRebindWorld {
     shell: WorthUiNativeApplicationShell,
 }
 
+pub(crate) fn prove_terminal_outcome_cleanup() {
+    ordinary_request_distinguishes_no_change_duplicate_and_superseded_evidence();
+    ordinary_timeout_stops_at_final_admission_without_host_effects();
+    ordinary_cancellation_stops_at_final_admission_without_host_effects();
+}
+
 impl NativeSourceRebindWorld {
     fn new(label: &str) -> Self {
         let scenario = FilesystemApplicationLifecycleScenario::new(label);

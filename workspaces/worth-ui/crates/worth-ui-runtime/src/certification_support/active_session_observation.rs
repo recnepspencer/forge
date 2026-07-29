@@ -18,6 +18,18 @@ pub trait WorthUiActiveSessionCertificationExt {
 
     fn inspect_query_state_residue(&self) -> WorthUiStateQueryResidueScan;
 
+    fn refresh_query_change(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    >;
+
+    fn measurement_basis_sources(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]>;
+
     fn ordinary_plan_availability(&self) -> WorthUiOrdinaryPlanAvailability;
 
     fn virtualized_plan_availability(&self) -> WorthUiVirtualizedPlanAvailability;
@@ -67,6 +79,22 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
 
     fn inspect_query_state_residue(&self) -> WorthUiStateQueryResidueScan {
         WorthUiActiveApplicationSession::inspect_query_state_residue(self)
+    }
+
+    fn refresh_query_change(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    > {
+        WorthUiActiveApplicationSession::refresh_query_change_for_certification(self, request)
+    }
+
+    fn measurement_basis_sources(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
+        WorthUiActiveApplicationSession::measurement_basis_sources_for_certification(self)
     }
 
     fn ordinary_plan_availability(&self) -> WorthUiOrdinaryPlanAvailability {

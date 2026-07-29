@@ -14,6 +14,11 @@ use crate::mounted_host_protocol::scripted_host::{
 };
 
 #[test]
+fn timeout_cancellation_duplicate_and_supersession_are_terminal_and_clean() {
+    super::terminal_outcomes::prove_terminal_outcome_cleanup();
+}
+
+#[test]
 fn in_flight_rebind_remains_owned_until_exact_completion() {
     let mut world = RebindExecutionWorld::new("phase-312-rebind-in-flight");
     world.host.push_in_flight(

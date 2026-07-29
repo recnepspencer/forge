@@ -316,9 +316,11 @@ inspect_realtime_target = "crates/worth-ui-certification/tests/application_contr
 inspect_runtime = "crates/worth-ui-certification/src/scenario/application_authority_closure/execution.rs"
 inspect_virtualized_plan = "crates/worth-ui-runtime/src/runtime/tests/execution/virtualized_data_lane_test_support.rs"
 lookup_consumed_fact = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission/fact_index.rs"
+measurement_basis_sources = "crates/worth-ui-certification/tests/application_contracts/observation_rebind/mixed_source.rs"
 ordinary_plan_availability = "crates/worth-ui-certification/tests/application_contracts/mounted_publication/replacement_atomicity.rs"
 query_fact_link = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/mixed_real_lifecycle/mounted_successor.rs"
 realtime_plan_availability = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_execution.rs"
+refresh_query_change = "crates/worth-ui-certification/tests/application_contracts/observation_rebind/query_consequence.rs"
 virtualized_plan_availability = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle.rs"
 
 [[surface]]
@@ -329,6 +331,7 @@ feature = "test-support-only"
 sources = ["crates/worth-ui-runtime/src/certification_support/application_builder.rs"]
 [surface.callers]
 with_graph_world_profile = "crates/worth-ui-certification/tests/graph_authority_runtime.rs"
+with_runtime_instance_basis_admissions = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/rebind_profile.rs"
 
 [[surface]]
 kind = "extension_trait"

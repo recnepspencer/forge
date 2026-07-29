@@ -1,24 +1,12 @@
 use std::collections::VecDeque;
 
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostContract,
-    WorthUiMeasurementHostAdapter,
-};
+use worth_ui_host_contract::WorthUiHostContract;
 use worth_ui_runtime::facade::host::{
     UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiOperationalHostAdapter,
 };
 
 use super::*;
-
-impl WorthUiMeasurementHostAdapter for ScriptedPresentationHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("scripted host advertises no measurement capability")
-    }
-}
 
 impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
     fn operational_host_contract(&self) -> WorthUiHostContract {

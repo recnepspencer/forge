@@ -19,7 +19,7 @@ fn rebind_identity_model_matches_production_scope() {
     assert_unaffected_control(&lifecycle);
 }
 
-fn assert_closed_transition_model() {
+pub(crate) fn assert_closed_transition_model() {
     let transitions = [
         WorthUiNodeLifecycleTransition::Preserve,
         WorthUiNodeLifecycleTransition::Replace,
@@ -77,7 +77,7 @@ fn independent_decision(
     }
 }
 
-fn real_dual_generation_lifecycle() -> UiResolvedIdentityLifecycle {
+pub(crate) fn real_dual_generation_lifecycle() -> UiResolvedIdentityLifecycle {
     let label = "phase-312-identity-lifecycle";
     let scenario = FilesystemApplicationLifecycleScenario::new(label);
     let workspace = FilesystemContractWorkspace::new(label);
@@ -120,7 +120,7 @@ fn real_dual_generation_lifecycle() -> UiResolvedIdentityLifecycle {
     lifecycle
 }
 
-fn assert_real_scope_decisions(lifecycle: &UiResolvedIdentityLifecycle) {
+pub(crate) fn assert_real_scope_decisions(lifecycle: &UiResolvedIdentityLifecycle) {
     let retired = FilesystemApplicationLifecycleScenario::current_component_declaration_identity();
     let created =
         FilesystemApplicationLifecycleScenario::candidate_component_declaration_identity();
@@ -137,7 +137,7 @@ fn assert_real_scope_decisions(lifecycle: &UiResolvedIdentityLifecycle) {
     }
 }
 
-fn assert_unaffected_control(lifecycle: &UiResolvedIdentityLifecycle) {
+pub(crate) fn assert_unaffected_control(lifecycle: &UiResolvedIdentityLifecycle) {
     let preserved =
         FilesystemApplicationLifecycleScenario::imported_current_component_declaration_identity();
     let keys = lifecycle.known_consumer_keys_for_certification();

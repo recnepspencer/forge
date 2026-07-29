@@ -18,7 +18,6 @@ use super::application_authority_closure::authored_composition::{
     file_source, preview_cross_lane_rust_submission, query_rust_submission, rust_submission,
 };
 use super::application_authority_closure::candidate_catalog::admit_candidate_catalog;
-
 #[path = "filesystem_application_lifecycle/authored_identity.rs"]
 mod authored_identity;
 #[path = "filesystem_application_lifecycle/platform_pulse.rs"]

@@ -9,6 +9,7 @@ use worth_ui_runtime::facade::mounted::{
 };
 
 mod adapter;
+mod measurement_adapter;
 mod visual_capture_script;
 
 use visual_capture_script::ScriptedVisualCapture;

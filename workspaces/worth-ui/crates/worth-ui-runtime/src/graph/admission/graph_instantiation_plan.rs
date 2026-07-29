@@ -3,7 +3,8 @@ use crate::declaration::{
     UiAspectContract, UiDeclarationIdentity, UiDeclarationOrderingGuarantee,
     UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
     UiDeclarationSlotParticipationIntent, UiDeclarationStructuralDigest,
-    UiDeclarationStructuralRole, UiDeclaredMeasurementConstraintModifier,
+    UiDeclarationStructuralRole, UiDeclaredMeasurementBasisSource,
+    UiDeclaredMeasurementConstraintModifier,
 };
 use crate::graph::{
     UiGraphAttachmentPosture, UiGraphContainmentClaim, UiGraphInstantiationDenial,
@@ -49,6 +50,7 @@ pub struct UiGraphNodeInstantiationEntry {
     declaration_identity: UiDeclarationIdentity,
     authored_provenance_digest: u64,
     measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
     aspect_contract: UiAspectContract,
     repeated_instance_basis: UiRepeatedInstanceBasis,
     topology_seed: UiGraphTopologySeed,
@@ -62,6 +64,7 @@ pub(crate) struct UiGraphNodeInstantiationInput {
     pub(crate) declaration_identity: UiDeclarationIdentity,
     pub(crate) authored_provenance_digest: u64,
     pub(crate) measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    pub(crate) measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
     pub(crate) aspect_contract: UiAspectContract,
     pub(crate) repeated_instance_basis: UiRepeatedInstanceBasis,
     pub(crate) topology_seed: UiGraphTopologySeed,
@@ -77,6 +80,7 @@ impl UiGraphNodeInstantiationEntry {
             declaration_identity,
             authored_provenance_digest,
             measurement_constraint_modifier,
+            measurement_basis_source,
             aspect_contract,
             repeated_instance_basis,
             topology_seed,
@@ -89,6 +93,7 @@ impl UiGraphNodeInstantiationEntry {
             declaration_identity,
             authored_provenance_digest,
             measurement_constraint_modifier,
+            measurement_basis_source,
             aspect_contract,
             repeated_instance_basis,
             topology_seed,
@@ -115,6 +120,10 @@ impl UiGraphNodeInstantiationEntry {
         &self,
     ) -> Option<UiDeclaredMeasurementConstraintModifier> {
         self.measurement_constraint_modifier
+    }
+
+    pub fn measurement_basis_source(&self) -> Option<UiDeclaredMeasurementBasisSource> {
+        self.measurement_basis_source
     }
 
     pub fn repeated_instance_basis(&self) -> &UiRepeatedInstanceBasis {

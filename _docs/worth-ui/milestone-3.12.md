@@ -2,7 +2,22 @@
 
 ## Status and Placement
 
-Status: Planned.
+Status: Complete. Phases 1 through 5 closed on 2026-07-28.
+
+Closure found and corrected one product-level honesty defect: real authored
+portal measurement authority reached the active application but was absorbed
+by a broader unscoped allocation neighborhood. Graph nodes now carry the typed
+measurement-basis source into neighborhood construction, so independently
+authoritative viewport, scroll, and portal nodes remain disjoint catalog
+boundaries. The real mixed-source courtroom proves committed portal geometry
+enters the observation turn.
+
+The canonical compile, dependency, boundary, agent-context, application, and
+executable-world gates pass on final source. Every dirty Rust file obeys the
+400-line cap. The repository-wide cap script also reports unrelated,
+pre-existing violations outside this milestone; this closeout records that red
+baseline rather than mislabeling it as a 3.12 regression or a green workspace
+gate.
 
 Milestone 3.11 closed on 2026-07-27. Milestone 3.12 inherits its final
 application, mounting, host, visual-snapshot, overlay, mounted-trace,

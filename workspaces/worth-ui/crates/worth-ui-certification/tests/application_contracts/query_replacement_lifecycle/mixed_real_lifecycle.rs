@@ -25,7 +25,7 @@ use worth_ui_runtime::facade::application::{
 mod hostile_mounted_journey;
 #[path = "mixed_real_lifecycle/mounted_successor.rs"]
 mod mounted_successor;
-mod query_patch;
+pub(crate) mod query_patch;
 
 use super::scenario::{
     application_with_submission_and_host, capability_application,
