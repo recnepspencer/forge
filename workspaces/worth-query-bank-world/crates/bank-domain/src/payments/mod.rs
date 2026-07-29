@@ -1,3 +1,3 @@
 mod intent;
 
-pub use intent::BusinessPayment;
+pub use intent::{BusinessPayment, BusinessPaymentProjection};

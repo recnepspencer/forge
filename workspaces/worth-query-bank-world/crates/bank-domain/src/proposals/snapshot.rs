@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use crate::accounting::{BankAccount, BankJournalEntry};
 use crate::model::{
-    AccountAuthorizationId, AccountId, BankPrincipalId, BankSnapshotVersion, BusinessId,
-    InstitutionId, JournalEntryId, PaymentId, PostingId,
+    AccountAuthorizationId, AccountId, AccountJournalRevision, BankPrincipalId,
+    BankSnapshotVersion, BusinessId, InstitutionId, JournalEntryId, PaymentId,
 };
 use crate::payments::BusinessPayment;
 
-use super::{BankAccountAuthorization, BankProposalDenial};
+use super::BankAccountAuthorization;
 
 mod builder;
 
@@ -49,11 +49,6 @@ pub struct BankSnapshot {
     payments: BTreeMap<PaymentId, BusinessPayment>,
     authorizations: BTreeMap<AccountAuthorizationId, BankAccountAuthorization>,
     reversed_journals: BTreeSet<JournalEntryId>,
-    next_account_id: u64,
-    next_journal_id: u64,
-    next_posting_id: u64,
-    next_payment_id: u64,
-    next_authorization_id: u64,
 }
 
 impl BankSnapshot {
@@ -86,6 +81,17 @@ impl BankSnapshot {
 
     pub fn account(&self, id: AccountId) -> Option<&BankAccount> {
         self.accounts.get(&id)
+    }
+
+    pub fn account_journal_revision(&self, id: AccountId) -> Option<AccountJournalRevision> {
+        self.accounts.get(&id)?;
+        let posting_count = self
+            .journal
+            .iter()
+            .flat_map(BankJournalEntry::postings)
+            .filter(|posting| posting.account() == id)
+            .try_fold(0_u64, |count, _| count.checked_add(1))?;
+        Some(AccountJournalRevision::from_posting_count(posting_count))
     }
 
     pub fn journal(&self) -> &[BankJournalEntry] {
@@ -140,28 +146,6 @@ impl BankSnapshot {
 
     pub fn is_reversed(&self, journal: JournalEntryId) -> bool {
         self.reversed_journals.contains(&journal)
-    }
-
-    pub(crate) fn allocate_account_id(&mut self) -> Result<AccountId, BankProposalDenial> {
-        allocate_identity(&mut self.next_account_id, AccountId::new)
-    }
-
-    pub(crate) fn allocate_journal_id(&mut self) -> Result<JournalEntryId, BankProposalDenial> {
-        allocate_identity(&mut self.next_journal_id, JournalEntryId::new)
-    }
-
-    pub(crate) fn allocate_posting_id(&mut self) -> Result<PostingId, BankProposalDenial> {
-        allocate_identity(&mut self.next_posting_id, PostingId::new)
-    }
-
-    pub(crate) fn allocate_payment_id(&mut self) -> Result<PaymentId, BankProposalDenial> {
-        allocate_identity(&mut self.next_payment_id, PaymentId::new)
-    }
-
-    pub(crate) fn allocate_authorization_id(
-        &mut self,
-    ) -> Result<AccountAuthorizationId, BankProposalDenial> {
-        allocate_identity(&mut self.next_authorization_id, AccountAuthorizationId::new)
     }
 
     pub(crate) fn insert_account(&mut self, account: BankAccount) {
@@ -219,7 +203,6 @@ impl BankSnapshot {
             && self.ownership_indexes_are_valid()
             && self.payment_and_authorization_references_are_valid()
             && self.reversal_references_are_valid()
-            && self.allocation_frontiers_are_valid()
     }
 
     fn account_references_are_valid(&self) -> bool {
@@ -280,38 +263,4 @@ impl BankSnapshot {
             .iter()
             .all(|id| self.journal_entry(*id).is_some())
     }
-
-    fn allocation_frontiers_are_valid(&self) -> bool {
-        self.accounts
-            .keys()
-            .all(|id| id.get() < self.next_account_id)
-            && self
-                .journal
-                .iter()
-                .all(|entry| entry.id().get() < self.next_journal_id)
-            && self
-                .journal
-                .iter()
-                .flat_map(BankJournalEntry::postings)
-                .all(|posting| posting.id().get() < self.next_posting_id)
-            && self
-                .payments
-                .keys()
-                .all(|id| id.get() < self.next_payment_id)
-            && self
-                .authorizations
-                .keys()
-                .all(|id| id.get() < self.next_authorization_id)
-    }
-}
-
-fn allocate_identity<Identity>(
-    next: &mut u64,
-    constructor: impl FnOnce(u64) -> Option<Identity>,
-) -> Result<Identity, BankProposalDenial> {
-    let value = *next;
-    *next = next
-        .checked_add(1)
-        .ok_or(BankProposalDenial::IdentityExhausted)?;
-    constructor(value).ok_or(BankProposalDenial::IdentityExhausted)
 }

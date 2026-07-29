@@ -87,6 +87,22 @@ impl std::fmt::Debug for RuntimeBridge {
 }
 
 impl RuntimeBridge {
+    /// Creates a request-local managed-execution lane over the same installed
+    /// truth adapters and mapping authority.
+    ///
+    /// Signal execution is runtime-affine, so server requests that may execute
+    /// on different worker threads must not share one live Signal runtime.
+    /// The fork retains installed semantic configuration while minting fresh
+    /// Signal ownership and execution-basis reservations.
+    pub fn fork_managed_request_lane(&self) -> Self {
+        let mut lane = self.clone();
+        lane.signal_runtime_key = historical_and_replay::fresh_signal_runtime_key();
+        lane.signal_aspect_lowering_owner =
+            worth_signal::facade::SignalAspectLoweringOwner::fresh();
+        lane.execution_basis_reservations = Default::default();
+        lane
+    }
+
     pub fn bind_signal_graph<'runtime, 'graph>(
         &'runtime self,
         graph: &'graph mut worth_signal::facade::SignalGraph,

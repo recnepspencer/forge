@@ -5,6 +5,8 @@ pub enum WorthQueryApplicationOperationInstallationDenialKind {
     MissingAbility,
     MissingAbilityPolicy,
     MissingProgram,
+    MissingDecisionFactBudget,
+    MissingProjectionWorkBudget,
     ForeignRuntime,
     StaleGeneration,
     SchemaMeaningChanged,

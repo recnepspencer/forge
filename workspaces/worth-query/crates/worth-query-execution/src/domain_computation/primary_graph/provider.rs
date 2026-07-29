@@ -1,0 +1,190 @@
+mod application_decision_fact;
+mod commit_causality;
+mod decision_facts;
+mod graph_participation;
+mod idempotency;
+mod invariant_execution;
+mod provisional_state;
+mod resource_support;
+mod session_lifecycle;
+
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+
+use super::WorthQueryPrimaryGraphIntegrationHandle;
+pub(super) use application_decision_fact::WorthQueryPrimaryGraphApplicationDecisionFact;
+pub(super) use idempotency::WorthQueryProviderIdempotencyResolution;
+
+pub(super) struct WorthQueryPrimaryGraphProvider {
+    pub(super) graph: WorthQueryPrimaryGraphIntegrationHandle,
+    resource_support: resource_support::WorthQueryPrimaryGraphResourceSupport,
+    commit_serialization: Mutex<()>,
+    pub(super) live_delivery: super::live_delivery::WorthQueryLiveDeliverySource,
+    pub(super) sessions: Mutex<WorthQueryPrimaryGraphProviderSessions>,
+    #[cfg(test)]
+    lose_next_commit_response: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    reject_next_session_prepare: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    reject_next_commit_before_transaction: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    fail_next_index_publication: std::sync::atomic::AtomicBool,
+}
+
+#[derive(Default)]
+pub(super) struct WorthQueryPrimaryGraphProviderSessions {
+    pub(super) overlays: BTreeMap<String, WorthQueryPrimaryGraphOverlay>,
+    pub(super) session_overlays: BTreeMap<String, String>,
+    pub(super) application_attempts: BTreeMap<String, WorthQueryPrimaryGraphApplicationAttempt>,
+    pub(super) next_overlay: u64,
+}
+
+pub(super) struct WorthQueryPrimaryGraphOverlay {
+    pub(super) facts: Vec<crate::domain_computation::WorthQueryProposedFact>,
+}
+
+pub(super) struct WorthQueryPrimaryGraphApplicationAttempt {
+    pub(super) facts: BTreeMap<String, WorthQueryPrimaryGraphApplicationDecisionFact>,
+    pub(super) expected_steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
+    pub(super) batch: worth_relational::facade::transactions::WorkerIntentBatch,
+    pub(super) emissions: super::application_attempt::WorthQueryAdmittedApplicationEmissionBatch,
+    pub(super) idempotency: super::application_attempt::WorthQueryApplicationIdempotencyBinding,
+}
+
+impl WorthQueryPrimaryGraphProvider {
+    pub(super) fn install(
+        graph: WorthQueryPrimaryGraphIntegrationHandle,
+    ) -> (
+        Arc<crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor>,
+        Arc<Self>,
+    ){
+        let provider = Arc::new(Self {
+            graph,
+            resource_support: resource_support::WorthQueryPrimaryGraphResourceSupport::install(),
+            commit_serialization: Mutex::new(()),
+            live_delivery: super::live_delivery::WorthQueryLiveDeliverySource::default(),
+            sessions: Mutex::new(WorthQueryPrimaryGraphProviderSessions::default()),
+            #[cfg(test)]
+            lose_next_commit_response: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            reject_next_session_prepare: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            reject_next_commit_before_transaction: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            fail_next_index_publication: std::sync::atomic::AtomicBool::new(false),
+        });
+        let anchor = Arc::new(
+            crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor::install_invariant_capable::<
+                WorthQueryPrimaryLogicalGraph,
+                Arc<Self>,
+            >(Arc::clone(&provider)),
+        );
+        (anchor, provider)
+    }
+
+    pub(super) fn application_resource_support(
+        &self,
+    ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupportSnapshot
+    {
+        self.resource_support.snapshot()
+    }
+
+    pub(super) fn register_application_attempt(
+        &self,
+        session_identity: &str,
+        facts: Vec<WorthQueryPrimaryGraphApplicationDecisionFact>,
+        expected_steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
+        mut batch: worth_relational::facade::transactions::WorkerIntentBatch,
+        emissions: super::application_attempt::WorthQueryAdmittedApplicationEmissionBatch,
+        idempotency: super::application_attempt::WorthQueryApplicationIdempotencyBinding,
+    ) -> Result<(), &'static str> {
+        let emitted_effect_count = u64::try_from(emissions.len())
+            .map_err(|_| "application emission count exceeds provider representation")?;
+        batch = batch.push(idempotency::idempotency_create_intent(
+            self.graph.layout.provider_idempotency(),
+            idempotency,
+            emitted_effect_count,
+        ));
+        let facts = facts
+            .into_iter()
+            .map(|fact| (fact.locator_identity(), fact))
+            .collect::<BTreeMap<_, _>>();
+        let mut sessions = self
+            .sessions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if sessions
+            .application_attempts
+            .insert(
+                session_identity.to_owned(),
+                WorthQueryPrimaryGraphApplicationAttempt {
+                    facts,
+                    expected_steps,
+                    batch,
+                    emissions,
+                    idempotency,
+                },
+            )
+            .is_some()
+        {
+            return Err("provider session already owns an application attempt");
+        }
+        Ok(())
+    }
+
+    pub(super) fn serialize_application_commit(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.commit_serialization
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn lose_next_commit_response(&self) {
+        self.lose_next_commit_response
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reject_next_session_prepare(&self) {
+        self.reject_next_session_prepare
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reject_next_commit_before_transaction(&self) {
+        self.reject_next_commit_before_transaction
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_index_publication(&self) {
+        self.fail_next_index_publication
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_lost_commit_response(&self) -> bool {
+        self.lose_next_commit_response
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_rejected_session_prepare(&self) -> bool {
+        self.reject_next_session_prepare
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_rejected_commit_before_transaction(&self) -> bool {
+        self.reject_next_commit_before_transaction
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_failed_index_publication(&self) -> bool {
+        self.fail_next_index_publication
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+}
+
+pub(super) struct WorthQueryPrimaryLogicalGraph;

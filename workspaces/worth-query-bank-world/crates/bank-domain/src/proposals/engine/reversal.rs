@@ -1,9 +1,9 @@
 use crate::accounting::{BankJournalEntry, BankPosting};
 use crate::model::SignedMoney;
 use crate::proposals::{
-    account_activity_effects, complete_proposal, ensure_open, BankIdempotencyIntent,
-    BankIdempotencyKey, BankInvariantApprovedProposal, BankOperationScopeBinding,
-    BankProposalDenial, BankProposedEffect, BankSnapshot, CanonicalProposalPayload,
+    complete_proposal, ensure_open, BankIdempotencyClaim, BankIdempotencyKey,
+    BankInvariantApprovedProposal, BankOperationScopeBinding, BankProposalDenial,
+    BankProposedEffect, BankSnapshot, CanonicalProposalPayload,
 };
 use crate::schema::{PostingPurpose, ReversalReason, ReverseJournal};
 
@@ -16,6 +16,9 @@ impl BankProposalEngine {
         key: &BankIdempotencyKey,
         input: &ReverseJournal,
     ) -> Result<BankInvariantApprovedProposal, BankProposalDenial> {
+        if !snapshot.is_known_institution(input.institution) {
+            return Err(BankProposalDenial::UnknownInstitution);
+        }
         if snapshot.is_reversed(input.journal) {
             return Err(BankProposalDenial::JournalAlreadyReversed(input.journal));
         }
@@ -23,16 +26,25 @@ impl BankProposalEngine {
             .journal_entry(input.journal)
             .cloned()
             .ok_or(BankProposalDenial::UnknownJournal(input.journal))?;
+        if !original.postings().iter().all(|posting| {
+            snapshot
+                .account(posting.account())
+                .is_some_and(|account| account.institution() == input.institution)
+        }) {
+            return Err(BankProposalDenial::ScopeInputMismatch);
+        }
         let payload = CanonicalProposalPayload::new()
-            .u64(input.journal.get())
+            .u64(input.institution.get())
+            .text(&input.journal.canonical_text())
             .byte(reversal_reason_tag(input.reason));
         let intent =
-            BankIdempotencyIntent::derive(binding, key, "reverse-journal", payload.as_bytes());
+            BankIdempotencyClaim::derive(binding, key, "reverse-journal", payload.as_bytes());
 
         let mut proposed = snapshot.clone();
-        let journal_id = proposed.allocate_journal_id()?;
+        let identity = intent.key().bytes();
+        let journal_id = crate::model::JournalEntryId::from_operation(identity, 0);
         let mut postings = Vec::with_capacity(original.postings().len());
-        for original_posting in original.postings() {
+        for (ordinal, original_posting) in original.postings().iter().enumerate() {
             ensure_open(&proposed, original_posting.account())?;
             let reversed_amount = original_posting
                 .amount()
@@ -40,7 +52,10 @@ impl BankProposalEngine {
                 .checked_neg()
                 .ok_or(BankProposalDenial::ArithmeticOverflow)?;
             postings.push(BankPosting::new(
-                proposed.allocate_posting_id()?,
+                crate::model::PostingId::from_operation(
+                    identity,
+                    u32::try_from(ordinal).map_err(|_| BankProposalDenial::IdentityExhausted)?,
+                ),
                 original_posting.account(),
                 SignedMoney::from_minor(reversed_amount),
             ));
@@ -53,11 +68,10 @@ impl BankProposalEngine {
         );
         proposed.append_journal(reversal.clone());
         proposed.mark_reversed(input.journal);
-        let mut effects = vec![BankProposedEffect::ReverseJournal {
+        let effects = vec![BankProposedEffect::ReverseJournal {
             original: input.journal,
-            reversal: reversal.clone(),
+            reversal,
         }];
-        effects.extend(account_activity_effects(&reversal));
         complete_proposal(snapshot, proposed, intent, effects)
     }
 }

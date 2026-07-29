@@ -65,6 +65,22 @@ fn next_kind_id(
         .ok_or_else(kind_space_exhausted)
 }
 
+pub(super) fn next_provider_kind_id(
+    registry: &RelationalSchemaRegistry,
+    entity_kinds: impl Iterator<Item = KindId>,
+    relation_kinds: impl Iterator<Item = KindId>,
+) -> Result<KindId, WorthQueryPrimaryGraphInstallationDenial> {
+    let next_application_kind = entity_kinds
+        .chain(relation_kinds)
+        .map(|kind| kind.0)
+        .max()
+        .map(|kind| kind.checked_add(1).ok_or_else(kind_space_exhausted))
+        .transpose()?;
+    Ok(KindId(
+        next_application_kind.unwrap_or(next_kind_id(registry)?),
+    ))
+}
+
 pub(super) fn relational_schema_basis(
     schema: &ErasedApplicationSchemaDeclaration,
     existing_registry: &RelationalSchemaRegistry,

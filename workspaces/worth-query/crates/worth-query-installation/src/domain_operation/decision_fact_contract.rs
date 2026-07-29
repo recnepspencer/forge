@@ -31,7 +31,13 @@ impl WorthQueryDecisionFactKind {
 pub struct WorthQueryDecisionFactFamily {
     identity: String,
     kind: WorthQueryDecisionFactKind,
-    exact_fact_count: usize,
+    cardinality: WorthQueryDecisionFactCardinality,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum WorthQueryDecisionFactCardinality {
+    Exact(usize),
+    Bounded { maximum: usize },
 }
 
 impl WorthQueryDecisionFactFamily {
@@ -46,7 +52,7 @@ impl WorthQueryDecisionFactFamily {
         Ok(Self {
             identity,
             kind,
-            exact_fact_count: 1,
+            cardinality: WorthQueryDecisionFactCardinality::Exact(1),
         })
     }
 
@@ -54,7 +60,15 @@ impl WorthQueryDecisionFactFamily {
         if exact_fact_count == 0 {
             return Err("invalid-decision-fact-family-cardinality");
         }
-        self.exact_fact_count = exact_fact_count;
+        self.cardinality = WorthQueryDecisionFactCardinality::Exact(exact_fact_count);
+        Ok(self)
+    }
+
+    pub fn with_bounded_fact_count(mut self, maximum: usize) -> Result<Self, &'static str> {
+        if maximum == 0 {
+            return Err("invalid-decision-fact-family-cardinality");
+        }
+        self.cardinality = WorthQueryDecisionFactCardinality::Bounded { maximum };
         Ok(self)
     }
 
@@ -66,17 +80,18 @@ impl WorthQueryDecisionFactFamily {
         &self.kind
     }
 
-    pub fn exact_fact_count(&self) -> usize {
-        self.exact_fact_count
+    pub const fn cardinality(&self) -> WorthQueryDecisionFactCardinality {
+        self.cardinality
     }
 
     pub(crate) fn canonical_token(&self) -> String {
-        format!(
-            "{}:{}:{}",
-            self.kind.as_str(),
-            self.identity,
-            self.exact_fact_count
-        )
+        let cardinality = match self.cardinality {
+            WorthQueryDecisionFactCardinality::Exact(count) => format!("exact:{count}"),
+            WorthQueryDecisionFactCardinality::Bounded { maximum } => {
+                format!("bounded:{maximum}")
+            }
+        };
+        format!("{}:{}:{cardinality}", self.kind.as_str(), self.identity)
     }
 }
 
@@ -165,6 +180,21 @@ mod tests {
         assert!(family("counted", WorthQueryDecisionFactKind::ObservedValue)
             .with_exact_fact_count(0)
             .is_err());
+        assert!(family("bounded", WorthQueryDecisionFactKind::ObservedValue)
+            .with_bounded_fact_count(0)
+            .is_err());
+    }
+
+    #[test]
+    fn exact_and_bounded_cardinality_are_distinct_installed_meaning() {
+        let exact = family("facts", WorthQueryDecisionFactKind::ObservedValue)
+            .with_exact_fact_count(2)
+            .unwrap();
+        let bounded = family("facts", WorthQueryDecisionFactKind::ObservedValue)
+            .with_bounded_fact_count(2)
+            .unwrap();
+        assert_ne!(exact, bounded);
+        assert_ne!(exact.canonical_token(), bounded.canonical_token());
     }
 
     fn family(identity: &str, kind: WorthQueryDecisionFactKind) -> WorthQueryDecisionFactFamily {

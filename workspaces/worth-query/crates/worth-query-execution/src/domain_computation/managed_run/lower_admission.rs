@@ -14,19 +14,19 @@ use worth_runtime_bridge::facade::{
 
 use super::WorthQueryManagedTruthReadRequest;
 
-pub(super) struct WorthQueryManagedLowerExecutionBasis {
+pub(in crate::domain_computation) struct WorthQueryManagedLowerExecutionBasis {
     pub bridge: BridgeBoundExecutionBasis,
     pub relational: RelationalExecutionBasisLease,
 }
 
-pub(super) struct WorthQueryManagedLowerBinding<'a> {
+pub(in crate::domain_computation) struct WorthQueryManagedLowerBinding<'a> {
     operation_identity: &'a str,
     resource_attempt_identity: &'a str,
     resource_envelope: &'a WorthQueryExecutionResourceEnvelope,
 }
 
 impl<'a> WorthQueryManagedLowerBinding<'a> {
-    pub(super) const fn new(
+    pub(in crate::domain_computation) const fn new(
         operation_identity: &'a str,
         resource_attempt_identity: &'a str,
         resource_envelope: &'a WorthQueryExecutionResourceEnvelope,
@@ -40,7 +40,7 @@ impl<'a> WorthQueryManagedLowerBinding<'a> {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum WorthQueryManagedLowerAdmissionFailureKind {
+pub(in crate::domain_computation) enum WorthQueryManagedLowerAdmissionFailureKind {
     BridgeSourceProfile,
     RelationalBasis,
     BridgePlanning,
@@ -48,12 +48,12 @@ pub(super) enum WorthQueryManagedLowerAdmissionFailureKind {
     BridgeExecutionBasis,
 }
 
-pub(super) struct WorthQueryManagedLowerAdmissionFailure {
+pub(in crate::domain_computation) struct WorthQueryManagedLowerAdmissionFailure {
     pub kind: WorthQueryManagedLowerAdmissionFailureKind,
     pub detail: Arc<str>,
 }
 
-pub(super) fn admit_managed_lower_execution_basis(
+pub(in crate::domain_computation) fn admit_managed_lower_execution_basis(
     bridge: &RuntimeBridge,
     relational: &RuntimeBridgeRelationalSource,
     binding: WorthQueryManagedLowerBinding<'_>,

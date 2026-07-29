@@ -90,6 +90,14 @@ macro_rules! worth_query_effect {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Effect;
 
+        const _: () = {
+            fn assert_payload_contract<
+                Payload: $crate::facade::application_schema::ApplicationEffectPayload,
+            >() {
+            }
+            let _ = assert_payload_contract::<$Payload>;
+        };
+
         impl $Effect {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationEffectRef<$Schema, Self, $Payload> {
                 $crate::facade::application_schema::ApplicationEffectRef::from_schema_identifier(
@@ -105,6 +113,15 @@ macro_rules! worth_query_operation_writes {
     ($Operation:ty => [$($Field:ty),+ $(,)?]) => {
         $(
             impl $crate::facade::application_schema::OperationWrites<$Operation> for $Field {}
+        )+
+    };
+}
+
+#[macro_export]
+macro_rules! worth_query_operation_reads {
+    ($Operation:ty => [$($Member:ty),+ $(,)?]) => {
+        $(
+            impl $crate::facade::application_schema::OperationReads<$Operation> for $Member {}
         )+
     };
 }

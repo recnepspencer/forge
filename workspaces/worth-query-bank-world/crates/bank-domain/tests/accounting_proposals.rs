@@ -7,9 +7,11 @@ use bank_domain::proposals::{
     BankSnapshot, BankSnapshotBuilder,
 };
 use bank_domain::schema::{
-    AccountStatus, ApplyOpeningFunding, CreatePersonalAccount, Deposit, ReversalReason,
-    ReverseJournal, SendMoney, Withdraw,
+    AccountStatus, ApplyOpeningFunding, CreatePersonalAccount, Deposit, SendMoney, Withdraw,
 };
+
+#[path = "accounting_proposals/reversal.rs"]
+mod reversal;
 
 fn id<T>(constructor: impl FnOnce(u64) -> Option<T>, value: u64) -> T {
     constructor(value).expect("test identity is nonzero")
@@ -218,60 +220,6 @@ fn stable_recipient_identity_must_resolve_to_a_real_primary_account() {
 }
 
 #[test]
-fn reversal_is_exact_and_cannot_be_applied_twice() {
-    let opened = create_personal(&fixture(), 1, "Daily", "create-1");
-    let source = opened.primary_account(id(BankPrincipalId::new, 1)).unwrap();
-    let funded = BankProposalEngine::prepare_opening_funding(
-        &opened,
-        binding(2),
-        &key("fund"),
-        &ApplyOpeningFunding {
-            institution: id(InstitutionId::new, 1),
-            account: source,
-            amount: Money::from_minor(5_000).unwrap(),
-        },
-    )
-    .unwrap()
-    .proposed_snapshot()
-    .clone();
-    let original = funded.journal()[0].clone();
-    let reversed = BankProposalEngine::prepare_reverse_journal(
-        &funded,
-        binding(4),
-        &key("reverse"),
-        &ReverseJournal {
-            journal: original.id(),
-            reason: ReversalReason::OperatorCorrection,
-        },
-    )
-    .unwrap()
-    .proposed_snapshot()
-    .clone();
-    let reversal = reversed.journal().last().unwrap();
-    for (original, opposite) in original.postings().iter().zip(reversal.postings()) {
-        assert_eq!(original.account(), opposite.account());
-        assert_eq!(
-            original.amount().minor_units(),
-            -opposite.amount().minor_units()
-        );
-    }
-    assert_eq!(oracle_balance(&reversed, source), 0);
-    assert_eq!(
-        BankProposalEngine::prepare_reverse_journal(
-            &reversed,
-            binding(4),
-            &key("reverse-again"),
-            &ReverseJournal {
-                journal: original.id(),
-                reason: ReversalReason::Duplicate,
-            },
-        )
-        .err(),
-        Some(BankProposalDenial::JournalAlreadyReversed(original.id()))
-    );
-}
-
-#[test]
 fn opening_funding_is_one_time_and_movement_respects_account_status() {
     let opened = create_personal(&fixture(), 1, "Daily", "create-1");
     let source = opened.primary_account(id(BankPrincipalId::new, 1)).unwrap();
@@ -333,7 +281,7 @@ fn opening_funding_is_one_time_and_movement_respects_account_status() {
 }
 
 #[test]
-fn deposit_and_withdrawal_conserve_money_and_emit_account_activity() {
+fn deposit_and_withdrawal_conserve_money_with_journal_only_mutation_effects() {
     let opened = create_personal(&fixture(), 1, "Daily", "create-1");
     let account = opened.primary_account(id(BankPrincipalId::new, 1)).unwrap();
     let deposited = BankProposalEngine::prepare_deposit(
@@ -347,7 +295,7 @@ fn deposit_and_withdrawal_conserve_money_and_emit_account_activity() {
         },
     )
     .unwrap();
-    assert_eq!(deposited.effects().len(), 3);
+    assert_eq!(deposited.effects().len(), 1);
     let after_deposit = deposited.proposed_snapshot().clone();
     let withdrawn = BankProposalEngine::prepare_withdrawal(
         &after_deposit,
@@ -360,7 +308,7 @@ fn deposit_and_withdrawal_conserve_money_and_emit_account_activity() {
         },
     )
     .unwrap();
-    assert_eq!(withdrawn.effects().len(), 3);
+    assert_eq!(withdrawn.effects().len(), 1);
     assert_eq!(
         oracle_balance(withdrawn.proposed_snapshot(), account),
         5_000
@@ -368,13 +316,52 @@ fn deposit_and_withdrawal_conserve_money_and_emit_account_activity() {
 }
 
 #[test]
-fn fixture_identity_at_the_numeric_frontier_cannot_alias_the_next_allocation() {
-    let denial = BankSnapshotBuilder::new(id(BankSnapshotVersion::new, 1))
+fn created_identity_is_retry_stable_and_disjoint_from_fixtures_and_other_keys() {
+    let fixture = BankSnapshotBuilder::new(id(BankSnapshotVersion::new, 1))
         .institution(id(InstitutionId::new, 1))
+        .principal(id(BankPrincipalId::new, 1))
         .institution_cash_account(id(AccountId::new, u64::MAX), id(InstitutionId::new, 1))
         .build()
-        .expect_err("an exhausted fixture identity must deny");
-    assert_eq!(denial, BankProposalDenial::SnapshotInvariantViolated);
+        .expect("fixture and operation identities occupy disjoint namespaces");
+    let input = CreatePersonalAccount {
+        institution: id(InstitutionId::new, 1),
+        owner: id(BankPrincipalId::new, 1),
+        display_name: AccountName::new("Operation-created").unwrap(),
+    };
+    let first = BankProposalEngine::prepare_create_personal_account(
+        &fixture,
+        binding(8),
+        &key("stable"),
+        &input,
+    )
+    .unwrap();
+    let retry = BankProposalEngine::prepare_create_personal_account(
+        &fixture,
+        binding(8),
+        &key("stable"),
+        &input,
+    )
+    .unwrap();
+    let independent = BankProposalEngine::prepare_create_personal_account(
+        &fixture,
+        binding(8),
+        &key("independent"),
+        &input,
+    )
+    .unwrap();
+    let created = first
+        .proposed_snapshot()
+        .primary_account(input.owner)
+        .unwrap();
+    assert_eq!(
+        retry.proposed_snapshot().primary_account(input.owner),
+        Some(created)
+    );
+    assert_ne!(
+        independent.proposed_snapshot().primary_account(input.owner),
+        Some(created)
+    );
+    assert_ne!(created, id(AccountId::new, u64::MAX));
 }
 
 fn oracle_balance(snapshot: &BankSnapshot, account: AccountId) -> i64 {

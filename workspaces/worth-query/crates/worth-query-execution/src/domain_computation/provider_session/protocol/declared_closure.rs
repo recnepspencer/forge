@@ -50,6 +50,30 @@ impl WorthQueryProviderPlanDeclarations {
         declarations
     }
 
+    pub(crate) fn from_application_contracts(
+        contracts: &worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts,
+    ) -> Self {
+        let mut closure = WorthQueryProviderPlanDeclaredClosure {
+            read: vec!["primary:project".to_owned()],
+            ..WorthQueryProviderPlanDeclaredClosure::default()
+        };
+        if let WorthQueryOperationTouchContract::Declared { scopes, .. } = contracts.touches() {
+            closure.touch.extend(scopes.iter().cloned());
+        }
+        bind_direct_role_closure(
+            &mut closure,
+            &effect_families(contracts.effects()),
+            &invariant_slots(contracts.invariants()),
+        );
+        Self {
+            direct: [("primary".to_owned(), closure)].into_iter().collect(),
+            workflow: BTreeMap::new(),
+            decision_fact_families: contracts.decision_facts().required_families().to_vec(),
+            invariant_requirements: contracts.invariant_execution().requirements().to_vec(),
+            reconciliation_posture: "provisional-discard".to_owned(),
+        }
+    }
+
     pub(super) fn closure(
         &self,
         stage_identity: Option<&str>,

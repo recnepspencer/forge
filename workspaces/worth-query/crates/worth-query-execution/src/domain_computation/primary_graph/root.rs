@@ -16,6 +16,7 @@ pub struct WorthQueryPrimaryGraph {
     binding_identity: ApplicationSchemaBindingIdentity,
     pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
     runtime: Arc<Mutex<RelationalRuntime>>,
+    aggregate_projections: Arc<Mutex<super::aggregate_projection::WorthQueryAggregateProjections>>,
 }
 
 impl WorthQueryPrimaryGraph {
@@ -55,10 +56,23 @@ impl WorthQueryPrimaryGraph {
                 });
             field_layout.equality_index_id = Some(index_id);
         }
+        let provider_idempotency = layout.provider_idempotency_mut();
+        let installed = runtime.index_authority().register(DerivedIndexDefinition {
+            index_id: worth_relational::facade::indexes::DerivedIndexId(0),
+            name: "worth-query-provider.idempotency-key".to_owned(),
+            kind: DerivedIndexKind::EntityField {
+                field_locator: provider_idempotency.key_locator.clone(),
+            },
+            branch_scoped: false,
+        });
+        provider_idempotency.key_index_id = installed.index_id;
         Self {
             binding_identity,
             layout: Arc::new(layout),
             runtime: Arc::new(Mutex::new(runtime)),
+            aggregate_projections: Arc::new(Mutex::new(
+                super::aggregate_projection::WorthQueryAggregateProjections::default(),
+            )),
         }
     }
 
@@ -76,13 +90,18 @@ impl WorthQueryPrimaryGraph {
             .iter()
             .copied()
             .chain(self.layout.equality_index_ids())
+            .chain(std::iter::once(
+                self.layout.provider_idempotency().key_index_id,
+            ))
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect::<Vec<_>>()
             .into();
         WorthQueryPrimaryGraphIntegrationHandle {
             runtime: Arc::clone(&self.runtime),
+            layout: Arc::clone(&self.layout),
             primary_index_ids,
+            aggregate_projections: Arc::clone(&self.aggregate_projections),
         }
     }
 }
@@ -102,7 +121,10 @@ impl std::fmt::Debug for WorthQueryPrimaryGraph {
 #[derive(Clone)]
 pub struct WorthQueryPrimaryGraphIntegrationHandle {
     pub(super) runtime: Arc<Mutex<RelationalRuntime>>,
+    pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
     pub(super) primary_index_ids: Arc<[worth_relational::facade::indexes::DerivedIndexId]>,
+    pub(super) aggregate_projections:
+        Arc<Mutex<super::aggregate_projection::WorthQueryAggregateProjections>>,
 }
 
 impl WorthQueryPrimaryGraphIntegrationHandle {
@@ -124,5 +146,48 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         mutate(&mut runtime)
+    }
+
+    pub(crate) fn relational_bridge_source(
+        &self,
+    ) -> worth_relational::facade::bridge::RuntimeBridgeRelationalSource {
+        worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_role(
+            Arc::clone(&self.runtime),
+            "primary",
+        )
+        .expect("the installed primary graph role is canonical")
+    }
+
+    pub(crate) fn ensure_primary_indexes_current(
+        &self,
+        runtime: &mut RelationalRuntime,
+    ) -> Result<(), &'static str> {
+        let Some(head) = runtime.history().latest_commit().cloned() else {
+            return Ok(());
+        };
+        let branch = head.branch_id.clone();
+        let current = self.primary_index_ids.iter().all(|index_id| {
+            runtime
+                .index_access()
+                .latest_generation(*index_id, &branch)
+                .is_some_and(|generation| generation.source_commit_id == head.commit_id)
+        });
+        if current {
+            return Ok(());
+        }
+        let build = runtime.index_authority().build_for_commit(
+            worth_relational::facade::indexes::DerivedIndexBuildRequest {
+                source_commit_id: head.commit_id,
+                branch_id: branch,
+                index_ids: self.primary_index_ids.to_vec(),
+            },
+        );
+        if build.failed_indexes.is_empty()
+            && build.generations.len() == self.primary_index_ids.len()
+        {
+            Ok(())
+        } else {
+            Err("primary graph indexes could not recover to the authoritative head")
+        }
     }
 }

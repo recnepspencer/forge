@@ -54,6 +54,9 @@ impl WorthQueryExecutionRuntimeInstaller {
         generation: WorthQueryInstallationGeneration,
         packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
     ) -> Result<WorthQueryExecutionRuntimeInstallation, WorthQueryInstalledPackageIndexDenial> {
+        let retained_installation_runtime = self
+            .installation_runtime
+            .retain_for_execution_installation();
         let installed_packages = WorthQueryInstalledPackageIndex::build(
             self.installation_runtime,
             generation,
@@ -66,6 +69,7 @@ impl WorthQueryExecutionRuntimeInstaller {
                 installed_packages: Arc::new(installed_packages),
                 primary_graph: None,
             },
+            retained_installation_runtime,
         ))
     }
 }

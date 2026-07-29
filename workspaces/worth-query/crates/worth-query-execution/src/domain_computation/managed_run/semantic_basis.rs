@@ -21,12 +21,29 @@ pub(crate) fn validate_managed_semantic_basis(
 ) -> Result<(), WorthQueryManagedSemanticBasisDenial> {
     match observation.semantic.family() {
         BasisFamily::CurrentHead => validate_current_head(observation),
+        BasisFamily::BranchSnapshot => validate_branch_snapshot(observation),
         BasisFamily::RuntimeSnapshot => validate_runtime_snapshot(observation),
         BasisFamily::Preview
         | BasisFamily::PreviewDerived
         | BasisFamily::StoreBacked
         | BasisFamily::DurableReload => Err(WorthQueryManagedSemanticBasisDenial::Unsupported),
         _ => Err(WorthQueryManagedSemanticBasisDenial::Unsupported),
+    }
+}
+
+fn validate_branch_snapshot(
+    observation: WorthQueryManagedSemanticBasisObservation<'_>,
+) -> Result<(), WorthQueryManagedSemanticBasisDenial> {
+    if observation.semantic.lifecycle() == BasisLifecyclePosture::SnapshotPinned
+        && observation
+            .semantic
+            .lower_runtime_binding_digest()
+            .is_some()
+        && observation.bridge_kind == BridgeAsyncRequestTruthViewBasisKind::BranchHead
+    {
+        Ok(())
+    } else {
+        Err(WorthQueryManagedSemanticBasisDenial::Mismatch)
     }
 }
 
@@ -124,6 +141,23 @@ mod tests {
                 "bridge-basis-b",
             )),
             Err(WorthQueryManagedSemanticBasisDenial::Mismatch)
+        );
+    }
+
+    #[test]
+    fn pinned_branch_snapshot_does_not_require_current_head() {
+        let semantic = normalized(RawBasisIntent::BranchSnapshot {
+            branch_identity: "main".into(),
+            snapshot_identity: "snapshot-v7".into(),
+        });
+        assert_eq!(
+            validate_managed_semantic_basis(observation(
+                &semantic,
+                BridgeAsyncRequestTruthViewBasisKind::BranchHead,
+                false,
+                "already-joined-by-typed-lower-basis",
+            )),
+            Ok(())
         );
     }
 

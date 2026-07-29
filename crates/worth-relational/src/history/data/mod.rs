@@ -1,5 +1,6 @@
 mod aspect_history;
 mod branch_creation;
+mod committed_version;
 mod merge_branch_basis;
 mod merge_branch_basis_foundational;
 
@@ -15,6 +16,7 @@ pub use aspect_history::{
     LineageAspectHistory, LineageAspectHistoryQueryResult, LineageAspectResolutionDigest,
 };
 pub use branch_creation::{BranchCreateError, BranchCreateErrorClass};
+pub use committed_version::CommittedVersionSummary;
 pub use merge_branch_basis::{
     MergeBaseSelectionRule, RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial,
     ResolvedMergeBase,

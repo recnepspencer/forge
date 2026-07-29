@@ -97,10 +97,10 @@ pub mod history {
         AspectHistoryLineageEventSpan, AspectHistoryOrigin, AspectHistoryQueryResult,
         AspectHistoryResolutionTrace, AspectResolutionContext, BranchCreateError,
         BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
-        HistoryAspectQueryTarget, HistoryDriftClass, HistoryRetentionClass,
-        HistoryShapeClassification, LineageAspectHistory, LineageAspectHistoryQueryResult,
-        LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
-        VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
+        CommittedVersionSummary, HistoryAspectQueryTarget, HistoryDriftClass,
+        HistoryRetentionClass, HistoryShapeClassification, LineageAspectHistory,
+        LineageAspectHistoryQueryResult, LineageAspectResolutionDigest, MergeConflictRecord,
+        MergeInspection, OrderedParentList, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
     pub use crate::history::logic::{HistoryAccess, HistoryAuthority};
 }
@@ -245,8 +245,8 @@ pub mod runtime {
         RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
     };
     pub use crate::visibility::materialization::read_records::{
-        ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectRequirement,
-        ProjectionAspectScope,
+        AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead, ProjectionAspectFilter,
+        ProjectionAspectFilterMode, ProjectionAspectRequirement, ProjectionAspectScope,
     };
 }
 

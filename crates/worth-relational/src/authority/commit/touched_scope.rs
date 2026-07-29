@@ -119,7 +119,7 @@ mod tests {
         let relation_id = RelationId::new(relation_partition_id, slot as u64, generation);
 
         let mut source_adjacency = AdjacencySet::new(&adjacency_policy);
-        source_adjacency.insert(relation_id);
+        source_adjacency.insert(KindId(9), relation_id);
 
         let mut partitions = BTreeMap::new();
         partitions.insert(
@@ -204,7 +204,7 @@ mod tests {
         let relation_id = RelationId::new(relation_partition_id, slot as u64, generation);
 
         let mut source_adjacency = AdjacencySet::new(&adjacency_policy);
-        source_adjacency.insert(relation_id);
+        source_adjacency.insert(KindId(9), relation_id);
 
         let mut partitions = BTreeMap::new();
         partitions.insert(

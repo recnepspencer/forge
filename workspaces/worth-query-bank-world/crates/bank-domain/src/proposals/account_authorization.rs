@@ -9,6 +9,20 @@ pub struct BankAccountAuthorization {
 }
 
 impl BankAccountAuthorization {
+    pub const fn from_projection(
+        id: AccountAuthorizationId,
+        account: AccountId,
+        principal: BankPrincipalId,
+        role: CustomerRole,
+    ) -> Self {
+        Self {
+            id,
+            account,
+            principal,
+            role,
+        }
+    }
+
     pub(crate) const fn new(
         id: AccountAuthorizationId,
         account: AccountId,

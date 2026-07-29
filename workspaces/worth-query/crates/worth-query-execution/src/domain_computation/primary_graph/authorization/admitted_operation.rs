@@ -14,9 +14,22 @@ use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
 
 use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
 
-pub(super) struct WorthQueryAuthorizationRequirementEvidence {
-    pub(super) relational: RelationalAuthorizationObservationEvidence,
-    pub(super) bridge: BridgeAuthorizationDecisionEvidence,
+static NEXT_OPERATION_ADMISSION_IDENTITY: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(1);
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(in crate::domain_computation::primary_graph) struct WorthQueryOperationAdmissionIdentity(u64);
+
+impl WorthQueryOperationAdmissionIdentity {
+    fn mint() -> Self {
+        Self(NEXT_OPERATION_ADMISSION_IDENTITY.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    }
+}
+
+pub(in crate::domain_computation::primary_graph) struct WorthQueryAuthorizationCommitDependency {
+    pub(in crate::domain_computation::primary_graph) relational:
+        RelationalAuthorizationObservationEvidence,
+    pub(in crate::domain_computation::primary_graph) bridge: BridgeAuthorizationDecisionEvidence,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -46,14 +59,20 @@ impl WorthQueryOperationScopeFingerprint {
 ///     serde_json::from_str("{}").unwrap();
 /// ```
 pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope> {
+    runtime_authority:
+        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
     binding_identity: ApplicationSchemaBindingIdentity,
     operation: String,
     operation_authority_identity: String,
+    admission_identity: WorthQueryOperationAdmissionIdentity,
     operation_scope_fingerprint: WorthQueryOperationScopeFingerprint,
+    scope_entity_id: worth_relational::facade::identity::EntityId,
+    scope_entity_kind: worth_relational::facade::identity::KindId,
+    scope_entity_name: String,
     authentication_valid_until: Instant,
     request_scope: WorthQueryRequestScope,
     contracts: WorthQueryCompiledApplicationOperationContracts,
-    requirements: Vec<WorthQueryAuthorizationRequirementEvidence>,
+    requirements: Vec<WorthQueryAuthorizationCommitDependency>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
 }
 
@@ -61,20 +80,29 @@ impl<Schema, Operation, Input, Scope>
     WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>
 {
     pub(super) fn mint(
+        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         operation: String,
         operation_authority_identity: String,
         operation_scope_fingerprint: WorthQueryOperationScopeFingerprint,
+        scope_entity_id: worth_relational::facade::identity::EntityId,
+        scope_entity_kind: worth_relational::facade::identity::KindId,
+        scope_entity_name: String,
         authentication_valid_until: Instant,
         request_scope: WorthQueryRequestScope,
         contracts: WorthQueryCompiledApplicationOperationContracts,
-        requirements: Vec<WorthQueryAuthorizationRequirementEvidence>,
+        requirements: Vec<WorthQueryAuthorizationCommitDependency>,
     ) -> Self {
         Self {
+            runtime_authority,
             binding_identity,
             operation,
             operation_authority_identity,
+            admission_identity: WorthQueryOperationAdmissionIdentity::mint(),
             operation_scope_fingerprint,
+            scope_entity_id,
+            scope_entity_kind,
+            scope_entity_name,
             authentication_valid_until,
             request_scope,
             contracts,
@@ -85,6 +113,62 @@ impl<Schema, Operation, Input, Scope>
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
         &self.binding_identity
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn belongs_to(
+        &self,
+        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+    ) -> bool {
+        self.runtime_authority == runtime_authority && &self.binding_identity == binding_identity
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn validate_projection_authority(
+        &self,
+        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        if self.runtime_authority != runtime_authority {
+            return Err(WorthQueryOperationAuthorizationDenial::new(
+                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
+                &self.operation,
+            ));
+        }
+        if &self.binding_identity != binding_identity {
+            return Err(WorthQueryOperationAuthorizationDenial::new(
+                WorthQueryOperationAuthorizationDenialKind::StaleInstalledSchema,
+                &self.operation,
+            ));
+        }
+        self.validate_current_authority()
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn runtime_authority(
+        &self,
+    ) -> crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity {
+        self.runtime_authority
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn admission_identity(
+        &self,
+    ) -> WorthQueryOperationAdmissionIdentity {
+        self.admission_identity
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn scope_entity_id(
+        &self,
+    ) -> worth_relational::facade::identity::EntityId {
+        self.scope_entity_id
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn scope_entity_kind(
+        &self,
+    ) -> worth_relational::facade::identity::KindId {
+        self.scope_entity_kind
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn scope_entity_name(&self) -> &str {
+        &self.scope_entity_name
     }
 
     pub fn operation(&self) -> &str {
@@ -132,6 +216,25 @@ impl<Schema, Operation, Input, Scope>
                     + counters.fields_depended_on
             })
             .sum()
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn take_authorization_dependencies(
+        &mut self,
+        bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
+    ) -> Result<Vec<WorthQueryAuthorizationCommitDependency>, WorthQueryOperationAuthorizationDenial>
+    {
+        if self.requirements.iter().any(|requirement| {
+            !bridge.retains(&requirement.bridge)
+                || requirement.bridge.dependency_identity()
+                    != requirement.relational.observation_identity().bytes()
+                || !requirement.bridge.is_allowed()
+        }) {
+            return Err(WorthQueryOperationAuthorizationDenial::new(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                &self.operation,
+            ));
+        }
+        Ok(std::mem::take(&mut self.requirements))
     }
 
     /// Descriptive fingerprint of the exact installed operation authority

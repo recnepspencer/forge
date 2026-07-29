@@ -13,6 +13,57 @@ pub(crate) fn validate_proposed_snapshot(
     basis: &BankSnapshot,
     proposed: &BankSnapshot,
 ) -> Result<BankInvariantWitness, BankProposalDenial> {
+    validate_proposed_snapshot_for_accounts(
+        basis,
+        proposed,
+        proposed.accounts().map(|account| account.id()),
+    )
+}
+
+pub(crate) fn validate_proposed_decision_snapshot(
+    basis: &BankSnapshot,
+    proposed: &BankSnapshot,
+    required_balance_accounts: impl IntoIterator<Item = crate::model::AccountId>,
+    starting_balances: std::collections::BTreeMap<
+        crate::model::AccountId,
+        crate::model::SignedMoney<crate::model::USD>,
+    >,
+) -> Result<BankInvariantWitness, BankProposalDenial> {
+    validate_proposed_snapshot_for_accounts(basis, proposed, std::iter::empty())?;
+    let appended = proposed
+        .journal()
+        .get(basis.journal().len()..)
+        .ok_or(BankProposalDenial::SnapshotInvariantViolated)?;
+    for account_id in required_balance_accounts {
+        let account = proposed
+            .account(account_id)
+            .ok_or(BankProposalDenial::SnapshotInvariantViolated)?;
+        let starting = starting_balances
+            .get(&account_id)
+            .copied()
+            .ok_or(BankProposalDenial::SnapshotInvariantViolated)?;
+        let delta = account_balance(appended, account_id)
+            .map_err(|_| BankProposalDenial::ArithmeticOverflow)?;
+        let balance = starting
+            .minor_units()
+            .checked_add(delta.minor_units())
+            .ok_or(BankProposalDenial::ArithmeticOverflow)?;
+        if matches!(
+            account.kind(),
+            AccountKind::Personal | AccountKind::Business
+        ) && balance < 0
+        {
+            return Err(BankProposalDenial::InsufficientFunds(account_id));
+        }
+    }
+    Ok(BankInvariantWitness { _private: () })
+}
+
+fn validate_proposed_snapshot_for_accounts(
+    basis: &BankSnapshot,
+    proposed: &BankSnapshot,
+    required_balance_accounts: impl IntoIterator<Item = crate::model::AccountId>,
+) -> Result<BankInvariantWitness, BankProposalDenial> {
     if !basis.has_valid_topology()
         || !proposed.has_valid_topology()
         || !proposed.journal().starts_with(basis.journal())
@@ -43,16 +94,19 @@ pub(crate) fn validate_proposed_snapshot(
         }
     }
 
-    for account in proposed.accounts() {
+    for account_id in required_balance_accounts {
+        let account = proposed
+            .account(account_id)
+            .ok_or(BankProposalDenial::SnapshotInvariantViolated)?;
         if matches!(
             account.kind(),
             AccountKind::Personal | AccountKind::Business
-        ) && account_balance(proposed.journal(), account.id())
+        ) && account_balance(proposed.journal(), account_id)
             .map_err(|_| BankProposalDenial::ArithmeticOverflow)?
             .minor_units()
             < 0
         {
-            return Err(BankProposalDenial::InsufficientFunds(account.id()));
+            return Err(BankProposalDenial::InsufficientFunds(account_id));
         }
     }
 
@@ -64,7 +118,8 @@ mod tests {
     use super::*;
     use crate::accounting::{BankJournalEntry, BankPosting};
     use crate::model::{
-        AccountId, AccountName, BankPrincipalId, BankSnapshotVersion, InstitutionId, SignedMoney,
+        AccountId, AccountName, BankPrincipalId, BankSnapshotVersion, InstitutionId,
+        JournalEntryId, PostingId, SignedMoney,
     };
     use crate::proposals::BankSnapshotBuilder;
     use crate::schema::{AccountStatus, PostingPurpose};
@@ -85,13 +140,11 @@ mod tests {
             .unwrap();
 
         let mut partial = basis.clone();
-        let partial_journal = partial.allocate_journal_id().unwrap();
-        let partial_posting = partial.allocate_posting_id().unwrap();
         partial.append_journal(BankJournalEntry::new(
-            partial_journal,
+            JournalEntryId::new(1).unwrap(),
             PostingPurpose::Deposit,
             vec![BankPosting::new(
-                partial_posting,
+                PostingId::new(1).unwrap(),
                 AccountId::new(1).unwrap(),
                 SignedMoney::from_minor(10),
             )],
@@ -103,20 +156,17 @@ mod tests {
         ));
 
         let mut unbalanced = basis.clone();
-        let unbalanced_journal = unbalanced.allocate_journal_id().unwrap();
-        let first_posting = unbalanced.allocate_posting_id().unwrap();
-        let second_posting = unbalanced.allocate_posting_id().unwrap();
         unbalanced.append_journal(BankJournalEntry::new(
-            unbalanced_journal,
+            JournalEntryId::new(2).unwrap(),
             PostingPurpose::Deposit,
             vec![
                 BankPosting::new(
-                    first_posting,
+                    PostingId::new(2).unwrap(),
                     AccountId::new(1).unwrap(),
                     SignedMoney::from_minor(10),
                 ),
                 BankPosting::new(
-                    second_posting,
+                    PostingId::new(3).unwrap(),
                     AccountId::new(1).unwrap(),
                     SignedMoney::from_minor(-9),
                 ),

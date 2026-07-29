@@ -19,7 +19,7 @@ use super::super::{
     WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
-use super::admitted_operation::WorthQueryAuthorizationRequirementEvidence;
+use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeFingerprint,
@@ -104,10 +104,14 @@ where
             ));
         }
         Ok(WorthQueryAdmittedApplicationOperation::mint(
+            self.runtime.authority_identity(),
             operation.binding_identity().clone(),
             operation.operation().to_string(),
             operation.authority_identity().to_string(),
             operation_scope_fingerprint(self, principal, scope_identity, operation),
+            scope_identity.entity_id(),
+            scope_identity.entity_kind(),
+            scope_identity.entity_name().to_string(),
             principal.valid_until(),
             request.clone(),
             operation.contracts().clone(),
@@ -122,10 +126,8 @@ where
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
         scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
         operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-    ) -> Result<
-        Vec<WorthQueryAuthorizationRequirementEvidence>,
-        WorthQueryOperationAuthorizationDenial,
-    > {
+    ) -> Result<Vec<WorthQueryAuthorizationCommitDependency>, WorthQueryOperationAuthorizationDenial>
+    {
         let mut admitted = Vec::with_capacity(operation.contracts().ability_requirements().len());
         for requirement in operation.contracts().ability_requirements() {
             if requirement.scope_entity() != scope_identity.entity_name() {
@@ -222,7 +224,7 @@ where
                 dependency_identity,
                 requirement.policy(),
             )?;
-            admitted.push(WorthQueryAuthorizationRequirementEvidence {
+            admitted.push(WorthQueryAuthorizationCommitDependency {
                 relational: evidence,
                 bridge,
             });

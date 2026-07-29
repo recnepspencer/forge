@@ -1,0 +1,204 @@
+use super::truth_record_access::sort_authoritative_relation_records;
+use super::*;
+
+#[derive(Debug)]
+pub struct BoundedAdjacencyTruthRead {
+    records: Vec<RelationReadRecord>,
+    relation_records_examined: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AdjacencyTruthReadLimitExceeded {
+    relation_records_examined: usize,
+    endpoint_records_reserved: usize,
+}
+
+impl<'runtime> VisibilityReadContext<'runtime> {
+    pub fn outgoing_relations_of_kind_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<RelationReadRecord> {
+        self.bounded_relations_of_kind_at_version(
+            entity_id,
+            kind_id,
+            version_id,
+            AdjacencyDirection::Outgoing,
+            usize::MAX,
+        )
+        .expect("an unbounded adjacency read cannot exhaust usize::MAX work")
+        .into_records()
+    }
+
+    pub fn incoming_relations_of_kind_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<RelationReadRecord> {
+        self.bounded_relations_of_kind_at_version(
+            entity_id,
+            kind_id,
+            version_id,
+            AdjacencyDirection::Incoming,
+            usize::MAX,
+        )
+        .expect("an unbounded adjacency read cannot exhaust usize::MAX work")
+        .into_records()
+    }
+
+    pub fn bounded_outgoing_relations_of_kind_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+        maximum_work_units: usize,
+    ) -> Result<BoundedAdjacencyTruthRead, AdjacencyTruthReadLimitExceeded> {
+        self.bounded_relations_of_kind_at_version(
+            entity_id,
+            kind_id,
+            version_id,
+            AdjacencyDirection::Outgoing,
+            maximum_work_units,
+        )
+    }
+
+    pub fn bounded_incoming_relations_of_kind_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+        maximum_work_units: usize,
+    ) -> Result<BoundedAdjacencyTruthRead, AdjacencyTruthReadLimitExceeded> {
+        self.bounded_relations_of_kind_at_version(
+            entity_id,
+            kind_id,
+            version_id,
+            AdjacencyDirection::Incoming,
+            maximum_work_units,
+        )
+    }
+
+    fn bounded_relations_of_kind_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+        direction: AdjacencyDirection,
+        maximum_work_units: usize,
+    ) -> Result<BoundedAdjacencyTruthRead, AdjacencyTruthReadLimitExceeded> {
+        let storage = self.runtime.storage_access();
+        let slot = entity_id.slot_index();
+        let current_version = version_id == self.runtime.current_version_id();
+        let relation_ids = storage
+            .partition_state(entity_id.partition_id)
+            .and_then(|partition| match direction {
+                AdjacencyDirection::Outgoing => partition.adjacency.get(slot),
+                AdjacencyDirection::Incoming => partition.reverse_adjacency.get(slot),
+            })
+            .map(|adjacency| {
+                if current_version {
+                    adjacency.current_kind_slice(kind_id)
+                } else {
+                    adjacency.historical_kind_slice(kind_id)
+                }
+            })
+            .unwrap_or_default();
+        let mut records = Vec::new();
+        let mut work_units = 0_usize;
+        let mut relation_records_examined = 0_usize;
+        for relation_id in relation_ids.iter().copied() {
+            if work_units == maximum_work_units {
+                return Err(AdjacencyTruthReadLimitExceeded::new(
+                    relation_records_examined,
+                    records.len(),
+                ));
+            }
+            work_units += 1;
+            relation_records_examined += 1;
+            let Some(record) =
+                self.authoritative_relation_record_at_version(relation_id, version_id)
+            else {
+                continue;
+            };
+            if record.kind.kind_id != kind_id
+                || record.lifecycle != crate::storage::data::RecordLifecycleState::Live
+                || !direction.matches_endpoint(&record, entity_id)
+            {
+                continue;
+            }
+            if work_units == maximum_work_units {
+                return Err(AdjacencyTruthReadLimitExceeded::new(
+                    relation_records_examined,
+                    records.len(),
+                ));
+            }
+            work_units += 1;
+            records.push(record);
+        }
+        sort_authoritative_relation_records(&mut records);
+        Ok(BoundedAdjacencyTruthRead {
+            records,
+            relation_records_examined,
+        })
+    }
+}
+
+impl BoundedAdjacencyTruthRead {
+    pub const fn relation_records_examined(&self) -> usize {
+        self.relation_records_examined
+    }
+
+    pub const fn endpoint_records_reserved(&self) -> usize {
+        self.records.len()
+    }
+
+    pub const fn work_units(&self) -> usize {
+        self.relation_records_examined + self.records.len()
+    }
+
+    pub fn into_records(self) -> Vec<RelationReadRecord> {
+        self.records
+    }
+}
+
+impl AdjacencyTruthReadLimitExceeded {
+    const fn new(relation_records_examined: usize, endpoint_records_reserved: usize) -> Self {
+        Self {
+            relation_records_examined,
+            endpoint_records_reserved,
+        }
+    }
+
+    pub const fn relation_records_examined(self) -> usize {
+        self.relation_records_examined
+    }
+
+    pub const fn endpoint_records_reserved(self) -> usize {
+        self.endpoint_records_reserved
+    }
+
+    pub const fn consumed_work_units(self) -> usize {
+        self.relation_records_examined + self.endpoint_records_reserved
+    }
+}
+
+#[derive(Clone, Copy)]
+enum AdjacencyDirection {
+    Outgoing,
+    Incoming,
+}
+
+impl AdjacencyDirection {
+    fn matches_endpoint(
+        self,
+        record: &RelationReadRecord,
+        entity_id: crate::identity::data::EntityId,
+    ) -> bool {
+        match self {
+            Self::Outgoing => record.source == entity_id,
+            Self::Incoming => record.target == entity_id,
+        }
+    }
+}

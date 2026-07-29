@@ -3,7 +3,9 @@ use worth_query_decl::facade::worth_query_application_schema;
 use crate::authorization::*;
 
 use super::authentication::*;
+use super::decision_read_manifest::install_operation_decision_reads;
 use super::entities::*;
+use super::estate::install_estate_world;
 use super::fields::*;
 use super::governance::*;
 use super::operations::*;
@@ -28,7 +30,6 @@ worth_query_application_schema! {
                 .entity(Approval::reference())
                 .entity(JournalEntry::reference())
                 .entity(Posting::reference())
-                .entity(IdempotencyRecord::reference())
                 .aspect(
                     ExternalPrincipalMapping::reference(),
                     ExternalPrincipalIdentity::reference(),
@@ -47,9 +48,17 @@ worth_query_application_schema! {
                     AccountAuthorization::reference(),
                     AuthorizationScope::reference(),
                 )
+                .aspect(
+                    AccountAuthorization::reference(),
+                    AuthorizationIdentity::reference(),
+                )
                 .aspect(EmployeeAssignment::reference(), EmployeeScope::reference())
                 .aspect(Posting::reference(), PostingValue::reference())
+                .aspect(Posting::reference(), PostingIdentity::reference())
+                .aspect(JournalEntry::reference(), JournalIdentity::reference())
+                .aspect(JournalEntry::reference(), JournalState::reference())
                 .aspect(PaymentIntent::reference(), PaymentState::reference())
+                .aspect(PaymentIntent::reference(), PaymentValue::reference())
                 .field(
                     ExternalPrincipalMapping::reference(),
                     ExternalIdentityKey::reference(),
@@ -71,22 +80,31 @@ worth_query_application_schema! {
                 )
                 .field(Account::reference(), AccountDisplayName::reference())
                 .field(Account::reference(), Kind::reference())
-                .field(Account::reference(), AvailableBalance::reference())
+                .field(Account::reference(), AccountingRevision::reference())
                 .field(Account::reference(), Status::reference())
                 .field(
                     AccountAuthorization::reference(),
                     AuthorizationRole::reference(),
                 )
                 .field(
+                    AccountAuthorization::reference(),
+                    AccountAuthorizationIdentity::reference(),
+                )
+                .field(
                     EmployeeAssignment::reference(),
                     AssignmentRole::reference(),
                 )
                 .field(Posting::reference(), PostingAmount::reference())
+                .field(Posting::reference(), PostingAccountSequence::reference())
+                .field(Posting::reference(), PostingIdentityField::reference())
                 .field(Posting::reference(), Purpose::reference())
+                .field(JournalEntry::reference(), JournalIdentityField::reference())
+                .field(JournalEntry::reference(), JournalPurpose::reference())
                 .field(
                     PaymentIntent::reference(),
                     PaymentStatusField::reference(),
                 )
+                .field(PaymentIntent::reference(), PaymentAmount::reference())
                 .relation(
                     ExternalPrincipal::reference(),
                     ExternalPrincipalMapping::reference(),
@@ -138,6 +156,11 @@ worth_query_application_schema! {
                     Account::reference(),
                 )
                 .relation(
+                    InstitutionCashAccount::reference(),
+                    Institution::reference(),
+                    Account::reference(),
+                )
+                .relation(
                     PaymentSource::reference(),
                     PaymentIntent::reference(),
                     Account::reference(),
@@ -146,6 +169,11 @@ worth_query_application_schema! {
                     PaymentDestination::reference(),
                     PaymentIntent::reference(),
                     Account::reference(),
+                )
+                .relation(
+                    PaymentBusiness::reference(),
+                    PaymentIntent::reference(),
+                    Business::reference(),
                 )
                 .relation(
                     PaymentInitiator::reference(),
@@ -168,16 +196,23 @@ worth_query_application_schema! {
                     Posting::reference(),
                 )
                 .relation(
+                    JournalReversal::reference(),
+                    JournalEntry::reference(),
+                    JournalEntry::reference(),
+                )
+                .relation(
                     PostingAccount::reference(),
                     Posting::reference(),
                     Account::reference(),
                 )
                 .principal_binding(BankPrincipalBinding::reference())
                 .ability(OpenAccount::reference())
-                .ability(ViewPersonalAccount::reference())
+                .ability(DiscoverOwnAccounts::reference())
+                .ability(ViewAccount::reference())
+                .ability(ViewAccountAccess::reference())
+                .ability(ViewPayment::reference())
                 .ability(SendPersonalFunds::reference())
                 .ability(ManageAccountAccess::reference())
-                .ability(ViewBusinessAccount::reference())
                 .ability(InitiateBusinessFunds::reference())
                 .ability(ApproveBusinessFunds::reference())
                 .ability(ServiceInstitutionAccount::reference())
@@ -193,8 +228,17 @@ worth_query_application_schema! {
                 .operation(RejectPaymentOperation::reference())
                 .operation(GrantAccountAuthorizationOperation::reference())
                 .operation(RevokeAccountAuthorizationOperation::reference())
-                .operation(ReverseJournalOperation::reference());
-            let schema = install_operation_program(schema)
+                .operation(ReverseJournalOperation::reference())
+                .operation(DiscoverAccountsOperation::reference())
+                .operation(ReadAccountSummaryOperation::reference())
+                .operation(ReadAccountDetailOperation::reference())
+                .operation(ReadAccountAuthorizedUsersOperation::reference())
+                .operation(ReadAccountActivityOperation::reference())
+                .operation(ReadPendingPaymentsOperation::reference())
+                .operation(ReadPaymentOperation::reference())
+                .operation(AuditInstitutionActivityOperation::reference());
+            let schema = install_estate_world(schema);
+            let schema = install_operation_decision_reads(install_operation_program(schema))
                 .policy(AccountVisibilityPolicy::reference())
                 .policy(AccountMutationScopePolicy::reference())
                 .policy(EmployeeScopePolicy::reference())
@@ -259,5 +303,34 @@ fn install_operation_abilities(
         .operation_requires_ability(
             ReverseJournalOperation::reference(),
             ServiceInstitutionAccount::reference(),
+        )
+        .operation_requires_ability(
+            DiscoverAccountsOperation::reference(),
+            DiscoverOwnAccounts::reference(),
+        )
+        .operation_requires_ability(
+            ReadAccountSummaryOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_requires_ability(
+            ReadAccountDetailOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_requires_ability(
+            ReadAccountAuthorizedUsersOperation::reference(),
+            ViewAccountAccess::reference(),
+        )
+        .operation_requires_ability(
+            ReadAccountActivityOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_requires_ability(
+            ReadPendingPaymentsOperation::reference(),
+            DiscoverOwnAccounts::reference(),
+        )
+        .operation_requires_ability(ReadPaymentOperation::reference(), ViewPayment::reference())
+        .operation_requires_ability(
+            AuditInstitutionActivityOperation::reference(),
+            AuditInstitution::reference(),
         )
 }

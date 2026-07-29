@@ -61,22 +61,40 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
             "entity:{}:{}:{}",
             entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
         );
-        let resolution = self
-            .runtime
-            .lineage_access()
-            .resolve_record_history(RecordHistoryRequest {
-                branch_id,
-                entity_id,
-                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
-            })
-            .ok_or_else(|| {
-                BridgeLineageSourceError::new(
-                    BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                    format!(
-                        "bridge continuity lineage adapter could not resolve record history for `{}`",
-                        entity_label
-                    ),
+        let (resolution, visible_entities) = self.runtime.with_runtime(|runtime| {
+                let resolution = runtime
+                    .lineage_access()
+                    .resolve_record_history(RecordHistoryRequest {
+                        branch_id,
+                        entity_id,
+                        boundedness_basis:
+                            HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+                    })
+                    .ok_or_else(|| {
+                        BridgeLineageSourceError::new(
+                            BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                            format!(
+                                "bridge continuity lineage adapter could not resolve record history for `{entity_label}`"
+                            ),
+                        )
+                    })?;
+                let snapshot_version_id = resolve_snapshot_version(
+                    runtime,
+                    request.authority_basis().snapshot_identity(),
                 )
+                .map_err(|error| {
+                    BridgeLineageSourceError::new(
+                        BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                        error.to_string(),
+                    )
+                })?;
+                let visible_entities = runtime
+                    .lineage_access()
+                    .visible_entity_ids_for_lineages_at_version(
+                        &resolution.resolved,
+                        snapshot_version_id,
+                    );
+                Ok((resolution, visible_entities))
             })?;
         let mut canonical_resolved_lineage_identities = resolution
             .resolved
@@ -88,18 +106,7 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
         canonical_resolved_lineage_identities.sort_unstable();
         canonical_resolved_lineage_identities.dedup();
 
-        let snapshot_version_id =
-            resolve_snapshot_version(&self.runtime, request.authority_basis().snapshot_identity())
-                .map_err(|error| {
-                    BridgeLineageSourceError::new(
-                        BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                        error.to_string(),
-                    )
-                })?;
-        let mut canonical_resolved_record_identities = self
-            .runtime
-            .lineage_access()
-            .visible_entity_ids_for_lineages_at_version(&resolution.resolved, snapshot_version_id)
+        let mut canonical_resolved_record_identities = visible_entities
             .into_iter()
             .filter(|entity_id| self.admits_relational_partition(entity_id.partition_id.as_u32()))
             .map(|entity_id| {

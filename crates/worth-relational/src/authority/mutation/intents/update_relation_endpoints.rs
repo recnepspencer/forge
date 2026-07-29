@@ -77,6 +77,7 @@ pub(super) fn apply(
                 &[
                     AdjacencyDelta {
                         relation_id: intent.relation_id,
+                        kind_id,
                         kind: AdjacencyDeltaKind::Deleted {
                             source: old_endpoints.source,
                             target: old_endpoints.target,
@@ -84,6 +85,7 @@ pub(super) fn apply(
                     },
                     AdjacencyDelta {
                         relation_id: intent.relation_id,
+                        kind_id,
                         kind: AdjacencyDeltaKind::Created { source, target },
                     },
                 ],

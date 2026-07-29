@@ -23,7 +23,7 @@ impl WorthQueryManagedTruthReadRequest {
             relational_version_id,
             branch,
             packet,
-            replay_mode: BridgeReplayMode::Enabled,
+            replay_mode: BridgeReplayMode::Disabled,
             diagnostics_tier: BridgeDiagnosticsTier::Standard,
             delivery_intent: BridgeDeliveryIntent::PrepareSignalEvaluation,
         }
@@ -62,5 +62,24 @@ impl WorthQueryManagedTruthReadRequest {
             self.diagnostics_tier,
             self.delivery_intent,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use worth_runtime_bridge::facade::{BridgeReplayMode, SnapshotReadPacket, TruthBranchIdentity};
+
+    use super::WorthQueryManagedTruthReadRequest;
+
+    #[test]
+    fn ordinary_managed_truth_requests_disable_replay_by_default() {
+        let (_, _, _, replay, _, _) = WorthQueryManagedTruthReadRequest::new(
+            worth_relational::facade::identity::VersionId(7),
+            TruthBranchIdentity::from_relational_branch_id("main"),
+            SnapshotReadPacket::new(Vec::new()),
+        )
+        .into_parts();
+
+        assert_eq!(replay, BridgeReplayMode::Disabled);
     }
 }

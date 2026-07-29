@@ -1,0 +1,354 @@
+use std::time::Duration;
+
+use super::fixture::{
+    installed_authorization_world, live_scope, AccountStatus, TouchAccountOperation,
+};
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationIdempotencyBinding,
+    WorthQueryPrincipalResolutionMode,
+};
+#[path = "application_attempt/authority_lifecycle.rs"]
+mod authority_lifecycle;
+#[path = "application_attempt/authorization_causality.rs"]
+mod authorization_causality;
+#[path = "application_attempt/decision_adjacency.rs"]
+mod decision_adjacency;
+#[path = "application_attempt/effect_authority.rs"]
+mod effect_authority;
+#[path = "application_attempt/emitted_effects.rs"]
+mod emitted_effects;
+#[path = "application_attempt/terminal_failures.rs"]
+mod terminal_failures;
+#[path = "application_attempt/touched_graph_closure.rs"]
+mod touched_graph_closure;
+
+#[test]
+fn same_fact_race_stales_loser_while_unrelated_drift_does_not_conflict() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let unrelated = resolved_account(&world, "unrelated", &request);
+
+    let first = admitted_program(&world, &principal, &account, &request, "first");
+    let losing = admitted_program(&world, &principal, &account, &request, "losing");
+    let unrelated_program =
+        admitted_program(&world, &principal, &unrelated, &request, "unrelated-after");
+
+    let unrelated_outcome = world
+        .application
+        .compare_and_commit_application(unrelated_program, idempotency(1, 1));
+    assert!(
+        matches!(
+            unrelated_outcome,
+            WorthQueryApplicationCommitOutcome::Committed(_)
+        ),
+        "unexpected unrelated outcome: {unrelated_outcome:?}"
+    );
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(first, idempotency(2, 2)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    let WorthQueryApplicationCommitOutcome::Stale(stale) = world
+        .application
+        .compare_and_commit_application(losing, idempotency(3, 3))
+    else {
+        panic!("the second same-fact attempt must be stale");
+    };
+    assert_eq!(stale.stale_fact_count(), 1);
+}
+
+#[test]
+fn equivalent_retry_recovers_original_receipt_while_intent_drift_is_denied() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program(&world, &principal, &account, &request, "committed");
+    let retry = admitted_program(&world, &principal, &account, &request, "committed");
+    let drift = admitted_program(&world, &principal, &account, &request, "different");
+
+    let WorthQueryApplicationCommitOutcome::Committed(original) = world
+        .application
+        .compare_and_commit_application(first, idempotency(9, 7))
+    else {
+        panic!("the first idempotent application attempt must commit");
+    };
+    let WorthQueryApplicationCommitOutcome::AlreadyCommitted(recovered) = world
+        .application
+        .compare_and_commit_application(retry, idempotency(9, 7))
+    else {
+        panic!("an equivalent retry must recover the original commit");
+    };
+    assert_eq!(recovered, original);
+
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
+        .application
+        .compare_and_commit_application(drift, idempotency(9, 8))
+    else {
+        panic!("reusing a key for another intent must be denied");
+    };
+    assert_eq!(
+        denial.kind(),
+        crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift
+    );
+}
+
+#[test]
+fn concurrent_equivalent_attempts_publish_one_transaction() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program(&world, &principal, &account, &request, "once");
+    let second = admitted_program(&world, &principal, &account, &request, "once");
+
+    let (left, right) = std::thread::scope(|scope| {
+        let left = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(first, idempotency(12, 12))
+        });
+        let right = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(second, idempotency(12, 12))
+        });
+        (left.join().unwrap(), right.join().unwrap())
+    });
+    let receipts = [left, right]
+        .into_iter()
+        .map(|outcome| match outcome {
+            WorthQueryApplicationCommitOutcome::Committed(receipt)
+            | WorthQueryApplicationCommitOutcome::AlreadyCommitted(receipt) => receipt,
+            unexpected => panic!("unexpected concurrent outcome: {unexpected:?}"),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(receipts[0], receipts[1]);
+}
+
+#[test]
+fn concurrent_independent_attempts_both_commit() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let first_account = resolved_account(&world, "open", &request);
+    let second_account = resolved_account(&world, "unrelated", &request);
+    let first = admitted_program(
+        &world,
+        &principal,
+        &first_account,
+        &request,
+        "first-independent",
+    );
+    let second = admitted_program(
+        &world,
+        &principal,
+        &second_account,
+        &request,
+        "second-independent",
+    );
+
+    let (left, right) = std::thread::scope(|scope| {
+        let left = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(first, idempotency(13, 13))
+        });
+        let right = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(second, idempotency(14, 14))
+        });
+        (left.join().unwrap(), right.join().unwrap())
+    });
+    assert!(matches!(
+        left,
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    assert!(matches!(
+        right,
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+}
+
+#[test]
+fn response_loss_resolves_the_published_commit_before_returning() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program(&world, &principal, &account, &request, "published");
+    let retry = admitted_program(&world, &principal, &account, &request, "published");
+
+    world.application.lose_next_commit_response();
+    let WorthQueryApplicationCommitOutcome::Committed(first_receipt) = world
+        .application
+        .compare_and_commit_application(first, idempotency(15, 15))
+    else {
+        panic!("authoritative idempotency must prove the response-lost commit");
+    };
+    let WorthQueryApplicationCommitOutcome::AlreadyCommitted(receipt) = world
+        .application
+        .compare_and_commit_application(retry, idempotency(15, 15))
+    else {
+        panic!("retry must recover the transaction published before response loss");
+    };
+    assert_eq!(receipt, first_receipt);
+    assert!(receipt.changed_record_count() >= 2);
+}
+
+pub(super) fn idempotency(key: u8, intent: u8) -> WorthQueryApplicationIdempotencyBinding {
+    WorthQueryApplicationIdempotencyBinding::new([key; 32], [intent; 32])
+}
+
+pub(super) fn authenticated_principal(
+    world: &super::fixture::AuthorizationWorld,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+) -> crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
+    super::fixture::IdentityExecutionSchema,
+    super::fixture::Principal,
+    u64,
+> {
+    let external = world.authenticate("alice", Duration::from_secs(60), request);
+    world
+        .application
+        .resolve_authenticated_principal(
+            &world.binding,
+            external,
+            request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap()
+}
+
+pub(super) fn resolved_account(
+    world: &super::fixture::AuthorizationWorld,
+    status: &str,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+) -> crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
+    super::fixture::IdentityExecutionSchema,
+    super::fixture::Account,
+> {
+    world
+        .application
+        .resolve_entity(
+            AccountStatus::reference(),
+            status.to_string(),
+            request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap()
+}
+
+fn admitted_program(
+    world: &super::fixture::AuthorizationWorld,
+    principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
+        super::fixture::IdentityExecutionSchema,
+        super::fixture::Principal,
+        u64,
+    >,
+    account: &crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
+        super::fixture::IdentityExecutionSchema,
+        super::fixture::Account,
+    >,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    replacement: &str,
+) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
+    super::fixture::IdentityExecutionSchema,
+    TouchAccountOperation,
+    super::fixture::TouchAccountInput,
+    super::fixture::Account,
+> {
+    admitted_program_with_emit(world, principal, account, request, replacement, None)
+}
+
+fn admitted_program_with_emit(
+    world: &super::fixture::AuthorizationWorld,
+    principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
+        super::fixture::IdentityExecutionSchema,
+        super::fixture::Principal,
+        u64,
+    >,
+    account: &crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
+        super::fixture::IdentityExecutionSchema,
+        super::fixture::Account,
+    >,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    replacement: &str,
+    emission: Option<&str>,
+) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
+    super::fixture::IdentityExecutionSchema,
+    TouchAccountOperation,
+    super::fixture::TouchAccountInput,
+    super::fixture::Account,
+> {
+    admitted_program_with_emissions(world, principal, account, request, replacement, emission)
+}
+
+pub(super) fn admitted_program_with_emissions<'a>(
+    world: &super::fixture::AuthorizationWorld,
+    principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
+        super::fixture::IdentityExecutionSchema,
+        super::fixture::Principal,
+        u64,
+    >,
+    account: &crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
+        super::fixture::IdentityExecutionSchema,
+        super::fixture::Account,
+    >,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    replacement: &str,
+    emissions: impl IntoIterator<Item = &'a str>,
+) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
+    super::fixture::IdentityExecutionSchema,
+    TouchAccountOperation,
+    super::fixture::TouchAccountInput,
+    super::fixture::Account,
+> {
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(TouchAccountOperation::reference())
+        .unwrap();
+    let admission = world
+        .application
+        .authorize_operation(principal, account, &operation, request)
+        .unwrap();
+    let (_, projection, _) = world
+        .invariant
+        .project_admitted_operation(&admission, |reader, projected| {
+            reader
+                .require_decision_field(projected, AccountStatus::reference())
+                .unwrap();
+        })
+        .unwrap()
+        .into_parts();
+    let reads = world
+        .application
+        .begin_projected_application_read_attempt(admission, projection)
+        .unwrap();
+    let mut effects = reads
+        .complete_projected_dependencies()
+        .unwrap()
+        .begin_effect_program();
+    let account = effects.existing_entity(account).unwrap();
+    effects
+        .write_field(
+            &account,
+            AccountStatus::reference(),
+            replacement.to_string(),
+        )
+        .unwrap();
+    for payload in emissions {
+        effects
+            .emit(
+                super::fixture::AccountActivityEffect::reference(),
+                payload.to_owned(),
+            )
+            .unwrap();
+    }
+    effects.finish().unwrap()
+}

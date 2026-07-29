@@ -1,12 +1,15 @@
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 use worth_query_decl::facade::application_schema::{
-    TypedApplicationIdentityValue, TypedApplicationValue, TypedCurrencyApplicationValue,
+    TypedApplicationIdentityValue, TypedApplicationReadableValue, TypedApplicationValue,
+    TypedCurrencyApplicationValue,
 };
 
 use crate::model::{
-    AccountId, AccountName, BankPrincipalId, BusinessId, Currency, CustomerRole, EmployeeRole,
-    InstitutionId, Money, PaymentId, SignedMoney,
+    AccountAuthorizationId, AccountId, AccountJournalRevision, AccountName, BankPrincipalId,
+    BusinessId, Currency, CustomerRole, EmployeeRole, InstitutionId, JournalEntryId, Money,
+    PaymentId, PostingId, SignedMoney,
 };
+use crate::proposals::{BankIdempotencyIntent, BankIdempotencyKeyIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AccountKind {
@@ -53,6 +56,18 @@ macro_rules! string_application_value {
                 AspectValue::String(InternedString::from(value))
             }
         }
+
+        impl TypedApplicationReadableValue for $Type {
+            fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+                let AspectValue::String(InternedString::Raw(value)) = value else {
+                    return None;
+                };
+                match value.as_str() {
+                    $($value => Some($Variant),)+
+                    _ => None,
+                }
+            }
+        }
     };
 }
 
@@ -91,6 +106,10 @@ string_application_value!(CustomerRole, {
 string_application_value!(EmployeeRole, {
     EmployeeRole::Teller => "teller",
     EmployeeRole::Auditor => "auditor",
+    EmployeeRole::BranchManager => "branch-manager",
+    EmployeeRole::EstateSpecialist => "estate-specialist",
+    EmployeeRole::Compliance => "compliance",
+    EmployeeRole::Legal => "legal",
 });
 
 macro_rules! identity_application_value {
@@ -103,22 +122,68 @@ macro_rules! identity_application_value {
                     AspectValue::UInt64(self.get())
                 }
             }
+
+            impl TypedApplicationReadableValue for $Type {
+                fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+                    match value {
+                        AspectValue::UInt64(value) => <$Type>::new(*value),
+                        _ => None,
+                    }
+                }
+            }
         )+
     };
 }
 
-identity_application_value!(
+identity_application_value!(BankPrincipalId, BusinessId, InstitutionId,);
+
+impl TypedApplicationIdentityValue for BankPrincipalId {}
+
+macro_rules! created_identity_application_value {
+    ($($Type:ty),+ $(,)?) => {
+        $(
+            impl TypedApplicationValue for $Type {
+                const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::String;
+
+                fn into_foundational_value(self) -> AspectValue {
+                    AspectValue::String(InternedString::from(self.canonical_text()))
+                }
+            }
+
+            impl TypedApplicationReadableValue for $Type {
+                fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+                    match value {
+                        AspectValue::String(InternedString::Raw(value)) => {
+                            <$Type>::from_canonical_text(value)
+                        }
+                        _ => None,
+                    }
+                }
+            }
+        )+
+    };
+}
+
+created_identity_application_value!(
     AccountId,
-    BankPrincipalId,
-    BusinessId,
-    InstitutionId,
-    PaymentId
+    AccountAuthorizationId,
+    PaymentId,
+    JournalEntryId,
+    PostingId,
 );
 
-impl TypedApplicationIdentityValue for BankPrincipalId {
+impl TypedApplicationValue for AccountJournalRevision {
+    const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::UInt64;
+
+    fn into_foundational_value(self) -> AspectValue {
+        AspectValue::UInt64(self.get())
+    }
+}
+
+impl TypedApplicationReadableValue for AccountJournalRevision {
     fn from_foundational_value(value: &AspectValue) -> Option<Self> {
         match value {
-            AspectValue::UInt64(value) => BankPrincipalId::new(*value),
+            AspectValue::UInt64(value) => Some(AccountJournalRevision::from_posting_count(*value)),
             _ => None,
         }
     }
@@ -132,11 +197,29 @@ impl TypedApplicationValue for AccountName {
     }
 }
 
+impl TypedApplicationReadableValue for AccountName {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+        match value {
+            AspectValue::String(InternedString::Raw(value)) => AccountName::new(value.clone()).ok(),
+            _ => None,
+        }
+    }
+}
+
 impl<C: Currency> TypedApplicationValue for Money<C> {
     const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::Int64;
 
     fn into_foundational_value(self) -> AspectValue {
         AspectValue::Int64(self.minor_units())
+    }
+}
+
+impl<C: Currency> TypedApplicationReadableValue for Money<C> {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+        match value {
+            AspectValue::Int64(value) => Money::from_minor(*value).ok(),
+            _ => None,
+        }
     }
 }
 
@@ -152,6 +235,50 @@ impl<C: Currency> TypedApplicationValue for SignedMoney<C> {
     }
 }
 
+impl<C: Currency> TypedApplicationReadableValue for SignedMoney<C> {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+        match value {
+            AspectValue::Int64(value) => Some(SignedMoney::from_minor(*value)),
+            _ => None,
+        }
+    }
+}
+
+impl<C: Currency> worth_query_decl::facade::application_schema::TypedApplicationSignedAggregateValue
+    for SignedMoney<C>
+{
+    fn from_aggregate_i64(value: i64) -> Self {
+        SignedMoney::from_minor(value)
+    }
+}
+
 impl<C: Currency> TypedCurrencyApplicationValue for SignedMoney<C> {
     type Currency = C;
 }
+
+macro_rules! idempotency_application_value {
+    ($($Type:ty),+ $(,)?) => {
+        $(
+            impl TypedApplicationValue for $Type {
+                const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::String;
+
+                fn into_foundational_value(self) -> AspectValue {
+                    AspectValue::String(InternedString::from(self.canonical_text()))
+                }
+            }
+
+            impl TypedApplicationReadableValue for $Type {
+                fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+                    match value {
+                        AspectValue::String(InternedString::Raw(value)) => {
+                            <$Type>::from_canonical_text(value)
+                        }
+                        _ => None,
+                    }
+                }
+            }
+        )+
+    };
+}
+
+idempotency_application_value!(BankIdempotencyKeyIdentity, BankIdempotencyIntent);

@@ -11,4 +11,8 @@ pub enum CustomerRole {
 pub enum EmployeeRole {
     Teller,
     Auditor,
+    BranchManager,
+    EstateSpecialist,
+    Compliance,
+    Legal,
 }

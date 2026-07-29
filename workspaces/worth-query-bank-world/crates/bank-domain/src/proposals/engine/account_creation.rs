@@ -3,7 +3,7 @@ use crate::schema::{CreateBusinessAccount, CreatePersonalAccount};
 
 use super::BankProposalEngine;
 use crate::proposals::{
-    complete_proposal, BankIdempotencyIntent, BankIdempotencyKey, BankInvariantApprovedProposal,
+    complete_proposal, BankIdempotencyClaim, BankIdempotencyKey, BankInvariantApprovedProposal,
     BankOperationScopeBinding, BankProposalDenial, BankProposedEffect, BankSnapshot,
     CanonicalProposalPayload,
 };
@@ -25,14 +25,6 @@ impl BankProposalEngine {
             return Err(BankProposalDenial::DuplicatePersonalAccount);
         }
 
-        let mut proposed = snapshot.clone();
-        let account = BankAccount::personal(
-            proposed.allocate_account_id()?,
-            input.institution,
-            input.owner,
-            input.display_name.clone(),
-        );
-        proposed.insert_account(account.clone());
         let intent = account_creation_intent(
             binding,
             key,
@@ -41,6 +33,14 @@ impl BankProposalEngine {
             input.owner.get(),
             input.display_name.as_str(),
         );
+        let mut proposed = snapshot.clone();
+        let account = BankAccount::personal(
+            crate::model::AccountId::from_operation(intent.key().bytes(), 0),
+            input.institution,
+            input.owner,
+            input.display_name.clone(),
+        );
+        proposed.insert_account(account.clone());
         complete_proposal(
             snapshot,
             proposed,
@@ -65,14 +65,6 @@ impl BankProposalEngine {
             return Err(BankProposalDenial::DuplicateBusinessAccount);
         }
 
-        let mut proposed = snapshot.clone();
-        let account = BankAccount::business(
-            proposed.allocate_account_id()?,
-            input.institution,
-            input.business,
-            input.display_name.clone(),
-        );
-        proposed.insert_account(account.clone());
         let intent = account_creation_intent(
             binding,
             key,
@@ -81,6 +73,14 @@ impl BankProposalEngine {
             input.business.get(),
             input.display_name.as_str(),
         );
+        let mut proposed = snapshot.clone();
+        let account = BankAccount::business(
+            crate::model::AccountId::from_operation(intent.key().bytes(), 0),
+            input.institution,
+            input.business,
+            input.display_name.clone(),
+        );
+        proposed.insert_account(account.clone());
         complete_proposal(
             snapshot,
             proposed,
@@ -97,10 +97,10 @@ fn account_creation_intent(
     institution: u64,
     owner: u64,
     display_name: &str,
-) -> BankIdempotencyIntent {
+) -> BankIdempotencyClaim {
     let payload = CanonicalProposalPayload::new()
         .u64(institution)
         .u64(owner)
         .text(display_name);
-    BankIdempotencyIntent::derive(binding, key, operation, payload.as_bytes())
+    BankIdempotencyClaim::derive(binding, key, operation, payload.as_bytes())
 }

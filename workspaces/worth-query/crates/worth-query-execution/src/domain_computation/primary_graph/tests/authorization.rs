@@ -1,10 +1,12 @@
+use std::cell::Cell;
 use std::time::{Duration, Instant};
 
 use super::fixture::{
     installed_authorization_world, live_scope, AccountStatus, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalResolutionMode,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationProjectionDenialKind,
+    WorthQueryPrincipalResolutionMode,
 };
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
@@ -202,6 +204,19 @@ fn admitted_operation_retains_expiry_and_cancellation_authority() {
         expiring.validate_current_authority().unwrap_err().kind(),
         WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication
     );
+    let expired_projection_ran = Cell::new(false);
+    let expired_projection = world
+        .invariant
+        .project_admitted_operation(&expiring, |_, _| expired_projection_ran.set(true))
+        .err()
+        .expect("expired admission must deny before projection");
+    assert_eq!(
+        expired_projection.kind(),
+        WorthQueryOperationProjectionDenialKind::Authorization(
+            WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication
+        )
+    );
+    assert!(!expired_projection_ran.get());
 
     let cancellation = WorthQueryCancellationSource::new();
     let cancellable_request = WorthQueryRequestScope::new(
@@ -227,4 +242,17 @@ fn admitted_operation_retains_expiry_and_cancellation_authority() {
         cancellable.validate_current_authority().unwrap_err().kind(),
         WorthQueryOperationAuthorizationDenialKind::Cancelled
     );
+    let cancelled_projection_ran = Cell::new(false);
+    let cancelled_projection = world
+        .invariant
+        .project_admitted_operation(&cancellable, |_, _| cancelled_projection_ran.set(true))
+        .err()
+        .expect("cancelled admission must deny before projection");
+    assert_eq!(
+        cancelled_projection.kind(),
+        WorthQueryOperationProjectionDenialKind::Authorization(
+            WorthQueryOperationAuthorizationDenialKind::Cancelled
+        )
+    );
+    assert!(!cancelled_projection_ran.get());
 }

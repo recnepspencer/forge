@@ -56,14 +56,36 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
         }
         let abilities = ability_requirements(schema, operation)?;
         let program = operation_program(schema, operation);
-        if program.is_empty() {
+        let decision_reads = operation_decision_reads(schema, operation);
+        if program.is_empty() && decision_reads.is_empty() {
             return Err(operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::MissingProgram,
                 operation,
             ));
         }
-        let contracts =
-            WorthQueryCompiledApplicationOperationContracts::compile(abilities, program);
+        let decision_fact_budget =
+            operation_decision_fact_budget(schema.installed_declaration().members(), operation)
+                .ok_or_else(|| {
+                    operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::MissingDecisionFactBudget,
+                operation,
+            )
+                })?;
+        let projection_work_budget =
+            operation_projection_work_budget(schema.installed_declaration().members(), operation)
+                .ok_or_else(|| {
+                operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::MissingProjectionWorkBudget,
+                operation,
+            )
+            })?;
+        let contracts = WorthQueryCompiledApplicationOperationContracts::compile(
+            abilities,
+            program,
+            decision_reads,
+            decision_fact_budget,
+            projection_work_budget,
+        );
         let binding_identity = schema.binding_identity();
         let authority_identity = authority_identity(
             &schema.package_authority.authority_nonce,
@@ -117,10 +139,27 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
                 } if operation == &self.operation && input_type == &self.input_type
             )
         });
+        let Some(decision_fact_budget) = operation_decision_fact_budget(members, &self.operation)
+        else {
+            return false;
+        };
+        let Some(projection_work_budget) =
+            operation_projection_work_budget(members, &self.operation)
+        else {
+            return false;
+        };
         operation_matches
-            && operation_program_from_members(members, &self.operation) == self.contracts.program()
-            && ability_requirements_from_members(members, &self.operation)
-                .is_ok_and(|requirements| requirements == self.contracts.ability_requirements())
+            && ability_requirements_from_members(members, &self.operation).is_ok_and(
+                |requirements| {
+                    WorthQueryCompiledApplicationOperationContracts::compile(
+                        requirements,
+                        operation_program_from_members(members, &self.operation),
+                        operation_decision_reads_from_members(members, &self.operation),
+                        decision_fact_budget,
+                        projection_work_budget,
+                    ) == self.contracts
+                },
+            )
     }
 
     pub(crate) fn authority_matches(&self, package: &WorthQueryInstalledPackageAuthority) -> bool {
@@ -132,6 +171,62 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
                 &self.input_type,
             )
     }
+}
+
+fn operation_projection_work_budget(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+) -> Option<usize> {
+    members.iter().find_map(|member| match member {
+        ApplicationSchemaMember::OperationProjectionWorkBudget {
+            operation: installed,
+            maximum_work_units,
+        } if installed == operation => Some(*maximum_work_units),
+        _ => None,
+    })
+}
+
+fn operation_decision_fact_budget(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+) -> Option<usize> {
+    members.iter().find_map(|member| match member {
+        ApplicationSchemaMember::OperationDecisionFactBudget {
+            operation: installed,
+            maximum_fact_count,
+        } if installed == operation => Some(*maximum_fact_count),
+        _ => None,
+    })
+}
+
+fn operation_decision_reads<Schema>(
+    schema: &WorthQueryInstalledApplicationSchema<Schema>,
+    operation: &str,
+) -> Vec<worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget>
+where
+    Schema: ApplicationSchema,
+{
+    operation_decision_reads_from_members(schema.installed_declaration().members(), operation)
+}
+
+fn operation_decision_reads_from_members(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+) -> Vec<worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget>
+{
+    let mut reads = members
+        .iter()
+        .filter_map(|member| match member {
+            ApplicationSchemaMember::OperationDecisionRead {
+                operation: installed,
+                target,
+            } if installed == operation => Some(target.clone()),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    reads.sort();
+    reads.dedup();
+    reads
 }
 
 fn ability_requirements<Schema>(

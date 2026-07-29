@@ -4,22 +4,65 @@ use worth_query_decl::facade::{
     worth_query_operation_writes,
 };
 
+mod read_capabilities;
+
 use crate::model::{
     AccountAuthorizationId, AccountId, AccountName, BankPrincipalId, BusinessId, CustomerRole,
     InstitutionId, JournalEntryId, Money, PaymentId, USD,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct DiscoverAccounts;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadAccountSummary {
+    pub account: AccountId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadAccountDetail {
+    pub account: AccountId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadAccountAuthorizedUsers {
+    pub account: AccountId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadAccountActivity {
+    pub account: AccountId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadPendingPayments;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReadPayment {
+    pub payment: PaymentId,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct AuditInstitutionActivity {
+    pub institution: InstitutionId,
+}
+
+use super::authentication::PrincipalIdentityField;
 use super::entities::{
     Account, AccountAuthorization, Approval, JournalEntry, PaymentIntent, Posting,
 };
 use super::fields::{
-    AccountDisplayName, AuthorizationRole, Kind, PaymentStatusField, PostingAmount, Purpose, Status,
+    AccountAuthorizationIdentity, AccountDisplayName, AccountIdentity, AccountingRevision,
+    AuthorizationRole, BusinessIdentityField, InstitutionIdentityField, JournalIdentityField,
+    JournalPurpose, Kind, PaymentAmount, PaymentIdentityField, PaymentStatusField,
+    PostingAccountSequence, PostingAmount, PostingIdentityField, Purpose, Status,
 };
 use super::governance::AccountActivityEffect;
 use super::relations::{
-    AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount,
-    InstitutionAccount, JournalPosting, PaymentApproval, PaymentDestination, PaymentInitiator,
-    PaymentSource, PersonalOwner, PostingAccount,
+    AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount, BusinessOwner,
+    InstitutionAccount, InstitutionCashAccount, JournalPosting, JournalReversal, PaymentApproval,
+    PaymentBusiness, PaymentDestination, PaymentInitiator, PaymentSource, PersonalOwner,
+    PostingAccount,
 };
 use super::BankSchema;
 
@@ -94,6 +137,7 @@ pub struct GrantAccountAuthorization {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RevokeAccountAuthorization {
+    pub account: AccountId,
     pub authorization: AccountAuthorizationId,
 }
 
@@ -106,6 +150,7 @@ pub enum ReversalReason {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReverseJournal {
+    pub institution: InstitutionId,
     pub journal: JournalEntryId,
     pub reason: ReversalReason,
 }
@@ -128,12 +173,36 @@ worth_query_operation!(
     pub RevokeAccountAuthorizationOperation(RevokeAccountAuthorization) in BankSchema
 );
 worth_query_operation!(pub ReverseJournalOperation(ReverseJournal) in BankSchema);
+worth_query_operation!(pub DiscoverAccountsOperation(DiscoverAccounts) in BankSchema);
+worth_query_operation!(pub ReadAccountSummaryOperation(ReadAccountSummary) in BankSchema);
+worth_query_operation!(pub ReadAccountDetailOperation(ReadAccountDetail) in BankSchema);
+worth_query_operation!(
+    pub ReadAccountAuthorizedUsersOperation(ReadAccountAuthorizedUsers) in BankSchema
+);
+worth_query_operation!(pub ReadAccountActivityOperation(ReadAccountActivity) in BankSchema);
+worth_query_operation!(pub ReadPendingPaymentsOperation(ReadPendingPayments) in BankSchema);
+worth_query_operation!(pub ReadPaymentOperation(ReadPayment) in BankSchema);
+worth_query_operation!(
+    pub AuditInstitutionActivityOperation(AuditInstitutionActivity) in BankSchema
+);
 
 worth_query_operation_writes!(
-    CreatePersonalAccountOperation => [AccountDisplayName, Kind, Status]
+    CreatePersonalAccountOperation => [
+        AccountIdentity,
+        AccountDisplayName,
+        AccountingRevision,
+        Kind,
+        Status
+    ]
 );
 worth_query_operation_writes!(
-    CreateBusinessAccountOperation => [AccountDisplayName, Kind, Status]
+    CreateBusinessAccountOperation => [
+        AccountIdentity,
+        AccountDisplayName,
+        AccountingRevision,
+        Kind,
+        Status
+    ]
 );
 worth_query_operation_creates!(CreatePersonalAccountOperation => [Account]);
 worth_query_operation_creates!(CreateBusinessAccountOperation => [Account]);
@@ -145,12 +214,60 @@ worth_query_operation_links!(
 );
 
 worth_query_operation_writes!(
-    ApplyOpeningFundingOperation => [PostingAmount, Purpose]
+    ApplyOpeningFundingOperation => [
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose,
+        AccountingRevision
+    ]
 );
-worth_query_operation_writes!(DepositOperation => [PostingAmount, Purpose]);
-worth_query_operation_writes!(WithdrawOperation => [PostingAmount, Purpose]);
-worth_query_operation_writes!(SendMoneyOperation => [PostingAmount, Purpose]);
-worth_query_operation_writes!(ReverseJournalOperation => [PostingAmount, Purpose]);
+worth_query_operation_writes!(
+    DepositOperation => [
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose,
+        AccountingRevision
+    ]
+);
+worth_query_operation_writes!(
+    WithdrawOperation => [
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose,
+        AccountingRevision
+    ]
+);
+worth_query_operation_writes!(
+    SendMoneyOperation => [
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose,
+        AccountingRevision
+    ]
+);
+worth_query_operation_writes!(
+    ReverseJournalOperation => [
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose,
+        AccountingRevision
+    ]
+);
 worth_query_operation_creates!(ApplyOpeningFundingOperation => [JournalEntry, Posting]);
 worth_query_operation_creates!(DepositOperation => [JournalEntry, Posting]);
 worth_query_operation_creates!(WithdrawOperation => [JournalEntry, Posting]);
@@ -163,22 +280,51 @@ worth_query_operation_links!(DepositOperation => [JournalPosting, PostingAccount
 worth_query_operation_links!(WithdrawOperation => [JournalPosting, PostingAccount]);
 worth_query_operation_links!(SendMoneyOperation => [JournalPosting, PostingAccount]);
 worth_query_operation_links!(ReverseJournalOperation => [JournalPosting, PostingAccount]);
+worth_query_operation_links!(ReverseJournalOperation => [JournalReversal]);
 
 worth_query_operation_creates!(InitiateBusinessPaymentOperation => [PaymentIntent]);
-worth_query_operation_links!(
-    InitiateBusinessPaymentOperation => [PaymentSource, PaymentDestination, PaymentInitiator]
+worth_query_operation_writes!(
+    InitiateBusinessPaymentOperation => [PaymentIdentityField, PaymentAmount, PaymentStatusField]
 );
-worth_query_operation_creates!(ApprovePaymentOperation => [Approval]);
 worth_query_operation_links!(
-    ApprovePaymentOperation => [PaymentApproval, ApprovalPrincipal]
+    InitiateBusinessPaymentOperation => [
+        PaymentSource,
+        PaymentDestination,
+        PaymentBusiness,
+        PaymentInitiator
+    ]
 );
-worth_query_operation_writes!(ApprovePaymentOperation => [PaymentStatusField]);
+worth_query_operation_creates!(ApprovePaymentOperation => [Approval, JournalEntry, Posting]);
+worth_query_operation_links!(
+    ApprovePaymentOperation => [
+        PaymentApproval,
+        ApprovalPrincipal,
+        JournalPosting,
+        PostingAccount
+    ]
+);
+worth_query_operation_writes!(
+    ApprovePaymentOperation => [
+        PaymentStatusField,
+        AccountingRevision,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose
+    ]
+);
+worth_query_operation_creates!(RejectPaymentOperation => [Approval]);
+worth_query_operation_links!(
+    RejectPaymentOperation => [PaymentApproval, ApprovalPrincipal]
+);
 worth_query_operation_writes!(RejectPaymentOperation => [PaymentStatusField]);
 worth_query_operation_creates!(
     GrantAccountAuthorizationOperation => [AccountAuthorization]
 );
 worth_query_operation_writes!(
-    GrantAccountAuthorizationOperation => [AuthorizationRole]
+    GrantAccountAuthorizationOperation => [AccountAuthorizationIdentity, AuthorizationRole]
 );
 worth_query_operation_links!(
     GrantAccountAuthorizationOperation => [AccountAuthorizedUser, AuthorizationAccount]

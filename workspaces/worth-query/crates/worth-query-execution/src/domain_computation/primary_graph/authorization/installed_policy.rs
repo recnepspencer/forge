@@ -103,7 +103,9 @@ impl WorthQueryInstalledAuthorizationRegistry {
             })
     }
 
-    pub(super) const fn bridge(&self) -> &BridgeAuthorizationRuntime {
+    pub(in crate::domain_computation::primary_graph) const fn bridge(
+        &self,
+    ) -> &BridgeAuthorizationRuntime {
         &self.bridge
     }
 }

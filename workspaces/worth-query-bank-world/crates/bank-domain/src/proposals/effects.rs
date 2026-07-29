@@ -1,9 +1,7 @@
-use crate::accounting::{BankAccount, BankJournalEntry};
-use crate::model::{AccountAuthorizationId, PaymentId};
-use crate::payments::BusinessPayment;
-use crate::schema::ActivityEvent;
-
 use super::BankAccountAuthorization;
+use crate::accounting::{BankAccount, BankJournalEntry};
+use crate::model::PaymentId;
+use crate::payments::BusinessPayment;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BankProposedEffect {
@@ -13,12 +11,11 @@ pub enum BankProposedEffect {
         original: crate::model::JournalEntryId,
         reversal: BankJournalEntry,
     },
-    EmitAccountActivity(ActivityEvent),
     CreatePayment(BusinessPayment),
     UpdatePayment {
         payment: PaymentId,
         replacement: BusinessPayment,
     },
     GrantAuthorization(BankAccountAuthorization),
-    RevokeAuthorization(AccountAuthorizationId),
+    RevokeAuthorization(BankAccountAuthorization),
 }

@@ -11,6 +11,21 @@ pub trait TypedApplicationValue: Sized {
     fn into_foundational_value(self) -> AspectValue;
 }
 
+/// A typed application value that can be recovered from authoritative
+/// Foundational meaning without application-side parsing or unchecked casts.
+pub trait TypedApplicationReadableValue: TypedApplicationValue + Clone + Eq + 'static {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self>;
+}
+
+/// A signed fixed-width application value that may participate in a checked
+/// provider-derived sum.
+///
+/// This describes scalar conversion only. Installed field, relation, and
+/// operation-read capabilities remain the authority for aggregate projection.
+pub trait TypedApplicationSignedAggregateValue: TypedApplicationReadableValue {
+    fn from_aggregate_i64(value: i64) -> Self;
+}
+
 pub trait DeclaredApplicationFieldValue {
     type Value: TypedApplicationValue;
 }
@@ -20,9 +35,7 @@ pub trait DeclaredApplicationFieldValue {
 ///
 /// Principal bindings require this stronger contract for the target
 /// principal's stable application identity.
-pub trait TypedApplicationIdentityValue: TypedApplicationValue + Clone + Eq + 'static {
-    fn from_foundational_value(value: &AspectValue) -> Option<Self>;
-}
+pub trait TypedApplicationIdentityValue: TypedApplicationReadableValue {}
 
 pub trait TypedCurrencyApplicationValue: TypedApplicationValue {
     type Currency: 'static;
@@ -36,11 +49,35 @@ impl TypedApplicationValue for bool {
     }
 }
 
+impl TypedApplicationReadableValue for bool {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+        match value {
+            AspectValue::Bool(value) => Some(*value),
+            _ => None,
+        }
+    }
+}
+
 impl TypedApplicationValue for i64 {
     const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::Int64;
 
     fn into_foundational_value(self) -> AspectValue {
         AspectValue::Int64(self)
+    }
+}
+
+impl TypedApplicationReadableValue for i64 {
+    fn from_foundational_value(value: &AspectValue) -> Option<Self> {
+        match value {
+            AspectValue::Int64(value) => Some(*value),
+            _ => None,
+        }
+    }
+}
+
+impl TypedApplicationSignedAggregateValue for i64 {
+    fn from_aggregate_i64(value: i64) -> Self {
+        value
     }
 }
 
@@ -52,7 +89,7 @@ impl TypedApplicationValue for u64 {
     }
 }
 
-impl TypedApplicationIdentityValue for u64 {
+impl TypedApplicationReadableValue for u64 {
     fn from_foundational_value(value: &AspectValue) -> Option<Self> {
         match value {
             AspectValue::UInt64(value) => Some(*value),
@@ -60,6 +97,8 @@ impl TypedApplicationIdentityValue for u64 {
         }
     }
 }
+
+impl TypedApplicationIdentityValue for u64 {}
 
 impl TypedApplicationValue for String {
     const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::String;
@@ -69,7 +108,7 @@ impl TypedApplicationValue for String {
     }
 }
 
-impl TypedApplicationIdentityValue for String {
+impl TypedApplicationReadableValue for String {
     fn from_foundational_value(value: &AspectValue) -> Option<Self> {
         match value {
             AspectValue::String(InternedString::Raw(value)) => Some(value.clone()),
@@ -77,6 +116,8 @@ impl TypedApplicationIdentityValue for String {
         }
     }
 }
+
+impl TypedApplicationIdentityValue for String {}
 
 impl TypedApplicationValue for InternedString {
     const SCALAR_FAMILY: ScalarAspectType = ScalarAspectType::String;
@@ -86,7 +127,7 @@ impl TypedApplicationValue for InternedString {
     }
 }
 
-impl TypedApplicationIdentityValue for InternedString {
+impl TypedApplicationReadableValue for InternedString {
     fn from_foundational_value(value: &AspectValue) -> Option<Self> {
         match value {
             AspectValue::String(value) => Some(value.clone()),
@@ -94,3 +135,5 @@ impl TypedApplicationIdentityValue for InternedString {
         }
     }
 }
+
+impl TypedApplicationIdentityValue for InternedString {}

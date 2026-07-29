@@ -21,22 +21,26 @@ impl TruthBranchHeadSource for RuntimeBridgeRelationalSource {
                 })?
                 .to_string(),
         );
-        let history = self.runtime.history();
-        let head = history.branch_head(&branch_id).ok_or_else(|| {
-            RelationalBridgeSourceError::new(format!(
-                "relational runtime has no branch head for `{}`",
-                branch_id.0
-            ))
-        })?;
-        let envelope = self.runtime.commit_envelope(head.commit_id).ok_or_else(|| {
-            RelationalBridgeSourceError::new(format!(
-                "relational runtime has no authoritative commit envelope for branch head `{}` on `{}`",
-                head.commit_id.0,
-                branch_id.0
-            ))
+        let commit_id = self.runtime.with_runtime(|runtime| {
+            let history = runtime.history();
+            let head = history.branch_head(&branch_id).ok_or_else(|| {
+                RelationalBridgeSourceError::new(format!(
+                    "relational runtime has no branch head for `{}`",
+                    branch_id.0
+                ))
+            })?;
+            runtime
+                .commit_envelope(head.commit_id)
+                .map(|envelope| envelope.commit.commit_id)
+                .ok_or_else(|| {
+                    RelationalBridgeSourceError::new(format!(
+                        "relational runtime has no authoritative commit envelope for branch head `{}` on `{}`",
+                        head.commit_id.0, branch_id.0
+                    ))
+                })
         })?;
 
-        match self.publish_commit(envelope.commit.commit_id) {
+        match self.publish_commit(commit_id) {
             worth_proof::TransitionOutcome::Success(publication) => {
                 Ok(publication.into_bridge_envelope())
             }

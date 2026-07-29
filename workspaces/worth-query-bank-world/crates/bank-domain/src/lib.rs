@@ -7,7 +7,9 @@
 
 pub mod accounting;
 pub mod authorization;
+pub mod estate;
 pub mod model;
 pub mod payments;
 pub mod proposals;
+pub mod reads;
 pub mod schema;

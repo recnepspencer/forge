@@ -12,6 +12,7 @@ mod query_planning;
 mod query_traversal;
 mod snapshot_reads;
 mod truth_access;
+mod truth_adjacency;
 mod truth_record_access;
 
 use crate::authority::commit::preparation::planning::strategy::{
@@ -61,3 +62,4 @@ use super::ProjectionAspectFilter;
 const TARGET_TRAVERSAL_SEEDS_PER_PACKET: usize = 4;
 pub use context::VisibilityReadContext;
 use query_fragment_scratch::QueryFragmentScratch;
+pub use truth_adjacency::{AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead};

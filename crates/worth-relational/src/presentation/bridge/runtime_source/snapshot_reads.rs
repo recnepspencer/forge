@@ -11,16 +11,18 @@ impl SnapshotReadSource for RuntimeBridgeRelationalSource {
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        let version_id = resolve_snapshot_version(&self.runtime, identity)?;
+        let version_id = self
+            .runtime
+            .with_runtime(|runtime| resolve_snapshot_version(runtime, identity))?;
         let reader = match &self.partition {
-            Some(partition) => RuntimePublicationSnapshotReader::for_partition(
-                std::sync::Arc::clone(&self.runtime),
+            Some(partition) => RuntimePublicationSnapshotReader::for_partition_authority(
+                self.runtime.clone(),
                 identity.clone(),
                 version_id,
                 partition.relational,
             ),
-            None => RuntimePublicationSnapshotReader::new(
-                std::sync::Arc::clone(&self.runtime),
+            None => RuntimePublicationSnapshotReader::from_authority(
+                self.runtime.clone(),
                 identity.clone(),
                 version_id,
             ),

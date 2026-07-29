@@ -4,6 +4,7 @@ mod denial;
 mod installed_domain_authority;
 mod installed_support;
 
+pub(crate) use authority::WorthQueryApplicationOperationBindingInput;
 pub use authority::WorthQueryExecutionBoundOperationAuthority;
 pub use commit_posture::WorthQueryExecutionCommitPosture;
 pub use denial::WorthQueryExecutionOperationBindingDenial;

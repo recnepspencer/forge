@@ -9,6 +9,7 @@ use super::{
 };
 use crate::domain_computation::provider_session::WorthQuerySessionReadAuthority;
 use crate::execution_digest::hash_parts;
+use worth_query_installation::facade::WorthQueryDecisionFactCardinality;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryDecisionReadSetCounters {
@@ -93,6 +94,7 @@ impl WorthQueryFreshDecisionReadSet {
     }
 }
 
+#[derive(Debug)]
 pub struct WorthQueryStaleDecisionReadSet {
     read_set_identity: Arc<str>,
     stale_evidence_identities: Arc<[Arc<str>]>,
@@ -199,6 +201,13 @@ impl WorthQuerySessionReadAuthority<'_> {
             ))
         }
     }
+
+    pub(crate) fn recompare_fresh_decision_read_set(
+        &self,
+        fresh: WorthQueryFreshDecisionReadSet,
+    ) -> Result<WorthQueryDecisionReadSetFreshnessOutcome, WorthQueryDecisionReadSetFailure> {
+        self.compare_decision_read_set(fresh.receipt)
+    }
 }
 
 fn admit_requests(
@@ -228,15 +237,34 @@ fn admit_requests(
         *family_counts.entry(family.identity()).or_default() += 1;
     }
     for family in authority.plan().decision_fact_families() {
-        let Some(observed) = family_counts.get(family.identity()).copied() else {
-            return Err(denial(
-                WorthQueryDecisionReadSetDenialKind::IncompleteRequiredFamilies,
-            ));
-        };
-        if observed != family.exact_fact_count() {
-            return Err(denial(
-                WorthQueryDecisionReadSetDenialKind::IncompleteRequiredFacts,
-            ));
+        match family.cardinality() {
+            WorthQueryDecisionFactCardinality::Exact(_)
+                if !family_counts.contains_key(family.identity()) =>
+            {
+                return Err(denial(
+                    WorthQueryDecisionReadSetDenialKind::IncompleteRequiredFamilies,
+                ));
+            }
+            WorthQueryDecisionFactCardinality::Exact(expected)
+                if family_counts[family.identity()] != expected =>
+            {
+                return Err(denial(
+                    WorthQueryDecisionReadSetDenialKind::IncompleteRequiredFacts,
+                ));
+            }
+            WorthQueryDecisionFactCardinality::Bounded { maximum }
+                if family_counts
+                    .get(family.identity())
+                    .copied()
+                    .unwrap_or_default()
+                    > maximum =>
+            {
+                return Err(denial(
+                    WorthQueryDecisionReadSetDenialKind::DecisionFactBudgetExceeded,
+                ));
+            }
+            WorthQueryDecisionFactCardinality::Exact(_)
+            | WorthQueryDecisionFactCardinality::Bounded { .. } => {}
         }
     }
     let requests = requests.into_iter().collect::<Vec<_>>();

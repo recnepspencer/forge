@@ -2,6 +2,10 @@ use super::*;
 
 static NEXT_SIGNAL_RUNTIME_KEY: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
+pub(super) fn fresh_signal_runtime_key() -> u64 {
+    NEXT_SIGNAL_RUNTIME_KEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+}
+
 impl RuntimeBridge {
     /// Delivers the full continuity workflow for one retained route record.
     ///
@@ -207,8 +211,7 @@ impl RuntimeBridge {
             mapping_registry,
             aspect_registry,
             subscription_family_registry,
-            signal_runtime_key: NEXT_SIGNAL_RUNTIME_KEY
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            signal_runtime_key: fresh_signal_runtime_key(),
             signal_aspect_lowering_owner: worth_signal::facade::SignalAspectLoweringOwner::fresh(),
             execution_basis_reservations: Default::default(),
             correspondence_allocations: Default::default(),

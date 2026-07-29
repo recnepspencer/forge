@@ -1,6 +1,9 @@
 use super::authorization_policy::ApplicationAuthorizationPath;
 use super::declaration::ApplicationSchemaDeclarationDenial;
-use super::schema_member::{ApplicationOperationProgramTarget, ApplicationSchemaMember};
+use super::schema_member::{
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
+    ApplicationSchemaMember,
+};
 
 pub(super) fn validate_schema_header(
     owner: &str,
@@ -82,6 +85,16 @@ pub(super) fn validate_member_identifiers(
                 validate_simple_identifier(operation)?;
                 validate_program_target_identifiers(target)?;
             }
+            ApplicationSchemaMember::OperationDecisionRead { operation, target } => {
+                validate_simple_identifier(operation)?;
+                validate_decision_read_target_identifiers(target)?;
+            }
+            ApplicationSchemaMember::OperationDecisionFactBudget { operation, .. } => {
+                validate_simple_identifier(operation)?;
+            }
+            ApplicationSchemaMember::OperationProjectionWorkBudget { operation, .. } => {
+                validate_simple_identifier(operation)?;
+            }
             ApplicationSchemaMember::Policy { policy } => validate_simple_identifier(policy)?,
             ApplicationSchemaMember::Ability {
                 ability,
@@ -130,6 +143,24 @@ fn validate_authorization_path(
         validate_simple_identifier(predicate.field())?;
     }
     Ok(())
+}
+
+fn validate_decision_read_target_identifiers(
+    target: &ApplicationOperationDecisionReadTarget,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    match target {
+        ApplicationOperationDecisionReadTarget::Entity { entity } => {
+            validate_simple_identifier(entity)
+        }
+        ApplicationOperationDecisionReadTarget::Field {
+            entity,
+            aspect,
+            field,
+        } => validate_identifiers([entity, aspect, field]),
+        ApplicationOperationDecisionReadTarget::Relation { relation, from, to } => {
+            validate_identifiers([relation, from, to])
+        }
+    }
 }
 
 fn validate_program_target_identifiers(

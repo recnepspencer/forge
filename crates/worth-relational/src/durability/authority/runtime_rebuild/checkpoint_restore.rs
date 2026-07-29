@@ -30,6 +30,14 @@ pub(super) fn restore_checkpoint_state(
             .map(|partition| (partition_id, partition))
         })
         .collect::<Result<_, _>>()?;
+    crate::storage::partition::rebuild_adjacency_kind_buckets(&mut restored.partitions).map_err(
+        |detail| {
+            DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::CorruptCheckpoint,
+                detail,
+            )
+        },
+    )?;
     restored.history.branch_heads = checkpoint
         .branches
         .iter()

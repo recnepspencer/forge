@@ -2,11 +2,14 @@ use crate::accounting::BankInvariantWitness;
 use crate::model::BankSnapshotVersion;
 
 use super::snapshot::BankSnapshotBasis;
-use super::{BankIdempotencyIntent, BankProposedEffect, BankSnapshot};
+use super::{
+    BankIdempotencyClaim, BankIdempotencyIntent, BankIdempotencyKeyIdentity, BankProposedEffect,
+    BankSnapshot,
+};
 
 pub struct BankInvariantApprovedProposal {
     basis: BankSnapshotBasis,
-    idempotency_intent: BankIdempotencyIntent,
+    idempotency: BankIdempotencyClaim,
     effects: Vec<BankProposedEffect>,
     proposed: BankSnapshot,
     _invariant_witness: BankInvariantWitness,
@@ -15,14 +18,14 @@ pub struct BankInvariantApprovedProposal {
 impl BankInvariantApprovedProposal {
     pub(crate) fn new(
         basis: BankSnapshotBasis,
-        idempotency_intent: BankIdempotencyIntent,
+        idempotency: BankIdempotencyClaim,
         effects: Vec<BankProposedEffect>,
         proposed: BankSnapshot,
         invariant_witness: BankInvariantWitness,
     ) -> Self {
         Self {
             basis,
-            idempotency_intent,
+            idempotency,
             effects,
             proposed,
             _invariant_witness: invariant_witness,
@@ -40,7 +43,11 @@ impl BankInvariantApprovedProposal {
     }
 
     pub const fn idempotency_intent(&self) -> BankIdempotencyIntent {
-        self.idempotency_intent
+        self.idempotency.intent()
+    }
+
+    pub const fn idempotency_key_identity(&self) -> BankIdempotencyKeyIdentity {
+        self.idempotency.key()
     }
 
     pub fn effects(&self) -> &[BankProposedEffect] {

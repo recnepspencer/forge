@@ -2,7 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::accounting::BankAccount;
+use crate::accounting::BankJournalEntry;
 use crate::model::{AccountId, BankPrincipalId, BankSnapshotVersion, BusinessId, InstitutionId};
+use crate::payments::BusinessPayment;
+use crate::proposals::BankAccountAuthorization;
 
 use super::{BankSnapshot, BankSnapshotAuthority};
 use crate::proposals::BankProposalDenial;
@@ -29,11 +32,6 @@ impl BankSnapshotBuilder {
                 payments: BTreeMap::new(),
                 authorizations: BTreeMap::new(),
                 reversed_journals: BTreeSet::new(),
-                next_account_id: 1,
-                next_journal_id: 1,
-                next_posting_id: 1,
-                next_payment_id: 1,
-                next_authorization_id: 1,
             },
             valid: true,
         }
@@ -99,12 +97,105 @@ impl BankSnapshotBuilder {
         self
     }
 
+    pub fn projected_account(mut self, account: BankAccount) -> Self {
+        self.insert_fixture_account(account);
+        self
+    }
+
+    pub fn projected_journal(mut self, entry: BankJournalEntry) -> Self {
+        let collides = self
+            .snapshot
+            .journal
+            .iter()
+            .any(|candidate| candidate.id() == entry.id());
+        let posting_collision = entry.postings().iter().any(|posting| {
+            self.snapshot
+                .journal
+                .iter()
+                .flat_map(BankJournalEntry::postings)
+                .any(|candidate| candidate.id() == posting.id())
+        });
+        let duplicate_posting = entry
+            .postings()
+            .iter()
+            .map(|posting| posting.id())
+            .collect::<BTreeSet<_>>()
+            .len()
+            != entry.postings().len();
+        if collides || posting_collision || duplicate_posting {
+            self.valid = false;
+            return self;
+        }
+        if let Some(original) = entry.reversal_of() {
+            self.snapshot.reversed_journals.insert(original);
+        }
+        self.snapshot.append_journal(entry);
+        self
+    }
+
+    pub fn projected_payment(mut self, payment: BusinessPayment) -> Self {
+        let collides = self.snapshot.payments.contains_key(&payment.id());
+        if collides {
+            self.valid = false;
+            return self;
+        }
+        self.snapshot.insert_payment(payment);
+        self
+    }
+
+    pub fn projected_authorization(mut self, authorization: BankAccountAuthorization) -> Self {
+        let collides = self
+            .snapshot
+            .authorizations
+            .contains_key(&authorization.id());
+        if collides {
+            self.valid = false;
+            return self;
+        }
+        self.snapshot.insert_authorization(authorization);
+        self
+    }
+
     pub fn build(self) -> Result<BankSnapshot, BankProposalDenial> {
         if self.valid && self.snapshot.has_valid_topology() {
             Ok(self.snapshot)
         } else {
             Err(BankProposalDenial::SnapshotInvariantViolated)
         }
+    }
+
+    pub fn build_decision_projection(
+        self,
+        required_balance_accounts: impl IntoIterator<Item = AccountId>,
+    ) -> Result<super::super::BankDecisionSnapshot, BankProposalDenial> {
+        self.build_decision_projection_with_balances(required_balance_accounts, [])
+    }
+
+    pub fn build_decision_projection_with_balances(
+        self,
+        required_balance_accounts: impl IntoIterator<Item = AccountId>,
+        starting_balances: impl IntoIterator<
+            Item = (AccountId, crate::model::SignedMoney<crate::model::USD>),
+        >,
+    ) -> Result<super::super::BankDecisionSnapshot, BankProposalDenial> {
+        let snapshot = self.build()?;
+        let required_balance_accounts = required_balance_accounts
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        let starting_balances = starting_balances.into_iter().collect::<BTreeMap<_, _>>();
+        if required_balance_accounts.iter().any(|account| {
+            snapshot.account(*account).is_none() || !starting_balances.contains_key(account)
+        }) || starting_balances
+            .keys()
+            .any(|account| snapshot.account(*account).is_none())
+        {
+            return Err(BankProposalDenial::SnapshotInvariantViolated);
+        }
+        Ok(super::super::BankDecisionSnapshot::new(
+            snapshot,
+            required_balance_accounts,
+            starting_balances,
+        ))
     }
 
     fn insert_fixture_account(&mut self, account: BankAccount) {
@@ -120,15 +211,10 @@ impl BankSnapshotBuilder {
                     .snapshot
                     .institution_cash_accounts
                     .contains_key(&account.institution()));
-        let next = account.id().get().checked_add(1);
-        if collides || next.is_none() {
+        if collides {
             self.valid = false;
             return;
         }
         self.snapshot.insert_account(account);
-        self.snapshot.next_account_id = self
-            .snapshot
-            .next_account_id
-            .max(next.expect("checked above"));
     }
 }

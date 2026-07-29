@@ -1,13 +1,13 @@
 use bank_domain::model::{
-    AccountAuthorizationId, AccountId, BankPrincipalId, CustomerRole, Money, PaymentId,
-    SignedMoney, USD,
+    AccountAuthorizationId, AccountId, BankPrincipalId, CustomerRole, JournalEntryId, Money,
+    PaymentId, SignedMoney, USD,
 };
 use bank_domain::schema::*;
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 use worth_query_decl::facade::application_schema::{
     ApplicationEffectRef, ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef,
-    ApplicationRelationRef, ApplicationSchemaAuthoringDenialKind, DeclaredApplicationCurrency,
-    EqualityPredicate, ReadOnly, ReadWrite, TypedApplicationValue,
+    ApplicationRelationRef, ApplicationSchemaAuthoringDenialKind, EqualityPredicate, ReadWrite,
+    TypedApplicationValue,
 };
 use worth_query_host::facade::domain::{
     WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
@@ -23,7 +23,7 @@ fn installed_read_and_directional_traversal_authoring_are_usable() {
         .query(Account::reference())
         .project(AccountIdentity::reference())
         .project(AccountDisplayName::reference())
-        .project(AvailableBalance::reference())
+        .project(AccountingRevision::reference())
         .where_equal(Status::reference(), AccountStatus::Open)
         .build()
         .unwrap();
@@ -76,6 +76,7 @@ fn installed_money_mutation_and_effect_program_are_usable() {
             AccountActivityEffect::reference(),
             ActivityEvent {
                 account: from,
+                journal: JournalEntryId::new(1).unwrap(),
                 journal_sequence: 7,
             },
         )
@@ -120,6 +121,7 @@ fn installed_approval_grant_and_revoke_programs_are_usable() {
     let revoke = bank
         .operation(RevokeAccountAuthorizationOperation::reference())
         .input(RevokeAccountAuthorization {
+            account: AccountId::new(5).unwrap(),
             authorization: AccountAuthorizationId::new(4).unwrap(),
         })
         .unlink(AccountAuthorizedUser::reference())
@@ -161,16 +163,16 @@ fn forged_entity_and_relation_names_are_denied() {
 fn forged_field_capability_type_and_currency_are_denied_independently() {
     let (_, bank) = installed_bank();
     let (from, recipient, amount) = transfer_values();
-    let forged_write = ApplicationFieldRef::<
-        BankSchema,
-        Account,
-        AccountState,
-        PostingAmount,
-        SignedMoney<USD>,
-        ReadWrite,
-        EqualityPredicate,
-        DeclaredApplicationCurrency<UsdCurrency, USD>,
-    >::from_schema_identifiers("Account", "AccountState", "AvailableBalance");
+    let forged_write =
+        ApplicationFieldRef::<
+            BankSchema,
+            Posting,
+            PostingIdentity,
+            PostingIdentityField,
+            bank_domain::model::PostingId,
+            ReadWrite,
+            EqualityPredicate,
+        >::from_schema_identifiers("Posting", "PostingIdentity", "PostingIdentityField");
     let denial = bank
         .operation(SendMoneyOperation::reference())
         .input(SendMoney {
@@ -178,7 +180,10 @@ fn forged_field_capability_type_and_currency_are_denied_independently() {
             recipient,
             amount,
         })
-        .set(forged_write, SignedMoney::<USD>::from_minor(99))
+        .set(
+            forged_write,
+            bank_domain::model::PostingId::new(99).unwrap(),
+        )
         .build()
         .unwrap_err();
     assert_denial(
@@ -220,15 +225,15 @@ fn forged_operation_input_effect_and_payload_are_denied_independently() {
 fn assert_forged_currency_denied(bank: &WorthQueryInstalledApplicationSchema<BankSchema>) {
     let field = ApplicationFieldRef::<
         BankSchema,
-        Account,
-        AccountState,
-        AvailableBalance,
+        Posting,
+        PostingValue,
+        PostingAmount,
         SignedMoney<USD>,
-        ReadOnly,
+        ReadWrite,
         worth_query_decl::facade::application_schema::NoEqualityPredicate,
-    >::from_schema_identifiers("Account", "AccountState", "AvailableBalance");
+    >::from_schema_identifiers("Posting", "PostingValue", "PostingAmount");
     let denial = bank
-        .query(Account::reference())
+        .query(Posting::reference())
         .project(field)
         .build()
         .unwrap_err();
@@ -246,13 +251,13 @@ fn assert_forged_value_type_denied(
 ) {
     let field = ApplicationFieldRef::<
         BankSchema,
-        Account,
-        AccountState,
+        Posting,
+        PostingValue,
         PostingAmount,
         AlternateMoney,
         ReadWrite,
         EqualityPredicate,
-    >::from_schema_identifiers("Account", "AccountState", "AvailableBalance");
+    >::from_schema_identifiers("Posting", "PostingValue", "PostingAmount");
     let denial = bank
         .operation(SendMoneyOperation::reference())
         .input(SendMoney {
@@ -297,6 +302,7 @@ fn assert_forged_effect_denied(
             effect,
             ActivityEvent {
                 account,
+                journal: JournalEntryId::new(2).unwrap(),
                 journal_sequence: 8,
             },
         )

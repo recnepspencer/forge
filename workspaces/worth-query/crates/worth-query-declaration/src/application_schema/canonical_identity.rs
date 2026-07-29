@@ -1,6 +1,7 @@
 use sha2::{Digest, Sha256};
 
 use super::canonical_authorization_identity::hash_authorization_path;
+use super::canonical_decision_read_identity::hash_decision_read_target;
 use super::canonical_operation_identity::hash_operation_target;
 use super::{ApplicationSchemaIdentity, ApplicationSchemaMember};
 
@@ -16,7 +17,7 @@ pub(super) fn canonical_identity(
     members: &[ApplicationSchemaMember],
 ) -> ApplicationSchemaIdentity {
     let mut hash = Sha256::new();
-    hash_field(&mut hash, "scheme", "worth-query-application-schema-v3");
+    hash_field(&mut hash, "scheme", "worth-query-application-schema-v4");
     hash_field(&mut hash, "owner", header.owner);
     hash_field(&mut hash, "name", header.name);
     hash_field(&mut hash, "major", &header.major.to_string());
@@ -60,6 +61,27 @@ fn hash_member(hash: &mut Sha256, member: &ApplicationSchemaMember) {
             hash_field(hash, "member-kind", "operation-program");
             hash_field(hash, "operation", operation);
             hash_operation_target(hash, target);
+        }
+        ApplicationSchemaMember::OperationDecisionRead { operation, target } => {
+            hash_field(hash, "member-kind", "operation-decision-read");
+            hash_field(hash, "operation", operation);
+            hash_decision_read_target(hash, target);
+        }
+        ApplicationSchemaMember::OperationDecisionFactBudget {
+            operation,
+            maximum_fact_count,
+        } => {
+            hash_field(hash, "member-kind", "operation-decision-fact-budget");
+            hash_field(hash, "operation", operation);
+            hash_field(hash, "maximum-fact-count", &maximum_fact_count.to_string());
+        }
+        ApplicationSchemaMember::OperationProjectionWorkBudget {
+            operation,
+            maximum_work_units,
+        } => {
+            hash_field(hash, "member-kind", "operation-projection-work-budget");
+            hash_field(hash, "operation", operation);
+            hash_field(hash, "maximum-work-units", &maximum_work_units.to_string());
         }
         ApplicationSchemaMember::Policy { policy } => {
             hash_field(hash, "member-kind", "policy");

@@ -15,13 +15,16 @@ use super::{
 };
 
 mod principal_binding;
+mod provider_idempotency;
 mod registry_lowering;
 
 use principal_binding::lower_principal_bindings;
 pub(super) use principal_binding::WorthQueryPrimaryPrincipalBindingLayout;
+use provider_idempotency::lower_provider_idempotency;
+pub(super) use provider_idempotency::WorthQueryProviderIdempotencyLayout;
 use registry_lowering::{
-    lower_entity_aspects, lower_kind_ids, register_entity, register_relation,
-    relational_schema_basis,
+    lower_entity_aspects, lower_kind_ids, next_provider_kind_id, register_entity,
+    register_relation, relational_schema_basis,
 };
 
 #[derive(Debug)]
@@ -30,6 +33,7 @@ pub(super) struct WorthQueryPrimaryGraphLayout {
     entity_kinds: BTreeMap<String, KindId>,
     relation_kinds: BTreeMap<String, WorthQueryPrimaryRelationLayout>,
     fields: BTreeMap<(String, String, String), WorthQueryPrimaryFieldLayout>,
+    provider_idempotency: WorthQueryProviderIdempotencyLayout,
 }
 
 #[derive(Clone, Debug)]
@@ -71,6 +75,18 @@ impl WorthQueryPrimaryGraphLayout {
             registry =
                 register_relation(registry, &schema_id, schema_version_id, relation, *kind_id)?;
         }
+        let provider_kind = next_provider_kind_id(
+            existing_registry,
+            entity_kinds.values().copied(),
+            relation_kinds.values().copied(),
+        )?;
+        let (registry, provider_idempotency) = lower_provider_idempotency(
+            registry,
+            &schema_id,
+            schema_version_id,
+            provider_kind,
+            &mut contract_ordinal,
+        )?;
         let principal_bindings = lower_principal_bindings(schema, &entity_kinds, &relation_kinds)?;
         let relation_layouts = lower_relation_layouts(schema, &entity_kinds, &relation_kinds)?;
         let fields = lower_fields(schema, &entity_kinds)?;
@@ -81,6 +97,7 @@ impl WorthQueryPrimaryGraphLayout {
                 entity_kinds,
                 relation_kinds: relation_layouts,
                 fields,
+                provider_idempotency,
             },
             registry,
         ))
@@ -151,6 +168,14 @@ impl WorthQueryPrimaryGraphLayout {
         self.fields
             .values()
             .filter_map(|field| field.equality_index_id)
+    }
+
+    pub(super) const fn provider_idempotency(&self) -> &WorthQueryProviderIdempotencyLayout {
+        &self.provider_idempotency
+    }
+
+    pub(super) fn provider_idempotency_mut(&mut self) -> &mut WorthQueryProviderIdempotencyLayout {
+        &mut self.provider_idempotency
     }
 }
 

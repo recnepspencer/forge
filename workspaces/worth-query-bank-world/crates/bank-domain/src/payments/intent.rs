@@ -13,7 +13,41 @@ pub struct BusinessPayment {
     deciding_principal: Option<BankPrincipalId>,
 }
 
+pub struct BusinessPaymentProjection {
+    pub id: PaymentId,
+    pub business: BusinessId,
+    pub source: AccountId,
+    pub destination: AccountId,
+    pub initiator: BankPrincipalId,
+    pub amount: Money<USD>,
+    pub status: PaymentStatus,
+    pub deciding_principal: Option<BankPrincipalId>,
+}
+
 impl BusinessPayment {
+    pub const fn from_projection(projection: BusinessPaymentProjection) -> Self {
+        let BusinessPaymentProjection {
+            id,
+            business,
+            source,
+            destination,
+            initiator,
+            amount,
+            status,
+            deciding_principal,
+        } = projection;
+        Self {
+            id,
+            business,
+            source,
+            destination,
+            initiator,
+            amount,
+            status,
+            deciding_principal,
+        }
+    }
+
     pub(crate) const fn pending(
         id: PaymentId,
         business: BusinessId,

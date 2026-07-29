@@ -67,10 +67,14 @@ pub mod facade {
         ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
         ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
         ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldCurrency,
-        ApplicationFieldRef, ApplicationRelationRef, ApplicationSchema,
+        ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+        ApplicationOperationProgramTarget, ApplicationRelationRef, ApplicationSchema,
         ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
-        EqualityPredicate, ErasedApplicationSchemaDeclaration, TypedApplicationIdentityValue,
-        TypedApplicationValue, WritePosture,
+        EqualityPredicate, ErasedApplicationSchemaDeclaration, OperationCreates, OperationDeletes,
+        OperationLinks, OperationReads, OperationUnlinks, OperationWrites,
+        TypedApplicationIdentityValue, TypedApplicationReadableValue,
+        TypedApplicationSignedAggregateValue, TypedApplicationValue, WritableCapability,
+        WritePosture,
     };
     pub use worth_query_declaration::facade::authentication::{
         WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
@@ -89,7 +93,10 @@ pub mod facade {
         WorthQueryApplicationOperationInstallationDenial,
         WorthQueryApplicationOperationInstallationDenialKind,
         WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
-        WorthQueryInstalledApplicationOperation,
+        WorthQueryInstalledApplicationOperation, APPLICATION_AUTHORIZATION_FACT_FAMILY,
+        APPLICATION_DECISION_FACT_FAMILY, APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY,
+        APPLICATION_EXECUTION_ALLOCATOR_FAMILY, APPLICATION_EXECUTION_PROVIDER_FAMILY,
+        APPLICATION_EXECUTION_SAFE_POINT_FAMILY, APPLICATION_INVARIANT_SLOT,
     };
     pub use crate::application_principal_binding::{
         WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,

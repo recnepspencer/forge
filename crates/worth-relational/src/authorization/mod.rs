@@ -1,6 +1,7 @@
 mod denial;
 mod evaluation;
 mod evidence;
+mod freshness;
 mod identity;
 mod plan;
 
@@ -8,8 +9,8 @@ pub use denial::{RelationalAuthorizationObservationDenial, RelationalAuthorizati
 pub use evidence::{
     RelationalAuthorizationAdjacencyDependency, RelationalAuthorizationDecision,
     RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
-    RelationalAuthorizationObservationIdentity, RelationalAuthorizationPathObservation,
-    RelationalAuthorizationPlanIdentity,
+    RelationalAuthorizationObservationFreshness, RelationalAuthorizationObservationIdentity,
+    RelationalAuthorizationPathObservation, RelationalAuthorizationPlanIdentity,
 };
 pub use plan::{
     RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationPlan,

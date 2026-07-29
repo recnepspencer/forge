@@ -68,14 +68,10 @@ impl RelationalRuntime {
         let observation_identity =
             observation_evidence_identity(plan.identity(), decision, &observations);
         Ok(RelationalAuthorizationObservationEvidence::mint(
-            plan.snapshot().clone(),
-            plan.identity(),
+            plan,
             observation_identity,
-            plan.principal(),
-            plan.scope(),
             decision,
             observations,
-            plan.proposed_effects().to_vec(),
             counters,
         ))
     }
@@ -177,16 +173,18 @@ fn relation_ids_for_step(
         counters.adjacency_lists_read += 1;
         let relation_ids = match traversal.direction() {
             RelationalAuthorizationTraversalDirection::Forward => {
-                crate::storage::partition::adjacency_queries::outgoing_relations_for_entity(
+                crate::storage::partition::adjacency_queries::outgoing_relations_for_entity_kind(
                     runtime,
                     entity,
+                    traversal.relation_kind(),
                     plan.snapshot().version_id,
                 )
             }
             RelationalAuthorizationTraversalDirection::Reverse => {
-                crate::storage::partition::adjacency_queries::incoming_relations_for_entity(
+                crate::storage::partition::adjacency_queries::incoming_relations_for_entity_kind(
                     runtime,
                     entity,
+                    traversal.relation_kind(),
                     plan.snapshot().version_id,
                 )
             }

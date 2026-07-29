@@ -1,13 +1,14 @@
 use worth_query_decl::facade::{worth_query_aspect, worth_query_field};
 
 use crate::model::{
-    AccountId, AccountName, BusinessId, CustomerRole, EmployeeRole, InstitutionId, PaymentId,
+    AccountAuthorizationId, AccountId, AccountJournalRevision, AccountName, BusinessId,
+    CustomerRole, EmployeeRole, InstitutionId, JournalEntryId, Money, PaymentId, PostingId,
     SignedMoney, USD,
 };
 
 use super::entities::{
-    Account, AccountAuthorization, Business, EmployeeAssignment, Institution, PaymentIntent,
-    Posting,
+    Account, AccountAuthorization, Business, EmployeeAssignment, Institution, JournalEntry,
+    PaymentIntent, Posting,
 };
 use super::governance::UsdCurrency;
 use super::values::{AccountKind, AccountStatus, PaymentStatus, PostingPurpose};
@@ -20,9 +21,14 @@ worth_query_aspect!(pub PaymentIdentity in BankSchema, PaymentIntent);
 worth_query_aspect!(pub AccountProfile in BankSchema, Account);
 worth_query_aspect!(pub AccountState in BankSchema, Account);
 worth_query_aspect!(pub AuthorizationScope in BankSchema, AccountAuthorization);
+worth_query_aspect!(pub AuthorizationIdentity in BankSchema, AccountAuthorization);
 worth_query_aspect!(pub EmployeeScope in BankSchema, EmployeeAssignment);
 worth_query_aspect!(pub PostingValue in BankSchema, Posting);
+worth_query_aspect!(pub PostingIdentity in BankSchema, Posting);
+worth_query_aspect!(pub JournalIdentity in BankSchema, JournalEntry);
+worth_query_aspect!(pub JournalState in BankSchema, JournalEntry);
 worth_query_aspect!(pub PaymentState in BankSchema, PaymentIntent);
+worth_query_aspect!(pub PaymentValue in BankSchema, PaymentIntent);
 
 worth_query_field!(
     pub AccountIdentity in BankSchema, Account, Identity:
@@ -49,8 +55,8 @@ worth_query_field!(
     AccountKind, read_write, equality
 );
 worth_query_field!(
-    pub AvailableBalance in BankSchema, Account, AccountState:
-    SignedMoney<USD>, currency UsdCurrency, read_only, no_equality
+    pub AccountingRevision in BankSchema, Account, AccountState:
+    AccountJournalRevision, read_write, equality
 );
 worth_query_field!(
     pub Status in BankSchema, Account, AccountState:
@@ -61,6 +67,10 @@ worth_query_field!(
     CustomerRole, read_write, equality
 );
 worth_query_field!(
+    pub AccountAuthorizationIdentity in BankSchema, AccountAuthorization, AuthorizationIdentity:
+    AccountAuthorizationId, read_only, equality
+);
+worth_query_field!(
     pub AssignmentRole in BankSchema, EmployeeAssignment, EmployeeScope:
     EmployeeRole, read_write, equality
 );
@@ -69,10 +79,30 @@ worth_query_field!(
     SignedMoney<USD>, currency UsdCurrency, read_write, no_equality
 );
 worth_query_field!(
+    pub PostingAccountSequence in BankSchema, Posting, PostingValue:
+    AccountJournalRevision, read_write, equality
+);
+worth_query_field!(
+    pub PostingIdentityField in BankSchema, Posting, PostingIdentity:
+    PostingId, read_only, equality
+);
+worth_query_field!(
     pub Purpose in BankSchema, Posting, PostingValue:
     PostingPurpose, read_write, equality
 );
 worth_query_field!(
     pub PaymentStatusField in BankSchema, PaymentIntent, PaymentState:
     PaymentStatus, read_write, equality
+);
+worth_query_field!(
+    pub JournalIdentityField in BankSchema, JournalEntry, JournalIdentity:
+    JournalEntryId, read_only, equality
+);
+worth_query_field!(
+    pub JournalPurpose in BankSchema, JournalEntry, JournalState:
+    PostingPurpose, read_write, equality
+);
+worth_query_field!(
+    pub PaymentAmount in BankSchema, PaymentIntent, PaymentValue:
+    Money<USD>, currency UsdCurrency, read_write, no_equality
 );

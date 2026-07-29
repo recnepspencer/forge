@@ -1,0 +1,270 @@
+use worth_query_decl::facade::worth_query_operation_reads;
+
+use super::*;
+
+mod ordinary_reads;
+
+worth_query_operation_reads!(
+    CreatePersonalAccountOperation => [
+        InstitutionIdentityField,
+        PrincipalIdentityField,
+        PersonalOwner,
+        AccountIdentity,
+        AccountingRevision,
+        InstitutionAccount,
+        Kind,
+        BusinessAccount,
+        BusinessIdentityField,
+        Status,
+        AccountDisplayName
+    ]
+);
+worth_query_operation_reads!(
+    CreateBusinessAccountOperation => [
+        InstitutionIdentityField,
+        BusinessIdentityField,
+        BusinessAccount,
+        AccountIdentity,
+        AccountingRevision,
+        InstitutionAccount,
+        Kind,
+        PersonalOwner,
+        PrincipalIdentityField,
+        Status,
+        AccountDisplayName
+    ]
+);
+worth_query_operation_reads!(
+    ApplyOpeningFundingOperation => [
+        AccountIdentity,
+        AccountingRevision,
+        Status,
+        InstitutionAccount,
+        InstitutionCashAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        PrincipalIdentityField,
+        BusinessIdentityField,
+        AccountDisplayName,
+        PostingAccount,
+        JournalPosting,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        Purpose,
+        PostingAmount,
+        PostingAccountSequence,
+        JournalReversal
+    ]
+);
+worth_query_operation_reads!(
+    DepositOperation => [
+        AccountIdentity,
+        AccountingRevision,
+        Status,
+        InstitutionAccount,
+        InstitutionCashAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        PrincipalIdentityField,
+        BusinessIdentityField,
+        AccountDisplayName,
+        PostingAccount,
+        JournalPosting,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        Purpose,
+        PostingAmount,
+        PostingAccountSequence,
+        JournalReversal
+    ]
+);
+worth_query_operation_reads!(
+    WithdrawOperation => [
+        AccountIdentity,
+        AccountingRevision,
+        Status,
+        InstitutionAccount,
+        InstitutionCashAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        PrincipalIdentityField,
+        BusinessIdentityField,
+        AccountDisplayName,
+        PostingAccount,
+        JournalPosting,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        Purpose,
+        PostingAmount,
+        PostingAccountSequence,
+        JournalReversal
+    ]
+);
+worth_query_operation_reads!(
+    SendMoneyOperation => [
+        AccountIdentity,
+        PrincipalIdentityField,
+        PersonalOwner,
+        AccountingRevision,
+        Status,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        BusinessAccount,
+        BusinessIdentityField,
+        AccountDisplayName,
+        PostingAccount,
+        JournalPosting,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        Purpose,
+        PostingAmount,
+        PostingAccountSequence,
+        JournalReversal
+    ]
+);
+worth_query_operation_reads!(
+    InitiateBusinessPaymentOperation => [
+        BusinessIdentityField,
+        BusinessAccount,
+        PrincipalIdentityField,
+        PersonalOwner,
+        Status,
+        AccountIdentity,
+        AccountingRevision,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        AccountDisplayName
+    ]
+);
+worth_query_operation_reads!(
+    ApprovePaymentOperation => [
+        PaymentIdentityField,
+        PaymentAmount,
+        PaymentStatusField,
+        PaymentSource,
+        PaymentDestination,
+        PaymentBusiness,
+        PaymentInitiator,
+        PaymentApproval,
+        ApprovalPrincipal,
+        AccountIdentity,
+        AccountingRevision,
+        Status,
+        PrincipalIdentityField,
+        BusinessIdentityField,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        AccountDisplayName,
+        PostingAccount,
+        JournalPosting,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingIdentityField,
+        Purpose,
+        PostingAmount,
+        PostingAccountSequence,
+        JournalReversal
+    ]
+);
+worth_query_operation_reads!(
+    RejectPaymentOperation => [
+        PaymentIdentityField,
+        PaymentAmount,
+        PaymentStatusField,
+        PaymentSource,
+        PaymentDestination,
+        PaymentBusiness,
+        PaymentInitiator,
+        PaymentApproval,
+        ApprovalPrincipal,
+        AccountIdentity,
+        AccountingRevision,
+        Status,
+        PrincipalIdentityField,
+        BusinessIdentityField,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        AccountDisplayName
+    ]
+);
+worth_query_operation_reads!(
+    GrantAccountAuthorizationOperation => [
+        AccountIdentity,
+        PrincipalIdentityField,
+        AccountAuthorizedUser,
+        AuthorizationAccount,
+        AccountAuthorizationIdentity,
+        AuthorizationRole,
+        AccountingRevision,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        BusinessIdentityField,
+        Status,
+        AccountDisplayName
+    ]
+);
+worth_query_operation_reads!(
+    RevokeAccountAuthorizationOperation => [
+        AccountAuthorization,
+        AccountAuthorizedUser,
+        AuthorizationAccount,
+        AuthorizationRole,
+        AccountAuthorizationIdentity,
+        PrincipalIdentityField,
+        AccountIdentity,
+        AccountingRevision,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        BusinessIdentityField,
+        Status,
+        AccountDisplayName
+    ]
+);
+worth_query_operation_reads!(
+    ReverseJournalOperation => [
+        AccountIdentity,
+        AccountingRevision,
+        InstitutionAccount,
+        InstitutionIdentityField,
+        Kind,
+        PersonalOwner,
+        BusinessAccount,
+        PrincipalIdentityField,
+        BusinessIdentityField,
+        AccountDisplayName,
+        JournalPosting,
+        JournalIdentityField,
+        JournalPurpose,
+        PostingAccount,
+        PostingIdentityField,
+        PostingAmount,
+        PostingAccountSequence,
+        Purpose,
+        Status,
+        JournalReversal
+    ]
+);

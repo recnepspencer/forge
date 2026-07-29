@@ -31,6 +31,23 @@ pub enum ApplicationOperationProgramTarget {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ApplicationOperationDecisionReadTarget {
+    Entity {
+        entity: String,
+    },
+    Field {
+        entity: String,
+        aspect: String,
+        field: String,
+    },
+    Relation {
+        relation: String,
+        from: String,
+        to: String,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ApplicationSchemaMember {
     Entity {
         entity: String,
@@ -75,6 +92,18 @@ pub enum ApplicationSchemaMember {
     OperationProgram {
         operation: String,
         target: ApplicationOperationProgramTarget,
+    },
+    OperationDecisionRead {
+        operation: String,
+        target: ApplicationOperationDecisionReadTarget,
+    },
+    OperationDecisionFactBudget {
+        operation: String,
+        maximum_fact_count: usize,
+    },
+    OperationProjectionWorkBudget {
+        operation: String,
+        maximum_work_units: usize,
     },
     Policy {
         policy: String,

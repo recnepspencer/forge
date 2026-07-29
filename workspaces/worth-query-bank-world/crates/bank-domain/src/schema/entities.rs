@@ -14,4 +14,3 @@ worth_query_entity!(pub PaymentIntent in BankSchema);
 worth_query_entity!(pub Approval in BankSchema);
 worth_query_entity!(pub JournalEntry in BankSchema);
 worth_query_entity!(pub Posting in BankSchema);
-worth_query_entity!(pub IdempotencyRecord in BankSchema);

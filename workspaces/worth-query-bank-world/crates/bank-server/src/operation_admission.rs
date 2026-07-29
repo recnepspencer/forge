@@ -13,6 +13,8 @@ use worth_query_host::facade::primary_graph::{
 
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
+mod read;
+
 /// Bank-owned retention of Query's exact admitted-operation authority plus
 /// the typed bank actor and scope identities used by proposal semantics.
 ///
@@ -57,6 +59,22 @@ impl<Operation, Input, Scope, ScopeIdentity: Copy>
         bank_domain::proposals::BankOperationScopeBinding::from_fingerprint_bytes(
             self.operation_scope_fingerprint(),
         )
+    }
+
+    pub(crate) const fn query(
+        &self,
+    ) -> &WorthQueryAdmittedApplicationOperation<BankSchema, Operation, Input, Scope> {
+        &self.query
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        BankPrincipalId,
+        ScopeIdentity,
+        WorthQueryAdmittedApplicationOperation<BankSchema, Operation, Input, Scope>,
+    ) {
+        (self.actor, self.scope, self.query)
     }
 }
 

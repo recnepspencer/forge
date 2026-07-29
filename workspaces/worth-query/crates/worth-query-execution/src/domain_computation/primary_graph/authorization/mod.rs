@@ -8,6 +8,9 @@ mod path_identity;
 pub use admitted_operation::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationScopeFingerprint,
 };
+pub(in crate::domain_computation::primary_graph) use admitted_operation::{
+    WorthQueryAuthorizationCommitDependency, WorthQueryOperationAdmissionIdentity,
+};
 pub use denial::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };

@@ -20,10 +20,10 @@ use super::aspect_state_images::{export_state, readmit_state, CheckpointAspectCo
 trait CheckpointArenaKind: RecordKind {
     type ImageKind: RecordArenaCheckpointKind;
 
-    fn plan<'a>(
-        catalog: &'a AspectContractPlanCatalog,
+    fn plan(
+        catalog: &AspectContractPlanCatalog,
         kind_id: KindId,
-    ) -> Option<&'a LoweredAspectContractPlan>;
+    ) -> Option<&LoweredAspectContractPlan>;
     fn meta_kind(meta: &Self::Meta) -> KindId;
     fn meta_kind_from_image(
         meta: &<Self::ImageKind as RecordArenaCheckpointKind>::MetaImage,
@@ -59,10 +59,10 @@ fn missing_plan(kind_id: KindId) -> DurabilityError {
 impl CheckpointArenaKind for EntityRecordKind {
     type ImageKind = EntityCheckpointImageKind;
 
-    fn plan<'a>(
-        catalog: &'a AspectContractPlanCatalog,
+    fn plan(
+        catalog: &AspectContractPlanCatalog,
         kind_id: KindId,
-    ) -> Option<&'a LoweredAspectContractPlan> {
+    ) -> Option<&LoweredAspectContractPlan> {
         catalog.entity_plans.get(&kind_id)
     }
 
@@ -128,10 +128,10 @@ impl CheckpointArenaKind for EntityRecordKind {
 impl CheckpointArenaKind for RelationRecordKind {
     type ImageKind = RelationCheckpointImageKind;
 
-    fn plan<'a>(
-        catalog: &'a AspectContractPlanCatalog,
+    fn plan(
+        catalog: &AspectContractPlanCatalog,
         kind_id: KindId,
-    ) -> Option<&'a LoweredAspectContractPlan> {
+    ) -> Option<&LoweredAspectContractPlan> {
         catalog.relation_plans.get(&kind_id)
     }
 
@@ -353,12 +353,12 @@ pub(crate) fn partition_from_image(
         adjacency: image
             .adjacency
             .into_iter()
-            .map(AdjacencySet::Compressed)
+            .map(AdjacencySet::compressed_from_current)
             .collect(),
         reverse_adjacency: image
             .reverse_adjacency
             .into_iter()
-            .map(AdjacencySet::Compressed)
+            .map(AdjacencySet::compressed_from_current)
             .collect(),
     })
 }

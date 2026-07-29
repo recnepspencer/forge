@@ -13,7 +13,8 @@ use worth_query_host::facade::domain::{
     WorthQueryInstalledPrincipalBinding,
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
+    WorthQueryApplicationInvariantProjectionAuthority, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionMode,
 };
 use worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller;
 
@@ -52,6 +53,7 @@ pub struct BankIdentityRuntime {
         Principal,
         BankPrincipalId,
     >,
+    invariant_projection: WorthQueryApplicationInvariantProjectionAuthority<BankSchema>,
 }
 
 impl BankIdentityRuntime {
@@ -122,6 +124,7 @@ impl BankIdentityRuntime {
             bind_bank_world(&mut graph, &world.snapshot, &world.owners, &world.employees)
                 .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
         }
+        let invariant_projection = graph.retain_invariant_projection_authority();
         let runtime = graph
             .publish_application_runtime(runtime, authority, installed_schema)
             .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
@@ -130,7 +133,11 @@ impl BankIdentityRuntime {
             .principal_binding(BankPrincipalBinding::reference())
             .map_err(BankIdentityRuntimeBuildError::InstalledBinding)?;
 
-        Ok(Self { runtime, binding })
+        Ok(Self {
+            runtime,
+            binding,
+            invariant_projection,
+        })
     }
 
     pub fn admit_authentication_adapter<Adapter>(
@@ -197,6 +204,12 @@ impl BankIdentityRuntime {
         &self,
     ) -> &WorthQueryPrimaryGraphApplicationRuntime<BankSchema> {
         &self.runtime
+    }
+
+    pub(crate) const fn invariant_projection(
+        &self,
+    ) -> &WorthQueryApplicationInvariantProjectionAuthority<BankSchema> {
+        &self.invariant_projection
     }
 }
 

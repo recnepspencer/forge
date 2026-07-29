@@ -12,7 +12,48 @@ pub struct BankAccount {
     business_owner: Option<BusinessId>,
 }
 
+pub struct BankAccountProjection {
+    pub id: AccountId,
+    pub institution: InstitutionId,
+    pub kind: AccountKind,
+    pub status: AccountStatus,
+    pub display_name: AccountName,
+    pub personal_owner: Option<BankPrincipalId>,
+    pub business_owner: Option<BusinessId>,
+}
+
 impl BankAccount {
+    pub fn from_projection(projection: BankAccountProjection) -> Option<Self> {
+        let BankAccountProjection {
+            id,
+            institution,
+            kind,
+            status,
+            display_name,
+            personal_owner,
+            business_owner,
+        } = projection;
+        let ownership_matches = matches!(
+            (kind, personal_owner, business_owner),
+            (AccountKind::Personal, Some(_), None)
+                | (AccountKind::Business, None, Some(_))
+                | (
+                    AccountKind::InstitutionCash | AccountKind::InstitutionSettlement,
+                    None,
+                    None
+                )
+        );
+        ownership_matches.then_some(Self {
+            id,
+            institution,
+            kind,
+            status,
+            display_name,
+            personal_owner,
+            business_owner,
+        })
+    }
+
     pub(crate) fn personal(
         id: AccountId,
         institution: InstitutionId,

@@ -1,17 +1,20 @@
-use std::collections::BTreeSet;
-
 use bank_domain::schema::{BankPrincipalBinding, BankSchema};
-use worth_query_decl::facade::application_schema::{
-    ApplicationOperationProgramTarget, ApplicationSchemaMember,
-};
+use worth_query_decl::facade::application_schema::ApplicationSchemaMember;
+
+#[path = "schema_inventory/field_inventory.rs"]
+mod field_inventory;
+#[path = "schema_inventory/support.rs"]
+mod support;
+
+use support::*;
 
 #[test]
-fn bank_manifest_matches_the_frozen_phase_one_world() {
+fn bank_manifest_matches_the_frozen_schema_world() {
     let declaration = BankSchema::declaration().unwrap();
     let members = declaration.erased().members();
     assert_entity_and_relation_inventory(members);
     assert_operation_inventory(members);
-    assert_field_and_governance_inventory(members);
+    field_inventory::assert_field_and_governance_inventory(members);
     assert_account_creation_programs(members);
     assert_money_programs(members);
     assert_payment_and_authorization_programs(members);
@@ -30,6 +33,42 @@ fn bank_manifest_matches_the_frozen_phase_one_world() {
     assert_eq!(binding.principal_identity_field(), "PrincipalIdentityField");
 }
 
+#[test]
+fn send_projection_capability_does_not_widen_mandatory_commit_dependencies() {
+    let declaration = BankSchema::declaration().unwrap();
+    let members = declaration.erased().members();
+    assert_decision_reads(
+        members,
+        "SendMoneyOperation",
+        &[
+            "field:Account/AccountState/AccountingRevision",
+            "field:Account/AccountState/Status",
+            "field:Account/Identity/AccountIdentity",
+            "field:Principal/PrincipalIdentity/PrincipalIdentityField",
+            "relation:PersonalOwner:Principal->Account",
+        ],
+    );
+}
+
+#[test]
+fn revoke_projection_capability_does_not_widen_mandatory_commit_dependencies() {
+    let declaration = BankSchema::declaration().unwrap();
+    let members = declaration.erased().members();
+    assert_decision_reads(
+        members,
+        "RevokeAccountAuthorizationOperation",
+        &[
+            "entity:AccountAuthorization",
+            "field:Account/Identity/AccountIdentity",
+            "field:AccountAuthorization/AuthorizationIdentity/AccountAuthorizationIdentity",
+            "field:AccountAuthorization/AuthorizationScope/AuthorizationRole",
+            "field:Principal/PrincipalIdentity/PrincipalIdentityField",
+            "relation:AccountAuthorizedUser:Principal->AccountAuthorization",
+            "relation:AuthorizationAccount:AccountAuthorization->Account",
+        ],
+    );
+}
+
 fn assert_entity_and_relation_inventory(members: &[ApplicationSchemaMember]) {
     assert_eq!(
         names(members, entity_name),
@@ -37,13 +76,19 @@ fn assert_entity_and_relation_inventory(members: &[ApplicationSchemaMember]) {
             "Account",
             "AccountAuthorization",
             "Approval",
+            "Branch",
             "Business",
+            "CapabilityGrant",
             "Customer",
+            "DeathNotice",
             "EmployeeAssignment",
+            "EmergencyAccess",
+            "EstateCase",
             "ExternalPrincipalMapping",
-            "IdempotencyRecord",
             "Institution",
             "JournalEntry",
+            "LegalAuthority",
+            "MandatoryReview",
             "PaymentIntent",
             "Posting",
             "Principal",
@@ -58,17 +103,46 @@ fn assert_entity_and_relation_inventory(members: &[ApplicationSchemaMember]) {
             "AuthorizationAccount",
             "BusinessAccount",
             "BusinessOwner",
+            "BranchInstitution",
+            "CapabilityAccount",
+            "CapabilityBranch",
+            "CapabilityEstate",
+            "CapabilityGrantee",
+            "CapabilityGrantor",
+            "CapabilityInstitution",
+            "CapabilityParent",
+            "DeathNoticeSubject",
+            "EmergencyApprover",
+            "EmergencyGrant",
+            "EmergencyRequester",
+            "EmergencyReview",
+            "EstateAccount",
+            "EstateAssignment",
+            "EstateAuthorizedSigner",
+            "EstateBeneficiary",
+            "EstateBranch",
+            "EstateDeathNotice",
+            "EstateDeceased",
+            "EstateExecutor",
+            "EstateJointOwner",
             "ExternalPrincipal",
             "InstitutionAccount",
+            "InstitutionCashAccount",
             "InstitutionEmployee",
             "JournalPosting",
+            "JournalReversal",
+            "LegalAuthorityEstate",
+            "LegalAuthorityHolder",
             "PaymentApproval",
+            "PaymentBusiness",
             "PaymentDestination",
             "PaymentInitiator",
             "PaymentSource",
             "PersonalOwner",
             "PostingAccount",
             "PrincipalCustomer",
+            "ReviewEstate",
+            "ReviewPrincipal",
         ])
     );
 }
@@ -79,72 +153,25 @@ fn assert_operation_inventory(members: &[ApplicationSchemaMember]) {
         expected(&[
             "ApplyOpeningFundingOperation",
             "ApprovePaymentOperation",
+            "AuditInstitutionActivityOperation",
             "CreateBusinessAccountOperation",
             "CreatePersonalAccountOperation",
             "DepositOperation",
+            "DiscoverAccountsOperation",
             "GrantAccountAuthorizationOperation",
             "InitiateBusinessPaymentOperation",
+            "ReadAccountActivityOperation",
+            "ReadAccountAuthorizedUsersOperation",
+            "ReadAccountDetailOperation",
+            "ReadAccountSummaryOperation",
+            "ReadPaymentOperation",
+            "ReadPendingPaymentsOperation",
             "RejectPaymentOperation",
             "ReverseJournalOperation",
             "RevokeAccountAuthorizationOperation",
             "SendMoneyOperation",
             "WithdrawOperation",
         ])
-    );
-}
-
-fn assert_field_and_governance_inventory(members: &[ApplicationSchemaMember]) {
-    assert_eq!(
-        names(members, aspect_name),
-        expected(&[
-            "AccountProfile",
-            "AccountState",
-            "AuthorizationScope",
-            "EmployeeScope",
-            "ExternalPrincipalIdentity",
-            "Identity",
-            "BusinessIdentity",
-            "InstitutionIdentity",
-            "PaymentIdentity",
-            "PaymentState",
-            "PostingValue",
-            "PrincipalIdentity",
-        ])
-    );
-    assert_eq!(
-        names(members, field_name),
-        expected(&[
-            "AccountDisplayName",
-            "AccountIdentity",
-            "AssignmentRole",
-            "AuthorizationRole",
-            "AvailableBalance",
-            "BusinessIdentityField",
-            "ExternalIdentityKey",
-            "ExternalMappingStatus",
-            "Kind",
-            "InstitutionIdentityField",
-            "PaymentIdentityField",
-            "PaymentStatusField",
-            "PostingAmount",
-            "PrincipalIdentityField",
-            "Purpose",
-            "Status",
-        ])
-    );
-    assert_eq!(
-        names(members, policy_name),
-        expected(&[
-            "AccountMutationScopePolicy",
-            "AccountVisibilityPolicy",
-            "DistinctApproverPolicy",
-            "EmployeeScopePolicy",
-        ])
-    );
-    assert_eq!(names(members, currency_name), expected(&["UsdCurrency"]));
-    assert_eq!(
-        names(members, effect_name),
-        expected(&["AccountActivityEffect"])
     );
 }
 
@@ -156,8 +183,10 @@ fn assert_account_creation_programs(members: &[ApplicationSchemaMember]) {
             "create:Account",
             "link:InstitutionAccount:Institution->Account",
             "link:PersonalOwner:Principal->Account",
+            "write:Account/Identity/AccountIdentity",
             "write:Account/AccountProfile/AccountDisplayName",
             "write:Account/AccountProfile/Kind",
+            "write:Account/AccountState/AccountingRevision",
             "write:Account/AccountState/Status",
         ],
     );
@@ -168,8 +197,10 @@ fn assert_account_creation_programs(members: &[ApplicationSchemaMember]) {
             "create:Account",
             "link:BusinessAccount:Business->Account",
             "link:InstitutionAccount:Institution->Account",
+            "write:Account/Identity/AccountIdentity",
             "write:Account/AccountProfile/AccountDisplayName",
             "write:Account/AccountProfile/Kind",
+            "write:Account/AccountState/AccountingRevision",
             "write:Account/AccountState/Status",
         ],
     );
@@ -193,8 +224,13 @@ fn assert_payment_and_authorization_programs(members: &[ApplicationSchemaMember]
         "InitiateBusinessPaymentOperation",
         &[
             "create:PaymentIntent",
+            "link:PaymentBusiness:PaymentIntent->Business",
             "link:PaymentDestination:PaymentIntent->Account",
+            "link:PaymentInitiator:Principal->PaymentIntent",
             "link:PaymentSource:PaymentIntent->Account",
+            "write:PaymentIntent/PaymentIdentity/PaymentIdentityField",
+            "write:PaymentIntent/PaymentState/PaymentStatusField",
+            "write:PaymentIntent/PaymentValue/PaymentAmount",
         ],
     );
     assert_program(
@@ -202,16 +238,32 @@ fn assert_payment_and_authorization_programs(members: &[ApplicationSchemaMember]
         "ApprovePaymentOperation",
         &[
             "create:Approval",
+            "create:JournalEntry",
+            "create:Posting",
             "emit:AccountActivityEffect",
             "link:ApprovalPrincipal:Approval->Principal",
+            "link:JournalPosting:JournalEntry->Posting",
             "link:PaymentApproval:PaymentIntent->Approval",
+            "link:PostingAccount:Posting->Account",
+            "write:Account/AccountState/AccountingRevision",
+            "write:JournalEntry/JournalIdentity/JournalIdentityField",
+            "write:JournalEntry/JournalState/JournalPurpose",
             "write:PaymentIntent/PaymentState/PaymentStatusField",
+            "write:Posting/PostingIdentity/PostingIdentityField",
+            "write:Posting/PostingValue/PostingAccountSequence",
+            "write:Posting/PostingValue/PostingAmount",
+            "write:Posting/PostingValue/Purpose",
         ],
     );
     assert_program(
         members,
         "RejectPaymentOperation",
-        &["write:PaymentIntent/PaymentState/PaymentStatusField"],
+        &[
+            "create:Approval",
+            "link:ApprovalPrincipal:Approval->Principal",
+            "link:PaymentApproval:PaymentIntent->Approval",
+            "write:PaymentIntent/PaymentState/PaymentStatusField",
+        ],
     );
     assert_program(
         members,
@@ -220,6 +272,7 @@ fn assert_payment_and_authorization_programs(members: &[ApplicationSchemaMember]
             "create:AccountAuthorization",
             "link:AccountAuthorizedUser:Principal->AccountAuthorization",
             "link:AuthorizationAccount:AccountAuthorization->Account",
+            "write:AccountAuthorization/AuthorizationIdentity/AccountAuthorizationIdentity",
             "write:AccountAuthorization/AuthorizationScope/AuthorizationRole",
         ],
     );
@@ -239,6 +292,7 @@ fn bank_schema_source_has_no_raw_query_descriptor_or_dynamic_key_lane() {
     let schema_sources = [
         include_str!("../src/schema/entities.rs"),
         include_str!("../src/schema/authentication.rs"),
+        include_str!("../src/schema/decision_read_manifest.rs"),
         include_str!("../src/schema/fields.rs"),
         include_str!("../src/schema/governance.rs"),
         include_str!("../src/schema/manifest.rs"),
@@ -275,124 +329,4 @@ fn bank_schema_source_has_no_raw_query_descriptor_or_dynamic_key_lane() {
             "bank-domain crosses audience boundary through {forbidden_dependency}"
         );
     }
-}
-
-fn names(
-    members: &[ApplicationSchemaMember],
-    select: fn(&ApplicationSchemaMember) -> Option<&str>,
-) -> BTreeSet<&str> {
-    members.iter().filter_map(select).collect()
-}
-
-fn entity_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Entity { entity } => Some(entity),
-        _ => None,
-    }
-}
-
-fn relation_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Relation { relation, .. } => Some(relation),
-        _ => None,
-    }
-}
-
-fn aspect_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Aspect { aspect, .. } => Some(aspect),
-        _ => None,
-    }
-}
-
-fn field_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Field { field, .. } => Some(field),
-        _ => None,
-    }
-}
-
-fn operation_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Operation { operation, .. } => Some(operation),
-        _ => None,
-    }
-}
-
-fn policy_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Policy { policy } => Some(policy),
-        _ => None,
-    }
-}
-
-fn currency_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Currency { currency } => Some(currency),
-        _ => None,
-    }
-}
-
-fn effect_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::Effect { effect, .. } => Some(effect),
-        _ => None,
-    }
-}
-
-fn assert_money_program(members: &[ApplicationSchemaMember], operation: &str) {
-    assert_program(
-        members,
-        operation,
-        &[
-            "create:JournalEntry",
-            "create:Posting",
-            "emit:AccountActivityEffect",
-            "link:JournalPosting:JournalEntry->Posting",
-            "link:PostingAccount:Posting->Account",
-            "write:Posting/PostingValue/PostingAmount",
-            "write:Posting/PostingValue/Purpose",
-        ],
-    );
-}
-
-fn assert_program(members: &[ApplicationSchemaMember], operation: &str, expected_targets: &[&str]) {
-    let actual = members
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::OperationProgram {
-                operation: installed,
-                target,
-            } if installed == operation => Some(program_target(target)),
-            _ => None,
-        })
-        .collect::<BTreeSet<_>>();
-    let expected = expected_targets
-        .iter()
-        .map(|target| (*target).to_string())
-        .collect::<BTreeSet<_>>();
-    assert_eq!(actual, expected, "operation program drift: {operation}");
-}
-
-fn program_target(target: &ApplicationOperationProgramTarget) -> String {
-    match target {
-        ApplicationOperationProgramTarget::Create { entity } => format!("create:{entity}"),
-        ApplicationOperationProgramTarget::Delete { entity } => format!("delete:{entity}"),
-        ApplicationOperationProgramTarget::Write {
-            entity,
-            aspect,
-            field,
-        } => format!("write:{entity}/{aspect}/{field}"),
-        ApplicationOperationProgramTarget::Link { relation, from, to } => {
-            format!("link:{relation}:{from}->{to}")
-        }
-        ApplicationOperationProgramTarget::Unlink { relation, from, to } => {
-            format!("unlink:{relation}:{from}->{to}")
-        }
-        ApplicationOperationProgramTarget::Emit { effect } => format!("emit:{effect}"),
-    }
-}
-
-fn expected<'a>(values: &'a [&'a str]) -> BTreeSet<&'a str> {
-    values.iter().copied().collect()
 }

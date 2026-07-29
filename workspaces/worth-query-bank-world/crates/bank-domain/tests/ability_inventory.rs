@@ -24,13 +24,15 @@ fn bank_ability_inventory_and_operation_requirements_are_exact() {
         BTreeSet::from([
             ("ApproveBusinessFunds", "PaymentIntent"),
             ("AuditInstitution", "Institution"),
+            ("DiscoverOwnAccounts", "Principal"),
             ("InitiateBusinessFunds", "Business"),
             ("ManageAccountAccess", "Account"),
             ("OpenAccount", "Institution"),
             ("SendPersonalFunds", "Account"),
             ("ServiceInstitutionAccount", "Institution"),
-            ("ViewBusinessAccount", "Business"),
-            ("ViewPersonalAccount", "Account"),
+            ("ViewAccount", "Account"),
+            ("ViewAccountAccess", "Account"),
+            ("ViewPayment", "PaymentIntent"),
         ])
     );
 
@@ -60,6 +62,10 @@ fn bank_ability_inventory_and_operation_requirements_are_exact() {
                 ("ApproveBusinessFunds", "PaymentIntent")
             ),
             (
+                "AuditInstitutionActivityOperation",
+                ("AuditInstitution", "Institution")
+            ),
+            (
                 "CreateBusinessAccountOperation",
                 ("OpenAccount", "Institution")
             ),
@@ -72,12 +78,28 @@ fn bank_ability_inventory_and_operation_requirements_are_exact() {
                 ("ServiceInstitutionAccount", "Institution")
             ),
             (
+                "DiscoverAccountsOperation",
+                ("DiscoverOwnAccounts", "Principal")
+            ),
+            (
                 "GrantAccountAuthorizationOperation",
                 ("ManageAccountAccess", "Account")
             ),
             (
                 "InitiateBusinessPaymentOperation",
                 ("InitiateBusinessFunds", "Business")
+            ),
+            ("ReadAccountActivityOperation", ("ViewAccount", "Account")),
+            (
+                "ReadAccountAuthorizedUsersOperation",
+                ("ViewAccountAccess", "Account")
+            ),
+            ("ReadAccountDetailOperation", ("ViewAccount", "Account")),
+            ("ReadAccountSummaryOperation", ("ViewAccount", "Account")),
+            ("ReadPaymentOperation", ("ViewPayment", "PaymentIntent")),
+            (
+                "ReadPendingPaymentsOperation",
+                ("DiscoverOwnAccounts", "Principal")
             ),
             (
                 "RejectPaymentOperation",
@@ -118,7 +140,7 @@ fn bank_ability_policies_are_closed_over_declared_graph_paths() {
         })
         .collect::<BTreeMap<_, _>>();
 
-    assert_eq!(policies.len(), 9);
+    assert_eq!(policies.len(), 11);
     let (approval_scope, approval_paths) = policies
         .get("ApproveBusinessFunds")
         .expect("approval policy must be installed");

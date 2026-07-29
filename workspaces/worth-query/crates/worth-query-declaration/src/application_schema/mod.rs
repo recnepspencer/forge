@@ -2,11 +2,14 @@ mod authoring_context;
 mod authorization_policy;
 mod binding_identity;
 mod canonical_authorization_identity;
+mod canonical_decision_read_identity;
 mod canonical_identity;
 mod canonical_operation_identity;
 mod capabilities;
+mod decision_read_authoring;
 mod declaration;
 mod effect_authoring;
+mod effect_payload;
 mod identifier_validation;
 mod member_closure;
 mod mutation_authoring;
@@ -32,8 +35,8 @@ pub use capabilities::{
     ApplicationCurrencyMarker, ApplicationFieldCurrency, CreatableBy, DeclaredApplicationCurrency,
     EqualityCapable, EqualityPosture, EqualityPredicate, NoApplicationCurrency,
     NoEqualityPredicate, OperationCreates, OperationDeletes, OperationEmits, OperationLinks,
-    OperationRequiresAbility, OperationUnlinks, OperationWrites, ReadOnly, ReadWrite,
-    WritableCapability, WritePosture,
+    OperationReads, OperationRequiresAbility, OperationUnlinks, OperationWrites, ReadOnly,
+    ReadWrite, WritableCapability, WritePosture,
 };
 pub use declaration::{
     ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
@@ -41,6 +44,7 @@ pub use declaration::{
     ErasedApplicationSchemaDeclaration,
 };
 pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
+pub use effect_payload::ApplicationEffectPayload;
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
     TypedRelationMutation,
@@ -55,8 +59,11 @@ pub use references::{
     ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
     ApplicationRelationRef,
 };
-pub use schema_member::{ApplicationOperationProgramTarget, ApplicationSchemaMember};
+pub use schema_member::{
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
+    ApplicationSchemaMember,
+};
 pub use values::{
-    DeclaredApplicationFieldValue, TypedApplicationIdentityValue, TypedApplicationValue,
-    TypedCurrencyApplicationValue,
+    DeclaredApplicationFieldValue, TypedApplicationIdentityValue, TypedApplicationReadableValue,
+    TypedApplicationSignedAggregateValue, TypedApplicationValue, TypedCurrencyApplicationValue,
 };

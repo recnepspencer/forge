@@ -1,10 +1,12 @@
 use worth_foundational::facade::{AspectValue, InternedString};
 
+use crate::facade::config::CascadeDeletePolicy;
 use crate::facade::history::BranchId;
+use crate::facade::runtime::RelationalRuntimeApi;
 use crate::identity::data::KindId;
 use crate::tests::support::{
     aspect_field_locator, aspect_key, create_entity, create_relation, delete_relation_on_branch,
-    field_key, runtime_with_test_schema,
+    field_key, runtime_with_test_schema, test_schema_registry, AspectSchemaFixture,
 };
 use crate::transactions::data::RecordRef;
 
@@ -16,6 +18,8 @@ use super::{
     RelationalAuthorizationPredicate, RelationalAuthorizationTraversal,
     RelationalAuthorizationTraversalDirection,
 };
+
+mod freshness;
 
 const ENTITY_KIND: KindId = KindId(1);
 const RELATION_KIND: KindId = KindId(2);
@@ -258,7 +262,18 @@ struct AuthorizationFixture {
 }
 
 fn authorization_fixture() -> AuthorizationFixture {
-    let mut runtime = runtime_with_test_schema();
+    let mut schema = test_schema_registry();
+    let mut unrelated_schema = AspectSchemaFixture::with_default_declared_aspects(
+        CascadeDeletePolicy::CascadeDeleteRelations,
+    );
+    unrelated_schema.relation_kind_id = KindId(99);
+    unrelated_schema.relation_kind_name = "unrelated-authorization-relation".to_string();
+    let mut unrelated_schema = unrelated_schema.build_registry();
+    let unrelated_relation = unrelated_schema.relation_kinds.remove(&KindId(99)).unwrap();
+    schema = schema.register_relation_kind(unrelated_relation).unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema)
+        .build();
     let principal = create_entity(&mut runtime, "principal");
     let role = create_entity(&mut runtime, "approver");
     let scope = create_entity(&mut runtime, "payment");

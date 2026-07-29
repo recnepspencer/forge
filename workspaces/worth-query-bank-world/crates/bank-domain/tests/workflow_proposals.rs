@@ -170,6 +170,7 @@ fn account_authorization_grant_and_revoke_are_typed_effects() {
         binding(6),
         &key("revoke"),
         &RevokeAccountAuthorization {
+            account,
             authorization: authorization.id(),
         },
     )
@@ -224,5 +225,15 @@ fn idempotency_intent_is_stable_and_detects_binding_or_payload_drift() {
     assert_ne!(
         first.idempotency_intent(),
         payload_drift.idempotency_intent()
+    );
+    assert_eq!(
+        first.idempotency_key_identity(),
+        payload_drift.idempotency_key_identity(),
+        "the provider must detect one key reused for a different semantic payload"
+    );
+    assert_ne!(
+        first.idempotency_key_identity(),
+        binding_drift.idempotency_key_identity(),
+        "principal, operation, and scope binding must partition key identity"
     );
 }

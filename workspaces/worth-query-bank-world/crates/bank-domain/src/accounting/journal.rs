@@ -9,6 +9,18 @@ pub struct BankPosting {
 }
 
 impl BankPosting {
+    pub const fn from_projection(
+        id: PostingId,
+        account: AccountId,
+        amount: SignedMoney<USD>,
+    ) -> Self {
+        Self {
+            id,
+            account,
+            amount,
+        }
+    }
+
     pub(crate) const fn new(id: PostingId, account: AccountId, amount: SignedMoney<USD>) -> Self {
         Self {
             id,
@@ -39,6 +51,20 @@ pub struct BankJournalEntry {
 }
 
 impl BankJournalEntry {
+    pub fn from_projection(
+        id: JournalEntryId,
+        purpose: PostingPurpose,
+        postings: Vec<BankPosting>,
+        reversal_of: Option<JournalEntryId>,
+    ) -> Self {
+        Self {
+            id,
+            purpose,
+            postings,
+            reversal_of,
+        }
+    }
+
     pub(crate) fn new(
         id: JournalEntryId,
         purpose: PostingPurpose,

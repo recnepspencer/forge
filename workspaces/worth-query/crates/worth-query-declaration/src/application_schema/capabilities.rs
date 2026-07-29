@@ -8,6 +8,10 @@ pub trait WritableCapability: WritePosture {}
 
 pub trait OperationRequiresAbility<Operation> {}
 
+/// Compile-time declaration that an application member may inform an
+/// operation's decision without widening its installed read contract.
+pub trait OperationReads<Operation> {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadOnly;
 

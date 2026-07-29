@@ -1,8 +1,8 @@
-use crate::accounting::{account_balance, BankJournalEntry, BankPosting};
-use crate::model::{AccountId, JournalEntryId, Money, SignedMoney, USD};
-use crate::schema::{AccountKind, AccountStatus, PostingPurpose};
+use crate::accounting::{BankJournalEntry, BankPosting};
+use crate::model::{AccountId, JournalEntryId, Money, PostingId, SignedMoney, USD};
+use crate::schema::{AccountStatus, PostingPurpose};
 
-use super::{BankProposalDenial, BankProposedEffect, BankSnapshot};
+use super::{BankIdempotencyKeyIdentity, BankProposalDenial, BankSnapshot};
 
 pub(crate) fn append_balanced_transfer(
     snapshot: &mut BankSnapshot,
@@ -11,17 +11,15 @@ pub(crate) fn append_balanced_transfer(
     amount: Money<USD>,
     purpose: PostingPurpose,
     reversal_of: Option<JournalEntryId>,
+    identity: BankIdempotencyKeyIdentity,
 ) -> Result<BankJournalEntry, BankProposalDenial> {
     if debit == credit {
         return Err(BankProposalDenial::SelfTransfer);
     }
-    ensure_open(snapshot, debit)?;
-    ensure_open(snapshot, credit)?;
-    ensure_available_funds(snapshot, debit, amount)?;
-
-    let journal_id = snapshot.allocate_journal_id()?;
+    let identity = identity.bytes();
+    let journal_id = JournalEntryId::from_operation(identity, 0);
     let debit_posting = BankPosting::new(
-        snapshot.allocate_posting_id()?,
+        PostingId::from_operation(identity, 0),
         debit,
         SignedMoney::from_minor(
             amount
@@ -31,7 +29,7 @@ pub(crate) fn append_balanced_transfer(
         ),
     );
     let credit_posting = BankPosting::new(
-        snapshot.allocate_posting_id()?,
+        PostingId::from_operation(identity, 1),
         credit,
         SignedMoney::from(amount),
     );
@@ -41,19 +39,10 @@ pub(crate) fn append_balanced_transfer(
         vec![debit_posting, credit_posting],
         reversal_of,
     );
+    ensure_open(snapshot, debit)?;
+    ensure_open(snapshot, credit)?;
     snapshot.append_journal(entry.clone());
     Ok(entry)
-}
-
-pub(crate) fn account_activity_effects(
-    entry: &BankJournalEntry,
-) -> impl Iterator<Item = BankProposedEffect> + '_ {
-    entry.postings().iter().map(|posting| {
-        BankProposedEffect::EmitAccountActivity(crate::schema::ActivityEvent {
-            account: posting.account(),
-            journal_sequence: entry.id().get(),
-        })
-    })
 }
 
 pub(crate) fn ensure_open(
@@ -68,28 +57,6 @@ pub(crate) fn ensure_open(
             account: account_id,
             status: account.status(),
         });
-    }
-    Ok(())
-}
-
-fn ensure_available_funds(
-    snapshot: &BankSnapshot,
-    account_id: AccountId,
-    amount: Money<USD>,
-) -> Result<(), BankProposalDenial> {
-    let account = snapshot
-        .account(account_id)
-        .ok_or(BankProposalDenial::UnknownAccount(account_id))?;
-    if matches!(
-        account.kind(),
-        AccountKind::InstitutionCash | AccountKind::InstitutionSettlement
-    ) {
-        return Ok(());
-    }
-    let available = account_balance(snapshot.journal(), account_id)
-        .map_err(|_| BankProposalDenial::ArithmeticOverflow)?;
-    if available.minor_units() < amount.minor_units() {
-        return Err(BankProposalDenial::InsufficientFunds(account_id));
     }
     Ok(())
 }

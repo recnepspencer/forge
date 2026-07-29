@@ -78,13 +78,6 @@ impl WorthQuerySessionBoundReadsAndEffects<'_> {
 }
 
 impl WorthQuerySessionPrepareOutcome<'_> {
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "Phase 11 is the first production owner of provider commit"
-        )
-    )]
     pub(crate) fn commit(mut self) -> WorthQuerySessionCommitOrAbortOutcome {
         self.counters.called_provider();
         let invocation =

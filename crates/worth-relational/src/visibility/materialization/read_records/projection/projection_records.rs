@@ -1,4 +1,4 @@
-use crate::identity::data::{EntityId, KindId, RelationId};
+use crate::identity::data::{EntityId, KindId, RelationId, VersionId};
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
 use worth_foundational::facade::{
     AspectValue, AuthoritativeRecordAspectState, ContractValidatedAspectValueView, FieldKey,
@@ -58,6 +58,10 @@ impl<'a> EntityProjectionRecord<'a> {
 
     pub const fn lifecycle(self) -> RecordLifecycleState {
         self.record.lifecycle
+    }
+
+    pub const fn created_at_version(self) -> VersionId {
+        self.record.created_at_version
     }
 
     fn authoritative_aspect_state(self) -> Option<&'a AuthoritativeRecordAspectState> {

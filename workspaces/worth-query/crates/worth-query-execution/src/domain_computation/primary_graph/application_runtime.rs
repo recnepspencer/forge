@@ -11,6 +11,7 @@ use crate::domain_computation::execution_runtime::{
 };
 
 use super::authorization::WorthQueryInstalledAuthorizationRegistry;
+use super::provider::WorthQueryPrimaryGraphProvider;
 use super::{
     WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphBootstrap,
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
@@ -39,6 +40,11 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
     publication: WorthQueryPrimaryGraphPublication,
     pub(super) authorization: WorthQueryInstalledAuthorizationRegistry,
+    pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
+    pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
+    pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
+    pub(super) primary_graph_authority:
+        worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
 }
 
 impl<Schema> WorthQueryPrimaryGraphBootstrap<Schema>
@@ -74,11 +80,39 @@ where
             )
         })?;
         let publication = self.publish(&mut runtime, &authority)?;
+        let graph = runtime
+            .retain_primary_graph_integration_handle()
+            .expect("publishing the primary graph installs its integration authority");
+        let relational_source = graph.relational_bridge_source();
+        let bridge = super::managed_bridge::install_application_bridge(
+            &installed_schema,
+            relational_source.clone(),
+        )?;
+        let (provider_anchor, primary_provider) = WorthQueryPrimaryGraphProvider::install(graph);
+        let primary_graph_authority =
+            worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority::install(
+                authority.installation_runtime(),
+                "primary",
+                provider_anchor.provider_identity(),
+                true,
+                Some("primary"),
+                provider_anchor,
+            )
+            .map_err(|detail| {
+                WorthQueryPrimaryGraphInstallationDenial::new(
+                    WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
+                    detail,
+                )
+            })?;
         Ok(WorthQueryPrimaryGraphApplicationRuntime {
             runtime,
             installed_schema,
             publication,
             authorization,
+            relational_source,
+            bridge,
+            primary_provider,
+            primary_graph_authority,
         })
     }
 }
@@ -93,6 +127,27 @@ where
 
     pub fn publication(&self) -> &WorthQueryPrimaryGraphPublication {
         &self.publication
+    }
+
+    #[cfg(test)]
+    pub(crate) fn lose_next_commit_response(&self) {
+        self.primary_provider.lose_next_commit_response();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reject_next_session_prepare(&self) {
+        self.primary_provider.reject_next_session_prepare();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reject_next_commit_before_transaction(&self) {
+        self.primary_provider
+            .reject_next_commit_before_transaction();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_index_publication(&self) {
+        self.primary_provider.fail_next_index_publication();
     }
 
     pub fn resolve_authenticated_principal<Binding, Mapping, Principal, PrincipalIdentity>(
@@ -125,5 +180,12 @@ where
     ) -> Result<(), WorthQueryPrincipalResolutionDenial> {
         self.runtime
             .validate_authenticated_principal(principal, scope)
+    }
+
+    /// Closes ordinary live delivery without closing the authoritative graph.
+    /// Later commits retain their compact idempotency causality but no longer
+    /// enter this runtime's delivery ring.
+    pub fn close_live_delivery(&self) {
+        self.primary_provider.live_delivery.close();
     }
 }

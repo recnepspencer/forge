@@ -81,7 +81,7 @@ where
     }
 }
 
-fn resolve_at_snapshot(
+pub(super) fn resolve_at_snapshot(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     layout: &WorthQueryPrimaryFieldLayout,
@@ -92,55 +92,90 @@ fn resolve_at_snapshot(
     entity_name: &str,
     subject: &str,
 ) -> Result<WorthQueryResolvedEntityEvidence, WorthQueryEntityResolutionDenial> {
-    let index_id = layout.equality_index_id.ok_or_else(|| {
-        entity_denial(
-            WorthQueryEntityResolutionDenialKind::EqualityIndexUnavailable,
-            subject,
-        )
-    })?;
-    let request = BoundedEntityFieldLookupRequest::new(
-        snapshot.clone(),
-        index_id,
-        layout.entity_kind,
-        layout.locator.clone(),
-        expected.clone(),
-        2,
-    )
-    .map_err(|denial| map_index_denial(denial.kind(), subject))?;
-    let parity = match mode {
-        WorthQueryPrincipalResolutionMode::Ordinary => BoundedIndexParityMode::Production,
-        WorthQueryPrincipalResolutionMode::Certification => BoundedIndexParityMode::Certification,
-    };
-    let lookup = runtime
-        .index_access()
-        .execute_bounded_entity_field_lookup(request, parity)
-        .map_err(|denial| map_index_denial(denial.kind(), subject))?;
-    if lookup.overflowed() || lookup.candidate_entity_ids().len() > 1 {
-        return Err(entity_denial(
-            WorthQueryEntityResolutionDenialKind::AmbiguousEntity,
-            subject,
-        ));
-    }
-    let entity_id = lookup
-        .candidate_entity_ids()
-        .first()
-        .copied()
-        .ok_or_else(|| {
-            entity_denial(WorthQueryEntityResolutionDenialKind::UnknownEntity, subject)
-        })?;
-    Ok(WorthQueryResolvedEntityEvidence {
-        entity_id,
-        entity_kind: layout.entity_kind,
-        entity_name: entity_name.to_string(),
-        binding_identity,
+    resolve_at_snapshot_with_work(
+        runtime,
+        snapshot,
+        layout,
+        expected,
+        mode,
         runtime_authority,
-        identity_index_id: index_id,
-        identity_index_generation: lookup.generation_id(),
-        identity_locator: layout.locator.clone(),
-        identity_value: expected,
-        examined_candidate_count: lookup.examined_entry_count(),
-        resolution_mode: mode,
-    })
+        binding_identity,
+        entity_name,
+        subject,
+    )
+    .0
+}
+
+pub(super) fn resolve_at_snapshot_with_work(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    layout: &WorthQueryPrimaryFieldLayout,
+    expected: worth_foundational::facade::AspectValue,
+    mode: WorthQueryPrincipalResolutionMode,
+    runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+    binding_identity: worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+    entity_name: &str,
+    subject: &str,
+) -> (
+    Result<WorthQueryResolvedEntityEvidence, WorthQueryEntityResolutionDenial>,
+    usize,
+) {
+    let mut examined_candidate_count = 0;
+    let result = (|| {
+        let index_id = layout.equality_index_id.ok_or_else(|| {
+            entity_denial(
+                WorthQueryEntityResolutionDenialKind::EqualityIndexUnavailable,
+                subject,
+            )
+        })?;
+        let request = BoundedEntityFieldLookupRequest::new(
+            snapshot.clone(),
+            index_id,
+            layout.entity_kind,
+            layout.locator.clone(),
+            expected.clone(),
+            2,
+        )
+        .map_err(|denial| map_index_denial(denial.kind(), subject))?;
+        let parity = match mode {
+            WorthQueryPrincipalResolutionMode::Ordinary => BoundedIndexParityMode::Production,
+            WorthQueryPrincipalResolutionMode::Certification => {
+                BoundedIndexParityMode::Certification
+            }
+        };
+        let lookup = runtime
+            .index_access()
+            .execute_bounded_entity_field_lookup(request, parity)
+            .map_err(|denial| map_index_denial(denial.kind(), subject))?;
+        examined_candidate_count = lookup.examined_entry_count();
+        if lookup.overflowed() || lookup.candidate_entity_ids().len() > 1 {
+            return Err(entity_denial(
+                WorthQueryEntityResolutionDenialKind::AmbiguousEntity,
+                subject,
+            ));
+        }
+        let entity_id = lookup
+            .candidate_entity_ids()
+            .first()
+            .copied()
+            .ok_or_else(|| {
+                entity_denial(WorthQueryEntityResolutionDenialKind::UnknownEntity, subject)
+            })?;
+        Ok(WorthQueryResolvedEntityEvidence {
+            entity_id,
+            entity_kind: layout.entity_kind,
+            entity_name: entity_name.to_string(),
+            binding_identity,
+            runtime_authority,
+            identity_index_id: index_id,
+            identity_index_generation: lookup.generation_id(),
+            identity_locator: layout.locator.clone(),
+            identity_value: expected,
+            examined_candidate_count,
+            resolution_mode: mode,
+        })
+    })();
+    (result, examined_candidate_count)
 }
 
 pub(super) fn validate_entity_freshness_at_snapshot<Schema, Entity>(

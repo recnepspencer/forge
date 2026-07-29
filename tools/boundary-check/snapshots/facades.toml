@@ -72,6 +72,7 @@ exports = [
     "worth_query_operation_deletes",
     "worth_query_operation_emits",
     "worth_query_operation_links",
+    "worth_query_operation_reads",
     "worth_query_operation_requires",
     "worth_query_operation_unlinks",
     "worth_query_operation_writes",

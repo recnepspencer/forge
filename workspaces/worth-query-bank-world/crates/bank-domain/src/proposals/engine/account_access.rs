@@ -1,5 +1,5 @@
 use crate::proposals::{
-    complete_proposal, BankAccountAuthorization, BankIdempotencyIntent, BankIdempotencyKey,
+    complete_proposal, BankAccountAuthorization, BankIdempotencyClaim, BankIdempotencyKey,
     BankInvariantApprovedProposal, BankOperationScopeBinding, BankProposalDenial,
     BankProposedEffect, BankSnapshot, CanonicalProposalPayload,
 };
@@ -25,10 +25,10 @@ impl BankProposalEngine {
         }
 
         let payload = CanonicalProposalPayload::new()
-            .u64(input.account.get())
+            .text(&input.account.canonical_text())
             .u64(input.principal.get())
             .byte(role_tag(input.role));
-        let intent = BankIdempotencyIntent::derive(
+        let intent = BankIdempotencyClaim::derive(
             binding,
             key,
             "grant-account-authorization",
@@ -36,7 +36,7 @@ impl BankProposalEngine {
         );
         let mut proposed = snapshot.clone();
         let authorization = BankAccountAuthorization::new(
-            proposed.allocate_authorization_id()?,
+            crate::model::AccountAuthorizationId::from_operation(intent.key().bytes(), 0),
             input.account,
             input.principal,
             input.role,
@@ -59,11 +59,15 @@ impl BankProposalEngine {
         let authorization = *snapshot
             .authorization(input.authorization)
             .ok_or(BankProposalDenial::UnknownAuthorization)?;
+        if authorization.account() != input.account {
+            return Err(BankProposalDenial::ScopeInputMismatch);
+        }
         let payload = CanonicalProposalPayload::new()
-            .u64(input.authorization.get())
-            .u64(authorization.account().get())
+            .text(&input.account.canonical_text())
+            .text(&input.authorization.canonical_text())
+            .text(&authorization.account().canonical_text())
             .u64(authorization.principal().get());
-        let intent = BankIdempotencyIntent::derive(
+        let intent = BankIdempotencyClaim::derive(
             binding,
             key,
             "revoke-account-authorization",
@@ -75,7 +79,7 @@ impl BankProposalEngine {
             snapshot,
             proposed,
             intent,
-            vec![BankProposedEffect::RevokeAuthorization(input.authorization)],
+            vec![BankProposedEffect::RevokeAuthorization(authorization)],
         )
     }
 }

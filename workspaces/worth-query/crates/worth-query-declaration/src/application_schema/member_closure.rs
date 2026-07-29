@@ -11,11 +11,14 @@ use super::authorization_policy::{
     ApplicationAuthorizationTraversalDirection,
 };
 use super::{
-    ApplicationOperationProgramTarget, ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
+    ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
 };
 
+mod decision_read_budgets;
 mod member_collections;
 
+use decision_read_budgets::validate_decision_fact_budgets;
 use member_collections::{
     collect_abilities, collect_aspects, collect_currencies, collect_effects, collect_entities,
     collect_fields, collect_operations, collect_policies, collect_principal_entities,
@@ -29,6 +32,7 @@ pub(super) fn validate_member_closure(
     for member in members {
         index.validate(member)?;
     }
+    validate_decision_fact_budgets(members, &index.operations)?;
     Ok(())
 }
 
@@ -124,6 +128,22 @@ impl<'a> ClosureIndex<'a> {
                     || !self.program_target_exists(target) =>
             {
                 Err(ApplicationSchemaDeclarationDenial::MissingOperationProgramDependency)
+            }
+            ApplicationSchemaMember::OperationDecisionRead { operation, target }
+                if !self.operations.contains(operation.as_str())
+                    || !self.decision_read_target_exists(target) =>
+            {
+                Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
+            }
+            ApplicationSchemaMember::OperationDecisionFactBudget { operation, .. }
+                if !self.operations.contains(operation.as_str()) =>
+            {
+                Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
+            }
+            ApplicationSchemaMember::OperationProjectionWorkBudget { operation, .. }
+                if !self.operations.contains(operation.as_str()) =>
+            {
+                Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
             }
             ApplicationSchemaMember::Ability { scope_entity, .. }
                 if !self.entities.contains(scope_entity.as_str()) =>
@@ -349,6 +369,24 @@ impl<'a> ClosureIndex<'a> {
             ApplicationOperationProgramTarget::Emit { effect } => {
                 self.effects.contains(effect.as_str())
             }
+        }
+    }
+
+    fn decision_read_target_exists(&self, target: &ApplicationOperationDecisionReadTarget) -> bool {
+        match target {
+            ApplicationOperationDecisionReadTarget::Entity { entity } => {
+                self.entities.contains(entity.as_str())
+            }
+            ApplicationOperationDecisionReadTarget::Field {
+                entity,
+                aspect,
+                field,
+            } => self
+                .fields
+                .contains(&(entity.as_str(), aspect.as_str(), field.as_str())),
+            ApplicationOperationDecisionReadTarget::Relation { relation, from, to } => self
+                .relations
+                .contains(&(relation.as_str(), from.as_str(), to.as_str())),
         }
     }
 }

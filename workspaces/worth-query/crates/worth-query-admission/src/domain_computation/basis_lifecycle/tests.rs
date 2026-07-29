@@ -1,13 +1,14 @@
 use super::{
-    admit_basis_capability, basis_lifecycle_support_matrix, discover_basis_lifecycle_support,
-    evaluate_basis_inspection_advisory_eligibility, evaluate_basis_inspection_eligibility,
-    evaluate_basis_materialization_eligibility, evaluate_basis_mutation_preparation_eligibility,
+    admit_basis_capability, evaluate_basis_inspection_advisory_eligibility,
+    evaluate_basis_inspection_eligibility, evaluate_basis_mutation_preparation_eligibility,
     evaluate_basis_observation_eligibility, evaluate_basis_preview_closeout_eligibility,
     evaluate_basis_replay_eligibility, evaluate_basis_subscription_declaration_eligibility,
     normalize_raw_basis_intent, scope_basis_for_mutation_preparation, scope_basis_for_observation,
     scope_basis_for_subscription_declaration, BasisIntentDenialKind, BasisOperationLane,
-    BasisSupportPosture, DeniedBasisCapabilityKind, InspectionLaneWitness, RawBasisIntent,
+    DeniedBasisCapabilityKind, InspectionLaneWitness, RawBasisIntent,
 };
+
+mod support_discovery;
 
 #[test]
 fn equivalent_current_head_intents_normalize_to_the_same_operation_digest() {
@@ -88,6 +89,30 @@ fn branch_head_mutation_preparation_gets_a_scoped_capability() {
 
     assert!(!scoped.capability_digest().is_empty());
     assert_eq!(scoped.counters().scoped_capability_construction_count(), 1);
+}
+
+#[test]
+fn branch_snapshot_mutation_preparation_retains_a_pinned_capability() {
+    let normalized = normalize_raw_basis_intent(
+        RawBasisIntent::BranchSnapshot {
+            branch_identity: "main".to_string(),
+            snapshot_identity: "snapshot-v7".to_string(),
+        },
+        <super::MutationPreparationLaneWitness as BasisOperationLane>::lane_name(),
+    )
+    .expect("branch snapshot should normalize");
+    let eligibility = evaluate_basis_mutation_preparation_eligibility(normalized)
+        .expect("pinned branch mutation preparation should admit");
+    let capability = admit_basis_capability(eligibility);
+
+    assert_eq!(
+        capability.normalized().family(),
+        super::BasisFamily::BranchSnapshot
+    );
+    assert_eq!(
+        capability.normalized().lifecycle(),
+        super::BasisLifecyclePosture::SnapshotPinned
+    );
 }
 
 #[test]
@@ -276,115 +301,6 @@ fn advisory_basis_shape_cannot_be_silently_promoted_to_admitted_capability() {
     assert!(!advisory.decision_trace().trace_digest().is_empty());
     assert_eq!(
         denial.denial_kind(),
-        DeniedBasisCapabilityKind::OperationIneligible
-    );
-}
-
-#[test]
-fn support_matrix_is_derived_from_executable_lane_registry() {
-    let matrix = basis_lifecycle_support_matrix();
-
-    assert!(matrix.rows().iter().any(|row| {
-        row.operation_lane() == "observation"
-            && row.posture() == BasisSupportPosture::Admitted
-            && row.family() == super::BasisFamily::CurrentHead
-    }));
-    assert!(matrix.rows().iter().any(|row| {
-        row.operation_lane() == "inspection"
-            && row.posture() == BasisSupportPosture::Advisory
-            && row.family() == super::BasisFamily::PreviewDerived
-    }));
-    assert!(!matrix.matrix_digest().is_empty());
-}
-
-#[test]
-fn support_discovery_reports_admitted_lane_before_execution() {
-    let discovery = discover_basis_lifecycle_support(
-        super::BasisFamily::CurrentHead,
-        <super::ObservationLaneWitness as BasisOperationLane>::lane_name(),
-    );
-    let normalized = normalize_raw_basis_intent(
-        RawBasisIntent::CurrentHead,
-        <super::ObservationLaneWitness as BasisOperationLane>::lane_name(),
-    )
-    .expect("current head should normalize");
-
-    evaluate_basis_observation_eligibility(normalized).expect("admitted support should execute");
-
-    assert_eq!(discovery.posture(), BasisSupportPosture::Admitted);
-    assert!(discovery.matched_row_digest().is_some());
-    assert_eq!(discovery.counters().basis_support_lookup_count(), 1);
-    assert!(!discovery.discovery_digest().is_empty());
-}
-
-#[test]
-fn support_discovery_reports_advisory_without_admitted_promotion() {
-    let discovery = discover_basis_lifecycle_support(
-        super::BasisFamily::PreviewDerived,
-        <InspectionLaneWitness as BasisOperationLane>::lane_name(),
-    );
-    let normalized = normalize_raw_basis_intent(
-        RawBasisIntent::PreviewDerived {
-            preview_identity: "preview-a".to_string(),
-            source_basis_identity: "branch-a".to_string(),
-        },
-        <InspectionLaneWitness as BasisOperationLane>::lane_name(),
-    )
-    .expect("preview-derived basis should normalize");
-
-    evaluate_basis_inspection_advisory_eligibility(normalized.clone())
-        .expect("advisory discovery should match advisory eligibility");
-    let admitted_denial = evaluate_basis_inspection_eligibility(normalized)
-        .expect_err("advisory support must not become admitted");
-
-    assert_eq!(discovery.posture(), BasisSupportPosture::Advisory);
-    assert_eq!(
-        admitted_denial.denial_kind(),
-        DeniedBasisCapabilityKind::OperationIneligible
-    );
-}
-
-#[test]
-fn support_discovery_reports_deferred_and_unsupported_lanes() {
-    let deferred = discover_basis_lifecycle_support(
-        super::BasisFamily::DurableReload,
-        <super::CertificationLaneWitness as BasisOperationLane>::lane_name(),
-    );
-    let durable = normalize_raw_basis_intent(
-        RawBasisIntent::DurableReload {
-            reload_identity: "reload-a".to_string(),
-        },
-        <super::CertificationLaneWitness as BasisOperationLane>::lane_name(),
-    )
-    .expect("durable reload should normalize into deferred posture");
-    let durable_denial = super::evaluate_basis_certification_eligibility(durable)
-        .expect_err("deferred support must deny execution");
-
-    assert_eq!(deferred.posture(), BasisSupportPosture::Deferred);
-    assert_eq!(
-        durable_denial.denial_kind(),
-        DeniedBasisCapabilityKind::DurableOverclaim
-    );
-
-    let unsupported = discover_basis_lifecycle_support(
-        super::BasisFamily::BranchHead,
-        <super::MaterializationLaneWitness as BasisOperationLane>::lane_name(),
-    );
-    let branch = normalize_raw_basis_intent(
-        RawBasisIntent::BranchHead {
-            branch_identity: "branch-a".to_string(),
-            accessible: true,
-        },
-        <super::MaterializationLaneWitness as BasisOperationLane>::lane_name(),
-    )
-    .expect("branch head should normalize");
-    let unsupported_denial = evaluate_basis_materialization_eligibility(branch)
-        .expect_err("unsupported support must deny execution");
-
-    assert_eq!(unsupported.posture(), BasisSupportPosture::Unsupported);
-    assert!(unsupported.matched_row_digest().is_none());
-    assert_eq!(
-        unsupported_denial.denial_kind(),
         DeniedBasisCapabilityKind::OperationIneligible
     );
 }

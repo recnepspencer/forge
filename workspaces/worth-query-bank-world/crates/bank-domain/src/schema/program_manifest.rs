@@ -4,14 +4,17 @@ use super::entities::{
     Account, AccountAuthorization, Approval, JournalEntry, PaymentIntent, Posting,
 };
 use super::fields::{
-    AccountDisplayName, AuthorizationRole, Kind, PaymentStatusField, PostingAmount, Purpose, Status,
+    AccountAuthorizationIdentity, AccountDisplayName, AccountIdentity, AccountingRevision,
+    AuthorizationRole, JournalIdentityField, JournalPurpose, Kind, PaymentAmount,
+    PaymentIdentityField, PaymentStatusField, PostingAccountSequence, PostingAmount,
+    PostingIdentityField, Purpose, Status,
 };
 use super::governance::AccountActivityEffect;
 use super::operations::*;
 use super::relations::{
     AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount,
-    InstitutionAccount, JournalPosting, PaymentApproval, PaymentDestination, PaymentSource,
-    PersonalOwner, PostingAccount,
+    InstitutionAccount, JournalPosting, JournalReversal, PaymentApproval, PaymentBusiness,
+    PaymentDestination, PaymentInitiator, PaymentSource, PersonalOwner, PostingAccount,
 };
 use super::BankSchema;
 
@@ -34,7 +37,15 @@ fn install_account_creation_program(
         )
         .operation_write(
             CreatePersonalAccountOperation::reference(),
+            AccountIdentity::reference(),
+        )
+        .operation_write(
+            CreatePersonalAccountOperation::reference(),
             AccountDisplayName::reference(),
+        )
+        .operation_write(
+            CreatePersonalAccountOperation::reference(),
+            AccountingRevision::reference(),
         )
         .operation_write(
             CreatePersonalAccountOperation::reference(),
@@ -58,7 +69,15 @@ fn install_account_creation_program(
         )
         .operation_write(
             CreateBusinessAccountOperation::reference(),
+            AccountIdentity::reference(),
+        )
+        .operation_write(
+            CreateBusinessAccountOperation::reference(),
             AccountDisplayName::reference(),
+        )
+        .operation_write(
+            CreateBusinessAccountOperation::reference(),
+            AccountingRevision::reference(),
         )
         .operation_write(
             CreateBusinessAccountOperation::reference(),
@@ -106,6 +125,10 @@ fn install_money_programs(
         )
         .operation_create(ReverseJournalOperation::reference(), Posting::reference())
         .money_movement_program(ReverseJournalOperation::reference())
+        .operation_link(
+            ReverseJournalOperation::reference(),
+            JournalReversal::reference(),
+        )
 }
 
 fn install_payment_program(
@@ -124,7 +147,32 @@ fn install_payment_program(
             InitiateBusinessPaymentOperation::reference(),
             PaymentDestination::reference(),
         )
+        .operation_link(
+            InitiateBusinessPaymentOperation::reference(),
+            PaymentInitiator::reference(),
+        )
+        .operation_link(
+            InitiateBusinessPaymentOperation::reference(),
+            PaymentBusiness::reference(),
+        )
+        .operation_write(
+            InitiateBusinessPaymentOperation::reference(),
+            PaymentIdentityField::reference(),
+        )
+        .operation_write(
+            InitiateBusinessPaymentOperation::reference(),
+            PaymentAmount::reference(),
+        )
+        .operation_write(
+            InitiateBusinessPaymentOperation::reference(),
+            PaymentStatusField::reference(),
+        )
         .operation_create(ApprovePaymentOperation::reference(), Approval::reference())
+        .operation_create(
+            ApprovePaymentOperation::reference(),
+            JournalEntry::reference(),
+        )
+        .operation_create(ApprovePaymentOperation::reference(), Posting::reference())
         .operation_link(
             ApprovePaymentOperation::reference(),
             PaymentApproval::reference(),
@@ -137,13 +185,19 @@ fn install_payment_program(
             ApprovePaymentOperation::reference(),
             PaymentStatusField::reference(),
         )
-        .operation_emit(
-            ApprovePaymentOperation::reference(),
-            AccountActivityEffect::reference(),
-        )
+        .money_movement_program(ApprovePaymentOperation::reference())
         .operation_write(
             RejectPaymentOperation::reference(),
             PaymentStatusField::reference(),
+        )
+        .operation_create(RejectPaymentOperation::reference(), Approval::reference())
+        .operation_link(
+            RejectPaymentOperation::reference(),
+            PaymentApproval::reference(),
+        )
+        .operation_link(
+            RejectPaymentOperation::reference(),
+            ApprovalPrincipal::reference(),
         )
 }
 
@@ -154,6 +208,10 @@ fn install_authorization_program(
         .operation_create(
             GrantAccountAuthorizationOperation::reference(),
             AccountAuthorization::reference(),
+        )
+        .operation_write(
+            GrantAccountAuthorizationOperation::reference(),
+            AccountAuthorizationIdentity::reference(),
         )
         .operation_write(
             GrantAccountAuthorizationOperation::reference(),
@@ -191,8 +249,17 @@ trait MoneyMovementProgram {
         >,
     ) -> Self
     where
+        JournalIdentityField:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        JournalPurpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        PostingIdentityField:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
         PostingAmount: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        PostingAccountSequence:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
         Purpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        AccountingRevision:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
         JournalPosting: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
         PostingAccount: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
         AccountActivityEffect:
@@ -209,15 +276,29 @@ impl MoneyMovementProgram for ApplicationSchemaDeclarationBuilder<BankSchema> {
         >,
     ) -> Self
     where
+        JournalIdentityField:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        JournalPurpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        PostingIdentityField:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
         PostingAmount: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        PostingAccountSequence:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
         Purpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
+        AccountingRevision:
+            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
         JournalPosting: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
         PostingAccount: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
         AccountActivityEffect:
             worth_query_decl::facade::application_schema::OperationEmits<Operation>,
     {
         self.operation_write(operation, PostingAmount::reference())
+            .operation_write(operation, PostingAccountSequence::reference())
+            .operation_write(operation, PostingIdentityField::reference())
             .operation_write(operation, Purpose::reference())
+            .operation_write(operation, JournalIdentityField::reference())
+            .operation_write(operation, JournalPurpose::reference())
+            .operation_write(operation, AccountingRevision::reference())
             .operation_link(operation, JournalPosting::reference())
             .operation_link(operation, PostingAccount::reference())
             .operation_emit(operation, AccountActivityEffect::reference())

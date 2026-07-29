@@ -243,6 +243,7 @@ fn support_rows() -> &'static [(BasisFamily, &'static str, BasisSupportPosture)]
         (BranchHead, "subscription_declaration", Admitted),
         (BranchHead, "subscription_activation", Admitted),
         (BranchSnapshot, "observation", Admitted),
+        (BranchSnapshot, "mutation_preparation", Admitted),
         (BranchSnapshot, "inspection", Admitted),
         (Preview, "preview_closeout", Admitted),
         (Preview, "inspection", Admitted),

@@ -16,10 +16,12 @@ use crate::domain_computation::operation_binding::{
 use crate::domain_computation::provider_session::WorthQueryGraphProviderCallKind;
 use crate::domain_computation::WorthQueryInstalledOperationExecutionSupport;
 
+mod application_binding;
 mod provider_plan;
 mod runtime_binding;
 mod topology;
 
+pub(crate) use application_binding::WorthQueryApplicationOperationBindingInput;
 use topology::operation_workflow_topology;
 use topology::WorthQueryExecutionResourceTopology;
 

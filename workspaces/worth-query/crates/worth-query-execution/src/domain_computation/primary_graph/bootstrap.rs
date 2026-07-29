@@ -42,7 +42,7 @@ pub(super) struct WorthQueryPrincipalBootstrapRow {
 /// Publishing consumes this value. No principal bootstrap mutation surface is
 /// retained by the execution runtime.
 pub struct WorthQueryPrimaryGraphBootstrap<Schema> {
-    runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+    pub(super) runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     installed_packages: Arc<WorthQueryInstalledPackageIndex>,
     pub(super) graph: WorthQueryPrimaryGraph,
     rows: Vec<WorthQueryPrincipalBootstrapRow>,

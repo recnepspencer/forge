@@ -359,6 +359,7 @@ pub enum WorthQueryDecisionReadSetDenialKind {
     EvidenceSubstitution,
     IncompleteRequiredFamilies,
     IncompleteRequiredFacts,
+    DecisionFactBudgetExceeded,
     ProviderRejected,
     ProviderPanicked,
 }

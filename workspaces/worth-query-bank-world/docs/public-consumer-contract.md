@@ -18,10 +18,18 @@ let accounts = bank
     .traverse(PersonalOwner::reference())
     .project(AccountIdentity::reference())
     .project(AccountDisplayName::reference())
-    .project(AvailableBalance::reference())
     .where_equal(Status::reference(), AccountStatus::Open)
     .build()?;
 ```
+
+The ordinary Bank facade derives an account balance from authorized
+`JournalPosting`, `PostingAccount`, and `PostingAmount` facts. Balance is not a
+stored Account field and cannot be mutated independently of its journal.
+Ordinary mutation preparation consumes Query's version-bound typed aggregate
+summary: a checked signed value plus exact posting count under exclusive
+`PostingAccount` cardinality. Bank requires that count to equal the governed
+`AccountingRevision`; the warm summary is disposable and a cold graph rebuild
+must recover the same result from posting truth.
 
 ## Mutation target
 
@@ -48,11 +56,19 @@ let effects = bank
         AccountActivityEffect::reference(),
         ActivityEvent {
             account: from,
+            journal,
             journal_sequence,
         },
     )
     .build()?;
 ```
+
+The payload type of every declared effect implements
+`ApplicationEffectPayload`. Its `retained_bytes` result counts the inline value
+and recursively owned allocation capacity. Query totals those bytes while the
+effect program is authored and rejects the program before provider mutation if
+it exceeds the installed operation envelope; live buffering cannot turn a
+batch-count bound into unbounded payload memory.
 
 ## Approval and authorization authoring targets
 
@@ -79,27 +95,96 @@ These four blocks are Phase 1 compile targets and are exercised by
 `public_consumer_transcript.rs`. They author installed-bound declarations; they
 do not claim authentication, policy admission, execution, or commit authority.
 
-## Later approval and live execution target
+## Ordinary execution target
 
 ```rust,ignore
-match bank.execute(initiation).as_principal(principal_proof).await? {
-    InitiatedPayment::Committed(receipt) => publish(receipt),
-    InitiatedPayment::ApprovalRequired(pending) => {
-        pending.approve_as(other_principal_proof).await?
-    }
-    InitiatedPayment::Denied(reason) => deny(reason),
-}
+let summary = runtime
+    .query(queries::account_summary(account))
+    .as_principal(&principal)
+    .controls(BankReadControls::current(read_request, 32)?)
+    .execute();
 
-let activity = bank
-    .query(Account::reference())
-    .as_principal(principal_proof)
-    .subscribe(LiveDelivery::server_sent_events())
-    .await?;
+let transfer = runtime
+    .mutate(mutations::send_money(input))
+    .as_principal(&principal)
+    .controls(BankMutationControls::new(mutation_request, idempotency_key))
+    .execute();
 ```
 
-Authentication, authorization, execution, and live delivery become runnable
-only in their owning later phases. Phase 1 must not simulate them through a
-local executor.
+Every ordinary call follows the same shape: choose a typed operation, supply a
+fresh authenticated principal, supply caller-owned controls, then execute. The
+runtime owns admission, projection, provider work, and outcome construction.
+The caller cannot insert a read set, proposal, provider session, or receipt.
+
+## Workflow, history, and live target
+
+```rust,ignore
+let initiation = runtime
+    .mutate(mutations::initiate_business_payment(input))
+    .as_principal(&initiator)
+    .controls(initiation_controls)
+    .execute();
+
+if let Some(pending) = initiation.continuation() {
+    let approval = runtime
+        .mutate(pending.approve())
+        .as_principal(&fresh_approver)
+        .controls(approval_controls)
+        .execute();
+    inspect(approval.explanation());
+}
+
+let first_page = runtime
+    .query(queries::account_activity_page(account))
+    .as_principal(&principal)
+    .controls(page_controls)
+    .execute();
+
+let mut activity = runtime
+    .query(queries::account_activity(account))
+    .as_principal(&principal)
+    .subscribe(live_controls)?;
+match activity.poll() {
+    BankActivityLiveOutcome::Delivered(update) => publish(update),
+    BankActivityLiveOutcome::Overflow(missed) => resynchronize(missed),
+    BankActivityLiveOutcome::AuthorizationRevoked(_) => close_client(),
+    other => handle_terminal(other),
+}
+```
+
+A payment continuation is descriptive. It can cross a process boundary, but it
+does not retain the initiator's authority. Approval or rejection always starts
+again with a fresh authenticated principal and fresh controls.
+
+An activity cursor is bound to one account and one provider version. Continue
+with `queries::account_activity_page(account).after(cursor)`. If the graph
+changes between pages, the runtime reports a typed stale-cursor denial instead
+of silently mixing versions.
+
+Live delivery is bounded. A slow consumer receives typed overflow and must
+resynchronize through an ordinary read. Permission is checked again before
+each payload, so queued data does not survive revocation as authority. A
+delivered activity update contains the exact newly caused activity item, not a
+bounded snapshot that may omit it; the bank facade retains the typed cause
+until the fresh authorized one-item projection succeeds.
+
+## Controls and outcomes
+
+Read controls own consistency, deadline, cancellation, result limits, and
+bounded work. Mutation controls own deadline, cancellation, and idempotency.
+Live controls own the read bound plus caller-narrowed delivery buffering.
+
+Outcomes retain typed denial, invariant, stale, abort, cancellation, deadline,
+partial-effect, indeterminate, committed, and recovered meaning. Use
+`explanation()` for presentation; do not parse diagnostic text.
+
+## Current limits
+
+The stable front door is currently an in-process Rust API. The Authentik
+identity adapter is real, but HTTP transport and independent user-node
+orchestration belong to Bank World Phase 4. Live delivery is poll-based at this
+boundary; a transport adapter may translate typed outcomes to server-sent
+events or another protocol without acquiring Query authority.
 
 ## Prohibitions
 
@@ -107,3 +192,15 @@ Application paths contain no semantic aspect, field, relation, operation,
 policy, or currency strings. A dynamic extension, if admitted later, uses an
 explicit dynamic key and schema-readmission result. Caller-cast values and raw
 `AspectValue` construction are not the ordinary bank API.
+
+Do not retain an authenticated principal or workflow continuation as a
+substitute for a new request. Do not page across a stale activity cursor. Do
+not retry overflow from the live cursor; resynchronize with an ordinary query.
+Do not interpret a successful proposal as a commit—the public mutation outcome
+is the authoritative terminal surface.
+
+## Related docs
+
+- [Banking Product Contract](banking-product-contract.md)
+- [Async Identity Courtroom](async-identity-courtroom.md)
+- [Front-Door Closure Ledger](front-door-closure-ledger.md)

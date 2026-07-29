@@ -11,7 +11,9 @@ pub use projection::{
     ProjectionAspectFilterMode, ProjectionAspectRequirement, ProjectionAspectScope,
     RelationProjectionRecord, RelationRecordProjection, VisibilityProjectionView,
 };
-pub use reader::VisibilityReadContext;
+pub use reader::{
+    AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead, VisibilityReadContext,
+};
 
 use crate::logic::runtime::RelationalRuntime;
 

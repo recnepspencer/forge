@@ -25,16 +25,10 @@ impl std::fmt::Debug for WorthQuerySessionPrepareOutcome<'_> {
 }
 
 impl<'run> WorthQuerySessionBoundReadsAndEffects<'run> {
-    /// Phase 11 is the only production owner allowed to call this transition.
+    /// Runtime Hardening Phase 4 is the only production owner allowed to call
+    /// this transition.
     /// The method is crate-private so public callers cannot substitute a bool,
     /// receipt string, or selected invariant list for commit-attempt authority.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "Phase 11 is the first production owner of staged prepare"
-        )
-    )]
     pub(crate) fn prepare_for_commit(
         mut self,
     ) -> Result<WorthQuerySessionPrepareOutcome<'run>, WorthQueryProviderSessionFailure> {

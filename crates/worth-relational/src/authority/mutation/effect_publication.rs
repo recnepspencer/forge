@@ -68,12 +68,13 @@ pub(crate) fn record_publication_effect_for_mutation(
         ),
         RecordMutation::RelationCreated {
             relation_id,
+            kind_id,
             source,
             target,
             authoritative_patch,
             ..
         } => {
-            record_created_adjacency(effect, relation_id, source, target);
+            record_created_adjacency(effect, relation_id, kind_id, source, target);
             record_relation_publication_fragment(
                 effect,
                 canonical_delta,
@@ -86,6 +87,7 @@ pub(crate) fn record_publication_effect_for_mutation(
         }
         RecordMutation::RelationUpdated {
             relation_id,
+            kind_id,
             old_source,
             old_target,
             new_source,
@@ -93,8 +95,8 @@ pub(crate) fn record_publication_effect_for_mutation(
             authoritative_patch,
             ..
         } => {
-            record_deleted_adjacency(effect, relation_id, old_source, old_target);
-            record_created_adjacency(effect, relation_id, new_source, new_target);
+            record_deleted_adjacency(effect, relation_id, kind_id, old_source, old_target);
+            record_created_adjacency(effect, relation_id, kind_id, new_source, new_target);
             record_relation_publication_fragment(
                 effect,
                 canonical_delta,
@@ -107,11 +109,12 @@ pub(crate) fn record_publication_effect_for_mutation(
         }
         RecordMutation::RelationDeleted {
             relation_id,
+            kind_id,
             source,
             target,
             ..
         } => {
-            record_deleted_adjacency(effect, relation_id, source, target);
+            record_deleted_adjacency(effect, relation_id, kind_id, source, target);
             record_relation_publication_fragment(
                 effect,
                 canonical_delta,
@@ -182,11 +185,13 @@ fn record_relation_publication_fragment(
 fn record_created_adjacency(
     effect: &mut MutationEffect,
     relation_id: crate::identity::data::RelationId,
+    kind_id: crate::identity::data::KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
 ) {
     effect.adjacency.deltas.push(AdjacencyDelta {
         relation_id,
+        kind_id,
         kind: AdjacencyDeltaKind::Created { source, target },
     });
 }
@@ -194,11 +199,13 @@ fn record_created_adjacency(
 fn record_deleted_adjacency(
     effect: &mut MutationEffect,
     relation_id: crate::identity::data::RelationId,
+    kind_id: crate::identity::data::KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
 ) {
     effect.adjacency.deltas.push(AdjacencyDelta {
         relation_id,
+        kind_id,
         kind: AdjacencyDeltaKind::Deleted { source, target },
     });
 }

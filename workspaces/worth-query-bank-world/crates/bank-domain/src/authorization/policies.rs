@@ -28,9 +28,27 @@ pub(crate) fn install_ability_policies(
             [employee_path(EmployeeRole::Auditor)],
         )
         .ability_policy(
-            ViewPersonalAccount::reference(),
+            DiscoverOwnAccounts::reference(),
+            AccountVisibilityPolicy::reference(),
+            [
+                ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+                    .allow(Principal::reference()),
+            ],
+        )
+        .ability_policy(
+            ViewAccount::reference(),
             AccountVisibilityPolicy::reference(),
             account_view_paths(),
+        )
+        .ability_policy(
+            ViewAccountAccess::reference(),
+            AccountVisibilityPolicy::reference(),
+            account_management_paths(),
+        )
+        .ability_policy(
+            ViewPayment::reference(),
+            AccountVisibilityPolicy::reference(),
+            payment_view_paths(),
         )
         .ability_policy(
             SendPersonalFunds::reference(),
@@ -41,11 +59,6 @@ pub(crate) fn install_ability_policies(
             ManageAccountAccess::reference(),
             AccountMutationScopePolicy::reference(),
             account_management_paths(),
-        )
-        .ability_policy(
-            ViewBusinessAccount::reference(),
-            AccountVisibilityPolicy::reference(),
-            business_paths(CustomerRole::Viewer),
         )
         .ability_policy(
             InitiateBusinessFunds::reference(),
@@ -70,7 +83,11 @@ fn employee_path(role: EmployeeRole) -> ApplicationAuthorizationPath {
 fn account_view_paths() -> Vec<ApplicationAuthorizationPath> {
     vec![
         personal_owner_path(),
+        business_owner_account_path(),
         account_role_path(CustomerRole::PersonalOwner),
+        account_role_path(CustomerRole::BusinessOwner),
+        account_role_path(CustomerRole::Initiator),
+        account_role_path(CustomerRole::Approver),
         account_role_path(CustomerRole::Viewer),
     ]
 }
@@ -137,4 +154,39 @@ fn approval_paths() -> Vec<ApplicationAuthorizationPath> {
             .forward(PaymentInitiator::reference())
             .deny(PaymentIntent::reference()),
     ]
+}
+
+fn payment_view_paths() -> Vec<ApplicationAuthorizationPath> {
+    let mut paths = vec![
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .forward(PaymentInitiator::reference())
+            .allow(PaymentIntent::reference()),
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .forward(PersonalOwner::reference())
+            .reverse(PaymentSource::reference())
+            .allow(PaymentIntent::reference()),
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .reverse(BusinessOwner::reference())
+            .forward(BusinessAccount::reference())
+            .reverse(PaymentSource::reference())
+            .allow(PaymentIntent::reference()),
+    ];
+    paths.extend(
+        [
+            CustomerRole::PersonalOwner,
+            CustomerRole::BusinessOwner,
+            CustomerRole::Initiator,
+            CustomerRole::Approver,
+            CustomerRole::Viewer,
+        ]
+        .map(|role| {
+            ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+                .forward(AccountAuthorizedUser::reference())
+                .where_equal(AuthorizationRole::reference(), role)
+                .forward(AuthorizationAccount::reference())
+                .reverse(PaymentSource::reference())
+                .allow(PaymentIntent::reference())
+        }),
+    );
+    paths
 }

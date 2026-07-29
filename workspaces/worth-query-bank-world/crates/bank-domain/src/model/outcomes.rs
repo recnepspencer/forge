@@ -5,6 +5,7 @@ pub enum ReadOutcome<T, D> {
     Denied(D),
     Stale,
     Cancelled,
+    DeadlineExceeded,
     Unavailable,
 }
 

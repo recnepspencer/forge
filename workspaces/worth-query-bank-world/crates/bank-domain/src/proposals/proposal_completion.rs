@@ -1,21 +1,49 @@
+use crate::accounting::validate_proposed_decision_snapshot;
 use crate::accounting::validate_proposed_snapshot;
 
 use super::{
-    BankIdempotencyIntent, BankInvariantApprovedProposal, BankProposalDenial, BankProposedEffect,
+    BankIdempotencyClaim, BankInvariantApprovedProposal, BankProposalDenial, BankProposedEffect,
     BankSnapshot,
 };
 
 pub(crate) fn complete_proposal(
     basis: &BankSnapshot,
     proposed: BankSnapshot,
-    intent: BankIdempotencyIntent,
+    idempotency: BankIdempotencyClaim,
     effects: Vec<BankProposedEffect>,
 ) -> Result<BankInvariantApprovedProposal, BankProposalDenial> {
     validate_effect_replay(basis, &proposed, &effects)?;
     let witness = validate_proposed_snapshot(basis, &proposed)?;
     Ok(BankInvariantApprovedProposal::new(
         basis.retain_basis(),
-        intent,
+        idempotency,
+        effects,
+        proposed,
+        witness,
+    ))
+}
+
+pub(crate) fn complete_decision_proposal(
+    basis: BankSnapshot,
+    required_balance_accounts: std::collections::BTreeSet<crate::model::AccountId>,
+    starting_balances: std::collections::BTreeMap<
+        crate::model::AccountId,
+        crate::model::SignedMoney<crate::model::USD>,
+    >,
+    proposed: BankSnapshot,
+    idempotency: BankIdempotencyClaim,
+    effects: Vec<BankProposedEffect>,
+) -> Result<BankInvariantApprovedProposal, BankProposalDenial> {
+    validate_effect_replay(&basis, &proposed, &effects)?;
+    let witness = validate_proposed_decision_snapshot(
+        &basis,
+        &proposed,
+        required_balance_accounts,
+        starting_balances,
+    )?;
+    Ok(BankInvariantApprovedProposal::new(
+        basis.retain_basis(),
+        idempotency,
         effects,
         proposed,
         witness,
@@ -31,23 +59,22 @@ fn validate_effect_replay(
     for effect in effects {
         match effect {
             BankProposedEffect::CreateAccount(account) => {
-                if replayed.allocate_account_id()? != account.id() {
+                if replayed.account(account.id()).is_some() {
                     return Err(BankProposalDenial::SnapshotInvariantViolated);
                 }
                 replayed.insert_account(account.clone());
             }
             BankProposedEffect::AppendJournal(entry) => {
-                replay_journal_allocation(&mut replayed, entry)?;
+                ensure_new_journal_identity(&replayed, entry)?;
                 replayed.append_journal(entry.clone());
             }
             BankProposedEffect::ReverseJournal { original, reversal } => {
-                replay_journal_allocation(&mut replayed, reversal)?;
+                ensure_new_journal_identity(&replayed, reversal)?;
                 replayed.append_journal(reversal.clone());
                 replayed.mark_reversed(*original);
             }
-            BankProposedEffect::EmitAccountActivity(_) => {}
             BankProposedEffect::CreatePayment(payment) => {
-                if replayed.allocate_payment_id()? != payment.id() {
+                if replayed.payment(payment.id()).is_some() {
                     return Err(BankProposalDenial::SnapshotInvariantViolated);
                 }
                 replayed.insert_payment(payment.clone());
@@ -62,13 +89,13 @@ fn validate_effect_replay(
                 replayed.replace_payment(replacement.clone());
             }
             BankProposedEffect::GrantAuthorization(authorization) => {
-                if replayed.allocate_authorization_id()? != authorization.id() {
+                if replayed.authorization(authorization.id()).is_some() {
                     return Err(BankProposalDenial::SnapshotInvariantViolated);
                 }
                 replayed.insert_authorization(*authorization);
             }
             BankProposedEffect::RevokeAuthorization(authorization) => {
-                if replayed.remove_authorization(*authorization).is_none() {
+                if replayed.remove_authorization(authorization.id()) != Some(*authorization) {
                     return Err(BankProposalDenial::SnapshotInvariantViolated);
                 }
             }
@@ -81,15 +108,21 @@ fn validate_effect_replay(
     }
 }
 
-fn replay_journal_allocation(
-    snapshot: &mut BankSnapshot,
+fn ensure_new_journal_identity(
+    snapshot: &BankSnapshot,
     entry: &crate::accounting::BankJournalEntry,
 ) -> Result<(), BankProposalDenial> {
-    if snapshot.allocate_journal_id()? != entry.id() {
+    if snapshot.journal_entry(entry.id()).is_some() {
         return Err(BankProposalDenial::SnapshotInvariantViolated);
     }
+    let mut posting_ids = std::collections::BTreeSet::new();
     for posting in entry.postings() {
-        if snapshot.allocate_posting_id()? != posting.id() {
+        let already_exists = snapshot
+            .journal()
+            .iter()
+            .flat_map(crate::accounting::BankJournalEntry::postings)
+            .any(|candidate| candidate.id() == posting.id());
+        if already_exists || !posting_ids.insert(posting.id()) {
             return Err(BankProposalDenial::SnapshotInvariantViolated);
         }
     }
@@ -112,7 +145,7 @@ mod tests {
             .unwrap();
         let mut proposed = basis.clone();
         let account = BankAccount::personal(
-            proposed.allocate_account_id().unwrap(),
+            crate::model::AccountId::from_operation([2; 32], 0),
             InstitutionId::new(1).unwrap(),
             BankPrincipalId::new(1).unwrap(),
             AccountName::new("Unreported account").unwrap(),
@@ -123,7 +156,7 @@ mod tests {
             complete_proposal(
                 &basis,
                 proposed,
-                BankIdempotencyIntent::derive(
+                BankIdempotencyClaim::derive(
                     super::super::BankOperationScopeBinding::from_fingerprint_bytes([1; 32]),
                     &super::super::BankIdempotencyKey::new("missing-effect").unwrap(),
                     "test",

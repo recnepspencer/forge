@@ -16,6 +16,17 @@ impl WorthQueryInstallationRuntimeIdentity {
         Self(self.0)
     }
 
+    /// Retains the installation identity inside the execution composition
+    /// authority that consumed this installer.
+    ///
+    /// This does not mint a new runtime identity. Execution keeps the
+    /// retained value private and uses it only while installing providers
+    /// into the same operating world.
+    #[doc(hidden)]
+    pub fn retain_for_execution_installation(&self) -> Self {
+        self.retained()
+    }
+
     pub fn ordinal(&self) -> u64 {
         self.0.get()
     }

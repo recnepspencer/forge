@@ -13,6 +13,8 @@ impl RuntimeBridgeRelationalSource {
         &self,
         version_id: VersionId,
     ) -> Result<RelationalExecutionBasisLease, RelationalExecutionBasisDenial> {
-        crate::visibility::execution_basis::admit_execution_basis(&self.runtime, version_id)
+        self.runtime.with_runtime(|runtime| {
+            crate::visibility::execution_basis::admit_execution_basis(runtime, version_id)
+        })
     }
 }

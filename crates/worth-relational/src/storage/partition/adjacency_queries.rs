@@ -39,6 +39,42 @@ pub(crate) fn incoming_relations_for_entity(
         .collect()
 }
 
+pub(crate) fn outgoing_relations_for_entity_kind(
+    runtime: &RelationalRuntime,
+    entity_id: crate::identity::data::EntityId,
+    kind_id: crate::identity::data::KindId,
+    version_id: crate::identity::data::VersionId,
+) -> Vec<crate::identity::data::RelationId> {
+    let slot = entity_id.slot_index();
+    let reader = runtime.read_truth();
+    runtime
+        .storage_access()
+        .partition_state(entity_id.partition_id)
+        .and_then(|partition| partition.adjacency.get(slot))
+        .into_iter()
+        .flat_map(|relations| relations.current_kind_slice(kind_id).iter().copied())
+        .filter(|relation_id| reader.relation_visible_at_version(*relation_id, version_id))
+        .collect()
+}
+
+pub(crate) fn incoming_relations_for_entity_kind(
+    runtime: &RelationalRuntime,
+    entity_id: crate::identity::data::EntityId,
+    kind_id: crate::identity::data::KindId,
+    version_id: crate::identity::data::VersionId,
+) -> Vec<crate::identity::data::RelationId> {
+    let slot = entity_id.slot_index();
+    let reader = runtime.read_truth();
+    runtime
+        .storage_access()
+        .partition_state(entity_id.partition_id)
+        .and_then(|partition| partition.reverse_adjacency.get(slot))
+        .into_iter()
+        .flat_map(|relations| relations.current_kind_slice(kind_id).iter().copied())
+        .filter(|relation_id| reader.relation_visible_at_version(*relation_id, version_id))
+        .collect()
+}
+
 pub(crate) fn all_relations_for_entity(
     runtime: &RelationalRuntime,
     entity_id: crate::identity::data::EntityId,

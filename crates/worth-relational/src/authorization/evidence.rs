@@ -4,7 +4,8 @@ use crate::identity::data::{EntityId, KindId, RelationId};
 use crate::snapshots::data::SnapshotHandle;
 
 use super::{
-    RelationalAuthorizationEffectTarget, RelationalAuthorizationPathEffect,
+    RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationPlan,
+    RelationalAuthorizationPathEffect, RelationalAuthorizationPlanDenial,
     RelationalAuthorizationTraversalDirection,
 };
 
@@ -34,6 +35,12 @@ impl RelationalAuthorizationObservationIdentity {
 pub enum RelationalAuthorizationDecision {
     Allowed,
     Denied,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RelationalAuthorizationObservationFreshness {
+    Fresh,
+    Stale,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -148,48 +155,36 @@ impl RelationalAuthorizationPathObservation {
 /// from restamping descriptive touched identifiers into observation authority.
 #[derive(Debug)]
 pub struct RelationalAuthorizationObservationEvidence {
-    snapshot: SnapshotHandle,
-    plan_identity: RelationalAuthorizationPlanIdentity,
+    plan: RelationalAuthorizationObservationPlan,
     observation_identity: RelationalAuthorizationObservationIdentity,
-    principal: EntityId,
-    scope: EntityId,
     decision: RelationalAuthorizationDecision,
     paths: Vec<RelationalAuthorizationPathObservation>,
-    proposed_effects: Vec<RelationalAuthorizationEffectTarget>,
     counters: RelationalAuthorizationObservationCounters,
 }
 
 impl RelationalAuthorizationObservationEvidence {
     pub(crate) fn mint(
-        snapshot: SnapshotHandle,
-        plan_identity: RelationalAuthorizationPlanIdentity,
+        plan: RelationalAuthorizationObservationPlan,
         observation_identity: RelationalAuthorizationObservationIdentity,
-        principal: EntityId,
-        scope: EntityId,
         decision: RelationalAuthorizationDecision,
         paths: Vec<RelationalAuthorizationPathObservation>,
-        proposed_effects: Vec<RelationalAuthorizationEffectTarget>,
         counters: RelationalAuthorizationObservationCounters,
     ) -> Self {
         Self {
-            snapshot,
-            plan_identity,
+            plan,
             observation_identity,
-            principal,
-            scope,
             decision,
             paths,
-            proposed_effects,
             counters,
         }
     }
 
     pub fn snapshot(&self) -> &SnapshotHandle {
-        &self.snapshot
+        self.plan.snapshot()
     }
 
     pub const fn plan_identity(&self) -> RelationalAuthorizationPlanIdentity {
-        self.plan_identity
+        self.plan.identity()
     }
 
     pub const fn observation_identity(&self) -> RelationalAuthorizationObservationIdentity {
@@ -197,11 +192,11 @@ impl RelationalAuthorizationObservationEvidence {
     }
 
     pub const fn principal(&self) -> EntityId {
-        self.principal
+        self.plan.principal()
     }
 
     pub const fn scope(&self) -> EntityId {
-        self.scope
+        self.plan.scope()
     }
 
     pub const fn decision(&self) -> RelationalAuthorizationDecision {
@@ -213,10 +208,25 @@ impl RelationalAuthorizationObservationEvidence {
     }
 
     pub fn proposed_effects(&self) -> &[RelationalAuthorizationEffectTarget] {
-        &self.proposed_effects
+        self.plan.proposed_effects()
     }
 
     pub const fn counters(&self) -> RelationalAuthorizationObservationCounters {
         self.counters
+    }
+
+    pub(crate) fn comparison_plan(
+        &self,
+        snapshot: SnapshotHandle,
+    ) -> Result<RelationalAuthorizationObservationPlan, RelationalAuthorizationPlanDenial> {
+        RelationalAuthorizationObservationPlan::try_new(
+            snapshot,
+            self.plan.principal(),
+            self.plan.scope(),
+            self.plan.principal_kind(),
+            self.plan.scope_kind(),
+            self.plan.paths().iter().cloned(),
+            self.plan.proposed_effects().iter().cloned(),
+        )
     }
 }

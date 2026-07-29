@@ -1,17 +1,39 @@
 use bank_domain::model::{BusinessId, PaymentId};
 use bank_domain::proposals::{
-    BankIdempotencyKey, BankProposalDenial, BankProposalEngine, BankSnapshot,
+    BankIdempotencyKey, BankProposalDenial, BankProposalEngine, BankProposedEffect,
 };
 use bank_domain::schema::{
     ApprovePayment, ApprovePaymentOperation, Business, InitiateBusinessPayment,
     InitiateBusinessPaymentOperation, PaymentIntent, RejectPayment, RejectPaymentOperation,
 };
 
-use crate::{BankAdmittedOperation, BankAuthorizedProposal, BankOperationProposals};
+use crate::bank_projection::{
+    project_business_payment_initiation, project_payment_approval, project_payment_rejection,
+};
+use crate::{
+    BankAdmittedOperation, BankAuthorizedProposal, BankIdentityRuntime, BankOperationProposalError,
+    BankOperationProposals,
+};
+
+impl
+    BankAuthorizedProposal<
+        InitiateBusinessPaymentOperation,
+        InitiateBusinessPayment,
+        Business,
+        BusinessId,
+    >
+{
+    pub(crate) fn initiated_payment_id(&self) -> Option<PaymentId> {
+        let [BankProposedEffect::CreatePayment(payment)] = self.invariant().effects() else {
+            return None;
+        };
+        Some(payment.id())
+    }
+}
 
 impl BankOperationProposals {
     pub fn prepare_initiate_business_payment(
-        snapshot: &BankSnapshot,
+        runtime: &BankIdentityRuntime,
         admission: BankAdmittedOperation<
             InitiateBusinessPaymentOperation,
             InitiateBusinessPayment,
@@ -27,23 +49,33 @@ impl BankOperationProposals {
             Business,
             BusinessId,
         >,
-        BankProposalDenial,
+        BankOperationProposalError,
     > {
         if admission.scope() != input.business {
-            return Err(BankProposalDenial::ScopeInputMismatch);
+            return Err(BankProposalDenial::ScopeInputMismatch.into());
         }
+        let completed = runtime.invariant_projection().project_admitted_operation(
+            admission.query(),
+            |reader, business| {
+                project_business_payment_initiation(reader, business, admission.actor(), input)
+            },
+        )?;
+        let (snapshot, projection, work) = completed.into_parts();
+        let snapshot = snapshot?;
         let invariant = BankProposalEngine::prepare_initiate_business_payment(
-            snapshot,
+            &snapshot,
             admission.idempotency_binding(),
             key,
             admission.actor(),
             input,
         )?;
-        Ok(BankAuthorizedProposal::new(admission, invariant))
+        Ok(BankAuthorizedProposal::new_bounded(
+            admission, invariant, projection, work,
+        ))
     }
 
     pub fn prepare_approve_payment(
-        snapshot: &BankSnapshot,
+        runtime: &BankIdentityRuntime,
         admission: BankAdmittedOperation<
             ApprovePaymentOperation,
             ApprovePayment,
@@ -54,7 +86,7 @@ impl BankOperationProposals {
         input: &ApprovePayment,
     ) -> Result<
         BankAuthorizedProposal<ApprovePaymentOperation, ApprovePayment, PaymentIntent, PaymentId>,
-        BankProposalDenial,
+        BankOperationProposalError,
     > {
         validate_decision_binding(
             admission.scope(),
@@ -62,17 +94,26 @@ impl BankOperationProposals {
             input.payment,
             input.approver,
         )?;
-        let invariant = BankProposalEngine::prepare_approve_payment(
+        let completed = runtime
+            .invariant_projection()
+            .project_admitted_operation(admission.query(), |reader, payment| {
+                project_payment_approval(reader, payment, input)
+            })?;
+        let (snapshot, projection, work) = completed.into_parts();
+        let snapshot = snapshot?;
+        let invariant = BankProposalEngine::prepare_approve_payment_from_decision(
             snapshot,
             admission.idempotency_binding(),
             key,
             input,
         )?;
-        Ok(BankAuthorizedProposal::new(admission, invariant))
+        Ok(BankAuthorizedProposal::new_bounded(
+            admission, invariant, projection, work,
+        ))
     }
 
     pub fn prepare_reject_payment(
-        snapshot: &BankSnapshot,
+        runtime: &BankIdentityRuntime,
         admission: BankAdmittedOperation<
             RejectPaymentOperation,
             RejectPayment,
@@ -83,7 +124,7 @@ impl BankOperationProposals {
         input: &RejectPayment,
     ) -> Result<
         BankAuthorizedProposal<RejectPaymentOperation, RejectPayment, PaymentIntent, PaymentId>,
-        BankProposalDenial,
+        BankOperationProposalError,
     > {
         validate_decision_binding(
             admission.scope(),
@@ -91,13 +132,22 @@ impl BankOperationProposals {
             input.payment,
             input.rejecting_principal,
         )?;
-        let invariant = BankProposalEngine::prepare_reject_payment(
+        let completed = runtime
+            .invariant_projection()
+            .project_admitted_operation(admission.query(), |reader, payment| {
+                project_payment_rejection(reader, payment, input)
+            })?;
+        let (snapshot, projection, work) = completed.into_parts();
+        let snapshot = snapshot?;
+        let invariant = BankProposalEngine::prepare_reject_payment_from_decision(
             snapshot,
             admission.idempotency_binding(),
             key,
             input,
         )?;
-        Ok(BankAuthorizedProposal::new(admission, invariant))
+        Ok(BankAuthorizedProposal::new_bounded(
+            admission, invariant, projection, work,
+        ))
     }
 }
 

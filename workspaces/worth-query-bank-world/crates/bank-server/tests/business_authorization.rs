@@ -14,7 +14,7 @@ use bank_domain::schema::{
 };
 use bank_server::{
     BankBusinessOwnerSeed, BankEmployeeAssignmentSeed, BankOperationAdmissionError,
-    BankOperationProposals, BankPrincipalSeed, BankWorldSeed,
+    BankOperationProposalError, BankOperationProposals, BankPrincipalSeed, BankWorldSeed,
 };
 use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind;
 
@@ -207,7 +207,7 @@ fn real_graph_allows_distinct_approver_and_deny_precedence_blocks_initiator() {
         .authorize_approve_payment(&approver_actor, payment, &request)
         .unwrap();
     let approved = BankOperationProposals::prepare_approve_payment(
-        &snapshot,
+        &world.runtime,
         admission,
         &key("approve"),
         &ApprovePayment {
@@ -216,7 +216,7 @@ fn real_graph_allows_distinct_approver_and_deny_precedence_blocks_initiator() {
         },
     )
     .unwrap();
-    assert_eq!(approved.invariant().effects().len(), 4);
+    assert_eq!(approved.invariant().effects().len(), 2);
 
     let initiator_actor = block_on(world.runtime.authenticate_with(
         &world.authentication,
@@ -273,7 +273,7 @@ fn authenticated_actor_cannot_be_relabelled_in_payment_input() {
         .authorize_approve_payment(&actor, payment, &request)
         .unwrap();
     let denial = BankOperationProposals::prepare_approve_payment(
-        &snapshot,
+        &world.runtime,
         admission,
         &key("relabel"),
         &ApprovePayment {
@@ -283,7 +283,10 @@ fn authenticated_actor_cannot_be_relabelled_in_payment_input() {
     )
     .err()
     .expect("input actor cannot differ from authenticated actor");
-    assert_eq!(denial, BankProposalDenial::AuthenticatedActorMismatch);
+    assert_eq!(
+        denial,
+        BankOperationProposalError::Invariant(BankProposalDenial::AuthenticatedActorMismatch)
+    );
 }
 
 #[test]
@@ -343,6 +346,7 @@ fn revoked_approver_membership_is_absent_from_current_authorization_graph() {
         binding(6),
         &key("revoke-approver"),
         &RevokeAccountAuthorization {
+            account: authorization.account(),
             authorization: authorization.id(),
         },
     )

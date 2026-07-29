@@ -82,6 +82,10 @@ pub use direct_yield_cleanup::{
     WorthQueryDirectYieldCleanupOutcome, WorthQueryDirectYieldCleanupReceipt,
 };
 pub use direct_yield_recovery::WorthQueryDirectYieldRecoveryRequired;
+pub(in crate::domain_computation) use lower_admission::{
+    admit_managed_lower_execution_basis, WorthQueryManagedLowerBinding,
+    WorthQueryManagedLowerExecutionBasis,
+};
 pub use managed_graph_suspension::{
     WorthQueryProviderCheckpointSuspensionFailureEvidence,
     WorthQueryProviderCheckpointSuspensionFailureKind,
