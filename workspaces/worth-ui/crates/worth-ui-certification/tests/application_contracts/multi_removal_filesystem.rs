@@ -169,6 +169,7 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
 
 fn builder() -> WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(MultiRemovalHost)
         .with_graph_world_profile(installed_query_world::settled_query_world_profile(
             worth_ui::facade::declaration::ViewBindingId::new("multi.removal.filesystem").unwrap(),

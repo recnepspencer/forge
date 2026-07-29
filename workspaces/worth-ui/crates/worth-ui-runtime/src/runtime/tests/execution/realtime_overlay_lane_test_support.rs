@@ -64,6 +64,7 @@ pub(super) fn realtime_launch_denial(
 fn realtime_app(row_limit: u16, declared_cost: u16, budget: u32) -> crate::facade::WorthUiApp {
     let descriptor = || realtime_descriptor(row_limit, declared_cost, budget);
     let capabilities = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .freeze()
         .expect("fixture capability application freezes");
@@ -76,6 +77,7 @@ fn realtime_app(row_limit: u16, declared_cost: u16, budget: u32) -> crate::facad
         capabilities.capabilities(),
     );
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .with_candidate_submission(submission)
         .freeze()

@@ -69,13 +69,16 @@ pub(super) fn prepare_file_authored_package_app() -> WorthUiApp {
 }
 
 fn convergence_builder() -> WorthUiApplicationBuilder {
-    WorthUi::app().register_component(source_backed_package_component(
-        "workspace.component.phase6_convergence",
-    ))
+    WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
+        .register_component(source_backed_package_component(
+            "workspace.component.phase6_convergence",
+        ))
 }
 
 fn source_backed_package_builder() -> WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_package_component(
             "workspace.component.workflow_editor",
         ))

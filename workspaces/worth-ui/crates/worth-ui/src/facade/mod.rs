@@ -13,6 +13,7 @@ pub mod obligations;
 pub mod observation;
 pub mod observation_report;
 pub mod query_binding;
+pub mod rebind;
 mod runtime_handoff {}
 pub mod source;
 pub mod support;

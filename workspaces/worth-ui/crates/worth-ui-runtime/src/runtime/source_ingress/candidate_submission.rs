@@ -98,6 +98,14 @@ impl WorthUiWatchedCandidateSubmission {
         self.composition.basis()
     }
 
+    pub(crate) fn authored_source_basis(&self) -> super::WorthUiAuthoredSourceBasis {
+        super::WorthUiAuthoredSourceBasis::watched(
+            self.revision.clone(),
+            self.ordering_receipt.clone(),
+            self.composition.basis().clone(),
+        )
+    }
+
     pub fn authoring_lane(&self) -> crate::runtime::WorthUiCandidateAuthoringLane {
         self.composition.authoring_lane()
     }

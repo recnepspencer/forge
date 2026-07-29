@@ -68,6 +68,10 @@ impl UiAdmittedObservation {
         self.progress.as_ref()
     }
 
+    pub(in crate::runtime::observation) fn into_payload(self) -> UiAdmittedObservationPayload {
+        self.payload
+    }
+
     pub fn source_observation(
         &self,
     ) -> Option<super::super::admission::UiAdmittedSourceObservation<'_>> {

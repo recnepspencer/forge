@@ -13,11 +13,13 @@ use super::mosaic_placement_registry_fixtures::{
 #[test]
 fn equivalent_mosaic_placement_policies_produce_equivalent_legality_tables() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(primary_dock_policy("workspace.placement.primary"))
         .register_mosaic_placement_policy(auxiliary_dock_policy("workspace.placement.side"))
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(auxiliary_dock_policy("workspace.placement.side"))
         .register_mosaic_placement_policy(primary_dock_policy("workspace.placement.primary"))
         .freeze()
@@ -40,10 +42,12 @@ fn equivalent_mosaic_placement_policies_produce_equivalent_legality_tables() {
 #[test]
 fn different_mosaic_placement_meaning_changes_snapshot_digest() {
     let dock = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(primary_dock_policy("workspace.placement.primary"))
         .freeze()
         .expect("application preparation should succeed");
     let tab = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy("workspace.placement.primary", MosaicPlacementAction::tab())
                 .with_source(MosaicPlacementSource::region_role(

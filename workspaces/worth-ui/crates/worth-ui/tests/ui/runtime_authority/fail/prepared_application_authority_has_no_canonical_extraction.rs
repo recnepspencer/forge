@@ -1,4 +1,5 @@
 use worth_ui::facade::app::WorthUiPreparedApplicationAuthority;
+use worth_ui::facade::rebind::{UiAuthoredChangedFact, UiQueryChangedFact};
 use worth_ui_runtime::facade::mounted::{
     UiMountedFramePublicationReceipt, UiMountedNodeReceipt, UiMountedProjectionView,
     UiProjectedMountedFrameCandidate,
@@ -30,6 +31,14 @@ fn forge_projected_candidate() -> UiProjectedMountedFrameCandidate {
 
 fn forge_current_mounted_frame() -> UiMountedFramePublicationReceipt {
     UiMountedFramePublicationReceipt {}
+}
+
+fn forge_produced_fact() {
+    let _forged = UiAuthoredChangedFact {};
+}
+
+fn forge_query_reset_without_owner_consequence() {
+    let _forged = UiQueryChangedFact::from_owner_consequence(());
 }
 
 fn main() {}

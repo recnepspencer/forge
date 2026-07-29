@@ -26,6 +26,7 @@ use worth_ui::facade::{
 
 pub(crate) fn minimal_app_builder() -> WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(minimal_command_descriptor())
         .register_component(minimal_component_descriptor())
         .register_surface(minimal_surface_descriptor())

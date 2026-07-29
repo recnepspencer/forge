@@ -33,6 +33,7 @@ fn noisy_declaration_input() -> UiDslSemanticArtifactSpec {
 
 fn freeze_artifacts(package: WorthUiRustAuthoredDeclarationFixture) -> Vec<UiDeclarationArtifact> {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(package)
         .freeze()
         .expect("application preparation should succeed")

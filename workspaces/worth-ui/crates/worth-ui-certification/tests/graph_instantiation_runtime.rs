@@ -27,6 +27,7 @@ use support::{
 #[test]
 fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-instantiation",
@@ -157,6 +158,7 @@ fn only_sealed_graph_handoffs_instantiate_graph_truth_through_public_plan() {
 #[test]
 fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-instantiation.duplicate",
@@ -187,6 +189,7 @@ fn basis_free_duplicate_handoffs_deny_before_snapshot_mutation() {
 #[test]
 fn freeze_path_returns_the_exact_graph_handoff_denial() {
     let denial = match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-instantiation.freeze-denial",
@@ -221,6 +224,7 @@ fn freeze_path_returns_the_exact_graph_handoff_denial() {
 #[test]
 fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
     let baseline = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-instantiation.invariance",
@@ -230,6 +234,7 @@ fn touch_and_measurement_posture_do_not_change_graph_instantiation_truth() {
         .freeze()
         .expect("application preparation should succeed");
     let enriched = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-instantiation.invariance",

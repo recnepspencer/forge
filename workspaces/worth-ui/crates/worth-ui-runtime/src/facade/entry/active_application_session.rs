@@ -80,14 +80,77 @@ impl WorthUiActiveApplicationSession {
         self.application.generation_identity()
     }
 
+    pub const fn rebind_deadline_at(
+        &self,
+        tick: u64,
+    ) -> crate::runtime::rebind::UiRebindSessionDeadline {
+        crate::runtime::rebind::UiRebindSessionDeadline::new(self.identity, tick)
+    }
+
+    pub const fn rebind_cancellation_request(
+        &self,
+    ) -> crate::runtime::rebind::UiRebindCancellationRequest {
+        crate::runtime::rebind::UiRebindCancellationRequest::new(self.identity)
+    }
+
     pub fn capabilities(&self) -> &crate::facade::registry::snapshot::CapabilitySnapshot {
         self.application.capabilities()
+    }
+
+    pub fn classify_observations(
+        &self,
+        observations: crate::facade::observation::UiAdmittedObservationSet,
+    ) -> Result<
+        crate::facade::observation::UiChangeClassificationOutcome,
+        crate::facade::observation::UiChangeClassificationDenial,
+    > {
+        self.application
+            .classify_observations(self.identity, observations)
+    }
+
+    pub fn resolve_affected_scope(
+        &self,
+        change: crate::facade::observation::UiClassifiedChange,
+    ) -> Result<
+        crate::runtime::rebind::UiResolvedAffectedScope,
+        crate::runtime::rebind::UiAffectedScopeDenial,
+    > {
+        self.application
+            .resolve_affected_scope(self.identity, change)
+    }
+
+    pub fn compile_rebind_plan(
+        &self,
+        lifecycle: crate::runtime::rebind::UiResolvedIdentityLifecycle,
+        policy: crate::runtime::rebind::UiRebindExecutionPolicy,
+    ) -> Result<crate::runtime::rebind::UiRebindPlan, crate::runtime::rebind::UiRebindPlanningDenial>
+    {
+        self.application
+            .compile_rebind_plan(self.identity, lifecycle, policy)
+    }
+
+    pub fn compile_preservation_rebind(
+        &self,
+        evidence: crate::facade::observation::UiEvidenceOnlySourceChange,
+        policy: crate::runtime::rebind::UiRebindExecutionPolicy,
+    ) -> Result<crate::runtime::rebind::UiRebindPlan, crate::runtime::rebind::UiRebindPlanningDenial>
+    {
+        self.application
+            .compile_preservation_rebind(self.identity, evidence, policy)
     }
 
     /// Borrow the graph authority for the generation this session is
     /// currently executing.
     pub fn graph(&self) -> crate::graph::UiGraphAuthority<'_> {
         self.application.graph()
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn lookup_consumed_fact_for_certification(
+        &self,
+        fact: &crate::fact_contract::UiProducedFact,
+    ) -> Result<crate::graph::UiGraphFactLookupReceipt, crate::graph::UiGraphFactLookupDenial> {
+        self.application.lookup_consumed_fact(fact)
     }
 
     pub(crate) fn source_event_ingress(

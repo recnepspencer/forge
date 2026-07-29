@@ -25,10 +25,16 @@ fn meaningful_artifact_difference_changes_digest() {
 
     assert_ne!(left_digest, right_digest);
     assert!(!equivalence.is_equivalent());
-    assert!(matches!(
-        equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemantics { .. })
-    ));
+    assert!(equivalence.differences().iter().any(|difference| matches!(
+        difference,
+        WorthUiArtifactDifference::NodeRetired { node_identity, .. }
+            if node_identity.contains("workspace.surface.inspector")
+    )));
+    assert!(equivalence.differences().iter().any(|difference| matches!(
+        difference,
+        WorthUiArtifactDifference::NodeCreated { node_identity, .. }
+            if node_identity.contains("workspace.surface.main")
+    )));
     assert_eq!(equivalence.metrics().broad_scans(), 0);
 }
 
@@ -44,8 +50,14 @@ fn semantically_different_token_artifact_breaks_equivalence() {
     );
 
     assert!(!equivalence.is_equivalent());
-    assert!(matches!(
-        equivalence.first_difference(),
-        Some(WorthUiArtifactDifference::NodeSemantics { .. })
-    ));
+    assert!(equivalence.differences().iter().any(|difference| matches!(
+        difference,
+        WorthUiArtifactDifference::NodeRetired { node_identity, .. }
+            if node_identity.contains("theme.text.default")
+    )));
+    assert!(equivalence.differences().iter().any(|difference| matches!(
+        difference,
+        WorthUiArtifactDifference::NodeCreated { node_identity, .. }
+            if node_identity.contains("theme.text.primary")
+    )));
 }

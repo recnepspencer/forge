@@ -19,4 +19,5 @@ pub(crate) struct WorthUiPreparedLaunchAdmission {
     pub(crate) diagnostic_policy: WorthUiRuntimeDiagnosticPolicy,
     pub(crate) query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     pub(crate) host_session_plan: WorthUiHostSessionPlan,
+    pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }

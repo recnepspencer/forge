@@ -12,11 +12,13 @@ use super::icon_fixtures::{color_theme_token, command_icon, icon_id, theme_token
 #[test]
 fn equivalent_icon_descriptors_produce_equivalent_entries() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(command_icon("workspace.icon.save"))
         .register_icon(command_icon("workspace.icon.open"))
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(command_icon("workspace.icon.open"))
         .register_icon(command_icon("workspace.icon.save"))
         .freeze()
@@ -36,6 +38,7 @@ fn equivalent_icon_descriptors_produce_equivalent_entries() {
 #[test]
 fn all_domain_agnostic_builtin_icon_families_are_admitted() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(icon("workspace.icon.command", IconFamily::command()))
         .register_icon(icon("workspace.icon.surface", IconFamily::surface()))
         .register_icon(icon("workspace.icon.status", IconFamily::status()))
@@ -58,10 +61,12 @@ fn all_domain_agnostic_builtin_icon_families_are_admitted() {
 #[test]
 fn icon_descriptor_meaning_participates_in_snapshot_digest() {
     let inherited = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(command_icon("workspace.icon.save"))
         .freeze()
         .expect("application preparation should succeed");
     let token_driven = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(
             IconDescriptor::new(
                 icon_id("workspace.icon.save"),
@@ -90,11 +95,13 @@ fn icon_descriptor_meaning_participates_in_snapshot_digest() {
 #[test]
 fn icon_theme_token_reference_participates_in_snapshot_digest() {
     let primary = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
         .register_icon(theme_token_icon("theme.text.primary"))
         .freeze()
         .expect("application preparation should succeed");
     let secondary = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.secondary", "#506070"))
         .register_icon(theme_token_icon("theme.text.secondary"))
         .freeze()

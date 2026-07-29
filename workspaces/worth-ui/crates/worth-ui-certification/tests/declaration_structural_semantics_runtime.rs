@@ -21,6 +21,7 @@ use worth_ui_dsl::UiDslSemanticArtifactSpec;
 #[test]
 fn public_freeze_exposes_bootstrap_page_structural_intent_and_handoff() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let artifact = &app.declaration_artifacts()[0];
@@ -56,6 +57,7 @@ fn public_freeze_exposes_bootstrap_page_structural_intent_and_handoff() {
 #[test]
 fn caller_authored_freeze_projects_structural_slot_participation_intent() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.structural.slot")
                 .with_semantic_artifact_spec(slotted_control_spec()),
@@ -102,6 +104,7 @@ fn caller_authored_freeze_projects_structural_slot_participation_intent() {
 #[test]
 fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
     let baseline = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.structural.localization",
@@ -111,6 +114,7 @@ fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
         .freeze()
         .expect("application preparation should succeed");
     let changed = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.structural.localization",
@@ -158,6 +162,7 @@ fn non_structural_noise_does_not_change_structural_semantics_or_handoff() {
 #[test]
 fn every_admitted_structural_family_projects_declared_structural_intent() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.structural.families",
@@ -282,6 +287,7 @@ fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name)
                 .with_semantic_artifact_spec(spec),

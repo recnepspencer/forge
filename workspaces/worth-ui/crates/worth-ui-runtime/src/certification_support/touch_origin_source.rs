@@ -42,6 +42,7 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
 
 fn touch_runtime_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new("workspace.component.dashboard").expect("valid component id"),
             ComponentPropSchema::named("workspace.props"),

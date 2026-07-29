@@ -86,6 +86,11 @@ impl UiGraphSnapshot {
         self.authority_identity
     }
 
+    pub(crate) fn rebuild_derived_indexes(&mut self) {
+        self.core_indexes =
+            UiGraphCoreIndexes::rebuild(&self.nodes, &self.topology, &self.mount_eligibilities);
+    }
+
     pub(crate) fn mount_eligibility_slot_for_node(
         &self,
         graph_node_identity: UiGraphNodeIdentity,
@@ -283,6 +288,7 @@ mod tests {
         }
 
         WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.graph.tests")
                     .with_semantic_artifact_spec(child),

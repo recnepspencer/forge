@@ -25,6 +25,7 @@ pub(crate) fn activation_staging_inputs_with_installed_query_view(
 ) -> ActivationStagingInputs {
     let binding_id = view.definition().identity().as_str().to_owned();
     let app = crate::facade::WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view)
         .expect("installed Query view registers for activation")
         .freeze()

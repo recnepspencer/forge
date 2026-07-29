@@ -5,6 +5,8 @@ use worth_ui::facade::app::{
     WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
 };
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
+use worth_ui::facade::observation::UiChangeClassificationOutcome;
+use worth_ui::facade::rebind::{UiProducedFact, UiQueryChangedFactKind};
 use worth_ui_runtime::facade::application::{
     WorthUiOrdinaryFrameTarget, WorthUiReloadLoweringCounterReceipt,
 };
@@ -63,6 +65,20 @@ fn accepts_frame_scheduling(
 ) {
 }
 
+fn classification_types_are_public(
+    outcome: UiChangeClassificationOutcome,
+) -> Option<UiQueryChangedFactKind> {
+    match outcome {
+        UiChangeClassificationOutcome::Changed(change) => change
+            .facts()
+            .iter()
+            .find_map(UiProducedFact::query)
+            .map(|fact| fact.kind()),
+        UiChangeClassificationOutcome::ObservedNoChange(_)
+        | UiChangeClassificationOutcome::EvidenceOnly(_) => None,
+    }
+}
+
 fn main() {
     let _ = (
         accepts_app_entry,
@@ -71,5 +87,6 @@ fn main() {
         accepts_framework_execution,
         accepts_frame_evidence,
         accepts_frame_scheduling,
+        classification_types_are_public,
     );
 }

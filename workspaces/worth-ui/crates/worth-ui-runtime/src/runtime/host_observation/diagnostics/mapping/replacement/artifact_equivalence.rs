@@ -24,5 +24,13 @@ fn artifact_equivalence_digest(denial: &WorthUiRuntimeArtifactComparisonDenial) 
             fold(0xA1_00_00_02, candidate_basis.artifact_digest().raw()),
             counters.artifact_comparisons() as u64,
         ),
+        WorthUiRuntimeArtifactComparisonDenial::StructuralCapacityExceeded {
+            limit,
+            observed,
+            counters,
+        } => fold(
+            fold(fold(0xA1_00_00_03, *limit as u64), *observed as u64),
+            counters.artifact_comparisons() as u64,
+        ),
     }
 }

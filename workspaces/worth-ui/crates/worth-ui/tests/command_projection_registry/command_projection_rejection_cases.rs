@@ -15,6 +15,7 @@ use super::command_projection_fixtures::{
 #[test]
 fn projection_references_unsupported_surface_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             CommandProjectionDescriptor::new(
                 command_projection_id("workspace.projection.unsupported"),
@@ -35,6 +36,7 @@ fn projection_references_unsupported_surface_rejected() {
 #[test]
 fn projection_with_conflicting_required_grouping_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             command_projection("workspace.projection.conflicting")
                 .with_grouping(CommandProjectionGrouping::required("file"))
@@ -52,6 +54,7 @@ fn projection_with_conflicting_required_grouping_rejected() {
 #[test]
 fn projection_cannot_define_new_command_meaning() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             command_projection("workspace.projection.meaning")
                 .with_command_meaning_override_for_diagnostics(
@@ -70,6 +73,7 @@ fn projection_cannot_define_new_command_meaning() {
 #[test]
 fn projection_without_command_reference_or_category_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(CommandProjectionDescriptor::new(
             command_projection_id("workspace.projection.empty"),
             CommandProjectionSurface::command_palette(),
@@ -86,6 +90,7 @@ fn projection_without_command_reference_or_category_rejected() {
 #[test]
 fn region_header_projection_requires_mosaic_scope() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             CommandProjectionDescriptor::new(
                 command_projection_id("workspace.projection.region"),
@@ -105,6 +110,7 @@ fn region_header_projection_requires_mosaic_scope() {
 #[test]
 fn global_projection_rejects_mosaic_scope() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             command_projection("workspace.projection.palette").with_mosaic_scope(
                 CommandProjectionMosaicScope::placement_policy(mosaic_placement_policy_id(

@@ -258,7 +258,9 @@ fn unsupported_canvas_builder() -> WorthUiApplicationBuilder {
 }
 
 fn canvas_descriptor_builder() -> WorthUiApplicationBuilder {
-    WorthUi::app().register_component(canvas_descriptor())
+    WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_component(canvas_descriptor())
 }
 
 fn canvas_descriptor() -> ComponentDescriptor {

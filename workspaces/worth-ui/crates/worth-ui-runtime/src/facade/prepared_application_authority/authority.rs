@@ -9,7 +9,10 @@ use super::{
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex};
 use crate::facade::lifecycle::{build_graph_evidence_indexes, WorthUiFacadeLifecycleBootstrap};
 use crate::facade::registry::snapshot::CapabilitySnapshot;
-use crate::graph::{UiGraphAspectEvidenceIndexes, UiGraphNodeEvidenceIndex, UiGraphSnapshot};
+use crate::graph::{
+    UiGraphAspectEvidenceIndexes, UiGraphConsumedFactIndex, UiGraphNodeEvidenceIndex,
+    UiGraphSnapshot,
+};
 use std::rc::Rc;
 
 mod graph_successor;
@@ -20,6 +23,8 @@ pub(crate) use graph_successor::{
 pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) capability_snapshot: Rc<CapabilitySnapshot>,
     pub(crate) canonical_artifact: WorthUiPreparedApplicationArtifact,
+    pub(crate) authored_source_basis: crate::runtime::WorthUiAuthoredSourceBasis,
+    pub(crate) generation_lineage: super::WorthUiPreparedGenerationLineage,
     pub(crate) declaration_source_identity: WorthUiPreparedDeclarationSourceIdentity,
     pub(crate) semantic_handoff: crate::runtime::WorthUiSemanticHandoffEvidence,
     pub(crate) declaration_artifacts: Vec<UiDeclarationArtifact>,
@@ -32,6 +37,7 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
         Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
     pub(crate) measurement_inspection_evidence:
         Box<[crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle]>,
+    pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
 struct WorthUiPreparedApplicationAuthorities {
@@ -47,6 +53,8 @@ pub struct WorthUiPreparedApplicationAuthority {
     lowering_authority: WorthUiPreparedApplicationLoweringAuthority,
     capability_snapshot: Rc<CapabilitySnapshot>,
     canonical_artifact: WorthUiPreparedApplicationArtifact,
+    authored_source_basis: crate::runtime::WorthUiAuthoredSourceBasis,
+    generation_lineage: super::WorthUiPreparedGenerationLineage,
     declaration_source_identity: WorthUiPreparedDeclarationSourceIdentity,
     semantic_handoff: crate::runtime::WorthUiSemanticHandoffEvidence,
     declaration_artifacts: Rc<[UiDeclarationArtifact]>,
@@ -56,12 +64,14 @@ pub struct WorthUiPreparedApplicationAuthority {
     graph_node_evidence_index: Rc<UiGraphNodeEvidenceIndex>,
     visual_trace_source: WorthUiPreparedVisualTraceSource,
     graph_aspect_evidence_indexes: UiGraphAspectEvidenceIndexes,
+    consumed_fact_index: UiGraphConsumedFactIndex,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     host_session_plan: WorthUiHostSessionPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     runtime_instance_basis_admissions: Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
     measurement_inspection_evidence:
         Box<[crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle]>,
+    change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
 impl WorthUiPreparedApplicationAuthority {
@@ -70,6 +80,8 @@ impl WorthUiPreparedApplicationAuthority {
         let WorthUiPreparedApplicationAuthorityInput {
             capability_snapshot,
             canonical_artifact,
+            authored_source_basis,
+            generation_lineage,
             declaration_source_identity,
             semantic_handoff,
             declaration_artifacts,
@@ -80,6 +92,7 @@ impl WorthUiPreparedApplicationAuthority {
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence,
+            change_profile,
         } = input;
         let declaration_artifacts: Rc<[UiDeclarationArtifact]> = declaration_artifacts.into();
         let authored_evidence_index = Rc::new(UiDeclarationAuthoredEvidenceIndex::rebuild(
@@ -98,11 +111,21 @@ impl WorthUiPreparedApplicationAuthority {
             Rc::clone(&authored_evidence_index),
             Rc::clone(&graph_node_evidence_index),
         );
+        let authored_declarations = crate::graph::UiAuthoredDeclarationLookup::from_entries(
+            canonical_artifact.authored_provenance_entries(),
+        );
+        let consumed_fact_index = UiGraphConsumedFactIndex::rebuild(
+            &graph_snapshot,
+            capability_snapshot.as_ref(),
+            &authored_declarations,
+        );
         Self {
             generation_identity: authorities.generation_identity,
             lowering_authority: authorities.lowering_authority,
             capability_snapshot,
             canonical_artifact,
+            authored_source_basis,
+            generation_lineage,
             declaration_source_identity,
             semantic_handoff,
             declaration_artifacts,
@@ -112,11 +135,13 @@ impl WorthUiPreparedApplicationAuthority {
             graph_node_evidence_index,
             visual_trace_source,
             graph_aspect_evidence_indexes: graph_evidence.aspect,
+            consumed_fact_index,
             query_binding_plan,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence,
+            change_profile,
         }
     }
 
@@ -126,6 +151,10 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub fn declaration_source_identity(&self) -> &WorthUiPreparedDeclarationSourceIdentity {
         &self.declaration_source_identity
+    }
+
+    pub(crate) fn authored_source_basis(&self) -> &crate::runtime::WorthUiAuthoredSourceBasis {
+        &self.authored_source_basis
     }
 
     pub fn semantic_handoff(&self) -> &crate::runtime::WorthUiSemanticHandoffEvidence {
@@ -176,6 +205,10 @@ impl WorthUiPreparedApplicationAuthority {
         &self.graph_aspect_evidence_indexes
     }
 
+    pub(crate) fn consumed_fact_index(&self) -> &UiGraphConsumedFactIndex {
+        &self.consumed_fact_index
+    }
+
     pub(crate) fn query_binding_plan(&self) -> &worth_ui_query_binding::WorthUiQueryBindingPlan {
         &self.query_binding_plan
     }
@@ -194,6 +227,14 @@ impl WorthUiPreparedApplicationAuthority {
         self.canonical_artifact.candidate_basis()
     }
 
+    pub(crate) fn authored_identity_bases_for_provenance(
+        &self,
+        provenance_digest: u64,
+    ) -> &[Box<str>] {
+        self.canonical_artifact
+            .identity_bases_for_authored_provenance(provenance_digest)
+    }
+
     pub(crate) fn runtime_instance_basis_admissions(
         &self,
     ) -> &[crate::graph::UiRuntimeInstanceBasisAdmission] {
@@ -204,6 +245,10 @@ impl WorthUiPreparedApplicationAuthority {
         &self,
     ) -> &[crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle] {
         &self.measurement_inspection_evidence
+    }
+
+    pub(crate) const fn change_profile(&self) -> crate::runtime::rebind::UiChangeProfile {
+        self.change_profile
     }
 
     pub(crate) fn admit_launch(
@@ -222,6 +267,7 @@ impl WorthUiPreparedApplicationAuthority {
             diagnostic_policy,
             query_binding: self.query_binding_plan.prepare_downstream_state(),
             host_session_plan: self.host_session_plan.clone(),
+            change_profile: self.change_profile,
         })
     }
 
@@ -253,6 +299,7 @@ impl WorthUiPreparedApplicationAuthority {
     }
 
     pub(crate) fn rebuild_derived_indexes(&mut self) {
+        self.graph_snapshot.rebuild_derived_indexes();
         self.authored_evidence_index = Rc::new(UiDeclarationAuthoredEvidenceIndex::rebuild(
             self.declaration_artifacts.as_ref(),
             &self.graph_snapshot,
@@ -264,12 +311,24 @@ impl WorthUiPreparedApplicationAuthority {
         );
         self.graph_node_evidence_index = Rc::new(graph_evidence.node);
         self.graph_aspect_evidence_indexes = graph_evidence.aspect;
+        let authored_declarations = self.authored_declaration_lookup();
+        self.consumed_fact_index = UiGraphConsumedFactIndex::rebuild(
+            &self.graph_snapshot,
+            self.capability_snapshot.as_ref(),
+            &authored_declarations,
+        );
         self.visual_trace_source = WorthUiPreparedVisualTraceSource::new(
             self.generation_identity.clone(),
             Rc::clone(&self.declaration_artifacts),
             Rc::clone(&self.authored_evidence_index),
             Rc::clone(&self.graph_node_evidence_index),
         );
+    }
+
+    pub(crate) fn authored_declaration_lookup(&self) -> crate::graph::UiAuthoredDeclarationLookup {
+        crate::graph::UiAuthoredDeclarationLookup::from_entries(
+            self.canonical_artifact.authored_provenance_entries(),
+        )
     }
 }
 
@@ -280,12 +339,14 @@ fn derive_prepared_application_authorities(
         WorthUiPreparedGenerationIdentityInput {
             capability_snapshot: input.capability_snapshot.digest(),
             canonical_artifact: input.canonical_artifact.identity(),
+            lineage: input.generation_lineage.clone(),
             declaration_source: input.declaration_source_identity.clone(),
             semantic_package: input.semantic_handoff.identity().clone(),
             graph_authority_digest: input.graph_snapshot.authority_digest(),
             query_binding_plan: &input.query_binding_plan,
             host_session_plan: &input.host_session_plan,
             visual_inspection_policy: input.visual_inspection_policy,
+            change_profile: input.change_profile,
         },
     );
     let lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(

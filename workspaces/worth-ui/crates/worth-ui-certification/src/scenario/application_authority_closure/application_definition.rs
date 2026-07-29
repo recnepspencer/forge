@@ -43,16 +43,27 @@ pub(crate) const PREVIEW_SIZING: &str = "workspace.sizing.preview_splitter";
 pub(crate) const PREVIEW_STATE_SLOT: &str = "workspace.state.preview_splitter_position";
 pub(crate) const PREVIEW_SCROLL_STATE_SLOT: &str = "workspace.state.preview_scroll_position";
 pub(crate) use super::platform_pulse_application::{
-    platform_pulse_application_builder_with_host, PLATFORM_PULSE_BACKGROUND_COMPONENT,
-    PLATFORM_PULSE_BLUE_TOKEN, PLATFORM_PULSE_FILL_TOKEN, PLATFORM_PULSE_GREEN_TOKEN,
-    PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT, PLATFORM_PULSE_IDENTITY_TARGET_FILL_TOKEN,
-    PLATFORM_PULSE_SURFACE, PLATFORM_PULSE_YELLOW_TOKEN,
+    platform_pulse_application_builder_with_host,
+    platform_pulse_application_builder_with_host_and_unrelated_width, unrelated_component_id,
+    PLATFORM_PULSE_BACKGROUND_COMPONENT, PLATFORM_PULSE_BLUE_TOKEN, PLATFORM_PULSE_FILL_TOKEN,
+    PLATFORM_PULSE_GREEN_TOKEN, PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT,
+    PLATFORM_PULSE_IDENTITY_TARGET_FILL_TOKEN, PLATFORM_PULSE_SURFACE, PLATFORM_PULSE_YELLOW_TOKEN,
 };
 
 pub(crate) fn application_builder(
     query: &WorthUiInstalledQueryTestFixture,
 ) -> WorthUiApplicationBuilder {
-    application_builder_with_host(query, WorthUiHeadlessHost)
+    application_builder_with_change_profile(
+        query,
+        worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+    )
+}
+
+pub(crate) fn application_builder_with_change_profile(
+    query: &WorthUiInstalledQueryTestFixture,
+    profile: worth_ui::facade::rebind::UiChangeProfile,
+) -> WorthUiApplicationBuilder {
+    application_builder_with_host_and_change_profile(query, WorthUiHeadlessHost, profile)
 }
 
 pub(crate) fn application_builder_with_host<Host>(
@@ -62,7 +73,23 @@ pub(crate) fn application_builder_with_host<Host>(
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
+    application_builder_with_host_and_change_profile(
+        query,
+        host,
+        worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+    )
+}
+
+fn application_builder_with_host_and_change_profile<Host>(
+    query: &WorthUiInstalledQueryTestFixture,
+    host: Host,
+    profile: worth_ui::facade::rebind::UiChangeProfile,
+) -> WorthUiApplicationBuilder
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
     WorthUi::app()
+        .with_change_profile(profile)
         .with_host(host)
         .with_graph_world_profile(UiGraphWorldProfile::settled_query_binding(
             ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),

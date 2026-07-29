@@ -38,6 +38,7 @@ pub(super) fn support_app_with_sizing(
     sizing: MosaicSizingContractDescriptor,
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_boundary_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(sizing)
@@ -50,6 +51,7 @@ pub(super) fn prepare_source_backed_submission(
     sizing: MosaicSizingContractDescriptor,
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
@@ -61,6 +63,7 @@ pub(super) fn prepare_source_backed_submission(
 pub(super) fn two_component_source_backed_builder(
 ) -> crate::facade::entry::WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_boundary_component())
         .register_component(ComponentDescriptor::new(
             ComponentId::new("workspace.component.source_backed_boundary.peer").unwrap(),

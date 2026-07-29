@@ -36,7 +36,10 @@ pub use active_framework_turn::{
     WorthUiMountedLaneProjectionDenial,
 };
 pub use app::{WorthUi, WorthUiApp};
-pub use app_builder::{WorthUiApplicationBuilder, WorthUiQueryViewRegistrationError};
+pub use app_builder::{
+    UiChangeProfileInstalled, UiChangeProfileMissing, WorthUiApplicationBuilder,
+    WorthUiQueryViewRegistrationError,
+};
 pub use application_replacement::{
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationCutoverRetry, WorthUiApplicationPublicationObservation,

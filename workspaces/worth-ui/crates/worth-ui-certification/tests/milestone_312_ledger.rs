@@ -54,6 +54,40 @@ pub(super) fn validate_phase_2(contract: &toml::Value, ledger: &str) -> Result<(
     validate_rows(&rows, &expected, Some(&commands), closed)
 }
 
+pub(super) fn validate_phase_3(contract: &toml::Value, ledger: &str) -> Result<(), String> {
+    let expected = (1..=16)
+        .map(|number| format!("P3-{number:02}"))
+        .collect::<Vec<_>>();
+    let gates = contract["phase_gate"]
+        .as_array()
+        .ok_or_else(|| "Phase 3 gates are not an array".to_owned())?;
+    let gate_ids = gates
+        .iter()
+        .map(|gate| required_text(gate, "id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    if gate_ids != expected {
+        return Err("Phase 3 contract gates are not exactly P3-01 through P3-16".to_owned());
+    }
+    let owners = gates
+        .iter()
+        .map(|gate| required_text(gate, "owner"))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    if owners.len() != gates.len() {
+        return Err("Phase 3 gate owners are not unique".to_owned());
+    }
+    for gate in gates {
+        required_text(gate, "claim")?;
+        required_text(gate, "command")?;
+    }
+    let commands = gates
+        .iter()
+        .map(|gate| required_text(gate, "command"))
+        .collect::<Result<Vec<_>, _>>()?;
+    let closed = contract["status"].as_str() == Some("closed");
+    let rows = parse_ledger(ledger)?;
+    validate_rows(&rows, &expected, Some(&commands), closed)
+}
+
 pub(super) fn validate_phase_5(
     contract: &toml::Value,
     ledger: &str,

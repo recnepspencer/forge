@@ -1,7 +1,7 @@
 use crate::facade::WorthUi;
 use crate::runtime::tests::replacement_impact_test_support::{
-    admitted_candidate, artifact_from_modules, impact_test_app, import_artifact, launch_runtime,
-    surface_module, token_module, two_module_import_artifact,
+    admitted_candidate, artifact_from_modules, component_module, impact_test_app, import_artifact,
+    launch_runtime, surface_module, token_module, two_module_import_artifact,
 };
 use crate::runtime::{
     WorthUiCommandImpact, WorthUiReplacementImpact, WorthUiReplacementImpactDenial,
@@ -171,6 +171,7 @@ fn comparison_from_different_active_basis_rejected_before_impact_classification(
 #[test]
 fn import_insertion_classifies_as_bounded_structure_without_mutating_active_state() {
     let app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
@@ -200,8 +201,37 @@ fn import_insertion_classifies_as_bounded_structure_without_mutating_active_stat
 }
 
 #[test]
+fn same_module_node_retirement_remains_bounded_structural_replacement() {
+    let app = impact_test_app();
+    let runtime = launch_runtime(
+        &app,
+        artifact_from_modules(&app, [component_module("workspace.component.dashboard")]),
+    );
+    let candidate = admitted_candidate(
+        &app,
+        &runtime,
+        artifact_from_modules(&app, [component_module("workspace.component.replacement")]),
+    );
+    let comparison = runtime
+        .compare_admitted_replacement(&candidate)
+        .expect("same-module component replacement compares");
+
+    let classification = runtime
+        .classify_replacement_impact(&comparison, &candidate)
+        .expect("node retirement and creation remain bounded by the existing module");
+
+    assert!(matches!(
+        classification.impact(),
+        WorthUiReplacementImpact::StructuralReplacement(scope)
+            if scope.impacted_handle_count() == 1 && !scope.is_broad()
+    ));
+    assert_eq!(classification.counters().broad_replacement_denials(), 0);
+}
+
+#[test]
 fn broad_replacement_without_state_drop_receipts_rejected() {
     let app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));

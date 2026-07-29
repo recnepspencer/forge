@@ -16,6 +16,7 @@ use super::task_presentation_fixtures::{progress_task_presentation, task_present
 #[test]
 fn duplicate_task_presentation_id_rejected_before_snapshot_freeze() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(progress_task_presentation("workspace.task.duplicate"))
         .register_task_presentation(progress_task_presentation("workspace.task.duplicate"))
         .freeze_with_registration_report();
@@ -35,6 +36,9 @@ fn duplicate_task_presentation_id_rejected_before_snapshot_freeze() {
 fn task_presentation_without_lifecycle_posture_rejected() {
     let report =
         WorthUi::app()
+            .with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            )
             .register_task_presentation(
                 TaskPresentationDescriptor::new(
                     task_presentation_id("workspace.task.no_lifecycle"),
@@ -62,6 +66,9 @@ fn task_presentation_without_lifecycle_posture_rejected() {
 fn task_presentation_without_cancellation_posture_rejected() {
     let report =
         WorthUi::app()
+            .with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            )
             .register_task_presentation(
                 TaskPresentationDescriptor::new(
                     task_presentation_id("workspace.task.no_cancellation"),
@@ -89,6 +96,9 @@ fn task_presentation_without_cancellation_posture_rejected() {
 fn task_presentation_without_failure_posture_rejected() {
     let report =
         WorthUi::app()
+            .with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            )
             .register_task_presentation(
                 TaskPresentationDescriptor::new(
                     task_presentation_id("workspace.task.no_failure"),
@@ -115,6 +125,7 @@ fn task_presentation_without_failure_posture_rejected() {
 #[test]
 fn task_presentation_without_projection_eligibility_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.no_projection"),
@@ -139,6 +150,7 @@ fn task_presentation_without_projection_eligibility_rejected() {
 #[test]
 fn task_presentation_without_runtime_authority_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.no_authority"),
@@ -163,6 +175,7 @@ fn task_presentation_without_runtime_authority_posture_rejected() {
 #[test]
 fn unknown_task_presentation_family_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.unknown"),
@@ -189,6 +202,9 @@ fn unknown_task_presentation_family_rejected() {
 fn task_presentation_cannot_claim_task_runtime_authority() {
     let report =
         WorthUi::app()
+            .with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            )
             .register_task_presentation(
                 TaskPresentationDescriptor::new(
                     task_presentation_id("workspace.task.runtime_claim"),
@@ -224,6 +240,7 @@ fn task_presentation_cannot_claim_task_runtime_authority() {
 #[test]
 fn task_presentation_family_posture_mismatch_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.mismatch"),
@@ -249,6 +266,7 @@ fn task_presentation_family_posture_mismatch_rejected() {
 #[test]
 fn rejected_task_presentation_does_not_poison_valid_task_presentation() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.bad"),

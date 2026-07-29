@@ -13,6 +13,7 @@ use super::plugin_slot_fixtures::{plugin_slot, plugin_slot_id};
 #[test]
 fn plugin_contribution_to_unsupported_family_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             plugin_slot("workspace.plugin_slot.unsupported").allow_family(
                 PluginContributionFamily::unsupported_for_diagnostics("ad_hoc_renderer"),
@@ -31,6 +32,7 @@ fn plugin_contribution_to_unsupported_family_rejected() {
 #[test]
 fn plugin_contribution_without_permission_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             PluginSlotDescriptor::new(plugin_slot_id("workspace.plugin_slot.commands"))
                 .allow_family(PluginContributionFamily::command())
@@ -50,6 +52,7 @@ fn plugin_contribution_without_permission_rejected() {
 #[test]
 fn plugin_slot_cannot_be_arbitrary_global_mutation_hook() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             plugin_slot("workspace.plugin_slot.global_mutation")
                 .allow_family(
@@ -74,6 +77,7 @@ fn plugin_slot_cannot_be_arbitrary_global_mutation_hook() {
 #[test]
 fn plugin_slot_reports_all_missing_required_postures() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(PluginSlotDescriptor::new(plugin_slot_id(
             "workspace.plugin_slot.empty",
         )))
@@ -95,10 +99,12 @@ fn plugin_slot_reports_all_missing_required_postures() {
 #[test]
 fn plugin_slot_support_posture_participates_in_snapshot_digest() {
     let supported = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
         .freeze()
         .expect("application preparation should succeed");
     let deferred = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             plugin_slot("workspace.plugin_slot.commands")
                 .with_support(PluginSlotSupportPosture::deferred()),

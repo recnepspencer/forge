@@ -96,6 +96,7 @@ mod tests {
     #[test]
     fn runtime_data_basis_admits_only_through_internal_typed_boundary() {
         let app = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named(
                     "worth-ui.runtime.graph-instantiation.runtime-basis",
@@ -127,6 +128,7 @@ mod tests {
     #[test]
     fn position_based_runtime_basis_denies_before_graph_mutation() {
         let app = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named(
                     "worth-ui.runtime.graph-instantiation.position",
@@ -150,6 +152,7 @@ mod tests {
     #[test]
     fn orphan_or_contradictory_runtime_basis_admission_denies_internal_plan_construction() {
         let app = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named(
                     "worth-ui.runtime.graph-instantiation.orphan",
@@ -162,6 +165,7 @@ mod tests {
             .graph_handoff()
             .expect("control declaration should lower to graph handoff");
         let unrelated_app = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named(
                     "worth-ui.runtime.graph-instantiation.orphan.other",
@@ -201,6 +205,7 @@ mod tests {
     #[test]
     fn touch_and_measurement_posture_do_not_change_internal_graph_instantiation_outputs() {
         let baseline = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named(
                     "worth-ui.runtime.graph-instantiation.invariance",
@@ -210,6 +215,7 @@ mod tests {
             .freeze()
             .expect("application preparation should succeed");
         let enriched = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named(
                     "worth-ui.runtime.graph-instantiation.invariance",

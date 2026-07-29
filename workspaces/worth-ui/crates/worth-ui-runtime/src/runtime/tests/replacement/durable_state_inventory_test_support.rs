@@ -93,11 +93,11 @@ pub(super) fn state_slot(
 fn state_inventory_fixture(
     descriptors: impl IntoIterator<Item = MosaicStateSlotDescriptor>,
 ) -> ProductionStateInventoryFixture {
-    let app = descriptors
-        .into_iter()
-        .fold(crate::facade::WorthUi::app(), |builder, descriptor| {
-            builder.register_mosaic_state_slot(descriptor)
-        });
+    let app = descriptors.into_iter().fold(
+        crate::facade::WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse()),
+        |builder, descriptor| builder.register_mosaic_state_slot(descriptor),
+    );
     let prepared = app.freeze().expect("state fixture application freezes");
     ProductionStateInventoryFixture {
         admitted_state_capabilities: prepared.capabilities().mosaic_state_slots().clone(),

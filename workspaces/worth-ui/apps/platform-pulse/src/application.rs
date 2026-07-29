@@ -88,7 +88,11 @@ pub(crate) fn prepare(
 }
 
 fn builder(host: WorthUiHostEgui) -> WorthUiApplicationBuilder {
-    let builder = register_pulse_structure(WorthUi::app().with_host(host));
+    let builder = register_pulse_structure(
+        WorthUi::app()
+            .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+            .with_host(host),
+    );
     register_pulse_theme_tokens(builder).with_visual_inspection_policy(visual_inspection_policy())
 }
 

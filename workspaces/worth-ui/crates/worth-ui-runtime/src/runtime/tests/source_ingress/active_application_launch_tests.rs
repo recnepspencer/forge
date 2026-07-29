@@ -58,6 +58,7 @@ fn query_free_and_installed_query_apps_share_the_active_session_lifecycle() {
         .live_measurement_view("workspace.view_binding.active_session")
         .expect("installed Query view should admit");
     let builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("installed Query view should register");
     let snapshot = builder.freeze().expect("Query snapshot should prepare");
@@ -67,6 +68,7 @@ fn query_free_and_installed_query_apps_share_the_active_session_lifecycle() {
         snapshot.capabilities(),
     );
     let mut query_installed = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(
             installed
                 .live_measurement_view("workspace.view_binding.active_session")

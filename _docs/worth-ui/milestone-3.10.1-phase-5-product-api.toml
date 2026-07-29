@@ -61,6 +61,11 @@ audience = "observation"
 path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
 
 [[journey]]
+id = "affected-scope-planning"
+audience = "rebind"
+path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_affected_scope.rs"
+
+[[journey]]
 id = "installed-query-view"
 audience = "query_binding"
 path = "crates/worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
@@ -110,6 +115,8 @@ stability = "evolving-product-contract"
 authority = "application lifecycle and affine execution"
 caller = "ordinary-mounted-app"
 symbols = [
+  "UiChangeProfileInstalled",
+  "UiChangeProfileMissing",
   "UiMountedFrameOutcome",
   "UiMountedFramePublicationReceipt",
   "UiMountedFrameRequest",
@@ -914,9 +921,13 @@ symbols = [
   "UiAdmittedObservation",
   "UiAdmittedObservationSet",
   "UiAdmittedSourceObservation",
+  "UiChangeClassificationDenial",
+  "UiChangeClassificationOutcome",
+  "UiClassifiedChange",
   "UiCommittedPortalAnchorObservation",
   "UiCommittedRuntimeStateAdmissionReceipt",
   "UiCommittedScrollExtentObservation",
+  "UiEvidenceOnlySourceChange",
   "UiHostObservation",
   "UiHostObservationAdmissionStop",
   "UiHostObservationBatchAdmissionReceipt",
@@ -938,6 +949,7 @@ symbols = [
   "UiObservationTurn",
   "UiObservationTurnDenial",
   "UiObservationTurnIdentity",
+  "UiObservedNoChangeReceipt",
   "UiQueryObservationAdmissionStop",
 ]
 
@@ -961,6 +973,78 @@ symbols = [
   "WorthUiQueryViewRegistration",
   "WorthUiQueryViewRegistrationError",
   "WorthUiQueryViewShape",
+]
+
+[[export_group]]
+audience = "rebind"
+source = "facade/rebind.rs"
+stability = "evolving-product-contract"
+authority = "typed change declarations and owner-issued immutable affected-scope and rebind planning evidence"
+caller = "affected-scope-planning"
+symbols = [
+  "UiAffectedConsumer",
+  "UiAffectedFactLookup",
+  "UiAffectedScopeBasis",
+  "UiAffectedScopeCost",
+  "UiAffectedScopeDenial",
+  "UiAffectedScopeGeneration",
+  "UiAuthoredChangedFact",
+  "UiAuthoredFactKind",
+  "UiAuthoredFactSelector",
+  "UiChangeProfile",
+  "UiCommittedPortalAnchorChangedFact",
+  "UiCommittedScrollExtentChangedFact",
+  "UiConsumedFactContract",
+  "UiConsumedFactSelector",
+  "UiGraphFactConsumerIdentity",
+  "UiGraphFactConsumerKey",
+  "UiGraphFactConsumerKind",
+  "UiHostDeviceScaleChangedFact",
+  "UiHostViewportChangedFact",
+  "UiIdentityLifecycleDecision",
+  "UiIdentityLifecycleDenial",
+  "UiIdentityLifecycleEntry",
+  "UiMeasurementChangedFact",
+  "UiProducedFact",
+  "UiProducedFactContract",
+  "UiProducedFactFamily",
+  "UiProducedFactOwner",
+  "UiProducedFactResetPosture",
+  "UiQueryChangedFact",
+  "UiQueryChangedFactKind",
+  "UiQueryIncrementalChangedFact",
+  "UiQueryResetChangedFact",
+  "UiRebindArtifactPolicy",
+  "UiRebindBudgetInput",
+  "UiRebindCancellationPolicy",
+  "UiRebindCancellationRequest",
+  "UiRebindConcurrencyInput",
+  "UiRebindConflictFootprint",
+  "UiRebindDeadlinePolicy",
+  "UiRebindDeclarativeEffect",
+  "UiRebindDisclosurePolicy",
+  "UiRebindEffectSet",
+  "UiRebindExecutionPolicy",
+  "UiRebindIdempotency",
+  "UiRebindLimit",
+  "UiRebindParallelAdmission",
+  "UiRebindPlan",
+  "UiRebindPlanBasis",
+  "UiRebindPlanCost",
+  "UiRebindPlanningDenial",
+  "UiRebindPlanTarget",
+  "UiRebindProfile",
+  "UiRebindProfileConstructionDenial",
+  "UiRebindResourceAccess",
+  "UiRebindRetryTolerance",
+  "UiRebindSafePoint",
+  "UiRebindSafePointPolicy",
+  "UiRebindSessionDeadline",
+  "UiRebindSubsystemKind",
+  "UiRebindSubsystemPlan",
+  "UiResolvedAffectedScope",
+  "UiResolvedIdentityLifecycle",
+  "UiSubsystemConsumedFactRule",
 ]
 
 [[export_group]]

@@ -1,8 +1,10 @@
+mod change_classification;
 mod framework_turn;
 mod inspection;
 mod mounted_allocation;
 #[cfg(any(test, feature = "certification-support"))]
 mod planning;
+mod rebind_planning;
 mod replacement;
 
 pub(crate) use replacement::WorthUiRuntimePublicationBasis;
@@ -45,6 +47,16 @@ impl WorthUiApplicationSessionState {
 
     pub(crate) fn graph_snapshot(&self) -> &crate::graph::UiGraphSnapshot {
         self.app.graph_snapshot()
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn lookup_consumed_fact(
+        &self,
+        fact: &crate::fact_contract::UiProducedFact,
+    ) -> Result<crate::graph::UiGraphFactLookupReceipt, crate::graph::UiGraphFactLookupDenial> {
+        let prepared = self.app.prepared_authority();
+        let index = prepared.consumed_fact_index();
+        index.lookup(index.basis(), fact)
     }
 
     pub(crate) fn source_event_ingress(

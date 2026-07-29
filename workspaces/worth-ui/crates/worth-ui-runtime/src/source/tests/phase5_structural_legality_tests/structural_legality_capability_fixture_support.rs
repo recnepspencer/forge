@@ -29,6 +29,7 @@ pub(super) fn standard_app_with_dashboard_component(
     dashboard_component: ComponentDescriptor,
 ) -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(dashboard_component)
         .register_component(component("workspace.component.panel"))
         .register_surface(surface(

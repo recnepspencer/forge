@@ -38,7 +38,7 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
 }
 
 fn main() {
-    let app = WorthUi::app()
+    let app = WorthUi::app().with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(AlternateHost::default())
         .freeze()
         .expect("application preparation should succeed");

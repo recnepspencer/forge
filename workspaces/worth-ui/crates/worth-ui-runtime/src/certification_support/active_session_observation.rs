@@ -1,4 +1,6 @@
 use crate::facade::{WorthUiActiveApplicationSession, WorthUiHostMeasurementCapability};
+use crate::fact_contract::UiProducedFact;
+use crate::graph::{UiGraphFactLookupDenial, UiGraphFactLookupReceipt};
 use crate::runtime::{
     WorthUiActiveRuntimeObservation, WorthUiCanvasSpatialInspectionDenial,
     WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasSpatialTargetSummary, WorthUiLaneHandle,
@@ -51,6 +53,11 @@ pub trait WorthUiActiveSessionCertificationExt {
     ) -> Result<WorthUiOrdinaryPlanSummary, WorthUiOrdinaryPlanSummaryDenial>;
 
     fn host_measurement_capability(&self) -> WorthUiHostMeasurementCapability;
+
+    fn lookup_consumed_fact(
+        &self,
+        fact: &UiProducedFact,
+    ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial>;
 }
 
 impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
@@ -120,5 +127,12 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
 
     fn host_measurement_capability(&self) -> WorthUiHostMeasurementCapability {
         WorthUiActiveApplicationSession::host_measurement_capability(self)
+    }
+
+    fn lookup_consumed_fact(
+        &self,
+        fact: &UiProducedFact,
+    ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial> {
+        WorthUiActiveApplicationSession::lookup_consumed_fact_for_certification(self, fact)
     }
 }

@@ -234,6 +234,7 @@ fn ai_harness_keeps_support_and_closure_reports_on_the_ordinary_surface() {
 
 fn ai_surface_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.ai-inspection-runtime",

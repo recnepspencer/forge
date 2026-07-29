@@ -1,5 +1,5 @@
 use crate::declaration::{
-    stable_text_digest, UiDeclarationIdentity, UiDeclarationPlanningOperatorKind,
+    stable_text_digest, UiAspectContract, UiDeclarationIdentity, UiDeclarationPlanningOperatorKind,
     UiDeclarationRepetitionPosture, UiDeclarationStructuralDigest, UiDeclarationStructuralRole,
     UiDeclaredMeasurementConstraintModifier,
 };
@@ -12,6 +12,7 @@ use crate::graph::{
 pub struct UiGraphNode {
     graph_node_identity: UiGraphNodeIdentity,
     declaration_identity: UiDeclarationIdentity,
+    aspect_contract: UiAspectContract,
     structural_digest: UiDeclarationStructuralDigest,
     structural_role: UiDeclarationStructuralRole,
     operator_kind: UiDeclarationPlanningOperatorKind,
@@ -26,6 +27,7 @@ pub struct UiGraphNode {
 pub(crate) struct UiGraphNodeInput {
     pub(crate) graph_node_identity: UiGraphNodeIdentity,
     pub(crate) declaration_identity: UiDeclarationIdentity,
+    pub(crate) aspect_contract: UiAspectContract,
     pub(crate) structural_digest: UiDeclarationStructuralDigest,
     pub(crate) structural_role: UiDeclarationStructuralRole,
     pub(crate) operator_kind: UiDeclarationPlanningOperatorKind,
@@ -42,6 +44,7 @@ impl UiGraphNode {
         let UiGraphNodeInput {
             graph_node_identity,
             declaration_identity,
+            aspect_contract,
             structural_digest,
             structural_role,
             operator_kind,
@@ -55,6 +58,7 @@ impl UiGraphNode {
         Self {
             graph_node_identity,
             declaration_identity,
+            aspect_contract,
             structural_digest,
             structural_role,
             operator_kind,
@@ -73,6 +77,10 @@ impl UiGraphNode {
 
     pub fn declaration_identity(&self) -> &UiDeclarationIdentity {
         &self.declaration_identity
+    }
+
+    pub fn aspect_contract(&self) -> &UiAspectContract {
+        &self.aspect_contract
     }
 
     pub fn repeated_instance_basis(&self) -> &UiRepeatedInstanceBasis {
@@ -116,6 +124,7 @@ impl UiGraphNode {
     pub(crate) fn authority_digest(&self) -> u64 {
         stable_text_digest("graph-node")
             ^ self.graph_node_identity.digest().rotate_left(7)
+            ^ self.aspect_contract.digest_raw().rotate_left(8)
             ^ self.structural_digest.raw().rotate_left(9)
             ^ (self.structural_role as u64).rotate_left(11)
             ^ (self.operator_kind as u64).rotate_left(12)

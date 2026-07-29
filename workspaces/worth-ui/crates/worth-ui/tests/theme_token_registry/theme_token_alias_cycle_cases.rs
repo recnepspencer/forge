@@ -6,6 +6,7 @@ use super::theme_token_fixtures::alias_theme_token;
 #[test]
 fn two_token_alias_cycle_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(alias_theme_token("theme.a", "theme.b"))
         .register_theme_token(alias_theme_token("theme.b", "theme.a"))
         .freeze_with_registration_report();
@@ -23,6 +24,7 @@ fn two_token_alias_cycle_is_rejected() {
 #[test]
 fn self_alias_cycle_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(alias_theme_token("theme.self", "theme.self"))
         .freeze_with_registration_report();
 

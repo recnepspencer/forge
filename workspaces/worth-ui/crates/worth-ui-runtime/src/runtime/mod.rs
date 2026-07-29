@@ -27,6 +27,8 @@ pub(crate) use invalidation_narrowing::{
 mod launch;
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use launch::WorthUiActivationStagingPlans;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use launch::WorthUiRuntimeLaunchAuthority;
 pub(crate) use launch::{
     WorthUiInitialMountedCatalogPreparationDenial, WorthUiMountedAllocationActivationBasis,
 };
@@ -35,10 +37,12 @@ pub(crate) mod observation;
 pub(crate) mod persistent_index;
 pub(crate) mod planning;
 mod portal_anchored_allocation;
+pub(crate) mod rebind;
 pub mod replacement;
 pub(crate) mod scroll_owned_allocation;
 pub(crate) mod session;
 mod source_ingress;
+pub(crate) use source_ingress::WorthUiAuthoredSourceBasis;
 pub use source_ingress::{
     UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
     UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,

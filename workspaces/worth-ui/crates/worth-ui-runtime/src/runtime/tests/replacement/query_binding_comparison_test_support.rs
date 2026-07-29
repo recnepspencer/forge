@@ -52,7 +52,8 @@ pub(super) fn wide_query_app(binding_count: usize) -> WorthUiApp {
     let installed = worth_ui_query_binding::certification::worth_ui_installed_test_domain(
         "wide-query-comparison-app",
     );
-    let mut builder = WorthUi::app();
+    let mut builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse());
     for binding_index in 0..binding_count {
         let binding_id = format!("workspace.view_binding.item_{binding_index:03}");
         builder = builder
@@ -156,6 +157,7 @@ fn app_from_installed_query_domain(
     let selection = query_registration(installed, "workspace.view_binding.selection", live, denial);
     let detail = query_registration(installed, "workspace.view_binding.detail", live, denial);
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(selection)
         .expect("installed selection view should register")
         .register_query_view(detail)
@@ -170,6 +172,7 @@ fn app_with_mixed_change_views(
 ) -> WorthUiApp {
     let denial = QueryDenialPresentation::structured_status();
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(query_registration(
             installed,
             "workspace.view_binding.selection",

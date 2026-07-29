@@ -7,6 +7,7 @@ use crate::runtime::{WorthUiPreparedDeclarationMaterial, WorthUiSemanticHandoffE
 
 pub(crate) struct WorthUiApplicationPreparationSource {
     canonical_artifact: WorthUiPreparedApplicationArtifact,
+    authored_source_basis: crate::runtime::WorthUiAuthoredSourceBasis,
     declaration_material: WorthUiPreparedDeclarationMaterial,
     semantic_handoff: WorthUiSemanticHandoffEvidence,
 }
@@ -30,9 +31,14 @@ impl WorthUiApplicationPreparationSource {
                 ) => WorthUiApplicationPreparationDenial::Candidate(denial),
             }
             })?;
+        let authored_source_basis = crate::runtime::WorthUiAuthoredSourceBasis::rust_authored(
+            input.source_revision_digest(),
+            handoff.composition_basis().clone(),
+        );
         let (canonical_artifact, declaration_material, semantic_handoff) = handoff.into_parts();
         Ok(Self {
             canonical_artifact,
+            authored_source_basis,
             declaration_material,
             semantic_handoff,
         })
@@ -43,6 +49,7 @@ impl WorthUiApplicationPreparationSource {
         snapshot_digest: CapabilitySnapshotDigest,
     ) -> Result<Self, WorthUiApplicationPreparationDenial> {
         let candidate_snapshot_digest = submission.candidate_snapshot_digest();
+        let authored_source_basis = submission.authored_source_basis();
         let handoff = submission.into_preparation_handoff();
         let (canonical_artifact, declaration_material, semantic_handoff) = handoff.into_parts();
         if candidate_snapshot_digest != snapshot_digest.as_u64() {
@@ -55,6 +62,7 @@ impl WorthUiApplicationPreparationSource {
         }
         Ok(Self {
             canonical_artifact,
+            authored_source_basis,
             declaration_material,
             semantic_handoff,
         })
@@ -64,18 +72,21 @@ impl WorthUiApplicationPreparationSource {
         self,
     ) -> (
         WorthUiPreparedApplicationArtifact,
+        crate::runtime::WorthUiAuthoredSourceBasis,
         WorthUiPreparedDeclarationSourceIdentity,
         WorthUiSemanticHandoffEvidence,
         Vec<crate::declaration::UiDeclarationArtifact>,
     ) {
         let Self {
             canonical_artifact,
+            authored_source_basis,
             declaration_material,
             semantic_handoff,
         } = self;
         let (artifacts, declaration_source_identity) = declaration_material.into_parts();
         (
             canonical_artifact,
+            authored_source_basis,
             declaration_source_identity,
             semantic_handoff,
             artifacts,

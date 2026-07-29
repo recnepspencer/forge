@@ -12,6 +12,7 @@ mod identity_overlay_projection;
 mod layout_admission;
 mod mounted_frame_execution;
 mod planning;
+mod rebind_identity_lifecycle;
 mod runtime_launch;
 mod touch_origin;
 mod touch_origin_source;
@@ -25,6 +26,10 @@ pub use crate::declaration::UiDeclaredMeasurementMode;
 pub use crate::facade::entry::{
     WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedIdentityCertificationExt,
+};
+pub use crate::graph::{
+    UiGraphFactConsumerIdentity, UiGraphFactIndexBasis, UiGraphFactIndexEntry,
+    UiGraphFactLookupCost, UiGraphFactLookupDenial, UiGraphFactLookupReceipt,
 };
 pub(crate) use activation_interruption::interrupt_if_armed;
 pub use activation_interruption::{
@@ -44,6 +49,11 @@ pub use mounted_frame_execution::{
     WorthUiMountedPublicationCertificationExt,
 };
 pub use planning::planning_pair_for_certification_suite;
+pub use rebind_identity_lifecycle::{
+    identity_lifecycle_decision_for_certification, UiIdentityLifecyclePresence,
+    UiRebindPlanningBasisMutation, UiResolvedIdentityLifecycleCertificationExt,
+    WorthUiNodeLifecycleTransition,
+};
 pub use runtime_launch::launch_empty_runtime_for_certification;
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,

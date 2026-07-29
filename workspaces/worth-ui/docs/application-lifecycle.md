@@ -118,6 +118,7 @@ fn main() {
 
 pub fn run() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");

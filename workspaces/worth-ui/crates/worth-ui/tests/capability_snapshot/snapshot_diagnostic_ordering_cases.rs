@@ -11,11 +11,13 @@ fn snapshot_diagnostics_stable_under_invalid_input_permutation() {
     let duplicate_command = command("command.duplicate", "Duplicate");
 
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_with_missing_references.clone())
         .register_command(duplicate_command.clone())
         .register_command(duplicate_command.clone())
         .freeze_with_registration_report();
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(duplicate_command.clone())
         .register_command(duplicate_command)
         .register_component(component_with_missing_references)

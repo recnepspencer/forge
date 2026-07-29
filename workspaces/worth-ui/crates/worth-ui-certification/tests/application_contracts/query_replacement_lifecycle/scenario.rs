@@ -243,6 +243,7 @@ fn builder(
         binding_reference,
     );
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(graph_world)
         .register_component(component(ACTIVE_COMPONENT))
         .register_component(component(NEXT_COMPONENT))

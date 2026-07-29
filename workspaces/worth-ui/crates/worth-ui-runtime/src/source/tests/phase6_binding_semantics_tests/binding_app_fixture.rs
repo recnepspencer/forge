@@ -34,6 +34,7 @@ pub(super) fn app_with_view_binding_descriptor(
     view_binding_descriptor: ViewBindingDescriptor,
 ) -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             CommandDescriptor::new(
                 CommandId::new("workspace.command.inspect").unwrap(),

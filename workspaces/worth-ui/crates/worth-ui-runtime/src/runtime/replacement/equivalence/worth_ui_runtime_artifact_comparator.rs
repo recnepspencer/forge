@@ -24,11 +24,27 @@ impl<'a> WorthUiRuntimeArtifactComparator<'a> {
         self,
         admitted: &WorthUiAdmittedReplacementCandidate,
     ) -> Result<WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial> {
+        self.compare_admitted_bounded(admitted, usize::MAX)
+    }
+
+    pub(crate) fn compare_admitted_bounded(
+        self,
+        admitted: &WorthUiAdmittedReplacementCandidate,
+        structural_entry_limit: usize,
+    ) -> Result<WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial> {
         require_matching_runtime_equivalence_basis(self.runtime_basis, admitted)?;
 
         let mut counters = WorthUiRuntimeArtifactComparisonCounters::default();
         counters.record_artifact_comparison();
-        let artifact_equivalence = self.compare_artifact_equivalence(admitted);
+        let artifact_equivalence = self
+            .compare_artifact_equivalence(admitted, structural_entry_limit)
+            .map_err(|denial| {
+                WorthUiRuntimeArtifactComparisonDenial::StructuralCapacityExceeded {
+                    limit: denial.structural_entry_limit(),
+                    observed: denial.observed_structural_entries(),
+                    counters,
+                }
+            })?;
 
         Ok(WorthUiRuntimeArtifactComparison::new(
             self.runtime_basis,
@@ -42,11 +58,13 @@ impl<'a> WorthUiRuntimeArtifactComparator<'a> {
     fn compare_artifact_equivalence(
         &self,
         admitted: &WorthUiAdmittedReplacementCandidate,
-    ) -> WorthUiArtifactEquivalence {
-        WorthUiArtifactEquivalenceComparator::compare(
+        structural_entry_limit: usize,
+    ) -> Result<WorthUiArtifactEquivalence, crate::source::WorthUiArtifactEquivalenceDenial> {
+        WorthUiArtifactEquivalenceComparator::compare_bounded(
             self.active_artifact.artifact(),
             admitted.artifact_bundle().artifact(),
             self.runtime_basis.artifact_equivalence_basis(),
+            structural_entry_limit,
         )
     }
 }

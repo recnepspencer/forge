@@ -37,6 +37,7 @@ pub struct WorthUiRuntimeFrameworkLoop {
     pub(crate) scroll_offset_projection:
         crate::runtime::scroll_owned_allocation::UiScrollOffsetProjectionLedger,
     pub(crate) observation: crate::runtime::observation::UiObservationRuntimeState,
+    pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
 /// Established facade name for the canonical framework-loop owner.

@@ -213,6 +213,7 @@ fn unconstrained_source_backed_sizing_does_not_synthesize_bounded_measurement_po
         "workspace.sizing.source_backed_unconstrained",
     );
     let app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())
         .register_mosaic_region_kind(source_backed_boundary_region())

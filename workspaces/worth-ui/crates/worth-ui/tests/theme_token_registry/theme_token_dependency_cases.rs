@@ -17,6 +17,7 @@ use super::theme_token_fixtures::{
 #[test]
 fn missing_token_dependency_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(alias_theme_token("theme.text.alias", "theme.text.missing"))
         .freeze_with_registration_report();
 
@@ -27,6 +28,7 @@ fn missing_token_dependency_is_rejected() {
 #[test]
 fn component_theme_token_dependency_resolves_when_token_is_registered() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(platform_color_theme_token("theme.text.primary", "#101820"))
         .register_component(component_referencing_token(
             "component.label",
@@ -42,6 +44,7 @@ fn component_theme_token_dependency_resolves_when_token_is_registered() {
 #[test]
 fn component_theme_token_dependency_is_rejected_when_token_is_missing() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_referencing_token(
             "component.label",
             "theme.text.missing",
@@ -55,6 +58,7 @@ fn component_theme_token_dependency_is_rejected_when_token_is_missing() {
 #[test]
 fn alias_to_rejected_cycle_does_not_enter_frozen_registry() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(alias_theme_token("theme.a", "theme.b"))
         .register_theme_token(alias_theme_token("theme.b", "theme.a"))
         .register_theme_token(alias_theme_token("theme.c", "theme.a"))
@@ -66,6 +70,7 @@ fn alias_to_rejected_cycle_does_not_enter_frozen_registry() {
 #[test]
 fn rejected_alias_cycle_does_not_poison_valid_theme_token() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.valid", "#101820"))
         .register_theme_token(alias_theme_token("theme.a", "theme.b"))
         .register_theme_token(alias_theme_token("theme.b", "theme.a"))
@@ -80,6 +85,7 @@ fn rejected_alias_cycle_does_not_poison_valid_theme_token() {
 #[test]
 fn alias_to_registered_but_invalid_token_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::define(
             theme_token_id("theme.text.invalid"),
             ThemeTokenFamily::text(),

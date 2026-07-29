@@ -33,6 +33,7 @@ fn assert_applicability_vector(
 #[test]
 fn public_freeze_projects_declared_posture_contracts_from_declaration_authority() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.declared-posture")
                 .with_semantic_artifact_spec(control_posture_spec()),
@@ -80,6 +81,7 @@ fn public_freeze_projects_declared_posture_contracts_from_declaration_authority(
 #[test]
 fn public_freeze_preserves_representative_family_applicability_shapes() {
     let page_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let page = artifact_from_file_provenance(&page_app, "worth-ui.runtime.bootstrap", 0);
@@ -91,6 +93,7 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
     let control_provenance =
         control_fixture.admitted_provenance_for("workflow_editor.inspector.save");
     let control_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(control_fixture)
         .freeze()
         .expect("application preparation should succeed");
@@ -173,6 +176,7 @@ fn invalid_declared_posture_denies_before_runtime_or_host_promotion() {
 #[test]
 fn host_capability_requirements_appear_as_declared_posture_before_host_inference() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.declared-posture.host",
@@ -280,6 +284,7 @@ fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name)
                 .with_semantic_artifact_spec(spec),

@@ -37,7 +37,9 @@ pub struct WorthUi {
 
 impl WorthUi {
     /// Start a Worth UI application definition.
-    pub fn app() -> crate::facade::entry::WorthUiApplicationBuilder {
+    pub fn app(
+    ) -> crate::facade::entry::WorthUiApplicationBuilder<crate::facade::entry::UiChangeProfileMissing>
+    {
         crate::facade::entry::WorthUiApplicationBuilder::new()
     }
 }
@@ -295,14 +297,20 @@ impl WorthUiApp {
                 })?;
         let runtime = WorthUiRuntime::launch(
             launch,
-            lowering_authority,
-            initial_allocation_commit,
-            self.prepared.capabilities().digest(),
-            Rc::clone(&self.retained_allocation_planning_evidence),
-            self.prepared
-                .query_binding_plan()
-                .prepare_downstream_state(),
-            host_session.plan_binding(),
+            crate::runtime::WorthUiRuntimeLaunchAuthority {
+                lowering_authority,
+                initial_allocation_commit,
+                snapshot_digest: self.prepared.capabilities().digest(),
+                retained_allocation_planning_evidence: Rc::clone(
+                    &self.retained_allocation_planning_evidence,
+                ),
+                query_binding: self
+                    .prepared
+                    .query_binding_plan()
+                    .prepare_downstream_state(),
+                host_plan_binding: host_session.plan_binding(),
+                change_profile: self.prepared.change_profile(),
+            },
         )?;
         Ok(runtime)
     }

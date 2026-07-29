@@ -17,8 +17,9 @@ pub use worth_ui_runtime::facade::mounted::{
 };
 pub use worth_ui_runtime::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 pub use worth_ui_runtime::facade::{
-    WorthUi, WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity, WorthUiApp,
-    WorthUiApplicationBuilder, WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
+    UiChangeProfileInstalled, UiChangeProfileMissing, WorthUi, WorthUiActiveApplicationSession,
+    WorthUiActiveApplicationSessionIdentity, WorthUiApp, WorthUiApplicationBuilder,
+    WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
     WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
     WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,

@@ -1,3 +1,4 @@
+mod authored_source_basis;
 mod candidate_composition;
 mod candidate_submission;
 mod counters;
@@ -14,6 +15,7 @@ mod source_event_ingress;
 mod source_ingress_hook;
 mod source_rebind_attempt;
 
+pub(crate) use authored_source_basis::WorthUiAuthoredSourceBasis;
 pub(crate) use candidate_composition::WorthUiCandidatePreparationHandoff;
 pub use candidate_composition::{WorthUiCandidateComposition, WorthUiCandidateCompositionBasis};
 pub(crate) use candidate_submission::{

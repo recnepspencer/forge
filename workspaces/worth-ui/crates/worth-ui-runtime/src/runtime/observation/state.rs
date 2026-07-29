@@ -5,28 +5,28 @@ use super::{UiObservationProfile, UiObservationTurnDenial};
 
 #[derive(Debug)]
 pub(crate) struct UiObservationRuntimeState {
-    profile: UiObservationProfile,
     next_turn: u64,
     active_turn: bool,
     last_owner_orders: BTreeMap<UiObservationProgressKey, u64>,
 }
 
 impl UiObservationRuntimeState {
-    pub(crate) const fn new(profile: UiObservationProfile) -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
-            profile,
             next_turn: 1,
             active_turn: false,
             last_owner_orders: BTreeMap::new(),
         }
     }
 
-    pub(crate) fn begin(&mut self) -> Result<(u64, UiObservationProfile), UiObservationTurnDenial> {
+    pub(crate) fn begin(
+        &mut self,
+        profile: UiObservationProfile,
+    ) -> Result<(u64, UiObservationProfile), UiObservationTurnDenial> {
         if self.active_turn {
             return Err(UiObservationTurnDenial::TurnAlreadyActive);
         }
         let identity = self.next_turn;
-        let profile = self.profile;
         self.next_turn = self
             .next_turn
             .checked_add(1)

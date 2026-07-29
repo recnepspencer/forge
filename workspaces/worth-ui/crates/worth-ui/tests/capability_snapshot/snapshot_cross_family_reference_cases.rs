@@ -12,6 +12,7 @@ use super::snapshot_fixtures::{
 #[test]
 fn snapshot_missing_cross_family_reference_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_with_icon("command.save", "icon.missing"))
         .register_component(
             component("component.editor").with_command_binding_slot(command_id("command.save")),
@@ -42,6 +43,7 @@ fn snapshot_missing_cross_family_reference_rejected() {
 #[test]
 fn snapshot_deferred_entry_used_as_admitted_rejected() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(deferred_plugin_slot("plugin.slot.deferred"))
         .register_plugin_slot(plugin_slot_referencing(
             "plugin.slot.consumer",
@@ -63,6 +65,7 @@ fn snapshot_deferred_entry_used_as_admitted_rejected() {
 #[test]
 fn snapshot_deferred_entry_not_used_as_admitted_remains_later_lowering_vocabulary() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(deferred_native_capability("platform.native.clipboard"))
         .freeze()
         .expect("application preparation should succeed");

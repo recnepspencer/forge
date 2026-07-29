@@ -70,6 +70,18 @@ name = "product-predecessor-builder-aliases"
 path = "../../../../worth-ui/tests/ui/facade/construction/predecessor_builder_aliases_are_absent.rs"
 
 [[bin]]
+name = "product-change-profile-required"
+path = "../../../../worth-ui/tests/ui/facade/construction/change_profile/missing_change_profile_cannot_freeze.rs"
+
+[[bin]]
+name = "product-rebind-phase-progression-sealed"
+path = "../../../../worth-ui/tests/ui/rebind/fail/rebind_phase_progression_is_sealed.rs"
+
+[[bin]]
+name = "product-rebind-phase-progression-valid"
+path = "../../../../worth-ui/tests/ui/rebind/pass/rebind_phase_progression_uses_owner_issued_values.rs"
+
+[[bin]]
 name = "product-ordinary-framework-turn"
 path = "../../../../worth-ui/tests/ui/runtime_authority/fail/ordinary_framework_turn_is_not_callable.rs"
 

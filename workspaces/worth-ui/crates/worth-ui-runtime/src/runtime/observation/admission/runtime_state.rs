@@ -122,6 +122,12 @@ macro_rules! committed_observation_accessors {
                 &self.source_identity_digests
             }
 
+            pub(in crate::runtime::observation) fn into_parts(
+                self,
+            ) -> (crate::runtime::UiAllocationTruthRevision, Box<[u64]>) {
+                (self.allocation_truth_revision, self.source_identity_digests)
+            }
+
             fn retained_bytes(&self) -> usize {
                 std::mem::size_of::<Self>()
                     .saturating_add(std::mem::size_of_val(self.source_identity_digests.as_ref()))

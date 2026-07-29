@@ -134,6 +134,7 @@ fn phase_2_launch_seals_the_application_declared_visual_policy() {
     )
     .expect("the scenario policy is valid");
     let session = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_visual_inspection_policy(policy)
         .freeze()
         .expect("the application prepares")

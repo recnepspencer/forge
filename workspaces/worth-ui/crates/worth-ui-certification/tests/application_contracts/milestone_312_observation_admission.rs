@@ -2,13 +2,14 @@ use worth_ui::facade::measurement_exchange::{
     UiHostMeasurementOutcome, WorthUiHostMeasurementSessionExt,
 };
 use worth_ui::facade::observation::{
-    UiHostObservationAdmissionStop, UiHostObservationSuccessorOwner, UiObservationAdmissionDenial,
-    UiObservationFamily,
+    UiChangeClassificationOutcome, UiHostObservationAdmissionStop, UiHostObservationSuccessorOwner,
+    UiObservationAdmissionDenial, UiObservationFamily,
 };
 use worth_ui::facade::observation_report::{
     UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
     WorthUiHostObservationSessionExt,
 };
+use worth_ui::facade::rebind::UiProducedFactFamily;
 use worth_ui::facade::source::{
     WorthUiSourceIngressExt, WorthUiSourceProvider, WorthUiWatcherEvent,
 };
@@ -18,6 +19,11 @@ use super::host_observation_fixture::{batch, pointer, report, source};
 use super::mounted_application_lifecycle::published_mounted_world::{
     published_observation_world, published_observation_world_with_host,
 };
+
+#[path = "milestone_312_observation_admission/fact_index.rs"]
+mod fact_index;
+#[path = "milestone_312_observation_admission/source_classification.rs"]
+mod source_classification;
 
 #[test]
 fn package_bound_source_candidate_enters_one_effect_free_observation() {
@@ -114,6 +120,21 @@ fn validated_host_families_form_one_canonical_effect_free_set() {
     assert_eq!(
         world.session.host_observation_work_report(),
         validation_work
+    );
+    let changed = match world.session.classify_observations(admitted) {
+        Ok(UiChangeClassificationOutcome::Changed(changed)) => changed,
+        _ => panic!("two supported host families must produce one changed classification"),
+    };
+    assert_eq!(
+        changed
+            .facts()
+            .iter()
+            .map(|fact| fact.family())
+            .collect::<Vec<_>>(),
+        [
+            UiProducedFactFamily::HostViewport,
+            UiProducedFactFamily::HostDeviceScale,
+        ]
     );
 }
 

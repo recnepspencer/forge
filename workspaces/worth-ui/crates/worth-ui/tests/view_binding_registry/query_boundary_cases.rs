@@ -12,6 +12,7 @@ use super::view_binding_fixtures::{table_view_binding, view_binding_id};
 #[test]
 fn admitted_view_binding_can_satisfy_surface_view_binding_reference() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.tasks"))
         .register_query_view(table_view_binding("workspace.view_binding.tasks"))
         .expect("installed view should register")

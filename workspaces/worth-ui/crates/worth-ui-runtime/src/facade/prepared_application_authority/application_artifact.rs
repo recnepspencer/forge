@@ -40,6 +40,20 @@ impl WorthUiPreparedApplicationArtifact {
         self.basis
     }
 
+    pub(super) fn identity_bases_for_authored_provenance(
+        &self,
+        provenance_digest: u64,
+    ) -> &[Box<str>] {
+        self.artifact
+            .identity_bases_for_authored_provenance(provenance_digest)
+    }
+
+    pub(super) fn authored_provenance_entries(
+        &self,
+    ) -> impl Iterator<Item = (u64, String, Option<&str>, Option<&str>)> {
+        self.artifact.authored_provenance_entries()
+    }
+
     pub(crate) fn source_backed(candidate: &crate::runtime::WorthUiReplacementCandidate) -> Self {
         Self {
             artifact: candidate.artifact_bundle().artifact_authority(),

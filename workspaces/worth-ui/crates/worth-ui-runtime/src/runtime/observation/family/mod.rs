@@ -76,6 +76,22 @@ const fn definition(
 }
 
 impl UiObservationFamily {
+    pub const fn produced_fact_contract(self) -> crate::fact_contract::UiProducedFactContract {
+        crate::fact_contract::UiProducedFactContract::for_owner(match self {
+            Self::AuthoredSource => crate::fact_contract::UiProducedFactOwner::SourceIngress,
+            Self::HostViewport => crate::fact_contract::UiProducedFactOwner::HostViewport,
+            Self::HostDeviceScale => crate::fact_contract::UiProducedFactOwner::HostDeviceScale,
+            Self::Measurement => crate::fact_contract::UiProducedFactOwner::MeasurementExchange,
+            Self::Query => crate::fact_contract::UiProducedFactOwner::QueryBinding,
+            Self::CommittedScrollExtent => {
+                crate::fact_contract::UiProducedFactOwner::ScrollRuntimeState
+            }
+            Self::CommittedPortalAnchor => {
+                crate::fact_contract::UiProducedFactOwner::PortalRuntimeState
+            }
+        })
+    }
+
     pub const fn definition(self) -> UiObservationFamilyDefinition {
         match self {
             Self::AuthoredSource => definition(

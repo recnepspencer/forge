@@ -3,8 +3,7 @@ use super::{
     UiGraphParticipationIndexes, UiGraphPublishedAspectIndex, UiGraphTopologyIndexes,
 };
 use crate::graph::{
-    UiGraphDeclarationCorrespondence, UiGraphMountEligibilityStore, UiGraphNode,
-    UiGraphNodeInstantiationEntry, UiGraphTopology,
+    UiGraphDeclarationCorrespondence, UiGraphMountEligibilityStore, UiGraphNode, UiGraphTopology,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -20,21 +19,19 @@ pub struct UiGraphCoreIndexes {
 
 impl UiGraphCoreIndexes {
     pub(crate) fn build(
-        node_entries: &[UiGraphNodeInstantiationEntry],
         nodes: &[UiGraphNode],
-        declaration_correspondence: UiGraphDeclarationCorrespondence,
         topology: &UiGraphTopology,
         mount_eligibilities: &UiGraphMountEligibilityStore,
     ) -> Self {
         let mount_eligibility_index = UiGraphMountEligibilityIndex::build(mount_eligibilities);
-        let node_aspects = node_entries
+        let node_aspects = nodes
             .iter()
-            .zip(nodes.iter())
-            .map(|(entry, node)| (entry.aspect_contract(), node.graph_node_identity()))
+            .map(|node| (node.aspect_contract(), node.graph_node_identity()))
             .collect::<Vec<_>>();
 
         Self {
             node_identity_index: UiGraphNodeIdentityIndex::build(nodes),
+            declaration_correspondence: UiGraphDeclarationCorrespondence::rebuild(nodes),
             topology_indexes: UiGraphTopologyIndexes::build(topology),
             participation_indexes: UiGraphParticipationIndexes::build(nodes, topology),
             mount_eligibility_index: mount_eligibility_index.clone(),
@@ -48,24 +45,15 @@ impl UiGraphCoreIndexes {
                 mount_eligibilities,
                 &mount_eligibility_index,
             ),
-            declaration_correspondence,
         }
     }
 
-    pub(crate) fn rebuild_participation_for_successor(
+    pub(crate) fn rebuild(
         nodes: &[UiGraphNode],
         topology: &UiGraphTopology,
-        prior: &Self,
+        mount_eligibilities: &UiGraphMountEligibilityStore,
     ) -> Self {
-        Self {
-            node_identity_index: UiGraphNodeIdentityIndex::build(nodes),
-            declaration_correspondence: prior.declaration_correspondence.clone(),
-            topology_indexes: UiGraphTopologyIndexes::build(topology),
-            participation_indexes: UiGraphParticipationIndexes::build(nodes, topology),
-            mount_eligibility_index: prior.mount_eligibility_index.clone(),
-            published_aspect_index: prior.published_aspect_index.clone(),
-            consumed_aspect_index: prior.consumed_aspect_index.clone(),
-        }
+        Self::build(nodes, topology, mount_eligibilities)
     }
 
     pub fn node_identity(&self) -> &UiGraphNodeIdentityIndex {

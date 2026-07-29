@@ -22,6 +22,7 @@ fn matching_paint_and_hit_allocations_admit_in_either_builder_order() {
     let first = paint_then_hit("workspace.component.visual_first", allocation, allocation);
     let second = hit_then_paint("workspace.component.visual_second", allocation, allocation);
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(first)
         .register_component(second)
         .register_theme_token(theme_token())
@@ -44,6 +45,7 @@ fn conflicting_paint_and_hit_allocations_reject_in_either_builder_order() {
         ComponentViewportInset::symmetric(8, 8),
     );
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(paint_then_hit(
             "workspace.component.visual_first",
             fill,

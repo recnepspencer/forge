@@ -222,6 +222,8 @@ impl<'state> UiObservationTurn<'state> {
         let observations = std::mem::take(&mut self.observations).into_boxed_slice();
         Ok(UiAdmittedObservationSet::seal(
             self.identity,
+            self.session,
+            self.source_basis,
             observations,
             self.retained_bytes,
         ))
@@ -240,7 +242,8 @@ impl crate::runtime::WorthUiRuntime {
         session: crate::facade::WorthUiActiveApplicationSessionIdentity,
         source_basis: u64,
     ) -> Result<UiObservationTurn<'_>, UiObservationTurnDenial> {
-        let (identity, profile) = self.observation.begin()?;
+        let profile = self.change_profile.observation();
+        let (identity, profile) = self.observation.begin(profile)?;
         Ok(UiObservationTurn::new(
             self,
             session,

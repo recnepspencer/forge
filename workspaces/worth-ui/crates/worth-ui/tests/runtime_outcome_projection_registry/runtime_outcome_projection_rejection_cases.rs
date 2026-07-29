@@ -17,6 +17,7 @@ use super::runtime_outcome_projection_fixtures::{
 #[test]
 fn unknown_runtime_outcome_family_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(RuntimeOutcomeProjectionDescriptor::new(
             projection_id("workspace.outcome.unknown"),
             RuntimeOutcomeFamily::unknown_for_diagnostics("spinner"),
@@ -38,6 +39,7 @@ fn unknown_runtime_outcome_family_rejected() {
 #[test]
 fn local_status_enum_projection_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             RuntimeOutcomeProjectionDescriptor::local_status_enum_for_diagnostics(
                 projection_id("workspace.outcome.local_status"),
@@ -60,6 +62,7 @@ fn local_status_enum_projection_rejected() {
 #[test]
 fn outcome_projection_missing_denial_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(RuntimeOutcomeProjectionDescriptor::new(
             projection_id("workspace.outcome.denied_without_posture"),
             RuntimeOutcomeFamily::denied(),
@@ -77,6 +80,7 @@ fn outcome_projection_missing_denial_posture_rejected() {
 #[test]
 fn outcome_projection_missing_recovery_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(RuntimeOutcomeProjectionDescriptor::new(
             projection_id("workspace.outcome.failed_without_recovery"),
             RuntimeOutcomeFamily::failed(),
@@ -94,6 +98,7 @@ fn outcome_projection_missing_recovery_posture_rejected() {
 #[test]
 fn duplicate_runtime_outcome_projection_id_rejected_before_snapshot_freeze() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.duplicate"))
         .register_runtime_outcome_projection(failed_projection("workspace.outcome.duplicate"))
         .freeze_with_registration_report();
@@ -115,6 +120,7 @@ fn duplicate_runtime_outcome_projection_id_rejected_before_snapshot_freeze() {
 #[test]
 fn runtime_outcome_family_cannot_relabel_query_source_meaning() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(RuntimeOutcomeProjectionDescriptor::new(
             projection_id("workspace.outcome.denied_as_ready"),
             RuntimeOutcomeFamily::ready(),
@@ -136,6 +142,7 @@ fn runtime_outcome_family_cannot_relabel_query_source_meaning() {
 #[test]
 fn unexpected_denial_posture_rejected_for_non_denial_family() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             super::runtime_outcome_projection_fixtures::ready_projection(
                 "workspace.outcome.ready_with_denial",
@@ -154,6 +161,7 @@ fn unexpected_denial_posture_rejected_for_non_denial_family() {
 #[test]
 fn unexpected_recovery_posture_rejected_for_non_recovery_family() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             denied_projection("workspace.outcome.denied_with_recovery")
                 .with_recovery_posture(RuntimeOutcomeRecoveryPosture::retry_hint()),
@@ -170,6 +178,7 @@ fn unexpected_recovery_posture_rejected_for_non_recovery_family() {
 #[test]
 fn mismatched_ui_outcome_source_cannot_be_projected_as_failed() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             RuntimeOutcomeProjectionDescriptor::new(
                 projection_id("workspace.outcome.unsupported_as_failed"),
@@ -192,6 +201,7 @@ fn mismatched_ui_outcome_source_cannot_be_projected_as_failed() {
 #[test]
 fn rejected_runtime_outcome_projection_does_not_poison_valid_projection() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             RuntimeOutcomeProjectionDescriptor::local_status_enum_for_diagnostics(
                 projection_id("workspace.outcome.local_status"),

@@ -89,12 +89,14 @@ impl WorthUiPreparedApplicationAuthority {
             WorthUiPreparedGenerationIdentityInput {
                 capability_snapshot: self.capability_snapshot.digest(),
                 canonical_artifact: self.canonical_artifact.identity(),
+                lineage: self.generation_lineage.clone(),
                 declaration_source: self.declaration_source_identity.clone(),
                 semantic_package: self.semantic_handoff.identity().clone(),
                 graph_authority_digest: graph_snapshot.authority_digest(),
                 query_binding_plan: &self.query_binding_plan,
                 host_session_plan: &self.host_session_plan,
                 visual_inspection_policy: self.visual_inspection_policy,
+                change_profile: self.change_profile,
             },
         )
     }

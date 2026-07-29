@@ -39,7 +39,7 @@ impl UiObservationProfile {
         })
     }
 
-    pub(crate) fn platform_pulse() -> Self {
+    pub fn platform_pulse() -> Self {
         Self {
             admitted_per_turn: 8,
             retained_bytes_per_turn: 65_536,

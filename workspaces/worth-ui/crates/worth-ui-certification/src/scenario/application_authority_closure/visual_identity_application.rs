@@ -70,6 +70,7 @@ where
     let hit_only_allocation = inset_allocation(8, 8);
     let paint_and_hit_allocation = inset_allocation(16, 12);
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(host)
         .register_component(component(VISUAL_PAINT_ONLY_COMPONENT).with_static_paint(
             ComponentStaticPaintContract::opaque_fill(

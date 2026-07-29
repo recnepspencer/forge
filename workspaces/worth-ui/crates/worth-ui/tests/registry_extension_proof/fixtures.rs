@@ -15,12 +15,14 @@ use worth_ui::facade::{
 
 pub(crate) fn empty_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")
 }
 
 pub(crate) fn single_command_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor())
         .freeze()
         .expect("application preparation should succeed")
@@ -29,6 +31,7 @@ pub(crate) fn single_command_app() -> WorthUiApp {
 pub(crate) fn duplicate_representative_family_registration_report() -> CapabilityRegistrationReport
 {
     WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor())
         .register_command(command_descriptor())
         .register_component(component_descriptor())

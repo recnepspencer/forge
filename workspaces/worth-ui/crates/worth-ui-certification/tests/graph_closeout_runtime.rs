@@ -150,6 +150,7 @@ fn graph_handoff_surface_derives_phase_34_inputs_without_declaration_reopening()
 
 fn graph_closeout_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-closeout")
                 .with_semantic_artifact_spec(control_spec())

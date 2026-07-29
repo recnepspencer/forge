@@ -19,7 +19,7 @@ impl FilesystemApplicationLifecycleScenario {
         Self::platform_pulse_source_text_with_color(PLATFORM_PULSE_GREEN_TOKEN)
     }
 
-    fn platform_pulse_source_text_with_color(color_token: &str) -> String {
+    pub(super) fn platform_pulse_source_text_with_color(color_token: &str) -> String {
         format!(
             "component {PLATFORM_PULSE_BACKGROUND_COMPONENT} {{}}\n\
              component {PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT} {{}}\n\
