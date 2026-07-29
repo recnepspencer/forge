@@ -30,6 +30,10 @@ const IDENTITY_TARGET_FILL_TOKEN: &str = "theme.platform_pulse.identity_target_f
 const BLUE_TOKEN: &str = "theme.platform_pulse.blue";
 const GREEN_TOKEN: &str = "theme.platform_pulse.green";
 const YELLOW_TOKEN: &str = "theme.platform_pulse.yellow";
+const PLATFORM_PULSE_RETAINED_PIXEL_BYTES: u64 = 2 * PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES;
+const PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT: u64 = 256 << 10;
+const PLATFORM_PULSE_RETAINED_STRUCTURAL_BYTES: u64 =
+    2 * PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT;
 
 pub(crate) struct PreparedPlatformPulse {
     pub(crate) app: WorthUiApp,
@@ -99,13 +103,13 @@ fn builder(host: WorthUiHostEgui) -> WorthUiApplicationBuilder {
 fn visual_inspection_policy() -> UiVisualInspectionPolicy {
     UiVisualInspectionPolicy::bounded(
         worth_ui::facade::inspection::UiVisualInspectionDisclosure::local_development_unredacted(),
-        UiVisualInspectionCapacity::bounded(1, 8, 16),
+        UiVisualInspectionCapacity::bounded(2, 8, 16),
         UiVisualInspectionRegionCapacity::bounded(65_536, 65_536),
         UiVisualInspectionByteBudget::bounded(
             PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES,
-            PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES,
-            256 << 10,
-            256 << 10,
+            PLATFORM_PULSE_RETAINED_PIXEL_BYTES,
+            PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT,
+            PLATFORM_PULSE_RETAINED_STRUCTURAL_BYTES,
         ),
     )
     .expect("the permanent pulse declares a valid bounded visual policy")

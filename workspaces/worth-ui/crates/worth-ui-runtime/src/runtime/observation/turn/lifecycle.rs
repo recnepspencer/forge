@@ -1,3 +1,4 @@
+use super::super::state::UiObservationOrderPosture;
 use super::super::{UiObservationFamily, UiObservationProfile};
 use super::{
     UiAdmittedObservation, UiAdmittedObservationSet, UiObservationAdmissionDenial,
@@ -90,11 +91,16 @@ impl<'state> UiObservationTurn<'state> {
         if observation.source_basis() != self.source_basis {
             return Err(UiObservationAdmissionDenial::ForeignSourceBasis);
         }
-        if observation
-            .progress()
-            .is_some_and(|progress| self.runtime.observation.is_historical(progress))
-        {
-            return Err(UiObservationAdmissionDenial::HistoricalOwnerOrder);
+        if let Some(progress) = observation.progress() {
+            match self.runtime.observation.order_posture(progress) {
+                UiObservationOrderPosture::Fresh => {}
+                UiObservationOrderPosture::Duplicate => {
+                    return Err(UiObservationAdmissionDenial::DuplicateOwnerOrder)
+                }
+                UiObservationOrderPosture::Historical => {
+                    return Err(UiObservationAdmissionDenial::HistoricalOwnerOrder)
+                }
+            }
         }
         self.can_admit(observation.family(), observation.retained_bytes())?;
         let receipt = UiObservationAdmissionReceipt::new(
@@ -119,11 +125,16 @@ impl<'state> UiObservationTurn<'state> {
             if observation.source_basis() != self.source_basis {
                 return Err(UiObservationAdmissionDenial::ForeignSourceBasis);
             }
-            if observation
-                .progress()
-                .is_some_and(|progress| self.runtime.observation.is_historical(progress))
-            {
-                return Err(UiObservationAdmissionDenial::HistoricalOwnerOrder);
+            if let Some(progress) = observation.progress() {
+                match self.runtime.observation.order_posture(progress) {
+                    UiObservationOrderPosture::Fresh => {}
+                    UiObservationOrderPosture::Duplicate => {
+                        return Err(UiObservationAdmissionDenial::DuplicateOwnerOrder)
+                    }
+                    UiObservationOrderPosture::Historical => {
+                        return Err(UiObservationAdmissionDenial::HistoricalOwnerOrder)
+                    }
+                }
             }
             if !families.insert(observation.family())
                 || self

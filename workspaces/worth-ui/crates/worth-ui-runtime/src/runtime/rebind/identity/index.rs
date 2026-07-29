@@ -229,18 +229,17 @@ fn selected_decision(
     key: &UiGraphFactConsumerKey,
     evidence: &UiSourceIdentityLifecycleEvidence,
 ) -> Result<UiIdentityLifecycleDecision, UiIdentityLifecycleDenial> {
-    match (evidence.predecessor, evidence.candidate) {
-        (predecessor, candidate) => decision_from_transition(
-            key.kind(),
-            evidence.transition,
-            predecessor.is_some(),
-            candidate.is_some(),
-        )
-        .ok_or_else(|| UiIdentityLifecycleDenial::ImpossibleSelectedTransition {
-            key: key.clone(),
-            transition: evidence.transition,
-        }),
-    }
+    let (predecessor, candidate) = (evidence.predecessor, evidence.candidate);
+    decision_from_transition(
+        key.kind(),
+        evidence.transition,
+        predecessor.is_some(),
+        candidate.is_some(),
+    )
+    .ok_or_else(|| UiIdentityLifecycleDenial::ImpossibleSelectedTransition {
+        key: key.clone(),
+        transition: evidence.transition,
+    })
 }
 
 pub(crate) const fn decision_from_transition(

@@ -106,6 +106,8 @@ mod milestone_312_phase1_contract_audit;
 mod milestone_312_phase2_contract_audit;
 #[path = "../milestone_312_phase3_contract_audit.rs"]
 mod milestone_312_phase3_contract_audit;
+#[path = "../milestone_312_phase4.rs"]
+mod milestone_312_phase4;
 #[path = "../milestone_37_structural_inventory_audit.rs"]
 mod milestone_37_structural_inventory_audit;
 #[path = "../obligation_boundary_bypass.rs"]

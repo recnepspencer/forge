@@ -3,6 +3,7 @@ mod closure_report;
 pub(crate) mod evidence;
 mod inspection_cost_receipt;
 mod measurement;
+mod rebind;
 mod replay;
 mod scope_support_row;
 mod snapshot;
@@ -26,22 +27,33 @@ pub use measurement::{
     UiInspectionMeasurementOwnershipPosture, UiInspectionMeasurementQueryFactFamily,
     UiInspectionMeasurementQueryUnsupportedReason, UiInspectionQueryWorldCompatibilityFailure,
 };
+pub use rebind::{
+    UiRebindDecisionDisposition, UiRebindDecisionIndex, UiRebindDecisionIndexDenial,
+    UiRebindDecisionKey, UiRebindDecisionLookup, UiRebindDecisionRecord,
+    UiRebindDecisionRecordInput, UiRebindDecisionStopPoint, UiRebindStructuralCost,
+};
 pub use scope_support_row::UiInspectionScopeSupportRow;
 pub use snapshot::{
     UiClientPhysicalPixel, UiClientPhysicalRect, UiHitTestRegionIndexIdentity,
     UiHostSurfaceLogicalPoint, UiNativeScreenPhysicalPixel, UiViewportLogicalPoint,
-    UiVisibleRegionIndexIdentity, UiVisualAuthoredProvenance, UiVisualContributorStack,
-    UiVisualCoordinateDenial, UiVisualCoordinateObservation, UiVisualCoordinateObservationInput,
-    UiVisualCoordinateOrientation, UiVisualCoordinateRounding, UiVisualDeclarationRef,
-    UiVisualDerivedPixelArtifactInput, UiVisualEvidenceRef, UiVisualGraphNodeRef,
-    UiVisualHitTestOutcome, UiVisualHitTestTarget, UiVisualIdentityTrace,
-    UiVisualIdentityTraceInput, UiVisualInspectionCostLane, UiVisualInspectionCostReceipt,
-    UiVisualMountedNodeRef, UiVisualNativePixelArtifactInput, UiVisualOverlayDenial,
-    UiVisualPixelArtifact, UiVisualPixelArtifactValidity, UiVisualPixelCaptureSource,
-    UiVisualPixelColorSpace, UiVisualPixelFormat, UiVisualPixelRetentionDisposition,
-    UiVisualPointAdjudication, UiVisualQueryBudget, UiVisualRegionAdjudication,
-    UiVisualRegionCompleteness, UiVisualRegionIntersection, UiVisualSnapshotAffinity,
-    UiVisualSnapshotArtifactPosture, UiVisualSnapshotDenial, UiVisualSnapshotEvidence,
+    UiVisibleRegionIndexIdentity, UiVisualAuthoredProvenance, UiVisualComparisonPixelPolicy,
+    UiVisualContributorStack, UiVisualCoordinateDenial, UiVisualCoordinateObservation,
+    UiVisualCoordinateObservationInput, UiVisualCoordinateOrientation, UiVisualCoordinateRounding,
+    UiVisualDeclarationRef, UiVisualDerivedPixelArtifactInput, UiVisualEvidenceRef,
+    UiVisualGraphNodeRef, UiVisualHitTestOutcome, UiVisualHitTestTarget,
+    UiVisualIdentityContinuity, UiVisualIdentityTrace, UiVisualIdentityTraceInput,
+    UiVisualInspectionCostLane, UiVisualInspectionCostReceipt, UiVisualMountedNodeRef,
+    UiVisualNativePixelArtifactInput, UiVisualOverlayDenial, UiVisualPixelArtifact,
+    UiVisualPixelArtifactValidity, UiVisualPixelCaptureSource, UiVisualPixelColorSpace,
+    UiVisualPixelFormat, UiVisualPixelRetentionDisposition, UiVisualPointAdjudication,
+    UiVisualQueryBudget, UiVisualRegionAdjudication, UiVisualRegionCompleteness,
+    UiVisualRegionIntersection, UiVisualSnapshotAffinity, UiVisualSnapshotArtifactPosture,
+    UiVisualSnapshotComparison, UiVisualSnapshotComparisonBudget,
+    UiVisualSnapshotComparisonBudgetDenial, UiVisualSnapshotComparisonCost,
+    UiVisualSnapshotComparisonDenial, UiVisualSnapshotComparisonDenialKind,
+    UiVisualSnapshotComparisonExpiry, UiVisualSnapshotComparisonIncompatibility,
+    UiVisualSnapshotComparisonInput, UiVisualSnapshotComparisonOmission,
+    UiVisualSnapshotComparisonOutcome, UiVisualSnapshotDenial, UiVisualSnapshotEvidence,
     UiVisualSnapshotEvidenceInput, UiVisualSnapshotIndeterminate, UiVisualSnapshotOmission,
     UiVisualSnapshotRelation, UiVisualSnapshotSuperseded, UiVisualVisibleContributor,
     UiVisualVisibleOutcome,

@@ -306,10 +306,11 @@ impl LifecycleTraceEntry {
             PlatformPulseLifecycleObservation::VisualSnapshotRetired(_) => {
                 "visual_snapshot_retired"
             }
-            PlatformPulseLifecycleObservation::ReplacementPublished(_) => "replacement_published",
-            PlatformPulseLifecycleObservation::ReplacementDeniedPreserving(_) => {
+            PlatformPulseLifecycleObservation::RebindPublished(_) => "rebind_published",
+            PlatformPulseLifecycleObservation::RebindDeniedPreserving(_) => {
                 "replacement_denied_preserving"
             }
+            PlatformPulseLifecycleObservation::VisualComparison(_) => "visual_comparison",
             PlatformPulseLifecycleObservation::ShutdownCompleted(_) => "shutdown_completed",
             PlatformPulseLifecycleObservation::TerminalFailure(_) => "terminal_failure",
         };

@@ -4,7 +4,7 @@ use super::lifecycle::PlatformPulseLifecycleObservation;
 
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY: &str =
     "worth-ui.platform-pulse.lifecycle-observation";
-pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 2;
+pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 3;
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX: &str =
     "WORTH_UI_PLATFORM_PULSE_EVENT ";
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
@@ -40,6 +40,31 @@ pub enum PlatformPulseLifecycleObservationCodecDenial {
     InvalidJson,
     UnsupportedProtocol,
     UnsupportedVersion,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PlatformPulseDecodedLifecycleObservation {
+    CompleteV3(PlatformPulseLifecycleObservationEnvelope),
+    InheritedLifecycleOnly(PlatformPulseInheritedLifecycleOnly),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlatformPulseInheritedLifecycleOnly {
+    run: PlatformPulseObservationRunIdentity,
+    sequence: PlatformPulseObservationSequence,
+}
+
+#[derive(Deserialize)]
+struct PlatformPulseCompatibleProtocolProbe {
+    protocol: PlatformPulseLifecycleObservationProtocol,
+}
+
+#[derive(Deserialize)]
+struct PlatformPulseV2Envelope {
+    protocol: PlatformPulseLifecycleObservationProtocol,
+    run: PlatformPulseObservationRunIdentity,
+    sequence: PlatformPulseObservationSequence,
+    outcome: serde_json::Value,
 }
 
 impl PlatformPulseLifecycleObservationProtocol {
@@ -130,6 +155,43 @@ impl PlatformPulseLifecycleObservationEnvelope {
         Ok(envelope)
     }
 
+    pub fn decode_compatible_prefixed_line(
+        line: &str,
+    ) -> Result<
+        PlatformPulseDecodedLifecycleObservation,
+        PlatformPulseLifecycleObservationCodecDenial,
+    > {
+        if line.len() > MAXIMUM_ENCODED_OBSERVATION_BYTES {
+            return Err(PlatformPulseLifecycleObservationCodecDenial::EncodedObservationTooLarge);
+        }
+        let json = line
+            .strip_prefix(PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX)
+            .ok_or(PlatformPulseLifecycleObservationCodecDenial::MissingPrefix)?;
+        let probe = serde_json::from_str::<PlatformPulseCompatibleProtocolProbe>(json)
+            .map_err(|_| PlatformPulseLifecycleObservationCodecDenial::InvalidJson)?;
+        if probe.protocol.identity != PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY {
+            return Err(PlatformPulseLifecycleObservationCodecDenial::UnsupportedProtocol);
+        }
+        match probe.protocol.schema_version {
+            PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION => Self::decode_prefixed_line(line)
+                .map(PlatformPulseDecodedLifecycleObservation::CompleteV3),
+            2 => {
+                let legacy = serde_json::from_str::<PlatformPulseV2Envelope>(json)
+                    .map_err(|_| PlatformPulseLifecycleObservationCodecDenial::InvalidJson)?;
+                let _ = (legacy.protocol, legacy.outcome);
+                Ok(
+                    PlatformPulseDecodedLifecycleObservation::InheritedLifecycleOnly(
+                        PlatformPulseInheritedLifecycleOnly {
+                            run: legacy.run,
+                            sequence: legacy.sequence,
+                        },
+                    ),
+                )
+            }
+            _ => Err(PlatformPulseLifecycleObservationCodecDenial::UnsupportedVersion),
+        }
+    }
+
     pub(super) fn new(
         run: PlatformPulseObservationRunIdentity,
         sequence: PlatformPulseObservationSequence,
@@ -141,6 +203,16 @@ impl PlatformPulseLifecycleObservationEnvelope {
             sequence,
             outcome,
         }
+    }
+}
+
+impl PlatformPulseInheritedLifecycleOnly {
+    pub fn run(&self) -> &PlatformPulseObservationRunIdentity {
+        &self.run
+    }
+
+    pub fn sequence(&self) -> PlatformPulseObservationSequence {
+        self.sequence
     }
 }
 
@@ -169,10 +241,21 @@ mod tests {
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(json),
             Err(PlatformPulseLifecycleObservationCodecDenial::MissingPrefix)
         );
-        let unsupported = encoded.replace("\"schema_version\":2", "\"schema_version\":1");
+        let unsupported = encoded.replace("\"schema_version\":3", "\"schema_version\":1");
         assert_eq!(
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(&unsupported),
             Err(PlatformPulseLifecycleObservationCodecDenial::UnsupportedVersion)
         );
+    }
+
+    #[test]
+    fn governed_v2_decodes_only_as_inherited_lifecycle() {
+        let (_, started) = PlatformPulseLifecycleObservationStream::start();
+        let v3 = started.encode_prefixed_line().expect("encode");
+        let v2 = v3.replace("\"schema_version\":3", "\"schema_version\":2");
+        assert!(matches!(
+            PlatformPulseLifecycleObservationEnvelope::decode_compatible_prefixed_line(&v2),
+            Ok(super::PlatformPulseDecodedLifecycleObservation::InheritedLifecycleOnly(_))
+        ));
     }
 }

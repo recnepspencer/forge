@@ -16,6 +16,12 @@ pub struct WorthUiMountedApplicationReplacementInFlight<'session> {
     pub(super) mounted: crate::mounting::UiMountedGraphReplacementInFlight,
 }
 
+pub struct WorthUiMountedApplicationReplacementIndeterminate<'session> {
+    pub(super) session: &'session mut WorthUiActiveApplicationSession,
+    pub(super) application: Box<WorthUiPreparedApplicationActivation>,
+    pub(super) frame: crate::mounting::UiMountedIndeterminateFrame,
+}
+
 pub struct WorthUiMountedReplacementAdmissionDenial<'session> {
     pub(super) denial: crate::mounting::UiMountedPresentationAdmissionDenial,
     pub(super) replacement: Box<WorthUiPreparedMountedApplicationReplacement<'session>>,
@@ -43,10 +49,28 @@ pub enum WorthUiMountedApplicationReplacementOutcome<'session> {
     },
     RejectedBeforeEffects(Box<WorthUiPreparedMountedApplicationReplacement<'session>>),
     InFlight(Box<WorthUiMountedApplicationReplacementInFlight<'session>>),
-    PresentationIndeterminate(Box<crate::mounting::UiMountedIndeterminateFrame>),
+    PresentationIndeterminate(Box<WorthUiMountedApplicationReplacementIndeterminate<'session>>),
     RetentionDenied(WorthUiMountedReplacementRetentionDenial<'session>),
     AdmissionDenied(WorthUiMountedReplacementAdmissionDenial<'session>),
     CompletionDenied(Box<WorthUiMountedReplacementCompletionDenial<'session>>),
+}
+
+impl<'session> WorthUiMountedApplicationReplacementIndeterminate<'session> {
+    pub fn frame(&self) -> &crate::mounting::UiMountedIndeterminateFrame {
+        &self.frame
+    }
+
+    pub(crate) fn into_session_for_shutdown(
+        self: Box<Self>,
+    ) -> &'session mut WorthUiActiveApplicationSession {
+        let Self {
+            session,
+            application,
+            frame,
+        } = *self;
+        drop((application, frame));
+        session
+    }
 }
 
 impl<'session> WorthUiMountedReplacementAdmissionDenial<'session> {

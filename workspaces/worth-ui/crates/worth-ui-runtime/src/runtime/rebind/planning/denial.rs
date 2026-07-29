@@ -1,3 +1,8 @@
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiRebindCandidatePreparationDenial {
+    MountEligibility,
+}
+
 #[derive(Debug)]
 pub enum UiRebindPlanningDenial {
     MissingSourceSuccession,
@@ -14,5 +19,6 @@ pub enum UiRebindPlanningDenial {
         configured: usize,
         observed: usize,
     },
+    CandidatePreparation(UiRebindCandidatePreparationDenial),
     Replacement(Box<crate::runtime::WorthUiReplacementLoweringDenial>),
 }

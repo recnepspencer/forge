@@ -10,6 +10,7 @@ pub enum UiObservationTurnDenial {
 pub enum UiObservationAdmissionDenial {
     ForeignSession,
     ForeignSourceBasis,
+    DuplicateOwnerOrder,
     HistoricalOwnerOrder,
     DuplicateFamily,
     TurnCapacityExceeded,

@@ -5,6 +5,7 @@ mod mounted_allocation;
 #[cfg(any(test, feature = "certification-support"))]
 mod planning;
 mod rebind_planning;
+mod rebind_publication;
 mod replacement;
 
 pub(crate) use replacement::WorthUiRuntimePublicationBasis;

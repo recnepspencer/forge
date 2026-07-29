@@ -18,6 +18,11 @@ pub struct UiVisualOverlayGrant {
     scope: UiVisualGrantScope,
 }
 
+pub struct UiVisualSnapshotComparisonGrant {
+    session: crate::lifecycle::WorthUiActiveApplicationSessionIdentity,
+    scope: UiVisualGrantScope,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiVisualGrantScope {
     disclosure: worth_ui_inspection::UiVisualInspectionDisclosure,
@@ -71,6 +76,13 @@ impl WorthUiVisualInspectionAuthority {
         }
     }
 
+    pub fn issue_comparison_grant(&self) -> UiVisualSnapshotComparisonGrant {
+        UiVisualSnapshotComparisonGrant {
+            session: self.session,
+            scope: UiVisualGrantScope::from_policy(self.policy),
+        }
+    }
+
     pub const fn policy(&self) -> worth_ui_inspection::UiVisualInspectionPolicy {
         self.policy
     }
@@ -108,6 +120,18 @@ impl UiVisualOverlayGrant {
     }
 
     pub const fn session_identity(
+        &self,
+    ) -> crate::lifecycle::WorthUiActiveApplicationSessionIdentity {
+        self.session
+    }
+
+    pub const fn scope(&self) -> UiVisualGrantScope {
+        self.scope
+    }
+}
+
+impl UiVisualSnapshotComparisonGrant {
+    pub(crate) const fn session(
         &self,
     ) -> crate::lifecycle::WorthUiActiveApplicationSessionIdentity {
         self.session

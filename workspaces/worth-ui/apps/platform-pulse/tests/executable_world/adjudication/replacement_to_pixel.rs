@@ -194,7 +194,7 @@ fn replacement_outcome(
     envelope: &PlatformPulseLifecycleObservationEnvelope,
 ) -> Result<PlatformPulseReplacementPublished, ExecutableReplacementFailure> {
     match envelope.outcome() {
-        PlatformPulseLifecycleObservation::ReplacementPublished(replacement) => Ok(*replacement),
+        PlatformPulseLifecycleObservation::RebindPublished(replacement) => Ok(*replacement),
         PlatformPulseLifecycleObservation::TerminalFailure(failure) => Err(
             ExecutableReplacementFailure::ProductDenied(failure.family()),
         ),

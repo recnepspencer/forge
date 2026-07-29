@@ -6,7 +6,8 @@ use worth_ui_inspection::{
 use super::{WorthUiActiveApplicationSession, WorthUiNativeApplicationShell};
 use crate::inspection::visual_snapshot::{
     UiPendingVisualCapture, UiVisualCancellationReceipt, UiVisualCaptureIntent,
-    UiVisualCapturePoll, UiVisualGeometryGrant, UiVisualPixelCaptureGrant, UiVisualTarget,
+    UiVisualCapturePoll, UiVisualGeometryGrant, UiVisualPixelCaptureGrant,
+    UiVisualSnapshotComparisonGrant, UiVisualSnapshotComparisonRequest, UiVisualTarget,
     WorthUiVisualInspectionAuthority,
 };
 
@@ -201,6 +202,50 @@ impl WorthUiActiveApplicationSession {
     {
         receipt.dispose()
     }
+
+    pub fn compare_visual_snapshots<Predecessor, Successor>(
+        &self,
+        grant: &UiVisualSnapshotComparisonGrant,
+        request: UiVisualSnapshotComparisonRequest<'_, Predecessor, Successor>,
+    ) -> worth_ui_inspection::UiVisualSnapshotComparisonOutcome
+    where
+        Predecessor: UiVisualArtifactPolicy,
+        Successor: UiVisualArtifactPolicy,
+    {
+        crate::inspection::visual_snapshot::compare_visual_snapshots(
+            self.identity,
+            grant,
+            request,
+            || reserve_visual_comparison(&self.rebind),
+        )
+    }
+}
+
+fn reserve_visual_comparison(
+    state: &crate::runtime::rebind::UiRebindRuntimeState,
+) -> Result<
+    crate::runtime::rebind::UiRebindComparisonReservation,
+    worth_ui_inspection::UiVisualSnapshotComparisonOutcome,
+> {
+    use worth_ui_inspection::UiVisualSnapshotComparisonOutcome as Outcome;
+    match state.reserve_comparison_snapshots(2) {
+        Ok(reservation) => Ok(reservation),
+        Err(
+            crate::runtime::rebind::UiRebindReservationDenial::
+                RetainedComparisonSnapshotCapacityExceeded {
+                    configured,
+                    required,
+                },
+        ) => Err(Outcome::Denied(
+            worth_ui_inspection::UiVisualSnapshotComparisonDenial::retained_snapshot_capacity(
+                configured, required,
+            ),
+        )),
+        Err(crate::runtime::rebind::UiRebindReservationDenial::AdmissionClosed) => Err(
+            Outcome::Expired(worth_ui_inspection::UiVisualSnapshotComparisonExpiry::Both),
+        ),
+        Err(_) => unreachable!("comparison reservation uses only its dedicated registry lane"),
+    }
 }
 
 fn reserved_host_pixel_bytes<Policy: UiVisualArtifactPolicy>(
@@ -325,5 +370,17 @@ impl WorthUiNativeApplicationShell {
         Posture: UiVisualArtifactPolicy,
     {
         self.session.dispose_visual_snapshot(receipt)
+    }
+
+    pub fn compare_visual_snapshots<Predecessor, Successor>(
+        &self,
+        grant: &UiVisualSnapshotComparisonGrant,
+        request: UiVisualSnapshotComparisonRequest<'_, Predecessor, Successor>,
+    ) -> worth_ui_inspection::UiVisualSnapshotComparisonOutcome
+    where
+        Predecessor: UiVisualArtifactPolicy,
+        Successor: UiVisualArtifactPolicy,
+    {
+        self.session.compare_visual_snapshots(grant, request)
     }
 }

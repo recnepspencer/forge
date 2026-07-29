@@ -100,7 +100,10 @@ fn validate_route_anchor(
     let (path, symbol) = anchors
         .get(id)
         .ok_or_else(|| format!("{id} has no production anchor"))?;
-    let predecessor = inventory.text(path);
+    let predecessor = inventory
+        .source(path)
+        .map(|source| source.text())
+        .unwrap_or("");
     let predecessor_is_active = predecessor.contains(symbol);
     let successors = route_successor_anchors();
     let successor = successors.get(id).and_then(|(path, symbol)| {
@@ -123,14 +126,17 @@ fn validate_route_anchor(
     }
     if id == "R-03"
         && !predecessor_is_active
-        && [
-            "apps/platform-pulse/src/application.rs",
-            "apps/platform-pulse/src/native_frame.rs",
-        ]
-        .iter()
-        .any(|path| !inventory.text(path).contains("attempt_source_rebind"))
+        && (!inventory
+            .text("apps/platform-pulse/src/application.rs")
+            .contains("attempt_source_rebind")
+            || !inventory
+                .text("apps/platform-pulse/src/native_frame/rebind.rs")
+                .contains("begin_source_rebind"))
     {
-        return Err("R-03 omits a committed Platform Pulse source-attempt caller".to_owned());
+        return Err(
+            "R-03 omits the committed Platform Pulse initial-attempt or watched-rebind caller"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -147,13 +153,18 @@ fn validate_unimplemented_comparison_successor(
         return Ok(());
     }
     let successor = inventory
-        .source("crates/worth-ui-runtime/src/inspection/visual_snapshot/comparison/mod.rs")
+        .source("crates/worth-ui-runtime/src/inspection/visual_snapshot/comparison.rs")
         .map(|source| source.text());
-    if successor.is_some_and(|source| source.contains("UiVisualSnapshotComparison")) {
+    if comparison_successor_is_committed(parent, successor) {
         Ok(())
     } else {
         Err("R-18 comparison module exists without its committed comparison owner".to_owned())
     }
+}
+
+fn comparison_successor_is_committed(parent: &str, successor: Option<&str>) -> bool {
+    parent.contains("mod comparison")
+        && successor.is_some_and(|source| source.contains("UiVisualSnapshotComparison"))
 }
 
 fn anchor_is_reachable(
@@ -199,8 +210,8 @@ fn route_successor_anchors() -> BTreeMap<&'static str, (&'static str, &'static s
         (
             "R-03",
             (
-                "apps/platform-pulse/src/native_frame.rs",
-                "attempt_source_rebind",
+                "apps/platform-pulse/src/native_frame/rebind.rs",
+                "begin_source_rebind",
             ),
         ),
         (
@@ -220,7 +231,7 @@ fn route_successor_anchors() -> BTreeMap<&'static str, (&'static str, &'static s
         (
             "R-13",
             (
-                "crates/worth-ui-runtime/src/facade/entry/rebind/mod.rs",
+                "crates/worth-ui-runtime/src/facade/entry/native_source_rebind.rs",
                 "begin_source_rebind",
             ),
         ),
@@ -251,6 +262,14 @@ fn migration_anchor_requires_a_real_predecessor_or_exact_successor() {
         "",
         "predecessor",
         Some(("struct Proxy;", "ExactSuccessor"))
+    ));
+    assert!(comparison_successor_is_committed(
+        "mod comparison;",
+        Some("struct UiVisualSnapshotComparison;")
+    ));
+    assert!(!comparison_successor_is_committed(
+        "mod comparison;",
+        Some("struct ComparisonProxy;")
     ));
 }
 

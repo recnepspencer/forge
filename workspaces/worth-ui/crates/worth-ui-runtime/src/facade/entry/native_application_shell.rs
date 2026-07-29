@@ -68,6 +68,19 @@ impl WorthUiApp {
 }
 
 impl WorthUiNativeApplicationShell {
+    pub const fn rebind_deadline_at(
+        &self,
+        tick: u64,
+    ) -> crate::runtime::rebind::UiRebindSessionDeadline {
+        self.session.rebind_deadline_at(tick)
+    }
+
+    pub const fn rebind_cancellation_request(
+        &self,
+    ) -> crate::runtime::rebind::UiRebindCancellationRequest {
+        self.session.rebind_cancellation_request()
+    }
+
     /// Execute and present one ordinary native frame.
     pub fn present_frame(
         &mut self,

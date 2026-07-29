@@ -147,7 +147,7 @@ impl WorthUiPreparedApplicationReplacement {
     ) -> WorthUiCandidateInspectionReceipt {
         WorthUiCandidateInspectionReceipt {
             generation_identity: self.next_app.generation_identity().clone(),
-            candidate_basis: self.admitted.candidate().basis(),
+            candidate_basis: self.semantic_input.admitted().candidate().basis(),
             receipt: self.next_app.inspect(query),
         }
     }

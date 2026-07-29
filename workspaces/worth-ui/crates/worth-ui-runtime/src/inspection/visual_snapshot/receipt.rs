@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+mod comparison_access;
+
 pub struct UiVisualSnapshotReceipt<ArtifactPosture: worth_ui_inspection::UiVisualArtifactPolicy> {
     session: crate::lifecycle::WorthUiActiveApplicationSessionIdentity,
     identity: super::UiVisualSnapshotIdentity,

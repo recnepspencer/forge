@@ -146,6 +146,19 @@ impl WorthUiApp {
         self.prepared.advance_graph_snapshot(committed);
     }
 
+    pub(crate) fn commit_evidence_only_prepared_authority(
+        &mut self,
+        successor: WorthUiPreparedApplicationAuthority,
+    ) -> (
+        WorthUiPreparedApplicationGenerationIdentity,
+        WorthUiPreparedApplicationGenerationIdentity,
+    ) {
+        let prior = self.prepared.generation_identity().clone();
+        let active = successor.generation_identity().clone();
+        self.prepared = successor;
+        (prior, active)
+    }
+
     pub(crate) fn prepare_graph_successor(
         &self,
         committed: crate::graph::UiGraphMutationCommitResult,

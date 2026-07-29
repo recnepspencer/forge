@@ -220,7 +220,7 @@ fn audit_native_wiring(native_frame: &str, main: &str) -> Result<(), String> {
         "PlatformPulseVisualIdentityExecution",
         ".arm_after_first_frame(",
         ".advance(",
-        ".retire_after_replacement(",
+        ".compare_after_rebind(",
         "self.advance_visual_identity();",
     ] {
         require(native_frame, edge, "native product visual wiring")?;
@@ -263,7 +263,12 @@ impl ProductVisualIdentitySources {
                 .to_owned()
         };
         Self {
-            execution: source("visual_identity_execution.rs"),
+            execution: [
+                source("visual_identity_execution.rs"),
+                source("visual_identity_execution/progression.rs"),
+                source("visual_identity_execution/comparison.rs"),
+            ]
+            .join("\n"),
             adjudication: source("visual_identity_adjudication.rs"),
             publication: source("visual_observation_publication.rs"),
             wire: source("observation_contract/visual.rs"),

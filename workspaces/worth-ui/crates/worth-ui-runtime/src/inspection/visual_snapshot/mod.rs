@@ -1,5 +1,6 @@
 mod capture_handle;
 mod capture_progression;
+mod comparison;
 mod grant;
 mod identity;
 mod identity_trace;
@@ -26,9 +27,16 @@ pub(crate) use capture_progression::{
     UiPinnedVisualCaptureInput, UiRequestedHostVisualCapture, UiValidatedHostVisualCapture,
     UiValidatedHostVisualCaptureInput, UiVisualCaptureIntent,
 };
+pub(crate) use comparison::{
+    compare_visual_snapshots, new_unbudgeted_comparison_request, UiVisualRebindComparisonEvidence,
+};
+pub use comparison::{
+    UiUnbudgetedVisualSnapshotComparisonRequest, UiVisualSnapshotComparisonRequest,
+};
 pub use grant::{
     UiVisualGeometryGrant, UiVisualGrantLifetime, UiVisualGrantScope, UiVisualGrantSurfaceScope,
-    UiVisualOverlayGrant, UiVisualPixelCaptureGrant, WorthUiVisualInspectionAuthority,
+    UiVisualOverlayGrant, UiVisualPixelCaptureGrant, UiVisualSnapshotComparisonGrant,
+    WorthUiVisualInspectionAuthority,
 };
 pub use identity::UiVisualSnapshotIdentity;
 pub(crate) use identity_trace::resolve_identity_trace;

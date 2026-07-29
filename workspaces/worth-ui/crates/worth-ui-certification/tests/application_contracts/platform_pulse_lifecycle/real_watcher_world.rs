@@ -1,13 +1,12 @@
 use std::time::Duration;
 
 use worth_ui::facade::app::{
-    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationCutoverReceipt,
-    WorthUiNativeApplicationReplacementOutcome, WorthUiNativeApplicationShell,
-    WorthUiPreparedApplicationGenerationIdentity,
+    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiNativeApplicationShell,
+    WorthUiNativeSourceRebindDenial, WorthUiPreparedApplicationGenerationIdentity,
 };
+use worth_ui::facade::rebind::{UiRebindOutcome, UiRebindReceipt, UiSourceRebindRequest};
 use worth_ui::facade::source::{
-    UiSourceRebindAttemptFailure, WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
-    WorthUiSourcePackageRevision,
+    WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher, WorthUiSourcePackageRevision,
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_host_egui::WorthUiHostEgui;
@@ -101,35 +100,21 @@ impl RealWatcherPulseWorld {
             .settle(SETTLEMENT_TIMEOUT)
             .expect("real watcher should settle an atomic valid edit");
         let source = snapshot.source_revision().clone();
-        let submission = snapshot
-            .attempt_candidate_for_certification(shell.capabilities())
-            .expect("valid pulse edit should lower");
-        let mut submission = Some(submission);
+        let mut snapshot = Some(snapshot);
         let mut outcome = None;
         let native = self.context.run(raw_input(), |_| {
-            outcome = Some(
-                shell
-                    .replace_application(
-                        submission.take().expect("submission is consumed once"),
-                        edit.deadline(),
-                        edit.tick(),
-                    )
-                    .expect("valid whole-application replacement should publish"),
-            );
+            outcome = Some(publish_rebind(
+                shell,
+                snapshot.take().expect("settled snapshot is consumed once"),
+                edit.deadline(),
+                edit.tick(),
+            ));
         });
-        let WorthUiNativeApplicationReplacementOutcome::Published {
-            application,
-            mounted,
-        } = outcome.expect("replacement returns one outcome")
-        else {
-            panic!("changing the pulse color is not a semantic no-op");
-        };
+        let receipt = outcome
+            .expect("rebind returns one terminal result")
+            .expect("valid settled source should enter canonical rebind");
         assert_background_and_target(&native.shapes, edit.color());
-        PublishedPulseReplacement {
-            source,
-            application,
-            mounted,
-        }
+        PublishedPulseReplacement { source, receipt }
     }
 
     pub(super) fn preserve_malformed(
@@ -143,19 +128,24 @@ impl RealWatcherPulseWorld {
             .settle(SETTLEMENT_TIMEOUT)
             .expect("stable malformed bytes still form a filesystem snapshot");
         let source = snapshot.source_revision().clone();
-        let denial = snapshot
-            .attempt_source_rebind(shell.capabilities())
-            .into_candidate_submission()
-            .expect_err("malformed authored source must deny before replacement");
-        let UiSourceRebindAttemptFailure::CompilationDenied(receipt) = &denial else {
+        let request = UiSourceRebindRequest::new(snapshot)
+            .with_deadline(shell.rebind_deadline_at(30))
+            .observed_at_tick(21);
+        let denial = match shell.begin_source_rebind(request) {
+            Err(denial) => denial,
+            Ok(outcome) => {
+                drop(outcome);
+                panic!("malformed authored source must deny before rebind");
+            }
+        };
+        let Some(worth_ui::facade::source::UiSourceRebindAttemptFailure::CompilationDenied(
+            receipt,
+        )) = denial.source_failure()
+        else {
             panic!("malformed pulse source should retain the DSL owner's typed denial");
         };
         assert!(!receipt.report().diagnostics().is_empty());
         assert_eq!(receipt.basis().source_revision(), &source);
-        assert_eq!(
-            receipt.basis().capability_basis(),
-            shell.capabilities().digest()
-        );
         let generation = shell.generation_identity().clone();
         let native = self.context.run(raw_input(), |_| {
             assert!(matches!(
@@ -214,13 +204,59 @@ pub(super) struct InitialPulsePublication {
 
 pub(super) struct PublishedPulseReplacement {
     pub(super) source: WorthUiSourcePackageRevision,
-    pub(super) application: WorthUiApplicationCutoverReceipt,
-    pub(super) mounted: UiMountedFramePublicationReceipt,
+    pub(super) receipt: UiRebindReceipt,
+}
+
+fn publish_rebind(
+    shell: &mut WorthUiNativeApplicationShell,
+    snapshot: worth_ui::facade::source::WorthUiSettledSourceSnapshot,
+    deadline_tick: u64,
+    now_tick: u64,
+) -> Result<UiRebindReceipt, WorthUiNativeSourceRebindDenial> {
+    let request = UiSourceRebindRequest::new(snapshot)
+        .with_deadline(shell.rebind_deadline_at(deadline_tick))
+        .observed_at_tick(now_tick);
+    match shell.begin_source_rebind(request)? {
+        UiRebindOutcome::Published(receipt) => Ok(receipt),
+        UiRebindOutcome::Duplicate(_) => {
+            panic!("changing the pulse color was classified as duplicate");
+        }
+        UiRebindOutcome::ObservedNoChange(receipt) => {
+            drop(receipt);
+            panic!("changing the pulse color was classified as no-change");
+        }
+        UiRebindOutcome::RejectedBeforeEffects(denial) => {
+            panic!(
+                "changing the pulse color was rejected: {:?}",
+                denial.cause()
+            );
+        }
+        UiRebindOutcome::CancelledBeforeEffects(_) => {
+            panic!("changing the pulse color was cancelled");
+        }
+        UiRebindOutcome::TimedOutBeforeEffects(_) => {
+            panic!("changing the pulse color timed out");
+        }
+        UiRebindOutcome::SupersededBeforeEffects(_) => {
+            panic!("changing the pulse color was superseded");
+        }
+        UiRebindOutcome::InFlight(handle) => {
+            drop(handle.dispose());
+            panic!("changing the pulse color remained in flight");
+        }
+        UiRebindOutcome::Indeterminate(recovery) => {
+            drop(recovery);
+            panic!("changing the pulse color became indeterminate");
+        }
+        UiRebindOutcome::InternalDefect(defect) => {
+            panic!("changing the pulse color hit defect {:?}", defect.kind());
+        }
+    }
 }
 
 pub(super) struct PreservedPulseReplacement {
     pub(super) source: WorthUiSourcePackageRevision,
-    pub(super) denial: UiSourceRebindAttemptFailure,
+    pub(super) denial: WorthUiNativeSourceRebindDenial,
     pub(super) generation: WorthUiPreparedApplicationGenerationIdentity,
 }
 

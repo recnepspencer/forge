@@ -88,6 +88,40 @@ pub(super) fn validate_phase_3(contract: &toml::Value, ledger: &str) -> Result<(
     validate_rows(&rows, &expected, Some(&commands), closed)
 }
 
+pub(super) fn validate_phase_4(contract: &toml::Value, ledger: &str) -> Result<(), String> {
+    let expected = (1..=15)
+        .map(|number| format!("P4-{number:02}"))
+        .collect::<Vec<_>>();
+    let gates = contract["phase_gate"]
+        .as_array()
+        .ok_or_else(|| "Phase 4 gates are not an array".to_owned())?;
+    let gate_ids = gates
+        .iter()
+        .map(|gate| required_text(gate, "id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    if gate_ids != expected {
+        return Err("Phase 4 contract gates are not exactly P4-01 through P4-15".to_owned());
+    }
+    let owners = gates
+        .iter()
+        .map(|gate| required_text(gate, "owner"))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    if owners.len() != gates.len() {
+        return Err("Phase 4 gate owners are not unique".to_owned());
+    }
+    for gate in gates {
+        required_text(gate, "claim")?;
+        required_text(gate, "command")?;
+    }
+    let commands = gates
+        .iter()
+        .map(|gate| required_text(gate, "command"))
+        .collect::<Result<Vec<_>, _>>()?;
+    let closed = contract["status"].as_str() == Some("closed");
+    let rows = parse_ledger(ledger)?;
+    validate_rows_with_open_partial(&rows, &expected, Some(&commands), closed)
+}
+
 pub(super) fn validate_phase_5(
     contract: &toml::Value,
     ledger: &str,
@@ -182,6 +216,25 @@ fn validate_rows(
     commands: Option<&[&str]>,
     closed: bool,
 ) -> Result<(), String> {
+    validate_rows_with_policy(rows, expected_ids, commands, closed, false)
+}
+
+fn validate_rows_with_open_partial(
+    rows: &[Vec<String>],
+    expected_ids: &[String],
+    commands: Option<&[&str]>,
+    closed: bool,
+) -> Result<(), String> {
+    validate_rows_with_policy(rows, expected_ids, commands, closed, true)
+}
+
+fn validate_rows_with_policy(
+    rows: &[Vec<String>],
+    expected_ids: &[String],
+    commands: Option<&[&str]>,
+    closed: bool,
+    permit_open_partial: bool,
+) -> Result<(), String> {
     if rows.len() != expected_ids.len() {
         return Err(format!(
             "ledger has {} rows instead of {}",
@@ -210,14 +263,25 @@ fn validate_rows(
                 return Err(format!("{expected_id} command drifted from its manifest"));
             }
         }
-        validate_status(expected_id, &row[8], &row[9], closed)?;
+        validate_status(expected_id, &row[8], &row[9], closed, permit_open_partial)?;
     }
     Ok(())
 }
 
-fn validate_status(id: &str, status: &str, evidence: &str, closed: bool) -> Result<(), String> {
+fn validate_status(
+    id: &str,
+    status: &str,
+    evidence: &str,
+    closed: bool,
+    permit_open_partial: bool,
+) -> Result<(), String> {
     match (closed, status, evidence.trim().is_empty()) {
         (false, "OPEN", true) => Ok(()),
+        (false, "OPEN", false)
+            if permit_open_partial && evidence.trim_start().starts_with("Partial:") =>
+        {
+            Ok(())
+        }
         (false, "PROVED", false) | (true, "PROVED", false) => {
             validate_structured_evidence(id, evidence)
         }

@@ -167,6 +167,13 @@ fn publish_green(
         green.retirement_evidence().retirement().successor_frame(),
         evidence.replacement().successor_frame().diagnostic_value()
     );
+    let comparison = green.comparison_evidence().comparison();
+    assert!(
+        !comparison.identity_rebound(),
+        "the exact color-only edit must preserve stable authored identity"
+    );
+    assert_eq!(comparison.retained_pixels_differ(), Some(true));
+    assert!(comparison.retained_pixel_bytes_examined() > 0);
     assert!(evidence.replacement().actual_native_effect_count() > 0);
     assert_eq!(evidence.identity().process_id(), first_process);
     assert_eq!(evidence.identity().window(), first_window);
@@ -195,7 +202,7 @@ fn preserve_green(
         });
     let evidence = preserved.evidence();
     assert_action(evidence.action(), PulseSourceDeltaIdentity::Malformed);
-    assert_eq!(evidence.sequence(), 9);
+    assert_eq!(evidence.sequence(), 11);
     assert_eq!(evidence.preserved().active_generation(), prior_generation);
     assert_eq!(evidence.preserved().active_frame(), prior_frame);
     assert_eq!(evidence.identity().window(), prior_window);
@@ -227,8 +234,8 @@ fn recover_blue(
         evidence.action(),
         PulseSourceDeltaIdentity::CanonicalBlueRecovery,
     );
-    assert_eq!(evidence.sequence(), 10);
-    assert_eq!(recovered.preservation_evidence().sequence(), 9);
+    assert_eq!(evidence.sequence(), 12);
+    assert_eq!(recovered.preservation_evidence().sequence(), 11);
     assert_eq!(evidence.identity().process_id(), process);
     assert_eq!(evidence.identity().window(), window);
     assert_ne!(evidence.replacement().active_generation(), prior_generation);
@@ -249,7 +256,7 @@ fn close_recovered(
         });
     let cleanup = closed.evidence();
     assert_eq!(cleanup.close_request_count(), 1);
-    assert_eq!(cleanup.shutdown_sequence(), 11);
+    assert_eq!(cleanup.shutdown_sequence(), 13);
     assert!(cleanup.shutdown().host_session_released());
     assert_eq!(cleanup.shutdown().cancelled_visual_capture_count(), 0);
     assert_eq!(cleanup.shutdown().disposed_visual_snapshot_count(), 0);

@@ -52,6 +52,9 @@ pub(crate) struct UiClearingVisualOverlay {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiClearedVisualOverlayReceipt {
     identity: UiVisualOverlayIdentity,
+    session: crate::lifecycle::WorthUiActiveApplicationSessionIdentity,
+    base_snapshot: super::UiVisualSnapshotIdentity,
+    base_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     published_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     cleared_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     cost: worth_ui_inspection::UiVisualInspectionCostReceipt,
@@ -236,6 +239,18 @@ impl UiClearedVisualOverlayReceipt {
 
     pub const fn published_frame(self) -> worth_ui_host_contract::UiMountedFrameIdentity {
         self.published_frame
+    }
+
+    pub const fn session(self) -> crate::lifecycle::WorthUiActiveApplicationSessionIdentity {
+        self.session
+    }
+
+    pub const fn base_snapshot(self) -> super::UiVisualSnapshotIdentity {
+        self.base_snapshot
+    }
+
+    pub const fn base_frame(self) -> worth_ui_host_contract::UiMountedFrameIdentity {
+        self.base_frame
     }
 
     pub const fn cleared_frame(self) -> worth_ui_host_contract::UiMountedFrameIdentity {

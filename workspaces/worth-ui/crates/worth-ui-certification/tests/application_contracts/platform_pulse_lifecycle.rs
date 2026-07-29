@@ -20,17 +20,23 @@ fn in_process_real_watcher_replaces_green_preserves_malformed_and_recovers_blue(
     let green = world.replace(&mut shell, ValidPulseEdit::Green);
     observations.replacement(&green);
     observations.reject_stale_replacement(&green);
-    assert_eq!(green.application.prior_generation(), &initial_generation);
+    assert_eq!(green.receipt.prior_generation(), &initial_generation);
     assert_eq!(
-        green.application.active_generation(),
+        green.receipt.active_generation(),
         shell.generation_identity()
     );
+    let green_mounted = green
+        .receipt
+        .mounted_publication()
+        .expect("green rebind has mounted publication")
+        .clone();
+    drop(green);
 
     let preserved = world.preserve_malformed(&mut shell);
     observations.preservation(&preserved);
 
     let recovered = world.replace(&mut shell, ValidPulseEdit::BlueRecovery);
-    observations.reject_mismatched_mounted_receipt(&recovered, &green.mounted);
+    observations.reject_mismatched_mounted_receipt(&recovered, &green_mounted);
     observations.replacement(&recovered);
     assert_ne!(shell.generation_identity(), &preserved.generation);
 

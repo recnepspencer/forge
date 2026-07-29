@@ -124,6 +124,7 @@ pub struct WorthUiRuntimeShutdownReceipt {
     mounted_presentation: crate::mounting::UiMountedPresentationShutdownReport,
     visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
     visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
+    rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
 }
 
@@ -139,6 +140,7 @@ impl WorthUiRuntimeShutdownReceipt {
             mounted_presentation: Default::default(),
             visual_capture: Default::default(),
             visual_overlay: Default::default(),
+            rebind: Default::default(),
             host_session_release: None,
         }
     }
@@ -167,6 +169,10 @@ impl WorthUiRuntimeShutdownReceipt {
         &self,
     ) -> crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport {
         self.visual_overlay
+    }
+
+    pub const fn rebind(&self) -> crate::runtime::rebind::UiRebindShutdownReport {
+        self.rebind
     }
 
     pub fn host_session_release(
@@ -204,6 +210,14 @@ impl WorthUiRuntimeShutdownReceipt {
         outcome: crate::host::adapter::UiHostSessionReleaseOutcome,
     ) -> Self {
         self.host_session_release = Some(outcome);
+        self
+    }
+
+    pub(crate) fn bind_rebind(
+        mut self,
+        report: crate::runtime::rebind::UiRebindShutdownReport,
+    ) -> Self {
+        self.rebind = report;
         self
     }
 

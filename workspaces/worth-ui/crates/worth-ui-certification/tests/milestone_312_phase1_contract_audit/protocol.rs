@@ -22,7 +22,7 @@ fn validate_raw_v2_text(fixture: &str) -> Result<(), String> {
         let value: serde_json::Value =
             serde_json::from_str(json).map_err(|error| format!("invalid fixture JSON: {error}"))?;
         let decoded = worth_ui_platform_pulse::observation_contract::
-            PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(line)
+            PlatformPulseLifecycleObservationEnvelope::decode_compatible_prefixed_line(line)
             .map_err(|denial| format!("production v2 decoder rejected raw fixture: {denial:?}"))?;
         let protocol = &value["protocol"];
         if protocol["identity"].as_str() != Some("worth-ui.platform-pulse.lifecycle-observation")
@@ -37,7 +37,11 @@ fn validate_raw_v2_text(fixture: &str) -> Result<(), String> {
         {
             return Err("raw v2 fixture invents Milestone 3.12 evidence".to_owned());
         }
-        if decoded.protocol().schema_version() != 2 {
+        if !matches!(
+            decoded,
+            worth_ui_platform_pulse::observation_contract::
+                PlatformPulseDecodedLifecycleObservation::InheritedLifecycleOnly(_)
+        ) {
             return Err("production decoder did not preserve inherited v2 identity".to_owned());
         }
         let current_run = value["run"]["value"]

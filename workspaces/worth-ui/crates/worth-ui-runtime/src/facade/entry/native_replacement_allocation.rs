@@ -12,8 +12,15 @@ struct NativeReplacementAllocationCandidate {
     declaration: crate::declaration::UiDeclarationIdentity,
     node: crate::graph::UiGraphNodeIdentity,
     selected: crate::obligations::selection::UiSelectedObligationSet,
-    transition: crate::graph::UiGraphMountEligibilityTransition,
+    transition: Option<crate::graph::UiGraphMountEligibilityTransition>,
     policy: crate::declaration::UiDeclaredMeasurementPolicyPosture,
+}
+
+struct NativeReplacementMeasurementContext {
+    capability: crate::facade::WorthUiHostMeasurementCapability,
+    collector: crate::host::WorthUiHostMeasurementCollector,
+    generation: UiEvidenceAuthorityGeneration,
+    requests: [UiMountedAllocationMeasurementRequest; 1],
 }
 
 impl WorthUiActiveApplicationSession {
@@ -28,14 +35,15 @@ impl WorthUiActiveApplicationSession {
             return Err(WorthUiMountedAllocationEstablishmentDenial::PresentationInFlight);
         }
         let candidates = candidate_inputs(prepared)?;
-        prepared
-            .commit_candidate_mount_eligibility_admissions(
-                candidates
-                    .iter()
-                    .map(|candidate| candidate.transition)
-                    .collect(),
-            )
-            .map_err(WorthUiMountedAllocationEstablishmentDenial::GraphMountEligibility)?;
+        let transitions = candidates
+            .iter()
+            .filter_map(|candidate| candidate.transition)
+            .collect::<Vec<_>>();
+        if !transitions.is_empty() {
+            prepared
+                .commit_candidate_mount_eligibility_admissions(transitions)
+                .map_err(WorthUiMountedAllocationEstablishmentDenial::GraphMountEligibility)?;
+        }
         let entries = self.collect_native_replacement_entries(prepared, &candidates)?;
         let uncovered = candidates
             .iter()
@@ -59,68 +67,16 @@ impl WorthUiActiveApplicationSession {
         WorthUiMountedAllocationEstablishmentDenial,
     > {
         let graph = prepared.candidate_graph();
-        let capability = self.host_session.measurement_capability();
-        let collector = self.application.host_measurement_collector();
-        let generation = UiEvidenceAuthorityGeneration::new(graph.generation().as_u64());
-        let assumptions = crate::host::UiHostMeasurementAssumptionProfile::from_capability_report(
-            capability.capability_report(),
-            1,
-            2,
-            3,
-            4,
-        );
-        let requests = [UiMountedAllocationMeasurementRequest::new(
-            UiMeasurementEvidenceFamily::ViewportExtent,
-            crate::host::UiHostMeasurementNeed::ViewportExtent(
-                worth_ui_host_contract::UiViewportExtentRequest,
-            ),
-            crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(assumptions),
-        )];
+        let context = NativeReplacementMeasurementContext::new(self, graph.generation().as_u64());
         let mut entries = Vec::with_capacity(candidates.len());
         let mut request_ordinal = 0_u64;
         for candidate in candidates {
-            let mut inputs = vec![
-                crate::evidence::MeasurementEvidenceInput::host_capability_report(
-                    capability.capability_report(),
-                ),
-            ];
-            for family in required_host_families(&candidate.policy) {
-                let request = requests
-                    .iter()
-                    .find(|request| request.evidence_family == family)
-                    .ok_or(
-                        WorthUiMountedAllocationEstablishmentDenial::MissingMeasurementRequest(
-                            family,
-                        ),
-                    )?;
-                let identity = 9_000_u64.checked_add(request_ordinal).ok_or(
-                    WorthUiMountedAllocationEstablishmentDenial::MeasurementRequestIdentityExhausted,
-                )?;
-                request_ordinal = request_ordinal.checked_add(1).ok_or(
-                    WorthUiMountedAllocationEstablishmentDenial::MeasurementRequestIdentityExhausted,
-                )?;
-                let result = collector
-                    .collect(
-                        capability.adapter(),
-                        crate::host::UiHostMeasurementCollectionInput {
-                            identity: UiMeasurementRequestIdentity::new(identity),
-                            evidence_family: request.evidence_family,
-                            need: request.need.clone(),
-                            capability_report: capability.capability_report(),
-                            evidence_generation: generation,
-                            normalization_context: request.normalization_context,
-                        },
-                    )
-                    .map_err(WorthUiMountedAllocationEstablishmentDenial::HostMeasurement)?;
-                inputs.push(
-                    crate::evidence::MeasurementEvidenceInput::host_measurement_result(&result),
-                );
-            }
+            let inputs = context.collect_inputs(candidate, &mut request_ordinal)?;
             let basis = crate::evidence::admit_measurement_basis(
                 candidate.declaration.clone(),
                 candidate.node,
                 graph.world_profile().clone(),
-                generation,
+                context.generation,
                 &candidate.policy,
                 &inputs,
             );
@@ -138,59 +94,156 @@ impl WorthUiActiveApplicationSession {
     }
 }
 
+impl NativeReplacementMeasurementContext {
+    fn new(session: &WorthUiActiveApplicationSession, graph_generation: u64) -> Self {
+        let capability = session.host_session.measurement_capability();
+        let assumptions = crate::host::UiHostMeasurementAssumptionProfile::from_capability_report(
+            capability.capability_report(),
+            1,
+            2,
+            3,
+            4,
+        );
+        Self {
+            capability,
+            collector: session.application.host_measurement_collector(),
+            generation: UiEvidenceAuthorityGeneration::new(graph_generation),
+            requests: [UiMountedAllocationMeasurementRequest::new(
+                UiMeasurementEvidenceFamily::ViewportExtent,
+                crate::host::UiHostMeasurementNeed::ViewportExtent(
+                    worth_ui_host_contract::UiViewportExtentRequest,
+                ),
+                crate::host::UiHostMeasurementNormalizationContext::viewport_logical_exact(
+                    assumptions,
+                ),
+            )],
+        }
+    }
+
+    fn collect_inputs(
+        &self,
+        candidate: &NativeReplacementAllocationCandidate,
+        request_ordinal: &mut u64,
+    ) -> Result<
+        Vec<crate::evidence::MeasurementEvidenceInput>,
+        WorthUiMountedAllocationEstablishmentDenial,
+    > {
+        let mut inputs = vec![
+            crate::evidence::MeasurementEvidenceInput::host_capability_report(
+                self.capability.capability_report(),
+            ),
+        ];
+        for family in required_host_families(&candidate.policy) {
+            let request = self
+                .requests
+                .iter()
+                .find(|request| request.evidence_family == family)
+                .ok_or(
+                    WorthUiMountedAllocationEstablishmentDenial::MissingMeasurementRequest(family),
+                )?;
+            let identity = 9_000_u64.checked_add(*request_ordinal).ok_or(
+                WorthUiMountedAllocationEstablishmentDenial::MeasurementRequestIdentityExhausted,
+            )?;
+            *request_ordinal = request_ordinal.checked_add(1).ok_or(
+                WorthUiMountedAllocationEstablishmentDenial::MeasurementRequestIdentityExhausted,
+            )?;
+            let result = self
+                .collector
+                .collect(
+                    self.capability.adapter(),
+                    crate::host::UiHostMeasurementCollectionInput {
+                        identity: UiMeasurementRequestIdentity::new(identity),
+                        evidence_family: request.evidence_family,
+                        need: request.need.clone(),
+                        capability_report: self.capability.capability_report(),
+                        evidence_generation: self.generation,
+                        normalization_context: request.normalization_context,
+                    },
+                )
+                .map_err(WorthUiMountedAllocationEstablishmentDenial::HostMeasurement)?;
+            inputs
+                .push(crate::evidence::MeasurementEvidenceInput::host_measurement_result(&result));
+        }
+        Ok(inputs)
+    }
+}
+
 fn candidate_inputs(
     prepared: &WorthUiPreparedApplicationReplacement,
 ) -> Result<Vec<NativeReplacementAllocationCandidate>, WorthUiMountedAllocationEstablishmentDenial>
 {
     let mut candidates = Vec::new();
     for node in prepared.candidate_graph().node_identities() {
-        let graph = prepared.candidate_graph();
-        let record = graph
-            .lookup()
-            .graph_node(node)
-            .expect("candidate graph node remains addressable");
-        let declaration = record.value().declaration_identity().clone();
-        let Some(policy) = prepared
-            .candidate_declaration_artifacts()
-            .iter()
-            .find(|artifact| artifact.identity() == &declaration)
-            .and_then(|artifact| artifact.graph_handoff().ok())
-            .and_then(|handoff| handoff.measurement_policy().admitted().cloned())
-        else {
-            continue;
-        };
-        let touch = prepared
-            .try_candidate_allocation_touch_for_node(node)
-            .map_err(WorthUiMountedAllocationEstablishmentDenial::CandidateTouch)?;
-        let selected = prepared.candidate_admission().select_obligations(&touch);
-        let prior = record
-            .value()
-            .participation_posture()
-            .axis(crate::graph::UiGraphParticipationAxis::Mounted);
-        let transition = graph
-            .mount_eligibility_transition_for_node(
-                node,
-                prior,
-                crate::graph::UiGraphAxisParticipation::runtime_mutation(
-                    crate::graph::UiGraphParticipationStatus::Admitted,
-                ),
-            )
-            .ok_or(
-                WorthUiMountedAllocationEstablishmentDenial::MissingCandidateMountTransition(node),
-            )?;
-        candidates.push(NativeReplacementAllocationCandidate {
-            declaration,
-            node,
-            selected,
-            transition,
-            policy,
-        });
+        if let Some(candidate) = candidate_input(prepared, node)? {
+            candidates.push(candidate);
+        }
     }
     if candidates.is_empty() {
         Err(WorthUiMountedAllocationEstablishmentDenial::NoAllocationPlanningNodes)
     } else {
         Ok(candidates)
     }
+}
+
+fn candidate_input(
+    prepared: &WorthUiPreparedApplicationReplacement,
+    node: crate::graph::UiGraphNodeIdentity,
+) -> Result<Option<NativeReplacementAllocationCandidate>, WorthUiMountedAllocationEstablishmentDenial>
+{
+    let graph = prepared.candidate_graph();
+    let record = graph
+        .lookup()
+        .graph_node(node)
+        .expect("candidate graph node remains addressable");
+    let declaration = record.value().declaration_identity().clone();
+    let Some(policy) = prepared
+        .candidate_declaration_artifacts()
+        .iter()
+        .find(|artifact| artifact.identity() == &declaration)
+        .and_then(|artifact| artifact.graph_handoff().ok())
+        .and_then(|handoff| handoff.measurement_policy().admitted().cloned())
+    else {
+        return Ok(None);
+    };
+    let touch = prepared
+        .try_candidate_allocation_touch_for_node(node)
+        .map_err(WorthUiMountedAllocationEstablishmentDenial::CandidateTouch)?;
+    let selected = prepared.candidate_admission().select_obligations(&touch);
+    let prior = record
+        .value()
+        .participation_posture()
+        .axis(crate::graph::UiGraphParticipationAxis::Mounted);
+    let transition = candidate_mount_transition(graph, node, prior)?;
+    Ok(Some(NativeReplacementAllocationCandidate {
+        declaration,
+        node,
+        selected,
+        transition,
+        policy,
+    }))
+}
+
+fn candidate_mount_transition(
+    graph: crate::graph::UiGraphAuthority<'_>,
+    node: crate::graph::UiGraphNodeIdentity,
+    prior: crate::graph::UiGraphAxisParticipation,
+) -> Result<
+    Option<crate::graph::UiGraphMountEligibilityTransition>,
+    WorthUiMountedAllocationEstablishmentDenial,
+> {
+    if prior.status() == crate::graph::UiGraphParticipationStatus::Admitted {
+        return Ok(None);
+    }
+    graph
+        .mount_eligibility_transition_for_node(
+            node,
+            prior,
+            crate::graph::UiGraphAxisParticipation::runtime_mutation(
+                crate::graph::UiGraphParticipationStatus::Admitted,
+            ),
+        )
+        .map(Some)
+        .ok_or(WorthUiMountedAllocationEstablishmentDenial::MissingCandidateMountTransition(node))
 }
 
 fn required_host_families(

@@ -41,7 +41,7 @@ fn committed_scroll_truth_enters_observation_without_runtime_effects() {
     let mut repeated = runtime.begin_observation_turn(session, 77).unwrap();
     assert_eq!(
         repeated.admit_committed_runtime_state(),
-        Err(crate::runtime::observation::UiObservationAdmissionDenial::HistoricalOwnerOrder)
+        Err(crate::runtime::observation::UiObservationAdmissionDenial::DuplicateOwnerOrder)
     );
 }
 

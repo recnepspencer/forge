@@ -21,19 +21,31 @@ fn equal_candidate_values_do_not_reopen_prepared_artifact_authority() {
         ))
         .expect("semantically equal foreign candidate prepares");
     assert_eq!(
-        first.admitted.candidate().basis(),
-        second.admitted.candidate().basis()
+        first.semantic_input.admitted().candidate().basis(),
+        second.semantic_input.admitted().candidate().basis()
     );
     let authority = first.next_app.prepared_authority().lowering_authority();
-    assert!(authority.admits_candidate(&first.admitted));
+    assert!(authority.admits_candidate(first.semantic_input.admitted()));
     assert!(authority.admits_launch_artifact(
-        first.admitted.artifact_bundle().artifact(),
-        first.admitted.artifact_bundle().artifact_digest(),
+        first.semantic_input.admitted().artifact_bundle().artifact(),
+        first
+            .semantic_input
+            .admitted()
+            .artifact_bundle()
+            .artifact_digest(),
     ));
-    assert!(!authority.admits_candidate(&second.admitted));
+    assert!(!authority.admits_candidate(second.semantic_input.admitted()));
     assert!(!authority.admits_launch_artifact(
-        second.admitted.artifact_bundle().artifact(),
-        second.admitted.artifact_bundle().artifact_digest(),
+        second
+            .semantic_input
+            .admitted()
+            .artifact_bundle()
+            .artifact(),
+        second
+            .semantic_input
+            .admitted()
+            .artifact_bundle()
+            .artifact_digest(),
     ));
 }
 

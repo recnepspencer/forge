@@ -38,7 +38,7 @@ disposition = "retain"
 # denial types required to derive node capture authority without runtime imports.
 # Milestone 3.12 adds profile typestate plus active-session observation and
 # planning entrypoints while constructors and execution stay owner-controlled.
-fingerprint = "c37ca14452717221"
+fingerprint = "1c07b78d1ad70c12"
 forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
 
 [[surface]]
@@ -67,7 +67,7 @@ disposition = "split"
 exit_phase = 5
 # Milestone 3.11 adds curated query, receipt, target, grant, and linear capture
 # types without exporting runtime-owned construction authority.
-fingerprint = "e2f4aea18a327b4a"
+fingerprint = "8e66e85b95569304"
 forbidden_shortcut = "export certification-only reconstruction or mutable runtime authority"
 
 [[surface]]
@@ -153,7 +153,7 @@ file = "facade/rebind.rs"
 audience = "advanced-application-author"
 responsibility = "typed change profiles, owner facts, affected scope, immutable plans, and caller execution policy"
 disposition = "retain"
-fingerprint = "be7c34acb58b0952"
+fingerprint = "a176573ed1e23e06"
 forbidden_shortcut = "export classifiers, plan constructors, executors, raw scope construction, or mutable runtime authority"
 
 [[surface]]
@@ -267,7 +267,7 @@ expected_files = 62
 # successor visual-identity scenario sources from historical closing counts.
 # Milestone 3.12 adds its authored-identity, rebind-profile, and post-
 # classification-cost scenario sources to the same explicit successor boundary.
-content_fingerprint = "f5220368c4567877"
+content_fingerprint = "3b53b0121a50a8f3"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
@@ -285,7 +285,7 @@ expected_files = 8
 # Phase 2 recognizes the bounded serialization dependencies added by the
 # observation-only library contract. Milestone 3.11 updates the exact
 # nondegenerate pulse row and byte-cost witnesses.
-content_fingerprint = "4682e238dc8916f2"
+content_fingerprint = "3fdfb3c04e3d11fa"
 audience = "certification-support"
 responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
 disposition = "retain"
@@ -310,7 +310,7 @@ expected_files = 5
 # Milestone 3.11 recognizes the product-owned permanent visual pulse contract
 # without admitting executable-world or workflow authority. Milestone 3.12
 # replaces the predecessor source-lowering denial with its typed attempt failure.
-content_fingerprint = "499c099790a75294"
+content_fingerprint = "3bd6b8e792aa5b11"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -332,7 +332,7 @@ id = "certification-topology-3103-watched-replacement"
 path = "topology/milestone_3103_watched_replacement"
 match = "directory"
 expected_files = 4
-content_fingerprint = "4e68d7c8d91e0d8a"
+content_fingerprint = "99e343d3b5e633be"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 watched replacement, denial preservation, recovery, and normal-close topology"
 disposition = "retain"

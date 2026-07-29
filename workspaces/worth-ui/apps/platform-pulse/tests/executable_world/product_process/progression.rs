@@ -1,9 +1,9 @@
 use crate::adjudication::{
     ExecutableFirstFrameEvidence, ExecutableLifecycleCleanupEvidence,
     ExecutablePredecessorPreservationEvidence, ExecutableReplacementEvidence,
-    ExecutableVisualClearEvidence, ExecutableVisualOverlayEvidence,
-    ExecutableVisualRetirementEvidence, ExecutableVisualSnapshotEvidence,
-    ExecutableVisualTraceEvidence,
+    ExecutableVisualClearEvidence, ExecutableVisualComparisonEvidence,
+    ExecutableVisualOverlayEvidence, ExecutableVisualRetirementEvidence,
+    ExecutableVisualSnapshotEvidence, ExecutableVisualTraceEvidence,
 };
 use crate::external_observation::PlatformPulseLifecycleStream;
 use crate::failure_teardown::{
@@ -92,6 +92,7 @@ pub(crate) struct AwaitingReplacement {
 pub(crate) struct GreenSuccessor {
     pub(super) initial: OverlayCleared<InitialBlue>,
     pub(super) evidence: ExecutableReplacementEvidence<GreenPulseSourceDelta>,
+    pub(super) comparison: ExecutableVisualComparisonEvidence,
     pub(super) retirement: ExecutableVisualRetirementEvidence,
 }
 
@@ -209,6 +210,10 @@ impl PulseExecutableWorld<Published<GreenSuccessor>> {
 
     pub(crate) fn retirement_evidence(&self) -> ExecutableVisualRetirementEvidence {
         self.state.stage.retirement
+    }
+
+    pub(crate) fn comparison_evidence(&self) -> ExecutableVisualComparisonEvidence {
+        self.state.stage.comparison
     }
 }
 

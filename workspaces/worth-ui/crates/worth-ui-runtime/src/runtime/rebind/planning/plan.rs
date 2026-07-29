@@ -15,13 +15,23 @@ pub struct UiRebindPlan {
     policy: UiRebindExecutionPolicy,
     budget: crate::runtime::rebind::UiRebindBudgetInput,
     cost: UiRebindPlanCost,
+    source_candidate_artifact_digest: Option<u64>,
     semantic_proof: UiRebindSemanticProof,
 }
 
 pub(crate) enum UiRebindSemanticProof {
-    Changed(Box<crate::runtime::WorthUiReplacementLoweringReady>),
+    Changed(Box<UiChangedRebindSemanticProof>),
     EvidenceOnly(Box<crate::runtime::observation::UiAuthoredSourceSuccession>),
     NonSource,
+    Transferred,
+}
+
+pub(crate) struct UiChangedRebindSemanticProof {
+    pub(crate) successor_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    pub(crate) lowering: crate::runtime::WorthUiReplacementLoweringReady,
+    pub(crate) candidate_graph_changed_nodes:
+        std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
 }
 
 pub(crate) struct UiRebindPlanInput {
@@ -40,6 +50,8 @@ pub(crate) struct UiRebindPlanInput {
 
 impl UiRebindPlan {
     pub(crate) fn new(input: UiRebindPlanInput) -> Self {
+        let source_candidate_artifact_digest = semantic_proof_admitted(&input.semantic_proof)
+            .map(|admitted| admitted.candidate().basis().artifact_digest().raw());
         Self {
             basis: input.basis,
             scope: input.scope,
@@ -51,6 +63,7 @@ impl UiRebindPlan {
             policy: input.policy,
             budget: input.budget,
             cost: input.cost,
+            source_candidate_artifact_digest,
             semantic_proof: input.semantic_proof,
         }
     }
@@ -103,16 +116,42 @@ impl UiRebindPlan {
     }
 
     pub fn source_candidate_artifact_digest(&self) -> Option<u64> {
-        let admitted = match &self.semantic_proof {
-            UiRebindSemanticProof::Changed(lowering) => Some(lowering.admitted()),
-            UiRebindSemanticProof::EvidenceOnly(succession) => succession.admitted_candidate(),
-            UiRebindSemanticProof::NonSource => None,
-        }?;
-        Some(admitted.candidate().basis().artifact_digest().raw())
+        self.source_candidate_artifact_digest
+    }
+
+    pub(crate) fn semantic_candidate_generation(
+        &self,
+    ) -> Option<
+        &crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+    >{
+        match &self.semantic_proof {
+            UiRebindSemanticProof::Changed(changed) => {
+                Some(changed.successor_authority.generation_identity())
+            }
+            UiRebindSemanticProof::EvidenceOnly(succession) => {
+                Some(succession.successor_authority().generation_identity())
+            }
+            UiRebindSemanticProof::NonSource | UiRebindSemanticProof::Transferred => None,
+        }
+    }
+
+    pub(crate) fn take_semantic_proof(&mut self) -> UiRebindSemanticProof {
+        std::mem::replace(&mut self.semantic_proof, UiRebindSemanticProof::Transferred)
     }
 
     #[cfg(test)]
     pub(crate) const fn semantic_proof(&self) -> &UiRebindSemanticProof {
         &self.semantic_proof
+    }
+}
+
+fn semantic_proof_admitted(
+    proof: &UiRebindSemanticProof,
+) -> Option<&crate::runtime::WorthUiAdmittedReplacementCandidate> {
+    match proof {
+        UiRebindSemanticProof::Changed(changed) => Some(changed.lowering.admitted()),
+        UiRebindSemanticProof::EvidenceOnly(succession) => succession.admitted_candidate(),
+        UiRebindSemanticProof::NonSource | UiRebindSemanticProof::Transferred => None,
     }
 }

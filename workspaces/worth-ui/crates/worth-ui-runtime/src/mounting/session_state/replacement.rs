@@ -207,6 +207,29 @@ impl WorthUiMountedSessionState {
             outcome,
         ))
     }
+
+    pub(crate) fn cancel_graph_replacement(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        in_flight: UiMountedGraphReplacementInFlight,
+    ) -> Result<UiMountedGraphReplacementPresentation, UiMountedGraphReplacementCompletionRejection>
+    {
+        let observed = in_flight.handle.clone();
+        let outcome = match self.presentation.cancel(observed, host.effect_port()) {
+            Ok(outcome) => outcome,
+            Err(denial) => {
+                return Err(UiMountedGraphReplacementCompletionRejection {
+                    denial,
+                    in_flight: Box::new(in_flight),
+                });
+            }
+        };
+        Ok(settle_graph_replacement(
+            in_flight.successor,
+            in_flight.publication,
+            outcome,
+        ))
+    }
 }
 
 fn settle_graph_replacement(

@@ -1,9 +1,8 @@
 use eframe::egui;
 use std::fmt;
 use worth_ui::facade::app::{
-    UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationReplacementDenial,
-    WorthUiNativeApplicationReplacementOutcome, WorthUiNativeApplicationShell,
-    WorthUiNativeApplicationShellLaunchDenial,
+    UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationShell,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeSourceRebindDenial,
 };
 use worth_ui::facade::source::{WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision};
 use worth_ui_host_egui::WorthUiHostEgui;
@@ -19,6 +18,10 @@ use crate::source_watch::{
 use crate::visual_identity_execution::{
     PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
 };
+
+mod rebind;
+
+use rebind::{normalize_rebind, PlatformPulseRebindAction};
 
 pub(crate) struct PlatformPulseNativeFrame {
     prepared: Option<WorthUiApp>,
@@ -40,7 +43,7 @@ enum PlatformPulseTerminalError {
     SourceWatcher(WorthUiFilesystemWatcherDenial),
     FrameExecution,
     UnexpectedInitialFrame,
-    NativeReplacement(WorthUiNativeApplicationReplacementDenial),
+    NativeRebind(WorthUiNativeSourceRebindDenial),
     VisualIdentity(PlatformPulseVisualExecutionDenial),
     ObservationPublication,
 }
@@ -57,8 +60,8 @@ impl fmt::Display for PlatformPulseTerminalError {
             Self::SourceWatcher(denial) => write!(formatter, "source watcher: {denial:?}"),
             Self::FrameExecution => formatter.write_str("mounted frame execution"),
             Self::UnexpectedInitialFrame => formatter.write_str("initial frame did not publish"),
-            Self::NativeReplacement(denial) => {
-                write!(formatter, "native application replacement: {denial:?}")
+            Self::NativeRebind(denial) => {
+                write!(formatter, "native source rebind: {denial:?}")
             }
             Self::VisualIdentity(denial) => {
                 write!(formatter, "visual identity pulse: {denial}")
@@ -158,17 +161,20 @@ impl PlatformPulseNativeFrame {
         &mut self,
         snapshot: Box<worth_ui::facade::source::WorthUiSettledSourceSnapshot>,
     ) {
-        let Some(shell) = self.shell.as_mut() else {
+        let Some(mut shell) = self.shell.take() else {
             return;
         };
         let source = snapshot.source_revision().clone();
-        let submission = match (*snapshot)
-            .attempt_source_rebind(shell.capabilities())
-            .into_candidate_submission()
-        {
-            Ok(submission) => submission,
-            Err(denial) => {
-                let observation = self.publisher.preserved_predecessor(&source, &denial);
+        self.tick = self.tick.saturating_add(1);
+        let deadline = self.tick.saturating_add(1);
+        let action = normalize_rebind(&mut shell, *snapshot, deadline, self.tick);
+        self.shell = Some(shell);
+        match action {
+            PlatformPulseRebindAction::SourceDenied(denial) => {
+                let failure = denial
+                    .source_failure()
+                    .expect("source-denied action retains exact source failure");
+                let observation = self.publisher.preserved_predecessor(&source, failure);
                 if let Err(error) = observation {
                     self.fail(
                         PlatformPulseTerminalError::ObservationPublication,
@@ -176,38 +182,51 @@ impl PlatformPulseNativeFrame {
                     );
                 } else {
                     eprintln!(
-                        "WORTH UI platform pulse kept its predecessor after source denial: {denial:?}"
+                        "WORTH UI platform pulse kept its predecessor after source denial: {failure:?}"
                     );
                 }
-                return;
             }
-        };
-        self.tick = self.tick.saturating_add(1);
-        let deadline = self.tick.saturating_add(1);
-        match shell.replace_application(submission, deadline, self.tick) {
-            Ok(WorthUiNativeApplicationReplacementOutcome::Published {
-                application,
-                mounted,
-            }) => {
-                if let Err(error) = self.publisher.replacement(&source, &application, &mounted) {
+            PlatformPulseRebindAction::Published(receipt) => {
+                let publication = self.publisher.replacement(
+                    &source,
+                    receipt
+                        .application_publication()
+                        .expect("changed native rebind publishes application evidence"),
+                    receipt
+                        .mounted_publication()
+                        .expect("changed native rebind publishes mounted evidence"),
+                );
+                if let Err(error) = publication {
                     self.fail(
                         PlatformPulseTerminalError::ObservationPublication,
                         Err(error),
                     );
                     return;
                 }
-                if let Err(denial) = self
-                    .visual_identity
-                    .retire_after_replacement(shell, &self.publisher)
-                {
+                let shell = self
+                    .shell
+                    .as_mut()
+                    .expect("normalized rebind restores the native shell");
+                if let Err(denial) = self.visual_identity.compare_after_rebind(
+                    shell,
+                    receipt,
+                    self.tick,
+                    std::time::Instant::now(),
+                ) {
                     self.fail_visual_identity(denial);
                 }
             }
-            Ok(WorthUiNativeApplicationReplacementOutcome::SemanticNoOp(_)) => {}
-            Err(denial) => {
-                let observation = self.publisher.native_replacement_failure(&denial);
+            PlatformPulseRebindAction::ObservedNoChange => {}
+            PlatformPulseRebindAction::NonterminalDisposed => {
                 self.fail(
-                    PlatformPulseTerminalError::NativeReplacement(denial),
+                    PlatformPulseTerminalError::ObservationPublication,
+                    self.publisher.native_rebind_outcome_failure(),
+                );
+            }
+            PlatformPulseRebindAction::Denied(denial) => {
+                let observation = self.publisher.native_rebind_failure(&denial);
+                self.fail(
+                    PlatformPulseTerminalError::NativeRebind(denial),
                     observation,
                 );
             }

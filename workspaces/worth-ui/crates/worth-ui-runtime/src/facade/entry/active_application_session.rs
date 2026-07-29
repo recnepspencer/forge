@@ -22,6 +22,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) next_visual_overlay_identity: u64,
     pub(super) visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry,
     pub(super) visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry,
+    pub(super) rebind: crate::runtime::rebind::UiRebindRuntimeState,
 }
 
 /// Inspection evidence bound to the exact generation currently executing.
@@ -42,6 +43,7 @@ impl WorthUiActiveApplicationSession {
         let mounted_frame_retention_budget = app.mounted_frame_retention_budget();
         let host_observation_capacity = app.host_observation_capacity();
         let visual_policy = app.visual_inspection_policy();
+        let rebind_profile = app.prepared_authority().change_profile().rebind();
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
@@ -69,6 +71,7 @@ impl WorthUiActiveApplicationSession {
                 visual_policy,
             ),
             visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry::new(),
+            rebind: crate::runtime::rebind::UiRebindRuntimeState::new(rebind_profile),
         })
     }
 
@@ -309,6 +312,7 @@ impl WorthUiActiveApplicationSession {
     }
 
     pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
+        let rebind = self.rebind.shutdown();
         let visual_capture = self.visual_captures.shutdown();
         let visual_overlay = self.visual_overlays.shutdown();
         let (mounted_presentation, outcomes) =
@@ -325,6 +329,7 @@ impl WorthUiActiveApplicationSession {
             .bind_visual_overlay(visual_overlay)
             .bind_mounted_presentation(mounted_presentation)
             .bind_host_session_release(host_session_release)
+            .bind_rebind(rebind)
     }
 }
 

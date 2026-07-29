@@ -1,7 +1,7 @@
 use super::{empty_artifact, framework_from_artifact};
 
 #[test]
-fn admission_is_effect_free_historical_and_leaves_handoff_retryable() {
+fn admission_is_effect_free_duplicate_and_leaves_handoff_retryable() {
     let mut fixture = worth_ui_query_binding::certification::WorthUiOperationLiveTestFixture::new(
         "observation-query-admission",
     );
@@ -50,7 +50,7 @@ fn admission_is_effect_free_historical_and_leaves_handoff_retryable() {
         repeated.admit_query(replay),
         Err(
             crate::runtime::observation::UiQueryObservationAdmissionStop::Observation(
-                crate::runtime::observation::UiObservationAdmissionDenial::HistoricalOwnerOrder
+                crate::runtime::observation::UiObservationAdmissionDenial::DuplicateOwnerOrder
             )
         )
     ));
@@ -59,7 +59,7 @@ fn admission_is_effect_free_historical_and_leaves_handoff_retryable() {
     let retry = runtime
         .query_binding
         .retry_operation_live_change_handoff(&reference)
-        .expect("historical rejection leaves the Query handoff retryable");
+        .expect("duplicate rejection leaves the Query handoff retryable");
     runtime
         .query_binding
         .admit_operation_live_change(retry)

@@ -89,6 +89,9 @@ pub(crate) fn seal_cleared_overlay(
 ) -> UiClearedVisualOverlayReceipt {
     UiClearedVisualOverlayReceipt {
         identity: clearing.identity,
+        session: clearing.selection.session,
+        base_snapshot: clearing.selection.base_snapshot,
+        base_frame: clearing.selection.presentation.frame,
         published_frame: clearing.published_frame,
         cleared_frame,
         cost: cleared_overlay_cost(),

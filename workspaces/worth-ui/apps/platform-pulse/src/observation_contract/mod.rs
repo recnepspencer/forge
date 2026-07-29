@@ -9,6 +9,7 @@ mod visual_tests;
 mod visual_value_projection;
 
 pub use envelope::{
+    PlatformPulseDecodedLifecycleObservation, PlatformPulseInheritedLifecycleOnly,
     PlatformPulseLifecycleObservationCodecDenial, PlatformPulseLifecycleObservationEnvelope,
     PlatformPulseLifecycleObservationProtocol, PlatformPulseObservationRunIdentity,
     PlatformPulseObservationSequence, PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY,
@@ -23,7 +24,7 @@ pub use lifecycle::{
     PlatformPulseReplacementPreserved, PlatformPulseReplacementPublished,
     PlatformPulseShutdownCompleted, PlatformPulseSourceSnapshotObservation,
     PlatformPulseTerminalFailure, PlatformPulseTerminalFailureFamily,
-    PlatformPulseWatcherBackendObservation,
+    PlatformPulseVisualComparison, PlatformPulseWatcherBackendObservation,
 };
 pub use projection::{
     PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,

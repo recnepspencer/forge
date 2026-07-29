@@ -3,10 +3,11 @@ use super::{
     currentness::{require_classification_currentness, require_scope_currentness},
     effect_compiler::{compile_conflicts, compile_effects, compile_parallel_admission},
     subsystem_compiler::compile_subsystems,
-    UiRebindConflictFootprint, UiRebindEffectSet, UiRebindExecutionPolicy,
-    UiRebindParallelAdmission, UiRebindPlan, UiRebindPlanBasis, UiRebindPlanCost,
-    UiRebindPlanInput, UiRebindPlanTarget, UiRebindPlanningContext, UiRebindPlanningDenial,
-    UiRebindSemanticProof, UiRebindSubsystemKind, UiRebindSubsystemPlan,
+    UiChangedRebindSemanticProof, UiRebindCandidatePreparationDenial, UiRebindConflictFootprint,
+    UiRebindEffectSet, UiRebindExecutionPolicy, UiRebindParallelAdmission, UiRebindPlan,
+    UiRebindPlanBasis, UiRebindPlanCost, UiRebindPlanInput, UiRebindPlanTarget,
+    UiRebindPlanningContext, UiRebindPlanningDenial, UiRebindSemanticProof, UiRebindSubsystemKind,
+    UiRebindSubsystemPlan,
 };
 use crate::runtime::rebind::UiResolvedIdentityLifecycle;
 
@@ -23,11 +24,13 @@ impl UiRebindPlanCompiler {
         require_policy_session(context.session(), policy)?;
         let budget = context.budget();
         require_terminal_decision_budget(&identity_decisions, budget)?;
+        let semantic_proof = finish_semantic_proof(context.runtime(), &mut scope)?;
         let basis = UiRebindPlanBasis::new(
             scope.basis().classification().clone(),
-            scope.basis().candidate_generation().clone(),
+            semantic_proof_candidate_generation(&semantic_proof)
+                .unwrap_or_else(|| scope.basis().candidate_generation())
+                .clone(),
         );
-        let semantic_proof = finish_semantic_proof(context.runtime(), &mut scope)?;
         let binding_targets = binding_targets(&semantic_proof);
         let subsystems = compile_subsystems(&scope, &identity_decisions, binding_targets);
         require_compiled_plan_budget(&scope, &subsystems, budget)?;
@@ -110,25 +113,57 @@ fn finish_semantic_proof(
     let Some(succession) = scope.take_source_succession() else {
         return Ok(UiRebindSemanticProof::NonSource);
     };
-    let Some((candidate, _comparison, replacement)) = succession.into_changed_parts() else {
+    let Some((mut candidate, _comparison, replacement)) = succession.into_changed_parts() else {
         return Err(UiRebindPlanningDenial::WrongSourceSuccessionPosture);
     };
+    let candidate_graph_changed_nodes =
+        candidate.prepare_rebind_mount_eligibility().map_err(|_| {
+            UiRebindPlanningDenial::CandidatePreparation(
+                UiRebindCandidatePreparationDenial::MountEligibility,
+            )
+        })?;
     let lowering = runtime
         .finish_precomputed_replacement_lowering(replacement, &candidate)
         .map_err(|denial| UiRebindPlanningDenial::Replacement(Box::new(denial)))?;
-    Ok(UiRebindSemanticProof::Changed(Box::new(lowering)))
+    Ok(UiRebindSemanticProof::Changed(Box::new(
+        UiChangedRebindSemanticProof {
+            successor_authority: candidate,
+            lowering,
+            candidate_graph_changed_nodes,
+        },
+    )))
 }
 
 fn binding_targets(proof: &UiRebindSemanticProof) -> Vec<UiRebindPlanTarget> {
-    let UiRebindSemanticProof::Changed(lowering) = proof else {
+    let UiRebindSemanticProof::Changed(changed) = proof else {
         return Vec::new();
     };
-    lowering
+    changed
+        .lowering
         .query_rebind_plan()
         .entries()
         .iter()
         .map(|entry| UiRebindPlanTarget::QueryBinding(entry.identity().view_binding_id().into()))
         .collect()
+}
+
+fn semantic_proof_candidate_generation(
+    proof: &UiRebindSemanticProof,
+) -> Option<
+    &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+> {
+    match proof {
+        UiRebindSemanticProof::Changed(changed) => {
+            Some(changed.successor_authority.generation_identity())
+        }
+        UiRebindSemanticProof::EvidenceOnly(succession) => {
+            Some(succession.successor_authority().generation_identity())
+        }
+        UiRebindSemanticProof::NonSource => None,
+        UiRebindSemanticProof::Transferred => {
+            unreachable!("planning never receives a transferred semantic proof")
+        }
+    }
 }
 
 fn compile_cost(

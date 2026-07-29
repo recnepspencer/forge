@@ -37,11 +37,21 @@ fn changed_scope_compiles_one_complete_immutable_rebind_plan() {
     assert!(plan.scope().is_some());
     assert_complete_subsystem_partition(&plan);
     assert_complete_effect_contract(&plan);
-    let UiRebindSemanticProof::Changed(lowering) = plan.semantic_proof() else {
+    let UiRebindSemanticProof::Changed(changed) = plan.semantic_proof() else {
         panic!("changed source planning must carry the existing replacement proof")
     };
-    assert!(lowering.node_plan().is_unambiguous());
-    assert_eq!(lowering.node_plan().candidate_structural_node_count(), 1);
+    assert!(changed.lowering.node_plan().is_unambiguous());
+    assert_eq!(
+        changed
+            .lowering
+            .node_plan()
+            .candidate_structural_node_count(),
+        1
+    );
+    assert_eq!(
+        changed.successor_authority.generation_identity(),
+        plan.basis().candidate_generation()
+    );
     assert_eq!(plan.cost().graph_and_mounted_entries(), 4);
     assert_eq!(session.generation_identity(), &predecessor);
     drop(plan);
@@ -93,8 +103,6 @@ fn evidence_only_source_compiles_complete_structurally_empty_plan() {
 fn rebind_execution_policy_is_complete_and_mechanism_free() {
     let mut session = crate::runtime::tests::active_application_session_test_support::
         source_backed_component_session();
-    let foreign =
-        crate::runtime::tests::active_application_session_test_support::source_backed_component_session();
     let deadline = session.rebind_deadline_at(144);
     let cancellation = session.rebind_cancellation_request();
     let policy = UiRebindExecutionPolicy::ordinary()
@@ -157,8 +165,16 @@ fn rebind_execution_policy_is_complete_and_mechanism_free() {
         ]
     );
     drop(plan);
+    let _ = session.shutdown();
+}
 
-    let foreign_policy = policy
+#[test]
+fn rebind_execution_policy_rejects_foreign_session_authority() {
+    let mut session = crate::runtime::tests::active_application_session_test_support::
+        source_backed_component_session();
+    let foreign = crate::runtime::tests::active_application_session_test_support::
+        source_backed_component_session();
+    let policy = UiRebindExecutionPolicy::ordinary()
         .with_deadline(foreign.rebind_deadline_at(144))
         .with_cancellation(foreign.rebind_cancellation_request());
     let candidate = crate::runtime::tests::active_application_session_test_support::
@@ -180,7 +196,7 @@ fn rebind_execution_policy_is_complete_and_mechanism_free() {
         .resolve_identity_lifecycle()
         .unwrap();
     assert!(matches!(
-        session.compile_rebind_plan(lifecycle, foreign_policy),
+        session.compile_rebind_plan(lifecycle, policy),
         Err(UiRebindPlanningDenial::ForeignExecutionPolicySession)
     ));
     let _ = session.shutdown();
@@ -254,7 +270,7 @@ fn assert_complete_effect_contract(plan: &super::UiRebindPlan) {
     assert!(effect_count > 0);
     assert_eq!(plan.conflicts().writes().len(), effect_count);
     assert!(plan.conflicts().reads().len() >= effect_count);
-    assert!(plan.conflicts().invalidations().len() > 0);
+    assert!(!plan.conflicts().invalidations().is_empty());
     assert_eq!(plan.cost().selected_decisions(), 4);
     assert_eq!(plan.cost().graph_and_mounted_entries(), 4);
     assert_eq!(plan.cost().measurement_and_allocation_entries(), 4);
