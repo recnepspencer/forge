@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use super::super::generation_identity::WorthUiPreparedGenerationIdentityInput;
@@ -19,6 +20,11 @@ pub(crate) enum WorthUiPreparedApplicationGraphSuccessorDenial {
     StaleGraphPredecessor,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiPreparedRebindGraphDenial {
+    MountEligibility(crate::graph::UiGraphMountEligibilityAdmissionDenial),
+}
+
 impl WorthUiPreparedApplicationGraphSuccessor {
     pub(crate) fn graph_snapshot(&self) -> &crate::graph::UiGraphSnapshot {
         &self.graph_snapshot
@@ -30,6 +36,56 @@ impl WorthUiPreparedApplicationGraphSuccessor {
 }
 
 impl WorthUiPreparedApplicationAuthority {
+    pub(crate) fn prepare_rebind_mount_eligibility(
+        &mut self,
+    ) -> Result<BTreeSet<crate::graph::UiGraphNodeIdentity>, WorthUiPreparedRebindGraphDenial> {
+        let graph = crate::graph::UiGraphAuthority::new(&self.graph_snapshot);
+        let mut changed_nodes = BTreeSet::new();
+        let mut transitions = Vec::new();
+        for node in graph.node_identities() {
+            let record = graph
+                .lookup()
+                .graph_node(node)
+                .expect("prepared graph node remains addressable");
+            let record_value = record.value();
+            let declaration = record_value.declaration_identity();
+            let participates_in_allocation = self
+                .declaration_artifacts
+                .iter()
+                .find(|artifact| artifact.identity() == declaration)
+                .and_then(|artifact| artifact.graph_handoff().ok())
+                .is_some_and(|handoff| handoff.measurement_policy().admitted().is_some());
+            if !participates_in_allocation {
+                continue;
+            }
+            let prior = record_value
+                .participation_posture()
+                .axis(crate::graph::UiGraphParticipationAxis::Mounted);
+            if prior.status() == crate::graph::UiGraphParticipationStatus::Admitted {
+                continue;
+            }
+            let transition = graph
+                .mount_eligibility_transition_for_node(
+                    node,
+                    prior,
+                    crate::graph::UiGraphAxisParticipation::runtime_mutation(
+                        crate::graph::UiGraphParticipationStatus::Admitted,
+                    ),
+                )
+                .expect("prepared graph node has one mount-eligibility slot");
+            changed_nodes.insert(node);
+            transitions.push(transition);
+        }
+        if transitions.is_empty() {
+            return Ok(changed_nodes);
+        }
+        let committed = graph
+            .commit_mount_eligibility_admissions(transitions)
+            .map_err(WorthUiPreparedRebindGraphDenial::MountEligibility)?;
+        self.advance_graph_snapshot(committed);
+        Ok(changed_nodes)
+    }
+
     pub(crate) fn advance_graph_snapshot(
         &mut self,
         committed: crate::graph::UiGraphMutationCommitResult,
@@ -89,12 +145,14 @@ impl WorthUiPreparedApplicationAuthority {
             WorthUiPreparedGenerationIdentityInput {
                 capability_snapshot: self.capability_snapshot.digest(),
                 canonical_artifact: self.canonical_artifact.identity(),
+                lineage: self.generation_lineage.clone(),
                 declaration_source: self.declaration_source_identity.clone(),
                 semantic_package: self.semantic_handoff.identity().clone(),
                 graph_authority_digest: graph_snapshot.authority_digest(),
                 query_binding_plan: &self.query_binding_plan,
                 host_session_plan: &self.host_session_plan,
                 visual_inspection_policy: self.visual_inspection_policy,
+                change_profile: self.change_profile,
             },
         )
     }

@@ -8,7 +8,7 @@ pub(crate) struct WorthUiArtifactEquivalence {
     basis: WorthUiArtifactEquivalenceBasis,
     left_digest: WorthUiArtifactDigest,
     right_digest: WorthUiArtifactDigest,
-    first_difference: Option<WorthUiArtifactDifference>,
+    differences: Box<[WorthUiArtifactDifference]>,
     metrics: WorthUiArtifactEquivalenceMetrics,
 }
 
@@ -17,14 +17,14 @@ impl WorthUiArtifactEquivalence {
         basis: WorthUiArtifactEquivalenceBasis,
         left_digest: WorthUiArtifactDigest,
         right_digest: WorthUiArtifactDigest,
-        first_difference: Option<WorthUiArtifactDifference>,
+        differences: Vec<WorthUiArtifactDifference>,
         metrics: WorthUiArtifactEquivalenceMetrics,
     ) -> Self {
         Self {
             basis,
             left_digest,
             right_digest,
-            first_difference,
+            differences: differences.into_boxed_slice(),
             metrics,
         }
     }
@@ -45,11 +45,15 @@ impl WorthUiArtifactEquivalence {
     }
 
     pub(crate) fn is_equivalent(&self) -> bool {
-        self.first_difference.is_none() && self.left_digest == self.right_digest
+        self.differences.is_empty() && self.left_digest == self.right_digest
     }
 
     pub(crate) fn first_difference(&self) -> Option<&WorthUiArtifactDifference> {
-        self.first_difference.as_ref()
+        self.differences.first()
+    }
+
+    pub(crate) fn differences(&self) -> &[WorthUiArtifactDifference] {
+        &self.differences
     }
 
     #[cfg(test)]

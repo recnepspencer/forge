@@ -21,6 +21,16 @@ pub trait WorthUiOperationalHostAdapter:
         worth_ui_host_contract::UiHostCaptureCapability::Unsupported
     }
 
+    fn drain_host_observations(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(worth_ui_host_contract::UiHostObservationDrain::empty())
+    }
+
     fn capture_visual_presentation(
         &self,
         _authority: &UiHostAdapterSessionAuthority,
@@ -120,6 +130,16 @@ where
 
     fn visual_capture_capability(&self) -> worth_ui_host_contract::UiHostCaptureCapability {
         self.mechanical_visual_capture_capability()
+    }
+
+    fn drain_host_observations(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        self.drain_mechanical_host_observations(authority.host_session_identity())
     }
 
     fn capture_visual_presentation(

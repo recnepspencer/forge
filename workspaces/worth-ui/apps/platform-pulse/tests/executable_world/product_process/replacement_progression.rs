@@ -3,9 +3,11 @@ use std::time::Instant;
 use worth_ui_platform_pulse::observation_contract::PlatformPulseLifecycleObservationEnvelope;
 
 use crate::adjudication::{
-    adjudicate_replacement, adjudicate_visual_retirement, CausalReplacementObservationSet,
-    ExecutableReplacementEvidence, ExecutableReplacementFailure, ExecutableVisualIdentityFailure,
-    ExecutableVisualRetirementEvidence, ExpectedNativeColor, ReplacementExpectation,
+    adjudicate_replacement, adjudicate_successor_visual_snapshot, adjudicate_visual_comparison,
+    adjudicate_visual_retirement, CausalReplacementObservationSet, ExecutableReplacementEvidence,
+    ExecutableReplacementFailure, ExecutableVisualComparisonEvidence,
+    ExecutableVisualIdentityFailure, ExecutableVisualRetirementEvidence, ExpectedNativeColor,
+    ReplacementExpectation,
 };
 use crate::failure_teardown::{
     teardown_native_bound_world, PulseExecutableWorldFailure, PulseExecutableWorldFailureReport,
@@ -23,6 +25,8 @@ use super::{
 
 struct WatchedReplacementObservation {
     envelope: PlatformPulseLifecycleObservationEnvelope,
+    successor_snapshot: Option<PlatformPulseLifecycleObservationEnvelope>,
+    comparison: Option<PlatformPulseLifecycleObservationEnvelope>,
     retirement: Option<PlatformPulseLifecycleObservationEnvelope>,
     native: WatchedNativeObservation,
 }
@@ -46,7 +50,7 @@ impl PulseExecutableWorld<AwaitingReplacement> {
             Ok(observed) => observed,
             Err(primary) => return Err(teardown(world, primary)),
         };
-        let (evidence, retirement) = match green_evidence(action, &initial, observed) {
+        let (evidence, comparison, retirement) = match green_evidence(action, &initial, observed) {
             Ok(evidence) => evidence,
             Err(primary) => return Err(teardown(world, primary)),
         };
@@ -56,6 +60,7 @@ impl PulseExecutableWorld<AwaitingReplacement> {
                 stage: GreenSuccessor {
                     initial,
                     evidence,
+                    comparison,
                     retirement,
                 },
             },
@@ -115,21 +120,43 @@ fn observe_replacement(
         deadline,
     )
     .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
-    let retirement = match transition {
-        WatchedPulseTransition::GreenReplacement => Some(
-            await_watched_observation(
-                &mut world.process,
-                &mut world.lifecycle,
-                WatchedPulseTransition::VisualSnapshotRetired,
-                deadline,
-            )
-            .map_err(PulseExecutableWorldFailure::WatchedObservation)?,
+    let (successor_snapshot, comparison, retirement) = match transition {
+        WatchedPulseTransition::GreenReplacement => (
+            Some(
+                await_watched_observation(
+                    &mut world.process,
+                    &mut world.lifecycle,
+                    WatchedPulseTransition::VisualSuccessorSnapshot,
+                    deadline,
+                )
+                .map_err(PulseExecutableWorldFailure::WatchedObservation)?,
+            ),
+            Some(
+                await_watched_observation(
+                    &mut world.process,
+                    &mut world.lifecycle,
+                    WatchedPulseTransition::VisualComparison,
+                    deadline,
+                )
+                .map_err(PulseExecutableWorldFailure::WatchedObservation)?,
+            ),
+            Some(
+                await_watched_observation(
+                    &mut world.process,
+                    &mut world.lifecycle,
+                    WatchedPulseTransition::VisualSnapshotRetired,
+                    deadline,
+                )
+                .map_err(PulseExecutableWorldFailure::WatchedObservation)?,
+            ),
         ),
-        _ => None,
+        _ => (None, None, None),
     };
     let native = observe_watched_native(world)?;
     Ok(WatchedReplacementObservation {
         envelope,
+        successor_snapshot,
+        comparison,
         retirement,
         native,
     })
@@ -142,35 +169,56 @@ fn green_evidence(
 ) -> Result<
     (
         ExecutableReplacementEvidence<GreenPulseSourceDelta>,
+        ExecutableVisualComparisonEvidence,
         ExecutableVisualRetirementEvidence,
     ),
     PulseExecutableWorldFailure,
 > {
+    let WatchedReplacementObservation {
+        envelope,
+        successor_snapshot,
+        comparison,
+        retirement,
+        native,
+    } = observed;
     let causal = CausalReplacementObservationSet::new(
         action,
         initial.initial().evidence.published_identity(),
-        observed.envelope,
+        envelope,
         ReplacementExpectation::green_successor(),
     );
     let evidence = adjudicate_replacement(causal.join_native(
-        observed.native.client,
-        observed.native.liveness,
-        observed.native.pixels,
+        native.client,
+        native.liveness,
+        native.pixels,
         ExpectedNativeColor::Green,
     ))
     .map_err(PulseExecutableWorldFailure::Replacement)?;
-    let retirement = observed
-        .retirement
-        .ok_or(PulseExecutableWorldFailure::VisualIdentity(
-            ExecutableVisualIdentityFailure::WrongEvent("visual snapshot retired"),
+    let successor_snapshot =
+        successor_snapshot.ok_or(PulseExecutableWorldFailure::VisualIdentity(
+            ExecutableVisualIdentityFailure::WrongEvent("successor visual snapshot"),
         ))?;
+    let successor_snapshot = adjudicate_successor_visual_snapshot(
+        successor_snapshot,
+        evidence.replacement().successor_frame().diagnostic_value(),
+    )
+    .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+    let comparison = comparison.ok_or(PulseExecutableWorldFailure::VisualIdentity(
+        ExecutableVisualIdentityFailure::WrongEvent("visual comparison"),
+    ))?;
+    let comparison =
+        adjudicate_visual_comparison(comparison, initial.snapshot_evidence(), &successor_snapshot)
+            .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+    let retirement = retirement.ok_or(PulseExecutableWorldFailure::VisualIdentity(
+        ExecutableVisualIdentityFailure::WrongEvent("visual snapshot retired"),
+    ))?;
     let retirement = adjudicate_visual_retirement(
         retirement,
         initial.snapshot_evidence(),
         evidence.replacement().successor_frame().diagnostic_value(),
     )
     .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
-    Ok((evidence, retirement))
+    Ok((evidence, comparison, retirement))
 }
 
 fn recovery_evidence(

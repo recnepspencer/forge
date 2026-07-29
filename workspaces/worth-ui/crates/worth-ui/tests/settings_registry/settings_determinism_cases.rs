@@ -13,10 +13,12 @@ use super::settings_fixtures::{boolean_workspace_setting, enum_theme_setting, se
 #[test]
 fn equivalent_setting_descriptors_produce_equivalent_defaults() {
     let left = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(boolean_workspace_setting("workspace.setting.wrap_lines"))
         .freeze()
         .expect("application preparation should succeed");
     let right = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(boolean_workspace_setting("workspace.setting.wrap_lines"))
         .freeze()
         .expect("application preparation should succeed");
@@ -38,6 +40,7 @@ fn equivalent_setting_descriptors_produce_equivalent_defaults() {
 #[test]
 fn accepted_settings_are_canonically_ordered_and_inspectable() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(enum_theme_setting("workspace.setting.theme"))
         .register_setting(boolean_workspace_setting("workspace.setting.wrap_lines"))
         .freeze()
@@ -57,10 +60,12 @@ fn accepted_settings_are_canonically_ordered_and_inspectable() {
 #[test]
 fn setting_schema_change_changes_snapshot_digest() {
     let boolean_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(boolean_workspace_setting("workspace.setting.value"))
         .freeze()
         .expect("application preparation should succeed");
     let text_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.value"),
@@ -84,10 +89,12 @@ fn setting_schema_change_changes_snapshot_digest() {
 #[test]
 fn setting_default_value_change_changes_snapshot_digest() {
     let off_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(boolean_workspace_setting("workspace.setting.value"))
         .freeze()
         .expect("application preparation should succeed");
     let on_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.value"),
@@ -114,10 +121,12 @@ fn setting_default_value_change_changes_snapshot_digest() {
 #[test]
 fn setting_surface_metadata_changes_snapshot_digest() {
     let visible_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(boolean_workspace_setting("workspace.setting.metadata"))
         .freeze()
         .expect("application preparation should succeed");
     let hidden_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.metadata"),

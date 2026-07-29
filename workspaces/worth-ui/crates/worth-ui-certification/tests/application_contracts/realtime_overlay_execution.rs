@@ -286,12 +286,15 @@ fn hud_builder_with_policy(
     host: impl WorthUiOperationalHostAdapter + 'static,
 ) -> WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(realtime_component(HUD, rows, cost, budget))
         .with_host(host)
 }
 
 fn scaled_builder(hud_count: usize, ordinary_count: usize) -> WorthUiApplicationBuilder {
-    let mut builder = WorthUi::app().with_host(WorthUiHeadlessHost);
+    let mut builder = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_host(WorthUiHeadlessHost);
     for index in 0..hud_count {
         builder = builder.register_component(realtime_component(
             format!("workspace.component.hud_{index:04}"),
@@ -346,7 +349,7 @@ fn file_app(
         .read()
         .expect("production filesystem reader acquires source");
     let submission = snapshot
-        .lower_to_candidate_submission(capabilities.capabilities())
+        .attempt_candidate_for_certification(capabilities.capabilities())
         .expect("real source lowers through production semantics");
     builder()
         .with_candidate_submission(submission)

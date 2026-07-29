@@ -80,10 +80,16 @@ pub use identity::{
 };
 
 // --- indexes / lookup ---
+pub(crate) use indexes::UiAuthoredDeclarationLookup;
+#[cfg(any(test, feature = "certification-support"))]
+pub use indexes::UiGraphFactLookupCost;
 pub use indexes::{
     UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
-    UiGraphAspectPublisherKind, UiGraphCoreIndexes, UiGraphLookup, UiGraphLookupCostClass,
-    UiGraphLookupFamily, UiGraphLookupReceipt, UiGraphLookupSurface, UiGraphMosaicMembershipIndex,
+    UiGraphAspectPublisherKind, UiGraphConsumedFactIndex, UiGraphCoreIndexes,
+    UiGraphFactConsumerIdentity, UiGraphFactConsumerKey, UiGraphFactConsumerKind,
+    UiGraphFactIndexBasis, UiGraphFactIndexEntry, UiGraphFactLookupDenial,
+    UiGraphFactLookupReceipt, UiGraphLookup, UiGraphLookupCostClass, UiGraphLookupFamily,
+    UiGraphLookupReceipt, UiGraphLookupSurface, UiGraphMosaicMembershipIndex,
     UiGraphMountEligibilityIndex, UiGraphPageMembershipIndex, UiGraphPageParticipationIndex,
     UiGraphPageParticipationMember, UiGraphParentChildIndex, UiGraphRegionMembershipIndex,
     UiGraphSlotOccupancyIndex,

@@ -1,12 +1,6 @@
 use super::WorthUiHostExchangeSessionState;
 
 impl WorthUiHostExchangeSessionState {
-    pub(crate) fn observation_ingress(
-        &self,
-    ) -> crate::facade::observation_report::WorthUiHostObservationIngress {
-        self.observations.ingress()
-    }
-
     pub(crate) fn validate_observation_batch(
         &mut self,
         batch: worth_ui_host_contract::UiHostObservationBatch,
@@ -44,12 +38,6 @@ impl WorthUiHostExchangeSessionState {
         &self,
     ) -> crate::facade::observation_report::UiHostObservationWorkReport {
         self.observations.work_report()
-    }
-
-    pub(crate) fn drain_observation_ingress(
-        &self,
-    ) -> Vec<worth_ui_host_contract::UiHostObservationBatch> {
-        self.observations.drain_ingress()
     }
 
     pub(crate) fn record_rejected_frame(

@@ -27,7 +27,18 @@ pub(crate) fn platform_pulse_application_builder_with_host<Host>(
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
-    WorthUi::app()
+    platform_pulse_application_builder_with_host_and_unrelated_width(host, 0)
+}
+
+pub(crate) fn platform_pulse_application_builder_with_host_and_unrelated_width<Host>(
+    host: Host,
+    unrelated_width: usize,
+) -> WorthUiApplicationBuilder
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    let mut builder = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(host)
         .register_component(
             component(PLATFORM_PULSE_BACKGROUND_COMPONENT).with_static_paint(
@@ -74,7 +85,11 @@ where
             ThemeTokenFamily::surface(),
             ThemeTokenSource::application(),
             ThemeTokenAlias::to(token_id(PLATFORM_PULSE_BLUE_TOKEN)),
-        ))
+        ));
+    for index in 0..unrelated_width {
+        builder = builder.register_component(component(&unrelated_component_id(index)));
+    }
+    builder
 }
 
 fn component(id: &str) -> ComponentDescriptor {
@@ -99,4 +114,8 @@ fn color_token(id: &str, color: &str) -> ThemeTokenDescriptor {
 
 fn token_id(id: &str) -> ThemeTokenId {
     ThemeTokenId::new(id).expect("valid platform pulse theme token id")
+}
+
+pub(crate) fn unrelated_component_id(index: usize) -> String {
+    format!("platform.pulse.component.unrelated_{index:04}")
 }

@@ -108,7 +108,7 @@ fn product_source_rejects_an_executable_world_feature_branch() {
 #[test]
 fn protocol_rejects_a_missing_lifecycle_outcome() {
     let envelope = r#"
-const SCHEMA_VERSION: u16 = 2;
+const SCHEMA_VERSION: u16 = 3;
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
 const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
 const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
@@ -122,7 +122,8 @@ pub enum PlatformPulseLifecycleObservation {
     VisualOverlayPublished(PlatformPulseVisualOverlayPublished),
     VisualOverlayCleared(PlatformPulseVisualOverlayCleared),
     VisualSnapshotRetired(PlatformPulseVisualSnapshotRetired),
-    ReplacementPublished(PlatformPulseReplacementPublished),
+    RebindPublished(PlatformPulseReplacementPublished),
+    VisualComparison(PlatformPulseVisualComparison),
     ShutdownCompleted(PlatformPulseShutdownCompleted),
     TerminalFailure(PlatformPulseTerminalFailure),
 }
@@ -134,6 +135,7 @@ pub struct PlatformPulseVisualOverlayPublished { value: u64 }
 pub struct PlatformPulseVisualOverlayCleared { value: u64 }
 pub struct PlatformPulseVisualSnapshotRetired { value: u64 }
 pub struct PlatformPulseReplacementPublished { value: u64 }
+pub struct PlatformPulseVisualComparison { value: u64 }
 pub struct PlatformPulseShutdownCompleted { value: u64 }
 pub struct PlatformPulseTerminalFailure { value: u64 }
 "#;
@@ -145,7 +147,7 @@ pub struct PlatformPulseTerminalFailure { value: u64 }
 #[test]
 fn protocol_rejects_public_raw_payload_fields() {
     let envelope = r#"
-const SCHEMA_VERSION: u16 = 2;
+const SCHEMA_VERSION: u16 = 3;
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
 const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
 const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
@@ -159,8 +161,9 @@ pub enum PlatformPulseLifecycleObservation {
     VisualOverlayPublished(PlatformPulseVisualOverlayPublished),
     VisualOverlayCleared(PlatformPulseVisualOverlayCleared),
     VisualSnapshotRetired(PlatformPulseVisualSnapshotRetired),
-    ReplacementPublished(PlatformPulseReplacementPublished),
-    ReplacementDeniedPreserving(PlatformPulseReplacementPreserved),
+    RebindPublished(PlatformPulseReplacementPublished),
+    RebindDeniedPreserving(PlatformPulseReplacementPreserved),
+    VisualComparison(PlatformPulseVisualComparison),
     ShutdownCompleted(PlatformPulseShutdownCompleted),
     TerminalFailure(PlatformPulseTerminalFailure),
 }
@@ -173,6 +176,7 @@ pub struct PlatformPulseVisualOverlayCleared { value: u64 }
 pub struct PlatformPulseVisualSnapshotRetired { value: u64 }
 pub struct PlatformPulseReplacementPublished { value: u64 }
 pub struct PlatformPulseReplacementPreserved { value: u64 }
+pub struct PlatformPulseVisualComparison { value: u64 }
 pub struct PlatformPulseShutdownCompleted { value: u64 }
 pub struct PlatformPulseTerminalFailure { value: u64 }
 "#;
@@ -195,8 +199,8 @@ fn projection_rejects_replacing_a_publication_receipt_with_a_raw_frame() {
 #[test]
 fn projection_rejects_caller_supplied_preserved_generation() {
     let live = canonical_live_projection().replace(
-        "denial: &WorthUiWatchedCandidateSubmissionDenial,",
-        "generation: u64, denial: &WorthUiWatchedCandidateSubmissionDenial,",
+        "denial: &UiSourceRebindAttemptFailure,",
+        "generation: u64, denial: &UiSourceRebindAttemptFailure,",
     );
     let error = source_contract::audit_projection_contract(&live, canonical_terminal(), "")
         .expect_err("preservation must use stream-owned predecessor");
@@ -310,7 +314,7 @@ pub fn project_replacement(
 pub fn project_preserved_predecessor(
     &mut self,
     source: &WorthUiSourcePackageRevision,
-    denial: &WorthUiWatchedCandidateSubmissionDenial,
+    denial: &UiSourceRebindAttemptFailure,
 ) {}
 "#
     .to_owned()

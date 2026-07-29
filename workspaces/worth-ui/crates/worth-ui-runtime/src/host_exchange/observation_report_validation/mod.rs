@@ -1,6 +1,5 @@
 mod basis_admission;
 mod capacity;
-mod ingress;
 mod model;
 mod progression;
 mod retention_admission;
@@ -12,7 +11,6 @@ mod validation;
 mod work_report;
 
 pub use capacity::{UiHostObservationCapacity, UiHostObservationCapacityInput};
-pub use ingress::{UiHostObservationIngressDenial, WorthUiHostObservationIngress};
 pub use model::{
     UiDuplicateHostObservationBatch, UiHostObservationBatchDisposition,
     UiHostObservationDisposition, UiHostObservationFrameRelation, UiHostObservationReportDenial,

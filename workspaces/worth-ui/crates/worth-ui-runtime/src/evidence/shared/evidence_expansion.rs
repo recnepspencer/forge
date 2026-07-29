@@ -77,6 +77,7 @@ mod evidence_expansion_tests {
     #[test]
     fn expand_evidence_ref_returns_wrong_generation_for_stale_generation_bound_refs() {
         let app = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .freeze()
             .expect("application preparation should succeed");
         let stale_generation =
@@ -113,6 +114,7 @@ mod evidence_expansion_tests {
     #[test]
     fn unknown_current_generation_obligation_ref_is_not_reported_as_materialized() {
         let app = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .freeze()
             .expect("application preparation should succeed");
         let current_generation =

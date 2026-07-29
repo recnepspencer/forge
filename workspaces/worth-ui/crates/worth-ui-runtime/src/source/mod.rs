@@ -39,6 +39,7 @@ pub(crate) use dependency::{
     WorthUiIncrementalInvalidationBasis, WorthUiRuntimeDependencyHook,
     WorthUiRuntimeDependencyHookKind,
 };
+pub(crate) use equivalence::WorthUiArtifactEquivalenceDenial;
 pub(crate) use equivalence::{
     WorthUiArtifactDifference, WorthUiArtifactDigest, WorthUiArtifactDigestReport,
     WorthUiArtifactEquivalence, WorthUiArtifactEquivalenceBasis, WorthUiArtifactSemanticDelta,

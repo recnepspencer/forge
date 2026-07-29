@@ -250,6 +250,17 @@ impl WorthUiRuntime {
         self.query_binding.admit_operation_live_change(consequence)
     }
 
+    pub(crate) fn validate_operation_live_change_observation(
+        &self,
+        consequence: worth_ui_query_binding::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiValidatedCollectionChangeObservation,
+        worth_ui_query_binding::WorthUiCollectionChangeAdmissionStop,
+    > {
+        self.query_binding
+            .validate_operation_live_change_observation(consequence)
+    }
+
     pub(super) fn refresh_and_admit_operation_live(
         &mut self,
         request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,

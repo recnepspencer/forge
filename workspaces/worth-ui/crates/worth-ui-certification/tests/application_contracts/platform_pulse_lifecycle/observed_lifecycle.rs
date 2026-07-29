@@ -48,14 +48,20 @@ impl ObservedPulseLifecycle {
             .stream
             .project_replacement(
                 &publication.source,
-                &publication.application,
-                &publication.mounted,
+                publication
+                    .receipt
+                    .application_publication()
+                    .expect("changed rebind has application publication"),
+                publication
+                    .receipt
+                    .mounted_publication()
+                    .expect("changed rebind has mounted publication"),
             )
             .expect("real cutover and mounted receipts project");
         self.assert_next_sequence(&observed);
         assert!(matches!(
             observed.outcome(),
-            PlatformPulseLifecycleObservation::ReplacementPublished(_)
+            PlatformPulseLifecycleObservation::RebindPublished(_)
         ));
     }
 
@@ -63,8 +69,14 @@ impl ObservedPulseLifecycle {
         assert_eq!(
             self.stream.project_replacement(
                 &publication.source,
-                &publication.application,
-                &publication.mounted,
+                publication
+                    .receipt
+                    .application_publication()
+                    .expect("changed rebind has application publication"),
+                publication
+                    .receipt
+                    .mounted_publication()
+                    .expect("changed rebind has mounted publication"),
             ),
             Err(PlatformPulseLifecycleObservationProjectionDenial::PriorGenerationMismatch)
         );
@@ -73,10 +85,16 @@ impl ObservedPulseLifecycle {
     pub(super) fn preservation(&mut self, preservation: &PreservedPulseReplacement) {
         let observed = self
             .stream
-            .project_preserved_predecessor(&preservation.source, &preservation.denial)
+            .project_preserved_predecessor(
+                &preservation.source,
+                preservation
+                    .denial
+                    .source_failure()
+                    .expect("preservation retains exact source denial"),
+            )
             .expect("real malformed-source denial projects predecessor preservation");
         self.assert_next_sequence(&observed);
-        let PlatformPulseLifecycleObservation::ReplacementDeniedPreserving(observed) =
+        let PlatformPulseLifecycleObservation::RebindDeniedPreserving(observed) =
             observed.outcome()
         else {
             panic!("malformed source should project predecessor preservation");
@@ -102,7 +120,10 @@ impl ObservedPulseLifecycle {
         assert_eq!(
             self.stream.project_replacement(
                 &replacement.source,
-                &replacement.application,
+                replacement
+                    .receipt
+                    .application_publication()
+                    .expect("changed rebind has application publication"),
                 wrong_mounted,
             ),
             Err(PlatformPulseLifecycleObservationProjectionDenial::ActiveGenerationMismatch)

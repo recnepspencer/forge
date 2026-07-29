@@ -14,11 +14,13 @@ pub(super) fn file_authored_query_app(
     view: WorthUiInstalledSnapshotQueryView,
 ) -> worth_ui::facade::app::WorthUiApp {
     let capability_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view.clone())
         .expect("the public builder registers installed authority")
         .freeze()
         .expect("capability snapshot preparation should succeed");
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view)
         .expect("the public builder registers installed authority")
         .with_candidate_submission(query_bound_submission(capability_app.capabilities()))
@@ -31,6 +33,7 @@ pub(super) fn file_authored_two_query_view_app(
     second: WorthUiInstalledSnapshotQueryView,
 ) -> worth_ui::facade::app::WorthUiApp {
     let capability_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(first.clone())
         .expect("the first installed view registers")
         .register_query_view(second.clone())
@@ -38,6 +41,7 @@ pub(super) fn file_authored_two_query_view_app(
         .freeze()
         .expect("two-view capability snapshot preparation should succeed");
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(first)
         .expect("the first application view registers")
         .register_query_view(second)
@@ -58,15 +62,17 @@ pub(super) fn query_bound_submission(
         .expect("production filesystem acquisition reads real Query-bound .wui bytes");
     filesystem.close();
     source_snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("Query-bound source lowers to one inseparable candidate submission")
 }
 
 pub(super) fn query_free_app() -> worth_ui::facade::app::WorthUiApp {
     let capability_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("Query-free capability snapshot preparation should succeed");
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(file_submission(
             "query-free-consumer-kit-source",
             "\n",
@@ -88,7 +94,7 @@ fn file_submission(
         .expect("production filesystem acquisition reads real .wui bytes");
     filesystem.close();
     source_snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("the real file source lowers to one candidate submission")
 }
 
@@ -106,7 +112,7 @@ fn two_query_binding_submission(
         .expect("production filesystem acquisition reads both Query bindings");
     filesystem.close();
     source_snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("two Query bindings lower as one candidate submission")
 }
 
@@ -126,6 +132,6 @@ pub(super) fn query_bound_rust_submission(
     ingress
         .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
         .expect("Rust-authored Query source settles")
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("Rust-authored Query source lowers to one candidate submission")
 }

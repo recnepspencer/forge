@@ -19,6 +19,7 @@ use worth_ui_dsl::{
 #[test]
 fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separate() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.admission.support",
@@ -30,6 +31,7 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
         .freeze()
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.admission.support.foreign",

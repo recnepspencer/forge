@@ -13,6 +13,8 @@ mod replacement_progression;
 mod shutdown;
 #[cfg(target_os = "windows")]
 mod source_action_progression;
+#[cfg(all(target_os = "windows", target_env = "msvc"))]
+mod stack_profile;
 #[cfg(target_os = "windows")]
 mod visual_snapshot_progression;
 #[cfg(target_os = "windows")]

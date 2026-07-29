@@ -15,19 +15,19 @@ use super::{
 };
 
 #[test]
-fn schema_v2_snapshot_observation_round_trips_without_pixel_payload_bytes() {
+fn schema_v3_snapshot_observation_round_trips_without_pixel_payload_bytes() {
     let (mut stream, _) = PlatformPulseLifecycleObservationStream::start();
     let envelope = stream
         .next_envelope(PlatformPulseLifecycleObservation::VisualSnapshotCaptured(
             snapshot_observation(),
         ))
         .expect("bounded fixture projects");
-    let encoded = envelope.encode_prefixed_line().expect("bounded v2 encodes");
+    let encoded = envelope.encode_prefixed_line().expect("bounded v3 encodes");
     assert!(encoded.len() < 4_096);
     assert!(!encoded.contains("rgba"));
     assert!(!encoded.contains("screenshot"));
     let decoded =
-        PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(&encoded).expect("v2");
+        PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(&encoded).expect("v3");
     assert_eq!(
         decoded.protocol().schema_version(),
         PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION
@@ -48,7 +48,7 @@ fn replacement_rejects_a_partially_observed_visual_pulse() {
 }
 
 #[test]
-fn cleared_overlay_advances_to_exact_snapshot_retirement_basis() {
+fn cleared_overlay_advances_to_exact_successor_snapshot_basis() {
     let cleared = PlatformPulseVisualObservationState::OverlayCleared {
         snapshot: 7,
         snapshot_frame: 11,
@@ -58,11 +58,13 @@ fn cleared_overlay_advances_to_exact_snapshot_retirement_basis() {
     };
     assert_eq!(
         cleared.after_replacement(15),
-        Ok(PlatformPulseVisualObservationState::AwaitingRetirement {
-            snapshot: 7,
-            snapshot_frame: 11,
-            successor_frame: 15,
-        })
+        Ok(
+            PlatformPulseVisualObservationState::AwaitingSuccessorSnapshot {
+                predecessor_snapshot: 7,
+                predecessor_frame: 11,
+                successor_frame: 15,
+            }
+        )
     );
 }
 

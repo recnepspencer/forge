@@ -10,12 +10,18 @@ pub enum WorthUiRuntimeArtifactComparisonDenial {
         candidate_basis: WorthUiReplacementCandidateBasis,
         counters: WorthUiRuntimeArtifactComparisonCounters,
     },
+    StructuralCapacityExceeded {
+        limit: usize,
+        observed: usize,
+        counters: WorthUiRuntimeArtifactComparisonCounters,
+    },
 }
 
 impl WorthUiRuntimeArtifactComparisonDenial {
     pub fn counters(&self) -> WorthUiRuntimeArtifactComparisonCounters {
         match self {
-            Self::EquivalenceBasisMismatch { counters, .. } => *counters,
+            Self::EquivalenceBasisMismatch { counters, .. }
+            | Self::StructuralCapacityExceeded { counters, .. } => *counters,
         }
     }
 }

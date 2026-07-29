@@ -2,8 +2,9 @@ use std::fmt;
 
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationEnvelope,
-    PlatformPulseVisualIdentityTraceObservation, PlatformPulseVisualPointTrace,
-    PlatformPulseVisualSnapshotCaptured, PlatformPulseVisualSnapshotRetired,
+    PlatformPulseVisualComparison, PlatformPulseVisualIdentityTraceObservation,
+    PlatformPulseVisualPointTrace, PlatformPulseVisualSnapshotCaptured,
+    PlatformPulseVisualSnapshotRetired,
 };
 use worth_ui_platform_pulse::visual_identity_pulse::{
     PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT,
@@ -28,11 +29,31 @@ pub(crate) struct ExecutableVisualRetirementEvidence {
     retirement: PlatformPulseVisualSnapshotRetired,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ExecutableVisualComparisonEvidence {
+    comparison: PlatformPulseVisualComparison,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ExecutableVisualIdentityFailure {
     WrongEvent(&'static str),
-    WrongSequence { expected: u64, observed: u64 },
+    WrongSequence {
+        expected: u64,
+        observed: u64,
+    },
     SnapshotAffinity,
+    ComparisonSnapshotIdentity {
+        expected: [u64; 2],
+        observed: [u64; 2],
+    },
+    ComparisonMeaning {
+        identity_rebound: bool,
+        retained_pixels_differ: Option<bool>,
+    },
+    ComparisonCost {
+        structural_entries_examined: u64,
+        retained_pixel_bytes_examined: u64,
+    },
     SnapshotExtent,
     SnapshotPixelBudget,
     SnapshotIndexCardinality,
@@ -47,8 +68,14 @@ pub(crate) enum ExecutableVisualIdentityFailure {
     RetirementAffinity,
     NativeCaptureExtent,
     NativeProcessIdentity,
-    BorderNotVisible { matching: usize, sampled: usize },
-    BorderStillVisible { matching: usize, sampled: usize },
+    BorderNotVisible {
+        matching: usize,
+        sampled: usize,
+    },
+    BorderStillVisible {
+        matching: usize,
+        sampled: usize,
+    },
     TargetPixelChanged,
     BackgroundPixelChanged,
 }
@@ -57,7 +84,22 @@ pub(crate) fn adjudicate_visual_snapshot(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     expected_frame: u64,
 ) -> Result<ExecutableVisualSnapshotEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 3)?;
+    adjudicate_snapshot_at_sequence(envelope, expected_frame, 3)
+}
+
+pub(crate) fn adjudicate_successor_visual_snapshot(
+    envelope: PlatformPulseLifecycleObservationEnvelope,
+    expected_frame: u64,
+) -> Result<ExecutableVisualSnapshotEvidence, ExecutableVisualIdentityFailure> {
+    adjudicate_snapshot_at_sequence(envelope, expected_frame, 8)
+}
+
+fn adjudicate_snapshot_at_sequence(
+    envelope: PlatformPulseLifecycleObservationEnvelope,
+    expected_frame: u64,
+    expected_sequence: u64,
+) -> Result<ExecutableVisualSnapshotEvidence, ExecutableVisualIdentityFailure> {
+    require_sequence(&envelope, expected_sequence)?;
     let PlatformPulseLifecycleObservation::VisualSnapshotCaptured(snapshot) = envelope.outcome()
     else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
@@ -187,7 +229,7 @@ pub(crate) fn adjudicate_visual_retirement(
     snapshot: &ExecutableVisualSnapshotEvidence,
     successor_frame: u64,
 ) -> Result<ExecutableVisualRetirementEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 8)?;
+    require_sequence(&envelope, 10)?;
     let PlatformPulseLifecycleObservation::VisualSnapshotRetired(retirement) = envelope.outcome()
     else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
@@ -204,6 +246,50 @@ pub(crate) fn adjudicate_visual_retirement(
     }
     Ok(ExecutableVisualRetirementEvidence {
         retirement: *retirement,
+    })
+}
+
+pub(crate) fn adjudicate_visual_comparison(
+    envelope: PlatformPulseLifecycleObservationEnvelope,
+    predecessor: &ExecutableVisualSnapshotEvidence,
+    successor: &ExecutableVisualSnapshotEvidence,
+) -> Result<ExecutableVisualComparisonEvidence, ExecutableVisualIdentityFailure> {
+    require_sequence(&envelope, 9)?;
+    let PlatformPulseLifecycleObservation::VisualComparison(comparison) = envelope.outcome() else {
+        return Err(ExecutableVisualIdentityFailure::WrongEvent(
+            "visual comparison",
+        ));
+    };
+    let expected = [
+        predecessor.snapshot.affinity().snapshot(),
+        successor.snapshot.affinity().snapshot(),
+    ];
+    let observed = [
+        comparison.predecessor_snapshot(),
+        comparison.successor_snapshot(),
+    ];
+    if observed != expected || observed[0] == observed[1] {
+        return Err(
+            ExecutableVisualIdentityFailure::ComparisonSnapshotIdentity { expected, observed },
+        );
+    }
+    if comparison.identity_rebound() || comparison.retained_pixels_differ() != Some(true) {
+        return Err(ExecutableVisualIdentityFailure::ComparisonMeaning {
+            identity_rebound: comparison.identity_rebound(),
+            retained_pixels_differ: comparison.retained_pixels_differ(),
+        });
+    }
+    if comparison.structural_entries_examined() == 0
+        || comparison.structural_entries_examined() > 128
+        || comparison.retained_pixel_bytes_examined() == 0
+    {
+        return Err(ExecutableVisualIdentityFailure::ComparisonCost {
+            structural_entries_examined: comparison.structural_entries_examined(),
+            retained_pixel_bytes_examined: comparison.retained_pixel_bytes_examined(),
+        });
+    }
+    Ok(ExecutableVisualComparisonEvidence {
+        comparison: *comparison,
     })
 }
 
@@ -288,6 +374,12 @@ impl ExecutableVisualTraceEvidence {
 impl ExecutableVisualRetirementEvidence {
     pub(crate) fn retirement(self) -> PlatformPulseVisualSnapshotRetired {
         self.retirement
+    }
+}
+
+impl ExecutableVisualComparisonEvidence {
+    pub(crate) fn comparison(self) -> PlatformPulseVisualComparison {
+        self.comparison
     }
 }
 

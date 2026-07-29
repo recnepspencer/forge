@@ -13,6 +13,7 @@ use super::theme_token_fixtures::{
 #[test]
 fn plugin_cannot_silently_override_platform_token_meaning() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::define(
             theme_token_id("theme.platform.text"),
             ThemeTokenFamily::text(),
@@ -31,6 +32,7 @@ fn plugin_cannot_silently_override_platform_token_meaning() {
 #[test]
 fn plugin_custom_token_cannot_claim_platform_identity_segment() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::define(
             theme_token_id("theme.platform.accent"),
             ThemeTokenFamily::accent(),
@@ -49,6 +51,7 @@ fn plugin_custom_token_cannot_claim_platform_identity_segment() {
 #[test]
 fn plugin_alias_token_cannot_claim_platform_identity_segment() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::alias(
             theme_token_id("theme.platform.accent_alias"),
             ThemeTokenFamily::accent(),
@@ -70,6 +73,7 @@ fn plugin_alias_token_cannot_claim_platform_identity_segment() {
 #[test]
 fn plugin_alias_platform_identity_rejection_does_not_depend_on_missing_target() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(platform_color_theme_token("theme.text.primary", "#101820"))
         .register_theme_token(ThemeTokenDescriptor::alias(
             theme_token_id("theme.platform.accent_alias"),
@@ -92,6 +96,7 @@ fn plugin_alias_platform_identity_rejection_does_not_depend_on_missing_target() 
 #[test]
 fn plugin_custom_and_alias_tokens_stay_inside_runtime_registry() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(platform_color_theme_token(
             "theme.platform.accent",
             "#224466",
@@ -117,6 +122,7 @@ fn plugin_custom_and_alias_tokens_stay_inside_runtime_registry() {
 #[test]
 fn plugin_alias_source_cannot_define_custom_value() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::define(
             theme_token_id("plugin.bad.alias"),
             ThemeTokenFamily::accent(),
@@ -135,6 +141,7 @@ fn plugin_alias_source_cannot_define_custom_value() {
 #[test]
 fn plugin_custom_source_cannot_define_alias() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::alias(
             theme_token_id("plugin.bad.custom"),
             ThemeTokenFamily::accent(),

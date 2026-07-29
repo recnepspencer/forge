@@ -81,6 +81,7 @@ fn component_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
             "active-application-session",
         );
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .register_component(source_backed_package_component(
             "workspace.component.active_session_current",
@@ -148,6 +149,7 @@ fn scaled_component_builder(
             "scaled-active-application-session",
         );
     let mut builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .register_component(source_backed_package_component(
             "workspace.component.scale_target_active",

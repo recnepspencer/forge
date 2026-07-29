@@ -14,6 +14,7 @@ use super::icon_fixtures::{color_theme_token, icon_id, theme_token_id};
 #[test]
 fn theme_incompatible_icon_descriptor_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(
             IconDescriptor::new(
                 icon_id("workspace.icon.save"),
@@ -36,6 +37,7 @@ fn theme_incompatible_icon_descriptor_rejected() {
 #[test]
 fn missing_public_icon_postures_are_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(
             IconDescriptor::new(
                 icon_id("workspace.icon.save"),
@@ -61,6 +63,7 @@ fn missing_public_icon_postures_are_rejected() {
 #[test]
 fn theme_token_driven_icon_without_token_reference_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(
             IconDescriptor::new(
                 icon_id("workspace.icon.save"),
@@ -83,6 +86,7 @@ fn theme_token_driven_icon_without_token_reference_rejected() {
 #[test]
 fn theme_token_driven_icon_references_missing_token_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(
             IconDescriptor::new(
                 icon_id("workspace.icon.save"),
@@ -106,6 +110,7 @@ fn theme_token_driven_icon_references_missing_token_rejected() {
 #[test]
 fn non_theme_token_driven_icon_cannot_attach_token_reference() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(
             IconDescriptor::new(
                 icon_id("workspace.icon.save"),
@@ -128,6 +133,7 @@ fn non_theme_token_driven_icon_cannot_attach_token_reference() {
 #[test]
 fn theme_token_driven_icon_accepts_registered_token_reference() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
         .register_icon(
             IconDescriptor::new(

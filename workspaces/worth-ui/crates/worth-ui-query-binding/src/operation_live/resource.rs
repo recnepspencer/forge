@@ -196,6 +196,44 @@ impl WorthUiOperationLiveResource {
         crate::WorthUiCollectionChangeStagingReceipt,
         crate::WorthUiCollectionChangeAdmissionStop,
     > {
+        let receipt = self
+            .validate_collection_change(&consequence)
+            .map_err(|denial| {
+                crate::WorthUiCollectionChangeAdmissionStop::new(denial, consequence)
+            })?;
+        self.staged_change_admitted = true;
+        Ok(receipt)
+    }
+
+    pub(crate) fn validate_collection_change_observation(
+        &self,
+        consequence: WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiValidatedCollectionChangeObservation,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        let receipt = match self.validate_collection_change(&consequence) {
+            Ok(receipt) => receipt,
+            Err(denial) => {
+                return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                    denial,
+                    consequence,
+                ));
+            }
+        };
+        Ok(crate::WorthUiValidatedCollectionChangeObservation::seal(
+            consequence,
+            receipt,
+        ))
+    }
+
+    fn validate_collection_change(
+        &self,
+        consequence: &WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiCollectionChangeStagingReceipt,
+        crate::WorthUiCollectionChangeAdmissionDenial,
+    > {
         let belongs_to_resource = consequence.installed_reference() == &self.installed_reference
             && self
                 .collection_source
@@ -205,22 +243,14 @@ impl WorthUiOperationLiveResource {
             && self
                 .staged_change
                 .as_ref()
-                .is_some_and(|staged| staged.matches(&consequence));
+                .is_some_and(|staged| staged.matches(consequence));
         if !belongs_to_resource {
-            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
-                crate::WorthUiCollectionChangeAdmissionDenial::StaleOrForeignConsequence,
-                consequence,
-            ));
+            return Err(crate::WorthUiCollectionChangeAdmissionDenial::StaleOrForeignConsequence);
         }
         if self.staged_change_admitted {
-            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
-                crate::WorthUiCollectionChangeAdmissionDenial::AlreadyAdmitted,
-                consequence,
-            ));
+            return Err(crate::WorthUiCollectionChangeAdmissionDenial::AlreadyAdmitted);
         }
-        let receipt = crate::WorthUiCollectionChangeStagingReceipt::from_consequence(&consequence);
-        self.staged_change_admitted = true;
-        Ok(receipt)
+        Ok(crate::WorthUiCollectionChangeStagingReceipt::from_consequence(consequence))
     }
 
     pub(crate) fn publish_staged_collection_change(&mut self) -> bool {

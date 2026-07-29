@@ -7,6 +7,8 @@ use crate::capability::WorthUiQueryViewRegistration;
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationArtifactPosture;
 use crate::facade::{WorthUi, WorthUiRustAuthoredDeclarationFixture};
 use crate::graph::{UiGraphSessionLabel, UiGraphWorldProfile};
+use crate::runtime::observation::{UiObservationProfile, UiObservationProfileInput};
+use crate::runtime::rebind::{UiChangeProfile, UiRebindProfile};
 
 #[test]
 fn declaration_and_graph_drift_change_prepared_generation_identity() {
@@ -50,9 +52,11 @@ fn query_and_host_plan_drift_change_identity_without_capability_drift() {
     let left_query = query_app("prepared-query-left");
     let right_query = query_app("prepared-query-right");
     let headless = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("headless app should prepare");
     let egui = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_host(EguiPlanAdapter)
         .freeze()
         .expect("egui app should prepare");
@@ -117,6 +121,17 @@ fn every_prepared_derived_index_rebuilds_from_owned_authority() {
         app.authored_evidence_index().clone(),
         app.graph_node_evidence_index().clone(),
         app.graph_aspect_evidence_indexes().clone(),
+        app.prepared_authority().consumed_fact_index().clone(),
+        app.prepared_authority()
+            .graph_snapshot()
+            .core_indexes()
+            .published_aspects()
+            .clone(),
+        app.prepared_authority()
+            .graph_snapshot()
+            .core_indexes()
+            .consumed_aspects()
+            .clone(),
     );
 
     app.rebuild_prepared_derived_indexes();
@@ -124,22 +139,64 @@ fn every_prepared_derived_index_rebuilds_from_owned_authority() {
     assert_eq!(before.0, *app.authored_evidence_index());
     assert_eq!(before.1, *app.graph_node_evidence_index());
     assert_eq!(before.2, *app.graph_aspect_evidence_indexes());
+    assert_eq!(before.3, *app.prepared_authority().consumed_fact_index());
+    assert_eq!(
+        before.4,
+        *app.prepared_authority()
+            .graph_snapshot()
+            .core_indexes()
+            .published_aspects()
+    );
+    assert_eq!(
+        before.5,
+        *app.prepared_authority()
+            .graph_snapshot()
+            .core_indexes()
+            .consumed_aspects()
+    );
+}
+
+#[test]
+fn exact_change_profile_is_generation_identity_and_prepared_authority() {
+    let observation = UiObservationProfile::bounded(UiObservationProfileInput {
+        admitted_per_turn: 2,
+        retained_bytes_per_turn: 2_048,
+        queued_during_effecting_rebind: 1,
+    })
+    .expect("smaller observation profile should be valid");
+    let custom = UiChangeProfile::new(observation, UiRebindProfile::platform_pulse());
+    let baseline = WorthUi::app()
+        .with_change_profile(UiChangeProfile::platform_pulse())
+        .freeze()
+        .expect("baseline should prepare");
+    let configured = WorthUi::app()
+        .with_change_profile(custom)
+        .freeze()
+        .expect("configured app should prepare");
+
+    assert_ne!(
+        baseline.generation_identity(),
+        configured.generation_identity()
+    );
+    assert_eq!(configured.prepared_authority().change_profile(), custom);
 }
 
 fn app_with_package(
     package_name: &str,
     semantic_key: &str,
 ) -> crate::facade::entry::WorthUiApplicationBuilder {
-    WorthUi::app().with_rust_authored_declaration_fixture(
-        WorthUiRustAuthoredDeclarationFixture::named(package_name).with_semantic_artifact_spec(
-            UiDslSemanticArtifactSpec::new(
-                UiDslSemanticKey::new(semantic_key),
-                UiDslSemanticFamily::Control,
-                UiDslSourceProvenance::rust_authored("prepared/application", 0),
-            )
-            .with_structural_token(UiDslStructuralToken::new("control:prepared")),
-        ),
-    )
+    WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(package_name).with_semantic_artifact_spec(
+                UiDslSemanticArtifactSpec::new(
+                    UiDslSemanticKey::new(semantic_key),
+                    UiDslSemanticFamily::Control,
+                    UiDslSourceProvenance::rust_authored("prepared/application", 0),
+                )
+                .with_structural_token(UiDslStructuralToken::new("control:prepared")),
+            ),
+        )
 }
 
 fn query_app(installed_domain: &str) -> crate::facade::WorthUiApp {
@@ -149,6 +206,7 @@ fn query_app(installed_domain: &str) -> crate::facade::WorthUiApp {
         .live_measurement_view("workspace.view_binding.prepared")
         .expect("installed query view should admit");
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("query view should register")
         .freeze()

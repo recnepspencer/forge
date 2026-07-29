@@ -1,7 +1,7 @@
 use worth_ui::facade::app::WorthUi;
 
 fn main() {
-    let app = WorthUi::app().freeze().expect("application preparation should succeed");
+    let app = WorthUi::app().with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse()).freeze().expect("application preparation should succeed");
     let mut index = app.capabilities().index();
 
     index.commands = index.commands;

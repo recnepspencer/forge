@@ -1,12 +1,6 @@
 use super::WorthUiActiveApplicationSession;
 
 impl WorthUiActiveApplicationSession {
-    pub(crate) fn host_observation_ingress(
-        &self,
-    ) -> crate::facade::observation_report::WorthUiHostObservationIngress {
-        self.host_exchange.observation_ingress()
-    }
-
     pub(crate) fn validate_host_observation_batch(
         &mut self,
         batch: worth_ui_host_contract::UiHostObservationBatch,
@@ -41,14 +35,20 @@ impl WorthUiActiveApplicationSession {
         self.host_exchange.observation_work_report()
     }
 
-    pub(crate) fn validate_enqueued_host_observation_batches(
+    pub(crate) fn drain_and_validate_host_observation_batches(
         &mut self,
-    ) -> Box<[crate::facade::observation_report::UiHostObservationReportOutcome]> {
-        self.host_exchange
-            .drain_observation_ingress()
+    ) -> Result<
+        Box<[crate::facade::observation_report::UiHostObservationReportOutcome]>,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(self
+            .host_session
+            .drain_observations()?
+            .into_batches()
+            .into_vec()
             .into_iter()
             .map(|batch| self.validate_host_observation_batch(batch))
             .collect::<Vec<_>>()
-            .into_boxed_slice()
+            .into_boxed_slice())
     }
 }

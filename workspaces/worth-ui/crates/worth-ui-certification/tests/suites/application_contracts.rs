@@ -36,6 +36,16 @@ mod host_observation_overflow;
 mod host_observation_pressure;
 #[path = "../application_contracts/host_observation_reporting.rs"]
 mod host_observation_reporting;
+#[path = "../application_contracts/milestone_312_affected_scope.rs"]
+mod milestone_312_affected_scope;
+#[path = "../application_contracts/milestone_312_identity_lifecycle.rs"]
+mod milestone_312_identity_lifecycle;
+#[path = "../application_contracts/milestone_312_observation_admission.rs"]
+mod milestone_312_observation_admission;
+#[path = "../application_contracts/milestone_312_planning_guards.rs"]
+mod milestone_312_planning_guards;
+#[path = "../application_contracts/milestone_312_post_classification_cost.rs"]
+mod milestone_312_post_classification_cost;
 #[path = "../application_contracts/mounted_application_lifecycle/mod.rs"]
 mod mounted_application_lifecycle;
 #[path = "../application_contracts/mounted_cost_evidence.rs"]
@@ -84,6 +94,8 @@ mod mounted_publication;
 mod mounted_static_paint;
 #[path = "../application_contracts/multi_removal_filesystem.rs"]
 mod multi_removal_filesystem;
+#[path = "../application_contracts/observation_rebind.rs"]
+mod observation_rebind;
 #[path = "../application_contracts/phase7_adapter_parity.rs"]
 mod phase7_adapter_parity;
 #[path = "../application_contracts/phase7_denial_preservation.rs"]

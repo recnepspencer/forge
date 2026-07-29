@@ -12,6 +12,35 @@ pub struct UiGraphDeclarationCorrespondence {
 }
 
 impl UiGraphDeclarationCorrespondence {
+    pub(crate) fn rebuild(nodes: &[crate::graph::UiGraphNode]) -> Self {
+        let mut declaration_to_nodes = BTreeMap::<u64, Vec<UiGraphNodeIdentity>>::new();
+        let mut node_to_declaration = BTreeMap::new();
+        let mut authored_provenance_to_nodes = BTreeMap::<u64, Vec<UiGraphNodeIdentity>>::new();
+        let mut node_to_authored_provenance = BTreeMap::new();
+
+        for node in nodes {
+            let graph_node_identity = node.graph_node_identity();
+            declaration_to_nodes
+                .entry(node.declaration_identity().digest().raw())
+                .or_default()
+                .push(graph_node_identity);
+            node_to_declaration.insert(graph_node_identity, node.declaration_identity().clone());
+            authored_provenance_to_nodes
+                .entry(node.authored_provenance_digest())
+                .or_default()
+                .push(graph_node_identity);
+            node_to_authored_provenance
+                .insert(graph_node_identity, node.authored_provenance_digest());
+        }
+
+        Self::new(
+            declaration_to_nodes,
+            node_to_declaration,
+            authored_provenance_to_nodes,
+            node_to_authored_provenance,
+        )
+    }
+
     pub(crate) fn new(
         declaration_to_nodes: BTreeMap<u64, Vec<UiGraphNodeIdentity>>,
         node_to_declaration: BTreeMap<UiGraphNodeIdentity, UiDeclarationIdentity>,

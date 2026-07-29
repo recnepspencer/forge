@@ -1,4 +1,5 @@
 mod capture_basis;
+mod comparison;
 mod cost;
 mod evidence;
 mod geometry;
@@ -14,6 +15,14 @@ mod spatial_index;
 mod visible_region;
 
 pub use capture_basis::{UiVisualSnapshotAffinity, UiVisualSnapshotRelation};
+pub use comparison::{
+    UiVisualComparisonPixelPolicy, UiVisualIdentityContinuity, UiVisualSnapshotComparison,
+    UiVisualSnapshotComparisonBudget, UiVisualSnapshotComparisonBudgetDenial,
+    UiVisualSnapshotComparisonCost, UiVisualSnapshotComparisonDenial,
+    UiVisualSnapshotComparisonDenialKind, UiVisualSnapshotComparisonExpiry,
+    UiVisualSnapshotComparisonIncompatibility, UiVisualSnapshotComparisonInput,
+    UiVisualSnapshotComparisonOmission, UiVisualSnapshotComparisonOutcome,
+};
 pub use cost::{UiVisualInspectionCostLane, UiVisualInspectionCostReceipt};
 pub use evidence::{
     UiVisualSnapshotArtifactPosture, UiVisualSnapshotEvidence, UiVisualSnapshotEvidenceInput,

@@ -5,12 +5,12 @@ use std::rc::Rc;
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationPreparationDenial, WorthUiMountedFrameExecutionStop,
-    WorthUiNativeApplicationReplacementDenial, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeSourceRebindDenial,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherShutdownReceipt,
-    WorthUiSourcePackageRevision, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherDenial,
+    WorthUiFilesystemWatcherShutdownReceipt, WorthUiSourcePackageRevision,
 };
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLifecycleObservationCodecDenial,
@@ -89,7 +89,7 @@ impl PlatformPulseObservationPublisher {
 
     pub(crate) fn candidate_submission_failure(
         &self,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publication| {
             publication.project(|stream| stream.project_candidate_submission_failure(denial))
@@ -123,12 +123,22 @@ impl PlatformPulseObservationPublisher {
         })
     }
 
-    pub(crate) fn native_replacement_failure(
+    pub(crate) fn native_rebind_failure(
         &self,
-        denial: &WorthUiNativeApplicationReplacementDenial,
+        denial: &WorthUiNativeSourceRebindDenial,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publication| {
-            publication.project(|stream| stream.project_native_replacement_failure(denial))
+            publication.project(|stream| stream.project_native_rebind_failure(denial))
+        })
+    }
+
+    pub(crate) fn native_rebind_outcome_failure(
+        &self,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publication| {
+            publication.project(
+                PlatformPulseLifecycleObservationStream::project_native_rebind_outcome_failure,
+            )
         })
     }
 
@@ -156,10 +166,19 @@ impl PlatformPulseObservationPublisher {
     pub(crate) fn preserved_predecessor(
         &self,
         source: &WorthUiSourcePackageRevision,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
             publisher.project(|stream| stream.project_preserved_predecessor(source, denial))
+        })
+    }
+
+    pub(crate) fn visual_comparison(
+        &self,
+        comparison: worth_ui::facade::inspection::UiVisualSnapshotComparison,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publisher| {
+            publisher.project(|stream| stream.project_visual_comparison(comparison))
         })
     }
 

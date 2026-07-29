@@ -5,6 +5,7 @@ use super::{WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationSo
 use crate::facade::inspection_bridge::UiMeasurementInspectionEvidenceBundle;
 use crate::facade::prepared_application_authority::{
     WorthUiPreparedApplicationAuthority, WorthUiPreparedApplicationAuthorityInput,
+    WorthUiPreparedGenerationLineage,
 };
 use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::graph::{admit_graph_handoffs, UiGraphWorldProfile};
@@ -21,6 +22,7 @@ pub(crate) struct WorthUiApplicationPreparationInput {
         Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
     pub(crate) measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
     pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
 pub(crate) fn prepare_application_authority(
@@ -35,10 +37,16 @@ pub(crate) fn prepare_application_authority(
         runtime_instance_basis_admissions,
         measurement_inspection_evidence,
         query_binding_plan,
+        change_profile,
     } = input;
     let capability_snapshot = Rc::new(capability_snapshot);
-    let (canonical_artifact, declaration_source_identity, semantic_handoff, declaration_artifacts) =
-        preparation_source.into_prepared_parts();
+    let (
+        canonical_artifact,
+        authored_source_basis,
+        declaration_source_identity,
+        semantic_handoff,
+        declaration_artifacts,
+    ) = preparation_source.into_prepared_parts();
     let graph_handoffs = lower_graph_handoffs(&declaration_artifacts)
         .map_err(WorthUiApplicationPreparationDenial::GraphHandoff)?;
     let graph_handoffs =
@@ -58,6 +66,8 @@ pub(crate) fn prepare_application_authority(
         WorthUiPreparedApplicationAuthorityInput {
             capability_snapshot,
             canonical_artifact,
+            authored_source_basis,
+            generation_lineage: WorthUiPreparedGenerationLineage::initial(),
             declaration_source_identity,
             semantic_handoff,
             declaration_artifacts,
@@ -68,6 +78,7 @@ pub(crate) fn prepare_application_authority(
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence: retained_measurement_inspection_evidence,
+            change_profile,
         },
     ))
 }
@@ -83,6 +94,7 @@ pub(crate) fn prepare_successor_application_authority(
     WorthUiApplicationPreparationDenial,
 > {
     let candidate_snapshot_digest = submission.candidate_snapshot_digest();
+    let authored_source_basis = submission.authored_source_basis();
     if candidate_snapshot_digest != current.capabilities().digest().as_u64() {
         return Err(
             WorthUiApplicationPreparationDenial::CandidateSnapshotMismatch {
@@ -119,6 +131,10 @@ pub(crate) fn prepare_successor_application_authority(
         WorthUiPreparedApplicationAuthority::seal(WorthUiPreparedApplicationAuthorityInput {
             capability_snapshot: current.capability_authority(),
             canonical_artifact,
+            generation_lineage: WorthUiPreparedGenerationLineage::authored_source_successor(
+                authored_source_basis.clone(),
+            ),
+            authored_source_basis,
             declaration_source_identity,
             semantic_handoff,
             declaration_artifacts,
@@ -129,6 +145,7 @@ pub(crate) fn prepare_successor_application_authority(
             visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),
             measurement_inspection_evidence,
+            change_profile: current.change_profile(),
         });
     Ok((authority, candidate))
 }

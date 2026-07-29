@@ -66,7 +66,7 @@ fn assert_malformed_source_denial(
     let denial = source
         .ingest([WorthUiWatcherEvent::provider_revision(source_name)])
         .expect("malformed material should still debounce")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect_err("malformed storm candidate must deny before preparation");
     let WorthUiWatchedCandidateSubmissionDenial::DslCompilation(report) = denial else {
         panic!("malformed source must remain localized to DSL compilation");

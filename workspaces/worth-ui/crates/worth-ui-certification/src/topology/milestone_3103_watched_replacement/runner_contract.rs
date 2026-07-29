@@ -172,7 +172,7 @@ fn audit_preservation(progression: &str, adjudication: &str) -> Result<(), Strin
         require(progression, required, "watched preservation progression")?;
     }
     for required in [
-        "ReplacementDeniedPreserving",
+        "RebindDeniedPreserving",
         "PlatformPulseReplacementDenialFamily::DslCompilation",
         "ActiveGenerationChanged",
         "ActiveFrameChanged",

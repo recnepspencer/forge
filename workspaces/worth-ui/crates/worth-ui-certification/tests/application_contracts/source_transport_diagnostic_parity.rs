@@ -22,7 +22,7 @@ fn filesystem_and_in_memory_transports_preserve_diagnostic_evidence() {
         .read()
         .expect("filesystem transport should acquire malformed source bytes");
     let filesystem_report = dsl_compilation_report(
-        filesystem_snapshot.lower_to_candidate_submission(capabilities.capabilities()),
+        filesystem_snapshot.attempt_candidate_for_certification(capabilities.capabilities()),
         "filesystem-authored malformed source",
     );
 
@@ -35,7 +35,7 @@ fn filesystem_and_in_memory_transports_preserve_diagnostic_evidence() {
         )])
         .expect("in-memory production ingress should settle malformed bytes");
     let in_memory_report = dsl_compilation_report(
-        in_memory_snapshot.lower_to_candidate_submission(capabilities.capabilities()),
+        in_memory_snapshot.attempt_candidate_for_certification(capabilities.capabilities()),
         "in-memory malformed source",
     );
 

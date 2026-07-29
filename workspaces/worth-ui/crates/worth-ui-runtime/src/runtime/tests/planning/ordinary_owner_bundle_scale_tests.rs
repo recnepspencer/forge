@@ -133,12 +133,14 @@ fn command_store(changed_label: &str) -> WorthUiPlanRegionStore {
 
 fn command_app(changed_label: &str) -> WorthUiApp {
     let component_id = ComponentId::new("workspace.component.owner_bundle").unwrap();
-    let mut builder = WorthUi::app().register_component(ComponentDescriptor::new(
-        component_id.clone(),
-        ComponentPropSchema::named("workspace.props.owner_bundle"),
-        ComponentChildPolicy::no_children(),
-        ComponentStateOwnership::runtime_owned(),
-    ));
+    let mut builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
+        .register_component(ComponentDescriptor::new(
+            component_id.clone(),
+            ComponentPropSchema::named("workspace.props.owner_bundle"),
+            ComponentChildPolicy::no_children(),
+            ComponentStateOwnership::runtime_owned(),
+        ));
     let mut surface = SurfaceDescriptor::new(
         SurfaceId::new(SURFACE_ID).unwrap(),
         SurfaceKind::primary_content(),

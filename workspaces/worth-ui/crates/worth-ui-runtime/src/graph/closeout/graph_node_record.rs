@@ -1,6 +1,6 @@
 use crate::declaration::{
     UiDeclarationIdentity, UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,
-    UiDeclarationStructuralDigest, UiDeclarationStructuralRole,
+    UiDeclarationStructuralDigest, UiDeclarationStructuralRole, UiDeclaredMeasurementBasisSource,
     UiDeclaredMeasurementConstraintModifier,
 };
 use crate::graph::{
@@ -17,6 +17,7 @@ pub struct UiGraphNodeRecord {
     operator_kind: UiDeclarationPlanningOperatorKind,
     repetition_posture: UiDeclarationRepetitionPosture,
     measurement_constraint_modifier: Option<UiDeclaredMeasurementConstraintModifier>,
+    measurement_basis_source: Option<UiDeclaredMeasurementBasisSource>,
     authored_provenance_digest: u64,
     repeated_instance_basis: UiRepeatedInstanceBasis,
     attachment_posture: UiGraphAttachmentPosture,
@@ -62,6 +63,10 @@ impl UiGraphNodeRecord {
         self.measurement_constraint_modifier
     }
 
+    pub fn measurement_basis_source(&self) -> Option<UiDeclaredMeasurementBasisSource> {
+        self.measurement_basis_source
+    }
+
     pub fn attachment_posture(&self) -> UiGraphAttachmentPosture {
         self.attachment_posture
     }
@@ -81,6 +86,7 @@ impl From<&UiGraphNode> for UiGraphNodeRecord {
             operator_kind: node.operator_kind(),
             repetition_posture: node.repetition_posture(),
             measurement_constraint_modifier: node.measurement_constraint_modifier(),
+            measurement_basis_source: node.measurement_basis_source(),
             authored_provenance_digest: node.authored_provenance_digest(),
             repeated_instance_basis: node.repeated_instance_basis().clone(),
             attachment_posture: node.attachment_posture(),

@@ -15,6 +15,7 @@ use worth_ui_dsl::WorthUiDslCompileDiagnosticCode;
 #[test]
 fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let provider = file_import_provider();
@@ -91,6 +92,7 @@ fn watcher_event_reorder_does_not_change_final_candidate_sequence() {
 #[test]
 fn partial_write_and_atomic_rename_emit_one_ordered_candidate() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let submission = lower_file_submission(
@@ -126,6 +128,7 @@ fn partial_write_without_stable_snapshot_is_denied_before_candidate_submission()
 #[test]
 fn in_memory_source_provider_uses_same_candidate_admission() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let file_submission = lower_file_submission(
@@ -165,6 +168,7 @@ fn rust_authored_provider_without_composition_cannot_be_candidate() {
 #[test]
 fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
@@ -173,7 +177,7 @@ fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("mixed")])
         .expect("mixed material can still debounce")
-        .lower_to_candidate_submission(snapshot.capabilities())
+        .attempt_candidate_for_certification(snapshot.capabilities())
         .expect_err("candidate material selection must not be ambiguous");
 
     assert_source_denial_reason(
@@ -185,6 +189,7 @@ fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection
 #[test]
 fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
@@ -201,7 +206,7 @@ fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() 
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("rust-authored")])
         .expect("multi-artifact material can still debounce")
-        .lower_to_candidate_submission(snapshot.capabilities())
+        .attempt_candidate_for_certification(snapshot.capabilities())
         .expect_err("multiple artifact inputs need explicit merge semantics");
 
     assert_source_denial_reason(
@@ -232,6 +237,7 @@ fn empty_source_ingress_hook_is_denied_before_debounce() {
 #[test]
 fn duplicate_source_modules_report_source_package_rejection() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let provider = WorthUiSourceProvider::in_memory("duplicate-source")
@@ -243,7 +249,7 @@ fn duplicate_source_modules_report_source_package_rejection() {
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("duplicate-source")])
         .expect("provider material can debounce before source package validation")
-        .lower_to_candidate_submission(snapshot.capabilities())
+        .attempt_candidate_for_certification(snapshot.capabilities())
         .expect_err("duplicate source module identity must fail package validation");
 
     assert_dsl_denial_code(
@@ -255,6 +261,7 @@ fn duplicate_source_modules_report_source_package_rejection() {
 #[test]
 fn malformed_source_reports_parse_rejection_not_missing_material() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let provider = WorthUiSourceProvider::in_memory("malformed-source")
@@ -265,7 +272,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
     let denial = session
         .ingest([WorthUiWatcherEvent::provider_revision("malformed-source")])
         .expect("provider material can debounce before parse validation")
-        .lower_to_candidate_submission(snapshot.capabilities())
+        .attempt_candidate_for_certification(snapshot.capabilities())
         .expect_err("malformed source must fail parse validation");
 
     assert_dsl_denial_code(denial, WorthUiDslCompileDiagnosticCode::UnterminatedBlock);
@@ -274,6 +281,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
 #[test]
 fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
     let snapshot = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
@@ -288,7 +296,7 @@ fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
         .with_sequence_for_test(batch.source_revision().sequence() + 1);
     let denial = batch
         .with_ordering_receipt_for_test(drifted_receipt)
-        .lower_to_candidate_submission(snapshot.capabilities())
+        .attempt_candidate_for_certification(snapshot.capabilities())
         .expect_err("receipt drift must be denied before source lowering");
 
     assert_source_denial_reason(

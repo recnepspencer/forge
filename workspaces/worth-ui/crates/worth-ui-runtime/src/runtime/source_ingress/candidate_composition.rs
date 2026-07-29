@@ -39,6 +39,7 @@ pub(crate) struct WorthUiCandidatePreparationHandoff {
     candidate: WorthUiReplacementCandidate,
     declaration_material: WorthUiPreparedDeclarationMaterial,
     semantic_handoff: WorthUiSemanticHandoffEvidence,
+    composition_basis: WorthUiCandidateCompositionBasis,
 }
 
 impl WorthUiCandidateComposition {
@@ -93,11 +94,16 @@ impl WorthUiCandidateComposition {
             candidate: self.candidate,
             declaration_material: self.declaration_material,
             semantic_handoff: self.semantic_handoff,
+            composition_basis: self.basis,
         }
     }
 }
 
 impl WorthUiCandidatePreparationHandoff {
+    pub(crate) fn composition_basis(&self) -> &WorthUiCandidateCompositionBasis {
+        &self.composition_basis
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (

@@ -13,6 +13,7 @@ use super::state_fixtures::{complete_state_slot, splitter_position_slot};
 #[test]
 fn state_slot_without_owner_identity_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             splitter_position_slot("workspace.state.no_owner")
                 .with_owner_identity(MosaicStateOwnerIdentity::missing_for_diagnostics()),
@@ -30,6 +31,7 @@ fn state_slot_without_owner_identity_rejected() {
 #[test]
 fn state_slot_without_persistence_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             splitter_position_slot("workspace.state.no_persistence")
                 .with_persistence_policy(MosaicStatePersistencePolicy::missing_for_diagnostics()),
@@ -47,6 +49,7 @@ fn state_slot_without_persistence_posture_rejected() {
 #[test]
 fn state_slot_without_replacement_rules_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             splitter_position_slot("workspace.state.no_replacement")
                 .with_replacement_rule(MosaicStateReplacementRule::missing_for_diagnostics()),
@@ -74,6 +77,7 @@ fn ui_state_slot_cannot_claim_authoritative_truth() {
 #[test]
 fn derived_runtime_state_is_admitted_without_authority_claim() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             complete_state_slot(
                 "workspace.state.derived_focus",
@@ -92,6 +96,7 @@ fn derived_runtime_state_is_admitted_without_authority_claim() {
 #[test]
 fn state_slot_reports_every_missing_required_posture() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             splitter_position_slot("workspace.state.missing")
                 .with_owner_identity(MosaicStateOwnerIdentity::missing_for_diagnostics())
@@ -117,6 +122,7 @@ fn state_slot_reports_every_missing_required_posture() {
 #[test]
 fn rejected_state_slot_does_not_poison_valid_state_slot() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             splitter_position_slot("workspace.state.invalid").with_truth_posture(
                 MosaicStateTruthPosture::authoritative_query_truth_for_diagnostics(),
@@ -138,6 +144,7 @@ fn rejected_state_slot_does_not_poison_valid_state_slot() {
 
 fn assert_authoritative_truth_rejected(posture: MosaicStateTruthPosture) {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             complete_state_slot(
                 "workspace.state.authoritative_truth",

@@ -217,6 +217,7 @@ fn graph_ref_from_unrelated_same_generation_app_is_not_reported_as_available() {
         .evidence_ref_for_node(first_graph_node_identity(&source))
         .expect("source graph should derive its node evidence ref");
     let unrelated = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("unrelated empty application should prepare");
     assert_eq!(

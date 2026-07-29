@@ -1,11 +1,11 @@
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, WorthUiApplicationPreparationDenial, WorthUiMountedFrameExecutionStop,
-    WorthUiNativeApplicationReplacementDenial, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeSourceRebindDenial,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial,
+    WorthUiFilesystemWatcherShutdownReceipt,
 };
 
 use super::envelope::PlatformPulseLifecycleObservationEnvelope;
@@ -85,7 +85,7 @@ impl PlatformPulseLifecycleObservationStream {
 
     pub fn project_candidate_submission_failure(
         &mut self,
-        _denial: &WorthUiWatchedCandidateSubmissionDenial,
+        _denial: &UiSourceRebindAttemptFailure,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
@@ -137,9 +137,18 @@ impl PlatformPulseLifecycleObservationStream {
         }
     }
 
-    pub fn project_native_replacement_failure(
+    pub fn project_native_rebind_failure(
         &mut self,
-        _denial: &WorthUiNativeApplicationReplacementDenial,
+        _denial: &WorthUiNativeSourceRebindDenial,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(PlatformPulseTerminalFailureFamily::NativeApplicationReplacement)
+    }
+
+    pub fn project_native_rebind_outcome_failure(
+        &mut self,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,

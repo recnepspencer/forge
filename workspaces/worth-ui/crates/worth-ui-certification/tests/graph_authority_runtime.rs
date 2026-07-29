@@ -17,6 +17,7 @@ use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 #[test]
 fn public_app_freeze_exposes_committed_graph_authority_with_typed_identity_basis() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-authority")
                 .with_semantic_artifact_spec(primary_control_spec()),
@@ -51,6 +52,7 @@ fn public_app_freeze_exposes_committed_graph_authority_with_typed_identity_basis
 #[test]
 fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
     let baseline = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-identity.stable",
@@ -61,6 +63,7 @@ fn unrelated_sibling_churn_does_not_rewrite_primary_runtime_graph_identity() {
         .freeze()
         .expect("application preparation should succeed");
     let churned = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-identity.stable",
@@ -108,6 +111,7 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
     );
 
     let alpha = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(alpha_world.clone())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -118,6 +122,7 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
         .freeze()
         .expect("application preparation should succeed");
     let alpha_again = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(alpha_world)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -128,6 +133,7 @@ fn graph_world_profile_compare_distinguishes_preview_session_identity_worlds() {
         .freeze()
         .expect("application preparation should succeed");
     let beta = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(beta_world)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -154,6 +160,7 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
     let beta_world = query_snapshot_world_profile("snapshot:equal-looking");
 
     let alpha = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(alpha_world.clone())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -164,6 +171,7 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
         .freeze()
         .expect("application preparation should succeed");
     let alpha_again = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(alpha_world)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -174,6 +182,7 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
         .freeze()
         .expect("application preparation should succeed");
     let beta = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(beta_world)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -197,6 +206,7 @@ fn graph_world_profile_compare_distinguishes_settled_query_bindings() {
 #[test]
 fn graph_instantiation_plan_denies_basis_free_runtime_multiplicity_before_snapshot_commit() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-basis.denial",

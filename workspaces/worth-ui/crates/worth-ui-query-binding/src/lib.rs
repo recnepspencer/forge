@@ -107,6 +107,7 @@ pub use operation_live::{
     WorthUiOperationLiveRetirement, WorthUiOperationLiveRetirementCloseOutcome,
     WorthUiOperationLiveRetirementCloseReceipt, WorthUiOperationLiveRetirementStop,
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
+    WorthUiValidatedCollectionChangeObservation,
 };
 
 #[cfg(test)]

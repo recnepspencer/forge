@@ -14,11 +14,13 @@ use super::command_projection_fixtures::{
 #[test]
 fn equivalent_command_projections_produce_equivalent_entries() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(command_projection("workspace.projection.palette"))
         .register_command_projection(command_projection("workspace.projection.toolbar"))
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(command_projection("workspace.projection.toolbar"))
         .register_command_projection(command_projection("workspace.projection.palette"))
         .freeze()
@@ -44,6 +46,7 @@ fn equivalent_command_projections_produce_equivalent_entries() {
 #[test]
 fn equivalent_command_projection_command_references_are_canonicalized() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
         .register_command_projection(
@@ -62,6 +65,7 @@ fn equivalent_command_projection_command_references_are_canonicalized() {
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
         .register_command_projection(
@@ -110,6 +114,7 @@ fn equivalent_command_projection_command_references_are_canonicalized() {
 #[test]
 fn declaration_ordered_command_projection_references_preserve_ordering_meaning() {
     let open_then_save = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
         .register_command_projection(
@@ -127,6 +132,7 @@ fn declaration_ordered_command_projection_references_preserve_ordering_meaning()
         .freeze()
         .expect("application preparation should succeed");
     let save_then_open = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
         .register_command_projection(
@@ -157,6 +163,7 @@ fn declaration_ordered_command_projection_references_preserve_ordering_meaning()
 #[test]
 fn declaration_ordered_command_projection_references_deduplicate_without_reordering() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor("workspace.command.open", "Open"))
         .register_command(command_descriptor("workspace.command.save", "Save"))
         .register_command_projection(
@@ -195,6 +202,7 @@ fn declaration_ordered_command_projection_references_deduplicate_without_reorder
 #[test]
 fn duplicate_command_projection_groupings_do_not_change_snapshot_meaning() {
     let single_grouping = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             command_projection("workspace.projection.palette")
                 .with_grouping(CommandProjectionGrouping::optional("workspace")),
@@ -202,6 +210,7 @@ fn duplicate_command_projection_groupings_do_not_change_snapshot_meaning() {
         .freeze()
         .expect("application preparation should succeed");
     let duplicated_grouping = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             command_projection("workspace.projection.palette")
                 .with_grouping(CommandProjectionGrouping::optional("workspace"))
@@ -223,10 +232,12 @@ fn duplicate_command_projection_groupings_do_not_change_snapshot_meaning() {
 #[test]
 fn different_projection_policy_changes_snapshot_digest() {
     let plain = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(command_projection("workspace.projection.palette"))
         .freeze()
         .expect("application preparation should succeed");
     let richer = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             worth_ui::facade::declaration::CommandProjectionDescriptor::new(
                 command_projection_id("workspace.projection.palette"),

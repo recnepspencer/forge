@@ -25,7 +25,7 @@ pub enum WorthUiQueryViewRegistrationError {
 }
 
 /// Builder for a Worth UI application definition.
-pub struct WorthUiApplicationBuilder {
+pub struct WorthUiApplicationBuilder<ChangeProfileState = UiChangeProfileInstalled> {
     inner: CapabilityRegistrationBuilder,
     preparation_source: WorthUiApplicationBuilderPreparationSource,
     host_session_plan: WorthUiHostSessionPlan,
@@ -34,9 +34,18 @@ pub struct WorthUiApplicationBuilder {
     runtime_instance_basis_admissions: Vec<crate::graph::UiRuntimeInstanceBasisAdmission>,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    change_profile: ChangeProfileState,
 }
 
-impl WorthUiApplicationBuilder {
+pub struct UiChangeProfileMissing {
+    _sealed: (),
+}
+
+pub struct UiChangeProfileInstalled {
+    profile: crate::runtime::rebind::UiChangeProfile,
+}
+
+impl WorthUiApplicationBuilder<UiChangeProfileMissing> {
     pub(crate) fn new() -> Self {
         Self {
             inner: CapabilityRegistrationBuilder::new(),
@@ -56,9 +65,19 @@ impl WorthUiApplicationBuilder {
             runtime_instance_basis_admissions: Vec::new(),
             measurement_inspection_evidence: Vec::new(),
             query_binding_plan: Default::default(),
+            change_profile: UiChangeProfileMissing { _sealed: () },
         }
     }
 
+    pub fn with_change_profile(
+        self,
+        profile: crate::runtime::rebind::UiChangeProfile,
+    ) -> WorthUiApplicationBuilder<UiChangeProfileInstalled> {
+        self.transition_change_profile(UiChangeProfileInstalled { profile })
+    }
+}
+
+impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
     pub fn with_rust_authored_input(
         mut self,
         input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
@@ -137,7 +156,7 @@ impl WorthUiApplicationBuilder {
         self
     }
 
-    #[cfg(test)]
+    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn with_runtime_instance_basis_admissions(
         mut self,
         admissions: impl IntoIterator<Item = crate::graph::UiRuntimeInstanceBasisAdmission>,
@@ -279,6 +298,39 @@ impl WorthUiApplicationBuilder {
         self
     }
 
+    fn transition_change_profile<NextProfileState>(
+        self,
+        change_profile: NextProfileState,
+    ) -> WorthUiApplicationBuilder<NextProfileState> {
+        WorthUiApplicationBuilder {
+            inner: self.inner,
+            preparation_source: self.preparation_source,
+            host_session_plan: self.host_session_plan,
+            visual_inspection_policy: self.visual_inspection_policy,
+            graph_world_profile: self.graph_world_profile,
+            runtime_instance_basis_admissions: self.runtime_instance_basis_admissions,
+            measurement_inspection_evidence: self.measurement_inspection_evidence,
+            query_binding_plan: self.query_binding_plan,
+            change_profile,
+        }
+    }
+
+    pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
+        self.inner.freeze_with_registration_report()
+    }
+
+    pub fn with_minimal_registration_diagnostics(mut self) -> Self {
+        self.inner = self.inner.with_minimal_registration_diagnostics();
+        self
+    }
+
+    pub fn with_rich_registration_diagnostics(mut self) -> Self {
+        self.inner = self.inner.with_rich_registration_diagnostics();
+        self
+    }
+}
+
+impl WorthUiApplicationBuilder<UiChangeProfileInstalled> {
     pub fn freeze(self) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
         let capability_snapshot = self
             .inner
@@ -309,22 +361,9 @@ impl WorthUiApplicationBuilder {
                     .measurement_inspection_evidence
                     .into_boxed_slice(),
                 query_binding_plan: self.query_binding_plan,
+                change_profile: self.change_profile.profile,
             })?,
         ))
-    }
-
-    pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
-        self.inner.freeze_with_registration_report()
-    }
-
-    pub fn with_minimal_registration_diagnostics(mut self) -> Self {
-        self.inner = self.inner.with_minimal_registration_diagnostics();
-        self
-    }
-
-    pub fn with_rich_registration_diagnostics(mut self) -> Self {
-        self.inner = self.inner.with_rich_registration_diagnostics();
-        self
     }
 }
 

@@ -25,7 +25,7 @@ use worth_ui_runtime::facade::application::{
 mod hostile_mounted_journey;
 #[path = "mixed_real_lifecycle/mounted_successor.rs"]
 mod mounted_successor;
-mod query_patch;
+pub(crate) mod query_patch;
 
 use super::scenario::{
     application_with_submission_and_host, capability_application,
@@ -72,7 +72,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
     let initial = watcher
         .take_initial_snapshot()
         .expect("the watcher owns the settled initial source")
-        .lower_to_candidate_submission(capabilities.capabilities())
+        .attempt_candidate_for_certification(capabilities.capabilities())
         .expect("initial real files lower");
     let context = egui::Context::default();
     let mut session = application_with_submission_and_host(
@@ -150,7 +150,7 @@ fn one_real_session_composes_watcher_query_egui_denials_and_churn() {
         .settle(SETTLEMENT_TIMEOUT)
         .expect("removed imported file settles as final tree truth");
     assert!(missing
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .is_err());
     assert_eq!(session.generation_identity(), &before_removed_import);
     execute_real_egui_frame(&context, &mut session, true);
@@ -236,7 +236,7 @@ fn activate_settled(
     let submission = watcher
         .settle(SETTLEMENT_TIMEOUT)
         .expect("the external edit settles through the production watcher")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("the stable source lowers through production semantics");
     activate_submission(session, submission, candidate_view, workspace)
 }
@@ -280,7 +280,7 @@ fn assert_denied_edit_preserves_output(
         .settle(SETTLEMENT_TIMEOUT)
         .expect("stable denied bytes remain observable filesystem truth");
     assert!(denied
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .is_err());
     assert_eq!(session.generation_identity(), &generation);
     execute_real_egui_frame(context, session, true);
@@ -352,7 +352,7 @@ fn freeze_churn_candidates(
             let submission = provider
                 .read()
                 .expect("production reader freezes the deterministic candidate")
-                .lower_to_candidate_submission(session.capabilities())
+                .attempt_candidate_for_certification(session.capabilities())
                 .expect("frozen churn source lowers");
             (submission, next_is_second)
         })

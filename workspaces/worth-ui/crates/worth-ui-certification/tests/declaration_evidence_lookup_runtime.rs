@@ -124,6 +124,7 @@ fn authored_provenance_query(provenance: UiAuthoredSourceProvenanceRef) -> UiIns
 fn authored_source_generation_tracks_source_artifact_generation_not_declaration_digest() {
     let baseline = declaration_lookup_app("ui.workflow.editor", "control:workflow");
     let changed = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.declaration.lookup.changed",
@@ -225,6 +226,7 @@ fn admit_semantic_artifact_returns_package_authoritative_source_generation() {
 
 fn declaration_lookup_app(semantic_key: &str, structural_token: &str) -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.declaration.lookup",

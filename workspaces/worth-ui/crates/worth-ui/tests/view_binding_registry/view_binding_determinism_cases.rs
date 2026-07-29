@@ -9,11 +9,13 @@ use super::view_binding_fixtures::{
 #[test]
 fn equivalent_query_view_references_produce_equivalent_bindings() {
     let left = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(table_view_binding("workspace.view_binding.tasks"))
         .expect("installed view should register")
         .freeze()
         .expect("application preparation should succeed");
     let right = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(table_view_binding("workspace.view_binding.tasks"))
         .expect("installed view should register")
         .freeze()
@@ -29,11 +31,13 @@ fn equivalent_query_view_references_produce_equivalent_bindings() {
 #[test]
 fn different_query_view_reference_meaning_changes_snapshot_digest() {
     let table = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(table_view_binding("workspace.view_binding.main"))
         .expect("installed snapshot view should register")
         .freeze()
         .expect("application preparation should succeed");
     let detail = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(detail_view_binding("workspace.view_binding.main"))
         .expect("installed live view should register")
         .freeze()
@@ -49,6 +53,7 @@ fn different_query_view_reference_meaning_changes_snapshot_digest() {
 fn accepted_view_bindings_remain_inspectable_after_freeze() {
     let installed = test_installed_domain("accepted-view-bindings");
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(table_view_binding_from(
             &installed,
             "workspace.view_binding.tasks",
@@ -82,11 +87,13 @@ fn admitted_definition_lifecycle_participates_in_view_binding_key_equivalence() 
     let right = detail_view_binding("workspace.view_binding.tasks");
 
     let left_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(left)
         .expect("installed snapshot view should register")
         .freeze()
         .expect("application preparation should succeed");
     let right_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(right)
         .expect("installed live view should register")
         .freeze()
@@ -105,11 +112,13 @@ fn visible_state_bindings_participate_in_view_binding_key_equivalence() {
         .with_visible_state_binding(VisibleStateBindingDeclaration::new("empty_posture"));
 
     let left_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(left)
         .expect("installed view should register")
         .freeze()
         .expect("application preparation should succeed");
     let right_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(right)
         .expect("installed view should register")
         .freeze()
@@ -130,11 +139,13 @@ fn visible_state_binding_key_basis_is_not_delimiter_collision_prone() {
         .with_visible_state_binding(VisibleStateBindingDeclaration::new("pending,retry"));
 
     let split_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(split_bindings)
         .expect("installed view should register")
         .freeze()
         .expect("application preparation should succeed");
     let joined_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(joined_binding)
         .expect("installed view should register")
         .freeze()

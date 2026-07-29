@@ -34,6 +34,7 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
         "lib.rs",
         "lifecycle_observation_publication.rs",
         "main.rs",
+        "native_frame/rebind.rs",
         "native_frame.rs",
         "observation_contract/envelope.rs",
         "observation_contract/lifecycle.rs",
@@ -47,11 +48,18 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
         "source_watch.rs",
         "visual_identity_adjudication.rs",
         "visual_identity_execution.rs",
+        "visual_identity_execution/comparison.rs",
+        "visual_identity_execution/progression.rs",
         "visual_identity_pulse.rs",
         "visual_observation_publication.rs",
     ]
     .into_iter()
-    .map(|path| Path::new(SOURCE_ROOT).join(path))
+    .map(|path| {
+        Path::new("apps")
+            .join("platform-pulse")
+            .join("src")
+            .join(path)
+    })
     .collect::<BTreeSet<_>>();
     let observed = inventory
         .rust_files_under(SOURCE_ROOT)
@@ -170,7 +178,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
     )?;
     require_contains(
         &application,
-        "lower_to_candidate_submission(capability_app.capabilities())",
+        "attempt_source_rebind(capability_app.capabilities())",
         "source lowering",
     )?;
     Ok(())
@@ -178,7 +186,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
 
 pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), String> {
     if !envelope.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
-        || !envelope.contains("SCHEMA_VERSION: u16 = 2")
+        || !envelope.contains("SCHEMA_VERSION: u16 = 3")
         || !envelope.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
         || !envelope.contains("MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576")
     {
@@ -207,8 +215,9 @@ pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), Stri
         "VisualOverlayPublished",
         "VisualOverlayCleared",
         "VisualSnapshotRetired",
-        "ReplacementPublished",
-        "ReplacementDeniedPreserving",
+        "RebindPublished",
+        "RebindDeniedPreserving",
+        "VisualComparison",
         "ShutdownCompleted",
         "TerminalFailure",
     ];
@@ -261,7 +270,7 @@ pub(super) fn audit_projection_contract(
     for required in [
         "pubfnproject_first_frame(&mutself,source:&WorthUiSourcePackageRevision,publication:&UiMountedFramePublicationReceipt,)",
         "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,application:&WorthUiApplicationCutoverReceipt,mounted:&UiMountedFramePublicationReceipt,)",
-        "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&WorthUiWatchedCandidateSubmissionDenial,)",
+        "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&UiSourceRebindAttemptFailure,)",
         "actual_native_effect_count:publication.cost_report().adapter().translated_rows()",
         "actual_native_effect_count:mounted.cost_report().adapter().translated_rows()",
     ] {

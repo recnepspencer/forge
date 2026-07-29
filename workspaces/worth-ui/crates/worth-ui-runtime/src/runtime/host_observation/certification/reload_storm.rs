@@ -151,7 +151,7 @@ impl WorthUiRuntime {
                 }));
             }
         };
-        match batch.lower_to_candidate_submission(snapshot) {
+        match batch.attempt_candidate_for_certification(snapshot) {
             Ok(submission) => Ok(submission),
             Err(submission_denial) => {
                 counters.record_denied_preservation();

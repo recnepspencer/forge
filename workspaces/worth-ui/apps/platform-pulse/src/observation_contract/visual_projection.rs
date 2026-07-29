@@ -80,6 +80,43 @@ impl PlatformPulseLifecycleObservationStream {
         Ok(envelope)
     }
 
+    pub fn project_successor_visual_snapshot(
+        &mut self,
+        receipt: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        let PlatformPulseVisualObservationState::AwaitingSuccessorSnapshot {
+            predecessor_snapshot,
+            predecessor_frame,
+            successor_frame,
+        } = self.visual_state
+        else {
+            return Err(
+                PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
+            );
+        };
+        let captured = project_snapshot(receipt)?;
+        if captured.affinity.frame != successor_frame
+            || captured.affinity.snapshot == predecessor_snapshot
+            || captured.affinity.relation != PlatformPulseVisualSnapshotRelationObservation::Current
+        {
+            return Err(PlatformPulseLifecycleObservationProjectionDenial::VisualAffinityMismatch);
+        }
+        let successor_snapshot = captured.affinity.snapshot;
+        let envelope = self.next_envelope(
+            PlatformPulseLifecycleObservation::VisualSnapshotCaptured(captured),
+        )?;
+        self.visual_state = PlatformPulseVisualObservationState::AwaitingComparison {
+            predecessor_snapshot,
+            predecessor_frame,
+            successor_snapshot,
+            successor_frame,
+        };
+        Ok(envelope)
+    }
+
     pub fn project_visual_point_trace(
         &mut self,
         input: PlatformPulseVisualPointTraceInput<'_>,

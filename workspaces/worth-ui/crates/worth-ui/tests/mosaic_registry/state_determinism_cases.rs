@@ -13,11 +13,13 @@ use super::state_fixtures::{
 #[test]
 fn equivalent_state_slots_produce_equivalent_reconciliation_keys() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(splitter_position_slot("workspace.state.sidebar_width"))
         .register_mosaic_state_slot(focused_region_slot("workspace.state.focused_region"))
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(focused_region_slot("workspace.state.focused_region"))
         .register_mosaic_state_slot(splitter_position_slot("workspace.state.sidebar_width"))
         .freeze()
@@ -43,10 +45,12 @@ fn equivalent_state_slots_produce_equivalent_reconciliation_keys() {
 #[test]
 fn truth_posture_participates_in_reconciliation_key_equivalence() {
     let ui_runtime = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(splitter_position_slot("workspace.state.sidebar_width"))
         .freeze()
         .expect("application preparation should succeed");
     let derived_runtime = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(
             splitter_position_slot("workspace.state.sidebar_width").with_truth_posture(
                 MosaicStateTruthPosture::derived_from_authoritative_runtime_truth(),
@@ -67,10 +71,12 @@ fn truth_posture_participates_in_reconciliation_key_equivalence() {
 #[test]
 fn different_state_slot_meaning_changes_snapshot_digest() {
     let splitter = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(splitter_position_slot("workspace.state.sidebar"))
         .freeze()
         .expect("application preparation should succeed");
     let scroll = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(complete_state_slot(
             "workspace.state.sidebar",
             MosaicStateSlotKind::scroll_position(),
@@ -91,6 +97,7 @@ fn different_state_slot_meaning_changes_snapshot_digest() {
 #[test]
 fn accepted_state_slots_remain_inspectable_after_freeze() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_state_slot(draft_input_slot("workspace.state.editor_draft"))
         .freeze()
         .expect("application preparation should succeed");

@@ -1,0 +1,29 @@
+mod admission;
+mod inspection_projection;
+mod outcome;
+mod preparation;
+mod receipt;
+mod recovery;
+mod source_request;
+mod state;
+mod visual_comparison_request;
+
+pub(crate) use admission::{admit_plan, UiRebindFinalAdmissionBasis};
+pub use admission::{UiRebindExecutionRequest, UiRebindPreparationDenial};
+pub use outcome::{
+    UiDuplicateObservationReceipt, UiRebindCancellationReceipt, UiRebindCompletionHandle,
+    UiRebindDenialCause, UiRebindDenialReceipt, UiRebindInternalDefectKind,
+    UiRebindInternalDefectOutcome, UiRebindOutcome, UiRebindStoppedPhase,
+    UiRebindSupersededReceipt, UiRebindTimeoutReceipt, UiRebindValidNextAction,
+};
+pub use preparation::{UiPreparedRebind, UiPreparedRebindPosture};
+pub use receipt::{UiRebindDisposition, UiRebindReceipt};
+pub use recovery::{
+    UiRebindReconciliation, UiRebindReconciliationRequest, UiRebindRecoveryCompletionHandle,
+    UiRebindRecoveryDenial, UiRebindRecoveryDenialCause, UiRebindRecoveryHandle,
+    UiRebindRecoveryInternalDefect, UiRebindRecoveryInternalDefectKind, UiRebindRecoveryOutcome,
+    UiRebindRecoveryReceipt, UiRebindRecoverySurfaceDenial,
+};
+pub use source_request::UiSourceRebindRequest;
+pub(crate) use state::{UiRebindComparisonReservation, UiRebindReservation, UiRebindRuntimeState};
+pub use state::{UiRebindReservationDenial, UiRebindShutdownReport};

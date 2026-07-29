@@ -167,7 +167,7 @@ fn one_real_predecessor_survives_ordered_hostile_seams_until_each_is_resolved() 
         .settle(SETTLEMENT_TIMEOUT)
         .expect("invalid stable bytes remain observable source truth");
     assert!(denied_source
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .is_err());
     assert_eq!(
         session.current_mounted_publication(),
@@ -178,7 +178,7 @@ fn one_real_predecessor_survives_ordered_hostile_seams_until_each_is_resolved() 
         .settle(SETTLEMENT_TIMEOUT)
         .expect("restored real bytes settle independently");
     assert!(restored_source
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .is_ok());
     let live = publish_all_lane_frame(&mut session);
     assert_eq!(live.predecessor(), Some(after_surface_restore.frame()));

@@ -16,6 +16,7 @@ use super::command_projection_fixtures::{
 #[test]
 fn projection_references_unknown_command_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(command_projection_for_command(
             "workspace.projection.toolbar",
             "workspace.command.save",
@@ -37,6 +38,7 @@ fn projection_references_unknown_command_rejected() {
 #[test]
 fn duplicated_missing_command_reference_reports_one_dependency() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             CommandProjectionDescriptor::new(
                 command_projection_id("workspace.projection.toolbar"),
@@ -65,6 +67,7 @@ fn duplicated_missing_command_reference_reports_one_dependency() {
 #[test]
 fn projection_command_reference_resolves_against_registered_command() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor("workspace.command.save", "Save"))
         .register_command_projection(command_projection_for_command(
             "workspace.projection.toolbar",
@@ -84,6 +87,7 @@ fn projection_command_reference_resolves_against_registered_command() {
 fn command_projection_eligibility_resolves_against_registered_projection() {
     let projection_id = command_projection_id("workspace.projection.palette");
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(command_projection("workspace.projection.palette"))
         .register_command(
             command_descriptor("workspace.command.open", "Open")
@@ -110,6 +114,7 @@ fn command_projection_eligibility_resolves_against_registered_projection() {
 #[test]
 fn projection_references_unknown_mosaic_placement_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command_projection(
             CommandProjectionDescriptor::new(
                 command_projection_id("workspace.projection.region"),
@@ -138,6 +143,7 @@ fn projection_references_unknown_mosaic_placement_rejected() {
 #[test]
 fn projection_mosaic_scope_resolves_against_registered_placement_policy() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(mosaic_placement_policy("workspace.placement.primary"))
         .register_command_projection(
             CommandProjectionDescriptor::new(

@@ -17,10 +17,21 @@ mod mounted_identity;
 mod mounted_inspection;
 mod mounted_preview;
 mod mounted_publication;
-mod native_application_replacement;
+#[cfg(test)]
+mod native_application_identity_trace_test_support;
+#[cfg(test)]
+mod native_application_identity_trace_tests;
 mod native_application_shell;
+#[cfg(test)]
+mod native_identity_trace_audit;
+#[cfg(test)]
+mod native_identity_trace_host;
 mod native_replacement_allocation;
+mod native_source_rebind;
+mod observation;
 mod observation_report;
+mod rebind_execution;
+mod rebind_recovery;
 mod visual_overlay;
 mod visual_snapshot;
 pub use crate::lifecycle::WorthUiActiveApplicationSessionIdentity;
@@ -35,7 +46,10 @@ pub use active_framework_turn::{
     WorthUiMountedLaneProjectionDenial,
 };
 pub use app::{WorthUi, WorthUiApp};
-pub use app_builder::{WorthUiApplicationBuilder, WorthUiQueryViewRegistrationError};
+pub use app_builder::{
+    UiChangeProfileInstalled, UiChangeProfileMissing, WorthUiApplicationBuilder,
+    WorthUiQueryViewRegistrationError,
+};
 pub use application_replacement::{
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationCutoverRetry, WorthUiApplicationPublicationObservation,
@@ -43,11 +57,12 @@ pub use application_replacement::{
     WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
     WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,
     WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
-    WorthUiMountedApplicationReplacementOutcome, WorthUiMountedReplacementAdmissionDenial,
-    WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
-    WorthUiMountedReplacementRetentionDenial, WorthUiPendingApplicationCutover,
-    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
-    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
+    WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
+    WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
+    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
+    WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
 pub use mounted_allocation_denial::{
@@ -72,10 +87,10 @@ pub use mounted_preview::{
     WorthUiMountedPreviewRetentionRejection, WorthUiPendingMountedPreview,
     WorthUiPreparedMountedPreview, WorthUiResolvedMountedPreview,
 };
-pub use native_application_replacement::{
-    WorthUiNativeApplicationReplacementDenial, WorthUiNativeApplicationReplacementOutcome,
-};
 pub use native_application_shell::{
     WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
     WorthUiNativeApplicationShutdownReceipt,
 };
+pub use native_source_rebind::WorthUiNativeSourceRebindDenial;
+pub(crate) use rebind_execution::WorthUiPreparedEvidenceOnlyApplicationRebind;
+pub(crate) use rebind_recovery::WorthUiRebindRecoveryAuthority;

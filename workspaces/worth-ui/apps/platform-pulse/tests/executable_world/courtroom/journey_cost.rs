@@ -4,6 +4,7 @@ use crate::adjudication::ExecutableLifecycleCleanupEvidence;
 
 const FIRST_PUBLICATION_BUDGET: Duration = Duration::from_secs(5);
 const JOURNEY_BUDGET: Duration = Duration::from_secs(30);
+const EXACT_LIFECYCLE_EVENT_COUNT: usize = 13;
 const LIFECYCLE_EVENT_BUDGET: usize = 256;
 const LIFECYCLE_BYTE_BUDGET: usize = 1_048_576;
 
@@ -56,7 +57,7 @@ impl PlatformPulseJourneyCost {
     pub(super) fn assert_frozen_budgets(self) {
         assert!(self.first_publication <= FIRST_PUBLICATION_BUDGET);
         assert!(self.full_journey <= JOURNEY_BUDGET);
-        assert_eq!(self.lifecycle_events, 11);
+        assert_eq!(self.lifecycle_events, EXACT_LIFECYCLE_EVENT_COUNT);
         assert!(self.lifecycle_events <= LIFECYCLE_EVENT_BUDGET);
         assert!(self.lifecycle_bytes <= LIFECYCLE_BYTE_BUDGET);
         assert_eq!(self.source_actions, 3);

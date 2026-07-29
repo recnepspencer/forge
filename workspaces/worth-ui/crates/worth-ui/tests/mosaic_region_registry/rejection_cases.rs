@@ -3,6 +3,7 @@ use super::*;
 #[test]
 fn mosaic_region_missing_sizing_behavior_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(
             mosaic_region_descriptor("workspace.region.primary")
                 .with_sizing_behavior(MosaicSizingBehavior::missing_for_diagnostics()),
@@ -20,6 +21,7 @@ fn mosaic_region_missing_sizing_behavior_rejected() {
 #[test]
 fn mosaic_region_missing_scroll_ownership_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(
             mosaic_region_descriptor("workspace.region.primary")
                 .with_scroll_ownership(MosaicScrollOwnership::missing_for_diagnostics()),
@@ -37,6 +39,7 @@ fn mosaic_region_missing_scroll_ownership_rejected() {
 #[test]
 fn mosaic_region_missing_focus_scope_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(
             mosaic_region_descriptor("workspace.region.primary")
                 .with_focus_scope(MosaicFocusScopeKind::missing_for_diagnostics()),
@@ -54,6 +57,7 @@ fn mosaic_region_missing_focus_scope_rejected() {
 #[test]
 fn platform_builtin_region_domain_name_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(mosaic_region_descriptor_with_role(
             "workspace.region.primary",
             MosaicRegionRole::product_domain_name_for_diagnostics("file browser"),
@@ -74,6 +78,7 @@ fn platform_builtin_region_domain_name_rejected() {
 #[test]
 fn unsupported_surface_class_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(
             mosaic_region_descriptor("workspace.region.primary").with_allowed_surface_class(
                 SurfacePlacementClass::unsupported_for_diagnostics("floating-dock"),
@@ -92,6 +97,7 @@ fn unsupported_surface_class_rejected() {
 #[test]
 fn surface_accepting_mosaic_region_without_surface_class_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(complete_mosaic_region_descriptor(
             "workspace.region.primary",
             MosaicRegionRole::primary(),
@@ -110,6 +116,7 @@ fn surface_accepting_mosaic_region_without_surface_class_rejected() {
 #[test]
 fn region_only_mosaic_region_without_surface_classes_is_admitted() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(complete_mosaic_region_descriptor(
             "workspace.region.split",
             MosaicRegionRole::split(),
@@ -128,6 +135,7 @@ fn region_only_mosaic_region_without_surface_classes_is_admitted() {
 #[test]
 fn mosaic_region_descriptor_reports_multiple_independent_violations() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(
             MosaicRegionKindDescriptor::new(
                 mosaic_region_id("workspace.region.invalid"),

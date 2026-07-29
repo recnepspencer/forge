@@ -5,6 +5,7 @@ use super::snapshot_fixtures::{command_icon, command_with_icon, component, theme
 #[test]
 fn snapshot_digest_stable_under_registration_permutation() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(theme_token("theme.text.primary"))
         .register_icon(command_icon("icon.save"))
         .register_command(command_with_icon("command.save", "icon.save"))
@@ -18,6 +19,7 @@ fn snapshot_digest_stable_under_registration_permutation() {
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(
             component("component.editor")
                 .with_theme_token_dependency(super::snapshot_fixtures::theme_token_id(

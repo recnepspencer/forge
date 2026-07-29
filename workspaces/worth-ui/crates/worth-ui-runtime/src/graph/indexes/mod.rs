@@ -1,4 +1,5 @@
 mod aspect;
+mod fact;
 mod graph_core_indexes;
 mod graph_node_identity_index;
 mod graph_participation_indexes;
@@ -15,6 +16,14 @@ mod slot_occupancy_index;
 pub use aspect::{
     UiGraphAspectConsumer, UiGraphAspectConsumerKind, UiGraphAspectPublisher,
     UiGraphAspectPublisherKind, UiGraphConsumedAspectIndex, UiGraphPublishedAspectIndex,
+};
+pub(crate) use fact::UiAuthoredDeclarationLookup;
+#[cfg(any(test, feature = "certification-support"))]
+pub use fact::UiGraphFactLookupCost;
+pub use fact::{
+    UiGraphConsumedFactIndex, UiGraphFactConsumerIdentity, UiGraphFactConsumerKey,
+    UiGraphFactConsumerKind, UiGraphFactIndexBasis, UiGraphFactIndexEntry, UiGraphFactLookupDenial,
+    UiGraphFactLookupReceipt,
 };
 pub use graph_core_indexes::UiGraphCoreIndexes;
 pub use graph_node_identity_index::UiGraphNodeIdentityIndex;

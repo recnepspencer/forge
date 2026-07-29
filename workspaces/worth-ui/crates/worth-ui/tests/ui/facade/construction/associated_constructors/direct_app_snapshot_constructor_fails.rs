@@ -8,5 +8,5 @@ fn main() {
 }
 
 fn registration_report() -> CapabilityRegistrationReport {
-    WorthUi::app().freeze_with_registration_report()
+    WorthUi::app().with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse()).freeze_with_registration_report()
 }

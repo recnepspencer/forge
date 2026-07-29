@@ -25,6 +25,7 @@ use surface_registry_fixtures::{
 #[test]
 fn equivalent_app_defined_surfaces_produce_equivalent_entries() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_component(component_descriptor("workspace.component.sidebar"))
         .register_surface(surface_descriptor(
@@ -38,6 +39,7 @@ fn equivalent_app_defined_surfaces_produce_equivalent_entries() {
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_surface(surface_descriptor(
             "workspace.surface.sidebar",
             "workspace.component.sidebar",
@@ -68,6 +70,7 @@ fn equivalent_app_defined_surfaces_produce_equivalent_entries() {
 #[test]
 fn surface_references_missing_component_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_surface(surface_descriptor(
             "workspace.surface.editor",
             "workspace.component.editor",
@@ -90,6 +93,7 @@ fn surface_references_missing_component_rejected() {
 #[test]
 fn surface_missing_component_does_not_poison_valid_surface() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.valid"))
         .register_surface(surface_descriptor(
             "workspace.surface.valid",
@@ -120,6 +124,7 @@ fn surface_missing_component_does_not_poison_valid_surface() {
 #[test]
 fn duplicate_surface_id_rejected_before_snapshot_freeze() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(surface_descriptor(
             "workspace.surface.editor",
@@ -145,6 +150,7 @@ fn duplicate_surface_id_rejected_before_snapshot_freeze() {
 #[test]
 fn duplicate_surface_id_rejects_only_the_duplicate_identity() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.valid"))
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(surface_descriptor(
@@ -184,6 +190,7 @@ fn duplicate_surface_id_rejects_only_the_duplicate_identity() {
 #[test]
 fn surface_claims_unsupported_placement_class_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(SurfaceDescriptor::new(
             surface_id("workspace.surface.editor"),
@@ -205,6 +212,7 @@ fn surface_claims_unsupported_placement_class_rejected() {
 #[test]
 fn surface_uses_invalid_state_class_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(SurfaceDescriptor::new(
             surface_id("workspace.surface.editor"),
@@ -226,6 +234,7 @@ fn surface_uses_invalid_state_class_rejected() {
 #[test]
 fn platform_builtin_surface_domain_name_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(SurfaceDescriptor::new(
             surface_id("workspace.surface.editor"),
@@ -250,6 +259,7 @@ fn platform_builtin_surface_domain_name_rejected() {
 #[test]
 fn surface_view_binding_reference_fails_closed_until_view_binding_registry_exists() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(
             surface_descriptor("workspace.surface.editor", "workspace.component.editor")
@@ -273,6 +283,7 @@ fn surface_view_binding_reference_fails_closed_until_view_binding_registry_exist
 #[test]
 fn surface_references_missing_command_slot_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(
             surface_descriptor("workspace.surface.editor", "workspace.component.editor")
@@ -296,6 +307,7 @@ fn surface_references_missing_command_slot_rejected() {
 #[test]
 fn surface_command_slot_resolves_against_registered_command() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(command_descriptor(
             "workspace.command.open",
             "Open Workspace",
@@ -322,6 +334,7 @@ fn surface_command_slot_resolves_against_registered_command() {
 #[test]
 fn surface_metadata_survives_freeze() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.overlay"))
         .register_surface(
             SurfaceDescriptor::new(

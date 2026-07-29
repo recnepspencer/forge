@@ -5,7 +5,7 @@ use worth_ui::facade::app::{
     WorthUiPreparedApplicationGenerationIdentity,
 };
 use worth_ui::facade::source::{
-    WorthUiSourcePackageRevision, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptDenial, UiSourceRebindAttemptFailure, WorthUiSourcePackageRevision,
 };
 
 use super::envelope::{
@@ -66,6 +66,17 @@ pub(super) enum PlatformPulseVisualObservationState {
         overlay: u64,
         published_frame: u64,
         cleared_frame: u64,
+    },
+    AwaitingSuccessorSnapshot {
+        predecessor_snapshot: u64,
+        predecessor_frame: u64,
+        successor_frame: u64,
+    },
+    AwaitingComparison {
+        predecessor_snapshot: u64,
+        predecessor_frame: u64,
+        successor_snapshot: u64,
+        successor_frame: u64,
     },
     AwaitingRetirement {
         snapshot: u64,
@@ -179,8 +190,8 @@ impl PlatformPulseLifecycleObservationStream {
         let next_visual_state = self
             .visual_state
             .after_replacement(frame.diagnostic_value)?;
-        let outcome = PlatformPulseLifecycleObservation::ReplacementPublished(
-            PlatformPulseReplacementPublished {
+        let outcome =
+            PlatformPulseLifecycleObservation::RebindPublished(PlatformPulseReplacementPublished {
                 source: PlatformPulseSourceSnapshotObservation::from_revision(source),
                 predecessor_generation:
                     PlatformPulseApplicationGenerationObservation::from_generation(
@@ -189,8 +200,7 @@ impl PlatformPulseLifecycleObservationStream {
                 active_generation: generation_observation,
                 successor_frame: frame,
                 actual_native_effect_count: mounted.cost_report().adapter().translated_rows(),
-            },
-        );
+            });
         let envelope = self.next_envelope(outcome)?;
         self.state = PlatformPulseObservationState::Published {
             generation,
@@ -204,36 +214,72 @@ impl PlatformPulseLifecycleObservationStream {
     pub fn project_preserved_predecessor(
         &mut self,
         source: &WorthUiSourcePackageRevision,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
         let (_, generation, frame) = self.published_predecessor()?;
         let denial_family = match denial {
-            WorthUiWatchedCandidateSubmissionDenial::DslCompilation(_) => {
+            UiSourceRebindAttemptFailure::CompilationDenied(_) => {
                 PlatformPulseReplacementDenialFamily::DslCompilation
             }
-            WorthUiWatchedCandidateSubmissionDenial::SourceIngress(_) => {
-                PlatformPulseReplacementDenialFamily::SourceIngress
-            }
-            WorthUiWatchedCandidateSubmissionDenial::RuntimePreparation(_) => {
-                PlatformPulseReplacementDenialFamily::RuntimePreparation
-            }
-            WorthUiWatchedCandidateSubmissionDenial::Candidate(_) => {
-                PlatformPulseReplacementDenialFamily::Candidate
-            }
+            UiSourceRebindAttemptFailure::Denied(receipt) => match receipt.denial() {
+                UiSourceRebindAttemptDenial::SourceIngress(_) => {
+                    PlatformPulseReplacementDenialFamily::SourceIngress
+                }
+                UiSourceRebindAttemptDenial::RuntimePreparation(_) => {
+                    PlatformPulseReplacementDenialFamily::RuntimePreparation
+                }
+                UiSourceRebindAttemptDenial::Candidate(_) => {
+                    PlatformPulseReplacementDenialFamily::Candidate
+                }
+            },
         };
-        self.next_envelope(
-            PlatformPulseLifecycleObservation::ReplacementDeniedPreserving(
-                PlatformPulseReplacementPreserved {
-                    source: PlatformPulseSourceSnapshotObservation::from_revision(source),
-                    active_generation: generation,
-                    active_frame: frame,
-                    denial_family,
-                },
-            ),
-        )
+        self.next_envelope(PlatformPulseLifecycleObservation::RebindDeniedPreserving(
+            PlatformPulseReplacementPreserved {
+                source: PlatformPulseSourceSnapshotObservation::from_revision(source),
+                active_generation: generation,
+                active_frame: frame,
+                denial_family,
+            },
+        ))
+    }
+
+    pub fn project_visual_comparison(
+        &mut self,
+        comparison: worth_ui::facade::inspection::UiVisualSnapshotComparison,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        let PlatformPulseVisualObservationState::AwaitingComparison {
+            predecessor_snapshot,
+            predecessor_frame,
+            successor_snapshot,
+            successor_frame,
+        } = self.visual_state
+        else {
+            return Err(
+                PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
+            );
+        };
+        let observation =
+            super::lifecycle::PlatformPulseVisualComparison::from_comparison(comparison);
+        if observation.predecessor_snapshot() != predecessor_snapshot
+            || observation.successor_snapshot() != successor_snapshot
+        {
+            return Err(PlatformPulseLifecycleObservationProjectionDenial::VisualAffinityMismatch);
+        }
+        let envelope = self.next_envelope(PlatformPulseLifecycleObservation::VisualComparison(
+            observation,
+        ))?;
+        self.visual_state = PlatformPulseVisualObservationState::AwaitingRetirement {
+            snapshot: predecessor_snapshot,
+            snapshot_frame: predecessor_frame,
+            successor_frame,
+        };
+        Ok(envelope)
     }
 
     pub(super) fn published_predecessor(
@@ -307,9 +353,9 @@ impl PlatformPulseVisualObservationState {
                 snapshot,
                 snapshot_frame,
                 ..
-            } => Ok(Self::AwaitingRetirement {
-                snapshot,
-                snapshot_frame,
+            } => Ok(Self::AwaitingSuccessorSnapshot {
+                predecessor_snapshot: snapshot,
+                predecessor_frame: snapshot_frame,
                 successor_frame,
             }),
             Self::Retired => Ok(Self::Retired),
@@ -317,6 +363,8 @@ impl PlatformPulseVisualObservationState {
             | Self::SnapshotCaptured { .. }
             | Self::IdentityTraced { .. }
             | Self::OverlayPublished { .. }
+            | Self::AwaitingSuccessorSnapshot { .. }
+            | Self::AwaitingComparison { .. }
             | Self::AwaitingRetirement { .. } => {
                 Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete)
             }

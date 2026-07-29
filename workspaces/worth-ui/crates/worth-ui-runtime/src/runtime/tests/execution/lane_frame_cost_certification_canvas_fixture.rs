@@ -25,6 +25,7 @@ pub(super) fn canvas_spatial_frame_receipt() -> WorthUiCanvasSpatialFrameReceipt
         )
     };
     let capability_app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .freeze()
         .expect("canvas fixture capabilities freeze");
@@ -37,6 +38,7 @@ pub(super) fn canvas_spatial_frame_receipt() -> WorthUiCanvasSpatialFrameReceipt
         capability_app.capabilities(),
     );
     let mut session = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .with_candidate_submission(submission)
         .freeze()

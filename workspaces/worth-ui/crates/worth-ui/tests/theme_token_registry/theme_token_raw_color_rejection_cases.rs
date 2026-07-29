@@ -13,6 +13,7 @@ use super::theme_token_fixtures::theme_token_id;
 #[test]
 fn raw_color_outside_token_definition_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(
             ThemeTokenDescriptor::raw_color_outside_token_definition_for_diagnostics(
                 theme_token_id("theme.raw.leak"),
@@ -34,6 +35,7 @@ fn raw_color_outside_token_definition_is_rejected() {
 #[test]
 fn theme_token_without_value_or_alias_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::missing_definition_for_diagnostics(
             theme_token_id("theme.text.missing_definition"),
             ThemeTokenFamily::text(),
@@ -51,6 +53,7 @@ fn theme_token_without_value_or_alias_is_rejected() {
 #[test]
 fn invalid_theme_color_literal_is_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(ThemeTokenDescriptor::define(
             theme_token_id("theme.text.invalid"),
             ThemeTokenFamily::text(),

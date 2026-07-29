@@ -76,6 +76,7 @@ fn provenance_expanded_aspect_slices_keep_exact_public_shape_and_replay_stabilit
 
 fn aspect_slice_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.aspect-evidence-slice",

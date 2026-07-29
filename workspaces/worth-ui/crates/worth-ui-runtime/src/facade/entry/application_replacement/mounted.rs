@@ -8,7 +8,8 @@ mod admission;
 mod outcome;
 
 pub use outcome::{
-    WorthUiMountedApplicationReplacementInFlight, WorthUiMountedApplicationReplacementOutcome,
+    WorthUiMountedApplicationReplacementInFlight,
+    WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
     WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
     WorthUiPreparedMountedApplicationReplacement,
@@ -211,7 +212,11 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
                     observation,
                 );
                 WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(Box::new(
-                    frame,
+                    WorthUiMountedApplicationReplacementIndeterminate {
+                        session,
+                        application,
+                        frame,
+                    },
                 ))
             }
         }
@@ -263,6 +268,38 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
             session
                 .mounted
                 .complete_graph_replacement(&session.host_session, mounted, now);
+        let outcome = match outcome {
+            Ok(outcome) => outcome,
+            Err(rejection) => {
+                return WorthUiMountedApplicationReplacementOutcome::CompletionDenied(Box::new(
+                    WorthUiMountedReplacementCompletionDenial {
+                        denial: rejection.denial,
+                        in_flight: WorthUiMountedApplicationReplacementInFlight {
+                            session,
+                            application,
+                            mounted: *rejection.in_flight,
+                        },
+                    },
+                ));
+            }
+        };
+        WorthUiPreparedMountedApplicationReplacement::finish(
+            session,
+            application,
+            outcome,
+            |presented| presented.commit_once(),
+        )
+    }
+
+    pub fn cancel(self: Box<Self>) -> WorthUiMountedApplicationReplacementOutcome<'session> {
+        let Self {
+            session,
+            application,
+            mounted,
+        } = *self;
+        let outcome = session
+            .mounted
+            .cancel_graph_replacement(&session.host_session, mounted);
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(rejection) => {

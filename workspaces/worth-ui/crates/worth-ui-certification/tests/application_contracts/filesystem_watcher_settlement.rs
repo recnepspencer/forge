@@ -64,7 +64,7 @@ fn native_watcher_preserves_active_generation_until_stable_replacement_activatio
         .settle(SETTLEMENT_TIMEOUT)
         .expect("completed malformed bytes still form a stable filesystem snapshot");
     let filesystem_report = dsl_compilation_report(
-        malformed.lower_to_candidate_submission(session.capabilities()),
+        malformed.attempt_candidate_for_certification(session.capabilities()),
         "filesystem-authored malformed source",
     );
     assert!(
@@ -257,7 +257,7 @@ fn native_watcher_reconstructs_imported_module_churn_from_final_tree_truth() {
     assert_eq!(missing.source_revision().sequence(), 3);
     let missing_digest = missing.source_revision().final_package_digest();
     let denial = missing
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect_err("a still-declared import cannot silently lose its target module");
     assert!(matches!(
         denial,

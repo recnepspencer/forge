@@ -22,6 +22,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) next_visual_overlay_identity: u64,
     pub(super) visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry,
     pub(super) visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry,
+    pub(super) rebind: crate::runtime::rebind::UiRebindRuntimeState,
 }
 
 /// Inspection evidence bound to the exact generation currently executing.
@@ -42,6 +43,7 @@ impl WorthUiActiveApplicationSession {
         let mounted_frame_retention_budget = app.mounted_frame_retention_budget();
         let host_observation_capacity = app.host_observation_capacity();
         let visual_policy = app.visual_inspection_policy();
+        let rebind_profile = app.prepared_authority().change_profile().rebind();
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
@@ -69,6 +71,7 @@ impl WorthUiActiveApplicationSession {
                 visual_policy,
             ),
             visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry::new(),
+            rebind: crate::runtime::rebind::UiRebindRuntimeState::new(rebind_profile),
         })
     }
 
@@ -80,14 +83,77 @@ impl WorthUiActiveApplicationSession {
         self.application.generation_identity()
     }
 
+    pub const fn rebind_deadline_at(
+        &self,
+        tick: u64,
+    ) -> crate::runtime::rebind::UiRebindSessionDeadline {
+        crate::runtime::rebind::UiRebindSessionDeadline::new(self.identity, tick)
+    }
+
+    pub const fn rebind_cancellation_request(
+        &self,
+    ) -> crate::runtime::rebind::UiRebindCancellationRequest {
+        crate::runtime::rebind::UiRebindCancellationRequest::new(self.identity)
+    }
+
     pub fn capabilities(&self) -> &crate::facade::registry::snapshot::CapabilitySnapshot {
         self.application.capabilities()
+    }
+
+    pub fn classify_observations(
+        &self,
+        observations: crate::facade::observation::UiAdmittedObservationSet,
+    ) -> Result<
+        crate::facade::observation::UiChangeClassificationOutcome,
+        crate::facade::observation::UiChangeClassificationDenial,
+    > {
+        self.application
+            .classify_observations(self.identity, observations)
+    }
+
+    pub fn resolve_affected_scope(
+        &self,
+        change: crate::facade::observation::UiClassifiedChange,
+    ) -> Result<
+        crate::runtime::rebind::UiResolvedAffectedScope,
+        crate::runtime::rebind::UiAffectedScopeDenial,
+    > {
+        self.application
+            .resolve_affected_scope(self.identity, change)
+    }
+
+    pub fn compile_rebind_plan(
+        &self,
+        lifecycle: crate::runtime::rebind::UiResolvedIdentityLifecycle,
+        policy: crate::runtime::rebind::UiRebindExecutionPolicy,
+    ) -> Result<crate::runtime::rebind::UiRebindPlan, crate::runtime::rebind::UiRebindPlanningDenial>
+    {
+        self.application
+            .compile_rebind_plan(self.identity, lifecycle, policy)
+    }
+
+    pub fn compile_preservation_rebind(
+        &self,
+        evidence: crate::facade::observation::UiEvidenceOnlySourceChange,
+        policy: crate::runtime::rebind::UiRebindExecutionPolicy,
+    ) -> Result<crate::runtime::rebind::UiRebindPlan, crate::runtime::rebind::UiRebindPlanningDenial>
+    {
+        self.application
+            .compile_preservation_rebind(self.identity, evidence, policy)
     }
 
     /// Borrow the graph authority for the generation this session is
     /// currently executing.
     pub fn graph(&self) -> crate::graph::UiGraphAuthority<'_> {
         self.application.graph()
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn lookup_consumed_fact_for_certification(
+        &self,
+        fact: &crate::fact_contract::UiProducedFact,
+    ) -> Result<crate::graph::UiGraphFactLookupReceipt, crate::graph::UiGraphFactLookupDenial> {
+        self.application.lookup_consumed_fact(fact)
     }
 
     pub(crate) fn source_event_ingress(
@@ -114,6 +180,26 @@ impl WorthUiActiveApplicationSession {
         &self,
     ) -> crate::runtime::WorthUiStateQueryResidueScan {
         self.application.inspect_query_state_residue()
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn refresh_query_change_for_certification(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    > {
+        self.application
+            .refresh_query_change_for_certification(request)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn measurement_basis_sources_for_certification(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
+        self.application
+            .measurement_basis_sources_for_certification()
     }
 
     pub(crate) fn execute_framework_turn(
@@ -246,6 +332,7 @@ impl WorthUiActiveApplicationSession {
     }
 
     pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
+        let rebind = self.rebind.shutdown();
         let visual_capture = self.visual_captures.shutdown();
         let visual_overlay = self.visual_overlays.shutdown();
         let (mounted_presentation, outcomes) =
@@ -262,6 +349,7 @@ impl WorthUiActiveApplicationSession {
             .bind_visual_overlay(visual_overlay)
             .bind_mounted_presentation(mounted_presentation)
             .bind_host_session_release(host_session_release)
+            .bind_rebind(rebind)
     }
 }
 

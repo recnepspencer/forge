@@ -36,6 +36,7 @@ fn admitted_family_catalog_closes_the_initial_family_set_exactly_once() {
 #[test]
 fn public_freeze_exposes_bootstrap_page_family_authority() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let artifact = &app.declaration_artifacts()[0];
@@ -62,6 +63,7 @@ fn public_freeze_exposes_bootstrap_page_family_authority() {
 #[test]
 fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_roles() {
     let attached_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.family.freeze-path",
@@ -158,6 +160,7 @@ fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name)
                 .with_semantic_artifact_spec(spec),

@@ -285,6 +285,7 @@ fn denied_operator_token() -> &'static str {
 fn planning_graph_fixture(label: &str, operator_token: &str) -> (WorthUiApp, UiGraphNodeIdentity) {
     let (_, _, world_profile) = display_field_projection_context(label);
     let app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.allocation-planning")

@@ -1,0 +1,35 @@
+pub use crate::fact_contract::{
+    UiAuthoredChangedFact, UiAuthoredFactKind, UiAuthoredFactSelector,
+    UiCommittedPortalAnchorChangedFact, UiCommittedScrollExtentChangedFact, UiConsumedFactContract,
+    UiConsumedFactSelector, UiHostDeviceScaleChangedFact, UiHostViewportChangedFact,
+    UiMeasurementChangedFact, UiProducedFact, UiProducedFactContract, UiProducedFactFamily,
+    UiProducedFactOwner, UiProducedFactResetPosture, UiQueryChangedFact, UiQueryChangedFactKind,
+    UiQueryIncrementalChangedFact, UiQueryResetChangedFact, UiSubsystemConsumedFactRule,
+};
+pub use crate::graph::{
+    UiGraphFactConsumerIdentity, UiGraphFactConsumerKey, UiGraphFactConsumerKind,
+};
+pub use crate::runtime::rebind::{
+    UiAffectedConsumer, UiAffectedFactLookup, UiAffectedScopeBasis, UiAffectedScopeCost,
+    UiAffectedScopeDenial, UiAffectedScopeGeneration, UiChangeProfile,
+    UiDuplicateObservationReceipt, UiIdentityLifecycleDecision, UiIdentityLifecycleDenial,
+    UiIdentityLifecycleEntry, UiPreparedRebind, UiPreparedRebindPosture, UiRebindArtifactPolicy,
+    UiRebindBudgetInput, UiRebindCancellationPolicy, UiRebindCancellationReceipt,
+    UiRebindCancellationRequest, UiRebindCandidatePreparationDenial, UiRebindCompletionHandle,
+    UiRebindConcurrencyInput, UiRebindConflictFootprint, UiRebindDeadlinePolicy,
+    UiRebindDeclarativeEffect, UiRebindDenialCause, UiRebindDenialReceipt,
+    UiRebindDisclosurePolicy, UiRebindDisposition, UiRebindEffectSet, UiRebindExecutionPolicy,
+    UiRebindExecutionRequest, UiRebindIdempotency, UiRebindInternalDefectKind,
+    UiRebindInternalDefectOutcome, UiRebindLimit, UiRebindOutcome, UiRebindParallelAdmission,
+    UiRebindPlan, UiRebindPlanBasis, UiRebindPlanCost, UiRebindPlanTarget, UiRebindPlanningDenial,
+    UiRebindPreparationDenial, UiRebindProfile, UiRebindProfileConstructionDenial, UiRebindReceipt,
+    UiRebindReconciliation, UiRebindReconciliationRequest, UiRebindRecoveryCompletionHandle,
+    UiRebindRecoveryDenial, UiRebindRecoveryDenialCause, UiRebindRecoveryHandle,
+    UiRebindRecoveryInternalDefect, UiRebindRecoveryInternalDefectKind, UiRebindRecoveryOutcome,
+    UiRebindRecoveryReceipt, UiRebindRecoverySurfaceDenial, UiRebindReservationDenial,
+    UiRebindResourceAccess, UiRebindRetryTolerance, UiRebindSafePoint, UiRebindSafePointPolicy,
+    UiRebindSessionDeadline, UiRebindShutdownReport, UiRebindStoppedPhase, UiRebindSubsystemKind,
+    UiRebindSubsystemPlan, UiRebindSupersededReceipt, UiRebindTimeoutReceipt,
+    UiRebindValidNextAction, UiResolvedAffectedScope, UiResolvedIdentityLifecycle,
+    UiSourceRebindRequest,
+};

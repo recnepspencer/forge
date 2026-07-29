@@ -90,6 +90,7 @@ pub(super) fn equivalent_contract_app(
     world_profile: UiGraphWorldProfile,
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -116,6 +117,7 @@ pub(super) fn distinct_operator_kind_app(
     world_profile: UiGraphWorldProfile,
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.evidence.operator-kind")

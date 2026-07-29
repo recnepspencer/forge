@@ -14,9 +14,8 @@ use worth_ui::facade::inspection::{
     UiVisualInspectionRegionCapacity,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision,
-    WorthUiWatchedCandidateSubmissionDenial,
 };
 use worth_ui_host_egui::WorthUiHostEgui;
 
@@ -31,6 +30,10 @@ const IDENTITY_TARGET_FILL_TOKEN: &str = "theme.platform_pulse.identity_target_f
 const BLUE_TOKEN: &str = "theme.platform_pulse.blue";
 const GREEN_TOKEN: &str = "theme.platform_pulse.green";
 const YELLOW_TOKEN: &str = "theme.platform_pulse.yellow";
+const PLATFORM_PULSE_RETAINED_PIXEL_BYTES: u64 = 2 * PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES;
+const PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT: u64 = 256 << 10;
+const PLATFORM_PULSE_RETAINED_STRUCTURAL_BYTES: u64 =
+    2 * PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT;
 
 pub(crate) struct PreparedPlatformPulse {
     pub(crate) app: WorthUiApp,
@@ -44,7 +47,7 @@ pub(crate) enum PlatformPulsePreparationDenial {
     WatcherStart(WorthUiFilesystemWatcherDenial),
     InitialSourceSettlement(WorthUiFilesystemWatcherDenial),
     CapabilityApplication(WorthUiApplicationPreparationDenial),
-    InitialSourceLowering(WorthUiWatchedCandidateSubmissionDenial),
+    InitialSourceLowering(UiSourceRebindAttemptFailure),
     FileApplication(WorthUiApplicationPreparationDenial),
 }
 
@@ -65,7 +68,8 @@ pub(crate) fn prepare(
             .freeze()
             .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
         let submission = snapshot
-            .lower_to_candidate_submission(capability_app.capabilities())
+            .attempt_source_rebind(capability_app.capabilities())
+            .into_candidate_submission()
             .map_err(PlatformPulsePreparationDenial::InitialSourceLowering)?;
         builder(host.clone())
             .with_candidate_submission(submission)
@@ -88,20 +92,24 @@ pub(crate) fn prepare(
 }
 
 fn builder(host: WorthUiHostEgui) -> WorthUiApplicationBuilder {
-    let builder = register_pulse_structure(WorthUi::app().with_host(host));
+    let builder = register_pulse_structure(
+        WorthUi::app()
+            .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+            .with_host(host),
+    );
     register_pulse_theme_tokens(builder).with_visual_inspection_policy(visual_inspection_policy())
 }
 
 fn visual_inspection_policy() -> UiVisualInspectionPolicy {
     UiVisualInspectionPolicy::bounded(
         worth_ui::facade::inspection::UiVisualInspectionDisclosure::local_development_unredacted(),
-        UiVisualInspectionCapacity::bounded(1, 8, 16),
+        UiVisualInspectionCapacity::bounded(2, 8, 16),
         UiVisualInspectionRegionCapacity::bounded(65_536, 65_536),
         UiVisualInspectionByteBudget::bounded(
             PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES,
-            PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES,
-            256 << 10,
-            256 << 10,
+            PLATFORM_PULSE_RETAINED_PIXEL_BYTES,
+            PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT,
+            PLATFORM_PULSE_RETAINED_STRUCTURAL_BYTES,
         ),
     )
     .expect("the permanent pulse declares a valid bounded visual policy")

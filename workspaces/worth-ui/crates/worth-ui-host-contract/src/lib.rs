@@ -60,11 +60,14 @@ pub use mounted_projection::{
 pub use observation_report::{
     UiHostObservationBatch, UiHostObservationBatchConstructionDenial, UiHostObservationBatchInput,
     UiHostObservationCanonicalCore, UiHostObservationCanonicalCoreInput,
-    UiHostObservationCoalescingIdentity, UiHostObservationFamily, UiHostObservationIntegrity,
-    UiHostObservationLoss, UiHostObservationMountedBasis, UiHostObservationPayload,
-    UiHostObservationReport, UiHostObservationSequence, UiHostObservationSequenceRange,
-    UiHostObservationTimeBasis, UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
-    UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT,
+    UiHostObservationCoalescingIdentity, UiHostObservationDrain, UiHostObservationDrainDenial,
+    UiHostObservationFamily, UiHostObservationIntegrity, UiHostObservationLoss,
+    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
+    UiHostObservationRetention, UiHostObservationRetentionDenial, UiHostObservationSequence,
+    UiHostObservationSequenceRange, UiHostObservationTimeBasis,
+    UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT, UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT,
+    UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT, UI_HOST_OBSERVATION_DRAIN_BYTE_LIMIT,
+    UI_HOST_OBSERVATION_DRAIN_REPORT_LIMIT,
 };
 pub use operational_adapter::{
     UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,

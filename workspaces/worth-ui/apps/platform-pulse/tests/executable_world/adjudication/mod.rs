@@ -17,9 +17,11 @@ mod visual_overlay_pixels;
 
 #[cfg(target_os = "windows")]
 pub(crate) use identity_trace::{
+    adjudicate_successor_visual_snapshot, adjudicate_visual_comparison,
     adjudicate_visual_retirement, adjudicate_visual_snapshot, adjudicate_visual_trace,
-    ExecutableVisualIdentityFailure, ExecutableVisualRetirementEvidence,
-    ExecutableVisualSnapshotEvidence, ExecutableVisualTraceEvidence,
+    ExecutableVisualComparisonEvidence, ExecutableVisualIdentityFailure,
+    ExecutableVisualRetirementEvidence, ExecutableVisualSnapshotEvidence,
+    ExecutableVisualTraceEvidence,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{

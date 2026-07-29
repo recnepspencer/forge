@@ -367,6 +367,7 @@ fn cross_family_expansion_requires_named_family_or_link_kind() {
 
 fn declared_surface_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.inspection.relevance.declared",
@@ -379,6 +380,7 @@ fn declared_surface_app() -> WorthUiApp {
 
 fn empty_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")
 }

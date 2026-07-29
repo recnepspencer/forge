@@ -196,6 +196,7 @@ fn rebuilding_graph_node_index_from_authority_preserves_public_lookup_answers() 
 
 fn graph_identity_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.runtime.graph-node-evidence-index",

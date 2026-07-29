@@ -130,7 +130,10 @@ impl UiHostMeasurementAdmission {
         if stale {
             return denied(UiHostMeasurementDenial::StaleBasis);
         }
-        UiHostMeasurementOutcome::Completed(UiSolicitedHostMeasurementResult::new(observation))
+        UiHostMeasurementOutcome::Completed(UiSolicitedHostMeasurementResult::new(
+            observation,
+            current,
+        ))
     }
 
     pub(crate) fn cancel(

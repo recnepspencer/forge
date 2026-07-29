@@ -12,6 +12,7 @@ use super::plugin_slot_fixtures::{plugin_slot, plugin_slot_id};
 #[test]
 fn plugin_contribution_to_unknown_slot_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             plugin_slot("workspace.plugin_contribution.inspectors").with_contribution_reference(
                 PluginSlotContributionReference::slot(plugin_slot_id(
@@ -36,6 +37,7 @@ fn plugin_contribution_to_unknown_slot_rejected() {
 #[test]
 fn plugin_contribution_slot_reference_resolves_against_registered_slot() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.inspectors"))
         .register_plugin_slot(
             plugin_slot("workspace.plugin_contribution.inspectors").with_contribution_reference(
@@ -59,6 +61,7 @@ fn plugin_contribution_slot_reference_resolves_against_registered_slot() {
 #[test]
 fn plugin_contribution_reference_to_duplicate_slot_target_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.inspectors"))
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.inspectors"))
         .register_plugin_slot(
@@ -93,6 +96,7 @@ fn plugin_contribution_reference_to_duplicate_slot_target_rejected() {
 #[test]
 fn invalid_plugin_contribution_does_not_poison_valid_slot() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
         .register_plugin_slot(PluginSlotDescriptor::new(plugin_slot_id(
             "workspace.plugin_slot.empty",

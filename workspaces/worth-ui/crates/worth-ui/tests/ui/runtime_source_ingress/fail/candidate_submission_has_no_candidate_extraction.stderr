@@ -25,3 +25,11 @@ error[E0308]: mismatched types
  note: expected reference `&WorthUiPreparedApplicationGenerationIdentity`
    found reference `&WorthUiCandidateCompositionBasis`
  note: function defined here
+
+error: cannot construct `UiAdmittedObservation` with struct literal syntax due to private fields
+ --> $WORKSPACE/crates/worth-ui/tests/ui/observation/fail/admitted_observation_cannot_be_constructed.rs
+ help: you might have meant to use the `seal` associated function
+
+error[E0308]: mismatched types
+ --> $WORKSPACE/crates/worth-ui/tests/ui/observation/fail/raw_host_batch_cannot_enter_semantic_admission.rs
+ note: method defined here

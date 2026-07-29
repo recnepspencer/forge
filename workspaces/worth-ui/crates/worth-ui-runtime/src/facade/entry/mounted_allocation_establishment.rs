@@ -46,6 +46,23 @@ impl WorthUiMountedAllocationEstablishmentReceipt {
     pub fn committed(&self) -> &crate::runtime::UiCommittedAllocationReplan {
         &self.committed
     }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub fn committed_basis_sources(
+        &self,
+    ) -> Box<[Option<crate::declaration::UiDeclaredMeasurementBasisSource>]> {
+        self.committed
+            .receipts()
+            .iter()
+            .map(|receipt| {
+                receipt
+                    .committed_allocation()
+                    .measurement_basis()
+                    .declared_measurement_policy()
+                    .basis_source()
+            })
+            .collect()
+    }
 }
 
 /// SUPPORT AUTHORITY for certification worlds that establish allocation

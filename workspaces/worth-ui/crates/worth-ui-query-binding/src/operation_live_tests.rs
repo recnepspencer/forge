@@ -9,6 +9,7 @@ use crate::{
 
 mod cost;
 mod fixture;
+mod observation_validation;
 use fixture::LiveBindingFixture;
 
 #[test]

@@ -39,6 +39,15 @@ impl WorthUiRuntime {
             .compare_admitted(admitted)
     }
 
+    pub(crate) fn compare_admitted_replacement_bounded(
+        &self,
+        admitted: &WorthUiAdmittedReplacementCandidate,
+        structural_entry_limit: usize,
+    ) -> Result<WorthUiRuntimeArtifactComparison, WorthUiRuntimeArtifactComparisonDenial> {
+        WorthUiRuntimeArtifactComparator::for_active_artifact(self.active.active_artifact())
+            .compare_admitted_bounded(admitted, structural_entry_limit)
+    }
+
     pub(crate) fn classify_replacement_impact(
         &self,
         comparison: &WorthUiRuntimeArtifactComparison,
@@ -224,6 +233,24 @@ impl WorthUiRuntime {
         self.finish_replacement_lowering(node_plan, &inventory, candidate_application_authority)
     }
 
+    pub(crate) fn finish_precomputed_replacement_lowering(
+        &self,
+        node_plan: WorthUiReplacementNodePlanReady,
+        candidate: &crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationAuthority,
+    ) -> Result<WorthUiReplacementLoweringReady, WorthUiReplacementLoweringDenial> {
+        let candidate_application_authority = candidate.lowering_authority();
+        if !candidate_application_authority.admits_candidate(&node_plan.admitted) {
+            return Err(WorthUiReplacementLoweringDenial::CandidateApplicationAuthorityMismatch);
+        }
+        let inventory = WorthUiDurableStateInventory::assemble_for_replacement(
+            &node_plan.node_plan,
+            candidate_application_authority.mosaic_state_capabilities(),
+        )
+        .map_err(WorthUiReplacementLoweringDenial::Inventory)?;
+        self.finish_replacement_lowering(node_plan, &inventory, candidate_application_authority)
+    }
+
     #[cfg(test)]
     pub(crate) fn prepare_replacement_lowering(
         &self,
@@ -253,6 +280,21 @@ impl WorthUiRuntime {
         let comparison = self
             .compare_admitted_replacement(&admitted)
             .map_err(WorthUiReplacementLoweringDenial::Comparison)?;
+        self.prepare_replacement_node_plan_from_comparison(
+            admitted,
+            comparison,
+            candidate_query_plan,
+            candidate_query_binding,
+        )
+    }
+
+    pub(crate) fn prepare_replacement_node_plan_from_comparison(
+        &self,
+        admitted: WorthUiAdmittedReplacementCandidate,
+        comparison: WorthUiRuntimeArtifactComparison,
+        candidate_query_plan: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        candidate_query_binding: &worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    ) -> Result<WorthUiReplacementNodePlanReady, WorthUiReplacementLoweringDenial> {
         let comparison = WorthUiReplacementComparisonReady {
             admitted,
             comparison,

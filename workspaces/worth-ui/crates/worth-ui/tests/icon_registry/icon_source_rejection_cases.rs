@@ -12,6 +12,7 @@ use super::icon_fixtures::icon_id;
 #[test]
 fn unknown_icon_family_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(IconDescriptor::new(
             icon_id("workspace.icon.domain"),
             IconFamily::unknown_for_diagnostics("mailbox"),
@@ -27,6 +28,7 @@ fn unknown_icon_family_rejected() {
 #[test]
 fn missing_icon_source_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(IconDescriptor::missing_source_for_diagnostics(
             icon_id("workspace.icon.save"),
             IconFamily::command(),
@@ -41,6 +43,7 @@ fn missing_icon_source_rejected() {
 #[test]
 fn unsupported_icon_source_kind_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(IconDescriptor::new(
             icon_id("workspace.icon.save"),
             IconFamily::command(),
@@ -59,6 +62,7 @@ fn unsupported_icon_source_kind_rejected() {
 #[test]
 fn missing_icon_source_metadata_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(IconDescriptor::new(
             icon_id("workspace.icon.save"),
             IconFamily::command(),
@@ -77,6 +81,7 @@ fn missing_icon_source_metadata_rejected() {
 #[test]
 fn missing_icon_source_capabilities_rejected_together() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(IconDescriptor::new(
             icon_id("workspace.icon.save"),
             IconFamily::command(),

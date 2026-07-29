@@ -2,6 +2,8 @@ use crate::graph::UiGraphNodeIdentity;
 use crate::runtime::tests::source_ingress_test_support::{empty_artifact, framework_from_artifact};
 use crate::runtime::WorthUiTransientInteractionState;
 
+mod query_observation_tests;
+
 #[test]
 fn unknown_graph_targets_replay_to_the_same_typed_denial() {
     let mut first_runtime = framework_from_artifact(empty_artifact());

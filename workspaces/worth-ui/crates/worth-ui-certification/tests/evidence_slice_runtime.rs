@@ -177,6 +177,7 @@ fn obligation_slice_replay_preserves_omission_detail_and_cost_posture() {
 
 fn declaration_lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.evidence-slice")
                 .with_semantic_artifact_spec(

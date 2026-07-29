@@ -158,6 +158,7 @@ fn graph_node_identity_rejects_aspect_family_until_indexed_lane_exists() {
 
 fn graph_identity_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-evidence-lookup",

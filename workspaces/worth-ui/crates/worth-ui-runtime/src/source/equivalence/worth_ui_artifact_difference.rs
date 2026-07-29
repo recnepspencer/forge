@@ -10,6 +10,12 @@ pub(crate) enum WorthUiArtifactSemanticDelta {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum WorthUiArtifactDifference {
+    ModuleCreated {
+        module_id: String,
+    },
+    ModuleRetired {
+        module_id: String,
+    },
     ModuleCount {
         left_module_count: usize,
         right_module_count: usize,
@@ -24,13 +30,42 @@ pub(crate) enum WorthUiArtifactDifference {
         left_node_count: usize,
         right_node_count: usize,
     },
+    NodeCreated {
+        node_identity: String,
+        candidate_authored_provenance_digest: u64,
+        module_id: String,
+        node_index: usize,
+        node_kind: WorthUiArtifactNodeKind,
+    },
+    NodeRetired {
+        node_identity: String,
+        active_authored_provenance_digest: u64,
+        module_id: String,
+        node_index: usize,
+        node_kind: WorthUiArtifactNodeKind,
+    },
+    NodeMoved {
+        node_identity: String,
+        active_authored_provenance_digest: u64,
+        candidate_authored_provenance_digest: u64,
+        left_module_id: String,
+        left_node_index: usize,
+        right_module_id: String,
+        right_node_index: usize,
+    },
     NodeKind {
+        node_identity: String,
+        active_authored_provenance_digest: u64,
+        candidate_authored_provenance_digest: u64,
         module_id: String,
         node_index: usize,
         left_kind: WorthUiArtifactNodeKind,
         right_kind: WorthUiArtifactNodeKind,
     },
     NodeSemantics {
+        node_identity: String,
+        active_authored_provenance_digest: u64,
+        candidate_authored_provenance_digest: u64,
         module_id: String,
         node_index: usize,
         node_kind: WorthUiArtifactNodeKind,

@@ -11,16 +11,21 @@ use super::application_authority_closure::application_definition::{
     application_builder, application_builder_with_host, cross_lane_application_builder_with_host,
     preview_application_builder_with_host, preview_cross_lane_application_builder_with_host,
     CANDIDATE_COMPONENT, CROSS_LANE_CANVAS, CROSS_LANE_REALTIME, CURRENT_COMPONENT,
-    IMPORTED_CANDIDATE_COMPONENT, IMPORTED_CURRENT_COMPONENT, PREVIEW_COMPONENT, PREVIEW_REGION,
-    PREVIEW_SCROLL_STATE_SLOT, PREVIEW_SIZING, PREVIEW_STATE_SLOT, PREVIEW_SURFACE,
+    IMPORTED_CURRENT_COMPONENT, PREVIEW_COMPONENT, PREVIEW_REGION, PREVIEW_SCROLL_STATE_SLOT,
+    PREVIEW_SIZING, PREVIEW_STATE_SLOT, PREVIEW_SURFACE,
 };
 use super::application_authority_closure::authored_composition::{
     file_source, preview_cross_lane_rust_submission, query_rust_submission, rust_submission,
 };
 use super::application_authority_closure::candidate_catalog::admit_candidate_catalog;
-
+#[path = "filesystem_application_lifecycle/authored_identity.rs"]
+mod authored_identity;
 #[path = "filesystem_application_lifecycle/platform_pulse.rs"]
 mod platform_pulse;
+#[path = "filesystem_application_lifecycle/post_classification_cost.rs"]
+mod post_classification_cost;
+#[path = "filesystem_application_lifecycle/rebind_profile.rs"]
+mod rebind_profile;
 #[path = "filesystem_application_lifecycle/visual_identity.rs"]
 mod visual_identity;
 #[path = "filesystem_application_lifecycle/visual_inspection.rs"]
@@ -73,6 +78,22 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn candidate_source_text() -> String {
         file_source(CANDIDATE_COMPONENT)
+    }
+
+    pub fn dual_generation_scope_initial_source_text() -> String {
+        format!(
+            "{}\n{}",
+            Self::current_source_text(),
+            Self::imported_current_source_text()
+        )
+    }
+
+    pub fn dual_generation_scope_candidate_source_text() -> String {
+        format!(
+            "{}\n{}",
+            Self::candidate_source_text(),
+            Self::imported_current_source_text()
+        )
     }
 
     pub fn preview_source_text(include_successor: bool) -> String {
@@ -128,10 +149,6 @@ impl FilesystemApplicationLifecycleScenario {
 
     pub fn imported_current_source_text() -> String {
         format!("component {IMPORTED_CURRENT_COMPONENT} {{}}")
-    }
-
-    pub fn imported_candidate_source_text() -> String {
-        format!("component {IMPORTED_CANDIDATE_COMPONENT} {{}}")
     }
 
     pub fn capability_application(&self) -> WorthUiApp {
@@ -344,7 +361,7 @@ impl FilesystemApplicationLifecycleScenario {
         capabilities: &CapabilitySnapshot,
     ) -> WorthUiWatchedCandidateSubmission {
         snapshot
-            .lower_to_candidate_submission(capabilities)
+            .attempt_candidate_for_certification(capabilities)
             .expect("stable filesystem source should lower")
     }
 

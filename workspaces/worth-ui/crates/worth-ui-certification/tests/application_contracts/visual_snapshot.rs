@@ -26,6 +26,8 @@ use super::mounted_application_lifecycle::in_flight_presentation_world::{
 };
 use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 
+#[path = "visual_snapshot/comparison.rs"]
+mod comparison;
 #[path = "visual_snapshot/disclosure_evidence.rs"]
 mod disclosure_evidence;
 #[path = "visual_snapshot/phase_2_egui.rs"]
@@ -134,6 +136,7 @@ fn phase_2_launch_seals_the_application_declared_visual_policy() {
     )
     .expect("the scenario policy is valid");
     let session = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_visual_inspection_policy(policy)
         .freeze()
         .expect("the application prepares")

@@ -16,7 +16,7 @@ pub(super) fn activate_current_filesystem_candidate(
         .read()
         .expect("replacement source should settle through the production filesystem provider");
     let submission = snapshot
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("replacement source should lower through production semantics");
     let mut prepared = session
         .prepare_replacement(submission)

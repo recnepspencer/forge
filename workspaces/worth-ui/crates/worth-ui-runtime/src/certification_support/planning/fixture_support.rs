@@ -94,6 +94,7 @@ pub(super) fn query_app() -> WorthUiApp {
         .measurement_view("workspace.view_binding.selection")
         .expect("suite Query view should install");
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("installed suite Query view should register")
         .freeze()
@@ -175,6 +176,7 @@ fn multi_control_app(
         module = module.with_semantic_declaration(declaration);
     }
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()

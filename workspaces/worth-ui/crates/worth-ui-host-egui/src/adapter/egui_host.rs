@@ -23,6 +23,7 @@ pub struct WorthUiHostEgui {
         >,
     >,
     measurement_environment: Arc<Mutex<EguiMeasurementEnvironment>>,
+    observation_retention: Arc<worth_ui_host_contract::UiHostObservationRetention>,
     retained_presentations: Arc<
         Mutex<
             BTreeMap<
@@ -48,6 +49,7 @@ impl WorthUiHostEgui {
             context,
             registrations: Arc::default(),
             measurement_environment: Arc::default(),
+            observation_retention: Arc::default(),
             retained_presentations: Arc::default(),
             visual_captures: Arc::default(),
         }
@@ -55,6 +57,13 @@ impl WorthUiHostEgui {
 
     pub fn registered_surface_count(&self) -> usize {
         self.registrations.lock().unwrap().len()
+    }
+
+    pub fn retain_host_observation(
+        &self,
+        batch: worth_ui_host_contract::UiHostObservationBatch,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationRetentionDenial> {
+        self.observation_retention.retain(batch)
     }
 
     /// Replay the currently admitted mounted mechanics for one egui frame.
@@ -106,6 +115,16 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
             WorthUiHostCapability::NativePaint,
             WorthUiHostCapability::ViewportObservation,
         ])
+    }
+
+    fn drain_mechanical_host_observations(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(self.observation_retention.drain(host_session_identity))
     }
 
     fn mechanical_visual_capture_capability(
@@ -290,6 +309,8 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
             retained.remove(&binding);
             super::visual_snapshot::remove_binding(&self.visual_captures, binding);
         }
+        self.observation_retention
+            .release_session(host_session_identity);
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
             host_session_identity,
             before - registrations.len(),

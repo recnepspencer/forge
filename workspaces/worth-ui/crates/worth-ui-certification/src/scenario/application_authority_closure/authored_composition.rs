@@ -144,7 +144,7 @@ fn lower(
     ingress
         .ingest([WorthUiWatcherEvent::provider_revision(provider_id)])
         .expect("scenario watcher input should debounce")
-        .lower_to_candidate_submission(snapshot)
+        .attempt_candidate_for_certification(snapshot)
         .expect("scenario composition should lower through source ingress")
 }
 

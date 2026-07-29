@@ -34,6 +34,9 @@ pub struct UiRequestedHostMeasurement {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiSolicitedHostMeasurementResult {
     observation: UiHostMeasurementObservation,
+    source_identity: u64,
+    source_generation: WorthUiHostCapabilityObservationGeneration,
+    source_order: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -119,12 +122,36 @@ impl UiRequestedHostMeasurement {
 }
 
 impl UiSolicitedHostMeasurementResult {
-    pub(super) fn new(observation: UiHostMeasurementObservation) -> Self {
-        Self { observation }
+    pub(super) fn new(
+        observation: UiHostMeasurementObservation,
+        current: UiHostMeasurementCurrentTruth,
+    ) -> Self {
+        Self {
+            source_identity: current.host_session,
+            source_generation: current.capability_generation,
+            source_order: observation.request_identity().as_u64(),
+            observation,
+        }
     }
 
     pub fn observation(&self) -> &UiHostMeasurementObservation {
         &self.observation
+    }
+
+    pub const fn source_identity(&self) -> u64 {
+        self.source_identity
+    }
+
+    pub const fn source_generation(&self) -> WorthUiHostCapabilityObservationGeneration {
+        self.source_generation
+    }
+
+    pub const fn source_order(&self) -> u64 {
+        self.source_order
+    }
+
+    pub(crate) fn retained_bytes(&self) -> usize {
+        std::mem::size_of::<Self>().saturating_add(self.observation.request().encoded_len())
     }
 }
 

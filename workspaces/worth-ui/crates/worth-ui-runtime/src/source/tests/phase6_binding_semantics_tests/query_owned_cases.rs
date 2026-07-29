@@ -205,6 +205,7 @@ fn bound_token_target(bound: &WorthUiBoundArtifactInput) -> &str {
 
 fn token_target_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_token("theme.test.blue", "#2f81f7"))
         .register_theme_token(color_token("theme.test.green", "#3fb950"))
         .register_theme_token(ThemeTokenDescriptor::alias(

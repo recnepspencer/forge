@@ -250,6 +250,7 @@ fn query_and_diagnostic_touches_retain_exact_identity_and_reason_topology() {
 
 fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(

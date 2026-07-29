@@ -22,6 +22,7 @@ fn invalid_query_definition_identity_stops_before_registry_mutation() {
 fn duplicate_view_binding_id_rejected_before_snapshot_freeze() {
     let installed = test_installed_domain("duplicate-view-binding");
     let builder = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(table_view_binding_from(
             &installed,
             "workspace.view_binding.duplicate",
@@ -52,6 +53,7 @@ fn foreign_installed_domain_is_rejected_before_registry_mutation() {
     let left = test_installed_domain("left-installed-domain");
     let foreign = test_installed_domain("foreign-installed-domain");
     let builder = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(table_view_binding_from(
             &left,
             "workspace.view_binding.tasks",

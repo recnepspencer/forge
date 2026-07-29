@@ -6,12 +6,14 @@
 mod activation_interruption;
 mod active_session_observation;
 mod application_builder;
+mod application_graph;
 mod application_replacement;
 mod framework_turn_execution;
 mod identity_overlay_projection;
 mod layout_admission;
 mod mounted_frame_execution;
 mod planning;
+mod rebind_identity_lifecycle;
 mod runtime_launch;
 mod touch_origin;
 mod touch_origin_source;
@@ -21,10 +23,14 @@ pub use crate::admission::{
     UiMeasurementUnsupportedReason, UiQueryMeasurementEligibilityPosture,
     UiQueryMeasurementSourceIdentity, UiQueryMeasurementUnsupportedQueryReason,
 };
-pub use crate::declaration::UiDeclaredMeasurementMode;
+pub use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementMode};
 pub use crate::facade::entry::{
     WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedIdentityCertificationExt,
+};
+pub use crate::graph::{
+    UiGraphFactConsumerIdentity, UiGraphFactIndexBasis, UiGraphFactIndexEntry,
+    UiGraphFactLookupCost, UiGraphFactLookupDenial, UiGraphFactLookupReceipt,
 };
 pub(crate) use activation_interruption::interrupt_if_armed;
 pub use activation_interruption::{
@@ -32,6 +38,9 @@ pub use activation_interruption::{
 };
 pub use active_session_observation::WorthUiActiveSessionCertificationExt;
 pub use application_builder::WorthUiApplicationBuilderCertificationExt;
+pub use application_graph::{
+    UiRepeatedInstanceIdentityCertificationRow, WorthUiApplicationGraphCertificationExt,
+};
 pub use application_replacement::WorthUiApplicationReplacementCertificationExt;
 pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 pub use identity_overlay_projection::{
@@ -44,6 +53,11 @@ pub use mounted_frame_execution::{
     WorthUiMountedPublicationCertificationExt,
 };
 pub use planning::planning_pair_for_certification_suite;
+pub use rebind_identity_lifecycle::{
+    identity_lifecycle_decision_for_certification, UiIdentityLifecyclePresence,
+    UiRebindPlanningBasisMutation, UiResolvedIdentityLifecycleCertificationExt,
+    WorthUiNodeLifecycleTransition,
+};
 pub use runtime_launch::launch_empty_runtime_for_certification;
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,

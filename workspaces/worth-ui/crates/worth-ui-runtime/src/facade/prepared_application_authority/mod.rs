@@ -22,6 +22,7 @@ pub(crate) use authority::{
 };
 pub use declaration_source_identity::WorthUiPreparedDeclarationSourceIdentity;
 pub use generation_identity::WorthUiPreparedApplicationGenerationIdentity;
+pub(crate) use generation_identity::WorthUiPreparedGenerationLineage;
 pub(crate) use generation_witness::WorthUiPreparedApplicationGenerationWitness;
 pub use host_session_plan::WorthUiHostSessionPlan;
 pub(crate) use launch_admission::WorthUiPreparedLaunchAdmission;

@@ -158,7 +158,7 @@ fn preserved_outcome(
     envelope: &PlatformPulseLifecycleObservationEnvelope,
 ) -> Result<PlatformPulseReplacementPreserved, ExecutablePredecessorPreservationFailure> {
     match envelope.outcome() {
-        PlatformPulseLifecycleObservation::ReplacementDeniedPreserving(preserved) => Ok(*preserved),
+        PlatformPulseLifecycleObservation::RebindDeniedPreserving(preserved) => Ok(*preserved),
         _ => Err(ExecutablePredecessorPreservationFailure::WrongLifecycleOutcome),
     }
 }

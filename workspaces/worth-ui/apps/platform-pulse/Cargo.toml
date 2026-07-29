@@ -4,6 +4,7 @@ edition.workspace = true
 version.workspace = true
 license.workspace = true
 autotests = false
+build = "build.rs"
 
 [lib]
 name = "worth_ui_platform_pulse"

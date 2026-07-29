@@ -18,6 +18,8 @@ pub(crate) enum WatchedPulseTransition {
     VisualIdentityTrace,
     VisualOverlayPublished,
     VisualOverlayCleared,
+    VisualSuccessorSnapshot,
+    VisualComparison,
     VisualSnapshotRetired,
     GreenReplacement,
     MalformedPreservation,

@@ -12,10 +12,21 @@ pub enum PlatformPulseLifecycleObservation {
     VisualOverlayPublished(super::visual::PlatformPulseVisualOverlayPublished),
     VisualOverlayCleared(super::visual::PlatformPulseVisualOverlayCleared),
     VisualSnapshotRetired(super::visual::PlatformPulseVisualSnapshotRetired),
-    ReplacementPublished(PlatformPulseReplacementPublished),
-    ReplacementDeniedPreserving(PlatformPulseReplacementPreserved),
+    RebindPublished(PlatformPulseReplacementPublished),
+    RebindDeniedPreserving(PlatformPulseReplacementPreserved),
+    VisualComparison(PlatformPulseVisualComparison),
     ShutdownCompleted(PlatformPulseShutdownCompleted),
     TerminalFailure(PlatformPulseTerminalFailure),
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PlatformPulseVisualComparison {
+    predecessor_snapshot: u64,
+    successor_snapshot: u64,
+    identity_rebound: bool,
+    retained_pixels_differ: Option<bool>,
+    structural_entries_examined: u64,
+    retained_pixel_bytes_examined: u64,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -210,6 +221,15 @@ accessors!(
     denial_family: PlatformPulseReplacementDenialFamily,
 );
 accessors!(
+    PlatformPulseVisualComparison,
+    predecessor_snapshot: u64,
+    successor_snapshot: u64,
+    identity_rebound: bool,
+    retained_pixels_differ: Option<bool>,
+    structural_entries_examined: u64,
+    retained_pixel_bytes_examined: u64,
+);
+accessors!(
     PlatformPulseShutdownCompleted,
     watcher_backend: PlatformPulseWatcherBackendObservation,
     observed_notification_count: u64,
@@ -262,5 +282,28 @@ impl PlatformPulseApplicationGenerationObservation {
 impl PlatformPulseTerminalFailure {
     pub(super) fn new(family: PlatformPulseTerminalFailureFamily) -> Self {
         Self { family }
+    }
+}
+
+impl PlatformPulseVisualComparison {
+    pub(super) fn from_comparison(
+        comparison: worth_ui::facade::inspection::UiVisualSnapshotComparison,
+    ) -> Self {
+        let snapshots = comparison.snapshot_identities();
+        Self {
+            predecessor_snapshot: snapshots[0],
+            successor_snapshot: snapshots[1],
+            identity_rebound: comparison.continuity()
+                == worth_ui::facade::inspection::UiVisualIdentityContinuity::Rebound,
+            retained_pixels_differ: comparison.retained_pixels_differ(),
+            structural_entries_examined: u64::try_from(
+                comparison.cost().structural_entries_examined(),
+            )
+            .unwrap_or(u64::MAX),
+            retained_pixel_bytes_examined: u64::try_from(
+                comparison.cost().retained_pixel_bytes_examined(),
+            )
+            .unwrap_or(u64::MAX),
+        }
     }
 }
