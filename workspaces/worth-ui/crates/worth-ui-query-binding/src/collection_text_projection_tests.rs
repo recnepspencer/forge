@@ -105,7 +105,7 @@ fn prepare_collection(
         .expect("Query resolves selected status")
         .into_key();
     let settled = bound
-        .admit_execution_resources((), operation_execution_resource_request(), &workspace)
+        .admit_execution_resources((), operation_execution_resource_request(), workspace)
         .unwrap()
         .execute(workspace)
         .unwrap()

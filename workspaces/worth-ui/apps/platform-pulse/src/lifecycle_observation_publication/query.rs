@@ -8,18 +8,14 @@ use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseQueryShutdownEvidence, PlatformPulseQueryWatcherShutdownEvidence,
 };
 
-use super::{
-    PlatformPulseObservationPublicationDenial, PlatformPulseObservationPublisher,
-};
+use super::{PlatformPulseObservationPublicationDenial, PlatformPulseObservationPublisher};
 
 impl PlatformPulseObservationPublisher {
     pub(crate) fn query_projection_issued(
         &self,
         observation: &worth_ui::facade::query_binding::UiProjectionObservation,
-    ) -> Result<
-        PlatformPulseQueryProjectionEvidence,
-        PlatformPulseObservationPublicationDenial,
-    > {
+    ) -> Result<PlatformPulseQueryProjectionEvidence, PlatformPulseObservationPublicationDenial>
+    {
         let evidence = PlatformPulseQueryProjectionEvidence::from_observation(observation)
             .map_err(PlatformPulseObservationPublicationDenial::Projection)?;
         self.with_publication(|publication| {
@@ -34,9 +30,8 @@ impl PlatformPulseObservationPublisher {
         publication: &UiMountedFramePublicationReceipt,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| {
-                stream.project_query_projection_published(evidence, publication)
-            })
+            publisher
+                .project(|stream| stream.project_query_projection_published(evidence, publication))
         })
     }
 
@@ -44,9 +39,8 @@ impl PlatformPulseObservationPublisher {
         &self,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publication| {
-            publication.project(
-                PlatformPulseLifecycleObservationStream::project_query_preparation_failure,
-            )
+            publication
+                .project(PlatformPulseLifecycleObservationStream::project_query_preparation_failure)
         })
     }
 
@@ -54,9 +48,8 @@ impl PlatformPulseObservationPublisher {
         &self,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(
-                PlatformPulseLifecycleObservationStream::project_query_shutdown_failure,
-            )
+            publisher
+                .project(PlatformPulseLifecycleObservationStream::project_query_shutdown_failure)
         })
     }
 

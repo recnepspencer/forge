@@ -1,8 +1,8 @@
 use worth_ui::facade::query_binding::{
     UiProjectionObservation, UiScalarProjectionFactReceipt, WorthUiScalarProjectionAdvance,
     WorthUiScalarProjectionAdvanceError, WorthUiScalarProjectionLiveOwner,
-    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseReceipt,
-    WorthUiScalarProjectionSourceCloseError, WorthUiScalarProjectionSourceRecord,
+    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
+    WorthUiScalarProjectionSourceCloseReceipt, WorthUiScalarProjectionSourceRecord,
 };
 
 pub(crate) struct PlatformPulseQueryLifecycle {
@@ -25,7 +25,7 @@ pub(crate) enum PlatformPulseQueryLifecycleDenial {
     OwnerNotLive,
     Advance(WorthUiScalarProjectionAdvanceError),
     ForeignPublication,
-    Close(WorthUiScalarProjectionSourceCloseError),
+    Close(Box<WorthUiScalarProjectionSourceCloseError>),
 }
 
 impl std::fmt::Display for PlatformPulseQueryLifecycleDenial {
@@ -124,7 +124,7 @@ impl PlatformPulseQueryLifecycle {
             PlatformPulseQueryOwnerState::Live(owner) => owner
                 .close()
                 .map(PlatformPulseQueryShutdownReceipt::from)
-                .map_err(PlatformPulseQueryLifecycleDenial::Close),
+                .map_err(|denial| PlatformPulseQueryLifecycleDenial::Close(Box::new(denial))),
             _ => Err(PlatformPulseQueryLifecycleDenial::OwnerNotLive),
         }
     }

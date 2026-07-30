@@ -35,6 +35,15 @@ class WorthUiTestLaneTests(TestCase):
         self.assertIn("application_contracts", command)
         self.assertIn("filesystem_", command)
 
+    def test_closure_stress_is_visible_but_excluded_from_ordinary_execution(self) -> None:
+        command = lane_runner.commands_for("closure-stress")[0]
+
+        self.assertIn("application_contracts", command)
+        self.assertIn("closure_stress_", command)
+        self.assertIn("--ignored", command)
+        self.assertNotIn("--test-threads", command)
+        self.assertLess(command.index("--manifest-path"), command.index("--"))
+
     def test_compile_contracts_use_the_dedicated_two_session_runner(self) -> None:
         command = lane_runner.commands_for("compile-contracts")[0]
 

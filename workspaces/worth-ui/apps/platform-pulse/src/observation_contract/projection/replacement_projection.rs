@@ -25,9 +25,9 @@ impl PlatformPulseLifecycleObservationStream {
         if &prior != receipt.prior_generation() {
             return Err(PlatformPulseLifecycleObservationProjectionDenial::PriorGenerationMismatch);
         }
-        let mounted = receipt.mounted_publication().ok_or(
-            PlatformPulseLifecycleObservationProjectionDenial::MissingMountedPublication,
-        )?;
+        let mounted = receipt
+            .mounted_publication()
+            .ok_or(PlatformPulseLifecycleObservationProjectionDenial::MissingMountedPublication)?;
         let expected_mounted_generation = receipt
             .application_publication()
             .map_or(receipt.prior_generation(), |_| receipt.active_generation());

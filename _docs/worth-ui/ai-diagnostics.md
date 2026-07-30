@@ -615,6 +615,20 @@ Useful first-class views include:
    Query artifact consumed, basis/world posture, projection facts, schema
    posture, async/result posture, payload shape, and invalidation posture.
 
+   The current projection evidence family correlates a Query transition or
+   attempt, shape-specific affine fact, application generation, mounted node
+   and frame, presentation attempt, and visible pixels. Availability,
+   current/stale activity, stop kind, compatibility, native family,
+   collection continuation, and structural cost remain separate typed fields.
+   Compact identities are retained first; detail is materialized lazily under
+   explicit evidence, disclosure, and retention budgets.
+
+   Support reporting distinguishes the installed product backend and consumer
+   contract from unsupported, remasked, wrong-world, stale-generation,
+   incompatible-schema, and expired-detail posture. A matching identity,
+   digest, diagnostic string, pixel, or inspection record cannot construct a
+   binding, fact, Query operation, rebind plan, or publication authority.
+
 7. **Execution Plan And Frame Cost** -- lowering authority, active plan
    generation, host-neutral lane partitions, typed handle families, exact
    equivalence/no-op decision, affected closure, activation receipt, and
@@ -858,6 +872,8 @@ This architecture is only real if it can prove all of the following:
 - the inspector consumes evidence but does not author truth
 - plan and Query inspection cannot mint handles, activate candidates, promote
   receipts/digests into authority, or submit an executable plan
+- projection evidence cannot be reassembled into a binding or fact, and lazy
+  detail cannot widen Query, application, mounted, or disclosure authority
 - no explanation path requires renderer-local semantic reconstruction
 
 ## Final Rule

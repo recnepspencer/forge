@@ -59,7 +59,7 @@ product_target = "worth-ui-platform-pulse executable_world"
 [[proof_row]]
 id = "QP-01"
 closure_phase = 4
-command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --test executable_world milestone_313_qp_01 -- --nocapture"
+command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --features executable-world --test executable_world courtroom::platform_pulse_lifecycle::canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutdown -- --exact --nocapture"
 
 [[proof_row]]
 id = "QP-02"

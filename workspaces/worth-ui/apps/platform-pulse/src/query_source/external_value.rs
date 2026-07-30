@@ -63,11 +63,9 @@ struct PlatformPulseExternalValue {
 }
 
 impl PlatformPulseExternalValueWatch {
-    pub(crate) fn spawn(
-        root: &Path,
-    ) -> Result<Self, PlatformPulseExternalValueWatchDenial> {
-        let metadata =
-            std::fs::metadata(root).map_err(|_| PlatformPulseExternalValueWatchDenial::RootMetadata)?;
+    pub(crate) fn spawn(root: &Path) -> Result<Self, PlatformPulseExternalValueWatchDenial> {
+        let metadata = std::fs::metadata(root)
+            .map_err(|_| PlatformPulseExternalValueWatchDenial::RootMetadata)?;
         if !metadata.is_dir() {
             return Err(PlatformPulseExternalValueWatchDenial::RootNotDirectory);
         }
@@ -92,10 +90,8 @@ impl PlatformPulseExternalValueWatch {
 
     pub(crate) fn shutdown(
         mut self,
-    ) -> Result<
-        PlatformPulseExternalValueWatchShutdownReceipt,
-        PlatformPulseExternalValueWatchDenial,
-    > {
+    ) -> Result<PlatformPulseExternalValueWatchShutdownReceipt, PlatformPulseExternalValueWatchDenial>
+    {
         self.stop.store(true, Ordering::Release);
         match self.worker.take().map(JoinHandle::join) {
             Some(Ok(result)) => {
@@ -252,9 +248,10 @@ mod tests {
         let target = root.join("platform-pulse-value.json");
         std::fs::write(&target, br#"{"status":"ONLINE","revision":1}"#)
             .expect("write valid Query value");
-        let lock = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
+        let mut options = std::fs::OpenOptions::new();
+        options.read(true);
+        std::fs::OpenOptions::write(&mut options, true);
+        let lock = options
             .share_mode(0)
             .open(&target)
             .expect("hold an exclusive Windows file lock");

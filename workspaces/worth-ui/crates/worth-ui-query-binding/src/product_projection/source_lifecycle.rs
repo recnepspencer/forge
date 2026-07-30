@@ -83,6 +83,10 @@ pub enum WorthUiScalarProjectionSourceCloseError {
 }
 
 impl WorthUiScalarProjectionInstallation {
+    #[allow(
+        clippy::result_large_err,
+        reason = "cold source opening preserves exact Query installation failure topology"
+    )]
     pub(super) fn open(
         mut workspace: runtime::WorthQueryWorkspace,
         bridge: RuntimeBridge,
@@ -90,10 +94,9 @@ impl WorthUiScalarProjectionInstallation {
     ) -> Result<Self, super::WorthUiScalarProjectionInstallationError> {
         let request = async_request(&bridge, 0)
             .map_err(super::WorthUiScalarProjectionInstallationError::SourceLifecycle)?;
-        let view = declare_scalar_view(&mut workspace, &request)
-            .map_err(|error| super::WorthUiScalarProjectionInstallationError::SourceLifecycle(
-                error.to_string(),
-            ))?;
+        let view = declare_scalar_view(&mut workspace, &request).map_err(|error| {
+            super::WorthUiScalarProjectionInstallationError::SourceLifecycle(error.to_string())
+        })?;
         let (mut binding, registration) = scalar_binding(&workspace)?;
         let initial = binding
             .consume_initial_async_result(
@@ -156,6 +159,10 @@ impl WorthUiScalarProjectionAdvance {
 }
 
 impl WorthUiScalarProjectionPublicationCompletion {
+    #[allow(
+        clippy::result_large_err,
+        reason = "the error returns the exact affine fact to its lifecycle owner"
+    )]
     pub fn admit_publication(
         self,
         predecessor: UiScalarProjectionFactReceipt,
@@ -207,10 +214,12 @@ impl WorthUiScalarProjectionLiveOwner {
         };
 
         let completion = admitted_completion(&self.bridge, &request, payload_bytes)?;
-        let ordering = self.bridge.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
-            BridgeMixedCauseOrderingLaneKind::Authoritative,
-            vec![BridgeMixedCauseOrderingInput::AsyncCompletion(completion)],
-        ));
+        let ordering = self
+            .bridge
+            .order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
+                BridgeMixedCauseOrderingLaneKind::Authoritative,
+                vec![BridgeMixedCauseOrderingInput::AsyncCompletion(completion)],
+            ));
         let batch = self
             .workspace
             .admit_bridge_async_result_transitions(&self.view, &ordering)
@@ -240,6 +249,10 @@ impl WorthUiScalarProjectionLiveOwner {
         ))
     }
 
+    #[allow(
+        clippy::result_large_err,
+        reason = "shutdown is cold and preserves Query's exact terminal denial"
+    )]
     pub fn close(
         self,
     ) -> Result<WorthUiScalarProjectionSourceCloseReceipt, WorthUiScalarProjectionSourceCloseError>
@@ -257,8 +270,7 @@ impl WorthUiScalarProjectionLiveOwner {
         let query = workspace
             .close_bridge_async_live_view(view)
             .map_err(WorthUiScalarProjectionSourceCloseError::Query)?;
-        let projection =
-            WorthUiScalarProjectionShutdownOwners::new(binding, predecessor).release();
+        let projection = WorthUiScalarProjectionShutdownOwners::new(binding, predecessor).release();
         drop((bridge, request));
         drop(workspace);
         let live_source_count = source.borrow().live_source_count();
@@ -289,7 +301,10 @@ fn revalidate(
     predecessor: UiScalarProjectionFactReceipt,
     revision: u64,
 ) -> Result<
-    (AdmittedBridgeAsyncRequestIdentity, UiScalarProjectionFactReceipt),
+    (
+        AdmittedBridgeAsyncRequestIdentity,
+        UiScalarProjectionFactReceipt,
+    ),
     WorthUiScalarProjectionAdvanceError,
 > {
     let revalidation = bridge

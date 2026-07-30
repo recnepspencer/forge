@@ -56,7 +56,7 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
         .admit_publication(current_fact)
         .expect("the exact current fact readmits the Query owner");
 
-    let source_close = owner.close();
+    let source_close = owner.close().expect("Query source closes terminally");
     assert!(source_close.owner_terminal());
     assert_eq!(source_close.live_source_count(), 0);
     let shutdown = shell.shutdown();

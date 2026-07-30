@@ -26,6 +26,8 @@ mod platform_pulse;
 mod post_classification_cost;
 #[path = "filesystem_application_lifecycle/rebind_profile.rs"]
 mod rebind_profile;
+#[path = "filesystem_application_lifecycle/scaled_canvas.rs"]
+mod scaled_canvas;
 #[path = "filesystem_application_lifecycle/visual_identity.rs"]
 mod visual_identity;
 #[path = "filesystem_application_lifecycle/visual_inspection.rs"]
@@ -137,16 +139,6 @@ impl FilesystemApplicationLifecycleScenario {
         )
     }
 
-    pub fn scaled_canvas_source_text(canvas_count: usize, omit_first: bool) -> String {
-        let mut source = Self::ordinary_execution_source_text();
-        for index in usize::from(omit_first)..canvas_count {
-            source.push_str(&format!(
-                "component workspace.component.scaled_canvas_{index:04} {{}}\n"
-            ));
-        }
-        source
-    }
-
     pub fn imported_current_source_text() -> String {
         format!("component {IMPORTED_CURRENT_COMPONENT} {{}}")
     }
@@ -253,23 +245,6 @@ impl FilesystemApplicationLifecycleScenario {
             .expect("splitter cross-lane capabilities should prepare")
     }
 
-    pub fn scaled_canvas_capability_application<Host>(
-        &self,
-        host: Host,
-        canvas_count: usize,
-    ) -> WorthUiApp
-    where
-        Host: WorthUiOperationalHostAdapter + 'static,
-    {
-        super::application_authority_closure::application_definition::scaled_canvas_application_builder_with_host(
-            &self.query,
-            host,
-            canvas_count,
-        )
-        .freeze()
-        .expect("scaled canvas capabilities should prepare")
-    }
-
     pub fn prepare_cross_lane_application_with_host<Host>(
         &self,
         submission: WorthUiWatchedCandidateSubmission,
@@ -296,25 +271,6 @@ impl FilesystemApplicationLifecycleScenario {
             .with_candidate_submission(submission)
             .freeze()
             .expect("filesystem-authored splitter cross-lane application should prepare")
-    }
-
-    pub fn prepare_scaled_canvas_application_with_host<Host>(
-        &self,
-        submission: WorthUiWatchedCandidateSubmission,
-        host: Host,
-        canvas_count: usize,
-    ) -> WorthUiApp
-    where
-        Host: WorthUiOperationalHostAdapter + 'static,
-    {
-        super::application_authority_closure::application_definition::scaled_canvas_application_builder_with_host(
-            &self.query,
-            host,
-            canvas_count,
-        )
-        .with_candidate_submission(submission)
-        .freeze()
-        .expect("filesystem-authored scaled canvas application should prepare")
     }
 
     pub fn settled_query_projection(

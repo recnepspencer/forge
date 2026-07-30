@@ -4,7 +4,7 @@ use worth_ui_query_binding::certification::{
 };
 
 #[test]
-fn hostile_query_patches_return_exact_denials_and_mint_no_ui_effect() {
+pub(crate) fn hostile_query_patches_return_exact_denials_and_mint_no_ui_effect() {
     let cases = [
         (Attack::Duplicate, Denial::DuplicateOrReorderedDelivery, 1),
         (Attack::Reordered, Denial::DuplicateOrReorderedDelivery, 2),

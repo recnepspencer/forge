@@ -1,3 +1,3 @@
-mod hostile;
-mod mutations;
+pub(crate) mod hostile;
+pub(crate) mod mutations;
 mod scale;

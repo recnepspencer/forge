@@ -59,7 +59,7 @@ pub(crate) enum PlatformPulsePreparationDenial {
     CapabilityApplication(WorthUiApplicationPreparationDenial),
     InitialSourceLowering(UiSourceRebindAttemptFailure),
     FileApplication(WorthUiApplicationPreparationDenial),
-    QueryInstallation(PlatformPulseQueryInstallationDenial),
+    QueryInstallation(Box<PlatformPulseQueryInstallationDenial>),
     QueryRegistration(WorthUiProjectionRegistrationError),
 }
 
@@ -68,7 +68,7 @@ pub(crate) fn prepare(
     launch: &AdmittedPlatformPulseLaunchConfiguration,
 ) -> Result<PreparedPlatformPulse, PlatformPulsePreparationDenial> {
     let query = crate::query_source::install(launch.query_source_root())
-        .map_err(PlatformPulsePreparationDenial::QueryInstallation)?;
+        .map_err(|denial| PlatformPulsePreparationDenial::QueryInstallation(Box::new(denial)))?;
     let provider = WorthUiFilesystemSourceProvider::new(launch.source_root());
     let mut watcher = match WorthUiFilesystemSourceWatcher::start(provider) {
         Ok(watcher) => watcher,

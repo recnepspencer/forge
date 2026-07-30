@@ -201,7 +201,7 @@ fn open(
     opened.into_parts().0
 }
 
-fn applied<'a>(
+fn applied(
     live: &mut crate::UiLiveCollectionProjection,
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
 ) -> crate::UiCollectionProjectionRefreshReceipt {

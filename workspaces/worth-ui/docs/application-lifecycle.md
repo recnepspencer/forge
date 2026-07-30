@@ -261,8 +261,8 @@ identity, host result, or inspection receipt.
 
 - Add file or Rust composition as described in
   [Authored composition](./authored-composition.md).
-- Register installed Query views before `freeze`; submit settled projection
-  input inside the mounted-frame source closure.
+- Register installed scalar or collection projections before `freeze`; submit
+  Query-issued observations through `begin_projection_rebind(...)`.
 - Use [Application inspection](./inspection.md) on the prepared app or active
   session.
 - Host adapters consume only the sealed mounted mechanics prepared by runtime.
@@ -302,7 +302,10 @@ absolute directory containing `main.wui`:
 
 ```powershell
 $sourceRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/app).Path
-cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- --source-root $sourceRoot
+$queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
+New-Item -ItemType Directory -Force -Path $queryRoot | Out-Null
+Remove-Item -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -ErrorAction SilentlyContinue
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- --source-root $sourceRoot --query-source-root $queryRoot
 ```
 
 The process watches
@@ -365,6 +368,45 @@ cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pu
 This projection is for reading the receipt stream. It does not create visual
 truth or grant authority back to the console.
 
+### Projected Product Data
+
+The checked-in application declares one live scalar projection:
+`platform.pulse.status`. At launch, Worth UI prepares the public Query host
+installation, the Query host installs it, and the returned scalar registration
+joins `WorthUi::app()` before freeze. With no
+`platform-pulse-value.json` in the query source root, the mounted status is
+pending and the event stream reports `QueryProjectionIssued` followed by
+`QueryProjectionPublished` with pending posture.
+
+While the process remains open, create the first external value from another
+PowerShell window:
+
+```powershell
+$queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
+'{"status":"ONLINE","revision":1}' |
+  Set-Content -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -Encoding utf8
+```
+
+The operating-system watcher settles that file, Query issues a current native
+text observation, and the ordinary projection rebind publishes `ONLINE` as
+mounted semantic text in the same window. The event pair carries the exact
+projection/fact, application generation, mounted frame, node, presentation,
+and pixel correlation.
+
+Then replace only the external value:
+
+```powershell
+'{"status":"UPDATED-LONG","revision":2}' |
+  Set-Content -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -Encoding utf8
+```
+
+The visible text changes through the same installation, observation, rebind,
+mount, and host path; background and authored identity controls remain fixed.
+The executable-world certification also introduces an incompatible declared
+schema, proves a typed schema stop preserves the exact predecessor value and
+pixels, restores compatibility, and observes recovery. The denial does not
+manufacture a fallback value or replace Query authority with UI state.
+
 To exercise a valid replacement, change only this line:
 
 ```text
@@ -406,18 +448,30 @@ checked-in source exactly:
 ```text
 component platform.pulse.component.seed {}
 component platform.pulse.component.identity_target {}
+component platform.pulse.component.projected_status {
+  content projection platform.pulse.status
+}
 surface platform.pulse.surface.main {}
+query_scalar platform.pulse.status {
+  view platform.pulse.status
+  field status
+  require text
+  lifecycle live
+}
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
 token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
+token theme.platform_pulse.projected_status.text = "theme.platform_pulse.white";
 ```
 
 The same process and window then publish the recovered blue successor through
-the same rebind path. Close the native window normally to shut down the
-operating-system watcher, release the registered host surface, and consume the
-active application shutdown path. The terminal `Shutdown` observation must
-report zero live captures, snapshots, comparison projections, rebind handles,
-pixel bytes, structural bytes, pending overlays, published overlays, and
-clearing overlays. The visual fields include
+the same rebind path. Close the native window normally to shut down both
+operating-system watchers, close the Query live owner and consumer lease,
+release the registered host surface, and consume the active application
+shutdown path. The terminal `Shutdown` observation must report zero live Query
+sources, attempts, resources, consumer leases, retained projections, and
+projection receipts, alongside zero live captures, snapshots, comparison
+projections, rebind handles, pixel bytes, structural bytes, pending overlays,
+published overlays, and clearing overlays. The visual fields include
 `cancelled_visual_capture_count`, `disposed_visual_snapshot_count`,
 `disposed_visual_pixel_bytes`, `disposed_visual_structural_bytes`,
 `cancelled_pending_overlay_count`, `disposed_published_overlay_count`, and

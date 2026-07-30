@@ -5,8 +5,8 @@ use worth_ui::facade::query_binding::{
     WorthUiScalarProjectionInstallationError,
 };
 
-use super::{PlatformPulseExternalValueWatch, PlatformPulseExternalValueWatchDenial};
 use super::PlatformPulseQueryLifecycle;
+use super::{PlatformPulseExternalValueWatch, PlatformPulseExternalValueWatchDenial};
 
 pub(crate) struct InstalledPlatformPulseQuery {
     pub(crate) registration: UiScalarProjectionRegistration,
@@ -16,9 +16,9 @@ pub(crate) struct InstalledPlatformPulseQuery {
 
 #[derive(Debug)]
 pub(crate) enum PlatformPulseQueryInstallationDenial {
-    Plan(WorthUiScalarProjectionInstallationError),
+    Plan(Box<WorthUiScalarProjectionInstallationError>),
     Host(String),
-    Completion(WorthUiScalarProjectionInstallationError),
+    Completion(Box<WorthUiScalarProjectionInstallationError>),
     Watch(PlatformPulseExternalValueWatchDenial),
 }
 
@@ -37,7 +37,7 @@ pub(crate) fn install(
     source_root: &Path,
 ) -> Result<InstalledPlatformPulseQuery, PlatformPulseQueryInstallationDenial> {
     let plan = WorthUiScalarProjectionHostPlan::prepare()
-        .map_err(PlatformPulseQueryInstallationDenial::Plan)?;
+        .map_err(|denial| PlatformPulseQueryInstallationDenial::Plan(Box::new(denial)))?;
     let (request, completion) = plan.into_parts();
     let installation =
         worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
@@ -45,7 +45,7 @@ pub(crate) fn install(
             .map_err(|error| PlatformPulseQueryInstallationDenial::Host(format!("{error:?}")))?;
     let installed = completion
         .complete(installation)
-        .map_err(PlatformPulseQueryInstallationDenial::Completion)?;
+        .map_err(|denial| PlatformPulseQueryInstallationDenial::Completion(Box::new(denial)))?;
     let (registration, initial) = installed.into_parts();
     let watcher = PlatformPulseExternalValueWatch::spawn(source_root)
         .map_err(PlatformPulseQueryInstallationDenial::Watch)?;

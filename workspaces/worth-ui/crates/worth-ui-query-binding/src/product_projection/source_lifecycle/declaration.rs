@@ -4,25 +4,26 @@ use worth_runtime_bridge::facade::{
     AdmittedBridgeAsyncRequestIdentity, BridgeAsyncRequestAdmissionRequest,
     BridgeAsyncRequestTruthViewBasis, BridgeAsyncSourceDeclarationDraft,
     BridgeAsyncSourceDeclarationIdentity, BridgeAsyncSourceLegacyDeclarationIdentity,
-    RelationalBridgeSnapshotIdentityParts, RuntimeBridge, TruthBranchIdentity,
-    TruthCommitIdentity, TruthSnapshotIdentity,
+    RelationalBridgeSnapshotIdentityParts, RuntimeBridge, TruthBranchIdentity, TruthCommitIdentity,
+    TruthSnapshotIdentity,
 };
 use worth_signal::facade::{
-    NodeId, ResourceNodeDeclaration, ResourceObservationPolicyDeclaration,
-    ResourcePayloadContract, ResourcePayloadContractId,
+    NodeId, ResourceNodeDeclaration, ResourceObservationPolicyDeclaration, ResourcePayloadContract,
+    ResourcePayloadContractId,
 };
 
 use crate::{
-    UiProjectionFieldRequirement, UiScalarProjectionBinding,
-    UiScalarProjectionBindingAdmission, UiScalarProjectionRegistration,
-    WorthUiQueryWorkspaceExt,
+    UiProjectionFieldRequirement, UiScalarProjectionBinding, UiScalarProjectionBindingAdmission,
+    UiScalarProjectionRegistration, WorthUiQueryWorkspaceExt,
 };
 
-use super::{
-    ScalarLiveView, WorthUiScalarProjectionAdvanceError,
-};
 use super::super::WorthUiScalarProjectionInstallationError;
+use super::{ScalarLiveView, WorthUiScalarProjectionAdvanceError};
 
+#[allow(
+    clippy::result_large_err,
+    reason = "cold binding installation preserves exact Query failure topology"
+)]
 pub(super) fn scalar_binding(
     workspace: &runtime::WorthQueryWorkspace,
 ) -> Result<
@@ -32,9 +33,11 @@ pub(super) fn scalar_binding(
     let installed = workspace.worth_ui().map_err(|error| {
         WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
     })?;
-    let view = installed.projection_view("platform.pulse.status").map_err(|error| {
-        WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
-    })?;
+    let view = installed
+        .projection_view("platform.pulse.status")
+        .map_err(|error| {
+            WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
+        })?;
     let registration = UiScalarProjectionRegistration::text(
         view,
         UiProjectionFieldRequirement::declared("status").map_err(|error| {
@@ -43,12 +46,16 @@ pub(super) fn scalar_binding(
     );
     match registration.clone().admit(workspace) {
         UiScalarProjectionBindingAdmission::Ready(binding) => Ok((binding, registration)),
-        other => Err(
-            WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{other:?}")),
-        ),
+        other => Err(WorthUiScalarProjectionInstallationError::SourceLifecycle(
+            format!("{other:?}"),
+        )),
     }
 }
 
+#[allow(
+    clippy::result_large_err,
+    reason = "cold view declaration preserves Query's exact runtime denial"
+)]
 pub(super) fn declare_scalar_view(
     workspace: &mut runtime::WorthQueryWorkspace,
     request: &AdmittedBridgeAsyncRequestIdentity,
@@ -83,11 +90,7 @@ fn projection(aspect: &str, field: &str) -> foundation::DeclarativeProjectionFie
     .delivered_as(format!("{aspect}.{field}"))
 }
 
-fn schema_field(
-    aspect: &str,
-    field: &str,
-    family: ScalarAspectType,
-) -> read::SchemaFieldView {
+fn schema_field(aspect: &str, field: &str, family: ScalarAspectType) -> read::SchemaFieldView {
     read::SchemaFieldView::new(
         read::AspectName::new(aspect).expect("static aspect must admit"),
         read::FieldName::new(field).expect("static field must admit"),

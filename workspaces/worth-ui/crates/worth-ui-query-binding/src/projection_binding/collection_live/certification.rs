@@ -74,6 +74,10 @@ impl UiLiveCollectionProjection {
         )
     }
 
+    #[allow(
+        clippy::result_large_err,
+        reason = "certification fault injection preserves the exact Query patch denial"
+    )]
     pub(crate) fn certification_apply_patch(
         &mut self,
         patch: QueryPatch,

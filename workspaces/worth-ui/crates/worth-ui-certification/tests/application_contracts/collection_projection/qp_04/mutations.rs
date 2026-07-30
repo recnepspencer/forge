@@ -11,7 +11,7 @@ use super::super::{
 };
 
 #[test]
-fn complete_partial_and_continuation_postures_come_from_real_query_results() {
+pub(crate) fn complete_partial_and_continuation_postures_come_from_real_query_results() {
     let (empty, empty_fact) = CollectionProjectionWorld::open(0, 1, WorldPosture::Complete, false);
     assert_eq!(
         present(&empty_fact).completeness(),
@@ -122,7 +122,7 @@ fn assert_removed(
 }
 
 #[test]
-fn continuation_completion_and_explicit_reset_are_preserved() {
+pub(crate) fn continuation_completion_and_explicit_reset_are_preserved() {
     let (mut world, initial) = CollectionProjectionWorld::open(2, 1, WorldPosture::Complete, false);
     assert!(present(&initial).continuation().is_some());
     world.remove(0);

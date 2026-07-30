@@ -306,6 +306,10 @@ impl UiRebindReceipt {
         }
     }
 
+    #[allow(
+        clippy::result_large_err,
+        reason = "release failure returns the exact affine rebind receipt unchanged"
+    )]
     pub fn release_scalar_projection_predecessor(
         self,
     ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {

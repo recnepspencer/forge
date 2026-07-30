@@ -24,7 +24,9 @@ specifications remain under `_docs/worth-ui` at the repository root.
 - `worth-ui-theme` owns design-token truth.
 - `worth-ui-components` owns purely presentational widget surfaces.
 - `worth-ui` is the public product facade. Query-backed UI work enters through
-  its `facade::query_binding` namespace.
+  `worth_ui::facade::query_binding`; application lifecycle stays under
+  `worth_ui::facade::app`. Product code does not import the binding crate
+  directly or acquire Query authority through a workspace extension trait.
 - `worth-ui-query-binding` is the only production crate in this workspace that
   translates Worth Query authority into Worth UI artifacts.
 - `worth-ui-runtime` owns UI admission, graph/allocation behavior, framework
@@ -34,3 +36,10 @@ specifications remain under `_docs/worth-ui` at the repository root.
   anti-bypass boundaries through production facades.
 - The root Worth workspace should not treat these crates as ordinary
   top-level members once this nested workspace owns them.
+
+For projected product data, install Query through the public host contract,
+register the returned shape-specific projection on `WorthUi::app()`, and feed
+Query-issued observations into the ordinary application rebind path. See
+[Query-backed UI views](./docs/query-binding.md) for the compiled registration
+grammar and [Application lifecycle](./docs/application-lifecycle.md) for the
+permanent Platform Pulse journey.

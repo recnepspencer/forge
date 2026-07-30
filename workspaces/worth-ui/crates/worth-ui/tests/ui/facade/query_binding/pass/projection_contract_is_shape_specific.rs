@@ -1,7 +1,8 @@
 use worth_ui::facade::query_binding::{
-    UiCollectionProjectionFactReceipt, UiCollectionSchemaRequirement, UiPresentProjection,
+    UiCollectionProjectionFactReceipt, UiCollectionProjectionRegistration,
+    UiCollectionSchemaRequirement, UiInstalledProjectionView, UiPresentProjection,
     UiProjectionAvailability, UiProjectionFieldRequirement, UiProjectionLifecycleRequirement,
-    UiScalarProjectionFactReceipt, UiScalarSchemaRequirement,
+    UiScalarProjectionFactReceipt, UiScalarProjectionRegistration, UiScalarSchemaRequirement,
 };
 
 fn observe_scalar(receipt: &UiScalarProjectionFactReceipt) {
@@ -41,6 +42,46 @@ fn declare_requirements() {
     let _ = (scalar, collection);
 }
 
+fn register_scalar(view: UiInstalledProjectionView) {
+    let registration = UiScalarProjectionRegistration::text(
+        view,
+        UiProjectionFieldRequirement::declared("status").expect("valid selected field"),
+    );
+    let _app = worth_ui::facade::app::WorthUi::app()
+        .with_change_profile(
+            worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+        )
+        .register_scalar_projection(registration)
+        .expect("installed scalar projection registration")
+        .freeze()
+        .expect("application preparation should succeed");
+}
+
+fn register_collection(view: UiInstalledProjectionView) {
+    let registration = UiCollectionProjectionRegistration::text(
+        view,
+        UiProjectionFieldRequirement::declared("identity.id").expect("valid row identity"),
+        [UiProjectionFieldRequirement::declared("status").expect("valid selected field")],
+        true,
+        false,
+    )
+    .expect("valid collection projection requirement");
+    let _app = worth_ui::facade::app::WorthUi::app()
+        .with_change_profile(
+            worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+        )
+        .register_collection_projection(registration)
+        .expect("installed collection projection registration")
+        .freeze()
+        .expect("application preparation should succeed");
+}
+
 fn main() {
-    let _ = (observe_scalar, observe_collection, declare_requirements);
+    let _ = (
+        observe_scalar,
+        observe_collection,
+        declare_requirements,
+        register_scalar,
+        register_collection,
+    );
 }

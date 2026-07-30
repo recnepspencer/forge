@@ -15,7 +15,12 @@ fn real_collection_work_scales_with_selected_and_changed_rows_not_cardinality() 
 
     let medium = changed_row_world(1_024, 64);
     assert_changed_work(medium.0, medium.1, 64);
+}
 
+#[test]
+#[ignore = "closure-only 65,536-row Query stress world; invoke explicitly"]
+fn closure_stress_65536_rows_preserves_changed_row_cost() {
+    let medium = changed_row_world(1_024, 64);
     let large = changed_row_world(65_536, 64);
     assert_changed_work(large.0, large.1, 64);
     assert_eq!(

@@ -158,14 +158,14 @@ mod tests {
     use crate::manifest_types::CargoMetadataDependency;
 
     #[test]
-    fn source_allowlist_rejects_unlisted_pulse_authority_dependencies() {
+    fn source_allowlist_rejects_unlisted_pulse_binding_owner_dependency() {
         let rule = pulse_source_allowlist();
         let diagnostics = diagnostics_for_source_allowlist_package(
             "worth-ui-platform-pulse",
             "apps/platform-pulse/Cargo.toml",
             [
                 dependency("worth-ui"),
-                dependency("worth-ui-runtime"),
+                dependency("worth-ui-query-binding"),
                 pulse_eframe_dependency(),
                 pulse_uiautomation_dependency(),
                 pulse_winsafe_dependency(),
@@ -175,7 +175,9 @@ mod tests {
             &rule,
         );
         assert_eq!(diagnostics.len(), 1);
-        assert!(diagnostics[0].message().contains("worth-ui-runtime"));
+        assert!(diagnostics[0]
+            .message()
+            .contains("worth-ui-query-binding"));
     }
 
     #[test]

@@ -4,8 +4,8 @@ use super::{
     ExecutableVisualTraceEvidence, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT, TARGET_LOGICAL_INSET,
 };
 use worth_ui_platform_pulse::observation_contract::{
-    PlatformPulseVisualComparison, PlatformPulseVisualPointTrace, PlatformPulseVisualSnapshotCaptured,
-    PlatformPulseVisualSnapshotRetired,
+    PlatformPulseVisualComparison, PlatformPulseVisualPointTrace,
+    PlatformPulseVisualSnapshotCaptured, PlatformPulseVisualSnapshotRetired,
 };
 
 impl ExecutableVisualSnapshotEvidence {

@@ -11,7 +11,7 @@ mod effect_recovery;
 #[path = "observation_rebind/identity_model.rs"]
 mod identity_model;
 #[path = "observation_rebind/lifecycle_cleanup.rs"]
-mod lifecycle_cleanup;
+pub(crate) mod lifecycle_cleanup;
 #[path = "observation_rebind/mixed_source.rs"]
 mod mixed_source;
 #[path = "observation_rebind/model.rs"]

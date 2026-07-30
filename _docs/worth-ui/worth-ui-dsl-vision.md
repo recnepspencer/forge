@@ -499,6 +499,43 @@ diagnostic source span
 
 That is what makes runtime rebind honest.
 
+## Direct Projection Binding
+
+The shipped direct grammar declares projection requirements and structural
+consumption without authoring Query execution:
+
+```text
+query_scalar platform.pulse.status {
+  view platform.pulse.status
+  field status
+  require text
+  lifecycle live
+}
+
+component platform.pulse.component.projected_status {
+  content projection platform.pulse.status
+}
+```
+
+A keyed collection uses `query_collection`, declares one `row` identity,
+one or more selected `field` entries, its native `require` family, lifecycle,
+completeness, and continuation posture. Scalar and collection declarations
+remain different semantic shapes.
+
+The canonical lowering records declaration identity, installed view identity,
+shape, selected fields, native family, lifecycle, row identity,
+completeness/continuation, and source provenance. Whitespace, import order, and
+declaration order do not change that meaning; any semantic-axis change does.
+Rust-authored `try_with_query_scalar_*` and
+`try_with_query_collection_*` declarations lower to the same requirement
+model.
+
+The DSL does not construct a Query workspace, choose a backend, perform a
+literal field read, or own live-resource recovery. General Query authoring,
+expressions, formatting/coercion, and composition remain separate additive
+language work; they must lower into this same declared binding and consumption
+model rather than replace it.
+
 ## Authoring Shape
 
 The DSL should be organized by semantic lanes rather than component-local

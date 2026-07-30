@@ -78,8 +78,10 @@ impl runtime::WorthQueryRuntimeBackend for WorthUiExternalScalarSourceBackend {
         name: &str,
         request: &foundation::DeclarativeLiveQueryRequest,
         _schema_view: &runtime::QuerySchemaView,
-    ) -> Result<runtime::LiveViewDeclarationAdmissionBoundaryReceipt, foundation::WorthQueryWorkspaceError>
-    {
+    ) -> Result<
+        runtime::LiveViewDeclarationAdmissionBoundaryReceipt,
+        foundation::WorthQueryWorkspaceError,
+    > {
         use runtime::WorthQueryRuntimeSchemaAdapter;
         let adapter = ScalarSchemaAdapter;
         let receipt = adapter.build_live_view_declaration_admission_receipt(name, request);
@@ -92,10 +94,9 @@ impl runtime::WorthQueryRuntimeBackend for WorthUiExternalScalarSourceBackend {
         request: foundation::DeclarativeLiveQueryRequest,
         _schema_view: runtime::QuerySchemaView,
     ) -> Result<foundation::WorthQueryLiveViewHandle, foundation::WorthQueryWorkspaceError> {
-        let target =
-            runtime::WorthQueryLiveArtifactTarget::from_source_adapter_declared_view_name(
-                name.clone(),
-            );
+        let target = runtime::WorthQueryLiveArtifactTarget::from_source_adapter_declared_view_name(
+            name.clone(),
+        );
         self.state.borrow_mut().live_targets.insert(
             target,
             request.target_collection_identity().as_str().to_owned(),
@@ -103,10 +104,7 @@ impl runtime::WorthQueryRuntimeBackend for WorthUiExternalScalarSourceBackend {
         Ok(foundation::WorthQueryLiveViewHandle::new(name))
     }
 
-    fn close_live_view(
-        &mut self,
-        name: &str,
-    ) -> Result<(), foundation::WorthQueryWorkspaceError> {
+    fn close_live_view(&mut self, name: &str) -> Result<(), foundation::WorthQueryWorkspaceError> {
         let target =
             runtime::WorthQueryLiveArtifactTarget::from_source_adapter_declared_view_name(name);
         self.state.borrow_mut().live_targets.remove(&target);
@@ -183,7 +181,8 @@ impl runtime::WorthQueryRuntimeBackend for WorthUiExternalScalarSourceBackend {
         _label: &runtime::WorthQuerySessionLabel,
         _effect_policy: runtime::WorthQueryEffectPolicy,
         _authority: &runtime::WorthQueryRuntimeEvidenceAuthority,
-    ) -> Result<runtime::WorthQueryPreviewBasisAdmission, foundation::WorthQueryWorkspaceError> {
+    ) -> Result<runtime::WorthQueryPreviewBasisAdmission, foundation::WorthQueryWorkspaceError>
+    {
         Err(read_only_error("preview"))
     }
 
@@ -205,8 +204,10 @@ impl runtime::WorthQueryRuntimeSchemaAdapter for ScalarSchemaAdapter {
         name: &str,
         request: &foundation::DeclarativeLiveQueryRequest,
         _schema_view: &runtime::QuerySchemaView,
-    ) -> Result<runtime::LiveViewDeclarationAdmissionBoundaryReceipt, foundation::WorthQueryWorkspaceError>
-    {
+    ) -> Result<
+        runtime::LiveViewDeclarationAdmissionBoundaryReceipt,
+        foundation::WorthQueryWorkspaceError,
+    > {
         let receipt = self.build_live_view_declaration_admission_receipt(name, request);
         Ok(self.build_live_view_declaration_boundary_receipt(name, request, receipt))
     }
@@ -228,11 +229,7 @@ impl runtime::WorthQueryRuntimeSubscriptionActivationAdapter for ScalarSubscript
     ) -> Result<runtime::SubscriptionActivationBoundaryReceipt, foundation::WorthQueryWorkspaceError>
     {
         let receipt = self.build_subscription_activation_receipt(view_name, activation);
-        Ok(self.build_subscription_activation_boundary_receipt(
-            view_name,
-            activation,
-            receipt,
-        ))
+        Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }
 }
 

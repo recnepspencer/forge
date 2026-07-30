@@ -132,7 +132,7 @@ fn derive_native_value(
 ) -> Result<UiDerivedScalarProjection, UiScalarProjectionDerivationStop> {
     let derived = settled
         .derive_native_text(budget)
-        .map_err(derivation_stop)?;
+        .map_err(|stop| derivation_stop(*stop))?;
     if !derived.installation_is_current() {
         return Err(stop(
             super::UiProjectionFactStopKind::StaleBindingGeneration,

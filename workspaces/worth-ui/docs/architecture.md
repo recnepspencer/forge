@@ -10,10 +10,13 @@ runtime state, publication, and native mechanics in their owning layers.
 ```text
 file source or typed Rust authoring
 -> worth-ui-dsl compile and canonical semantic package
+-> declared scalar or collection projection requirements
 -> candidate submission
 -> application preparation
+-> installed Query projection registration where declared
 -> graph admission and planning
 -> active application session
+-> Query-issued projection observation through ordinary rebind
 -> mounted frame assembly
 -> host-contract presentation
 -> publication or a typed non-success outcome
@@ -51,7 +54,8 @@ digest, inspection receipt, or host result cannot construct a plan or publish.
 - `worth-ui-runtime` owns active application, observation, rebind planning,
   mounted publication, host exchange, recovery, and runtime inspection.
 - `worth-ui-query-binding` translates installed Worth Query authority into
-  Worth UI registrations and consequences. Runtime does not recreate Query.
+  shape-specific Worth UI registrations, observations, and affine facts.
+  Runtime consumes those UI facts and does not recreate Query.
 - `worth-ui-host-contract` defines inert host capabilities, mounted input, and
   mechanical outcomes.
 - Host adapters perform native mechanics. They never receive source, Query,
@@ -81,6 +85,21 @@ rebind planning cannot mutate mounted truth; inspection cannot mutate or
 reconstruct operational state. The active session coordinates complete
 transitions across named owners.
 
+Projection fact flow is deliberately one-way:
+
+```text
+Query owner
+-> worth-ui-query-binding
+-> owner-specific UI observation
+-> ordinary rebind planning
+-> mounted semantic text
+-> host-contract mechanics
+```
+
+The active session owns no Query result cache. A published fact returns through
+its affine completion to the Query lifecycle owner; reporting identities do not
+form a reverse authority edge.
+
 ## Failure And Publication
 
 Preparation, observation admission, classification, planning, final admission,
@@ -109,6 +128,10 @@ Changed-frame work follows declared consumers and derived indexes. Unchanged
 publication uses exact reuse evidence and performs no new rebind work. Rich
 inspection and causal reports are materialized outside measured execution when
 requested.
+
+Semantic text is complete before the host boundary. Host adapters receive
+mounted text and presentation mechanics, never a Query view, field selector,
+projection receipt, or instruction to fetch product data.
 
 ## Extension Boundaries
 

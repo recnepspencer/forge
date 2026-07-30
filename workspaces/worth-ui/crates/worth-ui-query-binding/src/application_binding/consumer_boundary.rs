@@ -121,6 +121,10 @@ pub struct WorthUiPreparedSnapshotConsumer {
 }
 
 impl WorthUiQueryOperatingWorldGateway<'_> {
+    #[allow(
+        clippy::result_large_err,
+        reason = "cold preparation preserves Query's exact proof-carrying denial"
+    )]
     pub fn prepare_snapshot_consumer(
         self,
         requirements: WorthUiQueryConsumerRequirements,

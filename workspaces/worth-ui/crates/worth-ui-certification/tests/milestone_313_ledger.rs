@@ -2,6 +2,14 @@ const HEADER: &str = "id,production_claim,fixture_provenance,typed_result,mutati
 structural_cost,teardown,evidence_command,status,evidence";
 
 pub(super) fn validate_phase_1(contract: &toml::Value, ledger: &str) -> Result<(), String> {
+    validate_at_phase(contract, ledger, 1)
+}
+
+pub(super) fn validate_at_phase(
+    contract: &toml::Value,
+    ledger: &str,
+    current_phase: i64,
+) -> Result<(), String> {
     require_contract_identity(contract)?;
     let proof_rows = contract["proof_row"]
         .as_array()
@@ -13,13 +21,13 @@ pub(super) fn validate_phase_1(contract: &toml::Value, ledger: &str) -> Result<(
         return Err("contract does not contain exactly ten proof rows".to_owned());
     }
 
-    let commands = proof_rows
+    let manifest_rows = proof_rows
         .iter()
         .zip(&expected_ids)
         .map(|(row, expected)| validate_manifest_row(row, expected))
         .collect::<Result<Vec<_>, _>>()?;
     let rows = parse_ledger(ledger)?;
-    validate_open_rows(&rows, &expected_ids, &commands)
+    validate_rows(&rows, &expected_ids, &manifest_rows, current_phase)
 }
 
 fn require_contract_identity(contract: &toml::Value) -> Result<(), String> {
@@ -44,7 +52,10 @@ fn require_contract_identity(contract: &toml::Value) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_manifest_row<'a>(row: &'a toml::Value, expected_id: &str) -> Result<&'a str, String> {
+fn validate_manifest_row<'a>(
+    row: &'a toml::Value,
+    expected_id: &str,
+) -> Result<(&'a str, i64), String> {
     if required_text(row, "id")? != expected_id {
         return Err(format!("expected contract row {expected_id}"));
     }
@@ -61,13 +72,14 @@ fn validate_manifest_row<'a>(row: &'a toml::Value, expected_id: &str) -> Result<
     if phase != expected_phase {
         return Err(format!("{expected_id} closure phase drifted"));
     }
-    required_text(row, "command")
+    Ok((required_text(row, "command")?, phase))
 }
 
-fn validate_open_rows(
+fn validate_rows(
     rows: &[Vec<String>],
     expected_ids: &[String],
-    commands: &[&str],
+    manifest_rows: &[(&str, i64)],
+    current_phase: i64,
 ) -> Result<(), String> {
     if rows.len() != expected_ids.len() {
         return Err(format!(
@@ -89,14 +101,23 @@ fn validate_open_rows(
                 return Err(format!("{expected_id} has empty field {field}"));
             }
         }
-        if row[7] != commands[index] {
+        let (command, closure_phase) = manifest_rows[index];
+        if row[7] != command {
             return Err(format!("{expected_id} evidence command drifted"));
         }
-        if row[8] != "OPEN" {
-            return Err(format!("{expected_id} closed before its owning phase"));
-        }
-        if !row[9].trim().is_empty() {
-            return Err(format!("{expected_id} has evidence while still OPEN"));
+        match row[8].as_str() {
+            "OPEN" if !row[9].trim().is_empty() => {
+                return Err(format!("{expected_id} has evidence while still OPEN"));
+            }
+            "OPEN" => {}
+            "PROVED" if closure_phase > current_phase => {
+                return Err(format!("{expected_id} closed before its owning phase"));
+            }
+            "PROVED" if row[9].trim().len() < 80 => {
+                return Err(format!("{expected_id} has insubstantial proof evidence"));
+            }
+            "PROVED" => {}
+            status => return Err(format!("{expected_id} has invalid status {status}")),
         }
     }
     Ok(())

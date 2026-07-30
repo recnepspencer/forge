@@ -110,10 +110,14 @@ mod phase7_public_mounted_allocation;
 mod platform_pulse;
 #[path = "../application_contracts/platform_pulse_lifecycle.rs"]
 mod platform_pulse_lifecycle;
+#[path = "../application_contracts/projection_adoption/mod.rs"]
+mod projection_adoption;
 #[path = "../application_contracts/projection_authority/mod.rs"]
 mod projection_authority;
 #[path = "../application_contracts/projection_compatibility/mod.rs"]
 mod projection_compatibility;
+#[path = "../application_contracts/projection_cost/mod.rs"]
+mod projection_cost;
 #[path = "../application_contracts/projection_lifecycle/mod.rs"]
 mod projection_lifecycle;
 #[path = "../application_contracts/projection_presentation/mod.rs"]

@@ -13,6 +13,18 @@ use crate::mounted_host_protocol::scripted_host::{
     presented_completion, ScriptedSurfaceCompletion,
 };
 
+pub(crate) fn prove_all_projection_safe_point_cleanup() {
+    timeout_cancellation_duplicate_and_supersession_are_terminal_and_clean();
+    in_flight_rebind_remains_owned_until_exact_completion();
+    indeterminate_rebind_retains_recovery_authority_until_shutdown_disposal();
+    indeterminate_rebind_recovers_through_current_frame_reconciliation();
+    recovery_rejection_retains_the_exact_retry_progression();
+    recovery_completion_and_reindeterminacy_remain_managed();
+    completion_disposal_and_drop_cancel_the_inherited_attempt();
+    recovery_completion_disposal_retains_the_recovery_request();
+    dropped_recovery_completion_cancels_before_shutdown();
+}
+
 #[test]
 fn timeout_cancellation_duplicate_and_supersession_are_terminal_and_clean() {
     super::terminal_outcomes::prove_terminal_outcome_cleanup();

@@ -2,7 +2,15 @@
 
 ## Status and Placement
 
-Status: Draft governing specification.
+Status: Complete. Phases 1 through 5 closed on 2026-07-29.
+
+All `QP-01` through `QP-10` rows are proved. The permanent Platform Pulse
+renders pending and current Query values, preserves its predecessor across an
+incompatible schema, recovers visibly, and closes every governed resource.
+Compiled public examples, documentation topology, compile contracts,
+dependency boundaries, line caps, formatting, strict workspace lint, and the
+ordinary certification lane are green. The 65,536-row Query world remains an
+explicit closure-stress lane rather than inflating the ordinary edit loop.
 
 Milestone 3.12 is complete. It established the one observation turn, bounded
 affected-scope planning, atomic successor publication, and the permanent

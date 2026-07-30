@@ -37,7 +37,7 @@ impl PulseExecutableWorld<AwaitingSchemaStop> {
             .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
             require_replacement_lifecycle(&envelope)
                 .map_err(PulseExecutableWorldFailure::Replacement)?;
-            let native = observe_watched_native(&mut world).map_err(|failure| failure)?;
+            let native = observe_watched_native(&mut world)?;
             let causal = CausalReplacementObservationSet::new(
                 action,
                 recovered.evidence.identity().clone(),
@@ -103,7 +103,7 @@ impl PulseExecutableWorld<AwaitingStatusRecovery> {
             .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
             require_replacement_lifecycle(&envelope)
                 .map_err(PulseExecutableWorldFailure::Replacement)?;
-            let native = observe_watched_native(&mut world).map_err(|failure| failure)?;
+            let native = observe_watched_native(&mut world)?;
             let causal = CausalReplacementObservationSet::new(
                 action,
                 stopped.evidence.replacement().identity().clone(),

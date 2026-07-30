@@ -230,7 +230,41 @@ mod tests {
             .query_lifecycle
             .issue_initial()
             .expect("the product Query owner issues its initial pending fact");
-        let receipt = match shell
+        let receipt = publish_initial_pending_projection(&mut shell, pending);
+        assert!(
+            receipt.mounted_publication().is_some(),
+            "the pending Query receipt carries the first mounted publication"
+        );
+        let fact = receipt
+            .release_scalar_projection_predecessor()
+            .unwrap_or_else(|_| panic!("the pending receipt returns its exact Query fact"));
+        prepared
+            .query_lifecycle
+            .admit_publication(fact)
+            .expect("the exact pending fact restores the Query owner");
+        let query_shutdown = prepared
+            .query_lifecycle
+            .close()
+            .expect("isolated Query lifecycle closes");
+        assert!(query_shutdown.owner_terminal());
+        assert_eq!(query_shutdown.live_source_count(), 0);
+        prepared
+            .query_watcher
+            .shutdown()
+            .expect("isolated Query watcher shuts down");
+        prepared
+            .watcher
+            .shutdown()
+            .expect("isolated source watcher shuts down");
+        let application_shutdown = shell.shutdown();
+        assert!(application_shutdown.host_session_released());
+    }
+
+    fn publish_initial_pending_projection(
+        shell: &mut worth_ui::facade::app::WorthUiNativeApplicationShell,
+        pending: worth_ui::facade::query_binding::UiProjectionObservation,
+    ) -> worth_ui::facade::rebind::UiRebindReceipt {
+        match shell
             .begin_projection_rebind(
                 worth_ui::facade::rebind::UiProjectionRebindRequest::new(pending)
                     .observed_at_tick(1),
@@ -284,31 +318,7 @@ mod tests {
                     defect.kind()
                 )
             }
-        };
-        assert!(
-            receipt.mounted_publication().is_some(),
-            "the pending Query receipt carries the first mounted publication"
-        );
-        let fact = receipt
-            .release_scalar_projection_predecessor()
-            .unwrap_or_else(|_| panic!("the pending receipt returns its exact Query fact"));
-        prepared
-            .query_lifecycle
-            .admit_publication(fact)
-            .expect("the exact pending fact restores the Query owner");
-        let query_shutdown = prepared.query_lifecycle.close();
-        assert!(query_shutdown.owner_terminal());
-        assert_eq!(query_shutdown.live_source_count(), 0);
-        prepared
-            .query_watcher
-            .shutdown()
-            .expect("isolated Query watcher shuts down");
-        prepared
-            .watcher
-            .shutdown()
-            .expect("isolated source watcher shuts down");
-        let application_shutdown = shell.shutdown();
-        assert!(application_shutdown.host_session_released());
+        }
     }
 
     #[test]

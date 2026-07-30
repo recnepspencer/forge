@@ -7,19 +7,42 @@ fn phase_1_inputs() -> (toml::Value, String) {
     (contract, ledger)
 }
 
-fn assert_rejected(contract: &toml::Value, ledger: &str, label: &str) {
+fn assert_rejected(contract: &toml::Value, ledger: &str, phase: i64, label: &str) {
     assert!(
-        milestone_313_ledger::validate_phase_1(contract, ledger).is_err(),
+        milestone_313_ledger::validate_at_phase(contract, ledger, phase).is_err(),
         "{label} mutation should be rejected"
     );
 }
 
 #[test]
-fn milestone_313_phase1_contract_and_open_ledger_are_exact() {
+fn milestone_313_contract_and_current_phase_5_ledger_are_exact() {
     let (contract, ledger) = phase_1_inputs();
 
-    milestone_313_ledger::validate_phase_1(&contract, &ledger)
-        .expect("the Phase 1 contract and deliberately open milestone ledger should agree");
+    milestone_313_ledger::validate_at_phase(&contract, &ledger, 5)
+        .expect("the frozen contract and current Phase 5 ledger should agree");
+}
+
+#[test]
+fn milestone_313_historical_phase_1_posture_rejects_any_closed_row() {
+    let (contract, ledger) = phase_1_inputs();
+    let mut rows = milestone_313_ledger::parse_ledger(&ledger).expect("ledger should parse");
+    for row in &mut rows {
+        row[8] = "OPEN".to_owned();
+        row[9].clear();
+    }
+    let open = milestone_313_ledger::render_ledger(&rows);
+    milestone_313_ledger::validate_phase_1(&contract, &open)
+        .expect("the historical Phase 1 posture keeps every later proof open");
+
+    rows[1][8] = "PROVED".to_owned();
+    rows[1][9] =
+        "A deliberately long but premature Phase 2 proof cannot close in Phase 1.".to_owned();
+    assert_rejected(
+        &contract,
+        &milestone_313_ledger::render_ledger(&rows),
+        1,
+        "historical premature proof",
+    );
 }
 
 #[test]
@@ -32,6 +55,7 @@ fn milestone_313_phase1_ledger_rejects_hostile_structure_mutations() {
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&missing),
+        5,
         "missing row",
     );
 
@@ -40,6 +64,7 @@ fn milestone_313_phase1_ledger_rejects_hostile_structure_mutations() {
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&duplicate),
+        5,
         "duplicate row",
     );
 
@@ -48,6 +73,7 @@ fn milestone_313_phase1_ledger_rejects_hostile_structure_mutations() {
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&reordered),
+        5,
         "reordered row",
     );
 
@@ -56,6 +82,7 @@ fn milestone_313_phase1_ledger_rejects_hostile_structure_mutations() {
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&fabricated),
+        5,
         "fabricated row",
     );
 }
@@ -70,23 +97,28 @@ fn milestone_313_phase1_ledger_rejects_premature_or_fabricated_closure() {
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&command_drift),
+        5,
         "command drift",
     );
 
     let mut premature = rows.clone();
-    premature[0][8] = "PROVED".to_owned();
-    premature[0][9] = "looks green".to_owned();
+    premature[8][8] = "PROVED".to_owned();
+    premature[8][9] =
+        "A deliberately long but premature Phase 5 proof claim cannot close during Phase 4."
+            .to_owned();
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&premature),
+        4,
         "premature proof",
     );
 
     let mut fabricated = rows;
-    fabricated[0][9] = "source=fiction; result=passed".to_owned();
+    fabricated[8][9] = "source=fiction; result=passed".to_owned();
     assert_rejected(
         &contract,
         &milestone_313_ledger::render_ledger(&fabricated),
+        5,
         "evidence on an open row",
     );
 }

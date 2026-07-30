@@ -21,6 +21,11 @@ The session is not a bag of the other owners' fields. It coordinates named
 transitions and returns product outcomes. New state belongs in the owner that
 can establish, rebuild, and dispose its truth.
 
+Query projection state is not another session owner. Query owns the live
+resource; `worth-ui-query-binding` converts Query-issued authority into
+shape-specific UI observations and affine facts; the existing observation,
+planning, mounting, and publication owners consume the resulting UI meaning.
+
 ## Allowed Dependency Direction
 
 ```text
@@ -126,6 +131,12 @@ whole-graph scan, universal remount, or unbounded queue.
 Future work should insert at these homes and reuse the canonical rebind
 executor. If a feature requires moving source settlement, graph truth,
 publication, or host authority, its architecture is not yet honest.
+
+For projected text, planning selects the declared scalar or collection fact,
+mounting owns the semantic text node and `BodyDefault` appearance role, and the
+host adapter translates only the resulting mounted mechanics. A renderer-side
+field lookup or Query call is therefore both an ownership violation and a
+second data path.
 
 ## Related Docs
 

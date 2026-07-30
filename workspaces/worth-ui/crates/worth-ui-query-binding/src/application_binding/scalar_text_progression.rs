@@ -104,6 +104,10 @@ pub(crate) enum WorthUiScalarTextDerivationStop {
 }
 
 impl WorthUiScalarTextOperatingWorldGateway<'_> {
+    #[allow(
+        clippy::result_large_err,
+        reason = "cold preparation preserves Query's exact proof-carrying denial"
+    )]
     pub(crate) fn prepare_consumer(
         self,
         selected_field: &str,
@@ -130,6 +134,10 @@ impl WorthUiPreparedScalarTextConsumer {
         self.bound.binding_identity()
     }
 
+    #[allow(
+        clippy::result_large_err,
+        reason = "replacement is a cold authority transition with an exact Query denial"
+    )]
     pub(crate) fn replacement_witness_for(
         &self,
         candidate: &Self,
@@ -279,42 +287,44 @@ impl WorthUiSettledScalarTextProjection {
     pub(crate) fn derive_native_text(
         self,
         budget: crate::UiProjectionConsumptionBudget,
-    ) -> Result<WorthUiDerivedScalarTextProjection, WorthUiScalarTextDerivationStop> {
+    ) -> Result<WorthUiDerivedScalarTextProjection, Box<WorthUiScalarTextDerivationStop>> {
         let resolution_counters = self.native_access.resolution_counters();
         let access = match self.settled.native_value(self.native_access.key(), 0) {
             Ok(access) => access,
             Err(denial) => {
-                return Err(WorthUiScalarTextDerivationStop::NativeAccess {
+                return Err(Box::new(WorthUiScalarTextDerivationStop::NativeAccess {
                     denial,
                     resolution_counters,
-                });
+                }));
             }
         };
         let access_counters = access.counters();
         let text = match access.fact().as_interned_string() {
             Ok(InternedString::Raw(text)) => text.clone(),
             Ok(InternedString::Symbol(_)) => {
-                return Err(WorthUiScalarTextDerivationStop::SymbolicText {
+                return Err(Box::new(WorthUiScalarTextDerivationStop::SymbolicText {
                     resolution_counters,
                     access_counters,
-                });
+                }));
             }
             Err(denial) => {
-                return Err(WorthUiScalarTextDerivationStop::NativeRefinement {
-                    denial,
-                    resolution_counters,
-                    access_counters,
-                });
+                return Err(Box::new(
+                    WorthUiScalarTextDerivationStop::NativeRefinement {
+                        denial,
+                        resolution_counters,
+                        access_counters,
+                    },
+                ));
             }
         };
         let byte_len = text.len();
         if byte_len > budget.native_bytes_retained() {
-            return Err(WorthUiScalarTextDerivationStop::BudgetExceeded {
+            return Err(Box::new(WorthUiScalarTextDerivationStop::BudgetExceeded {
                 byte_len,
                 limit: budget.native_bytes_retained(),
                 resolution_counters,
                 access_counters,
-            });
+            }));
         }
         Ok(WorthUiDerivedScalarTextProjection {
             settled: self,
@@ -334,6 +344,10 @@ impl WorthUiSettledScalarTextProjection {
     }
 
     #[cfg(any(test, feature = "certification-construction"))]
+    #[allow(
+        clippy::result_large_err,
+        reason = "certification exposes the exact Query denial under fault injection"
+    )]
     pub(crate) fn certification_native_value<'a>(
         &'a self,
         key: &operation::WorthQueryNativeAccessKey,

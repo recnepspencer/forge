@@ -56,6 +56,22 @@ let outcome = session
 Treat the returned mounted-frame outcome exhaustively. Do not import an
 intermediate runtime phase to skip a denial or recover a raw executor.
 
+For Query-backed content, discover from
+`worth_ui::facade::query_binding`. Follow the concrete type progression:
+
+```text
+host installation plan
+-> installed scalar or collection registration
+-> Query-issued projection observation
+-> ordinary projection rebind
+-> shape-specific affine fact receipt
+-> mounted semantic text and host publication
+```
+
+Availability, currency/activity, stop posture, compatibility, native value,
+and collection continuation are separate typed axes. Reporting identities and
+inspection projections explain this progression but cannot enter it.
+
 ## Authority Boundaries
 
 - `worth-ui-dsl` owns authored syntax, source structure, language diagnostics,
@@ -72,6 +88,12 @@ intermediate runtime phase to skip a denial or recover a raw executor.
 
 IDs, digests, reports, and inspection receipts explain authority. They do not
 grant it.
+
+When investigating Query-backed output, start with
+[Query-backed UI views](./docs/query-binding.md), then inspect the public
+facade, the binding owner, the runtime projection-rebind entry, and only then
+the Query substrate. Do not infer a workspace extension, literal field lookup,
+or renderer-side query lane from older names.
 
 ## Authored Inputs
 

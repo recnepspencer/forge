@@ -3,6 +3,7 @@ mod bridge;
 mod installation;
 mod source_lifecycle;
 mod source_record;
+mod support_contract;
 
 pub use installation::{
     WorthUiQueryHostInstallationRequest, WorthUiScalarProjectionHostCompletion,
@@ -11,8 +12,8 @@ pub use installation::{
 pub use source_lifecycle::{
     WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
     WorthUiScalarProjectionInstallation, WorthUiScalarProjectionLiveOwner,
-    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseReceipt,
-    WorthUiScalarProjectionSourceCloseError,
+    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
+    WorthUiScalarProjectionSourceCloseReceipt,
 };
 pub use source_record::WorthUiScalarProjectionSourceRecord;
 
@@ -20,3 +21,6 @@ pub(crate) use backend::{
     shared_source_state, SharedSourceState, WorthUiExternalScalarSourceBackend,
 };
 pub(crate) use bridge::platform_pulse_bridge;
+#[cfg(any(test, feature = "certification-construction"))]
+pub(crate) use installation::projection_runtime_builder;
+pub(crate) use support_contract::evaluate_product_projection_support;

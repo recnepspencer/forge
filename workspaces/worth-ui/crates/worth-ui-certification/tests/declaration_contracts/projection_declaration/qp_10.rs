@@ -138,8 +138,8 @@ fn collection_pair() -> RequirementPair {
 }
 
 fn assert_pair_matches_model(pair: &RequirementPair) {
-    assert_eq!(pair.file.models, [pair.model.clone()]);
-    assert_eq!(pair.rust.models, [pair.model.clone()]);
+    assert_eq!(pair.file.models, std::slice::from_ref(&pair.model));
+    assert_eq!(pair.rust.models, std::slice::from_ref(&pair.model));
     assert_eq!(pair.file.identities, pair.rust.identities);
 }
 

@@ -28,6 +28,63 @@ pub(super) struct CollectionProjectionWorld {
     expected: ExpectedKeyedRows,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct CollectionChangeCostEvidence {
+    cardinality: usize,
+    changed_rows: usize,
+    ui: worth_ui_query_binding::UiCollectionProjectionWorkCounters,
+    query: worth_ui_query_binding::WorthUiCollectionQueryWorkInspection,
+}
+
+impl CollectionChangeCostEvidence {
+    pub(crate) const fn cardinality(self) -> usize {
+        self.cardinality
+    }
+
+    pub(crate) const fn changed_rows(self) -> usize {
+        self.changed_rows
+    }
+
+    pub(crate) const fn ui(self) -> worth_ui_query_binding::UiCollectionProjectionWorkCounters {
+        self.ui
+    }
+
+    pub(crate) const fn query(
+        self,
+    ) -> worth_ui_query_binding::WorthUiCollectionQueryWorkInspection {
+        self.query
+    }
+}
+
+pub(crate) fn measure_changed_row_work(
+    cardinality: usize,
+    changed_rows: usize,
+) -> CollectionChangeCostEvidence {
+    assert!(changed_rows <= cardinality);
+    let selected_rows = cardinality.min(512);
+    let (mut world, initial) = CollectionProjectionWorld::open(
+        cardinality,
+        selected_rows as u32,
+        WorldPosture::Complete,
+        false,
+    );
+    assert_eq!(world.cardinality(), cardinality);
+    assert_eq!(initial.work().rows_visited(), selected_rows);
+    let changed = world.update_first(changed_rows);
+    let receipt = world.refresh_receipt();
+    world
+        .expected()
+        .assert_fact_rows(receipt.fact(), &world.expected().selected(&changed));
+    let evidence = CollectionChangeCostEvidence {
+        cardinality,
+        changed_rows,
+        ui: receipt.fact().work(),
+        query: *receipt.query_work(),
+    };
+    world.close();
+    evidence
+}
+
 impl CollectionProjectionWorld {
     pub(super) fn open(
         row_count: usize,

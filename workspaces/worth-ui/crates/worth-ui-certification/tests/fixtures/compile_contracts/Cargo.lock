@@ -845,6 +845,8 @@ dependencies = [
  "worth-foundational",
  "worth-query",
  "worth-query-decl",
+ "worth-runtime-bridge",
+ "worth-signal",
 ]
 
 [[package]]

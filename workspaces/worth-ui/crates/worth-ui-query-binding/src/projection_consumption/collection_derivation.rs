@@ -139,7 +139,7 @@ fn derive_present(
     };
     let rows = match derive_rows(context, selected_rows, work) {
         Ok(rows) => rows,
-        Err(stop) => return UiProjectionAvailability::Stopped(stop),
+        Err(stop) => return UiProjectionAvailability::Stopped(*stop),
     };
     UiProjectionAvailability::Present(UiPresentProjection::Current(
         UiCollectionProjectionValue::admitted(rows, completeness, continuation),
@@ -150,7 +150,7 @@ fn derive_rows(
     context: &UiCollectionDerivationContext<'_>,
     selected_rows: &[&collection::WorthQueryCollectionRowHandle],
     work: &mut UiCollectionProjectionWorkCounters,
-) -> Result<Box<[UiCollectionProjectionTextRow]>, UiProjectionFactStopReceipt> {
+) -> Result<Box<[UiCollectionProjectionTextRow]>, Box<UiProjectionFactStopReceipt>> {
     let mut rows = Vec::with_capacity(selected_rows.len());
     for row in selected_rows {
         work.visit_row();
@@ -160,30 +160,30 @@ fn derive_rows(
                 .consumer
                 .native_value(row, access.key())
                 .map_err(|_| {
-                    stop_receipt(
+                    Box::new(stop_receipt(
                         UiProjectionFactStopKind::WrongWorld,
                         &context.consumer.result_generation_identity_evidence(),
                         "Query rejected the collection row or native key authority",
-                    )
+                    ))
                 })?;
             let text = match fact.native_value().scalar() {
                 Some(AspectValue::String(InternedString::Raw(text))) => text.clone(),
                 _ => {
-                    return Err(stop_receipt(
+                    return Err(Box::new(stop_receipt(
                         UiProjectionFactStopKind::NativeFamilyMismatch,
                         &context.consumer.result_generation_identity_evidence(),
                         "the selected Query native value is not direct raw text",
-                    ));
+                    )));
                 }
             };
             if work.native_bytes_retained().saturating_add(text.len())
                 > context.budget.max_native_bytes()
             {
-                return Err(stop_receipt(
+                return Err(Box::new(stop_receipt(
                     UiProjectionFactStopKind::BudgetExceeded,
                     &context.consumer.result_generation_identity_evidence(),
                     "the collection native-text byte budget is exhausted",
-                ));
+                )));
             }
             work.record_native_access(fact.counters(), text.len());
             values.push(UiNativeTextValue::from_raw(text));

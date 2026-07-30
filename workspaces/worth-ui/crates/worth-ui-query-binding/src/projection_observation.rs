@@ -37,8 +37,7 @@ impl UiProjectionObservation {
             Self::Scalar(_) => std::mem::size_of::<UiScalarProjectionObservation>(),
             Self::Collection(observation) => {
                 std::mem::size_of::<UiCollectionProjectionObservation>()
-                    + observation.fact.changes().len()
-                        * std::mem::size_of::<crate::UiCollectionProjectionChange>()
+                    + std::mem::size_of_val(observation.fact.changes())
             }
         }
     }

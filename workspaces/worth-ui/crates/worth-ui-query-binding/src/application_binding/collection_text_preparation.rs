@@ -24,6 +24,10 @@ pub(crate) struct WorthUiPreparedCollectionTextConsumer {
 }
 
 impl WorthUiCollectionTextOperatingWorldGateway<'_> {
+    #[allow(
+        clippy::result_large_err,
+        reason = "cold preparation preserves Query's exact proof-carrying denial"
+    )]
     pub(crate) fn prepare_consumer(
         self,
         requirement: &crate::UiCollectionSchemaRequirement,
@@ -49,6 +53,10 @@ impl WorthUiCollectionTextOperatingWorldGateway<'_> {
     }
 }
 
+#[allow(
+    clippy::result_large_err,
+    reason = "cold contract validation preserves the exact preparation denial"
+)]
 fn validate_collection_contract(
     consumer: &operation::WorthQueryConsumerProjectionContract<
         crate::WorthUiDomainEntry,
@@ -80,6 +88,10 @@ impl WorthUiPreparedCollectionTextConsumer {
         self.bound.binding_identity()
     }
 
+    #[allow(
+        clippy::result_large_err,
+        reason = "replacement is a cold authority transition with an exact Query denial"
+    )]
     pub(crate) fn replacement_witness_for(
         &self,
         candidate: &Self,

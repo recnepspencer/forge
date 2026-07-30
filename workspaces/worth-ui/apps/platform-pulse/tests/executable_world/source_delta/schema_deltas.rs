@@ -28,8 +28,8 @@ impl RevisionSchemaSourceDelta {
             .collect::<Vec<_>>();
         let [offset] = offsets.as_slice() else {
             return Err(match offsets.len() {
-                0 => PulseSourceDeltaDefinitionFailure::CanonicalStatusFieldMissing,
-                count => PulseSourceDeltaDefinitionFailure::CanonicalStatusFieldAmbiguous(count),
+                0 => PulseSourceDeltaDefinitionFailure::StatusFieldMissing,
+                count => PulseSourceDeltaDefinitionFailure::StatusFieldAmbiguous(count),
             });
         };
         let mut bytes =

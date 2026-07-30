@@ -123,6 +123,10 @@ impl UiQueryChangedFact {
         }
     }
 
+    #[allow(
+        clippy::result_large_err,
+        reason = "shape mismatch returns the exact affine Query fact unchanged"
+    )]
     pub(crate) fn into_scalar_projection(
         self,
     ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {
