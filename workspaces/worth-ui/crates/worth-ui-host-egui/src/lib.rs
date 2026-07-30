@@ -2,9 +2,11 @@ mod adapter;
 mod translation;
 
 pub use adapter::{
-    UiEguiMountedParticipationPreparation, UiEguiMountedResourceHandle,
-    UiEguiRawInputIngressOutcome, UiEguiRawInputReachability,
-    WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache, WorthUiHostEgui,
+    UiEguiCoordinateConversionDenial, UiEguiMountedParticipationPreparation,
+    UiEguiMountedResourceHandle, UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStop,
+    UiEguiRawInputIngressStopReason, UiEguiRawInputReachability, UiEguiRetainedRawInput,
+    UiEguiUnsupportedEventFamily, WorthUiEguiMountedProjectionPreparation,
+    WorthUiEguiMountedResourceCache, WorthUiHostEgui,
 };
 pub use translation::{
     egui_dpi_scale_normalization_context, egui_font_metrics_normalization_context,

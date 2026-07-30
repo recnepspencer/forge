@@ -193,6 +193,7 @@ fn fill_quarantine_capacity(
     ));
     let basis = PresentedObservationBasis {
         frame: indeterminate_frame,
+        epoch: current.epoch,
         instance: current.instance,
         receipt: current.receipt,
     };

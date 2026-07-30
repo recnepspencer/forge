@@ -61,7 +61,9 @@ pub use rebind_identity_lifecycle::{
 };
 pub use runtime_launch::launch_empty_runtime_for_certification;
 pub use semantic_text_projection::{
-    semantic_text_projection_for_certification, UiSemanticTextProjectionCertificationMutation,
+    semantic_text_projection_for_certification,
+    semantic_text_projection_for_certification_with_capability,
+    UiSemanticTextProjectionCertificationMutation,
 };
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,

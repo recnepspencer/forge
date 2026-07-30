@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PlatformPulseNativeInputIngressPosture {
-    Unsupported,
+    Retained,
+    Stopped,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -50,7 +51,10 @@ impl PlatformPulseNativeInputReached {
         self.posture
     }
 
-    pub(super) fn from_egui(reached: worth_ui_host_egui::UiEguiRawInputReachability) -> Self {
+    pub(super) fn from_egui(
+        reached: worth_ui_host_egui::UiEguiRawInputReachability,
+        posture: PlatformPulseNativeInputIngressPosture,
+    ) -> Self {
         Self {
             event_count: count(reached.event_count()),
             pointer_button_events: count(reached.pointer_button_events()),
@@ -59,7 +63,7 @@ impl PlatformPulseNativeInputReached {
             ime_preedit_events: count(reached.ime_preedit_events()),
             ime_commit_events: count(reached.ime_commit_events()),
             ime_cancel_events: count(reached.ime_cancel_events()),
-            posture: PlatformPulseNativeInputIngressPosture::Unsupported,
+            posture,
         }
     }
 }

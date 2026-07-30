@@ -11,6 +11,8 @@ use worth_ui_host_contract::{
     WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
 
+mod input_observation;
+
 #[derive(Clone, Default)]
 pub struct WorthUiHostEgui {
     context: egui::Context,
@@ -24,6 +26,8 @@ pub struct WorthUiHostEgui {
     >,
     measurement_environment: Arc<Mutex<EguiMeasurementEnvironment>>,
     observation_retention: Arc<worth_ui_host_contract::UiHostObservationRetention>,
+    input_translators: super::input_observation::UiEguiInstalledInputTranslators,
+    input_observation: Arc<Mutex<super::input_observation::UiEguiInputObservationState>>,
     retained_presentations: Arc<
         Mutex<
             BTreeMap<
@@ -50,6 +54,8 @@ impl WorthUiHostEgui {
             registrations: Arc::default(),
             measurement_environment: Arc::default(),
             observation_retention: Arc::default(),
+            input_translators: Default::default(),
+            input_observation: Arc::default(),
             retained_presentations: Arc::default(),
             visual_captures: Arc::default(),
         }
@@ -57,20 +63,6 @@ impl WorthUiHostEgui {
 
     pub fn registered_surface_count(&self) -> usize {
         self.registrations.lock().unwrap().len()
-    }
-
-    pub fn retain_host_observation(
-        &self,
-        batch: worth_ui_host_contract::UiHostObservationBatch,
-    ) -> Result<(), worth_ui_host_contract::UiHostObservationRetentionDenial> {
-        self.observation_retention.retain(batch)
-    }
-
-    pub fn observe_native_input(
-        &self,
-        raw_input: &egui::RawInput,
-    ) -> super::UiEguiRawInputIngressOutcome {
-        super::input_observation::observe_raw_input(raw_input)
     }
 
     /// Replay the currently admitted mounted mechanics for one egui frame.
@@ -116,12 +108,14 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
     }
 
     fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![
+        let mut capabilities = vec![
             WorthUiHostCapability::DpiObservation,
             WorthUiHostCapability::IdentityOverlay,
             WorthUiHostCapability::NativePaint,
             WorthUiHostCapability::ViewportObservation,
-        ])
+        ];
+        capabilities.extend(self.input_translators.capabilities());
+        WorthUiHostCapabilityReport::available(capabilities)
     }
 
     fn drain_mechanical_host_observations(
@@ -233,6 +227,10 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
             .lock()
             .unwrap()
             .remove(&request.binding_generation());
+        super::input_observation::remove_binding(
+            &self.input_observation,
+            request.binding_generation(),
+        );
         super::visual_snapshot::remove_binding(&self.visual_captures, request.binding_generation());
         worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::Deregistered(
             worth_ui_host_contract::UiHostSurfaceDeregistrationReceipt::from_runtime(
@@ -272,6 +270,9 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
             }
         };
         let effects = presentation.completed_effects();
+        let epoch = worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
+            view.attempt().diagnostic_value(),
+        );
         presentation.paint(&self.context);
         let binding = view.requirement().binding();
         let mut retained = self.retained_presentations.lock().unwrap();
@@ -283,16 +284,17 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
         super::visual_snapshot::record_presentation(
             &self.visual_captures,
             view,
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
-                view.attempt().diagnostic_value(),
-            ),
+            epoch,
             realized_regions,
+        );
+        super::input_observation::record_completed_presentation(
+            &self.input_observation,
+            view,
+            epoch,
         );
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::NativeDisplay,
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
-                view.attempt().diagnostic_value(),
-            ),
+            epoch,
             effects,
             cost,
         ))
@@ -316,6 +318,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
             retained.remove(&binding);
             super::visual_snapshot::remove_binding(&self.visual_captures, binding);
         }
+        super::input_observation::release_session(&self.input_observation, host_session_identity);
         self.observation_retention
             .release_session(host_session_identity);
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(

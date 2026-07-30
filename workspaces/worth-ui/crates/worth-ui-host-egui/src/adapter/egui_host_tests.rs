@@ -1,15 +1,16 @@
 use worth_ui_host_contract::{
     UiHostObservationBatch, UiHostObservationBatchInput, UiHostObservationLoss,
-    UiHostObservationPayload, UiHostObservationReport, UiHostObservationRetentionDenial,
-    UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
-    UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameIdentity,
-    UiSurfaceBindingGeneration, WorthUiHostCapability, WorthUiHostMechanicsAdapter,
+    UiHostObservationPayload, UiHostObservationPresentationBasis, UiHostObservationReport,
+    UiHostObservationRetentionDenial, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostObservationTimeBasis, UiHostPresentationEpoch, UiHostProtocolContract,
+    UiHostProtocolNegotiation, UiMountedFrameIdentity, UiSurfaceBindingGeneration,
+    WorthUiHostCapability, WorthUiHostMechanicsAdapter,
 };
 
 use super::WorthUiHostEgui;
 
 #[test]
-fn input_capabilities_remain_unadvertised_until_translators_are_installed() {
+fn input_capabilities_derive_from_the_installed_production_translators() {
     let report = WorthUiHostEgui::default().mechanical_capability_report();
 
     for capability in [
@@ -18,7 +19,7 @@ fn input_capabilities_remain_unadvertised_until_translators_are_installed() {
         WorthUiHostCapability::TextInput,
         WorthUiHostCapability::Ime,
     ] {
-        assert!(!report.supports(capability));
+        assert!(report.supports(capability));
     }
 }
 
@@ -61,8 +62,11 @@ fn batch(host_session: u64, sequence: u64) -> UiHostObservationBatch {
     UiHostObservationBatch::new(UiHostObservationBatchInput {
         protocol,
         host_session,
-        binding: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
-        frame: UiMountedFrameIdentity::mint_unbound().unwrap(),
+        presentation: UiHostObservationPresentationBasis::new(
+            UiMountedFrameIdentity::mint_unbound().unwrap(),
+            UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+            UiHostPresentationEpoch::issued_by_host(1),
+        ),
         sequences: UiHostObservationSequenceRange::new(
             UiHostObservationSequence::new(sequence),
             UiHostObservationSequence::new(sequence),

@@ -1,10 +1,11 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationBatchInput, UiHostObservationLoss,
-    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
-    UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
-    UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostPressedPointerButtons,
-    UiHostProtocolContract, UiHostProtocolNegotiation, UiHostSurfacePosition,
+    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationPresentationBasis,
+    UiHostObservationReport, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostObservationTimeBasis, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostPressedPointerButtons, UiHostProtocolContract, UiHostProtocolNegotiation,
+    UiHostSurfacePosition,
 };
 use worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration;
 
@@ -42,8 +43,11 @@ pub(super) fn batch(
     UiHostObservationBatch::new(UiHostObservationBatchInput {
         protocol: protocol(),
         host_session: source.session.host_session_identity().as_u64(),
-        binding: source.binding,
-        frame: source.basis.frame,
+        presentation: UiHostObservationPresentationBasis::new(
+            source.basis.frame,
+            source.binding,
+            source.basis.epoch,
+        ),
         sequences: UiHostObservationSequenceRange::new(
             UiHostObservationSequence::new(range.0),
             UiHostObservationSequence::new(range.1),

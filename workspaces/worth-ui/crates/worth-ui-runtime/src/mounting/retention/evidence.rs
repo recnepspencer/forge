@@ -35,6 +35,7 @@ pub(crate) enum UiPresentedFrameBasisDenial {
     Expired,
     Unknown,
     BindingNotPresented,
+    PresentationEpochMismatch,
     InstanceNotPresented,
     NodeReceiptMismatch,
 }
@@ -132,12 +133,27 @@ impl UiRetainedPresentedFrame {
 
     pub(crate) fn classify(
         &self,
-        binding: UiSurfaceBindingGeneration,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
         mounted_instance: Option<UiMountedInstanceIdentity>,
         node_receipt: Option<UiMountedNodeReceiptIdentity>,
     ) -> Result<(), UiPresentedFrameBasisDenial> {
+        let binding = presentation.binding();
         if self.bindings.binary_search(&binding).is_err() {
             return Err(UiPresentedFrameBasisDenial::BindingNotPresented);
+        }
+        let retained_epoch = self
+            .presentation
+            .as_ref()
+            .and_then(|receipt| {
+                receipt
+                    .surfaces()
+                    .iter()
+                    .find(|surface| surface.binding() == binding)
+            })
+            .ok_or(UiPresentedFrameBasisDenial::BindingNotPresented)?
+            .epoch();
+        if retained_epoch != presentation.epoch() {
+            return Err(UiPresentedFrameBasisDenial::PresentationEpochMismatch);
         }
         match (mounted_instance, node_receipt) {
             (None, None) => Ok(()),

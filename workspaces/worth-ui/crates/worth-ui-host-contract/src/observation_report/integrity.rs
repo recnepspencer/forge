@@ -15,6 +15,7 @@ impl UiHostObservationIntegrity {
             core.host_session(),
             core.binding().diagnostic_value(),
             core.frame().diagnostic_value(),
+            core.presentation().epoch().diagnostic_value(),
             core.sequences().first().value(),
             core.sequences().last().value(),
             u64::try_from(core.report_count()).unwrap_or(u64::MAX),

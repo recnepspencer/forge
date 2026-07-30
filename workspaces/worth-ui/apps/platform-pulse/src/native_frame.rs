@@ -1,10 +1,8 @@
 use eframe::egui;
-use std::fmt;
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationShell,
-    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeSourceRebindDenial,
 };
-use worth_ui::facade::source::{WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision};
+use worth_ui::facade::source::WorthUiSourcePackageRevision;
 use worth_ui_host_egui::WorthUiHostEgui;
 
 use crate::application::{PlatformPulsePreparationDenial, PreparedPlatformPulse};
@@ -25,8 +23,10 @@ mod projection;
 mod query;
 mod rebind;
 mod source_rebind;
+mod terminal_error;
 
 use projection::PlatformPulseProjectionRebindDenial;
+use terminal_error::PlatformPulseTerminalError;
 
 pub(crate) struct PlatformPulseNativeFrame {
     prepared: Option<WorthUiApp>,
@@ -43,52 +43,6 @@ pub(crate) struct PlatformPulseNativeFrame {
     terminal_reported: bool,
     visual_identity: PlatformPulseVisualIdentityExecution,
     tick: u64,
-}
-
-enum PlatformPulseTerminalError {
-    Preparation(PlatformPulsePreparationDenial),
-    NativeSurfaceLaunch(WorthUiNativeApplicationShellLaunchDenial),
-    SourceWatcher(WorthUiFilesystemWatcherDenial),
-    FrameExecution(String),
-    UnexpectedInitialFrame,
-    NativeRebind(WorthUiNativeSourceRebindDenial),
-    NativeProjection(PlatformPulseProjectionRebindDenial),
-    QueryLifecycle(crate::query_source::PlatformPulseQueryLifecycleDenial),
-    QueryWatch(crate::query_source::PlatformPulseExternalValueWatchDenial),
-    VisualIdentity(PlatformPulseVisualExecutionDenial),
-    ObservationPublication,
-}
-
-impl fmt::Display for PlatformPulseTerminalError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Preparation(denial) => {
-                write!(formatter, "application preparation: {denial}")
-            }
-            Self::NativeSurfaceLaunch(denial) => {
-                write!(formatter, "native surface launch: {denial:?}")
-            }
-            Self::SourceWatcher(denial) => write!(formatter, "source watcher: {denial:?}"),
-            Self::FrameExecution(detail) => {
-                write!(formatter, "mounted frame execution: {detail}")
-            }
-            Self::UnexpectedInitialFrame => formatter.write_str("initial frame did not publish"),
-            Self::NativeRebind(denial) => {
-                write!(formatter, "native source rebind: {denial:?}")
-            }
-            Self::NativeProjection(denial) => {
-                write!(formatter, "native projection rebind: {denial}")
-            }
-            Self::QueryLifecycle(denial) => write!(formatter, "Query lifecycle: {denial}"),
-            Self::QueryWatch(denial) => write!(formatter, "Query source watch: {denial}"),
-            Self::VisualIdentity(denial) => {
-                write!(formatter, "visual identity pulse: {denial}")
-            }
-            Self::ObservationPublication => {
-                formatter.write_str("lifecycle observation publication")
-            }
-        }
-    }
 }
 
 impl PlatformPulseNativeFrame {
@@ -272,11 +226,17 @@ impl eframe::App for PlatformPulseNativeFrame {
         let result = self
             .native_input
             .observe(self.host.as_ref(), raw_input, &self.publisher);
-        if let Err(error) = result {
-            self.fail(
-                PlatformPulseTerminalError::ObservationPublication,
-                Err(error),
-            );
+        if let Err(denial) = result {
+            match denial {
+                input::PlatformPulseNativeInputIngressDenial::Adapter {
+                    reason,
+                    publication,
+                } => self.fail(PlatformPulseTerminalError::NativeInput(reason), publication),
+                input::PlatformPulseNativeInputIngressDenial::Publication(error) => self.fail(
+                    PlatformPulseTerminalError::ObservationPublication,
+                    Err(error),
+                ),
+            }
         }
     }
 

@@ -25,7 +25,9 @@ use super::mounted_successor::{
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 use crate::host_observation_fixture::{batch, pointer, report, source};
 use crate::mounted_application_lifecycle::known_empty_surface_world::profile;
-use crate::mounted_application_lifecycle::published_mounted_world::PresentedObservationBasis;
+use crate::mounted_application_lifecycle::published_mounted_world::{
+    presented_epoch, PresentedObservationBasis,
+};
 
 const SETTLEMENT_TIMEOUT: Duration = Duration::from_secs(5);
 const SOURCE: &str = "app/main.wui";
@@ -235,6 +237,7 @@ fn prove_observation_denials_are_terminal(
         .node_receipt_identity();
     let basis = PresentedObservationBasis {
         frame: publication.frame(),
+        epoch: presented_epoch(session, publication.frame(), binding),
         instance,
         receipt,
     };
