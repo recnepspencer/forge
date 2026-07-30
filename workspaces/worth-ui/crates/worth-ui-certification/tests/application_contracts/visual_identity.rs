@@ -72,7 +72,7 @@ fn egui_cost_counts_runtime_mounted_hit_mechanics() {
     let context = egui::Context::default();
     let mut session = launch_native_world(WorthUiHostEgui::new(context.clone()));
     let mut outcome = None;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         establish_allocation(&mut session, 3);
         let prepared = prepare_frame(&mut session).expect("egui receives a complete projection");
         let projection = prepared.surfaces()[0].projection();
@@ -336,7 +336,7 @@ fn capture_snapshot_from_session(
     worth_ui::facade::app::WorthUiActiveApplicationSession,
     worth_ui::facade::inspection::UiVisualSnapshotReceipt<UiGeometryOnly>,
 ) {
-    let _ = context.run(raw_input(), |_| {
+    let _ = context.run_ui(raw_input(), |_| {
         establish_allocation(&mut session, 3);
         let prepared = prepare_frame(&mut session).expect("the four-way projection completes");
         let outcome = session.present_prepared_mounted_frame(
@@ -362,7 +362,7 @@ fn capture_snapshot_from_session(
         .expect("the retained presented surface admits geometry capture");
     let mut pending = Some(pending);
     let mut poll = None;
-    let _ = context.run(raw_input(), |_| {
+    let _ = context.run_ui(raw_input(), |_| {
         poll = Some(session.poll_visual_snapshot(
             pending.take().expect("the callback consumes one capture"),
             1,

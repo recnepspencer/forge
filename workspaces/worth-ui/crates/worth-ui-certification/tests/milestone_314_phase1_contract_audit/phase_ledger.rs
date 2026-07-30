@@ -4,6 +4,11 @@ const PHASE_LEDGER: &str = "_docs/worth-ui/milestone-3.14-phase-1-proof-ledger.c
 const IDS: [&str; 9] = [
     "P1-01", "P1-02", "P1-03", "P1-04", "P1-05", "P1-06", "P1-07", "P1-08", "P1-09",
 ];
+const AGENT_CONTEXT_CLAIM: &str =
+    "The Phase 1 correction closes only while generated agent context agrees with the current governed sources.";
+const AGENT_CONTEXT_COMMAND: &str =
+    "cargo run --manifest-path tools/agent-context/Cargo.toml -- check";
+const AGENT_CONTEXT_EVIDENCE: &str = "source=generated per-crate context and current governed sources; result=agent-context check passed without stale context; owner=agent-context enforcement";
 
 fn inputs() -> (toml::Value, String) {
     let contract: toml::Value = toml::from_str(&repository_document(
@@ -35,6 +40,12 @@ fn validate(contract: &toml::Value, ledger: &str) -> Result<(), String> {
         {
             return Err(format!("{expected_id} evidence is not auditable"));
         }
+    }
+    if rows[8][1] != AGENT_CONTEXT_CLAIM
+        || rows[8][7] != AGENT_CONTEXT_COMMAND
+        || rows[8][9] != AGENT_CONTEXT_EVIDENCE
+    {
+        return Err("P1-09 agent-context evidence ownership drifted".to_owned());
     }
     Ok(())
 }
@@ -72,6 +83,29 @@ fn phase_1_closure_ledger_rejects_hostile_status_and_structure_mutations() {
     assert!(validate(
         &contract,
         &milestone_314_ledger::render_ledger(&unauditable)
+    )
+    .is_err());
+}
+
+#[test]
+fn phase_1_ledger_assigns_each_enforcement_claim_to_its_actual_evidence() {
+    let (contract, ledger) = inputs();
+    let rows = milestone_314_ledger::parse_ledger(&ledger).expect("ledger should parse");
+    assert_eq!(rows[8][1], AGENT_CONTEXT_CLAIM);
+    assert_eq!(rows[8][7], AGENT_CONTEXT_COMMAND);
+    assert_eq!(rows[8][9], AGENT_CONTEXT_EVIDENCE);
+    for overclaim in ["formatting", "line-cap", "boundary"] {
+        assert!(
+            !rows[8][1].contains(overclaim) && !rows[8][9].contains(overclaim),
+            "P1-09 must not claim `{overclaim}` from an agent-context-only command"
+        );
+    }
+
+    let mut overclaimed = rows;
+    overclaimed[8][1].push_str(" Formatting and line-cap gates are also green.");
+    assert!(validate(
+        &contract,
+        &milestone_314_ledger::render_ledger(&overclaimed)
     )
     .is_err());
 }

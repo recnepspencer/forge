@@ -292,7 +292,7 @@ fn execute_real_egui_frame(
     query_expected: bool,
 ) {
     let query_target = query_expected.then(|| visible_target(session));
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         let execution = session
             .execute_framework_turn(|_| {})
             .expect("no mounted presentation lease is active")

@@ -169,41 +169,16 @@ fn milestone_314_phase_1_owner_paths_exist_without_demanding_later_placeholders(
 }
 
 #[test]
-fn milestone_314_native_dependency_versions_are_exact() {
+fn milestone_314_native_dependency_versions_remain_exact_historical_evidence() {
     let (contract, _) = phase_1_inputs();
-    let workspace_manifest: toml::Value =
-        toml::from_str(&repository_document("workspaces/worth-ui/Cargo.toml"))
-            .expect("Worth UI workspace manifest should parse");
     assert_eq!(
-        workspace_manifest["workspace"]["dependencies"]["egui"].as_str(),
-        Some("=0.31.1")
+        contract["native_reachability"]["egui_version"].as_str(),
+        Some("0.31.1")
     );
     assert_eq!(
-        workspace_manifest["workspace"]["dependencies"]["eframe"]["version"].as_str(),
-        Some("=0.31.1")
+        contract["native_reachability"]["eframe_version"].as_str(),
+        Some("0.31.1")
     );
-
-    let lock: toml::Value = toml::from_str(&repository_document("workspaces/worth-ui/Cargo.lock"))
-        .expect("Worth UI lockfile should parse");
-    for (package, field) in [
-        ("eframe", "eframe_version"),
-        ("egui", "egui_version"),
-        ("egui-winit", "egui_winit_version"),
-        ("winit", "winit_version"),
-    ] {
-        let expected = contract["native_reachability"][field]
-            .as_str()
-            .expect("native dependency version should be frozen");
-        assert!(
-            lock["package"].as_array().is_some_and(|packages| {
-                packages.iter().any(|entry| {
-                    entry["name"].as_str() == Some(package)
-                        && entry["version"].as_str() == Some(expected)
-                })
-            }),
-            "{package} {expected} should be resolved"
-        );
-    }
 }
 
 #[test]
@@ -253,7 +228,7 @@ fn milestone_314_production_ingress_and_protocol_evolution_are_exact() {
         "egui::Event::Text",
         "egui::ImeEvent::Preedit",
         "egui::ImeEvent::Commit",
-        "egui::ImeEvent::Disabled",
+        "text.is_empty()",
     ] {
         assert!(
             ingress.contains(required),

@@ -58,7 +58,7 @@ pub fn fg_icon_button(
                 egui::Rect::from_min_size(icon_pos, Vec2::splat(props.size)),
             );
         } else {
-            let g = ui.fonts(|f| {
+            let g = ui.fonts_mut(|f| {
                 f.layout_no_wrap(
                     props.icon.glyph().to_string(),
                     egui::FontId::proportional(props.size * 0.85),

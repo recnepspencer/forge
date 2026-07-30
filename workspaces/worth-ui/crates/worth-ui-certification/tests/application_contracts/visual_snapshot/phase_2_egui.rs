@@ -37,7 +37,7 @@ fn egui_exact_screenshot_event_completes_required_pixel_capture() {
     let event_input = input_with_screenshot(user_data, egui::Color32::from_rgb(7, 11, 13));
     let mut completed = None;
     let mut pending = Some(pending);
-    let _ = context.run(event_input, |_| {
+    let _ = context.run_ui(event_input, |_| {
         completed = Some(
             session.poll_visual_snapshot(pending.take().expect("the event frame consumes once"), 1),
         );
@@ -87,7 +87,7 @@ fn egui_wrong_correlation_stays_pending_and_cancellation_is_after_effect() {
     let event_input = input_with_screenshot(wrong, egui::Color32::WHITE);
     let mut next = None;
     let mut pending = Some(pending);
-    let _ = context.run(event_input, |_| {
+    let _ = context.run_ui(event_input, |_| {
         next = Some(session.poll_visual_snapshot(
             pending.take().expect("the wrong-event frame consumes once"),
             1,
@@ -125,7 +125,7 @@ fn egui_epoch_advance_before_event_returns_superseded_without_pixels() {
     let event_input = input_with_screenshot(user_data, egui::Color32::WHITE);
     let mut outcome = None;
     let mut pending = Some(pending);
-    let _ = context.run(event_input, |_| {
+    let _ = context.run_ui(event_input, |_| {
         outcome = Some(
             session.poll_visual_snapshot(
                 pending
@@ -160,11 +160,11 @@ fn egui_wrong_viewport_event_is_affinity_indeterminate() {
     event_input.events.push(egui::Event::Screenshot {
         viewport_id: egui::ViewportId::from_hash_of("foreign-viewport"),
         user_data,
-        image: Arc::new(egui::ColorImage::new([200, 120], egui::Color32::WHITE)),
+        image: Arc::new(egui::ColorImage::filled([200, 120], egui::Color32::WHITE)),
     });
     let mut pending = Some(pending);
     let mut outcome = None;
-    let _ = context.run(event_input, |_| {
+    let _ = context.run_ui(event_input, |_| {
         outcome = Some(
             session.poll_visual_snapshot(
                 pending
@@ -187,7 +187,7 @@ fn egui_emits_no_screenshot_command_without_explicit_capture_request() {
     let context = egui::Context::default();
     let host = WorthUiHostEgui::new(context.clone());
     let mut session = launch_and_mount_pulse(host);
-    let output = context.run(raw_input(), |_| {
+    let output = context.run_ui(raw_input(), |_| {
         establish_viewport_allocation(&mut session);
         publish_frame(&mut session);
     });
@@ -209,7 +209,7 @@ fn presented_egui_world(
     let context = egui::Context::default();
     let host = WorthUiHostEgui::new(context.clone());
     let mut session = launch_and_mount_pulse(host.clone());
-    let _ = context.run(raw_input(), |_| {
+    let _ = context.run_ui(raw_input(), |_| {
         establish_viewport_allocation(&mut session);
         publish_frame(&mut session);
     });
@@ -221,7 +221,7 @@ fn present_successor(
     context: &egui::Context,
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) {
-    let _ = context.run(raw_input(), |_| publish_frame(session));
+    let _ = context.run_ui(raw_input(), |_| publish_frame(session));
 }
 
 fn publish_frame(session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession) {
@@ -245,7 +245,7 @@ fn request_screenshot(
 ) -> (PendingRequired, egui::UserData, usize) {
     let mut poll = None;
     let mut pending = Some(pending);
-    let output = context.run(raw_input(), |_| {
+    let output = context.run_ui(raw_input(), |_| {
         poll = Some(
             session
                 .poll_visual_snapshot(pending.take().expect("the request frame consumes once"), 0),
@@ -276,7 +276,7 @@ fn input_with_screenshot(user_data: egui::UserData, color: egui::Color32) -> egu
     input.events.push(egui::Event::Screenshot {
         viewport_id: egui::ViewportId::ROOT,
         user_data,
-        image: Arc::new(egui::ColorImage::new([200, 120], color)),
+        image: Arc::new(egui::ColorImage::filled([200, 120], color)),
     });
     input
 }

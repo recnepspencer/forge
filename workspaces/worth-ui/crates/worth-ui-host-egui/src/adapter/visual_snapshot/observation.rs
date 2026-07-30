@@ -106,7 +106,7 @@ fn coordinate_transform(
     physical_dimensions: Option<[u32; 2]>,
 ) -> Option<worth_ui_host_contract::UiHostCoordinateTransform> {
     context.input(|input| {
-        let screen = input.screen_rect();
+        let screen = input.viewport_rect();
         let viewport = input.viewport();
         let native_scale = viewport.native_pixels_per_point?;
         let logical = [screen.width(), screen.height()];

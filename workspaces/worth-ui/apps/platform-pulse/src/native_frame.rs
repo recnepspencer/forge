@@ -280,7 +280,8 @@ impl eframe::App for PlatformPulseNativeFrame {
         }
     }
 
-    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let context = ui.ctx();
         if let Some(host) = &self.host {
             host.repaint_retained_surfaces();
         }

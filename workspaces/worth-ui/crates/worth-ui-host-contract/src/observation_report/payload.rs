@@ -10,22 +10,23 @@ pub enum UiHostObservationPayload {
         micros: u32,
     },
     PointerMotion {
-        pointer: u64,
-        capture_epoch: u64,
-        pressed_buttons: u64,
-        x_subpixels: i64,
-        y_subpixels: i64,
+        pointer: super::UiHostPointerIdentity,
+        capture_epoch: super::UiHostPointerCaptureEpoch,
+        pressed_buttons: super::UiHostPressedPointerButtons,
+        position: super::UiHostSurfacePosition,
     },
     PointerButton {
-        pointer: u64,
-        capture_epoch: u64,
-        button: u16,
-        pressed: bool,
+        pointer: super::UiHostPointerIdentity,
+        capture_epoch: super::UiHostPointerCaptureEpoch,
+        button: super::UiHostPointerButton,
+        transition: super::UiHostPointerButtonTransition,
+        position: super::UiHostSurfacePosition,
     },
     Keyboard {
-        physical_key: u32,
-        pressed: bool,
-        repeat: bool,
+        logical_key: super::UiHostKey,
+        physical_key: Option<super::UiHostKey>,
+        modifiers: super::UiHostKeyboardModifiers,
+        transition: super::UiHostKeyTransition,
     },
     Focus {
         focused: bool,
@@ -40,15 +41,13 @@ pub enum UiHostObservationPayload {
     Tick {
         tick: u64,
     },
-    TextComposition {
+    TextInput {
         revision: u64,
         text: Box<str>,
     },
     ImeComposition {
         revision: u64,
-        text: Box<str>,
-        selection_start: u32,
-        selection_end: u32,
+        phase: super::UiHostImeCompositionPhase,
     },
 }
 
@@ -56,9 +55,9 @@ pub enum UiHostObservationPayload {
 pub enum UiHostObservationCoalescingIdentity {
     Family(UiHostObservationFamily),
     PointerMotion {
-        pointer: u64,
-        capture_epoch: u64,
-        pressed_buttons: u64,
+        pointer: super::UiHostPointerIdentity,
+        capture_epoch: super::UiHostPointerCaptureEpoch,
+        pressed_buttons: super::UiHostPressedPointerButtons,
     },
 }
 
@@ -74,7 +73,7 @@ impl UiHostObservationPayload {
             Self::ScrollDelta { .. } => UiHostObservationFamily::ScrollDelta,
             Self::Clock { .. } => UiHostObservationFamily::Clock,
             Self::Tick { .. } => UiHostObservationFamily::Tick,
-            Self::TextComposition { .. } => UiHostObservationFamily::TextComposition,
+            Self::TextInput { .. } => UiHostObservationFamily::TextComposition,
             Self::ImeComposition { .. } => UiHostObservationFamily::ImeComposition,
         }
     }
@@ -83,14 +82,14 @@ impl UiHostObservationPayload {
         match self {
             Self::Viewport { .. } => 16,
             Self::DeviceScale { .. } => 4,
-            Self::PointerMotion { .. } => 40,
-            Self::PointerButton { .. } => 19,
-            Self::Keyboard { .. } => 6,
+            Self::PointerMotion { .. } => 33,
+            Self::PointerButton { .. } => 35,
+            Self::Keyboard { .. } => 8,
             Self::Focus { .. } => 1,
             Self::ScrollDelta { .. } => 16,
             Self::Clock { .. } | Self::Tick { .. } => 8,
-            Self::TextComposition { text, .. } => 8 + text.len(),
-            Self::ImeComposition { text, .. } => 16 + text.len(),
+            Self::TextInput { text, .. } => 8 + text.len(),
+            Self::ImeComposition { phase, .. } => 9 + ime_encoded_len(phase),
         }
     }
 
@@ -126,41 +125,43 @@ impl UiHostObservationPayload {
                 pointer,
                 capture_epoch,
                 pressed_buttons,
-                x_subpixels,
-                y_subpixels,
+                position,
             } => {
-                digest.fold(*pointer);
-                digest.fold(*capture_epoch);
-                digest.fold(*pressed_buttons);
-                digest.fold_pair(*x_subpixels as u64, *y_subpixels as u64);
+                digest.fold(pointer.value());
+                digest.fold(capture_epoch.value());
+                digest.fold(u64::from(pressed_buttons.bits()));
+                digest.fold_position(*position);
             }
             Self::PointerButton {
                 pointer,
                 capture_epoch,
                 button,
-                pressed,
-            } => digest.fold_pointer_button(*pointer, *capture_epoch, *button, *pressed),
+                transition,
+                position,
+            } => digest.fold_pointer_button(
+                *pointer,
+                *capture_epoch,
+                *button,
+                *transition,
+                *position,
+            ),
             Self::Keyboard {
+                logical_key,
                 physical_key,
-                pressed,
-                repeat,
-            } => digest.fold_keyboard(*physical_key, *pressed, *repeat),
+                modifiers,
+                transition,
+            } => digest.fold_keyboard(*logical_key, *physical_key, *modifiers, *transition),
             Self::Focus { focused } => digest.fold(u64::from(*focused)),
             Self::ScrollDelta {
                 x_subpixels,
                 y_subpixels,
             } => digest.fold_pair(*x_subpixels as u64, *y_subpixels as u64),
             Self::Clock { tick } | Self::Tick { tick } => digest.fold(*tick),
-            Self::TextComposition { revision, text } => {
+            Self::TextInput { revision, text } => {
                 digest.fold_text(*revision, text);
             }
-            Self::ImeComposition {
-                revision,
-                text,
-                selection_start,
-                selection_end,
-            } => {
-                digest.fold_ime(*revision, text, *selection_start, *selection_end);
+            Self::ImeComposition { revision, phase } => {
+                digest.fold_ime(*revision, phase);
             }
         }
         digest.finish()
@@ -185,19 +186,34 @@ impl UiHostObservationPayloadDigest {
 
     fn fold_pointer_button(
         &mut self,
-        pointer: u64,
-        capture_epoch: u64,
-        button: u16,
-        pressed: bool,
+        pointer: super::UiHostPointerIdentity,
+        capture_epoch: super::UiHostPointerCaptureEpoch,
+        button: super::UiHostPointerButton,
+        transition: super::UiHostPointerButtonTransition,
+        position: super::UiHostSurfacePosition,
     ) {
-        self.fold(pointer);
-        self.fold(capture_epoch);
-        self.fold_pair(u64::from(button), u64::from(pressed));
+        self.fold(pointer.value());
+        self.fold(capture_epoch.value());
+        self.fold_pair(button as u64, transition as u64);
+        self.fold_position(position);
     }
 
-    fn fold_keyboard(&mut self, physical_key: u32, pressed: bool, repeat: bool) {
-        self.fold(u64::from(physical_key));
-        self.fold_pair(u64::from(pressed), u64::from(repeat));
+    fn fold_keyboard(
+        &mut self,
+        logical_key: super::UiHostKey,
+        physical_key: Option<super::UiHostKey>,
+        modifiers: super::UiHostKeyboardModifiers,
+        transition: super::UiHostKeyTransition,
+    ) {
+        self.fold(logical_key as u64 + 1);
+        self.fold(physical_key.map_or(0, |key| key as u64 + 1));
+        self.fold(u64::from(modifiers.bits()));
+        match transition {
+            super::UiHostKeyTransition::Pressed { repeat } => {
+                self.fold_pair(1, u64::from(repeat));
+            }
+            super::UiHostKeyTransition::Released => self.fold_pair(2, 0),
+        }
     }
 
     fn fold_text(&mut self, revision: u64, text: &str) {
@@ -207,15 +223,48 @@ impl UiHostObservationPayloadDigest {
         }
     }
 
-    fn fold_ime(&mut self, revision: u64, text: &str, selection_start: u32, selection_end: u32) {
+    fn fold_ime(&mut self, revision: u64, phase: &super::UiHostImeCompositionPhase) {
         self.fold(revision);
-        self.fold_pair(u64::from(selection_start), u64::from(selection_end));
-        for byte in text.bytes() {
-            self.fold(u64::from(byte));
+        match phase {
+            super::UiHostImeCompositionPhase::Preedit(preedit) => {
+                self.fold(1);
+                self.fold_text(0, preedit.text());
+                match preedit.selection() {
+                    super::UiHostImePreeditSelection::Unspecified => self.fold(0),
+                    super::UiHostImePreeditSelection::Converted(receipt) => {
+                        self.fold(1);
+                        self.fold_pair(
+                            u64::from(receipt.source().start()),
+                            u64::from(receipt.source().end()),
+                        );
+                        self.fold_pair(
+                            u64::from(receipt.canonical().start()),
+                            u64::from(receipt.canonical().end()),
+                        );
+                    }
+                }
+            }
+            super::UiHostImeCompositionPhase::Commit(text) => {
+                self.fold(2);
+                self.fold_text(0, text);
+            }
+            super::UiHostImeCompositionPhase::Cancel => self.fold(3),
         }
+    }
+
+    fn fold_position(&mut self, position: super::UiHostSurfacePosition) {
+        self.fold_pair(position.x_subpixels() as u64, position.y_subpixels() as u64);
     }
 
     fn finish(self) -> u64 {
         self.0
+    }
+}
+
+fn ime_encoded_len(phase: &super::UiHostImeCompositionPhase) -> usize {
+    match phase {
+        super::UiHostImeCompositionPhase::Preedit(preedit) => preedit.encoded_len(),
+        super::UiHostImeCompositionPhase::Commit(text) => text.len(),
+        super::UiHostImeCompositionPhase::Cancel => 0,
     }
 }

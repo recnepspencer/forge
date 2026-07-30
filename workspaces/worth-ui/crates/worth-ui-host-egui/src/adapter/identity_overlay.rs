@@ -80,7 +80,7 @@ struct UiEguiClientGeometry {
 impl UiEguiClientGeometry {
     fn observe(context: &egui::Context) -> Result<Self, UiHostSurfacePresentationDenial> {
         context.input(|input| {
-            let logical_client = input.screen_rect();
+            let logical_client = input.viewport_rect();
             let pixels_per_point = input.pixels_per_point();
             let size = logical_client.size();
             if !pixels_per_point.is_finite()

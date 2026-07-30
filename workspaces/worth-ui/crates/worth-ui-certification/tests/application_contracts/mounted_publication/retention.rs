@@ -1,7 +1,7 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome,
+    UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationLoss,
+    UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountWorkClass, UiMountedFrameOutcome,
@@ -306,9 +306,10 @@ fn retain_keyboard_report(
         vec![report(
             sequence,
             UiHostObservationPayload::Keyboard {
-                physical_key: u32::try_from(sequence).unwrap(),
-                pressed: true,
-                repeat: false,
+                logical_key: UiHostKey::A,
+                physical_key: Some(UiHostKey::A),
+                modifiers: UiHostKeyboardModifiers::default(),
+                transition: UiHostKeyTransition::Pressed { repeat: false },
             },
             &basis,
         )],

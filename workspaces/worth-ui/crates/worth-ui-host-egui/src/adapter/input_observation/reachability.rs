@@ -58,9 +58,11 @@ impl UiEguiRawInputReachability {
             egui::Event::PointerButton { .. } => self.pointer_button_events += 1,
             egui::Event::Key { .. } => self.keyboard_events += 1,
             egui::Event::Text(_) => self.text_events += 1,
-            egui::Event::Ime(egui::ImeEvent::Preedit(_)) => self.ime_preedit_events += 1,
+            egui::Event::Ime(egui::ImeEvent::Preedit { text, .. }) if text.is_empty() => {
+                self.ime_cancel_events += 1;
+            }
+            egui::Event::Ime(egui::ImeEvent::Preedit { .. }) => self.ime_preedit_events += 1,
             egui::Event::Ime(egui::ImeEvent::Commit(_)) => self.ime_commit_events += 1,
-            egui::Event::Ime(egui::ImeEvent::Disabled) => self.ime_cancel_events += 1,
             _ => {}
         }
     }

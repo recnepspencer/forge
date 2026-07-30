@@ -92,7 +92,7 @@ impl WorthUiMeasurementHostAdapter for WorthUiHostEgui {
     ) -> UiHostMeasurementObservationValue {
         match request.family() {
             UiMeasurementRequestFamily::ViewportExtent => {
-                let size = self.context.input(|input| input.screen_rect().size());
+                let size = self.context.input(|input| input.viewport_rect().size());
                 UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
                     width: size.x,
                     height: size.y,
@@ -163,7 +163,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
         let viewport = self.context.input(|input| {
-            let size = input.screen_rect().size();
+            let size = input.viewport_rect().size();
             (size.x.to_bits(), size.y.to_bits())
         });
         let dpi = self.context.pixels_per_point().to_bits();

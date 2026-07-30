@@ -93,7 +93,7 @@ fn prepare_with_geometry(
 ) -> Result<UiEguiPreparedIdentityOverlay, UiHostSurfacePresentationDenial> {
     context.set_pixels_per_point(pixels_per_point);
     let mut prepared = None;
-    let _ = context.run(raw_input(screen), |_| {
+    let _ = context.run_ui(raw_input(screen), |_| {
         prepared = Some(UiEguiPreparedIdentityOverlay::prepare(context, projection));
     });
     prepared.expect("egui callback prepares the mounted overlay")

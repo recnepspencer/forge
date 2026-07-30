@@ -127,7 +127,7 @@ fn real_wui_egui_preview_denies_incomplete_native_paint_without_shapes() {
 
     let mut prepared = Some(prepared);
     let mut outcome = None;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         outcome = Some(
             prepared
                 .take()

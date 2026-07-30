@@ -56,7 +56,7 @@ pub fn fg_input(ui: &mut Ui, theme: &WorthTheme, props: FgInput<'_>) -> Response
                     .desired_width(f32::INFINITY)
                     .font(egui::FontId::proportional(theme.font_size_sm))
                     .text_color(theme.text_primary)
-                    .frame(false),
+                    .frame(egui::Frame::NONE),
             )
         })
         .inner

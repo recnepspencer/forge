@@ -125,7 +125,7 @@ pub fn fg_button(
         }
     };
 
-    let galley = ui.fonts(|f| {
+    let galley = ui.fonts_mut(|f| {
         f.layout_no_wrap(
             props.label.to_string(),
             egui::FontId::proportional(font_size),
