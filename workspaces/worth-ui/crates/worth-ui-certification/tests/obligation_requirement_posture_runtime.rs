@@ -11,7 +11,7 @@ use worth_ui::facade::graph::{
 use worth_ui::facade::obligations::{
     UiObligationDispatchStopPosture, UiObligationFamily, UiObligationVerdictClass,
 };
-use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
+use worth_ui_host_contract::{WorthUiHostCapability, WorthUiHostCapabilityReport};
 use worth_ui_test_support::{
     runtime_origin_fixture, UiMeasurementAdmissionPosture, WorthUiTouchOriginFixtureVariant,
 };
@@ -220,9 +220,7 @@ fn measurement_requirement_remains_prerequisite_only_under_host_observation() {
         touch.target().graph_node_identity(),
         UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
     )
-    .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::egui(),
-    ));
+    .with_host_capability_report(modeled_available_host_report());
     let selected = fixture
         .app
         .admission()
@@ -275,9 +273,7 @@ fn measurement_requirement_remains_prerequisite_only_under_host_observation() {
             world: UiAdmissionWorld::from_graph_world_profile(
                 touch.world().world_profile().clone(),
             ),
-            host_capability: WorthUiHostCapabilityReport::from_contract(
-                WorthUiHostContract::egui(),
-            ),
+            host_capability: modeled_available_host_report(),
         }
     );
     assert_eq!(
@@ -336,4 +332,22 @@ fn measurement_requirement_remains_prerequisite_only_under_host_observation() {
             UiObligationDispatchStopPosture::Deferred,
         )]
     );
+}
+
+fn modeled_available_host_report() -> WorthUiHostCapabilityReport {
+    WorthUiHostCapabilityReport::available(vec![
+        WorthUiHostCapability::Accessibility,
+        WorthUiHostCapability::DpiObservation,
+        WorthUiHostCapability::FontMetrics,
+        WorthUiHostCapability::Ime,
+        WorthUiHostCapability::IdentityOverlay,
+        WorthUiHostCapability::NativeControlIntrinsicMeasurement,
+        WorthUiHostCapability::PortalAnchorObservation,
+        WorthUiHostCapability::ScrollContainerObservation,
+        WorthUiHostCapability::TextBaselineMeasurement,
+        WorthUiHostCapability::TextIntrinsicMeasurement,
+        WorthUiHostCapability::TextInput,
+        WorthUiHostCapability::ViewportObservation,
+        WorthUiHostCapability::VisualCapture,
+    ])
 }

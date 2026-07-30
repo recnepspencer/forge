@@ -1,9 +1,6 @@
 use worth_ui::facade::{
     app::WorthUi,
-    declaration::{
-        CommandCategory, CommandDescriptor, CommandId, CommandProjectionId,
-        CommandReadinessBinding, CommandReadinessStatus, CommandRuntimeIntentBinding,
-    },
+    declaration::{CommandCategory, CommandDescriptor, CommandId, CommandProjectionId},
     diagnostics::CapabilityDiagnosticCode,
 };
 
@@ -129,28 +126,6 @@ fn command_with_missing_projection_does_not_poison_valid_command() {
 }
 
 #[test]
-fn command_readiness_binding_preserves_structured_ui_status() {
-    let readiness = CommandReadinessBinding::from_status(CommandReadinessStatus::Deferred);
-    let app = WorthUi::app()
-        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
-        .register_command(
-            command_descriptor("workspace.rebuild", "Rebuild Workspace").with_readiness(readiness),
-        )
-        .freeze()
-        .expect("application preparation should succeed");
-
-    let descriptor = app
-        .capabilities()
-        .commands()
-        .get(&CommandId::new("workspace.rebuild").expect("valid command id"))
-        .expect("registered command");
-    assert_eq!(
-        descriptor.readiness().strongest_status(),
-        CommandReadinessStatus::Deferred
-    );
-}
-
-#[test]
 fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
     let plain = WorthUi::app()
         .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
@@ -162,10 +137,7 @@ fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
         .register_command(
             command_descriptor("workspace.open", "Open Workspace")
                 .with_description("Open an existing workspace")
-                .with_default_shortcut_reference("primary-open")
-                .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
-                    "workspace.open.intent",
-                )),
+                .with_default_shortcut_reference("primary-open"),
         )
         .freeze()
         .expect("application preparation should succeed");
@@ -177,32 +149,6 @@ fn different_command_descriptor_meaning_produces_different_snapshot_digest() {
     assert_ne!(
         plain.capabilities().digest(),
         richer.capabilities().digest()
-    );
-}
-
-#[test]
-fn runtime_intent_binding_is_typed_placeholder_metadata_only() {
-    let app = WorthUi::app()
-        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
-        .register_command(
-            command_descriptor("workspace.open", "Open Workspace").with_runtime_intent_binding(
-                CommandRuntimeIntentBinding::named("workspace.open.intent"),
-            ),
-        )
-        .freeze()
-        .expect("application preparation should succeed");
-
-    let descriptor = app
-        .capabilities()
-        .commands()
-        .get(&CommandId::new("workspace.open").expect("valid command id"))
-        .expect("registered command");
-    assert_eq!(
-        descriptor
-            .runtime_intent_binding()
-            .expect("runtime intent metadata")
-            .intent_key(),
-        "workspace.open.intent"
     );
 }
 

@@ -6,6 +6,7 @@ mod entry {}
 mod evidence {}
 pub mod graph;
 pub mod inspection;
+pub mod intent;
 pub mod measurement_exchange;
 mod inspection_bridge {}
 mod lifecycle {}

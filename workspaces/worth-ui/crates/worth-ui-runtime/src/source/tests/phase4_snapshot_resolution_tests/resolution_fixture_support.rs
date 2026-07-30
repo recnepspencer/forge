@@ -96,6 +96,7 @@ pub(in crate::source::tests) fn snapshot_with_support_catalog(
         command_projections: base.command_projections().clone(),
         components: base.components().clone(),
         icons: base.icons().clone(),
+        intent_definitions: base.intent_definitions().clone(),
         surfaces: base.surfaces().clone(),
         mosaic_regions: base.mosaic_regions().clone(),
         mosaic_placement_policies: base.mosaic_placement_policies().clone(),

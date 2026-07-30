@@ -23,7 +23,7 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
     }
 
     fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless())
+        WorthUiHostCapabilityReport::missing(Vec::new())
     }
 
     fn release_host_session(

@@ -4,7 +4,7 @@ use worth_ui::facade::admission::{
     UiAdmissionSelectionBudget, UiAdmissionTarget, UiAdmissionWorld,
 };
 use worth_ui::facade::graph::UiGraphTouchDescriptor;
-use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
+use worth_ui_host_contract::{WorthUiHostCapability, WorthUiHostCapabilityReport};
 
 pub fn selection_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
     UiAdmissionTarget::graph_node(
@@ -18,30 +18,36 @@ pub fn graph_aligned_query_target(touch: &UiGraphTouchDescriptor) -> UiAdmission
 }
 
 pub fn missing_host_capability_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::headless(),
-    ))
+    selection_target(touch)
+        .with_host_capability_report(WorthUiHostCapabilityReport::missing(Vec::new()))
 }
 
 pub fn ambiguous_host_capability_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::capability_probe_inconclusive(),
+    selection_target(touch).with_host_capability_report(WorthUiHostCapabilityReport::ambiguous(
+        modeled_text_capabilities(),
     ))
 }
 
 pub fn available_host_capability_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::egui(),
+    selection_target(touch).with_host_capability_report(WorthUiHostCapabilityReport::available(
+        modeled_text_capabilities(),
     ))
 }
 
 pub fn diagnostic_only_host_capability_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
-    selection_target(touch).with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::diagnostics_only(),
-    ))
+    selection_target(touch).with_host_capability_report(
+        WorthUiHostCapabilityReport::diagnostic_only(modeled_text_capabilities()),
+    )
 }
 
 pub fn budget_exceeded_target(touch: &UiGraphTouchDescriptor) -> UiAdmissionTarget {
     selection_target(touch)
         .with_selection_budget(UiAdmissionSelectionBudget::ordinary_lane_budget(0))
+}
+
+fn modeled_text_capabilities() -> Vec<WorthUiHostCapability> {
+    vec![
+        WorthUiHostCapability::TextInput,
+        WorthUiHostCapability::TextIntrinsicMeasurement,
+    ]
 }

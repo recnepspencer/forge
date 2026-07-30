@@ -1,10 +1,12 @@
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiHostMeasurementRequest, UiMeasurementRequestIdentity,
-    UiViewportExtentRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
+    UiViewportExtentRequest, WorthUiHostCapability, WorthUiHostCapabilityReport,
 };
 
 fn main() {
-    let capabilities = WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::egui());
+    let capabilities = WorthUiHostCapabilityReport::available(vec![
+        WorthUiHostCapability::ViewportObservation,
+    ]);
     let request = UiHostMeasurementRequest::viewport_extent(
         UiMeasurementRequestIdentity::new(1),
         UiMeasurementEvidenceFamily::ViewportExtent,

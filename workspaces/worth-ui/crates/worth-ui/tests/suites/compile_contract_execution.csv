@@ -14,6 +14,10 @@ fail,tests/ui/facade/snapshot/snapshot_internal_indexes_not_publicly_mutable.rs,
 fail,tests/ui/facade/construction/sealed_lifecycle/direct_entry_construction_fails.rs,facade_compile.rs
 fail,tests/ui/facade/construction/predecessor_builder_aliases_are_absent.rs,facade_compile.rs
 fail,tests/ui/facade/construction/change_profile/missing_change_profile_cannot_freeze.rs,facade_compile.rs
+pass,tests/ui/facade/intent/pass/typed_definition_registration.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/definition_fields_are_private.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/string_command_intent_binding_is_absent.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/static_command_readiness_is_absent.rs,facade_compile.rs
 fail,tests/ui/rebind/fail/rebind_phase_progression_is_sealed.rs,facade_compile.rs
 pass,tests/ui/rebind/pass/rebind_phase_progression_uses_owner_issued_values.rs,facade_compile.rs
 pass,tests/ui/facade/named_surface_pass/empty_app_uses_named_app_surface.rs,facade_compile.rs

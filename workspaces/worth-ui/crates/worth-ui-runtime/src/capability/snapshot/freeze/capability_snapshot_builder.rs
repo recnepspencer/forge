@@ -2,11 +2,11 @@ use crate::capability::{
     CapabilitySnapshot, CapabilitySnapshotDigest, CapabilitySnapshotFreezeInput,
     FrozenCapabilityFamily, SnapshotFreezeReport, SnapshotMetrics, COMMAND_FAMILY_NAME,
     COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
-    MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
-    MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
-    NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
-    SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME, TASK_PRESENTATION_FAMILY_NAME,
-    THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
+    INTENT_DEFINITION_FAMILY_NAME, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
+    MOSAIC_REGION_KIND_FAMILY_NAME, MOSAIC_SIZING_CONTRACT_FAMILY_NAME,
+    MOSAIC_STATE_SLOT_FAMILY_NAME, NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME,
+    RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME, SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME,
+    TASK_PRESENTATION_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
 
 use super::super::validate_snapshot_references;
@@ -63,6 +63,11 @@ fn freeze_report_for_input(input: &CapabilitySnapshotFreezeInput) -> SnapshotFre
             ICON_FAMILY_NAME,
             input.icons.len(),
             input.icons.digest_basis(),
+        ),
+        family(
+            INTENT_DEFINITION_FAMILY_NAME,
+            input.intent_definitions.len(),
+            input.intent_definitions.digest_basis(),
         ),
         family(
             SURFACE_FAMILY_NAME,

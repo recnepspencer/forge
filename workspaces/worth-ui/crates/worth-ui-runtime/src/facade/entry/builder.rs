@@ -5,7 +5,8 @@ use crate::capability::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionDescriptor,
     CommandProjectionRegistry, CommandRegistry, ComponentAcceptedRegistrationProof,
     ComponentDescriptor, ComponentRegistry, IconAcceptedRegistrationProof, IconDescriptor,
-    IconRegistry, MosaicPlacementAcceptedRegistrationProof, MosaicPlacementPolicyDescriptor,
+    IconRegistry, IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry,
+    MosaicPlacementAcceptedRegistrationProof, MosaicPlacementPolicyDescriptor,
     MosaicPlacementRegistry, MosaicRegionAcceptedRegistrationProof, MosaicRegionKindDescriptor,
     MosaicRegionRegistry, MosaicSizingAcceptedRegistrationProof, MosaicSizingContractDescriptor,
     MosaicSizingRegistry, MosaicStateSlotAcceptedRegistrationProof, MosaicStateSlotDescriptor,
@@ -17,8 +18,8 @@ use crate::capability::{
     SettingsRegistry, SurfaceAcceptedRegistrationProof, SurfaceDescriptor, SurfaceRegistry,
     TaskPresentationAcceptedRegistrationProof, TaskPresentationDescriptor,
     TaskPresentationRegistry, ThemeTokenAcceptedRegistrationProof, ThemeTokenDescriptor,
-    ThemeTokenRegistry, ViewBindingAcceptedRegistrationProof, ViewBindingDescriptor,
-    ViewBindingRegistry,
+    ThemeTokenRegistry, UiIntent, UiIntentDefinition, UiIntentDefinitionRegistrationError,
+    ViewBindingAcceptedRegistrationProof, ViewBindingDescriptor, ViewBindingRegistry,
 };
 
 /// Low-level capability registration builder for the public Worth UI facade.
@@ -28,6 +29,7 @@ pub struct CapabilityRegistrationBuilder {
     command_projection_registry: CommandProjectionRegistry,
     component_registry: ComponentRegistry,
     icon_registry: IconRegistry,
+    intent_definition_registry: IntentDefinitionRegistry,
     surface_registry: SurfaceRegistry,
     mosaic_region_registry: MosaicRegionRegistry,
     mosaic_placement_registry: MosaicPlacementRegistry,
@@ -57,6 +59,7 @@ impl CapabilityRegistrationBuilder {
             command_projection_registry: CommandProjectionRegistry::empty(),
             component_registry: ComponentRegistry::empty(),
             icon_registry: IconRegistry::empty(),
+            intent_definition_registry: IntentDefinitionRegistry::empty(),
             surface_registry: SurfaceRegistry::empty(),
             mosaic_region_registry: MosaicRegionRegistry::empty(),
             mosaic_placement_registry: MosaicPlacementRegistry::empty(),
@@ -103,6 +106,15 @@ impl CapabilityRegistrationBuilder {
             .push(descriptor.registration_candidate());
         self.icon_registry.push(descriptor);
         self
+    }
+
+    pub fn register_intent_definition<I: UiIntent>(
+        mut self,
+        definition: UiIntentDefinition<I>,
+    ) -> Result<Self, UiIntentDefinitionRegistrationError> {
+        let candidate = self.intent_definition_registry.push(definition.erase())?;
+        self.registration_candidates.push(candidate);
+        Ok(self)
     }
 
     /// Register a domain-agnostic product-facing shell surface capability.
@@ -231,6 +243,11 @@ impl CapabilityRegistrationBuilder {
         let accepted_icons = IconAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Icon),
         );
+        let accepted_intent_definitions =
+            IntentDefinitionAcceptedRegistrationProof::from_identity_texts(
+                validation_report
+                    .accepted_identity_texts_for_registry_family(RegistryFamily::IntentDefinition),
+            );
         let accepted_surfaces = SurfaceAcceptedRegistrationProof::from_identity_texts(
             validation_report.accepted_identity_texts_for_registry_family(RegistryFamily::Surface),
         );
@@ -293,6 +310,9 @@ impl CapabilityRegistrationBuilder {
             .freeze(&accepted_command_projections);
         let component_capabilities = self.component_registry.freeze(&accepted_components);
         let icon_capabilities = self.icon_registry.freeze(&accepted_icons);
+        let intent_definition_capabilities = self
+            .intent_definition_registry
+            .freeze(&accepted_intent_definitions);
         let surface_capabilities = self.surface_registry.freeze(&accepted_surfaces);
         let mosaic_region_capabilities =
             self.mosaic_region_registry.freeze(&accepted_mosaic_regions);
@@ -324,6 +344,7 @@ impl CapabilityRegistrationBuilder {
                 command_projections: command_projection_capabilities,
                 components: component_capabilities,
                 icons: icon_capabilities,
+                intent_definitions: intent_definition_capabilities,
                 surfaces: surface_capabilities,
                 mosaic_regions: mosaic_region_capabilities,
                 mosaic_placement_policies: mosaic_placement_capabilities,

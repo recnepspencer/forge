@@ -239,8 +239,6 @@ fn bind_command_semantics(
 
     Ok(WorthUiBoundCommandSemantics::new(
         command_icon,
-        command_descriptor.readiness().clone(),
-        command_descriptor.runtime_intent_binding().cloned(),
         projection_eligibility,
     ))
 }

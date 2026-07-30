@@ -61,16 +61,8 @@ fn fold_command_descriptor(accumulator: u64, descriptor: &CommandDescriptor) -> 
     );
     let with_shortcut = fold_optional_str(with_icon, descriptor.default_shortcut_reference());
     let with_category = fold_bytes(with_shortcut, descriptor.category().as_str().as_bytes());
-    let readiness_basis = descriptor.readiness().digest_basis();
-    let with_readiness = fold_bytes(with_category, readiness_basis.as_bytes());
-    let with_runtime_intent = fold_optional_str(
-        with_readiness,
-        descriptor
-            .runtime_intent_binding()
-            .map(|binding| binding.digest_basis()),
-    );
     fold_optional_str(
-        with_runtime_intent,
+        with_category,
         descriptor
             .projection_eligibility()
             .map(|projection_id| projection_id.as_str()),

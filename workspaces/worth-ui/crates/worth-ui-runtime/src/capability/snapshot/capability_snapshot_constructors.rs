@@ -2,11 +2,12 @@
 use crate::capability::{
     CapabilitySnapshotBuilder, CapabilitySnapshotFreezeInput, CapabilitySupportCatalog,
     FrozenCommandCapabilities, FrozenCommandProjectionCapabilities, FrozenComponentCapabilities,
-    FrozenIconCapabilities, FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    FrozenIconCapabilities, FrozenIntentDefinitionCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, RegisteredCapabilitySet,
 };
 
 use super::CapabilitySnapshot;
@@ -22,6 +23,7 @@ impl CapabilitySnapshot {
             command_projections: FrozenCommandProjectionCapabilities::empty(),
             components: FrozenComponentCapabilities::empty(),
             icons: FrozenIconCapabilities::empty(),
+            intent_definitions: FrozenIntentDefinitionCapabilities::empty(),
             surfaces: FrozenSurfaceCapabilities::empty(),
             mosaic_regions: FrozenMosaicRegionCapabilities::empty(),
             mosaic_placement_policies: FrozenMosaicPlacementCapabilities::empty(),

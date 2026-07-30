@@ -12,7 +12,7 @@ use worth_ui::facade::graph::{
 };
 use worth_ui::facade::obligations::{UiObligationDispatchStopPosture, UiObligationFamily};
 use worth_ui_host_contract::{
-    WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport, WorthUiHostContract,
+    WorthUiHostCapability, WorthUiHostCapabilityObservationGeneration, WorthUiHostCapabilityReport,
 };
 use worth_ui_test_support::{
     runtime_origin_fixture, UiMeasurementAdmissionPosture, UiMeasurementCapabilityGateReason,
@@ -98,9 +98,7 @@ fn measurement_admission_keeps_wrong_world_and_capability_gated_denials_distinct
                 .expect("preview label should admit"),
         )),
     )
-    .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::egui(),
-    ));
+    .with_host_capability_report(modeled_available_host_report());
     let wrong_world_selected = fixture
         .app
         .admission()
@@ -284,9 +282,7 @@ fn measurement_admission_rejects_stale_selected_support_authority() {
             fixture.region_graph_node_identity(),
             UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
         )
-        .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-            WorthUiHostContract::egui(),
-        )),
+        .with_host_capability_report(modeled_available_host_report()),
     );
     let stale = fixture
         .app
@@ -338,7 +334,7 @@ fn measurement_admission_retains_host_observation_generation_even_for_same_profi
         UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
     )
     .with_host_capability_report(
-        WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::egui())
+        modeled_available_host_report()
             .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(7)),
     );
     let second_target = UiAdmissionTarget::graph_node(
@@ -346,7 +342,7 @@ fn measurement_admission_retains_host_observation_generation_even_for_same_profi
         UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
     )
     .with_host_capability_report(
-        WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::egui())
+        modeled_available_host_report()
             .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(11)),
     );
 
@@ -379,4 +375,22 @@ fn measurement_admission_retains_host_observation_generation_even_for_same_profi
         first.host_capability_observation_generation(),
         second.host_capability_observation_generation()
     );
+}
+
+fn modeled_available_host_report() -> WorthUiHostCapabilityReport {
+    WorthUiHostCapabilityReport::available(vec![
+        WorthUiHostCapability::Accessibility,
+        WorthUiHostCapability::DpiObservation,
+        WorthUiHostCapability::FontMetrics,
+        WorthUiHostCapability::Ime,
+        WorthUiHostCapability::IdentityOverlay,
+        WorthUiHostCapability::NativeControlIntrinsicMeasurement,
+        WorthUiHostCapability::PortalAnchorObservation,
+        WorthUiHostCapability::ScrollContainerObservation,
+        WorthUiHostCapability::TextBaselineMeasurement,
+        WorthUiHostCapability::TextIntrinsicMeasurement,
+        WorthUiHostCapability::TextInput,
+        WorthUiHostCapability::ViewportObservation,
+        WorthUiHostCapability::VisualCapture,
+    ])
 }

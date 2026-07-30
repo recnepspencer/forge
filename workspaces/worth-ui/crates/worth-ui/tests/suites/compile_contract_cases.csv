@@ -52,6 +52,10 @@ fail,tests/ui/facade/diagnostics/construction/diagnostic_report_fields_not_publi
 fail,tests/ui/facade/diagnostics/construction/raw_strings_cannot_replace_diagnostic_codes.rs,facade_compile.rs
 fail,tests/ui/facade/command/construction/command_descriptor_fields_not_publicly_mintable.rs,facade_compile.rs
 fail,tests/ui/facade/command/construction/command_readiness_cannot_be_flattened_to_bool.rs,facade_compile.rs
+pass,tests/ui/facade/intent/pass/typed_definition_registration.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/definition_fields_are_private.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/string_command_intent_binding_is_absent.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/static_command_readiness_is_absent.rs,facade_compile.rs
 fail,tests/ui/facade/command/facade/command_registry_internal_module_not_public.rs,facade_compile.rs
 fail,tests/ui/facade/command/facade/command_registry_type_not_publicly_importable.rs,facade_compile.rs
 fail,tests/ui/facade/component/construction/component_descriptor_fields_not_publicly_mintable.rs,facade_compile.rs

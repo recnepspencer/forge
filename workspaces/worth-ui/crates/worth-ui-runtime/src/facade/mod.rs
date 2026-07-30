@@ -16,6 +16,7 @@ mod inspection;
 pub mod inspection_bridge;
 mod inspection_observation;
 mod inspection_receipt;
+pub mod intent;
 pub mod lifecycle;
 pub mod measurement_exchange;
 mod measurement_inspection_evidence;

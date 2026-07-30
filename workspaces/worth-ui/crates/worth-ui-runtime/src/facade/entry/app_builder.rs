@@ -18,6 +18,7 @@ use crate::facade::WorthUiApp;
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::WorthUiWatchedCandidateSubmission;
 
+mod intent_registration;
 mod registration_error;
 
 pub use registration_error::{
