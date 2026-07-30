@@ -1,9 +1,18 @@
+use std::path::Path;
+
 use worth_store::physical_runtime::{
-    ExternalPhysicalRecordLocator, ManifestEntryCapacity, PageFillPercent,
-    PhysicalRecordInitialization, PhysicalRecordPlacementPolicy, RecordAppendBatch,
-    RecordByteLimit, RecordReadLimits, SegmentPageCount,
+    ExternalPhysicalRecordLocator, FramePortCounterSnapshot, ManifestEntryCapacity,
+    PageFillPercent, PhysicalRecordInitialization, PhysicalRecordPlacementPolicy,
+    PhysicalWorkCounterSnapshot, PhysicalWorkCounterStage, PhysicalWorkEffectFate,
+    PhysicalWorkOperationFamily, PhysicalWorkSignalFamily, PhysicalWritebackCounterSnapshot,
+    PublishedRecordBatch, RecordAppendBatch, RecordByteLimit, RecordReadLimits, SegmentPageCount,
+    ServingPhysicalRuntime,
 };
 use worth_store_offline_verifier::OfflineRecordPlacement;
+use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
+use worth_store_physical_format::{
+    store_namespace::StableStoreIdentity, PhysicalRecordFormatDeclaration,
+};
 
 use super::{
     media, read_record, scenario_configuration::dense_configuration, stream_fixture::hex, success,
@@ -21,7 +30,7 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
     let records = (0_u8..15)
         .map(|value| vec![value; 3_000])
         .collect::<Vec<_>>();
-    let before = serving.media_counters();
+    let writeback_baseline = SegmentWritebackBaseline::capture(&serving);
     let published = serving
         .record_submission()
         .append_batch(
@@ -29,24 +38,141 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
             placement,
         )
         .expect("C5_PREDICATE:identity-placement-seam");
-    let after = serving.media_counters();
     assert_eq!(published.record_ids().len(), 15);
     assert_eq!(published.observation().segment_artifacts(), 4);
-    assert_eq!(after.replacements(), before.replacements() + 1);
+    assert_segment_frame_and_media_evidence(&serving, &writeback_baseline);
+    assert_segment_work_and_signal_evidence(&serving, &writeback_baseline);
+    assert_segment_artifact_lengths(&root);
+    assert_inline_placement_truth(&root, format.declaration());
     let epoch = published.record_id(0).unwrap().allocation_epoch();
     for (index, id) in published.record_ids().iter().enumerate() {
         assert_eq!(id.allocation_epoch(), epoch);
         assert_eq!(id.ordinal(), index as u64 + 1);
     }
+    let request = segment_reader_request(serving.store_identity(), &published);
+    serving.close();
+    assert_fresh_process_records(&root, &request);
+}
+
+struct SegmentWritebackBaseline {
+    media: MediaCounterSnapshot,
+    writebacks: PhysicalWritebackCounterSnapshot,
+    frames: FramePortCounterSnapshot,
+    work: PhysicalWorkCounterSnapshot,
+    causal_records: usize,
+    causal_overflow: u64,
+}
+
+impl SegmentWritebackBaseline {
+    fn capture(serving: &ServingPhysicalRuntime) -> Self {
+        Self {
+            media: serving.media_counters(),
+            writebacks: serving.residency_observation().writebacks(),
+            frames: serving.certification_frame_port_observer().snapshot(),
+            work: serving.physical_work_counters(),
+            causal_records: serving.physical_work_observer().causal().records().len(),
+            causal_overflow: serving.physical_work_observer().causal().overflow(),
+        }
+    }
+}
+
+fn assert_segment_frame_and_media_evidence(
+    serving: &ServingPhysicalRuntime,
+    before: &SegmentWritebackBaseline,
+) {
+    let media = serving.media_counters();
+    let residency = serving.residency_observation();
+    let frames = serving.certification_frame_port_observer().snapshot();
+    let candidate_frames = frames.candidate_frames() - before.frames.candidate_frames();
+    let writeback_frames = residency.writebacks().attempts() - before.writebacks.attempts();
+    assert_eq!(media.replacements(), before.media.replacements() + 1);
+    assert_eq!(
+        frames.declared_candidate_frames() - before.frames.declared_candidate_frames(),
+        candidate_frames
+    );
+    assert_eq!(
+        frames.candidate_publications() - before.frames.candidate_publications(),
+        candidate_frames
+    );
+    assert_eq!(candidate_frames, 14);
+    assert_eq!(writeback_frames, 4);
+    assert_eq!(candidate_frames - writeback_frames, 10);
+    assert_eq!(frames.writebacks() - before.frames.writebacks(), 4);
+    assert_eq!(
+        residency.writebacks().exact_receipts() - before.writebacks.exact_receipts(),
+        4
+    );
+    assert_eq!(
+        residency.writebacks().retryable() - before.writebacks.retryable(),
+        0
+    );
+    assert_eq!(
+        residency.writebacks().inspection_required() - before.writebacks.inspection_required(),
+        0
+    );
+    assert_eq!(
+        media.attempts_for(MediaOperationRole::PositionedWrite)
+            - before
+                .media
+                .attempts_for(MediaOperationRole::PositionedWrite),
+        candidate_frames
+    );
+    assert_eq!(residency.counters().dirty_frames(), 0);
+    assert_eq!(residency.counters().candidate_frames(), 0);
+    assert_eq!(residency.counters().active_writeback_claims(), 0);
+}
+
+fn assert_segment_work_and_signal_evidence(
+    serving: &ServingPhysicalRuntime,
+    before: &SegmentWritebackBaseline,
+) {
+    assert_eq!(
+        serving.physical_work_counters().count(
+            PhysicalWorkOperationFamily::ArtifactRangeWrite,
+            PhysicalWorkCounterStage::Terminal,
+        ) - before.work.count(
+            PhysicalWorkOperationFamily::ArtifactRangeWrite,
+            PhysicalWorkCounterStage::Terminal,
+        ),
+        4
+    );
+    assert_eq!(
+        serving.physical_work_observer().causal().overflow(),
+        before.causal_overflow
+    );
+    let causal = serving.physical_work_observer().causal().records();
+    let writebacks = causal[before.causal_records..]
+        .iter()
+        .filter(|record| record.operation() == PhysicalWorkOperationFamily::ArtifactRangeWrite)
+        .collect::<Vec<_>>();
+    assert_eq!(writebacks.len(), 4);
+    let signal_bindings = serving.physical_signal_aspect_binding_observations();
+    for writeback in writebacks {
+        assert_eq!(
+            writeback.effect_fate(),
+            PhysicalWorkEffectFate::WriteCompleted
+        );
+        assert!(writeback.backend_operation().is_some());
+        assert!(signal_bindings.iter().any(|binding| {
+            binding.digest() == writeback.signal_binding()
+                && binding
+                    .families()
+                    .contains(PhysicalWorkSignalFamily::ExactWriteback)
+        }));
+    }
+}
+
+fn assert_segment_artifact_lengths(root: &Path) {
     for segment in 1..=4_u64 {
         let path = root.join(format!(
             "families/records/segments/segment-{segment:016x}-0000000000000001.pages"
         ));
         assert_eq!(std::fs::metadata(path).unwrap().len(), 32_768);
     }
-    let root_manifest =
-        super::manifest_fixture::decode_routing_tree(&root, 2, format.declaration(), 128);
-    assert_eq!(root_manifest.root_generation(), 2);
+}
+
+fn assert_inline_placement_truth(root: &Path, format: PhysicalRecordFormatDeclaration) {
+    let root_manifest = super::manifest_fixture::decode_routing_tree(root, 2, format, 128);
     for (index, entry) in root_manifest.placements().iter().enumerate() {
         let OfflineRecordPlacement::Inline {
             segment,
@@ -57,27 +183,18 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
         else {
             panic!("the rollover fixture contains only inline records")
         };
-        assert_eq!(
-            *segment,
-            index as u64 / 4 + 1,
-            "C5_PREDICATE:identity-placement-seam"
-        );
-        assert_eq!(
-            *page,
-            index as u64 / 2 + 1,
-            "C5_PREDICATE:identity-placement-seam"
-        );
-        assert_eq!(
-            *slot,
-            index as u16 % 2 + 1,
-            "C5_PREDICATE:identity-placement-seam"
-        );
+        assert_eq!(*segment, index as u64 / 4 + 1);
+        assert_eq!(*page, index as u64 / 2 + 1);
+        assert_eq!(*slot, index as u16 % 2 + 1);
     }
-    let store_identity = serving.store_identity();
-    serving.close();
+}
 
+fn segment_reader_request(
+    store_identity: StableStoreIdentity,
+    published: &PublishedRecordBatch,
+) -> String {
     let order = [14_usize, 0, 7, 3, 12, 1, 9, 5, 13, 2, 11, 6, 4, 10, 8];
-    let request = order
+    order
         .iter()
         .map(|index| {
             let locator = ExternalPhysicalRecordLocator::new(
@@ -87,8 +204,12 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
             format!("{index}:{}", hex(&locator.encode()))
         })
         .collect::<Vec<_>>()
-        .join(";");
-    let output = super::child_process::run_child("segment_reader", &root, Some(&request));
+        .join(";")
+}
+
+fn assert_fresh_process_records(root: &Path, request: &str) {
+    let order = [14_usize, 0, 7, 3, 12, 1, 9, 5, 13, 2, 11, 6, 4, 10, 8];
+    let output = super::child_process::run_child("segment_reader", root, Some(request));
     for index in order {
         assert!(
             output

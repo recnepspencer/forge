@@ -27,99 +27,105 @@ use worth_store_security::{
     StoreSecurityMetadata, StoreSecurityScopeAdmissionExpectation,
     StoreSecurityScopeAdmissionRequest, StoreSecurityScopePropagationDenialKind, StoreTenantScope,
 };
+use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 #[test]
 fn stable_read_scope_survives_protection_observation_and_decode_entry() {
-    let handle = stable_read_handle();
-    let metadata = platform_page_metadata("stable-read-preserves-scope");
-    let input = stable_read_scope_input(&handle, metadata, metadata);
+    with_stable_read_guard_scope("stable-read-preserves-scope", |guard_scope| {
+        let handle = stable_read_handle(guard_scope);
+        let metadata = platform_page_metadata("stable-read-preserves-scope");
+        let input = stable_read_scope_input(&handle, guard_scope, metadata, metadata);
 
-    let propagation = match StableReadSecurityScopePropagation::protect(input) {
-        TransitionOutcome::Success(propagation) => propagation,
-        other => panic!("stable read scope should propagate: {other:?}"),
-    };
-    let observed = match propagation.observe_after_root_check(handle.plan().root()) {
-        TransitionOutcome::Success(observed) => observed,
-        other => panic!("root observation should preserve propagated scope: {other:?}"),
-    };
-    let decode_entry = observed.logical_decode_entry_scope();
+        let propagation = match StableReadSecurityScopePropagation::protect(input) {
+            TransitionOutcome::Success(propagation) => propagation,
+            other => panic!("stable read scope should propagate: {other:?}"),
+        };
+        let observed = match propagation.observe_after_root_check(handle.plan().root()) {
+            TransitionOutcome::Success(observed) => observed,
+            other => panic!("root observation should preserve propagated scope: {other:?}"),
+        };
+        let decode_entry = observed.logical_decode_entry_scope();
 
-    assert_eq!(decode_entry.metadata(), metadata);
-    assert_eq!(
-        decode_entry.carrier_basis().page_header_generation(),
-        stable_read_reference().generation()
-    );
-    assert_eq!(
-        decode_entry
-            .carrier_basis()
-            .manifest_page_slot()
-            .generation(),
-        stable_read_reference().generation()
-    );
-    assert_eq!(
-        decode_entry.carrier_basis().guard_scope(),
-        PhysicalByteGuardScope::for_owned_read_buffer(stable_read_reference())
-    );
-    assert_eq!(decode_entry.counters().store_counters().preserved(), 1);
-    assert_eq!(decode_entry.counters().root_observations(), 1);
-    assert_eq!(decode_entry.counters().logical_decode_entries(), 1);
+        assert_eq!(decode_entry.metadata(), metadata);
+        assert_eq!(
+            decode_entry.carrier_basis().page_header_generation(),
+            guard_scope.reference().generation()
+        );
+        assert_eq!(
+            decode_entry
+                .carrier_basis()
+                .manifest_page_slot()
+                .generation(),
+            guard_scope.reference().generation()
+        );
+        assert_eq!(decode_entry.carrier_basis().guard_scope(), guard_scope);
+        assert_eq!(decode_entry.counters().store_counters().preserved(), 1);
+        assert_eq!(decode_entry.counters().root_observations(), 1);
+        assert_eq!(decode_entry.counters().logical_decode_entries(), 1);
+    });
 }
 
 #[test]
 fn stale_propagated_scope_is_physical_security_denial_before_logical_decode() {
-    let handle = stable_read_handle();
-    let expected = platform_page_metadata("stale-scope-expected");
-    let stale = platform_page_metadata_with_key_version(
-        "stale-scope-observed",
-        StoreKeyVersionPosture::Stale,
-    );
-    let input = stable_read_scope_input(&handle, stale, expected);
+    with_stable_read_guard_scope("stable-read-stale-scope", |guard_scope| {
+        let handle = stable_read_handle(guard_scope);
+        let expected = platform_page_metadata("stale-scope-expected");
+        let stale = platform_page_metadata_with_key_version(
+            "stale-scope-observed",
+            StoreKeyVersionPosture::Stale,
+        );
+        let input = stable_read_scope_input(&handle, guard_scope, stale, expected);
 
-    let outcome = StableReadSecurityScopePropagation::protect(input);
+        let outcome = StableReadSecurityScopePropagation::protect(input);
 
-    match outcome {
-        TransitionOutcome::Denied(denial) => {
-            assert_eq!(
-                denial.store_denial().kind(),
-                StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
-            );
-            assert_eq!(denial.store_denial().counters().stale(), 1);
+        match outcome {
+            TransitionOutcome::Denied(denial) => {
+                assert_eq!(
+                    denial.store_denial().kind(),
+                    StoreSecurityScopePropagationDenialKind::StalePropagatedSecurityScope
+                );
+                assert_eq!(denial.store_denial().counters().stale(), 1);
+            }
+            other => panic!("stale scope must deny before logical decode entry exists: {other:?}"),
         }
-        other => panic!("stale scope must deny before logical decode entry exists: {other:?}"),
-    }
+    });
 }
 
 #[test]
 fn security_scope_drift_between_page_header_and_manifest_denies_before_logical_decode() {
-    let handle = stable_read_handle();
-    let page_metadata = platform_page_metadata_with_tenant(
-        "page-tenant-scope",
-        StoreTenantScope::TenantPhysicalBoundary,
-    );
-    let manifest_metadata = platform_page_metadata_with_tenant(
-        "manifest-tenant-scope",
-        StoreTenantScope::MultiTenantPhysicalBoundary,
-    );
-    let input = stable_read_scope_input(&handle, page_metadata, manifest_metadata);
+    with_stable_read_guard_scope("stable-read-scope-drift", |guard_scope| {
+        let handle = stable_read_handle(guard_scope);
+        let page_metadata = platform_page_metadata_with_tenant(
+            "page-tenant-scope",
+            StoreTenantScope::TenantPhysicalBoundary,
+        );
+        let manifest_metadata = platform_page_metadata_with_tenant(
+            "manifest-tenant-scope",
+            StoreTenantScope::MultiTenantPhysicalBoundary,
+        );
+        let input = stable_read_scope_input(&handle, guard_scope, page_metadata, manifest_metadata);
 
-    let outcome = StableReadSecurityScopePropagation::protect(input);
+        let outcome = StableReadSecurityScopePropagation::protect(input);
 
-    match outcome {
-        TransitionOutcome::Denied(denial) => {
-            assert_eq!(
-                denial.store_denial().kind(),
-                StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
-            );
-            assert_eq!(denial.store_denial().counters().drifted(), 1);
+        match outcome {
+            TransitionOutcome::Denied(denial) => {
+                assert_eq!(
+                    denial.store_denial().kind(),
+                    StoreSecurityScopePropagationDenialKind::ScopeDriftBeforeLogicalDecode
+                );
+                assert_eq!(denial.store_denial().counters().drifted(), 1);
+            }
+            other => panic!("scope drift must deny before logical decode entry exists: {other:?}"),
         }
-        other => panic!("scope drift must deny before logical decode entry exists: {other:?}"),
-    }
+    });
 }
 
-fn stable_read_handle() -> worth_store_physical_isolation::StablePhysicalReadHandle {
+fn stable_read_handle(
+    guard_scope: PhysicalByteGuardScope,
+) -> worth_store_physical_isolation::StablePhysicalReadHandle {
     let authority = s5_support::physical_authority_from_complete_closeout();
     let root = s5_support::current_root_from_authority(&authority);
-    let reference = stable_read_reference();
+    let reference = guard_scope.reference();
     plan_admission::admit_plan(
         &authority,
         root,
@@ -136,10 +142,11 @@ fn platform_page_metadata(identity: &str) -> StoreSecurityMetadata {
 
 fn stable_read_scope_input(
     handle: &worth_store_physical_isolation::StablePhysicalReadHandle,
+    guard_scope: PhysicalByteGuardScope,
     page_metadata: StoreSecurityMetadata,
     manifest_metadata: StoreSecurityMetadata,
 ) -> StableReadSecurityScopePropagationInput {
-    let generation = stable_read_reference().generation().get();
+    let generation = guard_scope.reference().generation().get();
     let page = PhysicalSecurityMetadataEnvelope::page_header(
         decoded_page_header(generation),
         page_metadata,
@@ -148,16 +155,25 @@ fn stable_read_scope_input(
         segment_page_entry(generation),
         manifest_metadata,
     );
-    StableReadSecurityScopePropagationInput::new(
-        handle,
-        PhysicalByteGuardScope::for_owned_read_buffer(stable_read_reference()),
-        &page,
-        &manifest,
-    )
+    StableReadSecurityScopePropagationInput::new(handle, guard_scope, &page, &manifest)
 }
 
-fn stable_read_reference() -> worth_store_physical_isolation::CurrentGenerationPhysicalReference {
-    s5_support::current_generation_page_reference(801)
+fn with_stable_read_guard_scope<R>(
+    label: &str,
+    run: impl FnOnce(PhysicalByteGuardScope) -> R,
+) -> R {
+    let world = PhysicalResidencyStoreWorld::initialize(label)
+        .expect("security-scope certification requires a real admitted Store");
+    let result = world
+        .with_record_chunk(b"security-scope", |_serving, chunk| {
+            run(PhysicalByteGuardScope::for_record_chunk(&chunk))
+        })
+        .expect("security-scope certification requires a published Store record chunk");
+    assert!(
+        !world.close().residency().requires_inspection(),
+        "the real Store fixture must close without residency inspection"
+    );
+    result
 }
 
 fn decoded_page_header(generation_value: u64) -> PhysicalPageHeader {

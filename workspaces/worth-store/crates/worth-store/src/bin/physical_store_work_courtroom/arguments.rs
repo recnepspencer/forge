@@ -41,17 +41,23 @@ pub(super) struct ShutdownInvocation {
     pub(super) configuration: PathBuf,
 }
 
-pub(super) struct C6PressureInvocation {
+pub(super) struct BoundedResidencyProducerInvocation {
     pub(super) root: PathBuf,
     pub(super) configuration: PathBuf,
-    pub(super) oracle: PathBuf,
+}
+
+pub(super) struct BoundedResidencyServingInvocation {
+    pub(super) root: PathBuf,
+    pub(super) configuration: PathBuf,
+    pub(super) schedule: crate::bounded_residency::schedule::BoundedResidencySchedulePlan,
 }
 
 pub(super) enum CourtroomInvocation {
     Write(WriteInvocation),
     Reopen(ReopenInvocation),
     Shutdown(ShutdownInvocation),
-    C6Pressure(C6PressureInvocation),
+    BoundedResidencyProducer(BoundedResidencyProducerInvocation),
+    BoundedResidencyServing(BoundedResidencyServingInvocation),
 }
 
 impl CourtroomInvocation {
@@ -62,6 +68,7 @@ impl CourtroomInvocation {
         let mut configuration = None;
         let mut oracle = None;
         let mut scenario = None;
+        let mut schedule_plan = None;
         while let Some(option) = arguments.next() {
             let option = text(Some(option), "non-Unicode option")?;
             let value = arguments
@@ -74,6 +81,9 @@ impl CourtroomInvocation {
                 "--scenario" => {
                     scenario = Some(parse_scenario(&text(Some(value), "non-Unicode scenario")?)?)
                 }
+                "--schedule-plan" => {
+                    schedule_plan = Some(text(Some(value), "non-Unicode schedule plan")?)
+                }
                 _ => return Err(format!("unknown courtroom option `{option}`")),
             }
         }
@@ -81,35 +91,63 @@ impl CourtroomInvocation {
         let configuration =
             configuration.ok_or_else(|| "--configuration is required".to_owned())?;
         match mode.as_str() {
-            "write" => Ok(Self::Write(WriteInvocation {
-                root,
-                configuration,
-                oracle: oracle.ok_or_else(|| "write requires --oracle".to_owned())?,
-                scenario: scenario.ok_or_else(|| "write requires --scenario".to_owned())?,
-            })),
+            "write" => {
+                if schedule_plan.is_some() {
+                    return Err("write does not accept --schedule-plan".to_owned());
+                }
+                Ok(Self::Write(WriteInvocation {
+                    root,
+                    configuration,
+                    oracle: oracle.ok_or_else(|| "write requires --oracle".to_owned())?,
+                    scenario: scenario.ok_or_else(|| "write requires --scenario".to_owned())?,
+                }))
+            }
             "reopen" => {
-                deny_unexpected(oracle, scenario, "reopen")?;
+                deny_unexpected(oracle, scenario, schedule_plan, "reopen")?;
                 Ok(Self::Reopen(ReopenInvocation {
                     root,
                     configuration,
                 }))
             }
             "shutdown" => {
-                deny_unexpected(oracle, scenario, "shutdown")?;
+                deny_unexpected(oracle, scenario, schedule_plan, "shutdown")?;
                 Ok(Self::Shutdown(ShutdownInvocation {
                     root,
                     configuration,
                 }))
             }
-            "c6-pressure" => {
-                if scenario.is_some() {
-                    return Err("c6-pressure does not accept --scenario".to_owned());
+            "bounded-residency-producer" => {
+                deny_unexpected(
+                    oracle,
+                    scenario,
+                    schedule_plan,
+                    "bounded-residency-producer",
+                )?;
+                Ok(Self::BoundedResidencyProducer(
+                    BoundedResidencyProducerInvocation {
+                        root,
+                        configuration,
+                    },
+                ))
+            }
+            "bounded-residency-serving" => {
+                if oracle.is_some() || scenario.is_some() {
+                    return Err(
+                        "bounded-residency-serving accepts no oracle or scenario".to_owned()
+                    );
                 }
-                Ok(Self::C6Pressure(C6PressureInvocation {
-                    root,
-                    configuration,
-                    oracle: oracle.ok_or_else(|| "c6-pressure requires --oracle".to_owned())?,
-                }))
+                Ok(Self::BoundedResidencyServing(
+                    BoundedResidencyServingInvocation {
+                        root,
+                        configuration,
+                        schedule:
+                            crate::bounded_residency::schedule::BoundedResidencySchedulePlan::parse(
+                                &schedule_plan.ok_or_else(|| {
+                                    "bounded-residency-serving requires --schedule-plan".to_owned()
+                                })?,
+                            )?,
+                    },
+                ))
             }
             _ => Err(format!("unknown courtroom mode `{mode}`")),
         }
@@ -132,10 +170,11 @@ fn parse_scenario(value: &str) -> Result<WriteScenario, String> {
 fn deny_unexpected(
     oracle: Option<PathBuf>,
     scenario: Option<WriteScenario>,
+    schedule_plan: Option<String>,
     mode: &str,
 ) -> Result<(), String> {
-    if oracle.is_some() || scenario.is_some() {
-        return Err(format!("{mode} accepts only root and configuration"));
+    if oracle.is_some() || scenario.is_some() || schedule_plan.is_some() {
+        return Err(format!("{mode} received an unsupported execution option"));
     }
     Ok(())
 }
@@ -194,10 +233,10 @@ mod tests {
     }
 
     #[test]
-    fn c6_pressure_requires_its_parent_declared_oracle() {
-        let denied = CourtroomInvocation::parse(
+    fn bounded_residency_process_roles_reject_oracle_sidecars() {
+        let producer = CourtroomInvocation::parse(
             [
-                "c6-pressure",
+                "bounded-residency-producer",
                 "--root",
                 "root",
                 "--configuration",
@@ -205,12 +244,38 @@ mod tests {
             ]
             .into_iter()
             .map(Into::into),
-        );
-        assert!(denied.is_err());
+        )
+        .unwrap();
+        assert!(matches!(
+            producer,
+            CourtroomInvocation::BoundedResidencyProducer(_)
+        ));
 
-        let admitted = CourtroomInvocation::parse(
+        let serving = CourtroomInvocation::parse(
             [
-                "c6-pressure",
+                "bounded-residency-serving",
+                "--root",
+                "root",
+                "--configuration",
+                "configuration",
+                "--schedule-plan",
+                "worker-start-order=first-then-second;\
+                 equivalent-contender-identity=first-owner;\
+                 gate-release-order=owner-then-waiter;\
+                 independent-ready-work-selection=first-worker-then-second",
+            ]
+            .into_iter()
+            .map(Into::into),
+        )
+        .unwrap();
+        assert!(matches!(
+            serving,
+            CourtroomInvocation::BoundedResidencyServing(_)
+        ));
+
+        let denied = CourtroomInvocation::parse(
+            [
+                "bounded-residency-serving",
                 "--root",
                 "root",
                 "--configuration",
@@ -220,8 +285,20 @@ mod tests {
             ]
             .into_iter()
             .map(Into::into),
-        )
-        .unwrap();
-        assert!(matches!(admitted, CourtroomInvocation::C6Pressure(_)));
+        );
+        assert!(denied.is_err());
+
+        let missing_schedule = CourtroomInvocation::parse(
+            [
+                "bounded-residency-serving",
+                "--root",
+                "root",
+                "--configuration",
+                "configuration",
+            ]
+            .into_iter()
+            .map(Into::into),
+        );
+        assert!(missing_schedule.is_err());
     }
 }

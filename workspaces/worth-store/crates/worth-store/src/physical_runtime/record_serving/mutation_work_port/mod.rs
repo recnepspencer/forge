@@ -11,7 +11,8 @@ use crate::physical_runtime::{
 };
 
 use super::{
-    residency::candidate_frame_residency::CandidateFramePhysicalWrite, RecordWorkAdmission,
+    residency::{candidate_frame_residency::CandidateFramePhysicalWrite, FrameWritebackPort},
+    RecordFramePorts, RecordWorkAdmission,
 };
 
 mod admission;
@@ -44,7 +45,6 @@ pub(in crate::physical_runtime) struct PreparedCanonicalRecordMutation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CanonicalRecordMutationKind {
     NewArtifact,
-    ExactWrite,
     PublicationEffect,
 }
 
@@ -107,6 +107,21 @@ impl CanonicalRecordMutationPort {
             scheduler,
             record,
         }
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn frame_writeback_port(
+        &self,
+        frame_ports: RecordFramePorts,
+    ) -> FrameWritebackPort {
+        FrameWritebackPort::new(
+            self.runtime.clone(),
+            self.execution.clone(),
+            self.submission.clone(),
+            self.physical,
+            self.scheduler.clone(),
+            Arc::clone(&self.record),
+            frame_ports,
+        )
     }
 }
 

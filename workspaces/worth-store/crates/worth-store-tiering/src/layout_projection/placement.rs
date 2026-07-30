@@ -1,19 +1,18 @@
 use super::TierLayoutTraversal;
 use worth_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
-use worth_store_io_scheduler::IoSchedulerIsolationCounterSnapshot;
+use worth_store_reclaim_policy::ReclaimPolicyCounterSnapshot;
 
-use crate::TierPlacementIoAdmission;
+use crate::ColdTierIoPosture;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TierPlacementInterferencePosture {
-    PublishedSchedulerCounters,
+    ColdTierMovementPosture,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TierPlacementAccessBudget {
     reclaim_permits: u32,
-    blocked_maintenance_count: u64,
-    protected_byte_footprint: u64,
+    region_bytes: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,17 +21,17 @@ pub struct TierPlacementLayoutReport {
     access_shape: TierLayoutTraversal,
     rebuild_posture: DurableArtifactRebuildPosture,
     interference_posture: TierPlacementInterferencePosture,
-    admission: TierPlacementIoAdmission,
+    posture: ColdTierIoPosture,
 }
 
 impl TierPlacementLayoutReport {
-    fn from_admission(admission: &TierPlacementIoAdmission) -> Self {
-        TierPlacementLayoutReport {
+    fn from_posture(posture: &ColdTierIoPosture) -> Self {
+        Self {
             family_id: DurableArtifactFamilyId::TierPlacementManifest,
             access_shape: TierLayoutTraversal::BoundedScan,
             rebuild_posture: DurableArtifactRebuildPosture::RebuildFromAuthoritativeState,
-            interference_posture: TierPlacementInterferencePosture::PublishedSchedulerCounters,
-            admission: admission.clone(),
+            interference_posture: TierPlacementInterferencePosture::ColdTierMovementPosture,
+            posture: posture.clone(),
         }
     }
 
@@ -54,38 +53,25 @@ impl TierPlacementLayoutReport {
 
     pub fn declared_budget(&self) -> TierPlacementAccessBudget {
         TierPlacementAccessBudget {
-            reclaim_permits: self
-                .admission
-                .cold_tier_posture()
-                .reclaim_permit()
-                .permits(),
-            blocked_maintenance_count: self
-                .admission
-                .scheduler()
-                .background_maintenance()
-                .blocked_maintenance_count(),
-            protected_byte_footprint: self
-                .admission
-                .scheduler()
-                .counters()
-                .protected_byte_footprint(),
+            reclaim_permits: self.posture.reclaim_permit().permits(),
+            region_bytes: self.posture.reclaim_region().byte_len(),
         }
     }
 
-    pub const fn exact_counters(&self) -> IoSchedulerIsolationCounterSnapshot {
-        self.admission.scheduler().counters()
+    pub fn exact_counters(&self) -> ReclaimPolicyCounterSnapshot {
+        self.posture.counters()
     }
 
     pub fn security_scope(&self) -> worth_store_security::StoreSecurityScopeIdentity {
-        self.admission.cold_tier_posture().security_scope()
+        self.posture.security_scope()
     }
 
     pub fn interpretation(&self) -> worth_store_physical_format::ReclaimedByteInterpretation {
-        self.admission.cold_tier_posture().interpretation()
+        self.posture.interpretation()
     }
 
     pub fn reclaim_region(&self) -> worth_store_physical_format::PhysicalReclaimRegion {
-        self.admission.cold_tier_posture().reclaim_region()
+        self.posture.reclaim_region()
     }
 }
 
@@ -94,17 +80,13 @@ impl TierPlacementAccessBudget {
         self.reclaim_permits
     }
 
-    pub const fn blocked_maintenance_count(&self) -> u64 {
-        self.blocked_maintenance_count
-    }
-
-    pub const fn protected_byte_footprint(&self) -> u64 {
-        self.protected_byte_footprint
+    pub const fn region_bytes(&self) -> u32 {
+        self.region_bytes
     }
 }
 
-impl TierPlacementIoAdmission {
+impl ColdTierIoPosture {
     pub fn project_tier_placement_layout(&self) -> TierPlacementLayoutReport {
-        TierPlacementLayoutReport::from_admission(self)
+        TierPlacementLayoutReport::from_posture(self)
     }
 }

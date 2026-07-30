@@ -1,8 +1,6 @@
-use crate::{BackendResidueKind, PageFlushRecoveryReceipt, UnadmittedDirtyPagePublicationDenial};
+use crate::BackendResidueKind;
 
-use super::{
-    NoUndoPartialPublicationClassification, PartialPublicationCrashEdge, TornPublicationDenial,
-};
+use super::{PartialPublicationCrashEdge, TornPublicationDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialPublicationEvidence {
@@ -51,33 +49,6 @@ impl PartialPublicationEvidence {
         }
     }
 
-    pub fn from_unadmitted_durable_page_mutation(
-        denial: UnadmittedDirtyPagePublicationDenial,
-    ) -> Self {
-        let persisted_digest = format!("unadmitted-durable-page:{:?}", denial.kind());
-        Self {
-            kind: PartialPublicationEvidenceKind::NoUndoHazard(Box::new(
-                NoUndoPartialPublicationClassification::from_unadmitted_durable_page_mutation(
-                    denial,
-                ),
-            )),
-            persisted_digest,
-        }
-    }
-
-    pub fn from_page_flush_recovery_receipt(receipt: PageFlushRecoveryReceipt) -> Self {
-        let classification =
-            NoUndoPartialPublicationClassification::from_page_flush_recovery_receipt(&receipt);
-        Self {
-            kind: PartialPublicationEvidenceKind::NoUndoHazard(Box::new(classification)),
-            persisted_digest: format!(
-                "page-flush-recovery:{:?}:{:?}",
-                receipt.page_lsn(),
-                receipt.rollback_posture()
-            ),
-        }
-    }
-
     pub fn insufficient_persisted_evidence(ambiguity_digest: impl Into<String>) -> Self {
         let ambiguity_digest = ambiguity_digest.into();
         Self {
@@ -104,6 +75,5 @@ pub(crate) enum PartialPublicationEvidenceKind {
     LiveAcknowledgmentMemoryOnly,
     LogOnly,
     TornPublication(TornPublicationDenial),
-    NoUndoHazard(Box<NoUndoPartialPublicationClassification>),
     InsufficientPersistedEvidence { ambiguity_digest: String },
 }

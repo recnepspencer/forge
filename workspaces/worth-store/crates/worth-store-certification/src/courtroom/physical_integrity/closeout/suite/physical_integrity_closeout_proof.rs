@@ -232,16 +232,17 @@ impl ExecutedIntegrityBoundaryDenialEvidence {
         }
     }
 
-    pub fn from_raw_byte_entry_denial(
-        denial: IntegrityEntryDenial,
-    ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
-        if denial.kind() == IntegrityEntryDenialKind::MissingProtectedPhysicalByteView {
-            Ok(Self::new(IntegrityCloseoutDenialBoundary::RawByteEntry))
-        } else {
-            Err(PhysicalIntegrityCloseoutDenial::UnexecutedBoundaryDenial(
-                IntegrityCloseoutDenialBoundary::RawByteEntry,
-            ))
-        }
+    pub fn from_integrity_entry_denial(denial: IntegrityEntryDenial) -> Self {
+        let boundary = match denial.kind() {
+            IntegrityEntryDenialKind::VerificationStoreMismatch
+            | IntegrityEntryDenialKind::VerificationGenerationMismatch => {
+                IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch
+            }
+            IntegrityEntryDenialKind::VerificationAllocationTooSmall { .. } => {
+                IntegrityCloseoutDenialBoundary::VerificationAllocationCoverage
+            }
+        };
+        Self::new(boundary)
     }
 
     pub fn from_copied_quarantine_record_denial(
@@ -263,9 +264,7 @@ impl ExecutedIntegrityBoundaryDenialEvidence {
     ) -> Result<Self, PhysicalIntegrityCloseoutDenial> {
         if matches!(
             denial.kind(),
-            ScrubPlanDenialKind::ResidentMemoryLimitExceeded { .. }
-                | ScrubPlanDenialKind::PinPageLimitExceeded { .. }
-                | ScrubPlanDenialKind::AllocationLimitExceeded { .. }
+            ScrubPlanDenialKind::AllocationLimitExceeded { .. }
                 | ScrubPlanDenialKind::StreamingWindowLimitExceeded { .. }
                 | ScrubPlanDenialKind::ProtectedReadLimitExceeded { .. }
         ) {

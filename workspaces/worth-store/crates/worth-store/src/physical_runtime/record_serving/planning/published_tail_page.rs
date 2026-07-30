@@ -35,19 +35,18 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
         segment: last.segment().get(),
         generation: page_entry.data_generation(),
     };
-    let source_length = artifacts.file_length(source).map_err(layout_failure)?;
-    if source_length.bytes() != u64::from(page_entry.data_page_count()) * u64::from(page_bytes) {
-        source_length.reject_structural_damage();
-        return Err(RecordAppendError::Denied(
-            RecordAppendDenial::PublishedLayoutDamaged,
-        ));
-    }
+    let source_bytes =
+        std::num::NonZeroU64::new(u64::from(page_entry.data_page_count()) * u64::from(page_bytes))
+            .expect("an admitted published segment has nonzero data pages");
     let resident = artifacts
         .load_exact(
             allocation,
             source,
             u64::from(page_entry.frame_index()) * u64::from(page_bytes),
             page_bytes,
+            super::super::residency::frame_loading::ExactFrameSourceExtent::CompleteArtifact(
+                source_bytes,
+            ),
         )
         .map_err(layout_failure)?;
     let mut page = Vec::new();

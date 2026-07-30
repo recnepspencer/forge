@@ -26,12 +26,12 @@ struct FrameIntegrityAdmissionBasis {
     expected_checksum: DeclaredPhysicalChecksum,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PhysicalIntegrityAdmissionSeed<'lease> {
-    lease: IntegrityInspectionLease<'lease>,
+#[derive(Debug)]
+pub struct PhysicalIntegrityAdmissionSeed<'runtime, 'lease> {
+    lease: IntegrityInspectionLease<'runtime, 'lease>,
 }
 
-impl<'lease> PhysicalIntegrityAdmissionSeed<'lease> {
+impl<'runtime, 'lease> PhysicalIntegrityAdmissionSeed<'runtime, 'lease> {
     pub const fn entry_witness(&self) -> crate::IntegrityEntryWitness {
         self.lease.entry_witness()
     }
@@ -39,7 +39,7 @@ impl<'lease> PhysicalIntegrityAdmissionSeed<'lease> {
     pub fn with_checksum_declaration(
         self,
         declaration: ChecksumDeclarationAdmission,
-    ) -> Result<PhysicalIntegrityAdmission<'lease>, PreDecodePhysicalDenial> {
+    ) -> Result<PhysicalIntegrityAdmission<'runtime, 'lease>, PreDecodePhysicalDenial> {
         if declaration.entry_witness() != self.lease.entry_witness() {
             return Err(PreDecodePhysicalDenial::new(
                 PreDecodePhysicalDenialKind::EntryWitnessMismatch,
@@ -56,26 +56,26 @@ impl<'lease> PhysicalIntegrityAdmissionSeed<'lease> {
         self,
         claim: ChecksumAlgorithmClaim<'_>,
         scope: ChecksumScopeDeclaration,
-    ) -> Result<PhysicalIntegrityAdmission<'lease>, PreDecodePhysicalDenial> {
-        let algorithm = admit_algorithm_claim(claim, self.lease)?;
+    ) -> Result<PhysicalIntegrityAdmission<'runtime, 'lease>, PreDecodePhysicalDenial> {
+        let algorithm = admit_algorithm_claim(claim, &self.lease)?;
         let declaration = algorithm
             .declare_for_scope(scope)
-            .map_err(|denial| unsupported_checksum(self.lease, denial))?
+            .map_err(|denial| unsupported_checksum(&self.lease, denial))?
             .admit_for_physical_integrity_entry(self.lease.entry_witness());
         self.with_checksum_declaration(declaration)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PhysicalIntegrityAdmission<'lease> {
-    lease: IntegrityInspectionLease<'lease>,
+#[derive(Debug)]
+pub struct PhysicalIntegrityAdmission<'runtime, 'lease> {
+    lease: IntegrityInspectionLease<'runtime, 'lease>,
     declaration: ChecksumDeclarationAdmission,
 }
 
-impl<'lease> PhysicalIntegrityAdmission<'lease> {
+impl<'runtime, 'lease> PhysicalIntegrityAdmission<'runtime, 'lease> {
     pub const fn from_entry(
-        lease: IntegrityInspectionLease<'lease>,
-    ) -> PhysicalIntegrityAdmissionSeed<'lease> {
+        lease: IntegrityInspectionLease<'runtime, 'lease>,
+    ) -> PhysicalIntegrityAdmissionSeed<'runtime, 'lease> {
         PhysicalIntegrityAdmissionSeed { lease }
     }
 
@@ -153,7 +153,7 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
             basis.cell.owner(),
             basis.header_witness,
             basis.expected_kind,
-            self.lease,
+            &self.lease,
         )
     }
 
@@ -161,7 +161,7 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
         &self,
         witness: PhysicalHeaderDecodeWitness,
     ) -> Result<(), PreDecodePhysicalDenial> {
-        reject_truncated_page(self.lease, witness)
+        reject_truncated_page(&self.lease, witness)
     }
 
     fn verify_frame_witness(
@@ -172,7 +172,7 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
             basis.validation,
             basis.header_witness,
             basis.expected_kind,
-            self.lease,
+            &self.lease,
         )
     }
 
@@ -180,7 +180,7 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
         &self,
         witness: PhysicalHeaderDecodeWitness,
     ) -> Result<(), PreDecodePhysicalDenial> {
-        reject_truncated_frame(self.lease, witness)
+        reject_truncated_frame(&self.lease, witness)
     }
 
     fn verify_declared_checksum(
@@ -189,7 +189,7 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
         expected_checksum: DeclaredPhysicalChecksum,
     ) -> Result<crate::ExecutedPhysicalChecksum, PreDecodePhysicalDenial> {
         require_matching_checksum(
-            self.lease,
+            &self.lease,
             self.declared_checksum_algorithm(),
             witness,
             expected_checksum,
@@ -245,13 +245,13 @@ impl<'lease> PhysicalIntegrityAdmission<'lease> {
 
 fn admit_algorithm_claim(
     claim: ChecksumAlgorithmClaim<'_>,
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
 ) -> Result<ChecksumAlgorithmId, PreDecodePhysicalDenial> {
     ChecksumAlgorithmId::admit_claim(claim).map_err(|denial| unsupported_checksum(lease, denial))
 }
 
 fn unsupported_checksum(
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
     denial: ChecksumAlgorithmMismatchDenial,
 ) -> PreDecodePhysicalDenial {
     PreDecodePhysicalDenial::new(
@@ -262,7 +262,7 @@ fn unsupported_checksum(
 }
 
 fn reject_truncated_page(
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
     witness: PhysicalHeaderDecodeWitness,
 ) -> Result<(), PreDecodePhysicalDenial> {
     reject_invalid_extent(
@@ -273,7 +273,7 @@ fn reject_truncated_page(
 }
 
 fn reject_truncated_frame(
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
     witness: PhysicalHeaderDecodeWitness,
 ) -> Result<(), PreDecodePhysicalDenial> {
     reject_invalid_extent(
@@ -284,7 +284,7 @@ fn reject_truncated_frame(
 }
 
 fn reject_invalid_extent(
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
     witness: PhysicalHeaderDecodeWitness,
     truncated: PreDecodePhysicalDenialKind,
 ) -> Result<(), PreDecodePhysicalDenial> {
@@ -301,7 +301,7 @@ fn reject_invalid_extent(
 }
 
 fn require_matching_checksum(
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
     algorithm: ChecksumAlgorithmId,
     witness: PhysicalHeaderDecodeWitness,
     expected: DeclaredPhysicalChecksum,
@@ -322,7 +322,7 @@ fn reject_page_witness(
     expected_owner: worth_store_physical_format::PhysicalGenerationOwner,
     witness: PhysicalHeaderDecodeWitness,
     expected_kind: PhysicalPageKind,
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
 ) -> Result<(), PreDecodePhysicalDenial> {
     if witness.kind() != PhysicalHeaderKind::Page(expected_kind) {
         return Err(PreDecodePhysicalDenial::new(
@@ -346,7 +346,7 @@ fn reject_frame_witness(
     validation: PhysicalReferenceValidationWitness,
     witness: PhysicalHeaderDecodeWitness,
     expected_kind: PhysicalFrameKind,
-    lease: IntegrityInspectionLease<'_>,
+    lease: &IntegrityInspectionLease<'_, '_>,
 ) -> Result<(), PreDecodePhysicalDenial> {
     if witness.kind() != PhysicalHeaderKind::Frame(expected_kind) {
         return Err(PreDecodePhysicalDenial::new(

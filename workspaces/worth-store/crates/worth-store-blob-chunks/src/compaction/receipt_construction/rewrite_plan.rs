@@ -1,5 +1,6 @@
 use crate::compaction::types::{
     BlobCompactionBasis, BlobCompactionIntent, BlobCompactionRewritePlan,
+    BlobCompactionRewritePlanParts,
 };
 use crate::BlobCompactionCounterSnapshot;
 
@@ -24,28 +25,32 @@ pub(crate) fn construct_rewrite_plan(
     intent: BlobCompactionIntent,
     counters: BlobCompactionCounterSnapshot,
 ) -> BlobCompactionRewritePlan {
-    let physical = intent
-        .physical()
-        .admitted()
+    let parts = intent.into_parts();
+    let physical = parts
+        .physical
+        .into_admitted()
         .expect("admitted intent carries physical interlock plan");
-    let reachability = intent
-        .reachability()
+    let reachability = parts
+        .reachability
         .expect("admitted intent carries reachability proof");
     let physical_counters = physical.counters();
-    BlobCompactionRewritePlan::new(
-        BlobCompactionBasis::from_lifecycle(intent.lifecycle()),
-        physical.clone(),
-        reachability.clone(),
-        intent.placement().clone(),
-        intent.uncompacted_publication().canonical_basis().clone(),
-        intent
-            .dedupe_references()
+    let basis = BlobCompactionBasis::from_lifecycle(&parts.lifecycle);
+    let pacing_yields = parts.pacing.counters().yield_events();
+    BlobCompactionRewritePlan::new(BlobCompactionRewritePlanParts {
+        basis,
+        pacing: parts.pacing,
+        physical,
+        reachability,
+        placement: parts.placement,
+        old_canonical_basis: parts.uncompacted_publication.canonical_basis().clone(),
+        dedupe_reference_identities: parts
+            .dedupe_references
             .iter()
             .map(|reference| reference.reference_identity().clone())
             .collect(),
-        counters
+        counters: counters
             .with_physical(physical_counters)
-            .preserve_dedupe_edges(intent.dedupe_references().len() as u64)
-            .record_foreground_yields(intent.pacing().foreground_yields()),
-    )
+            .preserve_dedupe_edges(parts.dedupe_references.len() as u64)
+            .record_foreground_yields(pacing_yields),
+    })
 }

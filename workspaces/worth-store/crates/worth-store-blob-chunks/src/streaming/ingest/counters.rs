@@ -1,3 +1,5 @@
+use worth_store_io_scheduler::BackgroundPacingCounterSnapshot;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct BlobStreamingIngestCounterSnapshot {
     windows_observed: u64,
@@ -39,31 +41,29 @@ impl BlobStreamingIngestCounterSnapshot {
         }
     }
 
-    pub(crate) const fn record_yield(self) -> Self {
+    pub(crate) const fn record_background_pressure(
+        self,
+        counters: BackgroundPacingCounterSnapshot,
+    ) -> Self {
         Self {
-            scheduler_yields: self.scheduler_yields + 1,
-            ..self
-        }
-    }
-
-    pub(crate) const fn record_scheduler_waits(self, waits: u64) -> Self {
-        Self {
-            scheduler_waits: self.scheduler_waits + waits,
-            ..self
-        }
-    }
-
-    pub(crate) const fn record_throttle(self) -> Self {
-        Self {
-            scheduler_throttles: self.scheduler_throttles + 1,
-            scheduler_admissions: self.scheduler_admissions + 1,
-            ..self
-        }
-    }
-
-    pub(crate) const fn record_admission(self) -> Self {
-        Self {
-            scheduler_admissions: self.scheduler_admissions + 1,
+            scheduler_yields: self.scheduler_yields + counters.yield_events(),
+            scheduler_waits: self.scheduler_waits
+                + counters.yield_events()
+                + counters.deferred_events()
+                + counters.denied_events()
+                + counters.throttle_events()
+                + counters.admitted_with_debt_events()
+                + counters.violation_events()
+                + counters.foreground_pressure_events(),
+            scheduler_throttles: self.scheduler_throttles + counters.throttle_events(),
+            scheduler_admissions: self.scheduler_admissions
+                + counters.throttle_events()
+                + counters.admitted_with_debt_events(),
+            denials: self.denials
+                + counters.yield_events()
+                + counters.deferred_events()
+                + counters.denied_events()
+                + counters.violation_events(),
             ..self
         }
     }

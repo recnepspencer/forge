@@ -1,9 +1,15 @@
+use sha2::{Digest, Sha256};
 use worth_store_physical_backend::CompletedArtifactRangeWrite;
+use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
 
 use crate::physical_runtime::record_serving::RecordAppendDenial;
 
 pub(in crate::physical_runtime::record_serving) struct CandidateFramePhysicalWrite {
     receipt: CompletedArtifactRangeWrite,
+    settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
+}
+
+pub(in crate::physical_runtime::record_serving) struct CandidateFrameResidencySettlement {
     settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
 }
 
@@ -18,20 +24,48 @@ impl CandidateFramePhysicalWrite {
         }
     }
 
-    pub(in crate::physical_runtime::record_serving) fn receipt(
-        &self,
-    ) -> &CompletedArtifactRangeWrite {
-        &self.receipt
-    }
-
-    pub(in crate::physical_runtime::record_serving) const fn work(
-        &self,
-    ) -> crate::physical_runtime::PhysicalWorkIdentity {
-        self.settlement.identity()
-    }
-
     pub(in crate::physical_runtime::record_serving) const fn settlement(
         &self,
+    ) -> crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement {
+        self.settlement
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn settle_residency(
+        self,
+        store: StableStoreIdentity,
+        coordinate: super::CandidateFrameCoordinate,
+        bytes: &[u8],
+    ) -> Result<CandidateFrameResidencySettlement, CandidateFrameContractViolation> {
+        let length = u32::try_from(bytes.len())
+            .map_err(|_| CandidateFrameContractViolation::PhysicalWriteMismatch)?;
+        let coordinate =
+            RecordFrameCoordinate::new(coordinate.artifact(), coordinate.offset(), length)
+                .ok_or(CandidateFrameContractViolation::PhysicalWriteMismatch)?;
+        if !completed_write_matches(&self.receipt, store, coordinate, bytes) {
+            return Err(CandidateFrameContractViolation::PhysicalWriteMismatch);
+        }
+        Ok(CandidateFrameResidencySettlement {
+            settlement: self.settlement,
+        })
+    }
+}
+
+pub(super) fn completed_write_matches(
+    receipt: &CompletedArtifactRangeWrite,
+    store: StableStoreIdentity,
+    coordinate: RecordFrameCoordinate,
+    bytes: &[u8],
+) -> bool {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    receipt.store() == store
+        && receipt.coordinate() == coordinate
+        && receipt.completed_bytes() == bytes.len() as u64
+        && receipt.payload_digest() == digest
+}
+
+impl CandidateFrameResidencySettlement {
+    pub(in crate::physical_runtime::record_serving) const fn settlement(
+        self,
     ) -> crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement {
         self.settlement
     }
@@ -71,6 +105,7 @@ pub enum CandidateFrameContractViolation {
     CoordinateRoleMismatch,
     UnexpectedFrame,
     RetainedFrameBytesChanged,
+    PhysicalWriteMismatch,
     CatalogResidencyInvalidationFailed,
     IncompleteFrameSet,
 }

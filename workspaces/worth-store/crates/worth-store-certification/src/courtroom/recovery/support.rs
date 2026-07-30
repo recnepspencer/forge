@@ -3,7 +3,7 @@ pub(super) use crate::courtroom::harness::test_support::integrity_handoff_test_s
     recovery_blocking_quarantine_binding, unresolved_authority_record,
 };
 pub(super) use crate::courtroom::harness::test_support::recovery_blocking_damage_test_support::recovery_blocking_wal_damage_map;
-pub(super) use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::recovery_memory_allocation;
+pub(super) use crate::courtroom::harness::test_support::recovery_memory_allocation_test_support::with_recovery_memory_allocation;
 use worth_foundational::{
     aspects, AspectContract, AspectKey, AspectValue, InternedString, ScalarAspectType,
 };
@@ -28,16 +28,18 @@ use worth_store_security::{
     StoreKeyVersionPosture, StoreLegacySecurityPosture, StoreSecurityScopeAdmissionRequest,
 };
 
-pub(super) fn admit_entry(model_input: AdmittedRecoveryIntegrityInput) -> RecoveryEntryAdmission {
-    let decision = RecoveryEntryAdmission::admit(
-        model_input,
-        recovery_memory_allocation(),
-        physical_authority(),
-    );
-    let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
-        panic!("intact integrity model input admits the recovery algorithm entry");
-    };
-    *admission
+pub(super) fn with_admitted_entry<R>(
+    model_input: AdmittedRecoveryIntegrityInput,
+    run: impl FnOnce(RecoveryEntryAdmission<'_>) -> R,
+) -> R {
+    with_recovery_memory_allocation(|memory_allocation| {
+        let decision =
+            RecoveryEntryAdmission::admit(model_input, memory_allocation, physical_authority());
+        let RecoveryEntryAdmissionDecision::Admitted(admission) = decision else {
+            panic!("intact integrity model input admits the recovery algorithm entry");
+        };
+        run(*admission)
+    })
 }
 
 pub(super) fn damaged_integrity_model_input() -> AdmittedRecoveryIntegrityInput {
@@ -70,7 +72,7 @@ pub(super) fn physical_authority() -> PhysicalAuthorityRecap {
 }
 
 pub(super) fn recovery_security_scope(
-    admission: &RecoveryEntryAdmission,
+    admission: &RecoveryEntryAdmission<'_>,
     identity: &str,
 ) -> RecoverySecurityScopePropagation {
     let admitted = platform_recovery_scope(identity);

@@ -1,7 +1,9 @@
+use std::sync::OnceLock;
+
 use worth_store_physical_certification::{
     SecurityScopeHarnessScenario, SecurityScopeHarnessSchedule, SecurityScopePhysicalReplayDenial,
     SecurityScopePhysicalReplayEvidence, SecurityScopePhysicalScheduleBinding,
-    SecurityScopeReplayMutationKind,
+    SecurityScopeReplayMutationKind, SimulationReplayBundle,
 };
 
 use crate::s5_interleaving_harness_support;
@@ -35,10 +37,33 @@ pub(crate) fn physical_replay_for_scenario_with_binding(
     scenario: SecurityScopeHarnessScenario,
     binding: SecurityScopePhysicalScheduleBinding,
 ) -> Result<SecurityScopePhysicalReplayEvidence, SecurityScopePhysicalReplayDenial> {
+    let replay = physical_replay_bundle(binding);
+    SecurityScopePhysicalReplayEvidence::try_from_replay_bundle(replay, scenario, binding)
+}
+
+fn physical_replay_bundle(binding: SecurityScopePhysicalScheduleBinding) -> SimulationReplayBundle {
+    static STABLE_READ: OnceLock<SimulationReplayBundle> = OnceLock::new();
+    static ROOT_SWAP: OnceLock<SimulationReplayBundle> = OnceLock::new();
+    static CHECKPOINT: OnceLock<SimulationReplayBundle> = OnceLock::new();
+    static REPAIR_READ: OnceLock<SimulationReplayBundle> = OnceLock::new();
+
+    let replay = match binding.schedule() {
+        SecurityScopeHarnessSchedule::StableReadPlanAdmission => &STABLE_READ,
+        SecurityScopeHarnessSchedule::RootSwapBeforeLogicalDecode => &ROOT_SWAP,
+        SecurityScopeHarnessSchedule::CheckpointPublicationReplay => &CHECKPOINT,
+        SecurityScopeHarnessSchedule::RepairReadAdmission => &REPAIR_READ,
+    };
+    replay
+        .get_or_init(|| build_physical_replay_bundle(binding))
+        .clone()
+}
+
+fn build_physical_replay_bundle(
+    binding: SecurityScopePhysicalScheduleBinding,
+) -> SimulationReplayBundle {
     let lane = physical_lane_for_binding(binding);
     let plan = s5_interleaving_harness_support::lower_lane(&lane);
-    let replay = s5_interleaving_harness_support::replay_bundle(&plan, lane.expected_fault());
-    SecurityScopePhysicalReplayEvidence::try_from_replay_bundle(replay, scenario, binding)
+    s5_interleaving_harness_support::replay_bundle(&plan, lane.expected_fault())
 }
 
 pub(crate) fn physical_lane_for_binding(

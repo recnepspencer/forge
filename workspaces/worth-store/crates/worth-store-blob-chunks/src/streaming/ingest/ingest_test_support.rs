@@ -1,12 +1,11 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::OperationAllocationGrant;
 use worth_store_io_scheduler::{
     blob_ingest_background_capacity_for_certification_test, BackgroundResourceBudget, QueueSlot,
 };
 use worth_store_physical_backend::BlobBackendChunkWriteSession;
 use worth_store_security::StoreTenantScope;
 
-use crate::test_support::{blob_allocation_grant, blob_scope, physical_payload_for_bytes};
+use crate::test_support::{blob_scope, physical_payload_for_bytes, with_blob_allocation};
 use crate::{
     BlobChunkOrdinal, BlobChunkSize, BlobChunkingRuleAdmission, BlobStreamingChunkWriter,
     BlobStreamingIngest, BlobStreamingIngestDenial, BlobStreamingIngestRequest,
@@ -50,33 +49,37 @@ fn run_ingest_with_window_and_allocation(
     strength: CounterEvidenceStrength,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
     let window = BlobStreamingWindow::bounded(window_bytes)?;
-    BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            window,
-            blob_allocation_grant(allocation_bytes),
-            pressure_admission(),
-            strength,
-        ),
-        frames,
-        &mut TestChunkWriter::new(),
-    )
+    with_blob_allocation(allocation_bytes, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                window,
+                allocation,
+                pressure_admission(),
+                strength,
+            ),
+            frames,
+            &mut TestChunkWriter::new(),
+        )
+    })
 }
 
 pub(super) fn run_ingest_with_pressure(
     pressure: BlobStreamingPressureAdmission,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial> {
-    BlobStreamingIngest::run_bounded(
-        request(),
-        crate::BlobStreamingIngestExecution::new(
-            BlobStreamingWindow::bounded(4).unwrap(),
-            blob_allocation_grant(4),
-            pressure,
-            CounterEvidenceStrength::Exact,
-        ),
-        source_frames(3, 4),
-        &mut TestChunkWriter::new(),
-    )
+    with_blob_allocation(4, |_, allocation| {
+        BlobStreamingIngest::run_bounded(
+            request(),
+            crate::BlobStreamingIngestExecution::new(
+                BlobStreamingWindow::bounded(4).unwrap(),
+                allocation,
+                pressure,
+                CounterEvidenceStrength::Exact,
+            ),
+            source_frames(3, 4),
+            &mut TestChunkWriter::new(),
+        )
+    })
 }
 
 pub(super) fn request() -> BlobStreamingIngestRequest {
@@ -110,14 +113,10 @@ pub(super) fn source_frame(bytes: &[u8], window_bytes: u64) -> BlobStreamingSour
     .expect("bounded source frame should admit")
 }
 
-pub(super) fn allocation_grant(bytes: u64) -> OperationAllocationGrant {
-    blob_allocation_grant(bytes)
-}
-
 pub(super) fn pressure_admission() -> BlobStreamingPressureAdmission {
     BlobStreamingPressureAdmission::from_io_qos_background_capacity(
         blob_ingest_background_capacity_for_certification_test(background_budget()),
-        1,
+        0,
         false,
     )
     .expect("S.6 foreground page-write backed blob pressure should admit")

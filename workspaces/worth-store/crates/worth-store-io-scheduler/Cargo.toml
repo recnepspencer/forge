@@ -9,25 +9,21 @@ description = "Roadmap 2 S.6 hardware-aware I/O, QoS, and background pacing."
 [features]
 certification-test-authority = [
     "worth-store-physical-backend/certification-test-authority",
-    "worth-store-physical-isolation/certification-authority",
     "worth-store-security/certification-test-authority",
 ]
 
 [dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
-worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-budgets.workspace = true
 worth-store-contracts.workspace = true
 worth-store-buffer-pool.workspace = true
 worth-store-physical-backend.workspace = true
-worth-store-physical-isolation.workspace = true
 worth-store-security.workspace = true
 worth-store-wal.workspace = true
 
 [dev-dependencies]
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
 worth-store-physical-format.workspace = true
-worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 
 [lints]

@@ -4,12 +4,11 @@ use worth_foundational::{
 };
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    lower_offline_record_publication_canonical_basis, lower_record_publication_canonical_basis,
-    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
-    ManifestEntryCapacity, PageFillPercent, PhysicalRecordAccessPolicy,
-    PhysicalRecordFormatDeclaration, PhysicalRecordPlacementPolicy, RecordByteLimit,
-    RecordCountLimit, RecordScanCounterSnapshot, RecordScanOutcome, RecordScanRequest,
-    SegmentPageCount, ServingPhysicalRuntime,
+    lower_record_publication_canonical_basis, AdmittedPhysicalRecordFormat,
+    AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy, ManifestEntryCapacity,
+    PageFillPercent, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
+    PhysicalRecordPlacementPolicy, RecordByteLimit, RecordCountLimit, RecordScanCounterSnapshot,
+    RecordScanOutcome, RecordScanRequest, SegmentPageCount, ServingPhysicalRuntime,
 };
 
 pub(super) fn complete_scan(
@@ -39,7 +38,9 @@ pub(super) fn assert_canonical_parity(
     let runtime = transition_success(lower_record_publication_canonical_basis(
         &serving.certification_publication_summary().unwrap(),
     ));
-    let offline = transition_success(lower_offline_record_publication_canonical_basis(offline));
+    let offline = transition_success(
+        worth_store_offline_verifier::lower_offline_record_publication_canonical_basis(offline),
+    );
     let comparison = transition_success(prepare_canonical_comparison(
         CanonicalEquivalenceBasis::ExactCanonicalBasis,
         runtime,

@@ -67,18 +67,6 @@ fn classify(
             },
         )),
         (
-            CanonicalRecordMutationKind::ExactWrite,
-            PhysicalWorkSettlementEvidence::Publication {
-                physical,
-                scheduler: QueueExecutionOutcome::Executed(_),
-            },
-        ) => Ok(CanonicalRecordMutationCompletion::CandidateFrame(
-            CanonicalCandidateFrameWrite {
-                physical: super::super::residency::candidate_frame_residency::
-                    CandidateFramePhysicalWrite::completed(physical, settlement),
-            },
-        )),
-        (
             CanonicalRecordMutationKind::PublicationEffect,
             PhysicalWorkSettlementEvidence::PublicationEffect {
                 physical: _,

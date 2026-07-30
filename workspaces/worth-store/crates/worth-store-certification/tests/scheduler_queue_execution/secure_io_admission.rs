@@ -1,11 +1,10 @@
-use worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration;
 use worth_store_contracts::QueueProducerResourceShape;
 use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
-    admit_secure_io_scope_for_scheduler, lower_buffer_pool_queue_declaration,
-    reject_lower_authority_secure_io_scope_source, IoSchedulerBackendCapabilityRequirement,
-    QueueExecutionAdmissionRequest, SecureIoOperation, SecureIoPostureRequirement,
-    SecureIoPreservationDenial, SecureIoPreservationRequest,
+    admit_secure_io_scope_for_scheduler, reject_lower_authority_secure_io_scope_source,
+    IoSchedulerBackendCapabilityRequirement, QueueExecutionAdmissionRequest, QueueWorkDeclaration,
+    SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationDenial,
+    SecureIoPreservationRequest,
 };
 use worth_store_security::{
     classify_iam_role_as_security_scope_source,
@@ -14,7 +13,7 @@ use worth_store_security::{
     classify_operator_identity_as_security_scope_source,
     classify_terminal_json_label_as_security_scope_source,
 };
-use worth_store_test_support::read_ahead_declaration_for_real_pool;
+use worth_store_test_support::harness::scheduling::scheduler_foreground_read_work;
 
 use super::support::{backend_witness, point_read_budget, scheduler_security_scope};
 
@@ -22,7 +21,7 @@ use super::support::{backend_witness, point_read_budget, scheduler_security_scop
 fn secure_io_receipt_is_required_for_secure_queue_admission() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
+    let work = read_ahead_work(reservation, budget);
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         IoSchedulerBackendCapabilityRequirement::DirectIo,
@@ -34,18 +33,15 @@ fn secure_io_receipt_is_required_for_secure_queue_admission() {
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
     )
     .expect("scope-preserving direct I/O should admit secure-I/O preservation");
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
-        .expect("buffer-pool producer should lower")
-        .with_secure_io_scope(secure_io);
+    let work = work.with_secure_io_scope(secure_io);
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
-        work.clone(),
+        work,
         super::support::policy_receipt(budget),
     )
     .expect("policy receipt should bind the exact queue work");
 
-    let plan =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .expect("queue work should preserve admitted secure-I/O scope");
+    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect("queue work should preserve admitted secure-I/O scope");
 
     assert_eq!(plan.work().secure_io(), Some(secure_io));
 }
@@ -53,23 +49,20 @@ fn secure_io_receipt_is_required_for_secure_queue_admission() {
 fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
-        .expect("buffer-pool producer should lower");
+    let work = read_ahead_work(reservation, budget);
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         IoSchedulerBackendCapabilityRequirement::DirectIo,
     )
     .expect("direct I/O backend should admit");
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
-        work.clone(),
+        work,
         super::support::policy_receipt(budget),
     )
     .expect("policy receipt should bind the exact queue work");
 
-    let denial =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .expect_err("read-ahead must not admit without secure-I/O preservation");
+    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect_err("read-ahead must not admit without secure-I/O preservation");
 
     assert_eq!(
         denial,
@@ -81,7 +74,7 @@ fn ordinary_read_ahead_queue_admission_requires_secure_io_receipt() {
 fn secure_io_receipt_operation_cannot_be_laundered() {
     let reservation = worth_store_io_scheduler::foreground_reservation::admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = read_ahead_producer(reservation.security_scope_identity(), budget);
+    let work = read_ahead_work(reservation, budget);
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         IoSchedulerBackendCapabilityRequirement::DirectIo,
@@ -93,18 +86,15 @@ fn secure_io_receipt_operation_cannot_be_laundered() {
             .require_posture(SecureIoPostureRequirement::ScopePreserving),
     )
     .expect("background secure-I/O receipt should admit");
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
-        .expect("buffer-pool producer should lower")
-        .with_secure_io_scope(secure_io);
+    let work = work.with_secure_io_scope(secure_io);
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
-        work.clone(),
+        work,
         super::support::policy_receipt(budget),
     )
     .expect("policy receipt should bind the exact queue work");
 
-    let denial =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .expect_err("background receipt must not satisfy read-ahead work");
+    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect_err("background receipt must not satisfy read-ahead work");
 
     assert_eq!(
         denial,
@@ -159,12 +149,12 @@ fn lower_authority_sources_report_secure_io_classifier_denials() {
     }
 }
 
-fn read_ahead_producer(
-    security: worth_store_security::StoreSecurityScopeIdentity,
+fn read_ahead_work(
+    reservation: worth_store_io_scheduler::foreground_reservation::ForegroundReservationReceipt,
     budget: worth_store_io_scheduler::BackgroundResourceBudget,
-) -> BufferPoolQueueExecutionDeclaration {
-    read_ahead_declaration_for_real_pool(
-        security,
+) -> QueueWorkDeclaration {
+    scheduler_foreground_read_work(
+        reservation,
         11,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
@@ -173,4 +163,5 @@ fn read_ahead_producer(
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
     )
+    .expect("scheduler-native foreground read work should lower")
 }

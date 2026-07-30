@@ -259,13 +259,21 @@ const fn all_required_lane_mask() -> u16 {
 }
 
 fn foreground_counter_rows(evidence: &S6ForegroundReservationCertificationEvidence) -> usize {
+    let counters = evidence.counters();
+    let requested = counters.requested();
+    let admitted = counters.admitted_budget();
+    let denied = counters.denied_budget();
     [
-        evidence.counters().admitted_budget().queue_slots(),
-        evidence.counters().admitted_budget().bandwidth_tokens(),
-        evidence.counters().admitted_budget().worker_permits(),
-        evidence.counters().denied_capacity_events(),
-        evidence.counters().stable_read_wait_count(),
-        evidence.counters().stable_read_retry_count(),
+        requested.queue_slots(),
+        requested.bandwidth_tokens(),
+        requested.worker_permits(),
+        admitted.queue_slots(),
+        admitted.bandwidth_tokens(),
+        admitted.worker_permits(),
+        denied.queue_slots(),
+        denied.bandwidth_tokens(),
+        denied.worker_permits(),
+        counters.denied_capacity_events(),
     ]
     .into_iter()
     .filter(|value| *value > 0)

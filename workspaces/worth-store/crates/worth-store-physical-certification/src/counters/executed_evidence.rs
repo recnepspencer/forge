@@ -1,6 +1,5 @@
-use worth_store_buffer_pool::{
-    AllocationCounterSnapshot, AllocationScope, BufferPoolExecutedEvidenceSource,
-    ResidentFrameCounterSnapshot,
+use worth_store::physical_runtime::{
+    PhysicalResidencyCounterSnapshot, PhysicalResidencyObservation,
 };
 use worth_store_io_scheduler::{IoQueueCounterSnapshot, IoQueueExecutedEvidenceSource};
 
@@ -30,8 +29,7 @@ pub struct PhysicalCounterExecutionSources {
     copied_pages: u64,
     publication_swaps: u64,
     blocked_reclaims: u64,
-    allocation: AllocationCounterSnapshot,
-    resident: ResidentFrameCounterSnapshot,
+    residency: PhysicalResidencyObservation,
     io: IoQueueCounterSnapshot,
 }
 
@@ -40,16 +38,13 @@ impl PhysicalCounterExecutionSources {
         plan: &PhysicalSimulationPlan,
         schedule: &PhysicalInterleavingSchedule,
         trace: &ObservedPhysicalTrace,
-        buffer_pool: BufferPoolExecutedEvidenceSource,
+        residency: PhysicalResidencyObservation,
         io_queue: IoQueueExecutedEvidenceSource,
     ) -> Result<Self, CounterMismatchEvidence> {
         require_executed_sources_match_plan(plan, schedule, trace)?;
-        let buffer_counters = buffer_pool.counters();
-        let allocation = buffer_counters.allocation();
-        let resident = buffer_counters.resident_memory();
         let io = io_queue.counters();
         let resource_observation =
-            resource_observation_from_sources(plan, allocation, resident, io);
+            resource_observation_from_sources(plan, residency.counters(), io);
         require_resource_observation_within_envelope(plan, resource_observation)?;
         let compaction = require_compaction_observation_for_contracts(plan, trace)?;
         Ok(Self {
@@ -71,8 +66,7 @@ impl PhysicalCounterExecutionSources {
             copied_pages: compaction.copied_pages(),
             publication_swaps: compaction.publication_swaps(),
             blocked_reclaims: compaction.blocked_reclaims(),
-            allocation,
-            resident,
+            residency,
             io,
         })
     }
@@ -83,16 +77,13 @@ impl PhysicalCounterExecutionSources {
         schedule: &PhysicalInterleavingSchedule,
         trace: &ObservedPhysicalTrace,
         witness: &BlobHarnessExecutedActorEvidence,
-        buffer_pool: BufferPoolExecutedEvidenceSource,
+        residency: PhysicalResidencyObservation,
         io_queue: IoQueueExecutedEvidenceSource,
     ) -> Result<Self, CounterMismatchEvidence> {
         require_executed_sources_match_plan(plan, schedule, trace)?;
-        let buffer_counters = buffer_pool.counters();
-        let allocation = buffer_counters.allocation();
-        let resident = buffer_counters.resident_memory();
         let io = io_queue.counters();
         let resource_observation =
-            resource_observation_from_sources(plan, allocation, resident, io);
+            resource_observation_from_sources(plan, residency.counters(), io);
         require_resource_observation_within_envelope(plan, resource_observation)?;
         let compaction = require_compaction_observation_for_contracts(plan, trace)?;
         Ok(Self {
@@ -108,8 +99,7 @@ impl PhysicalCounterExecutionSources {
             copied_pages: compaction.copied_pages(),
             publication_swaps: compaction.publication_swaps(),
             blocked_reclaims: compaction.blocked_reclaims(),
-            allocation,
-            resident,
+            residency,
             io,
         })
     }
@@ -206,6 +196,7 @@ impl CompactionCounterSource {
 pub struct PhysicalExecutedCounterEvidence {
     pub(crate) rows: Vec<PhysicalCounterEvidenceRow>,
     pub(crate) resource_observation: PhysicalResourceEnvelopeObservation,
+    pub(crate) residency_source: super::PhysicalResidencyEvidenceSource,
 }
 
 impl PhysicalExecutedCounterEvidence {
@@ -227,15 +218,14 @@ impl PhysicalExecutedCounterEvidence {
                 )
             })
             .collect();
-        let resource_observation = resource_observation_from_sources(
-            plan,
-            sources.allocation,
-            sources.resident,
-            sources.io,
-        );
+        let resource_observation =
+            resource_observation_from_sources(plan, sources.residency.counters(), sources.io);
+        let residency_source =
+            super::PhysicalResidencyEvidenceSource::from_store_observation(sources.residency);
         Ok(Self {
             rows,
             resource_observation,
+            residency_source,
         })
     }
 }
@@ -256,16 +246,15 @@ fn require_executed_sources_match_plan(
 
 fn resource_observation_from_sources(
     plan: &PhysicalSimulationPlan,
-    allocation: AllocationCounterSnapshot,
-    resident: ResidentFrameCounterSnapshot,
+    residency: PhysicalResidencyCounterSnapshot,
     io: IoQueueCounterSnapshot,
 ) -> PhysicalResourceEnvelopeObservation {
     PhysicalResourceEnvelopeObservation::new(
         plan.profile(),
-        allocation_bytes_allocated(allocation),
-        resident.resident_bytes().as_bytes(),
-        resident.pin_lifecycle().active_pinned_pages(),
-        resident.dirty_state().unflushed_dirty_pages().as_pages() as u64,
+        residency.active_operation_bytes(),
+        residency.resident_bytes(),
+        u64::from(residency.pinned_frames()),
+        u64::from(residency.dirty_frames()),
         u64::from(io.peak_queue_depth()),
         u64::from(io.interference_events()),
     )
@@ -282,15 +271,13 @@ fn observed_counter_count(
         CounterContractKind::ProfileResourceEnvelope => 1,
         CounterContractKind::BlobChunkCountExact => sources.blob_chunk_count,
         CounterContractKind::BlobLogicalBytesExact => sources.blob_logical_bytes,
-        CounterContractKind::AllocationBytes => allocation_bytes_allocated(sources.allocation),
-        CounterContractKind::PagePins => sources.resident.pin_lifecycle().active_pinned_pages(),
+        CounterContractKind::AllocationBytes => {
+            sources.residency.counters().active_operation_bytes()
+        }
+        CounterContractKind::PagePins => u64::from(sources.residency.counters().pinned_frames()),
         CounterContractKind::IoQueueDepth => u64::from(sources.io.peak_queue_depth()),
-        CounterContractKind::ResidentBytes => sources.resident.resident_bytes().as_bytes(),
-        CounterContractKind::DirtyPages => sources
-            .resident
-            .dirty_state()
-            .unflushed_dirty_pages()
-            .as_pages() as u64,
+        CounterContractKind::ResidentBytes => sources.residency.counters().resident_bytes(),
+        CounterContractKind::DirtyPages => u64::from(sources.residency.counters().dirty_frames()),
         CounterContractKind::IoInterferenceEvents => u64::from(sources.io.interference_events()),
         CounterContractKind::LatchWaits => 0,
         CounterContractKind::EpochRetries => 0,
@@ -303,11 +290,4 @@ fn observed_counter_count(
         CounterContractKind::CopiedPages => sources.copied_pages,
         CounterContractKind::FutureS5SpecificCounters => 0,
     }
-}
-
-fn allocation_bytes_allocated(allocation: AllocationCounterSnapshot) -> u64 {
-    AllocationScope::ALL
-        .iter()
-        .map(|scope| allocation.scope(*scope).allocated_bytes())
-        .sum()
 }

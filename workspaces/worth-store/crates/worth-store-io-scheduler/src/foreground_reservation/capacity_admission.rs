@@ -5,7 +5,7 @@ use worth_store_security::StoreSecurityScopeIdentity;
 
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerIsolationAdmission, IoSchedulerSecurityScopeAdmission,
+    IoSchedulerSecurityScopeAdmission,
 };
 
 use super::capacity::require_capacity;
@@ -24,8 +24,6 @@ pub struct ForegroundReservationCapacityAdmission {
     envelope: ForegroundLatencyEnvelope,
     arbitration: ForegroundArbitrationDeclaration,
     security_scope_identity: StoreSecurityScopeIdentity,
-    stable_read_wait_count: u64,
-    stable_read_retry_count: u64,
     requested: ForegroundResourceBudget,
     admitted: ForegroundResourceBudget,
     assumed_backend_limits: ForegroundResourceBudget,
@@ -40,8 +38,6 @@ pub struct ForegroundReservationCapacityAdmissionRequest {
     backend_evidence_class: CapabilityEvidenceClass,
     arbitration: ForegroundArbitrationDeclaration,
     security_scope_identity: StoreSecurityScopeIdentity,
-    stable_read_wait_count: u64,
-    stable_read_retry_count: u64,
     requested: ForegroundResourceBudget,
     admitted: ForegroundResourceBudget,
     assumed_backend_limits: ForegroundResourceBudget,
@@ -51,19 +47,16 @@ pub struct ForegroundReservationCapacityAdmissionRequest {
 #[derive(Debug)]
 pub struct ForegroundReservationCapacityBasis<'a> {
     backend: &'a IoSchedulerBackendCapabilityAdmission,
-    stable_readiness: &'a IoSchedulerIsolationAdmission,
     security_scope: &'a IoSchedulerSecurityScopeAdmission,
 }
 
 impl<'a> ForegroundReservationCapacityBasis<'a> {
     pub const fn new(
         backend: &'a IoSchedulerBackendCapabilityAdmission,
-        stable_readiness: &'a IoSchedulerIsolationAdmission,
         security_scope: &'a IoSchedulerSecurityScopeAdmission,
     ) -> Self {
         Self {
             backend,
-            stable_readiness,
             security_scope,
         }
     }
@@ -116,14 +109,6 @@ impl ForegroundReservationCapacityAdmission {
         self.security_scope_identity
     }
 
-    pub const fn stable_read_wait_count(&self) -> u64 {
-        self.stable_read_wait_count
-    }
-
-    pub const fn stable_read_retry_count(&self) -> u64 {
-        self.stable_read_retry_count
-    }
-
     pub const fn requested_budget(&self) -> ForegroundResourceBudget {
         self.requested
     }
@@ -150,7 +135,6 @@ impl ForegroundReservationCapacityAdmissionRequest {
         assumed_backend_limits: ForegroundResourceBudget,
         policy_receipt: FoundationalPolicyAdmissionReceipt,
     ) -> Self {
-        let readiness_counters = basis.stable_readiness.counters();
         Self {
             lane,
             backend_requirement: basis.backend.requirement(),
@@ -158,8 +142,6 @@ impl ForegroundReservationCapacityAdmissionRequest {
             backend_evidence_class: basis.backend.evidence_class(),
             arbitration,
             security_scope_identity: basis.security_scope.permission().identity(),
-            stable_read_wait_count: readiness_counters.wait_count(),
-            stable_read_retry_count: readiness_counters.retry_count(),
             requested: lane.requested_budget(),
             admitted,
             assumed_backend_limits,
@@ -198,8 +180,6 @@ pub fn admit_foreground_reservation_capacity(
         envelope,
         arbitration: request.arbitration,
         security_scope_identity: request.security_scope_identity,
-        stable_read_wait_count: request.stable_read_wait_count,
-        stable_read_retry_count: request.stable_read_retry_count,
         requested: request.requested,
         admitted: request.admitted,
         assumed_backend_limits: request.assumed_backend_limits,

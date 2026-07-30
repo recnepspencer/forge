@@ -10,9 +10,9 @@ use worth_store_physical_isolation::stable_physical_read_receipt_for_certificati
 use worth_store_security::StoreTenantScope;
 
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
-use crate::test_support::physical_payload_for_bytes;
 use crate::test_support::{
-    admitted_multichunk_sequence_for_scope, blob_allocation_grant, blob_scope,
+    admitted_multichunk_sequence_for_scope, blob_scope, physical_payload_for_bytes,
+    with_blob_allocation,
 };
 use crate::{
     BlobChunkOrdinal, BlobCorruptionReferenceEdges, BlobGenerationPublished,
@@ -35,17 +35,19 @@ pub(crate) fn layout_runtime_case(
     let (published, visible) =
         publish_generation_with_bytes_and_chunk_size(case, bytes, chunk_size);
     let request = request(case, bytes, chunk_size, visible.clone(), &published);
-    let verified = BlobStreamingVerifiedRead::verify_bounded(
-        request.clone(),
-        crate::BlobStreamingReadExecution::new(
-            BlobStreamingReadWindow::bounded(window_bytes).unwrap(),
-            blob_allocation_grant(window_bytes),
-            admission(bytes.len() as u64),
-            quarantine_authority(case),
-            CounterEvidenceStrength::Exact,
-        ),
-        observations_for(bytes, chunk_size, window_bytes),
-    )
+    let verified = with_blob_allocation(window_bytes, |_, allocation| {
+        BlobStreamingVerifiedRead::verify_bounded(
+            request.clone(),
+            crate::BlobStreamingReadExecution::new(
+                BlobStreamingReadWindow::bounded(window_bytes).unwrap(),
+                allocation,
+                admission(bytes.len() as u64),
+                quarantine_authority(case),
+                CounterEvidenceStrength::Exact,
+            ),
+            observations_for(bytes, chunk_size, window_bytes),
+        )
+    })
     .expect("streaming runtime case should verify through bounded production path");
     (published, visible, request, verified)
 }

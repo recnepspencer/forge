@@ -27,7 +27,9 @@ fn pins_distinguish_faults_hits_overpin_and_refault_without_another_runtime() {
         success(media(&root).open_record_store(
             PhysicalRecordOpen::new(format, access).with_residency_policy(policy),
         ));
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
     let residency = serving.certification_physical_residency();
 
     let first_coordinate = coordinate(0);
@@ -91,7 +93,9 @@ fn overlapping_pin_coalesces_without_second_media_work_or_signal_authority() {
     let serving = success(media(&root).open_record_store(
         PhysicalRecordOpen::new(format, access).with_residency_policy(admitted_policy(format)),
     ));
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
     let residency = serving.certification_physical_residency();
     let coordinate = coordinate(0);
     let media_before = serving.media_counters();
@@ -180,7 +184,9 @@ fn coalesced_transient_read_preserves_terminal_truth_and_store_health() {
             &root,
             bootstrap_reads + 1,
         );
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
 
     let limits = RecordReadLimits::new(RecordByteLimit::new(PAYLOAD.len() as u32).unwrap());
     let media_before = serving.media_counters();
@@ -283,19 +289,17 @@ fn coalesced_transient_read_preserves_terminal_truth_and_store_health() {
         .expect("resolved bounded frame must remain hot");
     assert_eq!(
         hot.observation().physical_work_count(),
-        1,
-        "hot open retains only the eager segment-completeness metadata validation"
+        0,
+        "the resident frame carries segment-completeness proof across the hot open"
     );
-    assert_eq!(
-        hot.observation().first_physical_work(),
-        hot.observation().last_physical_work()
-    );
+    assert_eq!(hot.observation().first_physical_work(), None);
+    assert_eq!(hot.observation().last_physical_work(), None);
     drop(hot);
     let hot_media_after = serving.media_counters();
     assert_eq!(
         hot_media_after.attempts_for(MediaOperationRole::ReadMetadata),
-        hot_media_before.attempts_for(MediaOperationRole::ReadMetadata) + 1,
-        "the bounded hit adds no discovery; only segment completeness reads metadata"
+        hot_media_before.attempts_for(MediaOperationRole::ReadMetadata),
+        "the bounded hit must add neither discovery nor segment-completeness media work"
     );
     assert_eq!(
         hot_media_after.attempts_for(MediaOperationRole::PositionedRead),

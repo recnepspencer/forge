@@ -4,9 +4,6 @@ mod boundary_fact;
 mod sample;
 
 use worth_foundational::{BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator};
-use worth_store_buffer_pool::{
-    AllocationAdmission, AllocationRequest, AllocationScope, BufferPoolExecutedEvidenceSource,
-};
 use worth_store_io_scheduler::IoQueueExecutionRecorder;
 
 use super::execution::materialize_io_pressure_observation;
@@ -169,7 +166,11 @@ pub(crate) fn counter_receipt(
         plan,
         schedule,
         trace,
-        buffer_pool_evidence(plan, sample),
+        crate::observe_real_store_residency(
+            "physical-certification-io-pressure",
+            crate::CertificationResidencyWorkload::Maintenance,
+            sample.allocation_bytes,
+        ),
         io_queue_evidence(plan, sample),
     )
     .unwrap();
@@ -252,22 +253,6 @@ fn pressure_fixture() -> crate::ProductionBackedPhysicalFixture {
         ))
         .and_reopen_through_physical_authority()
         .unwrap()
-}
-
-fn buffer_pool_evidence(
-    plan: &PhysicalSimulationPlan,
-    sample: IoPressureExecutionSample,
-) -> BufferPoolExecutedEvidenceSource {
-    let mut allocation =
-        AllocationAdmission::from_declaration(plan.resource_envelope().allocation());
-    let grant = allocation
-        .admit(
-            AllocationRequest::copied_payload(AllocationScope::Foreground, sample.allocation_bytes)
-                .unwrap(),
-        )
-        .unwrap();
-    allocation.record_allocation(grant).unwrap();
-    BufferPoolExecutedEvidenceSource::from_allocation_execution(&allocation).unwrap()
 }
 
 fn io_queue_evidence(

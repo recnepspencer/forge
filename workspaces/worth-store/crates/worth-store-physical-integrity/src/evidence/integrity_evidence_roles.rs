@@ -117,7 +117,7 @@ pub struct StorePlannedWorkBoundaryReport {
 }
 
 impl StorePlannedWorkBoundaryReport {
-    pub fn from_scrub_plan(plan: &ScrubPlan<'_>) -> Self {
+    pub fn from_scrub_plan(plan: &ScrubPlan<'_, '_>) -> Self {
         let planned_byte_count = plan
             .windows()
             .iter()
@@ -154,7 +154,7 @@ impl StorePlannedWorkBoundaryReport {
     }
 }
 
-fn planned_scrub_digest(plan: &ScrubPlan<'_>) -> StableDigest {
+fn planned_scrub_digest(plan: &ScrubPlan<'_, '_>) -> StableDigest {
     StableDigest::new(format!(
         "new-planned-scrub:{:?}:{}:{}",
         plan.mode(),

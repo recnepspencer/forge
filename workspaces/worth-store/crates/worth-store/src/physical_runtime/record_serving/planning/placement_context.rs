@@ -19,5 +19,5 @@ pub(in crate::physical_runtime::record_serving) struct PlacementPlanningContext<
     pub(in crate::physical_runtime::record_serving) frontier: &'plan mut RecordAllocationFrontier,
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
     pub(in crate::physical_runtime::record_serving) residency:
-        super::super::residency::ServingFrameResidency,
+        super::super::residency::PhysicalResidencyWorkPort,
 }

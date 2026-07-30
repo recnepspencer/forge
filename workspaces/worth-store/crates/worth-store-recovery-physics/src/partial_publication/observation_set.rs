@@ -1,6 +1,6 @@
 use crate::{
-    BackendResidueKind, PageFlushRecoveryReceipt, PartialPublicationCrashEdge,
-    PartialPublicationEvidence, TornPublicationDenial, UnadmittedDirtyPagePublicationDenial,
+    BackendResidueKind, PartialPublicationCrashEdge, PartialPublicationEvidence,
+    TornPublicationDenial,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,8 +17,6 @@ pub enum PartialPublicationObservedSource {
         log_digest: String,
     },
     TornPublication(TornPublicationDenial),
-    UnadmittedDurablePageMutation(UnadmittedDirtyPagePublicationDenial),
-    PageFlushRecoveryReceipt(PageFlushRecoveryReceipt),
     InsufficientPersistedEvidence {
         ambiguity_digest: String,
     },
@@ -52,14 +50,6 @@ impl PartialPublicationObservedSource {
         Self::TornPublication(denial)
     }
 
-    pub fn unadmitted_durable_page_mutation(denial: UnadmittedDirtyPagePublicationDenial) -> Self {
-        Self::UnadmittedDurablePageMutation(denial)
-    }
-
-    pub fn page_flush_recovery_receipt(receipt: PageFlushRecoveryReceipt) -> Self {
-        Self::PageFlushRecoveryReceipt(receipt)
-    }
-
     pub fn insufficient_persisted_evidence(ambiguity_digest: impl Into<String>) -> Self {
         Self::InsufficientPersistedEvidence {
             ambiguity_digest: ambiguity_digest.into(),
@@ -82,12 +72,6 @@ impl PartialPublicationObservedSource {
             Self::TornPublication(denial) => {
                 PartialPublicationEvidence::from_torn_publication(denial)
             }
-            Self::UnadmittedDurablePageMutation(denial) => {
-                PartialPublicationEvidence::from_unadmitted_durable_page_mutation(denial)
-            }
-            Self::PageFlushRecoveryReceipt(receipt) => {
-                PartialPublicationEvidence::from_page_flush_recovery_receipt(receipt)
-            }
             Self::InsufficientPersistedEvidence { ambiguity_digest } => {
                 PartialPublicationEvidence::insufficient_persisted_evidence(ambiguity_digest)
             }
@@ -98,7 +82,6 @@ impl PartialPublicationObservedSource {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PartialPublicationObservationSet {
     torn_publication: Option<PartialPublicationObservedSource>,
-    durable_page_mutation: Option<PartialPublicationObservedSource>,
     persisted_crash_edge: Option<PartialPublicationObservedSource>,
     backend_residue: Option<PartialPublicationObservedSource>,
     live_ack_memory: Option<PartialPublicationObservedSource>,
@@ -144,21 +127,6 @@ impl PartialPublicationObservationSet {
         self.with_observed_source(PartialPublicationObservedSource::torn_publication(denial))
     }
 
-    pub fn with_unadmitted_durable_page_mutation(
-        self,
-        denial: UnadmittedDirtyPagePublicationDenial,
-    ) -> Self {
-        self.with_observed_source(
-            PartialPublicationObservedSource::unadmitted_durable_page_mutation(denial),
-        )
-    }
-
-    pub fn with_page_flush_recovery_receipt(self, receipt: PageFlushRecoveryReceipt) -> Self {
-        self.with_observed_source(
-            PartialPublicationObservedSource::page_flush_recovery_receipt(receipt),
-        )
-    }
-
     pub fn with_insufficient_persisted_evidence(self, ambiguity_digest: impl Into<String>) -> Self {
         self.with_observed_source(
             PartialPublicationObservedSource::insufficient_persisted_evidence(ambiguity_digest),
@@ -169,10 +137,6 @@ impl PartialPublicationObservationSet {
         match source {
             PartialPublicationObservedSource::TornPublication(_) => {
                 self.torn_publication = Some(source);
-            }
-            PartialPublicationObservedSource::UnadmittedDurablePageMutation(_)
-            | PartialPublicationObservedSource::PageFlushRecoveryReceipt(_) => {
-                self.durable_page_mutation = Some(source);
             }
             PartialPublicationObservedSource::PersistedCrashEdge(_) => {
                 self.persisted_crash_edge = Some(source);
@@ -196,7 +160,6 @@ impl PartialPublicationObservationSet {
     pub(crate) fn into_sources(self) -> PartialPublicationObservationSources {
         PartialPublicationObservationSources {
             torn_publication: self.torn_publication,
-            durable_page_mutation: self.durable_page_mutation,
             persisted_crash_edge: self.persisted_crash_edge,
             backend_residue: self.backend_residue,
             live_ack_memory: self.live_ack_memory,
@@ -208,7 +171,6 @@ impl PartialPublicationObservationSet {
 
 pub(crate) struct PartialPublicationObservationSources {
     pub(crate) torn_publication: Option<PartialPublicationObservedSource>,
-    pub(crate) durable_page_mutation: Option<PartialPublicationObservedSource>,
     pub(crate) persisted_crash_edge: Option<PartialPublicationObservedSource>,
     pub(crate) backend_residue: Option<PartialPublicationObservedSource>,
     pub(crate) live_ack_memory: Option<PartialPublicationObservedSource>,

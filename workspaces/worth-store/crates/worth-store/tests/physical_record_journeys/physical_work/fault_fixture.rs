@@ -2,8 +2,9 @@ use std::path::Path;
 
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    FilesystemMediaAdmission, PhysicalRecordOpen, PhysicalRuntimeAdmission, PhysicalStore,
-    PhysicalWorkProfileDeclaration, ServingPhysicalRuntime,
+    AdmittedPhysicalRecordResidencyPolicy, FilesystemMediaAdmission, PhysicalRecordOpen,
+    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWorkProfileDeclaration,
+    ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{
     FilesystemAccessPosture, MediaFaultDirective, MediaFaultSchedule, MediaOperationRole,
@@ -70,6 +71,24 @@ pub(super) fn serving_from_open_with_positioned_read_fault(
     ordinal: u64,
     directive: MediaFaultDirective,
 ) -> ServingPhysicalRuntime {
+    serving_from_open_with_positioned_read_fault_policy(root, ordinal, directive, None)
+}
+
+pub(super) fn serving_from_open_with_positioned_read_fault_and_policy(
+    root: &Path,
+    ordinal: u64,
+    directive: MediaFaultDirective,
+    policy: AdmittedPhysicalRecordResidencyPolicy,
+) -> ServingPhysicalRuntime {
+    serving_from_open_with_positioned_read_fault_policy(root, ordinal, directive, Some(policy))
+}
+
+fn serving_from_open_with_positioned_read_fault_policy(
+    root: &Path,
+    ordinal: u64,
+    directive: MediaFaultDirective,
+    policy: Option<AdmittedPhysicalRecordResidencyPolicy>,
+) -> ServingPhysicalRuntime {
     let admission =
         FilesystemMediaAdmission::production(FilesystemAccessPosture::CoordinatedServiceAccount);
     let authority = admission.fault_schedule_authority();
@@ -89,7 +108,12 @@ pub(super) fn serving_from_open_with_positioned_read_fault(
         _ => panic!("faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    super::super::success(media.open_record_store(PhysicalRecordOpen::new(format, access)))
+    let open = PhysicalRecordOpen::new(format, access);
+    let open = match policy {
+        Some(policy) => open.with_residency_policy(policy),
+        None => open,
+    };
+    super::super::success(media.open_record_store(open))
 }
 
 pub(super) fn serving_from_open_with_paused_positioned_read_failure(

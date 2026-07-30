@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 pub enum PhysicalCellReuseDomain {
     SlotAllocation,
     ExtentAllocation,
+    RecordExtentAllocation,
     FreeSpaceReuse,
     RootPublication,
     Page,
@@ -53,6 +54,22 @@ impl PhysicalGenerationOwner {
         Self {
             domain: PhysicalCellReuseDomain::ExtentAllocation,
             segment_id: Some(segment_id),
+            page_id: None,
+            extent_id: Some(extent_id),
+            slot: None,
+            root_reference: None,
+            allocation_class: None,
+            generation,
+        }
+    }
+
+    pub(crate) const fn for_record_extent(
+        extent_id: PhysicalExtentId,
+        generation: PhysicalGeneration,
+    ) -> Self {
+        Self {
+            domain: PhysicalCellReuseDomain::RecordExtentAllocation,
+            segment_id: None,
             page_id: None,
             extent_id: Some(extent_id),
             slot: None,
@@ -212,6 +229,7 @@ const fn domain_tag(domain: PhysicalCellReuseDomain) -> u8 {
     match domain {
         PhysicalCellReuseDomain::SlotAllocation => 1,
         PhysicalCellReuseDomain::ExtentAllocation => 2,
+        PhysicalCellReuseDomain::RecordExtentAllocation => 7,
         PhysicalCellReuseDomain::FreeSpaceReuse => 3,
         PhysicalCellReuseDomain::RootPublication => 4,
         PhysicalCellReuseDomain::Page => 5,

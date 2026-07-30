@@ -67,73 +67,48 @@ impl ServingPhysicalRuntime {
             .counters()
     }
 
+    /// Returns read-only residency evidence for this serving Store generation.
+    ///
+    /// The observation exposes admitted limits and executed counters, never
+    /// pool, allocation, eviction, retry, dirty, or writeback authority.
     pub fn residency_observation(&self) -> super::super::PhysicalResidencyObservation {
         self.parts
             .residency
             .observation(self.parts.core.lifecycle_generation())
     }
 
-    pub fn drain_clean_residency(&self) -> u64 {
-        self.parts.residency.ports().drain_unpinned_clean_frames()
+    /// Returns the runtime-bound admission surface for successor physical bytes.
+    ///
+    /// Recovery, scrub, maintenance, verification, and blob adapters use this
+    /// surface to charge temporary operation memory to one exact Store scope.
+    /// The returned capability exposes no frame, pool, scheduler, or successor
+    /// policy authority.
+    pub fn physical_allocations(&self) -> super::super::PhysicalScopedAllocationAdmission<'_> {
+        super::super::PhysicalScopedAllocationAdmission::new(
+            self.parts.residency.ports(),
+            self.parts.core.runtime_identity(),
+            self.parts.core.lifecycle_generation(),
+        )
     }
 
-    pub fn physical_residency_writeback_command(
-        &self,
-        work: crate::physical_runtime::ResourceAdmittedPhysicalWork,
-    ) -> Result<
-        crate::physical_runtime::PhysicalExecutorCommand,
-        super::super::PhysicalScheduledWritebackAdmissionDenial,
-    > {
-        self.parts.work_runtime.health.permit().map_err(|_| {
-            super::super::PhysicalScheduledWritebackAdmissionDenial::ServingRequiresInspection
-        })?;
-        if work.intent().operation()
-            != crate::physical_runtime::PhysicalWorkOperationFamily::ArtifactRangeWrite
-        {
-            return Err(
-                super::super::PhysicalScheduledWritebackAdmissionDenial::CanonicalWorkMismatch,
-            );
-        }
-        let [coordinate] = work.intent().scope().coordinates() else {
-            return Err(
-                super::super::PhysicalScheduledWritebackAdmissionDenial::CanonicalWorkMismatch,
-            );
-        };
-        let claim = self
-            .parts
-            .residency
-            .ports()
-            .claim_writeback(*coordinate)
-            .map_err(super::super::PhysicalScheduledWritebackAdmissionDenial::Residency)?;
-        super::super::residency::scheduled_writeback::PhysicalScheduledWriteback::validate(
-            &claim,
-            work.queue_plan(),
-        )?;
-        Ok(crate::physical_runtime::PhysicalExecutorCommand::residency_writeback(work, claim))
-    }
-
-    pub fn bind_physical_residency_writeback_retry(
-        &self,
-        retry: crate::physical_runtime::PhysicalRetryCommand,
-        work: crate::physical_runtime::ResourceAdmittedPhysicalWork,
-    ) -> Result<
-        crate::physical_runtime::PhysicalExecutorCommand,
-        super::super::PhysicalScheduledWritebackAdmissionDenial,
-    > {
-        retry
-            .admit_residency_retry(&work)
-            .map_err(super::super::PhysicalScheduledWritebackAdmissionDenial::Retry)?;
-        self.physical_residency_writeback_command(work)
-    }
-
+    /// Returns the facade for opening bounded record-read sessions.
     pub fn records(&self) -> PhysicalRecordReader {
-        let port = super::super::CanonicalRecordReadPort::new(
+        let read = super::super::CanonicalRecordReadPort::new(
             &self.parts.work_runtime,
             self.parts.core.lifecycle_generation(),
             self.parts.work_admission,
             self.parts.scheduler_admission.clone(),
             self.parts.record_work.clone(),
         );
+        let mutation = super::super::CanonicalRecordMutationPort::new(
+            &self.parts.work_runtime,
+            self.parts.core.lifecycle_generation(),
+            self.parts.work_admission,
+            self.parts.scheduler_admission.clone(),
+            self.parts.record_work.clone(),
+        );
+        let frame_ports = self.parts.residency.ports().clone();
+        let writeback = mutation.frame_writeback_port(frame_ports.clone());
         PhysicalRecordReader {
             store: self.store_identity(),
             format: self.parts.format,
@@ -142,16 +117,12 @@ impl ServingPhysicalRuntime {
             generation: self.parts.core.lifecycle_generation(),
             runtime: std::sync::Arc::downgrade(&self.parts.work_runtime),
             lifecycle: self.parts.record_owner.reader(),
-            residency: super::super::residency::ServingFrameResidency::new(
-                self.parts.residency.ports().clone(),
-                super::super::residency::frame_loading::CanonicalFrameReadSource::new(port),
+            residency: super::super::residency::PhysicalResidencyWorkPort::new(
+                frame_ports,
+                super::super::residency::frame_loading::CanonicalFrameReadSource::new(read),
+                writeback,
             ),
         }
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub fn c6_physical_work_handoff(&self) -> super::super::C6PhysicalWorkHandoff {
-        super::super::C6PhysicalWorkHandoff::from_parts(&self.parts, self.records())
     }
 
     pub fn record_submission(&self) -> super::super::PhysicalRecordSubmission {

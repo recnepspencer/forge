@@ -1,4 +1,3 @@
-use worth_store_buffer_pool::AllocationScope;
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario,
     reject_hostile_counter_evidence_for_readmission, CounterContractKind, CounterExpectationKind,
@@ -33,17 +32,8 @@ fn resource_envelopes_are_profile_scoped_and_ordered_by_profile() {
         let [lower, higher] = pair else {
             unreachable!("windows(2) always yields two envelopes");
         };
-        assert!(
-            lower
-                .allocation()
-                .budget(AllocationScope::Foreground)
-                .as_bytes()
-                < higher
-                    .allocation()
-                    .budget(AllocationScope::Foreground)
-                    .as_bytes()
-        );
-        assert!(lower.resident_bytes().as_bytes() < higher.resident_bytes().as_bytes());
+        assert!(lower.allocation_bytes() < higher.allocation_bytes());
+        assert!(lower.resident_bytes() < higher.resident_bytes());
         assert!(lower.max_pinned_pages() < higher.max_pinned_pages());
         assert!(lower.max_dirty_pages() < higher.max_dirty_pages());
         assert!(lower.io_queue().max_queue_depth() < higher.io_queue().max_queue_depth());
@@ -182,11 +172,8 @@ fn hostile_observation_for_profile(
     let envelope = plan.resource_envelope();
     HostileResourceEnvelopeObservation::new(
         profile,
-        envelope
-            .allocation()
-            .budget(AllocationScope::Foreground)
-            .as_bytes(),
-        envelope.resident_bytes().as_bytes(),
+        envelope.allocation_bytes(),
+        envelope.resident_bytes(),
         u64::from(envelope.max_pinned_pages()),
         u64::from(envelope.max_dirty_pages()),
         u64::from(envelope.io_queue().max_queue_depth()),

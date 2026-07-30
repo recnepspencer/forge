@@ -1,13 +1,8 @@
-use std::sync::Arc;
-
 use super::*;
 use crate::physical_runtime::record_serving::residency::candidate_frame_publishers::{
     BoundedCandidateFramePublisher, CandidateFrameCounterCells,
 };
-use worth_store_buffer_pool::OperationAllocationGrant;
-use worth_store_physical_format::store_namespace::{
-    ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
-};
+use worth_store_buffer_pool::ForegroundWriteAllocationGrant;
 
 #[path = "tests/allocation_authority.rs"]
 mod allocation_authority;
@@ -38,7 +33,7 @@ fn segment_coordinate(offset: u64) -> CandidateFrameCoordinate {
 }
 
 fn session<'allocation>(
-    allocation: &'allocation OperationAllocationGrant,
+    allocation: &'allocation ForegroundWriteAllocationGrant,
     declaration: CandidateFrameSet,
 ) -> StoreCandidateFramePublicationSession<'allocation> {
     let port = PreEffectPublisher;
@@ -148,7 +143,7 @@ struct MutatingPublisher;
 impl CandidateFramePublicationPort for MutatingPublisher {
     fn begin<'allocation>(
         &self,
-        _: &'allocation OperationAllocationGrant,
+        _: &'allocation ForegroundWriteAllocationGrant,
         _: &CandidateFrameSet,
     ) -> Result<Box<dyn CandidateFrameResidencySession + 'allocation>, RecordAppendDenial> {
         Ok(Box::new(MutatingSession))
@@ -178,6 +173,10 @@ impl CandidateFrameResidencySession for MutatingSession {
 struct MutatingResident(CandidateFrame);
 
 impl ResidentCandidateFrame for MutatingResident {
+    fn store_identity(&self) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
+        unreachable!("retained-byte validation precedes Store settlement")
+    }
+
     fn role(&self) -> CandidateFrameRole {
         self.0.role()
     }
@@ -190,9 +189,16 @@ impl ResidentCandidateFrame for MutatingResident {
     fn discard(self: Box<Self>) -> Result<(), RecordAppendDenial> {
         Ok(())
     }
+    fn into_dirty(
+        self: Box<Self>,
+    ) -> Result<worth_store_buffer_pool::DirtyPhysicalFrame, RecordAppendDenial> {
+        Err(RecordAppendDenial::from_residency(
+            worth_store_buffer_pool::PhysicalResidencyDenial::FrameNotResident,
+        ))
+    }
     fn publish_clean(
         self: Box<Self>,
-        _physical: &CandidateFramePhysicalWrite,
+        _settlement: CandidateFrameResidencySettlement,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
         Ok(CandidateFrameWriteCompletion::retained(
             self.0.bytes().len() as u64,
@@ -205,7 +211,7 @@ struct PreEffectPublisher;
 impl CandidateFramePublicationPort for PreEffectPublisher {
     fn begin<'allocation>(
         &self,
-        _: &'allocation OperationAllocationGrant,
+        _: &'allocation ForegroundWriteAllocationGrant,
         _: &CandidateFrameSet,
     ) -> Result<Box<dyn CandidateFrameResidencySession + 'allocation>, RecordAppendDenial> {
         Ok(Box::new(PreEffectSession))

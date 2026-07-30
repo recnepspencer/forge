@@ -12,11 +12,10 @@ use worth_store_io_scheduler::foreground_reservation::admitted_point_read_reserv
 use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
-    assess_queue_latency_envelope, execute_ready_queue_plan, lower_buffer_pool_queue_declaration,
-    BackgroundResourceBudget, CacheResidencyHint, InterferenceCounterName,
-    InterferenceCounterRequirement, LatencyEnvelopeClaim, QueueExecutionReadyPlan, QueueSlot,
-    ReadAheadWindow, SecureIoOperation, SecureIoPostureRequirement, SecureIoPreservationRequest,
-    WorkerPermit,
+    assess_queue_latency_envelope, execute_ready_queue_plan, BackgroundResourceBudget,
+    CacheResidencyHint, InterferenceCounterName, InterferenceCounterRequirement,
+    LatencyEnvelopeClaim, QueueExecutionReadyPlan, QueueSlot, ReadAheadWindow, SecureIoOperation,
+    SecureIoPostureRequirement, SecureIoPreservationRequest, WorkerPermit,
 };
 use worth_store_physical_backend::{
     AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
@@ -91,17 +90,16 @@ fn receipt_rows(evidence: &S6LatencyInterferenceEvidence) -> Vec<(String, u64)> 
 fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
     let reservation = admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = worth_store_test_support::read_ahead_declaration_for_real_pool(
-        reservation.security_scope_identity(),
+    let work = worth_store_test_support::harness::scheduling::scheduler_foreground_read_work(
+        reservation,
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
             .with_read_ahead_windows(budget.read_ahead_window())
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
-    );
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
-        .expect("buffer-pool producer should lower to queue work");
+    )
+    .expect("scheduler-native foreground read should lower to queue work");
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
         work.backend_requirement(),
@@ -114,11 +112,10 @@ fn admitted_read_ahead_plan() -> QueueExecutionReadyPlan {
     )
     .expect("read-ahead secure-I/O should admit");
     let work = work.with_secure_io_scope(secure_io);
-    let policy =
-        worth_store_io_scheduler::admit_queue_policy_receipt(work.clone(), policy_receipt(budget))
-            .expect("policy receipt should bind the exact queue work");
+    let policy = worth_store_io_scheduler::admit_queue_policy_receipt(work, policy_receipt(budget))
+        .expect("policy receipt should bind the exact queue work");
     admit_queue_execution_plan(
-        worth_store_io_scheduler::QueueExecutionAdmissionRequest::new(work, &backend, policy),
+        worth_store_io_scheduler::QueueExecutionAdmissionRequest::new(policy, &backend),
     )
     .expect("queue work should admit")
 }

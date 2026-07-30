@@ -1,29 +1,21 @@
-use worth_store_buffer_pool::PhysicalFrameLease;
-#[cfg(feature = "legacy-certification-models")]
-use worth_store_buffer_pool::{PinnedFrameView, ZeroCopyRecordView};
+use worth_store::physical_runtime::{PhysicalRecordChunkBasis, PhysicalRecordChunkView};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProtectedPhysicalByteView<'lease> {
     bytes: &'lease [u8],
+    basis: PhysicalRecordChunkBasis,
 }
 
 impl<'lease> ProtectedPhysicalByteView<'lease> {
-    pub fn from_physical_frame(frame: &'lease PhysicalFrameLease) -> Self {
-        Self { bytes: frame }
-    }
-
-    #[cfg(feature = "legacy-certification-models")]
-    pub fn from_pinned_frame(view: &PinnedFrameView<'lease>) -> Self {
+    pub fn from_store_chunk(view: &PhysicalRecordChunkView<'lease>) -> Self {
         Self {
-            bytes: view.as_bytes(),
+            bytes: view.bytes(),
+            basis: view.basis(),
         }
     }
 
-    #[cfg(feature = "legacy-certification-models")]
-    pub fn from_zero_copy_record_view(view: &ZeroCopyRecordView<'lease>) -> Self {
-        Self {
-            bytes: view.physical_record_bytes(),
-        }
+    pub const fn basis(self) -> PhysicalRecordChunkBasis {
+        self.basis
     }
 
     pub const fn as_bytes(self) -> &'lease [u8] {

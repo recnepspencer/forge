@@ -99,7 +99,7 @@ use worth_store_recovery_physics::{
     RecoveryEntryAdmission, RecoveryReplayEntryGate,
 };
 
-let admission: RecoveryEntryAdmission = todo!();
+let admission: RecoveryEntryAdmission<'_> = todo!();
 let _gate = RecoveryReplayEntryGate::before_source_precedence(admission);
 ```
 
@@ -119,7 +119,7 @@ use worth_store_readiness::ProtectedIntegrityViewCapability;
 use worth_store_recovery_physics::{RecoveryEntryAdmission, RecoveryMemoryAllocation};
 
 let protected_view: ProtectedIntegrityViewCapability = todo!();
-let memory: RecoveryMemoryAllocation = todo!();
+let memory: RecoveryMemoryAllocation<'_> = todo!();
 let physical_authority = todo!();
 let _entry = RecoveryEntryAdmission::admit(protected_view, memory, physical_authority);
 ```
@@ -405,7 +405,7 @@ use worth_store_recovery_physics::{
     BoundedRecoveryPlan, ReopenedRecoveryArtifactAdmission,
 };
 
-let plan: BoundedRecoveryPlan = todo!();
+let plan: BoundedRecoveryPlan<'_> = todo!();
 let admission: ReopenedRecoveryArtifactAdmission = todo!();
 let _execution = plan.execute_reopened_runtime_recovery(&admission);
 ```
@@ -571,4 +571,50 @@ use worth_store_recovery_physics::{S4LoweredCrashHarnessEvidence, S4RecoveryCras
 let _harness = S4LoweredCrashHarnessEvidence::from_required_s4_seam(
     S4RecoveryCrashSeam::WalAppend,
 );
+```
+
+Recovery memory accepts only Store-minted Recovery allocation authority; an
+exact Maintenance allocation cannot cross the scope boundary:
+
+```compile_fail
+use worth_store::physical_runtime::MaintenancePhysicalAllocation;
+use worth_store_recovery_physics::RecoveryMemoryAllocation;
+
+fn cannot_substitute_scope<'runtime>(
+    allocation: MaintenancePhysicalAllocation<'runtime>,
+) {
+    let _memory = RecoveryMemoryAllocation::from_store_allocation(allocation);
+}
+```
+
+Owning Recovery wrappers cannot erase the issuing runtime lifetime:
+
+```compile_fail
+use worth_store::physical_runtime::RecoveryPhysicalAllocation;
+use worth_store_recovery_physics::RecoveryMemoryAllocation;
+
+fn cannot_escape_runtime<'runtime>(
+    allocation: RecoveryPhysicalAllocation<'runtime>,
+) -> RecoveryMemoryAllocation<'static> {
+    RecoveryMemoryAllocation::from_store_allocation(allocation)
+}
+```
+
+The issuing runtime cannot close while Recovery allocation authority remains
+live in a successor wrapper:
+
+```compile_fail
+use std::num::NonZeroU64;
+use worth_store::physical_runtime::ServingPhysicalRuntime;
+use worth_store_recovery_physics::RecoveryMemoryAllocation;
+
+fn cannot_close_while_recovery_authority_is_live(runtime: ServingPhysicalRuntime) {
+    let allocation = runtime
+        .physical_allocations()
+        .admit_recovery(NonZeroU64::MIN)
+        .unwrap();
+    let memory = RecoveryMemoryAllocation::from_store_allocation(allocation);
+    let _closed = runtime.close();
+    drop(memory);
+}
 ```

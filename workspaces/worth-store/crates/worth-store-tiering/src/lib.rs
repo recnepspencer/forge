@@ -4,7 +4,6 @@ pub mod layout_projection;
 
 mod cold_state;
 mod cold_tier_posture;
-mod io_readiness;
 
 pub use cold_state::{
     classify_cold_posture_permit, cold_posture_permits_compaction, cold_posture_permits_movement,
@@ -13,7 +12,6 @@ pub use cold_state::{
 #[cfg(feature = "certification-test-authority")]
 pub use cold_tier_posture::certification_test_support;
 pub use cold_tier_posture::{ColdTierIoPosture, ColdTierIoPostureDenial};
-pub use io_readiness::{admit_tier_placement_io, TierPlacementIoAdmission};
 pub use layout_projection::{
     ColdRecallAccessBudget, ColdRecallInterferencePosture, ColdRecallLayoutReport,
     RecallAmplificationAccessBudget, RecallAmplificationInterferencePosture,

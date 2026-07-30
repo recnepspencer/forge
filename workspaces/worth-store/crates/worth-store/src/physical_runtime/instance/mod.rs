@@ -40,7 +40,6 @@ pub use termination::{
     PhysicalStoreClosePhase, PhysicalStoreClosePlan,
 };
 pub(in crate::physical_runtime) use work_lifecycle::PhysicalWorkLifecycle;
-#[cfg(feature = "certification-test-authority")]
 pub(in crate::physical_runtime) use work_runtime::PhysicalExecutionCall;
 pub use work_runtime::PhysicalWorkExecution;
 pub(in crate::physical_runtime) use work_runtime::{

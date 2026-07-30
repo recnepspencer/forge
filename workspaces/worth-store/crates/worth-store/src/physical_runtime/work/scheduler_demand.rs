@@ -1,13 +1,13 @@
 use sha2::{Digest, Sha256};
 use worth_store_io_scheduler::foreground_reservation::{
-    ForegroundIoLaneKind, PhysicalInstanceForegroundCapacityLease,
+    ForegroundIoLaneKind, ForegroundReservationReceipt, PhysicalInstanceForegroundCapacityLease,
     PhysicalInstanceForegroundReservation,
 };
 use worth_store_io_scheduler::{
     admit_queue_execution_plan, admit_queue_policy_receipt, lower_physical_foreground_work,
-    IoSchedulerBackendCapabilityAdmission, QueueDurabilityClass, QueueExecutionAdmissionDenial,
-    QueueExecutionAdmissionRequest, QueueLocalityIdentity, QueueLocalityRange,
-    QueueRecoveryOrdering, QueueWorkDeclaration, QueueWritebackPolicy, SecureIoPreservationReceipt,
+    IoSchedulerBackendCapabilityAdmission, PhysicalForegroundWorkDeclaration,
+    QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueLocalityIdentity,
+    QueueLocalityRange, QueueWorkDeclaration, SecureIoPreservationReceipt,
 };
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::RecordArtifactFile;
@@ -16,6 +16,8 @@ use super::{
     PhysicalWorkDurabilityRequirement, PhysicalWorkOperationFamily, ReadyPhysicalWork,
     ResourceAdmittedPhysicalWork,
 };
+
+mod residency;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalSchedulerDenial {
@@ -43,59 +45,26 @@ impl PhysicalSchedulerDemand {
         reservation: PhysicalInstanceForegroundReservation,
         secure_io: Option<SecureIoPreservationReceipt>,
     ) -> Result<Self, PhysicalSchedulerDenial> {
+        ready
+            .require_consumer_active()
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
         let intent = ready.intent();
         require_lane(intent.operation(), reservation.receipt().lane())?;
-        let pressure_marked = ready.mark_pressure(pressure_class(reservation.receipt().lane()));
-        debug_assert!(pressure_marked);
+        ready
+            .admit_scheduler_pressure(pressure_class(reservation.receipt().lane()))
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
         let (receipt, capacity) = reservation.into_parts();
-        let resources = intent.resources();
-        let (durability, recovery, writeback) = scheduler_posture(intent);
-        let work = lower_physical_foreground_work(
+        let declaration = physical_foreground_declaration(
+            intent,
             receipt,
-            intent.security(),
             physical_locality(intent.identity().store(), intent.scope()),
-            resources.queue_shape(),
-            durability,
-            resources.flush_epoch(),
-            recovery,
-            writeback,
-            secure_io,
-        )
-        .map_err(PhysicalSchedulerDenial::Queue)?;
-        Ok(Self {
-            ready,
-            work,
-            capacity,
-        })
-    }
-
-    pub fn residency_writeback(
-        ready: ReadyPhysicalWork,
-        declaration: worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration,
-        reservation: PhysicalInstanceForegroundReservation,
-        secure_io: Option<SecureIoPreservationReceipt>,
-    ) -> Result<Self, PhysicalSchedulerDenial> {
-        let intent = ready.intent();
-        let [coordinate] = intent.scope().coordinates() else {
-            return Err(PhysicalSchedulerDenial::ResidencyWorkMismatch);
+        );
+        let declaration = match secure_io {
+            Some(secure_io) => declaration.with_secure_io_scope(secure_io),
+            None => declaration,
         };
-        if intent.operation() != PhysicalWorkOperationFamily::ArtifactRangeWrite
-            || declaration.store() != intent.identity().store()
-            || declaration.frame() != *coordinate
-            || declaration.grouping_scope().security_scope_identity() != intent.security()
-        {
-            return Err(PhysicalSchedulerDenial::ResidencyWorkMismatch);
-        }
-        require_lane(intent.operation(), reservation.receipt().lane())?;
-        let pressure_marked = ready.mark_pressure(pressure_class(reservation.receipt().lane()));
-        debug_assert!(pressure_marked);
-        let (receipt, capacity) = reservation.into_parts();
-        let mut work =
-            worth_store_io_scheduler::lower_buffer_pool_queue_declaration(declaration, receipt)
-                .map_err(PhysicalSchedulerDenial::Queue)?;
-        if let Some(secure_io) = secure_io {
-            work = work.with_secure_io_scope(secure_io);
-        }
+        let work =
+            lower_physical_foreground_work(declaration).map_err(PhysicalSchedulerDenial::Queue)?;
         Ok(Self {
             ready,
             work,
@@ -107,8 +76,8 @@ impl PhysicalSchedulerDemand {
         self.ready.intent()
     }
 
-    pub fn queue_work(&self) -> QueueWorkDeclaration {
-        self.work.clone()
+    pub const fn queue_work(&self) -> &QueueWorkDeclaration {
+        &self.work
     }
 
     pub fn with_secure_io(mut self, secure_io: SecureIoPreservationReceipt) -> Self {
@@ -246,41 +215,41 @@ impl PhysicalWorkScheduler {
             work,
             capacity,
         } = demand;
-        let policy = admit_queue_policy_receipt(work.clone(), policy)
+        let policy =
+            admit_queue_policy_receipt(work, policy).map_err(PhysicalSchedulerDenial::Queue)?;
+        let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, backend))
             .map_err(PhysicalSchedulerDenial::Queue)?;
-        let plan =
-            admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, backend, policy))
-                .map_err(PhysicalSchedulerDenial::Queue)?;
         Ok(ResourceAdmittedPhysicalWork::new(ready, plan, capacity))
     }
 }
 
-fn scheduler_posture(
+fn physical_foreground_declaration(
     intent: &super::PhysicalWorkIntent,
-) -> (
-    QueueDurabilityClass,
-    QueueRecoveryOrdering,
-    QueueWritebackPolicy,
-) {
+    reservation: ForegroundReservationReceipt,
+    locality: QueueLocalityIdentity,
+) -> PhysicalForegroundWorkDeclaration {
+    let resources = intent.resources();
     match (intent.operation(), intent.durability()) {
         (
             PhysicalWorkOperationFamily::ArtifactMetadataRead
             | PhysicalWorkOperationFamily::ArtifactRangeRead,
             PhysicalWorkDurabilityRequirement::ReadOnly,
-        ) => (
-            QueueDurabilityClass::ReadOnly,
-            QueueRecoveryOrdering::NotRecoveryCritical,
-            QueueWritebackPolicy::None,
+        ) => PhysicalForegroundWorkDeclaration::read(
+            reservation,
+            locality,
+            resources.queue_shape(),
+            resources.flush_epoch(),
         ),
         (
             PhysicalWorkOperationFamily::ArtifactRangeWrite,
             PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
                 ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
             ),
-        ) => (
-            QueueDurabilityClass::BufferedWrite,
-            QueueRecoveryOrdering::NotRecoveryCritical,
-            QueueWritebackPolicy::DeferredWithinFlushEpoch,
+        ) => PhysicalForegroundWorkDeclaration::buffered_write(
+            reservation,
+            locality,
+            resources.queue_shape(),
+            resources.flush_epoch(),
         ),
         (
             PhysicalWorkOperationFamily::ArtifactRangeWrite,
@@ -291,10 +260,11 @@ fn scheduler_posture(
         | (
             PhysicalWorkOperationFamily::ArtifactPublication,
             PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(_),
-        ) => (
-            QueueDurabilityClass::PlatformDurable,
-            QueueRecoveryOrdering::NotRecoveryCritical,
-            QueueWritebackPolicy::Immediate,
+        ) => PhysicalForegroundWorkDeclaration::durable_write(
+            reservation,
+            locality,
+            resources.queue_shape(),
+            resources.flush_epoch(),
         ),
         _ => unreachable!("physical declaration admission already proved operation durability"),
     }

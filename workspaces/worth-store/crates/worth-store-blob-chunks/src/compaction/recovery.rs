@@ -7,7 +7,7 @@ pub struct BlobCompactionResidue {
     counters: BlobCompactionCounterSnapshot,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BlobCompactionRestartOutcome {
     ResumeAdmittedRewrite(Box<BlobCompactionRewritePlan>),
     RollBackToPreCompactionPlacement { root: ChunkTreeRoot },

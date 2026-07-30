@@ -2,10 +2,7 @@ use worth_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass
 use worth_store_security::StoreSecurityScopeIdentity;
 
 use crate::foreground_reservation::{ForegroundIoLaneKind, ForegroundReservationReceipt};
-use crate::{
-    IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerIsolationAdmission, IoSchedulerIsolationCounterSnapshot,
-};
+use crate::{IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement};
 
 use super::BackgroundIoPressureClass;
 
@@ -21,7 +18,6 @@ pub struct BackgroundPacingAdmissionBasis {
     backend_evidence_class: CapabilityEvidenceClass,
     backend_security_scope_bound: bool,
     security_scope_identity: StoreSecurityScopeIdentity,
-    readiness_counters: IoSchedulerIsolationCounterSnapshot,
 }
 
 impl BackgroundPacingAdmissionBasis {
@@ -29,7 +25,6 @@ impl BackgroundPacingAdmissionBasis {
         class: BackgroundIoPressureClass,
         foreground: &ForegroundReservationReceipt,
         backend: &IoSchedulerBackendCapabilityAdmission,
-        readiness: &IoSchedulerIsolationAdmission,
         security_scope_identity: StoreSecurityScopeIdentity,
     ) -> Self {
         Self {
@@ -43,7 +38,6 @@ impl BackgroundPacingAdmissionBasis {
             backend_evidence_class: backend.evidence_class(),
             backend_security_scope_bound: backend.security_scope_bound(),
             security_scope_identity,
-            readiness_counters: readiness.counters(),
         }
     }
 
@@ -76,8 +70,5 @@ impl BackgroundPacingAdmissionBasis {
     }
     pub const fn security_scope_identity(self) -> StoreSecurityScopeIdentity {
         self.security_scope_identity
-    }
-    pub const fn readiness_counters(self) -> IoSchedulerIsolationCounterSnapshot {
-        self.readiness_counters
     }
 }

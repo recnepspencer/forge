@@ -4,7 +4,8 @@ use super::manifest_binary_cursor::{FallibleEncoder, ManifestDecoder};
 use super::manifest_binary_tags::{family_from_tag, family_tag, format_from_tag, format_tag};
 use super::{
     BackupBundleArtifactCoverage, BackupBundleArtifactManifestRow, BackupBundleFormatDenial,
-    BackupBundleManifest, BackupBundlePhysicalOwner,
+    BackupBundleManifest, BackupBundleManifestDeclaration, BackupBundleManifestIdentity,
+    BackupBundlePhysicalOwner, BackupBundleRecoveryCoordinates,
 };
 use crate::{
     PhysicalCellReuseDomain, PhysicalExtentId, PhysicalGeneration, PhysicalGenerationAuthority,
@@ -60,6 +61,35 @@ pub(super) fn decode_manifest(
     let wal_end = input.u64()?;
     let acknowledged_frontier = input.u64()?;
     let security_scope_fingerprint = input.u64()?;
+    let artifacts = decode_artifacts(&mut input, maximum_artifacts)?;
+    let encoded_closure_digest = input.array::<32>()?;
+    input.require_eof()?;
+    let manifest = BackupBundleManifest::from_decoded_parts(
+        BackupBundleManifestDeclaration::new(
+            BackupBundleManifestIdentity {
+                cut_identity,
+                store_lineage,
+                root_generation,
+                manifest_generation,
+            },
+            BackupBundleRecoveryCoordinates {
+                checkpoint_identity,
+                durable_checkpoint_lsn,
+                wal_half_open_interval: (wal_start, wal_end),
+                acknowledged_frontier,
+            },
+            security_scope_fingerprint,
+            artifacts,
+        ),
+        encoded_closure_digest,
+    );
+    Ok(manifest)
+}
+
+fn decode_artifacts<R: Read>(
+    input: &mut ManifestDecoder<R>,
+    maximum_artifacts: u64,
+) -> Result<Vec<BackupBundleArtifactManifestRow>, BackupBundleFormatDenial> {
     let artifact_count = u64::from(input.u32()?);
     if artifact_count > maximum_artifacts {
         return Err(BackupBundleFormatDenial::ManifestArtifactLimitExceeded {
@@ -82,24 +112,9 @@ pub(super) fn decode_manifest(
         .try_reserve_exact(artifact_count)
         .map_err(|_| BackupBundleFormatDenial::ManifestAllocationFailed)?;
     for _ in 0..artifact_count {
-        artifacts.push(decode_row(&mut input)?);
+        artifacts.push(decode_row(input)?);
     }
-    let encoded_closure_digest = input.array::<32>()?;
-    input.require_eof()?;
-    let manifest = BackupBundleManifest::from_decoded_parts(
-        cut_identity,
-        store_lineage,
-        root_generation,
-        manifest_generation,
-        checkpoint_identity,
-        durable_checkpoint_lsn,
-        (wal_start, wal_end),
-        acknowledged_frontier,
-        security_scope_fingerprint,
-        artifacts,
-        encoded_closure_digest,
-    );
-    Ok(manifest)
+    Ok(artifacts)
 }
 
 fn encode_row(
@@ -239,6 +254,10 @@ fn decode_owner(
             .extent_cell(segment_id(segment)?, extent_id(extent)?)
             .with_extent_generation(generation)
             .owner(),
+        7 if segment == 0 && page == 0 && slot == 0 && root == 0 => authority
+            .record_extent_cell(extent_id(extent)?)
+            .with_extent_generation(generation)
+            .owner(),
         4 if segment == 0 && page == 0 && extent == 0 && slot == 0 => authority
             .root_publication_cell(root_reference(root)?)
             .with_root_publication_generation(generation)
@@ -260,6 +279,7 @@ const fn owner_domain_tag(domain: PhysicalCellReuseDomain) -> Option<u8> {
     match domain {
         PhysicalCellReuseDomain::SlotAllocation => Some(1),
         PhysicalCellReuseDomain::ExtentAllocation => Some(2),
+        PhysicalCellReuseDomain::RecordExtentAllocation => Some(7),
         PhysicalCellReuseDomain::RootPublication => Some(4),
         PhysicalCellReuseDomain::Page => Some(5),
         PhysicalCellReuseDomain::Segment => Some(6),

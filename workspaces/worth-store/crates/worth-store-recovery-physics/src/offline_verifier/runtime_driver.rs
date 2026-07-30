@@ -61,7 +61,7 @@ impl FreshRuntimeRecoveryDriver {
 
     pub fn execute_reopened_runtime_recovery(
         &self,
-        plan: &BoundedRecoveryPlan,
+        plan: &BoundedRecoveryPlan<'_>,
     ) -> Result<(BoundedRecoveryReceipt, FreshRuntimeRecoveryExecution), ReopenedRecoveryDenial>
     {
         let session = self

@@ -1,12 +1,13 @@
 use super::wal_tail as wal_only_tail_fixture;
 #[cfg(feature = "certification-world")]
 use super::{
-    dirty_publication as dirty_publication_paths, source_precedence as source_precedence_fixture,
-    wal_durability as wal_durability_paths,
+    reopened_artifact::reopened_redo_eligibility, source_precedence as source_precedence_fixture,
 };
 
 #[cfg(feature = "certification-world")]
-use worth_store_physical_backend::PosixFileFsyncDirFsyncProfile;
+use source_precedence_fixture::{
+    checkpoint_base, checkpoint_base_for_root, wal_only_tail, wal_tail_for_checkpoint,
+};
 #[cfg(feature = "certification-world")]
 use worth_store_physical_format::PhysicalReference;
 use worth_store_physical_format::{
@@ -24,19 +25,7 @@ use worth_store_recovery_physics::{
     WalPrefixIntegrityObservation, WalPrefixObservationScan, WalSegmentGeneration, WalValidPrefix,
 };
 #[cfg(feature = "certification-world")]
-use worth_store_recovery_physics::{
-    DirtyPublicationEvidence, PageFlushRecoveryReceipt, RecoverySourceCandidate,
-    RecoverySourcePrecedenceGraph, StalePageRecoveryClassification, WalBeforeDataOrderingProof,
-};
-
-#[cfg(feature = "certification-world")]
-use dirty_publication_paths::scheduled_dirty_publication_for_page;
-#[cfg(feature = "certification-world")]
-use source_precedence_fixture::{
-    checkpoint_base, checkpoint_base_for_root, wal_only_tail, wal_tail_for_checkpoint,
-};
-#[cfg(feature = "certification-world")]
-use wal_durability_paths::completed_posix_receipt_for_range;
+use worth_store_recovery_physics::{RecoverySourceCandidate, RecoverySourcePrecedenceGraph};
 
 pub fn assert_grammar_denial(
     result: Result<RedoRecordGrammar, RedoRecordGrammarDenial>,
@@ -114,31 +103,7 @@ pub fn redo_eligibility_for_page(
     redo_lsn: u64,
     page_value: u64,
 ) -> PageRedoEligibility {
-    let receipt = flush_receipt_for_page(redo_lsn, page_value);
-    let evidence = worth_store_recovery_physics::ReopenedPageRecoveryEvidence::from_reopened_page(
-        receipt.page_generation(),
-        Some(page_lsn(current_lsn)),
-    );
-    PageRedoEligibility::from_recovery_classification(
-        StalePageRecoveryClassification::classify_reopened_page(evidence, &receipt).unwrap(),
-    )
-}
-
-#[cfg(feature = "certification-world")]
-pub fn flush_receipt_for_page(redo_lsn: u64, page_value: u64) -> PageFlushRecoveryReceipt {
-    let ack = worth_store_recovery_physics::DurableAckReceipt::acknowledge(
-        worth_store_recovery_physics::AcknowledgmentPrecondition::from_append_receipt(
-            completed_posix_receipt_for_range(redo_lsn, redo_lsn + 1),
-        )
-        .unwrap(),
-    );
-    let dirty = DirtyPublicationEvidence::from_physical_substrate_publication(
-        scheduled_dirty_publication_for_page(format!("redo-{redo_lsn}").as_bytes(), page_value),
-        page_lsn(redo_lsn),
-    );
-    let ordering =
-        WalBeforeDataOrderingProof::<PosixFileFsyncDirFsyncProfile>::prove(dirty, &ack).unwrap();
-    PageFlushRecoveryReceipt::publish_admitted_redo_only(ordering)
+    reopened_redo_eligibility(current_lsn, redo_lsn, page_value)
 }
 
 pub fn cursor(

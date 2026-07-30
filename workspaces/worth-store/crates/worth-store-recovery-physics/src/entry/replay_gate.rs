@@ -8,23 +8,24 @@ use crate::{
     RecoverySecurityScopePropagation, RecoverySecurityScopePropagationDenial,
 };
 
-pub type RecoveryReplayEntryGateOutcome =
-    TransitionOutcome<RecoveryReplayEntryGate, RecoverySecurityScopePropagationDenial>;
+pub type RecoveryReplayEntryGateOutcome<'runtime> =
+    TransitionOutcome<RecoveryReplayEntryGate<'runtime>, RecoverySecurityScopePropagationDenial>;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RecoveryReplayEntryGate {
+#[derive(Debug)]
+pub struct RecoveryReplayEntryGate<'runtime> {
     entry_identity: RecoveryEntryIdentity,
     security_scope: RecoverySecurityScopePropagation,
+    memory_allocation: crate::RecoveryMemoryAllocation<'runtime>,
     partial_publication_before_wal_replay_read: Option<PartialPublicationBeforeWalReplayRead>,
     replay_planning_started: bool,
     source_precedence_chosen: bool,
 }
 
-impl RecoveryReplayEntryGate {
+impl<'runtime> RecoveryReplayEntryGate<'runtime> {
     pub fn before_source_precedence(
-        admission: RecoveryEntryAdmission,
+        admission: RecoveryEntryAdmission<'runtime>,
         security_scope: RecoverySecurityScopePropagation,
-    ) -> RecoveryReplayEntryGateOutcome {
+    ) -> RecoveryReplayEntryGateOutcome<'runtime> {
         if admission.entry_identity() != security_scope.entry_identity() {
             return TransitionOutcome::denied(
                 RecoverySecurityScopePropagationDenial::from_store_denial(
@@ -35,12 +36,17 @@ impl RecoveryReplayEntryGate {
             );
         }
 
+        let entry_identity = admission.entry_identity().clone();
+        let partial_publication_before_wal_replay_read = admission
+            .recovery_basis()
+            .partial_publication_before_wal_replay_read()
+            .cloned();
+        let memory_allocation = admission.into_memory_allocation();
+
         TransitionOutcome::success(Self {
-            entry_identity: admission.entry_identity().clone(),
-            partial_publication_before_wal_replay_read: admission
-                .recovery_basis()
-                .partial_publication_before_wal_replay_read()
-                .cloned(),
+            entry_identity,
+            memory_allocation,
+            partial_publication_before_wal_replay_read,
             security_scope,
             replay_planning_started: false,
             source_precedence_chosen: false,
@@ -61,6 +67,10 @@ impl RecoveryReplayEntryGate {
 
     pub const fn security_scope(&self) -> &RecoverySecurityScopePropagation {
         &self.security_scope
+    }
+
+    pub const fn memory_allocation(&self) -> crate::RecoveryMemoryObservation {
+        self.memory_allocation.observation()
     }
 
     pub fn read_partial_publication_checkpoint_cutover(

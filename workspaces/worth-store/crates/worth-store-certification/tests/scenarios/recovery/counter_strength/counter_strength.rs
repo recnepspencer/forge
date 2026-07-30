@@ -1,4 +1,3 @@
-use worth_store_buffer_pool::AllocationScope;
 use worth_store_physical_certification::{
     admit_physical_counter_evidence, reject_hostile_counter_evidence_for_readmission,
     CounterContractKind, CounterExpectationKind, CounterMismatchEvidence,
@@ -290,11 +289,8 @@ fn counter_evidence_denies_value_and_envelope_violations() {
         hostile_satisfied_rows(&plan),
         HostileResourceEnvelopeObservation::new(
             plan.profile(),
-            envelope
-                .allocation()
-                .budget(AllocationScope::Foreground)
-                .as_bytes(),
-            envelope.resident_bytes().as_bytes(),
+            envelope.allocation_bytes(),
+            envelope.resident_bytes(),
             u64::from(envelope.max_pinned_pages()) + 1,
             u64::from(envelope.max_dirty_pages()),
             u64::from(envelope.io_queue().max_queue_depth()),

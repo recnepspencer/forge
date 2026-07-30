@@ -79,6 +79,17 @@ pub(crate) const fn mismatch_for_segment(
     )
 }
 
+pub(crate) const fn mismatch_for_record_extent(
+    admitted_generation: PhysicalGeneration,
+    observed_generation: PhysicalGeneration,
+) -> PhysicalReferenceGenerationMismatch {
+    PhysicalReferenceGenerationMismatch::new(
+        PhysicalReferenceGenerationMismatchKind::Extent,
+        admitted_generation,
+        observed_generation,
+    )
+}
+
 pub(crate) const fn mismatch_for_page(
     admitted_generation: PhysicalGeneration,
     observed_generation: PhysicalGeneration,

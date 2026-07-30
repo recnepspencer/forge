@@ -1,7 +1,3 @@
-use worth_store_buffer_pool::{
-    AllocationByteBudget, AllocationEnvelopeDeclaration, AllocationEnvelopeSet,
-    FixedMetadataReservation, ResidentByteCount,
-};
 use worth_store_io_scheduler::IoQueueResourceEnvelope;
 
 use crate::PhysicalSimulationProfile;
@@ -9,8 +5,8 @@ use crate::PhysicalSimulationProfile;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalResourceEnvelope {
     profile: PhysicalSimulationProfile,
-    allocation: AllocationEnvelopeSet,
-    resident_bytes: ResidentByteCount,
+    allocation_bytes: u64,
+    resident_bytes: u64,
     max_pinned_pages: u32,
     max_dirty_pages: u32,
     io_queue: IoQueueResourceEnvelope,
@@ -21,8 +17,8 @@ impl PhysicalResourceEnvelope {
         let scale = profile_scale(profile);
         Self {
             profile,
-            allocation: allocation_envelope(scale.allocation_bytes),
-            resident_bytes: ResidentByteCount::from_observed_bytes(scale.resident_bytes),
+            allocation_bytes: scale.allocation_bytes,
+            resident_bytes: scale.resident_bytes,
             max_pinned_pages: scale.max_pinned_pages,
             max_dirty_pages: scale.max_dirty_pages,
             io_queue: IoQueueResourceEnvelope::bounded(
@@ -37,11 +33,11 @@ impl PhysicalResourceEnvelope {
         self.profile
     }
 
-    pub const fn allocation(self) -> AllocationEnvelopeSet {
-        self.allocation
+    pub const fn allocation_bytes(self) -> u64 {
+        self.allocation_bytes
     }
 
-    pub const fn resident_bytes(self) -> ResidentByteCount {
+    pub const fn resident_bytes(self) -> u64 {
         self.resident_bytes
     }
 
@@ -111,21 +107,4 @@ const fn profile_scale(profile: PhysicalSimulationProfile) -> ProfileEnvelopeSca
             io_interference_events: 256,
         },
     }
-}
-
-fn allocation_envelope(bytes: u64) -> AllocationEnvelopeSet {
-    let budget = AllocationByteBudget::bytes(bytes).expect("static allocation budget is non-zero");
-    AllocationEnvelopeDeclaration::declare()
-        .foreground(budget)
-        .maintenance(budget)
-        .recovery(budget)
-        .scrub(budget)
-        .import_export(budget)
-        .streaming(budget)
-        .fixed_metadata(
-            FixedMetadataReservation::constant_bytes(4096)
-                .expect("static metadata budget is non-zero"),
-        )
-        .seal()
-        .expect("static allocation envelope is complete")
 }

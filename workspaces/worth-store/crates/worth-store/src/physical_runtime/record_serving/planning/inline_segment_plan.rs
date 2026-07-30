@@ -14,7 +14,7 @@ use super::super::{
     planning::published_tail_page::load_published_tail_page,
     planning::reusable_inline_tail::last_inline_placement,
     publication::segment_publication::PageDataPlan,
-    residency::{serving_artifacts::ServingRecordArtifacts, ServingFrameResidency},
+    residency::{serving_artifacts::ServingRecordArtifacts, PhysicalResidencyWorkPort},
     AdmittedPhysicalRecordFormat, AdmittedRecordPlacementPolicy, RecordAllocationFrontier,
     RecordAppendDenial, RecordAppendError,
 };
@@ -106,7 +106,7 @@ pub(in crate::physical_runtime::record_serving) struct InlineSegmentPlanningCont
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
     pub(in crate::physical_runtime::record_serving) placements:
         &'plan mut BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
-    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
+    pub(in crate::physical_runtime::record_serving) residency: PhysicalResidencyWorkPort,
     pub(in crate::physical_runtime::record_serving) allow_published_reuse: bool,
 }
 

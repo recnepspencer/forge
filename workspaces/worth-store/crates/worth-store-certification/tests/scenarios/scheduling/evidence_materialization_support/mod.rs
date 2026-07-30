@@ -31,8 +31,7 @@ use worth_store_io_scheduler::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
     admit_background_pacing, admit_queue_execution_plan,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_secure_io_scope_for_scheduler,
-    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
-    execute_ready_queue_plan, lower_buffer_pool_queue_declaration,
+    admit_security_scope_for_scheduler, execute_ready_queue_plan,
     BackgroundCapacityAdmissionRequest, BackgroundIdleCapacityLeaseRequest,
     BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, BandwidthToken,
     CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueExecutionAdmissionRequest,
@@ -50,7 +49,6 @@ use worth_store_physical_certification::{
     io_pressure_test_replay_bundle_for, IoPressureHarnessEvidence, IoPressureHarnessScenario,
     PhysicalFaultEvidenceClass, PhysicalSimulationProfile,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 pub fn sources() -> StoreOwnedS6CertificationMaterializationSources {
@@ -110,8 +108,8 @@ fn queue_outcome() -> QueueExecutionOutcome {
     let witness = queue_backend_witness();
     let reservation = admitted_point_read_reservation_for_certification_test();
     let budget = point_read_budget();
-    let producer = worth_store_test_support::read_ahead_declaration_for_real_pool(
-        reservation.security_scope_identity(),
+    let mut work = worth_store_test_support::harness::scheduling::scheduler_foreground_read_work(
+        reservation,
         7,
         QueueProducerResourceShape::new()
             .with_queue_slots(budget.queue_slots())
@@ -119,8 +117,8 @@ fn queue_outcome() -> QueueExecutionOutcome {
             .with_read_ahead_windows(budget.read_ahead_window())
             .with_worker_permits(budget.worker_permits())
             .with_cache_residency_hints(budget.cache_residency_hints()),
-    );
-    let mut work = lower_buffer_pool_queue_declaration(producer, reservation).unwrap();
+    )
+    .unwrap();
     let backend =
         admit_backend_capability_for_scheduler_claim(&witness, work.backend_requirement()).unwrap();
     let secure_io = admit_secure_io_scope_for_scheduler(
@@ -130,13 +128,12 @@ fn queue_outcome() -> QueueExecutionOutcome {
     .unwrap();
     work = work.with_secure_io_scope(secure_io);
     let policy = worth_store_io_scheduler::admit_queue_policy_receipt(
-        work.clone(),
+        work,
         policy_receipt(budget, FoundationalPerformanceWorkClass::AuthoritativeRead),
     )
     .expect("policy receipt should bind the exact queue work");
     let plan =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .unwrap();
+        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend)).unwrap();
     let posture = BackendQueueExecutionPosture::from_admitted_capability(
         &witness,
         BackendQueueExecutionAdaptation::None,
@@ -170,7 +167,6 @@ fn background_pacing_outcome() -> BackgroundPacingOutcome {
     let admitted = BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap());
     let pressure = BackgroundIoPressureShape::repair_scan().requesting(requested);
     let foreground = admitted_point_read_reservation_for_certification_test();
-    let readiness = scheduler_readiness();
     let security = security_scope();
     let backend = admit_backend_capability_for_scheduler_claim(
         &backend_witness(),
@@ -187,7 +183,6 @@ fn background_pacing_outcome() -> BackgroundPacingOutcome {
             pressure,
             &foreground,
             &backend,
-            &readiness,
             policy_receipt(
                 requested,
                 FoundationalPerformanceWorkClass::ValidationPlanning,
@@ -254,11 +249,6 @@ fn queue_backend_witness() -> AdmittedBackendCapabilityWitness {
             BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
         ))
         .unwrap()
-}
-
-fn scheduler_readiness() -> worth_store_io_scheduler::IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1).unwrap();
-    admit_store_published_isolation_capability(&readiness).unwrap()
 }
 
 fn security_scope() -> worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission {

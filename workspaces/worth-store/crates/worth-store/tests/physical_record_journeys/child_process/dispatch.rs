@@ -55,11 +55,15 @@ fn dispatch(role: &str, root: &std::path::Path) {
             root,
             &std::env::var(LOCATOR_ENV).unwrap(),
         ),
-        "c6_writeback_writer" => super::super::writeback_courtroom::writer(root),
-        "c6_writeback_observer" => {
-            super::super::writeback_courtroom::observer(root, &std::env::var(LOCATOR_ENV).unwrap())
-        }
-        "c6_writeback_reopener" => super::super::writeback_courtroom::reopener(root),
+        "physical_writeback_writer" => super::super::residency_writeback_fresh_reopen::writer(root),
+        "physical_writeback_observer" => super::super::residency_writeback_fresh_reopen::observer(
+            root,
+            &std::env::var(LOCATOR_ENV).unwrap(),
+        ),
+        "physical_writeback_reopener" => super::super::residency_writeback_fresh_reopen::reopener(
+            root,
+            &std::env::var(LOCATOR_ENV).unwrap(),
+        ),
         "physical_work_crash_writer" => super::super::physical_work::failure::crash_writer(root),
         "physical_work_crash_reopener" => {
             super::super::physical_work::failure::crash_reopener(root)

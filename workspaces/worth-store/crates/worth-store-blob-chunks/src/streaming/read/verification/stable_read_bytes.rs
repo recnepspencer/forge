@@ -3,7 +3,7 @@ use crate::{
 };
 
 pub(crate) fn require_stable_read_bytes(
-    admission: BlobStreamingReadAdmission,
+    admission: &BlobStreamingReadAdmission,
     expected: u64,
     counters: BlobStreamingReadCounterSnapshot,
 ) -> Result<(), BlobStreamingReadDenial> {

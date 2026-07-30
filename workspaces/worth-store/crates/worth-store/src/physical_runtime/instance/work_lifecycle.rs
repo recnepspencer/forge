@@ -1,7 +1,5 @@
 use std::sync::{Arc, Weak};
 
-#[cfg(feature = "certification-test-authority")]
-use crate::physical_runtime::PhysicalWorkRecoveryLocator;
 use crate::physical_runtime::{
     work::PhysicalWorkAdmissionAuthority, AdmittedPhysicalWork, BlockedPhysicalWork,
     PhysicalEffectObligation, PhysicalMutationSubmission, PhysicalReadSubmission,
@@ -213,22 +211,6 @@ impl PhysicalWorkLifecycle {
             PhysicalEffectObligation::SettlementContinues
         };
         Ok(PhysicalWorkTimeoutJoin::new(report, obligation))
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub(in crate::physical_runtime) fn recovery_obligations(
-        &self,
-    ) -> Option<Box<[PhysicalWorkRecoveryLocator]>> {
-        self.runtime
-            .upgrade()
-            .map(|runtime| runtime.recovery.obligations().to_vec().into_boxed_slice())
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub(in crate::physical_runtime) fn recovery_evidence_damaged(&self) -> Option<bool> {
-        self.runtime
-            .upgrade()
-            .map(|runtime| runtime.recovery.evidence_damaged())
     }
 
     fn runtime(&self) -> Result<Arc<PhysicalStoreWorkRuntime>, PhysicalWorkPreEffectDenial> {

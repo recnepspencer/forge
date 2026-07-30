@@ -7,6 +7,7 @@ use worth_store::physical_runtime::{
     PhysicalWorkHostileProcessEvidence, PhysicalWorkHostileTruthCaseBinding,
     PhysicalWorkHostileTruthCaseEvidence, PhysicalWorkHostileTruthScenario,
     PhysicalWorkPlatformEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
+    PhysicalWorkScheduleSeed, PhysicalWorkWorkloadSeed,
 };
 
 use super::{
@@ -130,7 +131,8 @@ impl CaseExecution<'_> {
         })?;
         let processes = observations.processes;
         let execution = PhysicalWorkExecutionContext::new(
-            self.world.seed(),
+            PhysicalWorkWorkloadSeed::new(self.world.seed()),
+            PhysicalWorkScheduleSeed::new(self.world.seed()),
             observations.checkpoint.schedule(self.scenario),
             processes.ordered().map(Clone::clone),
         )

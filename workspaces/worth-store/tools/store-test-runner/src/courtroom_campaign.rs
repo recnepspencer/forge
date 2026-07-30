@@ -1,4 +1,4 @@
-mod c6_inheritance_siege;
+mod bounded_residency_siege;
 mod executable_binding;
 mod filesystem_profile_protocol;
 mod fresh_reopen;
@@ -9,7 +9,7 @@ mod process_execution;
 mod report_publication;
 mod run_provenance;
 
-use crate::product::CourtroomSelection;
+use crate::{arguments::CiScheduleLane, product::CourtroomSelection};
 use std::path::Path;
 
 pub(super) struct CourtroomCampaignRequest<'path> {
@@ -18,6 +18,8 @@ pub(super) struct CourtroomCampaignRequest<'path> {
     pub(super) target_root: Option<&'path Path>,
     pub(super) mutant_report: Option<&'path Path>,
     pub(super) report: Option<&'path Path>,
+    pub(super) schedule_seed: Option<u64>,
+    pub(super) ci_schedule_lane: Option<CiScheduleLane>,
 }
 
 pub(super) fn run(workspace: &Path, request: CourtroomCampaignRequest<'_>) -> Result<(), String> {
@@ -54,7 +56,7 @@ pub(super) fn run(workspace: &Path, request: CourtroomCampaignRequest<'_>) -> Re
             hostile_physical_truth::run(workspace, request.target_root, mutant_report, report)
         }
         CourtroomSelection::C if request.list => {
-            println!("c\tc6-inheritance-siege");
+            println!("c\tbounded-residency-siege");
             Ok(())
         }
         CourtroomSelection::C => {
@@ -64,7 +66,14 @@ pub(super) fn run(workspace: &Path, request: CourtroomCampaignRequest<'_>) -> Re
             let report = request
                 .report
                 .ok_or_else(|| "Courtroom C requires an output report".to_owned())?;
-            c6_inheritance_siege::run(workspace, request.target_root, mutant_report, report)
+            bounded_residency_siege::run(
+                workspace,
+                request.target_root,
+                mutant_report,
+                report,
+                request.schedule_seed,
+                request.ci_schedule_lane,
+            )
         }
     }
 }

@@ -1,6 +1,4 @@
 // --- Capabilities (admission handles, next-step types) ---
-#[cfg(feature = "certification-test-authority")]
-pub use crate::streaming::LargeRecordStreamingEnvelope;
 pub use crate::streaming::{
     run_resumable_streaming_ingest, BlobChunkStreamingOperation, BlobChunkStreamingOperationKind,
     BlobChunkStreamingWindow, BlobStreamingChunkWriter, BlobStreamingContentFrontier,
@@ -18,8 +16,6 @@ pub use crate::streaming::{
     BlobStreamingVerifiedRead, BlobStreamingWindow, BlobStreamingWrittenChunk,
 };
 // --- Denials (classified failure enums) ---
-#[cfg(feature = "certification-test-authority")]
-pub use crate::streaming::LargeRecordStreamingEnvelopeDenial;
 pub use crate::streaming::{
     BlobChunkStreamingDenial, BlobStreamingIngestDenial, BlobStreamingReadDenial,
 };

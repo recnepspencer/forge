@@ -12,7 +12,7 @@ use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 
 pub use observation::{
     OfflineAllocationClass, OfflineFreeSpaceMembership, OfflineRecordIdentity,
-    OfflineRecordPlacement, OfflineSegmentPageMembership,
+    OfflineRecordPayloadObservation, OfflineRecordPlacement, OfflineSegmentPageMembership,
 };
 
 use independent_frame::decode_frame;
@@ -55,6 +55,7 @@ pub struct OfflineDurableManifestWalk {
     payload_frames: u64,
     payload_bytes: u64,
     payload_digest: [u8; 32],
+    record_payloads: Vec<OfflineRecordPayloadObservation>,
 }
 
 impl OfflineDurableManifestWalk {
@@ -99,6 +100,9 @@ impl OfflineDurableManifestWalk {
     }
     pub const fn payload_digest(&self) -> [u8; 32] {
         self.payload_digest
+    }
+    pub fn record_payloads(&self) -> &[OfflineRecordPayloadObservation] {
+        &self.record_payloads
     }
 }
 
@@ -158,7 +162,12 @@ fn walk_selected_durable_record_manifest(
         free_space_tree::walk_free_space_tree(store_root, &root, expected_format)?;
     validate_reachable_membership(store_root, expected_format, &placements, &segment_pages)?;
     let extent_bytes = validate_extent_manifests(store_root, expected_format, &placements)?;
-    let payloads = payload_validation::validate_payloads(
+    let payload_validation::OfflinePayloadWalk {
+        frames_read,
+        payload_bytes,
+        payload_digest,
+        records: record_payloads,
+    } = payload_validation::validate_payloads(
         store_root,
         expected_format,
         &placements,
@@ -183,9 +192,10 @@ fn walk_selected_durable_record_manifest(
             .saturating_add(segment_bytes as usize)
             .saturating_add(free_bytes as usize)
             .saturating_add(extent_bytes as usize) as u64,
-        payload_frames: payloads.frames_read,
-        payload_bytes: payloads.payload_bytes,
-        payload_digest: payloads.payload_digest,
+        payload_frames: frames_read,
+        payload_bytes,
+        payload_digest,
+        record_payloads,
     })
 }
 

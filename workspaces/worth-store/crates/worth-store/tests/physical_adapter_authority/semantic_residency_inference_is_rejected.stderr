@@ -1,0 +1,5 @@
+error[E0599]: no method named `is_semantically_resident` found for reference `&PhysicalRecordChunkView<'_>` in the current scope
+ --> tests/physical_adapter_authority/semantic_residency_inference_is_rejected.rs:4:10
+  |
+4 |     view.is_semantically_resident()
+  |          ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&PhysicalRecordChunkView<'_>`

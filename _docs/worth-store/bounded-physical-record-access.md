@@ -2,11 +2,13 @@
 
 ## What This Feature Is
 
-WORTH Store lets you give each physical Store instance an explicit memory
-envelope before record serving begins. You declare the bytes, frame counts,
-operation scopes, and speculative work the instance may use; Store admits that
-declaration against the physical record format and gives you a sealed policy
-that can enter initialization or open.
+Use bounded physical record access when a Store must serve records without
+letting its live physical-memory use grow with the database. You declare one
+memory envelope before opening the Store. Reads then return borrowed chunks or
+copy into caller-provided buffers, and pressure is reported as typed evidence.
+
+Physical residency answers which encoded Store bytes are currently in memory.
+It does not mean a Query result, branch view, or MVCC snapshot is resident.
 
 ## Why You Use It
 
@@ -22,42 +24,50 @@ limits.
 
 ## Stable Entry Points
 
-Import these from `worth_store::physical_runtime`:
+Most callers need these exports from `worth_store::physical_runtime`:
 
-- `PhysicalRecordResidencyPolicy::builder()`
-- `PhysicalRecordResidencyPolicyBuilder`
-- `AdmittedPhysicalRecordResidencyPolicy`
-- `PhysicalRecordResidencyPolicyOutcome`
-- `PhysicalRecordResidencyPolicyDenial`
-- `PhysicalResidencyDimension`
-- `PhysicalOperationAllocationScope`
-- `PhysicalSpeculativeWorkKind`
-- `PhysicalRecordInitialization::with_residency_policy(...)`
-- `PhysicalRecordOpen::with_residency_policy(...)`
-- `ServingPhysicalRuntime::residency_observation()`
-- `PhysicalResidencyObservation`
-- `PhysicalResidencyCounterSnapshot`
-- `PhysicalResidencyAllocationSnapshot`
-- `PhysicalResidencyAllocationEventSnapshot`
-- `PhysicalRecordPressureBasis`
-- `PhysicalRecordPressureEvidence`
-- `PhysicalResidencyRetryPosture`
-- `PhysicalRecordResidencyFailure`
-- `PhysicalRecordResidencyFailureKind`
-- `RecordReadSession`
-- `PhysicalRecordChunkView<'session>`
-- `PhysicalRecordChunkBasis`
-- `RecordReadError::pressure()`
-- `RecordAppendError::pressure()`
-- `RecordAppendError::pressure_denial()`
+- `PhysicalRecordResidencyPolicy::builder()` to declare the envelope;
+- `PhysicalRecordOpen::with_residency_policy(...)` or
+  `PhysicalRecordInitialization::with_residency_policy(...)` to attach the
+  admitted policy;
+- `MediaOwnedPhysicalRuntime::open_record_store(...)` to consume the open
+  request and produce the serving Store outcome;
+- `ServingPhysicalRuntime::records()` and `PhysicalRecordReader::open(...)` to
+  start a `RecordReadSession`;
+- `RecordReadSession::{next_chunk, read_next}` for borrowed or bounded-copy
+  access;
+- `ServingPhysicalRuntime::physical_allocations()` for successor physical
+  adapters that must charge Recovery, Scrub, Maintenance, Verification, or
+  Blob operation bytes to this Store generation;
+- `ServingPhysicalRuntime::residency_observation()` for read-only runtime
+  inspection;
+- `RecordReadError::pressure()` and `RecordAppendError::pressure()` for typed
+  physical-pressure evidence.
+
+The supporting public types include `PhysicalRecordChunkView`,
+`PhysicalRecordChunkBasis`, `PhysicalRecordPressureEvidence`,
+`PhysicalResidencyRetryPosture`, `PhysicalResidencyObservation`, and the
+counter/allocation snapshots returned by that observation.
 
 `PhysicalRecordInitialization::new(...)` and `PhysicalRecordOpen::new(...)`
 already carry the canonical admitted policy. An explicit declaration replaces
 that policy; it does not create a second pool.
 
+This guide starts after physical runtime and filesystem-media admission.
+`open_record_store` is the public handoff between the configured open request
+and the `ServingPhysicalRuntime` used below; the linked C.5.1 runtime guide
+covers that broader admission sequence.
+
 Pool construction, frame tables, eviction controls, allocation grants, and
 lower residency snapshots are not application APIs. Store owns them and
 publishes only read-only Store evidence.
+
+Prefetch, read-ahead, and write-behind controls are not ordinary application
+entry points. Successor physical adapters may request one of the five exact
+operation scopes through `physical_allocations()`. That surface charges
+temporary bytes and binds them to the current Store runtime; it does not expose
+pool operations or grant recovery, integrity, isolation, maintenance, or blob
+policy.
 
 ## Core Mental Model
 
@@ -94,6 +104,16 @@ An operation scope identifies which physical activity owns temporary bytes. It
 does not express priority, fairness, tenant identity, or semantic authority.
 Speculative kinds distinguish prefetch, read-ahead, and write-behind capacity;
 they do not create background workers or retry policy.
+
+Physical adapters consume a deliberately narrow basis: borrowed validated
+bytes, their logical range, stable Store identity, Store generation, physical
+record identity, durable physical owner, frame coordinate, pressure, and retry
+posture. They may also hold an exact successor-scoped allocation while their
+temporary bytes remain live. Those values are enough for integrity, isolation,
+and blob layers to bind later physical work to the correct Store generation.
+They are not proof that bytes satisfy an integrity policy, belong to a stable
+semantic snapshot, or form a complete blob. Those meanings remain owned by the
+successor that defines them.
 
 ## How It Executes
 
@@ -268,6 +288,8 @@ generations, counters, or pressure evidence.
 - `store_identity()` identifies the stable physical Store;
 - `store_generation()` identifies its admitted serving lifecycle;
 - `record()` identifies the logical physical record;
+- `physical_owner()` identifies the durable generation owner that minted the
+  record bytes;
 - `frame_coordinate()` identifies the exact durable artifact range. The
   artifact identity carries its durable generation.
 
@@ -311,73 +333,137 @@ topology; a resident hit and borrowing decoded bytes create no synthetic work.
 The safety proof is the concrete `RecordReadSession` ownership boundary plus
 the Rust borrow lifetime.
 
+## Successor Physical Allocation
+
+Recovery, scrub, maintenance, verification, and blob adapters sometimes need
+temporary memory that must count against the same Store envelope. Admit those
+bytes through the Store runtime, not through the buffer pool:
+
+```rust
+use std::num::NonZeroU64;
+use worth_store::physical_runtime::{
+    PhysicalScopedAllocationFailure, RecoveryPhysicalAllocation,
+    ServingPhysicalRuntime,
+};
+
+fn admit_recovery_bytes<'runtime>(
+    runtime: &'runtime ServingPhysicalRuntime,
+    bytes: NonZeroU64,
+) -> Result<RecoveryPhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
+    runtime.physical_allocations().admit_recovery(bytes)
+}
+```
+
+The returned allocation borrows the runtime, records the exact scope and byte
+count, and releases the charge when dropped. It cannot outlive or close over
+the runtime. Selecting Recovery does not grant recovery authority; the C.7-C.11
+owner still supplies the real operation, policy, and downstream proof.
+On denial, `PhysicalScopedAllocationFailure::{kind, reason, pressure}` exposes
+the Store classification, exact cause, and available pressure evidence. The
+failure is descriptive; retry still requires a fresh admission after the
+reported condition changes.
+
+## Allocation Admission And Materialization
+
+Allocation admission and allocation materialization are different boundary
+facts. Admission charges capacity and grants the right to attempt one bounded
+allocation. Actualization records the concrete allocation produced under that
+admission; it cannot create allocation authority after the fact.
+
+Metadata admission is unscoped and charges the concrete metadata capacity.
+Its actualization preserves both the requested table size and the actual
+charged capacity. Resident and dirty-replacement admission is scoped and
+charges the requested reservation before allocation; actualization may report
+fewer concrete bytes but never more than that reservation.
+
+The allocation trace preserves this order mechanically. Every metadata,
+resident, and dirty-replacement actualization must consume a matching earlier
+admission from the same dimension and scope. Final counter equality is not
+enough: a reordered trace that materializes first and admits later is invalid
+even when every aggregate balances.
+
+Resident allocation is additionally sequenced by ownership. Store-private
+fault admission produces the move-owned fault owner that alone can invoke the
+allocator. Observation snapshots describe this progression but grant no
+allocation, pool, retry, Signal, Foundational, or `worth-proof` authority.
+
+## Concurrent Cold Reads And Fault Coalescence
+
+When concurrent read sessions request the same nonresident frame, the Store
+does not start two physical reads. The buffer pool first reserves one loading
+identity. The first request receives move-owned fault authority; later
+requests receive wait-only attachments to that same identity.
+
+Only the fault owner can discover the source length, allocate the admitted
+frame, or execute the source load. A waiter can only wait for the owner to
+publish the admitted frame or its terminal failure. Successful readers
+therefore receive two valid leases over one frame after exactly one fault and
+one source load. If the owner fails, every waiter observes that same terminal
+loading failure instead of starting a fallback read.
+
+The one real miss still uses the private `ReadFault` Signal, scheduler,
+executor, backend, and Store-settlement path. Attaching a waiter creates no
+Signal request, physical-work identity, media read, or second allocation.
+Fault coalescence is physical work sharing for one Store generation and frame
+identity; it is not semantic request deduplication, a retry policy, or a
+persisted cache contract.
+
+Use `residency_observation().counters()` to inspect this behavior. One
+overlapping pair should add one fault, one source load, one coalesced waiter,
+one pinned frame identity, and two pin leases while both views remain live.
+The leases still obey the ordinary session lifetime and release rules.
+
+## Generation And Incarnation Fences
+
+Every Store-owned physical-work capability captures the
+`LifecycleGeneration` that admitted it. The first consuming boundary compares
+that generation with the Store's current serving generation before allocation,
+pool admission, gate admission, Signal declaration, scheduler admission, or
+media work. A predecessor capability therefore fails exactly as
+`PhysicalWorkExecutionFailure::PreEffect(PhysicalWorkAdmissionFailure::StaleGeneration)`;
+it cannot become valid merely because the requested frame is already resident.
+
+Pool-owned frame authority is fenced independently. Each opened Store owns one
+opaque pool incarnation, and its leases, dirty-frame authority, and writeback
+claims carry that incarnation. Dirty admission first requires the lease's exact
+Store/runtime/generation binding before invoking the mutation closure or
+changing dirty state; a mismatch fails as
+`PhysicalDirtyTransitionFailure::StaleOrForeignFrame`. The frame-writeback port
+then compares the dirty authority's carried pool incarnation with the consuming
+Store before recording a writeback attempt, claiming a frame, declaring Signal
+work, entering the scheduler, or attempting media. That mismatch fails exactly
+as `PhysicalWritebackFailureCause::StaleOrForeignDirtyFrame`.
+
+The fence consumes real authority, not caller-supplied coordinates, generation
+numbers, counters, or observation snapshots. Those values may describe a
+denial but cannot pass it. Rejected dirty admission releases the rejected lease;
+rejected writeback returns the dirty-frame authority so the caller can discard
+it honestly. `PhysicalRecordChunkBasis` still exposes neither pool incarnation
+nor any pool-control capability.
+
+These fences add no Signal family, Foundational fact, or `worth-proof`
+authority. Lifecycle ownership and opaque pool incarnation are lower
+mechanical identities; the existing Store work topology remains the only path
+to an effect.
+
 ## How It Relates To Other Features
 
 - Format admission happens first because residency must fit at least one page.
 - Placement and access policies remain separate. They do not imply memory
   capacity and cannot substitute for residency admission.
-- Scheduler capacity controls admitted physical work. It does not own memory.
-- Recovery, scrub, maintenance, verification, and blob code may receive scoped
-  allocation outcomes in later C.6 work, but they do not receive the pool.
-- Signal is used only after the private serving-residency capability reports a
-  real miss. That miss reuses the existing `ReadFault` family with the exact
-  root, artifact, frame, or scan projection basis. A hit and a coalesced waiter
-  create no Signal request, scheduler admission, executor command, or media
-  effect. Residency admission, counters, allocation events, and pressure
-  evidence neither import Signal into the pool nor create a Signal family.
-- Bounded artifact reads are classified by the pool before file-length
-  discovery. Only the move-owned bounded fault owner may run the canonical
-  metadata and exact-read work; hits and typed waiters receive the resolved
-  exact lease without source authority. A composite record `open` may still
-  perform its separate eager segment- or extent-completeness metadata
-  validation. That validation is not bounded-frame source work and is counted
-  independently.
-- Every bounded terminal publication wakes participants already sleeping on
-  the loading identity. Collision, pool-close, and rejected-completion paths
-  retain the shared typed terminal and notify as one transition; a waiter
-  cannot remain blocked behind terminal state.
-- A bounded loading identity includes its admitted request limit. Only an
-  equal-limit caller becomes a coalesced waiter. Another limit receives a
-  pre-effect `BoundedLoadLimitConflict` carrying the active and requested
-  limits, then may retry after resolution. Store projects that lower conflict
-  as `PhysicalRecordResidencyFailureKind::FrameLoadConflict`; it does not call
-  an unobserved length a mismatch.
-- Candidate frames declare whether they cover one artifact fragment or the
-  complete artifact. Store derives that declaration exhaustively from the
-  candidate role: manifest blocks, root manifests, and catalog candidates are
-  complete artifacts; inline pages and extent chunks are fragments. A complete
-  candidate reserves its artifact alias while dirty, so bounded access denies
-  before source work. Clean publication turns the reserved alias into a
-  zero-source hit. Cancellation, discard, eviction, and catalog identity
-  promotion remove or retarget the alias atomically. A fragment can never
-  satisfy a bounded whole-artifact read merely because its offset is zero.
-- Candidate declaration/order failures project as
-  `PhysicalRecordResidencyFailureKind::CandidateContractConflict`, while
-  complete-artifact promotion failures project as
-  `PhysicalRecordResidencyFailureKind::FrameIdentityConflict`. Promotion
-  revalidates offset-zero coverage and target artifact-alias availability
-  before detaching the source, so a denial preserves both frame-table indexes
-  and all residency accounting.
-- Identity promotion may replace an exact target only when that target is
-  resident, unpinned, and clean. A retained failed-loading target returns its
-  exact `FrameLoadTerminated` terminal until the final waiter reconciles it.
-  A live loading or candidate-reserved target returns
-  `FrameIdentityOccupied`, which Store projects as
-  `PhysicalRecordResidencyFailureKind::FrameIdentityConflict`. Neither path
-  removes the source, steals in-progress authority, or releases resident
-  accounting a second time.
-- `worth-proof` supplies the Store policy-admission denial transition. The
-  admitted policy is then retained by the Store owner. The lower buffer-pool
-  crate has no direct `worth-proof` dependency or source-level proof API and
-  receives only the admitted lower limits inside Store's private runtime
-  boundary. Lower physical-owner dependencies retain their own transitive
-  governed proof dependencies; those do not grant proof authority to the pool.
-- Foundational is not used to classify physical pressure or frame residency.
-  Those facts carry no semantic truth. Store uses the already-admitted
-  Store-native projection basis only when it constructs real `ReadFault` work;
-  no cache/residency aspect enters the pool. A dedicated Foundational
-  frame-writeback basis belongs to C.6 Phase 5 and is not part of the current
-  observation or pressure API.
+- Scheduler capacity controls admitted physical work; the residency policy
+  controls memory. Neither can substitute for the other.
+- A cold miss and a dirty-frame writeback use Store's existing physical-work
+  runtime. Hits and pre-effect pressure denials create no fake work.
+- Recovery, scrub, maintenance, verification, and blob work have distinct
+  memory scopes, but their policies belong to those successor features. This
+  feature grants them no direct pool control.
+- `worth-proof` governs policy admission above the pool. Foundational and
+  Signal describe other boundaries above the pool. None of them turns cache
+  state or counters into semantic truth.
+- Integrity, isolation, durability, recovery, QoS, and blob completeness are
+  separate guarantees. A chunk basis gives those features physical identity
+  and generation context; it does not prove their policy.
 
 ## Inspection And Debugging
 
@@ -414,57 +500,31 @@ the unit classification without embedding evidence in the denial enum.
 - Do not choose `total_bytes` by summing independent maxima and assume all
   combinations are executable; it is one live envelope.
 - Do not use scopes as priorities, tenants, or semantic categories.
+- Do not request successor-scoped bytes from general application code or treat
+  a scoped allocation as permission to perform successor work.
 - Do not make a second pool for recovery, verification, or blob work.
 - Do not import `worth-store-buffer-pool` from an ordinary application or
   future adapter.
 - Do not use pressure evidence as a retry token or allocation grant.
 - Do not infer mutable pool control from a residency observation.
+- Do not start a fallback source read when an overlapping session is waiting
+  on an existing cold fault.
 - Do not infer semantic residency, data completeness, or durability from
   physical frame residency.
 
 ## Current Limits
 
-- Stable now: the complete declaration vocabulary, typed admission outcome,
-  sealed admitted policy, format preflight, canonical admitted policy, and the
-  initialize/open type boundary. The lower runtime enforces per-scope
-  operation ceilings, the aggregate operation ceiling, the shared live-byte
-  envelope, dirty-replacement capacity, and fixed allocation-event publication
-  before allocation or state mutation. Store publishes identity-bound,
-  policy-bearing residency observation and pre-effect read/append pressure
-  evidence.
-- Stable now: ordinary serving reads pass through one private
-  `ServingFrameResidency`, reserve one loading identity before media work,
-  distinguish exact and bounded hit/fault/coalesced outcomes, execute one
-  canonical source load per cold identity, select victims deterministically
-  through a checked legal-victim proof, release accounting exactly once, and
-  refault through the same C.5.1 physical-work path. Bounded aliases and exact
-  coordinates share one preallocated frame slot; their indexes and free-slot
-  storage are admitted inside the declared metadata envelope before the pool
-  opens. Whole-artifact candidate declarations install the same alias without
-  duplicating the resident frame, while fragment declarations remain
-  ineligible. Direct media reads remain bootstrap-only.
-- Stable now: `RecordReadSession` exposes lease-scoped borrowed chunks and
-  explicit bounded copies through one cursor. Inline and extent views carry
-  Store generation, record identity, physical frame basis, and logical range
-  without exposing pool authority.
-- Later C.6 phases add ordinary dirty/writeback settlement and speculative work
-  lowering. They are not promised by the current read API.
-- Temporary `C6*` handoff and direct drain/writeback command surfaces are not
-  ordinary application APIs and compile only with certification authority. The
-  handoff's frame-read API and read-capable source were deleted in Phase 3; its
-  remaining writeback responsibilities are replaced in their assigned later
-  phases. Certification uses a separate responsibility-named residency probe
-  that cannot be constructed by ordinary callers.
-- Phase 2 cleanup removed scalar/default admission bypasses, bare budget
-  denials, externally supplied dirty-replacement buffers, loose lifecycle
-  ownership, and lower snapshot types from the Store observation facade.
-- Phase 3 cleanup removed duplicate serving loader composition, fallback
-  serving reads, and temporary handoff frame-read types.
-- Phase 4 cleanup removed the alternate opened-record alias. The only public
-  logical read lease is `RecordReadSession`; no compatibility name or owning
-  conversion remains.
-- This feature does not define WAL/checkpoint order, reconstruction, integrity,
-  semantic stable reads, QoS, or blob protocol.
+- Stable: admitted instance envelopes, bounded ordinary reads, borrowed chunk
+  views, explicit bounded copies, Store-owned observation, typed read/append
+  pressure, dirty-frame settlement, and bounded speculative work.
+- Stable: the only public logical read lease is `RecordReadSession`. There is
+  no owning whole-record convenience or direct pool-control API.
+- Stable for physical adapters: exact Recovery, Scrub, Maintenance,
+  Verification, and Blob allocations borrow the Store runtime and grant only
+  bounded temporary-byte ownership.
+- Certification-only: direct speculative controls and fault-driving probes.
+- Not provided here: WAL/checkpoint ordering, crash reconstruction, integrity
+  admission, semantic stable reads, QoS policy, or blob protocol.
 
 ## Related Docs
 

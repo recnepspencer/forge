@@ -112,5 +112,30 @@ pub(crate) fn smoke_cases() -> &'static [SmokeCase] {
             target: "physical_record_journeys",
             filter: "publication_faults::possible_catalog_cutover_is_typed_indeterminate_and_close_adds_no_publication_effect",
         },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "physical_work::serving_frame_residency::pins_distinguish_faults_hits_overpin_and_refault_without_another_runtime",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "record_chunk_views::borrowed_access::inline_view_exposes_only_the_record_payload_and_observational_basis",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "record_chunk_views::bounded_copy::bounded_copies_and_views_share_one_cursor_with_exact_copy_evidence",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "ordinary_writeback_failures::ordinary_candidate_tail_no_effect_is_typed_and_discards_dirty_residency",
+        },
+        SmokeCase {
+            package: "worth-store",
+            target: "physical_record_journeys",
+            filter: "physical_work::speculative_residency::outcomes::cold_hot_and_mixed_speculation_reconcile_work_media_and_residency_truth",
+        },
     ]
 }

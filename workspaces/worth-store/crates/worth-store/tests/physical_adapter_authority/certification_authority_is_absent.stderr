@@ -1,0 +1,5 @@
+error[E0599]: no method named `certification_physical_residency` found for reference `&ServingPhysicalRuntime` in the current scope
+ --> tests/physical_adapter_authority/certification_authority_is_absent.rs:4:21
+  |
+4 |     let _ = serving.certification_physical_residency();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ServingPhysicalRuntime`

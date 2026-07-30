@@ -35,7 +35,7 @@ impl RecoveryCounterSnapshot {
     pub(crate) fn from_execution(
         execution: &RedoExecutionReceipt,
         evidence: RecoveryWorkBudgetEvidence,
-        memory_allocation: &RecoveryMemoryAllocation,
+        memory_allocation: &RecoveryMemoryAllocation<'_>,
         store_footprint: RecoveryStoreFootprint,
     ) -> Self {
         let memory = memory_allocation.counters();

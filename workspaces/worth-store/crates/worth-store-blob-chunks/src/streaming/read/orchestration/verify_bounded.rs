@@ -1,5 +1,5 @@
+use worth_store::physical_runtime::BlobPhysicalAllocation;
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::OperationAllocationGrant;
 
 use super::super::super::allocation::AdmittedBlobStreamingAllocation;
 use super::super::transitions::{admit_read, finish_verified_read, observe_chunk_window};
@@ -10,18 +10,18 @@ use crate::{
     BlobStreamingReadObservation, BlobStreamingReadRequest, BlobStreamingReadWindow,
 };
 
-pub struct BlobStreamingReadExecution {
+pub struct BlobStreamingReadExecution<'runtime> {
     window: BlobStreamingReadWindow,
-    allocation: OperationAllocationGrant,
+    allocation: BlobPhysicalAllocation<'runtime>,
     admission: BlobStreamingReadAdmission,
     quarantine_authority: BlobQuarantineAuthority,
     counter_strength: CounterEvidenceStrength,
 }
 
-impl BlobStreamingReadExecution {
+impl<'runtime> BlobStreamingReadExecution<'runtime> {
     pub fn new(
         window: BlobStreamingReadWindow,
-        allocation: OperationAllocationGrant,
+        allocation: BlobPhysicalAllocation<'runtime>,
         admission: BlobStreamingReadAdmission,
         quarantine_authority: BlobQuarantineAuthority,
         counter_strength: CounterEvidenceStrength,
@@ -37,9 +37,9 @@ impl BlobStreamingReadExecution {
 }
 
 impl BlobStreamingVerifiedRead {
-    pub fn verify_bounded(
+    pub fn verify_bounded<'runtime>(
         request: BlobStreamingReadRequest,
-        execution: BlobStreamingReadExecution,
+        execution: BlobStreamingReadExecution<'runtime>,
         observations: impl IntoIterator<Item = BlobStreamingReadObservation>,
     ) -> Result<Self, BlobStreamingReadDenial> {
         counter_strength::require_exact(execution.counter_strength)?;
@@ -47,10 +47,14 @@ impl BlobStreamingVerifiedRead {
             execution.allocation,
             execution.window.max_resident_bytes(),
         )?;
-        let mut counters =
+        let (mut counters, admission) =
             admit_read::admit_read(execution.admission, &request, execution.counter_strength)?;
-        let mut verifier =
-            StreamingReadVerifier::new(request, execution.window, execution.quarantine_authority);
+        let mut verifier = StreamingReadVerifier::new(
+            admission,
+            request,
+            execution.window,
+            execution.quarantine_authority,
+        );
         for observation in observations {
             observe_chunk_window::observe_chunk_window(&mut verifier, observation, &mut counters)?;
         }

@@ -6,6 +6,7 @@ mod hostile_truth;
 #[cfg(test)]
 mod hostile_truth_tests;
 mod hostile_validation;
+mod identity;
 mod lowering;
 mod mutant;
 mod run_provenance;
@@ -40,6 +41,7 @@ pub use run_provenance::{
     PhysicalWorkFilesystemProfileParts, PhysicalWorkFilesystemSupportEvidence,
     PhysicalWorkPlatformEvidence, PhysicalWorkProcessEvidence, PhysicalWorkProcessFateEvidence,
     PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence, PhysicalWorkRunProvenanceDenial,
+    PhysicalWorkScheduleSeed, PhysicalWorkWorkloadSeed,
 };
 pub use verdict::{PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomVerdict};
 pub use vocabulary::{

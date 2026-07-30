@@ -5,7 +5,10 @@ mod expectation;
 mod foundational_receipt;
 mod hostile_evidence;
 mod mismatch;
+mod residency_source;
 mod resource_envelope;
+#[cfg(any(test, feature = "certification-test-support"))]
+mod store_residency_fixture;
 mod strength;
 
 pub(crate) use contract::{counter_contract_kind_token, counter_expectation_strength_token};
@@ -28,6 +31,11 @@ pub use hostile_evidence::{
     HostileResourceEnvelopeObservation,
 };
 pub use mismatch::CounterMismatchEvidence;
+pub use residency_source::PhysicalResidencyEvidenceSource;
 pub use resource_envelope::PhysicalResourceEnvelope;
+#[cfg(any(test, feature = "certification-test-support"))]
+pub(crate) use store_residency_fixture::{
+    observe_real_store_residency, CertificationResidencyWorkload,
+};
 pub(crate) use strength::classify_counter_strength;
 pub use strength::{CounterStrengthJustification, CounterStrengthPosture, OverExactCounterDenied};

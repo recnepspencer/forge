@@ -1,27 +1,32 @@
 use worth_store_buffer_pool::{
-    BufferPoolQueueExecutionKind, PhysicalResidencyDenial, PhysicalWritebackClaim,
+    PhysicalResidencyDenial, PhysicalWritebackClaim, PhysicalWritebackRangePosture,
 };
 use worth_store_io_scheduler::{
     execute_ready_queue_plan, QueueDurabilityClass, QueueExecutionOutcome, QueueExecutionReadyPlan,
 };
 use worth_store_physical_backend::{
     ArtifactRangeWriteDurabilityRequirement, ArtifactTreeFailure, BackendQueueExecutionAdaptation,
-    BackendQueueSpeculativeScope, CompletedArtifactRangeWrite, IndeterminateArtifactRangeWrite,
+    BackendQueueSpeculativeScope, CompletedArtifactRangeWrite,
+    CompletedScheduledArtifactRangeWrite, IndeterminateArtifactRangeWrite,
     ScheduledArtifactRangeWriteOutcome,
 };
 
 use super::artifact_tree::PhysicalRecordArtifactTree;
 
+#[cfg(test)]
+#[path = "scheduled_writeback/tests.rs"]
+mod tests;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalScheduledWritebackAdmissionDenial {
     ServingRequiresInspection,
     MissingPhysicalDeclaration,
-    NotWriteback,
     GroupedPlan,
     ClaimCardinalityMismatch,
     StoreMismatch,
     PoolIncarnationMismatch,
     FrameMismatch,
+    RangePostureMismatch,
     SecurityScopeMismatch,
     ReadOnlyPlan,
     CanonicalWorkMismatch,
@@ -34,6 +39,7 @@ pub(in crate::physical_runtime) struct PhysicalScheduledWriteback {
     plan: QueueExecutionReadyPlan,
     claim: PhysicalWritebackClaim,
     durability: ArtifactRangeWriteDurabilityRequirement,
+    range_posture: PhysicalWritebackRangePosture,
 }
 
 #[derive(Debug)]
@@ -44,16 +50,26 @@ pub(in crate::physical_runtime) enum PhysicalScheduledWritebackOutcome {
         physical: CompletedArtifactRangeWrite,
         execution: QueueExecutionOutcome,
     },
-    Applied {
+    Completed {
         physical: CompletedArtifactRangeWrite,
         execution: QueueExecutionOutcome,
-    },
-    ResidencyTerminal {
-        physical: CompletedArtifactRangeWrite,
-        execution: QueueExecutionOutcome,
-        denial: PhysicalResidencyDenial,
+        claim: PhysicalWritebackClaim,
     },
 }
+
+pub(in crate::physical_runtime) struct PhysicalScheduledWritebackEffect {
+    plan: QueueExecutionReadyPlan,
+    claim: PhysicalWritebackClaim,
+    completed: Box<CompletedScheduledArtifactRangeWrite>,
+}
+
+pub(in crate::physical_runtime) type PhysicalScheduledWritebackEffectResult =
+    Result<PhysicalScheduledWritebackEffect, Box<PhysicalScheduledWritebackOutcome>>;
+
+const _: () = assert!(
+    std::mem::size_of::<PhysicalScheduledWritebackEffectResult>()
+        <= std::mem::size_of::<PhysicalScheduledWritebackEffect>() + std::mem::size_of::<usize>()
+);
 
 impl PhysicalScheduledWriteback {
     pub(in crate::physical_runtime) fn admit(
@@ -62,10 +78,12 @@ impl PhysicalScheduledWriteback {
     ) -> Result<Self, PhysicalScheduledWritebackAdmissionDenial> {
         Self::validate(&claim, &plan)?;
         let durability = durability(&plan)?;
+        let range_posture = validated_range_posture(&claim, &plan)?;
         Ok(Self {
             plan,
             claim,
             durability,
+            range_posture,
         })
     }
 
@@ -82,11 +100,8 @@ impl PhysicalScheduledWriteback {
         }
         let declaration = plan
             .work()
-            .buffer_pool_declaration()
+            .buffer_pool_writeback_declaration()
             .ok_or(PhysicalScheduledWritebackAdmissionDenial::MissingPhysicalDeclaration)?;
-        if declaration.kind() != BufferPoolQueueExecutionKind::WriteBack {
-            return Err(PhysicalScheduledWritebackAdmissionDenial::NotWriteback);
-        }
         let [claimed] = claim.frames() else {
             return Err(PhysicalScheduledWritebackAdmissionDenial::ClaimCardinalityMismatch);
         };
@@ -99,6 +114,7 @@ impl PhysicalScheduledWriteback {
         if declaration.frame() != claimed.coordinate() {
             return Err(PhysicalScheduledWritebackAdmissionDenial::FrameMismatch);
         }
+        let _ = validated_range_posture(claim, plan)?;
         let security = plan.work().security_scope_identity();
         let grouping = declaration.grouping_scope();
         if grouping.security_scope_identity() != security {
@@ -108,11 +124,11 @@ impl PhysicalScheduledWriteback {
         Ok(())
     }
 
-    pub(in crate::physical_runtime) fn execute(
+    pub(in crate::physical_runtime) fn execute_effect(
         self,
         artifacts: &PhysicalRecordArtifactTree<'_>,
         adaptation: BackendQueueExecutionAdaptation,
-    ) -> PhysicalScheduledWritebackOutcome {
+    ) -> PhysicalScheduledWritebackEffectResult {
         let grouping = self.plan.grouping_basis();
         let scope = BackendQueueSpeculativeScope::admitted(
             grouping.security_scope_identity(),
@@ -120,44 +136,93 @@ impl PhysicalScheduledWriteback {
             grouping.key_scope(),
         );
         let coordinate = self.claim.frames()[0].coordinate();
-        let physical = artifacts.write_scheduled_exact_at(
-            coordinate,
-            self.claim.frame_bytes(0).expect("one admitted frame"),
-            self.plan
-                .backend_completion_binding()
-                .backend_execution_binding(),
-            adaptation,
-            scope,
-            self.durability,
-        );
+        let bytes = self.claim.frame_bytes(0).expect("one admitted frame");
+        let binding = self
+            .plan
+            .backend_completion_binding()
+            .backend_execution_binding();
+        let physical = match self.range_posture {
+            PhysicalWritebackRangePosture::ExistingRange => artifacts.write_scheduled_exact_at(
+                coordinate,
+                bytes,
+                binding,
+                adaptation,
+                scope,
+                self.durability,
+            ),
+            PhysicalWritebackRangePosture::CandidateArtifactTail => artifacts
+                .append_scheduled_writeback_at_eof(
+                    coordinate,
+                    bytes,
+                    binding,
+                    adaptation,
+                    scope,
+                    self.durability,
+                ),
+        };
         let completed = match physical {
             ScheduledArtifactRangeWriteOutcome::DeniedBeforeEffect(failure) => {
-                return PhysicalScheduledWritebackOutcome::RetryableBeforeEffect(failure);
+                return Err(Box::new(
+                    PhysicalScheduledWritebackOutcome::RetryableBeforeEffect(failure),
+                ));
             }
             ScheduledArtifactRangeWriteOutcome::Indeterminate(failure) => {
-                return PhysicalScheduledWritebackOutcome::InspectionRequired(failure);
+                return Err(Box::new(
+                    PhysicalScheduledWritebackOutcome::InspectionRequired(failure),
+                ));
             }
             ScheduledArtifactRangeWriteOutcome::Completed(completed) => completed,
         };
+        Ok(PhysicalScheduledWritebackEffect {
+            plan: self.plan,
+            claim: self.claim,
+            completed,
+        })
+    }
+}
+
+impl PhysicalScheduledWritebackEffect {
+    pub(in crate::physical_runtime) fn settle(self) -> PhysicalScheduledWritebackOutcome {
+        let Self {
+            plan,
+            claim,
+            completed,
+        } = self;
         let physical = completed.physical().clone();
-        let execution = execute_ready_queue_plan(self.plan, completed.queue());
+        let execution = execute_ready_queue_plan(plan, completed.queue());
         if !matches!(execution, QueueExecutionOutcome::Executed(_)) {
             return PhysicalScheduledWritebackOutcome::WrittenButNotApplied {
                 physical,
                 execution,
             };
         }
-        match self.claim.publish_clean(&physical) {
-            Ok(()) => PhysicalScheduledWritebackOutcome::Applied {
-                physical,
-                execution,
-            },
-            Err(denial) => PhysicalScheduledWritebackOutcome::ResidencyTerminal {
-                physical,
-                execution,
-                denial,
-            },
+        PhysicalScheduledWritebackOutcome::Completed {
+            physical,
+            execution,
+            claim,
         }
+    }
+}
+
+fn validated_range_posture(
+    claim: &PhysicalWritebackClaim,
+    plan: &QueueExecutionReadyPlan,
+) -> Result<PhysicalWritebackRangePosture, PhysicalScheduledWritebackAdmissionDenial> {
+    let declaration = plan
+        .work()
+        .buffer_pool_writeback_declaration()
+        .ok_or(PhysicalScheduledWritebackAdmissionDenial::MissingPhysicalDeclaration)?;
+    let declared = declaration.range_posture();
+    require_matching_range_posture(claim.range_posture(0), declared)
+}
+
+fn require_matching_range_posture(
+    claimed: Option<PhysicalWritebackRangePosture>,
+    declared: PhysicalWritebackRangePosture,
+) -> Result<PhysicalWritebackRangePosture, PhysicalScheduledWritebackAdmissionDenial> {
+    match claimed {
+        Some(claimed) if claimed == declared => Ok(declared),
+        _ => Err(PhysicalScheduledWritebackAdmissionDenial::RangePostureMismatch),
     }
 }
 

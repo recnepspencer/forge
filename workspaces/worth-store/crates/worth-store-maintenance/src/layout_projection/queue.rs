@@ -1,4 +1,4 @@
-use worth_store_buffer_pool::{PhysicalOperationAllocationScope, PhysicalResidencyCounters};
+use worth_store::physical_runtime::PhysicalOperationAllocationScope;
 use worth_store_contracts::{DurableArtifactFamilyId, DurableArtifactRebuildPosture};
 use worth_store_layout_indexes::observation::AccessShape;
 
@@ -22,23 +22,23 @@ pub struct MaintenanceQueueAccessBudget {
 }
 
 #[derive(Debug)]
-enum MaintenanceQueueLayoutEvidence {
-    Compaction(CompactionPlanningMemoryEnvelope),
-    ImportExport(ImportExportMemoryEnvelope),
+enum MaintenanceQueueLayoutEvidence<'runtime> {
+    Compaction(CompactionPlanningMemoryEnvelope<'runtime>),
+    ImportExport(ImportExportMemoryEnvelope<'runtime>),
 }
 
 #[derive(Debug)]
-pub struct MaintenanceQueueLayoutReport {
+pub struct MaintenanceQueueLayoutReport<'runtime> {
     family_id: DurableArtifactFamilyId,
     access_shape: AccessShape,
     rebuild_posture: DurableArtifactRebuildPosture,
     queue_class: MaintenanceQueueClass,
     interference_posture: MaintenanceQueueInterferencePosture,
-    evidence: MaintenanceQueueLayoutEvidence,
+    evidence: MaintenanceQueueLayoutEvidence<'runtime>,
 }
 
-impl MaintenanceQueueLayoutReport {
-    fn from_compaction(envelope: CompactionPlanningMemoryEnvelope) -> Self {
+impl<'runtime> MaintenanceQueueLayoutReport<'runtime> {
+    fn from_compaction(envelope: CompactionPlanningMemoryEnvelope<'runtime>) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::MaintenanceQueueDeclaration,
             access_shape: AccessShape::BoundedScan,
@@ -49,7 +49,7 @@ impl MaintenanceQueueLayoutReport {
         }
     }
 
-    fn from_import_export(envelope: ImportExportMemoryEnvelope) -> Self {
+    fn from_import_export(envelope: ImportExportMemoryEnvelope<'runtime>) -> Self {
         Self {
             family_id: DurableArtifactFamilyId::MaintenanceQueueDeclaration,
             access_shape: AccessShape::BoundedScan,
@@ -97,23 +97,16 @@ impl MaintenanceQueueLayoutReport {
             }
         }
     }
-
-    pub fn exact_counters(&self) -> PhysicalResidencyCounters {
-        match &self.evidence {
-            MaintenanceQueueLayoutEvidence::Compaction(envelope) => envelope.counters(),
-            MaintenanceQueueLayoutEvidence::ImportExport(envelope) => envelope.counters(),
-        }
-    }
 }
 
 impl MaintenanceQueueAccessBudget {
-    const fn from_compaction(envelope: &CompactionPlanningMemoryEnvelope) -> Self {
+    const fn from_compaction(envelope: &CompactionPlanningMemoryEnvelope<'_>) -> Self {
         Self {
             allocation_bytes: envelope.allocation_bytes(),
         }
     }
 
-    const fn from_import_export(envelope: &ImportExportMemoryEnvelope) -> Self {
+    const fn from_import_export(envelope: &ImportExportMemoryEnvelope<'_>) -> Self {
         Self {
             allocation_bytes: envelope.allocation_bytes(),
         }
@@ -124,14 +117,14 @@ impl MaintenanceQueueAccessBudget {
     }
 }
 
-impl CompactionPlanningMemoryEnvelope {
-    pub fn project_maintenance_queue_layout(self) -> MaintenanceQueueLayoutReport {
+impl<'runtime> CompactionPlanningMemoryEnvelope<'runtime> {
+    pub fn project_maintenance_queue_layout(self) -> MaintenanceQueueLayoutReport<'runtime> {
         MaintenanceQueueLayoutReport::from_compaction(self)
     }
 }
 
-impl ImportExportMemoryEnvelope {
-    pub fn project_maintenance_queue_layout(self) -> MaintenanceQueueLayoutReport {
+impl<'runtime> ImportExportMemoryEnvelope<'runtime> {
+    pub fn project_maintenance_queue_layout(self) -> MaintenanceQueueLayoutReport<'runtime> {
         MaintenanceQueueLayoutReport::from_import_export(self)
     }
 }

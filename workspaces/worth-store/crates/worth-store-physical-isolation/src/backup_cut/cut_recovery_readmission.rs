@@ -10,7 +10,7 @@ use super::cut_recovery::{
 use super::{
     AdmittedBackupCut, BackupArtifactCoverage, BackupArtifactReference,
     BackupCutAdmissionAuthority, BackupCutAdmissionRequest, BackupCutCoordinates,
-    BackupCutManifest, BackupCutStoragePosture,
+    BackupCutManifest, BackupCutStoragePosture, UntrustedBackupArtifactClaim,
 };
 use crate::CurrentGenerationPhysicalReference;
 
@@ -126,11 +126,13 @@ fn recover_artifact(
         )?));
     };
     let artifact = BackupArtifactReference::declare_untrusted_physical_observation(
-        recover_family(row.family()),
-        row.format(),
-        copy_string(row.identity())?,
-        row.generation(),
-        recover_coverage(row.coverage())?,
+        UntrustedBackupArtifactClaim {
+            family: recover_family(row.family()),
+            format: row.format(),
+            identity: copy_string(row.identity())?,
+            generation: row.generation(),
+            coverage: recover_coverage(row.coverage())?,
+        },
         observation,
         current,
     );

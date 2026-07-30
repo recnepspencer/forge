@@ -49,6 +49,14 @@ impl BackupProtectedPhysicalOwner {
                     && self.root.is_none()
                     && self.allocation.is_none()
             }
+            PhysicalCellReuseDomain::RecordExtentAllocation => {
+                self.extent.is_some()
+                    && self.segment.is_none()
+                    && self.page.is_none()
+                    && self.slot.is_none()
+                    && self.root.is_none()
+                    && self.allocation.is_none()
+            }
             PhysicalCellReuseDomain::FreeSpaceReuse => {
                 self.segment.is_some()
                     && self.root.is_none()
@@ -88,6 +96,7 @@ pub(super) const fn domain_tag(domain: PhysicalCellReuseDomain) -> u8 {
     match domain {
         PhysicalCellReuseDomain::SlotAllocation => 1,
         PhysicalCellReuseDomain::ExtentAllocation => 2,
+        PhysicalCellReuseDomain::RecordExtentAllocation => 7,
         PhysicalCellReuseDomain::FreeSpaceReuse => 3,
         PhysicalCellReuseDomain::RootPublication => 4,
         PhysicalCellReuseDomain::Page => 5,
@@ -99,6 +108,7 @@ pub(super) fn domain_from_tag(tag: u8) -> Option<PhysicalCellReuseDomain> {
     match tag {
         1 => Some(PhysicalCellReuseDomain::SlotAllocation),
         2 => Some(PhysicalCellReuseDomain::ExtentAllocation),
+        7 => Some(PhysicalCellReuseDomain::RecordExtentAllocation),
         3 => Some(PhysicalCellReuseDomain::FreeSpaceReuse),
         4 => Some(PhysicalCellReuseDomain::RootPublication),
         5 => Some(PhysicalCellReuseDomain::Page),

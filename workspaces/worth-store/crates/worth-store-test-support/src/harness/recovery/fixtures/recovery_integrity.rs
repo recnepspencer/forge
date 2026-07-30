@@ -5,13 +5,12 @@ use worth_store_physical_format::{
 };
 use worth_store_physical_integrity::{
     ChecksumAlgorithmDeclaration, ChecksumAlgorithmId, ChecksumScopeDeclaration,
-    DeclaredPhysicalChecksum, IntegrityEntryAdmission, IntegrityEntryRequest,
-    ManifestExpectedReference, ManifestIntegrityAuthority, ManifestIntegrityInspectionRequest,
-    PhysicalContainerIntegrity, PhysicalIntegrityAdmission, PhysicalIntegrityAdmissionRequest,
-    PhysicalIntegrityAdmissionSeed, PhysicalIntegrityEvidenceAuthority,
-    PhysicalIntegrityEvidenceProfile, PhysicalScopeAdmission, PhysicalScopeAdmissionRequest,
-    ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence, WalFrameIntegrityAuthority,
-    WalFrameIntegrityInspectionRequest,
+    DeclaredPhysicalChecksum, ManifestExpectedReference, ManifestIntegrityAuthority,
+    ManifestIntegrityInspectionRequest, PhysicalContainerIntegrity,
+    PhysicalIntegrityAdmissionRequest, PhysicalIntegrityAdmissionSeed,
+    PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceProfile, PhysicalScopeAdmission,
+    PhysicalScopeAdmissionRequest, ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence,
+    WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 use worth_store_recovery_physics::{
     BoundedInspectionEnvelopeEvidence, RecoveryIntegrityHandoffReceipt,
@@ -21,8 +20,6 @@ use super::s4_recovery_physical_fixture::{
     page_cell, root_with_slot, slot_cell, validation, with_protected_frame_view,
     with_protected_page_view,
 };
-use super::s4_recovery_readiness_fixture::physical_integrity_model_payload;
-
 pub(super) fn inspect_page_report(
     payload: &[u8],
 ) -> worth_store_physical_integrity::PageIntegrityReport {
@@ -159,21 +156,18 @@ fn with_checked_page(
     cell: PageGenerationCell,
     run: impl FnOnce(worth_store_physical_integrity::IntegrityCheckedPage<'_>),
 ) {
-    with_protected_page_view(payload, cell, |protected, witness| {
-        with_entry_seed(protected, |seed| {
-            let admission = seed
-                .with_checksum_declaration(checksum_admission(seed))
-                .unwrap();
-            let checked = admission
-                .admit_page(PhysicalIntegrityAdmissionRequest::page(
-                    cell,
-                    witness,
-                    PhysicalPageKind::DataPage,
-                    DeclaredPhysicalChecksum::new(crc32c(protected.as_bytes())),
-                ))
-                .unwrap();
-            run(checked);
-        });
+    with_protected_page_view(payload, cell, |seed, protected, witness| {
+        let declaration = checksum_admission(&seed);
+        let admission = seed.with_checksum_declaration(declaration).unwrap();
+        let checked = admission
+            .admit_page(PhysicalIntegrityAdmissionRequest::page(
+                cell,
+                witness,
+                PhysicalPageKind::DataPage,
+                DeclaredPhysicalChecksum::new(crc32c(protected.as_bytes())),
+            ))
+            .unwrap();
+        run(checked);
     });
 }
 
@@ -182,39 +176,25 @@ pub(super) fn with_checked_frame(
     validation: PhysicalReferenceValidationWitness,
     run: impl FnOnce(worth_store_physical_integrity::IntegrityCheckedFrame<'_>),
 ) {
-    with_protected_frame_view(payload, validation, |protected, witness| {
-        with_entry_seed(protected, |seed| {
-            let admission = seed
-                .with_checksum_declaration(checksum_admission(seed))
-                .unwrap();
-            let checked = admission
-                .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
-                    validation,
-                    witness,
-                    PhysicalFrameKind::RecordFrame,
-                    DeclaredPhysicalChecksum::new(crc32c(protected.as_bytes())),
-                ))
-                .unwrap();
-            run(checked);
-        });
+    with_protected_frame_view(payload, validation, |seed, protected, witness| {
+        let declaration = checksum_admission(&seed);
+        let admission = seed.with_checksum_declaration(declaration).unwrap();
+        let checked = admission
+            .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
+                validation,
+                witness,
+                PhysicalFrameKind::RecordFrame,
+                DeclaredPhysicalChecksum::new(crc32c(protected.as_bytes())),
+            ))
+            .unwrap();
+        run(checked);
     });
 }
 
 fn checksum_admission(
-    seed: PhysicalIntegrityAdmissionSeed<'_>,
+    seed: &PhysicalIntegrityAdmissionSeed<'_, '_>,
 ) -> worth_store_physical_integrity::ChecksumDeclarationAdmission {
     checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness())
-}
-
-fn with_entry_seed(
-    protected: worth_store_physical_integrity::ProtectedPhysicalByteView<'_>,
-    run: impl FnOnce(PhysicalIntegrityAdmissionSeed<'_>),
-) {
-    let entry =
-        IntegrityEntryAdmission::from_integrity_model_payload(physical_integrity_model_payload())
-            .unwrap();
-    let lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
-    run(PhysicalIntegrityAdmission::from_entry(lease));
 }
 
 fn checksum_declaration() -> ChecksumAlgorithmDeclaration {

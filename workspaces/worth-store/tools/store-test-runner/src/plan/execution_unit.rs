@@ -2,6 +2,18 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
+pub(crate) enum CargoTargetDirectoryPolicy {
+    Shared,
+    IsolateFromRunningExecutable,
+}
+
+impl CargoTargetDirectoryPolicy {
+    pub(crate) const fn isolates_from_running_executable(self) -> bool {
+        matches!(self, Self::IsolateFromRunningExecutable)
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct TestExecutionUnit {
     identity: String,
@@ -10,6 +22,7 @@ pub(crate) struct TestExecutionUnit {
     program: String,
     arguments: Vec<String>,
     expected_test_count: Option<usize>,
+    cargo_target_directory: CargoTargetDirectoryPolicy,
 }
 
 impl TestExecutionUnit {
@@ -27,7 +40,13 @@ impl TestExecutionUnit {
             program: "cargo".into(),
             arguments,
             expected_test_count,
+            cargo_target_directory: CargoTargetDirectoryPolicy::Shared,
         }
+    }
+
+    pub(super) fn isolate_from_running_executable(mut self) -> Self {
+        self.cargo_target_directory = CargoTargetDirectoryPolicy::IsolateFromRunningExecutable;
+        self
     }
 
     pub(super) fn command(
@@ -43,6 +62,7 @@ impl TestExecutionUnit {
             program: program.into(),
             arguments: arguments.iter().map(|value| (*value).into()).collect(),
             expected_test_count: None,
+            cargo_target_directory: CargoTargetDirectoryPolicy::Shared,
         }
     }
 
@@ -68,6 +88,10 @@ impl TestExecutionUnit {
 
     pub(crate) const fn expected_test_count(&self) -> Option<usize> {
         self.expected_test_count
+    }
+
+    pub(crate) const fn cargo_target_directory_policy(&self) -> CargoTargetDirectoryPolicy {
+        self.cargo_target_directory
     }
 
     pub(crate) fn display_command(&self) -> String {

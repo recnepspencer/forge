@@ -10,7 +10,7 @@ const SPECULATION: &str =
 const WRITEBACK: &str =
     "crates/worth-store-buffer-pool/src/physical_residency/pool/writeback_claim.rs";
 const EXACT_WAITER: &str =
-    "crates/worth-store-buffer-pool/src/physical_residency/pool/frame_admission/mod.rs";
+    "crates/worth-store-buffer-pool/src/physical_residency/pool/frame_admission/loading_waiters.rs";
 const BOUNDED_WAITER: &str =
     "crates/worth-store-buffer-pool/src/physical_residency/pool/bounded_frame_admission/join.rs";
 

@@ -7,7 +7,8 @@ use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 
 use super::independent_frame::decode_frame;
 use super::observation::{
-    OfflineRecordIdentity, OfflineRecordPlacement, OfflineSegmentPageMembership,
+    OfflineRecordIdentity, OfflineRecordPayloadObservation, OfflineRecordPlacement,
+    OfflineSegmentPageMembership,
 };
 use super::{read_u32, read_u64, OfflineDurableManifestDenial};
 
@@ -20,6 +21,7 @@ pub(super) struct OfflinePayloadWalk {
     pub(super) frames_read: u64,
     pub(super) payload_bytes: u64,
     pub(super) payload_digest: [u8; 32],
+    pub(super) records: Vec<OfflineRecordPayloadObservation>,
 }
 
 pub(super) fn validate_payloads(
@@ -32,8 +34,10 @@ pub(super) fn validate_payloads(
     let mut digest = Sha256::new();
     let mut frames_read = 0_u64;
     let mut payload_bytes = 0_u64;
+    let mut records = Vec::with_capacity(placements.len());
     for placement in placements {
         digest.update(placement.payload_bytes().to_le_bytes());
+        let mut record_digest = PayloadDigesters::new(&mut digest);
         let frames = match *placement {
             OfflineRecordPlacement::Inline {
                 record,
@@ -59,7 +63,7 @@ pub(super) fn validate_payloads(
                         payload_bytes,
                         slot,
                     },
-                    &mut digest,
+                    &mut record_digest,
                 )?;
                 1
             }
@@ -71,13 +75,16 @@ pub(super) fn validate_payloads(
             } => read_extent_payload(
                 root,
                 format,
-                record,
-                extent,
-                generation,
-                payload_bytes,
-                &mut digest,
+                ExtentPayloadExpectation {
+                    record,
+                    extent,
+                    generation,
+                    logical_bytes: payload_bytes,
+                },
+                &mut record_digest,
             )?,
         };
+        records.push(record_digest.finish(placement.record(), placement.payload_bytes()));
         frames_read = frames_read.saturating_add(frames);
         payload_bytes = payload_bytes.saturating_add(placement.payload_bytes());
     }
@@ -85,7 +92,45 @@ pub(super) fn validate_payloads(
         frames_read,
         payload_bytes,
         payload_digest: digest.finalize().into(),
+        records,
     })
+}
+
+struct PayloadDigesters<'aggregate> {
+    aggregate: &'aggregate mut Sha256,
+    record: Sha256,
+    prefix: Vec<u8>,
+}
+
+impl<'aggregate> PayloadDigesters<'aggregate> {
+    fn new(aggregate: &'aggregate mut Sha256) -> Self {
+        Self {
+            aggregate,
+            record: Sha256::new(),
+            prefix: Vec::with_capacity(8),
+        }
+    }
+
+    fn update(&mut self, bytes: &[u8]) {
+        let remaining = 8_usize.saturating_sub(self.prefix.len());
+        self.prefix
+            .extend_from_slice(&bytes[..bytes.len().min(remaining)]);
+        self.aggregate.update(bytes);
+        self.record.update(bytes);
+    }
+
+    fn finish(
+        self,
+        record: OfflineRecordIdentity,
+        payload_bytes: u64,
+    ) -> OfflineRecordPayloadObservation {
+        OfflineRecordPayloadObservation::new(
+            record,
+            payload_bytes,
+            self.prefix.into_boxed_slice(),
+            self.record.finalize().into(),
+        )
+    }
 }
 
 fn index_page_membership(
@@ -108,12 +153,19 @@ struct InlinePayloadExpectation {
     slot: u16,
 }
 
+struct ExtentPayloadExpectation {
+    record: OfflineRecordIdentity,
+    extent: u64,
+    generation: u64,
+    logical_bytes: u64,
+}
+
 fn read_inline_payload(
     root: &Path,
     format: PhysicalRecordFormatDeclaration,
     membership: OfflineSegmentPageMembership,
     expected: InlinePayloadExpectation,
-    digest: &mut Sha256,
+    digest: &mut PayloadDigesters<'_>,
 ) -> Result<(), OfflineDurableManifestDenial> {
     if membership.page_generation != expected.page_generation || expected.slot == 0 {
         return Err(OfflineDurableManifestDenial::ReachabilityMismatch);
@@ -173,32 +225,31 @@ fn read_inline_payload(
 fn read_extent_payload(
     root: &Path,
     format: PhysicalRecordFormatDeclaration,
-    record: OfflineRecordIdentity,
-    extent: u64,
-    generation: u64,
-    logical_bytes: u64,
-    digest: &mut Sha256,
+    expected: ExtentPayloadExpectation,
+    digest: &mut PayloadDigesters<'_>,
 ) -> Result<u64, OfflineDurableManifestDenial> {
     let path = root.join(format!(
-        "families/records/extents/extent-{extent:016x}-{generation:016x}.data"
+        "families/records/extents/extent-{:016x}-{:016x}.data",
+        expected.extent, expected.generation
     ));
     let mut file = std::fs::File::open(path)
         .map_err(|error| OfflineDurableManifestDenial::Io(error.kind()))?;
     let capacity = format.page_size().bytes() as usize - FRAME_HEADER_BYTES - EXTENT_METADATA_BYTES;
     let mut offset = 0_u64;
     let mut ordinal = 1_u32;
-    while offset < logical_bytes {
-        let length = usize::try_from((logical_bytes - offset).min(capacity as u64)).unwrap();
+    while offset < expected.logical_bytes {
+        let length =
+            usize::try_from((expected.logical_bytes - offset).min(capacity as u64)).unwrap();
         let mut bytes = vec![0_u8; FRAME_HEADER_BYTES + EXTENT_METADATA_BYTES + length];
         file.read_exact(&mut bytes)
             .map_err(|error| OfflineDurableManifestDenial::Io(error.kind()))?;
         let frame = decode_frame(&bytes, 4, format)?;
         if frame.identity != u64::from(ordinal)
             || frame.payload.len() != EXTENT_METADATA_BYTES + length
-            || OfflineRecordIdentity::decode(&frame.payload[..24]) != Some(record)
-            || read_u64(frame.payload, 24) != extent
-            || read_u64(frame.payload, 32) != generation
-            || read_u64(frame.payload, 40) != logical_bytes
+            || OfflineRecordIdentity::decode(&frame.payload[..24]) != Some(expected.record)
+            || read_u64(frame.payload, 24) != expected.extent
+            || read_u64(frame.payload, 32) != expected.generation
+            || read_u64(frame.payload, 40) != expected.logical_bytes
             || read_u64(frame.payload, 48) != offset
             || read_u32(frame.payload, 56) as usize != length
             || frame.payload[60..64] != [0; 4]

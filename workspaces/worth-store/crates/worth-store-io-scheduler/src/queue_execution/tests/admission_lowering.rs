@@ -1,12 +1,15 @@
 use worth_store_contracts::QueueProducerResourceShape;
+use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 
 use super::super::test_support::{
-    backend_for, buffer_pool_declaration, grouping_for, point_read_budget, policy_receipt,
+    backend_for, buffer_pool_prefetch_declaration, buffer_pool_read_ahead_declaration,
+    buffer_pool_writeback_declaration, grouping_for, point_read_budget, policy_receipt,
     secure_io_for_work, GroupingTestMutation,
 };
 use crate::foreground_reservation::admitted_point_read_reservation_for_certification_test;
 use crate::{
-    admit_queue_execution_plan, lower_buffer_pool_queue_declaration, QueueDurabilityClass,
+    admit_queue_execution_plan, lower_buffer_pool_read_queue_declaration,
+    lower_buffer_pool_writeback_queue_declaration, QueueDurabilityClass,
     QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueExecutionProgression,
     QueueGroupingDenial, QueueWorkDeclaration,
 };
@@ -24,27 +27,25 @@ fn admitted_queue_work_lowers_preserving_policy_and_grouping_basis() {
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work.clone(),
-        &backend,
-        policy,
-    ))
-    .expect("matching queue work should lower to an admitted execution plan");
+    let expected_security_scope = work.security_scope_identity();
+    let expected_class = work.class();
+    let expected_durability = work.durability_class();
+    let policy = policy_receipt(work);
+    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect("matching queue work should lower to an admitted execution plan");
 
-    assert_eq!(plan.work(), work);
     assert_eq!(
         plan.progression(),
         QueueExecutionProgression::ExecutionReady
     );
     assert_eq!(
         plan.grouping_basis(),
-        &grouping_for(work.security_scope_identity())
+        &grouping_for(expected_security_scope)
     );
-    assert_eq!(plan.replay_identity().work_class(), work.class());
+    assert_eq!(plan.replay_identity().work_class(), expected_class);
     assert_eq!(
         plan.replay_identity().durability_class(),
-        work.durability_class()
+        expected_durability
     );
     assert_eq!(plan.replay_identity().requested_budget(), budget);
     assert_eq!(
@@ -62,26 +63,103 @@ fn producer_declaration_lowers_through_scheduler_admission() {
         .with_worker_permits(1)
         .with_cache_residency_hints(1);
     let producer =
-        buffer_pool_declaration(false, reservation.security_scope_identity(), resource_shape);
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+        buffer_pool_read_ahead_declaration(reservation.security_scope_identity(), resource_shape);
+    assert_eq!(
+        producer.kind(),
+        worth_store_buffer_pool::BufferPoolReadQueueExecutionKind::ReadAhead
+    );
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
         .expect("producer shape should lower to queue work");
-    assert_eq!(work.buffer_pool_declaration(), Some(producer));
+    assert_eq!(work.buffer_pool_read_declaration(), Some(producer));
+    assert_eq!(work.buffer_pool_writeback_declaration(), None);
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work.clone(),
-        &backend,
-        policy,
-    ))
-    .expect("lowered producer work should admit through scheduler");
+    let expected_class = work.class();
+    let expected_budget = work.requested_budget();
+    let policy = policy_receipt(work);
+    let plan = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect("lowered producer work should admit through scheduler");
 
-    assert_eq!(plan.work().class(), work.class());
+    assert_eq!(plan.work().class(), expected_class);
     assert_eq!(plan.grouping_basis().flush_epoch(), 7);
+    assert_eq!(plan.replay_identity().requested_budget(), expected_budget);
+}
+
+#[test]
+fn prefetch_declaration_preserves_its_exact_kind_through_scheduler_lowering() {
+    let reservation = admitted_point_read_reservation_for_certification_test();
+    let resource_shape = QueueProducerResourceShape::new()
+        .with_queue_slots(1)
+        .with_bandwidth_tokens(4096)
+        .with_read_ahead_windows(1)
+        .with_worker_permits(1)
+        .with_cache_residency_hints(1);
+    let producer =
+        buffer_pool_prefetch_declaration(reservation.security_scope_identity(), resource_shape);
     assert_eq!(
-        plan.replay_identity().requested_budget(),
-        work.requested_budget()
+        producer.kind(),
+        worth_store_buffer_pool::BufferPoolReadQueueExecutionKind::Prefetch
+    );
+    let work = lower_buffer_pool_read_queue_declaration(producer, reservation)
+        .expect("typed prefetch authority should lower");
+
+    assert_eq!(work.buffer_pool_read_declaration(), Some(producer));
+    assert_eq!(work.buffer_pool_writeback_declaration(), None);
+    assert_eq!(
+        work.buffer_pool_read_declaration().unwrap().kind(),
+        worth_store_buffer_pool::BufferPoolReadQueueExecutionKind::Prefetch
+    );
+    assert_eq!(
+        work.buffer_pool_read_declaration().unwrap().producer_kind(),
+        worth_store_contracts::QueueProducerKind::BufferPoolReadAhead
+    );
+}
+
+#[test]
+fn writeback_declaration_preserves_buffered_and_synchronized_durability() {
+    let buffered_reservation = admitted_point_read_reservation_for_certification_test();
+    let synchronized_reservation = admitted_point_read_reservation_for_certification_test();
+    let resource_shape = QueueProducerResourceShape::new()
+        .with_queue_slots(1)
+        .with_bandwidth_tokens(4096)
+        .with_write_back_windows(1)
+        .with_worker_permits(1);
+    let buffered = buffer_pool_writeback_declaration(
+        ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+        buffered_reservation.security_scope_identity(),
+        resource_shape,
+    );
+    let synchronized = buffer_pool_writeback_declaration(
+        ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization,
+        synchronized_reservation.security_scope_identity(),
+        resource_shape,
+    );
+
+    let buffered_work =
+        lower_buffer_pool_writeback_queue_declaration(buffered, buffered_reservation)
+            .expect("buffered writeback should lower");
+    let synchronized_work =
+        lower_buffer_pool_writeback_queue_declaration(synchronized, synchronized_reservation)
+            .expect("synchronized writeback should lower");
+
+    assert_eq!(buffered_work.buffer_pool_read_declaration(), None);
+    assert_eq!(
+        buffered_work.buffer_pool_writeback_declaration(),
+        Some(buffered)
+    );
+    assert_eq!(synchronized_work.buffer_pool_read_declaration(), None);
+    assert_eq!(
+        synchronized_work.buffer_pool_writeback_declaration(),
+        Some(synchronized)
+    );
+    assert_eq!(
+        buffered_work.durability_class(),
+        QueueDurabilityClass::BufferedWrite
+    );
+    assert_eq!(
+        synchronized_work.durability_class(),
+        QueueDurabilityClass::PlatformDurable
     );
 }
 
@@ -104,8 +182,7 @@ fn producer_declaration_rejects_hidden_security_identity_drift() {
         stale_key_identity.authenticity_requirement(),
         admitted.authenticity_requirement()
     );
-    let producer = buffer_pool_declaration(
-        false,
+    let producer = buffer_pool_read_ahead_declaration(
         stale_key_identity,
         QueueProducerResourceShape::new()
             .with_queue_slots(1)
@@ -116,7 +193,7 @@ fn producer_declaration_rejects_hidden_security_identity_drift() {
     );
 
     assert_eq!(
-        lower_buffer_pool_queue_declaration(producer, reservation),
+        lower_buffer_pool_read_queue_declaration(producer, reservation),
         Err(QueueExecutionAdmissionDenial::ProducerSecurityScopeMismatch)
     );
 }
@@ -136,13 +213,12 @@ fn grouping_mismatch_is_a_typed_admission_denial() {
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
+    let policy = policy_receipt(work);
 
-    let denial =
-        admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
-            .expect_err(
-                "C5_PREDICATE:scheduler-admission: durability mismatch must not silently admit",
-            );
+    let denial = admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
+        .expect_err(
+            "C5_PREDICATE:scheduler-admission: durability mismatch must not silently admit",
+        );
 
     assert_eq!(
         denial,

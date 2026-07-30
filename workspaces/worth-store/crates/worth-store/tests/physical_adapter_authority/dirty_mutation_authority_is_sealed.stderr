@@ -1,0 +1,5 @@
+error[E0599]: no method named `mark_resident_frame_dirty` found for reference `&ServingPhysicalRuntime` in the current scope
+ --> tests/physical_adapter_authority/dirty_mutation_authority_is_sealed.rs:4:13
+  |
+4 |     serving.mark_resident_frame_dirty();
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&ServingPhysicalRuntime`

@@ -2,9 +2,9 @@ use worth_store_physical_backend::QualifiedFilesystemMedia;
 use worth_store_physical_format::RecordArtifactFile;
 
 use super::{
-    capability::ServingFrameResidency,
+    capability::PhysicalResidencyWorkPort,
     frame_loading::{
-        DirectFrameReadSource, FrameLoadFailure, LoadedPhysicalFrame, ObservedArtifactLength,
+        DirectFrameReadSource, ExactFrameSourceExtent, FrameLoadFailure, LoadedPhysicalFrame,
     },
     frame_ports::FrameLoadPort,
 };
@@ -20,7 +20,7 @@ enum RecordFrameReadRoute<'media> {
         media: &'media QualifiedFilesystemMedia,
         loader: &'media (dyn FrameLoadPort + Send + Sync),
     },
-    Serving(ServingFrameResidency),
+    Serving(PhysicalResidencyWorkPort),
 }
 
 impl<'media> RecordFrameReader<'media> {
@@ -34,22 +34,10 @@ impl<'media> RecordFrameReader<'media> {
     }
 
     pub(in crate::physical_runtime::record_serving) const fn serving(
-        residency: ServingFrameResidency,
+        residency: PhysicalResidencyWorkPort,
     ) -> RecordFrameReader<'static> {
         RecordFrameReader {
             route: RecordFrameReadRoute::Serving(residency),
-        }
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn file_length(
-        &self,
-        artifact: RecordArtifactFile,
-    ) -> Result<ObservedArtifactLength, FrameLoadFailure> {
-        match &self.route {
-            RecordFrameReadRoute::Bootstrap { media, loader } => {
-                loader.file_length(&DirectFrameReadSource::new(media), artifact)
-            }
-            RecordFrameReadRoute::Serving(residency) => residency.file_length(artifact),
         }
     }
 
@@ -59,6 +47,7 @@ impl<'media> RecordFrameReader<'media> {
         artifact: RecordArtifactFile,
         offset: u64,
         length: u32,
+        source_extent: ExactFrameSourceExtent,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
         match &self.route {
             RecordFrameReadRoute::Bootstrap { media, loader } => loader.load_exact(
@@ -67,6 +56,7 @@ impl<'media> RecordFrameReader<'media> {
                 artifact,
                 offset,
                 length,
+                source_extent,
             ),
             RecordFrameReadRoute::Serving(residency) => residency.load_exact(
                 allocation,
@@ -76,6 +66,7 @@ impl<'media> RecordFrameReader<'media> {
                         super::frame_loading::FrameLoadFailureKind::InvalidCoordinate,
                     )
                 })?,
+                source_extent,
             ),
         }
     }

@@ -18,7 +18,7 @@ use crate::foreground_reservation::admitted_point_read_reservation_for_certifica
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_queue_execution_plan,
     admit_secure_io_scope_for_scheduler, admit_security_scope_for_scheduler,
-    lower_buffer_pool_queue_declaration, BackgroundResourceBudget, BandwidthToken,
+    lower_buffer_pool_writeback_queue_declaration, BackgroundResourceBudget, BandwidthToken,
     CacheResidencyHint, IoSchedulerBackendCapabilityAdmission, QueueDurabilityClass,
     QueueExecutionAdmissionRequest, QueueExecutionReadyPlan, QueueGroupingBasis,
     QueueRecoveryOrdering, QueueSlot, QueueWorkDeclaration, QueueWritebackPolicy, ReadAheadWindow,
@@ -27,7 +27,10 @@ use crate::{
 
 #[path = "test_support/buffer_pool_declaration.rs"]
 mod buffer_pool_declaration_fixture;
-pub(crate) use buffer_pool_declaration_fixture::buffer_pool_declaration;
+pub(crate) use buffer_pool_declaration_fixture::{
+    buffer_pool_prefetch_declaration, buffer_pool_read_ahead_declaration,
+    buffer_pool_writeback_declaration,
+};
 
 pub(crate) fn admitted_plan() -> QueueExecutionReadyPlan {
     admitted_plan_for_backend_profile(BackendTargetProfile::PosixFileFsyncDirSync)
@@ -39,15 +42,18 @@ pub(crate) fn admitted_write_back_plan() -> QueueExecutionReadyPlan {
         .with_bandwidth_tokens(4096)
         .with_write_back_windows(1)
         .with_worker_permits(1);
-    let producer =
-        buffer_pool_declaration(true, reservation.security_scope_identity(), resource_shape);
-    let work = lower_buffer_pool_queue_declaration(producer, reservation)
+    let producer = buffer_pool_writeback_declaration(
+        worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+        reservation.security_scope_identity(),
+        resource_shape,
+    );
+    let work = lower_buffer_pool_writeback_queue_declaration(producer, reservation)
         .expect("write-back producer should lower to queue work");
     let backend = backend_for(&work);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let policy = policy_receipt(work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
         .expect("write-back queue work should admit")
 }
 
@@ -65,8 +71,8 @@ pub(crate) fn admitted_plan_for_backend_profile(
     let backend = backend_for_profile(&work, profile);
     let secure_io = secure_io_for_work(&work, &backend);
     let work = work.with_secure_io_scope(secure_io);
-    let policy = policy_receipt(&work);
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(work, &backend, policy))
+    let policy = policy_receipt(work);
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, &backend))
         .expect("test plan should admit")
 }
 
@@ -308,7 +314,7 @@ impl TestBackendQueueCompletionBuilder {
     }
 }
 
-pub(crate) fn policy_receipt(work: &QueueWorkDeclaration) -> crate::QueuePolicyAdmissionReceipt {
+pub(crate) fn policy_receipt(work: QueueWorkDeclaration) -> crate::QueuePolicyAdmissionReceipt {
     let budget = work.requested_budget();
     let work_class = match work.durability_class() {
         QueueDurabilityClass::ReadOnly => FoundationalPerformanceWorkClass::AuthoritativeRead,
@@ -354,8 +360,7 @@ pub(crate) fn policy_receipt(work: &QueueWorkDeclaration) -> crate::QueuePolicyA
         )
         .finish()
         .expect("policy receipt should build");
-    crate::admit_queue_policy_receipt(work.clone(), receipt)
-        .expect("policy receipt should bind exact work")
+    crate::admit_queue_policy_receipt(work, receipt).expect("policy receipt should bind exact work")
 }
 
 fn backend_witness_for_profile(

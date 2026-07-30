@@ -182,7 +182,7 @@ pub enum RedoPlanningDenialKind {
     },
     PageRedoDenied {
         frame_lsn: crate::LogSequenceNumber,
-        denial: crate::UnadmittedDirtyPagePublicationDenial,
+        denial: crate::PageRedoDenial,
     },
     MiddleWalCorruption(super::MiddleWalCorruptionDenial),
     MissingAcknowledgedWalRange(super::MissingAcknowledgedWalRangeDenial),

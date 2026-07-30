@@ -6,7 +6,6 @@ pub enum RecoveryLayoutAccessDenialKind {
     RecoverySourceRowCannotStandInForRecoveryAuthority,
     BackendResidueCannotStandInForCrashBoundaryAuthority,
     AmbiguousResidueCannotStandInForCrashBoundaryAuthority,
-    DerivedRollbackCannotStandInForCrashBoundaryAuthority,
     BoundedWalTailLookupOutOfRange,
     ReplayTailCheckpointGap,
 }

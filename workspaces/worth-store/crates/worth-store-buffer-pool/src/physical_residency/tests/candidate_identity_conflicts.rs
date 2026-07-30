@@ -27,7 +27,7 @@ fn batch_admission_names_live_exact_loading_identity() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, operation_bytes, 4)).unwrap();
     let read = allocation(&pool, READ_SCOPE);
-    let write = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let write = candidate_allocation(&pool, 1);
     let key = PhysicalFrameKey::new(identity, coordinate(23, 32));
     let owner = expect_fault(&pool, &read, key);
     let before = pool.counters();
@@ -48,7 +48,7 @@ fn per_frame_admission_preserves_retained_exact_failure_terminal() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, operation_bytes, 4)).unwrap();
     let read = allocation(&pool, READ_SCOPE);
-    let write = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let write = candidate_allocation(&pool, 1);
     let key = PhysicalFrameKey::new(identity, coordinate(24, 32));
     let declaration = candidate(key);
     let mut batch = pool
@@ -82,7 +82,7 @@ fn bounded_loading_alias_is_not_called_an_exact_resident_frame() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, operation_bytes, 4)).unwrap();
     let read = allocation(&pool, READ_SCOPE);
-    let write = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let write = candidate_allocation(&pool, 1);
     let artifact = RecordArtifactFile::RootManifest { generation: 15 };
     let key = PhysicalFrameKey::new(
         identity,
@@ -119,7 +119,7 @@ fn actual_resident_collision_retains_residency_denial() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, operation_bytes, 4)).unwrap();
     let read = allocation(&pool, READ_SCOPE);
-    let write = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let write = candidate_allocation(&pool, 1);
     let key = PhysicalFrameKey::new(identity, coordinate(26, 32));
     drop(
         expect_fault(&pool, &read, key)

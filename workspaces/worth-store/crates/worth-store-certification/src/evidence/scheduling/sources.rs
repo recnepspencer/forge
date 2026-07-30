@@ -241,11 +241,7 @@ impl S6CertificationEvidenceSources {
             sources.foreground_receipt,
             sources.foreground_receipt,
         )?;
-        let expected_background_outcome = sources.background_outcome.clone();
-        let background_pacing = certify_io_qos_background_pacing(
-            sources.background_outcome,
-            expected_background_outcome,
-        )?;
+        let background_pacing = certify_io_qos_background_pacing(sources.background_outcome);
         let queue_execution =
             S6CertifiedQueueExecutionEvidence::from_outcome(&sources.queue_outcome)?;
         Ok(Self {

@@ -6,7 +6,7 @@ fn independent_events_reconcile_every_active_hard_dimension() {
     let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
     let observer = pool.allocation_events();
     let grant = pool
-        .begin_operation(WRITE_SCOPE, nonzero_bytes(16))
+        .begin_foreground_write_operation(nonzero_bytes(16))
         .unwrap();
     let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
     let clean = expect_fault(&pool, &grant, key)
@@ -60,7 +60,9 @@ fn pressure_and_failed_fill_leave_no_phantom_admission() {
     let identity = store(102);
     let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 8, 3)).unwrap();
     let observer = pool.allocation_events();
-    let grant = pool.begin_operation(WRITE_SCOPE, nonzero_bytes(8)).unwrap();
+    let grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(8))
+        .unwrap();
     let denial = pool
         .begin_operation(READ_SCOPE, nonzero_bytes(1))
         .unwrap_err();

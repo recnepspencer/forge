@@ -305,6 +305,120 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  worth-store-bounded-residency-evidence:
+    name: WORTH Store bounded-residency mutation evidence
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    defaults:
+      run:
+        working-directory: workspaces/worth-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-bounded-residency
+      - name: Certify the bounded-residency mutation corpus
+        shell: bash
+        run: >-
+          cargo run -q -p store-test-runner --
+          mutants
+          --mutation-scope bounded-residency
+          --report "${RUNNER_TEMP}/worth-store-bounded-residency-mutants.json"
+      - name: Preserve bounded-residency mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-store-bounded-residency-mutants-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-store-bounded-residency-mutants.json
+          if-no-files-found: error
+          retention-days: 30
+
+  worth-store-bounded-residency-schedules:
+    name: WORTH Store bounded-residency schedule lane ${{ matrix.schedule-lane }}
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: worth-store-bounded-residency-evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        schedule-lane: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    defaults:
+      run:
+        working-directory: workspaces/worth-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-bounded-residency
+      - name: Restore bounded-residency mutation evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: worth-store-bounded-residency-mutants-${{ github.run_attempt }}
+          path: ${{ runner.temp }}
+      - name: Execute the revision-derived schedule lane
+        shell: bash
+        run: >-
+          cargo run -q -p store-test-runner
+          --features physical-work-evidence --
+          courtrooms
+          --courtroom c
+          --mutant-report "${RUNNER_TEMP}/worth-store-bounded-residency-mutants.json"
+          --report "${RUNNER_TEMP}/worth-store-courtroom-c-lane-${{ matrix.schedule-lane }}.json"
+          --ci-schedule-lane "${{ matrix.schedule-lane }}"
+      - name: Preserve the lane report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-store-courtroom-c-lane-${{ matrix.schedule-lane }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-store-courtroom-c-lane-${{ matrix.schedule-lane }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  worth-store-bounded-residency-release:
+    name: WORTH Store bounded-residency release certification
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: worth-store-bounded-residency-evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: workspaces/worth-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: workspaces/worth-store -> target
+          shared-key: worth-store-bounded-residency
+      - name: Restore complete bounded-residency mutation evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: worth-store-bounded-residency-mutants-${{ github.run_attempt }}
+          path: ${{ runner.temp }}
+      - name: Execute the canonical hostile release schedule
+        shell: bash
+        run: >-
+          cargo run -q -p store-test-runner
+          --features physical-work-evidence --
+          courtrooms
+          --courtroom c
+          --mutant-report "${RUNNER_TEMP}/worth-store-bounded-residency-mutants.json"
+          --report "${RUNNER_TEMP}/worth-store-courtroom-c-release.json"
+      - name: Preserve the canonical release report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worth-store-courtroom-c-release-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/worth-store-courtroom-c-release.json
+          if-no-files-found: error
+          retention-days: 30
+
   worth_ui_quality:
     name: WORTH UI Quality and Topology
     runs-on: ubuntu-latest

@@ -5,14 +5,14 @@ use worth_store_io_scheduler::foreground_reservation::{
 use worth_store_io_scheduler::BackgroundPacingOutcome;
 use worth_store_physical_isolation::{PhysicalReadExecutionDenial, StablePhysicalReadReceipt};
 
-use super::classification::verification_pressure;
+use super::classification::verification_pressure::{self, AdmittedBlobVerificationPressure};
 use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BlobStreamingReadAdmission {
     stable_read: StablePhysicalReadReceipt,
     foreground: ForegroundReservationReceipt,
-    pressure_counters: BlobStreamingReadCounterSnapshot,
+    pressure: AdmittedBlobVerificationPressure,
 }
 
 impl BlobStreamingReadAdmission {
@@ -21,7 +21,7 @@ impl BlobStreamingReadAdmission {
         foreground: ForegroundReservationReceipt,
         pressure: BackgroundPacingOutcome,
     ) -> Result<Self, BlobStreamingReadDenial> {
-        let pressure_counters = verification_pressure::classify_verification_pressure(pressure)?;
+        let pressure = verification_pressure::classify_verification_pressure(pressure)?;
         if foreground.state() != ForegroundReservationState::ReservationAdmitted {
             return Err(BlobStreamingReadDenial::ForegroundReservationNotAdmitted {
                 lane: foreground.lane(),
@@ -36,7 +36,7 @@ impl BlobStreamingReadAdmission {
             | ForegroundIoLaneKind::OrdinaryPageWrite => Ok(Self {
                 stable_read,
                 foreground,
-                pressure_counters,
+                pressure,
             }),
             lane => Err(BlobStreamingReadDenial::ForegroundReservationLaneMismatch { lane }),
         }
@@ -66,31 +66,27 @@ impl BlobStreamingReadAdmission {
     pub fn reject_physical_read_denial(
         denial: PhysicalReadExecutionDenial,
     ) -> BlobStreamingReadDenial {
-        BlobStreamingReadDenial::StablePhysicalReadDenied(denial)
+        BlobStreamingReadDenial::StablePhysicalReadDenied(Box::new(denial))
     }
 
     pub(crate) const fn seed_counters(
-        self,
+        &self,
         counters: BlobStreamingReadCounterSnapshot,
     ) -> BlobStreamingReadCounterSnapshot {
-        let foreground = self.foreground.counters();
         counters
             .record_stable_read(self.stable_read.counters())
-            .merge_pressure_counters(self.pressure_counters)
-            .record_foreground_scheduler_waits(
-                foreground.stable_read_wait_count() + foreground.stable_read_retry_count(),
-            )
+            .merge_pressure_counters(self.pressure.counters())
     }
 
-    pub(crate) const fn stable_read(self) -> StablePhysicalReadReceipt {
+    pub(crate) const fn stable_read(&self) -> StablePhysicalReadReceipt {
         self.stable_read
     }
 
-    pub const fn foreground(self) -> ForegroundReservationReceipt {
+    pub const fn foreground(&self) -> ForegroundReservationReceipt {
         self.foreground
     }
 
-    pub const fn pressure_counters(self) -> BlobStreamingReadCounterSnapshot {
-        self.pressure_counters
+    pub const fn pressure_counters(&self) -> BlobStreamingReadCounterSnapshot {
+        self.pressure.counters()
     }
 }

@@ -16,6 +16,4 @@ pub use outcome::{
     QueueExecutionOutcome, QueueExecutionViolation, QueueExecutionViolationCause,
 };
 pub use plan::{AdmittedQueueExecutionPlan, QueueExecutedPlan, QueueExecutionReadyPlan};
-pub use progression::{
-    queue_execution_lowering_authority, QueueExecutionLoweringAuthority, QueueExecutionProgression,
-};
+pub use progression::QueueExecutionProgression;

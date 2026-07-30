@@ -16,7 +16,7 @@ pub struct S5FoundationalPerformanceReceipts {
 impl S5FoundationalPerformanceReceipts {
     pub(crate) fn from_finding(
         finding: &ExecutedPhysicalIsolationFinding,
-    ) -> Result<Self, crate::FoundationalBoundaryEvidenceDenial> {
+    ) -> Result<Self, crate::FoundationalPerformanceEvidenceDenial> {
         let counters = finding.counters();
         let rows = [
             ("store.s5.isolation.outcome", counters.outcome_count()),

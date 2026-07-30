@@ -190,14 +190,7 @@ fn inspect_bounded_limit_identity(path: &Path, source: &str) -> Result<(), Strin
 }
 
 fn bounded_loader_body(source: &str) -> &str {
-    let Some(start) = source.find("fn load_bounded(") else {
-        return source;
-    };
-    let body = &source[start..];
-    match body.find("\n    fn file_length(") {
-        Some(end) => &body[..end],
-        None => body,
-    }
+    function_body(source, "fn load_bounded(").unwrap_or(source)
 }
 
 fn function_body<'source>(source: &'source str, signature: &str) -> Option<&'source str> {

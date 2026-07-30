@@ -30,7 +30,9 @@ fn multi_page_cow_preserves_untouched_page_generation_and_all_records() {
         .unwrap();
     let old_root = decode_root(&root, 2, format.declaration());
     let fourth_payload = vec![4_u8; 3_000];
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
     let before_cow = serving.media_counters();
     let fourth = serving
         .record_submission()

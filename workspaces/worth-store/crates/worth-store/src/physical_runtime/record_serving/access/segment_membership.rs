@@ -9,7 +9,7 @@ use worth_store_physical_format::{
 use super::super::access::manifest_routing::{
     ManifestDiscoveryCounterSnapshot, ManifestLookupFailure,
 };
-use super::super::residency::{record_frame_reader::RecordFrameReader, ServingFrameResidency};
+use super::super::residency::{record_frame_reader::RecordFrameReader, PhysicalResidencyWorkPort};
 use super::super::{AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy};
 
 mod update_planning;
@@ -43,7 +43,7 @@ impl<'media> SegmentMembershipReader<'media> {
     }
 
     pub(in crate::physical_runtime::record_serving) fn serving(
-        residency: ServingFrameResidency,
+        residency: PhysicalResidencyWorkPort,
         format: AdmittedPhysicalRecordFormat,
         access: AdmittedRecordAccessPolicy,
         root: DurablePhysicalRootManifest,

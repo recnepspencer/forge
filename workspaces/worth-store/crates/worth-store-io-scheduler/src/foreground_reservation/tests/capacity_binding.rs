@@ -1,11 +1,14 @@
 use crate::IoSchedulerBackendCapabilityRequirement;
 
 use super::super::*;
-use super::common::*;
+use super::backend_capability::backend_admission;
+use super::capacity_policy::{capacity_admission, policy_receipt};
+use super::foreground_case::point_read_lane;
+use super::resource_budget::{full_capacity_budget, read_budget};
+use super::security_scope::io_qos_security_scope_admission;
 
 #[test]
 fn capacity_witness_cannot_be_reused_for_different_lane_budget() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let admitted_lane = point_read_lane();
@@ -13,7 +16,6 @@ fn capacity_witness_cannot_be_reused_for_different_lane_budget() {
     let capacity = capacity_admission(
         admitted_lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         admitted_lane.requested_budget(),
@@ -26,7 +28,6 @@ fn capacity_witness_cannot_be_reused_for_different_lane_budget() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         larger_lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -45,7 +46,6 @@ fn capacity_witness_cannot_be_reused_for_different_lane_budget() {
 
 #[test]
 fn policy_receipt_budget_mismatch_denies_capacity_admission() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
@@ -53,7 +53,7 @@ fn policy_receipt_budget_mismatch_denies_capacity_admission() {
     let denial =
         admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
             lane,
-            ForegroundReservationCapacityBasis::new(&backend, &readiness, &security),
+            ForegroundReservationCapacityBasis::new(&backend, &security),
             ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead),
             admitted,
             admitted,
@@ -69,7 +69,6 @@ fn policy_receipt_budget_mismatch_denies_capacity_admission() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_backend_basis() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let requested_backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let admitted_backend = backend_admission(IoSchedulerBackendCapabilityRequirement::BufferedFile);
@@ -78,7 +77,6 @@ fn capacity_witness_cannot_be_reused_with_different_backend_basis() {
     let capacity = capacity_admission(
         lane,
         &admitted_backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -88,7 +86,6 @@ fn capacity_witness_cannot_be_reused_with_different_backend_basis() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &requested_backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -104,7 +101,6 @@ fn capacity_witness_cannot_be_reused_with_different_backend_basis() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_envelope_basis() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let admitted_lane = point_read_lane();
@@ -118,7 +114,6 @@ fn capacity_witness_cannot_be_reused_with_different_envelope_basis() {
     let capacity = capacity_admission(
         admitted_lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         admitted_lane.requested_budget(),
@@ -128,7 +123,6 @@ fn capacity_witness_cannot_be_reused_with_different_envelope_basis() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         requested_lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -144,7 +138,6 @@ fn capacity_witness_cannot_be_reused_with_different_envelope_basis() {
 
 #[test]
 fn capacity_witness_cannot_be_reused_with_different_arbitration_basis() {
-    let readiness = io_qos_readiness_admission();
     let security = io_qos_security_scope_admission();
     let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
     let lane = point_read_lane();
@@ -155,7 +148,6 @@ fn capacity_witness_cannot_be_reused_with_different_arbitration_basis() {
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         attempted_arbitration,
         lane.requested_budget(),
@@ -165,7 +157,6 @@ fn capacity_witness_cannot_be_reused_with_different_arbitration_basis() {
     let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         admitted_arbitration,
         &capacity,
@@ -176,40 +167,5 @@ fn capacity_witness_cannot_be_reused_with_different_arbitration_basis() {
     assert_eq!(
         denial,
         ForegroundReservationAdmissionDenial::CapacityAdmissionArbitrationMismatch
-    );
-}
-
-#[test]
-fn capacity_witness_cannot_be_reused_with_different_readiness_counter_basis() {
-    let admitted_readiness = io_qos_readiness_admission();
-    let requested_readiness = io_qos_readiness_admission_with_counts(3, 2);
-    let security = io_qos_security_scope_admission();
-    let backend = backend_admission(IoSchedulerBackendCapabilityRequirement::DirectIo);
-    let lane = point_read_lane();
-    let arbitration = ForegroundArbitrationDeclaration::for_lane(ForegroundIoLaneKind::PointRead);
-    let capacity = capacity_admission(
-        lane,
-        &backend,
-        &admitted_readiness,
-        &security,
-        arbitration,
-        lane.requested_budget(),
-        full_capacity_budget(),
-    );
-
-    let denial = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
-        lane,
-        &backend,
-        &requested_readiness,
-        &security,
-        arbitration,
-        &capacity,
-    ))
-    .into_result()
-    .expect_err("capacity admitted for one readiness basis must not reserve another");
-
-    assert_eq!(
-        denial,
-        ForegroundReservationAdmissionDenial::CapacityAdmissionReadinessCounterMismatch
     );
 }

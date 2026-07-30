@@ -1,14 +1,12 @@
 use crate::{
     AdmittedRecoveryIntegrityInput, PartialPublicationBeforeWalReplayRead, RecoveryMemoryAllocation,
 };
-use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 use worth_store_contracts::{PhysicalAuthorityRecap, StableDigest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecoveryEntryBasis {
     integrity_handoff_identity: StableDigest,
     integrity_damage_basis: StableDigest,
-    memory_allocation_scope: PhysicalOperationAllocationScope,
     memory_counters: crate::RecoveryMemoryCounterSnapshot,
     physical_reference_count: u32,
     header_decode_witness_count: u32,
@@ -19,13 +17,12 @@ pub struct RecoveryEntryBasis {
 impl RecoveryEntryBasis {
     pub(crate) fn from_entry_inputs(
         integrity_readiness: &AdmittedRecoveryIntegrityInput,
-        memory_allocation: &RecoveryMemoryAllocation,
+        memory_allocation: &RecoveryMemoryAllocation<'_>,
         physical_authority: PhysicalAuthorityRecap,
     ) -> Self {
         Self {
             integrity_handoff_identity: integrity_readiness.payload().identity().clone(),
             integrity_damage_basis: integrity_readiness.payload().damage_map().basis(),
-            memory_allocation_scope: memory_allocation.allocation_scope(),
             memory_counters: memory_allocation.counters(),
             physical_reference_count: physical_authority.physical_reference_count(),
             header_decode_witness_count: physical_authority.header_decode_witness_count(),
@@ -43,10 +40,6 @@ impl RecoveryEntryBasis {
 
     pub fn integrity_damage_basis(&self) -> &StableDigest {
         &self.integrity_damage_basis
-    }
-
-    pub const fn memory_allocation_scope(&self) -> PhysicalOperationAllocationScope {
-        self.memory_allocation_scope
     }
 
     pub const fn memory_counters(&self) -> crate::RecoveryMemoryCounterSnapshot {

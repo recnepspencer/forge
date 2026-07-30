@@ -1,5 +1,6 @@
 mod admission_fault_interposition;
 mod allocation_probe;
+mod artifact_metadata_read;
 mod artifact_mutation_coordination;
 mod artifact_new_write;
 mod artifact_publication_effect;

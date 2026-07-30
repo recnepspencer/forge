@@ -2,7 +2,7 @@ use super::*;
 
 fn publish_complete(
     pool: &PhysicalResidencyPool,
-    allocation: &OperationAllocationGrant,
+    allocation: &ForegroundWriteAllocationGrant,
     key: PhysicalFrameKey,
     value: u8,
 ) {
@@ -13,7 +13,7 @@ fn publish_complete(
     let dirty = batch
         .reserve_next(candidate)
         .unwrap()
-        .admit(vec![value; key.coordinate().length() as usize])
+        .materialize(|bytes| bytes.fill(value))
         .unwrap();
     pool.inner.publish_clean(key).unwrap();
     drop(dirty);
@@ -44,7 +44,7 @@ fn complete_artifact_promotion_rejects_nonzero_target_without_mutation() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let source_coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::RootManifest { generation: 7 }, 0, 32)
             .unwrap();
@@ -71,7 +71,7 @@ fn occupied_target_artifact_denies_before_source_removal() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let source_coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::RootManifest { generation: 9 }, 0, 32)
             .unwrap();
@@ -105,7 +105,7 @@ fn legal_complete_artifact_promotion_retargets_exact_and_bounded_identity() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let source_artifact = RecordArtifactFile::RootManifest { generation: 11 };
     let source_coordinate = RecordFrameCoordinate::new(source_artifact, 0, 32).unwrap();
     let source = PhysicalFrameKey::new(identity, source_coordinate);
@@ -136,7 +136,7 @@ fn retained_failed_target_preserves_terminal_waiter_and_accounting() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 4, 2, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let source = PhysicalFrameKey::new(
         identity,
         RecordFrameCoordinate::new(RecordArtifactFile::RootManifest { generation: 13 }, 0, 32)
@@ -193,7 +193,7 @@ fn live_loading_target_denies_promotion_and_owner_still_completes() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 4, 2, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let source = PhysicalFrameKey::new(
         identity,
         RecordFrameCoordinate::new(RecordArtifactFile::RootManifest { generation: 14 }, 0, 32)

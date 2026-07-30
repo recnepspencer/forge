@@ -1,3 +1,5 @@
+#[path = "physical_store_offline_observer/bounded_residency_verification.rs"]
+mod bounded_residency_verification;
 #[path = "physical_store_offline_observer/current_manifest.rs"]
 mod current_manifest;
 #[path = "physical_store_offline_observer/hostile_physical_truth.rs"]
@@ -8,7 +10,21 @@ fn main() {
     let Some(first) = arguments.next() else {
         usage();
     };
-    if first == "hostile-physical-truth" {
+    if first == "bounded-residency-verify" {
+        let Some(root) = arguments.next() else {
+            usage();
+        };
+        let Some(configuration) = arguments.next() else {
+            usage();
+        };
+        if arguments.next().is_some() {
+            usage();
+        }
+        bounded_residency_verification::run(
+            std::path::Path::new(&root),
+            std::path::Path::new(&configuration),
+        );
+    } else if first == "hostile-physical-truth" {
         let Some(root) = arguments.next() else {
             usage();
         };
@@ -31,7 +47,8 @@ fn hex(bytes: &[u8]) -> String {
 fn usage() -> ! {
     eprintln!(
         "usage: physical_store_offline_observer <store-root> | \
-         hostile-physical-truth <store-root>"
+         hostile-physical-truth <store-root> | \
+         bounded-residency-verify <store-root> <configuration>"
     );
     std::process::exit(2);
 }

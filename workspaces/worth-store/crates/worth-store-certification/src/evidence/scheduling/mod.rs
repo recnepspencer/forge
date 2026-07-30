@@ -1,7 +1,4 @@
 mod adoption;
-pub(crate) mod background_envelope_evidence;
-#[cfg(test)]
-pub(crate) mod background_envelope_evidence_tests;
 mod binding;
 mod binding_identity;
 mod bundle;

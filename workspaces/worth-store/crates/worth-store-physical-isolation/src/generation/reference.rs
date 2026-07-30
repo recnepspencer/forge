@@ -1,14 +1,18 @@
+use worth_store::physical_runtime::PhysicalRecordChunkView;
 use worth_store_physical_format::{
     PageGenerationCell, PhysicalGeneration, PhysicalGenerationOwner, PhysicalReference,
     PhysicalReferenceAdmissionWitness, SegmentGenerationCell,
 };
 
-use super::{mismatch_for_page, mismatch_for_reference, mismatch_for_segment};
+use super::{
+    mismatch_for_page, mismatch_for_record_extent, mismatch_for_reference, mismatch_for_segment,
+};
 use crate::{GenerationCountedReferenceDenial, PhysicalReferenceGenerationMismatch};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GenerationCountedPhysicalReference {
     AdmittedReference(PhysicalReference),
+    RecordExtent { owner: PhysicalGenerationOwner },
     Segment { owner: PhysicalGenerationOwner },
     Page { owner: PhysicalGenerationOwner },
 }
@@ -57,6 +61,16 @@ impl GenerationCountedPhysicalReference {
                     ))
                 }
             }
+            Self::RecordExtent { owner } => {
+                if owner.generation() == observed_generation {
+                    Ok(CurrentGenerationPhysicalReference::from_validated_reference(self))
+                } else {
+                    Err(mismatch_for_record_extent(
+                        owner.generation(),
+                        observed_generation,
+                    ))
+                }
+            }
             Self::Page { owner } => {
                 if owner.generation() == observed_generation {
                     Ok(CurrentGenerationPhysicalReference::from_validated_reference(self))
@@ -70,14 +84,16 @@ impl GenerationCountedPhysicalReference {
     pub const fn generation(self) -> PhysicalGeneration {
         match self {
             Self::AdmittedReference(reference) => reference.generation(),
-            Self::Segment { owner } | Self::Page { owner } => owner.generation(),
+            Self::RecordExtent { owner } | Self::Segment { owner } | Self::Page { owner } => {
+                owner.generation()
+            }
         }
     }
 
     pub fn owner(self) -> PhysicalGenerationOwner {
         match self {
             Self::AdmittedReference(reference) => reference.generation_owner(),
-            Self::Segment { owner } | Self::Page { owner } => owner,
+            Self::RecordExtent { owner } | Self::Segment { owner } | Self::Page { owner } => owner,
         }
     }
 
@@ -97,6 +113,11 @@ impl CurrentGenerationPhysicalReference {
 
     pub fn owner(self) -> PhysicalGenerationOwner {
         self.reference.owner()
+    }
+
+    pub fn for_record_chunk(chunk: &PhysicalRecordChunkView<'_>) -> Self {
+        Self::from_durable_owner(chunk.basis().physical_owner())
+            .expect("Store record chunks carry a generation-counted physical owner")
     }
 
     pub(crate) const fn generation_counted_reference(self) -> GenerationCountedPhysicalReference {
@@ -126,6 +147,9 @@ impl CurrentGenerationPhysicalReference {
                 GenerationCountedPhysicalReference::from_admitted_reference(
                     references.admit_extent(cell),
                 )
+            }
+            PhysicalCellReuseDomain::RecordExtentAllocation => {
+                GenerationCountedPhysicalReference::RecordExtent { owner }
             }
             PhysicalCellReuseDomain::RootPublication => {
                 let cell = generations

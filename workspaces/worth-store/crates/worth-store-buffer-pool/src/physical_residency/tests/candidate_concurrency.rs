@@ -9,7 +9,7 @@ fn disjoint_candidate_sessions_and_reads_progress_independently() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 2, operation_bytes, 6)).unwrap();
     let read_allocation = allocation(&pool, READ_SCOPE);
-    let write_allocation = candidate_batches_allocation(&pool, WRITE_SCOPE, &[1, 1]);
+    let write_allocation = candidate_batches_allocation(&pool, &[1, 1]);
     let stable_key = PhysicalFrameKey::new(identity, coordinate(1, 16));
     drop(
         expect_fault(&pool, &read_allocation, stable_key)
@@ -29,12 +29,12 @@ fn disjoint_candidate_sessions_and_reads_progress_independently() {
     let first_dirty = first
         .reserve_next(first_candidate)
         .unwrap()
-        .admit(vec![4; 32])
+        .materialize(|bytes| bytes.fill(4))
         .unwrap();
     let second_dirty = second
         .reserve_next(second_candidate)
         .unwrap()
-        .admit(vec![5; 32])
+        .materialize(|bytes| bytes.fill(5))
         .unwrap();
     let stable = expect_hit(&pool, &read_allocation, stable_key);
     assert_eq!(&*stable, &[3; 16]);

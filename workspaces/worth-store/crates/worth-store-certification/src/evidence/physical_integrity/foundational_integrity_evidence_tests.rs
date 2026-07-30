@@ -16,7 +16,7 @@ use crate::courtroom::layout::derived_index_damage_tests::inspect_damaged_derive
 use crate::{PhysicalScenarioPlannedWorkBoundaryReport, PhysicalScenarioQualityHarness};
 
 use super::foundational_integrity_evidence_support::{
-    planned_work_scenario_definition, seal_intact_page_report, with_scrub_budget,
+    planned_work_scenario_definition, seal_intact_page_report, with_scrub_plan_authority,
 };
 
 #[test]
@@ -171,13 +171,13 @@ fn role_mapping_keeps_store_authority_and_exports_descriptive_roles_distinct() {
 
 #[test]
 fn planned_work_role_is_derived_from_a_real_pre_execution_scrub_plan() {
-    with_scrub_budget(|budget| {
+    with_scrub_plan_authority(|allocation, policy| {
         let input = OfflineScrubInspectionInput::from_declared_windows(vec![
             (ScrubWindowOrdinal::from_zero_based(0), b"alpha".as_slice()),
             (ScrubWindowOrdinal::from_zero_based(1), b"bravo".as_slice()),
         ])
         .unwrap();
-        let plan = ScrubPlan::build(ScrubPlanRequest::offline(input, budget)).unwrap();
+        let plan = ScrubPlan::build(ScrubPlanRequest::offline(allocation, input, policy)).unwrap();
         let report = StorePlannedWorkBoundaryReport::from_scrub_plan(&plan);
 
         assert_eq!(report.kind(), StorePlannedWorkBoundaryKind::ScrubPlan);

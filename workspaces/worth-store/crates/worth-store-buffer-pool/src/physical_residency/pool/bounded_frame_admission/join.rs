@@ -71,7 +71,9 @@ impl PoolInner {
                 BoundedFrameEntry::Loading {
                     identity, waiters, ..
                 } => Some((BoundedJoinState::Loading, Some(*identity), *waiters)),
-                BoundedFrameEntry::LoadFailed { terminal, waiters } => Some((
+                BoundedFrameEntry::LoadFailed {
+                    terminal, waiters, ..
+                } => Some((
                     BoundedJoinState::LoadFailed(*terminal),
                     Some(terminal.identity()),
                     *waiters,
@@ -114,13 +116,14 @@ impl PoolInner {
                 identity: found,
                 admitted_limit,
                 waiters,
+                ..
             } if *found == identity && *waiters > 0 => Some(BoundedAccessPosture::Loading {
                 identity,
                 admitted_limit: *admitted_limit,
             }),
-            BoundedFrameEntry::LoadFailed { terminal, waiters }
-                if terminal.identity() == identity && *waiters > 0 =>
-            {
+            BoundedFrameEntry::LoadFailed {
+                terminal, waiters, ..
+            } if terminal.identity() == identity && *waiters > 0 => {
                 Some(BoundedAccessPosture::LoadFailed(*terminal))
             }
             BoundedFrameEntry::Resident { frame, .. }
@@ -194,17 +197,27 @@ impl PoolInner {
     }
 
     fn release_failed_bounded_waiter(state: &mut PoolState, key: PhysicalBoundedFrameKey) {
-        let entry = state
-            .frames
-            .get_bounded_mut(&key)
-            .expect("failed bounded waiter remains indexed");
-        let BoundedFrameEntry::LoadFailed { waiters, .. } = entry else {
-            return;
+        let (allocation_scope, remove_identity) = {
+            let entry = state
+                .frames
+                .get_bounded_mut(&key)
+                .expect("failed bounded waiter remains indexed");
+            let BoundedFrameEntry::LoadFailed {
+                allocation_scope,
+                waiters,
+                ..
+            } = entry
+            else {
+                return;
+            };
+            *waiters -= 1;
+            (*allocation_scope, *waiters == 0)
         };
-        *waiters -= 1;
-        if *waiters == 0 {
+        if remove_identity {
             state.frames.remove_bounded(&key);
-            state.accounting.release_failed_loading_identity();
+            state
+                .accounting
+                .release_failed_loading_identity(allocation_scope);
         }
     }
 }

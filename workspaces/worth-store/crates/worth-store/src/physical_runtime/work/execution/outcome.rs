@@ -9,6 +9,10 @@ use worth_store_physical_format::RecordArtifactFile;
 
 use super::PhysicalPublicationEffect;
 
+mod residency_writeback;
+
+pub(in crate::physical_runtime) use residency_writeback::PhysicalResidencyWritebackCompletion;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime) enum PhysicalEffectRecoveryObligation {
     Cleared,
@@ -19,6 +23,7 @@ pub(in crate::physical_runtime) struct PhysicalExecutorDispatch {
     dispatched: super::super::DispatchedPhysicalWork,
     outcome: PhysicalExecutorOutcome,
     recovery: PhysicalEffectRecoveryObligation,
+    residency_writeback: Option<PhysicalResidencyWritebackCompletion>,
 }
 
 pub struct CompletedPhysicalPublicationEffect {
@@ -54,11 +59,6 @@ pub enum PhysicalExecutorOutcome {
     ResidencyWritebackCompleted {
         physical: CompletedArtifactRangeWrite,
         scheduler: QueueExecutionOutcome,
-    },
-    ResidencyTerminal {
-        physical: CompletedArtifactRangeWrite,
-        scheduler: QueueExecutionOutcome,
-        denial: worth_store_buffer_pool::PhysicalResidencyDenial,
     },
     PublicationCompleted {
         physical: CompletedArtifactRangeWrite,
@@ -102,6 +102,36 @@ impl PhysicalExecutorDispatch {
             dispatched,
             outcome,
             recovery,
+            residency_writeback: None,
+        }
+    }
+
+    pub(in crate::physical_runtime) const fn with_residency_writeback_completion(
+        dispatched: super::super::DispatchedPhysicalWork,
+        outcome: PhysicalExecutorOutcome,
+        recovery: PhysicalEffectRecoveryObligation,
+        residency_writeback: PhysicalResidencyWritebackCompletion,
+    ) -> Self {
+        Self {
+            dispatched,
+            outcome,
+            recovery,
+            residency_writeback: Some(residency_writeback),
+        }
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) const fn from_parts(
+        dispatched: super::super::DispatchedPhysicalWork,
+        outcome: PhysicalExecutorOutcome,
+        recovery: PhysicalEffectRecoveryObligation,
+        residency_writeback: Option<PhysicalResidencyWritebackCompletion>,
+    ) -> Self {
+        Self {
+            dispatched,
+            outcome,
+            recovery,
+            residency_writeback,
         }
     }
 
@@ -111,8 +141,14 @@ impl PhysicalExecutorDispatch {
         super::super::DispatchedPhysicalWork,
         PhysicalExecutorOutcome,
         PhysicalEffectRecoveryObligation,
+        Option<PhysicalResidencyWritebackCompletion>,
     ) {
-        (self.dispatched, self.outcome, self.recovery)
+        (
+            self.dispatched,
+            self.outcome,
+            self.recovery,
+            self.residency_writeback,
+        )
     }
 }
 

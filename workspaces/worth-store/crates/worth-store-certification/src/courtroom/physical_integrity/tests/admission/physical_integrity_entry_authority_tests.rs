@@ -1,188 +1,154 @@
-use crate::{
-    courtroom::harness::test_support::bounded_memory_closeout_test_support::{
-        background_bundle, foundational_receipt, foundational_receipt_with_protected_view,
-        harness_evidence, physical_substrate_model_snapshot, pressure_bundles,
-        synthetic_rejections,
-    },
-    courtroom::harness::test_support::record_view_evidence_test_support::{
-        admit_payload_frame, resident_frame_table,
-    },
-    BoundedMemoryCloseoutReport, BoundedMemoryOperationKind, BoundedMemoryResidencySuite,
-    BoundedOperationEnvelopeReport, BufferPoolCertificationBundle, MemoryBoundaryDenialKind,
-};
-use worth_store_contracts::DeniedBoundaryKind;
+use std::num::NonZeroU64;
+
+use worth_store::physical_runtime::PhysicalOperationAllocationScope;
 use worth_store_physical_integrity::{
-    IntegrityEntryAdmission, IntegrityEntryBasis, IntegrityEntryDenialKind, IntegrityEntryRequest,
-    ProtectedPhysicalByteView, ScrubEnvelopeLimits, VerifierResidentLimits,
+    IntegrityEntryAdmission, IntegrityEntryDenialKind, IntegrityEntryRequest,
+    ProtectedPhysicalByteView,
 };
+use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
+
+use crate::{ExecutedIntegrityBoundaryDenialEvidence, IntegrityCloseoutDenialBoundary};
 
 #[test]
-fn equivalent_integrity_model_payloads_admit_same_entry_basis_and_scrub_limits() {
-    let first = admit_entry_from_model_payload(b"phase1-first");
-    let second = admit_entry_from_model_payload(b"phase1-second");
+fn entry_basis_is_derived_from_the_store_chunk_and_exact_verification_allocation() {
+    let world = PhysicalResidencyStoreWorld::initialize("integrity-entry-authority").unwrap();
+    world
+        .with_record_chunk(b"store-bound-integrity-entry", |serving, chunk| {
+            let chunk_basis = chunk.basis();
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
+            let protected_bytes = protected.len_bytes() as u64;
+            let allocation = serving
+                .physical_allocations()
+                .admit_verification(allocation_bytes(protected))
+                .unwrap();
+            let runtime = allocation.runtime_identity();
+            let lease =
+                IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(protected, allocation))
+                    .unwrap();
+            let basis = lease.entry_witness().entry_basis();
 
-    assert_equivalent_entry_model_observation(first, second);
-}
+            assert_eq!(basis.store_identity(), chunk_basis.store_identity());
+            assert_eq!(basis.store_generation(), chunk_basis.store_generation());
+            assert_eq!(basis.record(), chunk_basis.record());
+            assert_eq!(basis.frame_coordinate(), chunk_basis.frame_coordinate());
+            assert_eq!(basis.verification_runtime(), runtime);
+            assert_eq!(basis.verification_bytes(), protected_bytes);
+            assert_eq!(
+                lease.protected_bytes().as_bytes(),
+                b"store-bound-integrity-entry"
+            );
+            assert_eq!(
+                serving
+                    .residency_observation()
+                    .counters()
+                    .active_operation_bytes_for(PhysicalOperationAllocationScope::Verification),
+                protected_bytes,
+            );
 
-#[test]
-fn physical_integrity_entry_admits_only_live_protected_physical_substrate_views() {
-    let admitted = admit_entry_from_model_payload(b"phase1-live-view");
-
-    assert_eq!(admitted.protected_bytes, b"phase1-live-view");
-    assert!(admitted.basis.protected_view_count() > 0);
-}
-
-#[test]
-fn physical_integrity_entry_denies_empty_live_protected_physical_substrate_view_before_witness_minting(
-) {
-    let payload = model_integrity_payload();
-    let admission = IntegrityEntryAdmission::from_integrity_model_payload(payload).unwrap();
-    let mut table = resident_frame_table();
-    let frame = admit_payload_frame(&mut table, 31, 5, b"");
-    let page = table.lease_page(frame.resident_frame_token()).unwrap();
-    let pinned = page.pin().unwrap();
-    let view = pinned.view().unwrap();
-    let protected = ProtectedPhysicalByteView::from_pinned_frame(&view);
-
-    let denial = admission
-        .admit(IntegrityEntryRequest::new(protected))
-        .unwrap_err();
-
-    assert_eq!(
-        denial.kind(),
-        IntegrityEntryDenialKind::MissingProtectedPhysicalByteView
-    );
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct EntryAdmissionObservation {
-    basis: IntegrityEntryBasis,
-    verifier_limits: VerifierResidentLimits,
-    scrub_limits: ScrubEnvelopeLimits,
-    protected_bytes: Vec<u8>,
-}
-
-fn admit_entry_from_model_payload(payload: &[u8]) -> EntryAdmissionObservation {
-    let model_payload = model_integrity_payload();
-    let admission = IntegrityEntryAdmission::from_integrity_model_payload(model_payload).unwrap();
-    let mut table = resident_frame_table();
-    let frame = admit_payload_frame(&mut table, 31, 5, payload);
-    let page = table.lease_page(frame.resident_frame_token()).unwrap();
-    let pinned = page.pin().unwrap();
-    let view = pinned.view().unwrap();
-    let protected = ProtectedPhysicalByteView::from_pinned_frame(&view);
-
-    let lease = admission
-        .admit(IntegrityEntryRequest::new(protected))
+            drop(lease);
+            assert_eq!(
+                serving
+                    .residency_observation()
+                    .counters()
+                    .active_operation_bytes_for(PhysicalOperationAllocationScope::Verification),
+                0,
+            );
+        })
         .unwrap();
-    assert!(!lease.entry_witness().proves_recovery_behavior());
-    assert!(!lease.entry_witness().proves_blob_lifecycle());
-    assert!(!lease.entry_witness().proves_repair_behavior());
-    assert!(!lease.entry_witness().proves_authenticity());
-    assert!(!lease.entry_witness().proves_certification_closeout());
-    EntryAdmissionObservation {
-        basis: lease.entry_witness().entry_basis(),
-        verifier_limits: lease.entry_witness().verifier_resident_limits(),
-        scrub_limits: lease.scrub_envelope_limits(),
-        protected_bytes: lease.protected_bytes().as_bytes().to_vec(),
-    }
+    assert!(!world.close().residency().requires_inspection());
 }
 
-fn model_integrity_payload() -> worth_store_contracts::PhysicalIntegrityReadinessPayload {
-    crate::courtroom::physical_integrity::readiness_handoff::model_payload_from_closeout(
-        complete_closeout_report(),
-        physical_substrate_model_snapshot(),
-    )
-    .unwrap()
+#[test]
+fn verification_allocation_from_another_store_is_denied_before_witness_minting() {
+    let viewed = PhysicalResidencyStoreWorld::initialize("integrity-viewed-store").unwrap();
+    let allocating = PhysicalResidencyStoreWorld::initialize("integrity-allocation-store").unwrap();
+
+    viewed
+        .with_record_chunk(b"viewed-store-bytes", |_viewed_runtime, chunk| {
+            allocating
+                .with_record_chunk(b"allocation-store-bytes", |allocating_runtime, _| {
+                    let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
+                    let allocation = allocating_runtime
+                        .physical_allocations()
+                        .admit_verification(allocation_bytes(protected))
+                        .unwrap();
+                    let denial = IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(
+                        protected, allocation,
+                    ))
+                    .unwrap_err();
+
+                    assert_eq!(
+                        denial.kind(),
+                        IntegrityEntryDenialKind::VerificationStoreMismatch
+                    );
+                    assert_eq!(
+                        ExecutedIntegrityBoundaryDenialEvidence::from_integrity_entry_denial(
+                            denial
+                        )
+                        .boundary(),
+                        IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch,
+                    );
+                    assert_eq!(
+                        allocating_runtime
+                            .residency_observation()
+                            .counters()
+                            .active_operation_bytes_for(
+                                PhysicalOperationAllocationScope::Verification
+                            ),
+                        0,
+                    );
+                })
+                .unwrap();
+        })
+        .unwrap();
+
+    assert!(!viewed.close().residency().requires_inspection());
+    assert!(!allocating.close().residency().requires_inspection());
 }
 
-fn assert_equivalent_entry_model_observation(
-    first: EntryAdmissionObservation,
-    second: EntryAdmissionObservation,
-) {
-    assert_eq!(
-        first.basis.protected_view_count(),
-        second.basis.protected_view_count()
-    );
-    assert_eq!(first.verifier_limits, second.verifier_limits);
-    assert_eq!(first.scrub_limits, second.scrub_limits);
-    assert_eq!(first.basis.counter_recap(), second.basis.counter_recap());
-    assert_eq!(
-        first.basis.denial_behavior(),
-        second.basis.denial_behavior()
-    );
-    assert_eq!(
-        first.basis.denial_behavior().named_denial_count(),
-        DeniedBoundaryKind::ALL.len() as u32
-    );
-    assert_eq!(
-        first.basis.physical_authority_recap(),
-        second.basis.physical_authority_recap()
-    );
-    assert_eq!(
-        first.basis.buffer_pool_authority_recap(),
-        second.basis.buffer_pool_authority_recap()
-    );
-    assert!(first
-        .basis
-        .buffer_pool_authority_recap()
-        .lease_pinning_proven());
-    assert!(first
-        .basis
-        .buffer_pool_authority_recap()
-        .resident_frame_authority_proven());
-    assert!(first
-        .basis
-        .buffer_pool_authority_recap()
-        .allocation_envelope_proven());
-    assert!(first
-        .basis
-        .buffer_pool_authority_recap()
-        .view_admission_authority_proven());
-    assert_eq!(first.basis, second.basis);
+#[test]
+fn verification_allocation_smaller_than_the_protected_view_is_denied_and_released() {
+    let world = PhysicalResidencyStoreWorld::initialize("integrity-entry-underallocation").unwrap();
+    world
+        .with_record_chunk(b"protected-view-exceeds-allocation", |serving, chunk| {
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
+            let protected_bytes = protected.len_bytes() as u64;
+            let allocation_bytes = protected_bytes - 1;
+            let allocation = serving
+                .physical_allocations()
+                .admit_verification(NonZeroU64::new(allocation_bytes).unwrap())
+                .unwrap();
+
+            let denial =
+                IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(protected, allocation))
+                    .unwrap_err();
+
+            assert_eq!(
+                denial.kind(),
+                IntegrityEntryDenialKind::VerificationAllocationTooSmall {
+                    protected_bytes,
+                    allocation_bytes,
+                }
+            );
+            assert_eq!(
+                ExecutedIntegrityBoundaryDenialEvidence::from_integrity_entry_denial(denial)
+                    .boundary(),
+                IntegrityCloseoutDenialBoundary::VerificationAllocationCoverage,
+            );
+            assert!(IntegrityCloseoutDenialBoundary::ALL
+                .contains(&IntegrityCloseoutDenialBoundary::VerificationAllocationCoverage));
+            assert_eq!(
+                serving
+                    .residency_observation()
+                    .counters()
+                    .active_operation_bytes_for(PhysicalOperationAllocationScope::Verification),
+                0,
+            );
+        })
+        .unwrap();
+    assert!(!world.close().residency().requires_inspection());
 }
 
-fn complete_closeout_report() -> BoundedMemoryCloseoutReport {
-    let (foundational, protected_view) = foundational_receipt_with_protected_view();
-    BoundedMemoryCloseoutReport::close(
-        BufferPoolCertificationBundle::admit(
-            suite(),
-            pressure_bundles(),
-            background_bundle(),
-            foundational,
-            protected_view,
-            synthetic_rejections(),
-        )
-        .unwrap(),
-    )
-    .unwrap()
-}
-
-fn suite() -> BoundedMemoryResidencySuite {
-    BoundedMemoryResidencySuite::admit(
-        operation_reports(),
-        &MemoryBoundaryDenialKind::ALL,
-        harness_evidence(),
-    )
-    .unwrap()
-}
-
-fn operation_reports() -> Vec<BoundedOperationEnvelopeReport> {
-    let background = background_bundle();
-    crate::courtroom::harness::test_support::bounded_memory_closeout_test_support::operation_reports(
-        &foundational_receipt(),
-        &background,
-    )
-    .into_iter()
-    .filter(|report| {
-        matches!(
-            report.operation(),
-            BoundedMemoryOperationKind::AdmittedRead
-                | BoundedMemoryOperationKind::AdmittedWrite
-                | BoundedMemoryOperationKind::RecoveryPlanning
-                | BoundedMemoryOperationKind::CompactionPlanning
-                | BoundedMemoryOperationKind::LargeRecordStreaming
-        )
-    })
-    .collect()
+fn allocation_bytes(protected: ProtectedPhysicalByteView<'_>) -> NonZeroU64 {
+    NonZeroU64::new(protected.len_bytes() as u64).expect("a Store record chunk is nonempty")
 }

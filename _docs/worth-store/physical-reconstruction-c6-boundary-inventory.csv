@@ -1,12 +1,12 @@
 lane,sequence,step,path,source_anchor,authority_owner
 read,1,record-entry,crates/worth-store/src/physical_runtime/record_serving/access/locate.rs,pub fn open(,Store record facade
-read,2,pool-owner,crates/worth-store/src/physical_runtime/record_serving/residency/frame_ports.rs,PhysicalResidencyPool::open,Store physical instance residency
+read,2,pool-owner,crates/worth-store/src/physical_runtime/record_serving/residency/frame_ports.rs,PhysicalResidencyPoolOwner::open,Store physical instance residency
 read,3,serving-route,crates/worth-store/src/physical_runtime/record_serving/residency/record_frame_reader.rs,RecordFrameReadRoute::Serving,Store record serving
 read,4,pool-fault,crates/worth-store/src/physical_runtime/record_serving/residency/frame_loading/bounded_loader.rs,.access_frame(allocation,Buffer pool
 read,5,canonical-adapter,crates/worth-store/src/physical_runtime/record_serving/residency/frame_loading/read_source/canonical.rs,.prepare(coordinate,Store canonical read adapter
-read,6,store-admission,crates/worth-store/src/physical_runtime/record_serving/read_work_port.rs,PhysicalWorkAdmission::admit,Store physical work admission
-read,7,signal-readiness,crates/worth-store/src/physical_runtime/record_serving/read_work_port.rs,.request(admitted),Worth Signal
-read,8,scheduler-admission,crates/worth-store/src/physical_runtime/record_serving/read_work_port.rs,PhysicalWorkScheduler::admit,Store IO scheduler
+read,6,store-admission,crates/worth-store/src/physical_runtime/record_serving/read_work_port/scheduler_preparation.rs,PhysicalWorkAdmission::admit,Store physical work admission
+read,7,signal-readiness,crates/worth-store/src/physical_runtime/record_serving/read_work_port/scheduler_preparation.rs,.request(admitted),Worth Signal
+read,8,scheduler-admission,crates/worth-store/src/physical_runtime/record_serving/read_work_port/scheduler_preparation.rs,PhysicalWorkScheduler::admit,Store IO scheduler
 read,9,executor-dispatch,crates/worth-store/src/physical_runtime/record_serving/canonical_read_execution.rs,execute_physical_work,Store physical executor
 read,10,backend-read,crates/worth-store/src/physical_runtime/instance/executor/range_read.rs,read_scheduled_exact_at,Physical backend
 read,11,settlement,crates/worth-store/src/physical_runtime/record_serving/canonical_read_execution.rs,into_settled().into_evidence(),Store settlement

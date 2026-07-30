@@ -122,15 +122,22 @@ fn counter_strengths(
                 sources
                     .foreground_reservation()
                     .counters()
+                    .requested()
+                    .queue_slots(),
+                sources
+                    .foreground_reservation()
+                    .counters()
+                    .admitted_budget()
+                    .queue_slots(),
+                sources
+                    .foreground_reservation()
+                    .counters()
+                    .denied_budget()
+                    .queue_slots(),
+                sources
+                    .foreground_reservation()
+                    .counters()
                     .denied_capacity_events(),
-                sources
-                    .foreground_reservation()
-                    .counters()
-                    .stable_read_wait_count(),
-                sources
-                    .foreground_reservation()
-                    .counters()
-                    .stable_read_retry_count(),
             ]),
         ),
         S6CounterStrengthDeclaration::new(

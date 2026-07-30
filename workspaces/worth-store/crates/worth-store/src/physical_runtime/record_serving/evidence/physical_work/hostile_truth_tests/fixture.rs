@@ -15,7 +15,7 @@ use super::super::{
     PhysicalWorkMutantExecutionContext, PhysicalWorkMutantLocalization, PhysicalWorkMutantOutcome,
     PhysicalWorkMutantSubject, PhysicalWorkOracleEvidence, PhysicalWorkPlatformEvidence,
     PhysicalWorkProcessEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
-    PhysicalWorkSourceBinding,
+    PhysicalWorkScheduleSeed, PhysicalWorkSourceBinding, PhysicalWorkWorkloadSeed,
 };
 
 pub(super) fn accepted_case(
@@ -96,7 +96,8 @@ pub(super) fn finish_case_with_environment(
         source("source", binding_byte),
         source("writer", binding_byte.saturating_add(1)),
         PhysicalWorkExecutionContext::new(
-            ordinal.into(),
+            PhysicalWorkWorkloadSeed::new(ordinal.into()),
+            PhysicalWorkScheduleSeed::new(ordinal.into()),
             scenario.label(),
             processes.ordered().map(Clone::clone),
         )

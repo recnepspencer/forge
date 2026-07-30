@@ -101,6 +101,7 @@ fn latch_steps(
                 )
             }
             worth_store_physical_format::PhysicalCellReuseDomain::ExtentAllocation
+            | worth_store_physical_format::PhysicalCellReuseDomain::RecordExtentAllocation
             | worth_store_physical_format::PhysicalCellReuseDomain::FreeSpaceReuse => {
                 PhysicalLatchKey::extent(
                     root.epoch(),

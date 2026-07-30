@@ -1,5 +1,5 @@
+use worth_store::physical_runtime::PhysicalOperationAllocationScope;
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::PhysicalOperationAllocationScope;
 use worth_store_io_scheduler::{
     admit_background_pacing,
     foreground_reservation::{
@@ -11,14 +11,16 @@ use worth_store_io_scheduler::{
     BackgroundIdleCapacityLeaseRequest, BackgroundPacingOutcome, BackgroundResourceBudget,
     QueueSlot,
 };
-use worth_store_physical_isolation::stable_physical_read_receipt_for_certification_test;
+use worth_store_physical_isolation::{
+    stable_physical_read_receipt_for_certification_test, PhysicalReadExecutionDenial,
+    StablePhysicalReadExecutionCounters,
+};
 use worth_store_security::StoreTenantScope;
 
 use crate::publication::test_support::publish_generation_with_bytes_and_chunk_size;
-use crate::test_support::physical_payload_for_bytes;
 use crate::test_support::{
-    admitted_multichunk_sequence_for_scope, blob_allocation, blob_allocation_grant, blob_scope,
-    operation_allocation,
+    admitted_multichunk_sequence_for_scope, blob_scope, physical_payload_for_bytes,
+    with_blob_allocation,
 };
 use crate::{
     reject_full_blob_vec_as_streaming_read, BlobChunkByteRange, BlobChunkOrdinal,
@@ -30,77 +32,42 @@ use crate::{
 
 #[test]
 fn verified_read_retains_canonical_allocation_provenance_and_releases_authority() {
-    let (pool, allocation) = blob_allocation(8);
-    let verified = BlobStreamingVerifiedRead::verify_bounded(
-        request(),
-        crate::BlobStreamingReadExecution::new(
-            BlobStreamingReadWindow::bounded(8).unwrap(),
-            allocation,
-            admission(),
-            BlobQuarantineAuthority::from_current_store_authority(
-                crate::lifecycle::generation_registry_test_support::current_authority(
-                    "phase10.streaming.read.allocation",
-                    "quarantine",
+    with_blob_allocation(8, |serving, allocation| {
+        let verified = BlobStreamingVerifiedRead::verify_bounded(
+            request(),
+            crate::BlobStreamingReadExecution::new(
+                BlobStreamingReadWindow::bounded(8).unwrap(),
+                allocation,
+                admission(),
+                BlobQuarantineAuthority::from_current_store_authority(
+                    crate::lifecycle::generation_registry_test_support::current_authority(
+                        "phase10.streaming.read.allocation",
+                        "quarantine",
+                    ),
                 ),
+                CounterEvidenceStrength::Exact,
             ),
-            CounterEvidenceStrength::Exact,
-        ),
-        observations_for(b"abcdefghijkl", 8),
-    )
-    .unwrap();
+            observations_for(b"abcdefghijkl", 8),
+        )
+        .unwrap();
 
-    assert_eq!(
-        pool.counters()
-            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
-        0
-    );
-    let observed = verified.residency().allocation().allocation();
-    assert_eq!(observed.store(), pool.store_identity());
-    assert_eq!(observed.pool(), pool.incarnation());
-    assert_eq!(observed.scope(), PhysicalOperationAllocationScope::Blob);
-    assert_eq!(observed.bytes(), 8);
-    assert_eq!(
-        observed
-            .counters()
-            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
-        8
-    );
-    assert_eq!(verified.residency().peak_resident_bytes(), 4);
-}
-
-#[test]
-fn read_wrong_scope_is_denied_before_observations_are_consumed() {
-    let (pool, allocation) = operation_allocation(PhysicalOperationAllocationScope::Recovery, 8);
-    let consumed = std::cell::Cell::new(0_u64);
-    let observations = observations_for(b"abcdefghijkl", 8)
-        .into_iter()
-        .inspect(|_| consumed.set(consumed.get() + 1));
-    let denial = BlobStreamingVerifiedRead::verify_bounded(
-        request(),
-        crate::BlobStreamingReadExecution::new(
-            BlobStreamingReadWindow::bounded(8).unwrap(),
-            allocation,
-            admission(),
-            BlobQuarantineAuthority::from_current_store_authority(
-                crate::lifecycle::generation_registry_test_support::current_authority(
-                    "phase10.streaming.read.wrong-scope",
-                    "quarantine",
-                ),
-            ),
-            CounterEvidenceStrength::Exact,
-        ),
-        observations,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        denial,
-        BlobStreamingReadDenial::AllocationScopeMismatch {
-            actual: PhysicalOperationAllocationScope::Recovery
-        }
-    );
-    assert_eq!(consumed.get(), 0);
-    assert_eq!(pool.counters().active_operation_bytes(), 0);
+        assert_eq!(
+            serving
+                .residency_observation()
+                .counters()
+                .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob),
+            0
+        );
+        let observed = verified.residency().allocation();
+        assert_eq!(observed.store_identity(), serving.store_identity());
+        assert_eq!(
+            observed.store_generation(),
+            serving.residency_observation().store_generation()
+        );
+        assert_eq!(observed.runtime_identity(), serving.runtime_identity());
+        assert_eq!(observed.allocation_bytes(), 8);
+        assert_eq!(verified.residency().peak_resident_bytes(), 4);
+    });
 }
 
 const READ_CASE: &str = "phase10.streaming.read";
@@ -215,6 +182,23 @@ fn point_page_and_wal_foreground_reservations_bind_read_admission() {
 }
 
 #[test]
+fn physical_read_denial_translation_preserves_exact_isolation_context() {
+    let counters = StablePhysicalReadExecutionCounters::default()
+        .with_blocking_io_event()
+        .with_hidden_latch_io_denial();
+    let denial =
+        PhysicalReadExecutionDenial::HiddenStructuralLatchIoWithoutDeclaredCost { counters };
+
+    let BlobStreamingReadDenial::StablePhysicalReadDenied(retained) =
+        BlobStreamingReadAdmission::reject_physical_read_denial(denial.clone())
+    else {
+        panic!("physical read denial must remain a typed stable-read denial");
+    };
+
+    assert_eq!(*retained, denial);
+}
+
+#[test]
 fn streaming_read_request_denies_unrelated_corruption_reference_edges() {
     let (published, visible) =
         publish_generation_with_bytes_and_chunk_size(READ_CASE, READ_BYTES, 4);
@@ -258,44 +242,48 @@ fn verify_observations(
 fn verify_with_admission(
     admission: BlobStreamingReadAdmission,
 ) -> Result<BlobStreamingVerifiedRead, BlobStreamingReadDenial> {
-    BlobStreamingVerifiedRead::verify_bounded(
-        request(),
-        crate::BlobStreamingReadExecution::new(
-            BlobStreamingReadWindow::bounded(8)?,
-            blob_allocation_grant(8),
-            admission,
-            BlobQuarantineAuthority::from_current_store_authority(
-                crate::lifecycle::generation_registry_test_support::current_authority(
-                    "phase10.streaming.read.quarantine",
-                    "quarantine",
+    with_blob_allocation(8, |_, allocation| {
+        BlobStreamingVerifiedRead::verify_bounded(
+            request(),
+            crate::BlobStreamingReadExecution::new(
+                BlobStreamingReadWindow::bounded(8)?,
+                allocation,
+                admission,
+                BlobQuarantineAuthority::from_current_store_authority(
+                    crate::lifecycle::generation_registry_test_support::current_authority(
+                        "phase10.streaming.read.quarantine",
+                        "quarantine",
+                    ),
                 ),
+                CounterEvidenceStrength::Exact,
             ),
-            CounterEvidenceStrength::Exact,
-        ),
-        observations_for(b"abcdefghijkl", 8),
-    )
+            observations_for(b"abcdefghijkl", 8),
+        )
+    })
 }
 
 fn verify_observations_with_window(
     window_bytes: u64,
     observations: impl IntoIterator<Item = BlobStreamingReadObservation>,
 ) -> Result<BlobStreamingVerifiedRead, BlobStreamingReadDenial> {
-    BlobStreamingVerifiedRead::verify_bounded(
-        request(),
-        crate::BlobStreamingReadExecution::new(
-            BlobStreamingReadWindow::bounded(window_bytes)?,
-            blob_allocation_grant(window_bytes),
-            admission(),
-            BlobQuarantineAuthority::from_current_store_authority(
-                crate::lifecycle::generation_registry_test_support::current_authority(
-                    "phase10.streaming.read.quarantine",
-                    "quarantine",
+    with_blob_allocation(window_bytes, |_, allocation| {
+        BlobStreamingVerifiedRead::verify_bounded(
+            request(),
+            crate::BlobStreamingReadExecution::new(
+                BlobStreamingReadWindow::bounded(window_bytes)?,
+                allocation,
+                admission(),
+                BlobQuarantineAuthority::from_current_store_authority(
+                    crate::lifecycle::generation_registry_test_support::current_authority(
+                        "phase10.streaming.read.quarantine",
+                        "quarantine",
+                    ),
                 ),
+                CounterEvidenceStrength::Exact,
             ),
-            CounterEvidenceStrength::Exact,
-        ),
-        observations,
-    )
+            observations,
+        )
+    })
 }
 
 fn request() -> BlobStreamingReadRequest {

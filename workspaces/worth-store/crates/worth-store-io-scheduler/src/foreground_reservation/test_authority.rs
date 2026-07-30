@@ -10,7 +10,6 @@ use worth_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::{
     admitted_store_internal_security_scope_for_io_qos_test, StoreSecurityScopeIdentity,
 };
@@ -18,7 +17,6 @@ use worth_store_security::{
 use crate::{
     admit_backend_capability_for_scheduler_claim,
     admit_secure_frame_backend_capability_for_scheduler_claim, admit_security_scope_for_scheduler,
-    admit_store_published_isolation_capability,
 };
 
 use super::{
@@ -119,7 +117,6 @@ fn admitted_reservation_for_certification_test(
     lane: ForegroundLaneDeclaration,
 ) -> ForegroundReservationReceipt {
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
-    let readiness = io_qos_readiness_admission();
     let security = security_scope_admission();
     let backend_witness = admitted_backend_witness(lane.backend_requirement());
     let backend =
@@ -128,7 +125,6 @@ fn admitted_reservation_for_certification_test(
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -138,7 +134,6 @@ fn admitted_reservation_for_certification_test(
     admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -151,7 +146,6 @@ fn admitted_secure_frame_reservation_for_certification_test(
     lane: ForegroundLaneDeclaration,
 ) -> ForegroundReservationReceipt {
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
-    let readiness = io_qos_readiness_admission();
     let security = security_scope_admission();
     let backend_witness = admitted_backend_witness(lane.backend_requirement());
     let backend =
@@ -160,7 +154,6 @@ fn admitted_secure_frame_reservation_for_certification_test(
     let capacity = capacity_admission(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         lane.requested_budget(),
@@ -170,7 +163,6 @@ fn admitted_secure_frame_reservation_for_certification_test(
     admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &backend,
-        &readiness,
         &security,
         arbitration,
         &capacity,
@@ -179,17 +171,9 @@ fn admitted_secure_frame_reservation_for_certification_test(
     .expect("secure-frame reservation should admit through production path")
 }
 
-fn io_qos_readiness_admission() -> crate::IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
-        .expect("S.5 closeout should publish S.6 readiness through production path");
-    admit_store_published_isolation_capability(&readiness)
-        .expect("scheduler should admit Store-published S.6 readiness")
-}
-
 fn capacity_admission(
     lane: ForegroundLaneDeclaration,
     backend: &crate::IoSchedulerBackendCapabilityAdmission,
-    readiness: &crate::IoSchedulerIsolationAdmission,
     security: &crate::IoSchedulerSecurityScopeAdmission,
     arbitration: ForegroundArbitrationDeclaration,
     requested: ForegroundResourceBudget,
@@ -197,7 +181,7 @@ fn capacity_admission(
 ) -> super::ForegroundReservationCapacityAdmission {
     admit_foreground_reservation_capacity(ForegroundReservationCapacityAdmissionRequest::new(
         lane,
-        super::ForegroundReservationCapacityBasis::new(backend, readiness, security),
+        super::ForegroundReservationCapacityBasis::new(backend, security),
         arbitration,
         requested,
         available,

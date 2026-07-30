@@ -9,7 +9,7 @@ use super::super::{
 
 pub(in crate::physical_runtime::record_serving) fn last_inline_placement(
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
-    residency: super::super::residency::ServingFrameResidency,
+    residency: super::super::residency::PhysicalResidencyWorkPort,
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
     root: &DurablePhysicalRootManifest,

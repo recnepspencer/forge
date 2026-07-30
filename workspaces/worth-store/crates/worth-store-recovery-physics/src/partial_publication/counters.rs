@@ -6,8 +6,6 @@ pub struct PartialPublicationCounterSnapshot {
     rejected_log_only_promotions: usize,
     replayable_unacknowledged_wal: usize,
     torn_publication_denials: usize,
-    no_undo_denials: usize,
-    no_undo_postures: usize,
     ambiguous_outcomes: usize,
 }
 
@@ -42,16 +40,6 @@ impl PartialPublicationCounterSnapshot {
         self
     }
 
-    pub const fn with_no_undo_denial(mut self) -> Self {
-        self.no_undo_denials += 1;
-        self
-    }
-
-    pub const fn with_no_undo_posture(mut self) -> Self {
-        self.no_undo_postures += 1;
-        self
-    }
-
     pub const fn with_ambiguous_outcome(mut self) -> Self {
         self.ambiguous_outcomes += 1;
         self
@@ -79,14 +67,6 @@ impl PartialPublicationCounterSnapshot {
 
     pub const fn torn_publication_denials(self) -> usize {
         self.torn_publication_denials
-    }
-
-    pub const fn no_undo_denials(self) -> usize {
-        self.no_undo_denials
-    }
-
-    pub const fn no_undo_postures(self) -> usize {
-        self.no_undo_postures
     }
 
     pub const fn ambiguous_outcomes(self) -> usize {

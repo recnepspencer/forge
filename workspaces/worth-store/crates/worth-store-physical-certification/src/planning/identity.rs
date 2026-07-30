@@ -100,11 +100,7 @@ fn canonical_plan_entries(parts: &PhysicalSimulationPlanParts) -> Vec<CanonicalB
         ),
         text_entry(
             "plan.resource_envelope.resident_bytes",
-            parts
-                .resource_envelope
-                .resident_bytes()
-                .as_bytes()
-                .to_string(),
+            parts.resource_envelope.resident_bytes().to_string(),
         ),
         text_entry(
             "plan.resource_envelope.max_pinned_pages",

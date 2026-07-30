@@ -36,7 +36,7 @@ fn damaged_and_mismatched_bytes_skip_logical_decode_with_exact_counters() {
         let declaration = crate::courtroom::harness::test_support::
                 pre_decode_physical_admission_test_support::checksum_declaration()
                 .admit_for_physical_integrity_entry(seed.entry_witness());
-        let admission: PhysicalIntegrityAdmission<'_> =
+        let admission: PhysicalIntegrityAdmission<'_, '_> =
             seed.with_checksum_declaration(declaration).unwrap();
         let denial = admission
             .admit_page(PhysicalIntegrityAdmissionRequest::page(

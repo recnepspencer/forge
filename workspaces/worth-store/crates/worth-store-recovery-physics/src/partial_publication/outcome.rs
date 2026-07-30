@@ -1,7 +1,6 @@
 use super::{
-    AmbiguousPublicationReport, NoUndoPartialPublicationClassification,
-    NonAuthoritativePublicationDenial, PartialPublicationCounterSnapshot, TornPublicationDenial,
-    UnacknowledgedDurableWal,
+    AmbiguousPublicationReport, NonAuthoritativePublicationDenial,
+    PartialPublicationCounterSnapshot, TornPublicationDenial, UnacknowledgedDurableWal,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,10 +12,6 @@ pub enum UnacknowledgedPublicationOutcome {
     CheckpointCutoverAmbiguous,
     RejectedNonAuthoritativePromotion,
     TornPublicationRejected,
-    RejectedNoUndoHazard,
-    NoUndoPostureSatisfied,
-    RollbackImageProtected,
-    UndoCapableRecoveryDeferred,
     Ambiguous,
 }
 
@@ -38,18 +33,6 @@ pub enum RecoveredOrRejectedPartialPublication {
     },
     RejectedNonAuthoritativePromotion {
         denial: NonAuthoritativePublicationDenial,
-        counters: PartialPublicationCounterSnapshot,
-    },
-    RejectedNoUndoHazard {
-        classification: NoUndoPartialPublicationClassification,
-        counters: PartialPublicationCounterSnapshot,
-    },
-    NoUndoPostureAccepted {
-        classification: NoUndoPartialPublicationClassification,
-        counters: PartialPublicationCounterSnapshot,
-    },
-    UndoCapableRecoveryDeferred {
-        classification: NoUndoPartialPublicationClassification,
         counters: PartialPublicationCounterSnapshot,
     },
     Ambiguous {
@@ -77,9 +60,6 @@ impl RecoveredOrRejectedPartialPublication {
             | Self::AcknowledgedWorkAwaitingPageFlush { counters }
             | Self::RejectedTornPublication { counters, .. }
             | Self::RejectedNonAuthoritativePromotion { counters, .. }
-            | Self::RejectedNoUndoHazard { counters, .. }
-            | Self::NoUndoPostureAccepted { counters, .. }
-            | Self::UndoCapableRecoveryDeferred { counters, .. }
             | Self::Ambiguous { counters, .. } => *counters,
         }
     }

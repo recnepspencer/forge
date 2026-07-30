@@ -2,6 +2,7 @@ use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
     ArtifactRangeWriteDurability, ArtifactTreeFailure, CompletedArtifactMetadataRead,
     CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    MediaOperationRole,
 };
 
 use super::super::{
@@ -73,14 +74,6 @@ pub enum PhysicalWorkSchedulerPosture {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalWorkResidencyPosture {
-    NotParticipating,
-    Applied,
-    RejectedAfterEffect,
-    Terminal,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkPublicationResiduePosture {
     NotApplicable,
     NoneObserved,
@@ -92,7 +85,6 @@ pub enum PhysicalWorkTerminalCause {
     Backend(ArtifactTreeFailure),
     IncompleteRead { expected: u64, completed: u64 },
     SchedulerRejectedAfterEffect,
-    ResidencyRejectedAfterEffect(worth_store_buffer_pool::PhysicalResidencyDenial),
 }
 
 pub struct PhysicalWorkTerminalFailure {
@@ -101,8 +93,8 @@ pub struct PhysicalWorkTerminalFailure {
     target: PhysicalWorkRecoveryTarget,
     completed_bytes: u64,
     backend_operation: worth_store_physical_backend::MediaOperationIdentity,
+    backend_role: MediaOperationRole,
     scheduler: PhysicalWorkSchedulerPosture,
-    residency: PhysicalWorkResidencyPosture,
     publication_residue: PhysicalWorkPublicationResiduePosture,
     recovery: PhysicalWorkRecoveryDisposition,
     cause: PhysicalWorkTerminalCause,
@@ -120,15 +112,26 @@ pub(in crate::physical_runtime) struct PhysicalWorkSettlementResult {
     settled: SettledPhysicalWork,
     health_revocation: Option<PhysicalWorkHealthRevocation>,
     effect_activity: super::super::submission::PhysicalEffectActivity,
+    residency_writeback: Option<super::PhysicalResidencyWritebackCompletion>,
 }
 
 impl PhysicalWorkSettlement {
     pub(in crate::physical_runtime) fn settle(
         dispatch: super::PhysicalExecutorDispatch,
     ) -> PhysicalWorkSettlementResult {
-        let (mut dispatched, outcome, recovery_obligation) = dispatch.into_parts();
+        let (mut dispatched, outcome, recovery_obligation, residency_writeback) =
+            dispatch.into_parts();
         let effect_activity = dispatched.take_effect_activity();
         let evidence = classification::classify(&dispatched, outcome);
+        let residency_writeback = match residency_writeback {
+            Some(completion)
+                if completion.identity() == dispatched.intent().identity()
+                    && matches!(evidence, PhysicalWorkSettlementEvidence::Write { .. }) =>
+            {
+                Some(completion)
+            }
+            _ => None,
+        };
         let health_revocation =
             classification::health_revocation(&dispatched, &evidence).or_else(|| {
                 recovery_obligation
@@ -147,6 +150,7 @@ impl PhysicalWorkSettlement {
             ),
             health_revocation,
             effect_activity,
+            residency_writeback,
         }
     }
 }
@@ -158,12 +162,33 @@ impl PhysicalWorkSettlementResult {
         SettledPhysicalWork,
         Option<PhysicalWorkHealthRevocation>,
         super::super::submission::PhysicalEffectActivity,
+        Option<super::PhysicalResidencyWritebackCompletion>,
     ) {
-        (self.settled, self.health_revocation, self.effect_activity)
+        (
+            self.settled,
+            self.health_revocation,
+            self.effect_activity,
+            self.residency_writeback,
+        )
     }
 }
 
 impl PhysicalWorkSettlementEvidence {
+    pub(in crate::physical_runtime) const fn backend_role(&self) -> Option<MediaOperationRole> {
+        match self {
+            Self::NoEffect(_) | Self::StaleOrForeign => None,
+            Self::Metadata { .. } => Some(MediaOperationRole::ReadMetadata),
+            Self::Read { .. } => Some(MediaOperationRole::PositionedRead),
+            Self::Write { .. } | Self::Publication { .. } | Self::NewArtifact { .. } => {
+                Some(MediaOperationRole::PositionedWrite)
+            }
+            Self::PublicationEffect { physical, .. } => {
+                Some(publication_effect_role(physical.effect()))
+            }
+            Self::TerminalFailure(failure) => Some(failure.backend_role),
+        }
+    }
+
     pub const fn fate(&self) -> PhysicalWorkEffectFate {
         match self {
             Self::NoEffect(_) => PhysicalWorkEffectFate::ProvenNoEffect,
@@ -253,6 +278,10 @@ impl PhysicalWorkTerminalFailure {
         self.backend_operation
     }
 
+    pub const fn backend_role(&self) -> MediaOperationRole {
+        self.backend_role
+    }
+
     pub const fn recovery(&self) -> PhysicalWorkRecoveryDisposition {
         self.recovery
     }
@@ -261,16 +290,27 @@ impl PhysicalWorkTerminalFailure {
         self.scheduler
     }
 
-    pub const fn residency(&self) -> PhysicalWorkResidencyPosture {
-        self.residency
-    }
-
     pub const fn publication_residue(&self) -> PhysicalWorkPublicationResiduePosture {
         self.publication_residue
     }
 
     pub const fn cause(&self) -> PhysicalWorkTerminalCause {
         self.cause
+    }
+}
+
+pub(in crate::physical_runtime) const fn publication_effect_role(
+    effect: super::PhysicalPublicationEffect,
+) -> MediaOperationRole {
+    match effect {
+        super::PhysicalPublicationEffect::SynchronizeArtifact => {
+            MediaOperationRole::SynchronizeFileState
+        }
+        super::PhysicalPublicationEffect::SynchronizeArtifactParent
+        | super::PhysicalPublicationEffect::SynchronizeRecordFamily => {
+            MediaOperationRole::SynchronizeDirectoryPublication
+        }
+        super::PhysicalPublicationEffect::ReplaceCatalog => MediaOperationRole::AtomicReplace,
     }
 }
 

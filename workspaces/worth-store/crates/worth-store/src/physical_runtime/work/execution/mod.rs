@@ -10,7 +10,7 @@ pub use command::{
 pub(in crate::physical_runtime) use command::{
     PhysicalMetadataExecutorCommand, PhysicalPublicationExecutorCommand,
     PhysicalReadExecutorCommand, PhysicalResidencyWritebackExecutorCommand, PhysicalRetryPayload,
-    PhysicalWriteExecutorCommand, PhysicalWritePosture,
+    PhysicalWriteExecutorCommand,
 };
 pub use joined_outcome::{
     PhysicalSignalSettlementOutcome, PhysicalWorkBatchDenial, PhysicalWorkExecutionBatchOutcome,
@@ -19,12 +19,11 @@ pub use joined_outcome::{
 pub use outcome::CompletedPhysicalPublicationEffect;
 pub(in crate::physical_runtime) use outcome::{
     IndeterminatePhysicalPublicationEffect, PhysicalEffectRecoveryObligation,
-    PhysicalExecutorDispatch, PhysicalExecutorOutcome,
+    PhysicalExecutorDispatch, PhysicalExecutorOutcome, PhysicalResidencyWritebackCompletion,
 };
 pub(in crate::physical_runtime) use settlement::PhysicalWorkSettlement;
 pub use settlement::{
     PhysicalWorkEffectFate, PhysicalWorkHealthRevocation, PhysicalWorkNoEffectEvidence,
-    PhysicalWorkPublicationResiduePosture, PhysicalWorkResidencyPosture,
-    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause,
-    PhysicalWorkTerminalFailure,
+    PhysicalWorkPublicationResiduePosture, PhysicalWorkSchedulerPosture,
+    PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause, PhysicalWorkTerminalFailure,
 };

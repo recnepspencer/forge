@@ -5,8 +5,6 @@ mod classification;
 mod counters;
 mod denial;
 mod frontier;
-#[cfg(feature = "certification-test-authority")]
-mod large_record_envelope;
 mod orchestration;
 mod receipt_construction;
 mod request;
@@ -23,14 +21,11 @@ mod ingest_tests;
 mod pressure_tests;
 
 pub use admission::{
-    reject_allocation_denial_as_streaming_ingest, reject_scalar_backend_api_as_streaming_ingest,
-    BlobStreamingPressureAdmission,
+    reject_scalar_backend_api_as_streaming_ingest, BlobStreamingPressureAdmission,
 };
 pub use counters::BlobStreamingIngestCounterSnapshot;
 pub use denial::{reject_full_blob_vec_as_streaming_ingest, BlobStreamingIngestDenial};
 pub use frontier::BlobStreamingContentFrontier;
-#[cfg(feature = "certification-test-authority")]
-pub use large_record_envelope::{LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial};
 pub use orchestration::BlobStreamingIngestExecution;
 pub use receipt_construction::{
     BlobStreamingCounterBackedPerformanceReceipt, BlobStreamingResidencyProof,

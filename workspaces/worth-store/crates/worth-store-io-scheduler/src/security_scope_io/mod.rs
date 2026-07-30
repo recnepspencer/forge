@@ -1,3 +1,4 @@
+mod admission;
 mod counters;
 mod denial;
 mod operation;
@@ -5,6 +6,10 @@ mod posture;
 mod receipt;
 mod request;
 
+pub use admission::{
+    admit_security_scope_for_scheduler, IoSchedulerSecurityScopeAdmission,
+    IoSchedulerSecurityScopeAdmissionDenial, SchedulerSecurityScopeCapability,
+};
 pub use counters::{SecureIoCounterStrength, SecureIoPreservationCounterSnapshot};
 pub use denial::SecureIoPreservationDenial;
 pub use operation::SecureIoOperation;

@@ -226,6 +226,7 @@ impl PoolInner {
             FrameEntry {
                 state: FrameState::CandidateReserved,
                 origin: FrameOrigin::Candidate,
+                allocation_scope: scope,
                 pins: 1,
                 dirty: true,
                 writeback_claimed: false,
@@ -243,7 +244,7 @@ impl PoolInner {
         );
         state
             .accounting
-            .admit_frame(u64::from(key.coordinate.length()), true, true);
+            .admit_frame(scope, u64::from(key.coordinate.length()), true, true);
         state.loading_frames += 1;
         Ok(())
     }
@@ -299,6 +300,27 @@ impl PoolInner {
         self.changed.notify_all();
     }
 
+    pub(crate) fn candidate_allocator_failed(&self, key: PhysicalFrameKey) {
+        let mut state = self.lock();
+        if matches!(
+            state.frames.get(&key.coordinate).map(|entry| &entry.state),
+            Some(FrameState::CandidateReserved)
+        ) {
+            let entry = state
+                .frames
+                .remove(&key.coordinate)
+                .expect("candidate reservation remains present");
+            state.accounting.candidate_allocator_failed(
+                entry.allocation_scope,
+                entry.bytes,
+                entry.pins,
+            );
+            state.loading_frames -= 1;
+            state.accounting.finish_loading();
+        }
+        self.changed.notify_all();
+    }
+
     pub(crate) fn discard_dirty_candidate(
         &self,
         key: PhysicalFrameKey,
@@ -316,7 +338,7 @@ impl PoolInner {
                 PhysicalResidencyDenial::FrameNotDirty,
             ));
         }
-        if entry.origin != FrameOrigin::Candidate
+        if !entry.origin.is_candidate()
             || entry.pins != 1
             || entry.writeback_claimed
             || !matches!(entry.state, FrameState::Resident(_))
@@ -330,12 +352,7 @@ impl PoolInner {
             .frames
             .remove(&key.coordinate)
             .expect("validated candidate frame remains resident");
-        state.accounting.remove_frame(
-            removed.bytes,
-            removed.pins,
-            removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
-        );
+        state.accounting.remove_frame(removed.accounting_removal());
         state.accounting.record_administrative_drain();
         self.changed.notify_all();
         Ok(())
@@ -351,12 +368,7 @@ fn cancel_candidate_locked(state: &mut PoolState, coordinate: RecordFrameCoordin
             .frames
             .remove(&coordinate)
             .expect("candidate reservation remains present");
-        state.accounting.remove_frame(
-            entry.bytes,
-            entry.pins,
-            entry.dirty,
-            entry.origin == FrameOrigin::Candidate,
-        );
+        state.accounting.remove_frame(entry.accounting_removal());
         state.loading_frames -= 1;
         state.accounting.finish_loading();
     }

@@ -20,12 +20,16 @@ impl PoolInner {
         if let Some(rejection) = bounded_completion_rejection(&state, key, identity, coordinate) {
             return self.reject_bounded_completion(&mut state, key, identity, rejection);
         }
-        let waiters = match state
+        let (waiters, allocation_scope) = match state
             .frames
             .get_bounded(&key)
             .expect("bounded loading identity remains indexed")
         {
-            BoundedFrameEntry::Loading { waiters, .. } => *waiters,
+            BoundedFrameEntry::Loading {
+                waiters,
+                allocation_scope,
+                ..
+            } => (*waiters, *allocation_scope),
             _ => unreachable!("validated bounded loading remains loading"),
         };
         state.frames.resolve_bounded(
@@ -34,10 +38,11 @@ impl PoolInner {
             FrameEntry {
                 state: FrameState::Resident(Arc::clone(&bytes)),
                 origin: FrameOrigin::Fault,
+                allocation_scope,
                 pins: 1 + waiters,
                 dirty: false,
                 writeback_claimed: false,
-                bytes: bytes.len() as u64,
+                bytes: bytes.capacity() as u64,
                 older_evictable: None,
                 newer_evictable: None,
                 loading_identity: (waiters > 0).then_some(identity),
@@ -46,8 +51,9 @@ impl PoolInner {
             },
         );
         state.accounting.resolve_bounded_frame(
+            allocation_scope,
             u64::from(key.limit()),
-            u64::try_from(bytes.len()).expect("frame bytes fit u64"),
+            u64::try_from(bytes.capacity()).expect("frame capacity fits u64"),
         );
         state.loading_frames -= 1;
         state.accounting.finish_loading();

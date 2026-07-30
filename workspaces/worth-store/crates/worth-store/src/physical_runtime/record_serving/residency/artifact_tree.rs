@@ -96,6 +96,13 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         self.tree.file_exists(&self.artifact(artifact))
     }
 
+    pub(in crate::physical_runtime::record_serving) fn remove_file_durably(
+        &self,
+        artifact: RecordArtifactFile,
+    ) -> Result<(), ArtifactTreeFailure> {
+        self.tree.remove_file_durably(&self.artifact(artifact))
+    }
+
     pub(in crate::physical_runtime::record_serving) fn read_exact_at(
         &self,
         artifact: RecordArtifactFile,
@@ -117,6 +124,27 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> ScheduledArtifactRangeWriteOutcome {
         self.tree.write_scheduled_exact_at(
+            &self.artifact(coordinate.artifact()),
+            coordinate,
+            bytes,
+            binding,
+            adaptation,
+            scope,
+            durability,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(in crate::physical_runtime) fn append_scheduled_writeback_at_eof(
+        &self,
+        coordinate: RecordFrameCoordinate,
+        bytes: &[u8],
+        binding: BackendQueueExecutionPlanBinding,
+        adaptation: BackendQueueExecutionAdaptation,
+        scope: BackendQueueSpeculativeScope,
+        durability: ArtifactRangeWriteDurabilityRequirement,
+    ) -> ScheduledArtifactRangeWriteOutcome {
+        self.tree.append_scheduled_writeback_at_eof(
             &self.artifact(coordinate.artifact()),
             coordinate,
             bytes,
@@ -167,25 +195,6 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> ScheduledArtifactRangeWriteOutcome {
         self.tree.write_scheduled_foreground_exact_at(
-            &self.artifact(coordinate.artifact()),
-            coordinate,
-            bytes,
-            binding,
-            adaptation,
-            durability,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(in crate::physical_runtime) fn append_scheduled_foreground_exact_at(
-        &self,
-        coordinate: RecordFrameCoordinate,
-        bytes: &[u8],
-        binding: BackendQueueExecutionPlanBinding,
-        adaptation: BackendQueueExecutionAdaptation,
-        durability: ArtifactRangeWriteDurabilityRequirement,
-    ) -> ScheduledArtifactRangeWriteOutcome {
-        self.tree.append_scheduled_foreground_exact_at(
             &self.artifact(coordinate.artifact()),
             coordinate,
             bytes,

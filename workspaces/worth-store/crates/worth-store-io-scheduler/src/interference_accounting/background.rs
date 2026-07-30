@@ -79,11 +79,6 @@ fn background_status_counters_and_debt(
             evidence.counters(),
             None,
         ),
-        BackgroundPacingOutcome::StaleRebindRequired(evidence) => (
-            LatencyEnvelopeAssessmentStatus::Held,
-            evidence.counters(),
-            None,
-        ),
         BackgroundPacingOutcome::Throttled(evidence) => (
             LatencyEnvelopeAssessmentStatus::Held,
             evidence.counters(),

@@ -5,12 +5,13 @@ use super::super::{
     publication::publication_outcome::{
         RecordPublicationFailureEvidence, UnpublishedRecordFailurePosture,
     },
+    residency::artifact_tree::PhysicalRecordArtifactTree,
     IndeterminateRecordPublication, RecordAppendDenial, RecordAppendError,
     RecordPublicationRecoveryLocator, RecordPublicationStage, RecordStreamFailure,
     UnpublishedRecordBatchCause, UnpublishedRecordBatchFailure, UnpublishedRecordEffectFate,
     UnpublishedRecordWorldFate,
 };
-use super::PublicationPlan;
+use super::{CandidateDataArtifact, PublicationPlan};
 
 struct UnpublishedFailureInput {
     stage: RecordPublicationStage,
@@ -144,6 +145,69 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_physical_work(
             work: plan.work.clone().including(stage, failure.evidence()),
         },
     )
+}
+
+pub(in crate::physical_runtime::record_serving) fn unpublished_frame_writeback(
+    media: &QualifiedFilesystemMedia,
+    generation: crate::physical_runtime::LifecycleGeneration,
+    plan: &PublicationPlan,
+    before: MediaCounterSnapshot,
+    stage: RecordPublicationStage,
+    failure: super::super::PhysicalRecordWritebackFailureEvidence,
+) -> RecordAppendError {
+    let pressure = failure.pressure(generation);
+    if let Some(evidence) = pressure {
+        if cleanup_extent_only_candidate_data(media, plan) {
+            return RecordAppendError::PhysicalPressure { evidence };
+        }
+    }
+    let current_effect_fate = if failure.effect_fate()
+        == crate::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect
+    {
+        UnpublishedRecordEffectFate::DeniedBeforeEffect
+    } else {
+        UnpublishedRecordEffectFate::EffectPossible
+    };
+    unpublished(
+        media,
+        plan,
+        before,
+        UnpublishedFailureInput {
+            stage,
+            cause: UnpublishedRecordBatchCause::FrameWriteback {
+                stage,
+                failure: Box::new(failure),
+                pressure,
+            },
+            current_effect_fate,
+            world_fate: UnpublishedRecordWorldFate::InspectionRequired,
+            work: plan.work.clone().including_writeback(stage, failure),
+        },
+    )
+}
+
+fn cleanup_extent_only_candidate_data(
+    media: &QualifiedFilesystemMedia,
+    plan: &PublicationPlan,
+) -> bool {
+    let tree = PhysicalRecordArtifactTree::new(media);
+    let mut artifacts = Vec::with_capacity(plan.data.len());
+    for data in &plan.data {
+        let CandidateDataArtifact::Extent(extent) = data else {
+            return false;
+        };
+        artifacts.push(extent.artifact);
+    }
+    for artifact in artifacts.iter().copied() {
+        match tree.file_exists(artifact) {
+            Ok(true) if tree.remove_file_durably(artifact).is_err() => return false,
+            Ok(_) => {}
+            Err(_) => return false,
+        }
+    }
+    artifacts
+        .into_iter()
+        .all(|artifact| matches!(tree.file_exists(artifact), Ok(false)))
 }
 
 pub(in crate::physical_runtime::record_serving) fn unpublished_prepared_physical_work(

@@ -45,16 +45,7 @@ fn close_during_source_execution_cancels_unpublished_frame() {
         })
     });
     entered.wait();
-    let closing_pool = Arc::clone(&pool);
-    let closer = std::thread::spawn(move || closing_pool.close());
-    loop {
-        match pool.begin_operation(READ_SCOPE, nonzero_bytes(1)) {
-            Err(PhysicalResidencyDenial::PoolClosed) => break,
-            Ok(grant) => drop(grant),
-            Err(other) => panic!("unexpected close probe denial: {other:?}"),
-        }
-        std::thread::yield_now();
-    }
+    let shutdown = pool.close();
     release.wait();
     let failure = worker.join().unwrap().unwrap_err();
     assert!(matches!(
@@ -64,7 +55,6 @@ fn close_during_source_execution_cancels_unpublished_frame() {
             ..
         }
     ));
-    let shutdown = closer.join().unwrap();
     assert!(shutdown.requires_inspection());
     assert!(shutdown.has_cancellable_work_residue());
     assert_eq!(shutdown.counters().active_loading_frames(), 1);

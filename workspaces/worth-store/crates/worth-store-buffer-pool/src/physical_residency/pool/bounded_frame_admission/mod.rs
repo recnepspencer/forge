@@ -21,10 +21,12 @@ pub(super) enum BoundedFrameEntry {
     Loading {
         identity: PhysicalFrameLoadingIdentity,
         admitted_limit: u32,
+        allocation_scope: PhysicalOperationAllocationScope,
         waiters: u32,
     },
     LoadFailed {
         terminal: PhysicalFrameLoadTerminal,
+        allocation_scope: PhysicalOperationAllocationScope,
         waiters: u32,
     },
     Resident {
@@ -77,54 +79,45 @@ impl PoolInner {
         key: PhysicalBoundedFrameKey,
     ) -> Result<PhysicalBoundedFrameAccess, PhysicalResidencyDenial> {
         let mut state = self.lock();
-        loop {
-            if !state.accepting {
-                return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
-            }
-            match Self::bounded_access_posture(&state, key) {
-                BoundedAccessPosture::Loading {
-                    identity,
-                    admitted_limit,
-                } => {
-                    if key.limit() != admitted_limit {
-                        return Err(Self::deny(
-                            &mut state,
-                            PhysicalResidencyDenial::BoundedLoadLimitConflict {
-                                active_limit: admitted_limit,
-                                requested_limit: key.limit(),
-                            },
-                        ));
-                    }
-                    return self.attach_bounded_waiter(&mut state, scope, key, identity);
-                }
-                BoundedAccessPosture::LoadFailed(terminal) => {
+        if !state.accepting {
+            return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
+        }
+        match Self::bounded_access_posture(&state, key) {
+            BoundedAccessPosture::Loading {
+                identity,
+                admitted_limit,
+            } => {
+                if key.limit() != admitted_limit {
                     return Err(Self::deny(
                         &mut state,
-                        PhysicalResidencyDenial::FrameLoadTerminated(terminal),
+                        PhysicalResidencyDenial::BoundedLoadLimitConflict {
+                            active_limit: admitted_limit,
+                            requested_limit: key.limit(),
+                        },
                     ));
                 }
-                BoundedAccessPosture::Resident(coordinate) => {
-                    if coordinate.length() > key.limit() {
-                        return Err(Self::deny(
-                            &mut state,
-                            PhysicalResidencyDenial::FrameLengthMismatch,
-                        ));
-                    }
-                    let exact = PhysicalFrameKey::new(self.store, coordinate);
-                    return self
-                        .pin_resident_frame(&mut state, scope, exact)
-                        .map(PhysicalBoundedFrameAccess::Hit);
-                }
-                BoundedAccessPosture::CandidatePublicationActive => {
+                self.attach_bounded_waiter(&mut state, scope, key, identity)
+            }
+            BoundedAccessPosture::LoadFailed(terminal) => Err(Self::deny(
+                &mut state,
+                PhysicalResidencyDenial::FrameLoadTerminated(terminal),
+            )),
+            BoundedAccessPosture::Resident(coordinate) => {
+                if coordinate.length() > key.limit() {
                     return Err(Self::deny(
                         &mut state,
-                        PhysicalResidencyDenial::CandidatePublicationActive,
+                        PhysicalResidencyDenial::FrameLengthMismatch,
                     ));
                 }
-                BoundedAccessPosture::Absent => {
-                    return self.reserve_bounded_loading(&mut state, scope, key);
-                }
+                let exact = PhysicalFrameKey::new(self.store, coordinate);
+                self.pin_resident_frame(&mut state, scope, exact)
+                    .map(PhysicalBoundedFrameAccess::Hit)
             }
+            BoundedAccessPosture::CandidatePublicationActive => Err(Self::deny(
+                &mut state,
+                PhysicalResidencyDenial::CandidatePublicationActive,
+            )),
+            BoundedAccessPosture::Absent => self.reserve_bounded_loading(&mut state, scope, key),
         }
     }
 
@@ -191,18 +184,20 @@ impl PoolInner {
             BoundedFrameEntry::Loading {
                 identity,
                 admitted_limit: key.limit(),
+                allocation_scope: scope,
                 waiters: 0,
             },
         );
         state
             .accounting
-            .admit_frame(u64::from(key.limit()), false, false);
+            .admit_frame(scope, u64::from(key.limit()), false, false);
         state.loading_frames += 1;
         Ok(PhysicalBoundedFrameAccess::Fault(
             PhysicalBoundedFrameFaultOwner {
                 owner: Arc::clone(self),
                 key,
                 identity,
+                scope,
                 armed: true,
             },
         ))

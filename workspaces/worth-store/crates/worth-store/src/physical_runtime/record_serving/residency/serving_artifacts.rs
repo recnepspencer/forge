@@ -3,10 +3,10 @@ use worth_store_physical_format::RecordArtifactFile;
 
 use super::{
     artifact_tree::{PhysicalRecordArtifactTree, RecordFamilyInventory},
-    frame_loading::{FrameLoadFailure, LoadedPhysicalFrame, ObservedArtifactLength},
+    frame_loading::{ExactFrameSourceExtent, FrameLoadFailure, LoadedPhysicalFrame},
     frame_ports::FrameLoadPort,
     record_frame_reader::RecordFrameReader,
-    ServingFrameResidency,
+    PhysicalResidencyWorkPort,
 };
 
 pub(in crate::physical_runtime::record_serving) struct ServingRecordArtifacts<'media> {
@@ -27,7 +27,7 @@ impl<'media> ServingRecordArtifacts<'media> {
 
     pub(in crate::physical_runtime::record_serving) fn serving(
         media: &'media QualifiedFilesystemMedia,
-        residency: ServingFrameResidency,
+        residency: PhysicalResidencyWorkPort,
     ) -> Self {
         Self {
             tree: PhysicalRecordArtifactTree::new(media),
@@ -54,21 +54,16 @@ impl<'media> ServingRecordArtifacts<'media> {
         self.tree.file_exists(artifact)
     }
 
-    pub(in crate::physical_runtime::record_serving) fn file_length(
-        &self,
-        artifact: RecordArtifactFile,
-    ) -> Result<ObservedArtifactLength, FrameLoadFailure> {
-        self.reader.file_length(artifact)
-    }
-
     pub(in crate::physical_runtime::record_serving) fn load_exact(
         &self,
         allocation: &worth_store_buffer_pool::OperationAllocationGrant,
         artifact: RecordArtifactFile,
         offset: u64,
         length: u32,
+        source_extent: ExactFrameSourceExtent,
     ) -> Result<LoadedPhysicalFrame, FrameLoadFailure> {
-        self.reader.load_exact(allocation, artifact, offset, length)
+        self.reader
+            .load_exact(allocation, artifact, offset, length, source_extent)
     }
 
     pub(in crate::physical_runtime::record_serving) fn load_bounded(

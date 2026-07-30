@@ -15,7 +15,7 @@ pub(crate) fn line_cap_module_evidence() -> Vec<IntegrityModuleCompositionEviden
         ),
         checked_module(
             IntegrityCloseoutModuleKind::Scrub,
-            physical_integrity("scrub/scrub_execution.rs"),
+            physical_integrity("scrub/execution/run.rs"),
             cap,
         ),
         checked_module(

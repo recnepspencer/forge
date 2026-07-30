@@ -8,7 +8,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-const SOURCE_BINDING: &str = "worth.store.c5_1.mutation-source-closure.v1";
+const SOURCE_BINDING: &str = "worth.store.controlled-mutation-source-closure.v3";
 const METADATA_TIMEOUT: Duration = Duration::from_secs(30);
 const REQUIRED_PACKAGES: [&str; 4] = [
     "store-test-runner",

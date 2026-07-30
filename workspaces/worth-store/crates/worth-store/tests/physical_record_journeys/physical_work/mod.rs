@@ -1,12 +1,10 @@
 mod authority;
 mod authority_mutants;
 mod authority_sealing;
-mod c6_handoff;
-mod c6_projection_failure;
-mod c6_writeback_retry;
 mod capacity;
 mod close_plan;
 mod concurrency;
+mod courtroom_binding;
 mod courtroom_environment;
 mod e2e_trace;
 mod execution_capability;
@@ -36,16 +34,21 @@ mod record_read_damage;
 mod record_read_failures;
 mod record_read_path;
 mod record_read_signal_cleanup;
+mod residency_generation_fencing;
 mod residency_pressure_projection;
+mod residency_projection_failure;
+mod residency_writeback_lifecycle;
+mod residency_writeback_retry;
 mod scan_continuation_damage;
 mod scheduler;
 mod scheduler_capacity_publication;
 mod scheduler_reservation;
 mod serving_frame_residency;
+mod speculative_residency;
 
 pub(super) use super::{configuration, media, serving_from_initialization, success};
 pub(super) use fixture::{serving_from_initialization_with_work_profile, work_fixture};
-pub(super) use scheduler::{policy_receipt, ready_work};
+pub(super) use scheduler::policy_receipt;
 pub(super) use scheduler_reservation::{reserved_buffered_file_read, reserved_page_write};
 
 pub(crate) fn phase_16_maelstrom_reopener(root: &std::path::Path) {

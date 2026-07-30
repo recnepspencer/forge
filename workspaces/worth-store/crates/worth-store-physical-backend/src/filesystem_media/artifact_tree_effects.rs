@@ -155,6 +155,26 @@ pub(super) fn artifact_file_length(
     file: &cap_std::fs::File,
 ) -> Result<u64, ArtifactTreeFailure> {
     let attempt = begin(owner, MediaOperationRole::ReadMetadata, 0);
+    complete_artifact_file_length(attempt, file)
+}
+
+pub(super) fn identified_artifact_file_length(
+    owner: &FilesystemMediaOwner,
+    file: &cap_std::fs::File,
+) -> Result<(super::MediaOperationIdentity, u64), ArtifactTreeFailure> {
+    let Some((operation, attempt)) = begin_identified(owner, MediaOperationRole::ReadMetadata, 0)
+    else {
+        return Err(ArtifactTreeFailure::structural(
+            ArtifactTreeFailureKind::DeniedBeforeEffect,
+        ));
+    };
+    complete_artifact_file_length(attempt, file).map(|length| (operation, length))
+}
+
+fn complete_artifact_file_length(
+    attempt: super::fault_interposition::MediaBoundaryAttempt<'_>,
+    file: &cap_std::fs::File,
+) -> Result<u64, ArtifactTreeFailure> {
     if let Some(error) = attempt.fail_before_error() {
         attempt.denied();
         return Err(denied(&error));

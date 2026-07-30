@@ -1,8 +1,13 @@
 # Storage Foundation S.2 Engineering Spec: Buffer Pool, Memory Budgets, And Zero-Copy Record Access
 
-> **Status:** Planned
+> **Status:** Historical — superseded by
+> [C.6 Buffer Pool And Bounded Physical Access Join](./physical-reconstruction-c6-buffer-pool-runtime-join.md)
 >
-> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
+> **Current developer contract:**
+> [Bounded Physical Record Access](./bounded-physical-record-access.md)
+>
+> **Current roadmap:**
+> [Physical Foundation Reconstruction Roadmap](./physical-foundation-reconstruction-roadmap.md)
 >
 > **Primary prerequisite:** `S.1 Physical Page, Segment, And Extent Substrate`
 >
@@ -11,6 +16,12 @@
 > **Primary architectural driver:** make physical memory residency explicit,
 > bounded, and machine-checkable before integrity, recovery, isolation, I/O,
 > blob, or certification work can claim to run on stores larger than memory.
+
+This document preserves the isolated S.2 design and its original reasoning.
+Its authority types, feature graph, snapshot admission, frame table, record
+views, and background-work models are not current APIs or implementation
+targets. C.6 replaced them with the Store-owned bounded residency contract
+linked above.
 
 ## Goal
 

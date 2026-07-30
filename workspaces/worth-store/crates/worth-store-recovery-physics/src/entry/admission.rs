@@ -6,21 +6,21 @@ use crate::{
 use worth_store_contracts::PhysicalAuthorityRecap;
 
 #[derive(Debug)]
-pub struct RecoveryEntryAdmission {
+pub struct RecoveryEntryAdmission<'runtime> {
     entry_identity: RecoveryEntryIdentity,
     recovery_basis: RecoveryEntryBasis,
     counters: RecoveryEntryCounters,
     integrity_readiness: AdmittedRecoveryIntegrityInput,
-    memory_allocation: RecoveryMemoryAllocation,
+    memory_allocation: RecoveryMemoryAllocation<'runtime>,
     physical_authority: PhysicalAuthorityRecap,
 }
 
-impl RecoveryEntryAdmission {
+impl<'runtime> RecoveryEntryAdmission<'runtime> {
     pub fn admit(
         integrity_readiness: AdmittedRecoveryIntegrityInput,
-        memory_allocation: RecoveryMemoryAllocation,
+        memory_allocation: RecoveryMemoryAllocation<'runtime>,
         physical_authority: PhysicalAuthorityRecap,
-    ) -> RecoveryEntryAdmissionDecision {
+    ) -> RecoveryEntryAdmissionDecision<'runtime> {
         match classify_recovery_entry_inputs(
             &integrity_readiness,
             &memory_allocation,
@@ -63,6 +63,10 @@ impl RecoveryEntryAdmission {
 
     pub const fn memory_allocation(&self) -> RecoveryMemoryObservation {
         self.memory_allocation.observation()
+    }
+
+    pub(crate) fn into_memory_allocation(self) -> RecoveryMemoryAllocation<'runtime> {
+        self.memory_allocation
     }
 
     pub const fn physical_authority(&self) -> PhysicalAuthorityRecap {

@@ -43,16 +43,9 @@ fn independent_verification_rejects_cross_component_wal_closure_tampering() {
     )
     .expect("individually valid defective WAL row");
     let defective = BackupBundleManifest::canonical(
-        original.cut_identity(),
-        original.store_lineage(),
-        original.root_generation(),
-        original.manifest_generation(),
-        original.checkpoint_identity(),
-        original.durable_checkpoint_lsn(),
-        original.wal_half_open_interval(),
-        original.acknowledged_frontier(),
-        original.security_scope_fingerprint(),
-        rows,
+        worth_store_physical_format::BackupBundleManifestDeclaration::from_manifest_with_artifacts(
+            original, rows,
+        ),
     )
     .expect("structurally encoded producer defect");
     std::fs::write(
@@ -97,11 +90,13 @@ fn structurally_valid_bundle_omission_cannot_release_a_larger_admitted_cut() {
         extra_owner,
     );
     let extra = BackupArtifactReference::declare_untrusted_physical_observation(
-        BackupArtifactFamily::Page,
-        artifact_format(BackupArtifactFamily::Page),
-        "extra-page",
-        1,
-        BackupArtifactCoverage::physical_reachability(),
+        UntrustedBackupArtifactClaim {
+            family: BackupArtifactFamily::Page,
+            format: artifact_format(BackupArtifactFamily::Page),
+            identity: "extra-page".to_owned(),
+            generation: 1,
+            coverage: BackupArtifactCoverage::physical_reachability(),
+        },
         observe_physical_backup_artifact(extra_path, 4 * 1024).expect("observation"),
         extra_owner,
     )
@@ -136,21 +131,15 @@ fn structurally_valid_bundle_omission_cannot_release_a_larger_admitted_cut() {
         .output_name()
         .to_owned();
     let reduced = BackupBundleManifest::canonical(
-        manifest.cut_identity(),
-        manifest.store_lineage(),
-        manifest.root_generation(),
-        manifest.manifest_generation(),
-        manifest.checkpoint_identity(),
-        manifest.durable_checkpoint_lsn(),
-        manifest.wal_half_open_interval(),
-        manifest.acknowledged_frontier(),
-        manifest.security_scope_fingerprint(),
-        manifest
-            .artifacts()
-            .iter()
-            .filter(|row| row.identity() != "extra-page")
-            .cloned()
-            .collect(),
+        worth_store_physical_format::BackupBundleManifestDeclaration::from_manifest_with_artifacts(
+            manifest,
+            manifest
+                .artifacts()
+                .iter()
+                .filter(|row| row.identity() != "extra-page")
+                .cloned()
+                .collect(),
+        ),
     )
     .expect("internally valid reduced bundle");
     std::fs::remove_file(materialized.root().join(omitted)).expect("omit component");
@@ -235,16 +224,9 @@ fn independently_decodable_files_cannot_claim_one_physical_owner_twice() {
     let mut rows = original.artifacts().to_vec();
     rows.push(duplicate);
     let defective = BackupBundleManifest::canonical(
-        original.cut_identity(),
-        original.store_lineage(),
-        original.root_generation(),
-        original.manifest_generation(),
-        original.checkpoint_identity(),
-        original.durable_checkpoint_lsn(),
-        original.wal_half_open_interval(),
-        original.acknowledged_frontier(),
-        original.security_scope_fingerprint(),
-        rows,
+        worth_store_physical_format::BackupBundleManifestDeclaration::from_manifest_with_artifacts(
+            original, rows,
+        ),
     )
     .expect("duplicate physical ownership remains representable for hostile verification");
     std::fs::write(

@@ -1,10 +1,12 @@
 use super::policy_receipts::background_policy_receipt;
 use super::test_support::{read_pressure_budget, World};
+use crate::queue_execution::test_support::{completion_for_plan, speculative_scope};
 
 use crate::{
-    admit_background_pacing, admit_queue_execution_plan, lower_background_queue_lease,
-    BackgroundIoPressureShape, BackgroundPacingDenial, BackgroundPacingOutcome,
-    IoSchedulerBackendCapabilityRequirement, QueueExecutionAdmissionRequest,
+    admit_background_pacing, admit_queue_execution_plan, execute_ready_queue_plan,
+    lower_background_queue_lease, BackgroundIoPressureShape, BackgroundPacingDenial,
+    BackgroundPacingOutcome, IoSchedulerBackendCapabilityRequirement,
+    QueueExecutionAdmissionRequest, QueueExecutionOutcome, QueueExecutionProgression,
     QueueExecutionReadyPlan, SecureIoOperation, SecureIoPreservationDenial,
 };
 
@@ -111,6 +113,27 @@ fn secure_scope_background_leases_lower_into_queue_admission() {
     }
 }
 
+#[test]
+fn one_background_lease_progresses_into_one_executed_queue_plan() {
+    let world = World::new();
+    let pressure = BackgroundIoPressureShape::repair_scan().requesting(read_pressure_budget());
+    let plan = admitted_background_queue_plan(&world, pressure);
+    let scope = speculative_scope(&plan);
+    let completion = completion_for_plan(&plan, 1, Some(scope), 0, None).complete();
+    let QueueExecutionOutcome::Executed(executed) = execute_ready_queue_plan(plan, completion)
+    else {
+        panic!("one scheduler lease must progress through one executed queue plan");
+    };
+    assert_eq!(
+        executed.plan().progression(),
+        QueueExecutionProgression::Executed
+    );
+    assert_eq!(
+        executed.plan().work().class(),
+        crate::QueueWorkClass::Background(pressure.class())
+    );
+}
+
 fn admitted_background_queue_plan(
     world: &World,
     pressure: BackgroundIoPressureShape,
@@ -120,16 +143,13 @@ fn admitted_background_queue_plan(
     else {
         panic!("secure background pressure should admit before queue lowering");
     };
-    let work = lower_background_queue_lease(admitted.lease());
+    let work = lower_background_queue_lease(admitted.into_lease());
+    let policy_budget = work.requested_budget();
     let policy = crate::admit_queue_policy_receipt(
-        work.clone(),
-        background_policy_receipt(work.requested_budget(), work.requested_budget()),
+        work,
+        background_policy_receipt(policy_budget, policy_budget),
     )
     .expect("background policy receipt should bind exact work");
-    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(
-        work,
-        world.backend(),
-        policy,
-    ))
-    .expect("background lease should lower into queue admission with secure-I/O intact")
+    admit_queue_execution_plan(QueueExecutionAdmissionRequest::new(policy, world.backend()))
+        .expect("background lease should lower into queue admission with secure-I/O intact")
 }

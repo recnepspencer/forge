@@ -1,14 +1,16 @@
 //! # STATE GRAPH
 //!
-//! Placement admission is the I/O-readiness and backend-capability gate before movement or
-//! compaction consume [`AdmittedBlobPlacement`]:
+//! Placement admission is the class-specific physical-authority and backend-capability gate
+//! before movement or compaction consume [`AdmittedBlobPlacement`]:
 //!
-//! - **I/O admission evidence** enters through [`BlobPlacementIntent::readiness`] as an ordinary
-//!   scheduler isolation admission paired with cold-tier posture. The placement boundary verifies
-//!   its security scope against the reachability basis.
+//! - **Cold-tier posture** enters only through [`BlobPlacementIntent::cold`]. The placement
+//!   boundary verifies its security scope against the reachability basis.
+//! - **Inline placement** carries no cold-tier authority.
 //! - **Reachability basis** enters from [`BlobChunkReachabilityProofSet`] and is matched against
 //!   placement intent recoverability for external class.
 //! - **Backend capability evidence** enters through per-class `verify_class_backend_capability`.
+//! - **Class-specific evidence** is borrowed for this synchronous admission and is not retained
+//!   or promoted by [`AdmittedBlobPlacement`].
 //!
 //! Downstream movement assumes source/target placements admitted here; compaction intent carries
 //! the same admitted placement witness.

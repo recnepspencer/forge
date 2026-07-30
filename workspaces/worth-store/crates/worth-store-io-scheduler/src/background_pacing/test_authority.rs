@@ -10,7 +10,6 @@ use worth_store_physical_backend::{
     BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
     PhysicalBackendCapabilityAdmissionAuthority,
 };
-use worth_store_physical_isolation::publish_scheduler_isolation_capability_for_certification_test;
 use worth_store_security::admitted_store_internal_security_scope_for_io_qos_test;
 
 use crate::foreground_reservation::{
@@ -21,11 +20,9 @@ use crate::foreground_reservation::{
 };
 use crate::{
     admit_backend_capability_for_scheduler_claim, admit_background_capacity,
-    admit_security_scope_for_scheduler, admit_store_published_isolation_capability,
-    BackgroundCapacityAdmission, BackgroundCapacityAdmissionRequest, BackgroundIoPressureShape,
-    BackgroundPacingProgressionDrift, BackgroundPacingProgressionEvidence,
-    BackgroundResourceBudget, IoSchedulerBackendCapabilityAdmission, IoSchedulerIsolationAdmission,
-    IoSchedulerIsolationCounterSnapshot, IoSchedulerSecurityScopeAdmission,
+    admit_security_scope_for_scheduler, BackgroundCapacityAdmission,
+    BackgroundCapacityAdmissionRequest, BackgroundIoPressureShape, BackgroundResourceBudget,
+    IoSchedulerBackendCapabilityAdmission, IoSchedulerSecurityScopeAdmission,
 };
 
 mod blob_ingest_outcomes;
@@ -36,9 +33,8 @@ mod verification_outcomes;
 pub use blob_ingest_outcomes::{
     blob_ingest_deferred_background_capacity_for_certification_test,
     blob_ingest_denied_background_capacity_for_certification_test,
-    blob_ingest_rebind_background_capacity_for_certification_test,
-    blob_ingest_stale_background_capacity_for_certification_test,
     blob_ingest_throttled_background_capacity_for_certification_test,
+    blob_ingest_zero_admitted_throttle_background_capacity_for_certification_test,
 };
 use foreground_budgets::{
     full_foreground_capacity, page_write_budget, point_read_budget, wal_write_budget,
@@ -51,8 +47,6 @@ use secure_io::secure_io_for_pressure;
 pub use verification_outcomes::{
     verification_deferred_background_capacity_for_certification_test,
     verification_denied_background_capacity_for_certification_test,
-    verification_rebind_background_capacity_for_certification_test,
-    verification_stale_background_capacity_for_certification_test,
     verification_throttled_background_capacity_for_certification_test,
     verification_zero_admitted_throttle_background_capacity_for_certification_test,
 };
@@ -101,7 +95,6 @@ pub fn checkpoint_flush_wal_background_capacity_for_certification_test(
         budget,
         budget,
         BackgroundResourceBudget::new(),
-        None,
     )
 }
 
@@ -115,7 +108,6 @@ fn blob_ingest_background_capacity_for_lane(
         budget,
         budget,
         BackgroundResourceBudget::new(),
-        None,
     )
 }
 
@@ -125,10 +117,8 @@ fn background_capacity_for_lane(
     idle_available: BackgroundResourceBudget,
     policy_admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
-    drift: Option<BackgroundPacingProgressionDrift>,
 ) -> BackgroundCapacityAdmission {
     let arbitration = ForegroundArbitrationDeclaration::for_lane(lane.lane());
-    let readiness = readiness_admission();
     let security = security_scope_admission();
     let foreground_backend = backend_admission(lane.backend_requirement());
     let background_backend = backend_admission(pressure.backend_requirement());
@@ -137,7 +127,6 @@ fn background_capacity_for_lane(
             lane,
             crate::foreground_reservation::ForegroundReservationCapacityBasis::new(
                 &foreground_backend,
-                &readiness,
                 &security,
             ),
             arbitration,
@@ -149,7 +138,6 @@ fn background_capacity_for_lane(
     let foreground = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &foreground_backend,
-        &readiness,
         &security,
         arbitration,
         &foreground_capacity,
@@ -161,7 +149,6 @@ fn background_capacity_for_lane(
         pressure,
         &foreground,
         &background_backend,
-        &readiness,
         background_policy_receipt_for(pressure.requested_budget(), policy_admitted),
     )
     .with_idle_available(idle_available)
@@ -177,46 +164,8 @@ fn background_capacity_for_lane(
         request
     };
 
-    admit_background_capacity(apply_progression_evidence(request, &readiness, drift))
+    admit_background_capacity(request)
         .expect("blob ingest background capacity should admit through S.6")
-}
-
-fn apply_progression_evidence<'a>(
-    request: BackgroundCapacityAdmissionRequest<'a>,
-    readiness: &IoSchedulerIsolationAdmission,
-    drift: Option<BackgroundPacingProgressionDrift>,
-) -> BackgroundCapacityAdmissionRequest<'a> {
-    let Some(drift) = drift else {
-        return request;
-    };
-    request.with_progression_evidence(
-        BackgroundPacingProgressionEvidence::from_readiness_counter_drift(
-            readiness,
-            mismatched_readiness_counters(readiness.counters()),
-            drift,
-        )
-        .expect("mismatched counters should produce pacing progression evidence"),
-    )
-}
-
-fn mismatched_readiness_counters(
-    counters: IoSchedulerIsolationCounterSnapshot,
-) -> IoSchedulerIsolationCounterSnapshot {
-    let alternate = publish_scheduler_isolation_capability_for_certification_test(
-        counters.wait_count() + 3,
-        counters.retry_count() + 1,
-    )
-    .expect("alternate S.6 readiness should publish");
-    admit_store_published_isolation_capability(&alternate)
-        .expect("alternate scheduler readiness should admit")
-        .counters()
-}
-
-fn readiness_admission() -> IoSchedulerIsolationAdmission {
-    let readiness = publish_scheduler_isolation_capability_for_certification_test(2, 1)
-        .expect("S.5 closeout should publish S.6 readiness");
-    admit_store_published_isolation_capability(&readiness)
-        .expect("scheduler should admit S.6 readiness")
 }
 fn security_scope_admission() -> IoSchedulerSecurityScopeAdmission {
     let security_scope = admitted_store_internal_security_scope_for_io_qos_test();

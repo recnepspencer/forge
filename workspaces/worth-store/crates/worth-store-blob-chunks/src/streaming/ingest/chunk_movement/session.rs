@@ -1,3 +1,4 @@
+use super::super::admission::BlobStreamingIngestExecutionLease;
 use super::flush_chunk;
 use super::frame_slice;
 use crate::{
@@ -6,6 +7,7 @@ use crate::{
 };
 
 pub(crate) struct BlobStreamingChunkingSession {
+    _execution_lease: BlobStreamingIngestExecutionLease,
     pending: Vec<u8>,
     start_offset: u64,
     ordinal: BlobChunkOrdinal,
@@ -18,8 +20,12 @@ pub(crate) struct BlobStreamingChunkingStep {
 }
 
 impl BlobStreamingChunkingSession {
-    pub(crate) fn new(chunk_size: usize) -> Self {
+    pub(crate) fn new(
+        chunk_size: usize,
+        execution_lease: BlobStreamingIngestExecutionLease,
+    ) -> Self {
         Self {
+            _execution_lease: execution_lease,
             pending: Vec::with_capacity(chunk_size),
             start_offset: 0,
             ordinal: BlobChunkOrdinal::first(),

@@ -29,7 +29,7 @@ impl RecoverySecurityScopePropagation {
         wal_record: Option<&RecoveryWalRecordSecurityMetadataEnvelope>,
         checkpoint_record: Option<&RecoveryCheckpointRecordSecurityMetadataEnvelope>,
         recovery_root: Option<&RecoveryRootSecurityMetadataEnvelope>,
-        recovery_entry: &crate::RecoveryEntryAdmission,
+        recovery_entry: &crate::RecoveryEntryAdmission<'_>,
     ) -> TransitionOutcome<Self, RecoverySecurityScopePropagationDenial> {
         let Some(wal_record) = wal_record else {
             return TransitionOutcome::denied(Self::missing_scope_denial());

@@ -1,7 +1,5 @@
-use worth_store_buffer_pool::{
-    PhysicalFrameAccess, PhysicalFrameKey, PhysicalOperationAllocationScope,
-    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalSpeculativeWorkKind,
-};
+use std::num::NonZeroU64;
+
 use worth_store_contracts::{
     BoundedCounterRecap, BufferPoolAuthorityRecap, DenialBehaviorRecap, DeniedBoundaryKind,
     IntegrityInspectionLifetimeLaw, NoMaterializationWitness, PhysicalAuthorityRecap,
@@ -9,17 +7,12 @@ use worth_store_contracts::{
     ScrubPlanningAllocationEnvelope, VerifierResidentEnvelope,
 };
 use worth_store_physical_format::{
-    store_namespace::{
-        ProposedStoreIdentity, StableStoreIdentity, StoreNamespaceIdentityRecord,
-        StoreNamespaceVersion,
-    },
     CheckpointAdjacencyPosture, ChecksumCoverageMap, ManifestMembershipProof,
     PhysicalBinaryEncodingWitness, PhysicalFormatDeclaration, PhysicalFrameKind,
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalGenerationOwner,
     PhysicalHeaderAuthority, PhysicalManifestUniverseBuilder, PhysicalPageId, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalReferenceScope, PhysicalReferenceValidationWitness,
-    PhysicalRootReference, PhysicalSegmentId, RecordArtifactFile, RecordFrameCoordinate,
-    RootManifestIntegrityPosture, SlotGenerationCell,
+    PhysicalRootReference, PhysicalSegmentId, RootManifestIntegrityPosture, SlotGenerationCell,
 };
 use worth_store_physical_integrity::{
     ChecksumAlgorithmClaim, ChecksumScopeDeclaration, DeclaredPhysicalChecksum,
@@ -29,6 +22,8 @@ use worth_store_physical_integrity::{
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest, WalFrameIntegrityReport,
 };
 use worth_store_recovery_physics::WalLsnRange;
+
+use crate::harness::physical_residency::PhysicalResidencyStoreWorld;
 
 pub(super) fn inspect_wal_payload(
     payload: &[u8],
@@ -43,64 +38,58 @@ pub(super) fn inspect_wal_payload_for_owner(
     let cell = wal_slot_cell_for_owner(owner);
     let reference = wal_reference_for_cell(cell);
     let frame = frame_bytes(cell, payload);
-    let store = physical_residency_store();
-    let pool = PhysicalResidencyPool::open(store, wal_residency_limits()).unwrap();
-    let allocation = pool
-        .begin_operation(
-            PhysicalOperationAllocationScope::Recovery,
-            std::num::NonZeroU64::MIN,
-        )
-        .unwrap();
-    let key = PhysicalFrameKey::new(store, frame_coordinate(owner, frame.len()));
-    let PhysicalFrameAccess::Fault(fault) = pool.access_frame(&allocation, key).unwrap() else {
-        panic!("a fresh WAL inspection pool must issue the sole frame fault");
-    };
-    let lease = fault
-        .load(|target| {
-            target.copy_from_slice(&frame);
-            Ok::<_, std::convert::Infallible>(())
+    let world = PhysicalResidencyStoreWorld::initialize("wal-integrity-entry").unwrap();
+    let inspection = world
+        .with_record_chunk(&frame, |serving, chunk| {
+            let protected = ProtectedPhysicalByteView::from_store_chunk(&chunk);
+            let verification = serving
+                .physical_allocations()
+                .admit_verification(
+                    NonZeroU64::new(protected.len_bytes() as u64)
+                        .expect("a Store record chunk is nonempty"),
+                )
+                .expect("real Store verification allocation admits");
+            let inspection_lease =
+                IntegrityEntryAdmission::admit(IntegrityEntryRequest::new(protected, verification))
+                    .expect("matching real Store integrity entry admits");
+            let checksum_scope = checksum_scope();
+            let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
+                .with_checksum_claim(
+                    ChecksumAlgorithmClaim::declared_text("crc32c"),
+                    checksum_scope.clone(),
+                )
+                .unwrap();
+            let checked = integrity_admission
+                .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
+                    reference,
+                    wal_header_witness(&frame, reference),
+                    PhysicalFrameKind::RecordFrame,
+                    DeclaredPhysicalChecksum::new(crc32c(&frame).into()),
+                ))
+                .unwrap();
+            let scope = PhysicalReferenceScope::wal_frame(reference);
+            let membership = manifest_membership_for_scope(scope, cell);
+            let scoped = PhysicalScopeAdmission::admit_frame(
+                checked,
+                PhysicalScopeAdmissionRequest::frame(
+                    scope,
+                    membership,
+                    RootManifestIntegrityPosture::current_root_admitted(membership),
+                    CheckpointAdjacencyPosture::NotCheckpointAdjacent,
+                    checksum_coverage_basis(),
+                ),
+            )
+            .unwrap();
+            WalFrameIntegrityAuthority::new().inspect(
+                WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(
+                    ScopedPhysicalValidatorInput::wal_frame(scoped).unwrap(),
+                )
+                .unwrap(),
+            )
         })
         .unwrap();
-    let protected = ProtectedPhysicalByteView::from_physical_frame(&lease);
-    let entry =
-        IntegrityEntryAdmission::from_integrity_model_payload(physical_integrity_model_payload())
-            .unwrap();
-    let inspection_lease = entry.admit(IntegrityEntryRequest::new(protected)).unwrap();
-    let checksum_scope = checksum_scope();
-    let integrity_admission = PhysicalIntegrityAdmission::from_entry(inspection_lease)
-        .with_checksum_claim(
-            ChecksumAlgorithmClaim::declared_text("crc32c"),
-            checksum_scope.clone(),
-        )
-        .unwrap();
-    let checked = integrity_admission
-        .admit_frame(PhysicalIntegrityAdmissionRequest::frame(
-            reference,
-            wal_header_witness(&frame, reference),
-            PhysicalFrameKind::RecordFrame,
-            DeclaredPhysicalChecksum::new(crc32c(&frame).into()),
-        ))
-        .unwrap();
-    let scoped = PhysicalScopeAdmission::admit_frame(
-        checked,
-        PhysicalScopeAdmissionRequest::frame(
-            PhysicalReferenceScope::wal_frame(reference),
-            manifest_membership_for_scope(PhysicalReferenceScope::wal_frame(reference), cell),
-            RootManifestIntegrityPosture::current_root_admitted(manifest_membership_for_scope(
-                PhysicalReferenceScope::wal_frame(reference),
-                cell,
-            )),
-            CheckpointAdjacencyPosture::NotCheckpointAdjacent,
-            checksum_coverage_basis(),
-        ),
-    )
-    .unwrap();
-    WalFrameIntegrityAuthority::new().inspect(
-        WalFrameIntegrityInspectionRequest::from_admitted_wal_frame(
-            ScopedPhysicalValidatorInput::wal_frame(scoped).unwrap(),
-        )
-        .unwrap(),
-    )
+    assert!(!world.close().residency().requires_inspection());
+    inspection
 }
 
 pub(super) fn intact_wal_payload(range: WalLsnRange) -> Vec<u8> {
@@ -253,65 +242,6 @@ fn slot(value: u16) -> PhysicalRecordSlot {
 
 fn generation(value: u64) -> PhysicalGeneration {
     PhysicalGeneration::from_raw(value).unwrap()
-}
-
-fn physical_residency_store() -> StableStoreIdentity {
-    StoreNamespaceIdentityRecord::new(
-        StoreNamespaceVersion::CURRENT,
-        ProposedStoreIdentity::from_nonzero_bytes([0x54; 16]).unwrap(),
-    )
-    .published_identity()
-}
-
-fn wal_residency_limits() -> PhysicalResidencyLimits {
-    use PhysicalOperationAllocationScope as Scope;
-    use PhysicalSpeculativeWorkKind as Speculation;
-
-    PhysicalResidencyLimits::builder()
-        .total_bytes(nonzero_bytes(25_600))
-        .resident_bytes(nonzero_bytes(8192))
-        .metadata_bytes(nonzero_bytes(8192))
-        .frame_entries(nonzero_count(2))
-        .pinned_frames(nonzero_count(2))
-        .pin_leases(nonzero_count(2))
-        .dirty_frames(nonzero_count(1))
-        .dirty_replacement_bytes(nonzero_bytes(8192))
-        .operation_bytes(nonzero_bytes(1024))
-        .scope_bytes(Scope::ForegroundRead, nonzero_bytes(1024))
-        .scope_bytes(Scope::ForegroundWrite, nonzero_bytes(1024))
-        .scope_bytes(Scope::Recovery, nonzero_bytes(1024))
-        .scope_bytes(Scope::Scrub, nonzero_bytes(1024))
-        .scope_bytes(Scope::Maintenance, nonzero_bytes(1024))
-        .scope_bytes(Scope::Verification, nonzero_bytes(1024))
-        .scope_bytes(Scope::Blob, nonzero_bytes(1024))
-        .speculative_frames(Speculation::Prefetch, nonzero_count(2))
-        .speculative_frames(Speculation::ReadAhead, nonzero_count(2))
-        .speculative_frames(Speculation::WriteBehind, nonzero_count(1))
-        .admit(std::num::NonZeroU64::MIN)
-        .unwrap()
-}
-
-fn nonzero_bytes(value: u64) -> std::num::NonZeroU64 {
-    std::num::NonZeroU64::new(value).unwrap()
-}
-
-fn nonzero_count(value: u32) -> std::num::NonZeroU32 {
-    std::num::NonZeroU32::new(value).unwrap()
-}
-
-fn frame_coordinate(owner: PhysicalGenerationOwner, frame_bytes: usize) -> RecordFrameCoordinate {
-    RecordFrameCoordinate::new(
-        RecordArtifactFile::Segment {
-            segment: owner
-                .segment_id()
-                .expect("WAL frame owner has a segment")
-                .get(),
-            generation: owner.generation().get(),
-        },
-        0,
-        u32::try_from(frame_bytes).expect("fixture frame length fits the physical coordinate"),
-    )
-    .unwrap()
 }
 
 #[cfg(test)]

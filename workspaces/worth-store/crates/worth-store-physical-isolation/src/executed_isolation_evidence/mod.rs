@@ -1,8 +1,9 @@
 mod authority_denial;
+mod basis;
 mod counter_snapshot;
+mod denial;
 mod executed;
 mod interference_snapshot;
-mod performance_receipt;
 mod profile;
 mod project_counters;
 
@@ -17,7 +18,9 @@ pub use authority_denial::{
     reject_proof_projection_as_physical_isolation_store_authority, ProjectionArtifactKind,
     ProjectionAuthorityDenial, StorePhysicalAuthoritySurface,
 };
+pub use basis::ExecutedIsolationBasis;
 pub use counter_snapshot::{ExecutedIsolationCounterKind, PhysicalIsolationCounterSnapshot};
+pub use denial::ExecutedIsolationEvidenceDenial;
 pub use executed::{ExecutedIsolationEvidence, ExecutedIsolationReceipts};
 pub use interference_snapshot::{
     IsolationInterferenceCounterName, IsolationInterferenceSnapshot,

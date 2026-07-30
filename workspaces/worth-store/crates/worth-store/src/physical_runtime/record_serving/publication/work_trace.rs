@@ -77,6 +77,34 @@ impl RecordPublicationWorkTrace {
         }
         self
     }
+
+    pub(in crate::physical_runtime::record_serving) fn including_writeback(
+        mut self,
+        stage: RecordPublicationStage,
+        failure: super::super::PhysicalRecordWritebackFailureEvidence,
+    ) -> Self {
+        if let Some(identity) = failure.identity() {
+            if !self
+                .effects
+                .iter()
+                .any(|effect| effect.identity == identity)
+            {
+                let settlement = failure.recovery().map(|recovery| {
+                    RecordPublicationWorkSettlement::from_canonical(
+                        failure.effect(),
+                        failure.effect_fate(),
+                        recovery,
+                    )
+                });
+                self.effects.push(RecordPublicationWorkEffect {
+                    stage,
+                    identity,
+                    settlement,
+                });
+            }
+        }
+        self
+    }
 }
 
 impl RecordPublicationWorkSettlement {
@@ -89,6 +117,16 @@ impl RecordPublicationWorkSettlement {
             effect,
             effect_fate,
             recovery,
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) const fn from_writeback(
+        settlement: super::super::residency::StorePhysicalWritebackSettlement,
+    ) -> Self {
+        Self {
+            effect: settlement.effect(),
+            effect_fate: settlement.effect_fate(),
+            recovery: settlement.recovery(),
         }
     }
 

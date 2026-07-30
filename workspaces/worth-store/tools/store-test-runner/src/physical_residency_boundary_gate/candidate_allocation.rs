@@ -32,7 +32,7 @@ fn candidate_projection_and_metadata_retain_exact_named_allocation_use() {
 #[test]
 fn candidate_allocation_gate_kills_scope_laundering_mutant() {
     let pool_api = r#"
-fn begin_candidate_batch(allocation: &OperationAllocationGrant, count: NonZeroUsize) {
+fn begin_candidate_batch(allocation: &ForegroundWriteAllocationGrant, count: NonZeroUsize) {
     self.validate_candidate_projection_start();
     let allocation_use = allocation.reserve_use(self, candidate_bytes(count));
     Admission { allocation_use }
@@ -71,7 +71,7 @@ pub fn reserve_next(&mut self, allocation: &OperationAllocationGrant, candidate:
 #[test]
 fn candidate_allocation_gate_kills_store_preallocation_mutant() {
     let publisher = r#"
-fn begin(allocation: &OperationAllocationGrant, candidate: &CandidateFrameSet) {
+fn begin(allocation: &ForegroundWriteAllocationGrant, candidate: &CandidateFrameSet) {
     self.pool.validate_operation_allocation(allocation);
     self.counters.submissions.fetch_add(1, Ordering::AcqRel);
     let mut keys = Vec::new();
@@ -91,7 +91,7 @@ fn begin(allocation: &OperationAllocationGrant, candidate: &CandidateFrameSet) {
 #[test]
 fn candidate_allocation_gate_kills_missing_lifecycle_linearization_mutant() {
     let pool_api = r#"
-fn begin_candidate_batch(allocation: &OperationAllocationGrant, count: NonZeroUsize) {
+fn begin_candidate_batch(allocation: &ForegroundWriteAllocationGrant, count: NonZeroUsize) {
     let allocation_use = allocation.reserve_use(self, candidate_bytes(count));
     Admission { allocation_use }
 }
@@ -128,6 +128,25 @@ fn finish_candidate_batch(&self) {
     assert!(denial.contains("exact checked release"));
 }
 
+#[test]
+fn candidate_allocation_gate_kills_scope_erased_mutation_signature() {
+    let pool_api = r#"
+fn begin_candidate_batch(allocation: &OperationAllocationGrant, count: NonZeroUsize) {
+    self.validate_candidate_projection_start();
+    let allocation_use = allocation.reserve_use(self, candidate_bytes(count));
+    Admission { allocation_use }
+}
+"#;
+    let denial = inspect_candidate_allocation(
+        (Path::new("pool_api.rs"), pool_api),
+        (Path::new("admission.rs"), honest_admission()),
+        (Path::new("authority.rs"), honest_authority()),
+        (Path::new("publisher.rs"), honest_publisher()),
+    )
+    .expect_err("scope-erased candidate authority must be denied");
+    assert!(denial.contains("foreground-write grant"));
+}
+
 fn inspect_candidate_allocation(
     pool_api: (&Path, &str),
     admission: (&Path, &str),
@@ -141,6 +160,13 @@ fn inspect_candidate_allocation(
 }
 
 fn inspect_preallocation_use(pool_api: (&Path, &str)) -> Result<(), String> {
+    let declaration = required_declaration(pool_api, "fn begin_candidate_batch")?;
+    if !declaration.contains("ForegroundWriteAllocationGrant") {
+        return Err(format!(
+            "candidate allocation: mutation admission must require the typed foreground-write grant in {}",
+            pool_api.0.display()
+        ));
+    }
     let begin = required_body(pool_api, "fn begin_candidate_batch")?;
     let lifecycle = begin.find("validate_candidate_projection_start");
     let allocation_use = begin.find("allocation.reserve_use");
@@ -192,6 +218,13 @@ fn inspect_reservation_authority(authority: (&Path, &str)) -> Result<(), String>
 }
 
 fn inspect_store_projection_order(publisher: (&Path, &str)) -> Result<(), String> {
+    let declaration = required_declaration(publisher, "fn begin")?;
+    if !declaration.contains("ForegroundWriteAllocationGrant") {
+        return Err(format!(
+            "candidate allocation: Store publication must carry the typed foreground-write grant in {}",
+            publisher.0.display()
+        ));
+    }
     let publish = required_body(publisher, "fn begin")?;
     let preallocation = publish.find("begin_candidate_batch");
     let counters = publish.find("self.counters.submissions");
@@ -220,6 +253,26 @@ fn required_body<'source>(
     })
 }
 
+fn required_declaration<'source>(
+    source: (&Path, &'source str),
+    signature: &str,
+) -> Result<&'source str, String> {
+    let start = source.1.find(signature).ok_or_else(|| {
+        format!(
+            "candidate allocation: `{signature}` missing in {}",
+            source.0.display()
+        )
+    })?;
+    let tail = &source.1[start..];
+    let body = tail.find('{').ok_or_else(|| {
+        format!(
+            "candidate allocation: `{signature}` has no body in {}",
+            source.0.display()
+        )
+    })?;
+    Ok(&tail[..body])
+}
+
 fn delimited_body<'source>(source: &'source str, signature: &str) -> Option<&'source str> {
     let start = source.find(signature)?;
     let tail = &source[start..];
@@ -242,7 +295,7 @@ fn delimited_body<'source>(source: &'source str, signature: &str) -> Option<&'so
 
 fn honest_pool_api() -> &'static str {
     r#"
-fn begin_candidate_batch(allocation: &OperationAllocationGrant, count: NonZeroUsize) {
+fn begin_candidate_batch(allocation: &ForegroundWriteAllocationGrant, count: NonZeroUsize) {
     self.validate_candidate_projection_start();
     let allocation_use = allocation.reserve_use(self, candidate_bytes(count));
     Admission { allocation_use }
@@ -277,7 +330,7 @@ pub fn reserve_next(&mut self, candidate: Key) {
 
 fn honest_publisher() -> &'static str {
     r#"
-fn begin(allocation: &OperationAllocationGrant, candidate: &CandidateFrameSet) {
+fn begin(allocation: &ForegroundWriteAllocationGrant, candidate: &CandidateFrameSet) {
     let admission = self.pool.begin_candidate_batch(allocation, candidate.count());
     self.counters.submissions.fetch_add(1, Ordering::AcqRel);
     let mut keys = Vec::new();

@@ -57,7 +57,7 @@ fn revocation_records_each_required_idle_capacity_unit() {
             panic!("expected admitted lease for {expectation:?}, got {outcome:?}");
         };
         let revocation = admitted_with_debt
-            .lease()
+            .into_lease()
             .revoke_for_foreground_pressure(NonZeroU64::new(1).unwrap());
         assert_eq!(revocation.revoked_budget(), admitted);
         assert_eq!(revocation.counters().revoked_budget(), admitted);
