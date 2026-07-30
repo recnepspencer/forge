@@ -3,8 +3,8 @@ use std::time::Instant;
 
 #[cfg(target_os = "windows")]
 use crate::external_observation::{
-    NativeClientPixelCapture, NormalNativeCloseRequestObservation,
-    ProcessBoundNativeClientAreaObservation,
+    NativeClientPixelCapture, NativeInputDeliveryObservation, NativeInputProbeKind,
+    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,6 +34,7 @@ pub(crate) enum NativePlatformFailure {
         client: crate::external_observation::NativeClientAreaBounds,
     },
     NormalClose(String),
+    InputDelivery(String),
     ProcessWindowResidue(usize),
 }
 
@@ -83,6 +84,7 @@ impl fmt::Display for NativePlatformFailure {
             Self::NormalClose(error) => {
                 write!(formatter, "request normal native-window close: {error}")
             }
+            Self::InputDelivery(error) => write!(formatter, "deliver native input: {error}"),
             Self::ProcessWindowResidue(count) => {
                 write!(formatter, "{count} process window(s) remained after exit")
             }
@@ -109,6 +111,12 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         &self,
         bound: &Self::BoundClientArea,
     ) -> Result<NativeClientPixelCapture, NativePlatformFailure>;
+
+    fn deliver_input_reachability_probe(
+        &self,
+        bound: &Self::BoundClientArea,
+        kind: NativeInputProbeKind,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
 
     fn request_normal_close(
         &self,

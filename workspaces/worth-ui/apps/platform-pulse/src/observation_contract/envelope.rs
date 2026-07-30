@@ -4,7 +4,7 @@ use super::lifecycle::PlatformPulseLifecycleObservation;
 
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY: &str =
     "worth-ui.platform-pulse.lifecycle-observation";
-pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 3;
+pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 4;
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX: &str =
     "WORTH_UI_PLATFORM_PULSE_EVENT ";
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
@@ -44,12 +44,13 @@ pub enum PlatformPulseLifecycleObservationCodecDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlatformPulseDecodedLifecycleObservation {
-    CompleteV3(PlatformPulseLifecycleObservationEnvelope),
+    CompleteV4(PlatformPulseLifecycleObservationEnvelope),
     InheritedLifecycleOnly(PlatformPulseInheritedLifecycleOnly),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlatformPulseInheritedLifecycleOnly {
+    schema_version: u16,
     run: PlatformPulseObservationRunIdentity,
     sequence: PlatformPulseObservationSequence,
 }
@@ -60,7 +61,7 @@ struct PlatformPulseCompatibleProtocolProbe {
 }
 
 #[derive(Deserialize)]
-struct PlatformPulseV2Envelope {
+struct PlatformPulseInheritedEnvelope {
     protocol: PlatformPulseLifecycleObservationProtocol,
     run: PlatformPulseObservationRunIdentity,
     sequence: PlatformPulseObservationSequence,
@@ -174,14 +175,15 @@ impl PlatformPulseLifecycleObservationEnvelope {
         }
         match probe.protocol.schema_version {
             PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION => Self::decode_prefixed_line(line)
-                .map(PlatformPulseDecodedLifecycleObservation::CompleteV3),
-            2 => {
-                let legacy = serde_json::from_str::<PlatformPulseV2Envelope>(json)
+                .map(PlatformPulseDecodedLifecycleObservation::CompleteV4),
+            schema_version @ (2 | 3) => {
+                let legacy = serde_json::from_str::<PlatformPulseInheritedEnvelope>(json)
                     .map_err(|_| PlatformPulseLifecycleObservationCodecDenial::InvalidJson)?;
                 let _ = (legacy.protocol, legacy.outcome);
                 Ok(
                     PlatformPulseDecodedLifecycleObservation::InheritedLifecycleOnly(
                         PlatformPulseInheritedLifecycleOnly {
+                            schema_version,
                             run: legacy.run,
                             sequence: legacy.sequence,
                         },
@@ -207,6 +209,10 @@ impl PlatformPulseLifecycleObservationEnvelope {
 }
 
 impl PlatformPulseInheritedLifecycleOnly {
+    pub fn schema_version(&self) -> u16 {
+        self.schema_version
+    }
+
     pub fn run(&self) -> &PlatformPulseObservationRunIdentity {
         &self.run
     }
@@ -241,7 +247,7 @@ mod tests {
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(json),
             Err(PlatformPulseLifecycleObservationCodecDenial::MissingPrefix)
         );
-        let unsupported = encoded.replace("\"schema_version\":3", "\"schema_version\":1");
+        let unsupported = encoded.replace("\"schema_version\":4", "\"schema_version\":1");
         assert_eq!(
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(&unsupported),
             Err(PlatformPulseLifecycleObservationCodecDenial::UnsupportedVersion)
@@ -249,13 +255,25 @@ mod tests {
     }
 
     #[test]
-    fn governed_v2_decodes_only_as_inherited_lifecycle() {
+    fn governed_v2_and_v3_decode_only_as_inherited_lifecycle() {
         let (_, started) = PlatformPulseLifecycleObservationStream::start();
-        let v3 = started.encode_prefixed_line().expect("encode");
-        let v2 = v3.replace("\"schema_version\":3", "\"schema_version\":2");
-        assert!(matches!(
-            PlatformPulseLifecycleObservationEnvelope::decode_compatible_prefixed_line(&v2),
-            Ok(super::PlatformPulseDecodedLifecycleObservation::InheritedLifecycleOnly(_))
-        ));
+        let v4 = started.encode_prefixed_line().expect("encode");
+        for version in [2, 3] {
+            let inherited = v4.replace(
+                "\"schema_version\":4",
+                &format!("\"schema_version\":{version}"),
+            );
+            let decoded =
+                PlatformPulseLifecycleObservationEnvelope::decode_compatible_prefixed_line(
+                    &inherited,
+                )
+                .expect("governed predecessor should decode");
+            let super::PlatformPulseDecodedLifecycleObservation::InheritedLifecycleOnly(inherited) =
+                decoded
+            else {
+                panic!("predecessor protocol cannot become current evidence");
+            };
+            assert_eq!(inherited.schema_version(), version);
+        }
     }
 }

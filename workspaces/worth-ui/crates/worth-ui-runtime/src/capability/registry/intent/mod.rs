@@ -7,6 +7,7 @@ mod interaction_family;
 mod payload_schema;
 mod registry;
 mod result_schema;
+mod semantic_digest;
 mod stable_identity;
 
 pub use accepted_interactions::UiIntentAcceptedInteractions;

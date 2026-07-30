@@ -1,5 +1,6 @@
 mod envelope;
 mod lifecycle;
+mod native_input;
 mod projection;
 #[cfg(test)]
 mod projection_tests;
@@ -32,6 +33,7 @@ pub use lifecycle::{
     PlatformPulseTerminalFailure, PlatformPulseTerminalFailureFamily,
     PlatformPulseVisualComparison, PlatformPulseWatcherBackendObservation,
 };
+pub use native_input::{PlatformPulseNativeInputIngressPosture, PlatformPulseNativeInputReached};
 pub use projection::{
     PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
 };

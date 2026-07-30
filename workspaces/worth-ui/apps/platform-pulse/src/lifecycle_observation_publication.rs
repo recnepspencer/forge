@@ -152,6 +152,15 @@ impl PlatformPulseObservationPublisher {
         })
     }
 
+    pub(crate) fn native_input_reached(
+        &self,
+        reached: worth_ui_host_egui::UiEguiRawInputReachability,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publisher| {
+            publisher.project(|stream| stream.project_native_input_reached(reached))
+        })
+    }
+
     pub(crate) fn replacement(
         &self,
         source: &WorthUiSourcePackageRevision,

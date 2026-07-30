@@ -4,6 +4,7 @@ phase = 1
 status = "closed"
 closure_claim = "the intent definition/declaration/route split, typed destination and outcome topology, operability axes, native producer reachability, Query/domain non-authority, budgets, evidence homes, and exact open proof portfolio are frozen without claiming interaction, admission, execution, or product behavior"
 ledger = "_docs/worth-ui/milestone-3.14-proof-ledger.csv"
+phase_ledger = "_docs/worth-ui/milestone-3.14-phase-1-proof-ledger.csv"
 
 [public_contract]
 intent_trait = "UiIntent"
@@ -62,6 +63,9 @@ capabilities_come_from_installed_translators = true
 generic_host_kind_implies_optional_input_support = false
 phase_1_ingress_outcome = "Unsupported"
 phase_2_translators = ["pointer", "keyboard", "text_ime"]
+lifecycle_schema_version = 4
+inherited_lifecycle_schema_versions = [2, 3]
+executable_boundary = "process-bound Windows input -> winit WindowEvent -> egui RawInput -> WorthUiHostEgui reachability"
 
 [ownership]
 definition_owner = "worth-ui-runtime capability registry"
@@ -102,6 +106,7 @@ product_target = "worth-ui-platform-pulse executable_world"
 
 [phase_1_evidence]
 native_reachability_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --bin worth-ui-platform-pulse native_frame::input_reachability_tests -- --nocapture"
+executable_reachability_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --features executable-world --test executable_world -- --nocapture"
 definition_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts intent::phase1_definition -- --nocapture"
 topology_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test topology_contracts milestone_314 -- --nocapture"
 

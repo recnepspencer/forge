@@ -25,6 +25,8 @@ static NEXT_RUN_ORDINAL: AtomicU64 = AtomicU64::new(1);
 pub struct PlatformPulseLifecycleObservationStream {
     run: PlatformPulseObservationRunIdentity,
     next_sequence: u64,
+    pointer_input_published: bool,
+    keyboard_input_published: bool,
     pub(super) state: PlatformPulseObservationState,
     pub(super) visual_state: PlatformPulseVisualObservationState,
 }
@@ -102,6 +104,7 @@ pub(super) enum PlatformPulseVisualObservationState {
 pub enum PlatformPulseLifecycleObservationProjectionDenial {
     SequenceExhausted,
     FirstFrameAlreadyPublished,
+    NativeInputEvidenceNotNovel,
     PublishedPredecessorUnavailable,
     PriorGenerationMismatch,
     ActiveGenerationMismatch,
@@ -138,11 +141,38 @@ impl PlatformPulseLifecycleObservationStream {
             Self {
                 run,
                 next_sequence: 2,
+                pointer_input_published: false,
+                keyboard_input_published: false,
                 state: PlatformPulseObservationState::Started,
                 visual_state: PlatformPulseVisualObservationState::AwaitingFirstFrame,
             },
             started,
         )
+    }
+
+    pub fn project_native_input_reached(
+        &mut self,
+        reached: worth_ui_host_egui::UiEguiRawInputReachability,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.published_predecessor()?;
+        let pointer_discovered =
+            reached.pointer_button_events() > 0 && !self.pointer_input_published;
+        let keyboard_discovered = reached.keyboard_events() > 0 && !self.keyboard_input_published;
+        if !pointer_discovered && !keyboard_discovered {
+            return Err(
+                PlatformPulseLifecycleObservationProjectionDenial::NativeInputEvidenceNotNovel,
+            );
+        }
+        let envelope =
+            self.next_envelope(PlatformPulseLifecycleObservation::NativeInputReached(
+                super::native_input::PlatformPulseNativeInputReached::from_egui(reached),
+            ))?;
+        self.pointer_input_published |= pointer_discovered;
+        self.keyboard_input_published |= keyboard_discovered;
+        Ok(envelope)
     }
 
     pub fn project_first_frame(

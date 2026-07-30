@@ -4,7 +4,7 @@ use crate::adjudication::ExecutableLifecycleCleanupEvidence;
 
 const FIRST_PUBLICATION_BUDGET: Duration = Duration::from_secs(5);
 const JOURNEY_BUDGET: Duration = Duration::from_secs(45);
-const EXACT_LIFECYCLE_EVENT_COUNT: usize = 23;
+const EXACT_LIFECYCLE_EVENT_COUNT: usize = 25;
 const LIFECYCLE_EVENT_BUDGET: usize = 256;
 const LIFECYCLE_BYTE_BUDGET: usize = 1_048_576;
 
@@ -61,7 +61,7 @@ impl PlatformPulseJourneyCost {
         assert!(self.lifecycle_events <= LIFECYCLE_EVENT_BUDGET);
         assert!(self.lifecycle_bytes <= LIFECYCLE_BYTE_BUDGET);
         assert_eq!(self.source_actions, 7);
-        assert_eq!(self.native_captures, 10);
+        assert_eq!(self.native_captures, 11);
         assert!(self.window_lookups > 0);
         assert_eq!(self.process_launches, 1);
         assert_eq!(self.native_windows, 1);

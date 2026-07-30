@@ -1,9 +1,10 @@
 use crate::adjudication::{
     ExecutableFirstFrameEvidence, ExecutableLifecycleCleanupEvidence,
-    ExecutablePredecessorPreservationEvidence, ExecutableReplacementEvidence,
-    ExecutableVisualClearEvidence, ExecutableVisualComparisonEvidence,
-    ExecutableVisualOverlayEvidence, ExecutableVisualRetirementEvidence,
-    ExecutableVisualSnapshotEvidence, ExecutableVisualTraceEvidence,
+    ExecutableNativeInputReachabilityEvidence, ExecutablePredecessorPreservationEvidence,
+    ExecutableReplacementEvidence, ExecutableVisualClearEvidence,
+    ExecutableVisualComparisonEvidence, ExecutableVisualOverlayEvidence,
+    ExecutableVisualRetirementEvidence, ExecutableVisualSnapshotEvidence,
+    ExecutableVisualTraceEvidence,
 };
 use crate::external_observation::PlatformPulseLifecycleStream;
 use crate::failure_teardown::{
@@ -56,6 +57,17 @@ pub(crate) struct InitialBlue {
     pub(super) launch_to_first_publication: Duration,
 }
 
+pub(crate) struct NativeInputReached<Stage> {
+    pub(super) prior: Stage,
+    pub(super) evidence: ExecutableNativeInputReachabilityEvidence,
+}
+
+impl NativeInputReached<InitialBlue> {
+    pub(super) fn first_frame_evidence(&self) -> &ExecutableFirstFrameEvidence {
+        &self.prior.evidence
+    }
+}
+
 pub(crate) struct AwaitingQueryCurrent<Stage, Kind> {
     pub(super) world: NativeBoundExecutableWorld,
     pub(super) prior: Stage,
@@ -68,7 +80,7 @@ pub(crate) struct QueryCurrent<Stage, Kind> {
     pub(super) evidence: crate::adjudication::ExecutableQueryCurrentEvidence,
 }
 
-pub(crate) type FirstCurrent = QueryCurrent<InitialBlue, QueryStatusV1>;
+pub(crate) type FirstCurrent = QueryCurrent<NativeInputReached<InitialBlue>, QueryStatusV1>;
 pub(crate) type SecondQueryCurrent = QueryCurrent<OverlayCleared<FirstCurrent>, QueryStatusV2>;
 
 pub(crate) struct ComparisonBasisRefreshed<Stage> {
@@ -225,6 +237,12 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
     }
 }
 
+impl PulseExecutableWorld<Published<NativeInputReached<InitialBlue>>> {
+    pub(crate) fn evidence(&self) -> &ExecutableNativeInputReachabilityEvidence {
+        &self.state.stage.evidence
+    }
+}
+
 impl<Stage, Kind> PulseExecutableWorld<Published<QueryCurrent<Stage, Kind>>> {
     pub(crate) fn query_evidence(&self) -> &crate::adjudication::ExecutableQueryCurrentEvidence {
         &self.state.stage.evidence
@@ -258,7 +276,7 @@ impl ComparisonBasisRefreshed<SecondQueryCurrent> {
         self.visual()
             .initial()
             .prior
-            .evidence
+            .first_frame_evidence()
             .first_frame()
             .source()
             .final_package_digest()

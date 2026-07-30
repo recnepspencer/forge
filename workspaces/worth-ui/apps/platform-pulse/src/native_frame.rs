@@ -17,6 +17,8 @@ use crate::visual_identity_execution::{
     PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
 };
 
+mod first_frame;
+mod input;
 #[cfg(test)]
 mod input_reachability_tests;
 mod projection;
@@ -34,6 +36,7 @@ pub(crate) struct PlatformPulseNativeFrame {
     query_watch: Option<crate::query_source::PlatformPulseExternalValueWatch>,
     query_lifecycle: Option<crate::query_source::PlatformPulseQueryLifecycle>,
     host: Option<WorthUiHostEgui>,
+    native_input: input::PlatformPulseNativeInputIngress,
     publisher: PlatformPulseObservationPublisher,
     terminal_error: Option<PlatformPulseTerminalError>,
     observation_error: Option<PlatformPulseObservationPublicationDenial>,
@@ -106,6 +109,7 @@ impl PlatformPulseNativeFrame {
                     query_watch: None,
                     query_lifecycle: None,
                     host: None,
+                    native_input: input::PlatformPulseNativeInputIngress::default(),
                     publisher,
                     terminal_error: Some(PlatformPulseTerminalError::Preparation(denial)),
                     observation_error,
@@ -129,6 +133,7 @@ impl PlatformPulseNativeFrame {
             query_watch: Some(prepared.query_watcher),
             query_lifecycle: Some(prepared.query_lifecycle),
             host: Some(prepared.host),
+            native_input: input::PlatformPulseNativeInputIngress::default(),
             publisher,
             terminal_error: None,
             observation_error: None,
@@ -178,7 +183,7 @@ impl PlatformPulseNativeFrame {
                 let Some(source) = self.initial_source.take() else {
                     return;
                 };
-                if let Err(error) = self.publisher.first_frame(&source, &publication) {
+                if let Err(error) = self.publish_first_frame(&source, &publication) {
                     self.fail(
                         PlatformPulseTerminalError::ObservationPublication,
                         Err(error),
@@ -264,7 +269,15 @@ impl PlatformPulseNativeFrame {
 
 impl eframe::App for PlatformPulseNativeFrame {
     fn raw_input_hook(&mut self, _context: &egui::Context, raw_input: &mut egui::RawInput) {
-        let _reachability = route_native_input(self.host.as_ref(), raw_input);
+        let result = self
+            .native_input
+            .observe(self.host.as_ref(), raw_input, &self.publisher);
+        if let Err(error) = result {
+            self.fail(
+                PlatformPulseTerminalError::ObservationPublication,
+                Err(error),
+            );
+        }
     }
 
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
@@ -284,15 +297,6 @@ impl eframe::App for PlatformPulseNativeFrame {
             context.request_repaint();
         }
     }
-}
-
-fn route_native_input(
-    host: Option<&WorthUiHostEgui>,
-    raw_input: &egui::RawInput,
-) -> Option<worth_ui_host_egui::UiEguiRawInputReachability> {
-    host.map(|host| match host.observe_native_input(raw_input) {
-        worth_ui_host_egui::UiEguiRawInputIngressOutcome::Unsupported(reachability) => reachability,
-    })
 }
 
 impl Drop for PlatformPulseNativeFrame {

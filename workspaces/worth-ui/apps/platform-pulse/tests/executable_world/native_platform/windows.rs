@@ -9,14 +9,16 @@ use winsafe::{self as win, co, HwndPlace, HWND, POINT, SIZE};
 use xcap::{Monitor, Window};
 
 use crate::external_observation::{
-    NativeClientAreaBounds, NativeClientPixelCapture, NativeWindowIdentity,
-    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
+    NativeClientAreaBounds, NativeClientPixelCapture, NativeInputDeliveryObservation,
+    NativeInputProbeKind, NativeWindowIdentity, NormalNativeCloseRequestObservation,
+    ProcessBoundNativeClientAreaObservation,
 };
 
 use super::contract::sealed::Sealed;
 use super::{NativePlatformContract, NativePlatformFailure};
 
 mod client_capture;
+mod input_delivery;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct WindowsNativePlatform {
@@ -200,6 +202,15 @@ impl NativePlatformContract for WindowsNativePlatform {
     ) -> Result<NativeClientPixelCapture, NativePlatformFailure> {
         let exposure = self.expose_bound_client_area(bound)?;
         Self::capture_exposed_client_area(exposure)
+    }
+
+    fn deliver_input_reachability_probe(
+        &self,
+        bound: &Self::BoundClientArea,
+        kind: NativeInputProbeKind,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
+        let observed = self.observe_bound_client_area(bound)?;
+        input_delivery::deliver(&bound.window, observed, kind)
     }
 
     fn request_normal_close(

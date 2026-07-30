@@ -2,8 +2,9 @@ use std::fmt;
 
 use crate::adjudication::{
     ExecutableFirstFrameFailure, ExecutableLifecycleCleanupFailure,
-    ExecutablePredecessorPreservationFailure, ExecutableReplacementFailure,
-    ExecutableSchemaTransitionFailure, ExecutableVisualIdentityFailure,
+    ExecutableNativeInputReachabilityFailure, ExecutablePredecessorPreservationFailure,
+    ExecutableReplacementFailure, ExecutableSchemaTransitionFailure,
+    ExecutableVisualIdentityFailure,
 };
 use crate::external_observation::{
     PlatformPulseLifecycleStreamFailure, PlatformPulseLifecycleTeardownEvidence,
@@ -33,6 +34,7 @@ pub(crate) enum PulseExecutableWorldFailure {
     Liveness(StableProcessLivenessFailure),
     Native(NativePlatformFailure),
     FirstFrame(ExecutableFirstFrameFailure),
+    NativeInputReachability(ExecutableNativeInputReachabilityFailure),
     QueryCurrent(crate::adjudication::ExecutableQueryCurrentFailure),
     VisualIdentity(ExecutableVisualIdentityFailure),
     SourceAction(PulseSourceActionFailure),
@@ -245,6 +247,12 @@ impl fmt::Display for PulseExecutableWorldFailure {
             Self::Native(failure) => write!(formatter, "native platform: {failure}"),
             Self::FirstFrame(failure) => {
                 write!(formatter, "first-frame adjudication: {failure}")
+            }
+            Self::NativeInputReachability(failure) => {
+                write!(
+                    formatter,
+                    "native-input reachability adjudication: {failure}"
+                )
             }
             Self::QueryCurrent(failure) => {
                 write!(formatter, "Query-current adjudication: {failure}")

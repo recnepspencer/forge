@@ -5,6 +5,8 @@ mod lifecycle_cleanup;
 #[cfg(target_os = "windows")]
 mod native_color;
 #[cfg(target_os = "windows")]
+mod native_input_reachability;
+#[cfg(target_os = "windows")]
 mod predecessor_preservation;
 #[cfg(target_os = "windows")]
 mod publication_identity;
@@ -34,6 +36,12 @@ pub(crate) use lifecycle_cleanup::{
 #[cfg(target_os = "windows")]
 pub(crate) use native_color::{
     adjudicate_native_color, ExpectedNativeColor, NativeColorFailure, NativeColorVerdict,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use native_input_reachability::{
+    adjudicate_native_input_reachability, ExecutableNativeInputReachabilityEvidence,
+    ExecutableNativeInputReachabilityFailure, NativeInputFamilyObservation,
+    NativeInputReachabilityObservationSet,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use predecessor_preservation::{

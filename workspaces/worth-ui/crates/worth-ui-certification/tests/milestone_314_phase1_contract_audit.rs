@@ -1,5 +1,8 @@
 use super::{milestone_314_ledger, repository_document, workspace_source_inventory};
 
+#[path = "milestone_314_phase1_contract_audit/phase_ledger.rs"]
+mod phase_ledger;
+
 fn phase_1_inputs() -> (toml::Value, String) {
     let contract_text = repository_document("_docs/worth-ui/milestone-3.14-phase-1-contract.toml");
     let contract = toml::from_str(&contract_text).expect("Phase 1 contract should parse");
@@ -166,7 +169,7 @@ fn milestone_314_phase_1_owner_paths_exist_without_demanding_later_placeholders(
 }
 
 #[test]
-fn milestone_314_native_versions_and_production_ingress_are_exact() {
+fn milestone_314_native_dependency_versions_are_exact() {
     let (contract, _) = phase_1_inputs();
     let workspace_manifest: toml::Value =
         toml::from_str(&repository_document("workspaces/worth-ui/Cargo.toml"))
@@ -201,20 +204,47 @@ fn milestone_314_native_versions_and_production_ingress_are_exact() {
             "{package} {expected} should be resolved"
         );
     }
+}
 
+#[test]
+fn milestone_314_production_ingress_and_protocol_evolution_are_exact() {
+    let (contract, _) = phase_1_inputs();
+    assert_eq!(
+        contract["native_reachability"]["lifecycle_schema_version"].as_integer(),
+        Some(4)
+    );
+    assert_eq!(
+        contract["native_reachability"]["inherited_lifecycle_schema_versions"]
+            .as_array()
+            .map(|versions| versions
+                .iter()
+                .filter_map(toml::Value::as_integer)
+                .collect::<Vec<_>>()),
+        Some(vec![2, 3])
+    );
     let inventory = workspace_source_inventory();
     let native_frame = inventory.text("apps/platform-pulse/src/native_frame.rs");
-    for required in [
-        "fn raw_input_hook(",
-        "route_native_input(self.host.as_ref(), raw_input)",
-        "host.observe_native_input(raw_input)",
-        "UiEguiRawInputIngressOutcome::Unsupported",
-    ] {
+    for required in ["fn raw_input_hook(", ".native_input", ".observe("] {
         assert!(
             native_frame.contains(required),
             "Pulse native ingress is missing `{required}`"
         );
     }
+    let pulse_input = inventory.text("apps/platform-pulse/src/native_frame/input.rs");
+    for required in [
+        "host.observe_native_input(raw_input)",
+        "UiEguiRawInputIngressOutcome::Unsupported",
+        "publisher.native_input_reached(reached)",
+    ] {
+        assert!(
+            pulse_input.contains(required),
+            "Pulse input module lost `{required}`"
+        );
+    }
+    let first_frame = inventory.text("apps/platform-pulse/src/native_frame/first_frame.rs");
+    assert!(first_frame.contains("self.native_input.arm_after_first_frame()"));
+    let query = inventory.text("apps/platform-pulse/src/native_frame/query.rs");
+    assert!(query.contains("self.publish_first_frame(&source, mounted)"));
     let ingress =
         inventory.text("crates/worth-ui-host-egui/src/adapter/input_observation/reachability.rs");
     for required in [

@@ -1,3 +1,8 @@
+use worth_ui::facade::app::{UiMountedFramePublicationReceipt, WorthUiNativeApplicationShell};
+use worth_ui_platform_pulse::observation_contract::{
+    PlatformPulseQueryProjectionEvidence, PlatformPulseQueryProjectionPosture,
+};
+
 use super::{
     projection::publish_projection, PlatformPulseNativeFrame, PlatformPulseProjectionRebindDenial,
     PlatformPulseTerminalError,
@@ -95,49 +100,82 @@ impl PlatformPulseNativeFrame {
             );
             return;
         };
-        if let Err(error) = self
-            .publisher
-            .query_projection_published(&evidence, mounted)
-        {
+        if !self.publish_query_projection_evidence(&evidence, mounted) {
             self.shell = Some(shell);
+            return;
+        }
+        if let Err(denial) = self.refresh_query_visual_identity(&mut shell, &evidence) {
+            self.shell = Some(shell);
+            self.fail_visual_identity(denial);
+            return;
+        }
+        self.admit_query_publication(receipt);
+        self.shell = Some(shell);
+    }
+
+    fn publish_query_first_frame(
+        &mut self,
+        receipt: &worth_ui::facade::rebind::UiRebindReceipt,
+    ) -> bool {
+        let Some(source) = self.initial_source.take() else {
+            self.fail(PlatformPulseTerminalError::UnexpectedInitialFrame, Ok(()));
+            return false;
+        };
+        let Some(mounted) = receipt.mounted_publication() else {
+            self.fail(PlatformPulseTerminalError::UnexpectedInitialFrame, Ok(()));
+            return false;
+        };
+        if let Err(error) = self.publish_first_frame(&source, mounted) {
             self.fail(
                 PlatformPulseTerminalError::ObservationPublication,
                 Err(error),
             );
-            return;
+            return false;
         }
-        if evidence.posture()
-            == worth_ui_platform_pulse::observation_contract::
-                PlatformPulseQueryProjectionPosture::Current
-        {
-            if let Err(denial) = self.visual_identity.refresh_after_content_rebind(
-                &mut shell,
-                self.tick,
-                std::time::Instant::now(),
-            ) {
-                self.shell = Some(shell);
-                self.fail_visual_identity(denial);
-                return;
+        true
+    }
+
+    fn publish_query_projection_evidence(
+        &mut self,
+        evidence: &PlatformPulseQueryProjectionEvidence,
+        mounted: &UiMountedFramePublicationReceipt,
+    ) -> bool {
+        match self.publisher.query_projection_published(evidence, mounted) {
+            Ok(()) => true,
+            Err(error) => {
+                self.fail(
+                    PlatformPulseTerminalError::ObservationPublication,
+                    Err(error),
+                );
+                false
             }
         }
-        if evidence.posture()
-            == worth_ui_platform_pulse::observation_contract::
-                PlatformPulseQueryProjectionPosture::Current
-            && evidence.owner_order() == 2
-        {
-            if let Err(denial) = self
-                .visual_identity
-                .arm_after_first_frame(std::time::Instant::now())
-            {
-                self.shell = Some(shell);
-                self.fail_visual_identity(denial);
-                return;
-            }
+    }
+
+    fn refresh_query_visual_identity(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        evidence: &PlatformPulseQueryProjectionEvidence,
+    ) -> Result<(), crate::visual_identity_execution::PlatformPulseVisualExecutionDenial> {
+        if evidence.posture() != PlatformPulseQueryProjectionPosture::Current {
+            return Ok(());
         }
+        self.visual_identity.refresh_after_content_rebind(
+            shell,
+            self.tick,
+            std::time::Instant::now(),
+        )?;
+        if evidence.owner_order() == 2 {
+            self.visual_identity
+                .arm_after_first_frame(std::time::Instant::now())?;
+        }
+        Ok(())
+    }
+
+    fn admit_query_publication(&mut self, receipt: worth_ui::facade::rebind::UiRebindReceipt) {
         let fact = match receipt.release_scalar_projection_predecessor() {
             Ok(fact) => fact,
             Err(_) => {
-                self.shell = Some(shell);
                 self.fail(
                     PlatformPulseTerminalError::NativeProjection(
                         PlatformPulseProjectionRebindDenial::Nonpublication(
@@ -154,31 +192,8 @@ impl PlatformPulseNativeFrame {
             .as_mut()
             .expect("prepared Pulse retains its Query lifecycle")
             .admit_publication(fact);
-        self.shell = Some(shell);
         if let Err(denial) = admission {
             self.fail(PlatformPulseTerminalError::QueryLifecycle(denial), Ok(()));
         }
-    }
-
-    fn publish_query_first_frame(
-        &mut self,
-        receipt: &worth_ui::facade::rebind::UiRebindReceipt,
-    ) -> bool {
-        let Some(source) = self.initial_source.take() else {
-            self.fail(PlatformPulseTerminalError::UnexpectedInitialFrame, Ok(()));
-            return false;
-        };
-        let Some(mounted) = receipt.mounted_publication() else {
-            self.fail(PlatformPulseTerminalError::UnexpectedInitialFrame, Ok(()));
-            return false;
-        };
-        if let Err(error) = self.publisher.first_frame(&source, mounted) {
-            self.fail(
-                PlatformPulseTerminalError::ObservationPublication,
-                Err(error),
-            );
-            return false;
-        }
-        true
     }
 }
