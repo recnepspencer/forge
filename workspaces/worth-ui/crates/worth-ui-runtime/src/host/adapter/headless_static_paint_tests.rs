@@ -1,8 +1,8 @@
 use worth_ui_host_contract::{
-    UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,
-    UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
-    UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostProtocolVersion,
-    UiHostSurfaceIdentity, UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
+    UiHostMeasurementSchemaVersion, UiHostProtocolAgreement, UiHostProtocolContract,
+    UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
+    UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiHostSurfaceIdentity,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
     UiMountedAccessibilityProjection, UiMountedAllocationBasis, UiMountedAllocationProjection,
     UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedCoordinateSpace,
     UiMountedDiagnosticProjection, UiMountedFilledRectCompletionInput, UiMountedFilledRectMechanic,
@@ -136,7 +136,7 @@ fn mounted_frame_revision_two() -> UiHostProtocolAgreement {
         UiHostProtocolVersion::new(3),
         UiMountedFrameSchemaVersion::new(2),
         UiMountedPresentationSchemaVersion::new(3),
-        UiHostObservationSchemaVersion::new(3),
+        UiHostProtocolContract::current().observation(),
         UiHostMeasurementSchemaVersion::new(3),
     ))
 }

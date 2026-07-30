@@ -326,7 +326,7 @@ fn compatible_noncurrent_protocol() -> worth_ui::facade::observation_report::UiH
         UiHostProtocolVersion::new(1),
         UiMountedFrameSchemaVersion::new(1),
         UiMountedPresentationSchemaVersion::new(1),
-        UiHostObservationSchemaVersion::new(3),
+        UiHostProtocolContract::current().observation(),
         UiHostMeasurementSchemaVersion::new(1),
     );
     match contract.negotiate() {
@@ -343,7 +343,7 @@ fn old_observation_contract() -> UiHostProtocolContract {
         UiHostProtocolVersion::new(2),
         UiMountedFrameSchemaVersion::new(2),
         UiMountedPresentationSchemaVersion::new(2),
-        UiHostObservationSchemaVersion::new(2),
+        UiHostObservationSchemaVersion::new(3),
         UiHostMeasurementSchemaVersion::new(2),
     )
 }

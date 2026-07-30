@@ -83,7 +83,7 @@ impl UiHostObservationPayload {
             Self::Viewport { .. } => 16,
             Self::DeviceScale { .. } => 4,
             Self::PointerMotion { .. } => 33,
-            Self::PointerButton { .. } => 35,
+            Self::PointerButton { .. } => 34,
             Self::Keyboard { .. } => 8,
             Self::Focus { .. } => 1,
             Self::ScrollDelta { .. } => 16,
