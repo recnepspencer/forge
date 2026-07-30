@@ -1,6 +1,7 @@
 #[derive(Clone, Copy)]
 pub(in crate::mounting::projection) struct UiMountedHitTestSeed {
     order: worth_ui_host_contract::UiMountedHitTestOrder,
+    clip: crate::capability::ComponentHitTestClipContract,
 }
 
 pub(in crate::mounting::projection) fn lower_hit_test_seed(
@@ -25,6 +26,7 @@ pub(in crate::mounting::projection) fn lower_hit_test_seed(
             order: worth_ui_host_contract::UiMountedHitTestOrder::from_runtime_plan(
                 contract.order().rank(),
             ),
+            clip: contract.clip(),
         }))
 }
 
@@ -33,5 +35,11 @@ impl UiMountedHitTestSeed {
         self,
     ) -> worth_ui_host_contract::UiMountedHitTestOrder {
         self.order
+    }
+
+    pub(in crate::mounting::projection) const fn clip(
+        self,
+    ) -> crate::capability::ComponentHitTestClipContract {
+        self.clip
     }
 }

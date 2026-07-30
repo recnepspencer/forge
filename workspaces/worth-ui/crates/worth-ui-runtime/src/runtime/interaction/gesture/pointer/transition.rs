@@ -1,14 +1,14 @@
 use worth_ui_host_contract::{
-    UiHostObservationCanonicalCore, UiHostObservationFamily, UiHostObservationPayload,
-    UiHostObservationSequence, UiHostPointerButton, UiHostPointerButtonTransition,
-    UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostObservationCanonicalCore, UiHostObservationPayload, UiHostObservationSequence,
+    UiHostPointerButton, UiHostPointerButtonTransition, UiHostPointerCaptureEpoch,
+    UiHostPointerIdentity,
 };
 
 use super::model::{
     UiActivePointerGesture, UiInteractionRuntimeState, UiPointerGesturePressReceipt,
     UiPointerGestureTransition, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
-use super::{next, take_matching};
+use super::next;
 use crate::runtime::interaction::gesture::{UiPointerGestureStop, UiPointerGestureStopReason};
 use crate::runtime::interaction::targeting::{
     issue_continuity, resolve_presented_target, UiPointerGestureContinuityDenial,
@@ -176,6 +176,7 @@ impl UiInteractionRuntimeState {
             }
         };
         self.counters.gestures_completed = next(self.counters.gestures_completed);
+        self.counters.active_gestures_settled = next(self.counters.active_gestures_settled);
         UiPointerGestureTransition::Completed(UiTargetedPointerGesture {
             pointer,
             capture_epoch,
@@ -225,34 +226,6 @@ impl UiInteractionRuntimeState {
                     active,
                     sequence,
                     UiPointerGestureStopReason::FocusLost,
-                )
-            })
-            .collect()
-    }
-
-    pub(super) fn loss_transitions(
-        &mut self,
-        core: UiHostObservationCanonicalCore,
-        disposition: crate::facade::observation_report::UiHostObservationBatchDisposition,
-    ) -> Vec<UiPointerGestureTransition> {
-        let crate::facade::observation_report::UiHostObservationBatchDisposition::Overflow {
-            family: UiHostObservationFamily::PointerButton,
-            affected,
-        } = disposition
-        else {
-            return Vec::new();
-        };
-        let active = take_matching(&mut self.active, |active| {
-            active.target.binding() == core.binding()
-        });
-        active
-            .into_iter()
-            .map(|(pointer, active)| {
-                self.active_stop(
-                    pointer,
-                    active,
-                    core.sequences().last(),
-                    UiPointerGestureStopReason::PointerButtonLoss { affected },
                 )
             })
             .collect()

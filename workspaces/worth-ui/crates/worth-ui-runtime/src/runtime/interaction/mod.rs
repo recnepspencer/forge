@@ -3,9 +3,11 @@ pub(crate) mod targeting;
 
 pub use gesture::{
     UiHostInteractionIngressOutcome, UiInteractionBatchReceipt, UiInteractionLifecycleCounters,
-    UiInteractionObservationDenial, UiInteractionShutdownReport, UiInteractionStateSnapshot,
-    UiPointerGestureContinuityKind, UiPointerGesturePressReceipt, UiPointerGestureStop,
-    UiPointerGestureStopReason, UiPointerGestureTransition, UiTargetedPointerGesture,
+    UiInteractionLifecycleSettlementReceipt, UiInteractionObservationDenial,
+    UiInteractionShutdownReport, UiInteractionStateSnapshot, UiPointerGestureContinuityKind,
+    UiPointerGesturePressReceipt, UiPointerGestureStop, UiPointerGestureStopReason,
+    UiPointerGestureTransition, UiQuarantinedHostInteractionBatch, UiTargetedPointerGesture,
+    UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
 pub use targeting::{
     UiInteractionTargetingDenial, UiPresentedInteractionTarget, UiPresentedTargetFrameRelation,

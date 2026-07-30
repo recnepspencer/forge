@@ -18,6 +18,8 @@ mod executor_allocator_observation;
 mod facade_lifecycle_path_runtime;
 #[path = "../application_contracts/filesystem_contract_workspace.rs"]
 mod filesystem_contract_workspace;
+#[path = "../application_contracts/filesystem_mounted_world.rs"]
+mod filesystem_mounted_world;
 #[path = "../application_contracts/filesystem_replacement_support.rs"]
 mod filesystem_replacement_support;
 #[path = "../application_contracts/filesystem_source_acquisition.rs"]

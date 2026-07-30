@@ -17,6 +17,7 @@ mod mounted_content_rebind;
 mod mounted_frame_execution;
 mod mounted_identity;
 mod mounted_inspection;
+mod mounted_interaction_lifecycle;
 mod mounted_preview;
 mod mounted_publication;
 #[cfg(test)]
@@ -90,6 +91,10 @@ pub use mounted_frame_execution::{
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
 };
 pub use mounted_identity::WorthUiMountedIdentityCertificationExt;
+pub use mounted_interaction_lifecycle::{
+    UiSurfaceRebindInteractionDenial, UiSurfaceRebindInteractionReceipt,
+    WorthUiMountedInteractionLifecycleCertificationExt,
+};
 pub use mounted_preview::{
     WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
     WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,

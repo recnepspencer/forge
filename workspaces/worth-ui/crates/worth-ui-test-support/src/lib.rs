@@ -23,6 +23,6 @@ pub use worth_ui_runtime::certification_support::{
     WorthUiFrameworkTurnCertificationExt, WorthUiMountedAllocationCertificationExt,
     WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedIdentityCertificationExt,
-    WorthUiMountedPublicationCertificationExt, WorthUiTouchOriginCertificationFixture,
-    WorthUiTouchOriginFixtureVariant,
+    WorthUiMountedInteractionLifecycleCertificationExt, WorthUiMountedPublicationCertificationExt,
+    WorthUiTouchOriginCertificationFixture, WorthUiTouchOriginFixtureVariant,
 };

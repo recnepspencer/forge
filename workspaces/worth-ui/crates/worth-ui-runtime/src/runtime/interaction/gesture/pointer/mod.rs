@@ -12,7 +12,8 @@ pub(crate) use model::UiInteractionRuntimeState;
 pub use model::{
     UiHostInteractionIngressOutcome, UiInteractionBatchReceipt, UiInteractionLifecycleCounters,
     UiInteractionObservationDenial, UiInteractionShutdownReport, UiInteractionStateSnapshot,
-    UiPointerGesturePressReceipt, UiPointerGestureTransition, UiTargetedPointerGesture,
+    UiPointerGesturePressReceipt, UiPointerGestureTransition, UiQuarantinedHostInteractionBatch,
+    UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
 
 impl UiInteractionRuntimeState {
@@ -29,7 +30,7 @@ impl UiInteractionRuntimeState {
         mounted: &crate::mounting::WorthUiMountedSessionState,
     ) -> UiInteractionBatchReceipt {
         let core = batch.canonical_core();
-        let mut transitions = self.loss_transitions(core, batch.disposition());
+        let mut transitions = Vec::new();
         let mut ignored_reports = 0;
         for validated in batch.reports() {
             let emitted = self.process_report(core, validated.report(), mounted);
@@ -59,37 +60,63 @@ impl UiInteractionRuntimeState {
     pub(crate) fn cancel_binding(
         &mut self,
         binding: UiSurfaceBindingGeneration,
-        _reason: UiPointerGestureStopReason,
-    ) -> usize {
-        self.cancel_where(|active| active.target.binding() == binding)
+        reason: UiPointerGestureStopReason,
+    ) -> super::UiInteractionLifecycleSettlementReceipt {
+        self.cancel_where(|active| active.target.binding() == binding, reason)
     }
 
     pub(crate) fn cancel_instance(
         &mut self,
         instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-        _reason: UiPointerGestureStopReason,
-    ) -> usize {
-        self.cancel_where(|active| active.target.mounted_instance() == instance)
+        reason: UiPointerGestureStopReason,
+    ) -> super::UiInteractionLifecycleSettlementReceipt {
+        self.cancel_where(
+            |active| active.target.mounted_instance() == instance,
+            reason,
+        )
     }
 
-    pub(crate) fn cancel_all(&mut self, _reason: UiPointerGestureStopReason) -> usize {
-        self.cancel_where(|_| true)
+    pub(crate) fn unchanged_settlement(&self) -> super::UiInteractionLifecycleSettlementReceipt {
+        super::UiInteractionLifecycleSettlementReceipt::new(Vec::new(), self.snapshot())
+    }
+
+    pub(crate) fn cancel_all(
+        &mut self,
+        reason: UiPointerGestureStopReason,
+    ) -> super::UiInteractionLifecycleSettlementReceipt {
+        self.cancel_where(|_| true, reason)
     }
 
     pub(crate) fn shutdown(&mut self) -> UiInteractionShutdownReport {
-        let cancelled_gestures = self.cancel_all(UiPointerGestureStopReason::Shutdown);
+        let settlement = self.cancel_all(UiPointerGestureStopReason::Shutdown);
         UiInteractionShutdownReport {
-            cancelled_gestures,
-            final_state: Some(self.snapshot()),
+            settlement: Some(settlement),
         }
     }
 
-    fn cancel_where(&mut self, predicate: impl Fn(&UiActivePointerGesture) -> bool) -> usize {
-        let cancelled = take_matching(&mut self.active, predicate).len();
-        self.counters.stop_outcomes = add(self.counters.stop_outcomes, cancelled);
+    fn cancel_where(
+        &mut self,
+        predicate: impl Fn(&UiActivePointerGesture) -> bool,
+        reason: UiPointerGestureStopReason,
+    ) -> super::UiInteractionLifecycleSettlementReceipt {
+        let selected = take_matching(&mut self.active, predicate);
+        self.counters.stop_outcomes = add(self.counters.stop_outcomes, selected.len());
         self.counters.active_gestures_settled =
-            add(self.counters.active_gestures_settled, cancelled);
-        cancelled
+            add(self.counters.active_gestures_settled, selected.len());
+        let stops = selected
+            .into_iter()
+            .map(|(pointer, active)| {
+                super::UiPointerGestureStop::new(
+                    pointer,
+                    active.capture_epoch,
+                    active.button,
+                    None,
+                    true,
+                    reason,
+                )
+            })
+            .collect();
+        super::UiInteractionLifecycleSettlementReceipt::new(stops, self.snapshot())
     }
 
     pub(super) fn bump_button_reports(&mut self) {

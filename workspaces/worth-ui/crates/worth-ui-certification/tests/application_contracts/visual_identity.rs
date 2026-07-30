@@ -1,5 +1,3 @@
-#[path = "visual_identity/filesystem_mounted_world.rs"]
-mod filesystem_mounted_world;
 #[path = "visual_identity/overlay_oracle.rs"]
 mod overlay_oracle;
 #[path = "visual_identity/point_oracle.rs"]
@@ -27,7 +25,7 @@ use worth_ui_test_support::{
     WorthUiMountedIdentityCertificationExt, WorthUiMountedPublicationCertificationExt,
 };
 
-use filesystem_mounted_world::{
+use super::filesystem_mounted_world::{
     establish_allocation, launch_native_region_world, launch_native_region_world_with_policy,
     launch_native_world, launch_native_world_with_policy, launch_world, prepare_frame,
     HitOrderProfile,

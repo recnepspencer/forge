@@ -142,8 +142,9 @@ impl WorthUiActiveApplicationSession {
         mode: UiHostSurfacePresentationMode,
         profile: UiSurfaceBindingProfile,
     ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial> {
-        let semantic_surface = self.deregister_host_surface(binding)?;
-        self.register_host_surface(semantic_surface, mode, profile)
+        self.rebind_host_surface_with_interaction_receipt(binding, mode, profile)
+            .map(|receipt| receipt.binding())
+            .map_err(|denial| denial.mounted_denial())
     }
 
     pub(crate) fn recover_indeterminate_host_surface(
@@ -167,11 +168,7 @@ impl WorthUiActiveApplicationSession {
         &mut self,
         identity: UiMountedInstanceIdentity,
     ) -> Result<(), UiMountedIdentityDenial> {
-        self.mounted.unmount_instance(identity)?;
-        self.interaction.cancel_instance(
-            identity,
-            crate::runtime::interaction::UiPointerGestureStopReason::MountedInstanceRemoved,
-        );
+        self.unmount_instance_with_interaction_receipt(identity)?;
         Ok(())
     }
 

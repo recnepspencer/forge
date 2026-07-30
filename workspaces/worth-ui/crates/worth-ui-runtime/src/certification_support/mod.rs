@@ -27,7 +27,7 @@ pub use crate::admission::{
 pub use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementMode};
 pub use crate::facade::entry::{
     WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
-    WorthUiMountedIdentityCertificationExt,
+    WorthUiMountedIdentityCertificationExt, WorthUiMountedInteractionLifecycleCertificationExt,
 };
 pub use crate::graph::{
     UiGraphFactConsumerIdentity, UiGraphFactIndexBasis, UiGraphFactIndexEntry,

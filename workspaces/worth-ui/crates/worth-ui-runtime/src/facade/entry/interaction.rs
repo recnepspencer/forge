@@ -1,9 +1,10 @@
 use crate::facade::observation_report::{
-    UiHostObservationBatch, UiHostObservationReportDenial, UiHostObservationReportOutcome,
+    UiHostObservationBatch, UiHostObservationCanonicalCore, UiHostObservationFamily,
+    UiHostObservationLoss, UiHostObservationReportDenial, UiHostObservationReportOutcome,
 };
 use crate::runtime::interaction::{
     UiHostInteractionIngressOutcome, UiInteractionObservationDenial, UiInteractionStateSnapshot,
-    UiPointerGestureStopReason,
+    UiPointerGestureStopReason, UiQuarantinedHostInteractionBatch,
 };
 
 use super::WorthUiActiveApplicationSession;
@@ -15,7 +16,8 @@ impl WorthUiActiveApplicationSession {
         &mut self,
         batch: UiHostObservationBatch,
     ) -> UiHostInteractionIngressOutcome {
-        let binding = batch.canonical_core().binding();
+        let core = batch.canonical_core();
+        let binding = core.binding();
         match self.validate_host_observation_batch(batch) {
             UiHostObservationReportOutcome::Validated(batch) => {
                 UiHostInteractionIngressOutcome::Applied(
@@ -26,18 +28,22 @@ impl WorthUiActiveApplicationSession {
                 UiHostInteractionIngressOutcome::Duplicate(duplicate)
             }
             UiHostObservationReportOutcome::Quarantined(quarantined) => {
-                UiHostInteractionIngressOutcome::Quarantined(quarantined)
+                let settlement = self
+                    .interaction
+                    .cancel_binding(binding, UiPointerGestureStopReason::ObservationQuarantined);
+                UiHostInteractionIngressOutcome::Quarantined(
+                    UiQuarantinedHostInteractionBatch::new(quarantined, settlement),
+                )
             }
             UiHostObservationReportOutcome::Denied(denial) => {
-                let settled_gestures = if denial_invalidates_local_gesture(denial) {
+                let settlement = if denial_invalidates_local_gesture(denial) {
                     self.interaction
-                        .cancel_binding(binding, UiPointerGestureStopReason::InvalidObservation)
+                        .cancel_binding(binding, denial_stop_reason(denial, core))
                 } else {
-                    0
+                    self.interaction.unchanged_settlement()
                 };
                 UiHostInteractionIngressOutcome::Denied(UiInteractionObservationDenial::new(
-                    denial,
-                    settled_gestures,
+                    denial, settlement,
                 ))
             }
         }
@@ -45,6 +51,22 @@ impl WorthUiActiveApplicationSession {
 
     pub fn interaction_state(&self) -> UiInteractionStateSnapshot {
         self.interaction.snapshot()
+    }
+}
+
+fn denial_stop_reason(
+    denial: UiHostObservationReportDenial,
+    core: UiHostObservationCanonicalCore,
+) -> UiPointerGestureStopReason {
+    match (denial, core.loss()) {
+        (
+            UiHostObservationReportDenial::LosslessOverflow(UiHostObservationFamily::PointerButton),
+            UiHostObservationLoss::Overflow {
+                family: UiHostObservationFamily::PointerButton,
+                affected,
+            },
+        ) => UiPointerGestureStopReason::PointerButtonLoss { affected },
+        _ => UiPointerGestureStopReason::InvalidObservation,
     }
 }
 

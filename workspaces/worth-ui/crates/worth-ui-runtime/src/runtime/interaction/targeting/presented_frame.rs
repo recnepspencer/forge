@@ -20,6 +20,10 @@ pub enum UiInteractionTargetingDenial {
     IncompatibleHitTestCoordinateSpace { row: UiMountedCoordinateSpace },
     NoTarget { hit_test_rows_considered: usize },
     AmbiguousHitTestOrder { rank: u32 },
+    SurfaceNoLongerBound,
+    BindingNoLongerCurrent,
+    MountedInstanceNoLongerCurrent,
+    MountedSurfaceAffinityChanged,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,11 +76,13 @@ pub(crate) fn resolve_presented_target(
         }
         selected = Some(*row);
     }
-    selected
-        .map(|row| seal_target(presentation, relation, row, rows.len()))
-        .ok_or(UiInteractionTargetingDenial::NoTarget {
-            hit_test_rows_considered: rows.len(),
-        })
+    let row = selected.ok_or(UiInteractionTargetingDenial::NoTarget {
+        hit_test_rows_considered: rows.len(),
+    })?;
+    let current = mounted
+        .admit_current_hit_target(row)
+        .map_err(map_current_affinity_denial)?;
+    Ok(seal_target(presentation, relation, current, rows.len()))
 }
 
 fn require_viewport_logical(
@@ -109,9 +115,10 @@ fn contains(bounds: worth_ui_host_contract::UiMountedCanonicalBox, point: [f32; 
 fn seal_target(
     presentation: UiHostObservationPresentationBasis,
     relation: UiPresentedTargetFrameRelation,
-    row: UiMountedHitTestMechanic,
+    current: crate::mounting::UiCurrentHitTarget,
     hit_test_rows_considered: usize,
 ) -> UiPresentedInteractionTarget {
+    let row = current.row();
     UiPresentedInteractionTarget {
         presentation,
         relation,
@@ -122,6 +129,25 @@ fn seal_target(
         hit_test_order: row.order().rank(),
         semantic_digest: row.semantic_digest(),
         hit_test_rows_considered,
+    }
+}
+
+fn map_current_affinity_denial(
+    denial: crate::mounting::UiCurrentHitTargetAffinityDenial,
+) -> UiInteractionTargetingDenial {
+    match denial {
+        crate::mounting::UiCurrentHitTargetAffinityDenial::SurfaceNoLongerBound => {
+            UiInteractionTargetingDenial::SurfaceNoLongerBound
+        }
+        crate::mounting::UiCurrentHitTargetAffinityDenial::BindingNoLongerCurrent => {
+            UiInteractionTargetingDenial::BindingNoLongerCurrent
+        }
+        crate::mounting::UiCurrentHitTargetAffinityDenial::MountedInstanceNoLongerCurrent => {
+            UiInteractionTargetingDenial::MountedInstanceNoLongerCurrent
+        }
+        crate::mounting::UiCurrentHitTargetAffinityDenial::MountedSurfaceAffinityChanged => {
+            UiInteractionTargetingDenial::MountedSurfaceAffinityChanged
+        }
     }
 }
 

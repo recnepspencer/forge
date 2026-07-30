@@ -74,6 +74,7 @@ fn complete_hit_test(
     let node_receipt = receipt_basis
         .receipt_for(mounted_instance)
         .ok_or(UiMountedProjectionDenial::HitTestNodeReceiptMismatch)?;
+    let clip_bounds = complete_clip_bounds(bounds, seed.clip())?;
     UiMountedHitTestMechanic::complete_from_runtime_mounting(UiMountedHitTestCompletionInput {
         frame,
         surface: surface.surface,
@@ -81,11 +82,39 @@ fn complete_hit_test(
         mounted_instance,
         node_receipt,
         bounds,
-        clip_bounds: bounds,
+        clip_bounds,
         order: seed.order(),
     })
     .map(Some)
     .map_err(UiMountedProjectionDenial::HitTestCompletion)
+}
+
+fn complete_clip_bounds(
+    bounds: worth_ui_host_contract::UiMountedCanonicalBox,
+    clip: crate::capability::ComponentHitTestClipContract,
+) -> Result<worth_ui_host_contract::UiMountedCanonicalBox, UiMountedProjectionDenial> {
+    let crate::capability::ComponentHitTestClipContract::Inset(inset) = clip else {
+        return Ok(bounds);
+    };
+    let horizontal = f32::from(inset.horizontal_logical_points());
+    let vertical = f32::from(inset.vertical_logical_points());
+    worth_ui_host_contract::UiMountedCanonicalBox::canonicalize(
+        worth_ui_host_contract::UiMountedCanonicalBoxInput {
+            x: bounds.x() + horizontal,
+            y: bounds.y() + vertical,
+            width: (bounds.width() - 2.0 * horizontal).max(0.0),
+            height: (bounds.height() - 2.0 * vertical).max(0.0),
+            coordinate_space: bounds.coordinate_space(),
+        },
+    )
+    .map_err(|denial| match denial {
+        worth_ui_host_contract::UiMountedGeometryDenial::NonFinite => {
+            UiMountedProjectionDenial::NonFiniteGeometry
+        }
+        worth_ui_host_contract::UiMountedGeometryDenial::NegativeExtent => {
+            UiMountedProjectionDenial::NegativeExtent
+        }
+    })
 }
 
 pub(in crate::mounting::projection) fn rebind_hit_tests(

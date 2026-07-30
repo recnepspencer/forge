@@ -100,6 +100,11 @@ pub(crate) fn recorded_effects() -> UiMountedCompletedEffects {
     UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection])
 }
 
+pub(crate) const fn scripted_presentation_epoch() -> worth_ui_host_contract::UiHostPresentationEpoch
+{
+    worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1)
+}
+
 fn scripted_presentation_cost() -> worth_ui_host_contract::UiHostPresentationCostReport {
     worth_ui_host_contract::UiHostPresentationCostReport::from_adapter(
         worth_ui_host_contract::UiHostPresentationCostInput {
@@ -117,7 +122,7 @@ pub(crate) fn presented_completion() -> ScriptedSurfaceCompletion {
     ScriptedSurfaceCompletion::Presented(
         worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
-            worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
+            scripted_presentation_epoch(),
             recorded_effects(),
             scripted_presentation_cost(),
         ),
@@ -137,7 +142,7 @@ impl ScriptedPresentationHost {
         self.push_presentation(UiHostSurfacePresentationOutcome::Presented(
             worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
                 UiHostSurfacePresentationMode::RecordOnly,
-                worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
+                scripted_presentation_epoch(),
                 recorded_effects(),
                 scripted_presentation_cost(),
             ),

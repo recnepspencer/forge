@@ -19,8 +19,8 @@ use worth_ui_test_support::{
     WorthUiMountedIdentityCertificationExt,
 };
 
-use super::super::filesystem_contract_workspace::FilesystemContractWorkspace;
-use super::super::mounted_application_lifecycle::known_empty_surface_world::profile;
+use super::filesystem_contract_workspace::FilesystemContractWorkspace;
+use super::mounted_application_lifecycle::known_empty_surface_world::profile;
 
 #[derive(Clone, Copy)]
 pub(super) enum HitOrderProfile {
@@ -31,8 +31,25 @@ pub(super) enum HitOrderProfile {
 #[derive(Clone, Copy)]
 enum VisualWorldProfile {
     Canonical,
+    Clipped,
     DuplicateHitOrder,
     FrontmostInset,
+}
+
+pub(super) fn launch_clipped_world() -> worth_ui::facade::app::WorthUiActiveApplicationSession {
+    let host = WorthUiHeadlessRecorder::with_viewport_extent(
+        UiHeadlessRecorderCapacity::production_default(),
+        UiViewportExtentObservation {
+            width: 160.0,
+            height: 96.0,
+        },
+    );
+    launch_world_with_host(
+        VisualWorldProfile::Clipped,
+        "phase-2-clipped-interaction",
+        host,
+        UiHostSurfacePresentationMode::RecordOnly,
+    )
 }
 
 pub(super) fn launch_world(
@@ -167,6 +184,9 @@ where
         VisualWorldProfile::Canonical => {
             scenario.visual_identity_capability_application(host.clone())
         }
+        VisualWorldProfile::Clipped => {
+            scenario.clipped_visual_identity_capability_application(host.clone())
+        }
         VisualWorldProfile::DuplicateHitOrder => {
             scenario.duplicate_hit_order_capability_application(host.clone())
         }
@@ -184,6 +204,9 @@ where
         (VisualWorldProfile::Canonical, None) => {
             scenario.prepare_visual_identity_application_with_host(submission, host)
         }
+        (VisualWorldProfile::Clipped, None) => {
+            scenario.prepare_clipped_visual_identity_application_with_host(submission, host)
+        }
         (VisualWorldProfile::DuplicateHitOrder, None) => {
             scenario.prepare_duplicate_hit_order_application_with_host(submission, host)
         }
@@ -194,6 +217,9 @@ where
             .prepare_region_identity_application_with_policy_and_host(submission, policy, host),
         (VisualWorldProfile::DuplicateHitOrder, Some(_)) => {
             panic!("the duplicate-hit-order world does not admit a custom inspection policy")
+        }
+        (VisualWorldProfile::Clipped, Some(_)) => {
+            panic!("the clipped interaction world does not admit a custom inspection policy")
         }
     };
     workspace.close();

@@ -1,11 +1,11 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
-    ComponentHitTestContract, ComponentHitTestOrder, ComponentId, ComponentPropSchema,
-    ComponentStateOwnership, ComponentStaticPaintContract, ComponentStaticPaintOrder,
-    ComponentViewportInset, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
-    SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
-    ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentId,
+    ComponentPropSchema, ComponentStateOwnership, ComponentStaticPaintContract,
+    ComponentStaticPaintOrder, ComponentViewportInset, SurfaceDescriptor, SurfaceId, SurfaceKind,
+    SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenAlias,
+    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
 };
 use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
@@ -30,6 +30,7 @@ where
         host,
         ComponentHitTestOrder::front_to_back(0),
         ComponentStaticPaintOrder::back_to_front(7),
+        None,
     )
 }
 
@@ -43,6 +44,7 @@ where
         host,
         ComponentHitTestOrder::front_to_back(1),
         ComponentStaticPaintOrder::back_to_front(7),
+        None,
     )
 }
 
@@ -56,6 +58,21 @@ where
         host,
         ComponentHitTestOrder::front_to_back(0),
         ComponentStaticPaintOrder::back_to_front(1),
+        None,
+    )
+}
+
+pub(crate) fn clipped_visual_identity_application_builder_with_host<Host>(
+    host: Host,
+) -> WorthUiApplicationBuilder
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    visual_identity_builder(
+        host,
+        ComponentHitTestOrder::front_to_back(0),
+        ComponentStaticPaintOrder::back_to_front(7),
+        Some(ComponentHitTestInset::symmetric(12, 8)),
     )
 }
 
@@ -63,12 +80,24 @@ fn visual_identity_builder<Host>(
     host: Host,
     paint_and_hit_order: ComponentHitTestOrder,
     paint_only_order: ComponentStaticPaintOrder,
+    hit_only_clip: Option<ComponentHitTestInset>,
 ) -> WorthUiApplicationBuilder
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
     let hit_only_allocation = inset_allocation(8, 8);
     let paint_and_hit_allocation = inset_allocation(16, 12);
+    let hit_only_contract = match hit_only_clip {
+        Some(inset) => ComponentHitTestContract::allocation_bounds_clipped_by_inset(
+            ComponentHitTestOrder::front_to_back(1),
+            hit_only_allocation,
+            inset,
+        ),
+        None => ComponentHitTestContract::allocation_bounds(
+            ComponentHitTestOrder::front_to_back(1),
+            hit_only_allocation,
+        ),
+    };
     WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(host)
@@ -79,12 +108,7 @@ where
             ),
             ComponentAllocationMeasurementContract::fill_viewport(),
         ))
-        .register_component(component(VISUAL_HIT_ONLY_COMPONENT).with_hit_test(
-            ComponentHitTestContract::allocation_bounds(
-                ComponentHitTestOrder::front_to_back(1),
-                hit_only_allocation,
-            ),
-        ))
+        .register_component(component(VISUAL_HIT_ONLY_COMPONENT).with_hit_test(hit_only_contract))
         .register_component(
             component(VISUAL_PAINT_AND_HIT_COMPONENT)
                 .with_static_paint(

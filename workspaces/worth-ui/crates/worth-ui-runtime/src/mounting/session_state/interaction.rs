@@ -10,4 +10,14 @@ impl WorthUiMountedSessionState {
     > {
         self.retention.interaction_hit_test_basis(presentation)
     }
+
+    pub(crate) fn admit_current_hit_target(
+        &self,
+        row: worth_ui_host_contract::UiMountedHitTestMechanic,
+    ) -> Result<
+        crate::mounting::UiCurrentHitTarget,
+        crate::mounting::UiCurrentHitTargetAffinityDenial,
+    > {
+        self.identity.admit_current_hit_target(row)
+    }
 }
