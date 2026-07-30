@@ -1,16 +1,16 @@
 use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding, CommandReadinessStatus,
-    CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentExecutionLane,
-    ComponentId, ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
-    IconSourceDescriptor, MeasurementConstraint, MeasurementValue, MosaicChildRule,
-    MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
-    MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicPlacementAction,
-    MosaicPlacementConflictBehavior, MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor,
-    MosaicPlacementPolicyId, MosaicPlacementReloadReconciliation, MosaicPlacementSource,
-    MosaicPlacementSupport, MosaicPlacementTarget, MosaicRegionKindDescriptor, MosaicRegionKindId,
-    MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership,
-    MosaicSizingBehavior, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
+    CommandProjectionId, CommandProjectionSurface, ComponentChildPolicy, ComponentDescriptor,
+    ComponentExecutionLane, ComponentId, ComponentPropSchema, ComponentStateOwnership,
+    IconDescriptor, IconFamily, IconId, IconSourceDescriptor, MeasurementConstraint,
+    MeasurementValue, MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind,
+    MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
+    MosaicParentGrowthBehavior, MosaicPlacementAction, MosaicPlacementConflictBehavior,
+    MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId,
+    MosaicPlacementReloadReconciliation, MosaicPlacementSource, MosaicPlacementSupport,
+    MosaicPlacementTarget, MosaicRegionKindDescriptor, MosaicRegionKindId, MosaicRegionPersistence,
+    MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership, MosaicSizingBehavior,
+    MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
     MosaicSizingPersistence, MosaicStableIdentityBehavior, MosaicStateOwnerIdentity,
     MosaicStatePersistencePolicy, MosaicStateReplacementRule, MosaicStateSlotDescriptor,
     MosaicStateSlotId, MosaicStateSlotKind, MosaicStateTruthPosture, MosaicViewportConstraint,
@@ -64,12 +64,6 @@ fn phase10_test_app(variant: Phase10AppVariant) -> WorthUiApp {
                 "Inspect",
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
-            .with_readiness(CommandReadinessBinding::from_status(
-                CommandReadinessStatus::Deferred,
-            ))
-            .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
-                "workspace.runtime.inspect",
-            ))
             .with_projection_eligibility(
                 CommandProjectionId::new("workspace.command_projection.inspect_actions").unwrap(),
             ),

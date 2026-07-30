@@ -1,6 +1,6 @@
 use crate::capability::{CommandId, CommandProjectionId, IconId};
 
-use super::{CommandCategory, CommandReadinessBinding, CommandRuntimeIntentBinding};
+use super::CommandCategory;
 
 /// Declarative command capability supplied by an application.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,8 +11,6 @@ pub struct CommandDescriptor {
     icon: Option<IconId>,
     default_shortcut_reference: Option<String>,
     category: CommandCategory,
-    readiness: CommandReadinessBinding,
-    runtime_intent_binding: Option<CommandRuntimeIntentBinding>,
     projection_eligibility: Option<CommandProjectionId>,
 }
 
@@ -25,8 +23,6 @@ impl CommandDescriptor {
             icon: None,
             default_shortcut_reference: None,
             category: CommandCategory::Application,
-            readiness: CommandReadinessBinding::always_admitted(),
-            runtime_intent_binding: None,
             projection_eligibility: None,
         }
     }
@@ -51,19 +47,6 @@ impl CommandDescriptor {
 
     pub fn with_category(mut self, category: CommandCategory) -> Self {
         self.category = category;
-        self
-    }
-
-    pub fn with_readiness(mut self, readiness: CommandReadinessBinding) -> Self {
-        self.readiness = readiness;
-        self
-    }
-
-    pub fn with_runtime_intent_binding(
-        mut self,
-        runtime_intent_binding: CommandRuntimeIntentBinding,
-    ) -> Self {
-        self.runtime_intent_binding = Some(runtime_intent_binding);
         self
     }
 
@@ -97,14 +80,6 @@ impl CommandDescriptor {
 
     pub fn category(&self) -> CommandCategory {
         self.category
-    }
-
-    pub fn readiness(&self) -> &CommandReadinessBinding {
-        &self.readiness
-    }
-
-    pub fn runtime_intent_binding(&self) -> Option<&CommandRuntimeIntentBinding> {
-        self.runtime_intent_binding.as_ref()
     }
 
     pub fn projection_eligibility(&self) -> Option<&CommandProjectionId> {

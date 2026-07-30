@@ -19,6 +19,7 @@ impl CapabilitySnapshotDigest {
                 ^ input.command_projections.digest_basis().rotate_left(13)
                 ^ input.components.digest_basis().rotate_left(29)
                 ^ input.icons.digest_basis().rotate_left(41)
+                ^ input.intent_definitions.digest_basis().rotate_left(47)
                 ^ input.surfaces.digest_basis().rotate_left(53)
                 ^ input.mosaic_regions.digest_basis().rotate_left(7)
                 ^ input
@@ -35,7 +36,7 @@ impl CapabilitySnapshotDigest {
                     .digest_basis()
                     .rotate_left(23)
                 ^ input.settings.digest_basis().rotate_left(37)
-                ^ input.task_presentations.digest_basis().rotate_left(47)
+                ^ input.task_presentations.digest_basis().rotate_left(43)
                 ^ input.theme_tokens.digest_basis().rotate_left(11),
         }
     }

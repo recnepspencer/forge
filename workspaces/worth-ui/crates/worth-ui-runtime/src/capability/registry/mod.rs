@@ -3,6 +3,7 @@ mod command_projection;
 mod component;
 mod family_names;
 mod icon;
+mod intent;
 mod mosaic_placement;
 mod mosaic_region;
 mod mosaic_sizing;
@@ -18,10 +19,7 @@ mod view_binding;
 
 pub(crate) use command::CommandAcceptedRegistrationProof;
 pub(crate) use command::CommandRegistry;
-pub use command::{
-    CommandCategory, CommandDescriptor, CommandReadinessBinding, CommandReadinessStatus,
-    CommandRuntimeIntentBinding, FrozenCommandCapabilities,
-};
+pub use command::{CommandCategory, CommandDescriptor, FrozenCommandCapabilities};
 pub(crate) use command_projection::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionRegistry,
 };
@@ -44,11 +42,11 @@ pub use component::{
 };
 pub(crate) use family_names::{
     COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
-    MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
-    MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
-    NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
-    SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME, TASK_PRESENTATION_FAMILY_NAME,
-    THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
+    INTENT_DEFINITION_FAMILY_NAME, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
+    MOSAIC_REGION_KIND_FAMILY_NAME, MOSAIC_SIZING_CONTRACT_FAMILY_NAME,
+    MOSAIC_STATE_SLOT_FAMILY_NAME, NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME,
+    RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME, SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME,
+    TASK_PRESENTATION_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
 pub use icon::{
     FrozenIconCapabilities, FrozenIconEntry, IconAccessibilityPosture, IconColorSupport,
@@ -56,6 +54,13 @@ pub use icon::{
     IconThemePosture, RawIconAssetReference,
 };
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
+pub use intent::{
+    FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent, UiIntentDefinition,
+    UiIntentDefinitionRegistrationError, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
+    UiIntentProductOutcome, UiIntentRuntimeServiceDestination, UiIntentSchema,
+    UiIntentTransitionDestination, UiSemanticInteractionFamily,
+};
+pub(crate) use intent::{IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry};
 pub use mosaic_placement::{
     FrozenMosaicPlacementCapabilities, MosaicPlacementAction, MosaicPlacementConflictBehavior,
     MosaicPlacementEligibility, MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor,

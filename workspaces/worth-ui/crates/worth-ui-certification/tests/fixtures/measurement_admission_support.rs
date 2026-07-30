@@ -2,7 +2,7 @@ use worth_ui::facade::admission::{UiAdmissionTarget, UiAdmissionWorld};
 use worth_ui::facade::graph::{
     UiGraphTouchAspectPosture, UiGraphTouchAspects, UiGraphTouchDescriptor, UiGraphTouchTiming,
 };
-use worth_ui_host_contract::{WorthUiHostCapabilityReport, WorthUiHostContract};
+use worth_ui_host_contract::{WorthUiHostCapability, WorthUiHostCapabilityReport};
 use worth_ui_test_support::WorthUiTouchOriginCertificationFixture;
 
 pub fn host_measurement_touch(
@@ -31,7 +31,14 @@ pub fn available_measurement_target(touch: &UiGraphTouchDescriptor) -> UiAdmissi
         touch.target().graph_node_identity(),
         UiAdmissionWorld::from_graph_world_profile(touch.world().world_profile().clone()),
     )
-    .with_host_capability_report(WorthUiHostCapabilityReport::from_contract(
-        WorthUiHostContract::egui(),
-    ))
+    .with_host_capability_report(WorthUiHostCapabilityReport::available(vec![
+        WorthUiHostCapability::DpiObservation,
+        WorthUiHostCapability::FontMetrics,
+        WorthUiHostCapability::NativeControlIntrinsicMeasurement,
+        WorthUiHostCapability::PortalAnchorObservation,
+        WorthUiHostCapability::ScrollContainerObservation,
+        WorthUiHostCapability::TextBaselineMeasurement,
+        WorthUiHostCapability::TextIntrinsicMeasurement,
+        WorthUiHostCapability::ViewportObservation,
+    ]))
 }

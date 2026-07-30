@@ -2,23 +2,25 @@ use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionDescriptor, CommandProjectionId,
     ComponentDescriptor, ComponentId, FrozenCommandCapabilities,
     FrozenCommandProjectionCapabilities, FrozenComponentCapabilities, FrozenIconCapabilities,
-    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
-    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
-    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
-    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
-    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, IconDescriptor, IconId,
+    FrozenIntentDefinitionCapabilities, FrozenMosaicPlacementCapabilities,
+    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
+    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
+    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
+    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
+    FrozenViewBindingCapabilities, IconDescriptor, IconId, IntentDefinitionDescriptor,
     MosaicPlacementPolicyDescriptor, MosaicPlacementPolicyId, MosaicRegionKindDescriptor,
     MosaicRegionKindId, MosaicSizingContractDescriptor, MosaicSizingContractId,
     MosaicStateSlotDescriptor, MosaicStateSlotId, NativeCapabilityDescriptor, NativeCapabilityId,
     PluginSlotDescriptor, PluginSlotId, RuntimeOutcomeProjectionDescriptor,
     RuntimeOutcomeProjectionId, SettingDescriptor, SettingId, SurfaceDescriptor, SurfaceId,
-    TaskPresentationDescriptor, TaskPresentationId, ThemeTokenDescriptor, ThemeTokenId,
+    TaskPresentationDescriptor, TaskPresentationId, ThemeTokenDescriptor, ThemeTokenId, UiIntentId,
     ViewBindingDescriptor, ViewBindingId, COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME,
-    COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME, MOSAIC_PLACEMENT_POLICY_FAMILY_NAME,
-    MOSAIC_REGION_KIND_FAMILY_NAME, MOSAIC_SIZING_CONTRACT_FAMILY_NAME,
-    MOSAIC_STATE_SLOT_FAMILY_NAME, NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME,
-    RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME, SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME,
-    TASK_PRESENTATION_FAMILY_NAME, THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
+    COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME, INTENT_DEFINITION_FAMILY_NAME,
+    MOSAIC_PLACEMENT_POLICY_FAMILY_NAME, MOSAIC_REGION_KIND_FAMILY_NAME,
+    MOSAIC_SIZING_CONTRACT_FAMILY_NAME, MOSAIC_STATE_SLOT_FAMILY_NAME,
+    NATIVE_CAPABILITY_FAMILY_NAME, PLUGIN_SLOT_FAMILY_NAME, RUNTIME_OUTCOME_PROJECTION_FAMILY_NAME,
+    SETTING_FAMILY_NAME, SURFACE_FAMILY_NAME, TASK_PRESENTATION_FAMILY_NAME,
+    THEME_TOKEN_FAMILY_NAME, VIEW_BINDING_FAMILY_NAME,
 };
 
 use super::{SnapshotFamilyIndex, SnapshotLookupReport};
@@ -30,6 +32,7 @@ pub struct CapabilitySnapshotIndex<'snapshot> {
     command_projections: &'snapshot FrozenCommandProjectionCapabilities,
     components: &'snapshot FrozenComponentCapabilities,
     icons: &'snapshot FrozenIconCapabilities,
+    intent_definitions: &'snapshot FrozenIntentDefinitionCapabilities,
     surfaces: &'snapshot FrozenSurfaceCapabilities,
     mosaic_regions: &'snapshot FrozenMosaicRegionCapabilities,
     mosaic_placement_policies: &'snapshot FrozenMosaicPlacementCapabilities,
@@ -51,6 +54,7 @@ impl<'snapshot> CapabilitySnapshotIndex<'snapshot> {
             command_projections: snapshot_parts.command_projections,
             components: snapshot_parts.components,
             icons: snapshot_parts.icons,
+            intent_definitions: snapshot_parts.intent_definitions,
             surfaces: snapshot_parts.surfaces,
             mosaic_regions: snapshot_parts.mosaic_regions,
             mosaic_placement_policies: snapshot_parts.mosaic_placement_policies,
@@ -80,6 +84,10 @@ impl<'snapshot> CapabilitySnapshotIndex<'snapshot> {
 
     pub fn icons(self) -> IconSnapshotIndex<'snapshot> {
         IconSnapshotIndex::new(self.icons)
+    }
+
+    pub fn intent_definitions(self) -> IntentDefinitionSnapshotIndex<'snapshot> {
+        IntentDefinitionSnapshotIndex::new(self.intent_definitions)
     }
 
     pub fn surfaces(self) -> SurfaceSnapshotIndex<'snapshot> {
@@ -136,6 +144,7 @@ pub(crate) struct CapabilitySnapshotIndexParts<'snapshot> {
     pub(crate) command_projections: &'snapshot FrozenCommandProjectionCapabilities,
     pub(crate) components: &'snapshot FrozenComponentCapabilities,
     pub(crate) icons: &'snapshot FrozenIconCapabilities,
+    pub(crate) intent_definitions: &'snapshot FrozenIntentDefinitionCapabilities,
     pub(crate) surfaces: &'snapshot FrozenSurfaceCapabilities,
     pub(crate) mosaic_regions: &'snapshot FrozenMosaicRegionCapabilities,
     pub(crate) mosaic_placement_policies: &'snapshot FrozenMosaicPlacementCapabilities,
@@ -200,6 +209,13 @@ snapshot_index_family!(
     FrozenIconCapabilities,
     IconId,
     IconDescriptor
+);
+snapshot_index_family!(
+    IntentDefinitionSnapshotIndex,
+    INTENT_DEFINITION_FAMILY_NAME,
+    FrozenIntentDefinitionCapabilities,
+    UiIntentId,
+    IntentDefinitionDescriptor
 );
 snapshot_index_family!(
     SurfaceSnapshotIndex,

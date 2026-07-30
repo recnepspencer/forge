@@ -1,6 +1,4 @@
-use worth_ui::facade::{
-    declaration::{CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding},
-};
+use worth_ui::facade::declaration::{CommandCategory, CommandDescriptor, CommandId};
 
 fn main() {
     let _ = CommandDescriptor {
@@ -10,7 +8,6 @@ fn main() {
         icon: None,
         default_shortcut_reference: None,
         category: CommandCategory::Workspace,
-        readiness: CommandReadinessBinding::always_admitted(),
         projection_eligibility: None,
     };
 }

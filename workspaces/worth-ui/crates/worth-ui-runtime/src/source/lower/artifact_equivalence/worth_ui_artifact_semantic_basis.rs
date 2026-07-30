@@ -201,16 +201,6 @@ fn command_reference_basis(command: &WorthUiBoundCommandReference) -> String {
             command_descriptor_basis(command.descriptor())
         ),
         option_basis(command.semantics().icon().map(icon_reference_basis)),
-        format!(
-            "readiness:{}",
-            command.semantics().readiness().digest_basis()
-        ),
-        option_basis(
-            command
-                .semantics()
-                .runtime_intent_binding()
-                .map(|binding| binding.digest_basis().to_owned()),
-        ),
         option_basis(
             command
                 .semantics()
