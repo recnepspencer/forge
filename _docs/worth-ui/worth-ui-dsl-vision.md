@@ -176,9 +176,8 @@ control save_button {
     from: selected_step.update_readiness
   }
 
-  intent {
-    submit: update_step
-    payload: selected_step.update_payload
+  interaction {
+    submit routes update_step
   }
 }
 ```
@@ -310,7 +309,7 @@ fragment inspector_field(field) lowers_to control {
   identity: field.logical_identity
   content: field.label
   projection: field.projected_value
-  intent: edit_field(field.identity)
+  interaction: edit-commit routes update_field(field.identity)
 }
 ```
 
@@ -499,6 +498,56 @@ diagnostic source span
 
 That is what makes runtime rebind honest.
 
+## Interaction And Intent Are Separate Lanes
+
+Native pointer, key, text, and IME events are host observations. They may
+compile into presentation-bound semantic interactions:
+
+```text
+activate
+edit-commit
+selection-commit
+submit
+```
+
+Those interactions carry no product-effect authority. An authored route binds
+one admitted interaction to one declared product intent:
+
+```text
+intent workflow.update_step_route {
+  definition workflow.update_step
+  interaction submit
+  payload {
+    title from projection workflow.selected_step.title
+  }
+  operability from workflow.update_step_operability
+  confirmation from workflow.update_step_confirmation
+}
+
+control workflow.save {
+  interaction submit routes workflow.update_step_route
+}
+
+control workflow.confirm_update {
+  interaction activate confirms workflow.update_step_route
+}
+```
+
+`click` is not an intent identity. Compiled Rust registers the typed intent
+definition and execution destination; file- and Rust-authored composition
+produce the same declaration and compact per-control route bindings. The DSL
+does not author callbacks, executor code, Query mutation, host events,
+confirmation booleans, or renderer-assembled payloads. Application-effect
+providers register separately at the composition root. Payload and operability
+inputs lower as declared consumed facts so the runtime can assemble one
+coherent revision before admission. A confirmation route names the declaration
+whose runtime-owned challenge it may continue; it does not carry the challenge
+or declare a second product intent.
+
+Portal and command requests may be referenced only after their service owner
+admits them. Source syntax cannot make an adapter-local popup or shortcut into
+a service implementation.
+
 ## Direct Projection Binding
 
 The shipped direct grammar declares projection requirements and structural
@@ -581,8 +630,8 @@ page workflow_editor {
         height: hug
       }
 
-      intent {
-        edit: update_field("title")
+      interaction {
+        edit-commit routes update_title
       }
     }
 
@@ -600,8 +649,8 @@ page workflow_editor {
         focus: contained
       }
 
-      intent {
-        select: update_field("approver_policy")
+      interaction {
+        selection-commit routes update_approver_policy
       }
     }
 
@@ -615,8 +664,8 @@ page workflow_editor {
           exit: preserve_then_fade
         }
 
-        intent {
-          edit: update_field("escalation_days")
+        interaction {
+          edit-commit routes update_escalation_days
         }
       }
     }
@@ -637,9 +686,8 @@ page workflow_editor {
         from: selected_step.update_readiness
       }
 
-      intent {
-        submit: update_step
-        payload: selected_step.update_payload
+      interaction {
+        submit routes update_step
       }
     }
   }

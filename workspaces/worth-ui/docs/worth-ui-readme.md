@@ -1354,46 +1354,47 @@ Canonical path:
 
 ```text
 host observation
--> mounted node identity
--> participation check
--> interaction route
--> intent declaration
--> operability/readiness check
+-> exact presented-frame mounted target
+-> semantic interaction
+-> compact route binding + registered intent definition
+-> intent declaration + coherent typed payload
+-> runtime-derived operability
+-> UI routing admission
+-> managed application execution
 -> Query/domain admission where required
--> intent receipt or diagnostic
+-> typed completion or recovery
+-> declared consequence through observation/rebind/publication
 ```
 
-Minimum intent families:
+Initial semantic interaction families:
 
 ```text
-click
+activate
+edit-commit
+selection-commit
 submit
-edit
-select
-open-portal
-close-portal
-navigate-page
-change-mosaic
-invoke-command
-start-drag
-commit-drag
-cancel
 ```
 
-Operability must distinguish:
+Product intents have typed application identities and payloads; they are not
+an enum of host gestures. Navigate-page and change-mosaic are product intents.
+Portal and command requests enter their runtime service owners rather than
+executing as host callbacks.
+
+Operability is derived from orthogonal axes:
 
 ```text
-operable
-disabled
-readonly
-pending
-denied
-unsupported
-wrong-world
-stale
-rebind-required
-requires-confirmation
+support: supported | unsupported
+mutability: writable | readonly
+readiness: ready | pending
+occupancy: idle | in-flight
+policy: admitted | denied
+affinity: current | stale | wrong-world | rebind-required
+confirmation: not-required | required(policy)
 ```
+
+Occupancy is target/route single-flight by default. Declaration-, definition-,
+or application-wide serialization requires an explicit typed concurrency
+scope; a busy provider cannot silently disable unrelated controls.
 
 Mistakes to avoid:
 
@@ -1403,6 +1404,8 @@ Mistakes to avoid:
 - command routing bypassing runtime
 - treating click success as mutation success
 - side effects from host event handlers
+- treating UI routing admission as Query/domain mutation admission
+- boolean confirmation or diagnostic receipts used as authority
 
 ---
 
@@ -1782,15 +1785,17 @@ sequenceDiagram
 sequenceDiagram
     participant Host as Host Adapter
     participant Obs as Observation Intake
+    participant Interaction as Interaction Runtime
     participant Intent as Intent Runtime
     participant Portal as Portal Service
     participant Focus as Focus Service
     participant Measure as Measurement
     participant Mount as Mounted Receipts
 
-    Host->>Obs: pointer click on mounted node
-    Obs->>Intent: open-portal observation route
-    Intent->>Portal: admitted portal request
+    Host->>Obs: pointer motion, press, and release
+    Obs->>Interaction: exact presented-frame target
+    Interaction->>Intent: activate routes portal request
+    Intent->>Portal: admitted typed service request
     Portal->>Focus: focus/dismissal obligations
     Portal->>Measure: portal anchor measurement
     Measure->>Mount: portal mounted receipt
@@ -1803,18 +1808,25 @@ sequenceDiagram
 sequenceDiagram
     participant Host as Host Adapter
     participant Obs as Observation Intake
-    participant Control as Control State Projection
+    participant Interaction as Interaction Runtime
+    participant Payload as Payload And Operability
     participant Intent as Intent Runtime
-    participant Query as Query Admission
+    participant Provider as Application Provider
+    participant Query as Domain Admission
+    participant Rebind as Observation And Rebind
     participant Diag as Diagnostics
     participant Receipt as Intent Receipt
 
-    Host->>Obs: submit observation
-    Obs->>Control: mounted form identity
-    Control->>Intent: payload projection
-    Intent->>Query: payload/schema/operability admission
-    Query-->>Intent: admitted or denied
-    Intent->>Receipt: valid intent receipt
+    Host->>Obs: pointer/key/text observations
+    Obs->>Interaction: exact target and submit interaction
+    Interaction->>Payload: coherent runtime revision
+    Payload->>Intent: prepared typed attempt
+    Intent->>Provider: UI routing admission
+    Provider->>Query: separate domain admission/effect
+    Query-->>Provider: typed product outcome
+    Provider->>Intent: typed completion or recovery
+    Intent->>Rebind: declared consequence
+    Intent->>Receipt: exact attempt receipt
     Intent->>Diag: denial diagnostic if invalid
 ```
 
