@@ -1,8 +1,8 @@
 use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::intent::{
-    UiIntent, UiIntentDefinition, UiIntentDefinitionRegistrationError, UiIntentId, UiIntentPayload,
-    UiIntentProductOutcome, UiIntentSchema, UiIntentTransitionDestination,
-    UiSemanticInteractionFamily,
+    UiIntent, UiIntentAcceptedInteractions, UiIntentDefinition,
+    UiIntentDefinitionRegistrationError, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
+    UiIntentSchema, UiIntentTransitionDestination, UiSemanticInteractionFamily,
 };
 
 struct AdvancePayload;
@@ -24,8 +24,8 @@ impl UiIntent for AdvanceStatus {
     type ProductOutcome = AdvanceOutcome;
 
     const ID: UiIntentId = UiIntentId::stable("platform.pulse.advance");
-    const ACCEPTED_INTERACTIONS: &'static [UiSemanticInteractionFamily] =
-        &[UiSemanticInteractionFamily::Activate];
+    const ACCEPTED_INTERACTIONS: UiIntentAcceptedInteractions =
+        UiIntentAcceptedInteractions::new(&[UiSemanticInteractionFamily::Activate]);
 }
 
 #[test]

@@ -9,13 +9,19 @@ ledger = "_docs/worth-ui/milestone-3.14-proof-ledger.csv"
 intent_trait = "UiIntent"
 definition = "UiIntentDefinition<I>"
 provider = "UiIntentExecutionProvider<I>"
+provider_create_phase = 4
 declaration = "UiIntentDeclaration"
+declaration_create_phase = 3
 route = "UiIntentRouteBinding"
+route_create_phase = 3
 confirmation_route = "UiIntentConfirmationRouteBinding"
+confirmation_route_create_phase = 3
 route_source = "UiIntentRouteSource"
+route_source_create_phase = 3
 only_phase_3_route_source = "MountedInteraction"
 definition_declaration_route_are_distinct = true
 private_governed_construction = true
+accepted_interactions_are_nonempty_canonical = true
 string_intent_authority = false
 callback_execution = false
 
@@ -54,6 +60,8 @@ ime_phases = ["preedit", "commit", "cancel"]
 canonical_text_range_unit = "UTF-8 byte offsets on Unicode scalar boundaries"
 capabilities_come_from_installed_translators = true
 generic_host_kind_implies_optional_input_support = false
+phase_1_ingress_outcome = "Unsupported"
+phase_2_translators = ["pointer", "keyboard", "text_ime"]
 
 [ownership]
 definition_owner = "worth-ui-runtime capability registry"
@@ -91,6 +99,11 @@ compile_sessions = 2
 topology_target = "worth-ui-certification topology_contracts"
 application_target = "worth-ui-certification application_contracts"
 product_target = "worth-ui-platform-pulse executable_world"
+
+[phase_1_evidence]
+native_reachability_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --bin worth-ui-platform-pulse native_frame::input_reachability_tests -- --nocapture"
+definition_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts intent::phase1_definition -- --nocapture"
+topology_command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test topology_contracts milestone_314 -- --nocapture"
 
 [[proof_row]]
 id = "IA-01"
@@ -160,19 +173,24 @@ command = "python scripts/ci/run_worth_ui_compile_contracts.py"
 [[required_path]]
 owner = "compiled intent definition capability"
 path = "workspaces/worth-ui/crates/worth-ui-runtime/src/capability/registry/intent"
+create_phase = 1
 
 [[required_path]]
 owner = "canonical intent declarations and routes"
 path = "workspaces/worth-ui/crates/worth-ui-runtime/src/declaration/intent"
+create_phase = 3
 
 [[required_path]]
 owner = "stable product intent facade"
 path = "workspaces/worth-ui/crates/worth-ui/src/facade/intent.rs"
+create_phase = 1
 
 [[required_path]]
 owner = "native input translator destination"
 path = "workspaces/worth-ui/crates/worth-ui-host-egui/src/adapter/input_observation"
+create_phase = 1
 
 [[required_path]]
 owner = "adversarial intent scenarios"
 path = "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/intent"
+create_phase = 1

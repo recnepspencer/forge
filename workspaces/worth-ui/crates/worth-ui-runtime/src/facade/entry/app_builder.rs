@@ -6,19 +6,14 @@ use crate::facade::lifecycle::{
 };
 use crate::facade::measurement_exchange::WorthUiOperationalHostAdapter;
 use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
-use crate::facade::registry::descriptor::{
-    CommandDescriptor, CommandProjectionDescriptor, ComponentDescriptor, IconDescriptor,
-    MosaicPlacementPolicyDescriptor, MosaicRegionKindDescriptor, MosaicSizingContractDescriptor,
-    MosaicStateSlotDescriptor, NativeCapabilityDescriptor, PluginSlotDescriptor,
-    RuntimeOutcomeProjectionDescriptor, SettingDescriptor, SurfaceDescriptor,
-    TaskPresentationDescriptor, ThemeTokenDescriptor, WorthUiQueryViewRegistration,
-};
 use crate::facade::registry::diagnostics::CapabilityRegistrationReport;
 use crate::facade::WorthUiApp;
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::WorthUiWatchedCandidateSubmission;
 
+mod capability_registration;
 mod intent_registration;
+mod query_registration;
 mod registration_error;
 
 pub use registration_error::{
@@ -172,152 +167,6 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
         evidence: UiMeasurementInspectionEvidenceBundle,
     ) -> Self {
         self.measurement_inspection_evidence.push(evidence);
-        self
-    }
-
-    pub fn register_command(mut self, descriptor: CommandDescriptor) -> Self {
-        self.inner = self.inner.register_command(descriptor);
-        self
-    }
-
-    pub fn register_command_projection(mut self, descriptor: CommandProjectionDescriptor) -> Self {
-        self.inner = self.inner.register_command_projection(descriptor);
-        self
-    }
-
-    pub fn register_component(mut self, descriptor: ComponentDescriptor) -> Self {
-        self.inner = self.inner.register_component(descriptor);
-        self
-    }
-
-    pub fn register_icon(mut self, descriptor: IconDescriptor) -> Self {
-        self.inner = self.inner.register_icon(descriptor);
-        self
-    }
-
-    pub fn register_surface(mut self, descriptor: SurfaceDescriptor) -> Self {
-        self.inner = self.inner.register_surface(descriptor);
-        self
-    }
-
-    pub fn register_mosaic_region_kind(mut self, descriptor: MosaicRegionKindDescriptor) -> Self {
-        self.inner = self.inner.register_mosaic_region_kind(descriptor);
-        self
-    }
-
-    pub fn register_mosaic_placement_policy(
-        mut self,
-        descriptor: MosaicPlacementPolicyDescriptor,
-    ) -> Self {
-        self.inner = self.inner.register_mosaic_placement_policy(descriptor);
-        self
-    }
-
-    pub fn register_mosaic_sizing_contract(
-        mut self,
-        descriptor: MosaicSizingContractDescriptor,
-    ) -> Self {
-        self.inner = self.inner.register_mosaic_sizing_contract(descriptor);
-        self
-    }
-
-    pub fn register_mosaic_state_slot(mut self, descriptor: MosaicStateSlotDescriptor) -> Self {
-        self.inner = self.inner.register_mosaic_state_slot(descriptor);
-        self
-    }
-
-    pub fn register_native_capability(mut self, descriptor: NativeCapabilityDescriptor) -> Self {
-        self.inner = self.inner.register_native_capability(descriptor);
-        self
-    }
-
-    pub fn register_plugin_slot(mut self, descriptor: PluginSlotDescriptor) -> Self {
-        self.inner = self.inner.register_plugin_slot(descriptor);
-        self
-    }
-
-    #[cfg(test)]
-    pub(crate) fn register_view_binding(
-        mut self,
-        descriptor: crate::facade::registry::descriptor::ViewBindingDescriptor,
-    ) -> Self {
-        self.inner = self.inner.register_view_binding(descriptor);
-        self
-    }
-
-    /// Register an installed Query view as one coherent definition and
-    /// runtime-affine authority. Query posture cannot be assembled piecemeal.
-    pub fn register_query_view(
-        mut self,
-        registration: impl Into<WorthUiQueryViewRegistration>,
-    ) -> Result<Self, WorthUiQueryViewRegistrationError> {
-        let (view, visible_state_bindings, denial_presentation) = registration.into().into_parts();
-        let definition = view.definition().clone();
-        let id = crate::capability::ViewBindingId::new(definition.identity().as_str())
-            .map_err(WorthUiQueryViewRegistrationError::InvalidIdentity)?;
-        let family = match definition.shape() {
-            worth_ui_query_binding::WorthUiQueryViewShape::Collection => {
-                crate::capability::ViewBindingFamily::collection()
-            }
-            worth_ui_query_binding::WorthUiQueryViewShape::Detail => {
-                crate::capability::ViewBindingFamily::detail()
-            }
-        };
-        self.query_binding_plan = self
-            .query_binding_plan
-            .register_view(view)
-            .map_err(WorthUiQueryViewRegistrationError::Binding)?;
-        let descriptor = visible_state_bindings.into_iter().fold(
-            crate::capability::ViewBindingDescriptor::from_definition(id, family, definition)
-                .with_denial_presentation(denial_presentation),
-            crate::capability::ViewBindingDescriptor::with_visible_state_binding,
-        );
-        self.inner = self.inner.register_view_binding(descriptor);
-        Ok(self)
-    }
-
-    pub fn register_scalar_projection(
-        mut self,
-        registration: worth_ui_query_binding::UiScalarProjectionRegistration,
-    ) -> Result<Self, WorthUiProjectionRegistrationError> {
-        self.query_binding_plan = self
-            .query_binding_plan
-            .register_scalar_projection(registration)
-            .map_err(WorthUiProjectionRegistrationError)?;
-        Ok(self)
-    }
-
-    pub fn register_collection_projection(
-        mut self,
-        registration: worth_ui_query_binding::UiCollectionProjectionRegistration,
-    ) -> Result<Self, WorthUiProjectionRegistrationError> {
-        self.query_binding_plan = self
-            .query_binding_plan
-            .register_collection_projection(registration)
-            .map_err(WorthUiProjectionRegistrationError)?;
-        Ok(self)
-    }
-
-    pub fn register_runtime_outcome_projection(
-        mut self,
-        descriptor: RuntimeOutcomeProjectionDescriptor,
-    ) -> Self {
-        self.inner = self.inner.register_runtime_outcome_projection(descriptor);
-        self
-    }
-
-    pub fn register_setting(mut self, descriptor: SettingDescriptor) -> Self {
-        self.inner = self.inner.register_setting(descriptor);
-        self
-    }
-
-    pub fn register_task_presentation(mut self, descriptor: TaskPresentationDescriptor) -> Self {
-        self.inner = self.inner.register_task_presentation(descriptor);
-        self
-    }
-
-    pub fn register_theme_token(mut self, descriptor: ThemeTokenDescriptor) -> Self {
-        self.inner = self.inner.register_theme_token(descriptor);
         self
     }
 

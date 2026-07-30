@@ -2,6 +2,7 @@ mod egui_host;
 #[cfg(test)]
 mod egui_host_tests;
 mod identity_overlay;
+mod input_observation;
 mod mounted_effect_support;
 #[cfg(test)]
 mod mounted_effect_support_tests;
@@ -15,6 +16,7 @@ mod semantic_text;
 mod visual_snapshot;
 
 pub use egui_host::WorthUiHostEgui;
+pub use input_observation::{UiEguiRawInputIngressOutcome, UiEguiRawInputReachability};
 pub use mounted_projection_preparation::{
     UiEguiMountedParticipationPreparation, WorthUiEguiMountedProjectionPreparation,
 };

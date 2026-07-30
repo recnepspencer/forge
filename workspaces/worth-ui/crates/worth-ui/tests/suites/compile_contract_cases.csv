@@ -56,6 +56,7 @@ pass,tests/ui/facade/intent/pass/typed_definition_registration.rs,facade_compile
 fail,tests/ui/facade/intent/fail/definition_fields_are_private.rs,facade_compile.rs
 fail,tests/ui/facade/intent/fail/string_command_intent_binding_is_absent.rs,facade_compile.rs
 fail,tests/ui/facade/intent/fail/static_command_readiness_is_absent.rs,facade_compile.rs
+fail,tests/ui/facade/intent/fail/accepted_interactions_require_canonical_order.rs,facade_compile.rs
 fail,tests/ui/facade/command/facade/command_registry_internal_module_not_public.rs,facade_compile.rs
 fail,tests/ui/facade/command/facade/command_registry_type_not_publicly_importable.rs,facade_compile.rs
 fail,tests/ui/facade/component/construction/component_descriptor_fields_not_publicly_mintable.rs,facade_compile.rs

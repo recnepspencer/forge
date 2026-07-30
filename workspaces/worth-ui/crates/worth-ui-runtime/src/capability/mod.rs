@@ -24,7 +24,7 @@ pub use identity::{
 pub use registered_set::RegisteredCapabilitySet;
 pub(crate) use registration::{
     validate_registration_candidates, RegistrationCandidate, RegistrationCandidateDiagnostic,
-    RegistrationDependency,
+    RegistrationDependency, RegistrationValidationReport,
 };
 pub use registry::{
     AmbientHostCheck, ArbitraryKeyValueSettingBag, CommandCategory, CommandDescriptor,
@@ -80,11 +80,12 @@ pub use registry::{
     TaskPresentationLifecyclePosture, TaskPresentationProjectionEligibility,
     TaskPresentationRuntimeAuthorityPosture, ThemeColorValue, ThemeColorValueError,
     ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenKey, ThemeTokenSource,
-    ThemeTokenValue, UiIntent, UiIntentDefinition, UiIntentDefinitionRegistrationError,
-    UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
-    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
-    UiSemanticInteractionFamily, ViewBindingDescriptor, ViewBindingFamily,
-    VisibleStateBindingDeclaration, WorthUiQueryViewRegistration, WorthUiViewBindingIdentity,
+    ThemeTokenValue, UiIntent, UiIntentAcceptedInteractions, UiIntentDefinition,
+    UiIntentDefinitionRegistrationError, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
+    UiIntentProductOutcome, UiIntentRuntimeServiceDestination, UiIntentSchema,
+    UiIntentTransitionDestination, UiSemanticInteractionFamily, ViewBindingDescriptor,
+    ViewBindingFamily, VisibleStateBindingDeclaration, WorthUiQueryViewRegistration,
+    WorthUiViewBindingIdentity,
 };
 pub(crate) use registry::{
     CommandAcceptedRegistrationProof, CommandProjectionAcceptedRegistrationProof,

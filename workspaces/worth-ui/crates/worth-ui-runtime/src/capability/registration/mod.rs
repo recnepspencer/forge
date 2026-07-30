@@ -8,3 +8,4 @@ pub(crate) use registration_candidate::{
     RegistrationCandidate, RegistrationCandidateDiagnostic, RegistrationDependency,
 };
 pub(crate) use registration_validation::validate_registration_candidates;
+pub(crate) use registration_validation_report::RegistrationValidationReport;

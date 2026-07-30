@@ -1,4 +1,4 @@
-use super::{milestone_314_ledger, repository_document};
+use super::{milestone_314_ledger, repository_document, workspace_source_inventory};
 
 fn phase_1_inputs() -> (toml::Value, String) {
     let contract_text = repository_document("_docs/worth-ui/milestone-3.14-phase-1-contract.toml");
@@ -126,4 +126,210 @@ fn milestone_314_contract_freezes_native_and_query_boundaries() {
         contract["public_contract"]["string_intent_authority"].as_bool(),
         Some(false)
     );
+    assert_eq!(
+        contract["public_contract"]["provider_create_phase"].as_integer(),
+        Some(4)
+    );
+    assert_eq!(
+        contract["public_contract"]["accepted_interactions_are_nonempty_canonical"].as_bool(),
+        Some(true)
+    );
+}
+
+#[test]
+fn milestone_314_phase_1_owner_paths_exist_without_demanding_later_placeholders() {
+    let (contract, _) = phase_1_inputs();
+    let inventory = workspace_source_inventory();
+    let required_paths = contract["required_path"]
+        .as_array()
+        .expect("required paths should be an array");
+
+    for required in required_paths {
+        let create_phase = required["create_phase"]
+            .as_integer()
+            .expect("required path should declare its creation phase");
+        assert!(
+            (1..=4).contains(&create_phase),
+            "required path creation phase should be part of 3.14"
+        );
+        if create_phase == 1 {
+            let repository_path = required["path"].as_str().expect("required path");
+            let workspace_path = repository_path
+                .strip_prefix("workspaces/worth-ui/")
+                .expect("required path should belong to the Worth UI workspace");
+            assert!(
+                inventory.root().join(workspace_path).exists(),
+                "Phase 1 owner should exist: {repository_path}"
+            );
+        }
+    }
+}
+
+#[test]
+fn milestone_314_native_versions_and_production_ingress_are_exact() {
+    let (contract, _) = phase_1_inputs();
+    let workspace_manifest: toml::Value =
+        toml::from_str(&repository_document("workspaces/worth-ui/Cargo.toml"))
+            .expect("Worth UI workspace manifest should parse");
+    assert_eq!(
+        workspace_manifest["workspace"]["dependencies"]["egui"].as_str(),
+        Some("=0.31.1")
+    );
+    assert_eq!(
+        workspace_manifest["workspace"]["dependencies"]["eframe"]["version"].as_str(),
+        Some("=0.31.1")
+    );
+
+    let lock: toml::Value = toml::from_str(&repository_document("workspaces/worth-ui/Cargo.lock"))
+        .expect("Worth UI lockfile should parse");
+    for (package, field) in [
+        ("eframe", "eframe_version"),
+        ("egui", "egui_version"),
+        ("egui-winit", "egui_winit_version"),
+        ("winit", "winit_version"),
+    ] {
+        let expected = contract["native_reachability"][field]
+            .as_str()
+            .expect("native dependency version should be frozen");
+        assert!(
+            lock["package"].as_array().is_some_and(|packages| {
+                packages.iter().any(|entry| {
+                    entry["name"].as_str() == Some(package)
+                        && entry["version"].as_str() == Some(expected)
+                })
+            }),
+            "{package} {expected} should be resolved"
+        );
+    }
+
+    let inventory = workspace_source_inventory();
+    let native_frame = inventory.text("apps/platform-pulse/src/native_frame.rs");
+    for required in [
+        "fn raw_input_hook(",
+        "route_native_input(self.host.as_ref(), raw_input)",
+        "host.observe_native_input(raw_input)",
+        "UiEguiRawInputIngressOutcome::Unsupported",
+    ] {
+        assert!(
+            native_frame.contains(required),
+            "Pulse native ingress is missing `{required}`"
+        );
+    }
+    let ingress =
+        inventory.text("crates/worth-ui-host-egui/src/adapter/input_observation/reachability.rs");
+    for required in [
+        "egui::Event::PointerButton",
+        "egui::Event::Key",
+        "egui::Event::Text",
+        "egui::ImeEvent::Preedit",
+        "egui::ImeEvent::Commit",
+        "egui::ImeEvent::Disabled",
+    ] {
+        assert!(
+            ingress.contains(required),
+            "egui ingress does not expose `{required}`"
+        );
+    }
+}
+
+#[test]
+fn milestone_314_pulse_query_edges_remain_audience_safe() {
+    let config: toml::Value = toml::from_str(&repository_document(
+        "tools/boundary-check/config/road1.toml",
+    ))
+    .expect("boundary configuration should parse");
+    let pulse = config["source_dependency_allowlists"]
+        .as_array()
+        .expect("source dependency allowlists")
+        .iter()
+        .find(|rule| {
+            rule["sources"].as_array().is_some_and(|sources| {
+                sources
+                    .iter()
+                    .any(|source| source.as_str() == Some("worth-ui-platform-pulse"))
+            })
+        })
+        .expect("Pulse dependency allowlist");
+    let allowed = pulse["allowed_targets"]
+        .as_array()
+        .expect("Pulse targets")
+        .iter()
+        .filter_map(toml::Value::as_str)
+        .collect::<Vec<_>>();
+
+    for required in ["worth-query-decl", "worth-query-host"] {
+        assert!(allowed.contains(&required), "missing safe edge {required}");
+    }
+    for forbidden in [
+        "worth-query",
+        "worth-query-replay",
+        "worth-ui-query-binding",
+        "worth-ui-runtime",
+        "worth-ui-dsl",
+        "worth-ui-certification",
+        "worth-ui-test-support",
+    ] {
+        assert!(
+            !allowed.contains(&forbidden),
+            "Pulse admits forbidden dependency {forbidden}"
+        );
+    }
+}
+
+#[test]
+fn milestone_314_phase_1_has_no_placeholder_or_generic_host_authority_residue() {
+    let inventory = workspace_source_inventory();
+    let roots = [
+        "crates/worth-ui-runtime/src",
+        "crates/worth-ui-host-contract/src",
+        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-dsl/src",
+        "apps/platform-pulse/src",
+    ];
+    let forbidden = [
+        "CommandRuntimeIntentBinding",
+        "CommandReadinessBinding",
+        "WorthUiHostCapabilityReport::from_contract",
+    ];
+    for root in roots {
+        for source in inventory.rust_files_under(root) {
+            for token in forbidden {
+                assert!(
+                    !source.text().contains(token),
+                    "{} retains forbidden `{token}`",
+                    source.relative_path().display()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn milestone_314_runtime_host_and_dsl_have_no_production_query_authority_edge() {
+    let inventory = workspace_source_inventory();
+    for manifest_path in [
+        "crates/worth-ui-runtime/Cargo.toml",
+        "crates/worth-ui-host-contract/Cargo.toml",
+        "crates/worth-ui-host-egui/Cargo.toml",
+        "crates/worth-ui-dsl/Cargo.toml",
+    ] {
+        let manifest: toml::Value =
+            toml::from_str(inventory.text(manifest_path)).expect("crate manifest should parse");
+        let dependencies = manifest.get("dependencies").map(|dependencies| {
+            dependencies
+                .as_table()
+                .expect("production dependencies should be a table")
+        });
+        for forbidden in [
+            "worth-query",
+            "worth-query-decl",
+            "worth-query-host",
+            "worth-query-replay",
+        ] {
+            assert!(
+                dependencies.is_none_or(|dependencies| !dependencies.contains_key(forbidden)),
+                "{manifest_path} imports forbidden production authority {forbidden}"
+            );
+        }
+    }
 }

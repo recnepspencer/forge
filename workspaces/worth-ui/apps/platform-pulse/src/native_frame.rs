@@ -17,6 +17,8 @@ use crate::visual_identity_execution::{
     PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
 };
 
+#[cfg(test)]
+mod input_reachability_tests;
 mod projection;
 mod query;
 mod rebind;
@@ -261,6 +263,10 @@ impl PlatformPulseNativeFrame {
 }
 
 impl eframe::App for PlatformPulseNativeFrame {
+    fn raw_input_hook(&mut self, _context: &egui::Context, raw_input: &mut egui::RawInput) {
+        let _reachability = route_native_input(self.host.as_ref(), raw_input);
+    }
+
     fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(host) = &self.host {
             host.repaint_retained_surfaces();
@@ -278,6 +284,15 @@ impl eframe::App for PlatformPulseNativeFrame {
             context.request_repaint();
         }
     }
+}
+
+fn route_native_input(
+    host: Option<&WorthUiHostEgui>,
+    raw_input: &egui::RawInput,
+) -> Option<worth_ui_host_egui::UiEguiRawInputReachability> {
+    host.map(|host| match host.observe_native_input(raw_input) {
+        worth_ui_host_egui::UiEguiRawInputIngressOutcome::Unsupported(reachability) => reachability,
+    })
 }
 
 impl Drop for PlatformPulseNativeFrame {

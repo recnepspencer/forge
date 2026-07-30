@@ -3,6 +3,7 @@ mod translation;
 
 pub use adapter::{
     UiEguiMountedParticipationPreparation, UiEguiMountedResourceHandle,
+    UiEguiRawInputIngressOutcome, UiEguiRawInputReachability,
     WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache, WorthUiHostEgui,
 };
 pub use translation::{

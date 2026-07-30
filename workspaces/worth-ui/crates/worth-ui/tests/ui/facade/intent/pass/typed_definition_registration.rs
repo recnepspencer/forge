@@ -1,8 +1,8 @@
 use worth_ui::facade::{
     app::WorthUi,
     intent::{
-        UiIntent, UiIntentDefinition, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
-        UiIntentSchema, UiSemanticInteractionFamily,
+        UiIntent, UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentId, UiIntentPayload,
+        UiIntentProductOutcome, UiIntentSchema, UiSemanticInteractionFamily,
     },
     rebind::UiChangeProfile,
 };
@@ -26,8 +26,8 @@ impl UiIntent for Intent {
     type ProductOutcome = Outcome;
 
     const ID: UiIntentId = UiIntentId::stable("compile.intent");
-    const ACCEPTED_INTERACTIONS: &'static [UiSemanticInteractionFamily] =
-        &[UiSemanticInteractionFamily::Activate];
+    const ACCEPTED_INTERACTIONS: UiIntentAcceptedInteractions =
+        UiIntentAcceptedInteractions::new(&[UiSemanticInteractionFamily::Activate]);
 }
 
 fn main() {
