@@ -1,6 +1,10 @@
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use super::catalog::ControlledMutation;
+
+const SOURCE_WRITE_RETRY_WINDOW: Duration = Duration::from_secs(2);
+const SOURCE_WRITE_RETRY_DELAY: Duration = Duration::from_millis(10);
 
 pub(super) struct InstalledSourceMutation {
     source: PathBuf,
@@ -55,7 +59,7 @@ impl InstalledSourceMutation {
         if self.restored {
             return Ok(());
         }
-        std::fs::write(&self.source, &self.original)
+        write_source(&self.source, &self.original)
             .map_err(|error| format!("cannot restore mutant {} source: {error}", mutation.id))?;
         let restored = std::fs::read(&self.source).map_err(|error| {
             format!("cannot verify mutant {} restoration: {error}", mutation.id)
@@ -71,7 +75,7 @@ impl InstalledSourceMutation {
     }
 
     fn install(&mut self, mutation: &ControlledMutation) -> Result<(), String> {
-        std::fs::write(&self.source, &self.mutated)
+        write_source(&self.source, &self.mutated)
             .map_err(|error| format!("cannot install mutant {}: {error}", mutation.id))?;
         self.restored = false;
         let installed = std::fs::read(&self.source).map_err(|error| {
@@ -90,14 +94,37 @@ impl InstalledSourceMutation {
 impl Drop for InstalledSourceMutation {
     fn drop(&mut self) {
         if !self.restored {
-            let _ = std::fs::write(&self.source, &self.original);
+            let _ = write_source(&self.source, &self.original);
         }
     }
 }
 
+fn write_source(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    retry_transient_source_lock(|| std::fs::write(path, bytes))
+}
+
+fn retry_transient_source_lock(
+    mut write: impl FnMut() -> std::io::Result<()>,
+) -> std::io::Result<()> {
+    let deadline = Instant::now() + SOURCE_WRITE_RETRY_WINDOW;
+    loop {
+        match write() {
+            Ok(()) => return Ok(()),
+            Err(error) if is_transient_source_lock(&error) && Instant::now() < deadline => {
+                std::thread::sleep(SOURCE_WRITE_RETRY_DELAY);
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+fn is_transient_source_lock(error: &std::io::Error) -> bool {
+    matches!(error.raw_os_error(), Some(32 | 33 | 1224))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::InstalledSourceMutation;
+    use super::{retry_transient_source_lock, InstalledSourceMutation};
     use crate::mutation_campaign::catalog::{ControlledMutation, MutationTarget};
 
     #[test]
@@ -130,6 +157,23 @@ mod tests {
             assert_eq!(std::fs::read(&source).unwrap(), b"mutated seam\n");
         }
         assert_eq!(std::fs::read(source).unwrap(), original);
+    }
+
+    #[test]
+    fn transient_user_mapping_is_retried_before_restoration_fails() {
+        let mut attempts = 0;
+        let result = retry_transient_source_lock(|| {
+            attempts += 1;
+            if attempts == 1 {
+                Err(std::io::Error::from_raw_os_error(1224))
+            } else {
+                Ok(())
+            }
+        });
+        if result.is_err() {
+            panic!("MUTANT_PREDICATE:source-restoration-transient-lock-unretried");
+        }
+        assert_eq!(attempts, 2);
     }
 
     const fn fixture_mutation() -> ControlledMutation {

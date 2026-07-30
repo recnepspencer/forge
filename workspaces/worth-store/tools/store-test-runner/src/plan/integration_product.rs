@@ -37,6 +37,14 @@ pub(super) fn integration_lane(
         arguments,
         None,
     );
+    let tests = if targets
+        .iter()
+        .any(|target| target.package == env!("CARGO_PKG_NAME"))
+    {
+        tests.isolate_from_running_executable()
+    } else {
+        tests
+    };
     if includes_physical_record_journeys(&targets) {
         Ok(vec![offline_observer_build(workspace_root), tests])
     } else {

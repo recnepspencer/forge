@@ -1,204 +1,78 @@
-use serde_json::{json, Value};
+use serde::ser::{Serialize, SerializeMap, Serializer};
 
-use super::super::protocol::{
-    BoundedResidencyMediaRole, BoundedResidencySchedulerEvidenceClass,
-    BoundedResidencySchedulerProfile, BoundedResidencySignalAspectRole,
-    BoundedResidencySignalBindingObservation, BoundedResidencySignalFamily,
-    BoundedResidencySignalSettlement, BoundedResidencyWorkEffectFate, BoundedResidencyWorkFamily,
-    BoundedResidencyWorkReconciliationObservation, BoundedResidencyWorkRecordObservation,
-    BoundedResidencyWorkRecovery, BoundedResidencyWorkTerminalFate,
-};
-use crate::physical_work_evidence::hex;
+use super::super::protocol::BoundedResidencyWorkReconciliationObservation;
 
-pub(super) fn value(evidence: &BoundedResidencyWorkReconciliationObservation) -> Value {
-    json!({
-        "causal_overflow": evidence.causal_overflow,
-        "terminal_overflow": evidence.terminal_overflow,
-        "safe_evidence_elided": evidence.safe_evidence_elided,
-        "faults": evidence.faults,
-        "source_loads": evidence.source_loads,
-        "exact_writebacks": evidence.exact_writebacks,
-        "identified_metadata_reads": evidence.identified_metadata_reads,
-        "identified_positioned_reads": evidence.identified_positioned_reads,
-        "identified_positioned_writes": evidence.identified_positioned_writes,
-        "terminal_fates": {
-            "settled": evidence.settled_terminal_fates,
-            "continued_after_consumer_cancellation": evidence.continued_terminal_fates,
-        },
-        "signal_bindings": evidence
-            .signal_bindings
-            .iter()
-            .map(signal_binding)
-            .collect::<Vec<_>>(),
-        "records": evidence.records.iter().map(record).collect::<Vec<_>>(),
-    })
-}
+#[path = "work_reconciliation/record.rs"]
+mod record;
+#[path = "work_reconciliation/signal_binding.rs"]
+mod signal_binding;
 
-fn signal_binding(binding: &BoundedResidencySignalBindingObservation) -> Value {
-    json!({
-        "digest": hex(&binding.digest),
-        "aspect_key": binding.aspect_key,
-        "role": signal_role(binding.role),
-        "families": {
-            "read_fault": binding.families.read_fault,
-            "exact_writeback": binding.families.exact_writeback,
-            "publication": binding.families.publication,
-            "lifecycle": binding.families.lifecycle,
-        },
-        "partition": binding.partition,
-    })
-}
+pub(super) struct WorkReconciliationProjection<'evidence>(
+    pub(super) &'evidence BoundedResidencyWorkReconciliationObservation,
+);
 
-const fn signal_role(role: BoundedResidencySignalAspectRole) -> &'static str {
-    match role {
-        BoundedResidencySignalAspectRole::Dependency => "dependency",
-        BoundedResidencySignalAspectRole::Output => "output",
-        BoundedResidencySignalAspectRole::DependencyAndOutput => "dependency-and-output",
+impl Serialize for WorkReconciliationProjection<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let evidence = self.0;
+        let mut map = serializer.serialize_map(Some(12))?;
+        map.serialize_entry("causal_overflow", &evidence.causal_overflow)?;
+        map.serialize_entry("terminal_overflow", &evidence.terminal_overflow)?;
+        map.serialize_entry("safe_evidence_elided", &evidence.safe_evidence_elided)?;
+        map.serialize_entry("faults", &evidence.faults)?;
+        map.serialize_entry("source_loads", &evidence.source_loads)?;
+        map.serialize_entry("exact_writebacks", &evidence.exact_writebacks)?;
+        map.serialize_entry(
+            "identified_metadata_reads",
+            &evidence.identified_metadata_reads,
+        )?;
+        map.serialize_entry(
+            "identified_positioned_reads",
+            &evidence.identified_positioned_reads,
+        )?;
+        map.serialize_entry(
+            "identified_positioned_writes",
+            &evidence.identified_positioned_writes,
+        )?;
+        map.serialize_entry("terminal_fates", &TerminalFates(evidence))?;
+        map.serialize_entry(
+            "signal_bindings",
+            &signal_binding::SignalBindings(&evidence.signal_bindings),
+        )?;
+        map.serialize_entry("records", &record::Records(&evidence.records))?;
+        map.end()
     }
 }
 
-fn record(record: &BoundedResidencyWorkRecordObservation) -> Value {
-    json!({
-        "store": hex(&record.store),
-        "runtime": record.runtime,
-        "generation": record.generation,
-        "operation": record.operation,
-        "family": family(record.family),
-        "backend_operation": record.backend_operation,
-        "backend_role": media_role(record.backend_role),
-        "effect_fate": effect_fate(record.effect_fate),
-        "recovery": recovery(record.recovery),
-        "route": {
-            "signal": {
-                "request": record.route.signal.request,
-                "generation": record.route.signal.generation,
-                "branch": record.route.signal.branch,
-                "restore_epoch": record.route.signal.restore_epoch,
-                "attempt": record.route.signal_attempt,
-                "family": signal_family(record.route.signal_family),
-                "binding": hex(&record.route.signal_binding),
-            },
-            "predecessor": record.route.predecessor.map(|predecessor| json!({
-                "request": predecessor.request,
-                "generation": predecessor.generation,
-                "branch": predecessor.branch,
-                "restore_epoch": predecessor.restore_epoch,
-            })),
-            "scheduler": {
-                "profile": scheduler_profile(record.route.scheduler_profile),
-                "evidence_class": scheduler_evidence_class(
-                    record.route.scheduler_evidence_class
-                ),
-                "grouped_writes": record.route.scheduler_grouped_writes,
-                "primary_requirement": record.route.scheduler_primary_requirement,
-                "secondary_present": record.route.scheduler_secondary_present,
-            },
-            "signal_settlement": signal_settlement(record.route.signal_settlement),
-        },
-        "terminal": terminal(record.terminal),
-    })
-}
+struct TerminalFates<'evidence>(&'evidence BoundedResidencyWorkReconciliationObservation);
 
-const fn media_role(role: BoundedResidencyMediaRole) -> &'static str {
-    match role {
-        BoundedResidencyMediaRole::CreateNew => "create-new",
-        BoundedResidencyMediaRole::PositionedRead => "positioned-read",
-        BoundedResidencyMediaRole::PositionedWrite => "positioned-write",
-        BoundedResidencyMediaRole::ReadMetadata => "read-metadata",
-        BoundedResidencyMediaRole::SynchronizeFileState => "synchronize-file-state",
-        BoundedResidencyMediaRole::SynchronizeDirectoryPublication => {
-            "synchronize-directory-publication"
-        }
-        BoundedResidencyMediaRole::AtomicReplace => "atomic-replace",
-    }
-}
-
-const fn signal_family(family: BoundedResidencySignalFamily) -> &'static str {
-    match family {
-        BoundedResidencySignalFamily::ReadFault => "read-fault",
-        BoundedResidencySignalFamily::ExactWriteback => "exact-writeback",
-        BoundedResidencySignalFamily::Publication => "publication",
-        BoundedResidencySignalFamily::Lifecycle => "lifecycle",
-    }
-}
-
-const fn scheduler_profile(profile: BoundedResidencySchedulerProfile) -> &'static str {
-    match profile {
-        BoundedResidencySchedulerProfile::SimulatedStrictDurable => "simulated-strict-durable",
-        BoundedResidencySchedulerProfile::PosixFileFsyncDirSync => "posix-file-fsync-dir-sync",
-        BoundedResidencySchedulerProfile::WindowsFlushFileBuffers => "windows-flush-file-buffers",
-        BoundedResidencySchedulerProfile::MmapFlushNotDurabilityCertified => {
-            "mmap-flush-not-durability-certified"
-        }
-        BoundedResidencySchedulerProfile::AdversarialLostFlush => "adversarial-lost-flush",
-        BoundedResidencySchedulerProfile::AdversarialReorderedFlush => {
-            "adversarial-reordered-flush"
-        }
-    }
-}
-
-const fn scheduler_evidence_class(class: BoundedResidencySchedulerEvidenceClass) -> &'static str {
-    match class {
-        BoundedResidencySchedulerEvidenceClass::DeclaredByConfig => "declared-by-config",
-        BoundedResidencySchedulerEvidenceClass::ObservedByProbe => "observed-by-probe",
-        BoundedResidencySchedulerEvidenceClass::EstablishedByFilesystemAdmission => {
-            "established-by-filesystem-admission"
-        }
-        BoundedResidencySchedulerEvidenceClass::ExternallyGuaranteed => "externally-guaranteed",
-        BoundedResidencySchedulerEvidenceClass::UnverifiableAssumption => "unverifiable-assumption",
-        BoundedResidencySchedulerEvidenceClass::CertifiedBackendProfile => {
-            "certified-backend-profile"
-        }
-    }
-}
-
-const fn signal_settlement(settlement: BoundedResidencySignalSettlement) -> &'static str {
-    match settlement {
-        BoundedResidencySignalSettlement::Committed => "committed",
-        BoundedResidencySignalSettlement::ReconciledFromPhysicalTruth => {
-            "reconciled-from-physical-truth"
-        }
-        BoundedResidencySignalSettlement::DerivedStateUnavailable => "derived-state-unavailable",
-    }
-}
-
-const fn family(family: BoundedResidencyWorkFamily) -> &'static str {
-    match family {
-        BoundedResidencyWorkFamily::ArtifactMetadataRead => "artifact-metadata-read",
-        BoundedResidencyWorkFamily::ArtifactRangeRead => "artifact-range-read",
-        BoundedResidencyWorkFamily::ArtifactRangeWrite => "artifact-range-write",
-        BoundedResidencyWorkFamily::ArtifactPublication => "artifact-publication",
-    }
-}
-
-const fn effect_fate(fate: BoundedResidencyWorkEffectFate) -> &'static str {
-    match fate {
-        BoundedResidencyWorkEffectFate::ReadCompleted => "read-completed",
-        BoundedResidencyWorkEffectFate::WriteCompleted => "write-completed",
-        BoundedResidencyWorkEffectFate::PublicationCompleted => "publication-completed",
-    }
-}
-
-const fn recovery(recovery: BoundedResidencyWorkRecovery) -> &'static str {
-    match recovery {
-        BoundedResidencyWorkRecovery::NoEffect => "no-effect",
-        BoundedResidencyWorkRecovery::ContinueSettlement => "continue-settlement",
-    }
-}
-
-const fn terminal(terminal: BoundedResidencyWorkTerminalFate) -> &'static str {
-    match terminal {
-        BoundedResidencyWorkTerminalFate::Settled => "settled",
-        BoundedResidencyWorkTerminalFate::ContinuedAfterConsumerCancellation => {
-            "continued-after-consumer-cancellation"
-        }
+impl Serialize for TerminalFates<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("settled", &self.0.settled_terminal_fates)?;
+        map.serialize_entry(
+            "continued_after_consumer_cancellation",
+            &self.0.continued_terminal_fates,
+        )?;
+        map.end()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::courtroom_campaign::bounded_residency_siege::protocol::BoundedResidencySignalFamilySet;
+    use crate::courtroom_campaign::bounded_residency_siege::protocol::{
+        BoundedResidencyMediaRole, BoundedResidencySignalAspectRole,
+        BoundedResidencySignalBindingObservation, BoundedResidencySignalFamilySet,
+        BoundedResidencyWorkEffectFate, BoundedResidencyWorkFamily,
+        BoundedResidencyWorkRecordObservation, BoundedResidencyWorkRecovery,
+        BoundedResidencyWorkTerminalFate,
+    };
 
     #[test]
     fn projection_preserves_every_identity_receipt_fate_and_terminal_field() {
@@ -246,7 +120,7 @@ mod tests {
             }]
             .into_boxed_slice(),
         };
-        let encoded = value(&evidence);
+        let encoded = serde_json::to_value(WorkReconciliationProjection(&evidence)).unwrap();
         assert_eq!(encoded["faults"], 1);
         assert_eq!(encoded["identified_metadata_reads"], 0);
         assert_eq!(encoded["terminal_fates"]["settled"], 1);

@@ -2,8 +2,10 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Instant;
 
-use crate::plan::{TestExecutionUnit, TestPlan};
+use crate::plan::{CargoTargetDirectoryPolicy, TestExecutionUnit, TestPlan};
 use crate::report::{TestRunReport, UnitResult};
+
+const ISOLATED_RUNNER_TARGET_DIRECTORY: &str = "target/store-test-runner-ui";
 
 pub(crate) fn execute(plan: &TestPlan, target_root: Option<&Path>) -> TestRunReport {
     let started = Instant::now();
@@ -138,11 +140,34 @@ fn command_with_arguments(
     let mut command = Command::new(unit.program());
     command.args(arguments).current_dir(unit.directory());
     if unit.program() == "cargo" {
-        if let Some(root) = target_root {
+        if let Some(root) = cargo_target_root(
+            unit.directory(),
+            unit.cargo_target_directory_policy(),
+            target_root,
+            cfg!(windows),
+        ) {
             command.env("CARGO_TARGET_DIR", root);
         }
     }
     command
+}
+
+fn cargo_target_root(
+    directory: &Path,
+    policy: CargoTargetDirectoryPolicy,
+    requested: Option<&Path>,
+    platform_locks_running_executable: bool,
+) -> Option<std::path::PathBuf> {
+    if let Some(requested) = requested {
+        return Some(requested.to_path_buf());
+    }
+    let requires_isolation =
+        platform_locks_running_executable && policy.isolates_from_running_executable();
+    if requires_isolation {
+        Some(directory.join(ISOLATED_RUNNER_TARGET_DIRECTORY))
+    } else {
+        None
+    }
 }
 
 fn git_revision(plan: &TestPlan) -> Option<String> {
@@ -160,7 +185,9 @@ fn git_revision(plan: &TestPlan) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::listed_test_count;
+    use super::{cargo_target_root, listed_test_count, ISOLATED_RUNNER_TARGET_DIRECTORY};
+    use crate::plan::CargoTargetDirectoryPolicy;
+    use std::path::Path;
 
     #[test]
     fn machine_readable_listing_requires_the_expected_tests() {
@@ -169,5 +196,56 @@ mod tests {
         assert_eq!(listed_test_count(empty, false), 0);
         assert_eq!(listed_test_count(populated, false), 1);
         assert_eq!(listed_test_count("package::binary module::test\n", true), 1);
+    }
+
+    #[test]
+    fn executable_locking_platform_isolates_self_compiling_cargo_units() {
+        let automatic = cargo_target_root(
+            Path::new("workspace"),
+            CargoTargetDirectoryPolicy::IsolateFromRunningExecutable,
+            None,
+            true,
+        );
+        if automatic.is_none() {
+            panic!("MUTANT_PREDICATE:ui-product-rebuilds-live-runner");
+        }
+        assert_eq!(
+            automatic.unwrap(),
+            Path::new("workspace").join(ISOLATED_RUNNER_TARGET_DIRECTORY)
+        );
+        assert_eq!(
+            cargo_target_root(
+                Path::new("workspace"),
+                CargoTargetDirectoryPolicy::IsolateFromRunningExecutable,
+                None,
+                false,
+            ),
+            None
+        );
+
+        let requested = Path::new("chosen-target");
+        assert_eq!(
+            cargo_target_root(
+                Path::new("workspace"),
+                CargoTargetDirectoryPolicy::IsolateFromRunningExecutable,
+                Some(requested),
+                true,
+            )
+            .as_deref(),
+            Some(requested)
+        );
+    }
+
+    #[test]
+    fn ordinary_cargo_units_retain_the_shared_target_directory() {
+        assert_eq!(
+            cargo_target_root(
+                Path::new("workspace"),
+                CargoTargetDirectoryPolicy::Shared,
+                None,
+                true,
+            ),
+            None
+        );
     }
 }

@@ -1093,34 +1093,40 @@ authority.
 
 ### Current Contract And Successor Links
 
-Phase 9 publishes one Store-owned bounded residency contract and records that
-the parallel S.2 authority graph is gone. This is not the final C.6 verdict:
-Phase 10 must still close the hostile fresh-process courtroom, the canonical
-staged schedule plus 16 revision-derived replayable CI schedule seeds, the
-append-only mutation regression corpus, and the full requirement ledger before
-the milestone is complete. The twelve designed controlled-defect categories
-are the minimum corpus; every later executable C.6 or certification-evidence
-bug correction must append its causal mutation before its finding can close.
-Current
-developer guidance and completed predecessor evidence:
+Phase 10 closes C.6 on one Store-owned bounded-residency contract with the
+parallel S.2 authority graph removed. The final v10 hostile fresh-process
+courtroom accepted a Store 106.5 times larger than its resident budget under
+the canonical schedule; all 16 revision-derived CI lanes produced distinct,
+exactly replayable decision traces; and the append-only mutation corpus killed
+all 37 executions `42..78` at their declared predicates. The twelve designed
+controlled-defect categories remain the minimum corpus, and every later
+executable C.6 or certification-evidence bug correction must append its causal
+mutation before its finding can close. Current developer guidance and completed
+closure evidence:
 
 - [C.6 engineering specification](./physical-reconstruction-c6-buffer-pool-runtime-join.md)
 - [bounded physical record access guide](./bounded-physical-record-access.md)
 - [buffer-pool owner README](../../workspaces/worth-store/crates/worth-store-buffer-pool/README.md)
 - [Phase 8 deletion closure](./physical-reconstruction-c6-phase-8-closure-ledger.md)
 - [Phase 9 documentation closure](./physical-reconstruction-c6-phase-9-closure-ledger.md)
+- [Phase 10 hostile-courtroom and mutation closure](./physical-reconstruction-c6-phase-10-closure-ledger.md)
 
-C.6 hands bounded physical identity, borrowed chunks, exact pressure,
-Store-generation evidence, dirty/writeback truth, and scheduler-ready physical
-work forward without granting pool control or successor policy:
+C.6 hands bounded physical truth forward through these exact successor
+boundaries. These are insertion contracts, not empty successor modules or
+permission to publish C.6 internals early.
 
-- [C.7 durability ordering](#c7-wal-checkpoint-root-publication-and-acknowledgment-join)
-- [C.8 fresh-process recovery](#c8-fresh-process-recovery-and-reopen)
-- [C.9 physical integrity](#c9-physical-integrity-corruption-localization-and-offline-truth)
-- [C.10 stable reads and scheduled I/O](#c10-stable-reads-scheduled-io-and-maintenance-interference)
-- [C.11 layout, indexes, and native blobs](#c11-layout-index-and-native-blob-adoption)
+| Successor | C.6 authority it may consume | Authority it must not acquire | Current insertion or adapter boundary |
+| --- | --- | --- | --- |
+| [C.7 durability ordering](#c7-wal-checkpoint-root-publication-and-acknowledgment-join) | Store-composed dirty/writeback typestate and `PhysicalWritebackSettlement` identity, effect fate, recovery disposition, and Signal settlement | pool construction, frame-table or clean-transition control, or a durability decision inferred from dirty state; C.7 supplies WAL and durability policy | `record_serving/residency/dirty/`; the Store-owned `FrameWritebackPort` remains private and the successor typestate is not ordinarily exported before C.7 installs its adapter |
+| [C.8 fresh-process recovery](#c8-fresh-process-recovery-and-reopen) | `RecoveryPhysicalAllocation`, runtime/generation binding, and public physical effect-fate and recovery-disposition evidence | live pool contents, frame-table constructors, eviction control, or a hidden unlimited reconstruction mode | `worth-store-recovery-physics::RecoveryMemoryAllocation` consumes the runtime-borrowed Recovery allocation; reconstruction must enter through a future Recovery-owned port |
+| [C.9 physical integrity](#c9-physical-integrity-corruption-localization-and-offline-truth) | borrowed `PhysicalRecordChunkView`, `PhysicalRecordChunkBasis`, and Verification/Scrub-scoped allocation | pool, pin, eviction, frame-loading, or integrity authority inferred from unverified bytes | `worth-store-physical-integrity::ProtectedPhysicalByteView::from_store_chunk` copies only the basis and borrow before integrity admission |
+| [C.10 stable reads and scheduled I/O](#c10-stable-reads-scheduled-io-and-maintenance-interference) | lease-bound chunks, `PhysicalRecordPressureEvidence`, Maintenance-scoped allocation, and Store-composed scheduler-ready physical work | semantic MVCC, Query authority, direct scheduler ownership, or a second scheduler | `worth-store-physical-isolation::PhysicalByteGuard::from_record_chunk` owns the current lease adapter; future scheduling enters through the Store composition boundary |
+| [C.11 layout, indexes, and native blobs](#c11-layout-index-and-native-blob-adoption) | `BlobPhysicalAllocation` and bounded `RecordReadSession` chunk streaming with Store/runtime/generation evidence | whole-blob materialization, pool control, or semantic liveness inferred from physical residency | `worth-store-blob-chunks::streaming` consumes exact Blob allocations and bounded source/observation streams; whole-object vector substitutes remain explicit denials |
 
 ## C.7: WAL, Checkpoint, Root Publication, And Acknowledgment Join
+
+Engineering spec:
+[physical-reconstruction-c7-durable-publication-join.md](physical-reconstruction-c7-durable-publication-join.md)
 
 ### Goal
 

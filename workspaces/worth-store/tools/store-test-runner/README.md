@@ -3,6 +3,37 @@
 `store-test-runner` owns workspace test selection, causal mutation execution, and
 the fresh-process courtrooms. Run commands from `workspaces/worth-store`.
 
+## Running proof products
+
+The runner turns the workspace test catalog into named products such as owner
+checks, developer smoke, UI compile proofs, mutation campaigns, and
+courtrooms. Use those products instead of assembling overlapping Cargo target
+lists by hand.
+
+Run the complete UI compile-proof product:
+
+```text
+cargo run -q -p store-test-runner -- ui
+```
+
+The UI product includes the runner's own authority compile tests. Windows does
+not permit child Cargo to replace the executable that is currently running, so
+the ordinary command automatically builds that self-compiling product in the
+stable derived cache `target/store-test-runner-ui`. Other products continue to
+reuse the ordinary workspace target directory.
+
+Supply `--target-root` when an external build system owns the cache location:
+
+```text
+cargo run -q -p store-test-runner -- ui --target-root <TARGET_DIRECTORY>
+```
+
+An explicit target root always wins. Do not work around an access-denied build
+by retrying it, copying the workspace, or retaining an extracted target tree.
+The automatic UI directory is ordinary derived Cargo output: it is reusable
+between runs, removable with workspace build output, and never certification
+evidence.
+
 ## Courtroom C scheduling
 
 Courtroom C has two independent reproducibility inputs:

@@ -13,7 +13,7 @@ mod smoke_product;
 mod structural_product;
 
 use execution_unit::apply_ci_profiles;
-pub(crate) use execution_unit::TestExecutionUnit;
+pub(crate) use execution_unit::{CargoTargetDirectoryPolicy, TestExecutionUnit};
 use integration_product::integration_lane;
 use offline_observer_build::offline_observer_build;
 use owner_product::{owner, owner_ci};

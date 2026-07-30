@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::{TestExecutionUnit, TestPlan};
+use super::{CargoTargetDirectoryPolicy, TestExecutionUnit, TestPlan};
 use crate::catalog::TestCatalog;
 use crate::classification::CiTestLane;
 use crate::product::TestProduct;
@@ -144,6 +144,24 @@ fn every_smoke_selector_names_one_exact_binary_test() {
                 case.package, case.target, case.filter
             )));
         }
+    }
+}
+
+#[test]
+fn ui_product_marks_the_runner_compilation_for_executable_isolation() {
+    let catalog = TestCatalog::load(workspace_root()).unwrap();
+    for product in [
+        TestProduct::Ui,
+        TestProduct::Ci {
+            lane: CiTestLane::Ui,
+            shard: None,
+        },
+    ] {
+        let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
+        assert_eq!(
+            integration_runner(&plan).cargo_target_directory_policy(),
+            CargoTargetDirectoryPolicy::IsolateFromRunningExecutable
+        );
     }
 }
 

@@ -1,74 +1,152 @@
-use serde_json::{json, Value};
+use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 
 use super::super::protocol::{
     BoundedResidencyAllocationBoundaryObservation, BoundedResidencyAllocationDimensionObservation,
     BoundedResidencyAllocationObservation,
 };
 
-pub(super) fn value(allocation: &BoundedResidencyAllocationObservation) -> Value {
-    json!({
-        "scopes": {
-            "admitted_scopes": allocation.scopes.admitted_scopes,
-            "exact_scope_denials": allocation.scopes.exact_scope_denials,
-            "global_envelope_denied": allocation.scopes.global_envelope_denied,
-            "global_denial_requested": allocation.scopes.global_denial_requested,
-            "global_denial_current": allocation.scopes.global_denial_current,
-            "global_denial_limit": allocation.scopes.global_denial_limit,
-            "peak_operation_bytes": allocation.scopes.peak_operation_bytes,
-            "terminal_operation_bytes": allocation.scopes.terminal_operation_bytes,
-            "all_effect_free": allocation.scopes.all_effect_free,
-        },
-        "dimensions": allocation
-            .dimensions
-            .iter()
-            .copied()
-            .map(dimension)
-            .collect::<Vec<_>>(),
-        "trace": {
-            "store": crate::physical_work_evidence::hex(&allocation.trace.store),
-            "pool_incarnation": allocation.trace.pool_incarnation,
-            "event_count": allocation.trace.event_count,
-            "process": allocation.trace.process,
-            "attributed_actualizations": allocation.trace.attributed_actualizations,
-            "events": allocation.trace.events.iter().map(boundary).collect::<Vec<_>>(),
-        },
-    })
+pub(super) struct AllocationProjection<'evidence>(
+    pub(super) &'evidence BoundedResidencyAllocationObservation,
+);
+
+impl Serialize for AllocationProjection<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let allocation = self.0;
+        let mut map = serializer.serialize_map(Some(3))?;
+        map.serialize_entry("scopes", &Scopes(allocation))?;
+        map.serialize_entry("dimensions", &Dimensions(allocation))?;
+        map.serialize_entry("trace", &Trace(allocation))?;
+        map.end()
+    }
 }
 
-fn dimension(dimension: BoundedResidencyAllocationDimensionObservation) -> Value {
-    json!({
-        "name": dimension.name,
-        "attempts": dimension.attempts,
-        "admissions": dimension.admissions,
-        "releases": dimension.releases,
-        "denials": dimension.denials,
-        "allocator_failures": dimension.allocator_failures,
-        "admitted_units": dimension.admitted_units,
-        "released_units": dimension.released_units,
-        "denied_units": dimension.denied_units,
-        "active_units": dimension.active_units,
-        "current_units": dimension.current_units,
-        "peak_units": dimension.peak_units,
-        "limit_units": dimension.limit_units,
-    })
+struct Scopes<'evidence>(&'evidence BoundedResidencyAllocationObservation);
+
+impl Serialize for Scopes<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let scopes = self.0.scopes;
+        let mut map = serializer.serialize_map(Some(9))?;
+        map.serialize_entry("admitted_scopes", &scopes.admitted_scopes)?;
+        map.serialize_entry("exact_scope_denials", &scopes.exact_scope_denials)?;
+        map.serialize_entry("global_envelope_denied", &scopes.global_envelope_denied)?;
+        map.serialize_entry("global_denial_requested", &scopes.global_denial_requested)?;
+        map.serialize_entry("global_denial_current", &scopes.global_denial_current)?;
+        map.serialize_entry("global_denial_limit", &scopes.global_denial_limit)?;
+        map.serialize_entry("peak_operation_bytes", &scopes.peak_operation_bytes)?;
+        map.serialize_entry("terminal_operation_bytes", &scopes.terminal_operation_bytes)?;
+        map.serialize_entry("all_effect_free", &scopes.all_effect_free)?;
+        map.end()
+    }
 }
 
-fn boundary(event: &BoundedResidencyAllocationBoundaryObservation) -> Value {
-    json!({
-        "sequence": event.sequence,
-        "kind": event.kind,
-        "dimension": event.dimension,
-        "scope": event.scope,
-        "requested_units": event.requested_units,
-        "actual_units": event.actual_units,
-        "process": event.process,
-        "physical_operation": event.physical_operation,
-    })
+struct Dimensions<'evidence>(&'evidence BoundedResidencyAllocationObservation);
+
+impl Serialize for Dimensions<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(Some(self.0.dimensions.len()))?;
+        for dimension in &self.0.dimensions {
+            sequence.serialize_element(&Dimension(*dimension))?;
+        }
+        sequence.end()
+    }
+}
+
+struct Dimension(BoundedResidencyAllocationDimensionObservation);
+
+impl Serialize for Dimension {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let dimension = self.0;
+        let mut map = serializer.serialize_map(Some(13))?;
+        map.serialize_entry("name", dimension.name)?;
+        map.serialize_entry("attempts", &dimension.attempts)?;
+        map.serialize_entry("admissions", &dimension.admissions)?;
+        map.serialize_entry("releases", &dimension.releases)?;
+        map.serialize_entry("denials", &dimension.denials)?;
+        map.serialize_entry("allocator_failures", &dimension.allocator_failures)?;
+        map.serialize_entry("admitted_units", &dimension.admitted_units)?;
+        map.serialize_entry("released_units", &dimension.released_units)?;
+        map.serialize_entry("denied_units", &dimension.denied_units)?;
+        map.serialize_entry("active_units", &dimension.active_units)?;
+        map.serialize_entry("current_units", &dimension.current_units)?;
+        map.serialize_entry("peak_units", &dimension.peak_units)?;
+        map.serialize_entry("limit_units", &dimension.limit_units)?;
+        map.end()
+    }
+}
+
+struct Trace<'evidence>(&'evidence BoundedResidencyAllocationObservation);
+
+impl Serialize for Trace<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let trace = &self.0.trace;
+        let mut map = serializer.serialize_map(Some(6))?;
+        map.serialize_entry("store", &crate::physical_work_evidence::hex(&trace.store))?;
+        map.serialize_entry("pool_incarnation", &trace.pool_incarnation)?;
+        map.serialize_entry("event_count", &trace.event_count)?;
+        map.serialize_entry("process", &trace.process)?;
+        map.serialize_entry(
+            "attributed_actualizations",
+            &trace.attributed_actualizations,
+        )?;
+        map.serialize_entry("events", &Events(&trace.events))?;
+        map.end()
+    }
+}
+
+struct Events<'evidence>(&'evidence [BoundedResidencyAllocationBoundaryObservation]);
+
+impl Serialize for Events<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+        for event in self.0 {
+            sequence.serialize_element(&Boundary(event))?;
+        }
+        sequence.end()
+    }
+}
+
+struct Boundary<'evidence>(&'evidence BoundedResidencyAllocationBoundaryObservation);
+
+impl Serialize for Boundary<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let event = self.0;
+        let mut map = serializer.serialize_map(Some(8))?;
+        map.serialize_entry("sequence", &event.sequence)?;
+        map.serialize_entry("kind", event.kind)?;
+        map.serialize_entry("dimension", event.dimension)?;
+        map.serialize_entry("scope", &event.scope)?;
+        map.serialize_entry("requested_units", &event.requested_units)?;
+        map.serialize_entry("actual_units", &event.actual_units)?;
+        map.serialize_entry("process", &event.process)?;
+        map.serialize_entry("physical_operation", &event.physical_operation)?;
+        map.end()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::value;
+    use super::AllocationProjection;
     use crate::courtroom_campaign::bounded_residency_siege::protocol::{
         BoundedResidencyAllocationBoundaryObservation,
         BoundedResidencyAllocationDimensionObservation, BoundedResidencyAllocationObservation,
@@ -109,7 +187,7 @@ mod tests {
                 .into_boxed_slice(),
             },
         };
-        let projected = value(&allocation);
+        let projected = serde_json::to_value(AllocationProjection(&allocation)).unwrap();
         let scopes = projected["scopes"]
             .as_object()
             .expect("scope projection must be structured");

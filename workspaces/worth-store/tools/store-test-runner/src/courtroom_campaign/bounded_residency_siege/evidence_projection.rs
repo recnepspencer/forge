@@ -11,6 +11,7 @@ mod campaign;
 mod cancellation;
 mod dirty_writeback;
 mod generation_fencing;
+mod json_object;
 mod lifecycle;
 mod process_allocation;
 mod read_pressure;
@@ -29,48 +30,91 @@ pub(super) fn encode(
     let producer = evidence.producer();
     let run = evidence.run();
     let processes = run.execution().processes();
-    let value = json!({
-        "schema": SCHEMA,
-        "source": source_value(evidence.source()),
-        "runner_binary": source_value(evidence.runner()),
-        "writer_binary": source_value(evidence.writer()),
-        "observer_binary": source_value(evidence.observer()),
-        "environment": run_environment_value(run.environment()),
-        "workload_seed": evidence.workload_seed(),
-        "schedule": schedule::value(evidence),
-        "configuration": campaign::configuration(),
-        "timings": timings.phases().iter().map(timing).collect::<Vec<_>>(),
-        "processes": campaign::processes(processes),
-        "producer": campaign::producer(producer),
-        "world": campaign::world(child),
-        "process_allocation": process_allocation::value(child.process_allocation),
-        "reads": read_pressure::reads(child.reads),
-        "allocation": allocation::value(&child.allocation),
-        "pins": read_pressure::pins(child.pins, child.pinned_eviction),
-        "duplicate_fault": read_pressure::duplicate_fault(child.duplicate),
-        "cancellation": cancellation::value(child.cancellation),
-        "generation_fencing": generation_fencing::value(child.generation_fencing),
-        "dirty_writeback": dirty_writeback::value(child.dirty),
-        "speculation": speculation::value(child.speculation),
-        "work_reconciliation": work_reconciliation::value(&child.work_reconciliation),
-        "close": lifecycle::close(child.close),
-        "offline_current": lifecycle::current(evidence.offline().current()),
-        "artifact_manifest_stage": ARTIFACT_MANIFEST_STAGE,
-        "artifact_manifest": evidence.offline().artifacts().iter().map(artifact).collect::<Vec<_>>(),
-        "reopen": lifecycle::reopen(evidence.reopen()),
-        "oracle": {
+    let mut encoded = json_object::JsonObjectEncoder::new();
+    encoded.field("schema", SCHEMA)?;
+    encoded.field("source", &source_value(evidence.source()))?;
+    encoded.field("runner_binary", &source_value(evidence.runner()))?;
+    encoded.field("writer_binary", &source_value(evidence.writer()))?;
+    encoded.field("observer_binary", &source_value(evidence.observer()))?;
+    encoded.field("environment", &run_environment_value(run.environment()))?;
+    encoded.field("workload_seed", &evidence.workload_seed())?;
+    encoded.field("schedule", &schedule::value(evidence))?;
+    encoded.field("configuration", &campaign::configuration())?;
+    encoded.field(
+        "timings",
+        &timings.phases().iter().map(timing).collect::<Vec<_>>(),
+    )?;
+    encoded.field("processes", &campaign::processes(processes))?;
+    encoded.field("producer", &campaign::producer(producer))?;
+    encoded.field("world", &campaign::world(child))?;
+    encoded.field(
+        "process_allocation",
+        &process_allocation::value(child.process_allocation),
+    )?;
+    encoded.field("reads", &read_pressure::reads(child.reads))?;
+    encoded.field(
+        "allocation",
+        &allocation::AllocationProjection(&child.allocation),
+    )?;
+    encoded.field(
+        "pins",
+        &read_pressure::pins(child.pins, child.pinned_eviction),
+    )?;
+    encoded.field(
+        "duplicate_fault",
+        &read_pressure::duplicate_fault(child.duplicate),
+    )?;
+    encoded.field("cancellation", &cancellation::value(child.cancellation))?;
+    encoded.field(
+        "generation_fencing",
+        &generation_fencing::value(child.generation_fencing),
+    )?;
+    encoded.field("dirty_writeback", &dirty_writeback::value(child.dirty))?;
+    encoded.field("speculation", &speculation::value(child.speculation))?;
+    encoded.field(
+        "work_reconciliation",
+        &work_reconciliation::WorkReconciliationProjection(&child.work_reconciliation),
+    )?;
+    encoded.field("close", &lifecycle::close(child.close))?;
+    encoded.field(
+        "offline_current",
+        &lifecycle::current(evidence.offline().current()),
+    )?;
+    encoded.field("artifact_manifest_stage", ARTIFACT_MANIFEST_STAGE)?;
+    encoded.field(
+        "artifact_manifest",
+        &evidence
+            .offline()
+            .artifacts()
+            .iter()
+            .map(artifact)
+            .collect::<Vec<_>>(),
+    )?;
+    encoded.field("reopen", &lifecycle::reopen(evidence.reopen()))?;
+    encoded.field(
+        "oracle",
+        &json!({
             "identity": evidence.oracle().oracle(),
             "accepted": evidence.oracle().accepted(),
             "sha256": hex(&evidence.oracle().digest().bytes()),
-        },
-        "mutants": evidence.mutants().iter().map(mutant_value).collect::<Vec<_>>(),
-        "verdict": {
+        }),
+    )?;
+    encoded.field(
+        "mutants",
+        &evidence
+            .mutants()
+            .iter()
+            .map(mutant_value)
+            .collect::<Vec<_>>(),
+    )?;
+    encoded.field(
+        "verdict",
+        &json!({
             "accepted": true,
             "findings": Vec::<String>::new(),
-        },
-    });
-    serde_json::to_vec(&value)
-        .map_err(|error| format!("cannot encode Courtroom C evidence: {error}"))
+        }),
+    )?;
+    Ok(encoded.finish())
 }
 
 fn timing(phase: &TimedSiegePhase) -> Value {
