@@ -2,22 +2,32 @@ use worth_ui_host_contract::{
     UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationPayload,
 };
 
-pub(super) fn translate(
-    key: egui::Key,
-    physical_key: Option<egui::Key>,
-    pressed: bool,
-    repeat: bool,
-    modifiers: egui::Modifiers,
-) -> UiHostObservationPayload {
-    UiHostObservationPayload::Keyboard {
-        logical_key: key_from_egui(key),
-        physical_key: physical_key.map(key_from_egui),
-        modifiers: modifiers_from_egui(modifiers),
-        transition: if pressed {
-            UiHostKeyTransition::Pressed { repeat }
-        } else {
-            UiHostKeyTransition::Released
-        },
+#[derive(Clone, Copy, Default)]
+pub(super) struct UiEguiKeyboardTranslator;
+
+impl UiEguiKeyboardTranslator {
+    pub(super) const fn capability(self) -> worth_ui_host_contract::WorthUiHostCapability {
+        worth_ui_host_contract::WorthUiHostCapability::KeyboardInput
+    }
+
+    pub(super) fn translate(
+        self,
+        key: egui::Key,
+        physical_key: Option<egui::Key>,
+        pressed: bool,
+        repeat: bool,
+        modifiers: egui::Modifiers,
+    ) -> UiHostObservationPayload {
+        UiHostObservationPayload::Keyboard {
+            logical_key: key_from_egui(key),
+            physical_key: physical_key.map(key_from_egui),
+            modifiers: modifiers_from_egui(modifiers),
+            transition: if pressed {
+                UiHostKeyTransition::Pressed { repeat }
+            } else {
+                UiHostKeyTransition::Released
+            },
+        }
     }
 }
 

@@ -10,8 +10,9 @@ mod text_ime;
 mod translation;
 
 pub use outcome::{
-    UiEguiCoordinateConversionDenial, UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStop,
-    UiEguiRawInputIngressStopReason, UiEguiRetainedRawInput, UiEguiUnsupportedEventFamily,
+    UiEguiCoordinateConversionDenial, UiEguiInputTranslatorFamily, UiEguiRawInputIngressOutcome,
+    UiEguiRawInputIngressStop, UiEguiRawInputIngressStopReason, UiEguiRetainedRawInput,
+    UiEguiUnsupportedEventFamily,
 };
 pub use reachability::UiEguiRawInputReachability;
 

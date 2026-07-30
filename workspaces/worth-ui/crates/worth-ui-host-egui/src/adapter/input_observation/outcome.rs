@@ -26,6 +26,10 @@ pub enum UiEguiRawInputIngressStopReason {
         index: usize,
         family: UiEguiUnsupportedEventFamily,
     },
+    TranslatorUnavailable {
+        index: usize,
+        family: UiEguiInputTranslatorFamily,
+    },
     Coordinate {
         index: usize,
         denial: UiEguiCoordinateConversionDenial,
@@ -44,6 +48,14 @@ pub enum UiEguiRawInputIngressStopReason {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiEguiInputTranslatorFamily {
+    Pointer,
+    Keyboard,
+    Text,
+    Ime,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiEguiUnsupportedEventFamily {
     Copy,
     Cut,
@@ -51,9 +63,7 @@ pub enum UiEguiUnsupportedEventFamily {
     Rotate,
     LineScroll,
     PageScroll,
-    ImeLifecycle,
     AccessKitAction,
-    Screenshot,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

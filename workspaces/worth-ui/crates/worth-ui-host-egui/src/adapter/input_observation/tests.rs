@@ -15,6 +15,11 @@ use worth_ui_test_support::semantic_text_projection_for_certification_with_capab
 use super::{UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStopReason};
 use crate::adapter::WorthUiHostEgui;
 
+mod atomic_stops;
+mod companion_events;
+mod teardown;
+mod translator_inventory;
+
 const HOST_SESSION: u64 = 41;
 
 #[test]

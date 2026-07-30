@@ -3,6 +3,12 @@ use worth_ui_host_contract::{
     UiHostObservationPayload,
 };
 
+#[derive(Clone, Copy, Default)]
+pub(super) struct UiEguiTextTranslator;
+
+#[derive(Clone, Copy, Default)]
+pub(super) struct UiEguiImeTranslator;
+
 #[derive(Clone)]
 pub(super) struct UiEguiTextImeTranslationState {
     next_revision: Option<u64>,
@@ -11,6 +17,43 @@ pub(super) struct UiEguiTextImeTranslationState {
 pub(super) enum UiEguiTextImeTranslationDenial {
     RevisionExhausted,
     Preedit(UiHostImePreeditConstructionDenial),
+}
+
+impl UiEguiTextTranslator {
+    pub(super) const fn capability(self) -> worth_ui_host_contract::WorthUiHostCapability {
+        worth_ui_host_contract::WorthUiHostCapability::TextInput
+    }
+
+    pub(super) fn translate(
+        self,
+        state: &mut UiEguiTextImeTranslationState,
+        text: &str,
+    ) -> Result<UiHostObservationPayload, UiEguiTextImeTranslationDenial> {
+        state.text(text)
+    }
+}
+
+impl UiEguiImeTranslator {
+    pub(super) const fn capability(self) -> worth_ui_host_contract::WorthUiHostCapability {
+        worth_ui_host_contract::WorthUiHostCapability::Ime
+    }
+
+    pub(super) fn preedit(
+        self,
+        state: &mut UiEguiTextImeTranslationState,
+        text: &str,
+        active_range_chars: Option<std::ops::Range<usize>>,
+    ) -> Result<UiHostObservationPayload, UiEguiTextImeTranslationDenial> {
+        state.preedit(text, active_range_chars)
+    }
+
+    pub(super) fn commit(
+        self,
+        state: &mut UiEguiTextImeTranslationState,
+        text: &str,
+    ) -> Result<UiHostObservationPayload, UiEguiTextImeTranslationDenial> {
+        state.commit(text)
+    }
 }
 
 impl UiEguiTextImeTranslationState {
