@@ -1,10 +1,6 @@
 const HEADER: &str = "id,production_claim,fixture_provenance,typed_result,mutation_control,\
 structural_cost,teardown,evidence_command,status,evidence";
 
-pub(super) fn validate_phase_1(contract: &toml::Value, ledger: &str) -> Result<(), String> {
-    validate_at_phase(contract, ledger, 1)
-}
-
 pub(super) fn validate_at_phase(
     contract: &toml::Value,
     ledger: &str,

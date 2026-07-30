@@ -24,7 +24,9 @@ mod instance_lifecycle;
 mod interaction_affinity;
 pub(crate) mod surface_lifecycle;
 
-pub(crate) use interaction_affinity::{UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial};
+pub(crate) use interaction_affinity::{
+    UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial, UiMountedInteractionAffinityInput,
+};
 
 #[derive(Clone, Debug)]
 struct MountedInstanceRecord {

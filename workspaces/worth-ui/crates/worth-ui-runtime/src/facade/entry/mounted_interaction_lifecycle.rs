@@ -4,7 +4,7 @@ use crate::facade::mounted::{
     UiSurfaceBindingGeneration, UiSurfaceBindingIdentityView, UiSurfaceBindingProfile,
 };
 use crate::runtime::interaction::{
-    UiInteractionLifecycleSettlementReceipt, UiPointerGestureStopReason,
+    UiInteractionLifecycleSettlementReceipt, UiInteractionLifecycleStopReason,
 };
 
 /// Successful surface rebind plus the exact gestures retired by that boundary.
@@ -20,7 +20,7 @@ pub enum UiSurfaceRebindInteractionDenial {
     BeforeMutation(UiMountedIdentityDenial),
     AfterInteractionSettlement {
         denial: UiMountedIdentityDenial,
-        interaction: UiInteractionLifecycleSettlementReceipt,
+        interaction: Box<UiInteractionLifecycleSettlementReceipt>,
     },
 }
 
@@ -45,9 +45,10 @@ impl WorthUiActiveApplicationSession {
         identity: UiMountedInstanceIdentity,
     ) -> Result<UiInteractionLifecycleSettlementReceipt, UiMountedIdentityDenial> {
         self.mounted.unmount_instance(identity)?;
-        Ok(self
-            .interaction
-            .cancel_instance(identity, UiPointerGestureStopReason::MountedInstanceRemoved))
+        Ok(self.interaction.cancel_instance(
+            identity,
+            UiInteractionLifecycleStopReason::MountedInstanceRemoved,
+        ))
     }
 
     pub(crate) fn rebind_host_surface_with_interaction_receipt(
@@ -62,7 +63,7 @@ impl WorthUiActiveApplicationSession {
             .map_err(UiSurfaceRebindInteractionDenial::BeforeMutation)?;
         let interaction = self
             .interaction
-            .cancel_binding(binding, UiPointerGestureStopReason::SurfaceRebound);
+            .cancel_binding(binding, UiInteractionLifecycleStopReason::SurfaceRebound);
         match self.mounted.register_host_surface(
             &self.host_session,
             semantic_surface,
@@ -76,7 +77,7 @@ impl WorthUiActiveApplicationSession {
             Err(denial) => Err(
                 UiSurfaceRebindInteractionDenial::AfterInteractionSettlement {
                     denial,
-                    interaction,
+                    interaction: Box::new(interaction),
                 },
             ),
         }

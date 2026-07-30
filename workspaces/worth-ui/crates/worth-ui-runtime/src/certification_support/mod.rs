@@ -11,6 +11,7 @@ mod application_replacement;
 mod framework_turn_execution;
 mod identity_overlay_projection;
 mod layout_admission;
+mod local_interaction_recipient;
 mod mounted_frame_execution;
 mod planning;
 mod rebind_identity_lifecycle;
@@ -26,8 +27,9 @@ pub use crate::admission::{
 };
 pub use crate::declaration::{UiDeclaredMeasurementBasisSource, UiDeclaredMeasurementMode};
 pub use crate::facade::entry::{
-    WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
-    WorthUiMountedIdentityCertificationExt, WorthUiMountedInteractionLifecycleCertificationExt,
+    WorthUiLocalInputRecipientCertificationExt, WorthUiMountedAllocationCertificationExt,
+    WorthUiMountedAllocationInspectionCertificationExt, WorthUiMountedIdentityCertificationExt,
+    WorthUiMountedInteractionLifecycleCertificationExt,
 };
 pub use crate::graph::{
     UiGraphFactConsumerIdentity, UiGraphFactIndexBasis, UiGraphFactIndexEntry,
@@ -49,6 +51,7 @@ pub use identity_overlay_projection::{
 };
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;
+pub use local_interaction_recipient::draft_recipient_contract_for_certification;
 pub use mounted_frame_execution::{
     UiMountedVisualOverlayLeaseCertificationReceipt, WorthUiMountedFrameExecutionCertificationExt,
     WorthUiMountedPublicationCertificationExt,

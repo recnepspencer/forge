@@ -1,48 +1,12 @@
 use worth_ui_host_contract::{
-    UiHostObservationCanonicalCore, UiHostObservationSequence, UiHostPointerButton,
-    UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostObservationSequence, UiHostPointerButton, UiHostPointerCaptureEpoch,
+    UiHostPointerIdentity,
 };
 
-use super::model::{
-    UiInteractionBatchReceipt, UiInteractionLifecycleCounters, UiInteractionObservationDenial,
-    UiInteractionShutdownReport, UiInteractionStateSnapshot, UiPointerGesturePressReceipt,
-    UiQuarantinedHostInteractionBatch, UiTargetedPointerGesture,
-};
+use super::model::{UiPointerGesturePressReceipt, UiTargetedPointerGesture};
 use crate::runtime::interaction::targeting::{
-    UiPointerGestureContinuityKind, UiPresentedInteractionTarget,
+    UiPointerGestureContinuityKind, UiPresentedInteractionTargetView,
 };
-
-impl UiInteractionLifecycleCounters {
-    pub const fn button_reports(self) -> u64 {
-        self.button_reports
-    }
-
-    pub const fn gestures_started(self) -> u64 {
-        self.gestures_started
-    }
-
-    pub const fn gestures_completed(self) -> u64 {
-        self.gestures_completed
-    }
-
-    pub const fn stop_outcomes(self) -> u64 {
-        self.stop_outcomes
-    }
-
-    pub const fn active_gestures_settled(self) -> u64 {
-        self.active_gestures_settled
-    }
-}
-
-impl UiInteractionStateSnapshot {
-    pub const fn active_gestures(self) -> usize {
-        self.active_gestures
-    }
-
-    pub const fn counters(self) -> UiInteractionLifecycleCounters {
-        self.counters
-    }
-}
 
 impl UiPointerGesturePressReceipt {
     pub const fn pointer(&self) -> UiHostPointerIdentity {
@@ -61,8 +25,8 @@ impl UiPointerGesturePressReceipt {
         self.sequence
     }
 
-    pub const fn target(&self) -> &UiPresentedInteractionTarget {
-        &self.target
+    pub const fn target(&self) -> UiPresentedInteractionTargetView {
+        self.target
     }
 }
 
@@ -87,12 +51,12 @@ impl UiTargetedPointerGesture {
         self.release_sequence
     }
 
-    pub const fn pressed_target(&self) -> &UiPresentedInteractionTarget {
-        &self.pressed
+    pub const fn pressed_target(&self) -> UiPresentedInteractionTargetView {
+        self.pressed.view()
     }
 
-    pub const fn released_target(&self) -> &UiPresentedInteractionTarget {
-        &self.released
+    pub const fn released_target(&self) -> UiPresentedInteractionTargetView {
+        self.released.view()
     }
 
     pub const fn continuity(&self) -> UiPointerGestureContinuityKind {
@@ -101,94 +65,5 @@ impl UiTargetedPointerGesture {
 
     pub const fn continuity_witness_digest(&self) -> u64 {
         self.continuity_witness_digest
-    }
-}
-
-impl UiInteractionBatchReceipt {
-    pub const fn canonical_core(&self) -> UiHostObservationCanonicalCore {
-        self.core
-    }
-
-    pub const fn frame_relation(
-        &self,
-    ) -> crate::facade::observation_report::UiHostObservationFrameRelation {
-        self.frame_relation
-    }
-
-    pub const fn disposition(
-        &self,
-    ) -> crate::facade::observation_report::UiHostObservationBatchDisposition {
-        self.disposition
-    }
-
-    pub fn transitions(&self) -> &[super::model::UiPointerGestureTransition] {
-        &self.transitions
-    }
-
-    pub const fn ignored_reports(&self) -> usize {
-        self.ignored_reports
-    }
-
-    pub const fn state(&self) -> UiInteractionStateSnapshot {
-        self.state
-    }
-}
-
-impl UiInteractionObservationDenial {
-    pub(crate) const fn new(
-        denial: crate::facade::observation_report::UiHostObservationReportDenial,
-        settlement: super::super::UiInteractionLifecycleSettlementReceipt,
-    ) -> Self {
-        Self { denial, settlement }
-    }
-
-    pub const fn denial(&self) -> crate::facade::observation_report::UiHostObservationReportDenial {
-        self.denial
-    }
-
-    pub const fn settlement(&self) -> &super::super::UiInteractionLifecycleSettlementReceipt {
-        &self.settlement
-    }
-}
-
-impl UiInteractionShutdownReport {
-    pub fn cancelled_gestures(&self) -> usize {
-        self.settlement
-            .as_ref()
-            .map_or(0, |settlement| settlement.settled_gestures())
-    }
-
-    pub fn final_state(&self) -> Option<UiInteractionStateSnapshot> {
-        self.settlement
-            .as_ref()
-            .map(|settlement| settlement.final_state())
-    }
-
-    pub const fn settlement(
-        &self,
-    ) -> Option<&super::super::UiInteractionLifecycleSettlementReceipt> {
-        self.settlement.as_ref()
-    }
-}
-
-impl UiQuarantinedHostInteractionBatch {
-    pub(crate) const fn new(
-        quarantine: crate::facade::observation_report::UiQuarantinedHostObservationBatch,
-        settlement: super::super::UiInteractionLifecycleSettlementReceipt,
-    ) -> Self {
-        Self {
-            quarantine,
-            settlement,
-        }
-    }
-
-    pub const fn quarantine(
-        &self,
-    ) -> crate::facade::observation_report::UiQuarantinedHostObservationBatch {
-        self.quarantine
-    }
-
-    pub const fn settlement(&self) -> &super::super::UiInteractionLifecycleSettlementReceipt {
-        &self.settlement
     }
 }

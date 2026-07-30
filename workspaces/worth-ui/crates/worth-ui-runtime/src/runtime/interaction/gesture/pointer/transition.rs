@@ -5,8 +5,8 @@ use worth_ui_host_contract::{
 };
 
 use super::model::{
-    UiActivePointerGesture, UiInteractionRuntimeState, UiPointerGesturePressReceipt,
-    UiPointerGestureTransition, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
+    UiActivePointerGesture, UiPointerGestureOutcome, UiPointerGesturePressReceipt,
+    UiPointerGestureRuntimeState, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
 use super::next;
 use crate::runtime::interaction::gesture::{UiPointerGestureStop, UiPointerGestureStopReason};
@@ -14,13 +14,24 @@ use crate::runtime::interaction::targeting::{
     issue_continuity, resolve_presented_target, UiPointerGestureContinuityDenial,
 };
 
-impl UiInteractionRuntimeState {
-    pub(super) fn process_report(
+#[derive(Clone, Copy)]
+struct UiPointerButtonReport<'world> {
+    core: UiHostObservationCanonicalCore,
+    sequence: UiHostObservationSequence,
+    pointer: UiHostPointerIdentity,
+    capture_epoch: UiHostPointerCaptureEpoch,
+    button: UiHostPointerButton,
+    position: worth_ui_host_contract::UiHostSurfacePosition,
+    mounted: &'world crate::mounting::WorthUiMountedSessionState,
+}
+
+impl UiPointerGestureRuntimeState {
+    pub(super) fn process_pointer_report(
         &mut self,
         core: UiHostObservationCanonicalCore,
         report: &worth_ui_host_contract::UiHostObservationReport,
         mounted: &crate::mounting::WorthUiMountedSessionState,
-    ) -> Vec<UiPointerGestureTransition> {
+    ) -> Vec<UiPointerGestureOutcome> {
         match report.payload() {
             UiHostObservationPayload::PointerButton {
                 pointer,
@@ -30,25 +41,18 @@ impl UiInteractionRuntimeState {
                 position,
             } => {
                 self.bump_button_reports();
+                let input = UiPointerButtonReport {
+                    core,
+                    sequence: report.sequence(),
+                    pointer: *pointer,
+                    capture_epoch: *capture_epoch,
+                    button: *button,
+                    position: *position,
+                    mounted,
+                };
                 vec![match transition {
-                    UiHostPointerButtonTransition::Pressed => self.press(
-                        core,
-                        report.sequence(),
-                        *pointer,
-                        *capture_epoch,
-                        *button,
-                        *position,
-                        mounted,
-                    ),
-                    UiHostPointerButtonTransition::Released => self.release(
-                        core,
-                        report.sequence(),
-                        *pointer,
-                        *capture_epoch,
-                        *button,
-                        *position,
-                        mounted,
-                    ),
+                    UiHostPointerButtonTransition::Pressed => self.press(input),
+                    UiHostPointerButtonTransition::Released => self.release(input),
                 }]
             }
             UiHostObservationPayload::PointerMotion {
@@ -63,108 +67,79 @@ impl UiInteractionRuntimeState {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn press(
-        &mut self,
-        core: UiHostObservationCanonicalCore,
-        sequence: UiHostObservationSequence,
-        pointer: UiHostPointerIdentity,
-        capture_epoch: UiHostPointerCaptureEpoch,
-        button: UiHostPointerButton,
-        position: worth_ui_host_contract::UiHostSurfacePosition,
-        mounted: &crate::mounting::WorthUiMountedSessionState,
-    ) -> UiPointerGestureTransition {
-        if button != UiHostPointerButton::Primary {
+    fn press(&mut self, input: UiPointerButtonReport<'_>) -> UiPointerGestureOutcome {
+        if input.button != UiHostPointerButton::Primary {
             return self.failed_stop(
-                pointer,
-                capture_epoch,
-                button,
-                sequence,
-                UiPointerGestureStopReason::UnsupportedButton(button),
+                input,
+                UiPointerGestureStopReason::UnsupportedButton(input.button),
             );
         }
-        if let Some(active) = self.active.remove(&pointer) {
-            let reason = capture_change_reason(&active, capture_epoch)
+        if let Some(active) = self.active.remove(&input.pointer) {
+            let reason = capture_change_reason(&active, input.capture_epoch)
                 .unwrap_or(UiPointerGestureStopReason::DuplicatePress);
-            return self.active_stop(pointer, active, sequence, reason);
+            return self.active_stop(input.pointer, active, input.sequence, reason);
         }
         if self.active.len() >= UI_ACTIVE_POINTER_GESTURE_LIMIT {
             return self.failed_stop(
-                pointer,
-                capture_epoch,
-                button,
-                sequence,
+                input,
                 UiPointerGestureStopReason::CapacityExceeded {
                     limit: UI_ACTIVE_POINTER_GESTURE_LIMIT,
                 },
             );
         }
-        let target = match resolve_presented_target(mounted, core.presentation(), position) {
+        let target = match resolve_presented_target(
+            input.mounted,
+            input.core.presentation(),
+            input.position,
+        ) {
             Ok(target) => target,
             Err(denial) => {
-                return self.failed_stop(
-                    pointer,
-                    capture_epoch,
-                    button,
-                    sequence,
-                    UiPointerGestureStopReason::Targeting(denial),
-                )
+                return self.failed_stop(input, UiPointerGestureStopReason::Targeting(denial))
             }
         };
+        let target_view = target.view();
         let active = UiActivePointerGesture {
-            capture_epoch,
-            button,
-            press_sequence: sequence,
-            target: target.clone(),
-        };
-        self.active.insert(pointer, active);
-        self.counters.gestures_started = next(self.counters.gestures_started);
-        UiPointerGestureTransition::Pressed(UiPointerGesturePressReceipt {
-            pointer,
-            capture_epoch,
-            button,
-            sequence,
+            capture_epoch: input.capture_epoch,
+            button: input.button,
+            press_sequence: input.sequence,
             target,
+        };
+        self.active.insert(input.pointer, active);
+        self.counters.gestures_started = next(self.counters.gestures_started);
+        UiPointerGestureOutcome::Pressed(UiPointerGesturePressReceipt {
+            pointer: input.pointer,
+            capture_epoch: input.capture_epoch,
+            button: input.button,
+            sequence: input.sequence,
+            target: target_view,
         })
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn release(
-        &mut self,
-        core: UiHostObservationCanonicalCore,
-        sequence: UiHostObservationSequence,
-        pointer: UiHostPointerIdentity,
-        capture_epoch: UiHostPointerCaptureEpoch,
-        button: UiHostPointerButton,
-        position: worth_ui_host_contract::UiHostSurfacePosition,
-        mounted: &crate::mounting::WorthUiMountedSessionState,
-    ) -> UiPointerGestureTransition {
-        let Some(active) = self.active.remove(&pointer) else {
-            return self.failed_stop(
-                pointer,
-                capture_epoch,
-                button,
-                sequence,
-                UiPointerGestureStopReason::NoActiveGesture,
-            );
+    fn release(&mut self, input: UiPointerButtonReport<'_>) -> UiPointerGestureOutcome {
+        let Some(active) = self.active.remove(&input.pointer) else {
+            return self.failed_stop(input, UiPointerGestureStopReason::NoActiveGesture);
         };
-        if let Some(reason) = capture_change_reason(&active, capture_epoch) {
-            return self.active_stop(pointer, active, sequence, reason);
+        if let Some(reason) = capture_change_reason(&active, input.capture_epoch) {
+            return self.active_stop(input.pointer, active, input.sequence, reason);
         }
-        if active.button != button {
+        if active.button != input.button {
             let reason = UiPointerGestureStopReason::ButtonChanged {
                 expected: active.button,
-                observed: button,
+                observed: input.button,
             };
-            return self.active_stop(pointer, active, sequence, reason);
+            return self.active_stop(input.pointer, active, input.sequence, reason);
         }
-        let released = match resolve_presented_target(mounted, core.presentation(), position) {
+        let released = match resolve_presented_target(
+            input.mounted,
+            input.core.presentation(),
+            input.position,
+        ) {
             Ok(target) => target,
             Err(denial) => {
                 return self.active_stop(
-                    pointer,
+                    input.pointer,
                     active,
-                    sequence,
+                    input.sequence,
                     UiPointerGestureStopReason::Targeting(denial),
                 )
             }
@@ -172,17 +147,22 @@ impl UiInteractionRuntimeState {
         let witness = match issue_continuity(&active.target, &released) {
             Ok(witness) => witness,
             Err(denial) => {
-                return self.active_stop(pointer, active, sequence, map_continuity_denial(denial))
+                return self.active_stop(
+                    input.pointer,
+                    active,
+                    input.sequence,
+                    map_continuity_denial(denial),
+                )
             }
         };
         self.counters.gestures_completed = next(self.counters.gestures_completed);
         self.counters.active_gestures_settled = next(self.counters.active_gestures_settled);
-        UiPointerGestureTransition::Completed(UiTargetedPointerGesture {
-            pointer,
-            capture_epoch,
-            button,
+        UiPointerGestureOutcome::Completed(UiTargetedPointerGesture {
+            pointer: input.pointer,
+            capture_epoch: input.capture_epoch,
+            button: input.button,
             press_sequence: active.press_sequence,
-            release_sequence: sequence,
+            release_sequence: input.sequence,
             pressed: active.target,
             released,
             continuity: witness.kind(),
@@ -195,7 +175,7 @@ impl UiInteractionRuntimeState {
         sequence: UiHostObservationSequence,
         pointer: UiHostPointerIdentity,
         observed: UiHostPointerCaptureEpoch,
-    ) -> Vec<UiPointerGestureTransition> {
+    ) -> Vec<UiPointerGestureOutcome> {
         let Some(active) = self.active.get(&pointer) else {
             return Vec::new();
         };
@@ -213,10 +193,7 @@ impl UiInteractionRuntimeState {
         vec![self.active_stop(pointer, active, sequence, reason)]
     }
 
-    fn focus_loss(
-        &mut self,
-        sequence: UiHostObservationSequence,
-    ) -> Vec<UiPointerGestureTransition> {
+    fn focus_loss(&mut self, sequence: UiHostObservationSequence) -> Vec<UiPointerGestureOutcome> {
         let active = std::mem::take(&mut self.active);
         active
             .into_iter()
@@ -233,18 +210,15 @@ impl UiInteractionRuntimeState {
 
     fn failed_stop(
         &mut self,
-        pointer: UiHostPointerIdentity,
-        capture_epoch: UiHostPointerCaptureEpoch,
-        button: UiHostPointerButton,
-        sequence: UiHostObservationSequence,
+        input: UiPointerButtonReport<'_>,
         reason: UiPointerGestureStopReason,
-    ) -> UiPointerGestureTransition {
+    ) -> UiPointerGestureOutcome {
         self.counters.stop_outcomes = next(self.counters.stop_outcomes);
-        UiPointerGestureTransition::Stopped(UiPointerGestureStop::new(
-            pointer,
-            capture_epoch,
-            button,
-            Some(sequence),
+        UiPointerGestureOutcome::Stopped(UiPointerGestureStop::new(
+            input.pointer,
+            input.capture_epoch,
+            input.button,
+            Some(input.sequence),
             false,
             reason,
         ))
@@ -256,10 +230,10 @@ impl UiInteractionRuntimeState {
         active: UiActivePointerGesture,
         sequence: UiHostObservationSequence,
         reason: UiPointerGestureStopReason,
-    ) -> UiPointerGestureTransition {
+    ) -> UiPointerGestureOutcome {
         self.counters.stop_outcomes = next(self.counters.stop_outcomes);
         self.counters.active_gestures_settled = next(self.counters.active_gestures_settled);
-        UiPointerGestureTransition::Stopped(UiPointerGestureStop::new(
+        UiPointerGestureOutcome::Stopped(UiPointerGestureStop::new(
             pointer,
             active.capture_epoch,
             active.button,

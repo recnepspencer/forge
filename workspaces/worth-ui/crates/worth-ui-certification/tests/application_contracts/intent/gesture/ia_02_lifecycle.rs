@@ -1,5 +1,6 @@
 use worth_ui::facade::interaction::{
-    UiPointerGestureStopReason, UiPointerGestureTransition, UI_ACTIVE_POINTER_GESTURE_LIMIT,
+    UiInteractionStop, UiInteractionTransition, UiPointerGestureStopReason,
+    UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
 use worth_ui::facade::observation_report::{
     UiHostObservationFamily, UiHostObservationReportDenial, UiHostPointerButtonTransition,
@@ -10,13 +11,13 @@ use worth_ui_test_support::{
     WorthUiMountedIdentityCertificationExt, WorthUiMountedInteractionLifecycleCertificationExt,
 };
 
+use super::super::interaction_world::InteractionWorld;
 use super::assertions::{applied, assert_rank, assert_stop, denied};
 use super::oracle::ExpectedTarget;
-use super::world::GestureWorld;
 
 #[test]
-fn capture_loss_overflow_rebind_and_shutdown_each_settle_once() {
-    let mut world = GestureWorld::canonical();
+fn capture_focus_and_overflow_each_settle_once() {
+    let mut world = InteractionWorld::canonical();
     assert_rank(
         world.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]),
         ExpectedTarget::Rank(0),
@@ -56,8 +57,11 @@ fn capture_loss_overflow_rebind_and_shutdown_each_settle_once() {
         3
     );
     let _ = world.session.shutdown();
+}
 
-    let mut rebound = GestureWorld::canonical();
+#[test]
+fn surface_rebind_settles_once_before_shutdown() {
+    let mut rebound = InteractionWorld::canonical();
     assert_rank(
         rebound.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]),
         ExpectedTarget::Rank(0),
@@ -85,8 +89,11 @@ fn capture_loss_overflow_rebind_and_shutdown_each_settle_once() {
     );
     let shutdown = rebound.session.shutdown();
     assert_eq!(shutdown.interaction().cancelled_gestures(), 0);
+}
 
-    let mut shutting_down = GestureWorld::canonical();
+#[test]
+fn shutdown_settles_one_remaining_gesture_once() {
+    let mut shutting_down = InteractionWorld::canonical();
     assert_rank(
         shutting_down.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]),
         ExpectedTarget::Rank(0),
@@ -106,7 +113,7 @@ fn capture_loss_overflow_rebind_and_shutdown_each_settle_once() {
 
 #[test]
 fn active_pointer_capacity_stops_plus_one_without_disturbing_owned_slots() {
-    let mut world = GestureWorld::canonical();
+    let mut world = InteractionWorld::canonical();
     for pointer in 1..=UI_ACTIVE_POINTER_GESTURE_LIMIT {
         let receipt = applied(world.button(
             u64::try_from(pointer).unwrap(),
@@ -124,7 +131,7 @@ fn active_pointer_capacity_stops_plus_one_without_disturbing_owned_slots() {
         [20, 20],
     ));
     let stop = match &overflow.transitions()[0] {
-        UiPointerGestureTransition::Stopped(stop) => stop,
+        UiInteractionTransition::Stopped(UiInteractionStop::PointerGesture(stop)) => stop,
         other => panic!("capacity plus one must stop, got {other:?}"),
     };
     assert_eq!(

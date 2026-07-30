@@ -57,18 +57,29 @@ fn validate(contract: &toml::Value, ledger: &str) -> Result<(), String> {
 }
 
 #[test]
-fn milestone_314_phase2_contract_tracks_partial_closure_honestly() {
+fn milestone_314_phase2_contract_and_owned_ia_rows_close_together() {
     let (contract, ledger) = inputs();
     validate(&contract, &ledger).expect("Phase 2 contract and ledger should agree");
     let rows = milestone_314_ledger::parse_ledger(&ledger).expect("ledger should parse");
-    assert_eq!(rows[0][8], "PROVED");
-    assert_eq!(rows[1][8], "PROVED");
-    assert_eq!(rows[2][8], "PROVED");
-    assert!(rows[3..].iter().all(|row| row[8] == "OPEN"));
+    assert!(rows.iter().all(|row| row[8] == "PROVED"));
 
-    let mut premature = contract.clone();
-    premature["status"] = toml::Value::String("closed".to_owned());
-    assert!(validate(&premature, &ledger).is_err());
+    let mut reopened = rows.clone();
+    reopened[3][8] = "OPEN".to_owned();
+    reopened[3][9].clear();
+    assert!(validate(&contract, &milestone_314_ledger::render_ledger(&reopened)).is_err());
+
+    let phase_1: toml::Value = toml::from_str(&repository_document(
+        "_docs/worth-ui/milestone-3.14-phase-1-contract.toml",
+    ))
+    .expect("Phase 1 contract should parse");
+    let main_ledger = repository_document("_docs/worth-ui/milestone-3.14-proof-ledger.csv");
+    milestone_314_ledger::validate_at_phase(&phase_1, &main_ledger, 2)
+        .expect("main IA ledger should close only Phase 2-owned rows");
+    let ia_rows =
+        milestone_314_ledger::parse_ledger(&main_ledger).expect("main ledger should parse");
+    assert_eq!(ia_rows[1][8], "PROVED");
+    assert_eq!(ia_rows[2][8], "PROVED");
+    assert_eq!(ia_rows[10][8], "OPEN");
     assert_eq!(
         contract["known_broad_topology_debt"]["failures"]
             .as_array()

@@ -18,10 +18,10 @@ fn assert_rejected(contract: &toml::Value, ledger: &str, phase: i64, label: &str
 }
 
 #[test]
-fn milestone_314_contract_and_phase_1_ledger_are_exact() {
+fn milestone_314_contract_and_current_phase_2_ledger_are_exact() {
     let (contract, ledger) = phase_1_inputs();
-    milestone_314_ledger::validate_phase_1(&contract, &ledger)
-        .expect("the frozen contract and all-open Phase 1 ledger should agree");
+    milestone_314_ledger::validate_at_phase(&contract, &ledger, 2)
+        .expect("the frozen portfolio and current Phase 2 closures should agree");
 }
 
 #[test]
@@ -197,6 +197,11 @@ fn milestone_314_production_ingress_and_protocol_evolution_are_exact() {
                 .collect::<Vec<_>>()),
         Some(vec![2, 3])
     );
+    assert_pulse_raw_input_successor();
+    assert_installed_egui_translation();
+}
+
+fn assert_pulse_raw_input_successor() {
     let inventory = workspace_source_inventory();
     let native_frame = inventory.text("apps/platform-pulse/src/native_frame.rs");
     for required in ["fn raw_input_hook(", ".native_input", ".observe("] {
@@ -208,8 +213,11 @@ fn milestone_314_production_ingress_and_protocol_evolution_are_exact() {
     let pulse_input = inventory.text("apps/platform-pulse/src/native_frame/input.rs");
     for required in [
         "host.observe_native_input(raw_input)",
-        "UiEguiRawInputIngressOutcome::Unsupported",
-        "publisher.native_input_reached(reached)",
+        "UiEguiRawInputIngressOutcome::Stopped",
+        "fn publish_discovered(",
+        "PlatformPulseNativeInputIngressPosture::Retained",
+        "PlatformPulseNativeInputIngressPosture::Stopped",
+        ".native_input_reached(reached, posture)",
     ] {
         assert!(
             pulse_input.contains(required),
@@ -220,6 +228,10 @@ fn milestone_314_production_ingress_and_protocol_evolution_are_exact() {
     assert!(first_frame.contains("self.native_input.arm_after_first_frame()"));
     let query = inventory.text("apps/platform-pulse/src/native_frame/query.rs");
     assert!(query.contains("self.publish_first_frame(&source, mounted)"));
+}
+
+fn assert_installed_egui_translation() {
+    let inventory = workspace_source_inventory();
     let ingress =
         inventory.text("crates/worth-ui-host-egui/src/adapter/input_observation/reachability.rs");
     for required in [
@@ -233,6 +245,18 @@ fn milestone_314_production_ingress_and_protocol_evolution_are_exact() {
         assert!(
             ingress.contains(required),
             "egui ingress does not expose `{required}`"
+        );
+    }
+    let translation =
+        inventory.text("crates/worth-ui-host-egui/src/adapter/input_observation/translation.rs");
+    for required in [
+        "struct UiEguiInstalledInputTranslators",
+        "UiEguiRawInputIngressStopReason::UnsupportedEvent",
+        "UiEguiRawInputIngressStopReason::TranslatorUnavailable",
+    ] {
+        assert!(
+            translation.contains(required),
+            "installed egui translation lost `{required}`"
         );
     }
 }
