@@ -326,6 +326,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         | WorthQueryEvidenceScope::ConsumerSupportSnapshotSchema
         | WorthQueryEvidenceScope::ConsumerSupportSnapshotRow
         | WorthQueryEvidenceScope::ConsumerSupportSnapshotDocument
+        | WorthQueryEvidenceScope::ConsumerProjectionContractDenial
         | WorthQueryEvidenceScope::ConsumerSupportPinContractSchema
         | WorthQueryEvidenceScope::ConsumerSupportPinVocabulary
         | WorthQueryEvidenceScope::ConsumerSupportPinRequirement

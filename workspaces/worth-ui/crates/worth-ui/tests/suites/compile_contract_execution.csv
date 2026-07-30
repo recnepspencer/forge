@@ -31,6 +31,7 @@ fail,tests/ui/facade/query_binding/fail/projection_binding_construction_is_priva
 fail,tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.rs,view_binding_facade_compile.rs
 fail,tests/ui/facade/query_binding/fail/scalar_fact_has_no_continuation.rs,view_binding_facade_compile.rs
 fail,tests/ui/facade/query_binding/fail/projection_fact_is_affine.rs,view_binding_facade_compile.rs
+fail,tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.rs,view_binding_facade_compile.rs
 pass,tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs,visual_snapshot_facade_compile.rs
 fail,tests/ui/visual_snapshot/fail/grant_substitution_is_rejected.rs,visual_snapshot_facade_compile.rs
 fail,tests/ui/visual_snapshot/fail/pixel_grant_cannot_authorize_geometry.rs,visual_snapshot_facade_compile.rs

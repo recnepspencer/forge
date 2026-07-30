@@ -85,6 +85,8 @@ fn consume_identifier(
         "component" => WorthUiSourceTokenKind::KeywordComponent,
         "surface" => WorthUiSourceTokenKind::KeywordSurface,
         "binding" => WorthUiSourceTokenKind::KeywordBinding,
+        "query_scalar" => WorthUiSourceTokenKind::KeywordQueryScalar,
+        "query_collection" => WorthUiSourceTokenKind::KeywordQueryCollection,
         "token" => WorthUiSourceTokenKind::KeywordToken,
         _ => WorthUiSourceTokenKind::Identifier(raw_text.to_owned()),
     };

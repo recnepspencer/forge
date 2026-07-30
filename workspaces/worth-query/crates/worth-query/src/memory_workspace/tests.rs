@@ -8,6 +8,8 @@ use worth_foundational::facade::{
 };
 use worth_relational::facade::runtime::InvariantCatalog;
 
+mod native_contracts;
+
 #[test]
 fn memory_workspace_insert_aspects_tracks_changed_paths() {
     let mut workspace = WorthQueryMemoryWorkspace::collection(
@@ -181,135 +183,6 @@ fn memory_workspace_aspect_rejects_mismatched_native_field_path() {
     assert!(denial
         .message()
         .contains("must use native field path rooted at `title`"));
-}
-
-#[test]
-fn memory_workspace_native_contract_path_supports_optional_clear() {
-    let contract = optional_string_contract("note");
-    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
-        "Task",
-        [aspect("note.value", "note.value")],
-        [contract.clone()],
-        InvariantCatalog::default(),
-        [],
-    )
-    .unwrap();
-    let inserted = workspace
-        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
-            touch("note.value"),
-            text("remember"),
-        )
-        .unwrap()])
-        .unwrap();
-
-    workspace
-        .update_aspects(
-            inserted.deltas[0].entity_identity.clone(),
-            vec![WorthQueryAuthoredAspectMutation::new_clear(touch("note.value")).unwrap()],
-        )
-        .unwrap();
-
-    assert!(workspace.entities()[0]
-        .aspect_value(contract.key())
-        .is_none());
-    assert!(workspace.entities()[0]
-        .scalar_value_at(&field_path("note.value"))
-        .is_none());
-}
-
-#[test]
-fn memory_workspace_ignores_installed_contracts_unrelated_to_the_collection_mapping() {
-    let title = optional_string_contract("title");
-    let unrelated = optional_string_contract("note");
-    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
-        "Task",
-        [aspect("title.value", "title.value")],
-        [title.clone(), unrelated],
-        InvariantCatalog::default(),
-        [],
-    )
-    .expect("an unrelated installed contract must not require a local physical mapping");
-
-    workspace
-        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
-            touch("title.value"),
-            text("Mapped title"),
-        )
-        .unwrap()])
-        .expect("the locally mapped contract should remain usable");
-
-    assert_eq!(
-        workspace.entities()[0].aspect_value(title.key()),
-        Some(&text("Mapped title"))
-    );
-}
-
-#[test]
-fn memory_workspace_denies_a_physical_mapping_without_its_native_contract() {
-    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
-        "Task",
-        [aspect("title.value", "title.value")],
-        [optional_string_contract("note")],
-        InvariantCatalog::default(),
-        [],
-    )
-    .expect("an unrelated installed contract may coexist with the collection");
-
-    let denial = workspace
-        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
-            touch("title.value"),
-            text("Uncontracted title"),
-        )
-        .unwrap()])
-        .expect_err("a physical mapping must not become authority without its contract");
-
-    assert!(denial.message().contains("no Foundational contract"));
-}
-
-#[test]
-fn memory_workspace_native_contract_path_preserves_struct_field_semantics() {
-    let contract = summary_contract();
-    let mut workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
-        "Task",
-        [
-            aspect("summary.title", "summary.title"),
-            aspect("summary.status", "summary.status"),
-        ],
-        [contract.clone()],
-        InvariantCatalog::default(),
-        [],
-    )
-    .unwrap();
-    let summary = StructAspectValue::new([
-        (FieldKey::new("title").unwrap(), text("Native summary")),
-        (FieldKey::new("status").unwrap(), text("open")),
-    ])
-    .unwrap();
-    let inserted = workspace
-        .insert_aspects(vec![WorthQueryAuthoredAspectMutation::new_set(
-            touch("summary"),
-            ContractValidationInput::Struct(summary),
-        )
-        .unwrap()])
-        .unwrap();
-
-    workspace
-        .update_aspects(
-            inserted.deltas[0].entity_identity.clone(),
-            vec![WorthQueryAuthoredAspectMutation::new_clear(touch("summary.status")).unwrap()],
-        )
-        .unwrap();
-
-    let entity = &workspace.entities()[0];
-    let summary = entity.struct_aspect_value(contract.key()).unwrap();
-    assert!(summary.get(&FieldKey::new("status").unwrap()).is_none());
-    assert_eq!(
-        summary.get(&FieldKey::new("title").unwrap()),
-        Some(&text("Native summary"))
-    );
-    assert!(entity
-        .scalar_value_at(&field_path("summary.status"))
-        .is_none());
 }
 
 fn aspect(label: &str, native_field_path: &str) -> crate::memory_workspace::WorthQueryAspect {

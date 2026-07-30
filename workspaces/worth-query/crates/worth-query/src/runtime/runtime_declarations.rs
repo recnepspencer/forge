@@ -126,8 +126,14 @@ impl WorthQueryRuntime {
                     "async-pending:{pending_async_projection_digest}"
                 ))
             });
-        let basis_binding_identity = activation.installation.basis_binding_identity().clone();
-        let checkpoint_identity = activation.active_lane_handle.checkpoint_identity().clone();
+        let basis_binding_identity = async_source_binding
+            .as_ref()
+            .map(WorthQueryRuntimeAsyncSourceBinding::current_basis_identity)
+            .unwrap_or_else(|| activation.installation.basis_binding_identity().clone());
+        let checkpoint_identity = async_source_binding
+            .as_ref()
+            .map(WorthQueryRuntimeAsyncSourceBinding::current_generation_identity)
+            .unwrap_or_else(|| activation.active_lane_handle.checkpoint_identity().clone());
         let live_target =
             WorthQueryLiveArtifactTarget::from_subscription_installation(&activation.installation);
         self.live_subscriptions.insert(

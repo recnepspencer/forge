@@ -32,6 +32,37 @@ impl WorthQueryCollectionCursor {
         self.next_row_ordinal == 0
     }
 
+    pub fn identity_evidence(&self) -> crate::WorthQueryEvidenceIdentity {
+        crate::WorthQueryEvidenceIdentity::compose(
+            crate::WorthQueryEvidenceScope::ProjectionConsumptionIdentity,
+        )
+        .field_shape(
+            crate::WorthQueryEvidenceTag::new("collection"),
+            "continuation-cursor",
+        )
+        .field_value(
+            crate::WorthQueryEvidenceTag::new("capability"),
+            self.capability_identity.to_string(),
+        )
+        .field_value(
+            crate::WorthQueryEvidenceTag::new("generation"),
+            self.capability_generation.ordinal().to_string(),
+        )
+        .field_value(
+            crate::WorthQueryEvidenceTag::new("basis"),
+            &self.basis_identity,
+        )
+        .field_value(
+            crate::WorthQueryEvidenceTag::new("ordering"),
+            &self.ordering_identity,
+        )
+        .field_usize(
+            crate::WorthQueryEvidenceTag::new("next-row"),
+            self.next_row_ordinal,
+        )
+        .seal()
+    }
+
     pub(super) fn rebind(
         &self,
         capability_identity: u64,

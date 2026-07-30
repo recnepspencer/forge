@@ -14,6 +14,8 @@ mod declaration_evidence_lookup_runtime;
 mod declaration_family_admission_runtime;
 #[path = "../declaration_graph_handoff_runtime.rs"]
 mod declaration_graph_handoff_runtime;
+#[path = "../declaration_contracts/projection_declaration/mod.rs"]
+mod projection_declaration;
 #[path = "../declaration_structural_semantics_runtime.rs"]
 mod declaration_structural_semantics_runtime;
 #[path = "../declaration_support_snapshot_runtime.rs"]

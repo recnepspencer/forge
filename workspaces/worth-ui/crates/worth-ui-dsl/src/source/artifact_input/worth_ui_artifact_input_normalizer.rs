@@ -39,7 +39,9 @@ fn node_normalization_key(
         }
         WorthUiArtifactInputNode::Component(block_node)
         | WorthUiArtifactInputNode::Surface(block_node)
-        | WorthUiArtifactInputNode::Binding(block_node) => {
+        | WorthUiArtifactInputNode::Binding(block_node)
+        | WorthUiArtifactInputNode::QueryScalar(block_node)
+        | WorthUiArtifactInputNode::QueryCollection(block_node) => {
             format!(
                 "block:{}:{}",
                 block_node.name_text(),
@@ -78,6 +80,12 @@ fn body_atom_key(body_atom: &crate::source::WorthUiArtifactInputBodyAtom) -> Str
         crate::source::WorthUiArtifactInputBodyAtom::KeywordComponent => "kw:component".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordSurface => "kw:surface".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordBinding => "kw:binding".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordQueryScalar => {
+            "kw:query-scalar".to_owned()
+        }
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordQueryCollection => {
+            "kw:query-collection".to_owned()
+        }
         crate::source::WorthUiArtifactInputBodyAtom::KeywordToken => "kw:token".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::LeftBrace => "{".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::RightBrace => "}".to_owned(),

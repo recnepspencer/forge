@@ -11,7 +11,8 @@ fn scalar_and_collection_requirements_preserve_distinct_shape_contracts() {
         UiProjectionLifecycleRequirement::Live,
         false,
         true,
-    );
+    )
+    .unwrap();
 
     assert_eq!(scalar.shape(), UiProjectionShape::Scalar);
     assert_eq!(scalar.selected_field().declared_name(), "status");
@@ -20,6 +21,33 @@ fn scalar_and_collection_requirements_preserve_distinct_shape_contracts() {
     assert_eq!(collection.row_identity_field().declared_name(), "identity");
     assert_eq!(collection.selected_fields().len(), 1);
     assert!(collection.permits_continuation());
+}
+
+#[test]
+fn collection_requirement_rejects_noncanonical_selected_fields() {
+    let row = UiProjectionFieldRequirement::declared("identity").unwrap();
+    let status = UiProjectionFieldRequirement::declared("status").unwrap();
+
+    assert_eq!(
+        UiCollectionSchemaRequirement::text(
+            row.clone(),
+            [],
+            UiProjectionLifecycleRequirement::Live,
+            false,
+            true,
+        ),
+        Err(UiCollectionSchemaRequirementError::NoSelectedFields)
+    );
+    assert_eq!(
+        UiCollectionSchemaRequirement::text(
+            row,
+            [status.clone(), status],
+            UiProjectionLifecycleRequirement::Live,
+            false,
+            true,
+        ),
+        Err(UiCollectionSchemaRequirementError::DuplicateSelectedField)
+    );
 }
 
 #[test]
@@ -90,10 +118,11 @@ fn result_posture_vocabulary_keeps_lifecycle_meaning_distinct() {
         UiProjectionFactStopKind::Unsupported,
         UiProjectionFactStopKind::Remasked,
         UiProjectionFactStopKind::BudgetExceeded,
+        UiProjectionFactStopKind::ResetRequired,
     ];
 
     assert_eq!(unavailable.len(), 10);
-    assert_eq!(stops.len(), 10);
+    assert_eq!(stops.len(), 11);
     assert_ne!(
         UiProjectionRetainedActivityKind::Idle,
         UiProjectionRetainedActivityKind::Revalidating

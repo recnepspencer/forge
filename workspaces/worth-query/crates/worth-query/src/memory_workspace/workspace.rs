@@ -1,10 +1,10 @@
 use super::*;
 use crate::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation};
 use worth_foundational::facade::AspectValue;
-use worth_relational::facade::config::RelationalRuntimeProfile;
-use worth_relational::facade::runtime::RelationalRuntimeApi;
+use worth_relational::facade::config::{RelationalConfigOverride, RelationalRuntimeProfile};
 use worth_relational::facade::runtime::{
     CustomInvariantRegistration, EntityProjectionRecord, InvariantCatalog, ProjectionAspectScope,
+    RelationalRuntimeApi, RelationalRuntimeConfig,
 };
 use worth_relational::facade::schema::{
     DeclaredAspectContractBinding, EntityKindRegistration, KindAspectContractDeclarations,
@@ -38,15 +38,17 @@ impl WorthQueryMemoryWorkspace {
             declarations,
             invariant_catalog,
             custom_invariants,
+            None,
         )
     }
 
-    pub(crate) fn collection_with_native_contracts(
+    pub(crate) fn collection_with_native_contracts_for_initial_seed(
         kind_name: impl Into<String>,
         aspects: impl IntoIterator<Item = WorthQueryAspect>,
         contracts: impl IntoIterator<Item = worth_foundational::facade::AspectContract>,
         invariant_catalog: InvariantCatalog,
         custom_invariants: impl IntoIterator<Item = CustomInvariantRegistration>,
+        initial_seed_rows: usize,
     ) -> Result<Self, WorthQueryWorkspaceError> {
         let aspects = aspects.into_iter().collect::<Vec<_>>();
         let declarations = native_contract_declarations(&aspects, contracts)?;
@@ -56,6 +58,7 @@ impl WorthQueryMemoryWorkspace {
             declarations,
             invariant_catalog,
             custom_invariants,
+            Some(initial_seed_rows),
         )
     }
 
@@ -65,6 +68,7 @@ impl WorthQueryMemoryWorkspace {
         declared_aspects: Vec<DeclaredAspectContractBinding>,
         invariant_catalog: InvariantCatalog,
         custom_invariants: impl IntoIterator<Item = CustomInvariantRegistration>,
+        initial_seed_rows: Option<usize>,
     ) -> Result<Self, WorthQueryWorkspaceError> {
         let kind_name = kind_name.into();
         let kind_id = KindId(1);
@@ -86,10 +90,8 @@ impl WorthQueryMemoryWorkspace {
                 aspect_contract_declarations: KindAspectContractDeclarations::new(declared_aspects),
             })
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
-        let mut runtime_builder = RelationalRuntimeApi::builder()
-            .profile(RelationalRuntimeProfile::CertificationCore)
-            .schema_registry(registry)
-            .invariant_catalog(invariant_catalog.canonicalized());
+        let mut runtime_builder =
+            memory_runtime_builder(registry, invariant_catalog, initial_seed_rows);
         for custom_invariant in custom_invariants {
             runtime_builder = runtime_builder.custom_invariant(custom_invariant);
         }
@@ -310,7 +312,7 @@ impl WorthQueryMemoryWorkspace {
         }
     }
 
-    fn mutation_delta_collection_identity(
+    pub(super) fn mutation_delta_collection_identity(
         &self,
     ) -> crate::runtime::WorthQueryMutationTargetCollectionIdentity {
         crate::runtime::WorthQueryMutationTargetCollectionIdentity::new(
@@ -318,4 +320,34 @@ impl WorthQueryMemoryWorkspace {
             &self.kind_name,
         )
     }
+}
+
+fn memory_runtime_builder(
+    registry: RelationalSchemaRegistry,
+    invariant_catalog: InvariantCatalog,
+    initial_seed_rows: Option<usize>,
+) -> worth_relational::facade::runtime::RelationalRuntimeBuilder {
+    let builder = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(registry)
+        .invariant_catalog(invariant_catalog.canonicalized());
+    let Some(initial_seed_rows) = initial_seed_rows.filter(|rows| *rows > 0) else {
+        return builder;
+    };
+    let defaults = RelationalRuntimeConfig::resolved(
+        RelationalRuntimeProfile::CertificationCore,
+        RelationalConfigOverride::default(),
+    );
+    let mut publication = defaults.publication.policy;
+    publication.max_patch_records_per_commit = publication
+        .max_patch_records_per_commit
+        .max(initial_seed_rows);
+    builder
+        .entity_capacity(
+            defaults
+                .storage
+                .initial_entity_capacity
+                .max(initial_seed_rows),
+        )
+        .publication(publication)
 }

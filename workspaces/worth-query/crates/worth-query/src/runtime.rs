@@ -178,6 +178,7 @@ use worth_runtime_bridge::facade::{
 
 mod aspect_api_closeout;
 mod async_result_identity;
+mod async_result_projection;
 mod async_result_state;
 mod async_source_binding;
 mod async_source_transition;
@@ -299,6 +300,7 @@ mod runtime_journal_replay;
 mod runtime_live_read_intents;
 mod runtime_non_authoritative_obligation_dispatch;
 mod runtime_probe_routing_intents;
+mod runtime_provenance;
 mod runtime_read_access_plan;
 mod runtime_read_execution_receipts;
 mod runtime_read_intents;
@@ -826,6 +828,7 @@ use runtime_helpers::{
     synthetic_existing_assertion_receipt, WorthQuerySameBatchSymbolicTarget,
     WorthQuerySameBatchSymbolicTargetKey,
 };
+pub use runtime_provenance::WorthQueryRuntimeProvenance;
 #[cfg(test)]
 pub(crate) use shared_read::WorthQuerySharedReadBasisInspection;
 pub use shared_read::{
@@ -849,10 +852,11 @@ pub use support::{
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingAttachmentAuthorityLabel,
     WorthQueryNamingPriorAuthorityLabel, WorthQueryNamingTargetAuthorityLabel,
     WorthQueryPreviewBasisAdmission, WorthQueryRuntimeBackendPosture,
-    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeFacadeFamily,
-    WorthQueryRuntimeFamilySupport, WorthQueryRuntimeFamilySupportStatus,
-    WorthQueryRuntimeFamilyTeachingPosture, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryRuntimeSupportDenial, WorthQueryRuntimeSupportProfile,
+    WorthQueryRuntimeBatchAuthority, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
+    WorthQueryRuntimeFamilySupportStatus, WorthQueryRuntimeFamilyTeachingPosture,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportDenial,
+    WorthQueryRuntimeSupportProfile,
 };
 pub use support_matrix::{
     WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimePublicSupportMatrixRow,

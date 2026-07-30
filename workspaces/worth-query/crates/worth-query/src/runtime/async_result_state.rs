@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use worth_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionDenialClass, BridgeAsyncCompletionState,
     BridgeAsyncCompletionSupersessionClass, BridgeAsyncForwardCausalityClass,
@@ -16,10 +14,7 @@ use super::async_result_identity::{
 pub(crate) use super::async_result_identity::{
     runtime_async_causality_from_label, runtime_async_checkpoint_label_identity,
 };
-use super::{
-    WorthQueryLiveArtifactTarget, WorthQueryRuntimeError, WorthQueryRuntimeLiveSubscriptionState,
-    WorthQueryRuntimeStateKind,
-};
+use super::WorthQueryRuntimeStateKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryRuntimeAsyncResultStateKind {
@@ -144,7 +139,7 @@ impl WorthQueryRuntimeAsyncResultProjection {
         }
     }
 
-    fn causality_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub(super) fn causality_identity(&self) -> &WorthQueryEvidenceIdentity {
         match self {
             Self::Pending { causality_identity } => causality_identity,
             Self::CompletionState {
@@ -323,71 +318,5 @@ impl WorthQueryRuntimeAsyncResultState {
 
     pub fn result_state_for_reporting(&self) -> &str {
         self.result_state_identity.as_str()
-    }
-}
-
-pub(crate) fn project_live_async_result_state(
-    live_subscriptions: &mut BTreeMap<
-        WorthQueryLiveArtifactTarget,
-        WorthQueryRuntimeLiveSubscriptionState,
-    >,
-    view_name: &str,
-    projection: &WorthQueryRuntimeAsyncResultProjection,
-    basis_identity: &WorthQueryEvidenceIdentity,
-    checkpoint_identity: &WorthQueryEvidenceIdentity,
-) -> Result<WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeError> {
-    let target = WorthQueryLiveArtifactTarget::from_view_name(view_name);
-    let state = live_subscriptions
-        .get_mut(&target)
-        .ok_or_else(|| WorthQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
-    let expected_basis = state.installation.basis_binding_identity();
-    let expected_checkpoint = state.active_lane_handle.checkpoint_identity();
-    let kind = projection.kind();
-    if basis_identity != expected_basis && !kind.permits_basis_or_generation_drift() {
-        return Err(async_result_state_error(
-            view_name,
-            "PreviewBasisMismatchRequiresTypedState",
-        ));
-    }
-    if checkpoint_identity != expected_checkpoint && !kind.permits_basis_or_generation_drift() {
-        return Err(async_result_state_error(
-            view_name,
-            "GenerationDriftRequiresTypedState",
-        ));
-    }
-
-    let async_result_state = WorthQueryRuntimeAsyncResultState::new(
-        kind,
-        projection.causality_identity(),
-        basis_identity,
-        checkpoint_identity,
-    );
-    state.async_result_state = Some(async_result_state.clone());
-    Ok(async_result_state)
-}
-
-fn async_result_state_error(view_name: &str, message: &str) -> WorthQueryRuntimeError {
-    WorthQueryRuntimeError::LiveSubscriptionInstallation {
-        view_name: view_name.to_string(),
-        stage: "async-result-state",
-        message: message.to_string(),
-    }
-}
-
-impl super::WorthQueryRuntime {
-    pub(crate) fn project_async_result_state(
-        &mut self,
-        view_name: &str,
-        projection: &WorthQueryRuntimeAsyncResultProjection,
-        basis_identity: &WorthQueryEvidenceIdentity,
-        checkpoint_identity: &WorthQueryEvidenceIdentity,
-    ) -> Result<WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeError> {
-        project_live_async_result_state(
-            &mut self.live_subscriptions,
-            view_name,
-            projection,
-            basis_identity,
-            checkpoint_identity,
-        )
     }
 }

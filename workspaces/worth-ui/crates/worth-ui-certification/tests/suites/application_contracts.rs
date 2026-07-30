@@ -6,6 +6,8 @@ mod admission_support_runtime;
 mod canvas_spatial_execution;
 #[path = "../application_contracts/canvas_spatial_replacement.rs"]
 mod canvas_spatial_replacement;
+#[path = "../application_contracts/collection_projection/mod.rs"]
+mod collection_projection;
 #[path = "../application_contracts/cross_lane_bundle_execution.rs"]
 mod cross_lane_bundle_execution;
 #[path = "../application_contracts/documented_lifecycle_journey.rs"]
@@ -108,6 +110,12 @@ mod phase7_public_mounted_allocation;
 mod platform_pulse;
 #[path = "../application_contracts/platform_pulse_lifecycle.rs"]
 mod platform_pulse_lifecycle;
+#[path = "../application_contracts/projection_compatibility/mod.rs"]
+mod projection_compatibility;
+#[path = "../application_contracts/projection_authority/mod.rs"]
+mod projection_authority;
+#[path = "../application_contracts/projection_lifecycle/mod.rs"]
+mod projection_lifecycle;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
 #[path = "../application_contracts/query_consumer_kit_application.rs"]

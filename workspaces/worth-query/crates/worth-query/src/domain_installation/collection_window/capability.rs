@@ -334,6 +334,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryBoundCollection<D, O, F, L> {
 #[derive(Debug)]
 pub enum WorthQueryCollectionRowAccessDenial {
     ForeignRowHandle,
+    RowNotInWindow,
+    ForeignNativeAccessKey,
     NativeAccess(WorthQueryNativeAccessDenial),
 }
 

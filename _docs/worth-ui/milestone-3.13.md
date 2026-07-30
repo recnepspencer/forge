@@ -306,6 +306,9 @@ Query gives them different lifecycle or recovery meaning. They cannot collapse
 to loading/error strings. A Phase 1 exhaustive mapping ledger fixes each
 reachable Query posture to one nested UI outcome and predecessor-value policy;
 elapsed time, missing UI data, or renderer behavior cannot decide it.
+The normative mapping is
+`milestone-3.13-phase-1-result-posture-ledger.csv`; implementation and
+certification must consume every row without adding an unledgered local state.
 
 ### 2. Shape Is Compiler-Visible
 

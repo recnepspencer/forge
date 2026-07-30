@@ -1,6 +1,9 @@
 use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
-use super::{UiNativeTextValue, UiProjectionAvailability, UiProjectionFactReceipt};
+use super::{
+    UiCollectionProjectionWorkCounters, UiNativeTextValue, UiProjectionAvailability,
+    UiProjectionFactReceipt,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiCollectionCompleteness {
@@ -14,6 +17,12 @@ pub struct UiCollectionContinuation {
 }
 
 impl UiCollectionContinuation {
+    pub(crate) fn query_issued(query_continuation_identity: WorthQueryEvidenceIdentity) -> Self {
+        Self {
+            query_continuation_identity,
+        }
+    }
+
     pub fn identity_for_reporting(&self) -> &str {
         self.query_continuation_identity
             .terminal_projection_for_reporting()
@@ -26,6 +35,10 @@ pub struct UiCollectionProjectionRowReference {
 }
 
 impl UiCollectionProjectionRowReference {
+    pub(crate) fn query_issued(query_row_identity: WorthQueryEvidenceIdentity) -> Self {
+        Self { query_row_identity }
+    }
+
     pub fn identity_for_reporting(&self) -> &str {
         self.query_row_identity.terminal_projection_for_reporting()
     }
@@ -38,6 +51,16 @@ pub struct UiCollectionProjectionTextRow {
 }
 
 impl UiCollectionProjectionTextRow {
+    pub(crate) fn admitted(
+        row: UiCollectionProjectionRowReference,
+        selected_values: impl Into<Box<[UiNativeTextValue]>>,
+    ) -> Self {
+        Self {
+            row,
+            selected_values: selected_values.into(),
+        }
+    }
+
     pub fn row(&self) -> &UiCollectionProjectionRowReference {
         &self.row
     }
@@ -55,6 +78,18 @@ pub struct UiCollectionProjectionValue {
 }
 
 impl UiCollectionProjectionValue {
+    pub(crate) fn admitted(
+        rows: impl Into<Box<[UiCollectionProjectionTextRow]>>,
+        completeness: UiCollectionCompleteness,
+        continuation: Option<UiCollectionContinuation>,
+    ) -> Self {
+        Self {
+            rows: rows.into(),
+            completeness,
+            continuation,
+        }
+    }
+
     pub fn rows(&self) -> &[UiCollectionProjectionTextRow] {
         &self.rows
     }
@@ -68,19 +103,67 @@ impl UiCollectionProjectionValue {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum UiCollectionProjectionChange {
+    Insert {
+        row: UiCollectionProjectionRowReference,
+        at: usize,
+    },
+    Remove {
+        row: UiCollectionProjectionRowReference,
+        from: usize,
+    },
+    Move {
+        row: UiCollectionProjectionRowReference,
+        from: usize,
+        to: usize,
+    },
+    Update {
+        row: UiCollectionProjectionRowReference,
+    },
+    WindowShift,
+    ResetRequired {
+        reason: crate::WorthUiCollectionResetReason,
+    },
+}
+
 #[must_use]
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiCollectionProjectionFactReceipt {
     core: UiProjectionFactReceipt,
     availability: UiProjectionAvailability<UiCollectionProjectionValue>,
+    work: UiCollectionProjectionWorkCounters,
+    changes: Box<[UiCollectionProjectionChange]>,
 }
 
 impl UiCollectionProjectionFactReceipt {
+    pub(crate) fn admitted(
+        core: UiProjectionFactReceipt,
+        availability: UiProjectionAvailability<UiCollectionProjectionValue>,
+        work: UiCollectionProjectionWorkCounters,
+        changes: impl Into<Box<[UiCollectionProjectionChange]>>,
+    ) -> Self {
+        Self {
+            core,
+            availability,
+            work,
+            changes: changes.into(),
+        }
+    }
+
     pub fn core(&self) -> &UiProjectionFactReceipt {
         &self.core
     }
 
     pub fn availability(&self) -> &UiProjectionAvailability<UiCollectionProjectionValue> {
         &self.availability
+    }
+
+    pub fn work(&self) -> UiCollectionProjectionWorkCounters {
+        self.work
+    }
+
+    pub fn changes(&self) -> &[UiCollectionProjectionChange] {
+        &self.changes
     }
 }

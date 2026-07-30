@@ -178,6 +178,10 @@ name = "product-projection-fact-affinity"
 path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_fact_is_affine.rs"
 
 [[bin]]
+name = "product-reporting-projection-non-entry"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.rs"
+
+[[bin]]
 name = "certification-second-host-adapter"
 path = "../../ui/host/second_adapter_implements_contract.rs"
 

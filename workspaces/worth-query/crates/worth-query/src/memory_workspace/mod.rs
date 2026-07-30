@@ -4,17 +4,20 @@ use worth_relational::facade::identity::{EntityId, KindId};
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 
+mod atomic_batch;
 mod entity_row;
 mod identities;
 mod mutation_authority_admission;
 mod native_patch;
 mod runtime_identity;
+mod seed_rows;
 #[cfg(test)]
 mod tests;
 mod truth_identity_admission;
 mod workspace;
 mod workspace_schema;
 
+pub(crate) use atomic_batch::WorthQueryMemoryBatchMutation;
 pub use entity_row::WorthQueryEntity;
 pub use identities::{
     WorthQueryCommitIdentity, WorthQueryEntityIdentity, WorthQuerySnapshotIdentity,

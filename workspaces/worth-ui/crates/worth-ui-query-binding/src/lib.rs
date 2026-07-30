@@ -8,6 +8,12 @@ mod application_binding;
 #[cfg(any(test, feature = "certification-construction"))]
 pub mod certification;
 mod collection_delivery;
+#[cfg(test)]
+mod collection_projection_binding_tests;
+#[cfg(test)]
+mod collection_projection_refresh_tests;
+#[cfg(test)]
+mod collection_text_projection_tests;
 mod declaration;
 mod domain_marker;
 mod domain_package;
@@ -18,6 +24,19 @@ mod native_aspect_contracts;
 mod operation_live;
 mod projection_binding;
 mod projection_consumption;
+mod projection_invalidation;
+#[cfg(test)]
+mod scalar_projection_async_fixture;
+#[cfg(test)]
+mod scalar_projection_drift_tests;
+#[cfg(test)]
+mod scalar_projection_lifecycle_tests;
+#[cfg(test)]
+mod scalar_text_progression_tests;
+#[cfg(any(test, feature = "certification-construction"))]
+mod scalar_text_projection_fixture;
+#[cfg(test)]
+mod scalar_text_projection_tests;
 #[cfg(test)]
 mod snapshot_derivation_denial_tests;
 #[cfg(test)]
@@ -59,12 +78,14 @@ pub use collection_delivery::{
     WorthUiCollectionResultPosture, WorthUiCollectionRowReference, WorthUiCollectionWarningPosture,
 };
 pub use declaration::{
-    UiCollectionSchemaRequirement, UiProjectionFieldRequirement, UiProjectionFieldRequirementError,
-    UiProjectionLifecycleRequirement, UiProjectionNativeFamily, UiProjectionShape,
-    UiScalarSchemaRequirement, WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView,
-    WorthUiInstalledSnapshotQueryView, WorthUiQueryViewDeclarationDenial,
-    WorthUiQueryViewDefinition, WorthUiQueryViewDefinitionDigest, WorthUiQueryViewIdentity,
-    WorthUiQueryViewIdentityError, WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
+    UiCollectionProjectionRegistration, UiCollectionSchemaRequirement,
+    UiCollectionSchemaRequirementError, UiInstalledProjectionView, UiProjectionFieldRequirement,
+    UiProjectionFieldRequirementError, UiProjectionLifecycleRequirement, UiProjectionNativeFamily,
+    UiProjectionShape, UiScalarProjectionRegistration, UiScalarSchemaRequirement,
+    WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
+    WorthUiQueryViewDeclarationDenial, WorthUiQueryViewDefinition,
+    WorthUiQueryViewDefinitionDigest, WorthUiQueryViewIdentity, WorthUiQueryViewIdentityError,
+    WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
 };
 pub use domain_marker::WorthUiDomainEntry;
 pub use domain_package::worth_ui_domain_package;
@@ -89,11 +110,13 @@ pub use installed_domain::{
     WorthUiMeasurementRecordingFamily, WorthUiQueryDomainRebindDenial,
     WorthUiQueryDomainRebindDenialKind, WorthUiQueryDomainRebindNextAction,
     WorthUiQueryDomainRebindReceipt, WorthUiQueryInstallationDenial,
-    WorthUiQueryInstallationDenialKind, WorthUiQueryWorkspaceExt, WorthUiSnapshotMeasurement,
+    WorthUiQueryInstallationDenialKind, WorthUiQueryWorkspaceExt, WorthUiScalarTextProjection,
+    WorthUiScalarTextProjectionFamily, WorthUiSnapshotMeasurement,
     WorthUiSnapshotMeasurementFamily,
 };
 #[cfg(any(test, feature = "certification-construction"))]
 pub use installed_domain::{
+    install_worth_ui_partial_collection_test_operation_executors,
     install_worth_ui_partial_test_operation_executors, install_worth_ui_test_operation_executors,
 };
 pub use native_aspect_contracts::worth_ui_native_aspect_contracts;
@@ -114,24 +137,42 @@ pub use operation_live::{
     WorthUiValidatedCollectionChangeObservation,
 };
 pub use projection_binding::{
-    UiCollectionProjectionBinding, UiCollectionProjectionBindingAdmission, UiProjectionBinding,
-    UiProjectionBindingCompatibilityProof, UiProjectionBindingStopKind,
+    UiCollectionProjectionBinding, UiCollectionProjectionBindingAdmission,
+    UiCollectionProjectionOpenOutcome, UiCollectionProjectionOpenReceipt,
+    UiCollectionProjectionOpenStop, UiCollectionProjectionOpenStopKind,
+    UiCollectionProjectionRefreshError, UiCollectionProjectionRefreshOutcome,
+    UiCollectionProjectionRefreshReceipt, UiCollectionProjectionReplacementOutcome,
+    UiCollectionProjectionReplacementReceipt, UiCollectionProjectionReplacementStop,
+    UiLiveCollectionProjection, UiLiveCollectionProjectionCloseOutcome,
+    UiLiveCollectionProjectionCloseReceipt, UiLiveCollectionProjectionCloseStop,
+    UiProjectionBinding, UiProjectionBindingCompatibilityProof, UiProjectionBindingStopKind,
     UiProjectionBindingStopReceipt, UiScalarProjectionBinding, UiScalarProjectionBindingAdmission,
+    UiScalarProjectionReplacementOutcome, UiScalarProjectionReplacementReceipt,
+    UiScalarProjectionReplacementStop,
 };
 pub use projection_consumption::{
-    UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionFactReceipt,
-    UiCollectionProjectionRowReference, UiCollectionProjectionTextRow, UiCollectionProjectionValue,
+    UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionBudget,
+    UiCollectionProjectionBudgetError, UiCollectionProjectionChange,
+    UiCollectionProjectionFactReceipt, UiCollectionProjectionRowReference,
+    UiCollectionProjectionTextRow, UiCollectionProjectionValue, UiCollectionProjectionWorkCounters,
     UiNativeTextValue, UiPresentProjection, UiProjectionAvailability,
     UiProjectionConsumptionBudget, UiProjectionConsumptionBudgetError,
     UiProjectionConsumptionLimits, UiProjectionFactReceipt, UiProjectionFactStopKind,
-    UiProjectionFactStopReceipt, UiProjectionRetainedActivityKind,
-    UiProjectionRetainedActivityReceipt, UiProjectionUnavailableKind,
-    UiProjectionUnavailableReceipt, UiScalarProjectionFactReceipt,
+    UiProjectionFactStopReceipt, UiProjectionPostureTrace, UiProjectionRetainedActivityKind,
+    UiProjectionRetainedActivityReceipt, UiProjectionTransitionPosture,
+    UiProjectionUnavailableKind, UiProjectionUnavailableReceipt, UiScalarProjectionFactReceipt,
+    UiScalarProjectionWorkCounters,
+};
+pub use projection_invalidation::{
+    UiScalarProjectionBatchOutcome, UiScalarProjectionInitialError,
+    UiScalarProjectionTransitionReceipt, UiScalarProjectionUnchangedReceipt,
 };
 
 #[cfg(test)]
 mod installed_operations_tests;
 #[cfg(test)]
 mod operation_live_tests;
+#[cfg(test)]
+mod projection_compatibility_tests;
 #[cfg(test)]
 mod projection_contract_tests;

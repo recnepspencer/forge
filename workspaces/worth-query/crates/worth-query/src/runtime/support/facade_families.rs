@@ -7,6 +7,13 @@ pub enum WorthQueryRuntimeBackendPosture {
     Scaffold,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum WorthQueryRuntimeBatchAuthority {
+    BackendAtomicFull,
+    BackendAtomicDirect,
+    Unsupported,
+}
+
 impl WorthQueryRuntimeBackendPosture {
     pub fn as_str(self) -> &'static str {
         match self {

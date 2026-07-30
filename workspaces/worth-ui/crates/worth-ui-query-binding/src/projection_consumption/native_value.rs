@@ -6,6 +6,12 @@ pub struct UiNativeTextValue {
 }
 
 impl UiNativeTextValue {
+    pub(crate) fn from_raw(text: String) -> Self {
+        Self {
+            text: Arc::from(text),
+        }
+    }
+
     pub fn as_str(&self) -> &str {
         self.text.as_ref()
     }

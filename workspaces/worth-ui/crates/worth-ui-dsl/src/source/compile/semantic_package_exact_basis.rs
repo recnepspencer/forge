@@ -1,7 +1,10 @@
+mod fingerprint;
+
 use crate::source::{
     WorthUiAuthoredMount, WorthUiAuthoredRegion, WorthUiAuthoredStructuralBody,
     WorthUiSemanticDeclaration, WorthUiSemanticModule, WorthUiSourceModuleId,
 };
+use fingerprint::Fingerprint;
 
 #[derive(Debug, Eq, PartialEq)]
 pub(super) struct WorthUiSemanticPackageExactBasis {
@@ -22,6 +25,17 @@ enum WorthUiSemanticDeclarationExactBasis {
     Component(WorthUiSemanticBlockExactBasis),
     Surface(WorthUiSemanticBlockExactBasis),
     Binding(WorthUiSemanticBlockExactBasis),
+    Projection {
+        declaration: String,
+        view: String,
+        shape: String,
+        selected_fields: Box<[String]>,
+        row_identity: Option<String>,
+        native_family: String,
+        lifecycle: String,
+        requires_complete_result: Option<bool>,
+        permits_continuation: Option<bool>,
+    },
     Token {
         name: String,
         authored_identity: Option<String>,
@@ -126,6 +140,24 @@ impl WorthUiSemanticDeclarationExactBasis {
             WorthUiSemanticDeclaration::Binding(block) => {
                 Self::Binding(WorthUiSemanticBlockExactBasis::from_block(block))
             }
+            WorthUiSemanticDeclaration::Projection(projection) => {
+                let requirement = projection.requirement();
+                Self::Projection {
+                    declaration: requirement.declaration_identity().to_owned(),
+                    view: requirement.view_identity().to_owned(),
+                    shape: requirement.shape().canonical_token().to_owned(),
+                    selected_fields: requirement.selected_fields().map(str::to_owned).collect(),
+                    row_identity: requirement.row_identity_field().map(str::to_owned),
+                    native_family: requirement.native_family().canonical_token().to_owned(),
+                    lifecycle: requirement.lifecycle().canonical_token().to_owned(),
+                    requires_complete_result: requirement
+                        .collection_policy()
+                        .map(|policy| policy.requires_complete_result()),
+                    permits_continuation: requirement
+                        .collection_policy()
+                        .map(|policy| policy.permits_continuation()),
+                }
+            }
             WorthUiSemanticDeclaration::Token(token) => Self::Token {
                 name: token.name_text().to_owned(),
                 authored_identity: token.authored_identity().map(str::to_owned),
@@ -163,6 +195,28 @@ impl WorthUiSemanticDeclarationExactBasis {
             Self::Binding(block) => {
                 fingerprint.fold_text("binding");
                 block.fold_into(fingerprint);
+            }
+            Self::Projection {
+                declaration,
+                view,
+                shape,
+                selected_fields,
+                row_identity,
+                native_family,
+                lifecycle,
+                requires_complete_result,
+                permits_continuation,
+            } => {
+                fingerprint.fold_text("projection");
+                fingerprint.fold_text(declaration);
+                fingerprint.fold_text(view);
+                fingerprint.fold_text(shape);
+                fingerprint.fold_texts(selected_fields);
+                fingerprint.fold_optional_text(row_identity.as_deref());
+                fingerprint.fold_text(native_family);
+                fingerprint.fold_text(lifecycle);
+                fingerprint.fold_optional_bool(*requires_complete_result);
+                fingerprint.fold_optional_bool(*permits_continuation);
             }
             Self::Token {
                 name,
@@ -304,55 +358,5 @@ impl WorthUiMountExactBasis {
         fingerprint.fold_text(&self.surface);
         fingerprint.fold_optional_text(self.placement_policy.as_deref());
         fingerprint.fold_optional_text(self.state_slot.as_deref());
-    }
-}
-
-struct Fingerprint(u64);
-
-impl Fingerprint {
-    fn new(domain: &str) -> Self {
-        let mut value = Self(0xcbf2_9ce4_8422_2325);
-        value.fold_text(domain);
-        value
-    }
-
-    fn fold_optional_text(&mut self, text: Option<&str>) {
-        match text {
-            Some(text) => {
-                self.fold_u64(1);
-                self.fold_text(text);
-            }
-            None => self.fold_u64(0),
-        }
-    }
-
-    fn fold_text(&mut self, text: &str) {
-        self.fold_usize(text.len());
-        for byte in text.as_bytes() {
-            self.0 ^= u64::from(*byte);
-            self.0 = self.0.wrapping_mul(0x100_0000_01b3);
-        }
-    }
-
-    fn fold_texts(&mut self, values: &[String]) {
-        self.fold_usize(values.len());
-        for value in values {
-            self.fold_text(value);
-        }
-    }
-
-    fn fold_usize(&mut self, value: usize) {
-        self.fold_u64(value as u64);
-    }
-
-    fn fold_u64(&mut self, value: u64) {
-        for byte in value.to_le_bytes() {
-            self.0 ^= u64::from(byte);
-            self.0 = self.0.wrapping_mul(0x100_0000_01b3);
-        }
-    }
-
-    fn finish(self) -> u64 {
-        self.0
     }
 }

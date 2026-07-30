@@ -5,8 +5,8 @@ use sha2::{Digest, Sha256};
 use crate::input::envelope::BridgeCommittedPatchEnvelope;
 use crate::source::BridgeAsyncRequestTruthViewBasisKind;
 use crate::source::{
-    AdmittedBridgeAsyncCompletion, BridgeAsyncClassifiedDeniedCompletion, BridgeAsyncRetryLineage,
-    BridgeAsyncRevalidationLineage,
+    AdmittedBridgeAsyncCompletion, BridgeAsyncClassifiedDeniedCompletion,
+    BridgeAsyncDeniedCompletion, BridgeAsyncRetryLineage, BridgeAsyncRevalidationLineage,
 };
 use crate::subscription::{
     BridgeTemporalCauseClassification, BridgeTemporalCauseRecord, BridgeTemporalRoutingLaneKind,
@@ -138,6 +138,9 @@ impl Candidate {
             BridgeMixedCauseOrderingInput::AsyncCompletion(completion) => {
                 Self::from_async_completion(completion)
             }
+            BridgeMixedCauseOrderingInput::AsyncDeniedCompletion(completion) => {
+                Self::from_async_denied_completion(completion)
+            }
             BridgeMixedCauseOrderingInput::AsyncClassifiedDeniedCompletion(denied) => {
                 Self::from_async_denied(denied)
             }
@@ -224,6 +227,27 @@ impl Candidate {
             stale_or_nondeliverable: None,
             async_result_transition: Some(
                 BridgeMixedCauseAsyncResultTransitionSeed::from_completion(completion),
+            ),
+        }
+    }
+
+    fn from_async_denied_completion(completion: &BridgeAsyncDeniedCompletion) -> Self {
+        Self {
+            family_kind: BridgeMixedCauseOrderFamilyKind::AsyncDeniedCompletion,
+            source_identity: Arc::from(completion.denial_identity().to_owned()),
+            source_digest: Arc::from(completion.digest().to_owned()),
+            dedup_key: Arc::from(format!("async-denied-completion:{}", completion.digest())),
+            precedence: 2,
+            preview_local: matches!(
+                completion
+                    .request_identity()
+                    .basis_binding()
+                    .truth_view_basis_kind(),
+                BridgeAsyncRequestTruthViewBasisKind::Preview
+            ),
+            stale_or_nondeliverable: None,
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_denied_completion(completion),
             ),
         }
     }

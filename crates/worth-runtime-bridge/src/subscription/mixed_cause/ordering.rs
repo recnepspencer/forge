@@ -18,6 +18,7 @@ pub enum BridgeMixedCauseOrderFamilyKind {
     TemporalTruthPlusTime,
     TemporalTimeOnly,
     AsyncCompletion,
+    AsyncDeniedCompletion,
     AsyncClassifiedDeniedCompletion,
     AsyncRetryLineage,
     AsyncRevalidationLineage,

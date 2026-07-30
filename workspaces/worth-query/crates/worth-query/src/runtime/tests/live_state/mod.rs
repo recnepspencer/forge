@@ -1,5 +1,6 @@
 mod async_result_state;
 mod async_source_binding;
+mod async_source_drift;
 mod downstream_delivery;
 mod mixed_cause;
 mod ordinary_posture;

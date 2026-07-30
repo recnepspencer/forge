@@ -8,6 +8,8 @@ pub(crate) enum WorthUiSourceTokenKind {
     KeywordComponent,
     KeywordSurface,
     KeywordBinding,
+    KeywordQueryScalar,
+    KeywordQueryCollection,
     KeywordToken,
     LeftBrace,
     RightBrace,

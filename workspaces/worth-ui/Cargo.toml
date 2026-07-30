@@ -25,6 +25,7 @@ worth-foundational = { path = "../../crates/worth-foundational" }
 worth-proof = { path = "../../crates/worth-proof" }
 worth-query = { path = "../worth-query/crates/worth-query" }
 worth-relational = { path = "../../crates/worth-relational" }
+worth-runtime-bridge = { path = "../../crates/worth-runtime-bridge" }
 worth-signal = { path = "../../crates/worth-signal" }
 
 worth-ui-theme = { path = "crates/worth-ui-theme" }

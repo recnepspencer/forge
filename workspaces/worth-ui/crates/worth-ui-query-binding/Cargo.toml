@@ -21,3 +21,5 @@ worth-query-decl = { path = "../../../worth-query/crates/worth-query-decl" }
 
 [dev-dependencies]
 worth-relational.workspace = true
+worth-runtime-bridge = { workspace = true, features = ["certification-construction"] }
+worth-signal.workspace = true

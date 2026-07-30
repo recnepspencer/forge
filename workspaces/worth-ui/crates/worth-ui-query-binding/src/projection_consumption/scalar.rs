@@ -8,6 +8,22 @@ pub struct UiScalarProjectionFactReceipt {
 }
 
 impl UiScalarProjectionFactReceipt {
+    pub(crate) fn admitted(
+        core: UiProjectionFactReceipt,
+        availability: UiProjectionAvailability<UiNativeTextValue>,
+    ) -> Self {
+        Self { core, availability }
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        UiProjectionFactReceipt,
+        UiProjectionAvailability<UiNativeTextValue>,
+    ) {
+        (self.core, self.availability)
+    }
+
     pub fn core(&self) -> &UiProjectionFactReceipt {
         &self.core
     }

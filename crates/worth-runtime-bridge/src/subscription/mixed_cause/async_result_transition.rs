@@ -3,9 +3,10 @@ use std::sync::Arc;
 use crate::source::{
     AdmittedBridgeAsyncCompletion, AdmittedBridgeAsyncRequestIdentity,
     BridgeAsyncClassifiedDeniedCompletion, BridgeAsyncCompletionState,
-    BridgeAsyncCompletionSupersessionClass, BridgeAsyncForwardCausalityClass,
-    BridgeAsyncRequestIdentity, BridgeAsyncRequestRuntimeIdentity, BridgeAsyncRetryLineage,
-    BridgeAsyncRevalidationLineage, BridgeAsyncSourceDeclarationIdentity,
+    BridgeAsyncCompletionSupersessionClass, BridgeAsyncDeniedCompletion,
+    BridgeAsyncForwardCausalityClass, BridgeAsyncRequestIdentity,
+    BridgeAsyncRequestRuntimeIdentity, BridgeAsyncRetryLineage, BridgeAsyncRevalidationLineage,
+    BridgeAsyncSourceDeclarationIdentity,
 };
 
 use super::ordering::BridgeMixedCauseDeniedKind;
@@ -62,6 +63,16 @@ impl BridgeMixedCauseAsyncResultTransitionSeed {
         Self::from_request(
             BridgeMixedCauseAsyncResultCause::Completion(completion.state()),
             completion.completion_identity(),
+            completion.digest(),
+            completion.request_identity(),
+            None,
+        )
+    }
+
+    pub(super) fn from_denied_completion(completion: &BridgeAsyncDeniedCompletion) -> Self {
+        Self::from_request(
+            BridgeMixedCauseAsyncResultCause::Completion(completion.state()),
+            completion.denial_identity(),
             completion.digest(),
             completion.request_identity(),
             None,

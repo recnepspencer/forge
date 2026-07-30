@@ -69,6 +69,8 @@
 mod adapter;
 mod builder;
 mod canonical_basis;
+#[cfg(feature = "certification-construction")]
+pub mod certification;
 mod clone_budget;
 mod conditional_execution;
 mod continuity;

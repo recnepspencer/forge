@@ -38,6 +38,18 @@ pub(crate) fn lower_parsed_source_declaration(
                 declaration_index,
             ))
         }
+        WorthUiParsedSourceDeclaration::QueryScalar(block_declaration) => {
+            WorthUiArtifactInputNode::QueryScalar(lower_parsed_block_declaration(
+                block_declaration,
+                declaration_index,
+            ))
+        }
+        WorthUiParsedSourceDeclaration::QueryCollection(block_declaration) => {
+            WorthUiArtifactInputNode::QueryCollection(lower_parsed_block_declaration(
+                block_declaration,
+                declaration_index,
+            ))
+        }
         WorthUiParsedSourceDeclaration::Token(token_declaration) => {
             WorthUiArtifactInputNode::Token(WorthUiArtifactInputTokenNode::new(
                 token_declaration.name_text(),
@@ -90,6 +102,12 @@ fn lower_token_kind_to_body_atom(
         WorthUiSourceTokenKind::KeywordComponent => WorthUiArtifactInputBodyAtom::KeywordComponent,
         WorthUiSourceTokenKind::KeywordSurface => WorthUiArtifactInputBodyAtom::KeywordSurface,
         WorthUiSourceTokenKind::KeywordBinding => WorthUiArtifactInputBodyAtom::KeywordBinding,
+        WorthUiSourceTokenKind::KeywordQueryScalar => {
+            WorthUiArtifactInputBodyAtom::KeywordQueryScalar
+        }
+        WorthUiSourceTokenKind::KeywordQueryCollection => {
+            WorthUiArtifactInputBodyAtom::KeywordQueryCollection
+        }
         WorthUiSourceTokenKind::KeywordToken => WorthUiArtifactInputBodyAtom::KeywordToken,
         WorthUiSourceTokenKind::LeftBrace => WorthUiArtifactInputBodyAtom::LeftBrace,
         WorthUiSourceTokenKind::RightBrace => WorthUiArtifactInputBodyAtom::RightBrace,

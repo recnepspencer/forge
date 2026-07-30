@@ -54,7 +54,9 @@ fn lower_declaration(view: WorthUiSemanticDeclarationView<'_>) -> Option<Lowerin
         WorthUiSemanticDeclaration::SemanticArtifact(artifact) => {
             semantic_artifact_spec(artifact, provenance.clone())
         }
-        WorthUiSemanticDeclaration::Import(_) | WorthUiSemanticDeclaration::Token(_) => {
+        WorthUiSemanticDeclaration::Import(_)
+        | WorthUiSemanticDeclaration::Projection(_)
+        | WorthUiSemanticDeclaration::Token(_) => {
             return None;
         }
     };

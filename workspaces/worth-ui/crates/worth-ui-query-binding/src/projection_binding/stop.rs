@@ -20,11 +20,38 @@ pub enum UiProjectionBindingStopKind {
 pub struct UiProjectionBindingStopReceipt {
     kind: UiProjectionBindingStopKind,
     attempt_identity: WorthQueryEvidenceIdentity,
-    predecessor_binding_identity: Option<WorthQueryEvidenceIdentity>,
+    predecessor_binding_identity: Option<Arc<str>>,
     summary: Arc<str>,
 }
 
 impl UiProjectionBindingStopReceipt {
+    pub(crate) fn initial(
+        kind: UiProjectionBindingStopKind,
+        attempt_identity: WorthQueryEvidenceIdentity,
+        summary: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            kind,
+            attempt_identity,
+            predecessor_binding_identity: None,
+            summary: summary.into(),
+        }
+    }
+
+    pub(crate) fn replacement(
+        kind: UiProjectionBindingStopKind,
+        attempt_identity: WorthQueryEvidenceIdentity,
+        predecessor_binding_identity: Arc<str>,
+        summary: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            kind,
+            attempt_identity,
+            predecessor_binding_identity: Some(predecessor_binding_identity),
+            summary: summary.into(),
+        }
+    }
+
     pub fn kind(&self) -> UiProjectionBindingStopKind {
         self.kind
     }
@@ -36,7 +63,7 @@ impl UiProjectionBindingStopReceipt {
     pub fn predecessor_binding_identity_for_reporting(&self) -> Option<&str> {
         self.predecessor_binding_identity
             .as_ref()
-            .map(WorthQueryEvidenceIdentity::terminal_projection_for_reporting)
+            .map(AsRef::as_ref)
     }
 
     pub fn summary(&self) -> &str {

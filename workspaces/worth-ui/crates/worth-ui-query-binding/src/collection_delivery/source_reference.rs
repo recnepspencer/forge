@@ -21,8 +21,7 @@ struct WorthUiCollectionChangeSourceAuthority {
 #[derive(Clone, Eq, PartialEq)]
 pub struct WorthUiCollectionRowReference {
     source: WorthUiCollectionChangeSourceReference,
-    change_order: u64,
-    effect_order: usize,
+    query_row_identity: worth_query::facade::runtime::WorthQueryEvidenceIdentity,
 }
 
 impl WorthUiCollectionChangeSourceReference {
@@ -36,18 +35,20 @@ impl WorthUiCollectionChangeSourceReference {
 impl WorthUiCollectionRowReference {
     pub(crate) fn mint(
         source: &WorthUiCollectionChangeSourceReference,
-        change_order: u64,
-        effect_order: usize,
+        query_row_identity: &worth_query::facade::foundation::WorthQueryEntityIdentity,
     ) -> Self {
         Self {
             source: source.clone(),
-            change_order,
-            effect_order,
+            query_row_identity: query_row_identity.evidence_identity(),
         }
     }
 
     pub fn source(&self) -> &WorthUiCollectionChangeSourceReference {
         &self.source
+    }
+
+    pub fn identity_for_reporting(&self) -> &str {
+        self.query_row_identity.terminal_projection_for_reporting()
     }
 }
 
@@ -85,8 +86,10 @@ impl std::fmt::Debug for WorthUiCollectionRowReference {
         formatter
             .debug_struct("WorthUiCollectionRowReference")
             .field("source", &self.source)
-            .field("change_order", &self.change_order)
-            .field("effect_order", &self.effect_order)
+            .field(
+                "query_row_identity",
+                &self.query_row_identity.terminal_projection_for_reporting(),
+            )
             .finish()
     }
 }

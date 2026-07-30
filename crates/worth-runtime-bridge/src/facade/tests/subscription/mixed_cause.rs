@@ -13,6 +13,8 @@ use crate::facade::{
 };
 use worth_signal::facade::NodeId;
 
+mod async_result;
+
 #[test]
 fn runtime_orders_mixed_causes_canonically_across_shuffled_input_order() {
     let runtime = runtime(BridgeRuntimePolicy::development());

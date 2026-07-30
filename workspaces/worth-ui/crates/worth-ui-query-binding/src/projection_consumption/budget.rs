@@ -6,6 +6,58 @@ pub enum UiProjectionConsumptionBudgetError {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiCollectionProjectionBudgetError {
+    ZeroRows,
+    ZeroNativeBytes,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiCollectionProjectionBudget {
+    max_rows: u32,
+    max_change_operations: usize,
+    max_continuation_operations: usize,
+    max_native_bytes: usize,
+}
+
+impl UiCollectionProjectionBudget {
+    pub fn new(
+        max_rows: u32,
+        max_change_operations: usize,
+        max_continuation_operations: usize,
+        max_native_bytes: usize,
+    ) -> Result<Self, UiCollectionProjectionBudgetError> {
+        if max_rows == 0 {
+            return Err(UiCollectionProjectionBudgetError::ZeroRows);
+        }
+        if max_native_bytes == 0 {
+            return Err(UiCollectionProjectionBudgetError::ZeroNativeBytes);
+        }
+        Ok(Self {
+            max_rows,
+            max_change_operations,
+            max_continuation_operations,
+            max_native_bytes,
+        })
+    }
+
+    pub fn max_rows(self) -> u32 {
+        self.max_rows
+    }
+
+    pub fn max_change_operations(self) -> usize {
+        self.max_change_operations
+    }
+
+    pub fn max_continuation_operations(self) -> usize {
+        self.max_continuation_operations
+    }
+
+    pub fn max_native_bytes(self) -> usize {
+        self.max_native_bytes
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiProjectionConsumptionLimits {
     bindings_admitted: usize,
     scalar_fields_accessed: usize,

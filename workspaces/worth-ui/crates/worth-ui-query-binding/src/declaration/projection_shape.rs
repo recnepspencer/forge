@@ -7,6 +7,7 @@ pub enum UiProjectionShape {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum UiProjectionNativeFamily {
     Text,
+    Boolean,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]

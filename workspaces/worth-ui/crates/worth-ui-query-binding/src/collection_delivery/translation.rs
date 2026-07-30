@@ -25,7 +25,7 @@ pub(crate) fn mint_collection_change_consequence(
     allocation_policy: WorthUiCollectionAllocationPolicy,
     receipt: &WorthQueryCollectionPatchApplicationReceipt,
 ) -> WorthUiCollectionChangeConsequence {
-    let mut translator = CollectionChangeTranslator::new(source.clone(), change_order, receipt);
+    let mut translator = CollectionChangeTranslator::new(source.clone(), receipt);
     let kind = if receipt.reset_required() {
         translator.translate_reset(receipt)
     } else {
@@ -44,8 +44,6 @@ pub(crate) fn mint_collection_change_consequence(
 
 struct CollectionChangeTranslator {
     source: WorthUiCollectionChangeSourceReference,
-    change_order: u64,
-    next_effect_order: usize,
     inspection: WorthUiCollectionChangeInspection,
     counters: WorthUiCollectionChangeCounters,
 }
@@ -53,13 +51,10 @@ struct CollectionChangeTranslator {
 impl CollectionChangeTranslator {
     fn new(
         source: WorthUiCollectionChangeSourceReference,
-        change_order: u64,
         receipt: &WorthQueryCollectionPatchApplicationReceipt,
     ) -> Self {
         Self {
             source,
-            change_order,
-            next_effect_order: 0,
             inspection: WorthUiCollectionChangeInspection::new(
                 receipt.foundational_invalidation().scopes().len(),
             ),
@@ -134,8 +129,8 @@ impl CollectionChangeTranslator {
         allocation: &mut Vec<WorthUiCollectionAllocationEffect>,
     ) {
         match operation {
-            WorthQueryCollectionPatchOperation::Insert { at, .. } => {
-                let row = self.mint_row();
+            WorthQueryCollectionPatchOperation::Insert { row: query_row, at } => {
+                let row = self.mint_row(query_row.entity_identity());
                 graph.push(WorthUiCollectionGraphEffect::Insert {
                     row: row.clone(),
                     at: *at,
@@ -144,12 +139,19 @@ impl CollectionChangeTranslator {
                 self.counters.mint_graph_effect();
                 self.counters.mint_measurement_effect();
             }
-            WorthQueryCollectionPatchOperation::Remove { from, .. } => {
-                graph.push(WorthUiCollectionGraphEffect::Remove { from: *from });
+            WorthQueryCollectionPatchOperation::Remove { entity, from } => {
+                graph.push(WorthUiCollectionGraphEffect::Remove {
+                    row: self.mint_row(entity),
+                    from: *from,
+                });
                 self.counters.mint_graph_effect();
             }
-            WorthQueryCollectionPatchOperation::Move { from, to, .. } => {
-                let row = self.mint_row();
+            WorthQueryCollectionPatchOperation::Move {
+                row: query_row,
+                from,
+                to,
+            } => {
+                let row = self.mint_row(query_row.entity_identity());
                 graph.push(WorthUiCollectionGraphEffect::Move {
                     row: row.clone(),
                     from: *from,
@@ -161,8 +163,8 @@ impl CollectionChangeTranslator {
                 self.counters.mint_graph_effect();
                 self.counters.mint_allocation_effect();
             }
-            WorthQueryCollectionPatchOperation::Update { .. } => {
-                let row = self.mint_row();
+            WorthQueryCollectionPatchOperation::Update { row: query_row } => {
+                let row = self.mint_row(query_row.entity_identity());
                 graph.push(WorthUiCollectionGraphEffect::Update { row: row.clone() });
                 measurement.push(WorthUiCollectionMeasurementEffect::RowChanged(row.clone()));
                 allocation.push(WorthUiCollectionAllocationEffect::RowPreservationCandidate(
@@ -183,11 +185,12 @@ impl CollectionChangeTranslator {
         }
     }
 
-    fn mint_row(&mut self) -> WorthUiCollectionRowReference {
-        let effect_order = self.next_effect_order;
-        self.next_effect_order += 1;
+    fn mint_row(
+        &mut self,
+        identity: &worth_query::facade::foundation::WorthQueryEntityIdentity,
+    ) -> WorthUiCollectionRowReference {
         self.counters.mint_row_reference();
-        WorthUiCollectionRowReference::mint(&self.source, self.change_order, effect_order)
+        WorthUiCollectionRowReference::mint(&self.source, identity)
     }
 
     fn observe_terminal_operation(&mut self, operation: &WorthQueryCollectionPatchOperation) {
@@ -253,7 +256,9 @@ fn map_continuation(
     }
 }
 
-fn map_reset_reason(value: WorthQueryCollectionResetReason) -> super::WorthUiCollectionResetReason {
+pub(crate) fn map_reset_reason(
+    value: WorthQueryCollectionResetReason,
+) -> super::WorthUiCollectionResetReason {
     match value {
         WorthQueryCollectionResetReason::ReexecutionRequired => {
             super::WorthUiCollectionResetReason::ReexecutionRequired

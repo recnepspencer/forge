@@ -1,2 +1,3 @@
 error: cannot construct `UiProjectionFactReceipt` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.rs
+ help: you might have meant to use the `admitted` associated function

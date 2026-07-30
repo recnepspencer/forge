@@ -36,7 +36,8 @@ fn declare_requirements() {
         UiProjectionLifecycleRequirement::Live,
         true,
         true,
-    );
+    )
+    .expect("collection requirement is canonical");
     let _ = (scalar, collection);
 }
 

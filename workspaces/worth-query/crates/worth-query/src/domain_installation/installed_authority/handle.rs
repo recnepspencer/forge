@@ -47,6 +47,11 @@ impl<D> WorthQueryInstalledDomainHandle<D> {
     pub fn installation_identity(&self) -> &str {
         self.authority.installation_identity()
     }
+    pub fn runtime_provenance(&self) -> crate::runtime::WorthQueryRuntimeProvenance {
+        crate::runtime::WorthQueryRuntimeProvenance::from_authority(
+            self.authority.runtime_authority(),
+        )
+    }
     /// Observes whether this exact installed authority is still the current
     /// generation. Consumers may branch on freshness but cannot refresh or
     /// reconstruct authority from this observation.

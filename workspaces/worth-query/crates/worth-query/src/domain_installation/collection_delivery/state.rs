@@ -240,6 +240,7 @@ impl WorthQueryCollectionConsumerWindow {
         patch: WorthQueryCollectionPatch,
         mut counters: WorthQueryCollectionDeliveryCounters,
     ) -> WorthQueryCollectionPatchApplicationReceipt {
+        carry_planning_counters(&mut counters, patch.counters);
         let operations = patch.operations;
         let reset_required = operations.iter().any(|operation| {
             matches!(
@@ -261,7 +262,6 @@ impl WorthQueryCollectionConsumerWindow {
         }
         self.last_maintenance_ordinal = Some(maintenance_ordinal);
         self.pending_maintenance_ordinal = None;
-        counters.operations_materialized = operations.len();
         WorthQueryCollectionPatchApplicationReceipt::new(
             super::model::WorthQueryCollectionPatchApplicationParts {
                 operations,
@@ -293,6 +293,89 @@ impl WorthQueryCollectionConsumerWindow {
     pub const fn reset_pending(&self) -> bool {
         self.reset_pending
     }
+
+    pub fn binding_identity_evidence(&self) -> crate::WorthQueryEvidenceIdentity {
+        collection_evidence("collection-binding")
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("binding"),
+                &self.window.binding_identity,
+            )
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("basis"),
+                &self.window.basis_identity,
+            )
+            .seal()
+    }
+
+    pub fn source_generation_identity_evidence(&self) -> crate::WorthQueryEvidenceIdentity {
+        collection_evidence("collection-source-generation")
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("source"),
+                &self.window.source_identity,
+            )
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("generation"),
+                self.window.capability_generation.ordinal().to_string(),
+            )
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("maintenance"),
+                maintenance_ordinal(self.last_maintenance_ordinal),
+            )
+            .seal()
+    }
+
+    pub fn result_generation_identity_evidence(&self) -> crate::WorthQueryEvidenceIdentity {
+        collection_evidence("collection-result-generation")
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("result-shape"),
+                &self.window.result_shape_identity,
+            )
+            .field_evidence_identity(
+                crate::WorthQueryEvidenceTag::new("source-generation"),
+                &self.source_generation_identity_evidence(),
+            )
+            .field_value(
+                crate::WorthQueryEvidenceTag::new("maintenance"),
+                maintenance_ordinal(self.last_maintenance_ordinal),
+            )
+            .seal()
+    }
+}
+
+fn collection_evidence(
+    shape: &'static str,
+) -> crate::evidence_identity::WorthQueryEvidenceIdentityEncoder {
+    crate::WorthQueryEvidenceIdentity::compose(
+        crate::WorthQueryEvidenceScope::ProjectionConsumptionIdentity,
+    )
+    .field_shape(crate::WorthQueryEvidenceTag::new("collection"), shape)
+}
+
+fn maintenance_ordinal(value: Option<u64>) -> String {
+    value
+        .map(|ordinal| ordinal.to_string())
+        .unwrap_or_else(|| "initial".to_owned())
+}
+
+fn carry_planning_counters(
+    applied: &mut WorthQueryCollectionDeliveryCounters,
+    planned: WorthQueryCollectionDeliveryCounters,
+) {
+    applied.invalidation_authority_checks += planned.invalidation_authority_checks;
+    applied.lease_checks += planned.lease_checks;
+    applied.generation_checks += planned.generation_checks;
+    applied.cursor_checks += planned.cursor_checks;
+    applied.semantic_contract_checks += planned.semantic_contract_checks;
+    applied.pending_patch_checks += planned.pending_patch_checks;
+    applied.prior_window_rows_visited += planned.prior_window_rows_visited;
+    applied.fresh_window_rows_visited += planned.fresh_window_rows_visited;
+    applied.affected_identity_lookups += planned.affected_identity_lookups;
+    applied.entity_point_lookups += planned.entity_point_lookups;
+    applied.ordering_index_updates += planned.ordering_index_updates;
+    applied.operations_materialized += planned.operations_materialized;
+    applied.native_facts_materialized += planned.native_facts_materialized;
+    applied.full_collection_scans += planned.full_collection_scans;
+    applied.unrelated_consumer_scans += planned.unrelated_consumer_scans;
 }
 
 pub(super) fn denial(

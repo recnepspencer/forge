@@ -4,15 +4,40 @@ use worth_runtime_bridge::facade::{
 };
 
 use super::async_result_state::WorthQueryRuntimeAsyncResultProjection;
-use super::async_source_binding::WorthQueryRuntimeAsyncSourceBinding;
+use super::async_source_binding::{
+    transition_basis_identity, transition_generation_identity, WorthQueryRuntimeAsyncSourceBinding,
+};
 use super::{
     WorthQueryAsyncSourceBindingError, WorthQueryAsyncSourceBindingErrorKind,
     WorthQueryRuntimeAsyncResultStateKind,
 };
+use crate::WorthQueryEvidenceIdentity;
+
+pub(super) struct WorthQueryPlannedAsyncResultTransition {
+    projection: WorthQueryRuntimeAsyncResultProjection,
+    basis_identity: WorthQueryEvidenceIdentity,
+    generation_identity: WorthQueryEvidenceIdentity,
+}
+
+impl WorthQueryPlannedAsyncResultTransition {
+    pub(super) fn into_parts(
+        self,
+    ) -> (
+        WorthQueryRuntimeAsyncResultProjection,
+        WorthQueryEvidenceIdentity,
+        WorthQueryEvidenceIdentity,
+    ) {
+        (
+            self.projection,
+            self.basis_identity,
+            self.generation_identity,
+        )
+    }
+}
 
 pub(super) struct WorthQueryPlannedAsyncResultTransitions {
     binding: WorthQueryRuntimeAsyncSourceBinding,
-    projections: Vec<WorthQueryRuntimeAsyncResultProjection>,
+    transitions: Vec<WorthQueryPlannedAsyncResultTransition>,
     suppressed_duplicate_count: usize,
 }
 
@@ -21,12 +46,12 @@ impl WorthQueryPlannedAsyncResultTransitions {
         self,
     ) -> (
         WorthQueryRuntimeAsyncSourceBinding,
-        Vec<WorthQueryRuntimeAsyncResultProjection>,
+        Vec<WorthQueryPlannedAsyncResultTransition>,
         usize,
     ) {
         (
             self.binding,
-            self.projections,
+            self.transitions,
             self.suppressed_duplicate_count,
         )
     }
@@ -38,7 +63,7 @@ pub(super) fn plan_async_result_transitions(
     mut prior_kind: Option<WorthQueryRuntimeAsyncResultStateKind>,
     ordering: &BridgeMixedCauseOrdering,
 ) -> Result<WorthQueryPlannedAsyncResultTransitions, WorthQueryAsyncSourceBindingError> {
-    let mut projections = Vec::new();
+    let mut transitions = Vec::new();
     let mut suppressed_duplicate_count = 0;
     for transition in ordering.async_result_transitions() {
         if matches!(
@@ -50,6 +75,8 @@ pub(super) fn plan_async_result_transitions(
         }
         validate_disposition(transition)?;
         binding.validate_and_advance(transition)?;
+        let basis_identity = transition_basis_identity(transition);
+        let generation_identity = transition_generation_identity(transition);
         if matches!(
             transition.cause(),
             BridgeMixedCauseAsyncResultCause::Revalidation(_)
@@ -61,7 +88,11 @@ pub(super) fn plan_async_result_transitions(
                 transition,
             );
             prior_kind = Some(stale.kind());
-            projections.push(stale);
+            transitions.push(WorthQueryPlannedAsyncResultTransition {
+                projection: stale,
+                basis_identity: basis_identity.clone(),
+                generation_identity: generation_identity.clone(),
+            });
         }
         let projection = WorthQueryRuntimeAsyncResultProjection::from_bridge_transition(transition);
         let next_kind = projection.kind();
@@ -75,11 +106,15 @@ pub(super) fn plan_async_result_transitions(
             ));
         }
         prior_kind = Some(next_kind);
-        projections.push(projection);
+        transitions.push(WorthQueryPlannedAsyncResultTransition {
+            projection,
+            basis_identity,
+            generation_identity,
+        });
     }
     Ok(WorthQueryPlannedAsyncResultTransitions {
         binding,
-        projections,
+        transitions,
         suppressed_duplicate_count,
     })
 }

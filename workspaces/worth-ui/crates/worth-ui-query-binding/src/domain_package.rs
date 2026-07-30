@@ -11,7 +11,10 @@ use worth_query::facade::runtime::{
 };
 
 use crate::{
-    installed_domain::{measurement_recording, snapshot_measurement},
+    installed_domain::{
+        collection_text_projection, measurement_recording, scalar_text_projection,
+        snapshot_measurement,
+    },
     WorthUiDomainEntry,
 };
 
@@ -19,6 +22,8 @@ pub fn worth_ui_domain_package() -> WorthQueryDomainPackage<WorthUiDomainEntry> 
     finish_domain_package(
         domain_package_base()
             .operation(snapshot_measurement::snapshot_measurement_definition())
+            .operation(scalar_text_projection::scalar_text_projection_definition())
+            .operation(collection_text_projection::collection_text_projection_definition())
             .operation(measurement_recording::measurement_recording_definition()),
     )
 }
@@ -34,6 +39,8 @@ pub(crate) fn worth_ui_domain_package_with_snapshot_definition(
     finish_domain_package(
         domain_package_base()
             .operation(snapshot_definition)
+            .operation(scalar_text_projection::scalar_text_projection_definition())
+            .operation(collection_text_projection::collection_text_projection_definition())
             .operation(measurement_recording::measurement_recording_definition()),
     )
 }

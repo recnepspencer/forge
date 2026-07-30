@@ -9,6 +9,7 @@ mod conditional_attempt;
 mod conditional_core;
 mod counters;
 mod denial;
+mod lifecycle_basis;
 mod lifecycle_close;
 mod operational_owner;
 mod owner_conditional;
