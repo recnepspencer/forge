@@ -1,12 +1,11 @@
 use worth_ui_host_contract::{
     UiHostObservationPayload, UiHostPointerButton, UiHostPointerButtonTransition,
     UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostPressedPointerButtons,
-    UiHostSurfacePosition,
+    UiHostSurfacePosition, UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
 
 use super::UiEguiCoordinateConversionDenial;
 
-const EGUI_SUBPIXELS_PER_POINT: f64 = 1_000.0;
 const CANONICAL_I64_EXCLUSIVE_MAX: f64 = 9_223_372_036_854_775_808.0;
 const EGUI_PRIMARY_POINTER: UiHostPointerIdentity = UiHostPointerIdentity::new(1);
 
@@ -49,10 +48,7 @@ impl UiEguiPointerTranslator {
         UiEguiPointerTranslationState::scroll(delta)
     }
 
-    pub(super) fn end_capture(
-        self,
-        state: &mut UiEguiPointerTranslationState,
-    ) -> Result<(), ()> {
+    pub(super) fn end_capture(self, state: &mut UiEguiPointerTranslationState) -> Result<(), ()> {
         state.end_capture()
     }
 }
@@ -135,7 +131,7 @@ impl Default for UiEguiPointerTranslationState {
 fn surface_position(
     position: egui::Pos2,
 ) -> Result<UiHostSurfacePosition, UiEguiCoordinateConversionDenial> {
-    Ok(UiHostSurfacePosition::new(
+    Ok(UiHostSurfacePosition::viewport_logical(
         canonical_subpixels(position.x)?,
         canonical_subpixels(position.y)?,
     ))
@@ -145,7 +141,7 @@ fn canonical_subpixels(value: f32) -> Result<i64, UiEguiCoordinateConversionDeni
     if !value.is_finite() {
         return Err(UiEguiCoordinateConversionDenial::NotFinite);
     }
-    let scaled = (f64::from(value) * EGUI_SUBPIXELS_PER_POINT).round();
+    let scaled = (f64::from(value) * UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT as f64).round();
     if !(-CANONICAL_I64_EXCLUSIVE_MAX..CANONICAL_I64_EXCLUSIVE_MAX).contains(&scaled) {
         return Err(UiEguiCoordinateConversionDenial::OutsideCanonicalRange);
     }

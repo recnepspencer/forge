@@ -49,8 +49,10 @@ The shipped baseline for Worth UI today is:
   [worth-ui-dsl-vision.md](./worth-ui-dsl-vision.md)
 - the inspection and AI-diagnostics direction captured in
   [ai-diagnostics.md](./ai-diagnostics.md)
-- the explicit decision to build above `egui` while keeping Worth-owned
-  lowering, artifact, shell, interaction, and performance architecture
+- the explicit decision to build above `egui` as the first host adapter only,
+  while keeping Worth-owned lowering, artifact, shell, interaction, and
+  performance architecture; Milestone 3.14.1 retires `egui` in favor of a
+  Worth-owned aspect-native host before the host surface deepens
 - the milestone ordering needed to avoid drifting into widget-first or
   application-local infrastructure before the platform foundations exist
 

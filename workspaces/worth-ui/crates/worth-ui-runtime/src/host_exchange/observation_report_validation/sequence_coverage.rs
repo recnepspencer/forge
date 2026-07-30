@@ -294,7 +294,7 @@ mod tests {
                         worth_ui_host_contract::UiHostPointerButton::Primary,
                     ])
                 },
-                position: worth_ui_host_contract::UiHostSurfacePosition::new(0, 0),
+                position: worth_ui_host_contract::UiHostSurfacePosition::viewport_logical(0, 0),
             },
         )
     }

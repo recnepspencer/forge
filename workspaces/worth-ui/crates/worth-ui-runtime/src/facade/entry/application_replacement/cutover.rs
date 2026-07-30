@@ -169,6 +169,9 @@ impl WorthUiActiveApplicationSession {
         let publication = self.application.commit_application_activation(activation);
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
+        self.interaction.cancel_all(
+            crate::runtime::interaction::UiPointerGestureStopReason::ApplicationRebound,
+        );
         let (plan_swap, query_retirement, plan_decision, allocation_catalog_successor) =
             publication.into_parts();
         prepared.transition = Some(WorthUiApplicationCutoverTransition::Committed {

@@ -2,8 +2,33 @@ use std::sync::Arc;
 
 use worth_ui_host_contract::{UiHostObservationPayload, WorthUiHostMechanicsAdapter};
 
-use super::{initialized_host, present_one, HOST_SESSION};
+use super::{initialized_host, pointer_button, present_one, HOST_SESSION};
 use crate::adapter::{UiEguiInputTranslatorFamily, UiEguiRawInputIngressOutcome};
+
+#[test]
+fn touch_companions_do_not_duplicate_pointer_reports() {
+    let host = initialized_host();
+    present_one(&host, HOST_SESSION);
+    let raw = egui::RawInput {
+        events: vec![
+            pointer_button(),
+            egui::Event::Touch {
+                device_id: egui::TouchDeviceId(7),
+                id: egui::TouchId::from(9_u64),
+                phase: egui::TouchPhase::Start,
+                pos: egui::pos2(2.5, 3.75),
+                force: Some(0.5),
+            },
+        ],
+        ..Default::default()
+    };
+
+    let retained = match host.observe_native_input(&raw) {
+        UiEguiRawInputIngressOutcome::Retained(retained) => retained,
+        other => panic!("canonical pointer companion trace must retain, got {other:?}"),
+    };
+    assert_eq!(retained.report_count(), 1);
+}
 
 #[test]
 #[allow(deprecated)]
@@ -15,10 +40,7 @@ fn host_screenshot_and_deprecated_ime_lifecycle_events_are_nontranslating_compan
             egui::Event::Screenshot {
                 viewport_id: egui::ViewportId::ROOT,
                 user_data: egui::UserData::default(),
-                image: Arc::new(egui::ColorImage::filled(
-                    [1, 1],
-                    egui::Color32::TRANSPARENT,
-                )),
+                image: Arc::new(egui::ColorImage::filled([1, 1], egui::Color32::TRANSPARENT)),
             },
             egui::Event::Ime(egui::ImeEvent::Enabled),
             egui::Event::Ime(egui::ImeEvent::Disabled),

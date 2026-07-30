@@ -16,6 +16,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) host_session: crate::facade::WorthUiHostSessionAuthority,
     pub(super) mounted: crate::mounting::WorthUiMountedSessionState,
     pub(super) host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) interaction: crate::runtime::interaction::UiInteractionRuntimeState,
     pub(super) visual_inspection:
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
@@ -64,6 +65,7 @@ impl WorthUiActiveApplicationSession {
             host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState::new(
                 host_observation_capacity,
             ),
+            interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(),
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,
@@ -335,6 +337,7 @@ impl WorthUiActiveApplicationSession {
         let rebind = self.rebind.shutdown();
         let visual_capture = self.visual_captures.shutdown();
         let visual_overlay = self.visual_overlays.shutdown();
+        let interaction = self.interaction.shutdown();
         let (mounted_presentation, outcomes) =
             self.mounted.shutdown_presentation(&self.host_session);
         for outcome in outcomes {
@@ -349,6 +352,7 @@ impl WorthUiActiveApplicationSession {
             .bind_visual_overlay(visual_overlay)
             .bind_mounted_presentation(mounted_presentation)
             .bind_host_session_release(host_session_release)
+            .bind_interaction(interaction)
             .bind_rebind(rebind)
     }
 }

@@ -17,10 +17,10 @@ use worth_ui_runtime::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBinding
 use super::host_observation_fixture::{batch, pointer, report, source};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;
 
-#[path = "host_observation_denials/receipt_forgery.rs"]
-mod receipt_forgery;
 #[path = "host_observation_denials/presentation_epoch.rs"]
 mod presentation_epoch;
+#[path = "host_observation_denials/receipt_forgery.rs"]
+mod receipt_forgery;
 
 struct CanonicalCorruptionCase {
     label: &'static str,
@@ -357,7 +357,7 @@ fn old_observation_contract() -> UiHostProtocolContract {
         UiHostProtocolVersion::new(2),
         UiMountedFrameSchemaVersion::new(2),
         UiMountedPresentationSchemaVersion::new(2),
-        UiHostObservationSchemaVersion::new(4),
+        UiHostObservationSchemaVersion::new(5),
         UiHostMeasurementSchemaVersion::new(2),
     )
 }

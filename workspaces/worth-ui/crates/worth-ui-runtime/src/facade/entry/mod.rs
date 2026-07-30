@@ -8,6 +8,7 @@ mod app;
 mod app_builder;
 mod application_replacement;
 mod builder;
+mod interaction;
 mod measurement_exchange;
 mod mounted_allocation_denial;
 mod mounted_allocation_establishment;

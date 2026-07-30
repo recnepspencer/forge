@@ -185,7 +185,7 @@ fn pointer_capture_button_and_discrete_transitions_cut_coalescing_ranges() {
                 capture_epoch: UiHostPointerCaptureEpoch::new(3),
                 button: UiHostPointerButton::Primary,
                 transition: UiHostPointerButtonTransition::Pressed,
-                position: UiHostSurfacePosition::new(30, 3),
+                position: UiHostSurfacePosition::viewport_logical(30, 3),
             },
             &world.current,
         ),
@@ -198,7 +198,7 @@ fn pointer_capture_button_and_discrete_transitions_cut_coalescing_ranges() {
                 pressed_buttons: UiHostPressedPointerButtons::from_buttons([
                     UiHostPointerButton::Primary,
                 ]),
-                position: UiHostSurfacePosition::new(50, 5),
+                position: UiHostSurfacePosition::viewport_logical(50, 5),
             },
             &world.current,
         ),

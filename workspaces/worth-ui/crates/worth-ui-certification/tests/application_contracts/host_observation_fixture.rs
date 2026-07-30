@@ -75,7 +75,7 @@ pub(super) fn pointer(sequence: u64, x: i64) -> UiHostObservationPayload {
         pointer: UiHostPointerIdentity::new(7),
         capture_epoch: UiHostPointerCaptureEpoch::new(3),
         pressed_buttons: UiHostPressedPointerButtons::NONE,
-        position: UiHostSurfacePosition::new(x, i64::try_from(sequence).unwrap()),
+        position: UiHostSurfacePosition::viewport_logical(x, i64::try_from(sequence).unwrap()),
     }
 }
 

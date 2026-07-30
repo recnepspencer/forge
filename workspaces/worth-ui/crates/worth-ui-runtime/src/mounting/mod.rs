@@ -82,7 +82,7 @@ pub(crate) use retention::{
     UiMountedObservationBasisRetentionDenial, UiMountedRetentionUsageSnapshot,
     UiMountedVisualCaptureBasis, UiMountedVisualOverlayLease, UiMountedVisualRetentionDenial,
     UiMountedVisualSnapshotLease, UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation,
-    UiRetainedMountedDiagnostics,
+    UiPresentedHitTestBasis, UiRetainedMountedDiagnostics,
 };
 pub use retention::{
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
