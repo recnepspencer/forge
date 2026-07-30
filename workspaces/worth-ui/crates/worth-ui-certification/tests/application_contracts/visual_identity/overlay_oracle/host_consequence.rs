@@ -49,7 +49,7 @@ pub(super) fn assert_retained_overlay_repaint(
     host: &worth_ui_host_egui::WorthUiHostEgui,
     target: worth_ui::facade::inspection::UiClientPhysicalRect,
 ) {
-    let output = context.run(super::super::raw_input(), |_| {
+    let output = context.run_ui(super::super::raw_input(), |_| {
         host.repaint_retained_surfaces();
     });
     assert_published_shapes(&output, target, context.pixels_per_point());
@@ -59,7 +59,7 @@ pub(super) fn assert_retained_clear_repaint(
     context: &egui::Context,
     host: &worth_ui_host_egui::WorthUiHostEgui,
 ) {
-    let output = context.run(super::super::raw_input(), |_| {
+    let output = context.run_ui(super::super::raw_input(), |_| {
         host.repaint_retained_surfaces();
     });
     assert_no_overlay_shapes(&output);
@@ -110,7 +110,7 @@ fn capture_current_geometry(
         .expect("the overlay successor admits a geometry capture");
     let mut pending = Some(pending);
     let mut poll = None;
-    let _ = context.run(super::super::raw_input(), |_| {
+    let _ = context.run_ui(super::super::raw_input(), |_| {
         poll =
             Some(session.poll_visual_snapshot(pending.take().expect("one capture is consumed"), 3));
     });

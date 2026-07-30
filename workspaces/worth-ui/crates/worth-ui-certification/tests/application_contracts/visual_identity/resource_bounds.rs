@@ -66,7 +66,7 @@ fn assert_pre_effect_denial(policy: UiVisualInspectionPolicy, expected: UiVisual
     let context = egui::Context::default();
     let host = WorthUiHostEgui::new(context.clone());
     let mut session = launch_native_world_with_policy(host, policy);
-    let _ = context.run(super::raw_input(), |_| {
+    let _ = context.run_ui(super::raw_input(), |_| {
         establish_allocation(&mut session, 3);
         let prepared = prepare_frame(&mut session).expect("the four-way projection completes");
         assert!(matches!(
@@ -89,7 +89,7 @@ fn assert_pre_effect_denial(policy: UiVisualInspectionPolicy, expected: UiVisual
         .artifacts(UiGeometryOnly::policy());
     let mut request = Some(request);
     let mut observed_denial = None;
-    let output = context.run(super::raw_input(), |_| {
+    let output = context.run_ui(super::raw_input(), |_| {
         observed_denial = session
             .begin_visual_geometry_snapshot(
                 &grant,

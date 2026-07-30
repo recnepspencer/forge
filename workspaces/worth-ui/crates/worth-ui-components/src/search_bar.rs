@@ -42,7 +42,7 @@ pub fn fg_search_bar(ui: &mut Ui, theme: &WorthTheme, props: SearchBarProps) -> 
 
         // Search icon
         let icon_y = rect.center().y - 6.0;
-        let icon_g = ui.fonts(|f| {
+        let icon_g = ui.fonts_mut(|f| {
             f.layout_no_wrap(
                 "🔍".to_string(),
                 egui::FontId::proportional(11.0),
@@ -56,7 +56,7 @@ pub fn fg_search_bar(ui: &mut Ui, theme: &WorthTheme, props: SearchBarProps) -> 
         );
 
         // Placeholder
-        let text_g = ui.fonts(|f| {
+        let text_g = ui.fonts_mut(|f| {
             f.layout_no_wrap(
                 "Search operations…".to_string(),
                 egui::FontId::proportional(theme.font_size_sm),
@@ -70,7 +70,7 @@ pub fn fg_search_bar(ui: &mut Ui, theme: &WorthTheme, props: SearchBarProps) -> 
         );
 
         // ⌘K badge
-        let badge_g = ui.fonts(|f| {
+        let badge_g = ui.fonts_mut(|f| {
             f.layout_no_wrap(
                 "⌘K".to_string(),
                 egui::FontId::proportional(10.0),

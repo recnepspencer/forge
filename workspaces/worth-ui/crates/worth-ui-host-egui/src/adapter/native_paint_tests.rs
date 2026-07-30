@@ -22,7 +22,7 @@ fn one_surface_paints_sorted_semantic_rows_back_to_front() {
             )),
         ],
     };
-    let output = context.run(raw_input(), |_| paint.paint(&context));
+    let output = context.run_ui(raw_input(), |_| paint.paint(&context));
     let observed = output
         .shapes
         .iter()

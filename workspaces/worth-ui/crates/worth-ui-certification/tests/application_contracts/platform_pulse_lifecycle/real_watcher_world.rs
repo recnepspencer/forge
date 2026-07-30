@@ -62,7 +62,7 @@ impl RealWatcherPulseWorld {
         let mut app = Some(app);
         let mut shell = None;
         let mut outcome = None;
-        let native = self.context.run(raw_input(), |_| {
+        let native = self.context.run_ui(raw_input(), |_| {
             let mut launched = app
                 .take()
                 .expect("pulse app launches once")
@@ -102,7 +102,7 @@ impl RealWatcherPulseWorld {
         let source = snapshot.source_revision().clone();
         let mut snapshot = Some(snapshot);
         let mut outcome = None;
-        let native = self.context.run(raw_input(), |_| {
+        let native = self.context.run_ui(raw_input(), |_| {
             outcome = Some(publish_rebind(
                 shell,
                 snapshot.take().expect("settled snapshot is consumed once"),
@@ -147,7 +147,7 @@ impl RealWatcherPulseWorld {
         assert!(!receipt.report().diagnostics().is_empty());
         assert_eq!(receipt.basis().source_revision(), &source);
         let generation = shell.generation_identity().clone();
-        let native = self.context.run(raw_input(), |_| {
+        let native = self.context.run_ui(raw_input(), |_| {
             assert!(matches!(
                 shell.present_frame(30, 21),
                 Ok(UiMountedFrameOutcome::Unchanged(_))

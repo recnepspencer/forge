@@ -310,7 +310,7 @@ mod tests {
         UiHostObservationReport::new(
             UiHostObservationSequence::new(sequence),
             UiHostObservationTimeBasis::HostMonotonicTick(sequence),
-            UiHostObservationPayload::TextComposition {
+            UiHostObservationPayload::TextInput {
                 revision: sequence,
                 text: text.into_boxed_str(),
             },

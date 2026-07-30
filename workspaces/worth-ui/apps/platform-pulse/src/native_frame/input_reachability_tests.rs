@@ -21,9 +21,15 @@ fn production_native_frame_route_reaches_exact_egui_input_families() {
                 modifiers: egui::Modifiers::NONE,
             },
             egui::Event::Text("committed text".to_owned()),
-            egui::Event::Ime(egui::ImeEvent::Preedit("preedit".to_owned())),
+            egui::Event::Ime(egui::ImeEvent::Preedit {
+                text: "preedit".to_owned(),
+                active_range_chars: Some(0..4),
+            }),
             egui::Event::Ime(egui::ImeEvent::Commit("commit".to_owned())),
-            egui::Event::Ime(egui::ImeEvent::Disabled),
+            egui::Event::Ime(egui::ImeEvent::Preedit {
+                text: String::new(),
+                active_range_chars: None,
+            }),
         ],
         ..Default::default()
     };

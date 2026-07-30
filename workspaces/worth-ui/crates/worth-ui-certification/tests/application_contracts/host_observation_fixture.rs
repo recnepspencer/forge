@@ -3,7 +3,8 @@ use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationBatchInput, UiHostObservationLoss,
     UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
     UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
-    UiHostProtocolContract, UiHostProtocolNegotiation,
+    UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostPressedPointerButtons,
+    UiHostProtocolContract, UiHostProtocolNegotiation, UiHostSurfacePosition,
 };
 use worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration;
 
@@ -67,11 +68,10 @@ pub(super) fn source<'a>(
 
 pub(super) fn pointer(sequence: u64, x: i64) -> UiHostObservationPayload {
     UiHostObservationPayload::PointerMotion {
-        pointer: 7,
-        capture_epoch: 3,
-        pressed_buttons: 0,
-        x_subpixels: x,
-        y_subpixels: i64::try_from(sequence).unwrap(),
+        pointer: UiHostPointerIdentity::new(7),
+        capture_epoch: UiHostPointerCaptureEpoch::new(3),
+        pressed_buttons: UiHostPressedPointerButtons::NONE,
+        position: UiHostSurfacePosition::new(x, i64::try_from(sequence).unwrap()),
     }
 }
 

@@ -95,7 +95,7 @@ fn settle_publication(
 ) {
     let mut pending = Some(pending);
     let mut outcome = None;
-    let output = context.run(super::super::raw_input(), |_| {
+    let output = context.run_ui(super::super::raw_input(), |_| {
         outcome = Some(
             session.present_visual_overlay(
                 pending
@@ -127,7 +127,7 @@ fn settle_clear(
 ) {
     let mut published = Some(published);
     let mut outcome = None;
-    let output = context.run(super::super::raw_input(), |_| {
+    let output = context.run_ui(super::super::raw_input(), |_| {
         outcome = Some(
             session.clear_visual_overlay(
                 published

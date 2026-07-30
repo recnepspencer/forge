@@ -23,7 +23,7 @@ pub fn fg_page_tab(ui: &mut Ui, theme: &WorthTheme, props: FgPageTab<'_>) -> Res
         theme.text_secondary
     };
 
-    let galley = ui.fonts(|f| {
+    let galley = ui.fonts_mut(|f| {
         f.layout_no_wrap(
             props.label.to_string(),
             egui::FontId::proportional(theme.font_size_sm),

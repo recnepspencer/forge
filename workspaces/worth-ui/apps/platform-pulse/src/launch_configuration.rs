@@ -211,7 +211,7 @@ mod tests {
         )
         .expect("explicit launch");
         let context = eframe::egui::Context::default();
-        let _ = context.run(eframe::egui::RawInput::default(), |_| {});
+        let _ = context.run_ui(eframe::egui::RawInput::default(), |_| {});
         let mut prepared = crate::application::prepare(context, &admitted)
             .expect("isolated source reaches real filesystem and application preparation");
         assert!(

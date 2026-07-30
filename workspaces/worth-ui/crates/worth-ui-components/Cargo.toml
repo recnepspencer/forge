@@ -10,4 +10,4 @@ workspace = true
 [dependencies]
 worth-ui-theme  = { workspace = true }
 egui            = { workspace = true }
-egui_extras     = { version = "0.31", features = ["svg", "image"] }
+egui_extras.workspace = true

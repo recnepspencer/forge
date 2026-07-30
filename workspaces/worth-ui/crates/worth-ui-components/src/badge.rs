@@ -31,7 +31,7 @@ pub fn fg_badge(ui: &mut Ui, theme: &WorthTheme, props: FgBadge<'_>) -> Response
         FgBadgeVariant::Info => (theme.info_surface, theme.info),
     };
 
-    let galley = ui.fonts(|f| {
+    let galley = ui.fonts_mut(|f| {
         f.layout_no_wrap(
             props.label.to_string(),
             egui::FontId::proportional(theme.font_size_xs),

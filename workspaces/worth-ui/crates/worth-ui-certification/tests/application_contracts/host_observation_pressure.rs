@@ -4,9 +4,12 @@ use worth_ui::facade::measurement_exchange::{
 };
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
-    UiHostObservationDisposition, UiHostObservationFamily, UiHostObservationFrameRelation,
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationDisposition,
+    UiHostObservationFamily, UiHostObservationFrameRelation, UiHostObservationLoss,
+    UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
+    UiHostObservationSequence, UiHostObservationSequenceRange, UiHostPointerButton,
+    UiHostPointerButtonTransition, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostPressedPointerButtons, UiHostSurfacePosition,
 };
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedRetentionClass, UiPresentationDeadline,
@@ -178,10 +181,11 @@ fn pointer_capture_button_and_discrete_transitions_cut_coalescing_ranges() {
         report(
             3,
             UiHostObservationPayload::PointerButton {
-                pointer: 7,
-                capture_epoch: 3,
-                button: 1,
-                pressed: true,
+                pointer: UiHostPointerIdentity::new(7),
+                capture_epoch: UiHostPointerCaptureEpoch::new(3),
+                button: UiHostPointerButton::Primary,
+                transition: UiHostPointerButtonTransition::Pressed,
+                position: UiHostSurfacePosition::new(30, 3),
             },
             &world.current,
         ),
@@ -189,11 +193,12 @@ fn pointer_capture_button_and_discrete_transitions_cut_coalescing_ranges() {
         report(
             5,
             UiHostObservationPayload::PointerMotion {
-                pointer: 7,
-                capture_epoch: 4,
-                pressed_buttons: 1,
-                x_subpixels: 50,
-                y_subpixels: 5,
+                pointer: UiHostPointerIdentity::new(7),
+                capture_epoch: UiHostPointerCaptureEpoch::new(4),
+                pressed_buttons: UiHostPressedPointerButtons::from_buttons([
+                    UiHostPointerButton::Primary,
+                ]),
+                position: UiHostSurfacePosition::new(50, 5),
             },
             &world.current,
         ),
@@ -309,15 +314,25 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
 }
 
 fn keyboard(sequence: u64) -> UiHostObservationPayload {
+    let key = if sequence.is_multiple_of(2) {
+        UiHostKey::A
+    } else {
+        UiHostKey::B
+    };
     UiHostObservationPayload::Keyboard {
-        physical_key: u32::try_from(sequence).unwrap(),
-        pressed: sequence.is_multiple_of(2),
-        repeat: false,
+        logical_key: key,
+        physical_key: Some(key),
+        modifiers: UiHostKeyboardModifiers::default(),
+        transition: if sequence.is_multiple_of(2) {
+            UiHostKeyTransition::Pressed { repeat: false }
+        } else {
+            UiHostKeyTransition::Released
+        },
     }
 }
 
 fn text_composition(revision: u64) -> UiHostObservationPayload {
-    UiHostObservationPayload::TextComposition {
+    UiHostObservationPayload::TextInput {
         revision,
         text: "x".repeat(15_000).into_boxed_str(),
     }

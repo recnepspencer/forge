@@ -47,7 +47,7 @@ fn real_wui_overlay_capable_no_effect_frame_publishes_without_synthetic_shapes()
 
     let mut frame = Some(frame);
     let mut outcome = None;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         outcome = Some(session.present_prepared_mounted_frame(
             frame.take().expect("egui callback consumes the frame once"),
             UiPresentationDeadline::at_tick(10),
@@ -93,7 +93,7 @@ fn real_wui_record_only_mode_denies_before_egui_effects() {
 
     let mut frame = Some(frame);
     let mut outcome = None;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         outcome = Some(session.present_prepared_mounted_frame(
             frame.take().expect("egui callback consumes the frame once"),
             UiPresentationDeadline::at_tick(10),

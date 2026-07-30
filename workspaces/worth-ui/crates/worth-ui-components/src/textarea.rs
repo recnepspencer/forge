@@ -63,7 +63,7 @@ pub fn fg_textarea(ui: &mut Ui, theme: &WorthTheme, props: FgTextArea<'_>) -> Re
                     .desired_rows(props.rows)
                     .font(egui::FontId::proportional(theme.font_size_sm))
                     .text_color(theme.text_primary)
-                    .frame(false),
+                    .frame(egui::Frame::NONE),
             )
         })
         .inner

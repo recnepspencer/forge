@@ -1,5 +1,7 @@
 use worth_ui::facade::observation_report::{
     UiHostObservationPayload, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostPressedPointerButtons,
+    UiHostSurfacePosition,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -41,11 +43,10 @@ impl AuthoredMechanicalReport {
         Self {
             sequence,
             payload: UiHostObservationPayload::PointerMotion {
-                pointer,
-                capture_epoch,
-                pressed_buttons,
-                x_subpixels,
-                y_subpixels: i64::try_from(sequence).unwrap(),
+                pointer: UiHostPointerIdentity::new(pointer),
+                capture_epoch: UiHostPointerCaptureEpoch::new(capture_epoch),
+                pressed_buttons: UiHostPressedPointerButtons::NONE,
+                position: UiHostSurfacePosition::new(x_subpixels, i64::try_from(sequence).unwrap()),
             },
             coalescing_key: Some(ModelCoalescingKey::PointerMotion {
                 pointer,

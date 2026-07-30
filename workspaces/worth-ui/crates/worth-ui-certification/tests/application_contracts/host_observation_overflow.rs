@@ -1,8 +1,9 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
-    UiHostObservationBatchDisposition, UiHostObservationDisposition, UiHostObservationFamily,
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationBatchDisposition,
+    UiHostObservationDisposition, UiHostObservationFamily, UiHostObservationLoss,
+    UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
+    UiHostObservationSequence, UiHostObservationSequenceRange,
 };
 
 use super::host_observation_fixture::{batch, pointer, report, source};
@@ -114,10 +115,16 @@ fn lossless_overflow_denies_without_retaining_partial_input() {
 }
 
 fn keyboard(sequence: u64) -> UiHostObservationPayload {
+    let key = if sequence.is_multiple_of(2) {
+        UiHostKey::A
+    } else {
+        UiHostKey::B
+    };
     UiHostObservationPayload::Keyboard {
-        physical_key: u32::try_from(sequence).unwrap(),
-        pressed: true,
-        repeat: false,
+        logical_key: key,
+        physical_key: Some(key),
+        modifiers: UiHostKeyboardModifiers::default(),
+        transition: UiHostKeyTransition::Pressed { repeat: false },
     }
 }
 

@@ -33,7 +33,7 @@ fn in_process_checked_in_pulse_produces_independently_expected_egui_shape() {
     let mut session = launch_and_mount_pulse(host);
     let mut outcome = None;
     let mut projection_counts = None;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         establish_viewport_allocation(&mut session);
         let prepared = session
             .execute_framework_turn(|_| {})
@@ -99,7 +99,7 @@ fn in_process_public_native_shell_launches_without_mounted_construction_apis() {
     let mut app = Some(app);
     let mut shell = None;
     let mut published = false;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         let mut launched = app
             .take()
             .expect("egui callback launches the app once")
@@ -124,7 +124,7 @@ fn egui_host_replays_admitted_pulse_paint_until_the_shell_releases_it() {
     let app = prepare_pulse_application(host.clone());
     let mut app = Some(app);
     let mut shell = None;
-    let first = context.run(raw_input(), |_| {
+    let first = context.run_ui(raw_input(), |_| {
         let mut launched = app
             .take()
             .expect("pulse app launches once")
@@ -138,12 +138,12 @@ fn egui_host_replays_admitted_pulse_paint_until_the_shell_releases_it() {
     });
     assert_native_pulse(&first.shapes, egui::Color32::from_rgb(47, 129, 247));
 
-    let retained = context.run(raw_input(), |_| host.repaint_retained_surfaces());
+    let retained = context.run_ui(raw_input(), |_| host.repaint_retained_surfaces());
     assert_native_pulse(&retained.shapes, egui::Color32::from_rgb(47, 129, 247));
 
     let shutdown = shell.expect("native shell remains owned").shutdown();
     assert!(shutdown.host_session_released());
-    let released = context.run(raw_input(), |_| host.repaint_retained_surfaces());
+    let released = context.run_ui(raw_input(), |_| host.repaint_retained_surfaces());
     assert!(released.shapes.is_empty());
 }
 

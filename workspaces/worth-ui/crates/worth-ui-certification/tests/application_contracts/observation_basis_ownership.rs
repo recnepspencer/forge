@@ -1,8 +1,8 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
-    UiHostObservationCapacity, UiHostObservationCapacityInput, UiHostObservationFamily,
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome,
+    UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationCapacity,
+    UiHostObservationCapacityInput, UiHostObservationFamily, UiHostObservationLoss,
+    UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameRetentionBudget,
@@ -173,10 +173,16 @@ impl ObservationEmission {
 }
 
 fn keyboard(sequence: u64) -> UiHostObservationPayload {
+    let key = if sequence.is_multiple_of(2) {
+        UiHostKey::A
+    } else {
+        UiHostKey::B
+    };
     UiHostObservationPayload::Keyboard {
-        physical_key: u32::try_from(sequence).unwrap(),
-        pressed: true,
-        repeat: false,
+        logical_key: key,
+        physical_key: Some(key),
+        modifiers: UiHostKeyboardModifiers::default(),
+        transition: UiHostKeyTransition::Pressed { repeat: false },
     }
 }
 
