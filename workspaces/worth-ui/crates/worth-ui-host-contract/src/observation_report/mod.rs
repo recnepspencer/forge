@@ -5,8 +5,12 @@ mod ime;
 mod integrity;
 mod keyboard;
 mod payload;
+#[cfg(test)]
+mod payload_canonical_form_tests;
 mod pointer;
 mod report;
+#[cfg(test)]
+mod schema_contract_tests;
 mod sequence;
 mod time_basis;
 

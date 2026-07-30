@@ -274,7 +274,7 @@ fn protocol(
         worth_ui_host_contract::UiHostProtocolVersion::new(revision),
         worth_ui_host_contract::UiMountedFrameSchemaVersion::new(revision),
         worth_ui_host_contract::UiMountedPresentationSchemaVersion::new(revision),
-        worth_ui_host_contract::UiHostObservationSchemaVersion::new(3),
+        worth_ui_host_contract::UiHostProtocolContract::current().observation(),
         worth_ui_host_contract::UiHostMeasurementSchemaVersion::new(revision),
     )
 }

@@ -1,11 +1,10 @@
 use worth_ui_host_contract::{
-    UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,
-    UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
-    UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostProtocolVersion,
-    UiHostSurfaceIdentity, UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
-    UiMountedFrameConsumptionInput, UiMountedFrameSchemaVersion,
-    UiMountedPresentationAttemptIdentity, UiMountedPresentationLeaseGate,
-    UiMountedPresentationSchemaVersion, UiMountedProjectionView,
+    UiHostMeasurementSchemaVersion, UiHostProtocolAgreement, UiHostProtocolContract,
+    UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
+    UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiHostSurfaceIdentity,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedFrameConsumptionInput,
+    UiMountedFrameSchemaVersion, UiMountedPresentationAttemptIdentity,
+    UiMountedPresentationLeaseGate, UiMountedPresentationSchemaVersion, UiMountedProjectionView,
     UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
 };
 use worth_ui_test_support::{
@@ -112,7 +111,7 @@ fn mounted_frame_revision_two() -> UiHostProtocolAgreement {
         UiHostProtocolVersion::new(3),
         UiMountedFrameSchemaVersion::new(2),
         UiMountedPresentationSchemaVersion::new(3),
-        UiHostObservationSchemaVersion::new(3),
+        UiHostProtocolContract::current().observation(),
         UiHostMeasurementSchemaVersion::new(3),
     ))
 }
