@@ -1,4 +1,13 @@
 impl super::WorthUiHostEgui {
+    #[cfg(test)]
+    pub(crate) fn without_input_translator_for_testing(
+        mut self,
+        family: super::super::UiEguiInputTranslatorFamily,
+    ) -> Self {
+        self.input_translators = self.input_translators.without(family);
+        self
+    }
+
     pub fn retain_host_observation(
         &self,
         batch: worth_ui_host_contract::UiHostObservationBatch,

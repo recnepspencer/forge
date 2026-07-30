@@ -10,10 +10,51 @@ const EGUI_SUBPIXELS_PER_POINT: f64 = 1_000.0;
 const CANONICAL_I64_EXCLUSIVE_MAX: f64 = 9_223_372_036_854_775_808.0;
 const EGUI_PRIMARY_POINTER: UiHostPointerIdentity = UiHostPointerIdentity::new(1);
 
+#[derive(Clone, Copy, Default)]
+pub(super) struct UiEguiPointerTranslator;
+
 #[derive(Clone)]
 pub(super) struct UiEguiPointerTranslationState {
     capture_epoch: u64,
     pressed: [bool; 5],
+}
+
+impl UiEguiPointerTranslator {
+    pub(super) const fn capability(self) -> worth_ui_host_contract::WorthUiHostCapability {
+        worth_ui_host_contract::WorthUiHostCapability::PointerInput
+    }
+
+    pub(super) fn motion(
+        self,
+        state: &UiEguiPointerTranslationState,
+        position: egui::Pos2,
+    ) -> Result<UiHostObservationPayload, UiEguiCoordinateConversionDenial> {
+        state.motion(position)
+    }
+
+    pub(super) fn button(
+        self,
+        state: &mut UiEguiPointerTranslationState,
+        position: egui::Pos2,
+        button: egui::PointerButton,
+        pressed: bool,
+    ) -> Result<UiHostObservationPayload, UiEguiCoordinateConversionDenial> {
+        state.button(position, button, pressed)
+    }
+
+    pub(super) fn scroll(
+        self,
+        delta: egui::Vec2,
+    ) -> Result<UiHostObservationPayload, UiEguiCoordinateConversionDenial> {
+        UiEguiPointerTranslationState::scroll(delta)
+    }
+
+    pub(super) fn end_capture(
+        self,
+        state: &mut UiEguiPointerTranslationState,
+    ) -> Result<(), ()> {
+        state.end_capture()
+    }
 }
 
 impl UiEguiPointerTranslationState {

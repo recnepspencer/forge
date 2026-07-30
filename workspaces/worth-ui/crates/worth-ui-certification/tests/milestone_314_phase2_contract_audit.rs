@@ -63,7 +63,8 @@ fn milestone_314_phase2_contract_tracks_partial_closure_honestly() {
     let rows = milestone_314_ledger::parse_ledger(&ledger).expect("ledger should parse");
     assert_eq!(rows[0][8], "PROVED");
     assert_eq!(rows[1][8], "PROVED");
-    assert!(rows[2..].iter().all(|row| row[8] == "OPEN"));
+    assert_eq!(rows[2][8], "PROVED");
+    assert!(rows[3..].iter().all(|row| row[8] == "OPEN"));
 
     let mut premature = contract.clone();
     premature["status"] = toml::Value::String("closed".to_owned());
