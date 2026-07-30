@@ -53,7 +53,7 @@ pub(crate) enum ExecutableNativeInputReachabilityFailure {
         kind: NativeInputProbeKind,
         observed: u64,
     },
-    UnsupportedPostureMissing,
+    RetainedPostureMissing,
     InputFamilyMissing(NativeInputProbeKind),
     NativeColor(NativeColorFailure),
 }
@@ -165,8 +165,8 @@ fn require_reached(
             ExecutableNativeInputReachabilityFailure::UnexpectedSequence { kind, observed },
         );
     }
-    if reached.posture() != PlatformPulseNativeInputIngressPosture::Unsupported {
-        return Err(ExecutableNativeInputReachabilityFailure::UnsupportedPostureMissing);
+    if reached.posture() != PlatformPulseNativeInputIngressPosture::Retained {
+        return Err(ExecutableNativeInputReachabilityFailure::RetainedPostureMissing);
     }
     let family_reached = match kind {
         NativeInputProbeKind::Pointer => reached.pointer_button_events() > 0,
@@ -232,8 +232,8 @@ impl fmt::Display for ExecutableNativeInputReachabilityFailure {
             Self::UnexpectedSequence { kind, observed } => {
                 write!(formatter, "{kind:?} reachability sequence was {observed}")
             }
-            Self::UnsupportedPostureMissing => {
-                formatter.write_str("reachability incorrectly claimed translator support")
+            Self::RetainedPostureMissing => {
+                formatter.write_str("native input did not retain translated observations")
             }
             Self::InputFamilyMissing(kind) => {
                 write!(formatter, "{kind:?} input did not reach the adapter")
@@ -241,7 +241,7 @@ impl fmt::Display for ExecutableNativeInputReachabilityFailure {
             Self::NativeColor(failure) => {
                 write!(
                     formatter,
-                    "unsupported input changed native pixels: {failure}"
+                    "pre-intent input changed native pixels: {failure}"
                 )
             }
         }

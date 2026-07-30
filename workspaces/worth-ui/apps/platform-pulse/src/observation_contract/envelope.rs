@@ -4,7 +4,7 @@ use super::lifecycle::PlatformPulseLifecycleObservation;
 
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY: &str =
     "worth-ui.platform-pulse.lifecycle-observation";
-pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 4;
+pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 5;
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX: &str =
     "WORTH_UI_PLATFORM_PULSE_EVENT ";
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
@@ -44,7 +44,7 @@ pub enum PlatformPulseLifecycleObservationCodecDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlatformPulseDecodedLifecycleObservation {
-    CompleteV4(PlatformPulseLifecycleObservationEnvelope),
+    CompleteV5(PlatformPulseLifecycleObservationEnvelope),
     InheritedLifecycleOnly(PlatformPulseInheritedLifecycleOnly),
 }
 
@@ -175,8 +175,8 @@ impl PlatformPulseLifecycleObservationEnvelope {
         }
         match probe.protocol.schema_version {
             PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION => Self::decode_prefixed_line(line)
-                .map(PlatformPulseDecodedLifecycleObservation::CompleteV4),
-            schema_version @ (2 | 3) => {
+                .map(PlatformPulseDecodedLifecycleObservation::CompleteV5),
+            schema_version @ (2 | 3 | 4) => {
                 let legacy = serde_json::from_str::<PlatformPulseInheritedEnvelope>(json)
                     .map_err(|_| PlatformPulseLifecycleObservationCodecDenial::InvalidJson)?;
                 let _ = (legacy.protocol, legacy.outcome);
@@ -247,7 +247,7 @@ mod tests {
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(json),
             Err(PlatformPulseLifecycleObservationCodecDenial::MissingPrefix)
         );
-        let unsupported = encoded.replace("\"schema_version\":4", "\"schema_version\":1");
+        let unsupported = encoded.replace("\"schema_version\":5", "\"schema_version\":1");
         assert_eq!(
             PlatformPulseLifecycleObservationEnvelope::decode_prefixed_line(&unsupported),
             Err(PlatformPulseLifecycleObservationCodecDenial::UnsupportedVersion)
@@ -255,12 +255,12 @@ mod tests {
     }
 
     #[test]
-    fn governed_v2_and_v3_decode_only_as_inherited_lifecycle() {
+    fn governed_v2_through_v4_decode_only_as_inherited_lifecycle() {
         let (_, started) = PlatformPulseLifecycleObservationStream::start();
-        let v4 = started.encode_prefixed_line().expect("encode");
-        for version in [2, 3] {
-            let inherited = v4.replace(
-                "\"schema_version\":4",
+        let v5 = started.encode_prefixed_line().expect("encode");
+        for version in [2, 3, 4] {
+            let inherited = v5.replace(
+                "\"schema_version\":5",
                 &format!("\"schema_version\":{version}"),
             );
             let decoded =

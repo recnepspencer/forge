@@ -17,7 +17,9 @@ use worth_ui_query_binding::{
 use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 
 use crate::host_observation_fixture::{batch, report, source};
-use crate::mounted_application_lifecycle::published_mounted_world::PresentedObservationBasis;
+use crate::mounted_application_lifecycle::published_mounted_world::{
+    presented_epoch, PresentedObservationBasis,
+};
 use crate::projection_presentation::collection_query::{
     collection_app, collection_module, collection_plan, collection_registration,
 };
@@ -253,6 +255,7 @@ fn validated_viewport(
         .expect("snapshot contains semantic text");
     let basis = PresentedObservationBasis {
         frame,
+        epoch: presented_epoch(session, frame, binding),
         instance: row.mounted_instance(),
         receipt: row.node_receipt(),
     };

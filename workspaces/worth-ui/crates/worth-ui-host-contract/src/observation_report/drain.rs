@@ -218,9 +218,10 @@ mod tests {
     use super::*;
     use crate::{
         UiHostObservationBatchInput, UiHostObservationLoss, UiHostObservationPayload,
-        UiHostObservationReport, UiHostObservationSequence, UiHostObservationSequenceRange,
-        UiHostObservationTimeBasis, UiHostProtocolContract, UiHostProtocolNegotiation,
-        UiMountedFrameIdentity, UiSurfaceBindingGeneration,
+        UiHostObservationPresentationBasis, UiHostObservationReport, UiHostObservationSequence,
+        UiHostObservationSequenceRange, UiHostObservationTimeBasis, UiHostPresentationEpoch,
+        UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameIdentity,
+        UiSurfaceBindingGeneration,
     };
 
     #[test]
@@ -261,8 +262,7 @@ mod tests {
                 crate::UiHostObservationCanonicalCoreInput {
                     protocol: core.protocol(),
                     host_session: core.host_session(),
-                    binding: core.binding(),
-                    frame: core.frame(),
+                    presentation: core.presentation(),
                     sequences: core.sequences(),
                     report_count: core.report_count(),
                     byte_count: 0,
@@ -294,8 +294,11 @@ mod tests {
         UiHostObservationBatch::new(UiHostObservationBatchInput {
             protocol,
             host_session,
-            binding: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
-            frame: UiMountedFrameIdentity::mint_unbound().unwrap(),
+            presentation: UiHostObservationPresentationBasis::new(
+                UiMountedFrameIdentity::mint_unbound().unwrap(),
+                UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+                UiHostPresentationEpoch::issued_by_host(1),
+            ),
             sequences: UiHostObservationSequenceRange::new(
                 UiHostObservationSequence::new(sequence),
                 UiHostObservationSequence::new(sequence),

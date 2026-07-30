@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use worth_ui_host_contract::{
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiSurfaceBindingGeneration,
 };
 
 use super::authority::{
@@ -51,13 +50,12 @@ impl UiMountedFrameRetentionCoordinator {
 
     pub(crate) fn classify(
         &self,
-        frame: UiMountedFrameIdentity,
-        binding: UiSurfaceBindingGeneration,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
         mounted_instance: Option<UiMountedInstanceIdentity>,
         node_receipt: Option<UiMountedNodeReceiptIdentity>,
     ) -> Result<UiPresentedFrameBasisRelation, UiPresentedFrameBasisDenial> {
         let authority = self.authority.borrow();
-        let (evidence, relation) = match authority.frame(frame) {
+        let (evidence, relation) = match authority.frame(presentation.frame()) {
             UiMountedRetainedFrameLookup::Found {
                 evidence, relation, ..
             } => (evidence, relation),
@@ -68,7 +66,7 @@ impl UiMountedFrameRetentionCoordinator {
                 return Err(UiPresentedFrameBasisDenial::Unknown)
             }
         };
-        evidence.classify(binding, mounted_instance, node_receipt)?;
+        evidence.classify(presentation, mounted_instance, node_receipt)?;
         Ok(relation)
     }
 

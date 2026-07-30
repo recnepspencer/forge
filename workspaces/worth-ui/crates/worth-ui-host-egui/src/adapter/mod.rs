@@ -16,7 +16,11 @@ mod semantic_text;
 mod visual_snapshot;
 
 pub use egui_host::WorthUiHostEgui;
-pub use input_observation::{UiEguiRawInputIngressOutcome, UiEguiRawInputReachability};
+pub use input_observation::{
+    UiEguiCoordinateConversionDenial, UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStop,
+    UiEguiRawInputIngressStopReason, UiEguiRawInputReachability, UiEguiRetainedRawInput,
+    UiEguiUnsupportedEventFamily,
+};
 pub use mounted_projection_preparation::{
     UiEguiMountedParticipationPreparation, WorthUiEguiMountedProjectionPreparation,
 };

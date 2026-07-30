@@ -1,7 +1,9 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
+use worth_ui_host_contract::UiHostPresentationEpoch;
 use worth_ui_runtime::facade::mounted::{
-    UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInstanceIdentity,
-    UiMountedNodeReceiptIdentity, UiPresentationDeadline, UiSurfaceBindingGeneration,
+    UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInspectionReceipt,
+    UiMountedInspectionRequest, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
+    UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
@@ -12,6 +14,7 @@ use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 #[derive(Clone, Copy)]
 pub(crate) struct PresentedObservationBasis {
     pub(crate) frame: UiMountedFrameIdentity,
+    pub(crate) epoch: UiHostPresentationEpoch,
     pub(crate) instance: UiMountedInstanceIdentity,
     pub(crate) receipt: UiMountedNodeReceiptIdentity,
 }
@@ -66,6 +69,7 @@ pub(crate) fn multi_surface_observation_world(
         UiMountedFrameOutcome::Published(_) => {}
         _ => panic!("scripted multi-surface frame must publish"),
     }
+    let presentation = inspect_current_presentation(&session);
     let identity = session.inspect_mounted_identity();
     let surfaces = bindings
         .into_iter()
@@ -88,10 +92,17 @@ pub(crate) fn multi_surface_observation_world(
                 .find(|candidate| candidate.mounted_instance_identity() == instance)
                 .expect("published instance has a receipt")
                 .node_receipt_identity();
+            let epoch = presentation
+                .surfaces()
+                .iter()
+                .find(|candidate| candidate.binding() == binding)
+                .expect("published binding has one surface presentation receipt")
+                .epoch();
             (
                 binding,
                 PresentedObservationBasis {
                     frame: frame_identity,
+                    epoch,
                     instance,
                     receipt,
                 },
@@ -122,9 +133,43 @@ pub(crate) fn publish(
         .find(|receipt| receipt.mounted_instance_identity() == instance)
         .expect("published instance has one frame-scoped receipt")
         .node_receipt_identity();
+    let presentation = inspect_current_presentation(session);
+    assert_eq!(
+        presentation.surfaces().len(),
+        1,
+        "the shared single-surface publication helper requires one presented surface"
+    );
     PresentedObservationBasis {
         frame: frame_identity,
+        epoch: presentation.surfaces()[0].epoch(),
         instance,
         receipt,
+    }
+}
+
+pub(crate) fn presented_epoch(
+    session: &WorthUiActiveApplicationSession,
+    frame: UiMountedFrameIdentity,
+    binding: UiSurfaceBindingGeneration,
+) -> UiHostPresentationEpoch {
+    let inspected = match session.inspect_mounted_frame(UiMountedInspectionRequest::frame(frame)) {
+        UiMountedInspectionReceipt::Available(frame) => frame,
+        other => panic!("presented frame must retain presentation evidence, got {other:?}"),
+    };
+    inspected
+        .presentation()
+        .surfaces()
+        .iter()
+        .find(|surface| surface.binding() == binding)
+        .expect("presented binding has one surface receipt")
+        .epoch()
+}
+
+fn inspect_current_presentation(
+    session: &WorthUiActiveApplicationSession,
+) -> worth_ui_runtime::facade::mounted::UiMountedPresentationReceipt {
+    match session.inspect_mounted_frame(UiMountedInspectionRequest::current()) {
+        UiMountedInspectionReceipt::Available(frame) => frame.presentation().clone(),
+        other => panic!("published frame must retain presentation evidence, got {other:?}"),
     }
 }

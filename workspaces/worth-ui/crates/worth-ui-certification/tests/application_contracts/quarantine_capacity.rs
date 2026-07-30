@@ -144,6 +144,7 @@ fn indeterminate_world(
         binding,
         basis: PresentedObservationBasis {
             frame,
+            epoch: current.epoch,
             instance,
             receipt: current.receipt,
         },

@@ -14,11 +14,15 @@ pub struct UiEguiRawInputReachability {
 }
 
 impl UiEguiRawInputReachability {
-    pub(super) fn inspect(raw_input: &egui::RawInput) -> Self {
-        let mut reachability = Self {
-            event_count: raw_input.events.len(),
+    pub(super) fn for_event_count(event_count: usize) -> Self {
+        Self {
+            event_count,
             ..Self::default()
-        };
+        }
+    }
+
+    pub(super) fn inspect(raw_input: &egui::RawInput) -> Self {
+        let mut reachability = Self::for_event_count(raw_input.events.len());
         for event in &raw_input.events {
             reachability.observe(event);
         }
@@ -53,7 +57,7 @@ impl UiEguiRawInputReachability {
         self.ime_cancel_events
     }
 
-    fn observe(&mut self, event: &egui::Event) {
+    pub(super) fn observe(&mut self, event: &egui::Event) {
         match event {
             egui::Event::PointerButton { .. } => self.pointer_button_events += 1,
             egui::Event::Key { .. } => self.keyboard_events += 1,
@@ -66,14 +70,4 @@ impl UiEguiRawInputReachability {
             _ => {}
         }
     }
-}
-
-/// Raw input reached the adapter, but no production translator is installed.
-///
-/// Phase 2 adds translated outcomes only with the concrete translator and
-/// capability proof, forcing exhaustive consumers to update at that cutover.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[must_use]
-pub enum UiEguiRawInputIngressOutcome {
-    Unsupported(UiEguiRawInputReachability),
 }

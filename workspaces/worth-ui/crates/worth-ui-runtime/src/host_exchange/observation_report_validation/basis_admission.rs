@@ -8,8 +8,7 @@ pub(super) struct UiBasisAdmittedObservationBatch {
 }
 
 struct UiPresentedBasisCoordinates {
-    frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
     instance: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
     receipt: Option<worth_ui_host_contract::UiMountedNodeReceiptIdentity>,
 }
@@ -88,8 +87,7 @@ fn classify_basis(
         let next = classify_presented_basis(
             retention,
             UiPresentedBasisCoordinates {
-                frame: core.frame(),
-                binding: core.binding(),
+                presentation: core.presentation(),
                 instance: mounted.map(|basis| basis.instance()),
                 receipt: mounted.map(|basis| basis.node_receipt()),
             },
@@ -104,8 +102,7 @@ fn classify_basis(
         None => classify_presented_basis(
             retention,
             UiPresentedBasisCoordinates {
-                frame: core.frame(),
-                binding: core.binding(),
+                presentation: core.presentation(),
                 instance: None,
                 receipt: None,
             },
@@ -118,8 +115,7 @@ fn classify_presented_basis(
     coordinates: UiPresentedBasisCoordinates,
 ) -> Result<UiHostObservationFrameRelation, UiHostObservationReportDenial> {
     match retention.classify(
-        coordinates.frame,
-        coordinates.binding,
+        coordinates.presentation,
         coordinates.instance,
         coordinates.receipt,
     ) {
@@ -137,6 +133,9 @@ fn classify_presented_basis(
         }
         Err(crate::mounting::UiPresentedFrameBasisDenial::BindingNotPresented) => {
             Err(UiHostObservationReportDenial::BindingNotPresented)
+        }
+        Err(crate::mounting::UiPresentedFrameBasisDenial::PresentationEpochMismatch) => {
+            Err(UiHostObservationReportDenial::PresentationEpochMismatch)
         }
         Err(crate::mounting::UiPresentedFrameBasisDenial::InstanceNotPresented) => {
             Err(UiHostObservationReportDenial::MountedInstanceNotPresented)

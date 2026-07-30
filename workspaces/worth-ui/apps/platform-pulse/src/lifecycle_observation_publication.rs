@@ -155,9 +155,10 @@ impl PlatformPulseObservationPublisher {
     pub(crate) fn native_input_reached(
         &self,
         reached: worth_ui_host_egui::UiEguiRawInputReachability,
+        posture: worth_ui_platform_pulse::observation_contract::PlatformPulseNativeInputIngressPosture,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_native_input_reached(reached))
+            publisher.project(|stream| stream.project_native_input_reached(reached, posture))
         })
     }
 

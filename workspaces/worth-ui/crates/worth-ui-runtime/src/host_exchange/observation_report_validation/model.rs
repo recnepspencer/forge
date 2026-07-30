@@ -76,6 +76,7 @@ pub enum UiHostObservationReportDenial {
     RejectedFrame,
     NeverPresentedFrame,
     BindingNotPresented,
+    PresentationEpochMismatch,
     MountedInstanceNotPresented,
     NodeReceiptMismatch,
     LocalCapacityExceeded(UiHostObservationFamily),

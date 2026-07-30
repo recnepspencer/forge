@@ -46,11 +46,36 @@ struct SemanticTextRowBasis {
     receipt: UiMountedNodeReceiptIdentity,
     allocation: UiMountedAllocationBasis,
     bounds: UiMountedCanonicalBox,
+    capability_generation: WorthUiHostCapabilityObservationGeneration,
+    capability_profile_digest: u64,
     mutation: UiSemanticTextProjectionCertificationMutation,
 }
 
 pub fn semantic_text_projection_for_certification(
     mutation: UiSemanticTextProjectionCertificationMutation,
+) -> UiMountedProjectionView {
+    semantic_text_projection(
+        mutation,
+        WorthUiHostCapabilityObservationGeneration::new(7),
+        11,
+    )
+}
+
+pub fn semantic_text_projection_for_certification_with_capability(
+    capability_generation: WorthUiHostCapabilityObservationGeneration,
+    capability_profile_digest: u64,
+) -> UiMountedProjectionView {
+    semantic_text_projection(
+        UiSemanticTextProjectionCertificationMutation::Exact,
+        capability_generation,
+        capability_profile_digest,
+    )
+}
+
+fn semantic_text_projection(
+    mutation: UiSemanticTextProjectionCertificationMutation,
+    capability_generation: WorthUiHostCapabilityObservationGeneration,
+    capability_profile_digest: u64,
 ) -> UiMountedProjectionView {
     let frame = UiMountedFrameIdentity::mint_unbound().expect("frame identity");
     let surface = UiSemanticSurfaceIdentity::mint_unbound().expect("surface identity");
@@ -92,6 +117,8 @@ pub fn semantic_text_projection_for_certification(
         receipt: row_receipt,
         allocation,
         bounds,
+        capability_generation,
+        capability_profile_digest,
         mutation,
     });
     let node_receipt = if matches!(
@@ -188,21 +215,21 @@ fn semantic_row(input: SemanticTextRowBasis) -> UiMountedSemanticTextMechanic {
             color: UiMountedRgba8::new(255, 255, 255, 255),
             profile: UiSemanticTextProfile::BodyDefault,
             layer_semantic_order: 1,
-            capability_generation: WorthUiHostCapabilityObservationGeneration::new(
-                if input.mutation
-                    == UiSemanticTextProjectionCertificationMutation::ForeignCapabilityGeneration
-                {
-                    8
-                } else {
-                    7
-                },
-            ),
+            capability_generation: if input.mutation
+                == UiSemanticTextProjectionCertificationMutation::ForeignCapabilityGeneration
+            {
+                WorthUiHostCapabilityObservationGeneration::new(
+                    input.capability_generation.as_u64().wrapping_add(1),
+                )
+            } else {
+                input.capability_generation
+            },
             capability_profile_digest: if input.mutation
                 == UiSemanticTextProjectionCertificationMutation::ForeignCapabilityProfile
             {
-                12
+                input.capability_profile_digest.wrapping_add(1)
             } else {
-                11
+                input.capability_profile_digest
             },
         },
     )

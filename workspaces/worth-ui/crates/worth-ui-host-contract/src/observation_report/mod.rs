@@ -8,6 +8,7 @@ mod payload;
 #[cfg(test)]
 mod payload_canonical_form_tests;
 mod pointer;
+mod presentation_basis;
 mod report;
 #[cfg(test)]
 mod schema_contract_tests;
@@ -37,6 +38,7 @@ pub use pointer::{
     UiHostPointerButton, UiHostPointerButtonTransition, UiHostPointerCaptureEpoch,
     UiHostPointerIdentity, UiHostPressedPointerButtons, UiHostSurfacePosition,
 };
+pub use presentation_basis::UiHostObservationPresentationBasis;
 pub use report::{UiHostObservationMountedBasis, UiHostObservationReport};
 pub use sequence::{UiHostObservationSequence, UiHostObservationSequenceRange};
 pub use time_basis::UiHostObservationTimeBasis;
