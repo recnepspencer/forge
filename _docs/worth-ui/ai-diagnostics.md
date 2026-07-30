@@ -589,7 +589,12 @@ CSS style cascades.
 
 ### Inspector Views
 
-Useful first-class views include:
+The following are required evidence views, not a mandate for one top-level tab
+per item. The human inspector keeps the small task-oriented shell defined by
+Milestone 3.22 and exposes these as contextual drill-down for the current
+selection or event.
+
+Useful evidence views include:
 
 1. Visual Tree  
    Mounted receipt topology, visible region identity, declaration identity,
@@ -634,16 +639,24 @@ Useful first-class views include:
    equivalence/no-op decision, affected closure, activation receipt, and
    ordinary versus reconstructive cost counters.
 
-8. **Services Inspector** -- portal topology, focus routing, motion, command
+8. **Interaction And Intent Inspector** -- host observation sequence, exact
+   presented-frame target, semantic interaction, route binding, reusable intent
+   definition, payload/input-basis revision, orthogonal operability decision,
+   confirmation challenge posture, UI admission, framework-owned attempt,
+   product/domain outcome, declared consequence, and mounted visible posture.
+   Compact evidence can explain the chain but cannot target, confirm, complete,
+   retry, or readmit it.
+
+9. **Services Inspector** -- portal topology, focus routing, motion, command
    routing, selection, scroll, and other runtime services.
 
-9. **Diagnostics Feed** -- typed, filterable diagnostics grouped by relevance,
+10. **Diagnostics Feed** -- typed, filterable diagnostics grouped by relevance,
    not a console.
 
-10. **Replay Timeline** -- source edits, artifacts, admissions, graph mutations,
+11. **Replay Timeline** -- source edits, artifacts, admissions, graph mutations,
     observations, rebinds, mounted frames, and diagnostics.
 
-11. **Visual Evaluation** -- alignment groups, baselines, spacing rhythm,
+12. **Visual Evaluation** -- alignment groups, baselines, spacing rhythm,
     symmetry axes, visual bounds, overlays, invariant violations, and
     perceptual advisories.
 

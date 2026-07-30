@@ -83,6 +83,12 @@ Rules for every remaining Worth UI item:
 - AI-facing inspection harnesses must arrive before, or at least alongside, the
   runtime families they need to inspect; a polished human inspector may arrive
   later, but formal AI entry points may not
+- the human inspector must use a familiar, shallow developer-tools interaction
+  model: point-to-select, visible highlighting, dockable panels, and a small
+  stable set of task-oriented tabs; it should feel immediately usable to a
+  Chrome DevTools user while replacing DOM, CSS, and network folklore with
+  Worth declarations, appearance projections, data, schema, performance, and
+  causal evidence
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
 - each milestone must define concrete acceptance evidence through platform scenarios, diagnostics artifacts, performance counters, replay-safe plan behavior, tooling evidence, or certification suites
 - no milestone is complete until both implementation and trust evidence exist
@@ -1722,17 +1728,23 @@ evidence, and stable control pixels jointly prove the result.
 
 ### Milestone 3.14: Intent, Operability, and Interaction Substrate
 
-This slice turns host observations into runtime-routed intents instead of
-widget callbacks.
+Detailed spec: [milestone-3.14.md](./milestone-3.14.md)
+
+This slice turns native host observations into presentation-bound semantic
+interactions and then into runtime-admitted product intents. Pointer
+press/release observations may compile into `activate`; neither the observations
+nor an adapter-reported click are an intent or mutation result. UI routing
+admission does not replace Query/domain mutation admission.
 
 **Platform pulse**
 
-Add one visible operable control to the pulse and route a real host interaction
-through intent admission. The page must visibly distinguish admitted,
-completed, and denied or confirmation-required posture so a click alone cannot
-masquerade as mutation success. The control, host adapter, and renderer may
-project the result but may not own callback meaning or assemble an
-authority-bearing payload locally.
+Add one visible operable action and one confirmation action. Native
+pointer press/release must target the exact presented mounted incarnation,
+route through a typed activation interaction, derive one coherent payload and
+operability proof, and enter managed execution. The page visibly distinguishes
+admitted, completed, confirmation-required, denied, stale-confirmation, and
+rebind-cancelled posture. The host, renderer, and control may project those
+facts but may not own callback, payload, operability, or completion meaning.
 
 Executable-world closure must send the interaction through the cumulative
 target's current native-platform input adapter and correlate the visible
@@ -1741,43 +1753,69 @@ from certification is integration evidence only.
 
 **Must ship**
 
-- `UiIntentDeclaration`
-- `UiIntentAdmission`
-- interaction families for:
-  - `click`
-  - `edit`
-  - `select`
+- compiled `UiIntentDefinition`, canonical `UiIntentDeclaration`, and compact
+  per-control `UiIntentRouteBinding`
+- exhaustive `UiIntentAdmissionDecision` and move-only `UiAdmittedIntent`
+- presentation-bound semantic interaction families for:
+  - `activate`
+  - `edit-commit`
+  - `selection-commit`
   - `submit`
+- typed product-intent support for:
   - `navigate-page`
   - `change-mosaic`
-  - `open-portal`
-  - `close-portal`
-  - `invoke-command`
-- operability postures for:
-  - `operable`
-  - `disabled`
-  - `readonly`
-  - `pending`
-  - `denied`
-  - `unsupported`
-  - `wrong-world`
-  - `stale`
-  - `rebind-required`
-  - `requires-confirmation`
+- direct portal and command service intents remain typed unsupported until
+  Milestone 3.15 owns their execution
+- operability as orthogonal support, mutability, readiness, occupancy, policy,
+  affinity/freshness, and confirmation axes rather than one flat status
+- target-scoped single-flight as the ordinary concurrency posture; broader
+  declaration/definition/application serialization requires an explicit type
+- coherent typed payload projection, bounded draft/gesture lifecycle, affine
+  exact confirmation, framework-owned execution attempts, typed
+  partial/indeterminate recovery, and declared consequences through the 3.12
+  observation/rebind/publication path
+- explicit application-effect, WUI-transition, and deferred runtime-service
+  execution destinations; UI routing admission never widens their authority
+- replacement of cloneable string intent binding and static
+  always-admitted readiness placeholders; no parallel compatibility lane
 
 **Acceptance evidence**
 
-- controls do not own callback meaning
-- submit payloads are assembled from runtime/control projection rather than
-  renderer code
-- disabled/readiness posture comes from runtime authority
-- click success is not treated as mutation success
-- invalid submits emit typed intent denials
+- controls, renderers, and adapters own no callback or product-effect meaning
+- targeting is bound to the frame the human saw, not current coordinates or
+  an equal graph identity
+- edit/submit payloads come from one coherent runtime revision rather than
+  renderer or executor rereads
+- operability and confirmation are runtime proofs; visible enabledness and a
+  boolean confirmation result carry no authority
+- UI admission, provider execution, Query/domain admission, effect completion,
+  and visible consequence remain separately typed and causally traceable
+- gesture loss, stale challenge, rebind at every effect phase, exhaustion,
+  cancellation, partial/indeterminate outcome, retry, and shutdown have exact
+  bounded lifecycle evidence
+- work scales with selected target, payload width, and affected consumers, not
+  mounted graph width; unchanged input has zero semantic work
 
-### Milestone 3.15: Runtime Services Foundation
+### Milestone 3.15: Production Runtime Services
 
-This slice closes the cross-cutting service lanes that the certification
-vertical slice depends on.
+This slice closes the cross-cutting service lanes at production-ready common-
+case breadth before the certification vertical slice depends on them.
+
+It inherits 3.14's presentation-bound interaction, typed request,
+operability, confirmation, managed-attempt, and consequence contracts.
+Service implementations extend that provider topology; they do not reopen
+targeting or regress to adapter callbacks.
+
+**Coverage bar**
+
+`p95 coverage` means product breadth, not test or line coverage. Each service
+family must feel complete for ordinary serious desktop use across its lifecycle,
+host integration, hot rebind, typed denial/cancellation/cleanup, inspection,
+bounded cost, and keyboard/accessibility semantics where applicable. The
+detailed spec must name the ordinary scenario portfolio and the small set of
+genuinely uncommon exclusions; one admitted happy path cannot satisfy this
+milestone. Later work may add specialist behavior or polish, but must not be
+required to repair a skeletal service.
 
 **Platform pulse**
 
@@ -1803,8 +1841,8 @@ evidence but cannot close the product pulse.
   - `command-routing`
   - `scroll`
   - `selection`
-- minimal admitted service path for each family rather than feature-broad
-  product richness
+- p95 product coverage for every family, with explicit support posture for the
+  uncommon cases intentionally left outside this milestone
 
 **Acceptance evidence**
 
@@ -1814,6 +1852,13 @@ evidence but cannot close the product pulse.
   runtime focus receipts are real runtime artifacts
 - motion projections derive from previous receipt + next receipt + motion
   declaration rather than host-local animation meaning
+- each family passes its named ordinary-scenario portfolio through public
+  runtime and host surfaces, including denial, rebind, and teardown where
+  applicable
+- a serious downstream application needs no app-local replacement service or
+  renderer-owned state for an ordinary supported workflow
+- every unsupported case is typed, named, and demonstrably outside the
+  milestone's ordinary p95 portfolio
 
 ### Milestone 3.16: Appearance, Theme, and Visual State Projection
 
@@ -2091,42 +2136,99 @@ runtime truth, or replace the existing process with replay.
 ### Milestone 3.22: Worth Inspector Surface
 
 This slice adds the human-facing runtime inspector as a projection over the
-same evidence substrate the AI harness already uses.
+same evidence substrate the AI harness already uses. Its interaction model
+deliberately borrows the useful familiarity of Chrome DevTools without copying
+the web's ontology: point at the running product, select what is visible, trial
+its appearance, inspect live data separately from schema, and understand cost
+without first learning Worth's internal artifact graph.
+
+**Product decision**
+
+Keep the first-use surface small: `Elements`, `Styles`, `Data`, `Schema`,
+`Performance`, and `Diagnostics`. Authority graph, aspects, measurement, Query
+binding, services, rebind, replay, and visual evaluation are contextual
+drill-down for the current selection or event, not ten more top-level panels.
+Raw identities, receipts, and causal traces use progressive disclosure.
+
+The inspector may be closed, docked on the right, left, or bottom, or detached
+into a native window over the same runtime session. Placement changes preserve
+selection, exact frame affinity, active tab, filters, and any uncommitted style
+trial; detaching creates no second application truth or inspector-only
+composition root. Milestone 4 may generalize this minimum placement contract,
+and Milestone 16 may deepen the same tools without replacing them.
+
+`Styles` supports bounded, reversible live appearance trials through canonical
+appearance and rebind and can produce an exact source-span patch proposal; it
+never becomes adapter-local or silently authoritative. `Data` shows current
+Query projection values and posture, while `Schema` separately shows declared
+view, payload, field, row, and binding shape. `Performance` answers "what
+became expensive and why?" from a bounded frame/rebind timeline, selected-
+target attribution, and named counters, keeping ordinary work distinct from
+replay, capture, and inspection cost. Full profiling breadth remains Milestone
+16 work.
 
 **Platform pulse**
 
 Attach the Worth Inspector to the same running pulse rather than a special
-inspector fixture. A human must click a visible pulse node and navigate its
-declaration, graph, mounted receipt, Query binding, service, diagnostic,
-rebind, replay, and visual-evaluation evidence as applicable. The inspector and
-the 3.21 agent tools must agree on identity and causal evidence, and neither may
-become the truth source.
+inspector fixture. A human opens it, uses point-to-select on a visible pulse
+node, sees the canonical mounted highlight, trials one appearance value, and
+finds live data, schema, current-frame cost, and the relevant diagnostic
+without navigating an artifact dump. The same session exercises right, left,
+bottom, and detached placement without losing selection. The inspector and
+3.21 agent tools must agree on identity and causal evidence.
 
 Executable-world closure opens and drives the inspector inside the inherited
-product world. Native click, visible selection, agent result, and inspector
-navigation must agree for the same child and frame; an inspector-only test
-application cannot close the pulse.
+product child. Inspect mode must consume its selection gesture without
+admitting the product intent underneath it. Docking, detaching, style trial and
+reset, Data/Schema separation, and Performance attribution must stay in that
+child; an inspector-only application cannot close the pulse.
 
 **Must ship**
 
-- visual tree view
-- authority graph view
-- aspect inspector
-- rebind timeline
-- measurement inspector
-- Query binding inspector
-- services inspector
-- diagnostics feed
-- replay timeline
-- visual evaluation view
+- open, close, right-dock, left-dock, bottom-dock, and detached-window posture
+  over one inspector session
+- point-to-select mode with mounted highlight, explicit visible-contributor
+  versus hit-test outcomes, overlap choice, and stale-selection posture
+- `Elements`: visual tree, mounted/declaration/graph breadcrumbs, source
+  provenance, participation, aspects, measurement, services, and relevant
+  evidence
+- `Styles`: authored and resolved appearance, theme and state axes, bounded
+  reversible live trials, reset, and exact source patch proposals
+- `Data`: live scalar and collection projection facts, Query posture,
+  invalidation, and receipt provenance
+- `Schema`: declaration, view, payload, field, row, and binding shape with
+  compatibility and mismatch evidence
+- `Performance`: bounded frame/rebind timeline, selected-target attribution,
+  named structural counters, measured timing posture, and lane separation
+- `Diagnostics`: relevance-filtered typed findings with causal drill-down
+- contextual authority graph, aspect, measurement, Query binding, service,
+  rebind, replay, and visual-evaluation detail without additional top-level
+  panel sprawl
+- keyboard-operable tab, tree, selection, docking, and close workflows
 
 **Acceptance evidence**
 
 - the inspector consumes the same evidence substrate as the AI tools
-- clicking a visible node can navigate to declaration, graph, receipt, and
-  diagnostic evidence
+- inspect mode selects the exact presentation-bound mounted target, publishes
+  its highlight through the canonical mounted path, and does not trigger the
+  underlying product interaction
+- selection, frame affinity, tool state, and live style trial survive every
+  placement change without remounting the product or forking runtime truth
+- a live style trial visibly changes the selected target through canonical
+  appearance and rebind, reset restores the admitted appearance, and the
+  proposed persistent edit points to the exact authored span
+- `Data` updates from real Query projection truth while `Schema` remains bound
+  to declared shape; a schema mismatch cannot be misreported as an absent or
+  stale value
+- `Performance` identifies the selected frame and target's named work without
+  charging replay, capture, or inspector materialization to the ordinary frame
+  lane
+- advanced graph, aspect, measurement, service, rebind, replay, and visual
+  evidence remains reachable from the selected item without making the common
+  path read like an internal artifact browser
 - the inspector can be authored through Worth UI where feasible
-- the inspector does not become the source of diagnostic truth
+- the inspector never becomes the source of diagnostic, Query, schema, style,
+  or performance truth
 
 ### Milestone 3.23: Hot Composition Certification Vertical Slice
 
@@ -2723,12 +2825,12 @@ alone.
 ### Must Ship
 
 - component gallery
-- theme editor
-- layout debugger
+- theme editor and layout debugger that deepen the 3.22 `Styles` and `Elements`
+  tools instead of creating parallel inspector shells
 - command registry inspector
 - accessibility inspector
-- Query or view inspector
-- profiler or frame-counter inspection surface
+- richer Query/view tooling that extends the 3.22 `Data` and `Schema` tabs
+- profiler and frame-counter tooling that extends the 3.22 `Performance` tab
 - screenshot-test harness
 - sample templates for workbench, data app, graph editor, runtime inspector,
   dashboard, and plugin host shapes
@@ -2740,6 +2842,9 @@ alone.
 - tooling consumes canonical platform artifacts rather than shadow metadata
 - templates remain examples of real platform usage rather than special internal
   paths
+- the familiar point-select, docking, tab, selection, and progressive-
+  disclosure model established by Milestone 3.22 remains the one human
+  inspection shell
 - inspection surfaces remain diagnostic and educational rather than becoming a
   second imperative editing runtime
 - tooling breadth does not dilute facade clarity or runtime ownership
@@ -2748,6 +2853,9 @@ alone.
 
 - a new team can start from a template and stay within the ordinary platform
   path
+- a new user can open the inspector, select a visible element, trial its
+  appearance, inspect data and schema, and identify a frame-cost cause without
+  learning internal receipt topology first
 - platform tooling can explain what a shell, command, artifact, view, or plan
   is doing without source spelunking
 - screenshot and inspection tooling can certify real product examples
