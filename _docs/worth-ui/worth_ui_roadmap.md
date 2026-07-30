@@ -1798,6 +1798,88 @@ from certification is integration evidence only.
 - work scales with selected target, payload width, and affected consumers, not
   mounted graph width; unchanged input has zero semantic work
 
+### Milestone 3.14.1: Aspect-Native Host Platform and egui Retirement
+
+This slice replaces the interim `egui`/`eframe` host with a Worth-owned
+aspect-native presentation platform and removes `egui` from the workspace
+dependency graph. It exists now, between intent and services, because it is
+the last point where the host adapter surface is small: after 3.15 and 3.16
+every service, focus, motion, and appearance lane would be built twice.
+
+The mounted host contract is the subject under test and may not change
+meaning. `worth-ui-host-contract` semantics, the 3.12 observation turn, the
+3.13 projection path, and the 3.14 interaction and intent path are frozen; if
+replacement pressure demands a host-contract semantic change, that is a
+reopened finding against the owning milestone, not a migration convenience.
+
+The custody boundary moves down, not sideways. The new host owns a retained
+draw list in which every quad and glyph run carries its mounted node receipt,
+frame generation, surface generation, and binding generation. Damage-scoped
+presentation derives from admitted 3.12 plans; an unchanged turn performs
+zero draw-list, atlas, and surface work, provable by named counters rather
+than elapsed time. Text shaping and glyph rasterization are consumed as
+narrow pinned mechanics dependencies in the same trust posture as the OS
+compositor: they receive completed layout decisions and are convicted by
+external pixel adjudication; they decide no value, posture, identity,
+fallback, or clipping policy. Writing a Worth-owned shaper, IME, complex
+script certification, font-management policy, general vector tessellation,
+appearance breadth beyond the frozen `BodyDefault` profile plus filled
+rectangles, any platform beyond the currently certified Windows lane, and
+accessibility-tree projection all remain explicit non-goals owned by their
+successor milestones.
+
+**Platform pulse**
+
+The same cumulative Pulse binary, `main.wui`, and executable-world target run
+on the Worth-owned host. During transition both hosts present the same
+mounted content behind the unchanged host contract, and the same external
+courtroom adjudicates both: semantic, receipt, identity, and control evidence
+must be identical, while glyph-region pixel expectations are re-baselined
+exactly once for the new text metrics, with the re-baseline recorded as its
+own ledgered event. Closure requires the full inherited journey — pending,
+two current values, overlay round trip, green/malformed/recovery source
+sequence, schema stop with predecessor preservation, the 3.14 native operable
+and confirmation actions, and normal close with zero window, surface, device,
+atlas, and draw-list residue — through the native host, followed by deletion
+of the `egui` adapter and shell. A new harness, scripted host closure, or
+retained dual-host fallback does not close the pulse.
+
+**Must ship**
+
+- a Worth-owned host platform crate owning the native event loop, surface and
+  device lifecycle, DPI posture, window close path, and lifecycle stream
+- a retained, receipt-keyed aspect-native draw list with layer order, clip
+  bounds, and damage-scoped presentation derived from admitted plans
+- filled-rectangle and `BodyDefault` glyph-run presentation with atlas
+  ownership and measurement-contract metrics derived from the shaping
+  dependency, never from adapter-local font defaults
+- snapshot capture through surface readback feeding the existing visual
+  snapshot contract
+- host-neutral input observation translation sufficient for the shipped 3.14
+  presentation-bound interaction families
+- pinned, audited mechanics dependencies for shaping and rasterization with a
+  recorded trust posture
+- removal of `egui` and `eframe` from every workspace dependency edge, with
+  the boundary gate permanently denying their return
+- named platform qualification for the certified native lane
+
+**Acceptance evidence**
+
+- dual-host parity: identical semantic, receipt, and control evidence for the
+  same mounted content, with exactly one recorded glyph re-baseline
+- every presented draw command is causally attributable to a mounted node
+  receipt and generation set; receiptless paint is unrepresentable
+- unchanged-frame zero work extends through the draw list, atlas, and surface
+  counters, not just the semantic turn
+- the shaping dependency demonstrably receives completed layout decisions and
+  cannot alter value, posture, identity, or clipping evidence
+- hostile controls turn red on receiptless paint, whole-frame repaint of an
+  unchanged turn, adapter-invented geometry, internal-state snapshot
+  substitution, and leaked window, surface, device, or atlas resources
+- `egui` appears in zero dependency edges, the boundary gate enforces the
+  prohibition, and the cumulative executable world closes on the native host
+  with no new test target or harness
+
 ### Milestone 3.15: Production Runtime Services
 
 This slice closes the cross-cutting service lanes at production-ready common-
@@ -2296,6 +2378,10 @@ workflow-specific installed world and adversarial sequence.
   with a narrower authority-first sequence
 - Milestone 3.10.3 is the permanent executable-world foundation; every later
   pulse milestone extends it rather than creating its first real product entry
+- Milestone 3.14.1 retires the interim `egui` host before 3.15 and 3.16 deepen
+  the host surface; 3.14 must therefore keep its host-side input translation
+  thin and host-neutral, and 3.15/3.16 build directly on the aspect-native
+  host rather than an adapter scheduled for deletion
 - `ai-diagnostics.md` co-develops across the full 3.x series; each runtime
   family must become inspectable as it lands instead of waiting for the end
 - the formal AI inspection harness begins in Milestone 3.1; later milestones
