@@ -1,7 +1,8 @@
 use worth_ui::facade::interaction::{
-    UiHostInteractionIngressOutcome, UiInteractionBatchReceipt, UiInteractionTargetingDenial,
+    UiActivateInteractionSource, UiHostInteractionIngressOutcome, UiInteractionBatchReceipt,
+    UiInteractionStop, UiInteractionTargetingDenial, UiInteractionTransition,
     UiPointerGestureContinuityKind, UiPointerGestureStop, UiPointerGestureStopReason,
-    UiPointerGestureTransition,
+    UiSemanticInteraction, UiTargetedPointerGesture,
 };
 
 use super::oracle::ExpectedTarget;
@@ -9,7 +10,7 @@ use super::oracle::ExpectedTarget;
 pub(super) fn assert_rank(outcome: UiHostInteractionIngressOutcome, expected: ExpectedTarget) {
     let receipt = applied(outcome);
     let press = match &receipt.transitions()[0] {
-        UiPointerGestureTransition::Pressed(press) => press,
+        UiInteractionTransition::PointerPressed(press) => press,
         other => panic!("expected a targeted press, got {other:?}"),
     };
     match expected {
@@ -24,7 +25,9 @@ pub(super) fn assert_completion(
 ) {
     let receipt = applied(outcome);
     let completed = match &receipt.transitions()[0] {
-        UiPointerGestureTransition::Completed(completed) => completed,
+        UiInteractionTransition::Semantic(UiSemanticInteraction::Activate(activation)) => {
+            pointer_gesture(activation.source())
+        }
         other => panic!("expected a completed gesture, got {other:?}"),
     };
     assert_eq!(completed.continuity(), expected);
@@ -53,8 +56,17 @@ pub(super) fn assert_stop(
 
 pub(super) fn stopped(receipt: &UiInteractionBatchReceipt) -> &UiPointerGestureStop {
     match &receipt.transitions()[0] {
-        UiPointerGestureTransition::Stopped(stop) => stop,
+        UiInteractionTransition::Stopped(UiInteractionStop::PointerGesture(stop)) => stop,
         other => panic!("expected a typed stop, got {other:?}"),
+    }
+}
+
+pub(super) fn pointer_gesture(source: &UiActivateInteractionSource) -> &UiTargetedPointerGesture {
+    match source {
+        UiActivateInteractionSource::Pointer(gesture) => gesture,
+        UiActivateInteractionSource::Keyboard(_) => {
+            panic!("expected pointer activation, got keyboard activation")
+        }
     }
 }
 

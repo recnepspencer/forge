@@ -4,9 +4,9 @@
 //! `worth_ui_runtime::certification_support` from product code.
 
 pub use worth_ui_runtime::certification_support::{
-    identity_overlay_projection_for_certification, launch_empty_runtime_for_certification,
-    planning_pair_for_certification_suite, runtime_origin_fixture,
-    semantic_text_projection_for_certification,
+    draft_recipient_contract_for_certification, identity_overlay_projection_for_certification,
+    launch_empty_runtime_for_certification, planning_pair_for_certification_suite,
+    runtime_origin_fixture, semantic_text_projection_for_certification,
     semantic_text_projection_for_certification_with_capability,
     with_activation_precommit_interruption, UiDeclaredMeasurementBasisSource,
     UiDeclaredMeasurementMode, UiGraphFactConsumerIdentity, UiGraphFactIndexBasis,
@@ -20,8 +20,8 @@ pub use worth_ui_runtime::certification_support::{
     UiSemanticTextProjectionCertificationMutation, WorthUiActivationPrecommitStage,
     WorthUiActiveSessionCertificationExt, WorthUiApplicationBuilderCertificationExt,
     WorthUiApplicationGraphCertificationExt, WorthUiApplicationReplacementCertificationExt,
-    WorthUiFrameworkTurnCertificationExt, WorthUiMountedAllocationCertificationExt,
-    WorthUiMountedAllocationInspectionCertificationExt,
+    WorthUiFrameworkTurnCertificationExt, WorthUiLocalInputRecipientCertificationExt,
+    WorthUiMountedAllocationCertificationExt, WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedFrameExecutionCertificationExt, WorthUiMountedIdentityCertificationExt,
     WorthUiMountedInteractionLifecycleCertificationExt, WorthUiMountedPublicationCertificationExt,
     WorthUiTouchOriginCertificationFixture, WorthUiTouchOriginFixtureVariant,

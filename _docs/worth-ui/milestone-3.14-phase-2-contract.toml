@@ -1,7 +1,7 @@
 schema = "worth-ui.milestone-3.14.phase-2-contract.v1"
 milestone = "3.14"
 phase = 2
-status = "implementation"
+status = "closed"
 ledger = "_docs/worth-ui/milestone-3.14-phase-2-proof-ledger.csv"
 predecessor_contract = "_docs/worth-ui/milestone-3.14-phase-1-contract.toml"
 closure_claim = "real native input becomes a bounded presentation-derived semantic interaction without gaining intent, admission, execution, or effect authority"

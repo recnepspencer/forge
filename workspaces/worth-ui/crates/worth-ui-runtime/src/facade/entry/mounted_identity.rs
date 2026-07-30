@@ -131,7 +131,7 @@ impl WorthUiActiveApplicationSession {
             .deregister_host_surface(&self.host_session, binding)?;
         self.interaction.cancel_binding(
             binding,
-            crate::runtime::interaction::UiPointerGestureStopReason::SurfaceRebound,
+            crate::runtime::interaction::UiInteractionLifecycleStopReason::SurfaceRebound,
         );
         Ok(semantic_surface)
     }

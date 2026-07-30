@@ -9,6 +9,7 @@ mod app_builder;
 mod application_replacement;
 mod builder;
 mod interaction;
+mod local_interaction_recipient;
 mod measurement_exchange;
 mod mounted_allocation_denial;
 mod mounted_allocation_establishment;
@@ -71,6 +72,8 @@ pub use application_replacement::{
     WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
+#[cfg(any(test, feature = "certification-support"))]
+pub use local_interaction_recipient::WorthUiLocalInputRecipientCertificationExt;
 pub use mounted_allocation_denial::{
     WorthUiMountedAllocationEstablishmentDenial, WorthUiMountedAllocationRuntimeStage,
 };

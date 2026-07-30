@@ -1,6 +1,6 @@
 use worth_ui::facade::interaction::{
-    UiInteractionTargetingDenial, UiPointerGestureContinuityKind, UiPointerGestureStopReason,
-    UiPointerGestureTransition,
+    UiInteractionTargetingDenial, UiInteractionTransition, UiPointerGestureContinuityKind,
+    UiPointerGestureStopReason, UiSemanticInteraction,
 };
 use worth_ui::facade::observation_report::{
     UiHostObservationMountedBasis, UiHostObservationPresentationBasis,
@@ -10,15 +10,16 @@ use worth_ui_test_support::{
     WorthUiMountedIdentityCertificationExt, WorthUiMountedInteractionLifecycleCertificationExt,
 };
 
+use super::super::interaction_world::InteractionWorld;
 use super::assertions::{
     applied, assert_completion, assert_rank, assert_stop, assert_targeting_stop, denied,
+    pointer_gesture,
 };
 use super::oracle::{expected_target, ExpectedTarget};
-use super::world::GestureWorld;
 
 #[test]
 fn presented_geometry_adjudicates_overlap_clip_and_half_open_edges() {
-    let mut canonical = GestureWorld::canonical();
+    let mut canonical = InteractionWorld::canonical();
     assert_rank(
         canonical.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]),
         expected_target([20, 20], false),
@@ -43,7 +44,7 @@ fn presented_geometry_adjudicates_overlap_clip_and_half_open_edges() {
     );
     let _ = canonical.session.shutdown();
 
-    let mut clipped = GestureWorld::clipped();
+    let mut clipped = InteractionWorld::clipped();
     let outer = clipped
         .hit_rows
         .iter()
@@ -68,7 +69,7 @@ fn presented_geometry_adjudicates_overlap_clip_and_half_open_edges() {
 
 #[test]
 fn continuity_is_owner_issued_across_exact_and_successor_presentations() {
-    let mut world = GestureWorld::canonical();
+    let mut world = InteractionWorld::canonical();
     assert_rank(
         world.button(1, 4, UiHostPointerButtonTransition::Pressed, [20, 20]),
         ExpectedTarget::Rank(0),
@@ -78,7 +79,9 @@ fn continuity_is_owner_issued_across_exact_and_successor_presentations() {
     assert_ne!(world.presentation, predecessor);
     let completed = applied(world.button(1, 4, UiHostPointerButtonTransition::Released, [20, 20]));
     let gesture = match &completed.transitions()[0] {
-        UiPointerGestureTransition::Completed(gesture) => gesture,
+        UiInteractionTransition::Semantic(UiSemanticInteraction::Activate(activation)) => {
+            pointer_gesture(activation.source())
+        }
         other => panic!("same incarnation across a successor must complete, got {other:?}"),
     };
     assert_eq!(
@@ -113,8 +116,8 @@ fn continuity_is_owner_issued_across_exact_and_successor_presentations() {
 }
 
 #[test]
-fn stale_and_foreign_evidence_stops_without_current_coordinate_retargeting() {
-    let mut stale_epoch = GestureWorld::canonical();
+fn stale_presentation_epoch_stops_without_current_coordinate_retargeting() {
+    let mut stale_epoch = InteractionWorld::canonical();
     assert_rank(
         stale_epoch.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]),
         ExpectedTarget::Rank(0),
@@ -143,12 +146,15 @@ fn stale_and_foreign_evidence_stops_without_current_coordinate_retargeting() {
     );
     assert_eq!(epoch_denial.settlement().final_state().active_gestures(), 0);
     let _ = stale_epoch.session.shutdown();
+}
 
-    let mut stale_receipt = GestureWorld::canonical();
+#[test]
+fn stale_node_receipt_cannot_reanimate_a_successor_presentation() {
+    let mut stale_receipt = InteractionWorld::canonical();
     let press =
         applied(stale_receipt.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]));
     let pressed_target = match &press.transitions()[0] {
-        UiPointerGestureTransition::Pressed(press) => press.target(),
+        UiInteractionTransition::PointerPressed(press) => press.target(),
         other => panic!("expected a targeted press, got {other:?}"),
     };
     let stale_basis = UiHostObservationMountedBasis::new(
@@ -172,9 +178,12 @@ fn stale_and_foreign_evidence_stops_without_current_coordinate_retargeting() {
     );
     assert!(receipt_denial.settlement().stops().is_empty());
     let _ = stale_receipt.session.shutdown();
+}
 
-    let mut local = GestureWorld::canonical();
-    let foreign = GestureWorld::canonical();
+#[test]
+fn foreign_binding_cannot_borrow_local_presentation_identity() {
+    let mut local = InteractionWorld::canonical();
+    let foreign = InteractionWorld::canonical();
     let foreign_presentation = UiHostObservationPresentationBasis::new(
         local.presentation.frame(),
         foreign.binding,
@@ -196,10 +205,10 @@ fn stale_and_foreign_evidence_stops_without_current_coordinate_retargeting() {
 
 #[test]
 fn incompatible_remount_cannot_reanimate_a_retained_presented_row() {
-    let mut world = GestureWorld::canonical();
+    let mut world = InteractionWorld::canonical();
     let press = applied(world.button(1, 1, UiHostPointerButtonTransition::Pressed, [20, 20]));
     let target = match &press.transitions()[0] {
-        UiPointerGestureTransition::Pressed(press) => press.target(),
+        UiInteractionTransition::PointerPressed(press) => press.target(),
         other => panic!("expected a targeted press, got {other:?}"),
     };
     let retired = target.mounted_instance();

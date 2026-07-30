@@ -8,34 +8,52 @@ use worth_ui::facade::observation_report::{
     UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostProtocolContract,
     UiHostProtocolNegotiation, UiHostSurfacePosition, UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
+use worth_ui_host_contract::WorthUiHostMechanicsAdapter;
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedHitTestMechanic, UiPresentationDeadline,
     UiSurfaceBindingGeneration,
 };
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
-use super::super::super::filesystem_mounted_world::{
-    establish_allocation, launch_clipped_world, launch_world, prepare_frame, HitOrderProfile,
+use super::super::filesystem_mounted_world::{
+    establish_allocation, launch_clipped_world, launch_native_world, launch_world, prepare_frame,
+    HitOrderProfile,
 };
 
-pub(super) struct GestureWorld {
+pub(super) struct InteractionWorld {
     pub(super) session: WorthUiActiveApplicationSession,
     pub(super) binding: UiSurfaceBindingGeneration,
     pub(super) presentation: UiHostObservationPresentationBasis,
     pub(super) hit_rows: Box<[UiMountedHitTestMechanic]>,
     next_sequence: u64,
+    native_host: Option<worth_ui_host_egui::WorthUiHostEgui>,
 }
 
-impl GestureWorld {
+pub(super) struct NativeInteractionIngress {
+    adapter: worth_ui_host_egui::UiEguiRawInputIngressOutcome,
+    runtime: Box<[UiHostInteractionIngressOutcome]>,
+}
+
+impl InteractionWorld {
     pub(super) fn canonical() -> Self {
-        Self::launch(launch_world(HitOrderProfile::Canonical))
+        Self::launch(launch_world(HitOrderProfile::Canonical), None)
     }
 
     pub(super) fn clipped() -> Self {
-        Self::launch(launch_clipped_world())
+        Self::launch(launch_clipped_world(), None)
     }
 
-    fn launch(mut session: WorthUiActiveApplicationSession) -> Self {
+    pub(super) fn native() -> Self {
+        let context = egui::Context::default();
+        let _ = context.run_ui(egui::RawInput::default(), |_| {});
+        let host = worth_ui_host_egui::WorthUiHostEgui::new(context);
+        Self::launch(launch_native_world(host.clone()), Some(host))
+    }
+
+    fn launch(
+        mut session: WorthUiActiveApplicationSession,
+        native_host: Option<worth_ui_host_egui::WorthUiHostEgui>,
+    ) -> Self {
         establish_allocation(&mut session, 3);
         let (presentation, binding, hit_rows) = publish(&mut session);
         Self {
@@ -44,6 +62,7 @@ impl GestureWorld {
             presentation,
             hit_rows,
             next_sequence: 1,
+            native_host,
         }
     }
 
@@ -100,6 +119,53 @@ impl GestureWorld {
             self.presentation,
             UiHostObservationLoss::Complete,
             vec![UiHostObservationPayload::Focus { focused: false }],
+        )
+    }
+
+    pub(super) fn native_input(&mut self, events: Vec<egui::Event>) -> NativeInteractionIngress {
+        let host = self
+            .native_host
+            .as_ref()
+            .expect("native input requires the production egui host world");
+        let adapter = host.observe_native_input(&egui::RawInput {
+            events,
+            ..Default::default()
+        });
+        let runtime = host
+            .drain_mechanical_host_observations(self.session.host_session_identity().as_u64())
+            .expect("the native interaction drain is structurally bounded")
+            .into_batches()
+            .into_vec()
+            .into_iter()
+            .map(|batch| self.session.admit_host_interaction_batch(batch))
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        NativeInteractionIngress { adapter, runtime }
+    }
+
+    pub(super) fn native_host(&self) -> &worth_ui_host_egui::WorthUiHostEgui {
+        self.native_host
+            .as_ref()
+            .expect("native host evidence requires the native world")
+    }
+
+    pub(super) fn payload_at(
+        &mut self,
+        sequence: u64,
+        tick: u64,
+        payload: UiHostObservationPayload,
+    ) -> UiHostInteractionIngressOutcome {
+        let sequence = UiHostObservationSequence::new(sequence);
+        let report = UiHostObservationReport::new(
+            sequence,
+            UiHostObservationTimeBasis::HostMonotonicTick(tick),
+            payload,
+        );
+        self.admit_range(
+            self.presentation,
+            (sequence, sequence),
+            UiHostObservationLoss::Complete,
+            vec![report],
         )
     }
 
@@ -204,6 +270,16 @@ impl GestureWorld {
         })
         .expect("gesture world emits a structurally valid raw batch");
         self.session.admit_host_interaction_batch(batch)
+    }
+}
+
+impl NativeInteractionIngress {
+    pub(super) const fn adapter(&self) -> worth_ui_host_egui::UiEguiRawInputIngressOutcome {
+        self.adapter
+    }
+
+    pub(super) fn into_runtime(self) -> Box<[UiHostInteractionIngressOutcome]> {
+        self.runtime
     }
 }
 

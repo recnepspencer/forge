@@ -16,6 +16,20 @@ struct WorthUiPreparedCutoverEvidence {
     host_session: crate::facade::WorthUiHostSessionIdentity,
 }
 
+struct WorthUiCutoverPreparationInput {
+    pending: WorthUiPendingApplicationCutover,
+    admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
+    boundary: crate::runtime::WorthUiFrameBoundary,
+    lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
+}
+
+struct WorthUiPreparedCatalogActivation {
+    prepared: crate::runtime::WorthUiPreparedQueryAwarePlanOutcome,
+    reload_cost_seed: crate::runtime::WorthUiReloadCostSeed,
+    visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
+}
+
 impl WorthUiActiveApplicationSession {
     pub fn activate_prepared_replacement(
         &mut self,
@@ -85,19 +99,47 @@ impl WorthUiActiveApplicationSession {
             });
         }
         let generations = self.validate_cutover_generation_basis(&pending, &admitted_delta)?;
+        let prepared_catalog = self.prepare_catalog_activation(WorthUiCutoverPreparationInput {
+            pending,
+            admitted_delta,
+            boundary,
+            lane_parity_report,
+        })?;
+        let evidence = WorthUiPreparedCutoverEvidence {
+            generations,
+            visual_trace_source: prepared_catalog.visual_trace_source,
+            reload_cost_seed: prepared_catalog.reload_cost_seed,
+            runtime_basis: self.application.runtime_publication_basis(),
+            host_session: self.host_session.identity(),
+        };
+        match prepared_catalog.prepared.into_activation() {
+            Err(receipt) => Ok(seal_semantic_no_op(evidence, receipt)),
+            Ok(activation) => {
+                let activation = activation.into_application_activation().map_err(|_| {
+                    WorthUiApplicationCutoverDenial::MissingAllocationCatalogSuccessorReceipt
+                })?;
+                Ok(seal_prepared_activation(evidence, activation))
+            }
+        }
+    }
+
+    fn prepare_catalog_activation(
+        &mut self,
+        input: WorthUiCutoverPreparationInput,
+    ) -> Result<WorthUiPreparedCatalogActivation, WorthUiApplicationCutoverDenial> {
+        let pending = input.pending;
         let reload_cost_seed = pending.reload_cost_seed;
         let visual_trace_source = pending.next_app.visual_trace_source();
-        let active_graph = self.application.graph_snapshot().clone();
         let prepared =
             self.application
                 .prepare_admitted_allocation_catalog_delta(
                     pending.pending_activation,
                     crate::runtime::UiAllocationCatalogDeltaActivationInput {
-                        admitted_delta,
-                        active_graph,
+                        admitted_delta: input.admitted_delta,
+                        active_graph: self.application.graph_snapshot().clone(),
                         graph_changed_nodes: pending.candidate_graph_changed_nodes,
-                        boundary,
-                        lane_parity_report,
+                        boundary: input.boundary,
+                        lane_parity_report: input.lane_parity_report,
                         candidate_query_binding: pending.candidate_query_binding,
                         successor_planning_authority: std::rc::Rc::clone(
                             pending.next_app.retained_planning_authority(),
@@ -109,22 +151,11 @@ impl WorthUiActiveApplicationSession {
                     },
                 )
                 .map_err(WorthUiApplicationCutoverDenial::Activation)?;
-        let evidence = WorthUiPreparedCutoverEvidence {
-            generations,
-            visual_trace_source,
+        Ok(WorthUiPreparedCatalogActivation {
+            prepared,
             reload_cost_seed,
-            runtime_basis: self.application.runtime_publication_basis(),
-            host_session: self.host_session.identity(),
-        };
-        match prepared.into_activation() {
-            Err(receipt) => Ok(seal_semantic_no_op(evidence, receipt)),
-            Ok(activation) => {
-                let activation = activation.into_application_activation().map_err(|_| {
-                    WorthUiApplicationCutoverDenial::MissingAllocationCatalogSuccessorReceipt
-                })?;
-                Ok(seal_prepared_activation(evidence, activation))
-            }
-        }
+            visual_trace_source,
+        })
     }
 
     fn validate_cutover_generation_basis(
@@ -170,7 +201,7 @@ impl WorthUiActiveApplicationSession {
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
         self.interaction.cancel_all(
-            crate::runtime::interaction::UiPointerGestureStopReason::ApplicationRebound,
+            crate::runtime::interaction::UiInteractionLifecycleStopReason::ApplicationRebound,
         );
         let (plan_swap, query_retirement, plan_decision, allocation_catalog_successor) =
             publication.into_parts();

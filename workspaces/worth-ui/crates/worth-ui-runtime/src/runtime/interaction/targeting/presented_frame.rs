@@ -26,8 +26,21 @@ pub enum UiInteractionTargetingDenial {
     MountedSurfaceAffinityChanged,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct UiPresentedInteractionTarget {
+    presentation: UiHostObservationPresentationBasis,
+    relation: UiPresentedTargetFrameRelation,
+    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
+    hit_test_order: u32,
+    semantic_digest: u64,
+    hit_test_rows_considered: usize,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiPresentedInteractionTargetView {
     presentation: UiHostObservationPresentationBasis,
     relation: UiPresentedTargetFrameRelation,
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
@@ -188,6 +201,20 @@ fn map_presentation_denial(
 }
 
 impl UiPresentedInteractionTarget {
+    pub const fn view(&self) -> UiPresentedInteractionTargetView {
+        UiPresentedInteractionTargetView {
+            presentation: self.presentation,
+            relation: self.relation,
+            surface: self.surface,
+            binding: self.binding,
+            mounted_instance: self.mounted_instance,
+            node_receipt: self.node_receipt,
+            hit_test_order: self.hit_test_order,
+            semantic_digest: self.semantic_digest,
+            hit_test_rows_considered: self.hit_test_rows_considered,
+        }
+    }
+
     pub const fn presentation(&self) -> UiHostObservationPresentationBasis {
         self.presentation
     }
@@ -222,5 +249,75 @@ impl UiPresentedInteractionTarget {
 
     pub const fn hit_test_rows_considered(&self) -> usize {
         self.hit_test_rows_considered
+    }
+}
+
+impl UiPresentedInteractionTargetView {
+    pub const fn presentation(self) -> UiHostObservationPresentationBasis {
+        self.presentation
+    }
+
+    pub const fn frame_relation(self) -> UiPresentedTargetFrameRelation {
+        self.relation
+    }
+
+    pub const fn surface(self) -> worth_ui_host_contract::UiSemanticSurfaceIdentity {
+        self.surface
+    }
+
+    pub const fn binding(self) -> worth_ui_host_contract::UiSurfaceBindingGeneration {
+        self.binding
+    }
+
+    pub const fn mounted_instance(self) -> worth_ui_host_contract::UiMountedInstanceIdentity {
+        self.mounted_instance
+    }
+
+    pub const fn node_receipt(self) -> worth_ui_host_contract::UiMountedNodeReceiptIdentity {
+        self.node_receipt
+    }
+
+    pub const fn hit_test_order(self) -> u32 {
+        self.hit_test_order
+    }
+
+    pub const fn semantic_digest(self) -> u64 {
+        self.semantic_digest
+    }
+
+    pub const fn hit_test_rows_considered(self) -> usize {
+        self.hit_test_rows_considered
+    }
+}
+
+pub(crate) fn require_current_target(
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    target: UiPresentedInteractionTargetView,
+) -> Result<(), UiInteractionTargetingDenial> {
+    mounted
+        .admit_current_interaction_affinity(crate::mounting::UiMountedInteractionAffinityInput {
+            surface: target.surface(),
+            binding: target.binding(),
+            mounted_instance: target.mounted_instance(),
+            node_receipt: target.node_receipt(),
+        })
+        .map_err(map_current_affinity_denial)
+}
+
+#[cfg(test)]
+pub(crate) const fn interaction_target_view_for_test(
+    presentation: UiHostObservationPresentationBasis,
+    affinity: crate::mounting::UiMountedInteractionAffinityInput,
+) -> UiPresentedInteractionTargetView {
+    UiPresentedInteractionTargetView {
+        presentation,
+        relation: UiPresentedTargetFrameRelation::Current,
+        surface: affinity.surface,
+        binding: affinity.binding,
+        mounted_instance: affinity.mounted_instance,
+        node_receipt: affinity.node_receipt,
+        hit_test_order: 0,
+        semantic_digest: 1,
+        hit_test_rows_considered: 1,
     }
 }

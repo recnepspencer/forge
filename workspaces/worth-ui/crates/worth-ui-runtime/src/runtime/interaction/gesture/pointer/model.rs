@@ -1,11 +1,10 @@
 use std::collections::BTreeMap;
 
 use worth_ui_host_contract::{
-    UiHostObservationCanonicalCore, UiHostObservationSequence, UiHostPointerButton,
-    UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostObservationSequence, UiHostPointerButton, UiHostPointerCaptureEpoch,
+    UiHostPointerIdentity,
 };
 
-use super::super::UiInteractionLifecycleSettlementReceipt;
 use super::super::UiPointerGestureStop;
 use crate::runtime::interaction::targeting::{
     UiPointerGestureContinuityKind, UiPresentedInteractionTarget,
@@ -14,18 +13,18 @@ use crate::runtime::interaction::targeting::{
 pub const UI_ACTIVE_POINTER_GESTURE_LIMIT: usize = 16;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct UiInteractionLifecycleCounters {
-    pub(super) button_reports: u64,
-    pub(super) gestures_started: u64,
-    pub(super) gestures_completed: u64,
-    pub(super) stop_outcomes: u64,
-    pub(super) active_gestures_settled: u64,
+pub(crate) struct UiPointerGestureLifecycleCounters {
+    pub(crate) button_reports: u64,
+    pub(crate) gestures_started: u64,
+    pub(crate) gestures_completed: u64,
+    pub(crate) stop_outcomes: u64,
+    pub(crate) active_gestures_settled: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UiInteractionStateSnapshot {
-    pub(super) active_gestures: usize,
-    pub(super) counters: UiInteractionLifecycleCounters,
+pub(crate) struct UiPointerGestureStateSnapshot {
+    pub(crate) active_gestures: usize,
+    pub(crate) counters: UiPointerGestureLifecycleCounters,
 }
 
 #[derive(Debug)]
@@ -34,7 +33,7 @@ pub struct UiPointerGesturePressReceipt {
     pub(super) capture_epoch: UiHostPointerCaptureEpoch,
     pub(super) button: UiHostPointerButton,
     pub(super) sequence: UiHostObservationSequence,
-    pub(super) target: UiPresentedInteractionTarget,
+    pub(super) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
 }
 
 #[derive(Debug)]
@@ -51,50 +50,15 @@ pub struct UiTargetedPointerGesture {
 }
 
 #[derive(Debug)]
-pub enum UiPointerGestureTransition {
+pub(crate) enum UiPointerGestureOutcome {
     Pressed(UiPointerGesturePressReceipt),
     Completed(UiTargetedPointerGesture),
     Stopped(UiPointerGestureStop),
 }
 
-#[derive(Debug)]
-pub struct UiInteractionBatchReceipt {
-    pub(super) core: UiHostObservationCanonicalCore,
-    pub(super) frame_relation: crate::facade::observation_report::UiHostObservationFrameRelation,
-    pub(super) disposition: crate::facade::observation_report::UiHostObservationBatchDisposition,
-    pub(super) transitions: Box<[UiPointerGestureTransition]>,
-    pub(super) ignored_reports: usize,
-    pub(super) state: UiInteractionStateSnapshot,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct UiInteractionObservationDenial {
-    pub(super) denial: crate::facade::observation_report::UiHostObservationReportDenial,
-    pub(super) settlement: UiInteractionLifecycleSettlementReceipt,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct UiQuarantinedHostInteractionBatch {
-    pub(super) quarantine: crate::facade::observation_report::UiQuarantinedHostObservationBatch,
-    pub(super) settlement: UiInteractionLifecycleSettlementReceipt,
-}
-
-#[derive(Debug)]
-pub enum UiHostInteractionIngressOutcome {
-    Applied(UiInteractionBatchReceipt),
-    Duplicate(crate::facade::observation_report::UiDuplicateHostObservationBatch),
-    Quarantined(UiQuarantinedHostInteractionBatch),
-    Denied(UiInteractionObservationDenial),
-}
-
-#[derive(Debug, Default, Eq, PartialEq)]
-pub struct UiInteractionShutdownReport {
-    pub(super) settlement: Option<UiInteractionLifecycleSettlementReceipt>,
-}
-
-pub(crate) struct UiInteractionRuntimeState {
+pub(crate) struct UiPointerGestureRuntimeState {
     pub(super) active: BTreeMap<UiHostPointerIdentity, UiActivePointerGesture>,
-    pub(super) counters: UiInteractionLifecycleCounters,
+    pub(super) counters: UiPointerGestureLifecycleCounters,
 }
 
 pub(super) struct UiActivePointerGesture {
