@@ -66,6 +66,13 @@ impl WorthUiHostEgui {
         self.observation_retention.retain(batch)
     }
 
+    pub fn observe_native_input(
+        &self,
+        raw_input: &egui::RawInput,
+    ) -> super::UiEguiRawInputIngressOutcome {
+        super::input_observation::observe_raw_input(raw_input)
+    }
+
     /// Replay the currently admitted mounted mechanics for one egui frame.
     ///
     /// Egui paint commands are frame-ephemeral. This method replays only

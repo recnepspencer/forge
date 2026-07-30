@@ -3,10 +3,24 @@ use worth_ui_host_contract::{
     UiHostObservationPayload, UiHostObservationReport, UiHostObservationRetentionDenial,
     UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
     UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameIdentity,
-    UiSurfaceBindingGeneration, WorthUiHostMechanicsAdapter,
+    UiSurfaceBindingGeneration, WorthUiHostCapability, WorthUiHostMechanicsAdapter,
 };
 
 use super::WorthUiHostEgui;
+
+#[test]
+fn input_capabilities_remain_unadvertised_until_translators_are_installed() {
+    let report = WorthUiHostEgui::default().mechanical_capability_report();
+
+    for capability in [
+        WorthUiHostCapability::PointerInput,
+        WorthUiHostCapability::KeyboardInput,
+        WorthUiHostCapability::TextInput,
+        WorthUiHostCapability::Ime,
+    ] {
+        assert!(!report.supports(capability));
+    }
+}
 
 #[test]
 fn releasing_one_session_keeps_the_adapter_observation_port_reusable() {

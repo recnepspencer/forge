@@ -1,5 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum WorthUiHostCapability {
+    PointerInput,
+    KeyboardInput,
     TextInput,
     Ime,
     Accessibility,
@@ -29,6 +31,8 @@ pub enum WorthUiHostCapability {
 impl WorthUiHostCapability {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::PointerInput => "pointer-input",
+            Self::KeyboardInput => "keyboard-input",
             Self::TextInput => "text-input",
             Self::Ime => "ime",
             Self::Accessibility => "accessibility",

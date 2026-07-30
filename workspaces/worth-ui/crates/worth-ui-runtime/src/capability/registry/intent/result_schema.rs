@@ -1,5 +1,7 @@
 use core::fmt;
 
+use super::stable_identity::assert_valid_stable_identity;
+
 /// Stable schema identity and version carried by intent definitions.
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UiIntentSchema {
@@ -9,10 +11,7 @@ pub struct UiIntentSchema {
 
 impl UiIntentSchema {
     pub const fn stable(stable_identity: &'static str, version: u16) -> Self {
-        assert!(
-            !stable_identity.is_empty(),
-            "intent schema identity must not be empty"
-        );
+        assert_valid_stable_identity(stable_identity);
         assert!(version > 0, "intent schema version must be nonzero");
         Self {
             stable_identity,

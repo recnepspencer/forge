@@ -1,18 +1,10 @@
 use core::marker::PhantomData;
 
 use super::{
-    UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
-    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
+    UiIntentAcceptedInteractions, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
+    UiIntentProductOutcome, UiIntentRuntimeServiceDestination, UiIntentSchema,
+    UiIntentTransitionDestination,
 };
-
-/// Initial semantic interaction families accepted by 3.14 intent definitions.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum UiSemanticInteractionFamily {
-    Activate,
-    EditCommit,
-    SelectionCommit,
-    Submit,
-}
 
 /// Product-defined typed intent meaning.
 pub trait UiIntent: Send + Sync + 'static {
@@ -20,7 +12,7 @@ pub trait UiIntent: Send + Sync + 'static {
     type ProductOutcome: UiIntentProductOutcome;
 
     const ID: UiIntentId;
-    const ACCEPTED_INTERACTIONS: &'static [UiSemanticInteractionFamily];
+    const ACCEPTED_INTERACTIONS: UiIntentAcceptedInteractions;
 }
 
 /// Compiled capability definition preserving one concrete intent type.
@@ -63,7 +55,7 @@ impl<I: UiIntent> UiIntentDefinition<I> {
         I::ProductOutcome::SCHEMA
     }
 
-    pub const fn accepted_interactions(&self) -> &'static [UiSemanticInteractionFamily] {
+    pub const fn accepted_interactions(&self) -> UiIntentAcceptedInteractions {
         I::ACCEPTED_INTERACTIONS
     }
 
@@ -94,7 +86,7 @@ pub struct IntentDefinitionDescriptor {
     id: UiIntentId,
     payload_schema: UiIntentSchema,
     product_outcome_schema: UiIntentSchema,
-    accepted_interactions: &'static [UiSemanticInteractionFamily],
+    accepted_interactions: UiIntentAcceptedInteractions,
     destination: UiIntentExecutionDestination,
 }
 
@@ -111,8 +103,8 @@ impl IntentDefinitionDescriptor {
         self.product_outcome_schema
     }
 
-    pub fn accepted_interactions(&self) -> &'static [UiSemanticInteractionFamily] {
-        self.accepted_interactions
+    pub fn accepted_interactions(&self) -> &'static [super::UiSemanticInteractionFamily] {
+        self.accepted_interactions.as_slice()
     }
 
     pub fn execution_destination(&self) -> UiIntentExecutionDestination {

@@ -131,7 +131,7 @@ impl FrozenIntentDefinitionCapabilities {
                     .accepted_interactions()
                     .iter()
                     .fold(with_destination, |basis, interaction| {
-                        fold_bytes(basis, format!("{interaction:?}").as_bytes())
+                        fold_bytes(basis, interaction.digest_basis().as_bytes())
                     })
             })
     }

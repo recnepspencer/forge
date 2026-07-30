@@ -55,10 +55,11 @@ pub use icon::{
 };
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
 pub use intent::{
-    FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent, UiIntentDefinition,
-    UiIntentDefinitionRegistrationError, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
-    UiIntentProductOutcome, UiIntentRuntimeServiceDestination, UiIntentSchema,
-    UiIntentTransitionDestination, UiSemanticInteractionFamily,
+    FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent,
+    UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentDefinitionRegistrationError,
+    UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
+    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
+    UiSemanticInteractionFamily,
 };
 pub(crate) use intent::{IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry};
 pub use mosaic_placement::{

@@ -1,7 +1,8 @@
 use core::marker::PhantomData;
 use worth_ui::facade::intent::{
-    UiIntent, UiIntentDefinition, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
-    UiIntentProductOutcome, UiIntentSchema, UiSemanticInteractionFamily,
+    UiIntent, UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentExecutionDestination,
+    UiIntentId, UiIntentPayload, UiIntentProductOutcome, UiIntentSchema,
+    UiSemanticInteractionFamily,
 };
 
 struct Payload;
@@ -23,8 +24,8 @@ impl UiIntent for Intent {
     type ProductOutcome = Outcome;
 
     const ID: UiIntentId = UiIntentId::stable("compile.intent");
-    const ACCEPTED_INTERACTIONS: &'static [UiSemanticInteractionFamily] =
-        &[UiSemanticInteractionFamily::Activate];
+    const ACCEPTED_INTERACTIONS: UiIntentAcceptedInteractions =
+        UiIntentAcceptedInteractions::new(&[UiSemanticInteractionFamily::Activate]);
 }
 
 fn main() {

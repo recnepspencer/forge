@@ -260,3 +260,7 @@ path = "../../../../worth-ui/tests/ui/facade/intent/fail/string_command_intent_b
 [[bin]]
 name = "product-intent-static-command-readiness-absent"
 path = "../../../../worth-ui/tests/ui/facade/intent/fail/static_command_readiness_is_absent.rs"
+
+[[bin]]
+name = "product-intent-accepted-interactions-canonical"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/accepted_interactions_require_canonical_order.rs"
