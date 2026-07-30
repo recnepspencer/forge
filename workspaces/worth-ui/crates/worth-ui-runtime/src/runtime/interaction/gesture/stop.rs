@@ -30,6 +30,7 @@ pub enum UiPointerGestureStopReason {
     },
     FocusLost,
     InvalidObservation,
+    ObservationQuarantined,
     SurfaceRebound,
     MountedInstanceRemoved,
     ApplicationRebound,

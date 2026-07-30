@@ -6,7 +6,7 @@ use worth_ui_host_contract::{
 use super::model::{
     UiInteractionBatchReceipt, UiInteractionLifecycleCounters, UiInteractionObservationDenial,
     UiInteractionShutdownReport, UiInteractionStateSnapshot, UiPointerGesturePressReceipt,
-    UiTargetedPointerGesture,
+    UiQuarantinedHostInteractionBatch, UiTargetedPointerGesture,
 };
 use crate::runtime::interaction::targeting::{
     UiPointerGestureContinuityKind, UiPresentedInteractionTarget,
@@ -137,29 +137,58 @@ impl UiInteractionBatchReceipt {
 impl UiInteractionObservationDenial {
     pub(crate) const fn new(
         denial: crate::facade::observation_report::UiHostObservationReportDenial,
-        settled_gestures: usize,
+        settlement: super::super::UiInteractionLifecycleSettlementReceipt,
     ) -> Self {
-        Self {
-            denial,
-            settled_gestures,
-        }
+        Self { denial, settlement }
     }
 
-    pub const fn denial(self) -> crate::facade::observation_report::UiHostObservationReportDenial {
+    pub const fn denial(&self) -> crate::facade::observation_report::UiHostObservationReportDenial {
         self.denial
     }
 
-    pub const fn settled_gestures(self) -> usize {
-        self.settled_gestures
+    pub const fn settlement(&self) -> &super::super::UiInteractionLifecycleSettlementReceipt {
+        &self.settlement
     }
 }
 
 impl UiInteractionShutdownReport {
-    pub const fn cancelled_gestures(self) -> usize {
-        self.cancelled_gestures
+    pub fn cancelled_gestures(&self) -> usize {
+        self.settlement
+            .as_ref()
+            .map_or(0, |settlement| settlement.settled_gestures())
     }
 
-    pub const fn final_state(self) -> Option<UiInteractionStateSnapshot> {
-        self.final_state
+    pub fn final_state(&self) -> Option<UiInteractionStateSnapshot> {
+        self.settlement
+            .as_ref()
+            .map(|settlement| settlement.final_state())
+    }
+
+    pub const fn settlement(
+        &self,
+    ) -> Option<&super::super::UiInteractionLifecycleSettlementReceipt> {
+        self.settlement.as_ref()
+    }
+}
+
+impl UiQuarantinedHostInteractionBatch {
+    pub(crate) const fn new(
+        quarantine: crate::facade::observation_report::UiQuarantinedHostObservationBatch,
+        settlement: super::super::UiInteractionLifecycleSettlementReceipt,
+    ) -> Self {
+        Self {
+            quarantine,
+            settlement,
+        }
+    }
+
+    pub const fn quarantine(
+        &self,
+    ) -> crate::facade::observation_report::UiQuarantinedHostObservationBatch {
+        self.quarantine
+    }
+
+    pub const fn settlement(&self) -> &super::super::UiInteractionLifecycleSettlementReceipt {
+        &self.settlement
     }
 }

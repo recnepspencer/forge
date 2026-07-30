@@ -171,12 +171,14 @@ mod tests {
 
     #[test]
     fn empty_reversed_and_outside_preedit_coordinates_are_typed_denials() {
+        let reversed_start = 2;
+        let reversed_end = 1;
         assert_eq!(
             UiHostImePreedit::from_unicode_scalar_range("", None),
             Err(UiHostImePreeditConstructionDenial::EmptyPreedit)
         );
         assert_eq!(
-            UiHostImePreedit::from_unicode_scalar_range("abc", Some(2..1)),
+            UiHostImePreedit::from_unicode_scalar_range("abc", Some(reversed_start..reversed_end),),
             Err(UiHostImePreeditConstructionDenial::RangeReversed)
         );
         assert_eq!(

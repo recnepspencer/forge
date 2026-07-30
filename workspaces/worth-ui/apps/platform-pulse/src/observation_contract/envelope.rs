@@ -176,7 +176,7 @@ impl PlatformPulseLifecycleObservationEnvelope {
         match probe.protocol.schema_version {
             PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION => Self::decode_prefixed_line(line)
                 .map(PlatformPulseDecodedLifecycleObservation::CompleteV5),
-            schema_version @ (2 | 3 | 4) => {
+            schema_version @ 2..=4 => {
                 let legacy = serde_json::from_str::<PlatformPulseInheritedEnvelope>(json)
                     .map_err(|_| PlatformPulseLifecycleObservationCodecDenial::InvalidJson)?;
                 let _ = (legacy.protocol, legacy.outcome);

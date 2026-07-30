@@ -76,9 +76,7 @@ impl UiEguiInstalledInputTranslators {
             }
             match self.translate_event(event, &mut state) {
                 Ok(Some(payload)) => {
-                    let encoded_len = 24usize
-                        .checked_add(payload.encoded_len())
-                        .unwrap_or(usize::MAX);
+                    let encoded_len = 24usize.saturating_add(payload.encoded_len());
                     if reports.len() == UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT {
                         stop = Some(UiEguiRawInputIngressStopReason::ReportLimitExceeded);
                         continue;

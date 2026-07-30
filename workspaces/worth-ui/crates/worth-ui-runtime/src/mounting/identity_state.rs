@@ -21,7 +21,10 @@ const RETIRED_INSTANCE_LIMIT: usize = 256;
 mod frame_lifecycle;
 mod graph_replacement;
 mod instance_lifecycle;
+mod interaction_affinity;
 pub(crate) mod surface_lifecycle;
+
+pub(crate) use interaction_affinity::{UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial};
 
 #[derive(Clone, Debug)]
 struct MountedInstanceRecord {

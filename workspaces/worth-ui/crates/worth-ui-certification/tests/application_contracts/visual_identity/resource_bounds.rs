@@ -10,7 +10,7 @@ use worth_ui_runtime::facade::mounted::{
 };
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
-use super::filesystem_mounted_world::{
+use super::super::filesystem_mounted_world::{
     establish_allocation, launch_native_world_with_policy, prepare_frame,
 };
 

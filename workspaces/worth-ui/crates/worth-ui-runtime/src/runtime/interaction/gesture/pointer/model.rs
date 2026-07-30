@@ -5,6 +5,7 @@ use worth_ui_host_contract::{
     UiHostPointerCaptureEpoch, UiHostPointerIdentity,
 };
 
+use super::super::UiInteractionLifecycleSettlementReceipt;
 use super::super::UiPointerGestureStop;
 use crate::runtime::interaction::targeting::{
     UiPointerGestureContinuityKind, UiPresentedInteractionTarget,
@@ -66,24 +67,29 @@ pub struct UiInteractionBatchReceipt {
     pub(super) state: UiInteractionStateSnapshot,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct UiInteractionObservationDenial {
     pub(super) denial: crate::facade::observation_report::UiHostObservationReportDenial,
-    pub(super) settled_gestures: usize,
+    pub(super) settlement: UiInteractionLifecycleSettlementReceipt,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct UiQuarantinedHostInteractionBatch {
+    pub(super) quarantine: crate::facade::observation_report::UiQuarantinedHostObservationBatch,
+    pub(super) settlement: UiInteractionLifecycleSettlementReceipt,
 }
 
 #[derive(Debug)]
 pub enum UiHostInteractionIngressOutcome {
     Applied(UiInteractionBatchReceipt),
     Duplicate(crate::facade::observation_report::UiDuplicateHostObservationBatch),
-    Quarantined(crate::facade::observation_report::UiQuarantinedHostObservationBatch),
+    Quarantined(UiQuarantinedHostInteractionBatch),
     Denied(UiInteractionObservationDenial),
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct UiInteractionShutdownReport {
-    pub(super) cancelled_gestures: usize,
-    pub(super) final_state: Option<UiInteractionStateSnapshot>,
+    pub(super) settlement: Option<UiInteractionLifecycleSettlementReceipt>,
 }
 
 pub(crate) struct UiInteractionRuntimeState {

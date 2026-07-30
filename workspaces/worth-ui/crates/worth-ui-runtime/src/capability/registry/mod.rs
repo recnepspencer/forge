@@ -34,8 +34,9 @@ pub(crate) use component::{ComponentAcceptedRegistrationProof, ComponentRegistry
 pub use component::{
     ComponentAccessibilitySupport, ComponentAllocationMeasurementContract,
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor,
-    ComponentExecutionLane, ComponentFocusSupport, ComponentHitTestContract, ComponentHitTestOrder,
-    ComponentPropSchema, ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
+    ComponentExecutionLane, ComponentFocusSupport, ComponentHitTestClipContract,
+    ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentPropSchema,
+    ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
     ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
     ComponentSemanticTextContract, ComponentStateOwnership, ComponentStaticPaintContract,
     ComponentStaticPaintOrder, ComponentViewportInset, FrozenComponentCapabilities,

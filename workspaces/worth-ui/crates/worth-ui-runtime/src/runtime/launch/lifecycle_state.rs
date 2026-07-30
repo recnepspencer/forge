@@ -177,8 +177,8 @@ impl WorthUiRuntimeShutdownReceipt {
         self.rebind
     }
 
-    pub const fn interaction(&self) -> crate::runtime::interaction::UiInteractionShutdownReport {
-        self.interaction
+    pub const fn interaction(&self) -> &crate::runtime::interaction::UiInteractionShutdownReport {
+        &self.interaction
     }
 
     pub fn host_session_release(

@@ -35,7 +35,10 @@ pub(crate) use frame_manifest_validation::validate_manifest;
 pub(crate) use host_truth::UiMountedHostTruthCoordinator;
 pub use identity::{UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMountedIdentityBasis};
 pub(crate) use identity_overlay::UiMountedVisualOverlayProjectionInput;
-pub(crate) use identity_state::{UiAuthorityAdmittedMountedFrame, UiMountedIdentityState};
+pub(crate) use identity_state::{
+    UiAuthorityAdmittedMountedFrame, UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial,
+    UiMountedIdentityState,
+};
 pub(crate) use identity_trace_basis::UiMountedIdentityTraceBasis;
 pub use identity_view::{
     UiMountedFrameIdentityView, UiMountedIdentityView, UiMountedInstanceIdentityView,

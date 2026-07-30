@@ -24,7 +24,11 @@ fn real_wui_overlay_capable_no_effect_frame_publishes_without_synthetic_shapes()
         &[
             WorthUiHostCapability::DpiObservation,
             WorthUiHostCapability::IdentityOverlay,
+            WorthUiHostCapability::Ime,
+            WorthUiHostCapability::KeyboardInput,
             WorthUiHostCapability::NativePaint,
+            WorthUiHostCapability::PointerInput,
+            WorthUiHostCapability::TextInput,
             WorthUiHostCapability::ViewportObservation,
         ]
     );

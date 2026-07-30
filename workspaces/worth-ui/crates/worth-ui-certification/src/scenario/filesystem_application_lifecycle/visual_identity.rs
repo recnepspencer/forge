@@ -4,6 +4,7 @@ use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::visual_identity_application::{
+    clipped_visual_identity_application_builder_with_host,
     duplicate_hit_order_application_builder_with_host,
     region_identity_application_builder_with_host, visual_identity_application_builder_with_host,
     VISUAL_HIT_ONLY_COMPONENT, VISUAL_IDENTITY_SURFACE, VISUAL_NEITHER_COMPONENT,
@@ -51,6 +52,15 @@ impl FilesystemApplicationLifecycleScenario {
             .expect("region identity capabilities should prepare")
     }
 
+    pub fn clipped_visual_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_visual_identity_application_builder_with_host(host)
+            .freeze()
+            .expect("clipped visual identity capabilities should prepare")
+    }
+
     pub fn prepare_visual_identity_application_with_host<Host>(
         &self,
         submission: WorthUiWatchedCandidateSubmission,
@@ -93,6 +103,20 @@ impl FilesystemApplicationLifecycleScenario {
             .with_candidate_submission(submission)
             .freeze()
             .expect("filesystem-authored region identity application should prepare")
+    }
+
+    pub fn prepare_clipped_visual_identity_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_visual_identity_application_builder_with_host(host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored clipped visual identity application should prepare")
     }
 
     pub fn prepare_region_identity_application_with_policy_and_host<Host>(
