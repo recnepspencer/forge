@@ -31,4 +31,8 @@ impl UiScalarProjectionFactReceipt {
     pub fn availability(&self) -> &UiProjectionAvailability<UiNativeTextValue> {
         &self.availability
     }
+
+    pub fn into_observation(self) -> crate::UiScalarProjectionObservation {
+        crate::UiScalarProjectionObservation::query_issued(self)
+    }
 }

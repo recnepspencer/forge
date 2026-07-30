@@ -1,8 +1,11 @@
 use super::state::UiRebindReservation;
 
+mod completion_handle;
+mod content_mapping;
+mod denial_receipt;
 mod mapping;
 
-use mapping::map_changed_completion;
+pub(crate) use content_mapping::map_content_first_attempt;
 pub(crate) use mapping::map_changed_first_attempt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -80,12 +83,22 @@ pub struct UiRebindCompletionHandle<'session> {
 struct UiRebindCompletionState<'session> {
     plan: crate::runtime::rebind::UiRebindPlan,
     registration: UiRebindReservation,
-    inner: Box<crate::facade::WorthUiMountedApplicationReplacementInFlight<'session>>,
+    inner: UiRebindCompletionInner<'session>,
+}
+
+enum UiRebindCompletionInner<'session> {
+    Changed(Box<crate::facade::WorthUiMountedApplicationReplacementInFlight<'session>>),
+    Content {
+        generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        inner: Box<crate::facade::entry::WorthUiMountedContentRebindInFlight<'session>>,
+    },
 }
 
 pub struct UiRebindInternalDefectOutcome {
     kind: UiRebindInternalDefectKind,
     publication: Option<Box<UiDefectivePublication>>,
+    _unpublished_plan: Option<Box<crate::runtime::rebind::UiRebindPlan>>,
     _registration: UiRebindReservation,
 }
 
@@ -102,6 +115,12 @@ enum UiDefectivePublication {
         _active: crate::facade::prepared_application_authority::
             WorthUiPreparedApplicationGenerationIdentity,
     },
+    Content {
+        _plan: crate::runtime::rebind::UiRebindPlan,
+        _generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        _mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    },
 }
 
 pub enum UiRebindOutcome<'session> {
@@ -115,126 +134,6 @@ pub enum UiRebindOutcome<'session> {
     InFlight(UiRebindCompletionHandle<'session>),
     Indeterminate(super::UiRebindRecoveryHandle<'session>),
     InternalDefect(UiRebindInternalDefectOutcome),
-}
-
-impl<'session> UiRebindDenialReceipt<'session> {
-    pub(crate) fn capacity(
-        denial: super::UiRebindReservationDenial,
-        retry: super::UiPreparedRebind<'session>,
-    ) -> Self {
-        Self {
-            predecessor_remains_current: true,
-            stopped_phase: UiRebindStoppedPhase::EffectAdmission,
-            cause: UiRebindDenialCause::RuntimeCapacity(denial),
-            valid_next_action: UiRebindValidNextAction::RetryPrepared,
-            retry: Some(Box::new(retry)),
-        }
-    }
-
-    fn retry(
-        plan: crate::runtime::rebind::UiRebindPlan,
-        registration: UiRebindReservation,
-        replacement: Box<crate::facade::WorthUiPreparedMountedApplicationReplacement<'session>>,
-        stopped_phase: UiRebindStoppedPhase,
-        cause: UiRebindDenialCause,
-    ) -> Self {
-        Self {
-            predecessor_remains_current: true,
-            stopped_phase,
-            cause,
-            valid_next_action: UiRebindValidNextAction::RetryPrepared,
-            retry: Some(Box::new(super::UiPreparedRebind::changed(
-                plan,
-                registration,
-                replacement,
-            ))),
-        }
-    }
-
-    pub const fn predecessor_remains_current(&self) -> bool {
-        self.predecessor_remains_current
-    }
-
-    pub const fn stopped_phase(&self) -> UiRebindStoppedPhase {
-        self.stopped_phase
-    }
-
-    pub const fn cause(&self) -> UiRebindDenialCause {
-        self.cause
-    }
-
-    pub const fn valid_next_action(&self) -> UiRebindValidNextAction {
-        self.valid_next_action
-    }
-
-    pub fn retry_at(mut self, now_tick: u64) -> UiRebindOutcome<'session> {
-        match self.retry.take() {
-            Some(retry) => retry.execute(now_tick),
-            None => UiRebindOutcome::RejectedBeforeEffects(self),
-        }
-    }
-}
-
-impl<'session> UiRebindCompletionHandle<'session> {
-    pub(super) fn new(
-        plan: crate::runtime::rebind::UiRebindPlan,
-        registration: UiRebindReservation,
-        inner: Box<crate::facade::WorthUiMountedApplicationReplacementInFlight<'session>>,
-    ) -> Self {
-        Self {
-            state: Some(Box::new(UiRebindCompletionState {
-                plan,
-                registration,
-                inner,
-            })),
-        }
-    }
-
-    pub fn attempt(&self) -> worth_ui_host_contract::UiMountedPresentationAttemptIdentity {
-        self.state().inner.attempt()
-    }
-
-    pub fn deadline(&self) -> worth_ui_host_contract::UiPresentationDeadline {
-        self.state().inner.deadline()
-    }
-
-    pub fn complete(self, now_tick: u64) -> UiRebindOutcome<'session> {
-        let state = self.into_state();
-        let outcome = state.inner.complete(now_tick);
-        map_changed_completion(state.plan, state.registration, outcome)
-    }
-
-    pub fn dispose(self) -> UiRebindOutcome<'session> {
-        let state = self.into_state();
-        let outcome = state.inner.cancel();
-        mapping::map_changed_cancellation(state.plan, state.registration, outcome)
-    }
-
-    fn state(&self) -> &UiRebindCompletionState<'session> {
-        self.state
-            .as_deref()
-            .expect("live completion handle owns its state")
-    }
-
-    fn into_state(mut self) -> Box<UiRebindCompletionState<'session>> {
-        self.state
-            .take()
-            .expect("live completion handle owns its state")
-    }
-}
-
-impl Drop for UiRebindCompletionHandle<'_> {
-    fn drop(&mut self) {
-        let Some(state) = self.state.take() else {
-            return;
-        };
-        let outcome = state.inner.cancel();
-        drop(mapping::map_changed_cancellation(
-            state.plan,
-            state.registration,
-            outcome,
-        ));
-    }
 }
 
 impl UiRebindCancellationReceipt {
@@ -327,6 +226,7 @@ impl UiRebindInternalDefectOutcome {
                 _application: application,
                 _mounted: mounted,
             })),
+            _unpublished_plan: None,
             _registration: registration,
         }
     }
@@ -346,6 +246,26 @@ impl UiRebindInternalDefectOutcome {
                 _prior: prior,
                 _active: active,
             })),
+            _unpublished_plan: None,
+            _registration: registration,
+        }
+    }
+
+    pub(crate) fn content_mismatch(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        registration: UiRebindReservation,
+        generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    ) -> Self {
+        Self {
+            kind: UiRebindInternalDefectKind::PlannedRealizedMismatch,
+            publication: Some(Box::new(UiDefectivePublication::Content {
+                _plan: plan,
+                _generation: generation,
+                _mounted: mounted,
+            })),
+            _unpublished_plan: None,
             _registration: registration,
         }
     }
@@ -366,6 +286,41 @@ impl UiRebindInternalDefectOutcome {
                 _application: application,
                 _mounted: mounted,
             })),
+            _unpublished_plan: None,
+            _registration: registration,
+        }
+    }
+
+    pub(crate) fn unexpected_content_cancellation_publication(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        mut registration: UiRebindReservation,
+        generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    ) -> Self {
+        registration
+            .retain_recovery()
+            .expect("effect admission reserved recovery capacity");
+        Self {
+            kind: UiRebindInternalDefectKind::UnexpectedCancellationPublication,
+            publication: Some(Box::new(UiDefectivePublication::Content {
+                _plan: plan,
+                _generation: generation,
+                _mounted: mounted,
+            })),
+            _unpublished_plan: None,
+            _registration: registration,
+        }
+    }
+
+    pub(crate) fn completion_authority_rejected(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        registration: UiRebindReservation,
+    ) -> Self {
+        Self {
+            kind: UiRebindInternalDefectKind::PlannedRealizedMismatch,
+            publication: None,
+            _unpublished_plan: Some(Box::new(plan)),
             _registration: registration,
         }
     }

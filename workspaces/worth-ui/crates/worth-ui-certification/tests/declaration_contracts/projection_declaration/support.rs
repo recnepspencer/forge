@@ -30,14 +30,18 @@ pub(super) fn compile_rust(
     modules: impl IntoIterator<Item = WorthUiRustAuthoredArtifactInputModule>,
 ) -> WorthUiSealedSemanticPackage {
     let input = WorthUiRustAuthoredArtifactInput::from_modules(modules);
-    WorthUiDslCompiler::compile_rust_authored(&input)
-        .expect("QP10 Rust-authored pair must compile")
+    WorthUiDslCompiler::compile_rust_authored(&input).expect("QP10 Rust-authored pair must compile")
 }
 
 pub(super) fn capture(package: &WorthUiSealedSemanticPackage) -> CompiledRequirements {
     let mut requirements = package
         .projection_requirements()
-        .map(|requirement| (RequirementModel::capture(requirement), requirement.identity()))
+        .map(|requirement| {
+            (
+                RequirementModel::capture(requirement),
+                requirement.identity(),
+            )
+        })
         .collect::<Vec<_>>();
     requirements.sort_by(|left, right| left.0.cmp(&right.0));
     CompiledRequirements {

@@ -16,7 +16,7 @@ pub use headless_transcript::{
     UiHeadlessClipMechanic, UiHeadlessFilledRectMechanic, UiHeadlessLayerMechanic,
     UiHeadlessMountedFrameTranscript, UiHeadlessNodeMechanic, UiHeadlessNodePaintMechanic,
     UiHeadlessPaintBatchMechanic, UiHeadlessRecorderCapacity, UiHeadlessResolvedClip,
-    UiHeadlessResourceContact, UiHeadlessUnperformedEffect,
+    UiHeadlessResourceContact, UiHeadlessSemanticTextMechanic, UiHeadlessUnperformedEffect,
 };
 pub use operational_contract::{WorthUiHostAdapter, WorthUiOperationalHostAdapter};
 pub use session_authority::UiHostAdapterSessionAuthority;

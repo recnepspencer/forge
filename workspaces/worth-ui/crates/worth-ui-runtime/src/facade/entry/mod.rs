@@ -12,6 +12,7 @@ mod measurement_exchange;
 mod mounted_allocation_denial;
 mod mounted_allocation_establishment;
 mod mounted_allocation_inspection;
+mod mounted_content_rebind;
 mod mounted_frame_execution;
 mod mounted_identity;
 mod mounted_inspection;
@@ -48,7 +49,7 @@ pub use active_framework_turn::{
 pub use app::{WorthUi, WorthUiApp};
 pub use app_builder::{
     UiChangeProfileInstalled, UiChangeProfileMissing, WorthUiApplicationBuilder,
-    WorthUiQueryViewRegistrationError,
+    WorthUiProjectionRegistrationError, WorthUiQueryViewRegistrationError,
 };
 pub use application_replacement::{
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
@@ -75,6 +76,10 @@ pub use mounted_allocation_establishment::{
 pub use mounted_allocation_inspection::{
     WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedAllocationProjectionInspectionDenial,
+};
+pub(crate) use mounted_content_rebind::{
+    WorthUiMountedContentRebindInFlight, WorthUiMountedContentRebindIndeterminate,
+    WorthUiMountedContentRebindOutcome, WorthUiPreparedMountedContentRebind,
 };
 pub use mounted_frame_execution::{
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,

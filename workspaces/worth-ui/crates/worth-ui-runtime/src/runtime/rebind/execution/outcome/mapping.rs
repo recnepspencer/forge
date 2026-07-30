@@ -19,7 +19,7 @@ pub(crate) fn map_changed_first_attempt<'session>(
             UiRebindOutcome::RejectedBeforeEffects(UiRebindDenialReceipt::retry(
                 plan,
                 registration,
-                replacement,
+                super::super::preparation::UiPreparedRebindKind::Changed(replacement),
                 UiRebindStoppedPhase::HostPresentation,
                 UiRebindDenialCause::HostRejectedBeforeEffects,
             ))
@@ -174,7 +174,7 @@ fn pre_effect_retry<'session>(
     UiRebindOutcome::RejectedBeforeEffects(UiRebindDenialReceipt::retry(
         plan,
         registration,
-        replacement,
+        super::super::preparation::UiPreparedRebindKind::Changed(replacement),
         stopped_phase,
         cause,
     ))

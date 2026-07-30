@@ -40,6 +40,7 @@ fn complete_static_paint_is_copied_into_the_headless_transcript() {
         .unperformed_effects()
         .contains(&UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
+            semantic_text_count: 0,
             preview_node_count: 0,
         }));
 }
@@ -88,6 +89,7 @@ fn count_only_paint_remains_recordable_but_non_drawable() {
         .unperformed_effects()
         .contains(&UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 0,
+            semantic_text_count: 0,
             preview_node_count: 0,
         }));
 }
@@ -214,6 +216,8 @@ fn complete_projection(mutation: ProjectionMutation) -> UiMountedProjectionView 
         frame: projection_frame,
         surface: projection_surface,
         binding: projection_binding,
+        content_generation: worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+            .unwrap(),
         nodes: vec![complete_node(
             mounted_instance,
             projected_node_receipt,
@@ -223,6 +227,7 @@ fn complete_projection(mutation: ProjectionMutation) -> UiMountedProjectionView 
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::from_runtime_mounting(vec![row]).unwrap(),
+        semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
             .unwrap(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
@@ -257,15 +262,19 @@ fn count_only_projection() -> UiMountedProjectionView {
         accessibility: complete.accessibility(),
         motion: complete.motion(),
         diagnostic: complete.diagnostic(),
+        semantic_text: Vec::new(),
     });
     UiMountedProjectionView::new(UiMountedProjectionViewInput {
         frame,
         surface,
         binding,
+        content_generation: worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+            .unwrap(),
         nodes: vec![node],
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::empty(),
+        semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
             .unwrap(),
         paint_batches: UiMountedPaintBatchTable::new(vec![UiMountedPaintBatchRow::new(
@@ -314,6 +323,7 @@ fn complete_node(
         accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
         motion: UiMountedMotionProjection::Omitted(omitted),
         diagnostic: UiMountedDiagnosticProjection::Omitted(omitted),
+        semantic_text: Vec::new(),
     })
 }
 

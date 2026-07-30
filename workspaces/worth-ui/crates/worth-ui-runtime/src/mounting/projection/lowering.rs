@@ -18,6 +18,11 @@ pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) requested_surfaces: &'input [worth_ui_host_contract::UiSemanticSurfaceIdentity],
     pub(crate) preview: Option<UiMountedPreviewProjectionInput>,
     pub(crate) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    pub(crate) semantic_content: &'input super::super::UiMountedSemanticContentInput,
+    pub(in crate::mounting) semantic_predecessor: Option<&'input UiMountedSemanticProjection>,
+    pub(crate) capability_generation:
+        worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    pub(crate) capability_profile_digest: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -35,6 +40,8 @@ struct UiMountedNodeLoweringContext<'input, 'graph> {
     plan: super::super::UiMountedPlanProjectionSource<'input>,
     allocation_source: &'input crate::runtime::UiMountedAllocationProjectionSource,
     plan_digest: u64,
+    semantic_content: &'input super::super::UiMountedSemanticContentInput,
+    predecessor: Option<&'input UiMountedSemanticProjection>,
 }
 
 struct UiMountedProjectionNodeDraft {
@@ -48,6 +55,7 @@ struct UiMountedProjectionNodeDraft {
     allocation: worth_ui_host_contract::UiMountedAllocationProjection,
     plan_index: Option<u32>,
     static_paint: Option<super::static_paint::UiMountedStaticPaintSeed>,
+    semantic_text: Option<super::semantic_text::UiMountedSemanticTextSeed>,
     hit_test: Option<super::hit_test::UiMountedHitTestSeed>,
 }
 
@@ -74,6 +82,8 @@ pub(crate) fn prepare_projection(
         plan: input.plan,
         allocation_source: input.allocation_source,
         plan_digest: input.plan_digest,
+        semantic_content: input.semantic_content,
+        predecessor: input.semantic_predecessor,
     };
     let projection_changes = state.projection_change_snapshot();
     let delta_predecessor = state
@@ -117,6 +127,8 @@ pub(crate) fn prepare_projection(
             visual_overlay: input.visual_overlay,
             projection_changes,
             counters,
+            capability_generation: input.capability_generation,
+            capability_profile_digest: input.capability_profile_digest,
         },
     ))
 }
@@ -218,6 +230,15 @@ impl UiMountedNodeLoweringContext<'_, '_> {
                 .projection(instance.graph_node_identity()),
         )?;
         let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
+        let predecessor = self
+            .predecessor
+            .and_then(|semantic| semantic.node(instance.identity()))
+            .and_then(|node| node.semantic_text.as_ref());
+        let semantic_text = super::semantic_text::lower_semantic_text_seed(
+            self.semantic_content.get(instance.graph_node_identity()),
+            predecessor,
+            static_paint,
+        )?;
         let hit_test = super::hit_test::lower_hit_test_seed(self.plan, plan_index)?;
         let participation = lower_participation(
             graph_node.participation_posture(),
@@ -235,6 +256,7 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             allocation,
             plan_index,
             static_paint,
+            semantic_text,
             hit_test,
         })
     }
@@ -255,6 +277,7 @@ impl UiMountedProjectionNodeDraft {
             }),
             plan_index: self.plan_index,
             static_paint: self.static_paint,
+            semantic_text: self.semantic_text,
             hit_test: self.hit_test,
         }
     }

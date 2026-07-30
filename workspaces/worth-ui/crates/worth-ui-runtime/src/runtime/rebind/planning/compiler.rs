@@ -37,6 +37,7 @@ impl UiRebindPlanCompiler {
         let effects = compile_effects(&subsystems);
         let conflicts = compile_conflicts(&subsystems, &effects);
         let parallel = compile_parallel_admission(&effects);
+        let content = super::content_plan::compile_content_plan(&scope)?;
         let cost = compile_cost(&identity_decisions, &subsystems, &effects);
         Ok(UiRebindPlan::new(UiRebindPlanInput {
             basis,
@@ -46,8 +47,10 @@ impl UiRebindPlanCompiler {
             effects,
             conflicts,
             parallel,
+            content,
             policy,
             budget,
+            effecting_observation_capacity: context.effecting_observation_capacity(),
             cost,
             semantic_proof,
         }))
@@ -87,8 +90,10 @@ impl UiRebindPlanCompiler {
             effects: UiRebindEffectSet::new(Vec::new()),
             conflicts: UiRebindConflictFootprint::new(Vec::new(), Vec::new(), Vec::new()),
             parallel: UiRebindParallelAdmission::new(Vec::new()),
+            content: crate::mounting::UiMountedSemanticContentInput::empty(),
             policy,
             budget: context.budget(),
+            effecting_observation_capacity: context.effecting_observation_capacity(),
             cost: UiRebindPlanCost::new(0, 0, 0, 0, 0),
             semantic_proof: UiRebindSemanticProof::EvidenceOnly(Box::new(succession)),
         }))

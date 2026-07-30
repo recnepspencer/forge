@@ -21,6 +21,7 @@ pub(super) fn for_projection(
         projection.clips().rows().len(),
         projection.layers().rows().len(),
         projection.filled_rects().rows().len(),
+        projection.semantic_text().rows().len(),
         projection.hit_tests().rows().len(),
         projection.paint_batches().rows().len(),
         projection.spatial_batches().rows().len(),
@@ -31,11 +32,12 @@ pub(super) fn for_projection(
     .into_iter()
     .try_fold(0usize, usize::checked_add)
     .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    let bytes = [
+    let structural_bytes = [
         std::mem::size_of_val(projection.nodes()),
         std::mem::size_of_val(projection.clips().rows()),
         std::mem::size_of_val(projection.layers().rows()),
         std::mem::size_of_val(projection.filled_rects().rows()),
+        std::mem::size_of_val(projection.semantic_text().rows()),
         std::mem::size_of_val(projection.hit_tests().rows()),
         std::mem::size_of_val(projection.paint_batches().rows()),
         std::mem::size_of_val(projection.spatial_batches().rows()),
@@ -50,6 +52,15 @@ pub(super) fn for_projection(
     .into_iter()
     .try_fold(0usize, usize::checked_add)
     .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    let text_bytes = projection
+        .semantic_text()
+        .rows()
+        .iter()
+        .try_fold(0usize, |total, row| total.checked_add(row.text().len()))
+        .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    let bytes = structural_bytes
+        .checked_add(text_bytes)
+        .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
     Ok(UiHostPresentationCostReport::from_adapter(
         UiHostPresentationCostInput {
             presented_surfaces: 1,

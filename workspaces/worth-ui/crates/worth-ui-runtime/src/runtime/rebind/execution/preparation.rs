@@ -7,13 +7,14 @@ pub enum UiPreparedRebindPosture {
 }
 
 pub struct UiPreparedRebind<'session> {
-    plan: crate::runtime::rebind::UiRebindPlan,
-    reservation: UiRebindReservation,
-    kind: UiPreparedRebindKind<'session>,
+    pub(super) plan: crate::runtime::rebind::UiRebindPlan,
+    pub(super) reservation: UiRebindReservation,
+    pub(super) kind: UiPreparedRebindKind<'session>,
 }
 
-enum UiPreparedRebindKind<'session> {
+pub(super) enum UiPreparedRebindKind<'session> {
     Changed(Box<crate::facade::WorthUiPreparedMountedApplicationReplacement<'session>>),
+    Content(Box<crate::facade::entry::WorthUiPreparedMountedContentRebind<'session>>),
     EvidenceOnly(crate::facade::entry::WorthUiPreparedEvidenceOnlyApplicationRebind<'session>),
 }
 
@@ -42,6 +43,18 @@ impl<'session> UiPreparedRebind<'session> {
         })
     }
 
+    pub(crate) fn content(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        reservation: UiRebindReservation,
+        content: Box<crate::facade::entry::WorthUiPreparedMountedContentRebind<'session>>,
+    ) -> Self {
+        Self {
+            plan,
+            reservation,
+            kind: UiPreparedRebindKind::Content(content),
+        }
+    }
+
     pub const fn plan(&self) -> &crate::runtime::rebind::UiRebindPlan {
         &self.plan
     }
@@ -52,7 +65,9 @@ impl<'session> UiPreparedRebind<'session> {
 
     pub const fn posture(&self) -> UiPreparedRebindPosture {
         match &self.kind {
-            UiPreparedRebindKind::Changed(_) => UiPreparedRebindPosture::ChangedPresentation,
+            UiPreparedRebindKind::Changed(_) | UiPreparedRebindKind::Content(_) => {
+                UiPreparedRebindPosture::ChangedPresentation
+            }
             UiPreparedRebindKind::EvidenceOnly(_) => {
                 UiPreparedRebindPosture::EvidenceOnlyPublication
             }
@@ -64,7 +79,9 @@ impl<'session> UiPreparedRebind<'session> {
     ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
     {
         match &self.kind {
-            UiPreparedRebindKind::Changed(_) => self.plan.basis().candidate_generation(),
+            UiPreparedRebindKind::Changed(_) | UiPreparedRebindKind::Content(_) => {
+                self.plan.basis().candidate_generation()
+            }
             UiPreparedRebindKind::EvidenceOnly(prepared) => prepared.generation_identity(),
         }
     }
@@ -72,61 +89,30 @@ impl<'session> UiPreparedRebind<'session> {
     pub fn prepared_frame(&self) -> Option<&crate::mounting::UiPreparedMountedFrame> {
         match &self.kind {
             UiPreparedRebindKind::Changed(replacement) => Some(replacement.frame()),
+            UiPreparedRebindKind::Content(content) => Some(content.frame()),
             UiPreparedRebindKind::EvidenceOnly(_) => None,
         }
     }
 
     pub fn execute(self, now_tick: u64) -> super::UiRebindOutcome<'session> {
-        let Self {
-            plan,
-            mut reservation,
-            kind,
-        } = self;
-        match kind {
-            UiPreparedRebindKind::Changed(replacement) => {
-                if let Err(denial) = reservation.begin_effecting() {
-                    let retry = Self {
-                        plan,
-                        reservation,
-                        kind: UiPreparedRebindKind::Changed(replacement),
-                    };
-                    return super::UiRebindOutcome::RejectedBeforeEffects(
-                        super::UiRebindDenialReceipt::capacity(denial, retry),
-                    );
-                }
-                let deadline = presentation_deadline(&plan);
-                let outcome = replacement.present(deadline, now_tick);
-                super::outcome::map_changed_first_attempt(plan, reservation, outcome)
+        match self.begin_effecting() {
+            Ok(effecting) => {
+                let (outcome, queued) = effecting.complete(now_tick).into_parts();
+                debug_assert!(
+                    queued.is_empty(),
+                    "direct prepared execution cannot enqueue effecting observations"
+                );
+                outcome
             }
-            UiPreparedRebindKind::EvidenceOnly(prepared) => {
-                if let Err(denial) = reservation.begin_effecting() {
-                    let retry = Self {
-                        plan,
-                        reservation,
-                        kind: UiPreparedRebindKind::EvidenceOnly(prepared),
-                    };
-                    return super::UiRebindOutcome::RejectedBeforeEffects(
-                        super::UiRebindDenialReceipt::capacity(denial, retry),
-                    );
-                }
-                let (prior, active) = prepared.commit();
-                match super::UiRebindReceipt::evidence_only(plan, reservation, prior, active) {
-                    Ok(receipt) => super::UiRebindOutcome::Published(receipt),
-                    Err(defect) => super::UiRebindOutcome::InternalDefect(defect),
-                }
-            }
+            Err(denial) => super::UiRebindOutcome::RejectedBeforeEffects(denial),
         }
     }
-}
 
-fn presentation_deadline(
-    plan: &crate::runtime::rebind::UiRebindPlan,
-) -> worth_ui_host_contract::UiPresentationDeadline {
-    let tick = match plan.execution_policy().deadline() {
-        crate::runtime::rebind::UiRebindDeadlinePolicy::NoDeadline => u64::MAX,
-        crate::runtime::rebind::UiRebindDeadlinePolicy::At(deadline) => deadline.tick(),
-    };
-    worth_ui_host_contract::UiPresentationDeadline::at_tick(tick)
+    pub fn begin_effecting(
+        self,
+    ) -> Result<super::UiEffectingRebind<'session>, super::UiRebindDenialReceipt<'session>> {
+        super::UiEffectingRebind::begin(self)
+    }
 }
 
 #[cfg(test)]

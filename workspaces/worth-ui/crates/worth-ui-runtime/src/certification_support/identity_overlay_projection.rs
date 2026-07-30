@@ -119,6 +119,8 @@ fn projection(basis: UiIdentityOverlayProjectionCertificationBasis) -> UiMounted
         frame: basis.frame,
         surface: basis.surface,
         binding: basis.binding,
+        content_generation: worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+            .expect("certification content generation"),
         nodes: vec![UiMountedNodeProjectionView::new(
             UiMountedNodeProjectionViewInput {
                 mounted_instance: basis.instance,
@@ -141,11 +143,13 @@ fn projection(basis: UiIdentityOverlayProjectionCertificationBasis) -> UiMounted
                 accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
                 motion: UiMountedMotionProjection::Omitted(omitted),
                 diagnostic: UiMountedDiagnosticProjection::IdentityOverlay(basis.mechanic),
+                semantic_text: Vec::new(),
             },
         )],
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),

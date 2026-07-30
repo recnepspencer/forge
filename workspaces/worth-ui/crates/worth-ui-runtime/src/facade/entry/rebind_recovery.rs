@@ -15,6 +15,14 @@ impl<'session> WorthUiRebindRecoveryAuthority<'session> {
         }
     }
 
+    pub(crate) fn from_content_indeterminate(
+        indeterminate: Box<super::WorthUiMountedContentRebindIndeterminate<'session>>,
+    ) -> Self {
+        let (session, frame) = indeterminate.into_parts();
+        drop(frame);
+        Self { session }
+    }
+
     pub(crate) fn rebind_host_surface(
         &mut self,
         binding: crate::mounting::UiSurfaceBindingGeneration,

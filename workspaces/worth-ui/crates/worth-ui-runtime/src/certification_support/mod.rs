@@ -15,6 +15,7 @@ mod mounted_frame_execution;
 mod planning;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
+mod semantic_text_projection;
 mod touch_origin;
 mod touch_origin_source;
 
@@ -59,6 +60,9 @@ pub use rebind_identity_lifecycle::{
     WorthUiNodeLifecycleTransition,
 };
 pub use runtime_launch::launch_empty_runtime_for_certification;
+pub use semantic_text_projection::{
+    semantic_text_projection_for_certification, UiSemanticTextProjectionCertificationMutation,
+};
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,
     WorthUiTouchOriginFixtureVariant,

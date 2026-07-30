@@ -11,6 +11,7 @@ mod mounted_resource_cache;
 mod native_paint;
 mod native_regions;
 mod presentation_cost;
+mod semantic_text;
 mod visual_snapshot;
 
 pub use egui_host::WorthUiHostEgui;

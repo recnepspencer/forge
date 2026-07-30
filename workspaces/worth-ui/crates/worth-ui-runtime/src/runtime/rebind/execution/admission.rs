@@ -16,7 +16,7 @@ pub(crate) struct UiRebindFinalAdmissionBasis<'basis> {
         WorthUiPreparedApplicationGenerationIdentity,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum UiRebindPreparationDenial {
     ForeignSession,
     StaleSourceBasis,
@@ -30,7 +30,9 @@ pub enum UiRebindPreparationDenial {
     CandidateLowering,
     CandidateStaging,
     FrameBoundaryUnavailable,
-    MountedPreparation,
+    ContentMountedPreparation(Box<crate::mounting::UiMountedFramePreparationDenial>),
+    CandidateMountedPreparation(Box<crate::mounting::UiMountedFramePreparationDenial>),
+    CandidateCutoverPreparation,
     PlannedChangeBecameSemanticNoOp,
     UnsupportedNonSourcePlan,
     InvalidSemanticProof,

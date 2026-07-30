@@ -14,5 +14,5 @@ pub use outcome::{
 pub use set::UiAdmittedObservationSet;
 
 pub(in crate::runtime::observation) use admitted::{
-    UiAdmittedObservationPayload, UiAdmittedObservationSeal,
+    UiAdmittedObservationPayload, UiAdmittedObservationSeal, UiAdmittedQueryObservation,
 };

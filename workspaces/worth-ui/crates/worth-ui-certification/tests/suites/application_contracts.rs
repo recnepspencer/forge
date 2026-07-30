@@ -110,12 +110,14 @@ mod phase7_public_mounted_allocation;
 mod platform_pulse;
 #[path = "../application_contracts/platform_pulse_lifecycle.rs"]
 mod platform_pulse_lifecycle;
-#[path = "../application_contracts/projection_compatibility/mod.rs"]
-mod projection_compatibility;
 #[path = "../application_contracts/projection_authority/mod.rs"]
 mod projection_authority;
+#[path = "../application_contracts/projection_compatibility/mod.rs"]
+mod projection_compatibility;
 #[path = "../application_contracts/projection_lifecycle/mod.rs"]
 mod projection_lifecycle;
+#[path = "../application_contracts/projection_presentation/mod.rs"]
+mod projection_presentation;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
 #[path = "../application_contracts/query_consumer_kit_application.rs"]
@@ -138,6 +140,8 @@ mod query_consumer_kit_wrong_binding;
 mod query_domain_certification_scenarios;
 #[path = "../application_contracts/query_free_headless_app_journey.rs"]
 mod query_free_headless_app_journey;
+#[path = "../application_contracts/query_observation/mod.rs"]
+mod query_observation;
 #[path = "../application_contracts/query_replacement_lifecycle.rs"]
 mod query_replacement_lifecycle;
 #[path = "../application_contracts/query_settlement_allocation_cost.rs"]

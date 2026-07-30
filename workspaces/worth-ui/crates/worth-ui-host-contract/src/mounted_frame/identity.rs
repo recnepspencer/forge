@@ -29,6 +29,7 @@ opaque_identity!(UiSurfaceBindingGeneration);
 opaque_identity!(UiMountIncarnation);
 opaque_identity!(UiMountedInstanceIdentity);
 opaque_identity!(UiMountedFrameIdentity);
+opaque_identity!(UiMountedContentGeneration);
 opaque_identity!(UiMountedPresentationAttemptIdentity);
 
 #[doc(hidden)]

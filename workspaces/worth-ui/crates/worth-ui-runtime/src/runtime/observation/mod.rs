@@ -7,6 +7,7 @@ pub use admission::{
 };
 mod classification;
 mod configuration;
+mod effecting_queue;
 mod family;
 mod progress;
 mod state;
@@ -25,6 +26,10 @@ pub use classification::{
 };
 pub use configuration::{
     UiObservationProfile, UiObservationProfileConstructionDenial, UiObservationProfileInput,
+};
+pub(crate) use effecting_queue::UiEffectingObservationQueue;
+pub use effecting_queue::{
+    UiEffectingObservationQueueAdmissionReceipt, UiEffectingObservationQueueCapacityStop,
 };
 pub use family::{
     UiObservationCoalescingPolicy, UiObservationDuplicatePolicy, UiObservationFamily,

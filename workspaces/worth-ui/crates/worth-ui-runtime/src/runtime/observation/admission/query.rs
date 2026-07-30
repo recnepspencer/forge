@@ -1,7 +1,8 @@
 use super::super::progress::UiObservationProgress;
 use super::super::turn::{
     UiAdmittedObservation, UiAdmittedObservationPayload, UiAdmittedObservationSeal,
-    UiObservationAdmissionReceipt, UiObservationTurn, UiQueryObservationAdmissionStop,
+    UiAdmittedQueryObservation, UiObservationAdmissionDenial, UiObservationAdmissionReceipt,
+    UiObservationTurn, UiQueryObservationAdmissionStop,
 };
 use super::super::UiObservationFamily;
 
@@ -34,8 +35,31 @@ impl UiObservationTurn<'_> {
             session: self.session,
             source_basis: self.source_basis,
             progress: Some(progress),
-            payload: UiAdmittedObservationPayload::Query(observation),
+            payload: UiAdmittedObservationPayload::Query(
+                UiAdmittedQueryObservation::OperationLive(observation),
+            ),
         }))
         .map_err(UiQueryObservationAdmissionStop::Observation)
+    }
+
+    pub fn admit_projection_query(
+        &mut self,
+        observation: worth_ui_query_binding::UiProjectionObservation,
+    ) -> Result<UiObservationAdmissionReceipt, UiObservationAdmissionDenial> {
+        let retained_bytes = observation.retained_bytes();
+        let owner_order = observation.owner_order();
+        let progress =
+            UiObservationProgress::query_projection(observation.projection_identity(), owner_order);
+        self.admit(UiAdmittedObservation::seal(UiAdmittedObservationSeal {
+            family: UiObservationFamily::Query,
+            owner_order,
+            retained_bytes,
+            session: self.session,
+            source_basis: self.source_basis,
+            progress: Some(progress),
+            payload: UiAdmittedObservationPayload::Query(UiAdmittedQueryObservation::Projection(
+                observation,
+            )),
+        }))
     }
 }

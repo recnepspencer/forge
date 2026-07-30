@@ -53,10 +53,7 @@ impl ScalarLifecycleWorld {
         Self::with_workspace(scalar_projection_workspace(true), bridge, request, status)
     }
 
-    pub(crate) fn remasked(
-        node: NodeId,
-        status: &str,
-    ) -> (Self, AdmittedBridgeAsyncCompletion) {
+    pub(crate) fn remasked(node: NodeId, status: &str) -> (Self, AdmittedBridgeAsyncCompletion) {
         let bridge = projection_bridge();
         let (request, completion) = admitted_async_request_and_completion(
             &bridge,

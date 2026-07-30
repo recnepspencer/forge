@@ -118,6 +118,7 @@ impl WorthUiPreparedApplicationAuthority {
             &graph_snapshot,
             capability_snapshot.as_ref(),
             &authored_declarations,
+            semantic_handoff.projection_contents(),
         );
         Self {
             generation_identity: authorities.generation_identity,
@@ -316,6 +317,7 @@ impl WorthUiPreparedApplicationAuthority {
             &self.graph_snapshot,
             self.capability_snapshot.as_ref(),
             &authored_declarations,
+            self.semantic_handoff.projection_contents(),
         );
         self.visual_trace_source = WorthUiPreparedVisualTraceSource::new(
             self.generation_identity.clone(),

@@ -2,6 +2,7 @@
 pub enum UiConsumedFactSelector {
     AuthoredDeclarationIdentity(Box<str>),
     Aspect(crate::declaration::UiAspectName),
+    QueryProjection(worth_ui_query_binding::WorthUiQueryViewIdentity),
 }
 
 impl UiConsumedFactSelector {
@@ -11,5 +12,11 @@ impl UiConsumedFactSelector {
 
     pub(crate) fn aspect(aspect: crate::declaration::UiAspectName) -> Self {
         Self::Aspect(aspect)
+    }
+
+    pub(crate) fn query_projection(
+        identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Self {
+        Self::QueryProjection(identity)
     }
 }

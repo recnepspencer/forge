@@ -25,6 +25,7 @@ mod operation_live;
 mod projection_binding;
 mod projection_consumption;
 mod projection_invalidation;
+mod projection_observation;
 #[cfg(test)]
 mod scalar_projection_async_fixture;
 #[cfg(test)]
@@ -153,10 +154,10 @@ pub use projection_binding::{
 pub use projection_consumption::{
     UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionBudget,
     UiCollectionProjectionBudgetError, UiCollectionProjectionChange,
-    UiCollectionProjectionFactReceipt, UiCollectionProjectionRowReference,
-    UiCollectionProjectionTextRow, UiCollectionProjectionValue, UiCollectionProjectionWorkCounters,
-    UiNativeTextValue, UiPresentProjection, UiProjectionAvailability,
-    UiProjectionConsumptionBudget, UiProjectionConsumptionBudgetError,
+    UiCollectionProjectionDelivery, UiCollectionProjectionFactReceipt,
+    UiCollectionProjectionRowReference, UiCollectionProjectionTextRow, UiCollectionProjectionValue,
+    UiCollectionProjectionWorkCounters, UiNativeTextValue, UiPresentProjection,
+    UiProjectionAvailability, UiProjectionConsumptionBudget, UiProjectionConsumptionBudgetError,
     UiProjectionConsumptionLimits, UiProjectionFactReceipt, UiProjectionFactStopKind,
     UiProjectionFactStopReceipt, UiProjectionPostureTrace, UiProjectionRetainedActivityKind,
     UiProjectionRetainedActivityReceipt, UiProjectionTransitionPosture,
@@ -166,6 +167,9 @@ pub use projection_consumption::{
 pub use projection_invalidation::{
     UiScalarProjectionBatchOutcome, UiScalarProjectionInitialError,
     UiScalarProjectionTransitionReceipt, UiScalarProjectionUnchangedReceipt,
+};
+pub use projection_observation::{
+    UiCollectionProjectionObservation, UiProjectionObservation, UiScalarProjectionObservation,
 };
 
 #[cfg(test)]

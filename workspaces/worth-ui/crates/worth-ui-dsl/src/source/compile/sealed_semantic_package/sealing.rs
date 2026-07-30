@@ -81,6 +81,20 @@ pub(super) fn duplicate_projection_diagnostic(
     )
 }
 
+pub(super) fn unknown_projection_content_diagnostic(
+    identity: &str,
+    provenance: &WorthUiArtifactInputProvenance,
+) -> WorthUiDslCompileDiagnostic {
+    let (module_id, span) = diagnostic_location(provenance);
+    WorthUiDslCompileDiagnostic::new(
+        WorthUiDslCompileDiagnosticCode::UnknownProjectionContent,
+        WorthUiDslCompileStopClass::LanguageLegality,
+        format!("content references unknown projection declaration `{identity}`"),
+        Some(module_id),
+        span,
+    )
+}
+
 fn seal_projection(
     block: &crate::source::WorthUiArtifactInputBlockNode,
     shape: WorthUiProjectionShape,

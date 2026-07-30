@@ -7,7 +7,8 @@ use worth_query::facade::installed::collection::{
 
 use super::{
     derive_collection_projection, UiCollectionDerivationContext, UiCollectionProjectionChange,
-    UiCollectionProjectionFactReceipt, UiCollectionProjectionRowReference,
+    UiCollectionProjectionDelivery, UiCollectionProjectionFactReceipt,
+    UiCollectionProjectionRowReference,
 };
 
 pub(crate) fn derive_applied_collection_projection(
@@ -20,7 +21,12 @@ pub(crate) fn derive_applied_collection_projection(
         translate_operation(operation, &mut changed_rows, &mut changes);
     }
     let rows = changed_rows.values().copied().collect::<Vec<_>>();
-    derive_collection_projection(context, &rows, changes.into_boxed_slice())
+    derive_collection_projection(
+        context,
+        &rows,
+        UiCollectionProjectionDelivery::Patch,
+        changes.into_boxed_slice(),
+    )
 }
 
 fn translate_operation<'a>(

@@ -31,6 +31,15 @@ impl UiConsumedFactContract {
             })
     }
 
+    pub(crate) fn query_projection(
+        identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Self {
+        Self {
+            fact_family: UiProducedFactFamily::Query,
+            selector: UiConsumedFactSelector::query_projection(identity),
+        }
+    }
+
     pub(crate) fn matches(&self, fact: &UiProducedFact) -> bool {
         if self.fact_family != fact.family() {
             return false;
@@ -46,6 +55,12 @@ impl UiConsumedFactContract {
                 crate::fact_contract::UiAuthoredFactSelector::Module(_) => false,
             },
             (UiConsumedFactSelector::Aspect(_), _) => true,
+            (
+                UiConsumedFactSelector::QueryProjection(expected),
+                UiProducedFact::Query(observed),
+            ) => observed
+                .projection_identity()
+                .is_some_and(|identity| identity == expected),
             _ => false,
         }
     }

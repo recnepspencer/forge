@@ -1,9 +1,16 @@
 use crate::fact_contract::{UiProducedFact, UiQueryChangedFact};
+use crate::runtime::observation::turn::UiAdmittedQueryObservation;
 
 pub(in crate::runtime::observation::classification) fn classify(
-    observation: worth_ui_query_binding::WorthUiValidatedCollectionChangeObservation,
+    observation: UiAdmittedQueryObservation,
 ) -> UiProducedFact {
-    UiProducedFact::Query(UiQueryChangedFact::from_owner_consequence(
-        observation.into_consequence(),
-    ))
+    let fact = match observation {
+        UiAdmittedQueryObservation::OperationLive(observation) => {
+            UiQueryChangedFact::from_owner_consequence(observation.into_consequence())
+        }
+        UiAdmittedQueryObservation::Projection(observation) => {
+            UiQueryChangedFact::from_projection_observation(observation)
+        }
+    };
+    UiProducedFact::Query(fact)
 }

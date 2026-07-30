@@ -32,6 +32,26 @@ impl WorthUiActiveApplicationSession {
         request: crate::mounting::UiMountedFrameRequest,
     ) -> Result<WorthUiMountedReplacementPreparationOutcome<'_>, WorthUiApplicationCutoverDenial>
     {
+        self.prepare_mounted_replacement_with_content(
+            pending,
+            admitted_delta,
+            boundary,
+            lane_parity_report,
+            crate::mounting::UiMountedSemanticContentInput::empty(),
+            request,
+        )
+    }
+
+    pub(crate) fn prepare_mounted_replacement_with_content(
+        &mut self,
+        pending: WorthUiPendingApplicationCutover,
+        admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
+        boundary: crate::runtime::WorthUiFrameBoundary,
+        lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        request: crate::mounting::UiMountedFrameRequest,
+    ) -> Result<WorthUiMountedReplacementPreparationOutcome<'_>, WorthUiApplicationCutoverDenial>
+    {
         let candidate_graph = pending.next_app.graph_snapshot().clone();
         let candidate_generation = pending.next_app.generation_identity().clone();
         let prepared = self.prepare_application_cutover(
@@ -66,6 +86,7 @@ impl WorthUiActiveApplicationSession {
                 capability_generation: capability_report.observation_generation(),
                 capability_profile_digest: capability_report.profile_identity_digest(),
             },
+            semantic_content,
             request,
         )
         .map_err(WorthUiApplicationCutoverDenial::MountedFrame)?;

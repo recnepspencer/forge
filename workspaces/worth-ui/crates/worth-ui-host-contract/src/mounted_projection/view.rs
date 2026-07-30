@@ -16,6 +16,7 @@ pub struct UiMountedNodeProjectionView {
     accessibility: super::UiMountedAccessibilityProjection,
     motion: super::UiMountedMotionProjection,
     diagnostic: super::UiMountedDiagnosticProjection,
+    semantic_text: Box<[super::UiMountedSemanticTextReference]>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -23,10 +24,12 @@ pub struct UiMountedProjectionView {
     frame: UiMountedFrameIdentity,
     surface: UiSemanticSurfaceIdentity,
     binding: UiSurfaceBindingGeneration,
+    content_generation: crate::UiMountedContentGeneration,
     nodes: Box<[UiMountedNodeProjectionView]>,
     clips: super::UiMountedClipTable,
     layers: super::UiMountedLayerTable,
     filled_rects: super::UiMountedFilledRectTable,
+    semantic_text: super::UiMountedSemanticTextTable,
     hit_tests: super::UiMountedHitTestTable,
     paint_batches: super::UiMountedPaintBatchTable,
     spatial_batches: super::UiMountedSpatialBatchTable,
@@ -46,16 +49,19 @@ pub struct UiMountedNodeProjectionViewInput {
     pub accessibility: super::UiMountedAccessibilityProjection,
     pub motion: super::UiMountedMotionProjection,
     pub diagnostic: super::UiMountedDiagnosticProjection,
+    pub semantic_text: Vec<super::UiMountedSemanticTextReference>,
 }
 
 pub struct UiMountedProjectionViewInput {
     pub frame: UiMountedFrameIdentity,
     pub surface: UiSemanticSurfaceIdentity,
     pub binding: UiSurfaceBindingGeneration,
+    pub content_generation: crate::UiMountedContentGeneration,
     pub nodes: Vec<UiMountedNodeProjectionView>,
     pub clips: super::UiMountedClipTable,
     pub layers: super::UiMountedLayerTable,
     pub filled_rects: super::UiMountedFilledRectTable,
+    pub semantic_text: super::UiMountedSemanticTextTable,
     pub hit_tests: super::UiMountedHitTestTable,
     pub paint_batches: super::UiMountedPaintBatchTable,
     pub spatial_batches: super::UiMountedSpatialBatchTable,
@@ -77,6 +83,7 @@ impl UiMountedNodeProjectionView {
             accessibility: input.accessibility,
             motion: input.motion,
             diagnostic: input.diagnostic,
+            semantic_text: input.semantic_text.into_boxed_slice(),
         }
     }
     pub fn mounted_instance(&self) -> UiMountedInstanceIdentity {
@@ -112,6 +119,9 @@ impl UiMountedNodeProjectionView {
     pub fn diagnostic(&self) -> super::UiMountedDiagnosticProjection {
         self.diagnostic
     }
+    pub fn semantic_text(&self) -> &[super::UiMountedSemanticTextReference] {
+        &self.semantic_text
+    }
 }
 
 impl UiMountedProjectionView {
@@ -120,10 +130,12 @@ impl UiMountedProjectionView {
             frame: input.frame,
             surface: input.surface,
             binding: input.binding,
+            content_generation: input.content_generation,
             nodes: input.nodes.into_boxed_slice(),
             clips: input.clips,
             layers: input.layers,
             filled_rects: input.filled_rects,
+            semantic_text: input.semantic_text,
             hit_tests: input.hit_tests,
             paint_batches: input.paint_batches,
             spatial_batches: input.spatial_batches,
@@ -140,6 +152,9 @@ impl UiMountedProjectionView {
     pub fn binding(&self) -> UiSurfaceBindingGeneration {
         self.binding
     }
+    pub fn content_generation(&self) -> crate::UiMountedContentGeneration {
+        self.content_generation
+    }
     pub fn nodes(&self) -> &[UiMountedNodeProjectionView] {
         &self.nodes
     }
@@ -151,6 +166,9 @@ impl UiMountedProjectionView {
     }
     pub fn filled_rects(&self) -> &super::UiMountedFilledRectTable {
         &self.filled_rects
+    }
+    pub fn semantic_text(&self) -> &super::UiMountedSemanticTextTable {
+        &self.semantic_text
     }
     pub fn hit_tests(&self) -> &super::UiMountedHitTestTable {
         &self.hit_tests

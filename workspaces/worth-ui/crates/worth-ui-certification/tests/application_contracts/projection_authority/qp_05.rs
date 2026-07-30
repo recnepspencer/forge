@@ -100,10 +100,7 @@ fn stale_installation_generation_stops_before_native_access() {
         UiProjectionConsumptionBudget::platform_pulse(),
     );
 
-    assert_stop(
-        &stopped,
-        UiProjectionFactStopKind::StaleBindingGeneration,
-    );
+    assert_stop(&stopped, UiProjectionFactStopKind::StaleBindingGeneration);
     assert_zero_native_work(stopped.work());
     assert!(stopped.retained_predecessor().is_some());
 }
@@ -121,10 +118,9 @@ fn bounded_access_can_stop_after_one_exact_value_without_retaining_it() {
         ScalarLifecycleWorld::standard(NodeId::new(31355, 0), SHARED_VALUE);
     let pending = initial_fact(&mut world);
     let batch = completion_batch(&mut world, completion);
-    let budget = UiProjectionConsumptionBudget::bounded(UiProjectionConsumptionLimits::new(
-        1, 1, 1,
-    ))
-    .expect("one-byte QP05 budget is valid");
+    let budget =
+        UiProjectionConsumptionBudget::bounded(UiProjectionConsumptionLimits::new(1, 1, 1))
+            .expect("one-byte QP05 budget is valid");
     let stopped = consume_batch(&mut world, batch, pending, budget);
 
     assert_stop(&stopped, UiProjectionFactStopKind::BudgetExceeded);
@@ -151,11 +147,11 @@ fn reporting_projections_remain_observations_not_operational_inputs() {
     assert_eq!(current.work().native_indexed_accesses(), 1);
 }
 
-fn assert_equal_printable_controls(
-    local: &ScalarLifecycleWorld,
-    foreign: &ScalarLifecycleWorld,
-) {
-    assert_eq!(local.binding.view_identity(), foreign.binding.view_identity());
+fn assert_equal_printable_controls(local: &ScalarLifecycleWorld, foreign: &ScalarLifecycleWorld) {
+    assert_eq!(
+        local.binding.view_identity(),
+        foreign.binding.view_identity()
+    );
     assert_eq!(
         local.binding.requirement().selected_field(),
         foreign.binding.requirement().selected_field()

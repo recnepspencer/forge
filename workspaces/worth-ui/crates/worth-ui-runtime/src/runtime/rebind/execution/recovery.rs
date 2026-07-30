@@ -17,6 +17,7 @@ pub struct UiRebindRecoveryHandle<'session> {
 
 enum UiRebindRecoveryBasis<'session> {
     Initial(Box<crate::facade::WorthUiMountedApplicationReplacementIndeterminate<'session>>),
+    Content(Box<crate::facade::entry::WorthUiMountedContentRebindIndeterminate<'session>>),
     Reconciliation {
         authority: crate::facade::entry::WorthUiRebindRecoveryAuthority<'session>,
         frame: crate::mounting::UiMountedIndeterminateFrame,
@@ -46,6 +47,18 @@ impl<'session> UiRebindRecoveryHandle<'session> {
             plan,
             registration,
             basis: UiRebindRecoveryBasis::Reconciliation { authority, frame },
+        }
+    }
+
+    pub(super) fn content(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        registration: UiRebindReservation,
+        inner: Box<crate::facade::entry::WorthUiMountedContentRebindIndeterminate<'session>>,
+    ) -> Self {
+        Self {
+            plan,
+            registration,
+            basis: UiRebindRecoveryBasis::Content(inner),
         }
     }
 
@@ -94,6 +107,7 @@ impl<'session> UiRebindRecoveryBasis<'session> {
     fn frame(&self) -> &crate::mounting::UiMountedIndeterminateFrame {
         match self {
             Self::Initial(inner) => inner.frame(),
+            Self::Content(inner) => inner.frame(),
             Self::Reconciliation { frame, .. } => frame,
         }
     }
@@ -102,6 +116,11 @@ impl<'session> UiRebindRecoveryBasis<'session> {
         match self {
             Self::Initial(inner) => {
                 crate::facade::entry::WorthUiRebindRecoveryAuthority::from_indeterminate(inner)
+            }
+            Self::Content(inner) => {
+                crate::facade::entry::WorthUiRebindRecoveryAuthority::from_content_indeterminate(
+                    inner,
+                )
             }
             Self::Reconciliation { authority, frame } => {
                 drop(frame);

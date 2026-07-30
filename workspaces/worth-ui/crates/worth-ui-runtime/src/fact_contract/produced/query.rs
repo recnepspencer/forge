@@ -16,11 +16,18 @@ pub struct UiQueryResetChangedFact {
 pub enum UiQueryChangedFactKind {
     Incremental(UiQueryIncrementalChangedFact),
     Reset(UiQueryResetChangedFact),
+    ScalarProjection,
+    CollectionProjection { changed_rows: usize },
 }
 
 pub struct UiQueryChangedFact {
     kind: UiQueryChangedFactKind,
-    consequence: worth_ui_query_binding::WorthUiCollectionChangeConsequence,
+    payload: UiQueryChangedFactPayload,
+}
+
+enum UiQueryChangedFactPayload {
+    OperationLive(worth_ui_query_binding::WorthUiCollectionChangeConsequence),
+    Projection(worth_ui_query_binding::UiProjectionObservation),
 }
 
 impl UiQueryChangedFact {
@@ -43,7 +50,29 @@ impl UiQueryChangedFact {
                 })
             }
         };
-        Self { kind, consequence }
+        Self {
+            kind,
+            payload: UiQueryChangedFactPayload::OperationLive(consequence),
+        }
+    }
+
+    pub(crate) fn from_projection_observation(
+        observation: worth_ui_query_binding::UiProjectionObservation,
+    ) -> Self {
+        let kind = match &observation {
+            worth_ui_query_binding::UiProjectionObservation::Scalar(_) => {
+                UiQueryChangedFactKind::ScalarProjection
+            }
+            worth_ui_query_binding::UiProjectionObservation::Collection(observation) => {
+                UiQueryChangedFactKind::CollectionProjection {
+                    changed_rows: observation.fact().changes().len(),
+                }
+            }
+        };
+        Self {
+            kind,
+            payload: UiQueryChangedFactPayload::Projection(observation),
+        }
     }
 
     pub const fn kind(&self) -> UiQueryChangedFactKind {
@@ -51,7 +80,47 @@ impl UiQueryChangedFact {
     }
 
     pub fn change_order(&self) -> u64 {
-        self.consequence.change_order()
+        match &self.payload {
+            UiQueryChangedFactPayload::OperationLive(consequence) => consequence.change_order(),
+            UiQueryChangedFactPayload::Projection(observation) => observation.owner_order(),
+        }
+    }
+
+    pub fn projection_identity(&self) -> Option<&worth_ui_query_binding::WorthUiQueryViewIdentity> {
+        match &self.payload {
+            UiQueryChangedFactPayload::OperationLive(_) => None,
+            UiQueryChangedFactPayload::Projection(observation) => {
+                Some(observation.projection_identity())
+            }
+        }
+    }
+
+    pub fn scalar_projection(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiScalarProjectionFactReceipt> {
+        match &self.payload {
+            UiQueryChangedFactPayload::Projection(
+                worth_ui_query_binding::UiProjectionObservation::Scalar(observation),
+            ) => Some(observation.fact()),
+            UiQueryChangedFactPayload::OperationLive(_)
+            | UiQueryChangedFactPayload::Projection(
+                worth_ui_query_binding::UiProjectionObservation::Collection(_),
+            ) => None,
+        }
+    }
+
+    pub fn collection_projection(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiCollectionProjectionFactReceipt> {
+        match &self.payload {
+            UiQueryChangedFactPayload::Projection(
+                worth_ui_query_binding::UiProjectionObservation::Collection(observation),
+            ) => Some(observation.fact()),
+            UiQueryChangedFactPayload::OperationLive(_)
+            | UiQueryChangedFactPayload::Projection(
+                worth_ui_query_binding::UiProjectionObservation::Scalar(_),
+            ) => None,
+        }
     }
 }
 

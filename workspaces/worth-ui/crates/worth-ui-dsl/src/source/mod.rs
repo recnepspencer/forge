@@ -36,7 +36,10 @@ pub use compile::{
     WorthUiSemanticProjectionDeclaration, WorthUiSemanticProvenanceRef, WorthUiSemanticToken,
 };
 pub(crate) use import_graph::{WorthUiSourceImport, WorthUiSourceImportGraph};
-pub use legality::{WorthUiAuthoredMount, WorthUiAuthoredRegion, WorthUiAuthoredStructuralBody};
+pub use legality::{
+    WorthUiAuthoredMount, WorthUiAuthoredProjectionContent, WorthUiAuthoredRegion,
+    WorthUiAuthoredStructuralBody,
+};
 pub(crate) use legality::{
     WorthUiStructuralBodyParser, WorthUiStructuralLanguageDiagnosticCode,
     WorthUiStructuralParseFailure,

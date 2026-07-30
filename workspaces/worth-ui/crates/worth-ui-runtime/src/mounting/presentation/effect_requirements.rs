@@ -20,6 +20,7 @@ pub(super) fn required_effects(
     }
     if projection.nodes().iter().any(|node| {
         matches!(node.paint(), UiMountedPaintProjection::FilledRect(_))
+            || !node.semantic_text().is_empty()
             || matches!(
                 node.preview(),
                 worth_ui_host_contract::UiMountedPreviewProjection::Resize { .. }
@@ -129,6 +130,8 @@ mod tests {
             frame,
             surface: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
             binding: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+            content_generation: worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+                .unwrap(),
             nodes: vec![UiMountedNodeProjectionView::new(
                 UiMountedNodeProjectionViewInput {
                     mounted_instance: instance,
@@ -153,11 +156,13 @@ mod tests {
                     diagnostic: UiMountedDiagnosticProjection::Reference(
                         UiMountedDiagnosticReference::new(8),
                     ),
+                    semantic_text: Vec::new(),
                 },
             )],
             clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
             layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
             filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+            semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
             hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(
                 Vec::new(),
             )

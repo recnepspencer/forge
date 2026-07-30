@@ -29,6 +29,7 @@ pub enum WorthUiDslCompileDiagnosticCode {
     DuplicateMountStateDeclaration,
     IllegalRootStructuralStatement,
     InvalidProjectionDeclaration,
+    UnknownProjectionContent,
     InvalidRustAuthoredModulePath,
     DuplicateRustAuthoredModuleIdentity,
 }

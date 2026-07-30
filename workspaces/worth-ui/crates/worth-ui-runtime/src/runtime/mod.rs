@@ -43,6 +43,7 @@ pub(crate) mod scroll_owned_allocation;
 pub(crate) mod session;
 mod source_ingress;
 pub(crate) use source_ingress::WorthUiAuthoredSourceBasis;
+pub(crate) use source_ingress::WorthUiProjectionContentEdge;
 pub use source_ingress::{
     UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
     UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,

@@ -124,7 +124,9 @@ fn query_owner_preserves_an_explicit_reset_consequence() {
     let observation = binding
         .validate_operation_live_change_observation(consequence)
         .expect("the owner validates its exact consequence");
-    let UiProducedFact::Query(fact) = super::owner::query::classify(observation) else {
+    let UiProducedFact::Query(fact) = super::owner::query::classify(
+        crate::runtime::observation::turn::UiAdmittedQueryObservation::OperationLive(observation),
+    ) else {
         panic!("the Query owner can produce only a Query fact")
     };
     assert!(matches!(

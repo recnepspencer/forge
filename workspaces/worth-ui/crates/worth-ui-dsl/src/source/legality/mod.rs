@@ -1,7 +1,8 @@
 mod structural_body;
 
 pub use structural_body::{
-    WorthUiAuthoredMount, WorthUiAuthoredRegion, WorthUiAuthoredStructuralBody,
+    WorthUiAuthoredMount, WorthUiAuthoredProjectionContent, WorthUiAuthoredRegion,
+    WorthUiAuthoredStructuralBody,
 };
 pub(crate) use structural_body::{
     WorthUiStructuralBodyParser, WorthUiStructuralLanguageDiagnosticCode,

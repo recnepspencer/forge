@@ -2,10 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::capability::{CapabilitySnapshot, ComponentId};
 use crate::declaration::{UiAspectName, UiAspectSemanticSlice};
-use crate::fact_contract::{
-    UiAuthoredFactSelector, UiConsumedFactContract, UiProducedFact, UiProducedFactFamily,
-    UiSubsystemConsumedFactRule,
-};
+use crate::fact_contract::{UiAuthoredFactSelector, UiConsumedFactContract, UiProducedFact};
 use crate::graph::{UiGraphAspectConsumerKind, UiGraphAspectPublisherKind, UiGraphSnapshot};
 
 use super::{
@@ -14,34 +11,16 @@ use super::{
     UiGraphFactLookupReceipt,
 };
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-struct UiGraphSubsystemFactIndex {
-    host_viewport: Box<[UiGraphFactIndexEntry]>,
-    host_device_scale: Box<[UiGraphFactIndexEntry]>,
-    measurement: Box<[UiGraphFactIndexEntry]>,
-    query: Box<[UiGraphFactIndexEntry]>,
-    committed_scroll_extent: Box<[UiGraphFactIndexEntry]>,
-    committed_portal_anchor: Box<[UiGraphFactIndexEntry]>,
-}
+mod subsystem;
 
-impl UiGraphSubsystemFactIndex {
-    fn entries_for(&self, family: UiProducedFactFamily) -> &[UiGraphFactIndexEntry] {
-        match family {
-            UiProducedFactFamily::AuthoredSource => &[],
-            UiProducedFactFamily::HostViewport => &self.host_viewport,
-            UiProducedFactFamily::HostDeviceScale => &self.host_device_scale,
-            UiProducedFactFamily::Measurement => &self.measurement,
-            UiProducedFactFamily::Query => &self.query,
-            UiProducedFactFamily::CommittedScrollExtent => &self.committed_scroll_extent,
-            UiProducedFactFamily::CommittedPortalAnchor => &self.committed_portal_anchor,
-        }
-    }
-}
+use subsystem::{build_subsystem_index, UiGraphSubsystemFactIndex};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiGraphConsumedFactIndex {
     basis: UiGraphFactIndexBasis,
     authored_by_declaration: BTreeMap<Box<str>, Box<[UiGraphFactIndexEntry]>>,
+    query_by_projection:
+        BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>>,
     subsystem: UiGraphSubsystemFactIndex,
 }
 
@@ -50,6 +29,7 @@ impl UiGraphConsumedFactIndex {
         snapshot: &UiGraphSnapshot,
         capabilities: &CapabilitySnapshot,
         authored_declarations: &UiAuthoredDeclarationLookup,
+        projection_contents: &[crate::runtime::WorthUiProjectionContentEdge],
     ) -> Self {
         let mut authored_by_declaration =
             direct_authored_consumers(snapshot, authored_declarations);
@@ -72,6 +52,7 @@ impl UiGraphConsumedFactIndex {
         Self {
             basis: UiGraphFactIndexBasis::from_generation(snapshot, capabilities),
             authored_by_declaration,
+            query_by_projection: query_projection_consumers(snapshot, projection_contents),
             subsystem: build_subsystem_index(snapshot),
         }
     }
@@ -104,6 +85,14 @@ impl UiGraphConsumedFactIndex {
                         authored_identity: identity.clone(),
                     })?,
             },
+            UiProducedFact::Query(query) => match query.projection_identity() {
+                Some(identity) => self
+                    .query_by_projection
+                    .get(identity)
+                    .map(Box::as_ref)
+                    .unwrap_or_default(),
+                None => self.subsystem.entries_for(fact.family()),
+            },
             _ => self.subsystem.entries_for(fact.family()),
         };
         debug_assert!(entries
@@ -114,6 +103,39 @@ impl UiGraphConsumedFactIndex {
             entries.to_vec().into_boxed_slice(),
         ))
     }
+}
+
+fn query_projection_consumers(
+    snapshot: &UiGraphSnapshot,
+    projection_contents: &[crate::runtime::WorthUiProjectionContentEdge],
+) -> BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>> {
+    let mut by_projection = BTreeMap::<
+        worth_ui_query_binding::WorthUiQueryViewIdentity,
+        Vec<UiGraphFactIndexEntry>,
+    >::new();
+    let affected_aspect = UiAspectName::from_semantic_slice(UiAspectSemanticSlice::ContentText);
+    for content in projection_contents {
+        let contract =
+            UiConsumedFactContract::query_projection(content.projection_identity().clone());
+        let entries = by_projection
+            .entry(content.projection_identity().clone())
+            .or_default();
+        for node in snapshot.nodes().iter().filter(|node| {
+            node.declaration_identity().authored_semantic_name() == content.component_identity()
+        }) {
+            push_component_consumer(
+                entries,
+                snapshot,
+                node,
+                contract.clone(),
+                affected_aspect.clone(),
+            );
+        }
+    }
+    by_projection
+        .into_iter()
+        .map(|(identity, entries)| (identity, canonical_entries(entries)))
+        .collect()
 }
 
 fn add_static_paint_token_consumers(
@@ -283,61 +305,9 @@ fn add_authored_aspect_consumers(
     }
 }
 
-fn build_subsystem_index(snapshot: &UiGraphSnapshot) -> UiGraphSubsystemFactIndex {
-    let mut by_family = BTreeMap::<UiProducedFactFamily, Vec<UiGraphFactIndexEntry>>::new();
-    for (aspect, consumers) in snapshot.core_indexes().consumed_aspects().iter() {
-        add_subsystem_aspect_entries(snapshot, aspect, consumers, &mut by_family);
-    }
-    UiGraphSubsystemFactIndex {
-        host_viewport: take_family(&mut by_family, UiProducedFactFamily::HostViewport),
-        host_device_scale: take_family(&mut by_family, UiProducedFactFamily::HostDeviceScale),
-        measurement: take_family(&mut by_family, UiProducedFactFamily::Measurement),
-        query: take_family(&mut by_family, UiProducedFactFamily::Query),
-        committed_scroll_extent: take_family(
-            &mut by_family,
-            UiProducedFactFamily::CommittedScrollExtent,
-        ),
-        committed_portal_anchor: take_family(
-            &mut by_family,
-            UiProducedFactFamily::CommittedPortalAnchor,
-        ),
-    }
-}
-
-fn add_subsystem_aspect_entries(
-    snapshot: &UiGraphSnapshot,
-    aspect: &UiAspectName,
-    consumers: &[crate::graph::UiGraphAspectConsumer],
-    by_family: &mut BTreeMap<UiProducedFactFamily, Vec<UiGraphFactIndexEntry>>,
-) {
-    for rule in UiSubsystemConsumedFactRule::all() {
-        if rule.affected_aspect_family() != aspect.family() {
-            continue;
-        }
-        let contract = UiConsumedFactContract::declared_aspect(rule.fact_family(), aspect.clone())
-            .expect("a matching subsystem rule constructs one consumed-fact contract");
-        for consumer in consumers {
-            by_family
-                .entry(rule.fact_family())
-                .or_default()
-                .push(UiGraphFactIndexEntry::new(
-                    consumer_key(snapshot, consumer.kind()),
-                    consumer_identity(consumer.kind()),
-                    Some(aspect.clone()),
-                    contract.clone(),
-                ));
-        }
-    }
-}
-
-fn take_family(
-    by_family: &mut BTreeMap<UiProducedFactFamily, Vec<UiGraphFactIndexEntry>>,
-    family: UiProducedFactFamily,
+pub(super) fn canonical_entries(
+    mut entries: Vec<UiGraphFactIndexEntry>,
 ) -> Box<[UiGraphFactIndexEntry]> {
-    canonical_entries(by_family.remove(&family).unwrap_or_default())
-}
-
-fn canonical_entries(mut entries: Vec<UiGraphFactIndexEntry>) -> Box<[UiGraphFactIndexEntry]> {
     entries.sort_by(|left, right| {
         left.consumer_key()
             .cmp(right.consumer_key())
@@ -348,7 +318,7 @@ fn canonical_entries(mut entries: Vec<UiGraphFactIndexEntry>) -> Box<[UiGraphFac
     entries.into_boxed_slice()
 }
 
-fn consumer_key(
+pub(super) fn consumer_key(
     snapshot: &UiGraphSnapshot,
     kind: UiGraphAspectConsumerKind,
 ) -> UiGraphFactConsumerKey {
@@ -382,7 +352,7 @@ fn consumer_key(
     )
 }
 
-fn consumer_identity(kind: UiGraphAspectConsumerKind) -> UiGraphFactConsumerIdentity {
+pub(super) fn consumer_identity(kind: UiGraphAspectConsumerKind) -> UiGraphFactConsumerIdentity {
     match kind {
         UiGraphAspectConsumerKind::GraphNode(identity) => {
             UiGraphFactConsumerIdentity::GraphNode(identity)

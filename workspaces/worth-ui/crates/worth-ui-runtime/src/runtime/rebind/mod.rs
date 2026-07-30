@@ -12,11 +12,11 @@ pub use configuration::{
 };
 pub(crate) use execution::{admit_plan, UiRebindFinalAdmissionBasis};
 pub use execution::{
-    UiDuplicateObservationReceipt, UiPreparedRebind, UiPreparedRebindPosture,
-    UiRebindCancellationReceipt, UiRebindCompletionHandle, UiRebindDenialCause,
-    UiRebindDenialReceipt, UiRebindDisposition, UiRebindExecutionRequest,
-    UiRebindInternalDefectKind, UiRebindInternalDefectOutcome, UiRebindOutcome,
-    UiRebindPreparationDenial, UiRebindReceipt, UiRebindReconciliation,
+    UiDuplicateObservationReceipt, UiEffectingRebind, UiEffectingRebindCompletion,
+    UiPreparedRebind, UiPreparedRebindPosture, UiRebindCancellationReceipt,
+    UiRebindCompletionHandle, UiRebindDenialCause, UiRebindDenialReceipt, UiRebindDisposition,
+    UiRebindExecutionRequest, UiRebindInternalDefectKind, UiRebindInternalDefectOutcome,
+    UiRebindOutcome, UiRebindPreparationDenial, UiRebindReceipt, UiRebindReconciliation,
     UiRebindReconciliationRequest, UiRebindRecoveryCompletionHandle, UiRebindRecoveryDenial,
     UiRebindRecoveryDenialCause, UiRebindRecoveryHandle, UiRebindRecoveryInternalDefect,
     UiRebindRecoveryInternalDefectKind, UiRebindRecoveryOutcome, UiRebindRecoveryReceipt,

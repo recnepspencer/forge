@@ -3,11 +3,11 @@ use worth_query::facade::installed::{collection, operation};
 
 use super::{
     UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionChange,
-    UiCollectionProjectionFactReceipt, UiCollectionProjectionRowReference,
-    UiCollectionProjectionTextRow, UiCollectionProjectionValue, UiCollectionProjectionWorkCounters,
-    UiNativeTextValue, UiPresentProjection, UiProjectionAvailability, UiProjectionFactReceipt,
-    UiProjectionFactStopKind, UiProjectionFactStopReceipt, UiProjectionUnavailableKind,
-    UiProjectionUnavailableReceipt,
+    UiCollectionProjectionDelivery, UiCollectionProjectionFactReceipt,
+    UiCollectionProjectionRowReference, UiCollectionProjectionTextRow, UiCollectionProjectionValue,
+    UiCollectionProjectionWorkCounters, UiNativeTextValue, UiPresentProjection,
+    UiProjectionAvailability, UiProjectionFactReceipt, UiProjectionFactStopKind,
+    UiProjectionFactStopReceipt, UiProjectionUnavailableKind, UiProjectionUnavailableReceipt,
 };
 
 pub(crate) struct UiCollectionDerivationContext<'a> {
@@ -24,6 +24,7 @@ pub(crate) fn derive_initial_collection_projection(
     derive_collection_projection(
         context,
         &rows,
+        UiCollectionProjectionDelivery::Snapshot,
         Box::<[UiCollectionProjectionChange]>::default(),
     )
 }
@@ -31,15 +32,18 @@ pub(crate) fn derive_initial_collection_projection(
 pub(crate) fn derive_collection_projection(
     context: UiCollectionDerivationContext<'_>,
     rows: &[&collection::WorthQueryCollectionRowHandle],
+    delivery: UiCollectionProjectionDelivery,
     changes: Box<[UiCollectionProjectionChange]>,
 ) -> UiCollectionProjectionFactReceipt {
     let result_identity = context.consumer.result_generation_identity_evidence();
-    let core = UiProjectionFactReceipt::admitted(
-        context.binding.query_world_identity().clone(),
-        context.consumer.binding_identity_evidence(),
-        context.consumer.source_generation_identity_evidence(),
-        result_identity.clone(),
-    );
+    let core = UiProjectionFactReceipt::admitted(super::UiProjectionFactReceiptInput {
+        projection_identity: context.binding.view_identity().clone(),
+        observation_order: context.binding.issue_observation_order(),
+        query_world_identity: context.binding.query_world_identity().clone(),
+        binding_identity: context.consumer.binding_identity_evidence(),
+        source_generation_identity: context.consumer.source_generation_identity_evidence(),
+        result_generation_identity: result_identity.clone(),
+    });
     let mut work = UiCollectionProjectionWorkCounters::default();
     for access in context.accesses {
         work.record_key_resolution(access.resolution_counters());
@@ -62,7 +66,7 @@ pub(crate) fn derive_collection_projection(
     } else {
         derive_availability(&context, rows, &result_identity, &mut work)
     };
-    UiCollectionProjectionFactReceipt::admitted(core, availability, work, changes)
+    UiCollectionProjectionFactReceipt::admitted(core, delivery, availability, work, changes)
 }
 
 fn derive_availability(

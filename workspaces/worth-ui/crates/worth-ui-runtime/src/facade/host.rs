@@ -4,9 +4,9 @@ pub use crate::host::adapter::{
     UiHeadlessClipMechanic, UiHeadlessFilledRectMechanic, UiHeadlessLayerMechanic,
     UiHeadlessMountedFrameTranscript, UiHeadlessNodeMechanic, UiHeadlessNodePaintMechanic,
     UiHeadlessPaintBatchMechanic, UiHeadlessRecorderCapacity, UiHeadlessResolvedClip,
-    UiHeadlessResourceContact, UiHeadlessUnperformedEffect, UiHostAdapterSessionAuthority,
-    UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiHeadlessHost, WorthUiHeadlessRecorder, WorthUiHostAdapter,
+    UiHeadlessResourceContact, UiHeadlessSemanticTextMechanic, UiHeadlessUnperformedEffect,
+    UiHostAdapterSessionAuthority, UiHostSessionReleaseIndeterminate, UiHostSessionReleaseOutcome,
+    UiHostSessionReleaseReceipt, WorthUiHeadlessHost, WorthUiHeadlessRecorder, WorthUiHostAdapter,
     WorthUiOperationalHostAdapter,
 };
 pub use crate::host::{

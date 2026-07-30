@@ -323,26 +323,22 @@ impl WorthUiSettledScalarTextProjection {
         })
     }
 
-    #[cfg(feature = "certification-construction")]
-    pub(crate) fn certification_native_key(
-        &self,
-    ) -> &operation::WorthQueryNativeAccessKey {
+    #[cfg(any(test, feature = "certification-construction"))]
+    pub(crate) fn certification_native_key(&self) -> &operation::WorthQueryNativeAccessKey {
         self.native_access.key()
     }
 
-    #[cfg(feature = "certification-construction")]
+    #[cfg(any(test, feature = "certification-construction"))]
     pub(crate) fn certification_contract_digest(&self) -> &str {
         self.settled.authority().contract().contract_digest()
     }
 
-    #[cfg(feature = "certification-construction")]
+    #[cfg(any(test, feature = "certification-construction"))]
     pub(crate) fn certification_native_value<'a>(
         &'a self,
         key: &operation::WorthQueryNativeAccessKey,
-    ) -> Result<
-        operation::WorthQueryNativeFieldAccess<'a>,
-        operation::WorthQueryNativeAccessDenial,
-    > {
+    ) -> Result<operation::WorthQueryNativeFieldAccess<'a>, operation::WorthQueryNativeAccessDenial>
+    {
         self.settled.native_value(key, 0)
     }
 }

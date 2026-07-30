@@ -34,6 +34,18 @@ pub(super) fn unsupported_projection_effect(
     }) {
         return Some(UiMountedEffectFamily::NativePaint);
     }
+    let semantic_references = projection
+        .nodes()
+        .iter()
+        .flat_map(|node| node.semantic_text())
+        .collect::<Vec<_>>();
+    if semantic_references.len() != projection.semantic_text().rows().len()
+        || semantic_references
+            .iter()
+            .any(|reference| projection.semantic_text().resolve(**reference).is_none())
+    {
+        return Some(UiMountedEffectFamily::NativePaint);
+    }
     if projection
         .nodes()
         .iter()

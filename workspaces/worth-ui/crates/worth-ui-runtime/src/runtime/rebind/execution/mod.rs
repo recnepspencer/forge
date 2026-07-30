@@ -1,4 +1,5 @@
 mod admission;
+mod effecting;
 mod inspection_projection;
 mod outcome;
 mod preparation;
@@ -10,6 +11,7 @@ mod visual_comparison_request;
 
 pub(crate) use admission::{admit_plan, UiRebindFinalAdmissionBasis};
 pub use admission::{UiRebindExecutionRequest, UiRebindPreparationDenial};
+pub use effecting::{UiEffectingRebind, UiEffectingRebindCompletion};
 pub use outcome::{
     UiDuplicateObservationReceipt, UiRebindCancellationReceipt, UiRebindCompletionHandle,
     UiRebindDenialCause, UiRebindDenialReceipt, UiRebindInternalDefectKind,

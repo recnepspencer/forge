@@ -10,6 +10,8 @@ pub(in crate::mounting::projection) struct UiMountedProjectionNodeRecord {
     pub(in crate::mounting::projection) plan_index: Option<u32>,
     pub(in crate::mounting::projection) static_paint:
         Option<super::super::static_paint::UiMountedStaticPaintSeed>,
+    pub(in crate::mounting::projection) semantic_text:
+        Option<super::super::semantic_text::UiMountedSemanticTextSeed>,
     pub(in crate::mounting::projection) hit_test:
         Option<super::super::hit_test::UiMountedHitTestSeed>,
 }
@@ -101,6 +103,13 @@ impl UiMountedSemanticProjection {
         instance: worth_ui_host_contract::UiMountedInstanceIdentity,
     ) -> bool {
         self.membership.contains_with_probes(&instance).0
+    }
+
+    pub(in crate::mounting::projection) fn node(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<&UiMountedProjectionNodeRecord> {
+        self.nodes.get(&instance)
     }
 
     pub(in crate::mounting::projection) fn insert_node(

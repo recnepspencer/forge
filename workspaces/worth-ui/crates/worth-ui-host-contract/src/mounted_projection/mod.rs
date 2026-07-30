@@ -6,6 +6,7 @@ mod identity_overlay;
 mod participation;
 mod preview;
 mod resource;
+mod semantic_text;
 mod static_paint;
 mod tables;
 mod view;
@@ -41,6 +42,13 @@ pub use preview::UiMountedPreviewProjection;
 pub use resource::{
     UiMountedResourceEntry, UiMountedResourceKind, UiMountedResourceReference,
     UiMountedResourceTable,
+};
+pub use semantic_text::{
+    UiMountedCollectionRowCorrelation, UiMountedSemanticTextCompletionDenial,
+    UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic,
+    UiMountedSemanticTextReference, UiMountedSemanticTextTable, UiMountedSemanticTextTableDenial,
+    UiMountedTextSchemaVersion, UiSemanticTextBaselinePosture, UiSemanticTextProfile,
+    UiSemanticTextSlot, UiSemanticTextWrapPosture,
 };
 pub use static_paint::{
     UiMountedFilledRectCompletionDenial, UiMountedFilledRectCompletionInput,

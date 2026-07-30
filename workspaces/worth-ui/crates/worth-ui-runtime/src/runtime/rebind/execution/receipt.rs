@@ -23,6 +23,11 @@ enum UiRebindPublication {
         active: crate::facade::prepared_application_authority::
             WorthUiPreparedApplicationGenerationIdentity,
     },
+    Content {
+        generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    },
 }
 
 impl UiRebindReceipt {
@@ -93,6 +98,41 @@ impl UiRebindReceipt {
         })
     }
 
+    pub(crate) fn content(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        mut registration: UiRebindReservation,
+        generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    ) -> Result<Self, super::UiRebindInternalDefectOutcome> {
+        let matches_plan = &generation == plan.basis().classification().predecessor_generation()
+            && &generation == plan.basis().candidate_generation()
+            && mounted.generation() == &generation;
+        if !matches_plan {
+            registration
+                .retain_recovery()
+                .expect("pre-effect admission reserved recovery capacity");
+            return Err(super::UiRebindInternalDefectOutcome::content_mismatch(
+                plan,
+                registration,
+                generation,
+                mounted,
+            ));
+        }
+        registration
+            .retain_receipt()
+            .expect("pre-publication admission reserved receipt capacity");
+        Ok(Self {
+            plan,
+            publication: UiRebindPublication::Content {
+                generation,
+                mounted,
+            },
+            disposition: UiRebindDisposition::Complete,
+            _registration: registration,
+        })
+    }
+
     pub const fn plan(&self) -> &crate::runtime::rebind::UiRebindPlan {
         &self.plan
     }
@@ -108,6 +148,7 @@ impl UiRebindReceipt {
     pub fn realized_bindings(&self) -> &[worth_ui_host_contract::UiSurfaceBindingGeneration] {
         match &self.publication {
             UiRebindPublication::Changed { mounted, .. } => mounted.bindings(),
+            UiRebindPublication::Content { mounted, .. } => mounted.bindings(),
             UiRebindPublication::EvidenceOnly { .. } => &[],
         }
     }
@@ -115,6 +156,7 @@ impl UiRebindReceipt {
     pub fn realized_mount_cost(&self) -> Option<crate::mounting::UiMountCostReport> {
         match &self.publication {
             UiRebindPublication::Changed { mounted, .. } => Some(mounted.cost_report()),
+            UiRebindPublication::Content { mounted, .. } => Some(mounted.cost_report()),
             UiRebindPublication::EvidenceOnly { .. } => None,
         }
     }
@@ -156,6 +198,9 @@ impl UiRebindReceipt {
             UiRebindPublication::Changed { .. } => {
                 worth_ui_inspection::UiRebindDecisionDisposition::Changed
             }
+            UiRebindPublication::Content { .. } => {
+                worth_ui_inspection::UiRebindDecisionDisposition::Changed
+            }
             UiRebindPublication::EvidenceOnly { .. } => {
                 worth_ui_inspection::UiRebindDecisionDisposition::EvidenceOnly
             }
@@ -168,6 +213,7 @@ impl UiRebindReceipt {
     {
         match &self.publication {
             UiRebindPublication::Changed { application, .. } => application.prior_generation(),
+            UiRebindPublication::Content { generation, .. } => generation,
             UiRebindPublication::EvidenceOnly { prior, .. } => prior,
         }
     }
@@ -178,6 +224,7 @@ impl UiRebindReceipt {
     {
         match &self.publication {
             UiRebindPublication::Changed { application, .. } => application.active_generation(),
+            UiRebindPublication::Content { generation, .. } => generation,
             UiRebindPublication::EvidenceOnly { active, .. } => active,
         }
     }
@@ -187,6 +234,7 @@ impl UiRebindReceipt {
     ) -> Option<&crate::mounting::UiMountedFramePublicationReceipt> {
         match &self.publication {
             UiRebindPublication::Changed { mounted, .. } => Some(mounted),
+            UiRebindPublication::Content { mounted, .. } => Some(mounted),
             UiRebindPublication::EvidenceOnly { .. } => None,
         }
     }
@@ -196,7 +244,7 @@ impl UiRebindReceipt {
     ) -> Option<&crate::facade::WorthUiApplicationCutoverReceipt> {
         match &self.publication {
             UiRebindPublication::Changed { application, .. } => Some(application),
-            UiRebindPublication::EvidenceOnly { .. } => None,
+            UiRebindPublication::Content { .. } | UiRebindPublication::EvidenceOnly { .. } => None,
         }
     }
 }

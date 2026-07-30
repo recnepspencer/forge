@@ -2,12 +2,13 @@ use worth_ui_host_contract::{
     UiHostProtocolDenial, UiHostProtocolSchemaFamily, UiHostSurfacePresentationDenial,
     UiMountedAllocationProjection, UiMountedCoordinateSpace, UiMountedGeometryPosture,
     UiMountedPaintProjection, UiMountedProjectionView, UiMountedStaticPaintSchemaVersion,
+    UiMountedTextSchemaVersion,
 };
 
 #[derive(Clone)]
 pub(super) struct UiEguiPreparedNativePaint {
     layer: egui::LayerId,
-    filled_rects: Vec<UiEguiPreparedFilledRect>,
+    commands: Vec<UiEguiPreparedNativePaintCommand>,
 }
 
 #[derive(Clone)]
@@ -16,6 +17,12 @@ struct UiEguiPreparedFilledRect {
     clip_rect: egui::Rect,
     color: egui::Color32,
     layer_semantic_order: u32,
+}
+
+#[derive(Clone)]
+enum UiEguiPreparedNativePaintCommand {
+    FilledRect(UiEguiPreparedFilledRect),
+    SemanticText(super::semantic_text::UiEguiPreparedSemanticText),
 }
 
 impl UiEguiPreparedNativePaint {
@@ -40,24 +47,60 @@ impl UiEguiPreparedNativePaint {
         if referenced_rows != filled_rects.len() {
             return Err(UiHostSurfacePresentationDenial::MalformedProjection);
         }
-        filled_rects.sort_by_key(|row| row.layer_semantic_order);
+        let semantic_text = super::semantic_text::prepare(view)?;
+        let mut commands = filled_rects
+            .drain(..)
+            .map(UiEguiPreparedNativePaintCommand::FilledRect)
+            .chain(
+                semantic_text
+                    .into_iter()
+                    .map(UiEguiPreparedNativePaintCommand::SemanticText),
+            )
+            .collect::<Vec<_>>();
+        commands.sort_by_key(UiEguiPreparedNativePaintCommand::layer_semantic_order);
         Ok(Self {
             layer: surface_layer(projection.binding()),
-            filled_rects,
+            commands,
         })
     }
 
     pub(super) fn is_empty(&self) -> bool {
-        self.filled_rects.is_empty()
+        self.commands.is_empty()
     }
 
     pub(super) fn paint(&self, context: &egui::Context) {
         let painter = context.layer_painter(self.layer);
-        for row in &self.filled_rects {
-            painter
-                .clone()
-                .with_clip_rect(row.clip_rect)
-                .rect_filled(row.rect, 0.0, row.color);
+        for command in &self.commands {
+            command.paint(&painter);
+        }
+    }
+}
+
+impl UiEguiPreparedNativePaintCommand {
+    fn layer_semantic_order(&self) -> u32 {
+        match self {
+            Self::FilledRect(row) => row.layer_semantic_order,
+            Self::SemanticText(row) => row.layer_semantic_order,
+        }
+    }
+
+    fn paint(&self, painter: &egui::Painter) {
+        match self {
+            Self::FilledRect(row) => {
+                painter
+                    .clone()
+                    .with_clip_rect(row.clip_rect)
+                    .rect_filled(row.rect, 0.0, row.color);
+            }
+            Self::SemanticText(row) => {
+                painter.clone().with_clip_rect(row.clip_rect).text(
+                    row.origin,
+                    egui::Align2::LEFT_TOP,
+                    row.text.as_ref(),
+                    row.font.clone(),
+                    row.color,
+                );
+            }
         }
     }
 }
@@ -80,6 +123,14 @@ fn validate_protocol(
             UiHostProtocolDenial::SchemaTooOld(UiHostProtocolSchemaFamily::MountedFrame),
         ));
     }
+    if !view.projection().semantic_text().rows().is_empty()
+        && view.protocol().contract().mounted_frame().revision()
+            < UiMountedTextSchemaVersion::REQUIRED_MOUNTED_FRAME_REVISION
+    {
+        return Err(UiHostSurfacePresentationDenial::Protocol(
+            UiHostProtocolDenial::SchemaTooOld(UiHostProtocolSchemaFamily::MountedFrame),
+        ));
+    }
     Ok(())
 }
 
@@ -88,6 +139,11 @@ fn validate_table_schema(
 ) -> Result<(), UiHostSurfacePresentationDenial> {
     if !projection.filled_rects().rows().is_empty()
         && projection.filled_rects().schema() != UiMountedStaticPaintSchemaVersion::current()
+    {
+        return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+    }
+    if !projection.semantic_text().rows().is_empty()
+        && projection.semantic_text().schema() != UiMountedTextSchemaVersion::current()
     {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
@@ -150,7 +206,7 @@ fn validate_row_basis(
     Ok(())
 }
 
-fn egui_rect(bounds: worth_ui_host_contract::UiMountedCanonicalBox) -> egui::Rect {
+pub(super) fn egui_rect(bounds: worth_ui_host_contract::UiMountedCanonicalBox) -> egui::Rect {
     egui::Rect::from_min_size(
         egui::pos2(bounds.x(), bounds.y()),
         egui::vec2(bounds.width(), bounds.height()),

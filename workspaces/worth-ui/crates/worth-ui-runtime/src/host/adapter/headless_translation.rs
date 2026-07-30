@@ -14,6 +14,7 @@ use super::{
     UiHeadlessUnperformedEffect,
 };
 
+mod semantic_text;
 mod static_paint;
 
 pub(super) fn translate_headless_frame(
@@ -26,6 +27,7 @@ pub(super) fn translate_headless_frame(
     validate_external_batch_alignment(projection)?;
     let clips = translate_clips(projection)?;
     let filled_rects = static_paint::translate_filled_rects(projection)?;
+    let semantic_text = semantic_text::translate(view)?;
     let mut paint_batches = translate_paint_batches(projection)?;
     paint_batches.sort_by_key(paint_order);
     let nodes = translate_nodes(projection)?;
@@ -40,6 +42,7 @@ pub(super) fn translate_headless_frame(
             nodes,
             clips,
             filled_rects,
+            semantic_text,
             paint_batches,
             unperformed_effects,
         },
@@ -83,6 +86,7 @@ fn validate_mechanic_capacity(
         projection.nodes().len(),
         projection.clips().rows().len(),
         projection.filled_rects().rows().len(),
+        projection.semantic_text().rows().len(),
         projection.paint_batches().rows().len(),
         projection.spatial_batches().rows().len(),
         projection.realtime_batches().rows().len(),
@@ -247,6 +251,8 @@ fn unperformed_effects(
 ) -> Result<Vec<UiHeadlessUnperformedEffect>, UiHostSurfacePresentationDenial> {
     let mut effects = vec![UiHeadlessUnperformedEffect::NativePaint {
         filled_rect_count: u32::try_from(projection.filled_rects().rows().len())
+            .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+        semantic_text_count: u32::try_from(projection.semantic_text().rows().len())
             .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
         preview_node_count: matching_node_count(projection, |node| {
             matches!(

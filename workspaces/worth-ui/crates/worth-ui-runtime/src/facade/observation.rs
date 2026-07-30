@@ -3,6 +3,7 @@ pub use crate::runtime::observation::{
     UiChangeClassificationBasis, UiChangeClassificationDenial, UiChangeClassificationOutcome,
     UiClassifiedChange, UiCommittedPortalAnchorObservation,
     UiCommittedRuntimeStateAdmissionReceipt, UiCommittedScrollExtentObservation,
+    UiEffectingObservationQueueAdmissionReceipt, UiEffectingObservationQueueCapacityStop,
     UiEvidenceOnlySourceChange, UiHostObservation, UiHostObservationAdmissionStop,
     UiHostObservationBatchAdmissionReceipt, UiHostObservationSuccessorOwner,
     UiHostObservationUnavailable, UiObservationAdmissionDenial, UiObservationAdmissionReceipt,

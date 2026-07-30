@@ -32,6 +32,7 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub lanes: UiMountedLaneAssembly,
     pub preview: Option<UiMountedPreviewProjectionInput>,
     pub visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
+    pub semantic_content: super::UiMountedSemanticContentInput,
     pub reuse_contract: super::UiMountedFrameReuseContract,
 }
 
@@ -100,6 +101,25 @@ impl<'state> UiMountedFrameAssembler<'state> {
         state: &'state UiMountedIdentityState,
         input: UiMountedFrameAssemblyInput<'_, '_>,
     ) -> Result<Self, UiMountedFramePreparationDenial> {
+        let semantic_predecessor = state
+            .current_projection()
+            .map(|frame| frame.semantic_projection());
+        Self::begin_with_semantic_predecessor(state, semantic_predecessor, input)
+    }
+
+    pub(in crate::mounting) fn begin_graph_replacement(
+        state: &'state UiMountedIdentityState,
+        semantic_predecessor: Option<&super::projection::UiMountedSemanticProjection>,
+        input: UiMountedFrameAssemblyInput<'_, '_>,
+    ) -> Result<Self, UiMountedFramePreparationDenial> {
+        Self::begin_with_semantic_predecessor(state, semantic_predecessor, input)
+    }
+
+    fn begin_with_semantic_predecessor(
+        state: &'state UiMountedIdentityState,
+        semantic_predecessor: Option<&super::projection::UiMountedSemanticProjection>,
+        input: UiMountedFrameAssemblyInput<'_, '_>,
+    ) -> Result<Self, UiMountedFramePreparationDenial> {
         let bindings = input
             .request
             .resolve_requirements(state.view().surface_bindings())?;
@@ -125,6 +145,10 @@ impl<'state> UiMountedFrameAssembler<'state> {
                 requested_surfaces: &surfaces,
                 preview: input.preview,
                 visual_overlay: input.visual_overlay,
+                semantic_content: &input.semantic_content,
+                semantic_predecessor,
+                capability_generation: input.reuse_contract.capability_generation(),
+                capability_profile_digest: input.reuse_contract.capability_profile_digest(),
             },
         )
         .map_err(UiMountedFramePreparationDenial::Projection)?;

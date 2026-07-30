@@ -15,6 +15,7 @@ pub(super) fn prepare_candidate_mounted_frame(
     state: &crate::mounting::UiMountedGraphReplacementSuccessor,
     graph: crate::graph::UiGraphAuthority<'_>,
     reuse_basis: UiMountedReplacementReuseBasis,
+    semantic_content: crate::mounting::UiMountedSemanticContentInput,
     request: crate::mounting::UiMountedFrameRequest,
 ) -> Result<crate::mounting::UiPreparedMountedFrame, crate::mounting::UiMountedFramePreparationDenial>
 {
@@ -53,6 +54,7 @@ pub(super) fn prepare_candidate_mounted_frame(
             lanes,
             preview: None,
             visual_overlay,
+            semantic_content,
             reuse_contract,
         })?;
     execute_candidate_lanes(application, &mut assembler, lanes, range)?;

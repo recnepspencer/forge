@@ -48,4 +48,11 @@ impl<'runtime> UiRebindPlanningContext<'runtime> {
     pub(super) fn budget(&self) -> crate::runtime::rebind::UiRebindBudgetInput {
         self.predecessor.change_profile().rebind().budget()
     }
+
+    pub(super) fn effecting_observation_capacity(&self) -> usize {
+        self.predecessor
+            .change_profile()
+            .observation()
+            .queued_during_effecting_rebind()
+    }
 }

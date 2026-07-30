@@ -19,4 +19,6 @@ pub use lookup::UiGraphFactLookupCost;
 pub use lookup::UiGraphFactLookupReceipt;
 
 #[cfg(test)]
+mod projection_routing_tests;
+#[cfg(test)]
 mod tests;

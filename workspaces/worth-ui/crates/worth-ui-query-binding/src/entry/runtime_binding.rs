@@ -64,6 +64,26 @@ impl WorthUiSettledSnapshotAdmissionStop {
 }
 
 impl WorthUiRuntimeQueryBinding {
+    pub fn scalar_projection_registration(
+        &self,
+        identity: &crate::WorthUiQueryViewIdentity,
+    ) -> Option<&crate::UiScalarProjectionRegistration> {
+        match self {
+            Self::QueryFree => None,
+            Self::Installed(binding) => binding.scalar_projection_registration(identity),
+        }
+    }
+
+    pub fn collection_projection_registration(
+        &self,
+        identity: &crate::WorthUiQueryViewIdentity,
+    ) -> Option<&crate::UiCollectionProjectionRegistration> {
+        match self {
+            Self::QueryFree => None,
+            Self::Installed(binding) => binding.collection_projection_registration(identity),
+        }
+    }
+
     pub fn state_observation(&self) -> crate::WorthUiRuntimeQueryStateObservation {
         match self {
             Self::QueryFree => Default::default(),

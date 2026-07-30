@@ -130,6 +130,7 @@ fn rebuild_is_deterministic_and_foreign_basis_is_rejected() {
         left_authority.graph_snapshot(),
         left_authority.capabilities(),
         &left_authority.authored_declaration_lookup(),
+        left_authority.semantic_handoff().projection_contents(),
     );
     let fact = UiProducedFact::AuthoredSource(UiAuthoredChangedFact::new(
         UiAuthoredFactSelector::node(PUBLISHER),

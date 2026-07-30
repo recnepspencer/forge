@@ -57,12 +57,7 @@ fn each_semantic_axis_changes_both_dsl_and_rust_canonical_identity() {
             NativeFamily::Text,
             Lifecycle::Live,
         ),
-        scalar_pair(
-            VIEW,
-            "other",
-            NativeFamily::Text,
-            Lifecycle::Live,
-        ),
+        scalar_pair(VIEW, "other", NativeFamily::Text, Lifecycle::Live),
         collection_pair(),
         scalar_pair(VIEW, FIELD, NativeFamily::Boolean, Lifecycle::Live),
         scalar_pair(VIEW, FIELD, NativeFamily::Text, Lifecycle::Snapshot),
@@ -225,10 +220,8 @@ fn rust_modules(reversed: bool) -> Vec<WorthUiRustAuthoredArtifactInputModule> {
     }
     vec![
         main,
-        WorthUiRustAuthoredArtifactInputModule::new("shared-a.wui")
-            .with_token("shared_a", "A"),
-        WorthUiRustAuthoredArtifactInputModule::new("shared-b.wui")
-            .with_token("shared_b", "B"),
+        WorthUiRustAuthoredArtifactInputModule::new("shared-a.wui").with_token("shared_a", "A"),
+        WorthUiRustAuthoredArtifactInputModule::new("shared-b.wui").with_token("shared_b", "B"),
     ]
 }
 

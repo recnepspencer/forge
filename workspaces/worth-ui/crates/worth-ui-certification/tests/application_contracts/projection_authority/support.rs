@@ -39,10 +39,7 @@ pub(super) fn consume_batch(
     }
 }
 
-pub(super) fn assert_current(
-    receipt: &UiScalarProjectionTransitionReceipt,
-    expected: &str,
-) {
+pub(super) fn assert_current(receipt: &UiScalarProjectionTransitionReceipt, expected: &str) {
     match receipt.fact().availability() {
         UiProjectionAvailability::Present(UiPresentProjection::Current(value)) => {
             assert_eq!(value.as_str(), expected)

@@ -62,6 +62,7 @@ struct WorthUiSemanticBlockExactBasis {
 #[derive(Debug, Eq, PartialEq)]
 struct WorthUiStructuralBodyExactBasis {
     root_regions: Box<[WorthUiRegionExactBasis]>,
+    projection_contents: Box<[String]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -300,6 +301,11 @@ impl WorthUiStructuralBodyExactBasis {
                 .iter()
                 .map(WorthUiRegionExactBasis::from_region)
                 .collect(),
+            projection_contents: structure
+                .projection_contents()
+                .iter()
+                .map(|content| content.projection_identity_text().to_owned())
+                .collect(),
         }
     }
 
@@ -307,6 +313,10 @@ impl WorthUiStructuralBodyExactBasis {
         fingerprint.fold_usize(self.root_regions.len());
         for region in &self.root_regions {
             region.fold_into(fingerprint);
+        }
+        fingerprint.fold_usize(self.projection_contents.len());
+        for projection in &self.projection_contents {
+            fingerprint.fold_text(projection);
         }
     }
 }

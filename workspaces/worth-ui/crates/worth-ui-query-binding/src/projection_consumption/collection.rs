@@ -11,6 +11,12 @@ pub enum UiCollectionCompleteness {
     Partial,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiCollectionProjectionDelivery {
+    Snapshot,
+    Patch,
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiCollectionContinuation {
     query_continuation_identity: WorthQueryEvidenceIdentity,
@@ -131,6 +137,7 @@ pub enum UiCollectionProjectionChange {
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiCollectionProjectionFactReceipt {
     core: UiProjectionFactReceipt,
+    delivery: UiCollectionProjectionDelivery,
     availability: UiProjectionAvailability<UiCollectionProjectionValue>,
     work: UiCollectionProjectionWorkCounters,
     changes: Box<[UiCollectionProjectionChange]>,
@@ -139,12 +146,14 @@ pub struct UiCollectionProjectionFactReceipt {
 impl UiCollectionProjectionFactReceipt {
     pub(crate) fn admitted(
         core: UiProjectionFactReceipt,
+        delivery: UiCollectionProjectionDelivery,
         availability: UiProjectionAvailability<UiCollectionProjectionValue>,
         work: UiCollectionProjectionWorkCounters,
         changes: impl Into<Box<[UiCollectionProjectionChange]>>,
     ) -> Self {
         Self {
             core,
+            delivery,
             availability,
             work,
             changes: changes.into(),
@@ -153,6 +162,10 @@ impl UiCollectionProjectionFactReceipt {
 
     pub fn core(&self) -> &UiProjectionFactReceipt {
         &self.core
+    }
+
+    pub const fn delivery(&self) -> UiCollectionProjectionDelivery {
+        self.delivery
     }
 
     pub fn availability(&self) -> &UiProjectionAvailability<UiCollectionProjectionValue> {
@@ -165,5 +178,9 @@ impl UiCollectionProjectionFactReceipt {
 
     pub fn changes(&self) -> &[UiCollectionProjectionChange] {
         &self.changes
+    }
+
+    pub fn into_observation(self) -> crate::UiCollectionProjectionObservation {
+        crate::UiCollectionProjectionObservation::query_issued(self)
     }
 }

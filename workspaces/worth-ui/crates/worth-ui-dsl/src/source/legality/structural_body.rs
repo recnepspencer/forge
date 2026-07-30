@@ -13,6 +13,12 @@ pub(crate) enum WorthUiStructuralLanguageDiagnosticCode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WorthUiAuthoredStructuralBody {
     root_regions: Vec<WorthUiAuthoredRegion>,
+    projection_contents: Vec<WorthUiAuthoredProjectionContent>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorthUiAuthoredProjectionContent {
+    projection_identity_text: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,17 +51,30 @@ impl WorthUiStructuralBodyParser {
         body_atoms: &[WorthUiArtifactInputBodyAtom],
     ) -> Result<WorthUiAuthoredStructuralBody, WorthUiStructuralParseFailure> {
         let mut parser = StructuralParser::new(body_atoms);
-        let root_regions = parser.parse_root_regions()?;
+        let (root_regions, projection_contents) = parser.parse_root_declarations()?;
         if !parser.is_eof() {
             return Err(parser.syntax_failure("trailing_tokens"));
         }
-        Ok(WorthUiAuthoredStructuralBody { root_regions })
+        Ok(WorthUiAuthoredStructuralBody {
+            root_regions,
+            projection_contents,
+        })
     }
 }
 
 impl WorthUiAuthoredStructuralBody {
     pub fn root_regions(&self) -> &[WorthUiAuthoredRegion] {
         &self.root_regions
+    }
+
+    pub fn projection_contents(&self) -> &[WorthUiAuthoredProjectionContent] {
+        &self.projection_contents
+    }
+}
+
+impl WorthUiAuthoredProjectionContent {
+    pub fn projection_identity_text(&self) -> &str {
+        &self.projection_identity_text
     }
 }
 
@@ -105,23 +124,59 @@ impl<'a> StructuralParser<'a> {
         Self { atoms, cursor: 0 }
     }
 
-    fn parse_root_regions(
+    fn parse_root_declarations(
         &mut self,
-    ) -> Result<Vec<WorthUiAuthoredRegion>, WorthUiStructuralParseFailure> {
+    ) -> Result<
+        (
+            Vec<WorthUiAuthoredRegion>,
+            Vec<WorthUiAuthoredProjectionContent>,
+        ),
+        WorthUiStructuralParseFailure,
+    > {
         let mut root_regions = Vec::new();
+        let mut projection_contents = Vec::new();
+        let mut projection_identities = std::collections::BTreeSet::new();
         while !self.is_eof() {
-            if !matches!(self.peek_identifier().as_deref(), Some("region")) {
-                return Err(WorthUiStructuralParseFailure {
-                    code: WorthUiStructuralLanguageDiagnosticCode::IllegalRootStructuralStatement,
-                    authored_text: self
-                        .peek_identifier()
-                        .unwrap_or_else(|| "unexpected_eof".to_owned()),
-                    structural_locus: "root".to_owned(),
-                });
+            match self.peek_identifier().as_deref() {
+                Some("region") => root_regions.push(self.parse_region("root")?),
+                Some("content") => {
+                    let content = self.parse_projection_content()?;
+                    if !projection_identities.insert(content.projection_identity_text.clone()) {
+                        return Err(WorthUiStructuralParseFailure {
+                            code: WorthUiStructuralLanguageDiagnosticCode::InvalidStructuralSyntax,
+                            authored_text: content.projection_identity_text,
+                            structural_locus: "root/content:projection".to_owned(),
+                        });
+                    }
+                    projection_contents.push(content);
+                }
+                _ => {
+                    return Err(WorthUiStructuralParseFailure {
+                        code:
+                            WorthUiStructuralLanguageDiagnosticCode::IllegalRootStructuralStatement,
+                        authored_text: self
+                            .peek_identifier()
+                            .unwrap_or_else(|| "unexpected_eof".to_owned()),
+                        structural_locus: "root".to_owned(),
+                    });
+                }
             }
-            root_regions.push(self.parse_region("root")?);
         }
-        Ok(root_regions)
+        Ok((root_regions, projection_contents))
+    }
+
+    fn parse_projection_content(
+        &mut self,
+    ) -> Result<WorthUiAuthoredProjectionContent, WorthUiStructuralParseFailure> {
+        self.expect_keyword("content", "root")?;
+        self.expect_keyword("projection", "root/content")?;
+        let projection_identity_text = self.expect_identifier("root/content:projection")?;
+        if self.peek_semicolon() {
+            self.cursor += 1;
+        }
+        Ok(WorthUiAuthoredProjectionContent {
+            projection_identity_text,
+        })
     }
 
     fn parse_region(

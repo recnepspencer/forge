@@ -124,10 +124,7 @@ fn scalar_registration_rejects_an_uninstalled_selected_field() {
         UiScalarProjectionBindingAdmission::Stopped(stop) => stop,
     };
 
-    assert_eq!(
-        stop.kind(),
-        UiProjectionBindingStopKind::SchemaMismatch
-    );
+    assert_eq!(stop.kind(), UiProjectionBindingStopKind::SchemaMismatch);
 }
 
 #[test]

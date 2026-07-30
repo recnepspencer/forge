@@ -184,6 +184,7 @@ fn assert_pulse_transcript(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 2,
+            semantic_text_count: 0,
             preview_node_count: 0,
         }]
     );

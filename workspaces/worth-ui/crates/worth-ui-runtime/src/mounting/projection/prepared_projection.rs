@@ -12,6 +12,8 @@ pub(crate) struct UiPreparedMountedProjection {
     visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     projection_changes: super::super::UiMountedProjectionChangeSnapshot,
     counters: super::super::UiMountStageCounters,
+    capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    capability_profile_digest: u64,
 }
 
 pub(super) struct UiPreparedMountedProjectionInput {
@@ -21,6 +23,9 @@ pub(super) struct UiPreparedMountedProjectionInput {
     pub(super) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     pub(super) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
     pub(super) counters: super::super::UiMountStageCounters,
+    pub(super) capability_generation:
+        worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    pub(super) capability_profile_digest: u64,
 }
 
 #[derive(Clone)]
@@ -69,6 +74,8 @@ impl UiPreparedMountedProjection {
             visual_overlay: input.visual_overlay,
             projection_changes: input.projection_changes,
             counters: input.counters,
+            capability_generation: input.capability_generation,
+            capability_profile_digest: input.capability_profile_digest,
         }
     }
 
@@ -115,14 +122,24 @@ impl UiPreparedMountedProjection {
     ) -> Result<UiProjectedMountedFrameCandidate, UiMountedProjectionDenial> {
         self.validate_capacity()?;
         let identity_candidate = state.prepare_frame_candidate_for(self.semantic.membership())?;
+        let content_generation = worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+            .map_err(|_| {
+                UiMountedProjectionDenial::Identity(
+                    super::super::UiMountedIdentityDenial::IdentityExhausted,
+                )
+            })?;
         let mut frame = UiMountedProjectionFrame::new(UiMountedProjectionFrameInput {
             frame: identity_candidate.frame(),
+            content_generation,
             receipt_basis: identity_candidate.receipt_basis().clone(),
             plan_digest: self.plan_digest,
             semantic: self.semantic,
             counters: self.counters,
+            capability_generation: self.capability_generation,
+            capability_profile_digest: self.capability_profile_digest,
         });
         frame.complete_static_paint()?;
+        frame.complete_semantic_text()?;
         frame.complete_hit_tests()?;
         if let Some(receipt) = self.ordinary.as_ref() {
             frame.record_ordinary(receipt)?;

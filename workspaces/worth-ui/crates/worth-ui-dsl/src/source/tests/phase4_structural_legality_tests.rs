@@ -1,6 +1,7 @@
 use crate::{
     WorthUiArtifactInputBodyAtom, WorthUiDslCompileDiagnosticCode, WorthUiDslCompileStopClass,
-    WorthUiDslCompiler, WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
+    WorthUiDslCompiler, WorthUiProjectionLifecycle, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule, WorthUiSemanticDeclaration,
 };
 
 #[test]
@@ -39,6 +40,65 @@ fn root_mount_is_rejected_before_runtime_admission() {
     assert_eq!(
         report.diagnostics()[0].identity().code(),
         WorthUiDslCompileDiagnosticCode::IllegalRootStructuralStatement
+    );
+}
+
+#[test]
+fn component_projection_content_is_sealed_as_first_class_meaning() {
+    let module = WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_component_body_atoms(
+            "workspace.component.status",
+            vec![
+                ident("content"),
+                ident("projection"),
+                ident("platform.pulse.status"),
+            ],
+        )
+        .try_with_query_scalar_text(
+            "platform.pulse.status",
+            "platform.pulse.status",
+            "status",
+            WorthUiProjectionLifecycle::Live,
+        )
+        .unwrap();
+    let package = WorthUiDslCompiler::compile_rust_authored(
+        &WorthUiRustAuthoredArtifactInput::from_modules([module]),
+    )
+    .expect("declared projection content should seal");
+    let module = package.module(&package.module_ids()[0]).unwrap();
+    let component = module
+        .declarations()
+        .iter()
+        .find_map(|declaration| match declaration {
+            WorthUiSemanticDeclaration::Component(component) => Some(component),
+            _ => None,
+        })
+        .expect("component declaration");
+
+    assert_eq!(
+        component.structure().projection_contents()[0].projection_identity_text(),
+        "platform.pulse.status"
+    );
+}
+
+#[test]
+fn unknown_projection_content_stops_during_dsl_legality() {
+    let input = WorthUiRustAuthoredArtifactInput::from_modules([
+        WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_component_body_atoms(
+            "workspace.component.status",
+            vec![
+                ident("content"),
+                ident("projection"),
+                ident("platform.pulse.missing"),
+            ],
+        ),
+    ]);
+    let report = WorthUiDslCompiler::compile_rust_authored(&input)
+        .expect_err("unknown projection content must not reach runtime");
+
+    assert_eq!(
+        report.diagnostics()[0].identity().code(),
+        WorthUiDslCompileDiagnosticCode::UnknownProjectionContent
     );
 }
 

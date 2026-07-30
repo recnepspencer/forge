@@ -146,6 +146,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                     all_candidates_admitted: preview.all_candidates_admitted(),
                 }),
                 visual_overlay: None,
+                semantic_content: crate::mounting::UiMountedSemanticContentInput::empty(),
                 reuse_contract,
             })
             .map_err(WorthUiMountedPreviewPreparationDenial::Frame)?;

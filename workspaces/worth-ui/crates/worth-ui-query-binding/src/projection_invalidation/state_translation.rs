@@ -129,13 +129,9 @@ fn current(
             retained_predecessor: None,
             work: derived.counters,
         },
-        Err(stop) => stopped_with_work(
-            context,
-            predecessor,
-            stop.kind,
-            stop.summary,
-            stop.counters,
-        ),
+        Err(stop) => {
+            stopped_with_work(context, predecessor, stop.kind, stop.summary, stop.counters)
+        }
     }
 }
 

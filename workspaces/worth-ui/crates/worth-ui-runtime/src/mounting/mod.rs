@@ -17,6 +17,7 @@ mod publication;
 mod receipt_basis;
 mod retention;
 mod reuse;
+mod semantic_content;
 mod session_state;
 mod surface_binding;
 mod visual_region_basis;
@@ -93,6 +94,12 @@ pub use reuse::{
     UiMountedFrameExecutionPosture, UiMountedFrameReuse, UiMountedFrameReuseComparator,
     UiMountedFrameReuseContract, UiMountedFrameReuseDependency, UiMountedFrameReuseMintingStage,
     UiMountedFrameReuseWitness,
+};
+pub(crate) use semantic_content::{
+    UiMountedCollectionSemanticTextContent, UiMountedCollectionTextChange,
+    UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
+    UiMountedScalarSemanticTextContent, UiMountedSemanticContentInput,
+    UiMountedSemanticTextContent, UiMountedSemanticTextValueDirective,
 };
 pub(crate) use session_state::{
     UiMountedGraphReplacementAdmission, UiMountedGraphReplacementInFlight,

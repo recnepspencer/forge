@@ -5,6 +5,7 @@ pub(super) enum UiObservationProgressKey {
     HostDeviceScale(u64),
     Measurement(u64),
     Query(worth_ui_query_binding::WorthUiCollectionChangeSourceReference),
+    QueryProjection(worth_ui_query_binding::WorthUiQueryViewIdentity),
     CommittedScrollExtent,
     CommittedPortalAnchor,
 }
@@ -50,6 +51,16 @@ impl UiObservationProgress {
     ) -> Self {
         Self {
             key: UiObservationProgressKey::Query(source.clone()),
+            owner_order,
+        }
+    }
+
+    pub(super) fn query_projection(
+        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        owner_order: u64,
+    ) -> Self {
+        Self {
+            key: UiObservationProgressKey::QueryProjection(projection.clone()),
             owner_order,
         }
     }

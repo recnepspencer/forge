@@ -81,12 +81,48 @@ impl WorthUiActiveApplicationSession {
                 crate::runtime::rebind::UiPreparedRebind::evidence_only(plan, reservation, prepared)
             }
             crate::runtime::rebind::UiRebindSemanticProof::NonSource => {
-                Err(crate::runtime::rebind::UiRebindPreparationDenial::UnsupportedNonSourcePlan)
+                self.prepare_content_rebind(plan, reservation)
             }
             crate::runtime::rebind::UiRebindSemanticProof::Transferred => {
                 Err(crate::runtime::rebind::UiRebindPreparationDenial::InvalidSemanticProof)
             }
         }
+    }
+
+    fn prepare_content_rebind(
+        &mut self,
+        plan: crate::runtime::rebind::UiRebindPlan,
+        reservation: crate::runtime::rebind::UiRebindReservation,
+    ) -> Result<
+        crate::runtime::rebind::UiPreparedRebind<'_>,
+        crate::runtime::rebind::UiRebindPreparationDenial,
+    > {
+        let semantic_content = plan.content().clone();
+        let frame = {
+            let completion = self.execute_framework_turn(|_| {}).map_err(|_| {
+                crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
+            })?;
+            let execution = completion.into_execution().map_err(|_| {
+                crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
+            })?;
+            execution
+                .prepare_mounted_frame_with_content_internal(
+                    crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                    semantic_content,
+                )
+                .map_err(|denial| {
+                    crate::runtime::rebind::UiRebindPreparationDenial::ContentMountedPreparation(
+                        Box::new(denial),
+                    )
+                })?
+        };
+        let content =
+            Box::new(crate::facade::entry::WorthUiPreparedMountedContentRebind::new(self, frame));
+        Ok(crate::runtime::rebind::UiPreparedRebind::content(
+            plan,
+            reservation,
+            content,
+        ))
     }
 
     fn prepare_changed_rebind(
@@ -98,6 +134,7 @@ impl WorthUiActiveApplicationSession {
         crate::runtime::rebind::UiPreparedRebind<'_>,
         crate::runtime::rebind::UiRebindPreparationDenial,
     > {
+        let semantic_content = plan.content().clone();
         let mut prepared = WorthUiPreparedApplicationReplacement::from_changed_rebind_plan(
             self.identity,
             *changed,
@@ -124,14 +161,22 @@ impl WorthUiActiveApplicationSession {
             })?
             .into_activation_boundary();
         let replacement = self
-            .prepare_mounted_replacement(
+            .prepare_mounted_replacement_with_content(
                 pending,
                 catalog,
                 boundary,
                 None,
+                semantic_content,
                 crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
             )
-            .map_err(|_| crate::runtime::rebind::UiRebindPreparationDenial::MountedPreparation)?;
+            .map_err(|denial| match denial {
+                crate::facade::WorthUiApplicationCutoverDenial::MountedFrame(denial) => {
+                    crate::runtime::rebind::UiRebindPreparationDenial::CandidateMountedPreparation(
+                        Box::new(denial),
+                    )
+                }
+                _ => crate::runtime::rebind::UiRebindPreparationDenial::CandidateCutoverPreparation,
+            })?;
         let replacement = match replacement {
             WorthUiMountedReplacementPreparationOutcome::Prepared(replacement) => replacement,
             WorthUiMountedReplacementPreparationOutcome::SemanticNoOp(_) => return Err(

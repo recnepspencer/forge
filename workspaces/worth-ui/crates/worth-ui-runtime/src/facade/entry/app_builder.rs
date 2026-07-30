@@ -18,11 +18,11 @@ use crate::facade::WorthUiApp;
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::WorthUiWatchedCandidateSubmission;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthUiQueryViewRegistrationError {
-    Binding(worth_ui_query_binding::WorthUiQueryBindingRegistrationDenial),
-    InvalidIdentity(crate::capability::CapabilityIdError),
-}
+mod registration_error;
+
+pub use registration_error::{
+    WorthUiProjectionRegistrationError, WorthUiQueryViewRegistrationError,
+};
 
 /// Builder for a Worth UI application definition.
 pub struct WorthUiApplicationBuilder<ChangeProfileState = UiChangeProfileInstalled> {
@@ -272,6 +272,28 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
             crate::capability::ViewBindingDescriptor::with_visible_state_binding,
         );
         self.inner = self.inner.register_view_binding(descriptor);
+        Ok(self)
+    }
+
+    pub fn register_scalar_projection(
+        mut self,
+        registration: worth_ui_query_binding::UiScalarProjectionRegistration,
+    ) -> Result<Self, WorthUiProjectionRegistrationError> {
+        self.query_binding_plan = self
+            .query_binding_plan
+            .register_scalar_projection(registration)
+            .map_err(WorthUiProjectionRegistrationError)?;
+        Ok(self)
+    }
+
+    pub fn register_collection_projection(
+        mut self,
+        registration: worth_ui_query_binding::UiCollectionProjectionRegistration,
+    ) -> Result<Self, WorthUiProjectionRegistrationError> {
+        self.query_binding_plan = self
+            .query_binding_plan
+            .register_collection_projection(registration)
+            .map_err(WorthUiProjectionRegistrationError)?;
         Ok(self)
     }
 

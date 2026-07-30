@@ -7,7 +7,8 @@ use worth_ui_host_contract::{
     UiMountedPaintBatchReference, UiMountedPaintBatchTable, UiMountedPaintProjection,
     UiMountedParticipationStatus, UiMountedPreviewProjection, UiMountedProjectionAudience,
     UiMountedProjectionView, UiMountedProjectionViewInput, UiMountedRealtimeBatchTable,
-    UiMountedResourceTable, UiMountedSpatialBatchTable, UiSurfaceBindingGeneration,
+    UiMountedResourceTable, UiMountedSemanticTextMechanic, UiMountedSemanticTextReference,
+    UiMountedSemanticTextTable, UiMountedSpatialBatchTable, UiSurfaceBindingGeneration,
 };
 
 use super::super::{UiMountedNodeReceipt, UiMountedProjectionDenial};
@@ -17,6 +18,8 @@ type UiMountedFilledRectReferenceIndex =
     std::collections::BTreeMap<UiMountedInstanceIdentity, UiMountedFilledRectReference>;
 type UiMountedHitTestReferenceIndex =
     std::collections::BTreeMap<UiMountedInstanceIdentity, UiMountedHitTestReference>;
+type UiMountedSemanticTextReferenceIndex =
+    std::collections::BTreeMap<UiMountedInstanceIdentity, Vec<UiMountedSemanticTextReference>>;
 
 struct UiMountedFilledRectViewRows {
     rows: Vec<UiMountedFilledRectMechanic>,
@@ -28,10 +31,16 @@ struct UiMountedHitTestViewRows {
     references: UiMountedHitTestReferenceIndex,
 }
 
+struct UiMountedSemanticTextViewRows {
+    rows: Vec<UiMountedSemanticTextMechanic>,
+    references: UiMountedSemanticTextReferenceIndex,
+}
+
 struct UiMountedNodeViewContext<'a> {
     surface: UiMountedProjectionSurface,
     filled_rect_by_instance: &'a UiMountedFilledRectReferenceIndex,
     hit_test_by_instance: &'a UiMountedHitTestReferenceIndex,
+    semantic_text_by_instance: &'a UiMountedSemanticTextReferenceIndex,
 }
 
 #[derive(Clone)]
@@ -59,10 +68,12 @@ impl UiMountedProjectionFrame {
             .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
         let filled_rects = self.filled_rect_view_rows(surface)?;
         let hit_tests = self.hit_test_view_rows(surface)?;
+        let semantic_text = self.semantic_text_view_rows(surface)?;
         let node_view_context = UiMountedNodeViewContext {
             surface,
             filled_rect_by_instance: &filled_rects.references,
             hit_test_by_instance: &hit_tests.references,
+            semantic_text_by_instance: &semantic_text.references,
         };
         let nodes = self
             .semantic
@@ -76,20 +87,47 @@ impl UiMountedProjectionFrame {
             .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)?;
         let hit_tests = UiMountedHitTestTable::from_runtime_mounting(hit_tests.rows)
             .ok_or(UiMountedProjectionDenial::HitTestCapacityExceeded)?;
+        let semantic_text = UiMountedSemanticTextTable::from_runtime_mounting(semantic_text.rows)
+            .map_err(|_| UiMountedProjectionDenial::SemanticTextCapacityExceeded)?;
         Ok(UiMountedProjectionView::new(UiMountedProjectionViewInput {
             frame: self.frame,
             surface: surface.surface,
             binding,
+            content_generation: self.content_generation,
             nodes,
             clips: UiMountedClipTable::produced(Vec::new()),
             layers: UiMountedLayerTable::produced(self.layers.clone()),
             filled_rects,
+            semantic_text,
             hit_tests,
             paint_batches: UiMountedPaintBatchTable::new(self.paint_batches.clone()),
             spatial_batches: UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
             realtime_batches: UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
             resources: UiMountedResourceTable::new(self.resources.clone()),
         }))
+    }
+
+    fn semantic_text_view_rows(
+        &self,
+        surface: UiMountedProjectionSurface,
+    ) -> Result<UiMountedSemanticTextViewRows, UiMountedProjectionDenial> {
+        let rows = self
+            .semantic_text
+            .iter()
+            .filter(|row| row.surface() == surface.surface && row.binding() == surface.binding)
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut references = UiMountedSemanticTextReferenceIndex::new();
+        for (index, row) in rows.iter().enumerate() {
+            let reference = u16::try_from(index)
+                .map(UiMountedSemanticTextReference::from_runtime_mounting)
+                .map_err(|_| UiMountedProjectionDenial::SemanticTextCapacityExceeded)?;
+            references
+                .entry(row.mounted_instance())
+                .or_default()
+                .push(reference);
+        }
+        Ok(UiMountedSemanticTextViewRows { rows, references })
     }
 
     fn filled_rect_view_rows(
@@ -187,6 +225,11 @@ impl UiMountedProjectionFrame {
             accessibility,
             motion: receipt.motion(),
             diagnostic,
+            semantic_text: context
+                .semantic_text_by_instance
+                .get(&receipt.mounted_instance())
+                .cloned()
+                .unwrap_or_default(),
         })
     }
 

@@ -3,6 +3,15 @@ pub enum UiRebindCandidatePreparationDenial {
     MountEligibility,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiCollectionProjectionContentDenial {
+    DuplicateChangedRow,
+    MissingChangedRow,
+    UnusedChangedRow,
+    SelectedFieldCapacityExceeded,
+    ResetReachedContentPlanning,
+}
+
 #[derive(Debug)]
 pub enum UiRebindPlanningDenial {
     MissingSourceSuccession,
@@ -14,6 +23,10 @@ pub enum UiRebindPlanningDenial {
     StaleCandidateGeneration,
     StaleCandidateGraph,
     ForeignExecutionPolicySession,
+    AmbiguousProjectionContent {
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    },
+    InvalidCollectionProjectionContent(UiCollectionProjectionContentDenial),
     BudgetExceeded {
         limit: crate::runtime::rebind::UiRebindLimit,
         configured: usize,

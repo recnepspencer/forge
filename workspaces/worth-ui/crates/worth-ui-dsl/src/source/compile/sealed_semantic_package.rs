@@ -91,6 +91,7 @@ struct WorthUiSemanticPackageSealingState {
     provenance_table: Vec<WorthUiArtifactInputProvenance>,
     diagnostics: Vec<WorthUiDslCompileDiagnostic>,
     projection_identities: BTreeSet<String>,
+    projection_content_references: Vec<(String, WorthUiArtifactInputProvenance)>,
 }
 
 impl WorthUiSealedSemanticPackage {
@@ -106,6 +107,7 @@ impl WorthUiSealedSemanticPackage {
                 .expect("normalized semantic input should contain every canonical module");
             state.seal_module(module_id, input_module);
         }
+        state.validate_projection_content_references();
         if !state.diagnostics.is_empty() {
             return Err(WorthUiDslCompileReport::new(state.diagnostics));
         }
@@ -205,6 +207,7 @@ impl WorthUiSemanticPackageSealingState {
             provenance_table: Vec::new(),
             diagnostics: Vec::new(),
             projection_identities: BTreeSet::new(),
+            projection_content_references: Vec::new(),
         }
     }
 
@@ -246,8 +249,35 @@ impl WorthUiSemanticPackageSealingState {
                         sealing::input_node_provenance(input),
                     ));
             }
-            Ok(declaration) => declarations.push(declaration),
+            Ok(declaration) => {
+                if let WorthUiSemanticDeclaration::Component(component) = &declaration {
+                    self.projection_content_references.extend(
+                        component
+                            .structure()
+                            .projection_contents()
+                            .iter()
+                            .map(|content| {
+                                (
+                                    content.projection_identity_text().to_owned(),
+                                    sealing::input_node_provenance(input).clone(),
+                                )
+                            }),
+                    );
+                }
+                declarations.push(declaration);
+            }
             Err(diagnostic) => self.diagnostics.push(diagnostic),
+        }
+    }
+
+    fn validate_projection_content_references(&mut self) {
+        for (identity, provenance) in &self.projection_content_references {
+            if !self.projection_identities.contains(identity) {
+                self.diagnostics
+                    .push(sealing::unknown_projection_content_diagnostic(
+                        identity, provenance,
+                    ));
+            }
         }
     }
 }

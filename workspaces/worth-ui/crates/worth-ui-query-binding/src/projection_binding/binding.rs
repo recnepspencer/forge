@@ -64,6 +64,7 @@ pub struct UiScalarProjectionBinding {
     query_world_identity: worth_query::facade::runtime::WorthQueryEvidenceIdentity,
     runtime_provenance: worth_query::facade::runtime::WorthQueryRuntimeProvenance,
     async_binding_identity: Option<worth_query::facade::runtime::WorthQueryEvidenceIdentity>,
+    next_observation_order: std::cell::Cell<u64>,
     reference: crate::application_binding::WorthUiInstalledScalarTextOperationReference,
     prepared: Option<crate::application_binding::WorthUiPreparedScalarTextConsumer>,
 }
@@ -100,6 +101,7 @@ impl UiScalarProjectionBinding {
             query_world_identity,
             runtime_provenance,
             async_binding_identity: None,
+            next_observation_order: std::cell::Cell::new(1),
             reference,
             prepared: Some(prepared),
         }
@@ -130,6 +132,16 @@ impl UiScalarProjectionBinding {
         self.async_binding_identity = Some(identity);
     }
 
+    pub(crate) fn issue_observation_order(&self) -> u64 {
+        let order = self.next_observation_order.get();
+        self.next_observation_order.set(
+            order
+                .checked_add(1)
+                .expect("projection observation order exhausted"),
+        );
+        order
+    }
+
     pub(crate) fn take_prepared(
         &mut self,
     ) -> Option<crate::application_binding::WorthUiPreparedScalarTextConsumer> {
@@ -154,6 +166,7 @@ impl UiScalarProjectionBinding {
     ) -> Self {
         self.core = predecessor.core;
         self.async_binding_identity = predecessor.async_binding_identity;
+        self.next_observation_order = predecessor.next_observation_order;
         self
     }
 }
@@ -177,6 +190,7 @@ pub struct UiCollectionProjectionBinding {
     view_identity: crate::WorthUiQueryViewIdentity,
     query_world_identity: worth_query::facade::runtime::WorthQueryEvidenceIdentity,
     runtime_provenance: worth_query::facade::runtime::WorthQueryRuntimeProvenance,
+    next_observation_order: std::cell::Cell<u64>,
     reference: crate::application_binding::WorthUiInstalledCollectionTextOperationReference,
     prepared: Option<crate::application_binding::WorthUiPreparedCollectionTextConsumer>,
 }
@@ -212,6 +226,7 @@ impl UiCollectionProjectionBinding {
             view_identity,
             query_world_identity,
             runtime_provenance,
+            next_observation_order: std::cell::Cell::new(1),
             reference,
             prepared: Some(prepared),
         }
@@ -235,6 +250,16 @@ impl UiCollectionProjectionBinding {
         &self.reference
     }
 
+    pub(crate) fn issue_observation_order(&self) -> u64 {
+        let order = self.next_observation_order.get();
+        self.next_observation_order.set(
+            order
+                .checked_add(1)
+                .expect("projection observation order exhausted"),
+        );
+        order
+    }
+
     pub(crate) fn replacement_attempt_identity(
         &self,
     ) -> worth_query::facade::runtime::WorthQueryEvidenceIdentity {
@@ -246,6 +271,7 @@ impl UiCollectionProjectionBinding {
         predecessor: UiCollectionProjectionBinding,
     ) -> Self {
         self.core = predecessor.core;
+        self.next_observation_order = predecessor.next_observation_order;
         self
     }
 

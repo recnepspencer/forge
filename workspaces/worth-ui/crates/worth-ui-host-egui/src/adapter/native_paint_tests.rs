@@ -1,4 +1,6 @@
-use super::{UiEguiPreparedFilledRect, UiEguiPreparedNativePaint};
+use super::{
+    UiEguiPreparedFilledRect, UiEguiPreparedNativePaint, UiEguiPreparedNativePaintCommand,
+};
 
 #[test]
 fn one_surface_paints_sorted_semantic_rows_back_to_front() {
@@ -7,9 +9,17 @@ fn one_surface_paints_sorted_semantic_rows_back_to_front() {
     let target = egui::Rect::from_min_size(egui::pos2(48.0, 24.0), egui::vec2(64.0, 48.0));
     let paint = UiEguiPreparedNativePaint {
         layer: egui::LayerId::new(egui::Order::Middle, egui::Id::new("ordered-surface")),
-        filled_rects: vec![
-            filled_rect(viewport, egui::Color32::from_rgb(47, 129, 247), 0),
-            filled_rect(target, egui::Color32::from_rgb(242, 204, 96), 1),
+        commands: vec![
+            UiEguiPreparedNativePaintCommand::FilledRect(filled_rect(
+                viewport,
+                egui::Color32::from_rgb(47, 129, 247),
+                0,
+            )),
+            UiEguiPreparedNativePaintCommand::FilledRect(filled_rect(
+                target,
+                egui::Color32::from_rgb(242, 204, 96),
+                1,
+            )),
         ],
     };
     let output = context.run(raw_input(), |_| paint.paint(&context));

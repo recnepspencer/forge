@@ -2,6 +2,7 @@ mod basis;
 mod budget;
 mod compiler;
 mod conflicts;
+mod content_plan;
 mod context;
 mod cost;
 mod currentness;
@@ -22,7 +23,9 @@ pub(crate) use compiler::UiRebindPlanCompiler;
 pub use conflicts::{UiRebindConflictFootprint, UiRebindParallelAdmission, UiRebindResourceAccess};
 pub(crate) use context::UiRebindPlanningContext;
 pub use cost::UiRebindPlanCost;
-pub use denial::{UiRebindCandidatePreparationDenial, UiRebindPlanningDenial};
+pub use denial::{
+    UiCollectionProjectionContentDenial, UiRebindCandidatePreparationDenial, UiRebindPlanningDenial,
+};
 pub use effects::{UiRebindDeclarativeEffect, UiRebindEffectSet};
 pub use plan::UiRebindPlan;
 pub(crate) use plan::{UiChangedRebindSemanticProof, UiRebindPlanInput, UiRebindSemanticProof};

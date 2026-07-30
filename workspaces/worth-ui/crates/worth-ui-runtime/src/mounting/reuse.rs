@@ -158,6 +158,16 @@ impl UiMountedFrameReuseContract {
         self.host_session
     }
 
+    pub(in crate::mounting) const fn capability_generation(
+        &self,
+    ) -> worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration {
+        self.capability_generation
+    }
+
+    pub(in crate::mounting) const fn capability_profile_digest(&self) -> u64 {
+        self.capability_profile_digest
+    }
+
     pub const fn plan_digest(&self) -> u64 {
         self.plan_digest
     }

@@ -16,8 +16,8 @@ pub use budget::{
 };
 pub use collection::{
     UiCollectionCompleteness, UiCollectionContinuation, UiCollectionProjectionChange,
-    UiCollectionProjectionFactReceipt, UiCollectionProjectionRowReference,
-    UiCollectionProjectionTextRow, UiCollectionProjectionValue,
+    UiCollectionProjectionDelivery, UiCollectionProjectionFactReceipt,
+    UiCollectionProjectionRowReference, UiCollectionProjectionTextRow, UiCollectionProjectionValue,
 };
 pub(crate) use collection_change_derivation::derive_applied_collection_projection;
 pub(crate) use collection_derivation::{
@@ -26,6 +26,7 @@ pub(crate) use collection_derivation::{
 };
 pub use collection_work_counters::UiCollectionProjectionWorkCounters;
 pub use fact_receipt::UiProjectionFactReceipt;
+pub(crate) use fact_receipt::UiProjectionFactReceiptInput;
 pub use native_value::UiNativeTextValue;
 pub use posture::{
     UiPresentProjection, UiProjectionAvailability, UiProjectionFactStopKind,

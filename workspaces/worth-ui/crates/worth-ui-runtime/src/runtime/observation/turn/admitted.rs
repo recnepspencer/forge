@@ -15,9 +15,14 @@ pub(in crate::runtime::observation) enum UiAdmittedObservationPayload {
     Source(crate::runtime::WorthUiWatchedCandidateSubmission),
     Host(super::super::admission::UiHostObservation),
     Measurement(crate::host_exchange::measurement_admission::UiSolicitedHostMeasurementResult),
-    Query(worth_ui_query_binding::WorthUiValidatedCollectionChangeObservation),
+    Query(UiAdmittedQueryObservation),
     CommittedScrollExtent(super::super::admission::UiCommittedScrollExtentObservation),
     CommittedPortalAnchor(super::super::admission::UiCommittedPortalAnchorObservation),
+}
+
+pub(in crate::runtime::observation) enum UiAdmittedQueryObservation {
+    OperationLive(worth_ui_query_binding::WorthUiValidatedCollectionChangeObservation),
+    Projection(worth_ui_query_binding::UiProjectionObservation),
 }
 
 pub(in crate::runtime::observation) struct UiAdmittedObservationSeal {
@@ -89,7 +94,12 @@ impl UiAdmittedObservation {
 
     pub fn query_change_order(&self) -> Option<u64> {
         match &self.payload {
-            UiAdmittedObservationPayload::Query(observation) => Some(observation.change_order()),
+            UiAdmittedObservationPayload::Query(UiAdmittedQueryObservation::OperationLive(
+                observation,
+            )) => Some(observation.change_order()),
+            UiAdmittedObservationPayload::Query(UiAdmittedQueryObservation::Projection(
+                observation,
+            )) => Some(observation.owner_order()),
             UiAdmittedObservationPayload::Source(_)
             | UiAdmittedObservationPayload::Host(_)
             | UiAdmittedObservationPayload::Measurement(_)

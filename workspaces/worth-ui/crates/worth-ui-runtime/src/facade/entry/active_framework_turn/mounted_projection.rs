@@ -41,10 +41,24 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         crate::mounting::UiPreparedMountedFrame,
         crate::mounting::UiMountedFramePreparationDenial,
     > {
+        self.prepare_mounted_frame_with_content_internal(
+            request,
+            crate::mounting::UiMountedSemanticContentInput::empty(),
+        )
+    }
+
+    pub(crate) fn prepare_mounted_frame_with_content_internal(
+        &self,
+        request: crate::mounting::UiMountedFrameRequest,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+    ) -> Result<
+        crate::mounting::UiPreparedMountedFrame,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
         let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
-        let mut projection = self.begin_mounted_projection(request, lanes)?;
+        let mut projection = self.begin_mounted_projection(request, lanes, semantic_content)?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
         projection.finish()
     }
@@ -53,6 +67,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         &'frame self,
         request: crate::mounting::UiMountedFrameRequest,
         lanes: crate::mounting::UiMountedLaneAssembly,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
     ) -> Result<
         WorthUiActiveMountedProjectionFrame<'frame, 'session>,
         crate::mounting::UiMountedFramePreparationDenial,
@@ -85,6 +100,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
                     lanes,
                     preview: None,
                     visual_overlay,
+                    semantic_content,
                     reuse_contract,
                 })?;
         Ok(WorthUiActiveMountedProjectionFrame {

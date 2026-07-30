@@ -12,8 +12,10 @@ pub struct UiRebindPlan {
     effects: UiRebindEffectSet,
     conflicts: UiRebindConflictFootprint,
     parallel: UiRebindParallelAdmission,
+    content: crate::mounting::UiMountedSemanticContentInput,
     policy: UiRebindExecutionPolicy,
     budget: crate::runtime::rebind::UiRebindBudgetInput,
+    effecting_observation_capacity: usize,
     cost: UiRebindPlanCost,
     source_candidate_artifact_digest: Option<u64>,
     semantic_proof: UiRebindSemanticProof,
@@ -42,8 +44,10 @@ pub(crate) struct UiRebindPlanInput {
     pub(crate) effects: UiRebindEffectSet,
     pub(crate) conflicts: UiRebindConflictFootprint,
     pub(crate) parallel: UiRebindParallelAdmission,
+    pub(crate) content: crate::mounting::UiMountedSemanticContentInput,
     pub(crate) policy: UiRebindExecutionPolicy,
     pub(crate) budget: crate::runtime::rebind::UiRebindBudgetInput,
+    pub(crate) effecting_observation_capacity: usize,
     pub(crate) cost: UiRebindPlanCost,
     pub(crate) semantic_proof: UiRebindSemanticProof,
 }
@@ -60,8 +64,10 @@ impl UiRebindPlan {
             effects: input.effects,
             conflicts: input.conflicts,
             parallel: input.parallel,
+            content: input.content,
             policy: input.policy,
             budget: input.budget,
+            effecting_observation_capacity: input.effecting_observation_capacity,
             cost: input.cost,
             source_candidate_artifact_digest,
             semantic_proof: input.semantic_proof,
@@ -103,12 +109,20 @@ impl UiRebindPlan {
         &self.parallel
     }
 
+    pub(crate) const fn content(&self) -> &crate::mounting::UiMountedSemanticContentInput {
+        &self.content
+    }
+
     pub const fn execution_policy(&self) -> UiRebindExecutionPolicy {
         self.policy
     }
 
     pub const fn budget(&self) -> crate::runtime::rebind::UiRebindBudgetInput {
         self.budget
+    }
+
+    pub const fn effecting_observation_capacity(&self) -> usize {
+        self.effecting_observation_capacity
     }
 
     pub const fn cost(&self) -> UiRebindPlanCost {

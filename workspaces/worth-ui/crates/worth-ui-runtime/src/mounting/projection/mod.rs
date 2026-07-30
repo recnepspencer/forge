@@ -8,6 +8,7 @@ mod mechanical_role;
 mod node_receipt;
 mod participation;
 mod prepared_projection;
+mod semantic_text;
 mod static_paint;
 
 pub use denial::UiMountedProjectionDenial;

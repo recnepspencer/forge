@@ -4,6 +4,7 @@ use crate::WorthUiQueryViewIdentity;
 pub enum WorthUiQueryBindingRegistrationDenialKind {
     ForeignInstalledDomain,
     DuplicateViewIdentity,
+    DuplicateProjectionIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
