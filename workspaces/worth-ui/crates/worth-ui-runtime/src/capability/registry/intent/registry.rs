@@ -2,6 +2,7 @@ use crate::capability::{
     CapabilitySupportKind, RegistrationCandidate, INTENT_DEFINITION_FAMILY_NAME,
 };
 
+use super::semantic_digest::UiIntentSemanticDigest;
 use super::{IntentDefinitionAcceptedRegistrationProof, IntentDefinitionDescriptor};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -108,39 +109,28 @@ impl FrozenIntentDefinitionCapabilities {
     }
 
     pub(crate) fn digest_basis(&self) -> u64 {
-        self.definitions
-            .iter()
-            .fold(0x6614_6d3a_8cb9_104f, |basis, definition| {
-                let with_id = fold_bytes(basis, definition.id().as_str().as_bytes());
-                let with_payload = fold_bytes(
-                    with_id,
-                    definition.payload_schema().digest_basis().as_bytes(),
-                );
-                let with_outcome = fold_bytes(
-                    with_payload,
-                    definition
-                        .product_outcome_schema()
-                        .digest_basis()
-                        .as_bytes(),
-                );
-                let with_destination = fold_bytes(
-                    with_outcome,
+        let mut digest = UiIntentSemanticDigest::new(0x6614_6d3a_8cb9_104f)
+            .usize("definition-count", self.definitions.len());
+        for definition in &self.definitions {
+            let payload = definition.payload_schema();
+            let outcome = definition.product_outcome_schema();
+            let interactions = definition.accepted_interactions();
+            digest = digest
+                .field("definition", &[])
+                .field("intent-id", definition.id().as_str().as_bytes())
+                .field("payload-schema-id", payload.stable_identity().as_bytes())
+                .u16("payload-schema-version", payload.version())
+                .field("outcome-schema-id", outcome.stable_identity().as_bytes())
+                .u16("outcome-schema-version", outcome.version())
+                .field(
+                    "execution-destination",
                     definition.execution_destination().digest_basis().as_bytes(),
-                );
-                definition
-                    .accepted_interactions()
-                    .iter()
-                    .fold(with_destination, |basis, interaction| {
-                        fold_bytes(basis, interaction.digest_basis().as_bytes())
-                    })
-            })
+                )
+                .usize("interaction-count", interactions.len());
+            for interaction in interactions {
+                digest = digest.field("interaction", interaction.digest_basis().as_bytes());
+            }
+        }
+        digest.finish()
     }
-}
-
-fn fold_bytes(mut accumulator: u64, bytes: &[u8]) -> u64 {
-    for byte in bytes {
-        accumulator ^= u64::from(*byte);
-        accumulator = accumulator.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    accumulator
 }

@@ -14,7 +14,7 @@ pub(super) fn close_recovered(
         });
     let cleanup = closed.evidence();
     assert_eq!(cleanup.close_request_count(), 1);
-    assert_eq!(cleanup.shutdown_sequence(), 23);
+    assert_eq!(cleanup.shutdown_sequence(), 25);
     assert!(cleanup.shutdown().host_session_released());
     assert!(cleanup.shutdown().query_watcher_joined());
     assert!(cleanup.shutdown().query_owner_terminal());

@@ -101,21 +101,24 @@ impl AcceptedRegistryProofs {
     fn from_validation(validation: &RegistrationValidationReport) -> Self {
         Self {
             commands: accepted(validation, RegistryFamily::Command),
-            command_projections: accepted_command_projections(validation),
+            command_projections: accepted(validation, RegistryFamily::CommandProjection),
             components: accepted(validation, RegistryFamily::Component),
             icons: accepted(validation, RegistryFamily::Icon),
-            intent_definitions: accepted_intent_definitions(validation),
+            intent_definitions: accepted(validation, RegistryFamily::IntentDefinition),
             surfaces: accepted(validation, RegistryFamily::Surface),
-            mosaic_regions: accepted_mosaic_regions(validation),
-            mosaic_placements: accepted_mosaic_placements(validation),
-            mosaic_sizing: accepted_mosaic_sizing(validation),
-            mosaic_state_slots: accepted_mosaic_state_slots(validation),
-            native_capabilities: accepted_native_capabilities(validation),
-            plugin_slots: accepted_plugin_slots(validation),
-            view_bindings: accepted_view_bindings(validation),
-            runtime_outcome_projections: accepted_runtime_outcomes(validation),
+            mosaic_regions: accepted(validation, RegistryFamily::MosaicRegionKind),
+            mosaic_placements: accepted(validation, RegistryFamily::MosaicPlacementPolicy),
+            mosaic_sizing: accepted(validation, RegistryFamily::MosaicSizingContract),
+            mosaic_state_slots: accepted(validation, RegistryFamily::MosaicStateSlot),
+            native_capabilities: accepted(validation, RegistryFamily::NativeCapability),
+            plugin_slots: accepted(validation, RegistryFamily::PluginSlot),
+            view_bindings: accepted(validation, RegistryFamily::ViewBinding),
+            runtime_outcome_projections: accepted(
+                validation,
+                RegistryFamily::RuntimeOutcomeProjection,
+            ),
             settings: accepted(validation, RegistryFamily::Setting),
-            task_presentations: accepted_task_presentations(validation),
+            task_presentations: accepted(validation, RegistryFamily::TaskPresentation),
             theme_tokens: accepted(validation, RegistryFamily::ThemeToken),
         }
     }
@@ -147,74 +150,19 @@ macro_rules! accepted_identity_proof {
 }
 
 accepted_identity_proof!(CommandAcceptedRegistrationProof);
+accepted_identity_proof!(CommandProjectionAcceptedRegistrationProof);
 accepted_identity_proof!(ComponentAcceptedRegistrationProof);
 accepted_identity_proof!(IconAcceptedRegistrationProof);
+accepted_identity_proof!(IntentDefinitionAcceptedRegistrationProof);
+accepted_identity_proof!(MosaicPlacementAcceptedRegistrationProof);
+accepted_identity_proof!(MosaicRegionAcceptedRegistrationProof);
+accepted_identity_proof!(MosaicSizingAcceptedRegistrationProof);
+accepted_identity_proof!(MosaicStateSlotAcceptedRegistrationProof);
+accepted_identity_proof!(NativeCapabilityAcceptedRegistrationProof);
+accepted_identity_proof!(PluginSlotAcceptedRegistrationProof);
+accepted_identity_proof!(RuntimeOutcomeProjectionAcceptedRegistrationProof);
 accepted_identity_proof!(SettingAcceptedRegistrationProof);
 accepted_identity_proof!(SurfaceAcceptedRegistrationProof);
+accepted_identity_proof!(TaskPresentationAcceptedRegistrationProof);
 accepted_identity_proof!(ThemeTokenAcceptedRegistrationProof);
-
-macro_rules! accepted_for_family {
-    ($function:ident, $proof:ty, $family:expr) => {
-        fn $function(validation: &RegistrationValidationReport) -> $proof {
-            <$proof>::from_identity_texts(
-                validation.accepted_identity_texts_for_registry_family($family),
-            )
-        }
-    };
-}
-
-accepted_for_family!(
-    accepted_command_projections,
-    CommandProjectionAcceptedRegistrationProof,
-    RegistryFamily::CommandProjection
-);
-accepted_for_family!(
-    accepted_intent_definitions,
-    IntentDefinitionAcceptedRegistrationProof,
-    RegistryFamily::IntentDefinition
-);
-accepted_for_family!(
-    accepted_mosaic_regions,
-    MosaicRegionAcceptedRegistrationProof,
-    RegistryFamily::MosaicRegionKind
-);
-accepted_for_family!(
-    accepted_mosaic_placements,
-    MosaicPlacementAcceptedRegistrationProof,
-    RegistryFamily::MosaicPlacementPolicy
-);
-accepted_for_family!(
-    accepted_mosaic_sizing,
-    MosaicSizingAcceptedRegistrationProof,
-    RegistryFamily::MosaicSizingContract
-);
-accepted_for_family!(
-    accepted_mosaic_state_slots,
-    MosaicStateSlotAcceptedRegistrationProof,
-    RegistryFamily::MosaicStateSlot
-);
-accepted_for_family!(
-    accepted_native_capabilities,
-    NativeCapabilityAcceptedRegistrationProof,
-    RegistryFamily::NativeCapability
-);
-accepted_for_family!(
-    accepted_plugin_slots,
-    PluginSlotAcceptedRegistrationProof,
-    RegistryFamily::PluginSlot
-);
-accepted_for_family!(
-    accepted_view_bindings,
-    ViewBindingAcceptedRegistrationProof,
-    RegistryFamily::ViewBinding
-);
-accepted_for_family!(
-    accepted_runtime_outcomes,
-    RuntimeOutcomeProjectionAcceptedRegistrationProof,
-    RegistryFamily::RuntimeOutcomeProjection
-);
-accepted_for_family!(
-    accepted_task_presentations,
-    TaskPresentationAcceptedRegistrationProof,
-    RegistryFamily::TaskPresentation
-);
+accepted_identity_proof!(ViewBindingAcceptedRegistrationProof);

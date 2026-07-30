@@ -5,9 +5,9 @@ use crate::installation::CanonicalPlatformPulse;
 use crate::product_process::{
     AwaitingFirstFrame, AwaitingPreservation, AwaitingRecovery, AwaitingReplacement,
     AwaitingSchemaStop, AwaitingStatusRecovery, CargoBuiltPlatformPulse, Closed, FinalRecovered,
-    FirstCurrent, GreenSuccessor, IdentityTraced, InitialBlue, Installed, OverlayCleared,
-    OverlayPublished, PreservedPredecessor, Published, PulseExecutableWorld, RecoveredBlue,
-    SchemaStopped, SecondCurrent, SnapshotCaptured,
+    FirstCurrent, GreenSuccessor, IdentityTraced, InitialBlue, Installed, NativeInputReached,
+    OverlayCleared, OverlayPublished, PreservedPredecessor, Published, PulseExecutableWorld,
+    RecoveredBlue, SchemaStopped, SecondCurrent, SnapshotCaptured,
 };
 use crate::source_delta::{
     CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, MalformedPulseSourceDelta,
@@ -17,6 +17,7 @@ use crate::source_delta::{
 
 use super::journey_cost::{JourneyCostInputs, PlatformPulseJourneyCost};
 use super::platform_pulse_cleanup::close_recovered;
+use super::platform_pulse_input::reach_native_input;
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 
@@ -54,7 +55,9 @@ pub(super) fn complete(deltas: PlatformPulseJourneyDeltas) -> CompletedPlatformP
     let first_publication = initial.launch_to_first_publication();
     let mut native_captures = initial.evidence().capture_count();
     let window_lookups = initial.evidence().client_area().window_lookup_count();
-    let first_current = publish_first_current(initial);
+    let input_reached = reach_native_input(initial, Instant::now() + TRANSITION_DEADLINE);
+    native_captures += input_reached.evidence().capture_count();
+    let first_current = publish_first_current(input_reached);
     native_captures += first_current.query_evidence().pixels().capture_count();
     let (visualized, visual_captures) = publish_visual_identity(first_current);
     native_captures += visual_captures;
@@ -112,7 +115,7 @@ fn publish_visual_identity(
         .await_overlay_published(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("publish visible mounted identity overlay: {failure}"));
     let (matching, sampled) = overlay.evidence().border_ratio();
-    assert_eq!(overlay.evidence().sequence(), 9);
+    assert_eq!(overlay.evidence().sequence(), 11);
     assert!(matching * 4 >= sampled * 3);
     let overlay_captures = overlay.evidence().capture_count();
 
@@ -123,21 +126,21 @@ fn publish_visual_identity(
         cleared.evidence().clear().cleared_frame(),
         cleared.evidence().clear().published_frame()
     );
-    assert_eq!(cleared.evidence().sequence(), 10);
+    assert_eq!(cleared.evidence().sequence(), 12);
     let captures = overlay_captures + cleared.evidence().capture_count();
     (cleared, captures)
 }
 
 fn publish_first_current(
-    initial: PulseExecutableWorld<Published<InitialBlue>>,
+    initial: PulseExecutableWorld<Published<NativeInputReached<InitialBlue>>>,
 ) -> PulseExecutableWorld<Published<FirstCurrent>> {
     let current = initial
         .publish_first_query_value(QueryStatusV1)
         .unwrap_or_else(|failure| panic!("publish first Query world input: {failure}"))
         .await_first_query_value(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("first Query value reaches native pixels: {failure}"));
-    assert_eq!(current.query_evidence().issued_sequence(), 5);
-    assert_eq!(current.query_evidence().published_sequence(), 6);
+    assert_eq!(current.query_evidence().issued_sequence(), 7);
+    assert_eq!(current.query_evidence().published_sequence(), 8);
     assert!(
         current.query_evidence().matching_blue_samples() * 4
             >= current.query_evidence().sampled_pixels() * 3
@@ -153,10 +156,10 @@ fn publish_second_current(
         .unwrap_or_else(|failure| panic!("publish second Query world input: {failure}"))
         .await_second_query_value(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("second Query value reaches native pixels: {failure}"));
-    assert_eq!(current.query_evidence().issued_sequence(), 11);
-    assert_eq!(current.query_evidence().published_sequence(), 12);
-    assert_eq!(current.refresh_retirement_evidence().sequence(), 13);
-    assert_eq!(current.refresh_snapshot_evidence().sequence(), 14);
+    assert_eq!(current.query_evidence().issued_sequence(), 13);
+    assert_eq!(current.query_evidence().published_sequence(), 14);
+    assert_eq!(current.refresh_retirement_evidence().sequence(), 15);
+    assert_eq!(current.refresh_snapshot_evidence().sequence(), 16);
     assert!(
         current.query_evidence().matching_blue_samples() * 4
             >= current.query_evidence().sampled_pixels() * 3
@@ -219,7 +222,7 @@ fn publish_green(
         });
     let evidence = green.evidence();
     assert_action(evidence.action(), PulseSourceDeltaIdentity::Green);
-    assert_eq!(evidence.sequence(), 15);
+    assert_eq!(evidence.sequence(), 17);
     assert_eq!(
         green.retirement_evidence().retirement().successor_frame(),
         evidence.replacement().successor_frame().diagnostic_value()
@@ -259,7 +262,7 @@ fn preserve_green(
         });
     let evidence = preserved.evidence();
     assert_action(evidence.action(), PulseSourceDeltaIdentity::Malformed);
-    assert_eq!(evidence.sequence(), 19);
+    assert_eq!(evidence.sequence(), 21);
     assert_eq!(evidence.preserved().active_generation(), prior_generation);
     assert_eq!(evidence.preserved().active_frame(), prior_frame);
     assert_eq!(evidence.identity().window(), prior_window);
@@ -291,8 +294,8 @@ fn recover_blue(
         evidence.action(),
         PulseSourceDeltaIdentity::CanonicalBlueRecovery,
     );
-    assert_eq!(evidence.sequence(), 20);
-    assert_eq!(recovered.preservation_evidence().sequence(), 19);
+    assert_eq!(evidence.sequence(), 22);
+    assert_eq!(recovered.preservation_evidence().sequence(), 21);
     assert_eq!(evidence.identity().process_id(), process);
     assert_eq!(evidence.identity().window(), window);
     assert_ne!(evidence.replacement().active_generation(), prior_generation);
@@ -321,7 +324,7 @@ fn stop_on_revision_schema(
         evidence.replacement().action(),
         PulseSourceDeltaIdentity::RevisionSchema,
     );
-    assert_eq!(evidence.replacement().sequence(), 21);
+    assert_eq!(evidence.replacement().sequence(), 23);
     assert_eq!(evidence.query_basis(), &prior_query);
     assert_eq!(
         evidence.transition().kind(),
@@ -352,7 +355,7 @@ fn recover_status_schema(
         evidence.replacement().action(),
         PulseSourceDeltaIdentity::StatusSchemaRecovery,
     );
-    assert_eq!(evidence.replacement().sequence(), 22);
+    assert_eq!(evidence.replacement().sequence(), 24);
     assert_eq!(evidence.query_basis(), &stopped_query);
     assert_eq!(
         evidence.transition().kind(),

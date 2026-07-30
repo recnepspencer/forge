@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    NativeInputReached(super::native_input::PlatformPulseNativeInputReached),
     QueryProjectionIssued(super::query::PlatformPulseQueryProjectionEvidence),
     QueryProjectionPublished(super::query::PlatformPulseQueryProjectionPublished),
     VisualSnapshotCaptured(super::visual::PlatformPulseVisualSnapshotCaptured),

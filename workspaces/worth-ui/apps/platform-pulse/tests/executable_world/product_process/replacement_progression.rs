@@ -25,10 +25,14 @@ use super::{
 
 struct WatchedReplacementObservation {
     envelope: PlatformPulseLifecycleObservationEnvelope,
+    visual: WatchedReplacementVisualObservation,
+    native: WatchedNativeObservation,
+}
+
+struct WatchedReplacementVisualObservation {
     successor_snapshot: Option<PlatformPulseLifecycleObservationEnvelope>,
     comparison: Option<PlatformPulseLifecycleObservationEnvelope>,
     retirement: Option<PlatformPulseLifecycleObservationEnvelope>,
-    native: WatchedNativeObservation,
 }
 
 impl PulseExecutableWorld<AwaitingReplacement> {
@@ -155,9 +159,11 @@ fn observe_replacement(
     let native = observe_watched_native(world)?;
     Ok(WatchedReplacementObservation {
         envelope,
-        successor_snapshot,
-        comparison,
-        retirement,
+        visual: WatchedReplacementVisualObservation {
+            successor_snapshot,
+            comparison,
+            retirement,
+        },
         native,
     })
 }
@@ -176,15 +182,17 @@ fn green_evidence(
 > {
     let WatchedReplacementObservation {
         envelope,
-        successor_snapshot,
-        comparison,
-        retirement,
+        visual: observed_visual,
         native,
     } = observed;
     let visual = initial.visual();
     let causal = CausalReplacementObservationSet::new(
         action,
-        visual.initial().prior.evidence.published_identity(),
+        visual
+            .initial()
+            .prior
+            .first_frame_evidence()
+            .published_identity(),
         envelope,
         ReplacementExpectation::green_successor(),
     );
@@ -195,19 +203,38 @@ fn green_evidence(
         ExpectedNativeColor::Green,
     ))
     .map_err(PulseExecutableWorldFailure::Replacement)?;
+    let (comparison, retirement) = green_visual_evidence(initial, &evidence, observed_visual)?;
+    Ok((evidence, comparison, retirement))
+}
+
+fn green_visual_evidence(
+    initial: &SecondCurrent,
+    evidence: &ExecutableReplacementEvidence<GreenPulseSourceDelta>,
+    observed: WatchedReplacementVisualObservation,
+) -> Result<
+    (
+        ExecutableVisualComparisonEvidence,
+        ExecutableVisualRetirementEvidence,
+    ),
+    PulseExecutableWorldFailure,
+> {
     let successor_snapshot =
-        successor_snapshot.ok_or(PulseExecutableWorldFailure::VisualIdentity(
-            ExecutableVisualIdentityFailure::WrongEvent("successor visual snapshot"),
-        ))?;
+        observed
+            .successor_snapshot
+            .ok_or(PulseExecutableWorldFailure::VisualIdentity(
+                ExecutableVisualIdentityFailure::WrongEvent("successor visual snapshot"),
+            ))?;
     let successor_snapshot = adjudicate_successor_visual_snapshot(
         successor_snapshot,
         evidence.replacement().successor_frame().diagnostic_value(),
         evidence.sequence().saturating_add(1),
     )
     .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
-    let comparison = comparison.ok_or(PulseExecutableWorldFailure::VisualIdentity(
-        ExecutableVisualIdentityFailure::WrongEvent("visual comparison"),
-    ))?;
+    let comparison = observed
+        .comparison
+        .ok_or(PulseExecutableWorldFailure::VisualIdentity(
+            ExecutableVisualIdentityFailure::WrongEvent("visual comparison"),
+        ))?;
     let comparison = adjudicate_visual_comparison(
         comparison,
         initial.snapshot_evidence(),
@@ -215,9 +242,11 @@ fn green_evidence(
         successor_snapshot.sequence().saturating_add(1),
     )
     .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
-    let retirement = retirement.ok_or(PulseExecutableWorldFailure::VisualIdentity(
-        ExecutableVisualIdentityFailure::WrongEvent("visual snapshot retired"),
-    ))?;
+    let retirement = observed
+        .retirement
+        .ok_or(PulseExecutableWorldFailure::VisualIdentity(
+            ExecutableVisualIdentityFailure::WrongEvent("visual snapshot retired"),
+        ))?;
     let retirement = adjudicate_visual_retirement(
         retirement,
         initial.snapshot_evidence(),
@@ -225,7 +254,7 @@ fn green_evidence(
         comparison.sequence().saturating_add(1),
     )
     .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
-    Ok((evidence, comparison, retirement))
+    Ok((comparison, retirement))
 }
 
 fn recovery_evidence(

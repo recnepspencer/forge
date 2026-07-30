@@ -107,6 +107,8 @@ fn reach_second_current(
     published: PulseExecutableWorld<Published<InitialBlue>>,
 ) -> PulseExecutableWorld<Published<SecondCurrent>> {
     let first = published
+        .reach_native_input(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile native-input stage: {failure}"))
         .publish_first_query_value(QueryStatusV1)
         .unwrap_or_else(|failure| panic!("publish hostile first Query value: {failure}"))
         .await_first_query_value(Instant::now() + TRANSITION_DEADLINE)

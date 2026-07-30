@@ -295,6 +295,7 @@ impl LifecycleTraceEntry {
         let outcome = match envelope.outcome() {
             PlatformPulseLifecycleObservation::ProcessStarted(_) => "process_started",
             PlatformPulseLifecycleObservation::FirstFramePublished(_) => "first_frame_published",
+            PlatformPulseLifecycleObservation::NativeInputReached(_) => "native_input_reached",
             PlatformPulseLifecycleObservation::QueryProjectionIssued(_) => {
                 "query_projection_issued"
             }

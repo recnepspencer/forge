@@ -15,7 +15,7 @@ use super::{
 };
 
 #[test]
-fn schema_v3_snapshot_observation_round_trips_without_pixel_payload_bytes() {
+fn current_schema_snapshot_observation_round_trips_without_pixel_payload_bytes() {
     let (mut stream, _) = PlatformPulseLifecycleObservationStream::start();
     let envelope = stream
         .next_envelope(PlatformPulseLifecycleObservation::VisualSnapshotCaptured(

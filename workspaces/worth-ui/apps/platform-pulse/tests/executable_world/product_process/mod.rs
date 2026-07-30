@@ -3,6 +3,8 @@ mod first_frame_progression;
 mod launch;
 mod native_desktop_lease;
 #[cfg(target_os = "windows")]
+mod native_input_progression;
+#[cfg(target_os = "windows")]
 mod normal_close_progression;
 #[cfg(target_os = "windows")]
 mod preservation_progression;
@@ -34,10 +36,10 @@ pub(crate) use progression::{
     AwaitingFirstFrame, AwaitingPreservation, AwaitingQueryCurrent, AwaitingRecovery,
     AwaitingReplacement, AwaitingSchemaStop, AwaitingStatusRecovery, Closed,
     ComparisonBasisRefreshed, FinalRecovered, FirstCurrent, GreenSuccessor, IdentityTraced,
-    InitialBlue, Installed, NativeBoundExecutableWorld, OverlayCleared, OverlayPublished,
-    PreservedPredecessor, PreservedPredecessorEvidence, Published, PulseExecutableWorld,
-    QueryCurrent, RecoveredBlue, SchemaStopped, SecondCurrent, SecondQueryCurrent,
-    SnapshotCaptured,
+    InitialBlue, Installed, NativeBoundExecutableWorld, NativeInputReached, OverlayCleared,
+    OverlayPublished, PreservedPredecessor, PreservedPredecessorEvidence, Published,
+    PulseExecutableWorld, QueryCurrent, RecoveredBlue, SchemaStopped, SecondCurrent,
+    SecondQueryCurrent, SnapshotCaptured,
 };
 pub(crate) use shutdown::{PlatformPulseProcessExitFailure, SuccessfulPlatformPulseExit};
 pub(crate) use watched_observation::{

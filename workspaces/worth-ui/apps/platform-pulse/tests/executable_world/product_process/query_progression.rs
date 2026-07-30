@@ -11,16 +11,22 @@ use crate::source_delta::{QueryStatusV1, QueryStatusV2};
 use super::watched_native_observation::observe_watched_native;
 use super::{
     await_watched_observation, AwaitingQueryCurrent, ComparisonBasisRefreshed, FirstCurrent,
-    InitialBlue, OverlayCleared, Published, PulseExecutableWorld, QueryCurrent, SecondCurrent,
-    SecondQueryCurrent, WatchedPulseTransition,
+    InitialBlue, NativeInputReached, OverlayCleared, Published, PulseExecutableWorld, QueryCurrent,
+    SecondCurrent, SecondQueryCurrent, WatchedPulseTransition,
 };
 
-impl PulseExecutableWorld<Published<InitialBlue>> {
+struct QueryExpectation<'value> {
+    value: &'value str,
+    owner_order: u64,
+    deadline: Instant,
+}
+
+impl PulseExecutableWorld<Published<NativeInputReached<InitialBlue>>> {
     pub(crate) fn publish_first_query_value(
         self,
         value: QueryStatusV1,
     ) -> Result<
-        PulseExecutableWorld<AwaitingQueryCurrent<InitialBlue, QueryStatusV1>>,
+        PulseExecutableWorld<AwaitingQueryCurrent<NativeInputReached<InitialBlue>, QueryStatusV1>>,
         PulseExecutableWorldFailureReport,
     > {
         apply_query(self, value, QueryStatusV1::apply)
@@ -39,15 +45,21 @@ impl PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>> {
     }
 }
 
-impl PulseExecutableWorld<AwaitingQueryCurrent<InitialBlue, QueryStatusV1>> {
+impl PulseExecutableWorld<AwaitingQueryCurrent<NativeInputReached<InitialBlue>, QueryStatusV1>> {
     pub(crate) fn await_first_query_value(
         self,
         deadline: Instant,
     ) -> Result<PulseExecutableWorld<Published<FirstCurrent>>, PulseExecutableWorldFailureReport>
     {
-        await_query(self, QueryStatusV1::VALUE, 2, deadline, |prior| {
-            prior.evidence.pixels().rgba()
-        })
+        await_query(
+            self,
+            QueryExpectation {
+                value: QueryStatusV1::VALUE,
+                owner_order: 2,
+                deadline,
+            },
+            |prior| prior.prior.evidence.pixels().rgba(),
+        )
     }
 }
 
@@ -57,9 +69,15 @@ impl PulseExecutableWorld<AwaitingQueryCurrent<OverlayCleared<FirstCurrent>, Que
         deadline: Instant,
     ) -> Result<PulseExecutableWorld<Published<SecondCurrent>>, PulseExecutableWorldFailureReport>
     {
-        let current = await_query(self, QueryStatusV2::VALUE, 5, deadline, |prior| {
-            prior.overlay.trace.snapshot.prior.evidence.pixels().rgba()
-        })?;
+        let current = await_query(
+            self,
+            QueryExpectation {
+                value: QueryStatusV2::VALUE,
+                owner_order: 5,
+                deadline,
+            },
+            |prior| prior.overlay.trace.snapshot.prior.evidence.pixels().rgba(),
+        )?;
         await_comparison_basis_refresh(current, deadline)
     }
 }
@@ -157,9 +175,7 @@ fn apply_query<Stage, Kind>(
 
 fn await_query<Stage, Kind>(
     world: PulseExecutableWorld<AwaitingQueryCurrent<Stage, Kind>>,
-    expected: &str,
-    owner_order: u64,
-    deadline: Instant,
+    expectation: QueryExpectation<'_>,
     predecessor: impl FnOnce(&Stage) -> &[u8],
 ) -> Result<
     PulseExecutableWorld<Published<QueryCurrent<Stage, Kind>>>,
@@ -175,22 +191,22 @@ fn await_query<Stage, Kind>(
             &mut world.process,
             &mut world.lifecycle,
             WatchedPulseTransition::QueryProjectionIssued,
-            deadline,
+            expectation.deadline,
         )
         .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
         let published = await_watched_observation(
             &mut world.process,
             &mut world.lifecycle,
             WatchedPulseTransition::QueryProjectionPublished,
-            deadline,
+            expectation.deadline,
         )
         .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
         let native = observe_watched_native(&mut world)?;
         adjudicate_query_current(
             issued,
             published,
-            expected,
-            owner_order,
+            expectation.value,
+            expectation.owner_order,
             native.client,
             native.pixels,
             predecessor(&prior),

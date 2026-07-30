@@ -26,10 +26,6 @@ impl UiIntentSchema {
     pub const fn version(self) -> u16 {
         self.version
     }
-
-    pub(crate) fn digest_basis(self) -> String {
-        format!("{}@{}", self.stable_identity, self.version)
-    }
 }
 
 impl fmt::Debug for UiIntentSchema {
