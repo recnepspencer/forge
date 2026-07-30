@@ -81,6 +81,14 @@ fn milestone_314_phase2_contract_tracks_partial_closure_honestly() {
 fn milestone_314_phase2_native_substrate_is_exact_and_nonduplicated() {
     let (contract, _) = inputs();
     let substrate = &contract["native_substrate"];
+    assert_eq!(
+        substrate["observation_schema_version"].as_integer(),
+        Some(6)
+    );
+    assert_eq!(
+        substrate["pointer_position_basis"].as_str(),
+        Some("typed coordinate space and unit carried by every exact position")
+    );
     let manifest: toml::Value =
         toml::from_str(&repository_document("workspaces/worth-ui/Cargo.toml"))
             .expect("workspace manifest should parse");

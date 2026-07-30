@@ -2,7 +2,8 @@ use super::{
     UiHostImeCompositionPhase, UiHostImePreedit, UiHostKey, UiHostKeyTransition,
     UiHostKeyboardModifiers, UiHostObservationPayload, UiHostPointerButton,
     UiHostPointerButtonTransition, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
-    UiHostPressedPointerButtons, UiHostSurfacePosition,
+    UiHostPressedPointerButtons, UiHostSurfaceCoordinateSpace, UiHostSurfaceCoordinateUnit,
+    UiHostSurfacePosition, UiHostSurfacePositionBasis,
 };
 
 #[test]
@@ -13,7 +14,7 @@ fn pointer_motion_identity_covers_position_and_coalescing_axes() {
         pressed_buttons: UiHostPressedPointerButtons::NONE,
         position: position(10, -20),
     };
-    assert_eq!(motion.encoded_len(), 33);
+    assert_eq!(motion.encoded_len(), 35);
     assert_axis_changes(
         &motion,
         [
@@ -47,6 +48,28 @@ fn pointer_motion_identity_covers_position_and_coalescing_axes() {
                 pressed_buttons: UiHostPressedPointerButtons::NONE,
                 position: position(10, -21),
             },
+            UiHostObservationPayload::PointerMotion {
+                pointer: pointer(7),
+                capture_epoch: capture_epoch(3),
+                pressed_buttons: UiHostPressedPointerButtons::NONE,
+                position: positioned(
+                    UiHostSurfaceCoordinateSpace::Window,
+                    UiHostSurfaceCoordinateUnit::LogicalPoint,
+                    10,
+                    -20,
+                ),
+            },
+            UiHostObservationPayload::PointerMotion {
+                pointer: pointer(7),
+                capture_epoch: capture_epoch(3),
+                pressed_buttons: UiHostPressedPointerButtons::NONE,
+                position: positioned(
+                    UiHostSurfaceCoordinateSpace::Viewport,
+                    UiHostSurfaceCoordinateUnit::PhysicalPixel,
+                    10,
+                    -20,
+                ),
+            },
         ],
     );
 }
@@ -60,7 +83,7 @@ fn pointer_button_identity_covers_exact_position_and_every_lossless_axis() {
         UiHostPointerButtonTransition::Pressed,
         position(10, -20),
     );
-    assert_eq!(button.encoded_len(), 34);
+    assert_eq!(button.encoded_len(), 36);
     assert_axis_changes(
         &button,
         [
@@ -105,6 +128,30 @@ fn pointer_button_identity_covers_exact_position_and_every_lossless_axis() {
                 UiHostPointerButton::Primary,
                 UiHostPointerButtonTransition::Pressed,
                 position(10, -21),
+            ),
+            pointer_button(
+                7,
+                3,
+                UiHostPointerButton::Primary,
+                UiHostPointerButtonTransition::Pressed,
+                positioned(
+                    UiHostSurfaceCoordinateSpace::Window,
+                    UiHostSurfaceCoordinateUnit::LogicalPoint,
+                    10,
+                    -20,
+                ),
+            ),
+            pointer_button(
+                7,
+                3,
+                UiHostPointerButton::Primary,
+                UiHostPointerButtonTransition::Pressed,
+                positioned(
+                    UiHostSurfaceCoordinateSpace::Viewport,
+                    UiHostSurfaceCoordinateUnit::PhysicalPixel,
+                    10,
+                    -20,
+                ),
             ),
         ],
     );
@@ -247,7 +294,20 @@ fn capture_epoch(value: u64) -> UiHostPointerCaptureEpoch {
 }
 
 fn position(x: i64, y: i64) -> UiHostSurfacePosition {
-    UiHostSurfacePosition::new(x, y)
+    UiHostSurfacePosition::viewport_logical(x, y)
+}
+
+fn positioned(
+    coordinate_space: UiHostSurfaceCoordinateSpace,
+    coordinate_unit: UiHostSurfaceCoordinateUnit,
+    x: i64,
+    y: i64,
+) -> UiHostSurfacePosition {
+    UiHostSurfacePosition::new(
+        UiHostSurfacePositionBasis::new(coordinate_space, coordinate_unit),
+        x,
+        y,
+    )
 }
 
 fn primary_pressed() -> UiHostPressedPointerButtons {

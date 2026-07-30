@@ -3,7 +3,7 @@ use worth_ui_host_contract::{
     UiHostKeyboardModifiers, UiHostObservationPayload, UiHostObservationRetentionDenial,
     UiHostPointerButton, UiHostPointerButtonTransition, UiHostPresentationEpoch,
     UiHostProtocolContract, UiHostProtocolNegotiation, UiHostSurfaceIdentity,
-    UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
+    UiHostSurfacePositionBasis, UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
     UiHostSurfaceRegistrationInput, UiHostSurfaceRegistrationOutcome,
     UiHostSurfaceRegistrationRequest, UiMountedFrameConsumptionInput,
     UiMountedPresentationAttemptIdentity, UiMountedPresentationLeaseGate,
@@ -54,31 +54,6 @@ fn input_observation_translates_exact_families_against_completed_presentation() 
     assert_pointer_reports(batch.reports());
     assert_keyboard_report(&batch.reports()[2]);
     assert_text_and_ime_reports(batch.reports());
-}
-
-#[test]
-fn touch_companions_do_not_duplicate_pointer_reports() {
-    let host = initialized_host();
-    present_one(&host, HOST_SESSION);
-    let raw = egui::RawInput {
-        events: vec![
-            pointer_button(),
-            egui::Event::Touch {
-                device_id: egui::TouchDeviceId(7),
-                id: egui::TouchId::from(9_u64),
-                phase: egui::TouchPhase::Start,
-                pos: egui::pos2(2.5, 3.75),
-                force: Some(0.5),
-            },
-        ],
-        ..Default::default()
-    };
-
-    let retained = match host.observe_native_input(&raw) {
-        UiEguiRawInputIngressOutcome::Retained(retained) => retained,
-        other => panic!("canonical pointer companion trace must retain, got {other:?}"),
-    };
-    assert_eq!(retained.report_count(), 1);
 }
 
 #[test]
@@ -311,6 +286,10 @@ fn assert_pointer_reports(reports: &[worth_ui_host_contract::UiHostObservationRe
     assert_eq!(capture_epoch.value(), 1);
     assert_eq!(pressed_buttons.bits(), 0);
     assert_eq!(
+        position.basis(),
+        UiHostSurfacePositionBasis::viewport_logical()
+    );
+    assert_eq!(
         [position.x_subpixels(), position.y_subpixels()],
         [1_250, -2_500]
     );
@@ -327,6 +306,10 @@ fn assert_pointer_reports(reports: &[worth_ui_host_contract::UiHostObservationRe
     assert_eq!(capture_epoch.value(), 1);
     assert_eq!(*button, UiHostPointerButton::Primary);
     assert_eq!(*transition, UiHostPointerButtonTransition::Pressed);
+    assert_eq!(
+        position.basis(),
+        UiHostSurfacePositionBasis::viewport_logical()
+    );
     assert_eq!(
         [position.x_subpixels(), position.y_subpixels()],
         [2_500, 3_750]

@@ -21,6 +21,8 @@ ime_preedit_range = "unicode-scalar-index"
 canonical_ime_range = "utf-8-byte-offset"
 empty_preedit_is_cancel = true
 single_egui_version = true
+observation_schema_version = 6
+pointer_position_basis = "typed coordinate space and unit carried by every exact position"
 
 [evidence_topology]
 new_test_target = false

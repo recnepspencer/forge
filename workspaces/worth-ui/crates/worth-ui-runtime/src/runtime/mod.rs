@@ -20,6 +20,7 @@ mod drag_resize;
 pub(crate) mod execution;
 pub(crate) mod exports;
 pub(crate) mod host_observation;
+pub(crate) mod interaction;
 mod invalidation_narrowing;
 pub(crate) use invalidation_narrowing::{
     UiAdmittedScrollInvalidationBinding, UiAllocationInvalidationAuthority,

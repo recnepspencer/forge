@@ -17,8 +17,8 @@ use super::{
     UiMountedFrameInspectionTarget, UiMountedFrameRetentionBudget,
     UiMountedFrameRetentionRejection, UiMountedObservationBasisLease,
     UiMountedObservationBasisRetentionDenial, UiMountedRetentionClass, UiMountedRetentionLease,
-    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiRetainedMountedDiagnostics,
-    UiRetentionPreparedMountedFrame,
+    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiPresentedHitTestBasis,
+    UiRetainedMountedDiagnostics, UiRetentionPreparedMountedFrame,
 };
 
 mod visual_lease;
@@ -68,6 +68,31 @@ impl UiMountedFrameRetentionCoordinator {
         };
         evidence.classify(presentation, mounted_instance, node_receipt)?;
         Ok(relation)
+    }
+
+    pub(crate) fn interaction_hit_test_basis(
+        &self,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+    ) -> Result<UiPresentedHitTestBasis, UiPresentedFrameBasisDenial> {
+        let authority = self.authority.borrow();
+        let (evidence, relation) = match authority.frame(presentation.frame()) {
+            UiMountedRetainedFrameLookup::Found {
+                evidence, relation, ..
+            } => (evidence, relation),
+            UiMountedRetainedFrameLookup::Expired { .. } => {
+                return Err(UiPresentedFrameBasisDenial::Expired)
+            }
+            UiMountedRetainedFrameLookup::Unknown { .. } => {
+                return Err(UiPresentedFrameBasisDenial::Unknown)
+            }
+        };
+        evidence.classify(presentation, None, None)?;
+        let rows = evidence
+            .visual_region_basis(presentation.binding())
+            .hit_test()
+            .to_vec()
+            .into_boxed_slice();
+        Ok(UiPresentedHitTestBasis::new(presentation, relation, rows))
     }
 
     pub(crate) fn inspect(

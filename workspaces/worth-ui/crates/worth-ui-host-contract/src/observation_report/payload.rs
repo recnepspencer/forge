@@ -82,8 +82,8 @@ impl UiHostObservationPayload {
         match self {
             Self::Viewport { .. } => 16,
             Self::DeviceScale { .. } => 4,
-            Self::PointerMotion { .. } => 33,
-            Self::PointerButton { .. } => 34,
+            Self::PointerMotion { .. } => 35,
+            Self::PointerButton { .. } => 36,
             Self::Keyboard { .. } => 8,
             Self::Focus { .. } => 1,
             Self::ScrollDelta { .. } => 16,
@@ -253,6 +253,10 @@ impl UiHostObservationPayloadDigest {
     }
 
     fn fold_position(&mut self, position: super::UiHostSurfacePosition) {
+        self.fold_pair(
+            position.basis().coordinate_space() as u64,
+            position.basis().coordinate_unit() as u64,
+        );
         self.fold_pair(position.x_subpixels() as u64, position.y_subpixels() as u64);
     }
 

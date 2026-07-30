@@ -16,10 +16,12 @@ pub use worth_ui_host_contract::{
     UiHostObservationPresentationBasis, UiHostObservationReport, UiHostObservationSequence,
     UiHostObservationSequenceRange, UiHostObservationTimeBasis, UiHostPointerButton,
     UiHostPointerButtonTransition, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
-    UiHostPressedPointerButtons, UiHostSurfacePosition, UiHostUnicodeScalarRange,
+    UiHostPressedPointerButtons, UiHostSurfaceCoordinateSpace, UiHostSurfaceCoordinateUnit,
+    UiHostSurfacePosition, UiHostSurfacePositionBasis, UiHostUnicodeScalarRange,
     UiHostUtf8ByteRange, UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
     UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT, UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT,
     UI_HOST_OBSERVATION_DRAIN_BYTE_LIMIT, UI_HOST_OBSERVATION_DRAIN_REPORT_LIMIT,
+    UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
 pub use worth_ui_host_contract::{
     UiHostProtocolAgreement, UiHostProtocolContract, UiHostProtocolNegotiation,

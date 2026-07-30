@@ -4,6 +4,7 @@ mod coordinator;
 mod diagnostic_evidence;
 mod evidence;
 mod inspection_basis;
+mod interaction_basis;
 mod lease;
 mod observation_basis;
 mod rejection;
@@ -27,6 +28,7 @@ pub(crate) use inspection_basis::{
     UiMountedFrameInspectionBasis, UiMountedFrameInspectionDenial,
     UiMountedFrameInspectionSelection, UiMountedFrameInspectionTarget,
 };
+pub(crate) use interaction_basis::UiPresentedHitTestBasis;
 pub use lease::UiMountedRetentionLease;
 pub(crate) use lease::{
     UiMountedDiagnosticRetentionLease, UiMountedObservationBasisLease, UiMountedVisualOverlayLease,

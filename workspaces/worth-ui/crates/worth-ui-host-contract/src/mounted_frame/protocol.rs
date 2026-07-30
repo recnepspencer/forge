@@ -93,7 +93,7 @@ impl UiHostProtocolVersion {
 impl UiHostProtocolContract {
     const COMPATIBLE_FLOOR: u16 = 1;
     const CURRENT: u16 = 3;
-    const CURRENT_OBSERVATION_SCHEMA: u16 = 5;
+    const CURRENT_OBSERVATION_SCHEMA: u16 = 6;
 
     pub const fn current() -> Self {
         Self::new(

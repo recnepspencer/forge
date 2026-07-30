@@ -8,21 +8,21 @@ use crate::{
 };
 
 #[test]
-fn observation_schema_v5_is_required_before_batch_authority_exists() {
+fn observation_schema_v6_is_required_before_batch_authority_exists() {
     let current = UiHostProtocolContract::current();
-    assert_eq!(current.observation().revision(), 5);
+    assert_eq!(current.observation().revision(), 6);
     assert!(matches!(
         current.negotiate(),
         UiHostProtocolNegotiation::Compatible(_)
     ));
     assert_eq!(
-        with_observation_revision(4).negotiate(),
+        with_observation_revision(5).negotiate(),
         UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
             UiHostProtocolSchemaFamily::Observation,
         ))
     );
     assert_eq!(
-        with_observation_revision(6).negotiate(),
+        with_observation_revision(7).negotiate(),
         UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooNew(
             UiHostProtocolSchemaFamily::Observation,
         ))

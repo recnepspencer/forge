@@ -46,7 +46,10 @@ impl AuthoredMechanicalReport {
                 pointer: UiHostPointerIdentity::new(pointer),
                 capture_epoch: UiHostPointerCaptureEpoch::new(capture_epoch),
                 pressed_buttons: UiHostPressedPointerButtons::NONE,
-                position: UiHostSurfacePosition::new(x_subpixels, i64::try_from(sequence).unwrap()),
+                position: UiHostSurfacePosition::viewport_logical(
+                    x_subpixels,
+                    i64::try_from(sequence).unwrap(),
+                ),
             },
             coalescing_key: Some(ModelCoalescingKey::PointerMotion {
                 pointer,
