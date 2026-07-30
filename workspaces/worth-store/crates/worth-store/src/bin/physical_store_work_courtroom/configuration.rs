@@ -8,7 +8,7 @@ use worth_store::physical_runtime::{
 
 const CONFIGURATION_SCHEMA: &str = "worth.store.c5_1.physical-work-courtroom.configuration.v1";
 pub(super) const BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA: &str =
-    "worth.store.physical-work-courtroom.bounded-residency.configuration.v1";
+    "worth.store.physical-work-courtroom.bounded-residency.configuration.v2";
 
 pub(super) struct CourtroomConfiguration {
     payload_bytes: usize,

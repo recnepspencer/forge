@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 mod phase_16;
+mod physical_reconstruction_c6;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ControlledMutation {
@@ -45,7 +46,10 @@ impl ControlledMutation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum MutationTarget {
     Library,
+    LibraryWithFeatures { features: &'static str },
+    Binary(&'static str),
     Integration(&'static str),
+    NestedExecutableLibrary { features: &'static str },
 }
 
 pub(super) fn mutations() -> &'static [ControlledMutation] {
@@ -54,6 +58,7 @@ pub(super) fn mutations() -> &'static [ControlledMutation] {
         MUTATIONS
             .iter()
             .chain(phase_16::MUTATIONS)
+            .chain(physical_reconstruction_c6::MUTATIONS)
             .copied()
             .collect::<Vec<_>>()
             .into_boxed_slice()
@@ -62,6 +67,24 @@ pub(super) fn mutations() -> &'static [ControlledMutation] {
 
 pub(super) const fn physical_work_mutations() -> &'static [ControlledMutation] {
     phase_16::MUTATIONS
+}
+
+#[cfg(test)]
+pub(super) const fn physical_reconstruction_c6_mutations() -> &'static [ControlledMutation] {
+    physical_reconstruction_c6::MUTATIONS
+}
+
+pub(super) fn bounded_residency_mutations() -> &'static [ControlledMutation] {
+    static BOUNDED: std::sync::OnceLock<Box<[ControlledMutation]>> = std::sync::OnceLock::new();
+    BOUNDED.get_or_init(|| {
+        phase_16::MUTATIONS
+            .iter()
+            .filter(|mutation| matches!(mutation.id, 42..=44))
+            .chain(physical_reconstruction_c6::MUTATIONS)
+            .copied()
+            .collect::<Vec<_>>()
+            .into_boxed_slice()
+    })
 }
 
 macro_rules! mutation {

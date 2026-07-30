@@ -221,15 +221,13 @@ impl RecordPublicationDirector {
             .begin_candidate_publication(allocation, declaration)
             .map_err(RecordAppendError::Denied)?;
         let before = runtime.executor.record_serving_media().counters();
-        let publication = payload_progression::execute(
+        let progression = payload_progression::PayloadPublicationProgression::new(
             &self.mutation,
             self.residency.writeback(),
             runtime.executor.record_serving_media(),
-            self.format,
-            publication,
-            &mut residency,
-            before,
-        )?;
+            payload_progression::PayloadPublicationBasis::new(self.generation, self.format, before),
+        );
+        let publication = progression.execute(publication, &mut residency)?;
         residency.require_complete().map_err(|violation| {
             super::super::unpublished_candidate_frame_contract(
                 runtime.executor.record_serving_media(),

@@ -17,6 +17,7 @@ use crate::physical_runtime::record_serving::{
 
 mod admission;
 mod execution;
+mod generation_fence;
 mod progression;
 
 #[derive(Clone)]

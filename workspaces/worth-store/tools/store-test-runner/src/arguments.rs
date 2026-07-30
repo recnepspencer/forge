@@ -4,6 +4,9 @@ use crate::mutation_campaign::MutationCampaignScope;
 use crate::product::TestProduct;
 
 mod parsing;
+mod schedule_lane;
+
+pub(crate) use schedule_lane::CiScheduleLane;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub(crate) struct Arguments {
@@ -12,6 +15,8 @@ pub(crate) struct Arguments {
     pub(crate) target_root: Option<PathBuf>,
     pub(crate) report: Option<PathBuf>,
     pub(crate) mutant_report: Option<PathBuf>,
+    pub(crate) schedule_seed: Option<u64>,
+    pub(crate) ci_schedule_lane: Option<CiScheduleLane>,
     pub(crate) mutation_scope: MutationCampaignScope,
     pub(crate) mutant: Option<u8>,
     pub(crate) first_mutant: Option<u8>,
@@ -29,9 +34,10 @@ pub(super) fn help_requested(arguments: &[String]) -> bool {
 
 pub(super) fn usage() -> String {
     "usage: store-test-runner <owner -p PACKAGE|smoke|ui|mutants|courtrooms --courtroom a|b|c|ci --partition LANE> \
-     [--shard-index N --shard-count N] [--mutation-scope all|physical-work] \
+     [--shard-index N --shard-count N] \
+     [--mutation-scope all|physical-work|bounded-residency] \
      [--mutant N|--from-mutant N] [--mutant-report PATH] \
-     [--list] [--target-root PATH] [--report PATH]"
+     [--schedule-seed U64|--ci-schedule-lane 0..15] [--list] [--target-root PATH] [--report PATH]"
         .into()
 }
 
@@ -90,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_physical_work_mutation_scope() {
+    fn parses_each_reportable_mutation_scope() {
         let parsed = Arguments::parse([
             "mutants".into(),
             "--mutation-scope".into(),
@@ -102,6 +108,20 @@ mod tests {
 
         assert_eq!(parsed.mutation_scope, MutationCampaignScope::PhysicalWork);
         assert_eq!(parsed.report, Some("phase16.json".into()));
+
+        let bounded = Arguments::parse([
+            "mutants".into(),
+            "--mutation-scope".into(),
+            "bounded-residency".into(),
+            "--report".into(),
+            "bounded.json".into(),
+        ])
+        .unwrap();
+        assert_eq!(
+            bounded.mutation_scope,
+            MutationCampaignScope::BoundedResidency
+        );
+        assert_eq!(bounded.report, Some("bounded.json".into()));
     }
 
     #[test]
@@ -198,6 +218,8 @@ mod tests {
             "mutants.json".into(),
             "--report".into(),
             "courtroom-c.json".into(),
+            "--schedule-seed".into(),
+            "18446744073709551615".into(),
         ])
         .unwrap();
         assert_eq!(
@@ -206,6 +228,81 @@ mod tests {
                 courtroom: CourtroomSelection::C
             }
         );
+        assert_eq!(parsed.schedule_seed, Some(u64::MAX));
+    }
+
+    #[test]
+    fn schedule_seed_is_exclusive_to_executing_courtroom_c() {
+        for arguments in [
+            vec![
+                "courtrooms".to_owned(),
+                "--courtroom".to_owned(),
+                "b".to_owned(),
+                "--mutant-report".to_owned(),
+                "mutants.json".to_owned(),
+                "--report".to_owned(),
+                "courtroom-b.json".to_owned(),
+                "--schedule-seed".to_owned(),
+                "7".to_owned(),
+            ],
+            vec![
+                "courtrooms".to_owned(),
+                "--courtroom".to_owned(),
+                "c".to_owned(),
+                "--list".to_owned(),
+                "--schedule-seed".to_owned(),
+                "7".to_owned(),
+            ],
+        ] {
+            assert!(Arguments::parse(arguments).is_err());
+        }
+    }
+
+    #[test]
+    fn ci_schedule_lane_is_bounded_and_exclusive_with_replay_seed() {
+        let parsed = Arguments::parse([
+            "courtrooms".into(),
+            "--courtroom".into(),
+            "c".into(),
+            "--mutant-report".into(),
+            "mutants.json".into(),
+            "--report".into(),
+            "courtroom-c.json".into(),
+            "--ci-schedule-lane".into(),
+            "15".into(),
+        ])
+        .unwrap();
+        assert_eq!(parsed.ci_schedule_lane.unwrap().index(), 15);
+        for invalid in ["16", "256", "not-a-lane"] {
+            let error = Arguments::parse([
+                "courtrooms".into(),
+                "--courtroom".into(),
+                "c".into(),
+                "--mutant-report".into(),
+                "mutants.json".into(),
+                "--report".into(),
+                "courtroom-c.json".into(),
+                "--ci-schedule-lane".into(),
+                invalid.into(),
+            ])
+            .unwrap_err();
+            assert!(error.contains("0 through 15"), "{error}");
+        }
+        let error = Arguments::parse([
+            "courtrooms".into(),
+            "--courtroom".into(),
+            "c".into(),
+            "--mutant-report".into(),
+            "mutants.json".into(),
+            "--report".into(),
+            "courtroom-c.json".into(),
+            "--schedule-seed".into(),
+            "7".into(),
+            "--ci-schedule-lane".into(),
+            "3".into(),
+        ])
+        .unwrap_err();
+        assert!(error.contains("mutually exclusive"), "{error}");
     }
 
     #[test]

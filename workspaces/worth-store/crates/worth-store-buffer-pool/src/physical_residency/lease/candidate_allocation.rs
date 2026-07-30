@@ -20,6 +20,17 @@ pub(crate) struct CandidateFrameBuffer {
 }
 
 impl CandidateFrameBuffer {
+    #[cfg(test)]
+    pub(crate) fn with_capacity(length: usize, capacity: usize) -> Self {
+        let mut frame = Vec::with_capacity(capacity);
+        frame.resize(length, 0);
+        Self { frame }
+    }
+
+    pub(crate) fn capacity(&self) -> usize {
+        self.frame.capacity()
+    }
+
     pub(crate) fn as_mut_slice(&mut self) -> &mut [u8] {
         self.frame.as_mut_slice()
     }

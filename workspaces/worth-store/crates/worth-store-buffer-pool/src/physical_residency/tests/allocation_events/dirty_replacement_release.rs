@@ -1,5 +1,24 @@
 use super::*;
 
+struct OverallocatingDirtyAllocator;
+
+impl super::super::super::lease::dirty_replacement_allocation::DirtyReplacementAllocator
+    for OverallocatingDirtyAllocator
+{
+    fn allocate(
+        &self,
+        length: usize,
+    ) -> Result<super::super::super::lease::dirty_replacement_allocation::DirtyReplacementBuffer, ()>
+    {
+        Ok(
+            super::super::super::lease::dirty_replacement_allocation::DirtyReplacementBuffer::with_capacity(
+                length,
+                length * 2,
+            ),
+        )
+    }
+}
+
 #[test]
 fn allocator_failure_after_grant_releases_replacement_authority_before_fill() {
     struct RejectingAllocator;
@@ -54,6 +73,37 @@ fn allocator_failure_after_grant_releases_replacement_authority_before_fill() {
     let clean = load_clean_hit(&pool, &grant, key);
     assert_eq!(clean.as_ref(), &[1; 8]);
     drop(clean.begin_dirty_replacement(&grant).unwrap());
+}
+
+#[test]
+fn dirty_replacement_overallocation_is_rejected_before_fill_without_mutating_source() {
+    let identity = store(114);
+    let pool = PhysicalResidencyPool::open(identity, limits(128, 3, 2, 64, 3)).unwrap();
+    let grant = pool
+        .begin_foreground_write_operation(nonzero_bytes(8))
+        .unwrap();
+    let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
+    let clean = load_clean(&pool, &grant, key, 4);
+
+    let failure = clean
+        .begin_dirty_replacement(&grant)
+        .unwrap()
+        .replace_with_allocator(&OverallocatingDirtyAllocator, |_, _| -> Result<(), ()> {
+            panic!("over-allocation must fail before dirty fill")
+        })
+        .unwrap_err();
+
+    let PhysicalDirtyReplacementError::Residency(
+        PhysicalResidencyDenial::AllocatorExceededReservation { requested, actual },
+    ) = failure
+    else {
+        panic!("expected typed allocator overage, found {failure:?}");
+    };
+    assert_eq!(requested, 8);
+    assert!(actual > requested);
+    assert_eq!(pool.counters().dirty_replacement_bytes(), 0);
+    let clean = load_clean_hit(&pool, &grant, key);
+    assert_eq!(clean.as_ref(), &[4; 8]);
 }
 
 #[test]

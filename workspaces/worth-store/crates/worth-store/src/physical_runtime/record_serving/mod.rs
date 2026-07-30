@@ -91,8 +91,9 @@ pub use evidence::physical_work::{
     PhysicalWorkMutantSubject, PhysicalWorkOracleEvidence, PhysicalWorkPlatformEvidence,
     PhysicalWorkPressureEvidence, PhysicalWorkProcessEvidence, PhysicalWorkProcessFateEvidence,
     PhysicalWorkRecoveryEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
-    PhysicalWorkRunProvenanceDenial, PhysicalWorkSchedulerEvidence, PhysicalWorkShutdownEvidence,
-    PhysicalWorkSignalSettlementEvidence, PhysicalWorkSourceBinding,
+    PhysicalWorkRunProvenanceDenial, PhysicalWorkScheduleSeed, PhysicalWorkSchedulerEvidence,
+    PhysicalWorkShutdownEvidence, PhysicalWorkSignalSettlementEvidence, PhysicalWorkSourceBinding,
+    PhysicalWorkWorkloadSeed,
 };
 pub use identity::{ExternalPhysicalRecordLocator, PhysicalRecordId};
 pub use lifecycle::record_lifecycle::RecordServingCounterSnapshot;
@@ -172,6 +173,11 @@ pub use residency::{
     PhysicalSpeculativeReadDrop, PhysicalSpeculativeReadFailure, PhysicalWritebackCounterSnapshot,
     PhysicalWritebackFailureCause, RecoveryPhysicalAllocation, ScrubPhysicalAllocation,
     VerificationPhysicalAllocation,
+};
+#[cfg(feature = "certification-test-authority")]
+pub use residency::{
+    PhysicalResidencyAllocationBoundaryEvent, PhysicalResidencyAllocationBoundaryKind,
+    PhysicalResidencyAllocationTrace,
 };
 pub(in crate::physical_runtime) use work_semantics::{RecordReadPartition, RecordWorkAdmission};
 pub use worth_store_physical_format::{

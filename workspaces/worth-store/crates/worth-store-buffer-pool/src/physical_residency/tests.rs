@@ -22,7 +22,7 @@ mod candidate_identity_conflicts;
 mod candidate_window;
 #[path = "tests/clean_to_dirty.rs"]
 mod clean_to_dirty;
-#[path = "tests/eviction_siege.rs"]
+#[path = "tests/eviction_siege/mod.rs"]
 mod eviction_siege;
 #[path = "tests/frame_access/mod.rs"]
 mod frame_access;
@@ -34,13 +34,13 @@ mod metadata_admission;
 mod operation_allocation;
 #[path = "tests/pin_lease_pressure.rs"]
 mod pin_lease_pressure;
-#[path = "tests/runtime_pressure.rs"]
-mod runtime_pressure;
+#[path = "tests/pressure_limits/mod.rs"]
+mod pressure_limits;
 #[path = "tests/shutdown.rs"]
 mod shutdown;
 #[path = "tests/speculation.rs"]
 mod speculation;
-#[path = "tests/speculation_limits.rs"]
+#[path = "tests/speculation_limits/mod.rs"]
 mod speculation_limits;
 #[path = "tests/writeback_claim_exclusion.rs"]
 mod writeback_claim_exclusion;

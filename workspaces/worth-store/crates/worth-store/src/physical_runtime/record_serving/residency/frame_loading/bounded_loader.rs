@@ -90,7 +90,7 @@ impl FrameLoadPort for BoundedFrameLoader {
             ),
             PhysicalBoundedFrameAccess::Fault(owner) => (
                 owner
-                    .load(
+                    .load_observed(
                         |admitted_limit| {
                             let length =
                                 source.file_length(artifact).map_err(frame_source_failure)?;
@@ -114,11 +114,12 @@ impl FrameLoadPort for BoundedFrameLoader {
                                 .map_err(|failure| {
                                 frame_source_failure(failure).preceded_by(work.get())
                             })?;
-                            work.set(work.get().then(FrameWorkTrace::one(prepared.identity())));
+                            let identity = prepared.identity();
+                            work.set(work.get().then(FrameWorkTrace::one(identity)));
                             projection_failure = prepared.execute(target).map_err(|failure| {
                                 frame_source_failure(failure).with_complete_work_trace(work.get())
                             })?;
-                            Ok(())
+                            Ok(identity.map(allocation_operation))
                         },
                     )
                     .map_err(|failure| bounded_fault_failure(failure, work.get()))?,
@@ -189,9 +190,10 @@ impl BoundedFrameLoader {
                 let work = prepared
                     .preceding_work
                     .then(FrameWorkTrace::one(prepared.prepared.identity()));
+                let operation = prepared.prepared.identity().map(allocation_operation);
                 let mut projection_failure = None;
                 let lease = fault
-                    .load(|target| {
+                    .load_observed(operation, |target| {
                         projection_failure = prepared.prepared.execute(target)?;
                         Ok(())
                     })
@@ -224,6 +226,15 @@ impl BoundedFrameLoader {
             projection_failure,
         )
     }
+}
+
+fn allocation_operation(
+    identity: crate::physical_runtime::PhysicalWorkIdentity,
+) -> worth_store_buffer_pool::PhysicalResidencyAllocationOperation {
+    worth_store_buffer_pool::PhysicalResidencyAllocationOperation::new(
+        std::num::NonZeroU64::new(identity.operation().get())
+            .expect("physical operation identity is nonzero"),
+    )
 }
 
 fn validate_source_extent(

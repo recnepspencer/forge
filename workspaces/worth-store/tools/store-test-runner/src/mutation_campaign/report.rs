@@ -6,105 +6,52 @@ use std::{
 };
 
 use serde::Serialize;
+#[cfg(feature = "physical-work-evidence")]
 use sha2::{Digest, Sha256};
 
-use super::{evidence::MutationObservation, source_inventory::MutationSourceBinding};
+use super::{
+    evidence::MutationObservation, source_inventory::MutationSourceBinding, MutationCampaignScope,
+};
 
 #[cfg(feature = "physical-work-evidence")]
 mod reader;
 
-pub(crate) const MUTATION_EVIDENCE_REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v2";
-const ARTIFACT_OWNER_SCHEMA: &str = "worth.store.c5_1.mutation-artifacts.v1";
-const LEGACY_REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v1";
-const ARTIFACT_OWNER_MARKER: &str = ".worth-store-mutation-evidence-owner";
+pub(crate) const MUTATION_EVIDENCE_REPORT_SCHEMA: &str =
+    "worth.store.controlled-mutation-evidence.v4";
 static SESSION_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Serialize)]
 struct MutationEvidenceReport<'evidence> {
     schema: &'static str,
+    scope: MutationCampaignScope,
     source: &'evidence MutationSourceBinding,
     observations: &'evidence [MutationObservation],
 }
 
 pub(super) struct MutationEvidenceSession {
     report: PathBuf,
-    staging: PathBuf,
-    published_artifacts: PathBuf,
+    pending: PathBuf,
     source: MutationSourceBinding,
-    seen: BTreeSet<u8>,
-    artifacts_moved: bool,
+    scope: MutationCampaignScope,
     published: bool,
 }
 
 impl MutationEvidenceSession {
-    pub(super) fn begin(path: &Path, source: MutationSourceBinding) -> Result<Self, String> {
+    pub(super) fn begin(
+        path: &Path,
+        source: MutationSourceBinding,
+        scope: MutationCampaignScope,
+    ) -> Result<Self, String> {
         let report = normalized_report(path)?;
-        let published_artifacts = published_artifact_directory(&report)?;
-        validate_owned_artifacts(&published_artifacts, &report)?;
         remove_prior_report(&report)?;
-        remove_owned_artifacts(&published_artifacts)?;
-        let staging = staging_artifact_directory(&report)?;
-        std::fs::create_dir(&staging).map_err(|error| {
-            format!(
-                "cannot create mutation artifact directory {}: {error}",
-                staging.display()
-            )
-        })?;
-        std::fs::write(
-            staging.join(ARTIFACT_OWNER_MARKER),
-            owner_marker(&report).as_bytes(),
-        )
-        .map_err(|error| format!("cannot write mutation artifact owner marker: {error}"))?;
+        let pending = pending_report(&report)?;
         Ok(Self {
             report,
-            staging,
-            published_artifacts,
+            pending,
             source,
-            seen: BTreeSet::new(),
-            artifacts_moved: false,
+            scope,
             published: false,
         })
-    }
-
-    pub(super) fn retain_binary(
-        &mut self,
-        observation: &mut MutationObservation,
-    ) -> Result<(), String> {
-        if !self.seen.insert(observation.id) {
-            return Err(format!(
-                "mutation report received duplicate mutant {}",
-                observation.id
-            ));
-        }
-        let source = absolute(Path::new(&observation.binary_binding))?;
-        let extension = source.extension().and_then(|value| value.to_str());
-        let file_name = match extension {
-            Some(extension) => format!(
-                "mutant-{:02}-{}.{}",
-                observation.id, observation.binary_sha256, extension
-            ),
-            None => format!("mutant-{:02}-{}", observation.id, observation.binary_sha256),
-        };
-        let staged = self.staging.join(&file_name);
-        std::fs::copy(&source, &staged).map_err(|error| {
-            format!(
-                "cannot retain mutant {} binary {}: {error}",
-                observation.id,
-                source.display()
-            )
-        })?;
-        if hash_file(&staged)? != observation.binary_sha256 {
-            return Err(format!(
-                "retained mutant {} binary changed while copying",
-                observation.id
-            ));
-        }
-        observation.binary_binding = self
-            .published_artifacts
-            .join(file_name)
-            .display()
-            .to_string();
-        Ok(())
     }
 
     pub(super) fn publish(
@@ -115,30 +62,25 @@ impl MutationEvidenceSession {
         if &self.source != current_source {
             return Err("mutation campaign source changed before publication".into());
         }
-        let observation_ids = observations
+        let identities = observations
             .iter()
             .map(|observation| observation.id)
             .collect::<BTreeSet<_>>();
-        if observation_ids != self.seen || observation_ids.len() != observations.len() {
-            return Err("mutation report observations do not match retained binaries".into());
+        if identities.len() != observations.len() {
+            return Err("mutation report contains duplicate mutant identities".into());
         }
-        let pending = self.staging.join("report.pending.json");
-        let mut file = std::fs::File::create(&pending)
-            .map_err(|error| format!("cannot create {}: {error}", pending.display()))?;
-        file.write_all(&encode(&self.source, observations)?)
-            .map_err(|error| format!("cannot write {}: {error}", pending.display()))?;
+        let encoded = encode(self.scope, &self.source, observations)?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&self.pending)
+            .map_err(|error| format!("cannot create {}: {error}", self.pending.display()))?;
+        file.write_all(&encoded)
+            .map_err(|error| format!("cannot write {}: {error}", self.pending.display()))?;
         file.sync_all()
-            .map_err(|error| format!("cannot synchronize {}: {error}", pending.display()))?;
+            .map_err(|error| format!("cannot synchronize {}: {error}", self.pending.display()))?;
         drop(file);
-        std::fs::rename(&self.staging, &self.published_artifacts).map_err(|error| {
-            format!(
-                "cannot publish mutation artifacts {}: {error}",
-                self.published_artifacts.display()
-            )
-        })?;
-        self.artifacts_moved = true;
-        let published_report = self.published_artifacts.join("report.pending.json");
-        std::fs::rename(&published_report, &self.report).map_err(|error| {
+        std::fs::rename(&self.pending, &self.report).map_err(|error| {
             format!(
                 "cannot publish mutation report {}: {error}",
                 self.report.display()
@@ -152,40 +94,33 @@ impl MutationEvidenceSession {
 impl Drop for MutationEvidenceSession {
     fn drop(&mut self) {
         if !self.published {
-            let artifacts = if self.artifacts_moved {
-                &self.published_artifacts
-            } else {
-                &self.staging
-            };
-            let _ = std::fs::remove_dir_all(artifacts);
+            let _ = std::fs::remove_file(&self.pending);
         }
     }
 }
 
 fn encode(
+    scope: MutationCampaignScope,
     source: &MutationSourceBinding,
     observations: &[MutationObservation],
 ) -> Result<Vec<u8>, String> {
     serde_json::to_vec_pretty(&MutationEvidenceReport {
         schema: MUTATION_EVIDENCE_REPORT_SCHEMA,
+        scope,
         source,
         observations,
     })
     .map_err(|error| format!("cannot encode mutation report: {error}"))
 }
 
-fn absolute(path: &Path) -> Result<PathBuf, String> {
-    if path.is_absolute() {
-        Ok(path.to_path_buf())
+fn normalized_report(path: &Path) -> Result<PathBuf, String> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
     } else {
         std::env::current_dir()
             .map(|current| current.join(path))
-            .map_err(|error| format!("cannot resolve current directory: {error}"))
-    }
-}
-
-fn normalized_report(path: &Path) -> Result<PathBuf, String> {
-    let absolute = absolute(path)?;
+            .map_err(|error| format!("cannot resolve current directory: {error}"))?
+    };
     let parent = absolute
         .parent()
         .ok_or_else(|| format!("mutation report {} has no parent", absolute.display()))?;
@@ -216,31 +151,7 @@ fn remove_prior_report(report: &Path) -> Result<(), String> {
     }
 }
 
-fn published_artifact_directory(report: &Path) -> Result<PathBuf, String> {
-    let (parent, name) = report_parent_and_name(report)?;
-    let parent = parent
-        .canonicalize()
-        .map_err(|error| format!("cannot canonicalize {}: {error}", parent.display()))?;
-    Ok(parent.join(format!("{name}.artifacts.current")))
-}
-
-fn staging_artifact_directory(report: &Path) -> Result<PathBuf, String> {
-    let (parent, name) = report_parent_and_name(report)?;
-    for _ in 0..32 {
-        let sequence = SESSION_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let candidate = parent.join(format!(
-            "{name}.artifacts.pending.{}.{}",
-            std::process::id(),
-            sequence
-        ));
-        if !candidate.exists() {
-            return Ok(candidate);
-        }
-    }
-    Err("cannot allocate a unique mutation artifact staging directory".into())
-}
-
-fn report_parent_and_name(report: &Path) -> Result<(&Path, &str), String> {
+fn pending_report(report: &Path) -> Result<PathBuf, String> {
     let parent = report
         .parent()
         .ok_or_else(|| format!("mutation report {} has no parent", report.display()))?;
@@ -248,59 +159,21 @@ fn report_parent_and_name(report: &Path) -> Result<(&Path, &str), String> {
         .file_name()
         .and_then(|value| value.to_str())
         .ok_or_else(|| "mutation report filename must be Unicode".to_owned())?;
-    Ok((parent, name))
-}
-
-fn validate_owned_artifacts(artifacts: &Path, report: &Path) -> Result<(), String> {
-    match std::fs::symlink_metadata(artifacts) {
-        Ok(metadata) if !metadata.is_dir() => Err(format!(
-            "mutation artifact path {} is not an owned directory",
-            artifacts.display()
-        )),
-        Ok(_) => {
-            let marker =
-                std::fs::read_to_string(artifacts.join(ARTIFACT_OWNER_MARKER)).map_err(|_| {
-                    format!(
-                        "refusing to replace unmarked mutation artifacts {}",
-                        artifacts.display()
-                    )
-                })?;
-            if marker == owner_marker(report) || marker == legacy_owner_marker(report) {
-                Ok(())
-            } else {
-                Err(format!(
-                    "refusing to replace foreign mutation artifacts {}",
-                    artifacts.display()
-                ))
-            }
+    for _ in 0..32 {
+        let sequence = SESSION_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let candidate = parent.join(format!(
+            ".{name}.pending.{}.{}",
+            std::process::id(),
+            sequence
+        ));
+        if !candidate.exists() {
+            return Ok(candidate);
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(format!(
-            "cannot inspect mutation artifacts {}: {error}",
-            artifacts.display()
-        )),
     }
+    Err("cannot allocate a unique pending mutation report".into())
 }
 
-fn remove_owned_artifacts(artifacts: &Path) -> Result<(), String> {
-    match std::fs::remove_dir_all(artifacts) {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(format!(
-            "cannot replace mutation artifacts {}: {error}",
-            artifacts.display()
-        )),
-    }
-}
-
-fn owner_marker(report: &Path) -> String {
-    format!("{ARTIFACT_OWNER_SCHEMA}\n{}\n", report.display())
-}
-
-fn legacy_owner_marker(report: &Path) -> String {
-    format!("{LEGACY_REPORT_SCHEMA}\n{}\n", report.display())
-}
-
+#[cfg(feature = "physical-work-evidence")]
 fn hash_file(path: &Path) -> Result<String, String> {
     let bytes =
         std::fs::read(path).map_err(|error| format!("cannot hash {}: {error}", path.display()))?;
@@ -315,7 +188,15 @@ pub(super) fn load_physical_work_evidence(
     report: &Path,
     workspace: &Path,
 ) -> Result<Vec<worth_store::physical_runtime::PhysicalWorkMutantLocalization>, String> {
-    reader::load_physical_work_evidence(report, workspace)
+    reader::load_evidence(report, workspace, MutationCampaignScope::PhysicalWork)
+}
+
+#[cfg(feature = "physical-work-evidence")]
+pub(super) fn load_bounded_residency_evidence(
+    report: &Path,
+    workspace: &Path,
+) -> Result<Vec<worth_store::physical_runtime::PhysicalWorkMutantLocalization>, String> {
+    reader::load_evidence(report, workspace, MutationCampaignScope::BoundedResidency)
 }
 
 #[cfg(test)]

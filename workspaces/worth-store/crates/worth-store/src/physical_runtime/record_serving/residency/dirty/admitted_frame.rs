@@ -49,6 +49,12 @@ impl AdmittedDirtyFrame {
         self.coordinate
     }
 
+    pub(in crate::physical_runtime::record_serving) fn pool_incarnation(
+        &self,
+    ) -> worth_store_buffer_pool::PhysicalResidencyIncarnation {
+        self.frame.pool_incarnation()
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub const fn source_physical_work_count(&self) -> u64 {
         self.source.count()

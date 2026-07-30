@@ -1,4 +1,6 @@
-use super::super::{OfflineDurableManifestDenial, OfflineDurableManifestWalk};
+use super::super::{
+    OfflineDurableManifestDenial, OfflineDurableManifestWalk, OfflineRecordPayloadObservation,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OfflineHostilePhysicalTruthBudgetDenial {
@@ -121,7 +123,7 @@ pub struct OfflineHostileCurrentRecordTruth {
 }
 
 impl OfflineHostileCurrentRecordTruth {
-    pub(super) fn from_walk(walk: OfflineDurableManifestWalk) -> Self {
+    pub(super) fn from_walk(walk: &OfflineDurableManifestWalk) -> Self {
         Self {
             store_identity: walk.store_identity(),
             root_generation: walk.root_generation(),
@@ -158,12 +160,14 @@ pub struct OfflineHostilePhysicalTruthObservation {
     total_bytes: u64,
     recovery_obligations: usize,
     current: Result<OfflineHostileCurrentRecordTruth, OfflineDurableManifestDenial>,
+    record_payloads: Box<[OfflineRecordPayloadObservation]>,
 }
 
 impl OfflineHostilePhysicalTruthObservation {
     pub(super) fn new(
         artifacts: Vec<OfflineHostileArtifactObservation>,
         current: Result<OfflineHostileCurrentRecordTruth, OfflineDurableManifestDenial>,
+        record_payloads: Vec<OfflineRecordPayloadObservation>,
     ) -> Self {
         let total_bytes = artifacts
             .iter()
@@ -178,6 +182,7 @@ impl OfflineHostilePhysicalTruthObservation {
             total_bytes,
             recovery_obligations,
             current,
+            record_payloads: record_payloads.into_boxed_slice(),
         }
     }
 
@@ -197,5 +202,9 @@ impl OfflineHostilePhysicalTruthObservation {
         &self,
     ) -> Result<OfflineHostileCurrentRecordTruth, OfflineDurableManifestDenial> {
         self.current
+    }
+
+    pub fn record_payloads(&self) -> &[OfflineRecordPayloadObservation] {
+        &self.record_payloads
     }
 }

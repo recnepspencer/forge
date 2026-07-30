@@ -58,6 +58,20 @@ pub struct PhysicalResidencyCertification {
 impl PhysicalResidencyCertification {
     pub(in crate::physical_runtime) fn from_parts(parts: &PhysicalStoreInstanceParts) -> Self {
         let generation = parts.core.lifecycle_generation();
+        Self::for_generation(parts, generation)
+    }
+
+    pub(in crate::physical_runtime) fn stale_from_parts(
+        parts: &PhysicalStoreInstanceParts,
+    ) -> Self {
+        let generation = parts
+            .core
+            .lifecycle_generation()
+            .certification_predecessor();
+        Self::for_generation(parts, generation)
+    }
+
+    fn for_generation(parts: &PhysicalStoreInstanceParts, generation: LifecycleGeneration) -> Self {
         let frame_ports = parts.residency.ports().clone();
         let mutation = CanonicalRecordMutationPort::new(
             &parts.work_runtime,
@@ -90,6 +104,10 @@ impl PhysicalResidencyCertification {
                 writeback,
             ),
         }
+    }
+
+    pub const fn lifecycle_generation(&self) -> LifecycleGeneration {
+        self.binding.generation
     }
 
     pub fn pin_exact(
@@ -184,6 +202,10 @@ impl PhysicalResidencyCertification {
 
     pub fn counters(&self) -> worth_store_buffer_pool::PhysicalResidencyCounters {
         self.residency.counters()
+    }
+
+    pub fn allocation_trace(&self) -> super::super::PhysicalResidencyAllocationTrace {
+        self.residency.allocation_trace()
     }
 
     pub fn drain_unpinned_clean_frames(&self) -> u64 {

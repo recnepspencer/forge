@@ -96,7 +96,7 @@ fn assert_bounded_physical_record_access_examples_are_compile_bound() {
 
     assert_eq!(
         blocks.len(),
-        4,
+        5,
         "every public Rust block must be inventoried"
     );
     for block in blocks {

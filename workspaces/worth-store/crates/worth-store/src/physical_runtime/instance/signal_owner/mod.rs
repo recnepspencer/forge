@@ -226,6 +226,7 @@ impl PhysicalWorkSignalOwner {
                 active_locality_count: observation.active_locality_count(),
                 active_graph_node_count: observation.active_graph_node_count(),
                 active_in_flight_count: observation.resource().active_in_flight_node_count(),
+                request_admission_count: observation.request_admission_count(),
                 async_family_count: crate::physical_runtime::work::PHYSICAL_ASYNC_CAPABILITIES.len()
                     as u8,
                 aspect_invalidation_count: observation.aspect_invalidation_count(),

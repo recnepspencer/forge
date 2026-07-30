@@ -49,6 +49,11 @@ pub use frame_read_failure::{
 pub use pressure_evidence::{
     PhysicalRecordPressureBasis, PhysicalRecordPressureEvidence, PhysicalResidencyRetryPosture,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use residency_observation::{
+    PhysicalResidencyAllocationBoundaryEvent, PhysicalResidencyAllocationBoundaryKind,
+    PhysicalResidencyAllocationTrace,
+};
 pub use residency_observation::{
     PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationSnapshot,
     PhysicalResidencyCounterSnapshot, PhysicalResidencyObservation,

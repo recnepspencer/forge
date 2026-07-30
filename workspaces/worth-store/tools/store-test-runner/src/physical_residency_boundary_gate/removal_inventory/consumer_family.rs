@@ -17,6 +17,13 @@ pub(super) fn discover_families(path: &str, source: &str) -> BTreeSet<String> {
     families
 }
 
+pub(super) fn is_legacy_s2_subject_family(family: &str) -> bool {
+    matches!(
+        family,
+        "legacy-frame-table" | "snapshot-residency-authority"
+    )
+}
+
 fn classify_path_families(path: &str, source: &str, families: &mut BTreeSet<String>) {
     if path.contains("c6_handoff") {
         families.insert("temporary-handoff".to_owned());

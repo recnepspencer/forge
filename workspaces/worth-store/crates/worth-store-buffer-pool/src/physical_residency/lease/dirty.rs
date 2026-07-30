@@ -4,7 +4,7 @@ use super::dirty_replacement_allocation::{
 use super::PhysicalFrameLease;
 use crate::physical_residency::pool::PoolInner;
 use crate::physical_residency::pool_ownership::CandidateFrameCleanAuthority;
-use crate::PhysicalResidencyDenial;
+use crate::{PhysicalResidencyDenial, PhysicalResidencyIncarnation};
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub enum PhysicalDirtyReplacementError<E> {
 pub struct PhysicalDirtyReplacementReservation<'grant> {
     owner: Arc<PoolInner>,
     lease: Option<PhysicalFrameLease>,
-    _allocation_use: super::super::operation_allocation::OperationAllocationUse<'grant>,
+    allocation_use: super::super::operation_allocation::OperationAllocationUse<'grant>,
     bytes: u64,
     armed: bool,
 }
@@ -36,7 +36,7 @@ impl<'grant> PhysicalDirtyReplacementReservation<'grant> {
         Self {
             owner: Arc::clone(&lease.owner),
             lease: Some(lease),
-            _allocation_use: allocation_use,
+            allocation_use,
             bytes,
             armed: true,
         }
@@ -66,6 +66,24 @@ impl<'grant> PhysicalDirtyReplacementReservation<'grant> {
             self.release_after_allocator_failure();
             PhysicalDirtyReplacementError::Residency(PhysicalResidencyDenial::AllocationFailed)
         })?;
+        let actual = u64::try_from(replacement.capacity()).expect("Vec capacity fits u64");
+        if actual > self.bytes {
+            let requested = self.bytes;
+            self.release_after_allocator_failure();
+            return Err(PhysicalDirtyReplacementError::Residency(
+                PhysicalResidencyDenial::AllocatorExceededReservation { requested, actual },
+            ));
+        }
+        self.owner.actualize_allocation(
+            crate::physical_residency::PhysicalResidencyAllocationActualization::new(
+                crate::PhysicalResidencyDimension::DirtyReplacementBytes,
+                self.allocation_use.scope(),
+                crate::physical_residency::PhysicalResidencyRequestedAllocationUnits::new(
+                    self.bytes,
+                ),
+                crate::physical_residency::PhysicalResidencyActualAllocationUnits::new(actual),
+            ),
+        );
         let lease = self
             .lease
             .as_ref()
@@ -79,11 +97,12 @@ impl<'grant> PhysicalDirtyReplacementReservation<'grant> {
             .lease
             .take()
             .expect("armed dirty replacement retains its clean lease");
-        if let Err(reason) =
-            lease
-                .owner
-                .finish_dirty_replacement(lease.key, &lease.bytes, Arc::clone(&replacement))
-        {
+        if let Err(reason) = lease.owner.finish_dirty_replacement(
+            self.allocation_use.scope(),
+            lease.key,
+            &lease.bytes,
+            Arc::clone(&replacement),
+        ) {
             self.release_reservation();
             return Err(PhysicalDirtyReplacementError::Residency(reason));
         }
@@ -94,14 +113,16 @@ impl<'grant> PhysicalDirtyReplacementReservation<'grant> {
 
     fn release_reservation(&mut self) {
         if self.armed {
-            self.owner.release_dirty_replacement(self.bytes);
+            self.owner
+                .release_dirty_replacement(self.allocation_use.scope(), self.bytes);
             self.armed = false;
         }
     }
 
     fn release_after_allocator_failure(&mut self) {
         if self.armed {
-            self.owner.dirty_replacement_allocator_failed(self.bytes);
+            self.owner
+                .dirty_replacement_allocator_failed(self.allocation_use.scope(), self.bytes);
             self.armed = false;
         }
     }
@@ -114,6 +135,14 @@ impl Drop for PhysicalDirtyReplacementReservation<'_> {
 }
 
 impl DirtyPhysicalFrame {
+    pub fn pool_incarnation(&self) -> PhysicalResidencyIncarnation {
+        self.lease
+            .as_ref()
+            .expect("dirty frame lease is present")
+            .owner
+            .incarnation()
+    }
+
     pub fn bytes(&self) -> &[u8] {
         self.lease
             .as_ref()

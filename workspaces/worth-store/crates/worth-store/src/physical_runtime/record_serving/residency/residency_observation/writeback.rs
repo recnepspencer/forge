@@ -9,6 +9,10 @@ pub(in crate::physical_runtime::record_serving::residency) struct PhysicalWriteb
     inspection_required: AtomicU64,
 }
 
+/// Dirty-frame writeback attempts and terminal outcome counts.
+///
+/// Exact receipts, retryable outcomes, and inspection-required outcomes remain
+/// distinct so observation cannot turn an indeterminate effect into success.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PhysicalWritebackCounterSnapshot {
     attempts: u64,

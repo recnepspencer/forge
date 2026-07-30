@@ -9,7 +9,8 @@ use worth_store::physical_runtime::{
     PhysicalWorkArtifactBinding, PhysicalWorkCourtroomBinding, PhysicalWorkCourtroomEvidence,
     PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomRunBinding, PhysicalWorkEvidenceDigest,
     PhysicalWorkExecutionContext, PhysicalWorkOracleEvidence, PhysicalWorkProcessEvidence,
-    PhysicalWorkRunEnvironmentEvidence, PhysicalWorkSourceBinding,
+    PhysicalWorkRunEnvironmentEvidence, PhysicalWorkScheduleSeed, PhysicalWorkSourceBinding,
+    PhysicalWorkWorkloadSeed,
 };
 
 use super::{fresh_process::FreshReopenObservation, mutant_report};
@@ -72,7 +73,8 @@ fn run_binding(
     )
     .unwrap();
     let execution = PhysicalWorkExecutionContext::new(
-        SEED,
+        PhysicalWorkWorkloadSeed::new(SEED),
+        PhysicalWorkScheduleSeed::new(SEED),
         SCHEDULE,
         [
             PhysicalWorkProcessEvidence::active_evidence_producer(

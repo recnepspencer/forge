@@ -1,5 +1,6 @@
 use worth_store::physical_runtime::{
-    AdmittedDirtyFrame, PhysicalEffectObligation, PhysicalResidencyCertification,
+    certification::CertificationPhysicalExecutionCheckpoint, AdmittedDirtyFrame,
+    PhysicalEffectObligation, PhysicalResidencyCertification, PhysicalSignalSettlementOutcome,
     PhysicalWorkEffectFate, PhysicalWorkPreEffectDenial, PhysicalWorkRecoveryDisposition,
     PhysicalWritebackExecution, PhysicalWritebackFailureCause,
 };
@@ -15,6 +16,184 @@ use super::{
 };
 
 const WRITEBACK: [u8; 8] = [0x51, 0xc6, 0x7a, 0x19, 0x84, 0x2f, 0xd0, 0x33];
+
+#[test]
+fn scheduler_admitted_cancellation_cannot_reach_writeback_dispatch() {
+    let root = tempfile::tempdir().unwrap();
+    let (profile, _, _) = work_fixture();
+    serving_from_initialization_with_work_profile(root.path(), profile.clone()).close();
+    let serving = serving_from_open_with_work_profile(root.path(), profile);
+    let residency = serving.certification_physical_residency();
+    let ready = residency
+        .request_writeback(
+            residency
+                .prepare_writeback(
+                    dirty_frame(&residency, writeback_coordinate()),
+                    ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+                )
+                .unwrap(),
+        )
+        .unwrap();
+    let identity = ready.identity();
+    let consumer = ready.consumer_handle();
+    let signal_request = consumer.signal_request();
+    let scheduler_before = serving.physical_scheduler_capacity();
+    let admitted = residency.admit_writeback(ready).unwrap();
+    let media_before = serving.media_counters();
+
+    let cancellation = serving.cancel_physical_work(consumer).unwrap();
+
+    assert_eq!(
+        cancellation.obligation(),
+        PhysicalEffectObligation::NotDispatched,
+        "C5_PREDICATE:predispatch-cancellation-dispatches"
+    );
+    assert_eq!(
+        cancellation
+            .signal()
+            .cancelled_request()
+            .map(|cancelled| cancelled.handle()),
+        Some(signal_request),
+        "C5_PREDICATE:predispatch-cancellation-dispatches"
+    );
+    let failure = match residency.execute_writeback(admitted) {
+        Err(failure) => failure,
+        Ok(_) => panic!("pre-dispatch cancelled writeback reached execution"),
+    };
+    assert_eq!(
+        failure.cause(),
+        PhysicalWritebackFailureCause::PreEffect(PhysicalWorkPreEffectDenial::ConsumerCancelled),
+        "C5_PREDICATE:predispatch-cancellation-dispatches"
+    );
+    failure.into_dirty().discard().unwrap();
+    let scheduler_after = serving.physical_scheduler_capacity();
+    assert!(
+        scheduler_after.configured() == scheduler_before.configured()
+            && scheduler_after.available() == scheduler_before.available()
+            && scheduler_after.active_reservations() == scheduler_before.active_reservations()
+            && scheduler_after.admitted_reservations()
+                == scheduler_before.admitted_reservations() + 1
+            && scheduler_after.released_reservations()
+                == scheduler_before.released_reservations() + 1
+            && scheduler_after.denied_reservations() == scheduler_before.denied_reservations(),
+        "C5_PREDICATE:predispatch-cancellation-dispatches"
+    );
+    assert_eq!(
+        serving.media_counters(),
+        media_before,
+        "C5_PREDICATE:predispatch-cancellation-dispatches"
+    );
+    let closed = serving.close();
+    assert_eq!(
+        closed.work().drain().cancelled_before_dispatch(),
+        &[identity],
+        "C5_PREDICATE:predispatch-cancellation-dispatches"
+    );
+    assert!(closed
+        .work()
+        .drain()
+        .continued_after_consumer_cancellation()
+        .is_empty());
+}
+
+#[test]
+fn cancellation_after_writeback_media_preserves_store_settlement() {
+    let root = tempfile::tempdir().unwrap();
+    let (profile, _, _) = work_fixture();
+    serving_from_initialization_with_work_profile(root.path(), profile.clone()).close();
+    let serving = serving_from_open_with_work_profile(root.path(), profile);
+    let residency = serving.certification_physical_residency();
+    let ready = residency
+        .request_writeback(
+            residency
+                .prepare_writeback(
+                    dirty_frame(&residency, writeback_coordinate()),
+                    ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
+                )
+                .unwrap(),
+        )
+        .unwrap();
+    let identity = ready.identity();
+    let consumer = ready.consumer_handle();
+    let signal_request = consumer.signal_request();
+    let scheduler_before = serving.physical_scheduler_capacity();
+    let admitted = residency.admit_writeback(ready).unwrap();
+    let gate = serving.certification_pause_physical_execution_at(
+        CertificationPhysicalExecutionCheckpoint::AfterResidencyWriteBeforeSchedulerSettlement,
+    );
+    let media_before = serving.media_counters();
+
+    let execution = std::thread::scope(|scope| {
+        let execution = scope.spawn(|| residency.execute_writeback(admitted));
+        assert!(
+            gate.await_arrival(),
+            "the real writeback did not reach its post-media settlement checkpoint"
+        );
+        let cancellation = serving.cancel_physical_work(consumer).unwrap();
+        assert_eq!(
+            cancellation.obligation(),
+            PhysicalEffectObligation::SettlementContinues
+        );
+        assert_eq!(
+            cancellation
+                .signal()
+                .cancelled_request()
+                .map(|cancelled| cancelled.handle()),
+            Some(signal_request)
+        );
+        gate.release();
+        execution.join().unwrap().unwrap()
+    });
+
+    let settlement = match execution {
+        PhysicalWritebackExecution::Clean(settlement) => settlement,
+        PhysicalWritebackExecution::Retryable(_) => panic!("exact writeback became retryable"),
+        PhysicalWritebackExecution::InspectionRequired(_) => {
+            panic!("exact writeback required inspection")
+        }
+    };
+    assert_eq!(settlement.identity(), identity);
+    assert!(settlement.effect().is_some());
+    assert_eq!(
+        settlement.effect_fate(),
+        PhysicalWorkEffectFate::WriteCompleted
+    );
+    assert_eq!(
+        settlement.recovery(),
+        PhysicalWorkRecoveryDisposition::ContinueSettlement
+    );
+    assert_eq!(
+        settlement.signal(),
+        PhysicalSignalSettlementOutcome::ReconciledFromPhysicalTruth
+    );
+    assert_eq!(
+        serving
+            .media_counters()
+            .attempts_for(MediaOperationRole::PositionedWrite),
+        media_before.attempts_for(MediaOperationRole::PositionedWrite) + 1
+    );
+    let scheduler_after = serving.physical_scheduler_capacity();
+    assert!(
+        scheduler_after.configured() == scheduler_before.configured()
+            && scheduler_after.available() == scheduler_before.available()
+            && scheduler_after.active_reservations() == scheduler_before.active_reservations()
+            && scheduler_after.admitted_reservations()
+                == scheduler_before.admitted_reservations() + 1
+            && scheduler_after.released_reservations()
+                == scheduler_before.released_reservations() + 1
+            && scheduler_after.denied_reservations() == scheduler_before.denied_reservations(),
+        "C5_PREDICATE:postdispatch-cancellation-loses-terminal-fate"
+    );
+    let closed = serving.close();
+    assert_eq!(
+        closed
+            .work()
+            .drain()
+            .continued_after_consumer_cancellation(),
+        &[identity],
+        "C5_PREDICATE:postdispatch-cancellation-loses-terminal-fate"
+    );
+}
 
 #[test]
 fn predispatch_timeout_returns_dirty_authority_without_a_media_attempt() {

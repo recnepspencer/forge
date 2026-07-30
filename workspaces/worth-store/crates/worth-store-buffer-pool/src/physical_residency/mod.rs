@@ -28,11 +28,15 @@ pub use limits::{
     PhysicalResidencyLimitsAdmissionDenial,
 };
 pub(in crate::physical_residency) use observation::{
-    PhysicalResidencyAccounting, PhysicalResidencyAllocationEventRecorder,
+    PhysicalFrameRemoval, PhysicalResidencyAccounting, PhysicalResidencyActualAllocationUnits,
+    PhysicalResidencyAllocationActualization, PhysicalResidencyAllocationEventRecorder,
+    PhysicalResidencyRequestedAllocationUnits,
 };
 pub use observation::{
+    PhysicalResidencyAllocationBoundaryEvent, PhysicalResidencyAllocationBoundaryKind,
     PhysicalResidencyAllocationEventCounters, PhysicalResidencyAllocationEventObserver,
-    PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyCounters, PhysicalResidencyShutdown,
+    PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationOperation,
+    PhysicalResidencyAllocationTrace, PhysicalResidencyCounters, PhysicalResidencyShutdown,
 };
 pub use operation_allocation::{
     ForegroundReadAllocationGrant, ForegroundWriteAllocationGrant, OperationAllocationGrant,

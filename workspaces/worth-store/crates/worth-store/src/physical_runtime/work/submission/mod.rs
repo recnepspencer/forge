@@ -139,6 +139,10 @@ impl PhysicalWorkSubmissionOwner {
         }
     }
 
+    pub(in crate::physical_runtime) fn generation(&self) -> LifecycleGeneration {
+        self.shared.generation
+    }
+
     pub(in crate::physical_runtime) fn observation(&self) -> PhysicalWorkObservation {
         self.observation.handle()
     }

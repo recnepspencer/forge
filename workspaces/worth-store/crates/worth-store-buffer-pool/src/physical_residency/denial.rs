@@ -14,6 +14,10 @@ pub enum PhysicalResidencyDenial {
     CandidateCleanAuthorityMismatch,
     WritebackCleanAuthorityMismatch,
     AllocationFailed,
+    AllocatorExceededReservation {
+        requested: u64,
+        actual: u64,
+    },
     AllocationGrantMismatch,
     SpeculativeAllocationMismatch {
         granted: u64,

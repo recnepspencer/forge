@@ -95,11 +95,10 @@ impl ArtifactTreeMedia<'_> {
                 return ScheduledArtifactMetadataReadOutcome::DeniedBeforeEffect(failure)
             }
         };
-        let Some(operation) = self.owner.issue_operation_identity() else {
-            return denied(ArtifactTreeFailureKind::DeniedBeforeEffect);
-        };
-        match super::super::artifact_tree_effects::artifact_file_length(self.owner, &file) {
-            Ok(file_length) => ScheduledArtifactMetadataReadOutcome::Completed(
+        match super::super::artifact_tree_effects::identified_artifact_file_length(
+            self.owner, &file,
+        ) {
+            Ok((operation, file_length)) => ScheduledArtifactMetadataReadOutcome::Completed(
                 CompletedScheduledArtifactMetadataRead {
                     physical: CompletedArtifactMetadataRead {
                         owner: self.owner.identity(),

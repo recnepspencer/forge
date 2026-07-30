@@ -180,6 +180,13 @@ impl PhysicalResidencyWorkPort {
         self.access.frame_ports.counters()
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn allocation_trace(
+        &self,
+    ) -> super::PhysicalResidencyAllocationTrace {
+        self.access.frame_ports.allocation_trace()
+    }
+
     pub(in crate::physical_runtime::record_serving) fn writeback(&self) -> &FrameWritebackPort {
         &self.access.writeback
     }

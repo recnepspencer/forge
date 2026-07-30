@@ -12,12 +12,18 @@ mod configuration;
 mod exact_write;
 #[path = "physical_store_work_courtroom/filesystem_profile.rs"]
 mod filesystem_profile;
+#[path = "physical_store_work_courtroom/process_allocation.rs"]
+mod process_allocation;
 #[path = "physical_store_work_courtroom/reopen.rs"]
 mod reopen;
 #[path = "physical_store_work_courtroom/shutdown.rs"]
 mod shutdown;
 #[path = "physical_store_work_courtroom/write.rs"]
 mod write;
+
+#[global_allocator]
+static PROCESS_ALLOCATOR: tracking_allocator::Allocator<std::alloc::System> =
+    tracking_allocator::Allocator::system();
 
 fn main() {
     if let Err(failure) = run() {
@@ -31,8 +37,11 @@ fn run() -> Result<(), String> {
         arguments::CourtroomInvocation::Write(invocation) => write::run(invocation),
         arguments::CourtroomInvocation::Reopen(invocation) => reopen::run(invocation),
         arguments::CourtroomInvocation::Shutdown(invocation) => shutdown::run(invocation),
-        arguments::CourtroomInvocation::BoundedResidency(invocation) => {
-            bounded_residency::run(invocation)
+        arguments::CourtroomInvocation::BoundedResidencyProducer(invocation) => {
+            bounded_residency::produce(invocation)
+        }
+        arguments::CourtroomInvocation::BoundedResidencyServing(invocation) => {
+            bounded_residency::serve(invocation)
         }
     }
 }

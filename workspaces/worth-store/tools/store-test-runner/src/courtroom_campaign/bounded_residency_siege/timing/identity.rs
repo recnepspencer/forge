@@ -7,7 +7,8 @@ pub(in crate::courtroom_campaign) enum BoundedResidencySiegePhase {
     PrebuildSourceBinding,
     PostbuildBinaryBinding,
     PostbuildSourceBinding,
-    SiegeWriter,
+    SiegeProducer,
+    SiegeServing,
     OfflineObserver,
     FreshReopener,
     FinalSourceBinding,
@@ -19,7 +20,7 @@ pub(in crate::courtroom_campaign) enum BoundedResidencySiegePhase {
 }
 
 impl BoundedResidencySiegePhase {
-    pub(super) const BEFORE_REPORT: [Self; 15] = [
+    pub(super) const BEFORE_REPORT: [Self; 16] = [
         Self::MutationEvidence,
         Self::World,
         Self::BinaryBuild,
@@ -27,7 +28,8 @@ impl BoundedResidencySiegePhase {
         Self::PrebuildSourceBinding,
         Self::PostbuildBinaryBinding,
         Self::PostbuildSourceBinding,
-        Self::SiegeWriter,
+        Self::SiegeProducer,
+        Self::SiegeServing,
         Self::OfflineObserver,
         Self::FreshReopener,
         Self::FinalSourceBinding,
@@ -46,7 +48,8 @@ impl BoundedResidencySiegePhase {
             Self::PrebuildSourceBinding => "prebuild-source-binding",
             Self::PostbuildBinaryBinding => "postbuild-binary-binding",
             Self::PostbuildSourceBinding => "postbuild-source-binding",
-            Self::SiegeWriter => "siege-writer",
+            Self::SiegeProducer => "producer",
+            Self::SiegeServing => "serving",
             Self::OfflineObserver => "offline-observer",
             Self::FreshReopener => "fresh-reopener",
             Self::FinalSourceBinding => "final-source-binding",

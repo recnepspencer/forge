@@ -59,16 +59,40 @@ writebacks. Effectful misses and writebacks must travel through Store's
 existing Signal, scheduler, executor, backend-receipt, and settlement path.
 Signal is therefore used above this crate, not inside it.
 
+The pool mints an opaque incarnation for that Store instance. Leases,
+dirty-frame authority, and writeback claims carry it so an upper consuming
+port can reject authority minted by a predecessor or different pool before it
+changes state. `DirtyPhysicalFrame::pool_incarnation()` is a read-only equality
+input for that comparison; it exposes no frame-table, claim, mutation,
+writeback, or cleanup control. Store owns the comparison and the typed public
+failure because this lower crate does not know lifecycle generations or
+effect topology.
+
 Store uses `worth-proof` for the public residency-policy admission transition,
 then privately projects the admitted limits into this crate. The pool receives
 neither proof authority nor a transition outcome. Physical pressure and frame
-residency are not Foundational facts; the dedicated frame-writeback basis
-belongs to C.6 Phase 5 above this boundary.
+residency are not Foundational facts; Store's dedicated frame-writeback basis
+remains above this boundary.
 
 Physical operation scopes classify memory ownership only. They are not
 priority, fairness, tenant, or semantic authority. Speculative kinds classify
 bounded prefetch, read-ahead, and write-behind capacity; they do not authorize
 background execution.
+
+## Observation Contract
+
+Residency counters describe executed pool transitions. Current values report
+live authority; peak values report the highest live value reached; cumulative
+values report named attempts, admissions, releases, denials, hits, faults,
+loads, evictions, copies, dirty transitions, and writeback outcomes.
+Allocation-event snapshots independently separate attempts, admissions,
+releases, denials, allocator failures, and their exact units by dimension.
+
+A denied pre-effect operation changes denial evidence but creates no fake
+load, copy, or writeback completion. A resident hit changes hit and lease
+evidence but creates no media-work count. Store projects these lower snapshots
+into identity-bound public observation. No counter or snapshot can grant an
+allocation, lease, eviction, retry, media effect, or clean transition.
 
 ## Frame Access Contract
 
@@ -173,32 +197,20 @@ exists, its frame and resident-byte accounting are released exactly once. A
 later access to that coordinate is a new fault and must obtain sole loading
 ownership again.
 
-## Current C.6 Status
+## Store Composition
 
-The complete admitted-limit vocabulary, Store construction join, per-scope
-and aggregate operation enforcement, shared live-byte envelope, fixed
-allocation-event cells, internally allocated dirty replacement, and
-close/abandon reconciliation are present. Runtime pressure denial records the
-exact Store/pool identity, dimension, scope, request, current usage, and limit
-before any effect can start.
+The Store facade owns the admitted residency policy and constructs one pool for
+each serving physical runtime. Ordinary reads, candidate publication,
+dirty-frame settlement, prefetch, read-ahead, and write-behind all compose this
+same pool through Store-private capabilities. No parallel frame table,
+snapshot-derived admission path, local worker, or compatibility facade remains.
 
-Store retains the admitted policy and publishes its own identity-bound counter,
-allocation-event, and pressure evidence. The lower snapshots in this crate are
-private mechanism inputs to that facade, not product APIs. Phase 2 cleanup also
-removed scalar/default limit bypasses, bare budget denials, externally supplied
-replacement buffers, and loose pool lifecycle ownership.
+Store publishes identity-bound residency counters, allocation events,
+writeback counters, and pressure evidence. The snapshots produced by this crate
+are lower mechanism inputs to that facade, not application authority.
 
-Phase 3 now includes exact pre-media loading identity, exhaustive
-fault/hit/coalesced access, sole-source authority, typed shared termination,
-hot-path source elision, deterministic legal-victim selection, exact eviction
-release, canonical refault evidence, and typed complete-artifact candidate
-aliasing. Ordinary Store reads compose the pool and canonical source through
-one private `ServingFrameResidency`; the temporary C6 handoff no longer owns
-any frame-read method, read lease, or canonical source. Hostile eviction
-evidence simultaneously excludes pinned, dirty, loading, candidate-reserved,
-and writeback-claimed frames. Later C.6 phases complete the public
-lease-scoped view contract, writeback settlement, and speculative runtime
-lowering.
-See
+Applications and successor features should not depend on this crate directly.
+Use `worth_store::physical_runtime` for admitted policy construction, record
+reads, bounded copies, pressure handling, and observation. See
 [`bounded-physical-record-access.md`](../../../../_docs/worth-store/bounded-physical-record-access.md)
 for the current Store-facing contract.

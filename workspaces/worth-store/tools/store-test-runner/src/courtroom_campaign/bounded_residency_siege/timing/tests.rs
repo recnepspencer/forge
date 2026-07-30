@@ -6,20 +6,29 @@ use super::{
     BoundedResidencySiegePhase, BoundedResidencySiegeTimings, CHILD_STAGE_BUDGET_MS,
     EXECUTABLE_VERIFICATION_BUDGET_MS, FINAL_SOURCE_BINDING_BUDGET_MS, MUTATION_EVIDENCE_BUDGET_MS,
     POSTBUILD_BINARY_BINDING_BUDGET_MS, POSTBUILD_SOURCE_BINDING_BUDGET_MS,
-    PREBUILD_SOURCE_BINDING_BUDGET_MS, REPORT_ENCODING_BUDGET_MS, SOURCE_INVENTORY_BUDGET_MS,
+    PREBUILD_SOURCE_BINDING_BUDGET_MS, REPORT_ENCODING_BUDGET_MS,
+    RUNNER_CONTROLLED_TOTAL_BUDGET_MS, SERVING_STAGE_BUDGET_MS, SOURCE_INVENTORY_BUDGET_MS,
     WORLD_BUDGET_MS,
 };
 
 #[test]
-fn cold_build_is_the_only_exclusion_from_completed_campaign_budget() {
+fn reconstructive_build_and_producer_are_excluded_from_runtime_acceptance() {
     let timings = complete_timings();
     assert_eq!(
         timings
             .validate_completed_campaign(Duration::from_secs(605))
             .unwrap(),
-        5_000
+        4_990
     );
-    assert_postpublication_rejection(&timings, Duration::from_secs(631), "runner-controlled work");
+    assert_postpublication_rejection(
+        &timings,
+        Duration::from_millis(600_010 + RUNNER_CONTROLLED_TOTAL_BUDGET_MS + 1),
+        "runner-controlled work",
+    );
+
+    let mut slow_setup = complete_timings();
+    phase_mut(&mut slow_setup, BoundedResidencySiegePhase::SiegeProducer).elapsed_ms = 120_000;
+    assert!(slow_setup.validate_complete_budget().is_ok());
 }
 
 #[test]
@@ -47,8 +56,8 @@ fn runtime_budget_rejects_each_enforced_stage_for_its_own_cause() {
             POSTBUILD_SOURCE_BINDING_BUDGET_MS,
         ),
         (
-            BoundedResidencySiegePhase::SiegeWriter,
-            CHILD_STAGE_BUDGET_MS,
+            BoundedResidencySiegePhase::SiegeServing,
+            SERVING_STAGE_BUDGET_MS,
         ),
         (
             BoundedResidencySiegePhase::OfflineObserver,
@@ -112,11 +121,16 @@ fn report_encoding_and_completed_wall_are_independently_bounded() {
     );
 
     let timings = complete_timings();
-    assert_postpublication_rejection(
-        &timings,
-        Duration::from_secs(599),
-        "cold-build timing exceeded",
-    );
+    assert_postpublication_rejection(&timings, Duration::from_secs(599), "setup timing exceeded");
+}
+
+#[test]
+fn source_bound_report_encoding_retains_observed_scheduler_headroom() {
+    let mut timings = complete_timings();
+    phase_mut(&mut timings, BoundedResidencySiegePhase::ReportEncoding).elapsed_ms = 2_500;
+    if timings.validate_complete_budget().is_err() {
+        panic!("MUTANT_PREDICATE:report-encoding-budget-regressed");
+    }
 }
 
 #[test]

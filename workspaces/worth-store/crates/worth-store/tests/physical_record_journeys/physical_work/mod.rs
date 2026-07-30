@@ -34,6 +34,7 @@ mod record_read_damage;
 mod record_read_failures;
 mod record_read_path;
 mod record_read_signal_cleanup;
+mod residency_generation_fencing;
 mod residency_pressure_projection;
 mod residency_projection_failure;
 mod residency_writeback_lifecycle;

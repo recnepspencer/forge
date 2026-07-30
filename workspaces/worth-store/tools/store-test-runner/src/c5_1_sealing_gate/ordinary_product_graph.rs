@@ -72,8 +72,12 @@ const fn product(
 fn every_ordinary_product_graph_excludes_legacy_and_certification_authority() {
     for product in ORDINARY_PRODUCTS {
         let tree = ordinary_feature_tree(product);
-        inspect_feature_tree(product.label, &tree)
-            .unwrap_or_else(|denial| panic!("{denial}\n{tree}"));
+        inspect_feature_tree(product.label, &tree).unwrap_or_else(|denial| {
+            if denial.contains("activated `legacy-s2-models`") {
+                panic!("MUTANT_PREDICATE:legacy-s2-feature-reintroduced\n{denial}\n{tree}");
+            }
+            panic!("{denial}\n{tree}");
+        });
     }
 }
 

@@ -9,6 +9,14 @@ impl ServingPhysicalRuntime {
         )
     }
 
+    pub fn certification_stale_physical_residency(
+        &self,
+    ) -> crate::physical_runtime::record_serving::PhysicalResidencyCertification {
+        crate::physical_runtime::record_serving::PhysicalResidencyCertification::stale_from_parts(
+            &self.parts,
+        )
+    }
+
     pub fn certification_physical_work_courtroom_binding(
         &self,
     ) -> crate::physical_runtime::record_serving::PhysicalWorkCourtroomBinding {

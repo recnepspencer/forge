@@ -41,6 +41,7 @@ pub use run_provenance::{
     PhysicalWorkFilesystemProfileParts, PhysicalWorkFilesystemSupportEvidence,
     PhysicalWorkPlatformEvidence, PhysicalWorkProcessEvidence, PhysicalWorkProcessFateEvidence,
     PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence, PhysicalWorkRunProvenanceDenial,
+    PhysicalWorkScheduleSeed, PhysicalWorkWorkloadSeed,
 };
 pub use verdict::{PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomVerdict};
 pub use vocabulary::{

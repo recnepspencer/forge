@@ -145,6 +145,7 @@ pub enum UnpublishedRecordBatchCause {
     FrameWriteback {
         stage: RecordPublicationStage,
         failure: Box<super::super::PhysicalRecordWritebackFailureEvidence>,
+        pressure: Option<super::super::PhysicalRecordPressureEvidence>,
     },
     Stream(RecordStreamFailure),
 }
@@ -233,6 +234,13 @@ impl UnpublishedRecordBatchFailure {
     }
     pub fn physical_work(&self) -> &RecordPublicationWorkTrace {
         &self.evidence.work
+    }
+    pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
+        match &self.cause {
+            UnpublishedRecordBatchCause::FrameWriteback { pressure, .. } => *pressure,
+            UnpublishedRecordBatchCause::Stream(failure) => failure.pressure(),
+            _ => None,
+        }
     }
 }
 

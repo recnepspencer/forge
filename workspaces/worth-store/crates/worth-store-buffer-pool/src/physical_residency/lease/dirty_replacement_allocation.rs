@@ -20,6 +20,17 @@ pub(crate) struct DirtyReplacementBuffer {
 }
 
 impl DirtyReplacementBuffer {
+    #[cfg(test)]
+    pub(crate) fn with_capacity(length: usize, capacity: usize) -> Self {
+        let mut replacement = Vec::with_capacity(capacity);
+        replacement.resize(length, 0);
+        Self { replacement }
+    }
+
+    pub(crate) fn capacity(&self) -> usize {
+        self.replacement.capacity()
+    }
+
     pub(crate) fn as_mut_slice(&mut self) -> &mut [u8] {
         self.replacement.as_mut_slice()
     }

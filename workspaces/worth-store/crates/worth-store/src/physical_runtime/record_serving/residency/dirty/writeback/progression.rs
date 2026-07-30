@@ -21,6 +21,10 @@ impl FrameWritebackPort {
         dirty: AdmittedDirtyFrame,
         durability: ArtifactRangeWriteDurabilityRequirement,
     ) -> Result<PreparedPhysicalWriteback, PhysicalWritebackTransitionFailure> {
+        let _call = match self.require_current_dirty(&dirty) {
+            Ok(call) => call,
+            Err(cause) => return Err(PhysicalWritebackTransitionFailure::new(cause, dirty)),
+        };
         self.frame_ports.observe_writeback_attempt();
         let claim = match self.frame_ports.claim_writeback(dirty.coordinate()) {
             Ok(claim) => claim,
@@ -121,6 +125,10 @@ impl FrameWritebackPort {
         ready: ReadyPhysicalWork,
         dirty: AdmittedDirtyFrame,
     ) -> Result<ReadyPhysicalWriteback, PhysicalWritebackTransitionFailure> {
+        let _call = match self.require_current_dirty(&dirty) {
+            Ok(call) => call,
+            Err(cause) => return Err(PhysicalWritebackTransitionFailure::new(cause, dirty)),
+        };
         let [coordinate] = ready.intent().scope().coordinates() else {
             return Err(PhysicalWritebackTransitionFailure::new(
                 PhysicalWritebackFailureCause::SubmissionRejected,

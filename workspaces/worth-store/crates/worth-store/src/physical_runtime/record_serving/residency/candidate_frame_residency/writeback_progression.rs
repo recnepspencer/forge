@@ -105,9 +105,11 @@ fn discard_transition_failure(
     CandidateFrameWriteFailure<PhysicalRecordWritebackFailureEvidence>,
 > {
     let cause = failure.cause();
-    failure.into_dirty().discard().map_err(residency_failure)?;
+    let dirty = failure.into_dirty();
+    let coordinate = dirty.coordinate();
+    dirty.discard().map_err(residency_failure)?;
     Err(CandidateFrameWriteFailure::Effect(
-        PhysicalRecordWritebackFailureEvidence::transition(identity, cause),
+        PhysicalRecordWritebackFailureEvidence::transition(identity, cause, coordinate),
     ))
 }
 

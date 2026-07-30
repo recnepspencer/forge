@@ -23,12 +23,7 @@ impl PoolInner {
             .frames
             .remove(&key.coordinate)
             .expect("validated clean frame remains present");
-        state.accounting.remove_frame(
-            removed.bytes,
-            removed.pins,
-            removed.dirty,
-            removed.origin.is_candidate(),
-        );
+        state.accounting.remove_frame(removed.accounting_removal());
         Ok(())
     }
 
@@ -148,12 +143,7 @@ impl PoolInner {
                 .frames
                 .remove(&target.coordinate)
                 .expect("validated target remains resident");
-            state.accounting.remove_frame(
-                removed.bytes,
-                removed.pins,
-                removed.dirty,
-                removed.origin.is_candidate(),
-            );
+            state.accounting.remove_frame(removed.accounting_removal());
         }
         let entry = state
             .frames

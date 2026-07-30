@@ -1,7 +1,10 @@
 use super::AdmittedDirtyFrame;
+use worth_store_physical_format::RecordFrameCoordinate;
+
 use crate::physical_runtime::{
-    PhysicalEffectIdentity, PhysicalSignalSettlementOutcome, PhysicalWorkEffectFate,
-    PhysicalWorkIdentity, PhysicalWorkPreEffectDenial, PhysicalWorkRecoveryDisposition,
+    LifecycleGeneration, PhysicalEffectIdentity, PhysicalSignalSettlementOutcome,
+    PhysicalWorkEffectFate, PhysicalWorkIdentity, PhysicalWorkPreEffectDenial,
+    PhysicalWorkRecoveryDisposition,
 };
 
 #[derive(Debug)]
@@ -16,6 +19,7 @@ pub enum PhysicalWritebackFailureCause {
     RuntimeReleased,
     SubmissionRejected,
     DependencyBlocked,
+    StaleOrForeignDirtyFrame,
     PreEffect(PhysicalWorkPreEffectDenial),
     SchedulerReservation(
         worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundAdmissionDenial,
@@ -39,6 +43,7 @@ pub enum PhysicalRecordWritebackFailureCause {
 pub struct PhysicalRecordWritebackFailureEvidence {
     identity: Option<PhysicalWorkIdentity>,
     cause: PhysicalRecordWritebackFailureCause,
+    frame_coordinate: Option<RecordFrameCoordinate>,
     effect: Option<PhysicalEffectIdentity>,
     effect_fate: PhysicalWorkEffectFate,
     recovery: Option<PhysicalWorkRecoveryDisposition>,
@@ -66,10 +71,12 @@ impl PhysicalRecordWritebackFailureEvidence {
     pub(in crate::physical_runtime::record_serving) const fn transition(
         identity: Option<PhysicalWorkIdentity>,
         cause: PhysicalWritebackFailureCause,
+        frame_coordinate: RecordFrameCoordinate,
     ) -> Self {
         Self {
             identity,
             cause: PhysicalRecordWritebackFailureCause::Transition(cause),
+            frame_coordinate: Some(frame_coordinate),
             effect: None,
             effect_fate: PhysicalWorkEffectFate::ProvenNoEffect,
             recovery: None,
@@ -84,6 +91,7 @@ impl PhysicalRecordWritebackFailureEvidence {
         Self {
             identity: Some(settlement.identity()),
             cause,
+            frame_coordinate: None,
             effect: settlement.effect(),
             effect_fate: settlement.effect_fate(),
             recovery: Some(settlement.recovery()),
@@ -97,6 +105,10 @@ impl PhysicalRecordWritebackFailureEvidence {
 
     pub const fn cause(self) -> PhysicalRecordWritebackFailureCause {
         self.cause
+    }
+
+    pub const fn frame_coordinate(self) -> Option<RecordFrameCoordinate> {
+        self.frame_coordinate
     }
 
     pub const fn effect(self) -> Option<PhysicalEffectIdentity> {
@@ -113,5 +125,28 @@ impl PhysicalRecordWritebackFailureEvidence {
 
     pub const fn signal(self) -> Option<PhysicalSignalSettlementOutcome> {
         self.signal
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn pressure(
+        self,
+        generation: LifecycleGeneration,
+    ) -> Option<super::super::PhysicalRecordPressureEvidence> {
+        let PhysicalRecordWritebackFailureCause::Transition(
+            PhysicalWritebackFailureCause::Residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::Pressure(pressure),
+            ),
+        ) = self.cause
+        else {
+            return None;
+        };
+        let basis = super::super::PhysicalRecordPressureBasis::for_store(pressure.store())
+            .with_frame_coordinate(self.frame_coordinate?);
+        super::super::PhysicalRecordPressureEvidence::from_failure(
+            super::super::PhysicalRecordResidencyFailure::from(
+                worth_store_buffer_pool::PhysicalResidencyDenial::Pressure(pressure),
+            ),
+            generation,
+            basis,
+        )
     }
 }

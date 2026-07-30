@@ -25,6 +25,7 @@ pub struct PhysicalCandidateBatchReservation<'grant> {
 pub struct PhysicalCandidateFrameReservation {
     pub(crate) owner: Arc<PoolInner>,
     pub(crate) candidate: PhysicalCandidateFrameKey,
+    pub(crate) scope: crate::PhysicalOperationAllocationScope,
     pub(crate) armed: bool,
 }
 
@@ -58,6 +59,7 @@ impl PhysicalCandidateBatchReservation<'_> {
         Ok(PhysicalCandidateFrameReservation::new(
             Arc::clone(&self.owner),
             candidate,
+            scope,
         ))
     }
 }
@@ -99,6 +101,26 @@ impl PhysicalCandidateFrameReservation {
             self.armed = false;
             PhysicalResidencyDenial::AllocationFailed
         })?;
+        let actual = u64::try_from(buffer.capacity()).expect("Vec capacity fits u64");
+        let requested = u64::try_from(length).expect("frame length fits u64");
+        if actual > requested {
+            self.owner.candidate_allocator_failed(key);
+            self.armed = false;
+            return Err(PhysicalResidencyDenial::AllocatorExceededReservation {
+                requested,
+                actual,
+            });
+        }
+        self.owner.actualize_allocation(
+            crate::physical_residency::PhysicalResidencyAllocationActualization::new(
+                crate::PhysicalResidencyDimension::ResidentBytes,
+                self.scope,
+                crate::physical_residency::PhysicalResidencyRequestedAllocationUnits::new(
+                    requested,
+                ),
+                crate::physical_residency::PhysicalResidencyActualAllocationUnits::new(actual),
+            ),
+        );
         fill(buffer.as_mut_slice());
         let bytes = buffer.into_resident();
         let frame = self.owner.finish_candidate(key, bytes)?;

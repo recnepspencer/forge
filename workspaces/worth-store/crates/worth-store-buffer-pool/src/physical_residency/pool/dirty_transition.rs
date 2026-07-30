@@ -13,12 +13,13 @@ impl PoolInner {
         }
         let mut state = self.lock();
         validate_transition(self, &mut state, scope, key, expected, bytes)?;
-        state.accounting.reserve_dirty_replacement(bytes);
+        state.accounting.reserve_dirty_replacement(scope, bytes);
         Ok(())
     }
 
     pub(crate) fn finish_dirty_replacement(
         &self,
+        scope: PhysicalOperationAllocationScope,
         key: PhysicalFrameKey,
         expected: &Arc<Vec<u8>>,
         replacement: Arc<Vec<u8>>,
@@ -32,20 +33,31 @@ impl PoolInner {
         let was_candidate = entry.origin.is_candidate();
         entry.state = FrameState::Resident(replacement);
         entry.origin = FrameOrigin::DirtyReplacement;
+        entry.allocation_scope = scope;
         entry.dirty = true;
         state.accounting.mark_dirty(!was_candidate);
         Ok(())
     }
 
-    pub(crate) fn release_dirty_replacement(&self, bytes: u64) {
+    pub(crate) fn release_dirty_replacement(
+        &self,
+        scope: PhysicalOperationAllocationScope,
+        bytes: u64,
+    ) {
         let mut state = self.lock();
-        state.accounting.release_dirty_replacement(bytes);
+        state.accounting.release_dirty_replacement(scope, bytes);
         self.changed.notify_all();
     }
 
-    pub(crate) fn dirty_replacement_allocator_failed(&self, bytes: u64) {
+    pub(crate) fn dirty_replacement_allocator_failed(
+        &self,
+        scope: PhysicalOperationAllocationScope,
+        bytes: u64,
+    ) {
         let mut state = self.lock();
-        state.accounting.dirty_replacement_allocator_failed(bytes);
+        state
+            .accounting
+            .dirty_replacement_allocator_failed(scope, bytes);
         self.changed.notify_all();
     }
 }

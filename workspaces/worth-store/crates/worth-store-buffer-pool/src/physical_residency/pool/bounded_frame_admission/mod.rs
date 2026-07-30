@@ -21,10 +21,12 @@ pub(super) enum BoundedFrameEntry {
     Loading {
         identity: PhysicalFrameLoadingIdentity,
         admitted_limit: u32,
+        allocation_scope: PhysicalOperationAllocationScope,
         waiters: u32,
     },
     LoadFailed {
         terminal: PhysicalFrameLoadTerminal,
+        allocation_scope: PhysicalOperationAllocationScope,
         waiters: u32,
     },
     Resident {
@@ -182,18 +184,20 @@ impl PoolInner {
             BoundedFrameEntry::Loading {
                 identity,
                 admitted_limit: key.limit(),
+                allocation_scope: scope,
                 waiters: 0,
             },
         );
         state
             .accounting
-            .admit_frame(u64::from(key.limit()), false, false);
+            .admit_frame(scope, u64::from(key.limit()), false, false);
         state.loading_frames += 1;
         Ok(PhysicalBoundedFrameAccess::Fault(
             PhysicalBoundedFrameFaultOwner {
                 owner: Arc::clone(self),
                 key,
                 identity,
+                scope,
                 armed: true,
             },
         ))

@@ -14,7 +14,7 @@ mod ledger_document;
 mod legacy_module_closure;
 mod replacement_owner;
 
-use consumer_family::discover_families;
+use consumer_family::{discover_families, is_legacy_s2_subject_family};
 use ledger_document::{parse_removal_ledger, RemovalDisposition, RemovalRow, RemovalStatus};
 
 const REMOVAL_LEDGER: &str = "_docs/worth-store/physical-reconstruction-c6-removal-ledger.csv";
@@ -23,6 +23,7 @@ const EXCLUDED_POLICY_SOURCES: &[&str] = &[
     "tools/store-test-runner/src/c5_1_sealing_gate.rs",
     "tools/store-test-runner/src/c5_1_sealing_gate/",
     "tools/store-test-runner/src/physical_residency_boundary_gate/",
+    "tools/store-test-runner/src/mutation_campaign/catalog/physical_reconstruction_c6.rs",
 ];
 
 #[test]
@@ -295,8 +296,20 @@ fn compare_inventory(
         .map(|path| path.as_str())
         .collect::<Vec<_>>();
     if !unclassified.is_empty() || !stale_open.is_empty() || !rediscovered_deleted.is_empty() {
+        let legacy_subject = rediscovered_deleted.iter().any(|path| {
+            discovered.get(*path).is_some_and(|families| {
+                families
+                    .iter()
+                    .any(|family| is_legacy_s2_subject_family(family))
+            })
+        });
+        let predicate = if legacy_subject {
+            "MUTANT_PREDICATE:legacy-s2-subject-reintroduced; "
+        } else {
+            ""
+        };
         return Err(format!(
-            "physical residency removal ledger mismatch; unclassified consumers: {unclassified:?}; stale open rows: {stale_open:?}; rediscovered deleted rows: {rediscovered_deleted:?}"
+            "{predicate}physical residency removal ledger mismatch; unclassified consumers: {unclassified:?}; stale open rows: {stale_open:?}; rediscovered deleted rows: {rediscovered_deleted:?}"
         ));
     }
     let family_mismatches = discovered

@@ -1,3 +1,4 @@
+mod allocation;
 mod bounded_fault_owner;
 mod bounded_fault_waiter;
 mod fault_owner;
@@ -11,6 +12,9 @@ pub use loading_identity::PhysicalFrameLoadingIdentity;
 pub use terminal::{PhysicalFrameLoadTerminal, PhysicalFrameLoadTerminalKind};
 
 use super::PhysicalFrameLease;
+pub(crate) use allocation::PhysicalFrameAllocator;
+#[cfg(test)]
+pub(crate) use allocation::PhysicalFrameBuffer;
 
 /// The exhaustive result of consulting the exact live pool identity.
 ///

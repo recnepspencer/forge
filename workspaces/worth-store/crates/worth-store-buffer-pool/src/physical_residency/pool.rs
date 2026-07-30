@@ -4,8 +4,9 @@ use super::{
     PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
     PhysicalCandidateFrameReservation, PhysicalFrameAccess, PhysicalFrameFaultOwner,
     PhysicalFrameFaultWaiter, PhysicalFrameLease, PhysicalFrameLoadTerminal,
-    PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity, PhysicalOperationAllocationScope,
-    PhysicalResidencyAccounting, PhysicalResidencyAllocationEventObserver,
+    PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity, PhysicalFrameRemoval,
+    PhysicalOperationAllocationScope, PhysicalResidencyAccounting,
+    PhysicalResidencyAllocationActualization, PhysicalResidencyAllocationEventObserver,
     PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyDimension,
     PhysicalResidencyLimits, PhysicalResidencyPressureDemand, PhysicalResidencyPressureDenial,
     PhysicalResidencyShutdown, PhysicalWritebackClaim, WriteBehindResidencyGrant,
@@ -177,6 +178,7 @@ struct PoolState {
 struct FrameEntry {
     state: FrameState,
     origin: FrameOrigin,
+    allocation_scope: PhysicalOperationAllocationScope,
     pins: u32,
     dirty: bool,
     writeback_claimed: bool,
@@ -189,12 +191,10 @@ struct FrameEntry {
 }
 
 impl FrameEntry {
-    fn is_evictable(&self) -> bool {
-        self.pins == 0
-            && !self.dirty
-            && !self.writeback_claimed
-            && matches!(&self.state, FrameState::Resident(_))
-            && self.loading_waiters == 0
+    fn accounting_removal(&self) -> PhysicalFrameRemoval {
+        PhysicalFrameRemoval::new(self.allocation_scope, self.bytes, self.pins)
+            .with_dirty(self.dirty)
+            .with_candidate(self.origin.is_candidate())
     }
 }
 
@@ -292,6 +292,13 @@ impl PoolInner {
         self.lock().accounting.record_source_load();
     }
 
+    pub(crate) fn actualize_allocation(
+        &self,
+        actualization: PhysicalResidencyAllocationActualization,
+    ) {
+        self.lock().accounting.actualize_allocation(actualization);
+    }
+
     pub(crate) fn record_denial(&self, denial: PhysicalResidencyDenial) -> PhysicalResidencyDenial {
         Self::deny(&mut self.lock(), denial)
     }
@@ -307,7 +314,7 @@ impl PoolInner {
     ) -> PhysicalResidencyDenial {
         state
             .accounting
-            .deny_dimension(demand.dimension, demand.requested);
+            .deny_dimension(demand.dimension, demand.scope, demand.requested);
         PhysicalResidencyDenial::Pressure(PhysicalResidencyPressureDenial::new(
             self.store,
             self.incarnation,
@@ -322,10 +329,15 @@ impl PoolInner {
 }
 
 impl PhysicalCandidateFrameReservation {
-    pub(crate) fn new(owner: Arc<PoolInner>, candidate: PhysicalCandidateFrameKey) -> Self {
+    pub(crate) fn new(
+        owner: Arc<PoolInner>,
+        candidate: PhysicalCandidateFrameKey,
+        scope: PhysicalOperationAllocationScope,
+    ) -> Self {
         Self {
             owner,
             candidate,
+            scope,
             armed: true,
         }
     }

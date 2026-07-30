@@ -2,12 +2,14 @@ use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
     ArtifactTreeFailureKind, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
     CompletedArtifactRangeWrite, IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    MediaOperationRole,
 };
 
 use super::{
-    PhysicalWorkEffectFate, PhysicalWorkHealthRevocation, PhysicalWorkNoEffectEvidence,
-    PhysicalWorkPublicationResiduePosture, PhysicalWorkSchedulerPosture,
-    PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause, PhysicalWorkTerminalFailure,
+    publication_effect_role, PhysicalWorkEffectFate, PhysicalWorkHealthRevocation,
+    PhysicalWorkNoEffectEvidence, PhysicalWorkPublicationResiduePosture,
+    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause,
+    PhysicalWorkTerminalFailure,
 };
 use crate::physical_runtime::work::{
     DispatchedPhysicalWork, PhysicalExecutorOutcome, PhysicalWorkOperationFamily,
@@ -109,6 +111,7 @@ fn classify_completed_read(
         target: PhysicalWorkRecoveryTarget::Range(physical.coordinate()),
         completed_bytes: physical.completed_bytes(),
         backend_operation: physical.operation(),
+        backend_role: MediaOperationRole::PositionedRead,
         scheduler: scheduler_posture(scheduler),
         publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
@@ -129,6 +132,7 @@ fn indeterminate_terminal(
         target: PhysicalWorkRecoveryTarget::Range(physical.coordinate()),
         completed_bytes: physical.completed_bytes(),
         backend_operation: physical.operation(),
+        backend_role: MediaOperationRole::PositionedWrite,
         scheduler: PhysicalWorkSchedulerPosture::NotObserved,
         publication_residue: indeterminate_publication_residue(dispatched),
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
@@ -199,6 +203,7 @@ fn terminal_scheduler_failure(
         target: PhysicalWorkRecoveryTarget::Range(physical.coordinate()),
         completed_bytes: physical.completed_bytes(),
         backend_operation: physical.operation(),
+        backend_role: MediaOperationRole::PositionedWrite,
         scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
         publication_residue: if publication {
             PhysicalWorkPublicationResiduePosture::MayExist
@@ -227,6 +232,7 @@ fn classify_completed_new_artifact(
             target: PhysicalWorkRecoveryTarget::Range(physical.write().coordinate()),
             completed_bytes: physical.write().completed_bytes(),
             backend_operation: physical.write().operation(),
+            backend_role: MediaOperationRole::PositionedWrite,
             scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
             publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
             recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
@@ -252,6 +258,7 @@ fn classify_completed_publication_effect(
             target: physical.recovery_target(),
             completed_bytes: 0,
             backend_operation: physical.physical().operation(),
+            backend_role: publication_effect_role(physical.effect()),
             scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
             publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
             recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
@@ -264,6 +271,11 @@ fn indeterminate_new_artifact(
     dispatched: &DispatchedPhysicalWork,
     physical: IndeterminateArtifactNewWrite,
 ) -> PhysicalWorkSettlementEvidence {
+    let backend_role = if physical.write_operation().is_some() {
+        MediaOperationRole::PositionedWrite
+    } else {
+        MediaOperationRole::CreateNew
+    };
     PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
         identity: dispatched.intent().identity(),
         effect_fate: PhysicalWorkEffectFate::Indeterminate,
@@ -272,6 +284,7 @@ fn indeterminate_new_artifact(
         backend_operation: physical
             .write_operation()
             .unwrap_or_else(|| physical.create_operation()),
+        backend_role,
         scheduler: PhysicalWorkSchedulerPosture::NotObserved,
         publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
@@ -289,6 +302,7 @@ fn indeterminate_publication_effect(
         target: physical.recovery_target(),
         completed_bytes: 0,
         backend_operation: physical.physical().operation(),
+        backend_role: publication_effect_role(physical.effect()),
         scheduler: PhysicalWorkSchedulerPosture::NotObserved,
         publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,

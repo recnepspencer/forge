@@ -45,6 +45,18 @@ certification = ["bridge"]
 }
 
 #[test]
+fn classifier_does_not_treat_phase_neutral_mutation_evidence_as_a_migration_consumer() {
+    let families = discover_families(
+        "crates/example/tests/current_authority.rs",
+        "MUTANT_PREDICATE:stale-residency-generation-consumed",
+    );
+    assert!(
+        !families.contains("c6-identifier"),
+        "phase-neutral mutation evidence is not a C.6 migration surface"
+    );
+}
+
+#[test]
 fn classifier_detects_a_renamed_exact_count_residency_snapshot() {
     for source in [
         "pub struct PhysicalSubstrateReadinessSnapshot;",

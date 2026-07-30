@@ -35,5 +35,5 @@ workspace = true
 [[bin]]
 name = "physical_store_offline_observer"
 path = "src/bin/physical_store_offline_observer.rs"
-test = false
+test = true
 doctest = false

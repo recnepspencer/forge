@@ -1,384 +1,243 @@
-use std::{
-    sync::mpsc,
-    time::{Duration, Instant},
-};
+mod append_batch;
+mod append_pressure;
+mod trace;
 
-use worth_store::physical_runtime::{
-    AdmittedDirtyFrame, AdmittedPhysicalWriteback, PhysicalEffectIdentity,
-    PhysicalEffectObligation, PhysicalResidencyCertification, PhysicalSignalSettlementOutcome,
-    PhysicalWorkConsumerHandle, PhysicalWorkEffectFate, PhysicalWorkIdentity,
-    PhysicalWorkRecoveryDisposition, PhysicalWritebackCounterSnapshot, PhysicalWritebackExecution,
-    PhysicalWritebackSettlement, PhysicalWritebackTransitionFailure, ServingPhysicalRuntime,
-};
-use worth_store_physical_backend::{
-    ArtifactRangeWriteDurabilityRequirement, MediaOperationRole, MediaPauseGate,
-};
-use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
+use worth_store::physical_runtime::{PhysicalSpeculativeWorkKind, ServingPhysicalRuntime};
+use worth_store_physical_backend::{MediaOperationRole, MediaPauseGate};
 
+use super::configuration::BoundedResidencyConfiguration;
+
+pub(super) const CANDIDATE_WRITEBACK_POSITIONED_WRITE_ORDINAL: u64 = 2;
+
+#[derive(Debug)]
 pub(super) struct BoundedDirtyWritebackEvidence {
-    pub(super) identity: PhysicalWorkIdentity,
-    pub(super) source_work_count: u64,
-    pub(super) first_source_work: PhysicalWorkIdentity,
-    pub(super) last_source_work: PhysicalWorkIdentity,
-    pub(super) effect: PhysicalEffectIdentity,
-    pub(super) effect_fate: PhysicalWorkEffectFate,
-    pub(super) recovery: PhysicalWorkRecoveryDisposition,
-    pub(super) signal: PhysicalSignalSettlementOutcome,
-    pub(super) dirty_at_pause: u32,
-    pub(super) dirty_after_receipt: u32,
-    pub(super) positioned_writes: u64,
-    pub(super) candidate_publications: u64,
-    pub(super) writebacks: u64,
-    pub(super) active_claims_at_pause: u32,
-    pub(super) eviction_releases_at_pause: u64,
-    pub(super) competing_claim_denied: bool,
-    pub(super) cancellation_settlement_continues: bool,
+    pub(super) primary_publication: u64,
+    pub(super) retry_publication: u64,
+    pub(super) primary_candidate_writebacks: u64,
+    pub(super) retry_candidate_writebacks: u64,
+    pub(super) primary_candidate_publications: u64,
+    pub(super) retry_candidate_publications: u64,
+    pub(super) denied_candidate_publications: u64,
+    pub(super) primary_last_candidate_operation: u64,
+    pub(super) retry_last_candidate_operation: u64,
+    pub(super) dirty_at_dispatch: u32,
+    pub(super) dirty_peak: u32,
+    pub(super) dirty_after_denial: u32,
+    pub(super) dirty_after_primary: u32,
+    pub(super) dirty_terminal: u32,
+    pub(super) active_claims_at_dispatch: u32,
+    pub(super) active_writebehind_at_dispatch: u32,
+    pub(super) peak_writebehind: u32,
+    pub(super) terminal_writebehind: u32,
+    pub(super) pressure_requested: u64,
+    pub(super) pressure_admitted: u64,
+    pub(super) pressure_limit: u64,
+    pub(super) pressure_basis_exact: bool,
+    pub(super) pressure_retry_after_settlement: bool,
+    pub(super) pressure_effect_free: bool,
+    pub(super) cleanup_deletions: u64,
+    pub(super) cleanup_complete: bool,
+    pub(super) primary_records: u64,
+    pub(super) retry_records: u64,
+    pub(super) writebehind_attempts: u64,
+    pub(super) writebehind_admissions: u64,
+    pub(super) writebehind_denials: u64,
+    pub(super) writebehind_completions: u64,
     pub(super) writeback_attempts: u64,
     pub(super) exact_receipts: u64,
     pub(super) retryable_writebacks: u64,
     pub(super) indeterminate_writebacks: u64,
     pub(super) inspection_required_writebacks: u64,
-}
-
-struct DirtySourceProvenance {
-    work_count: u64,
-    first_work: PhysicalWorkIdentity,
-    last_work: PhysicalWorkIdentity,
-}
-
-struct DirtyPressureBaseline {
-    residency: worth_store_buffer_pool::PhysicalResidencyCounters,
-    writebacks: PhysicalWritebackCounterSnapshot,
-    positioned_writes: u64,
-}
-
-struct DispatchedDirtyWriteEvidence {
-    source: DirtySourceProvenance,
-    baseline: DirtyPressureBaseline,
-    pressure: PausedDirtyPressure,
-}
-
-struct PausedDirtyPressure {
-    dirty_frames: u32,
-    active_claims: u32,
-    eviction_releases: u64,
-    competing_claim_denied: bool,
-    cancellation_settlement_continues: bool,
-}
-
-struct PreparedDirtyWriteback {
-    residency: PhysicalResidencyCertification,
-    coordinate: RecordFrameCoordinate,
-    source: DirtySourceProvenance,
-    baseline: DirtyPressureBaseline,
-    consumer: PhysicalWorkConsumerHandle,
-    admitted: AdmittedPhysicalWriteback,
+    pub(super) candidate_publications: u64,
+    pub(super) writebacks: u64,
+    pub(super) positioned_writes: u64,
 }
 
 pub(super) fn prove(
     serving: &ServingPhysicalRuntime,
+    configuration: BoundedResidencyConfiguration,
     gate: MediaPauseGate,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
-    let PreparedDirtyWriteback {
-        residency,
-        coordinate,
-        source,
-        baseline,
-        consumer,
-        admitted,
-    } = prepare_dirty_writeback(serving)?;
-    let (execution, receiver) = spawn_execution(residency.clone(), admitted);
-    await_dispatch(&gate, &receiver)?;
-    let pressure = require_paused_write(
-        serving,
-        &residency,
-        coordinate,
-        &gate,
-        baseline.positioned_writes,
-    )?;
-    let cancellation = serving
-        .cancel_physical_work(consumer)
-        .map_err(|failure| format!("post-dispatch writeback cancellation failed: {failure:?}"))?;
-    let pressure = PausedDirtyPressure {
-        cancellation_settlement_continues: cancellation.obligation()
-            == PhysicalEffectObligation::SettlementContinues,
-        ..pressure
+    let run = append_pressure::execute(serving, configuration, gate)?;
+    let traces = CandidateWritebackTraces {
+        primary: trace::candidate_writebacks(&run.primary)?,
+        retry: trace::candidate_writebacks(&run.retry)?,
     };
-    if !pressure.cancellation_settlement_continues {
-        gate.release();
-        return Err("post-dispatch cancellation did not preserve settlement".to_owned());
-    }
-    gate.release();
-    let settlement = receive_settlement(receiver, execution)?;
-    settlement_evidence(
-        serving,
-        settlement,
-        DispatchedDirtyWriteEvidence {
-            source,
-            baseline,
-            pressure,
-        },
-    )
+    build_evidence(serving, run, traces)
 }
 
-fn prepare_dirty_writeback(
+struct CandidateWritebackTraces {
+    primary: trace::CandidateWritebackTrace,
+    retry: trace::CandidateWritebackTrace,
+}
+
+fn build_evidence(
     serving: &ServingPhysicalRuntime,
-) -> Result<PreparedDirtyWriteback, String> {
-    let residency = serving.certification_physical_residency();
-    residency.drain_unpinned_clean_frames();
-    let coordinate =
-        RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();
-    let lease = residency
-        .pin_exact(coordinate)
-        .map_err(|failure| format!("writeback frame load failed: {failure:?}"))?;
-    let dirty = residency
-        .admit_dirty_frame(lease, |source, target| {
-            target.copy_from_slice(source);
-        })
-        .map_err(|failure| format!("dirty admission failed: {failure:?}"))?;
-    let source = source_evidence(&dirty)?;
-    let baseline = DirtyPressureBaseline {
-        residency: residency.counters(),
-        writebacks: serving.residency_observation().writebacks(),
-        positioned_writes: positioned_writes(serving),
-    };
-    let prepared = residency
-        .prepare_writeback(
-            dirty,
-            ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
-        )
-        .map_err(|failure| format!("writeback preparation failed: {:?}", failure.cause()))?;
-    let ready = residency
-        .request_writeback(prepared)
-        .map_err(|failure| format!("writeback readiness failed: {:?}", failure.cause()))?;
-    let consumer = ready.consumer_handle();
-    let admitted = residency
-        .admit_writeback(ready)
-        .map_err(|failure| format!("writeback admission failed: {:?}", failure.cause()))?;
-    Ok(PreparedDirtyWriteback {
-        residency,
-        coordinate,
-        source,
-        baseline,
-        consumer,
-        admitted,
-    })
-}
-
-fn source_evidence(dirty: &AdmittedDirtyFrame) -> Result<DirtySourceProvenance, String> {
-    let first = dirty
-        .first_source_physical_work()
-        .ok_or_else(|| "dirty frame omitted its canonical source work".to_owned())?;
-    let last = dirty
-        .last_source_physical_work()
-        .ok_or_else(|| "dirty frame omitted its terminal source work".to_owned())?;
-    if dirty.source_physical_work_count() == 0 {
-        return Err("dirty source work count was empty".to_owned());
-    }
-    Ok(DirtySourceProvenance {
-        work_count: dirty.source_physical_work_count(),
-        first_work: first,
-        last_work: last,
-    })
-}
-
-type SettlementReceiver =
-    mpsc::Receiver<Result<PhysicalWritebackExecution, PhysicalWritebackTransitionFailure>>;
-
-fn spawn_execution(
-    residency: PhysicalResidencyCertification,
-    admitted: AdmittedPhysicalWriteback,
-) -> (std::thread::JoinHandle<()>, SettlementReceiver) {
-    let (sender, receiver) = mpsc::sync_channel(1);
-    let execution = std::thread::spawn(move || {
-        let _ = sender.send(residency.execute_writeback(admitted));
-    });
-    (execution, receiver)
-}
-
-fn await_dispatch(gate: &MediaPauseGate, receiver: &SettlementReceiver) -> Result<(), String> {
-    let deadline = Instant::now() + Duration::from_secs(2);
-    while gate.reached_context().is_none() && Instant::now() < deadline {
-        match receiver.try_recv() {
-            Ok(_) => return Err("writeback settled before backend dispatch".to_owned()),
-            Err(mpsc::TryRecvError::Disconnected) => {
-                return Err("writeback execution disconnected before dispatch".to_owned())
-            }
-            Err(mpsc::TryRecvError::Empty) => std::thread::yield_now(),
-        }
-    }
-    if gate.reached_context().is_none() {
-        gate.release();
-        return Err("writeback did not reach its backend gate".to_owned());
-    }
-    Ok(())
-}
-
-fn require_paused_write(
-    serving: &ServingPhysicalRuntime,
-    residency: &PhysicalResidencyCertification,
-    coordinate: RecordFrameCoordinate,
-    gate: &MediaPauseGate,
-    writes_before: u64,
-) -> Result<PausedDirtyPressure, String> {
-    let context = gate
-        .reached_context()
-        .ok_or_else(|| "dirty gate omitted its media context".to_owned())?;
-    let counters = serving.residency_observation().counters();
-    let dirty = counters.dirty_frames();
-    let attempts = positioned_writes(serving).saturating_sub(writes_before);
-    let eviction_releases = residency.drain_unpinned_clean_frames();
-    let competing_claim_denied = matches!(
-        residency.probe_competing_writeback_claim(coordinate),
-        Err(worth_store_buffer_pool::PhysicalResidencyDenial::WriteBackFrameAlreadyClaimed)
-    );
-    if context.role() != MediaOperationRole::PositionedWrite
-        || context.identified_operation_ordinal() != Some(1)
-        || dirty != 1
-        || counters.active_writeback_claims() != 1
-        || attempts != 1
-        || eviction_releases != 0
-        || !competing_claim_denied
-    {
-        gate.release();
-        return Err("writeback did not retain exact dirty posture at dispatch".to_owned());
-    }
-    Ok(PausedDirtyPressure {
-        dirty_frames: dirty,
-        active_claims: counters.active_writeback_claims(),
-        eviction_releases,
-        competing_claim_denied,
-        cancellation_settlement_continues: false,
-    })
-}
-
-fn receive_settlement(
-    receiver: SettlementReceiver,
-    execution: std::thread::JoinHandle<()>,
-) -> Result<PhysicalWritebackSettlement, String> {
-    let result = receiver
-        .recv_timeout(Duration::from_secs(2))
-        .map_err(|_| "writeback did not settle after gate release".to_owned())?;
-    execution
-        .join()
-        .map_err(|_| "writeback execution panicked".to_owned())?;
-    match result.map_err(|failure| format!("writeback execution failed: {:?}", failure.cause()))? {
-        PhysicalWritebackExecution::Clean(settlement) => Ok(settlement),
-        PhysicalWritebackExecution::Retryable(retryable) => Err(format!(
-            "unfaulted writeback unexpectedly required retry for {:?}",
-            retryable.settled().intent().identity()
-        )),
-        PhysicalWritebackExecution::InspectionRequired(inspection) => Err(format!(
-            "unfaulted writeback required inspection for {:?}",
-            inspection.settlement().identity()
-        )),
-    }
-}
-
-fn settlement_evidence(
-    serving: &ServingPhysicalRuntime,
-    settlement: PhysicalWritebackSettlement,
-    dispatched: DispatchedDirtyWriteEvidence,
+    run: append_pressure::OrdinaryAppendPressure,
+    traces: CandidateWritebackTraces,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
-    let effect = settlement
-        .effect()
-        .ok_or_else(|| "writeback settlement omitted its backend effect".to_owned())?;
+    let append_pressure::OrdinaryAppendPressure {
+        primary,
+        retry,
+        baseline,
+        paused,
+        pressure,
+        dirty_after_primary,
+        primary_candidate_publications,
+        retry_candidate_publications,
+        denied_candidate_publications,
+    } = run;
     let after = serving.residency_observation().counters();
     let writebacks = serving.residency_observation().writebacks();
+    let kind = PhysicalSpeculativeWorkKind::WriteBehind;
     let evidence = BoundedDirtyWritebackEvidence {
-        identity: settlement.identity(),
-        source_work_count: dispatched.source.work_count,
-        first_source_work: dispatched.source.first_work,
-        last_source_work: dispatched.source.last_work,
-        effect,
-        effect_fate: settlement.effect_fate(),
-        recovery: settlement.recovery(),
-        signal: settlement.signal(),
-        dirty_at_pause: dispatched.pressure.dirty_frames,
-        dirty_after_receipt: after.dirty_frames(),
-        positioned_writes: positioned_writes(serving)
-            .saturating_sub(dispatched.baseline.positioned_writes),
-        candidate_publications: after
-            .candidate_publications()
-            .saturating_sub(dispatched.baseline.residency.candidate_publications()),
-        writebacks: after
-            .writebacks()
-            .saturating_sub(dispatched.baseline.residency.writebacks()),
-        active_claims_at_pause: dispatched.pressure.active_claims,
-        eviction_releases_at_pause: dispatched.pressure.eviction_releases,
-        competing_claim_denied: dispatched.pressure.competing_claim_denied,
-        cancellation_settlement_continues: dispatched.pressure.cancellation_settlement_continues,
-        writeback_attempts: writebacks
-            .attempts()
-            .saturating_sub(dispatched.baseline.writebacks.attempts()),
-        exact_receipts: writebacks
-            .exact_receipts()
-            .saturating_sub(dispatched.baseline.writebacks.exact_receipts()),
-        retryable_writebacks: writebacks
-            .retryable()
-            .saturating_sub(dispatched.baseline.writebacks.retryable()),
-        indeterminate_writebacks: writebacks
-            .indeterminate()
-            .saturating_sub(dispatched.baseline.writebacks.indeterminate()),
-        inspection_required_writebacks: writebacks
-            .inspection_required()
-            .saturating_sub(dispatched.baseline.writebacks.inspection_required()),
+        primary_publication: primary.publication_identity(),
+        retry_publication: retry.publication_identity(),
+        primary_candidate_writebacks: traces.primary.count,
+        retry_candidate_writebacks: traces.retry.count,
+        primary_candidate_publications,
+        retry_candidate_publications,
+        denied_candidate_publications,
+        primary_last_candidate_operation: traces.primary.last_operation,
+        retry_last_candidate_operation: traces.retry.last_operation,
+        dirty_at_dispatch: paused.dirty_at_dispatch,
+        dirty_peak: after.peak_dirty_frames(),
+        dirty_after_denial: paused.dirty_after_denial,
+        dirty_after_primary,
+        dirty_terminal: after.dirty_frames(),
+        active_claims_at_dispatch: paused.active_claims_at_dispatch,
+        active_writebehind_at_dispatch: paused.active_writebehind_at_dispatch,
+        peak_writebehind: after.peak_speculative_frames(kind),
+        terminal_writebehind: after.active_speculative_frames(kind),
+        pressure_requested: pressure.requested(),
+        pressure_admitted: pressure.admitted(),
+        pressure_limit: pressure.limit(),
+        pressure_basis_exact: paused.pressure_basis_exact,
+        pressure_retry_after_settlement: paused.pressure_retry_after_settlement,
+        pressure_effect_free: !pressure.effect_may_have_started(),
+        cleanup_deletions: paused.cleanup_deletions,
+        cleanup_complete: paused.cleanup_complete,
+        primary_records: primary.record_ids().len() as u64,
+        retry_records: retry.record_ids().len() as u64,
+        writebehind_attempts: delta(
+            after.speculative_attempts(kind),
+            baseline.residency.speculative_attempts(kind),
+        ),
+        writebehind_admissions: delta(
+            after.speculative_admissions(kind),
+            baseline.residency.speculative_admissions(kind),
+        ),
+        writebehind_denials: delta(
+            after.speculative_denials(kind),
+            baseline.residency.speculative_denials(kind),
+        ),
+        writebehind_completions: delta(
+            after.speculative_completions(kind),
+            baseline.residency.speculative_completions(kind),
+        ),
+        writeback_attempts: delta(writebacks.attempts(), baseline.writebacks.attempts()),
+        exact_receipts: delta(
+            writebacks.exact_receipts(),
+            baseline.writebacks.exact_receipts(),
+        ),
+        retryable_writebacks: delta(writebacks.retryable(), baseline.writebacks.retryable()),
+        indeterminate_writebacks: delta(
+            writebacks.indeterminate(),
+            baseline.writebacks.indeterminate(),
+        ),
+        inspection_required_writebacks: delta(
+            writebacks.inspection_required(),
+            baseline.writebacks.inspection_required(),
+        ),
+        candidate_publications: delta(
+            after.candidate_publications(),
+            baseline.residency.candidate_publications(),
+        ),
+        writebacks: delta(after.writebacks(), baseline.residency.writebacks()),
+        positioned_writes: delta(positioned_writes(serving), baseline.positioned_writes),
     };
-    validate_settlement(evidence)
+    validate(evidence)
 }
 
-fn validate_settlement(
+fn validate(
     evidence: BoundedDirtyWritebackEvidence,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
-    if evidence.effect.work() != evidence.identity
-        || evidence.effect_fate != PhysicalWorkEffectFate::WriteCompleted
-        || evidence.recovery != PhysicalWorkRecoveryDisposition::ContinueSettlement
-        || evidence.signal != PhysicalSignalSettlementOutcome::ReconciledFromPhysicalTruth
-        || evidence.dirty_after_receipt != 0
-        || evidence.positioned_writes != 1
-        || evidence.candidate_publications != 1
-        || evidence.writebacks != 1
-        || evidence.active_claims_at_pause != 1
-        || evidence.eviction_releases_at_pause != 0
-        || !evidence.competing_claim_denied
-        || !evidence.cancellation_settlement_continues
-        || evidence.writeback_attempts != 1
-        || evidence.exact_receipts != 1
+    let candidate_writebacks = evidence
+        .primary_candidate_writebacks
+        .saturating_add(evidence.retry_candidate_writebacks);
+    if evidence.primary_publication == 0
+        || evidence.retry_publication == 0
+        || evidence.primary_publication == evidence.retry_publication
+        || evidence.primary_candidate_writebacks == 0
+        || evidence.retry_candidate_writebacks == 0
+        || evidence.primary_candidate_publications <= evidence.primary_candidate_writebacks
+        || evidence.retry_candidate_publications <= evidence.retry_candidate_writebacks
+        || evidence.primary_last_candidate_operation == 0
+        || evidence.retry_last_candidate_operation <= evidence.primary_last_candidate_operation
+        || evidence.primary_records != 1
+        || evidence.retry_records != 1
+    {
+        return Err(format!(
+            "ordinary append identities did not reconcile: {evidence:?}"
+        ));
+    }
+    if evidence.dirty_at_dispatch != 1
+        || evidence.dirty_peak != 2
+        || evidence.dirty_after_denial != 1
+        || evidence.dirty_after_primary != 0
+        || evidence.dirty_terminal != 0
+        || evidence.active_claims_at_dispatch != 1
+    {
+        return Err(format!(
+            "ordinary append dirty saturation did not reconcile: {evidence:?}"
+        ));
+    }
+    if evidence.active_writebehind_at_dispatch != 1
+        || evidence.peak_writebehind != 1
+        || evidence.terminal_writebehind != 0
+        || evidence.pressure_requested != 1
+        || evidence.pressure_admitted != 1
+        || evidence.pressure_limit != 1
+        || !evidence.pressure_basis_exact
+        || !evidence.pressure_retry_after_settlement
+        || !evidence.pressure_effect_free
+        || evidence.cleanup_deletions == 0
+        || !evidence.cleanup_complete
+    {
+        return Err(format!(
+            "ordinary append write-behind pressure did not reconcile: {evidence:?}"
+        ));
+    }
+    if evidence.writebehind_attempts != candidate_writebacks.saturating_add(1)
+        || evidence.writebehind_admissions != candidate_writebacks
+        || evidence.writebehind_denials != 1
+        || evidence.writebehind_completions != candidate_writebacks
+        || evidence.writeback_attempts != candidate_writebacks.saturating_add(1)
+        || evidence.exact_receipts != candidate_writebacks
         || evidence.retryable_writebacks != 0
         || evidence.indeterminate_writebacks != 0
         || evidence.inspection_required_writebacks != 0
+        || evidence.denied_candidate_publications != 1
+        || evidence.candidate_publications
+            != evidence
+                .primary_candidate_publications
+                .saturating_add(evidence.retry_candidate_publications)
+                .saturating_add(evidence.denied_candidate_publications)
+        || evidence.writebacks != candidate_writebacks
+        || evidence.positioned_writes < candidate_writebacks
     {
         return Err(format!(
-            "exact receipt did not settle the canonical writeback: \
-             effect_matches_identity={} effect_fate={:?} recovery={:?} signal={:?} \
-             dirty_after_receipt={} positioned_writes={} candidate_publications={} writebacks={} \
-             active_claims_at_pause={} eviction_releases_at_pause={} \
-             competing_claim_denied={} cancellation_settlement_continues={} \
-             writeback_attempts={} exact_receipts={} retryable_writebacks={} \
-             indeterminate_writebacks={} inspection_required_writebacks={}",
-            evidence.effect.work() == evidence.identity,
-            evidence.effect_fate,
-            evidence.recovery,
-            evidence.signal,
-            evidence.dirty_after_receipt,
-            evidence.positioned_writes,
-            evidence.candidate_publications,
-            evidence.writebacks,
-            evidence.active_claims_at_pause,
-            evidence.eviction_releases_at_pause,
-            evidence.competing_claim_denied,
-            evidence.cancellation_settlement_continues,
-            evidence.writeback_attempts,
-            evidence.exact_receipts,
-            evidence.retryable_writebacks,
-            evidence.indeterminate_writebacks,
-            evidence.inspection_required_writebacks,
+            "ordinary append writeback counters did not reconcile: {evidence:?}"
         ));
     }
     Ok(evidence)
 }
 
-fn positioned_writes(serving: &ServingPhysicalRuntime) -> u64 {
+fn delta(after: u64, before: u64) -> u64 {
+    after.saturating_sub(before)
+}
+
+pub(super) fn positioned_writes(serving: &ServingPhysicalRuntime) -> u64 {
     serving
         .media_counters()
         .attempts_for(MediaOperationRole::PositionedWrite)

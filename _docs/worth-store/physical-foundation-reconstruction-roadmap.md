@@ -1091,6 +1091,35 @@ frame-lifetime and budget claims are mechanically falsifiable, and the bounded
 read surface can be consumed without transferring pool or semantic-residency
 authority.
 
+### Current Contract And Successor Links
+
+Phase 9 publishes one Store-owned bounded residency contract and records that
+the parallel S.2 authority graph is gone. This is not the final C.6 verdict:
+Phase 10 must still close the hostile fresh-process courtroom, the canonical
+staged schedule plus 16 revision-derived replayable CI schedule seeds, the
+append-only mutation regression corpus, and the full requirement ledger before
+the milestone is complete. The twelve designed controlled-defect categories
+are the minimum corpus; every later executable C.6 or certification-evidence
+bug correction must append its causal mutation before its finding can close.
+Current
+developer guidance and completed predecessor evidence:
+
+- [C.6 engineering specification](./physical-reconstruction-c6-buffer-pool-runtime-join.md)
+- [bounded physical record access guide](./bounded-physical-record-access.md)
+- [buffer-pool owner README](../../workspaces/worth-store/crates/worth-store-buffer-pool/README.md)
+- [Phase 8 deletion closure](./physical-reconstruction-c6-phase-8-closure-ledger.md)
+- [Phase 9 documentation closure](./physical-reconstruction-c6-phase-9-closure-ledger.md)
+
+C.6 hands bounded physical identity, borrowed chunks, exact pressure,
+Store-generation evidence, dirty/writeback truth, and scheduler-ready physical
+work forward without granting pool control or successor policy:
+
+- [C.7 durability ordering](#c7-wal-checkpoint-root-publication-and-acknowledgment-join)
+- [C.8 fresh-process recovery](#c8-fresh-process-recovery-and-reopen)
+- [C.9 physical integrity](#c9-physical-integrity-corruption-localization-and-offline-truth)
+- [C.10 stable reads and scheduled I/O](#c10-stable-reads-scheduled-io-and-maintenance-interference)
+- [C.11 layout, indexes, and native blobs](#c11-layout-index-and-native-blob-adoption)
+
 ## C.7: WAL, Checkpoint, Root Publication, And Acknowledgment Join
 
 ### Goal

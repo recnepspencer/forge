@@ -33,7 +33,11 @@ impl PhysicalResidencyPool {
                 allocation_events,
                 state: Mutex::new(PoolState {
                     frames,
-                    accounting: PhysicalResidencyAccounting::new(metadata, allocation_recorder),
+                    accounting: PhysicalResidencyAccounting::new(
+                        minimum_metadata,
+                        metadata,
+                        allocation_recorder,
+                    ),
                     evictable_head: None,
                     evictable_tail: None,
                     loading_frames: 0,

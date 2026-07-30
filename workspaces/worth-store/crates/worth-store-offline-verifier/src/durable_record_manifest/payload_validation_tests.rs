@@ -3,7 +3,7 @@ use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 
 use super::{
     read_inline_payload, InlinePayloadExpectation, OfflineDurableManifestDenial,
-    OfflineRecordIdentity, OfflineSegmentPageMembership, FRAME_HEADER_BYTES,
+    OfflineRecordIdentity, OfflineSegmentPageMembership, PayloadDigesters, FRAME_HEADER_BYTES,
 };
 
 #[test]
@@ -24,6 +24,8 @@ fn hostile_slot_directory_width_is_denied_before_indexing() {
     let path = segment_directory.join("segment-0000000000000001-0000000000000001.pages");
     std::fs::write(&path, hostile_inline_page(format)).unwrap();
 
+    let mut aggregate = Sha256::default();
+    let mut digest = PayloadDigesters::new(&mut aggregate);
     let denial = read_inline_payload(
         parent.path(),
         format,
@@ -35,7 +37,7 @@ fn hostile_slot_directory_width_is_denied_before_indexing() {
             payload_bytes: 1,
             slot: u16::MAX,
         },
-        &mut Sha256::default(),
+        &mut digest,
     )
     .unwrap_err();
 

@@ -3,15 +3,22 @@ pub(crate) mod evidence;
 mod execution;
 mod process_execution;
 mod report;
-mod sandbox;
 mod source_inventory;
+mod source_replacement;
 
 use std::path::Path;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[cfg(all(test, feature = "physical-work-evidence"))]
+pub(crate) use execution::emit_nested_executable;
+
+#[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub(crate) enum MutationCampaignScope {
     All,
     PhysicalWork,
+    BoundedResidency,
 }
 
 impl MutationCampaignScope {
@@ -19,8 +26,10 @@ impl MutationCampaignScope {
         match value {
             "all" => Ok(Self::All),
             "physical-work" => Ok(Self::PhysicalWork),
+            "bounded-residency" => Ok(Self::BoundedResidency),
             _ => Err(format!(
-                "unknown mutation scope `{value}`; expected `all|physical-work`"
+                "unknown mutation scope `{value}`; expected \
+                 `all|physical-work|bounded-residency`"
             )),
         }
     }
@@ -29,6 +38,16 @@ impl MutationCampaignScope {
         match self {
             Self::All => catalog::mutations(),
             Self::PhysicalWork => catalog::physical_work_mutations(),
+            Self::BoundedResidency => catalog::bounded_residency_mutations(),
+        }
+    }
+
+    #[cfg(feature = "physical-work-evidence")]
+    const fn label(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::PhysicalWork => "physical-work",
+            Self::BoundedResidency => "bounded-residency",
         }
     }
 
@@ -45,6 +64,36 @@ pub(crate) fn maximum_id() -> u8 {
         .expect("controlled mutation catalog must not be empty")
 }
 
+#[cfg(feature = "physical-work-evidence")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct MutationRequirement {
+    identity: u16,
+    predicate: &'static str,
+}
+
+#[cfg(feature = "physical-work-evidence")]
+impl MutationRequirement {
+    pub(crate) const fn identity(self) -> u16 {
+        self.identity
+    }
+
+    pub(crate) const fn predicate(self) -> &'static str {
+        self.predicate
+    }
+}
+
+#[cfg(feature = "physical-work-evidence")]
+pub(crate) fn bounded_residency_requirements() -> Vec<MutationRequirement> {
+    MutationCampaignScope::BoundedResidency
+        .mutations()
+        .iter()
+        .map(|mutation| MutationRequirement {
+            identity: mutation.id.into(),
+            predicate: mutation.predicate,
+        })
+        .collect()
+}
+
 pub(super) struct MutationCampaignRequest<'path> {
     pub(super) scope: MutationCampaignScope,
     pub(super) list: bool,
@@ -59,6 +108,14 @@ pub(crate) fn load_physical_work_evidence(
     workspace: &Path,
 ) -> Result<Vec<worth_store::physical_runtime::PhysicalWorkMutantLocalization>, String> {
     report::load_physical_work_evidence(report, workspace)
+}
+
+#[cfg(feature = "physical-work-evidence")]
+pub(crate) fn load_bounded_residency_evidence(
+    report: &Path,
+    workspace: &Path,
+) -> Result<Vec<worth_store::physical_runtime::PhysicalWorkMutantLocalization>, String> {
+    report::load_bounded_residency_evidence(report, workspace)
 }
 
 pub(super) fn run(
@@ -80,14 +137,14 @@ pub(super) fn run(
         }
         return Ok(());
     }
-    let mut evidence_session = match request.report {
+    let evidence_session = match request.report {
         Some(path) => Some(report::MutationEvidenceSession::begin(
             path,
             source_inventory::bind(workspace_root)?,
+            request.scope,
         )?),
         None => None,
     };
-    let sandbox = sandbox::MutationSandbox::create(workspace_root)?;
     let mut observations = Vec::new();
     for mutation in mutations
         .iter()
@@ -95,10 +152,7 @@ pub(super) fn run(
         .filter(|mutation| request.first.is_none_or(|id| mutation.id >= id))
     {
         println!("mutate: {} ({})", mutation.id, mutation.predicate);
-        let mut observation = execution::execute(&sandbox, mutation)?;
-        if let Some(session) = &mut evidence_session {
-            session.retain_binary(&mut observation)?;
-        }
+        let observation = execution::execute(workspace_root, mutation)?;
         println!("C5_MUTANT_EVIDENCE {}", evidence::encode(&observation)?);
         observations.push(observation);
     }
@@ -116,15 +170,11 @@ fn validate_request(request: &MutationCampaignRequest<'_>) -> Result<(), String>
         return Err("--report requires an executing mutation campaign".into());
     }
     if request.report.is_some() {
-        if request.scope != MutationCampaignScope::PhysicalWork {
-            return Err(
-                "mutation evidence reports require `--mutation-scope physical-work`".into(),
-            );
+        if request.scope == MutationCampaignScope::All {
+            return Err("mutation evidence reports require a bounded mutation scope".into());
         }
         if request.selected.is_some() || request.first.is_some() {
-            return Err(
-                "mutation evidence reports require the complete physical-work campaign".into(),
-            );
+            return Err("mutation evidence reports require the complete selected campaign".into());
         }
     }
     validate_selectors(request.scope, request.selected, request.first)
@@ -178,7 +228,47 @@ mod tests {
     }
 
     #[test]
-    fn report_publication_requires_the_complete_physical_work_scope() {
+    fn bounded_residency_scope_contains_inherited_and_c6_specific_mutants() {
+        let ids = MutationCampaignScope::BoundedResidency
+            .mutations()
+            .iter()
+            .map(|mutation| mutation.id)
+            .collect::<Vec<_>>();
+
+        let expected = super::catalog::physical_work_mutations()
+            .iter()
+            .filter(|mutation| matches!(mutation.id, 42..=44))
+            .chain(super::catalog::physical_reconstruction_c6_mutations())
+            .map(|mutation| mutation.id)
+            .collect::<Vec<_>>();
+        assert_eq!(ids, expected);
+        assert!(ids.windows(2).all(|pair| pair[0] < pair[1]));
+    }
+
+    #[test]
+    fn ci_certification_preserves_the_required_six_mutation_categories() {
+        let predicates = MutationCampaignScope::BoundedResidency
+            .mutations()
+            .iter()
+            .map(|mutation| mutation.predicate)
+            .collect::<std::collections::BTreeSet<_>>();
+        for required in [
+            "whole-store-allocation",
+            "pinned-eviction",
+            "writeback-clean-without-exact-receipt",
+            "duplicate-source-load",
+            "speculative-kind-budget-bypass",
+            "physical-work-topology-bypass",
+        ] {
+            assert!(
+                predicates.contains(required),
+                "CI mutation floor omitted `{required}`"
+            );
+        }
+    }
+
+    #[test]
+    fn report_publication_requires_a_complete_bounded_scope() {
         let report = std::path::Path::new("phase16.json");
         let all = MutationCampaignRequest {
             scope: MutationCampaignScope::All,
@@ -202,5 +292,10 @@ mod tests {
             ..all
         };
         assert!(validate_request(&complete).is_ok());
+        assert!(validate_request(&MutationCampaignRequest {
+            scope: MutationCampaignScope::BoundedResidency,
+            ..complete
+        })
+        .is_ok());
     }
 }

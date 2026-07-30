@@ -69,6 +69,7 @@ impl BuiltCourtroomExecutables {
         command.current_dir(workspace).args([
             "build",
             "--quiet",
+            "--release",
             "--package",
             "worth-store",
             "--features",
@@ -84,7 +85,7 @@ impl BuiltCourtroomExecutables {
         process_execution::run_success(&mut command, BUILD_TIMEOUT, "courtroom binary build")?;
         let cargo_build_elapsed = build_started.elapsed();
         let binding_started = Instant::now();
-        let target = target_directory(workspace).join("debug");
+        let target = target_directory(workspace).join("release");
         let runner = bind_current_binary()?;
         let writer = bind_binary(&target, "physical_store_work_courtroom")?;
         let observer = bind_binary(&target, "physical_store_offline_observer")?;

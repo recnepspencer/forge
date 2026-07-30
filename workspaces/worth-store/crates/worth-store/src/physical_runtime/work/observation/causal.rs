@@ -7,7 +7,9 @@ use std::{
 };
 
 use worth_signal::facade::{ResourceAttemptId, ResourceRequestHandle};
-use worth_store_physical_backend::{BackendQueueExecutionPlanBinding, MediaOperationIdentity};
+use worth_store_physical_backend::{
+    BackendQueueExecutionPlanBinding, MediaOperationIdentity, MediaOperationRole,
+};
 
 use super::super::{
     PhysicalSignalAspectBindingDigest, PhysicalSignalSettlementOutcome,
@@ -26,6 +28,7 @@ pub struct PhysicalWorkCausalRecord {
     signal_binding: PhysicalSignalAspectBindingDigest,
     scheduler_binding: BackendQueueExecutionPlanBinding,
     backend_operation: Option<MediaOperationIdentity>,
+    backend_role: Option<MediaOperationRole>,
     effect_fate: PhysicalWorkEffectFate,
     recovery: PhysicalWorkRecoveryDisposition,
     derived_completion: Option<PhysicalSignalSettlementOutcome>,
@@ -69,6 +72,7 @@ impl PhysicalWorkCausalLedger {
             backend_operation: settled
                 .effect_identity()
                 .map(|identity| identity.backend_operation()),
+            backend_role: settled.evidence().backend_role(),
             effect_fate: settled.evidence().fate(),
             recovery: settled.recovery_disposition(),
             derived_completion: None,
@@ -163,6 +167,10 @@ impl PhysicalWorkCausalRecord {
 
     pub const fn backend_operation(self) -> Option<MediaOperationIdentity> {
         self.backend_operation
+    }
+
+    pub const fn backend_role(self) -> Option<MediaOperationRole> {
+        self.backend_role
     }
 
     pub const fn effect_fate(self) -> PhysicalWorkEffectFate {

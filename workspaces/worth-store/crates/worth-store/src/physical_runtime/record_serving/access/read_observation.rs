@@ -153,6 +153,11 @@ impl RecordReadObservation {
     }
 }
 
+/// Failure to open or continue a bounded physical record read.
+///
+/// Inspect `denial` for the broad class, `observation` for work already
+/// observed by the session, and `pressure` for exact physical-pressure
+/// evidence when the denial is `RecordReadDenial::PhysicalPressure`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecordReadError {
     denial: RecordReadDenial,
@@ -182,18 +187,26 @@ impl RecordReadError {
             pressure: Some(pressure),
         }
     }
+    /// Returns the broad Store-facing denial class.
     pub const fn denial(self) -> RecordReadDenial {
         self.denial
     }
+
+    /// Returns record-read progress and physical work observed before failure.
     pub const fn observation(self) -> RecordReadObservation {
         self.observation
     }
 
+    /// Returns exact physical-pressure evidence when pressure caused failure.
+    ///
+    /// The evidence is descriptive and cannot be used as retry or allocation
+    /// authority.
     pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
         self.pressure
     }
 }
 
+/// Store-facing reason a bounded physical record read was denied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordReadDenial {
     ServingRequiresInspection,

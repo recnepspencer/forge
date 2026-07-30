@@ -67,12 +67,22 @@ impl ServingPhysicalRuntime {
             .counters()
     }
 
+    /// Returns read-only residency evidence for this serving Store generation.
+    ///
+    /// The observation exposes admitted limits and executed counters, never
+    /// pool, allocation, eviction, retry, dirty, or writeback authority.
     pub fn residency_observation(&self) -> super::super::PhysicalResidencyObservation {
         self.parts
             .residency
             .observation(self.parts.core.lifecycle_generation())
     }
 
+    /// Returns the runtime-bound admission surface for successor physical bytes.
+    ///
+    /// Recovery, scrub, maintenance, verification, and blob adapters use this
+    /// surface to charge temporary operation memory to one exact Store scope.
+    /// The returned capability exposes no frame, pool, scheduler, or successor
+    /// policy authority.
     pub fn physical_allocations(&self) -> super::super::PhysicalScopedAllocationAdmission<'_> {
         super::super::PhysicalScopedAllocationAdmission::new(
             self.parts.residency.ports(),
@@ -81,6 +91,7 @@ impl ServingPhysicalRuntime {
         )
     }
 
+    /// Returns the facade for opening bounded record-read sessions.
     pub fn records(&self) -> PhysicalRecordReader {
         let read = super::super::CanonicalRecordReadPort::new(
             &self.parts.work_runtime,

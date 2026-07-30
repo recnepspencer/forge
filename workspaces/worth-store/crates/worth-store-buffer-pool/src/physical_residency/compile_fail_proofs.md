@@ -58,6 +58,19 @@ fn forge_second_source(waiter: PhysicalFrameFaultWaiter) {
 }
 ```
 
+A bounded coalesced waiter has the same wait-only authority:
+
+```compile_fail
+use worth_store_buffer_pool::PhysicalBoundedFrameFaultWaiter;
+
+fn forge_second_bounded_source(waiter: PhysicalBoundedFrameFaultWaiter) {
+    let _ = waiter.load(
+        |_| Ok::<_, ()>(32),
+        |_| Ok::<_, ()>(()),
+    );
+}
+```
+
 Sole fault ownership cannot be cloned:
 
 ```compile_fail

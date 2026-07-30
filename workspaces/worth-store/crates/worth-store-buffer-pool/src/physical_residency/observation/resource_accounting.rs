@@ -1,5 +1,6 @@
 use super::{
-    speculative_index, PhysicalResidencyAllocationEventRecorder, PhysicalResidencyCounters,
+    speculative_index, PhysicalResidencyAllocationActualization,
+    PhysicalResidencyAllocationEventRecorder, PhysicalResidencyCounters,
 };
 use crate::{
     PhysicalOperationAllocationScope, PhysicalResidencyDimension, PhysicalSpeculativeWorkKind,
@@ -7,6 +8,7 @@ use crate::{
 
 #[path = "resource_accounting/frame.rs"]
 mod frame;
+pub(crate) use frame::PhysicalFrameRemoval;
 #[path = "resource_accounting/lifecycle.rs"]
 mod lifecycle;
 #[path = "resource_accounting/speculative.rs"]
@@ -20,11 +22,17 @@ pub(crate) struct PhysicalResidencyAccounting {
 
 impl PhysicalResidencyAccounting {
     pub(crate) fn new(
+        requested_metadata_bytes: u64,
         metadata_bytes: u64,
         events: PhysicalResidencyAllocationEventRecorder,
     ) -> Self {
         events.admit(PhysicalResidencyDimension::MetadataBytes, metadata_bytes);
         events.admit(PhysicalResidencyDimension::TotalBytes, metadata_bytes);
+        events.actualize_unscoped(
+            PhysicalResidencyDimension::MetadataBytes,
+            requested_metadata_bytes,
+            metadata_bytes,
+        );
         Self {
             counters: PhysicalResidencyCounters {
                 metadata_bytes,
@@ -87,9 +95,14 @@ impl PhysicalResidencyAccounting {
         self.counters.denials += 1;
     }
 
-    pub(crate) fn deny_dimension(&mut self, dimension: PhysicalResidencyDimension, requested: u64) {
+    pub(crate) fn deny_dimension(
+        &mut self,
+        dimension: PhysicalResidencyDimension,
+        scope: PhysicalOperationAllocationScope,
+        requested: u64,
+    ) {
         self.deny();
-        self.events.deny(dimension, requested);
+        self.events.deny_scoped(dimension, scope, requested);
     }
 
     pub(crate) fn admit_operation(&mut self, scope: PhysicalOperationAllocationScope, bytes: u64) {
@@ -103,11 +116,14 @@ impl PhysicalResidencyAccounting {
             self.counters.peak_operation_scope_bytes[scope.index()]
                 .max(self.counters.operation_scope_bytes[scope.index()]);
         self.events
-            .admit(PhysicalResidencyDimension::OperationBytes, bytes);
+            .admit_scoped(PhysicalResidencyDimension::OperationBytes, scope, bytes);
+        self.events.admit_scoped(
+            PhysicalResidencyDimension::OperationScope(scope),
+            scope,
+            bytes,
+        );
         self.events
-            .admit(PhysicalResidencyDimension::OperationScope(scope), bytes);
-        self.events
-            .admit(PhysicalResidencyDimension::TotalBytes, bytes);
+            .admit_scoped(PhysicalResidencyDimension::TotalBytes, scope, bytes);
         self.observe_admitted_peak();
     }
 
@@ -119,45 +135,76 @@ impl PhysicalResidencyAccounting {
         self.counters.active_operation_bytes -= bytes;
         self.counters.operation_scope_bytes[scope.index()] -= bytes;
         self.events
-            .release(PhysicalResidencyDimension::OperationBytes, bytes);
+            .release_scoped(PhysicalResidencyDimension::OperationBytes, scope, bytes);
+        self.events.release_scoped(
+            PhysicalResidencyDimension::OperationScope(scope),
+            scope,
+            bytes,
+        );
         self.events
-            .release(PhysicalResidencyDimension::OperationScope(scope), bytes);
-        self.events
-            .release(PhysicalResidencyDimension::TotalBytes, bytes);
+            .release_scoped(PhysicalResidencyDimension::TotalBytes, scope, bytes);
     }
 
-    pub(crate) fn reserve_dirty_replacement(&mut self, bytes: u64) {
+    pub(crate) fn reserve_dirty_replacement(
+        &mut self,
+        scope: PhysicalOperationAllocationScope,
+        bytes: u64,
+    ) {
         self.counters.dirty_replacement_bytes += bytes;
         self.counters.peak_dirty_replacement_bytes = self
             .counters
             .peak_dirty_replacement_bytes
             .max(self.counters.dirty_replacement_bytes);
+        self.events.admit_scoped(
+            PhysicalResidencyDimension::DirtyReplacementBytes,
+            scope,
+            bytes,
+        );
         self.events
-            .admit(PhysicalResidencyDimension::DirtyReplacementBytes, bytes);
-        self.events
-            .admit(PhysicalResidencyDimension::TotalBytes, bytes);
+            .admit_scoped(PhysicalResidencyDimension::TotalBytes, scope, bytes);
         self.observe_admitted_peak();
     }
 
-    pub(crate) fn release_dirty_replacement(&mut self, bytes: u64) {
+    pub(crate) fn release_dirty_replacement(
+        &mut self,
+        scope: PhysicalOperationAllocationScope,
+        bytes: u64,
+    ) {
         self.counters.dirty_replacement_bytes -= bytes;
+        self.events.release_scoped(
+            PhysicalResidencyDimension::DirtyReplacementBytes,
+            scope,
+            bytes,
+        );
         self.events
-            .release(PhysicalResidencyDimension::DirtyReplacementBytes, bytes);
-        self.events
-            .release(PhysicalResidencyDimension::TotalBytes, bytes);
+            .release_scoped(PhysicalResidencyDimension::TotalBytes, scope, bytes);
     }
 
-    pub(crate) fn dirty_replacement_allocator_failed(&mut self, bytes: u64) {
+    pub(crate) fn dirty_replacement_allocator_failed(
+        &mut self,
+        scope: PhysicalOperationAllocationScope,
+        bytes: u64,
+    ) {
         self.counters.dirty_replacement_bytes -= bytes;
         self.counters.denials += 1;
+        self.events.allocator_failure_scoped(
+            PhysicalResidencyDimension::DirtyReplacementBytes,
+            scope,
+            bytes,
+        );
         self.events
-            .allocator_failure(PhysicalResidencyDimension::DirtyReplacementBytes, bytes);
-        self.events
-            .allocator_failure(PhysicalResidencyDimension::TotalBytes, bytes);
+            .allocator_failure_scoped(PhysicalResidencyDimension::TotalBytes, scope, bytes);
     }
 
     pub(crate) fn record_source_load(&mut self) {
         self.counters.source_loads += 1;
+    }
+
+    pub(crate) fn actualize_allocation(
+        &self,
+        actualization: PhysicalResidencyAllocationActualization,
+    ) {
+        self.events.actualize(actualization);
     }
 
     pub(crate) fn record_copy(&mut self, bytes: u64) {

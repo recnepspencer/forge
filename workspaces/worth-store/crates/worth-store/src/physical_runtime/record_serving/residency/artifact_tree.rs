@@ -96,6 +96,13 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
         self.tree.file_exists(&self.artifact(artifact))
     }
 
+    pub(in crate::physical_runtime::record_serving) fn remove_file_durably(
+        &self,
+        artifact: RecordArtifactFile,
+    ) -> Result<(), ArtifactTreeFailure> {
+        self.tree.remove_file_durably(&self.artifact(artifact))
+    }
+
     pub(in crate::physical_runtime::record_serving) fn read_exact_at(
         &self,
         artifact: RecordArtifactFile,

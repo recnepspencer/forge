@@ -1,16 +1,25 @@
 use std::num::NonZeroU64;
 
-use worth_store_buffer_pool::PhysicalOperationAllocationScope;
-
 use crate::physical_runtime::{
     record_serving::residency::frame_ports::RecordFramePorts, LifecycleGeneration, RuntimeIdentity,
 };
 
 use super::{
+    grant::StoreScopedAllocation,
+    scope::{
+        BlobScope, MaintenanceScope, RecoveryScope, ScrubScope, StoreAllocationScope,
+        VerificationScope,
+    },
     BlobPhysicalAllocation, MaintenancePhysicalAllocation, PhysicalScopedAllocationFailure,
     RecoveryPhysicalAllocation, ScrubPhysicalAllocation, VerificationPhysicalAllocation,
 };
 
+/// Store-owned admission for successor physical-operation memory.
+///
+/// Each method charges one exact scope inside the admitted operation and total
+/// byte envelopes. The resulting allocation borrows the serving runtime and
+/// grants temporary-byte ownership only; successor policy and effects remain
+/// with their owning feature.
 pub struct PhysicalScopedAllocationAdmission<'runtime> {
     frame_ports: &'runtime RecordFramePorts,
     runtime: RuntimeIdentity,
@@ -30,84 +39,66 @@ impl<'runtime> PhysicalScopedAllocationAdmission<'runtime> {
         }
     }
 
+    /// Charges temporary bytes to the Recovery scope.
     pub fn admit_recovery(
         &self,
         bytes: NonZeroU64,
     ) -> Result<RecoveryPhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
-        self.admit(PhysicalOperationAllocationScope::Recovery, bytes)
-            .map(|grant| {
-                RecoveryPhysicalAllocation::bind(
-                    grant,
-                    self.frame_ports,
-                    self.runtime,
-                    self.generation,
-                )
-            })
+        self.admit::<RecoveryScope>(bytes)
+            .map(RecoveryPhysicalAllocation::bind)
     }
 
+    /// Charges temporary bytes to the Scrub scope.
     pub fn admit_scrub(
         &self,
         bytes: NonZeroU64,
     ) -> Result<ScrubPhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
-        self.admit(PhysicalOperationAllocationScope::Scrub, bytes)
-            .map(|grant| {
-                ScrubPhysicalAllocation::bind(
-                    grant,
-                    self.frame_ports,
-                    self.runtime,
-                    self.generation,
-                )
-            })
+        self.admit::<ScrubScope>(bytes)
+            .map(ScrubPhysicalAllocation::bind)
     }
 
+    /// Charges temporary bytes to the Maintenance scope.
     pub fn admit_maintenance(
         &self,
         bytes: NonZeroU64,
     ) -> Result<MaintenancePhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
-        self.admit(PhysicalOperationAllocationScope::Maintenance, bytes)
-            .map(|grant| {
-                MaintenancePhysicalAllocation::bind(
-                    grant,
-                    self.frame_ports,
-                    self.runtime,
-                    self.generation,
-                )
-            })
+        self.admit::<MaintenanceScope>(bytes)
+            .map(MaintenancePhysicalAllocation::bind)
     }
 
+    /// Charges temporary bytes to the Verification scope.
     pub fn admit_verification(
         &self,
         bytes: NonZeroU64,
     ) -> Result<VerificationPhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
-        self.admit(PhysicalOperationAllocationScope::Verification, bytes)
-            .map(|grant| {
-                VerificationPhysicalAllocation::bind(
-                    grant,
-                    self.frame_ports,
-                    self.runtime,
-                    self.generation,
-                )
-            })
+        self.admit::<VerificationScope>(bytes)
+            .map(VerificationPhysicalAllocation::bind)
     }
 
+    /// Charges temporary bytes to the Blob scope.
     pub fn admit_blob(
         &self,
         bytes: NonZeroU64,
     ) -> Result<BlobPhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
-        self.admit(PhysicalOperationAllocationScope::Blob, bytes)
-            .map(|grant| {
-                BlobPhysicalAllocation::bind(grant, self.frame_ports, self.runtime, self.generation)
-            })
+        self.admit::<BlobScope>(bytes)
+            .map(BlobPhysicalAllocation::bind)
     }
 
-    fn admit(
+    fn admit<Scope: StoreAllocationScope>(
         &self,
-        scope: PhysicalOperationAllocationScope,
         bytes: NonZeroU64,
-    ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, PhysicalScopedAllocationFailure>
-    {
-        self.frame_ports
-            .begin_operation(scope, bytes)
-            .map_err(|denial| PhysicalScopedAllocationFailure::from_denial(denial, self.generation))
+    ) -> Result<StoreScopedAllocation<'runtime, Scope>, PhysicalScopedAllocationFailure> {
+        let grant = self
+            .frame_ports
+            .begin_operation(Scope::VALUE, bytes)
+            .map_err(|denial| {
+                PhysicalScopedAllocationFailure::from_denial(denial, self.generation)
+            })?;
+        Ok(StoreScopedAllocation::from_pool_grant(
+            grant,
+            self.frame_ports,
+            self.runtime,
+            self.generation,
+        ))
     }
 }

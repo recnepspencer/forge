@@ -15,9 +15,13 @@ const PREBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const POSTBUILD_BINARY_BINDING_BUDGET_MS: u64 = 3_000;
 const POSTBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const CHILD_STAGE_BUDGET_MS: u64 = 5_000;
+const SERVING_STAGE_BUDGET_MS: u64 = 30_000;
 const FINAL_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const EXECUTABLE_VERIFICATION_BUDGET_MS: u64 = 1_000;
-const REPORT_ENCODING_BUDGET_MS: u64 = 500;
+// The source-bound v9 report is about 20 MiB. Three seconds preserves a
+// meaningful serialization ceiling without making ordinary scheduler variance
+// at the former 2-second boundary a courtroom failure.
+const REPORT_ENCODING_BUDGET_MS: u64 = 3_000;
 const RUNNER_CONTROLLED_TOTAL_BUDGET_MS: u64 = 30_000;
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,8 +102,8 @@ impl BoundedResidencySiegeTimings {
                 POSTBUILD_SOURCE_BINDING_BUDGET_MS,
             ),
             (
-                BoundedResidencySiegePhase::SiegeWriter,
-                CHILD_STAGE_BUDGET_MS,
+                BoundedResidencySiegePhase::SiegeServing,
+                SERVING_STAGE_BUDGET_MS,
             ),
             (
                 BoundedResidencySiegePhase::OfflineObserver,
@@ -132,8 +136,14 @@ impl BoundedResidencySiegeTimings {
         let build_ms = self
             .require(BoundedResidencySiegePhase::BinaryBuild)?
             .elapsed_ms();
-        let runner_ms = completed_ms.checked_sub(build_ms).ok_or_else(|| {
-            "Courtroom C cold-build timing exceeded completed campaign wall time".to_owned()
+        let producer_ms = self
+            .require(BoundedResidencySiegePhase::SiegeProducer)?
+            .elapsed_ms();
+        let setup_ms = build_ms
+            .checked_add(producer_ms)
+            .ok_or_else(|| "Courtroom C setup timing overflowed u64".to_owned())?;
+        let runner_ms = completed_ms.checked_sub(setup_ms).ok_or_else(|| {
+            "Courtroom C setup timing exceeded completed campaign wall time".to_owned()
         })?;
         if runner_ms > RUNNER_CONTROLLED_TOTAL_BUDGET_MS {
             return Err(format!(

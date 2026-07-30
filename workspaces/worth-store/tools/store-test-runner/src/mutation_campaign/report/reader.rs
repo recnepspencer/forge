@@ -1,22 +1,21 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde::Deserialize;
 use worth_store::physical_runtime::PhysicalWorkMutantLocalization;
 
-use super::{
-    hash_file, published_artifact_directory, validate_owned_artifacts,
-    MUTATION_EVIDENCE_REPORT_SCHEMA,
-};
+use super::{hash_file, MUTATION_EVIDENCE_REPORT_SCHEMA};
 use crate::mutation_campaign::{
-    catalog::{physical_work_mutations, ControlledMutation},
+    catalog::ControlledMutation,
     evidence::{self, MutationObservation},
     source_inventory::{self, MutationSourceBinding},
+    MutationCampaignScope,
 };
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PublishedMutationEvidenceReport {
     schema: String,
+    scope: MutationCampaignScope,
     source: MutationSourceBinding,
     observations: Vec<MutationObservation>,
 }
@@ -26,9 +25,10 @@ struct PublishedMutationEvidenceReportHeader {
     schema: String,
 }
 
-pub(super) fn load_physical_work_evidence(
+pub(super) fn load_evidence(
     report: &Path,
     workspace: &Path,
+    expected_scope: MutationCampaignScope,
 ) -> Result<Vec<PhysicalWorkMutantLocalization>, String> {
     let report = report.canonicalize().map_err(|error| {
         format!(
@@ -49,16 +49,21 @@ pub(super) fn load_physical_work_evidence(
     let published: PublishedMutationEvidenceReport = serde_json::from_slice(&bytes)
         .map_err(|error| format!("cannot decode mutation report: {error}"))?;
     debug_assert_eq!(published.schema, MUTATION_EVIDENCE_REPORT_SCHEMA);
-    validate_shape(&published.observations)?;
+    if published.scope != expected_scope {
+        return Err(format!(
+            "mutation report scope `{}` does not satisfy required scope `{}`",
+            published.scope.label(),
+            expected_scope.label(),
+        ));
+    }
+    let expected = expected_scope.mutations();
+    validate_shape(&published.observations, expected_scope, expected)?;
     validate_campaign_source(&published.source, workspace)?;
-    let artifacts = PublishedArtifactPolicy::for_report(&report)?;
     published
         .observations
         .into_iter()
-        .zip(physical_work_mutations())
-        .map(|(observation, expected)| {
-            validate_observation(observation, expected, workspace, &artifacts)
-        })
+        .zip(expected)
+        .map(|(observation, expected)| validate_observation(observation, expected, workspace))
         .collect()
 }
 
@@ -80,11 +85,15 @@ fn require_campaign_source(
     Ok(())
 }
 
-fn validate_shape(observations: &[MutationObservation]) -> Result<(), String> {
-    let expected = physical_work_mutations();
+fn validate_shape(
+    observations: &[MutationObservation],
+    scope: MutationCampaignScope,
+    expected: &[ControlledMutation],
+) -> Result<(), String> {
     if observations.len() != expected.len() {
         return Err(format!(
-            "physical-work mutation report requires {} observations, found {}",
+            "{} mutation report requires {} observations, found {}",
+            scope.label(),
             expected.len(),
             observations.len()
         ));
@@ -92,8 +101,10 @@ fn validate_shape(observations: &[MutationObservation]) -> Result<(), String> {
     for (observation, mutation) in observations.iter().zip(expected) {
         if observation.id != mutation.id {
             return Err(format!(
-                "physical-work mutation report expected mutant {}, found {}",
-                mutation.id, observation.id
+                "{} mutation report expected mutant {}, found {}",
+                scope.label(),
+                mutation.id,
+                observation.id
             ));
         }
     }
@@ -101,10 +112,9 @@ fn validate_shape(observations: &[MutationObservation]) -> Result<(), String> {
 }
 
 fn validate_observation(
-    mut observation: MutationObservation,
+    observation: MutationObservation,
     expected: &ControlledMutation,
     workspace: &Path,
-    artifacts: &PublishedArtifactPolicy,
 ) -> Result<PhysicalWorkMutantLocalization, String> {
     validate_declared_binding(&observation, expected)?;
     let source = workspace.join(expected.source);
@@ -122,11 +132,6 @@ fn validate_observation(
     if observation.source_sha256 == observation.mutant_sha256 {
         return Err(format!("mutant {} made no source change", expected.id));
     }
-    let binary = artifacts.resolve(&observation.binary_binding)?;
-    if hash_file(&binary)? != observation.binary_sha256 {
-        return Err(format!("mutant {} binary is stale", expected.id));
-    }
-    observation.binary_binding = binary.display().to_string();
     let encoded = evidence::encode(&observation)?;
     evidence::decode_physical_work_localization(&encoded)
 }
@@ -149,51 +154,11 @@ fn validate_declared_binding(
     Ok(())
 }
 
-struct PublishedArtifactPolicy {
-    directory: PathBuf,
-}
-
-impl PublishedArtifactPolicy {
-    fn for_report(report: &Path) -> Result<Self, String> {
-        let directory = published_artifact_directory(report)?;
-        validate_owned_artifacts(&directory, report)?;
-        let directory = directory.canonicalize().map_err(|error| {
-            format!(
-                "cannot canonicalize mutation artifact directory {}: {error}",
-                directory.display()
-            )
-        })?;
-        Ok(Self { directory })
-    }
-
-    fn resolve(&self, binding: &str) -> Result<PathBuf, String> {
-        let claimed = PathBuf::from(binding);
-        let resolved = if claimed.is_absolute() {
-            claimed
-        } else {
-            self.directory.join(claimed)
-        };
-        let canonical = resolved.canonicalize().map_err(|error| {
-            format!(
-                "cannot locate retained mutation binary {}: {error}",
-                resolved.display()
-            )
-        })?;
-        if canonical.parent() != Some(self.directory.as_path()) || !canonical.is_file() {
-            return Err(format!(
-                "mutation binary {} escaped its published artifact set",
-                canonical.display()
-            ));
-        }
-        Ok(canonical)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
-        load_physical_work_evidence, require_campaign_source, MutationSourceBinding,
-        PublishedArtifactPolicy,
+        load_evidence, require_campaign_source, MutationCampaignScope, MutationSourceBinding,
+        MUTATION_EVIDENCE_REPORT_SCHEMA,
     };
 
     #[test]
@@ -202,10 +167,18 @@ mod tests {
         let report = temporary.path().join("mutants.json");
         std::fs::write(
             &report,
-            br#"{"schema":"worth.store.c5_1.mutation-evidence.v2","source":{"binding":"worth.store.c5_1.mutation-source-closure.v1","sha256":"1111111111111111111111111111111111111111111111111111111111111111"},"observations":[]}"#,
+            format!(
+                r#"{{"schema":"{MUTATION_EVIDENCE_REPORT_SCHEMA}","scope":"physical-work","source":{{"binding":"worth.store.controlled-mutation-source-closure.v3","sha256":"{}"}},"observations":[]}}"#,
+                "11".repeat(32)
+            ),
         )
         .unwrap();
-        let error = load_physical_work_evidence(&report, temporary.path()).unwrap_err();
+        let error = load_evidence(
+            &report,
+            temporary.path(),
+            MutationCampaignScope::PhysicalWork,
+        )
+        .unwrap_err();
         let expected = crate::mutation_campaign::catalog::physical_work_mutations().len();
         assert!(
             error.contains(&format!("requires {expected} observations")),
@@ -214,16 +187,21 @@ mod tests {
     }
 
     #[test]
-    fn legacy_schema_is_classified_before_v2_body_decoding() {
+    fn unsupported_schema_is_classified_before_body_decoding() {
         let temporary = tempfile::tempdir().unwrap();
         let report = temporary.path().join("mutants.json");
         std::fs::write(
             &report,
-            br#"{"schema":"worth.store.c5_1.mutation-evidence.v1","observations":[]}"#,
+            br#"{"schema":"worth.store.c5_1.mutation-evidence.v2","observations":[]}"#,
         )
         .unwrap();
 
-        let error = load_physical_work_evidence(&report, temporary.path()).unwrap_err();
+        let error = load_evidence(
+            &report,
+            temporary.path(),
+            MutationCampaignScope::PhysicalWork,
+        )
+        .unwrap_err();
 
         assert!(
             error.contains("unsupported mutation report schema"),
@@ -233,31 +211,33 @@ mod tests {
     }
 
     #[test]
-    fn artifact_policy_rejects_a_binary_outside_the_owned_report_directory() {
+    fn report_scope_must_match_the_consuming_courtroom() {
         let temporary = tempfile::tempdir().unwrap();
         let report = temporary.path().join("mutants.json");
-        std::fs::write(&report, b"report").unwrap();
-        let directory = temporary.path().join("mutants.json.artifacts.current");
-        std::fs::create_dir(&directory).unwrap();
         std::fs::write(
-            directory.join(".worth-store-mutation-evidence-owner"),
+            &report,
             format!(
-                "{}\n{}\n",
-                super::super::ARTIFACT_OWNER_SCHEMA,
-                report.canonicalize().unwrap().display()
+                r#"{{"schema":"{MUTATION_EVIDENCE_REPORT_SCHEMA}","scope":"physical-work","source":{{"binding":"worth.store.controlled-mutation-source-closure.v3","sha256":"{}"}},"observations":[]}}"#,
+                "11".repeat(32)
             ),
         )
         .unwrap();
-        let outside = temporary.path().join("outside.exe");
-        std::fs::write(&outside, b"outside").unwrap();
-        let policy = PublishedArtifactPolicy::for_report(&report.canonicalize().unwrap()).unwrap();
-        assert!(policy.resolve(outside.to_str().unwrap()).is_err());
+
+        let error = load_evidence(
+            &report,
+            temporary.path(),
+            MutationCampaignScope::BoundedResidency,
+        )
+        .unwrap_err();
+
+        assert!(error.contains("does not satisfy required scope"), "{error}");
+        assert!(error.contains("bounded-residency"), "{error}");
     }
 
     #[test]
     fn report_reader_rejects_same_length_source_closure_drift() {
         let expected = MutationSourceBinding {
-            binding: "worth.store.c5_1.mutation-source-closure.v1".into(),
+            binding: "worth.store.controlled-mutation-source-closure.v3".into(),
             sha256: "11".repeat(32),
         };
         let current = MutationSourceBinding {

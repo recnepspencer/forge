@@ -10,6 +10,10 @@ pub use worth_store_buffer_pool::{
     PhysicalOperationAllocationScope, PhysicalResidencyDimension, PhysicalSpeculativeWorkKind,
 };
 
+/// The proof-bearing result of physical residency policy admission.
+///
+/// Success carries a sealed `AdmittedPhysicalRecordResidencyPolicy`; denial
+/// carries an exact `PhysicalRecordResidencyPolicyDenial`.
 pub type PhysicalRecordResidencyPolicyOutcome = worth_proof::DenialTransitionOutcome<
     AdmittedPhysicalRecordResidencyPolicy,
     PhysicalRecordResidencyPolicyDenial,

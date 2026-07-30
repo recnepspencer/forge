@@ -1,24 +1,20 @@
-use std::collections::BTreeSet;
-
 use super::super::{
-    offline_protocol::OfflineObservation,
     protocol::{
-        BoundedResidencyCancellationObservation, BoundedResidencyReadObservation,
-        BoundedResidencySiegeObservation,
+        BoundedResidencyDuplicateFaultObservation, BoundedResidencyPinnedEvictionObservation,
+        BoundedResidencyReadObservation, BoundedResidencySiegeObservation,
     },
-    world::{
-        BoundedResidencySiegeWorld, DIRTY_FRAMES, PINNED_FRAMES, PIN_LEASES, RECORD_BYTES,
-        RESIDENT_BYTES,
-    },
+    world::{BoundedResidencySiegeWorld, DIRTY_FRAMES, PINNED_FRAMES, PIN_LEASES, RESIDENT_BYTES},
 };
 
 mod dirty_close;
 
 use dirty_close::verify_dirty_and_close;
 
+const EVICTION_PROTECTED_FRAMES: u32 = 3;
+
 pub(super) fn verify_residency(
     world: &BoundedResidencySiegeWorld,
-    child: BoundedResidencySiegeObservation,
+    child: &BoundedResidencySiegeObservation,
 ) -> Result<(), String> {
     let reads = child.reads;
     if child.resident_budget() != RESIDENT_BYTES {
@@ -26,16 +22,17 @@ pub(super) fn verify_residency(
     }
     verify_read_pressure(reads, world.admitted_byte_limit())?;
     let pins = child.pins;
-    if pins.cold_work != 1
-        || pins.hot_work != 0
-        || pins.refault_work != 1
-        || pins.peak_pinned_frames == 0
-        || pins.peak_pinned_frames > PINNED_FRAMES
+    if pins.views != PIN_LEASES
+        || pins.unique_frame_identities != PINNED_FRAMES
+        || pins.zero_copy_events != 0
+        || pins.peak_pinned_frames != PINNED_FRAMES
         || pins.peak_pin_leases != PIN_LEASES
+        || !pins.basis_matched
     {
-        return Err("Courtroom C pin pressure did not prove its bounded handoff".into());
+        return Err("Courtroom C public-view pressure did not prove its bounded handoff".into());
     }
-    verify_cancellation(child.cancellation)?;
+    verify_pinned_eviction(child.pinned_eviction)?;
+    verify_duplicate_fault(child.duplicate)?;
     let close = child.close;
     if close.peak_resident_bytes > RESIDENT_BYTES
         || close.peak_admitted_bytes > world.admitted_byte_limit()
@@ -48,10 +45,97 @@ pub(super) fn verify_residency(
     verify_dirty_and_close(child)
 }
 
+fn verify_pinned_eviction(
+    eviction: BoundedResidencyPinnedEvictionObservation,
+) -> Result<(), String> {
+    if eviction.forced_evictions == 0
+        || eviction.pinned_frames_before != EVICTION_PROTECTED_FRAMES
+        || eviction.pinned_frames_after != EVICTION_PROTECTED_FRAMES
+        || eviction.pin_leases_before != EVICTION_PROTECTED_FRAMES
+        || eviction.pin_leases_after != EVICTION_PROTECTED_FRAMES
+        || !eviction.bases_preserved
+    {
+        return Err(
+            "Courtroom C forced eviction did not preserve exact pinned-frame authority".into(),
+        );
+    }
+    Ok(())
+}
+
+fn verify_duplicate_fault(
+    duplicate: BoundedResidencyDuplicateFaultObservation,
+) -> Result<(), String> {
+    if duplicate.faults != 1
+        || duplicate.source_loads != 1
+        || duplicate.coalesced_waiters != 1
+        || duplicate.pinned_frames != 1
+        || duplicate.pin_leases != 2
+        || duplicate.positioned_reads != 1
+        || duplicate.owner_work == 0
+        || duplicate.waiter_work != 0
+        || !duplicate.same_frame
+        || !duplicate.same_prefix
+        || duplicate.waiter_created_work
+    {
+        return Err(
+            "Courtroom C duplicate cold reads did not share one fault and source load".into(),
+        );
+    }
+    Ok(())
+}
+
 fn verify_read_pressure(
     reads: BoundedResidencyReadObservation,
     admitted_byte_limit: u64,
 ) -> Result<(), String> {
+    verify_read_capacity(&reads, admitted_byte_limit)?;
+    verify_cold_read(&reads)?;
+    verify_hot_read(&reads)?;
+    verify_refault(&reads)?;
+    verify_read_work_lifecycle(&reads)?;
+    verify_read_residency_lifecycle(&reads)?;
+    verify_read_copy_accounting(&reads)
+}
+
+fn verify_read_capacity(
+    reads: &BoundedResidencyReadObservation,
+    admitted_byte_limit: u64,
+) -> Result<(), String> {
+    if reads.peak_resident_bytes > RESIDENT_BYTES || reads.peak_admitted_bytes > admitted_byte_limit
+    {
+        return Err("Courtroom C read residency exceeded admitted capacity".into());
+    }
+    Ok(())
+}
+
+fn verify_cold_read(reads: &BoundedResidencyReadObservation) -> Result<(), String> {
+    if reads.cold_effects == 0
+        || reads.cold_work != reads.cold_metadata_effects
+        || reads.cold_effects >= reads.cold_work
+    {
+        return Err("Courtroom C cold read work did not reconcile".into());
+    }
+    Ok(())
+}
+
+fn verify_hot_read(reads: &BoundedResidencyReadObservation) -> Result<(), String> {
+    if reads.hot_effects != 0 || reads.hot_metadata_effects != 0 || reads.hot_work != 0 {
+        return Err("Courtroom C hot read created physical work or effects".into());
+    }
+    Ok(())
+}
+
+fn verify_refault(reads: &BoundedResidencyReadObservation) -> Result<(), String> {
+    if reads.refault_effects == 0
+        || reads.refault_work != reads.refault_metadata_effects
+        || reads.refault_effects >= reads.refault_work
+    {
+        return Err("Courtroom C refault work did not reconcile".into());
+    }
+    Ok(())
+}
+
+fn verify_read_work_lifecycle(reads: &BoundedResidencyReadObservation) -> Result<(), String> {
     let active_declared_work = reads
         .metadata_read_work_declared
         .checked_add(reads.range_read_work_declared);
@@ -68,18 +152,7 @@ fn verify_read_pressure(
         .last_operation
         .checked_sub(reads.first_operation)
         .and_then(|difference| difference.checked_add(1));
-    if reads.peak_resident_bytes > RESIDENT_BYTES
-        || reads.peak_admitted_bytes > admitted_byte_limit
-        || reads.cold_effects == 0
-        || reads.cold_work != reads.cold_metadata_effects
-        || reads.cold_effects >= reads.cold_work
-        || reads.hot_effects != 0
-        || reads.hot_metadata_effects != 0
-        || reads.hot_work != 0
-        || reads.refault_effects == 0
-        || reads.refault_work != reads.refault_metadata_effects
-        || reads.refault_effects >= reads.refault_work
-        || reads.physical_work == 0
+    if reads.physical_work == 0
         || reads.first_operation == 0
         || operation_span != Some(reads.physical_work)
         || !reads.runtime_bound
@@ -90,298 +163,39 @@ fn verify_read_pressure(
         || Some(reads.metadata_read_effects) != expected_metadata_effects
         || reads.range_read_work_declared != 0
         || reads.range_read_work_dispatched != 0
-        || reads.range_read_work_terminal != reads.faults
+    {
+        return Err("Courtroom C read work lifecycle did not reconcile".into());
+    }
+    Ok(())
+}
+
+fn verify_read_residency_lifecycle(reads: &BoundedResidencyReadObservation) -> Result<(), String> {
+    if reads.range_read_work_terminal != reads.faults
         || reads.source_loads != reads.faults
         || reads.faults == 0
         || reads.hits == 0
         || reads.evictions == 0
     {
-        return Err(
-            "Courtroom C read pressure did not reconcile residency faults, canonical work, \
-             runtime identities, and media effects"
-                .into(),
-        );
+        return Err("Courtroom C read residency lifecycle did not reconcile".into());
     }
     Ok(())
 }
 
-pub(super) fn verify_artifacts(
-    world: &BoundedResidencySiegeWorld,
-    child: BoundedResidencySiegeObservation,
-    offline: &OfflineObservation,
-) -> Result<(), String> {
-    if offline.artifacts().is_empty() || offline.recovery_obligations() != 0 {
-        return Err("Courtroom C offline truth omitted artifacts or retained recovery work".into());
-    }
-    let mut paths = BTreeSet::new();
-    let total = offline
-        .artifacts()
-        .iter()
-        .try_fold(0_u64, |total, artifact| {
-            if !paths.insert(artifact.path()) {
-                return Err("Courtroom C offline manifest duplicated an artifact path".to_owned());
-            }
-            Ok(total.saturating_add(artifact.byte_length()))
-        })?;
-    if total != child.directory_bytes()
-        || total < RESIDENT_BYTES.saturating_mul(8)
-        || world.expected_payload_bytes() < RESIDENT_BYTES.saturating_mul(8)
+fn verify_read_copy_accounting(reads: &BoundedResidencyReadObservation) -> Result<(), String> {
+    if reads.caller_copy_operations == 0
+        || reads.caller_copy_operations != reads.store_copy_operations
+        || reads.caller_copied_bytes == 0
+        || reads.caller_copied_bytes != reads.store_copied_bytes
+        || reads.peak_copy_width == 0
+        || reads.peak_copy_width != reads.store_maximum_copy_width
+        || reads.peak_copy_width > reads.streaming_scratch_bytes
+        || reads.streaming_scratch_bytes >= reads.largest_record_bytes
     {
-        return Err("Courtroom C durable world was not materially larger than residency".into());
-    }
-    Ok(())
-}
-
-fn verify_cancellation(
-    cancellation: BoundedResidencyCancellationObservation,
-) -> Result<(), String> {
-    let operation_span = cancellation
-        .last_operation
-        .checked_sub(cancellation.first_operation)
-        .and_then(|difference| difference.checked_add(1));
-    if cancellation.physical_work == 0
-        || cancellation.first_operation == 0
-        || operation_span != Some(cancellation.physical_work)
-        || !cancellation.runtime_bound
-        || cancellation.unread_payload_bytes != RECORD_BYTES as u64
-        || cancellation.open_media_effects == 0
-        || cancellation.cancellation_media_effects != 0
-    {
-        return Err(
-            "Courtroom C cancellation open bypassed C.5.1, lost range, or cancellation caused media"
-                .into(),
-        );
+        return Err("Courtroom C read copy accounting did not reconcile".into());
     }
     Ok(())
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{verify_cancellation, verify_read_pressure};
-    use crate::courtroom_campaign::bounded_residency_siege::{
-        protocol::{BoundedResidencyCancellationObservation, BoundedResidencyReadObservation},
-        world::{RECORD_BYTES, RESIDENT_BYTES},
-    };
-
-    #[test]
-    fn cancellation_oracle_accepts_cold_open_and_effect_free_cancellation() {
-        assert!(
-            verify_cancellation(BoundedResidencyCancellationObservation {
-                physical_work: 1,
-                first_operation: 7,
-                last_operation: 7,
-                runtime_bound: true,
-                unread_payload_bytes: RECORD_BYTES as u64,
-                open_media_effects: 1,
-                cancellation_media_effects: 0,
-            })
-            .is_ok()
-        );
-    }
-
-    #[test]
-    fn cancellation_oracle_rejects_each_causal_bypass() {
-        let accepted = BoundedResidencyCancellationObservation {
-            physical_work: 1,
-            first_operation: 7,
-            last_operation: 7,
-            runtime_bound: true,
-            unread_payload_bytes: RECORD_BYTES as u64,
-            open_media_effects: 1,
-            cancellation_media_effects: 0,
-        };
-        for hostile in [
-            BoundedResidencyCancellationObservation {
-                physical_work: 0,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                first_operation: 0,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                last_operation: 6,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                physical_work: 2,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                runtime_bound: false,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                unread_payload_bytes: 0,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                open_media_effects: 0,
-                ..accepted
-            },
-            BoundedResidencyCancellationObservation {
-                cancellation_media_effects: 1,
-                ..accepted
-            },
-        ] {
-            assert!(verify_cancellation(hostile).is_err(), "{hostile:?}");
-        }
-    }
-
-    #[test]
-    fn read_pressure_oracle_accepts_exact_causal_reconciliation() {
-        assert!(verify_read_pressure(accepted_reads(), 128_000).is_ok());
-    }
-
-    #[test]
-    fn read_pressure_oracle_rejects_every_one_field_bypass() {
-        let accepted = accepted_reads();
-        for hostile in [
-            BoundedResidencyReadObservation {
-                cold_effects: 0,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                cold_work: 5,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                cold_metadata_effects: 2,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                hot_effects: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                hot_metadata_effects: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                hot_work: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                refault_effects: 0,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                refault_work: 5,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                refault_metadata_effects: 2,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                physical_work: 9,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                positioned_read_effects: 3,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                metadata_read_effects: 5,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                metadata_read_work_declared: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                metadata_read_work_dispatched: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                metadata_read_work_terminal: 5,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                range_read_work_declared: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                range_read_work_dispatched: 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                range_read_work_terminal: 3,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                first_operation: 0,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                last_operation: 19,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                runtime_bound: false,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                peak_resident_bytes: RESIDENT_BYTES + 1,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                peak_admitted_bytes: 128_001,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                faults: 3,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                source_loads: 3,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                hits: 0,
-                ..accepted
-            },
-            BoundedResidencyReadObservation {
-                evictions: 0,
-                ..accepted
-            },
-        ] {
-            assert!(
-                verify_read_pressure(hostile, 128_000).is_err(),
-                "{hostile:?}"
-            );
-        }
-    }
-
-    fn accepted_reads() -> BoundedResidencyReadObservation {
-        BoundedResidencyReadObservation {
-            cold_effects: 2,
-            hot_effects: 0,
-            refault_effects: 2,
-            cold_metadata_effects: 3,
-            hot_metadata_effects: 0,
-            refault_metadata_effects: 3,
-            cold_work: 3,
-            hot_work: 0,
-            refault_work: 3,
-            physical_work: 10,
-            positioned_read_effects: 4,
-            metadata_read_effects: 10,
-            metadata_read_work_declared: 0,
-            metadata_read_work_dispatched: 0,
-            metadata_read_work_terminal: 6,
-            range_read_work_declared: 0,
-            range_read_work_dispatched: 0,
-            range_read_work_terminal: 4,
-            first_operation: 11,
-            last_operation: 20,
-            runtime_bound: true,
-            peak_resident_bytes: RESIDENT_BYTES,
-            peak_admitted_bytes: 128_000,
-            faults: 4,
-            source_loads: 4,
-            hits: 1,
-            evictions: 1,
-        }
-    }
-}
+#[path = "pressure/tests/mod.rs"]
+mod tests;

@@ -2,6 +2,7 @@ use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
     ArtifactRangeWriteDurability, ArtifactTreeFailure, CompletedArtifactMetadataRead,
     CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    MediaOperationRole,
 };
 
 use super::super::{
@@ -92,6 +93,7 @@ pub struct PhysicalWorkTerminalFailure {
     target: PhysicalWorkRecoveryTarget,
     completed_bytes: u64,
     backend_operation: worth_store_physical_backend::MediaOperationIdentity,
+    backend_role: MediaOperationRole,
     scheduler: PhysicalWorkSchedulerPosture,
     publication_residue: PhysicalWorkPublicationResiduePosture,
     recovery: PhysicalWorkRecoveryDisposition,
@@ -172,6 +174,21 @@ impl PhysicalWorkSettlementResult {
 }
 
 impl PhysicalWorkSettlementEvidence {
+    pub(in crate::physical_runtime) const fn backend_role(&self) -> Option<MediaOperationRole> {
+        match self {
+            Self::NoEffect(_) | Self::StaleOrForeign => None,
+            Self::Metadata { .. } => Some(MediaOperationRole::ReadMetadata),
+            Self::Read { .. } => Some(MediaOperationRole::PositionedRead),
+            Self::Write { .. } | Self::Publication { .. } | Self::NewArtifact { .. } => {
+                Some(MediaOperationRole::PositionedWrite)
+            }
+            Self::PublicationEffect { physical, .. } => {
+                Some(publication_effect_role(physical.effect()))
+            }
+            Self::TerminalFailure(failure) => Some(failure.backend_role),
+        }
+    }
+
     pub const fn fate(&self) -> PhysicalWorkEffectFate {
         match self {
             Self::NoEffect(_) => PhysicalWorkEffectFate::ProvenNoEffect,
@@ -261,6 +278,10 @@ impl PhysicalWorkTerminalFailure {
         self.backend_operation
     }
 
+    pub const fn backend_role(&self) -> MediaOperationRole {
+        self.backend_role
+    }
+
     pub const fn recovery(&self) -> PhysicalWorkRecoveryDisposition {
         self.recovery
     }
@@ -275,6 +296,21 @@ impl PhysicalWorkTerminalFailure {
 
     pub const fn cause(&self) -> PhysicalWorkTerminalCause {
         self.cause
+    }
+}
+
+pub(in crate::physical_runtime) const fn publication_effect_role(
+    effect: super::PhysicalPublicationEffect,
+) -> MediaOperationRole {
+    match effect {
+        super::PhysicalPublicationEffect::SynchronizeArtifact => {
+            MediaOperationRole::SynchronizeFileState
+        }
+        super::PhysicalPublicationEffect::SynchronizeArtifactParent
+        | super::PhysicalPublicationEffect::SynchronizeRecordFamily => {
+            MediaOperationRole::SynchronizeDirectoryPublication
+        }
+        super::PhysicalPublicationEffect::ReplaceCatalog => MediaOperationRole::AtomicReplace,
     }
 }
 

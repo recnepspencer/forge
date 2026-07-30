@@ -35,7 +35,8 @@ fn ordinary_candidate_tail_no_effect_is_typed_and_discards_dirty_residency() {
     let RecordAppendError::Unpublished(unpublished) = unpublished else {
         panic!("a proven no-effect candidate-tail writeback is typed unpublished")
     };
-    let UnpublishedRecordBatchCause::FrameWriteback { stage, failure } = unpublished.cause() else {
+    let UnpublishedRecordBatchCause::FrameWriteback { stage, failure, .. } = unpublished.cause()
+    else {
         panic!("the failure must retain its ordinary frame-writeback cause")
     };
 
@@ -97,7 +98,8 @@ fn ordinary_candidate_tail_partial_effect_retains_dirty_inspection_truth() {
     let RecordAppendError::Unpublished(unpublished) = unpublished else {
         panic!("a partial candidate-tail writeback is typed unpublished")
     };
-    let UnpublishedRecordBatchCause::FrameWriteback { stage, failure } = unpublished.cause() else {
+    let UnpublishedRecordBatchCause::FrameWriteback { stage, failure, .. } = unpublished.cause()
+    else {
         panic!("the partial effect must retain its frame-writeback cause")
     };
 

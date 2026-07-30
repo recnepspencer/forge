@@ -75,8 +75,8 @@ pub use disaster_recovery_verification::{
 pub use durable_record_manifest::{
     walk_current_durable_record_manifest, walk_non_current_durable_record_manifest,
     OfflineAllocationClass, OfflineDurableManifestDenial, OfflineDurableManifestWalk,
-    OfflineFreeSpaceMembership, OfflineRecordIdentity, OfflineRecordPlacement,
-    OfflineSegmentPageMembership,
+    OfflineFreeSpaceMembership, OfflineRecordIdentity, OfflineRecordPayloadObservation,
+    OfflineRecordPlacement, OfflineSegmentPageMembership,
 };
 pub use export_bundle_observation::{
     inspect_offline_export_bundle, OfflineExportBundleObservation,

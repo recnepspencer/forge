@@ -56,7 +56,8 @@ fn case(evidence: &PhysicalWorkHostileTruthCaseEvidence) -> Value {
         .sum::<u64>();
     json!({
         "scenario": binding.scenario().label(),
-        "seed": execution.seed(),
+        "seed": execution.workload_seed().value(),
+        "schedule_seed": execution.schedule_seed().value(),
         "schedule": execution.schedule(),
         "environment": run_environment_value(binding.run().environment()),
         "processes": {

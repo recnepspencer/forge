@@ -125,10 +125,21 @@ impl RecordFramePorts {
     pub(in crate::physical_runtime) fn counters(&self) -> PhysicalResidencyCounters {
         self.pool.counters()
     }
+    pub(in crate::physical_runtime::record_serving) fn incarnation(
+        &self,
+    ) -> worth_store_buffer_pool::PhysicalResidencyIncarnation {
+        self.pool.incarnation()
+    }
     pub(in crate::physical_runtime) fn allocation_events(
         &self,
     ) -> worth_store_buffer_pool::PhysicalResidencyAllocationEventObserver {
         self.pool.allocation_events()
+    }
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn allocation_trace(
+        &self,
+    ) -> super::PhysicalResidencyAllocationTrace {
+        super::PhysicalResidencyAllocationTrace::new(self.pool.allocation_events().trace())
     }
     pub(in crate::physical_runtime) fn writeback_counters(
         &self,

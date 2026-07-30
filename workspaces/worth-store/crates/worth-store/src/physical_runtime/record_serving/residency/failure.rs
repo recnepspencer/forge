@@ -40,6 +40,10 @@ pub enum PhysicalRecordResidencyFailureReason {
     CandidateCleanAuthorityMismatch,
     WritebackCleanAuthorityMismatch,
     AllocationFailed,
+    AllocatorExceededReservation {
+        requested: u64,
+        actual: u64,
+    },
     AllocationGrantMismatch,
     SpeculativeAllocationMismatch {
         granted: u64,
@@ -111,6 +115,12 @@ impl PhysicalRecordResidencyFailure {
             }
             PhysicalResidencyDenial::AllocationFailed => {
                 PhysicalRecordResidencyFailureReason::AllocationFailed
+            }
+            PhysicalResidencyDenial::AllocatorExceededReservation { requested, actual } => {
+                PhysicalRecordResidencyFailureReason::AllocatorExceededReservation {
+                    requested,
+                    actual,
+                }
             }
             PhysicalResidencyDenial::AllocationGrantMismatch => {
                 PhysicalRecordResidencyFailureReason::AllocationGrantMismatch
@@ -230,7 +240,8 @@ impl From<PhysicalResidencyDenial> for PhysicalRecordResidencyFailure {
             | PhysicalResidencyDenial::WritebackCleanAuthorityMismatch => {
                 PhysicalRecordResidencyFailureKind::SettlementAuthorityMismatch
             }
-            PhysicalResidencyDenial::AllocationFailed => {
+            PhysicalResidencyDenial::AllocationFailed
+            | PhysicalResidencyDenial::AllocatorExceededReservation { .. } => {
                 PhysicalRecordResidencyFailureKind::AllocationUnavailable
             }
             PhysicalResidencyDenial::AllocationGrantMismatch => {

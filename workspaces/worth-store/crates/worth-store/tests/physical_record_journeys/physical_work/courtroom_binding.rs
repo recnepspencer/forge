@@ -7,8 +7,9 @@ use worth_store::physical_runtime::{
     PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomRunBinding, PhysicalWorkEffectFate,
     PhysicalWorkEffectFateEvidence, PhysicalWorkEvidenceDigest, PhysicalWorkExecutionContext,
     PhysicalWorkOracleEvidence, PhysicalWorkPreEffectDenial, PhysicalWorkProcessEvidence,
-    PhysicalWorkRecoveryDisposition, PhysicalWorkRunEnvironmentEvidence, PhysicalWorkSourceBinding,
-    PhysicalWritebackExecution, RuntimeIdentity, ServingPhysicalRuntime,
+    PhysicalWorkRecoveryDisposition, PhysicalWorkRunEnvironmentEvidence, PhysicalWorkScheduleSeed,
+    PhysicalWorkSourceBinding, PhysicalWorkWorkloadSeed, PhysicalWritebackExecution,
+    RuntimeIdentity, ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{ArtifactRangeWriteDurabilityRequirement, MediaOperationRole};
 use worth_store_physical_format::{
@@ -43,11 +44,20 @@ fn courtroom_binding_joins_exact_writeback_and_lifecycle_fencing() {
         generation: serving.residency_observation().store_generation(),
     };
     let evidence_binding = serving.certification_physical_work_courtroom_binding();
+    let media_before = serving.media_counters();
 
     prove_exact_writeback(&root, &serving);
+    let media_after = serving.media_counters();
     let residency = serving.certification_physical_residency();
     prove_close_fencing(serving, &residency);
-    prove_bound_courtroom_evidence(evidence_binding, expected, &root, environment);
+    prove_bound_courtroom_evidence(
+        evidence_binding,
+        expected,
+        &root,
+        environment,
+        media_before,
+        media_after,
+    );
 }
 
 #[test]
@@ -166,6 +176,8 @@ fn prove_bound_courtroom_evidence(
     expected: ExpectedCourtroomIdentity,
     root: &std::path::Path,
     environment: PhysicalWorkRunEnvironmentEvidence,
+    media_before: worth_store_physical_backend::MediaCounterSnapshot,
+    media_after: worth_store_physical_backend::MediaCounterSnapshot,
 ) {
     let artifact_path = root.join("families/records/bootstrap.catalog");
     let artifact_bytes = std::fs::read(&artifact_path).unwrap();
@@ -191,6 +203,25 @@ fn prove_bound_courtroom_evidence(
     assert!(evidence.backend_profile().is_some());
     let causal = evidence.causal();
     assert_eq!(causal.len(), 2);
+    let positioned_reads = media_after
+        .identified_operation_attempts_for(MediaOperationRole::PositionedRead)
+        - media_before.identified_operation_attempts_for(MediaOperationRole::PositionedRead);
+    let positioned_writes = media_after
+        .identified_operation_attempts_for(MediaOperationRole::PositionedWrite)
+        - media_before.identified_operation_attempts_for(MediaOperationRole::PositionedWrite);
+    let settled_reads = causal
+        .iter()
+        .filter(|record| record.effect_fate() == PhysicalWorkEffectFateEvidence::ReadCompleted)
+        .count() as u64;
+    let settled_writes = causal
+        .iter()
+        .filter(|record| record.effect_fate() == PhysicalWorkEffectFateEvidence::WriteCompleted)
+        .count() as u64;
+    assert_eq!(
+        (positioned_reads, positioned_writes),
+        (settled_reads, settled_writes),
+        "MUTANT_PREDICATE:physical-work-topology-bypass"
+    );
     assert_eq!(
         causal[0].effect_fate(),
         PhysicalWorkEffectFateEvidence::ReadCompleted
@@ -223,7 +254,8 @@ fn run_binding(environment: PhysicalWorkRunEnvironmentEvidence) -> PhysicalWorkC
     )
     .unwrap();
     let execution = PhysicalWorkExecutionContext::new(
-        0xc651,
+        PhysicalWorkWorkloadSeed::new(0xc651),
+        PhysicalWorkScheduleSeed::new(0xc651),
         "physical-work-writeback-close",
         [PhysicalWorkProcessEvidence::active_evidence_producer(
             "physical-work-evidence-producer",

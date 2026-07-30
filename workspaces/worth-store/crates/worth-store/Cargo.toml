@@ -9,6 +9,7 @@ description = "Public Worth Store facade and owner of the physical runtime lifec
 [features]
 default = []
 certification-test-authority = [
+    "worth-store-buffer-pool/certification-test-authority",
     "worth-store-physical-backend/certification-test-authority",
     "worth-store-io-scheduler/certification-test-authority",
 ]
@@ -27,6 +28,7 @@ worth-signal = { path = "../../../../crates/worth-signal" }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 sha2 = "0.10"
 getrandom = "0.4"
+tracking-allocator = { version = "0.4", default-features = false }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }

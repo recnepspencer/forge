@@ -4,10 +4,17 @@ use crate::physical_residency::lease::candidate_allocation::{
 };
 
 struct FailingCandidateAllocator;
+struct OverallocatingCandidateAllocator;
 
 impl CandidateFrameAllocator for FailingCandidateAllocator {
     fn allocate(&self, _length: usize) -> Result<CandidateFrameBuffer, ()> {
         Err(())
+    }
+}
+
+impl CandidateFrameAllocator for OverallocatingCandidateAllocator {
+    fn allocate(&self, length: usize) -> Result<CandidateFrameBuffer, ()> {
+        Ok(CandidateFrameBuffer::with_capacity(length, length * 2))
     }
 }
 
@@ -87,6 +94,35 @@ fn candidate_allocator_failure_releases_every_reserved_dimension_before_fill() {
     drop(retry);
     drop(allocation);
     assert_reconciled(&pool, observer.snapshot());
+}
+
+#[test]
+fn candidate_overallocation_is_rejected_before_fill_and_releases_every_dimension() {
+    let identity = store(113);
+    let pool = PhysicalResidencyPool::open(identity, limits(64, 2, 2, candidate_batch_bytes(1), 2))
+        .unwrap();
+    let allocation = candidate_allocation(&pool, 1);
+    let key = PhysicalFrameKey::new(identity, coordinate(1, 8));
+    let candidate = PhysicalCandidateFrameKey::fragment(key);
+    let mut batch = pool
+        .reserve_candidate_frames(&allocation, &[candidate])
+        .unwrap();
+
+    let failure = batch
+        .reserve_next(candidate)
+        .unwrap()
+        .materialize_with_allocator(&OverallocatingCandidateAllocator, |_| {
+            panic!("over-allocation must fail before candidate fill")
+        })
+        .unwrap_err();
+
+    let PhysicalResidencyDenial::AllocatorExceededReservation { requested, actual } = failure
+    else {
+        panic!("expected typed allocator overage, found {failure:?}");
+    };
+    assert_eq!(requested, 8);
+    assert!(actual > requested);
+    assert_candidate_reservation_released(&pool);
 }
 
 #[test]

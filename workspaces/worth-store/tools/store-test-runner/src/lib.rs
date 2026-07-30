@@ -57,6 +57,8 @@ fn run(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
                     target_root: arguments.target_root.as_deref(),
                     mutant_report: arguments.mutant_report.as_deref(),
                     report: arguments.report.as_deref(),
+                    schedule_seed: arguments.schedule_seed,
+                    ci_schedule_lane: arguments.ci_schedule_lane,
                 },
             );
         }

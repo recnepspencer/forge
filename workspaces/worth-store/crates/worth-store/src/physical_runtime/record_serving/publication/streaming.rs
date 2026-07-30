@@ -13,6 +13,7 @@ pub trait RecordWriteSource: Send {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordStreamFailureKind {
     ServingRequiresInspection,
+    PhysicalPressure,
     ProducerRejected,
     SourceEndedEarly,
     SourceExceededDeclaredLength,
@@ -28,6 +29,7 @@ pub struct RecordStreamFailure {
     kind: RecordStreamFailureKind,
     completed: Range<u64>,
     media_effect_possible: bool,
+    pressure: Option<super::super::PhysicalRecordPressureEvidence>,
 }
 
 impl RecordStreamFailure {
@@ -39,6 +41,7 @@ impl RecordStreamFailure {
             kind,
             completed: 0..completed_bytes,
             media_effect_possible: false,
+            pressure: None,
         }
     }
     pub(in crate::physical_runtime::record_serving) const fn after_media_write(
@@ -49,6 +52,7 @@ impl RecordStreamFailure {
             kind,
             completed: 0..completed_bytes,
             media_effect_possible: true,
+            pressure: None,
         }
     }
     pub(in crate::physical_runtime::record_serving) const fn during_read(
@@ -56,6 +60,17 @@ impl RecordStreamFailure {
         completed_bytes: u64,
     ) -> Self {
         Self::before_media_write(kind, completed_bytes)
+    }
+    pub(in crate::physical_runtime::record_serving) const fn during_read_pressure(
+        pressure: super::super::PhysicalRecordPressureEvidence,
+        completed_bytes: u64,
+    ) -> Self {
+        Self {
+            kind: RecordStreamFailureKind::PhysicalPressure,
+            completed: 0..completed_bytes,
+            media_effect_possible: pressure.effect_may_have_started(),
+            pressure: Some(pressure),
+        }
     }
     pub(in crate::physical_runtime::record_serving) const fn requires_inspection(&self) -> bool {
         self.media_effect_possible
@@ -65,6 +80,13 @@ impl RecordStreamFailure {
     }
     pub fn completed_range(&self) -> Range<u64> {
         self.completed.clone()
+    }
+    /// Returns exact physical-pressure evidence when pressure stopped a read.
+    ///
+    /// The evidence is descriptive and cannot allocate memory or authorize a
+    /// retry.
+    pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
+        self.pressure
     }
 }
 

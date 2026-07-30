@@ -1,32 +1,14 @@
-use crate::courtroom_campaign::bounded_residency_siege::protocol::BoundedResidencySiegeObservation;
+use crate::courtroom_campaign::bounded_residency_siege::protocol::{
+    BoundedResidencyDirtyObservation, BoundedResidencySiegeObservation,
+};
+
+#[cfg(test)]
+mod tests;
 
 pub(super) fn verify_dirty_and_close(
-    child: BoundedResidencySiegeObservation,
+    child: &BoundedResidencySiegeObservation,
 ) -> Result<(), String> {
-    let dirty = child.dirty;
-    if dirty.work_operation == 0
-        || dirty.source_work_count != 1
-        || dirty.first_source_operation == 0
-        || dirty.first_source_operation != dirty.last_source_operation
-        || dirty.work_operation == dirty.first_source_operation
-        || dirty.backend_operation == 0
-        || dirty.dirty_at_pause != 1
-        || dirty.dirty_after_receipt != 0
-        || dirty.positioned_writes != 1
-        || dirty.candidate_publications != 1
-        || dirty.writebacks != 1
-        || dirty.active_claims_at_pause != 1
-        || dirty.eviction_releases_at_pause != 0
-        || !dirty.competing_claim_denied
-        || !dirty.cancellation_settlement_continues
-        || dirty.writeback_attempts != 1
-        || dirty.exact_receipts != 1
-        || dirty.retryable_writebacks != 0
-        || dirty.indeterminate_writebacks != 0
-        || dirty.inspection_required_writebacks != 0
-    {
-        return Err("Courtroom C dirty work did not remain dirty through exact receipt".into());
-    }
+    verify_dirty(child.dirty)?;
     let close = child.close;
     if close.inspection_required
         || close.resident_bytes != 0
@@ -35,6 +17,70 @@ pub(super) fn verify_dirty_and_close(
         || close.dirty_frames != 0
     {
         return Err("Courtroom C close retained residency or inspection posture".into());
+    }
+    Ok(())
+}
+
+pub(super) fn verify_dirty(dirty: BoundedResidencyDirtyObservation) -> Result<(), String> {
+    if dirty.primary_publication == 0
+        || dirty.retry_publication == 0
+        || dirty.primary_publication == dirty.retry_publication
+        || dirty.primary_candidate_writebacks == 0
+        || dirty.retry_candidate_writebacks == 0
+        || dirty.primary_candidate_publications <= dirty.primary_candidate_writebacks
+        || dirty.retry_candidate_publications <= dirty.retry_candidate_writebacks
+        || dirty.denied_candidate_publications != 1
+        || dirty.primary_last_candidate_operation == 0
+        || dirty.retry_last_candidate_operation <= dirty.primary_last_candidate_operation
+        || dirty.primary_records != 1
+        || dirty.retry_records != 1
+    {
+        return Err("Courtroom C ordinary append publications did not reconcile".into());
+    }
+    if dirty.dirty_at_dispatch != 1
+        || dirty.dirty_peak != 2
+        || dirty.dirty_after_denial != 1
+        || dirty.dirty_after_primary != 0
+        || dirty.dirty_terminal != 0
+        || dirty.active_claims_at_dispatch != 1
+    {
+        return Err("Courtroom C dirty-frame saturation or cleanup did not reconcile".into());
+    }
+    if dirty.active_writebehind_at_dispatch != 1
+        || dirty.peak_writebehind != 1
+        || dirty.terminal_writebehind != 0
+        || dirty.pressure_requested != 1
+        || dirty.pressure_admitted != 1
+        || dirty.pressure_limit != 1
+        || !dirty.pressure_basis_exact
+        || !dirty.pressure_retry_after_settlement
+        || !dirty.pressure_effect_free
+        || dirty.cleanup_deletions == 0
+        || !dirty.cleanup_complete
+    {
+        return Err("Courtroom C write-behind saturation did not reconcile".into());
+    }
+    let candidate_writebacks = dirty
+        .primary_candidate_writebacks
+        .saturating_add(dirty.retry_candidate_writebacks);
+    if dirty.writebehind_attempts != candidate_writebacks.saturating_add(1)
+        || dirty.writebehind_admissions != candidate_writebacks
+        || dirty.writebehind_denials != 1
+        || dirty.writebehind_completions != candidate_writebacks
+        || dirty.writeback_attempts != candidate_writebacks.saturating_add(1)
+        || dirty.exact_receipts != candidate_writebacks
+        || dirty.retryable_writebacks != 0
+        || dirty.indeterminate_writebacks != 0
+        || dirty.inspection_required_writebacks != 0
+        || dirty.candidate_publications
+            != dirty
+                .primary_candidate_publications
+                .saturating_add(dirty.retry_candidate_publications)
+                .saturating_add(dirty.denied_candidate_publications)
+        || dirty.writebacks != candidate_writebacks
+        || dirty.positioned_writes < candidate_writebacks
+    {
+        return Err("Courtroom C exact writeback settlement did not reconcile".into());
     }
     Ok(())
 }
