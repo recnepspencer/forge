@@ -41,7 +41,8 @@ pub(in crate::mounting::projection) fn lower_static_paint_seed(
     let color = token
         .resolved_color_text()
         .ok_or(UiMountedProjectionDenial::MissingStaticPaintColor)?;
-    let color = parse_rgba(color)?;
+    let color =
+        parse_rgba(color).map_err(|_| UiMountedProjectionDenial::InvalidStaticPaintColor)?;
     Ok(Some(UiMountedStaticPaintSeed {
         color,
         layer_semantic_order,
@@ -73,7 +74,7 @@ impl UiMountedStaticPaintSeed {
     }
 }
 
-fn parse_rgba(value: &str) -> Result<UiMountedRgba8, UiMountedProjectionDenial> {
+pub(in crate::mounting::projection) fn parse_rgba(value: &str) -> Result<UiMountedRgba8, ()> {
     match value.as_bytes() {
         [b'#', r0, r1, g0, g1, b0, b1] => Ok(UiMountedRgba8::new(
             hex_pair(*r0, *r1)?,
@@ -87,20 +88,20 @@ fn parse_rgba(value: &str) -> Result<UiMountedRgba8, UiMountedProjectionDenial> 
             hex_pair(*b0, *b1)?,
             hex_pair(*a0, *a1)?,
         )),
-        _ => Err(UiMountedProjectionDenial::InvalidStaticPaintColor),
+        _ => Err(()),
     }
 }
 
-fn hex_pair(high: u8, low: u8) -> Result<u8, UiMountedProjectionDenial> {
+fn hex_pair(high: u8, low: u8) -> Result<u8, ()> {
     Ok((hex_digit(high)? << 4) | hex_digit(low)?)
 }
 
-fn hex_digit(value: u8) -> Result<u8, UiMountedProjectionDenial> {
+fn hex_digit(value: u8) -> Result<u8, ()> {
     match value {
         b'0'..=b'9' => Ok(value - b'0'),
         b'a'..=b'f' => Ok(value - b'a' + 10),
         b'A'..=b'F' => Ok(value - b'A' + 10),
-        _ => Err(UiMountedProjectionDenial::InvalidStaticPaintColor),
+        _ => Err(()),
     }
 }
 
@@ -109,7 +110,7 @@ mod tests {
     use crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning;
     use worth_ui_host_contract::UiMountedRgba8;
 
-    use super::{lower_layer_semantic_order, parse_rgba, UiMountedProjectionDenial};
+    use super::{lower_layer_semantic_order, parse_rgba};
 
     #[test]
     fn admitted_rgb_and_rgba_text_preserve_exact_channels() {
@@ -126,10 +127,7 @@ mod tests {
     #[test]
     fn malformed_ascii_and_unicode_color_text_deny_without_panicking() {
         for invalid in ["2F81F7", "#2F81FG", "#2F81", "#aéabc"] {
-            assert_eq!(
-                parse_rgba(invalid),
-                Err(UiMountedProjectionDenial::InvalidStaticPaintColor)
-            );
+            assert_eq!(parse_rgba(invalid), Err(()));
         }
     }
 

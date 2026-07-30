@@ -13,10 +13,11 @@ pub use configuration::{
 pub(crate) use execution::{admit_plan, UiRebindFinalAdmissionBasis};
 pub use execution::{
     UiDuplicateObservationReceipt, UiEffectingRebind, UiEffectingRebindCompletion,
-    UiPreparedRebind, UiPreparedRebindPosture, UiRebindCancellationReceipt,
-    UiRebindCompletionHandle, UiRebindDenialCause, UiRebindDenialReceipt, UiRebindDisposition,
-    UiRebindExecutionRequest, UiRebindInternalDefectKind, UiRebindInternalDefectOutcome,
-    UiRebindOutcome, UiRebindPreparationDenial, UiRebindReceipt, UiRebindReconciliation,
+    UiPreparedRebind, UiPreparedRebindPosture, UiProjectionRebindRequest,
+    UiRebindCancellationReceipt, UiRebindCompletionHandle, UiRebindDenialCause,
+    UiRebindDenialReceipt, UiRebindDisposition, UiRebindExecutionRequest,
+    UiRebindInternalDefectKind, UiRebindInternalDefectOutcome, UiRebindOutcome,
+    UiRebindPreparationDenial, UiRebindReceipt, UiRebindReconciliation,
     UiRebindReconciliationRequest, UiRebindRecoveryCompletionHandle, UiRebindRecoveryDenial,
     UiRebindRecoveryDenialCause, UiRebindRecoveryHandle, UiRebindRecoveryInternalDefect,
     UiRebindRecoveryInternalDefectKind, UiRebindRecoveryOutcome, UiRebindRecoveryReceipt,
@@ -35,17 +36,20 @@ pub use identity::{
 };
 pub(crate) use identity::{UiIdentityLifecycleResolver, UiSourceIdentityLifecycleIndex};
 pub(crate) use planning::{
-    UiChangedRebindSemanticProof, UiRebindPlanCompiler, UiRebindPlanningContext,
+    UiAuthoredContentRebindSemanticProof, UiChangedRebindSemanticProof,
+    UiProjectionSchemaTransitionInput, UiRebindPlanCompiler, UiRebindPlanningContext,
     UiRebindSemanticProof,
 };
 pub use planning::{
-    UiRebindArtifactPolicy, UiRebindCancellationPolicy, UiRebindCancellationRequest,
-    UiRebindCandidatePreparationDenial, UiRebindConflictFootprint, UiRebindDeadlinePolicy,
-    UiRebindDeclarativeEffect, UiRebindDisclosurePolicy, UiRebindEffectSet,
-    UiRebindExecutionPolicy, UiRebindIdempotency, UiRebindParallelAdmission, UiRebindPlan,
-    UiRebindPlanBasis, UiRebindPlanCost, UiRebindPlanTarget, UiRebindPlanningDenial,
-    UiRebindResourceAccess, UiRebindRetryTolerance, UiRebindSafePoint, UiRebindSafePointPolicy,
-    UiRebindSessionDeadline, UiRebindSubsystemKind, UiRebindSubsystemPlan,
+    UiProjectionPredecessorValuePolicy, UiProjectionSchemaRequirement,
+    UiProjectionSchemaTransition, UiProjectionSchemaTransitionKind, UiRebindArtifactPolicy,
+    UiRebindCancellationPolicy, UiRebindCancellationRequest, UiRebindCandidatePreparationDenial,
+    UiRebindConflictFootprint, UiRebindDeadlinePolicy, UiRebindDeclarativeEffect,
+    UiRebindDisclosurePolicy, UiRebindEffectSet, UiRebindExecutionPolicy, UiRebindIdempotency,
+    UiRebindParallelAdmission, UiRebindPlan, UiRebindPlanBasis, UiRebindPlanCost,
+    UiRebindPlanTarget, UiRebindPlanningDenial, UiRebindResourceAccess, UiRebindRetryTolerance,
+    UiRebindSafePoint, UiRebindSafePointPolicy, UiRebindSessionDeadline, UiRebindSubsystemKind,
+    UiRebindSubsystemPlan,
 };
 pub(crate) use scope::UiAffectedScopeResolver;
 pub use scope::{

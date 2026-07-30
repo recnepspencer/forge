@@ -39,8 +39,8 @@ pub use component::{
     ComponentExecutionLane, ComponentFocusSupport, ComponentHitTestContract, ComponentHitTestOrder,
     ComponentPropSchema, ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
     ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
-    ComponentStateOwnership, ComponentStaticPaintContract, ComponentStaticPaintOrder,
-    ComponentViewportInset, FrozenComponentCapabilities,
+    ComponentSemanticTextContract, ComponentStateOwnership, ComponentStaticPaintContract,
+    ComponentStaticPaintOrder, ComponentViewportInset, FrozenComponentCapabilities,
 };
 pub(crate) use family_names::{
     COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,

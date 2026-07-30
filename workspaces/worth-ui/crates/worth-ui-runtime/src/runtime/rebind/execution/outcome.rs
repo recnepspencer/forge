@@ -71,6 +71,7 @@ pub struct UiRebindDenialReceipt<'session> {
     predecessor_remains_current: bool,
     stopped_phase: UiRebindStoppedPhase,
     cause: UiRebindDenialCause,
+    host_rejections: Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
     valid_next_action: UiRebindValidNextAction,
     retry: Option<Box<super::UiPreparedRebind<'session>>>,
 }

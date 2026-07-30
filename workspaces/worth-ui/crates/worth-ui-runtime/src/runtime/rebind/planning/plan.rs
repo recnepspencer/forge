@@ -23,6 +23,7 @@ pub struct UiRebindPlan {
 
 pub(crate) enum UiRebindSemanticProof {
     Changed(Box<UiChangedRebindSemanticProof>),
+    AuthoredContent(Box<UiAuthoredContentRebindSemanticProof>),
     EvidenceOnly(Box<crate::runtime::observation::UiAuthoredSourceSuccession>),
     NonSource,
     Transferred,
@@ -34,6 +35,13 @@ pub(crate) struct UiChangedRebindSemanticProof {
     pub(crate) lowering: crate::runtime::WorthUiReplacementLoweringReady,
     pub(crate) candidate_graph_changed_nodes:
         std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+    pub(crate) artifact_comparison: crate::runtime::WorthUiRuntimeArtifactComparisonOutcome,
+}
+
+pub(crate) struct UiAuthoredContentRebindSemanticProof {
+    pub(crate) successor_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    pub(crate) source_candidate_artifact_digest: u64,
 }
 
 pub(crate) struct UiRebindPlanInput {
@@ -54,8 +62,8 @@ pub(crate) struct UiRebindPlanInput {
 
 impl UiRebindPlan {
     pub(crate) fn new(input: UiRebindPlanInput) -> Self {
-        let source_candidate_artifact_digest = semantic_proof_admitted(&input.semantic_proof)
-            .map(|admitted| admitted.candidate().basis().artifact_digest().raw());
+        let source_candidate_artifact_digest =
+            semantic_proof_source_candidate_artifact_digest(&input.semantic_proof);
         Self {
             basis: input.basis,
             scope: input.scope,
@@ -80,6 +88,29 @@ impl UiRebindPlan {
 
     pub fn scope(&self) -> Option<&super::super::UiResolvedAffectedScope> {
         self.scope.as_ref()
+    }
+
+    pub(crate) fn scalar_projection_fact_count(&self) -> usize {
+        self.scope
+            .as_ref()
+            .into_iter()
+            .flat_map(|scope| scope.facts())
+            .filter(|fact| {
+                fact.query()
+                    .and_then(crate::fact_contract::UiQueryChangedFact::scalar_projection)
+                    .is_some()
+            })
+            .count()
+    }
+
+    pub(crate) fn into_scalar_projection_fact(
+        self,
+    ) -> Option<worth_ui_query_binding::UiScalarProjectionFactReceipt> {
+        self.scope?
+            .into_facts()
+            .into_vec()
+            .into_iter()
+            .find_map(|fact| fact.into_scalar_projection().ok())
     }
 
     pub fn identity_decisions(&self) -> &[super::super::UiIdentityLifecycleEntry] {
@@ -113,6 +144,10 @@ impl UiRebindPlan {
         &self.content
     }
 
+    pub fn projection_schema_transitions(&self) -> &[super::UiProjectionSchemaTransition] {
+        self.content.schema_transitions()
+    }
+
     pub const fn execution_policy(&self) -> UiRebindExecutionPolicy {
         self.policy
     }
@@ -143,6 +178,9 @@ impl UiRebindPlan {
             UiRebindSemanticProof::Changed(changed) => {
                 Some(changed.successor_authority.generation_identity())
             }
+            UiRebindSemanticProof::AuthoredContent(content) => {
+                Some(content.successor_authority.generation_identity())
+            }
             UiRebindSemanticProof::EvidenceOnly(succession) => {
                 Some(succession.successor_authority().generation_identity())
             }
@@ -160,12 +198,23 @@ impl UiRebindPlan {
     }
 }
 
-fn semantic_proof_admitted(
-    proof: &UiRebindSemanticProof,
-) -> Option<&crate::runtime::WorthUiAdmittedReplacementCandidate> {
+fn semantic_proof_source_candidate_artifact_digest(proof: &UiRebindSemanticProof) -> Option<u64> {
     match proof {
-        UiRebindSemanticProof::Changed(changed) => Some(changed.lowering.admitted()),
-        UiRebindSemanticProof::EvidenceOnly(succession) => succession.admitted_candidate(),
+        UiRebindSemanticProof::Changed(changed) => Some(
+            changed
+                .lowering
+                .admitted()
+                .candidate()
+                .basis()
+                .artifact_digest()
+                .raw(),
+        ),
+        UiRebindSemanticProof::AuthoredContent(content) => {
+            Some(content.source_candidate_artifact_digest)
+        }
+        UiRebindSemanticProof::EvidenceOnly(succession) => succession
+            .admitted_candidate()
+            .map(|admitted| admitted.candidate().basis().artifact_digest().raw()),
         UiRebindSemanticProof::NonSource | UiRebindSemanticProof::Transferred => None,
     }
 }

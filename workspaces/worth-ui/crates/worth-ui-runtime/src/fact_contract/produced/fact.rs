@@ -40,4 +40,13 @@ impl UiProducedFact {
             _ => None,
         }
     }
+
+    pub(crate) fn into_scalar_projection(
+        self,
+    ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {
+        match self {
+            Self::Query(fact) => fact.into_scalar_projection().map_err(Self::Query),
+            other => Err(other),
+        }
+    }
 }

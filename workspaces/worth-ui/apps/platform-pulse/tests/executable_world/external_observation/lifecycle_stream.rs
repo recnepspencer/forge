@@ -295,6 +295,12 @@ impl LifecycleTraceEntry {
         let outcome = match envelope.outcome() {
             PlatformPulseLifecycleObservation::ProcessStarted(_) => "process_started",
             PlatformPulseLifecycleObservation::FirstFramePublished(_) => "first_frame_published",
+            PlatformPulseLifecycleObservation::QueryProjectionIssued(_) => {
+                "query_projection_issued"
+            }
+            PlatformPulseLifecycleObservation::QueryProjectionPublished(_) => {
+                "query_projection_published"
+            }
             PlatformPulseLifecycleObservation::VisualSnapshotCaptured(_) => {
                 "visual_snapshot_captured"
             }

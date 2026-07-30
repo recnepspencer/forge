@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    QueryProjectionIssued(super::query::PlatformPulseQueryProjectionEvidence),
+    QueryProjectionPublished(super::query::PlatformPulseQueryProjectionPublished),
     VisualSnapshotCaptured(super::visual::PlatformPulseVisualSnapshotCaptured),
     VisualPointTrace(super::visual::PlatformPulseVisualPointTrace),
     VisualOverlayPublished(super::visual::PlatformPulseVisualOverlayPublished),
@@ -64,6 +66,8 @@ pub struct PlatformPulseReplacementPublished {
     pub(super) active_generation: PlatformPulseApplicationGenerationObservation,
     pub(super) successor_frame: PlatformPulseMountedFrameObservation,
     pub(super) actual_native_effect_count: u64,
+    pub(super) schema_transition:
+        Option<super::schema_transition::PlatformPulseProjectionSchemaTransitionObservation>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -86,6 +90,15 @@ pub enum PlatformPulseReplacementDenialFamily {
 pub struct PlatformPulseShutdownCompleted {
     pub(super) watcher_backend: PlatformPulseWatcherBackendObservation,
     pub(super) observed_notification_count: u64,
+    pub(super) query_watcher_joined: bool,
+    pub(super) pending_query_observation_count: u64,
+    pub(super) query_owner_terminal: bool,
+    pub(super) live_query_source_count: u64,
+    pub(super) live_query_attempt_count: u64,
+    pub(super) live_query_resource_count: u64,
+    pub(super) live_query_consumer_lease_count: u64,
+    pub(super) retained_query_projection_count: u64,
+    pub(super) query_projection_receipt_count: u64,
     pub(super) mounted_shutdown_attempt_count: u64,
     pub(super) host_session_released: bool,
     pub(super) released_surface_count: u64,
@@ -117,37 +130,82 @@ pub enum PlatformPulseTerminalFailureFamily {
     LaunchConfiguration(PlatformPulseLaunchConfigurationDenialKind),
     FilesystemWatcher,
     ApplicationPreparation,
+    QueryPreparation,
+    QueryShutdown,
     CandidateSubmission,
     NativeSurfaceLaunch,
     MountedFrameExecution,
-    NativeApplicationReplacement,
+    NativeApplicationReplacement(PlatformPulseNativeRebindDenialStage),
     VisualIdentity,
     SourceWorkerPanicked,
     NativeEventLoop,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum PlatformPulseNativeRebindDenialStage {
+    Source,
+    ObservationTurn,
+    ObservationAdmission,
+    Classification,
+    Scope,
+    Identity,
+    Planning,
+    Preparation(PlatformPulseNativeRebindPreparationDenial),
+    NonterminalOutcome,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum PlatformPulseNativeRebindPreparationDenial {
+    ForeignSession,
+    StaleSourceBasis,
+    StalePredecessorGeneration,
+    CandidateGenerationMismatch,
+    TimedOutBeforeEffects,
+    CancelledBeforeEffects,
+    Reservation,
+    CandidateBindingMismatch,
+    CandidateAllocation,
+    CandidateLowering,
+    CandidateStaging,
+    FrameBoundaryUnavailable,
+    ContentMountedPreparation,
+    CandidateMountedPreparation,
+    CandidateCutoverPreparation,
+    PlannedChangeBecameSemanticNoOp,
+    UnsupportedNonSourcePlan,
+    InvalidSemanticProof,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlatformPulseLaunchConfigurationDenial {
     UnexpectedArgument,
     MissingSourceRootValue,
+    MissingQuerySourceRootValue,
     SurplusArgument,
     RelativeSourceRoot(PathBuf),
     MissingSourceRoot(PathBuf),
     SourceRootMetadataUnavailable(PathBuf),
     SourceRootNotDirectory(PathBuf),
     MissingEntrySource(PathBuf),
+    RelativeQuerySourceRoot(PathBuf),
+    QuerySourceRootMetadataUnavailable(PathBuf),
+    QuerySourceRootNotDirectory(PathBuf),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PlatformPulseLaunchConfigurationDenialKind {
     UnexpectedArgument,
     MissingSourceRootValue,
+    MissingQuerySourceRootValue,
     SurplusArgument,
     RelativeSourceRoot,
     MissingSourceRoot,
     SourceRootMetadataUnavailable,
     SourceRootNotDirectory,
     MissingEntrySource,
+    RelativeQuerySourceRoot,
+    QuerySourceRootMetadataUnavailable,
+    QuerySourceRootNotDirectory,
 }
 
 impl PlatformPulseLaunchConfigurationDenial {
@@ -158,6 +216,9 @@ impl PlatformPulseLaunchConfigurationDenial {
             }
             Self::MissingSourceRootValue => {
                 PlatformPulseLaunchConfigurationDenialKind::MissingSourceRootValue
+            }
+            Self::MissingQuerySourceRootValue => {
+                PlatformPulseLaunchConfigurationDenialKind::MissingQuerySourceRootValue
             }
             Self::SurplusArgument => PlatformPulseLaunchConfigurationDenialKind::SurplusArgument,
             Self::RelativeSourceRoot(_) => {
@@ -174,6 +235,15 @@ impl PlatformPulseLaunchConfigurationDenial {
             }
             Self::MissingEntrySource(_) => {
                 PlatformPulseLaunchConfigurationDenialKind::MissingEntrySource
+            }
+            Self::RelativeQuerySourceRoot(_) => {
+                PlatformPulseLaunchConfigurationDenialKind::RelativeQuerySourceRoot
+            }
+            Self::QuerySourceRootMetadataUnavailable(_) => {
+                PlatformPulseLaunchConfigurationDenialKind::QuerySourceRootMetadataUnavailable
+            }
+            Self::QuerySourceRootNotDirectory(_) => {
+                PlatformPulseLaunchConfigurationDenialKind::QuerySourceRootNotDirectory
             }
         }
     }
@@ -213,6 +283,13 @@ accessors!(
     successor_frame: PlatformPulseMountedFrameObservation,
     actual_native_effect_count: u64,
 );
+impl PlatformPulseReplacementPublished {
+    pub fn schema_transition(
+        &self,
+    ) -> Option<&super::schema_transition::PlatformPulseProjectionSchemaTransitionObservation> {
+        self.schema_transition.as_ref()
+    }
+}
 accessors!(
     PlatformPulseReplacementPreserved,
     source: PlatformPulseSourceSnapshotObservation,
@@ -233,6 +310,15 @@ accessors!(
     PlatformPulseShutdownCompleted,
     watcher_backend: PlatformPulseWatcherBackendObservation,
     observed_notification_count: u64,
+    query_watcher_joined: bool,
+    pending_query_observation_count: u64,
+    query_owner_terminal: bool,
+    live_query_source_count: u64,
+    live_query_attempt_count: u64,
+    live_query_resource_count: u64,
+    live_query_consumer_lease_count: u64,
+    retained_query_projection_count: u64,
+    query_projection_receipt_count: u64,
     mounted_shutdown_attempt_count: u64,
     host_session_released: bool,
     released_surface_count: u64,

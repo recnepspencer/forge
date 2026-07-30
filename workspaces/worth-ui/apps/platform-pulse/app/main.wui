@@ -1,5 +1,15 @@
 component platform.pulse.component.seed {}
 component platform.pulse.component.identity_target {}
+component platform.pulse.component.projected_status {
+  content projection platform.pulse.status
+}
 surface platform.pulse.surface.main {}
+query_scalar platform.pulse.status {
+  view platform.pulse.status
+  field status
+  require text
+  lifecycle live
+}
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
 token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
+token theme.platform_pulse.projected_status.text = "theme.platform_pulse.white";

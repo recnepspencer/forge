@@ -62,11 +62,11 @@ pub use entry::{
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
     WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
-    WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
-    WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
-    WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,
-    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
-    WorthUiResolvedMountedPreview,
+    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
+    WorthUiPendingApplicationCutover, WorthUiPendingMountedPreview,
+    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
+    WorthUiPreparedMountedPreview, WorthUiReplacementCandidateSummary,
+    WorthUiReplacementPlannedCostEnvelope, WorthUiResolvedMountedPreview,
 };
 pub(crate) use host_session_authority::WorthUiHostSessionActivationDenial;
 pub(crate) use host_session_authority::WorthUiHostSessionAuthority;

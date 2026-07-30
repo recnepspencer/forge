@@ -28,6 +28,13 @@ enum UiRebindPublication {
             WorthUiPreparedApplicationGenerationIdentity,
         mounted: crate::mounting::UiMountedFramePublicationReceipt,
     },
+    AuthoredContent {
+        prior: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        active: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    },
 }
 
 impl UiRebindReceipt {
@@ -133,8 +140,52 @@ impl UiRebindReceipt {
         })
     }
 
+    pub(crate) fn authored_content(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        mut registration: UiRebindReservation,
+        prior: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        active: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    ) -> Result<Self, super::UiRebindInternalDefectOutcome> {
+        let matches_plan = &prior == plan.basis().classification().predecessor_generation()
+            && &active == plan.basis().candidate_generation()
+            && mounted.generation() == &prior;
+        if !matches_plan {
+            registration
+                .retain_recovery()
+                .expect("pre-effect admission reserved recovery capacity");
+            return Err(super::UiRebindInternalDefectOutcome::content_mismatch(
+                plan,
+                registration,
+                prior,
+                mounted,
+            ));
+        }
+        registration
+            .retain_receipt()
+            .expect("pre-publication admission reserved receipt capacity");
+        Ok(Self {
+            plan,
+            publication: UiRebindPublication::AuthoredContent {
+                prior,
+                active,
+                mounted,
+            },
+            disposition: UiRebindDisposition::Complete,
+            _registration: registration,
+        })
+    }
+
     pub const fn plan(&self) -> &crate::runtime::rebind::UiRebindPlan {
         &self.plan
+    }
+
+    pub fn projection_schema_transitions(
+        &self,
+    ) -> &[crate::runtime::rebind::UiProjectionSchemaTransition] {
+        self.plan.projection_schema_transitions()
     }
 
     pub fn planned_effects(&self) -> &[crate::runtime::rebind::UiRebindDeclarativeEffect] {
@@ -148,7 +199,8 @@ impl UiRebindReceipt {
     pub fn realized_bindings(&self) -> &[worth_ui_host_contract::UiSurfaceBindingGeneration] {
         match &self.publication {
             UiRebindPublication::Changed { mounted, .. } => mounted.bindings(),
-            UiRebindPublication::Content { mounted, .. } => mounted.bindings(),
+            UiRebindPublication::Content { mounted, .. }
+            | UiRebindPublication::AuthoredContent { mounted, .. } => mounted.bindings(),
             UiRebindPublication::EvidenceOnly { .. } => &[],
         }
     }
@@ -156,7 +208,8 @@ impl UiRebindReceipt {
     pub fn realized_mount_cost(&self) -> Option<crate::mounting::UiMountCostReport> {
         match &self.publication {
             UiRebindPublication::Changed { mounted, .. } => Some(mounted.cost_report()),
-            UiRebindPublication::Content { mounted, .. } => Some(mounted.cost_report()),
+            UiRebindPublication::Content { mounted, .. }
+            | UiRebindPublication::AuthoredContent { mounted, .. } => Some(mounted.cost_report()),
             UiRebindPublication::EvidenceOnly { .. } => None,
         }
     }
@@ -198,7 +251,7 @@ impl UiRebindReceipt {
             UiRebindPublication::Changed { .. } => {
                 worth_ui_inspection::UiRebindDecisionDisposition::Changed
             }
-            UiRebindPublication::Content { .. } => {
+            UiRebindPublication::Content { .. } | UiRebindPublication::AuthoredContent { .. } => {
                 worth_ui_inspection::UiRebindDecisionDisposition::Changed
             }
             UiRebindPublication::EvidenceOnly { .. } => {
@@ -214,6 +267,7 @@ impl UiRebindReceipt {
         match &self.publication {
             UiRebindPublication::Changed { application, .. } => application.prior_generation(),
             UiRebindPublication::Content { generation, .. } => generation,
+            UiRebindPublication::AuthoredContent { prior, .. } => prior,
             UiRebindPublication::EvidenceOnly { prior, .. } => prior,
         }
     }
@@ -225,6 +279,7 @@ impl UiRebindReceipt {
         match &self.publication {
             UiRebindPublication::Changed { application, .. } => application.active_generation(),
             UiRebindPublication::Content { generation, .. } => generation,
+            UiRebindPublication::AuthoredContent { active, .. } => active,
             UiRebindPublication::EvidenceOnly { active, .. } => active,
         }
     }
@@ -234,7 +289,8 @@ impl UiRebindReceipt {
     ) -> Option<&crate::mounting::UiMountedFramePublicationReceipt> {
         match &self.publication {
             UiRebindPublication::Changed { mounted, .. } => Some(mounted),
-            UiRebindPublication::Content { mounted, .. } => Some(mounted),
+            UiRebindPublication::Content { mounted, .. }
+            | UiRebindPublication::AuthoredContent { mounted, .. } => Some(mounted),
             UiRebindPublication::EvidenceOnly { .. } => None,
         }
     }
@@ -244,87 +300,28 @@ impl UiRebindReceipt {
     ) -> Option<&crate::facade::WorthUiApplicationCutoverReceipt> {
         match &self.publication {
             UiRebindPublication::Changed { application, .. } => Some(application),
-            UiRebindPublication::Content { .. } | UiRebindPublication::EvidenceOnly { .. } => None,
+            UiRebindPublication::Content { .. }
+            | UiRebindPublication::AuthoredContent { .. }
+            | UiRebindPublication::EvidenceOnly { .. } => None,
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::runtime::observation::UiChangeClassificationOutcome;
-
-    #[test]
-    fn planned_realized_mismatch_is_a_recoverable_internal_defect() {
-        let mut session = crate::runtime::tests::active_application_session_test_support::
-            source_backed_component_session();
-        let foreign = crate::runtime::tests::active_application_session_test_support::
-            source_backed_component_session();
-        let candidate = crate::runtime::tests::active_application_session_test_support::
-            component_candidate_submission(
-                &session,
-                "phase-312-receipt-mismatch",
-                "workspace.component.active_session_current",
-            );
-        let mut turn = session.begin_observation_turn().unwrap();
-        turn.admit_source(candidate).unwrap();
-        let admitted = turn.seal().unwrap();
-        let evidence = match session.classify_observations(admitted).unwrap() {
-            UiChangeClassificationOutcome::EvidenceOnly(evidence) => evidence,
-            _ => panic!("equal semantics with fresh evidence stays evidence-only"),
-        };
-        let plan = session
-            .compile_preservation_rebind(
-                evidence,
-                crate::runtime::rebind::UiRebindExecutionPolicy::ordinary(),
-            )
-            .unwrap();
-        let prior = plan
-            .basis()
-            .classification()
-            .predecessor_generation()
-            .clone();
-        let state = super::super::UiRebindRuntimeState::new(
-            crate::runtime::rebind::UiRebindProfile::platform_pulse(),
-        );
-        let basis = super::super::UiRebindFinalAdmissionBasis::new(
-            plan.basis().classification().session(),
-            plan.basis().classification().source_basis(),
-            plan.basis().classification().predecessor_generation(),
-        );
-        let reservation = super::super::admit_plan(
-            &state,
-            basis,
-            &plan,
-            crate::runtime::rebind::UiRebindExecutionRequest::new(1),
-        )
-        .expect("current plan reserves terminal capacity");
-
-        let defect = match UiRebindReceipt::evidence_only(
+    pub fn release_scalar_projection_predecessor(
+        self,
+    ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {
+        if self.plan.scalar_projection_fact_count() != 1 {
+            return Err(self);
+        }
+        let Self {
             plan,
-            reservation,
-            prior,
-            foreign.generation_identity().clone(),
-        ) {
-            Err(defect) => defect,
-            Ok(receipt) => {
-                drop(receipt);
-                panic!("crossed realized generation must not become a receipt");
-            }
-        };
-        assert_eq!(
-            defect.kind(),
-            super::super::UiRebindInternalDefectKind::PlannedRealizedMismatch
-        );
-        assert!(defect.publication_occurred());
-        assert!(defect.retains_recovery_authority());
-        assert_eq!(
-            defect.valid_next_action(),
-            super::super::UiRebindValidNextAction::ReportDefect
-        );
-        drop(defect);
-        assert!(state.shutdown().is_empty());
-        assert!(session.shutdown().rebind().is_empty());
-        assert!(foreign.shutdown().rebind().is_empty());
+            publication,
+            disposition,
+            _registration,
+        } = self;
+        let fact = plan
+            .into_scalar_projection_fact()
+            .expect("the exact scalar projection count was admitted before release");
+        drop((publication, disposition, _registration));
+        Ok(fact)
     }
 }

@@ -2,11 +2,12 @@ use worth_runtime_bridge::facade::BridgeMixedCauseOrderingInput;
 use worth_signal::facade::NodeId;
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
-    ComponentPropSchema, ComponentStateOwnership, ComponentStaticPaintContract,
-    ComponentStaticPaintOrder, MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind,
-    MosaicHitTestPosture, MosaicRegionKindDescriptor, MosaicRegionKindId, MosaicRegionPersistence,
-    MosaicRegionRole, MosaicScrollOwnership, MosaicSizingBehavior, ThemeColorValue,
-    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ComponentPropSchema, ComponentSemanticTextContract, ComponentStateOwnership,
+    ComponentStaticPaintContract, ComponentStaticPaintOrder, MosaicChildRule,
+    MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicRegionKindDescriptor,
+    MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole, MosaicScrollOwnership,
+    MosaicSizingBehavior, ThemeColorValue, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
+    ThemeTokenSource, ThemeTokenValue,
 };
 use worth_ui::facade::measurement_exchange::{
     UiMeasurementEvidenceFamily, UiViewportExtentObservation, UiViewportExtentRequest,
@@ -248,6 +249,10 @@ pub(super) fn component_descriptor(identity: &str) -> ComponentDescriptor {
         ),
         ComponentAllocationMeasurementContract::fill_viewport(),
     )
+    .with_semantic_text(ComponentSemanticTextContract::body_default(
+        ThemeTokenId::new(TEXT_COLOR).unwrap(),
+        1,
+    ))
 }
 
 pub(super) fn status_region_descriptor() -> MosaicRegionKindDescriptor {

@@ -9,17 +9,17 @@ use worth_ui_host_contract::{
 
 pub(super) fn lower_participation(
     posture: UiGraphParticipationPosture,
-    admits_static_paint: bool,
+    admits_native_paint: bool,
     admits_hit_test: bool,
 ) -> UiMountedParticipation {
     UiMountedParticipation::new(UiMountedParticipationInput {
         paint: projected_fact(
             posture.axis(UiGraphParticipationAxis::Paint),
-            admits_static_paint,
+            admits_native_paint,
         ),
         clip: projected_fact(
             posture.axis(UiGraphParticipationAxis::Visible),
-            admits_static_paint,
+            admits_native_paint,
         ),
         input: fact(posture.axis(UiGraphParticipationAxis::Input)),
         focus: fact(posture.axis(UiGraphParticipationAxis::Focus)),
@@ -35,9 +35,9 @@ pub(super) fn lower_participation(
 
 fn projected_fact(
     axis: UiGraphAxisParticipation,
-    admitted_by_complete_static_paint: bool,
+    admitted_by_complete_mechanic: bool,
 ) -> UiMountedParticipationFact {
-    if admitted_by_complete_static_paint {
+    if admitted_by_complete_mechanic {
         UiMountedParticipationFact::new(UiMountedParticipationStatus::Admitted)
     } else {
         fact(axis)

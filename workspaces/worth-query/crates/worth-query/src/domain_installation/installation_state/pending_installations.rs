@@ -148,6 +148,23 @@ impl WorthQueryPendingDomainInstallations {
             && self.compiled_substrates.graph_obligations.is_empty()
     }
 
+    pub(crate) fn host_installation_packages(
+        &self,
+    ) -> Vec<worth_query_installation::facade::WorthQueryAdmittedPortableDomainPackage> {
+        let mut packages = self
+            .artifacts
+            .iter()
+            .map(|artifact| artifact.portable_package.clone())
+            .collect::<Vec<_>>();
+        packages.sort_by(|left, right| {
+            left.package()
+                .identity()
+                .as_str()
+                .cmp(right.package().identity().as_str())
+        });
+        packages
+    }
+
     pub(crate) fn into_artifacts(mut self) -> Vec<WorthQueryInstalledDomainArtifact> {
         self.artifacts.sort_by(|left, right| {
             left.package_identity

@@ -17,7 +17,7 @@ use crate::visual_identity_adjudication::adjudicate_points;
 use super::{
     comparison, PlatformPulseRetainedSnapshot, PlatformPulseVisibleOverlay,
     PlatformPulseVisualCapture, PlatformPulseVisualExecutionDenial,
-    PlatformPulseVisualIdentityState,
+    PlatformPulseVisualIdentityState, PlatformPulseVisualRefreshCapture,
 };
 
 const CAPTURE_WALL_DEADLINE: Duration = Duration::from_secs(5);
@@ -40,6 +40,9 @@ pub(super) fn advance_state(
         }
         PlatformPulseVisualIdentityState::Comparing(comparison) => {
             comparison::poll(comparison, shell, publisher, tick, now)
+        }
+        PlatformPulseVisualIdentityState::Refreshing(refresh) => {
+            poll_refresh(refresh, shell, publisher, tick, now)
         }
         PlatformPulseVisualIdentityState::OverlayVisible(overlay) if now >= overlay.clear_at => {
             clear_overlay(overlay, shell, publisher, tick)
@@ -191,7 +194,41 @@ fn clear_overlay(
         .map_err(PlatformPulseVisualExecutionDenial::Observation)?;
     let mut retained = overlay.retained;
     retained.overlay_clear = Some(cleared);
-    Ok(PlatformPulseVisualIdentityState::OverlayCleared(retained))
+    Ok(PlatformPulseVisualIdentityState::ComparisonReady(retained))
+}
+
+fn poll_refresh(
+    mut refresh: PlatformPulseVisualRefreshCapture,
+    shell: &mut WorthUiNativeApplicationShell,
+    publisher: &PlatformPulseObservationPublisher,
+    tick: &mut u64,
+    now: Instant,
+) -> Result<PlatformPulseVisualIdentityState, PlatformPulseVisualExecutionDenial> {
+    if now >= refresh.capture.deadline {
+        shell.cancel_visual_snapshot(refresh.capture.pending);
+        return Err(PlatformPulseVisualExecutionDenial::SnapshotDeadline);
+    }
+    match shell.poll_visual_snapshot(refresh.capture.pending, *tick) {
+        UiVisualCapturePoll::Pending(pending) => {
+            refresh.capture.pending = pending;
+            Ok(PlatformPulseVisualIdentityState::Refreshing(refresh))
+        }
+        UiVisualCapturePoll::Completed(outcome) => {
+            let successor = captured_receipt(outcome)?;
+            let points = adjudicate_points(&successor)?;
+            retire_snapshot(refresh.predecessor, shell, publisher)?;
+            publisher
+                .refreshed_visual_snapshot(&successor)
+                .map_err(PlatformPulseVisualExecutionDenial::Observation)?;
+            Ok(PlatformPulseVisualIdentityState::ComparisonReady(
+                PlatformPulseRetainedSnapshot {
+                    snapshot: successor,
+                    target: points.selected_target,
+                    overlay_clear: None,
+                },
+            ))
+        }
+    }
 }
 
 pub(super) fn retire_snapshot(

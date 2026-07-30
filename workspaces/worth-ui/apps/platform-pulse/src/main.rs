@@ -2,6 +2,7 @@ mod application;
 mod launch_configuration;
 mod lifecycle_observation_publication;
 mod native_frame;
+mod query_source;
 mod source_watch;
 mod visual_identity_adjudication;
 mod visual_identity_execution;

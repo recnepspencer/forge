@@ -24,6 +24,10 @@ pub(crate) enum WatchedPulseTransition {
     GreenReplacement,
     MalformedPreservation,
     CanonicalBlueRecovery,
+    RevisionSchemaStopped,
+    StatusSchemaRecovered,
+    QueryProjectionIssued,
+    QueryProjectionPublished,
 }
 
 #[derive(Debug)]

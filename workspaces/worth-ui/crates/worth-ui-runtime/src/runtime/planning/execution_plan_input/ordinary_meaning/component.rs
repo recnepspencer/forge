@@ -38,6 +38,18 @@ impl WorthUiComponentPlanMeaning {
         Some(self.static_paint_contract()?.order())
     }
 
+    pub(crate) fn semantic_text_theme_token_dependency(&self) -> Option<&ThemeTokenId> {
+        Some(self.descriptor.semantic_text_contract()?.theme_token())
+    }
+
+    pub(crate) fn semantic_text_layer_order(&self) -> Option<u32> {
+        Some(
+            self.descriptor
+                .semantic_text_contract()?
+                .layer_semantic_order(),
+        )
+    }
+
     pub(crate) fn hit_test_contract(&self) -> Option<ComponentHitTestContract> {
         self.descriptor.hit_test_contract()
     }
@@ -54,6 +66,9 @@ impl WorthUiComponentPlanMeaning {
         let digest = self
             .static_paint_order()
             .map_or(digest, |order| fold(digest, u64::from(order.rank())));
+        let digest = self
+            .semantic_text_layer_order()
+            .map_or(digest, |order| fold(digest, u64::from(order)));
         self.hit_test_contract().map_or(digest, |contract| {
             fold(
                 fold(digest, 0x6869_745f_7465_7374),

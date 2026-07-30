@@ -45,6 +45,10 @@ impl UiResolvedAffectedScope {
         &self.facts
     }
 
+    pub(crate) fn into_facts(self) -> Box<[UiProducedFact]> {
+        self.facts
+    }
+
     pub fn affected_aspects(&self) -> &[UiAspectName] {
         &self.affected_aspects
     }

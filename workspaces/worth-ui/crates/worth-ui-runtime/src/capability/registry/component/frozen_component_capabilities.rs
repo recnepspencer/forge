@@ -103,8 +103,14 @@ fn fold_component_descriptor(accumulator: u64, descriptor: &ComponentDescriptor)
             .static_paint_contract()
             .map(|contract| contract.digest_basis()),
     );
-    let with_hit_test = fold_optional_str(
+    let with_semantic_text = fold_optional_str(
         with_static_paint,
+        descriptor
+            .semantic_text_contract()
+            .map(|contract| contract.digest_basis()),
+    );
+    let with_hit_test = fold_optional_str(
+        with_semantic_text,
         descriptor
             .hit_test_contract()
             .map(super::ComponentHitTestContract::digest_basis),

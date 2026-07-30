@@ -843,6 +843,9 @@ letting the host consume Query.
 
 - Close `QP-07`--`QP-09`, lifecycle, capacity, mixed-turn, Query-free, cost,
   documentation, and anti-bypass claims.
+- Keep the ordinary loop focused and timed. Split or segment any broad
+  certification lane whose warm wall time exceeds 60 seconds, without adding a
+  test target or compile island; reserve the complete lane for phase closure.
 - Delete the literal-field path, false facade guidance, and superseded
   convenience lanes; leave an additive 3.14 handoff.
 - Exit with a zero-open-row ledger, compiled public examples, all canonical

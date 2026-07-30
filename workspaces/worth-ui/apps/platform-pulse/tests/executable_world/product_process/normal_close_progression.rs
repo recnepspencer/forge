@@ -16,7 +16,7 @@ use crate::native_platform::{
 };
 
 use super::{
-    Closed, LivePlatformPulseProcess, Published, PulseExecutableWorld, RecoveredBlue,
+    Closed, FinalRecovered, LivePlatformPulseProcess, Published, PulseExecutableWorld,
     SuccessfulPlatformPulseExit,
 };
 
@@ -37,7 +37,7 @@ struct NormalCloseObservationSet {
     installation_cleanup: PulseInstallationCleanupEvidence,
 }
 
-impl PulseExecutableWorld<Published<RecoveredBlue>> {
+impl PulseExecutableWorld<Published<FinalRecovered>> {
     pub(crate) fn close_native_window(
         self,
         deadline: Instant,
@@ -72,7 +72,7 @@ impl PulseExecutableWorld<Published<RecoveredBlue>> {
 }
 
 impl PublishedNormalCloseWorld {
-    fn from_published(published: Published<RecoveredBlue>) -> Self {
+    fn from_published(published: Published<FinalRecovered>) -> Self {
         let world = published.world;
         Self {
             installation: world.installation,

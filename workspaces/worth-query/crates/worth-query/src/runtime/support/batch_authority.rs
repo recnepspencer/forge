@@ -9,4 +9,9 @@ impl WorthQueryRuntimeSupportProfile {
         self.batch_authority = WorthQueryRuntimeBatchAuthority::BackendAtomicDirect;
         self
     }
+
+    pub fn with_unsupported_batch_authority(mut self) -> Self {
+        self.batch_authority = WorthQueryRuntimeBatchAuthority::Unsupported;
+        self
+    }
 }

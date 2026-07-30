@@ -1,6 +1,11 @@
 mod envelope;
 mod lifecycle;
 mod projection;
+#[cfg(test)]
+mod projection_tests;
+mod query;
+mod query_projection;
+mod schema_transition;
 mod terminal_projection;
 mod visual;
 mod visual_projection;
@@ -20,6 +25,7 @@ pub use lifecycle::{
     PlatformPulseApplicationGenerationObservation, PlatformPulseFirstFramePublished,
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLaunchConfigurationDenialKind,
     PlatformPulseLifecycleObservation, PlatformPulseMountedFrameObservation,
+    PlatformPulseNativeRebindDenialStage, PlatformPulseNativeRebindPreparationDenial,
     PlatformPulseProcessStarted, PlatformPulseReplacementDenialFamily,
     PlatformPulseReplacementPreserved, PlatformPulseReplacementPublished,
     PlatformPulseShutdownCompleted, PlatformPulseSourceSnapshotObservation,
@@ -28,6 +34,16 @@ pub use lifecycle::{
 };
 pub use projection::{
     PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
+};
+pub use query::{
+    PlatformPulseLiveQueryResidue, PlatformPulseQueryProjectionEvidence,
+    PlatformPulseQueryProjectionPosture, PlatformPulseQueryProjectionPublished,
+    PlatformPulseQueryProjectionResidue, PlatformPulseQueryShutdownEvidence,
+    PlatformPulseQueryWatcherShutdownEvidence,
+};
+pub use schema_transition::{
+    PlatformPulseProjectionSchemaField, PlatformPulseProjectionSchemaTransitionKind,
+    PlatformPulseProjectionSchemaTransitionObservation,
 };
 pub use visual::{
     PlatformPulseVisualCoordinateObservation, PlatformPulseVisualCoordinateOrientationObservation,

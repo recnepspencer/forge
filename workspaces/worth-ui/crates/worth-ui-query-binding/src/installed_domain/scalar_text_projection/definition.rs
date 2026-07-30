@@ -31,6 +31,7 @@ pub(crate) fn scalar_text_projection_definition() -> domain::WorthQueryDomainOpe
 fn semantic_closure() -> domain::WorthQueryDomainOperationSemanticClosure {
     let identity = native_projection("identity");
     let projection = native_projection("query_text");
+    let revision = native_projection("query_revision");
     domain::WorthQueryDomainOperationSemanticClosure {
         parameters: domain::WorthQueryOperationParameterContract::NotRequired,
         native_projection: projection.clone(),
@@ -49,7 +50,7 @@ fn semantic_closure() -> domain::WorthQueryDomainOperationSemanticClosure {
                 role: "scalar-text".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
                 access: domain::WorthQueryOperationGraphAccess::Project,
-                semantic_reads: vec![identity, projection],
+                semantic_reads: vec![identity, projection, revision],
             }],
         },
         decision_facts: domain::WorthQueryOperationDecisionFactContract::NotRequired,
@@ -93,6 +94,7 @@ fn canonical_bundle() -> worth_query_decl::facade::canonicalization::CanonicalQu
     )
     .project(selector("identity", "id"))
     .project(selector("query_text", "status"))
+    .project(selector("query_revision", "value"))
     .where_equal(
         EqualityPredicate::new(
             "identity",
@@ -107,6 +109,11 @@ fn canonical_bundle() -> worth_query_decl::facade::canonicalization::CanonicalQu
     let shape = DetailResultShapeBuilder::new()
         .field(result_field("identity", "id", "id"))
         .field(result_field("query_text", "status", "query_text.status"))
+        .field(result_field(
+            "query_revision",
+            "value",
+            "query_revision.value",
+        ))
         .build()
         .expect("static scalar text result shape must admit")
         .into_raw();

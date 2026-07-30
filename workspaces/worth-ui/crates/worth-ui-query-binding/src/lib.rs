@@ -22,6 +22,9 @@ mod inspection;
 mod installed_domain;
 mod native_aspect_contracts;
 mod operation_live;
+mod product_projection;
+#[cfg(test)]
+mod product_projection_tests;
 mod projection_binding;
 mod projection_consumption;
 mod projection_invalidation;
@@ -136,6 +139,14 @@ pub use operation_live::{
     WorthUiOperationLiveRetirementCloseReceipt, WorthUiOperationLiveRetirementStop,
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
     WorthUiValidatedCollectionChangeObservation,
+};
+pub use product_projection::{
+    WorthUiQueryHostInstallationRequest, WorthUiScalarProjectionAdvance,
+    WorthUiScalarProjectionAdvanceError, WorthUiScalarProjectionHostCompletion,
+    WorthUiScalarProjectionHostPlan, WorthUiScalarProjectionInstallation,
+    WorthUiScalarProjectionInstallationError, WorthUiScalarProjectionLiveOwner,
+    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
+    WorthUiScalarProjectionSourceCloseReceipt, WorthUiScalarProjectionSourceRecord,
 };
 pub use projection_binding::{
     UiCollectionProjectionBinding, UiCollectionProjectionBindingAdmission,

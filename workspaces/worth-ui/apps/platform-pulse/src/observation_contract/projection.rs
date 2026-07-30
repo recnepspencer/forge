@@ -1,8 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use worth_ui::facade::app::{
-    UiMountedFramePublicationReceipt, WorthUiApplicationCutoverReceipt,
-    WorthUiPreparedApplicationGenerationIdentity,
+    UiMountedFramePublicationReceipt, WorthUiPreparedApplicationGenerationIdentity,
 };
 use worth_ui::facade::source::{
     UiSourceRebindAttemptDenial, UiSourceRebindAttemptFailure, WorthUiSourcePackageRevision,
@@ -16,9 +15,10 @@ use super::lifecycle::{
     PlatformPulseApplicationGenerationObservation, PlatformPulseFirstFramePublished,
     PlatformPulseLifecycleObservation, PlatformPulseMountedFrameObservation,
     PlatformPulseProcessStarted, PlatformPulseReplacementDenialFamily,
-    PlatformPulseReplacementPreserved, PlatformPulseReplacementPublished,
-    PlatformPulseSourceSnapshotObservation,
+    PlatformPulseReplacementPreserved, PlatformPulseSourceSnapshotObservation,
 };
+
+mod replacement_projection;
 
 static NEXT_RUN_ORDINAL: AtomicU64 = AtomicU64::new(1);
 
@@ -67,6 +67,18 @@ pub(super) enum PlatformPulseVisualObservationState {
         published_frame: u64,
         cleared_frame: u64,
     },
+    AwaitingRefreshRetirement {
+        snapshot: u64,
+        snapshot_frame: u64,
+        refresh_frame: u64,
+    },
+    AwaitingRefreshSnapshot {
+        refresh_frame: u64,
+    },
+    Refreshed {
+        snapshot: u64,
+        frame: u64,
+    },
     AwaitingSuccessorSnapshot {
         predecessor_snapshot: u64,
         predecessor_frame: u64,
@@ -93,6 +105,7 @@ pub enum PlatformPulseLifecycleObservationProjectionDenial {
     PublishedPredecessorUnavailable,
     PriorGenerationMismatch,
     ActiveGenerationMismatch,
+    MountedGenerationMismatch,
     OutcomeIsNotFailure,
     VisualObservationOutOfOrder,
     VisualAffinityMismatch,
@@ -103,6 +116,12 @@ pub enum PlatformPulseLifecycleObservationProjectionDenial {
     VisualRetirementMismatch,
     VisualResourceNotReleased,
     ObservationValueOverflow,
+    QueryProjectionUnsupported,
+    MultipleSchemaTransitions,
+    UnexpectedSchemaTransitionIdentity,
+    UnsupportedSchemaTransitionField,
+    UnsupportedSchemaTransitionShape,
+    MissingMountedPublication,
     StreamTerminated,
 }
 
@@ -160,54 +179,6 @@ impl PlatformPulseLifecycleObservationStream {
         self.visual_state = PlatformPulseVisualObservationState::AwaitingSnapshot {
             frame: frame.diagnostic_value,
         };
-        Ok(envelope)
-    }
-
-    pub fn project_replacement(
-        &mut self,
-        source: &WorthUiSourcePackageRevision,
-        application: &WorthUiApplicationCutoverReceipt,
-        mounted: &UiMountedFramePublicationReceipt,
-    ) -> Result<
-        PlatformPulseLifecycleObservationEnvelope,
-        PlatformPulseLifecycleObservationProjectionDenial,
-    > {
-        let (prior, _, _) = self.published_predecessor()?;
-        if &prior != application.prior_generation() {
-            return Err(PlatformPulseLifecycleObservationProjectionDenial::PriorGenerationMismatch);
-        }
-        if mounted.generation() != application.active_generation() {
-            return Err(
-                PlatformPulseLifecycleObservationProjectionDenial::ActiveGenerationMismatch,
-            );
-        }
-        let generation = application.active_generation().clone();
-        let generation_observation =
-            PlatformPulseApplicationGenerationObservation::from_generation(&generation);
-        let frame = PlatformPulseMountedFrameObservation {
-            diagnostic_value: mounted.frame().diagnostic_value(),
-        };
-        let next_visual_state = self
-            .visual_state
-            .after_replacement(frame.diagnostic_value)?;
-        let outcome =
-            PlatformPulseLifecycleObservation::RebindPublished(PlatformPulseReplacementPublished {
-                source: PlatformPulseSourceSnapshotObservation::from_revision(source),
-                predecessor_generation:
-                    PlatformPulseApplicationGenerationObservation::from_generation(
-                        application.prior_generation(),
-                    ),
-                active_generation: generation_observation,
-                successor_frame: frame,
-                actual_native_effect_count: mounted.cost_report().adapter().translated_rows(),
-            });
-        let envelope = self.next_envelope(outcome)?;
-        self.state = PlatformPulseObservationState::Published {
-            generation,
-            generation_observation,
-            frame,
-        };
-        self.visual_state = next_visual_state;
         Ok(envelope)
     }
 
@@ -358,37 +329,23 @@ impl PlatformPulseVisualObservationState {
                 predecessor_frame: snapshot_frame,
                 successor_frame,
             }),
+            Self::Refreshed { snapshot, frame } => Ok(Self::AwaitingSuccessorSnapshot {
+                predecessor_snapshot: snapshot,
+                predecessor_frame: frame,
+                successor_frame,
+            }),
             Self::Retired => Ok(Self::Retired),
             Self::AwaitingFirstFrame
             | Self::SnapshotCaptured { .. }
             | Self::IdentityTraced { .. }
             | Self::OverlayPublished { .. }
+            | Self::AwaitingRefreshRetirement { .. }
+            | Self::AwaitingRefreshSnapshot { .. }
             | Self::AwaitingSuccessorSnapshot { .. }
             | Self::AwaitingComparison { .. }
             | Self::AwaitingRetirement { .. } => {
                 Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete)
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
-    };
-
-    #[test]
-    fn process_start_origin_and_terminal_progression_are_monotonic_and_closed() {
-        let (mut stream, started) = PlatformPulseLifecycleObservationStream::start();
-        assert_eq!(started.sequence().value(), 1);
-        let terminal = stream
-            .project_native_event_loop_failure()
-            .expect("terminal event");
-        assert_eq!(terminal.sequence().value(), 2);
-        assert_eq!(
-            stream.project_source_worker_panic(),
-            Err(PlatformPulseLifecycleObservationProjectionDenial::StreamTerminated)
-        );
     }
 }

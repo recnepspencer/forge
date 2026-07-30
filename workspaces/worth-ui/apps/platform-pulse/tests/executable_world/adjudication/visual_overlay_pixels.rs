@@ -20,6 +20,7 @@ const CHANNEL_TOLERANCE: u8 = 12;
 
 #[derive(Debug)]
 pub(crate) struct ExecutableVisualOverlayEvidence {
+    sequence: u64,
     overlay: PlatformPulseVisualOverlayPublished,
     pixels: NativeClientPixelCapture,
     matching_border_pixels: usize,
@@ -31,6 +32,7 @@ pub(crate) struct ExecutableVisualOverlayEvidence {
 
 #[derive(Debug)]
 pub(crate) struct ExecutableVisualClearEvidence {
+    sequence: u64,
     clear: PlatformPulseVisualOverlayCleared,
     pixels: NativeClientPixelCapture,
 }
@@ -42,7 +44,8 @@ pub(crate) fn adjudicate_overlay_pixels(
     process_id: u32,
     pixels: NativeClientPixelCapture,
 ) -> Result<ExecutableVisualOverlayEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 5)?;
+    let sequence = trace.sequence().saturating_add(1);
+    require_sequence(&envelope, sequence)?;
     let PlatformPulseLifecycleObservation::VisualOverlayPublished(overlay) = envelope.outcome()
     else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
@@ -73,6 +76,7 @@ pub(crate) fn adjudicate_overlay_pixels(
         snapshot.project_logical_point(PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT)?;
     require_control_pixels(&pixels, target_point, background_point)?;
     Ok(ExecutableVisualOverlayEvidence {
+        sequence,
         overlay: *overlay,
         pixels,
         matching_border_pixels: matching,
@@ -89,7 +93,8 @@ pub(crate) fn adjudicate_restored_pixels(
     process_id: u32,
     pixels: NativeClientPixelCapture,
 ) -> Result<ExecutableVisualClearEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 6)?;
+    let sequence = overlay.sequence.saturating_add(1);
+    require_sequence(&envelope, sequence)?;
     let PlatformPulseLifecycleObservation::VisualOverlayCleared(clear) = envelope.outcome() else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
             "visual overlay cleared",
@@ -115,6 +120,7 @@ pub(crate) fn adjudicate_restored_pixels(
     }
     require_control_pixels(&pixels, overlay.target_point, overlay.background_point)?;
     Ok(ExecutableVisualClearEvidence {
+        sequence,
         clear: *clear,
         pixels,
     })
@@ -204,6 +210,10 @@ fn matches_rgb(observed: [u8; 4], expected: [u8; 3]) -> bool {
 }
 
 impl ExecutableVisualOverlayEvidence {
+    pub(crate) fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
     pub(crate) fn capture_count(&self) -> u32 {
         self.pixels.capture_count()
     }
@@ -214,6 +224,10 @@ impl ExecutableVisualOverlayEvidence {
 }
 
 impl ExecutableVisualClearEvidence {
+    pub(crate) fn sequence(&self) -> u64 {
+        self.sequence
+    }
+
     pub(crate) fn clear(&self) -> PlatformPulseVisualOverlayCleared {
         self.clear
     }

@@ -39,6 +39,17 @@ pub(crate) enum ExecutableLifecycleCleanupFailure {
     MissingShutdownCompletion,
     ProcessIdentityMismatch,
     HostSessionNotReleased,
+    QueryWatcherNotJoined,
+    PendingQueryObservations(u64),
+    QueryResidue {
+        owner_terminal: bool,
+        sources: u64,
+        attempts: u64,
+        resources: u64,
+        consumer_leases: u64,
+        retained_projections: u64,
+        projection_receipts: u64,
+    },
     MountedPresentationNotQuiescent(u64),
     VisualCaptureResidue {
         cancelled: u64,
@@ -65,6 +76,24 @@ impl fmt::Display for ExecutableLifecycleCleanupFailure {
                 formatter.write_str("normal-close request belongs to a different process")
             }
             Self::HostSessionNotReleased => formatter.write_str("host session was not released"),
+            Self::QueryWatcherNotJoined => {
+                formatter.write_str("Query source watcher worker was not joined")
+            }
+            Self::PendingQueryObservations(count) => {
+                write!(formatter, "{count} Query source observation(s) remained queued")
+            }
+            Self::QueryResidue {
+                owner_terminal,
+                sources,
+                attempts,
+                resources,
+                consumer_leases,
+                retained_projections,
+                projection_receipts,
+            } => write!(
+                formatter,
+                "Query residue: owner_terminal={owner_terminal}, sources={sources}, attempts={attempts}, resources={resources}, consumer_leases={consumer_leases}, retained_projections={retained_projections}, projection_receipts={projection_receipts}"
+            ),
             Self::MountedPresentationNotQuiescent(count) => write!(
                 formatter,
                 "{count} exceptional mounted presentation shutdown attempt(s) remained"
@@ -114,6 +143,7 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
     if !shutdown.host_session_released() {
         return Err(ExecutableLifecycleCleanupFailure::HostSessionNotReleased);
     }
+    require_zero_query_residue(shutdown)?;
     if shutdown.mounted_shutdown_attempt_count() != 0 {
         return Err(
             ExecutableLifecycleCleanupFailure::MountedPresentationNotQuiescent(
@@ -136,6 +166,39 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
         successful_exit,
         installation_cleanup,
     })
+}
+
+fn require_zero_query_residue(
+    shutdown: PlatformPulseShutdownCompleted,
+) -> Result<(), ExecutableLifecycleCleanupFailure> {
+    if !shutdown.query_watcher_joined() {
+        return Err(ExecutableLifecycleCleanupFailure::QueryWatcherNotJoined);
+    }
+    if shutdown.pending_query_observation_count() != 0 {
+        return Err(ExecutableLifecycleCleanupFailure::PendingQueryObservations(
+            shutdown.pending_query_observation_count(),
+        ));
+    }
+    let counts = (
+        shutdown.live_query_source_count(),
+        shutdown.live_query_attempt_count(),
+        shutdown.live_query_resource_count(),
+        shutdown.live_query_consumer_lease_count(),
+        shutdown.retained_query_projection_count(),
+        shutdown.query_projection_receipt_count(),
+    );
+    if !shutdown.query_owner_terminal() || counts != (0, 0, 0, 0, 0, 0) {
+        return Err(ExecutableLifecycleCleanupFailure::QueryResidue {
+            owner_terminal: shutdown.query_owner_terminal(),
+            sources: counts.0,
+            attempts: counts.1,
+            resources: counts.2,
+            consumer_leases: counts.3,
+            retained_projections: counts.4,
+            projection_receipts: counts.5,
+        });
+    }
+    Ok(())
 }
 
 fn require_zero_visual_residue(

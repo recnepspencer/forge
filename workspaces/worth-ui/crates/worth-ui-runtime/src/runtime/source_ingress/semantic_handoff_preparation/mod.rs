@@ -9,6 +9,9 @@ mod tests;
 pub(in crate::runtime::source_ingress) use declaration_material::prepare_declaration_material;
 pub(crate) use declaration_material::WorthUiPreparedDeclarationMaterial;
 pub use denial::{WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop};
-pub use evidence::{WorthUiProjectionContentEdge, WorthUiSemanticHandoffEvidence};
+pub use evidence::{
+    WorthUiAuthoredProjectionRequirement, WorthUiProjectionContentEdge,
+    WorthUiSemanticHandoffEvidence,
+};
 pub(super) use material::WorthUiPreparedSemanticHandoffMaterial;
 pub(super) use preparation::prepare_semantic_handoff;

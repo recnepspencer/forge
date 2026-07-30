@@ -26,6 +26,9 @@ pub enum UiRebindPlanningDenial {
     AmbiguousProjectionContent {
         graph_node: crate::graph::UiGraphNodeIdentity,
     },
+    ProjectionSchemaTransitionUncorrelated {
+        component_identity: Box<str>,
+    },
     InvalidCollectionProjectionContent(UiCollectionProjectionContentDenial),
     BudgetExceeded {
         limit: crate::runtime::rebind::UiRebindLimit,

@@ -24,6 +24,13 @@ impl PlatformPulseObservationPublisher {
         self.project_observation(|stream| stream.project_successor_visual_snapshot(receipt))
     }
 
+    pub(crate) fn refreshed_visual_snapshot(
+        &self,
+        receipt: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.project_observation(|stream| stream.project_refreshed_visual_snapshot(receipt))
+    }
+
     pub(crate) fn visual_point_trace(
         &self,
         input: PlatformPulseVisualPointTraceInput<'_>,

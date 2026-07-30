@@ -73,6 +73,9 @@ impl WorthUiActiveApplicationSession {
             crate::runtime::rebind::UiRebindSemanticProof::Changed(changed) => {
                 self.prepare_changed_rebind(plan, reservation, changed)
             }
+            crate::runtime::rebind::UiRebindSemanticProof::AuthoredContent(content) => {
+                self.prepare_authored_content_rebind(plan, reservation, *content)
+            }
             crate::runtime::rebind::UiRebindSemanticProof::EvidenceOnly(succession) => {
                 let prepared = WorthUiPreparedEvidenceOnlyApplicationRebind::new(
                     &mut self.application,
@@ -122,6 +125,47 @@ impl WorthUiActiveApplicationSession {
             plan,
             reservation,
             content,
+        ))
+    }
+
+    fn prepare_authored_content_rebind(
+        &mut self,
+        plan: crate::runtime::rebind::UiRebindPlan,
+        reservation: crate::runtime::rebind::UiRebindReservation,
+        content: crate::runtime::rebind::UiAuthoredContentRebindSemanticProof,
+    ) -> Result<
+        crate::runtime::rebind::UiPreparedRebind<'_>,
+        crate::runtime::rebind::UiRebindPreparationDenial,
+    > {
+        let semantic_content = plan.content().clone();
+        let frame = {
+            let completion = self.execute_framework_turn(|_| {}).map_err(|_| {
+                crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
+            })?;
+            completion
+                .into_execution()
+                .map_err(|_| {
+                    crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
+                })?
+                .prepare_mounted_frame_with_content_internal(
+                    crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                    semantic_content,
+                )
+                .map_err(|denial| {
+                    crate::runtime::rebind::UiRebindPreparationDenial::ContentMountedPreparation(
+                        Box::new(denial),
+                    )
+                })?
+        };
+        let prepared = crate::facade::entry::WorthUiPreparedMountedContentRebind::authored(
+            self,
+            frame,
+            content.successor_authority,
+        );
+        Ok(crate::runtime::rebind::UiPreparedRebind::content(
+            plan,
+            reservation,
+            Box::new(prepared),
         ))
     }
 

@@ -62,6 +62,7 @@ fn installed_read_declaration() -> &'static read::WorthQueryReadDeclaration {
                     query
                         .project(selector("identity", "id"))
                         .project(selector("query_text", "status"))
+                        .project(selector("query_revision", "value"))
                         .where_equal(
                             read::EqualityPredicate::new(
                                 "identity",
@@ -77,6 +78,11 @@ fn installed_read_declaration() -> &'static read::WorthQueryReadDeclaration {
                     shape
                         .field(result_field("identity", "id", "id"))
                         .field(result_field("query_text", "status", "query_text.status"))
+                        .field(result_field(
+                            "query_revision",
+                            "value",
+                            "query_revision.value",
+                        ))
                 },
             )
         })
@@ -97,6 +103,11 @@ fn projection_schema() -> read::QuerySchemaView {
                 read::AspectName::new("query_text").expect("static aspect must admit"),
                 read::FieldName::new("status").expect("static field must admit"),
                 ScalarAspectType::String,
+            ),
+            read::SchemaFieldView::new(
+                read::AspectName::new("query_revision").expect("static aspect must admit"),
+                read::FieldName::new("value").expect("static field must admit"),
+                ScalarAspectType::UInt64,
             ),
         ],
         [],

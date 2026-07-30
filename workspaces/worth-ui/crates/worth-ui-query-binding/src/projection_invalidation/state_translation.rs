@@ -40,12 +40,7 @@ pub(super) fn translate_state(
             predecessor,
             UiProjectionRetainedActivityKind::Revalidating,
         ),
-        Kind::Pending => unavailable(
-            context,
-            predecessor,
-            UiProjectionUnavailableKind::Pending,
-            true,
-        ),
+        Kind::Pending => pending(context, predecessor),
         Kind::Failed => unavailable(
             context,
             predecessor,
@@ -77,6 +72,19 @@ pub(super) fn translate_state(
             false,
         ),
     }
+}
+
+fn pending(
+    context: ScalarStateContext<'_>,
+    predecessor: Option<UiScalarProjectionFactReceipt>,
+) -> StateTransition {
+    context.binding.discard_prepared_after_pending();
+    unavailable(
+        context,
+        predecessor,
+        UiProjectionUnavailableKind::Pending,
+        true,
+    )
 }
 
 fn unavailable_override(

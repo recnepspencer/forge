@@ -27,8 +27,11 @@ workspace = true
 
 [dependencies]
 eframe = { workspace = true, features = ["wgpu"] }
+notify = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+worth-query-decl = { workspace = true }
+worth-query-host = { workspace = true }
 worth-ui = { workspace = true }
 worth-ui-host-egui = { workspace = true }
 

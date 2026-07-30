@@ -3,7 +3,7 @@ use std::fmt;
 use crate::adjudication::{
     ExecutableFirstFrameFailure, ExecutableLifecycleCleanupFailure,
     ExecutablePredecessorPreservationFailure, ExecutableReplacementFailure,
-    ExecutableVisualIdentityFailure,
+    ExecutableSchemaTransitionFailure, ExecutableVisualIdentityFailure,
 };
 use crate::external_observation::{
     PlatformPulseLifecycleStreamFailure, PlatformPulseLifecycleTeardownEvidence,
@@ -33,10 +33,12 @@ pub(crate) enum PulseExecutableWorldFailure {
     Liveness(StableProcessLivenessFailure),
     Native(NativePlatformFailure),
     FirstFrame(ExecutableFirstFrameFailure),
+    QueryCurrent(crate::adjudication::ExecutableQueryCurrentFailure),
     VisualIdentity(ExecutableVisualIdentityFailure),
     SourceAction(PulseSourceActionFailure),
     WatchedObservation(WatchedPulseObservationFailure),
     Replacement(ExecutableReplacementFailure),
+    SchemaTransition(ExecutableSchemaTransitionFailure),
     Preservation(ExecutablePredecessorPreservationFailure),
     ProcessExit(PlatformPulseProcessExitFailure),
     Cleanup(ExecutableLifecycleCleanupFailure),
@@ -244,6 +246,9 @@ impl fmt::Display for PulseExecutableWorldFailure {
             Self::FirstFrame(failure) => {
                 write!(formatter, "first-frame adjudication: {failure}")
             }
+            Self::QueryCurrent(failure) => {
+                write!(formatter, "Query-current adjudication: {failure}")
+            }
             Self::VisualIdentity(failure) => {
                 write!(formatter, "visual-identity adjudication: {failure}")
             }
@@ -253,6 +258,9 @@ impl fmt::Display for PulseExecutableWorldFailure {
             }
             Self::Replacement(failure) => {
                 write!(formatter, "replacement adjudication: {failure}")
+            }
+            Self::SchemaTransition(failure) => {
+                write!(formatter, "schema-transition adjudication: {failure}")
             }
             Self::Preservation(failure) => {
                 write!(formatter, "predecessor preservation: {failure}")

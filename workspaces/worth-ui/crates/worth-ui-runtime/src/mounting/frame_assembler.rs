@@ -94,6 +94,25 @@ impl UiMountedPlanProjectionSource<'_> {
             Self::PreviewOnly => Ok(None),
         }
     }
+
+    pub(crate) fn component_semantic_text_token(
+        self,
+        component: &crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning,
+    ) -> Result<
+        Option<(
+            u32,
+            std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+        )>,
+        (),
+    > {
+        let Some(token_id) = component.semantic_text_theme_token_dependency() else {
+            return Ok(None);
+        };
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_theme_token(token_id),
+            Self::PreviewOnly => Ok(None),
+        }
+    }
 }
 
 impl<'state> UiMountedFrameAssembler<'state> {

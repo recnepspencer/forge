@@ -122,6 +122,20 @@ impl UiQueryChangedFact {
             ) => None,
         }
     }
+
+    pub(crate) fn into_scalar_projection(
+        self,
+    ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {
+        match self.payload {
+            UiQueryChangedFactPayload::Projection(
+                worth_ui_query_binding::UiProjectionObservation::Scalar(observation),
+            ) => Ok(observation.into_fact()),
+            payload => Err(Self {
+                kind: self.kind,
+                payload,
+            }),
+        }
+    }
 }
 
 impl UiQueryIncrementalChangedFact {

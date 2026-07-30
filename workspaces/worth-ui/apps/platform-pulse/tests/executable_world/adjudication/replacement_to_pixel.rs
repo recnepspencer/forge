@@ -150,6 +150,20 @@ impl ReplacementExpectation {
             source: ReplacementSourceExpectation::CanonicalDigest(digest),
         }
     }
+
+    pub(crate) fn revision_schema() -> Self {
+        Self {
+            action: PulseSourceDeltaIdentity::RevisionSchema,
+            source: ReplacementSourceExpectation::ChangedFromPredecessor,
+        }
+    }
+
+    pub(crate) fn status_schema_recovery(digest: u64) -> Self {
+        Self {
+            action: PulseSourceDeltaIdentity::StatusSchemaRecovery,
+            source: ReplacementSourceExpectation::CanonicalDigest(digest),
+        }
+    }
 }
 
 impl<Kind> ExecutableReplacementEvidence<Kind> {
@@ -188,6 +202,16 @@ impl<Kind> ExecutableReplacementEvidence<Kind> {
     pub(crate) fn capture_count(&self) -> u32 {
         self.pixels.capture_count()
     }
+
+    pub(crate) fn pixels(&self) -> &NativeClientPixelCapture {
+        &self.pixels
+    }
+}
+
+pub(crate) fn require_replacement_lifecycle(
+    envelope: &PlatformPulseLifecycleObservationEnvelope,
+) -> Result<(), ExecutableReplacementFailure> {
+    replacement_outcome(envelope).map(|_| ())
 }
 
 fn replacement_outcome(

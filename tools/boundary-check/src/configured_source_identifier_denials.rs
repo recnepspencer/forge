@@ -27,6 +27,14 @@ fn visit_rust_sources(
     rule: &SourceIdentifierDenialConfig,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
+    if rule
+        .exclude_paths
+        .iter()
+        .map(|excluded| workspace.join(excluded))
+        .any(|excluded| path == excluded || path.starts_with(excluded))
+    {
+        return;
+    }
     let entries = match fs::read_dir(path) {
         Ok(entries) => entries,
         Err(error) => {
@@ -161,6 +169,7 @@ mod tests {
     fn rule() -> SourceIdentifierDenialConfig {
         SourceIdentifierDenialConfig {
             root: "physical_runtime".into(),
+            exclude_paths: Vec::new(),
             forbidden_identifiers: vec![
                 "serde_json".into(),
                 "BranchWriterAuthority".into(),
@@ -244,5 +253,37 @@ mod tests {
         assert!(diagnostics[0]
             .message()
             .contains("configured source boundary could not be read"));
+    }
+
+    #[test]
+    fn excluded_source_paths_are_the_only_escape_from_a_governed_root() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_nanos();
+        let workspace = std::env::temp_dir().join(format!(
+            "worth-boundary-identifier-exclusion-{}-{nonce}",
+            std::process::id()
+        ));
+        let governed = workspace.join("governed");
+        let excluded = governed.join("allowed");
+        std::fs::create_dir_all(&excluded).expect("create governed fixture");
+        std::fs::write(governed.join("denied.rs"), "use worth_query_host::facade;")
+            .expect("write denied fixture");
+        std::fs::write(excluded.join("allowed.rs"), "use worth_query_host::facade;")
+            .expect("write excluded fixture");
+        let rule = SourceIdentifierDenialConfig {
+            root: "governed".into(),
+            exclude_paths: vec!["governed/allowed".into()],
+            forbidden_identifiers: vec!["worth_query_host".into()],
+            forbidden_identifier_fragments: Vec::new(),
+            guidance: "Query imports stay in the adapter".into(),
+        };
+
+        let diagnostics = validate_source_identifier_denials(&workspace, &[rule]);
+
+        std::fs::remove_dir_all(&workspace).expect("remove governed fixture");
+        assert_eq!(diagnostics.len(), 1);
+        assert!(diagnostics[0].subject().ends_with("denied.rs"));
     }
 }

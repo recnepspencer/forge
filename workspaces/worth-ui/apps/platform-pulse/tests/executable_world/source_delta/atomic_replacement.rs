@@ -8,9 +8,13 @@ use crate::installation::IsolatedPulseInstallation;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PulseSourceDeltaIdentity {
+    QueryStatusV1,
+    QueryStatusV2,
     Green,
     Malformed,
     CanonicalBlueRecovery,
+    RevisionSchema,
+    StatusSchemaRecovery,
 }
 
 #[derive(Debug)]
@@ -71,11 +75,18 @@ pub(super) fn apply<Kind>(
     identity: PulseSourceDeltaIdentity,
     bytes: &[u8],
 ) -> Result<AppliedPulseSourceDelta<Kind>, PulseSourceActionFailure> {
-    let entry_source = installation.entry_source();
-    let temporary = entry_source.with_extension("wui.replacement");
+    apply_path(installation.entry_source(), identity, bytes)
+}
+
+pub(super) fn apply_path<Kind>(
+    destination: PathBuf,
+    identity: PulseSourceDeltaIdentity,
+    bytes: &[u8],
+) -> Result<AppliedPulseSourceDelta<Kind>, PulseSourceActionFailure> {
+    let temporary = destination.with_extension("replacement");
     write_temporary(&temporary, bytes)?;
-    replace_source(&entry_source, &temporary)?;
-    let observed = fs::read(&entry_source).map_err(PulseSourceActionFailure::ReadBack)?;
+    replace_source(&destination, &temporary)?;
+    let observed = fs::read(&destination).map_err(PulseSourceActionFailure::ReadBack)?;
     if observed != bytes {
         return Err(PulseSourceActionFailure::ReadBackMismatch);
     }
@@ -83,7 +94,7 @@ pub(super) fn apply<Kind>(
         identity,
         written_bytes: bytes.len(),
         content_fingerprint: fingerprint(bytes),
-        entry_source,
+        entry_source: destination,
         _kind: PhantomData,
     })
 }
@@ -104,6 +115,14 @@ fn write_temporary(path: &Path, bytes: &[u8]) -> Result<(), PulseSourceActionFai
 
 #[cfg(target_os = "windows")]
 fn replace_source(destination: &Path, replacement: &Path) -> Result<(), PulseSourceActionFailure> {
+    if !destination.exists() {
+        return fs::rename(replacement, destination).map_err(|error| {
+            PulseSourceActionFailure::AtomicReplace {
+                primary: error.to_string(),
+                temporary_cleanup: fs::remove_file(replacement),
+            }
+        });
+    }
     let destination_text = destination
         .to_str()
         .ok_or_else(|| PulseSourceActionFailure::NonUnicodeWindowsPath(destination.to_owned()))?;

@@ -101,7 +101,7 @@ guidance = "Milestone 3.10.1: DSL owns authored language meaning and may not imp
 [[source_dependency_allowlists]]
 workspace_manifest = "workspaces/worth-ui/Cargo.toml"
 sources = ["worth-ui-platform-pulse"]
-allowed_targets = ["eframe", "serde", "serde_json", "uiautomation", "winsafe", "worth-query-decl", "worth-query-host", "worth-ui", "worth-ui-host-egui", "xcap"]
+allowed_targets = ["eframe", "notify", "serde", "serde_json", "uiautomation", "winsafe", "worth-query-decl", "worth-query-host", "worth-ui", "worth-ui-host-egui", "xcap"]
 guidance = "Milestone 3.13: the permanent Pulse remains a downstream application composition root. It may assemble Query declarations and a host only through worth-query-decl and worth-query-host, then pass audience-safe references through worth-ui. Raw Query, binding-owner, runtime, DSL, certification, test-support, replay, and convenience dependencies remain forbidden."
 
 [[source_dependency_allowlists.dependency_contracts]]
@@ -142,6 +142,20 @@ forbidden_identifiers = [
 ]
 forbidden_identifier_fragments = []
 guidance = "Milestone 3.10.3 Phase 3: the executable runner observes the Cargo-built product through typed stdout, PID-bound native APIs, and independent pixels; it cannot import product internals, certification authority, adapter mechanics, or desktop-screenshot shortcuts"
+
+[[source_identifier_denials]]
+root = "workspaces/worth-ui/apps/platform-pulse/src"
+exclude_paths = [
+  "workspaces/worth-ui/apps/platform-pulse/src/application.rs",
+  "workspaces/worth-ui/apps/platform-pulse/src/query_source",
+]
+forbidden_identifiers = [
+  "worth_query",
+  "worth_query_decl",
+  "worth_query_host",
+]
+forbidden_identifier_fragments = ["WorthQuery"]
+guidance = "Milestone 3.13 Phase 4: direct Query declaration, host, workspace, result, operation, and live-handle authority is confined to query_source/** and the application composition seam; native-frame, visual, observation, and host-adapter modules consume only Worth UI or Pulse-owned contracts"
 
 [[source_identifier_denials]]
 root = "workspaces/worth-store/crates/worth-store/src/physical_runtime"

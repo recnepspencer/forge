@@ -4,6 +4,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedSemanticContentInput {
     by_graph_node: BTreeMap<crate::graph::UiGraphNodeIdentity, UiMountedSemanticTextContent>,
+    schema_transitions: Vec<crate::runtime::rebind::UiProjectionSchemaTransition>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -68,6 +69,7 @@ impl UiMountedSemanticContentInput {
     pub(crate) fn empty() -> Self {
         Self {
             by_graph_node: BTreeMap::new(),
+            schema_transitions: Vec::new(),
         }
     }
 
@@ -127,6 +129,19 @@ impl UiMountedSemanticContentInput {
 
     pub(crate) fn is_empty(&self) -> bool {
         self.by_graph_node.is_empty()
+    }
+
+    pub(crate) fn record_schema_transition(
+        &mut self,
+        transition: crate::runtime::rebind::UiProjectionSchemaTransition,
+    ) {
+        self.schema_transitions.push(transition);
+    }
+
+    pub(crate) fn schema_transitions(
+        &self,
+    ) -> &[crate::runtime::rebind::UiProjectionSchemaTransition] {
+        &self.schema_transitions
     }
 }
 

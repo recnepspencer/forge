@@ -14,11 +14,14 @@ use crate::installation::{CanonicalPlatformPulse, IsolatedPulseInstallation};
 use crate::native_platform::{WindowsNativePlatform, WindowsProcessBoundNativeClientArea};
 use crate::source_delta::{
     AppliedPulseSourceDelta, CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta,
-    MalformedPulseSourceDelta,
+    MalformedPulseSourceDelta, QueryStatusV1, QueryStatusV2, RevisionSchemaSourceDelta,
+    StatusSchemaRecoverySourceDelta,
 };
 use std::time::{Duration, Instant};
 
 use super::{CargoBuiltPlatformPulse, LivePlatformPulseProcess};
+
+mod final_recovery_evidence;
 
 pub(crate) struct PulseExecutableWorld<State> {
     pub(super) state: State,
@@ -53,6 +56,29 @@ pub(crate) struct InitialBlue {
     pub(super) launch_to_first_publication: Duration,
 }
 
+pub(crate) struct AwaitingQueryCurrent<Stage, Kind> {
+    pub(super) world: NativeBoundExecutableWorld,
+    pub(super) prior: Stage,
+    pub(super) action: AppliedPulseSourceDelta<Kind>,
+}
+
+pub(crate) struct QueryCurrent<Stage, Kind> {
+    pub(super) prior: Stage,
+    pub(super) action: AppliedPulseSourceDelta<Kind>,
+    pub(super) evidence: crate::adjudication::ExecutableQueryCurrentEvidence,
+}
+
+pub(crate) type FirstCurrent = QueryCurrent<InitialBlue, QueryStatusV1>;
+pub(crate) type SecondQueryCurrent = QueryCurrent<OverlayCleared<FirstCurrent>, QueryStatusV2>;
+
+pub(crate) struct ComparisonBasisRefreshed<Stage> {
+    pub(super) prior: Stage,
+    pub(super) retirement: ExecutableVisualRetirementEvidence,
+    pub(super) snapshot: ExecutableVisualSnapshotEvidence,
+}
+
+pub(crate) type SecondCurrent = ComparisonBasisRefreshed<SecondQueryCurrent>;
+
 pub(crate) struct SnapshotCaptured<Stage> {
     pub(super) prior: Stage,
     pub(super) evidence: ExecutableVisualSnapshotEvidence,
@@ -73,8 +99,8 @@ pub(crate) struct OverlayCleared<Stage> {
     pub(super) evidence: ExecutableVisualClearEvidence,
 }
 
-impl OverlayCleared<InitialBlue> {
-    pub(super) fn initial(&self) -> &InitialBlue {
+impl OverlayCleared<FirstCurrent> {
+    pub(super) fn initial(&self) -> &FirstCurrent {
         &self.overlay.trace.snapshot.prior
     }
 
@@ -85,12 +111,12 @@ impl OverlayCleared<InitialBlue> {
 
 pub(crate) struct AwaitingReplacement {
     pub(super) world: NativeBoundExecutableWorld,
-    pub(super) initial: OverlayCleared<InitialBlue>,
+    pub(super) initial: SecondCurrent,
     pub(super) action: AppliedPulseSourceDelta<GreenPulseSourceDelta>,
 }
 
 pub(crate) struct GreenSuccessor {
-    pub(super) initial: OverlayCleared<InitialBlue>,
+    pub(super) initial: SecondCurrent,
     pub(super) evidence: ExecutableReplacementEvidence<GreenPulseSourceDelta>,
     pub(super) comparison: ExecutableVisualComparisonEvidence,
     pub(super) retirement: ExecutableVisualRetirementEvidence,
@@ -124,6 +150,30 @@ pub(crate) struct RecoveredBlue {
     pub(super) evidence: ExecutableReplacementEvidence<CanonicalBlueRecoverySourceDelta>,
 }
 
+pub(crate) struct AwaitingSchemaStop {
+    pub(super) world: NativeBoundExecutableWorld,
+    pub(super) recovered: RecoveredBlue,
+    pub(super) action: AppliedPulseSourceDelta<RevisionSchemaSourceDelta>,
+}
+
+pub(crate) struct SchemaStopped {
+    pub(super) recovered: RecoveredBlue,
+    pub(super) evidence:
+        crate::adjudication::ExecutableSchemaTransitionEvidence<RevisionSchemaSourceDelta>,
+}
+
+pub(crate) struct AwaitingStatusRecovery {
+    pub(super) world: NativeBoundExecutableWorld,
+    pub(super) stopped: SchemaStopped,
+    pub(super) action: AppliedPulseSourceDelta<StatusSchemaRecoverySourceDelta>,
+}
+
+pub(crate) struct FinalRecovered {
+    pub(super) stopped: SchemaStopped,
+    pub(super) evidence:
+        crate::adjudication::ExecutableSchemaTransitionEvidence<StatusSchemaRecoverySourceDelta>,
+}
+
 pub(crate) struct Closed {
     pub(super) evidence: ExecutableLifecycleCleanupEvidence,
 }
@@ -145,7 +195,7 @@ impl PulseExecutableWorld<Installed> {
         binary: CargoBuiltPlatformPulse,
     ) -> Result<PulseExecutableWorld<AwaitingFirstFrame>, PulseExecutableWorldFailureReport> {
         let installation = self.state.installation;
-        let launch = match binary.launch(installation.source_root()) {
+        let launch = match binary.launch(installation.source_root(), installation.source_root()) {
             Ok(launch) => launch,
             Err(failure) => {
                 return Err(teardown_installed_world(
@@ -175,31 +225,67 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
     }
 }
 
-impl PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>> {
+impl<Stage, Kind> PulseExecutableWorld<Published<QueryCurrent<Stage, Kind>>> {
+    pub(crate) fn query_evidence(&self) -> &crate::adjudication::ExecutableQueryCurrentEvidence {
+        &self.state.stage.evidence
+    }
+}
+
+impl PulseExecutableWorld<Published<SecondCurrent>> {
+    pub(crate) fn query_evidence(&self) -> &crate::adjudication::ExecutableQueryCurrentEvidence {
+        &self.state.stage.prior.evidence
+    }
+
+    pub(crate) fn refresh_retirement_evidence(&self) -> ExecutableVisualRetirementEvidence {
+        self.state.stage.retirement
+    }
+
+    pub(crate) fn refresh_snapshot_evidence(&self) -> &ExecutableVisualSnapshotEvidence {
+        &self.state.stage.snapshot
+    }
+}
+
+impl ComparisonBasisRefreshed<SecondQueryCurrent> {
+    pub(super) fn visual(&self) -> &OverlayCleared<FirstCurrent> {
+        &self.prior.prior
+    }
+
+    pub(super) fn snapshot_evidence(&self) -> &ExecutableVisualSnapshotEvidence {
+        &self.snapshot
+    }
+
+    pub(super) fn canonical_source_digest(&self) -> u64 {
+        self.visual()
+            .initial()
+            .prior
+            .evidence
+            .first_frame()
+            .source()
+            .final_package_digest()
+    }
+}
+
+impl PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>> {
     pub(crate) fn evidence(&self) -> &ExecutableVisualSnapshotEvidence {
         &self.state.stage.evidence
     }
 }
 
-impl PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>> {
+impl PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>> {
     pub(crate) fn evidence(&self) -> &ExecutableVisualTraceEvidence {
         &self.state.stage.evidence
     }
 }
 
-impl PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>> {
+impl PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>> {
     pub(crate) fn evidence(&self) -> &ExecutableVisualOverlayEvidence {
         &self.state.stage.evidence
     }
 }
 
-impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>> {
+impl PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>> {
     pub(crate) fn evidence(&self) -> &ExecutableVisualClearEvidence {
         &self.state.stage.evidence
-    }
-
-    pub(crate) fn initial_evidence(&self) -> &ExecutableFirstFrameEvidence {
-        &self.state.stage.initial().evidence
     }
 }
 
@@ -234,16 +320,25 @@ impl PulseExecutableWorld<Published<RecoveredBlue>> {
         &self.state.stage.preserved.evidence
     }
 
-    pub(crate) fn source_action_count(&self) -> u32 {
+    pub(crate) fn query_basis(
+        &self,
+    ) -> &worth_ui_platform_pulse::observation_contract::PlatformPulseQueryProjectionEvidence {
         self.state
             .stage
             .preserved
             .green
+            .initial
+            .prior
             .evidence
-            .action()
-            .action_count()
-            + self.state.stage.preserved.evidence.action().action_count()
-            + self.state.stage.evidence.action().action_count()
+            .projection()
+    }
+}
+
+impl PulseExecutableWorld<Published<SchemaStopped>> {
+    pub(crate) fn evidence(
+        &self,
+    ) -> &crate::adjudication::ExecutableSchemaTransitionEvidence<RevisionSchemaSourceDelta> {
+        &self.state.stage.evidence
     }
 }
 

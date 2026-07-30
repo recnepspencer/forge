@@ -7,8 +7,9 @@ pub(crate) const IDENTITY_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x575
 pub(crate) const MEASUREMENT_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4902);
 const SIZE_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4903);
 pub(crate) const QUERY_TEXT_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4904);
+pub(crate) const QUERY_REVISION_ASPECT_IDENTITY: AspectIdentity = AspectIdentity(0x5755_4905);
 
-pub fn worth_ui_native_aspect_contracts() -> [AspectContract; 4] {
+pub fn worth_ui_native_aspect_contracts() -> [AspectContract; 5] {
     [
         required_field_contract(
             "identity",
@@ -33,6 +34,12 @@ pub fn worth_ui_native_aspect_contracts() -> [AspectContract; 4] {
             QUERY_TEXT_ASPECT_IDENTITY,
             "status",
             ScalarAspectType::String,
+        ),
+        required_field_contract(
+            "query_revision",
+            QUERY_REVISION_ASPECT_IDENTITY,
+            "value",
+            ScalarAspectType::UInt64,
         ),
     ]
 }

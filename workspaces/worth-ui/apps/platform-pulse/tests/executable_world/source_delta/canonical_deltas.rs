@@ -28,6 +28,8 @@ pub(crate) struct CanonicalBlueRecoverySourceDelta {
 pub(crate) enum PulseSourceDeltaDefinitionFailure {
     CanonicalBlueTokenMissing,
     CanonicalBlueTokenAmbiguous(usize),
+    CanonicalStatusFieldMissing,
+    CanonicalStatusFieldAmbiguous(usize),
 }
 
 impl fmt::Display for PulseSourceDeltaDefinitionFailure {
@@ -38,6 +40,12 @@ impl fmt::Display for PulseSourceDeltaDefinitionFailure {
             }
             Self::CanonicalBlueTokenAmbiguous(count) => {
                 write!(formatter, "canonical pulse has {count} blue tokens")
+            }
+            Self::CanonicalStatusFieldMissing => {
+                formatter.write_str("canonical pulse has no status field")
+            }
+            Self::CanonicalStatusFieldAmbiguous(count) => {
+                write!(formatter, "canonical pulse has {count} status fields")
             }
         }
     }

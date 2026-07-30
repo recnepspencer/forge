@@ -10,7 +10,22 @@ pub struct WorthUiSemanticHandoffEvidence {
     identity: WorthUiSemanticPackageIdentity,
     protocol: WorthUiDslProtocolIdentity,
     authored_mode: WorthUiAuthoredMode,
+    projection_requirements: Box<[WorthUiAuthoredProjectionRequirement]>,
     projection_contents: Box<[WorthUiProjectionContentEdge]>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum WorthUiAuthoredProjectionRequirement {
+    Scalar {
+        declaration_identity: Box<str>,
+        view_identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
+        requirement: worth_ui_query_binding::UiScalarSchemaRequirement,
+    },
+    Collection {
+        declaration_identity: Box<str>,
+        view_identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
+        requirement: worth_ui_query_binding::UiCollectionSchemaRequirement,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -25,6 +40,10 @@ impl WorthUiSemanticHandoffEvidence {
             identity: package.identity().clone(),
             protocol: package.protocol(),
             authored_mode: package.authored_mode(),
+            projection_requirements: package
+                .projection_requirements()
+                .map(WorthUiAuthoredProjectionRequirement::from_sealed)
+                .collect(),
             projection_contents: projection_contents(package),
         }
     }
@@ -44,6 +63,125 @@ impl WorthUiSemanticHandoffEvidence {
     pub fn projection_contents(&self) -> &[WorthUiProjectionContentEdge] {
         &self.projection_contents
     }
+
+    pub fn projection_requirements(&self) -> &[WorthUiAuthoredProjectionRequirement] {
+        &self.projection_requirements
+    }
+
+    pub fn projection_requirement(
+        &self,
+        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Option<&WorthUiAuthoredProjectionRequirement> {
+        self.projection_requirements
+            .iter()
+            .find(|requirement| requirement.view_identity() == identity)
+    }
+}
+
+impl WorthUiAuthoredProjectionRequirement {
+    fn from_sealed(requirement: &worth_ui_dsl::WorthUiProjectionRequirement) -> Self {
+        let declaration_identity = requirement.declaration_identity().into();
+        let view_identity =
+            worth_ui_query_binding::WorthUiQueryViewIdentity::new(requirement.view_identity())
+                .expect("sealed DSL Query view identity remains valid");
+        let native_family = match requirement.native_family() {
+            worth_ui_dsl::WorthUiProjectionNativeFamily::Text => {
+                worth_ui_query_binding::UiProjectionNativeFamily::Text
+            }
+            worth_ui_dsl::WorthUiProjectionNativeFamily::Boolean => {
+                worth_ui_query_binding::UiProjectionNativeFamily::Boolean
+            }
+        };
+        let lifecycle = match requirement.lifecycle() {
+            worth_ui_dsl::WorthUiProjectionLifecycle::Snapshot => {
+                worth_ui_query_binding::UiProjectionLifecycleRequirement::Snapshot
+            }
+            worth_ui_dsl::WorthUiProjectionLifecycle::Live => {
+                worth_ui_query_binding::UiProjectionLifecycleRequirement::Live
+            }
+        };
+        match requirement.shape() {
+            worth_ui_dsl::WorthUiProjectionShape::Scalar => {
+                let selected_field = requirement
+                    .selected_fields()
+                    .next()
+                    .expect("sealed scalar projection has one selected field");
+                Self::Scalar {
+                    declaration_identity,
+                    view_identity,
+                    requirement: worth_ui_query_binding::UiScalarSchemaRequirement::native(
+                        declared_field(selected_field),
+                        native_family,
+                        lifecycle,
+                    ),
+                }
+            }
+            worth_ui_dsl::WorthUiProjectionShape::Collection => {
+                let policy = requirement
+                    .collection_policy()
+                    .expect("sealed collection projection has a collection policy");
+                Self::Collection {
+                    declaration_identity,
+                    view_identity,
+                    requirement: worth_ui_query_binding::UiCollectionSchemaRequirement::native(
+                        declared_field(
+                            requirement
+                                .row_identity_field()
+                                .expect("sealed collection projection has row identity"),
+                        ),
+                        requirement.selected_fields().map(declared_field),
+                        native_family,
+                        lifecycle,
+                        policy.requires_complete_result(),
+                        policy.permits_continuation(),
+                    )
+                    .expect("sealed collection projection has valid selected fields"),
+                }
+            }
+        }
+    }
+
+    pub fn declaration_identity(&self) -> &str {
+        match self {
+            Self::Scalar {
+                declaration_identity,
+                ..
+            }
+            | Self::Collection {
+                declaration_identity,
+                ..
+            } => declaration_identity,
+        }
+    }
+
+    pub fn view_identity(&self) -> &worth_ui_query_binding::WorthUiQueryViewIdentity {
+        match self {
+            Self::Scalar { view_identity, .. } | Self::Collection { view_identity, .. } => {
+                view_identity
+            }
+        }
+    }
+
+    pub fn scalar_requirement(&self) -> Option<&worth_ui_query_binding::UiScalarSchemaRequirement> {
+        match self {
+            Self::Scalar { requirement, .. } => Some(requirement),
+            Self::Collection { .. } => None,
+        }
+    }
+
+    pub fn collection_requirement(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiCollectionSchemaRequirement> {
+        match self {
+            Self::Collection { requirement, .. } => Some(requirement),
+            Self::Scalar { .. } => None,
+        }
+    }
+}
+
+fn declared_field(field: &str) -> worth_ui_query_binding::UiProjectionFieldRequirement {
+    worth_ui_query_binding::UiProjectionFieldRequirement::declared(field)
+        .expect("sealed DSL projection field remains valid")
 }
 
 impl WorthUiProjectionContentEdge {

@@ -27,6 +27,9 @@ mod native_application_shell;
 mod native_identity_trace_audit;
 #[cfg(test)]
 mod native_identity_trace_host;
+mod native_projection_rebind;
+#[cfg(test)]
+mod native_projection_rebind_tests;
 mod native_replacement_allocation;
 mod native_source_rebind;
 mod observation;
@@ -78,8 +81,9 @@ pub use mounted_allocation_inspection::{
     WorthUiMountedAllocationProjectionInspectionDenial,
 };
 pub(crate) use mounted_content_rebind::{
-    WorthUiMountedContentRebindInFlight, WorthUiMountedContentRebindIndeterminate,
-    WorthUiMountedContentRebindOutcome, WorthUiPreparedMountedContentRebind,
+    WorthUiMountedContentPublicationReceipt, WorthUiMountedContentRebindInFlight,
+    WorthUiMountedContentRebindIndeterminate, WorthUiMountedContentRebindOutcome,
+    WorthUiPreparedMountedContentRebind,
 };
 pub use mounted_frame_execution::{
     WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
@@ -96,6 +100,7 @@ pub use native_application_shell::{
     WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
     WorthUiNativeApplicationShutdownReceipt,
 };
+pub use native_projection_rebind::WorthUiNativeProjectionRebindDenial;
 pub use native_source_rebind::WorthUiNativeSourceRebindDenial;
 pub(crate) use rebind_execution::WorthUiPreparedEvidenceOnlyApplicationRebind;
 pub(crate) use rebind_recovery::WorthUiRebindRecoveryAuthority;

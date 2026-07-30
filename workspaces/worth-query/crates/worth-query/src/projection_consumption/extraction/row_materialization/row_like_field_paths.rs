@@ -192,6 +192,14 @@ fn lookup_declared_scalar(
                 .find(|(candidate, _)| *candidate == aspect)
                 .and_then(|(_, value)| value.get(field))
                 .cloned()
+                .or_else(|| {
+                    let path = CanonicalFieldPath::new([
+                        FieldKey::new(aspect.as_str().to_owned())
+                            .expect("native aspect key remains a field-path segment"),
+                        field.clone(),
+                    ])?;
+                    row.scalar_value_at(&path).cloned()
+                })
         })
     } else {
         consumed_scalar_value_from_entity_path(

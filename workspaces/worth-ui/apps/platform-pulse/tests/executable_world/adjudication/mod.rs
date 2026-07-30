@@ -8,8 +8,11 @@ mod native_color;
 mod predecessor_preservation;
 #[cfg(target_os = "windows")]
 mod publication_identity;
+mod query_to_pixel;
 #[cfg(target_os = "windows")]
 mod replacement_to_pixel;
+#[cfg(target_os = "windows")]
+mod schema_transition;
 #[cfg(target_os = "windows")]
 mod source_to_pixel;
 #[cfg(target_os = "windows")]
@@ -40,9 +43,18 @@ pub(crate) use predecessor_preservation::{
 #[cfg(target_os = "windows")]
 pub(crate) use publication_identity::ExecutablePublishedIdentity;
 #[cfg(target_os = "windows")]
+pub(crate) use query_to_pixel::{
+    adjudicate_query_current, ExecutableQueryCurrentEvidence, ExecutableQueryCurrentFailure,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use replacement_to_pixel::{
-    adjudicate_replacement, CausalReplacementObservationSet, ExecutableReplacementEvidence,
-    ExecutableReplacementFailure, ReplacementExpectation,
+    adjudicate_replacement, require_replacement_lifecycle, CausalReplacementObservationSet,
+    ExecutableReplacementEvidence, ExecutableReplacementFailure, ReplacementExpectation,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use schema_transition::{
+    adjudicate_schema_transition, ExecutableSchemaTransitionEvidence,
+    ExecutableSchemaTransitionFailure, ExpectedSchemaTransition,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use source_to_pixel::{

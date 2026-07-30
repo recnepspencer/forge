@@ -10,17 +10,17 @@ use crate::failure_teardown::{
 
 use super::watched_native_observation::observe_watched_native;
 use super::{
-    await_watched_observation, IdentityTraced, InitialBlue, NativeBoundExecutableWorld,
+    await_watched_observation, FirstCurrent, IdentityTraced, NativeBoundExecutableWorld,
     OverlayCleared, OverlayPublished, Published, PulseExecutableWorld, SnapshotCaptured,
     WatchedPulseTransition,
 };
 
-impl PulseExecutableWorld<Published<InitialBlue>> {
+impl PulseExecutableWorld<Published<FirstCurrent>> {
     pub(crate) fn await_visual_snapshot(
         self,
         deadline: Instant,
     ) -> Result<
-        PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>>,
+        PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>>,
         PulseExecutableWorldFailureReport,
     > {
         let Published {
@@ -35,8 +35,9 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
             Ok(envelope) => envelope,
             Err(primary) => return Err(teardown(world, primary)),
         };
-        let frame = initial.evidence.first_frame().frame().diagnostic_value();
-        let evidence = match adjudicate_visual_snapshot(envelope, frame) {
+        let frame = initial.evidence.publication().frame().diagnostic_value();
+        let expected_sequence = initial.evidence.published_sequence().saturating_add(1);
+        let evidence = match adjudicate_visual_snapshot(envelope, frame, expected_sequence) {
             Ok(evidence) => evidence,
             Err(failure) => {
                 return Err(teardown(
@@ -57,12 +58,12 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
     }
 }
 
-impl PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>> {
+impl PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>> {
     pub(crate) fn await_identity_trace(
         self,
         deadline: Instant,
     ) -> Result<
-        PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>>,
+        PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>>,
         PulseExecutableWorldFailureReport,
     > {
         let Published {
@@ -95,12 +96,12 @@ impl PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>> {
     }
 }
 
-impl PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>> {
+impl PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>> {
     pub(crate) fn await_overlay_published(
         self,
         deadline: Instant,
     ) -> Result<
-        PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>>,
+        PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>>,
         PulseExecutableWorldFailureReport,
     > {
         let Published {
@@ -143,12 +144,12 @@ impl PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>> {
     }
 }
 
-impl PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>> {
+impl PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>> {
     pub(crate) fn await_overlay_cleared(
         self,
         deadline: Instant,
     ) -> Result<
-        PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>,
+        PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>>,
         PulseExecutableWorldFailureReport,
     > {
         let Published {

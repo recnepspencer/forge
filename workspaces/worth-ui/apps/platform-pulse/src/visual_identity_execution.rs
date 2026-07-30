@@ -25,7 +25,8 @@ enum PlatformPulseVisualIdentityState {
     Settling { begin_at: Instant },
     Capturing(PlatformPulseVisualCapture),
     OverlayVisible(PlatformPulseVisibleOverlay),
-    OverlayCleared(PlatformPulseRetainedSnapshot),
+    ComparisonReady(PlatformPulseRetainedSnapshot),
+    Refreshing(PlatformPulseVisualRefreshCapture),
     Comparing(comparison::PlatformPulseVisualComparisonCapture),
     Transitioning,
     Retired,
@@ -34,6 +35,11 @@ enum PlatformPulseVisualIdentityState {
 struct PlatformPulseVisualCapture {
     pending: UiPendingVisualCapture<UiCurrentPresentedSurfaceTarget, UiPixelsRequired>,
     deadline: Instant,
+}
+
+struct PlatformPulseVisualRefreshCapture {
+    capture: PlatformPulseVisualCapture,
+    predecessor: PlatformPulseRetainedSnapshot,
 }
 
 struct PlatformPulseRetainedSnapshot {
@@ -167,13 +173,13 @@ impl PlatformPulseVisualIdentityExecution {
         now: Instant,
     ) -> Result<(), PlatformPulseVisualExecutionDenial> {
         match self.state.as_ref() {
-            Some(PlatformPulseVisualIdentityState::OverlayCleared(_)) => {
+            Some(PlatformPulseVisualIdentityState::ComparisonReady(_)) => {
                 let capture = progression::begin_capture(shell, tick, now)?;
                 let state = self
                     .state
                     .replace(PlatformPulseVisualIdentityState::Transitioning)
                     .ok_or(PlatformPulseVisualExecutionDenial::ReentrantTransition)?;
-                let PlatformPulseVisualIdentityState::OverlayCleared(retained) = state else {
+                let PlatformPulseVisualIdentityState::ComparisonReady(retained) = state else {
                     return Err(PlatformPulseVisualExecutionDenial::ReplacementBeforeOverlayClear);
                 };
                 let comparison = comparison::begin(retained, rebind, capture);
@@ -187,5 +193,34 @@ impl PlatformPulseVisualIdentityExecution {
             Some(_) => Err(PlatformPulseVisualExecutionDenial::ReplacementBeforeOverlayClear),
             None => Err(PlatformPulseVisualExecutionDenial::ReentrantTransition),
         }
+    }
+
+    pub(crate) fn refresh_after_content_rebind(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        tick: u64,
+        now: Instant,
+    ) -> Result<(), PlatformPulseVisualExecutionDenial> {
+        if !matches!(
+            self.state,
+            Some(PlatformPulseVisualIdentityState::ComparisonReady(_))
+        ) {
+            return Ok(());
+        }
+        let capture = progression::begin_capture(shell, tick, now)?;
+        let state = self
+            .state
+            .replace(PlatformPulseVisualIdentityState::Transitioning)
+            .ok_or(PlatformPulseVisualExecutionDenial::ReentrantTransition)?;
+        let PlatformPulseVisualIdentityState::ComparisonReady(predecessor) = state else {
+            return Err(PlatformPulseVisualExecutionDenial::ReentrantTransition);
+        };
+        self.state = Some(PlatformPulseVisualIdentityState::Refreshing(
+            PlatformPulseVisualRefreshCapture {
+                capture,
+                predecessor,
+            },
+        ));
+        Ok(())
     }
 }

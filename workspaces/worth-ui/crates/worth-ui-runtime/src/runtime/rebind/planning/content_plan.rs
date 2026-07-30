@@ -3,11 +3,16 @@ use std::sync::Arc;
 use crate::graph::UiGraphFactConsumerIdentity;
 
 mod collection;
+mod schema_transition;
 
 pub(super) fn compile_content_plan(
+    predecessor: &crate::facade::prepared_application_authority::
+        WorthUiPreparedApplicationAuthority,
+    candidate: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
     scope: &super::super::UiResolvedAffectedScope,
 ) -> Result<crate::mounting::UiMountedSemanticContentInput, super::UiRebindPlanningDenial> {
     let mut content = crate::mounting::UiMountedSemanticContentInput::empty();
+    let governed_nodes = schema_transition::compile(predecessor, candidate, scope, &mut content)?;
     for lookup in scope.lookups() {
         let Some(query) = scope
             .facts()
@@ -28,6 +33,9 @@ pub(super) fn compile_content_plan(
             let UiGraphFactConsumerIdentity::GraphNode(graph_node) = entry.consumer() else {
                 continue;
             };
+            if governed_nodes.contains(&graph_node) {
+                continue;
+            }
             let inserted = match &projection {
                 UiProjectedSemanticContent::Scalar((value, posture)) => {
                     content.insert_scalar(graph_node, value.clone(), Arc::clone(posture))
@@ -135,3 +143,7 @@ fn stopped_label(kind: worth_ui_query_binding::UiProjectionFactStopKind) -> Arc<
 #[cfg(test)]
 #[path = "content_plan/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "content_plan/schema_transition_tests.rs"]
+mod schema_transition_tests;

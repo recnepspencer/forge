@@ -14,6 +14,7 @@ mod declaration_authority;
 mod domain_operation_executors;
 mod domain_packages;
 mod graph_participation;
+mod host_installation;
 mod lowering;
 mod queued_graph_obligation_registrations;
 mod workflow_parallel_admission;
@@ -85,7 +86,15 @@ pub struct WorthQueryRuntimeBuilder {
     conditional_signal_graph: Option<worth_signal::facade::SignalGraph>,
     pending_conditional_installations:
         Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
+    host_execution_installation:
+        Option<worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation>,
 }
+
+pub use host_installation::{
+    WorthQueryHostRuntimeCompletionError, WorthQueryHostRuntimeInstallationCompletion,
+    WorthQueryHostRuntimeInstallationDenial, WorthQueryHostRuntimeInstallationDenialKind,
+    WorthQueryHostRuntimeInstallationPlan, WorthQueryHostRuntimeInstallationRequest,
+};
 
 impl WorthQueryRuntimeBuilder {
     pub fn new() -> Self {

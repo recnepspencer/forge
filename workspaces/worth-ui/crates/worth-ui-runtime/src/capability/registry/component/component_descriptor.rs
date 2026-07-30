@@ -22,6 +22,7 @@ pub struct ComponentDescriptor {
     allocation_contracts:
         super::component_allocation_contract_state::ComponentAllocationContractState,
     static_paint_contract: Option<super::ComponentStaticPaintContract>,
+    semantic_text_contract: Option<super::ComponentSemanticTextContract>,
     hit_test_contract: Option<super::ComponentHitTestContract>,
 }
 
@@ -48,6 +49,7 @@ impl ComponentDescriptor {
                 super::component_allocation_contract_state::ComponentAllocationContractState::empty(
                 ),
             static_paint_contract: None,
+            semantic_text_contract: None,
             hit_test_contract: None,
         }
     }
@@ -73,6 +75,7 @@ impl ComponentDescriptor {
                 super::component_allocation_contract_state::ComponentAllocationContractState::empty(
                 ),
             static_paint_contract: None,
+            semantic_text_contract: None,
             hit_test_contract: None,
         }
     }
@@ -98,6 +101,7 @@ impl ComponentDescriptor {
                 super::component_allocation_contract_state::ComponentAllocationContractState::empty(
                 ),
             static_paint_contract: None,
+            semantic_text_contract: None,
             hit_test_contract: None,
         }
     }
@@ -178,6 +182,18 @@ impl ComponentDescriptor {
         self
     }
 
+    pub fn with_semantic_text(mut self, contract: super::ComponentSemanticTextContract) -> Self {
+        if !self
+            .theme_token_dependencies
+            .contains(contract.theme_token())
+        {
+            self.theme_token_dependencies
+                .push(contract.theme_token().clone());
+        }
+        self.semantic_text_contract = Some(contract);
+        self
+    }
+
     pub fn with_hit_test(mut self, contract: super::ComponentHitTestContract) -> Self {
         self.allocation_contracts = self.allocation_contracts.record(contract.allocation());
         self.hit_test_contract = Some(contract);
@@ -236,6 +252,10 @@ impl ComponentDescriptor {
 
     pub fn static_paint_contract(&self) -> Option<&super::ComponentStaticPaintContract> {
         self.static_paint_contract.as_ref()
+    }
+
+    pub fn semantic_text_contract(&self) -> Option<&super::ComponentSemanticTextContract> {
+        self.semantic_text_contract.as_ref()
     }
 
     pub fn hit_test_contract(&self) -> Option<super::ComponentHitTestContract> {

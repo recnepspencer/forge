@@ -12,6 +12,7 @@ mod effects;
 mod plan;
 mod policy;
 mod safe_point;
+mod schema_transition;
 mod session_policy;
 mod subsystem;
 mod subsystem_compiler;
@@ -28,11 +29,19 @@ pub use denial::{
 };
 pub use effects::{UiRebindDeclarativeEffect, UiRebindEffectSet};
 pub use plan::UiRebindPlan;
-pub(crate) use plan::{UiChangedRebindSemanticProof, UiRebindPlanInput, UiRebindSemanticProof};
+pub(crate) use plan::{
+    UiAuthoredContentRebindSemanticProof, UiChangedRebindSemanticProof, UiRebindPlanInput,
+    UiRebindSemanticProof,
+};
 pub use policy::{
     UiRebindArtifactPolicy, UiRebindCancellationPolicy, UiRebindDeadlinePolicy,
     UiRebindDisclosurePolicy, UiRebindExecutionPolicy, UiRebindIdempotency, UiRebindRetryTolerance,
 };
 pub use safe_point::{UiRebindSafePoint, UiRebindSafePointPolicy};
+pub(crate) use schema_transition::UiProjectionSchemaTransitionInput;
+pub use schema_transition::{
+    UiProjectionPredecessorValuePolicy, UiProjectionSchemaRequirement,
+    UiProjectionSchemaTransition, UiProjectionSchemaTransitionKind,
+};
 pub use session_policy::{UiRebindCancellationRequest, UiRebindSessionDeadline};
 pub use subsystem::{UiRebindPlanTarget, UiRebindSubsystemKind, UiRebindSubsystemPlan};

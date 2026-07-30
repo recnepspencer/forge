@@ -49,6 +49,10 @@ pub struct WorthQueryInstalledPackageIndex {
 }
 
 impl WorthQueryInstalledPackageIndex {
+    pub fn installation_runtime(&self) -> &WorthQueryInstallationRuntimeIdentity {
+        &self.runtime
+    }
+
     pub fn runtime_ordinal(&self) -> u64 {
         self.runtime.ordinal()
     }

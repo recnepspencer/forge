@@ -28,13 +28,15 @@ pub(crate) fn map_content_cancellation<'session>(
     outcome: crate::facade::entry::WorthUiMountedContentRebindOutcome<'session>,
 ) -> UiRebindOutcome<'session> {
     match outcome {
-        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects(
-            prepared,
-        ) => {
-            drop(prepared);
+        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects {
+            rejections,
+            retry,
+        } => {
+            drop((rejections, retry));
             UiRebindOutcome::CancelledBeforeEffects(UiRebindCancellationReceipt::cancelled())
         }
-        crate::facade::entry::WorthUiMountedContentRebindOutcome::Published(mounted) => {
+        crate::facade::entry::WorthUiMountedContentRebindOutcome::Published(publication) => {
+            let (mounted, _) = publication.into_parts();
             UiRebindOutcome::InternalDefect(
                 UiRebindInternalDefectOutcome::unexpected_content_cancellation_publication(
                     plan,
@@ -76,18 +78,13 @@ fn map_content_outcome<'session>(
     first_attempt: bool,
 ) -> UiRebindOutcome<'session> {
     match outcome {
-        crate::facade::entry::WorthUiMountedContentRebindOutcome::Published(mounted) => {
-            publish_content(plan, registration, generation, mounted)
+        crate::facade::entry::WorthUiMountedContentRebindOutcome::Published(publication) => {
+            publish_content(plan, registration, generation, publication)
         }
-        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects(
-            prepared,
-        ) if first_attempt => retry(
-            plan,
-            registration,
-            prepared,
-            UiRebindStoppedPhase::HostPresentation,
-            UiRebindDenialCause::HostRejectedBeforeEffects,
-        ),
+        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects {
+            rejections,
+            retry: prepared,
+        } if first_attempt => retry_host(plan, registration, prepared, rejections),
         crate::facade::entry::WorthUiMountedContentRebindOutcome::RetentionDenied {
             denial,
             retry: prepared,
@@ -129,7 +126,9 @@ fn map_content_outcome<'session>(
                 UiRebindInternalDefectOutcome::completion_authority_rejected(plan, registration),
             )
         }
-        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects(_)
+        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects {
+            ..
+        }
         | crate::facade::entry::WorthUiMountedContentRebindOutcome::RetentionDenied { .. }
         | crate::facade::entry::WorthUiMountedContentRebindOutcome::AdmissionDenied { .. } => {
             unreachable!("content completion cannot return a preparation-stage denial")
@@ -156,14 +155,42 @@ fn retry<'session>(
     ))
 }
 
+fn retry_host<'session>(
+    plan: crate::runtime::rebind::UiRebindPlan,
+    mut registration: UiRebindReservation,
+    prepared: Box<crate::facade::entry::WorthUiPreparedMountedContentRebind<'session>>,
+    rejections: Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
+) -> UiRebindOutcome<'session> {
+    registration
+        .return_to_pending()
+        .expect("the executing plan vacated its pending slot");
+    UiRebindOutcome::RejectedBeforeEffects(UiRebindDenialReceipt::retry_host(
+        plan,
+        registration,
+        super::super::preparation::UiPreparedRebindKind::Content(prepared),
+        rejections,
+    ))
+}
+
 fn publish_content<'session>(
     plan: crate::runtime::rebind::UiRebindPlan,
     registration: UiRebindReservation,
     generation: crate::facade::prepared_application_authority::
         WorthUiPreparedApplicationGenerationIdentity,
-    mounted: crate::mounting::UiMountedFramePublicationReceipt,
+    publication: crate::facade::entry::WorthUiMountedContentPublicationReceipt,
 ) -> UiRebindOutcome<'session> {
-    match super::super::UiRebindReceipt::content(plan, registration, generation, mounted) {
+    let (mounted, authored_generations) = publication.into_parts();
+    let receipt = match authored_generations {
+        Some((prior, active)) => super::super::UiRebindReceipt::authored_content(
+            plan,
+            registration,
+            prior,
+            active,
+            mounted,
+        ),
+        None => super::super::UiRebindReceipt::content(plan, registration, generation, mounted),
+    };
+    match receipt {
         Ok(receipt) => UiRebindOutcome::Published(receipt),
         Err(defect) => UiRebindOutcome::InternalDefect(defect),
     }

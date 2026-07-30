@@ -230,6 +230,8 @@ impl UiMountedNodeLoweringContext<'_, '_> {
                 .projection(instance.graph_node_identity()),
         )?;
         let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
+        let semantic_text_style =
+            super::semantic_text::lower_semantic_text_style(self.plan, plan_index)?;
         let predecessor = self
             .predecessor
             .and_then(|semantic| semantic.node(instance.identity()))
@@ -237,12 +239,12 @@ impl UiMountedNodeLoweringContext<'_, '_> {
         let semantic_text = super::semantic_text::lower_semantic_text_seed(
             self.semantic_content.get(instance.graph_node_identity()),
             predecessor,
-            static_paint,
+            semantic_text_style,
         )?;
         let hit_test = super::hit_test::lower_hit_test_seed(self.plan, plan_index)?;
         let participation = lower_participation(
             graph_node.participation_posture(),
-            static_paint.is_some(),
+            static_paint.is_some() || semantic_text.is_some(),
             hit_test.is_some(),
         );
         Ok(UiMountedProjectionNodeDraft {

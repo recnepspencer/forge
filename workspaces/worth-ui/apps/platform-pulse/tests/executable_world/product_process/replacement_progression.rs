@@ -18,9 +18,9 @@ use crate::source_delta::{
 
 use super::watched_native_observation::{observe_watched_native, WatchedNativeObservation};
 use super::{
-    await_watched_observation, AwaitingRecovery, AwaitingReplacement, GreenSuccessor, InitialBlue,
-    NativeBoundExecutableWorld, OverlayCleared, PreservedPredecessorEvidence, Published,
-    PulseExecutableWorld, RecoveredBlue, WatchedPulseTransition,
+    await_watched_observation, AwaitingRecovery, AwaitingReplacement, GreenSuccessor,
+    NativeBoundExecutableWorld, PreservedPredecessorEvidence, Published, PulseExecutableWorld,
+    RecoveredBlue, SecondCurrent, WatchedPulseTransition,
 };
 
 struct WatchedReplacementObservation {
@@ -164,7 +164,7 @@ fn observe_replacement(
 
 fn green_evidence(
     action: AppliedPulseSourceDelta<GreenPulseSourceDelta>,
-    initial: &OverlayCleared<InitialBlue>,
+    initial: &SecondCurrent,
     observed: WatchedReplacementObservation,
 ) -> Result<
     (
@@ -181,9 +181,10 @@ fn green_evidence(
         retirement,
         native,
     } = observed;
+    let visual = initial.visual();
     let causal = CausalReplacementObservationSet::new(
         action,
-        initial.initial().evidence.published_identity(),
+        visual.initial().prior.evidence.published_identity(),
         envelope,
         ReplacementExpectation::green_successor(),
     );
@@ -201,14 +202,19 @@ fn green_evidence(
     let successor_snapshot = adjudicate_successor_visual_snapshot(
         successor_snapshot,
         evidence.replacement().successor_frame().diagnostic_value(),
+        evidence.sequence().saturating_add(1),
     )
     .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
     let comparison = comparison.ok_or(PulseExecutableWorldFailure::VisualIdentity(
         ExecutableVisualIdentityFailure::WrongEvent("visual comparison"),
     ))?;
-    let comparison =
-        adjudicate_visual_comparison(comparison, initial.snapshot_evidence(), &successor_snapshot)
-            .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
+    let comparison = adjudicate_visual_comparison(
+        comparison,
+        initial.snapshot_evidence(),
+        &successor_snapshot,
+        successor_snapshot.sequence().saturating_add(1),
+    )
+    .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
     let retirement = retirement.ok_or(PulseExecutableWorldFailure::VisualIdentity(
         ExecutableVisualIdentityFailure::WrongEvent("visual snapshot retired"),
     ))?;
@@ -216,6 +222,7 @@ fn green_evidence(
         retirement,
         initial.snapshot_evidence(),
         evidence.replacement().successor_frame().diagnostic_value(),
+        comparison.sequence().saturating_add(1),
     )
     .map_err(PulseExecutableWorldFailure::VisualIdentity)?;
     Ok((evidence, comparison, retirement))
@@ -229,14 +236,7 @@ fn recovery_evidence(
     ExecutableReplacementEvidence<CanonicalBlueRecoverySourceDelta>,
     ExecutableReplacementFailure,
 > {
-    let canonical_digest = preserved
-        .green
-        .initial
-        .initial()
-        .evidence
-        .first_frame()
-        .source()
-        .final_package_digest();
+    let canonical_digest = preserved.green.initial.canonical_source_digest();
     let causal = CausalReplacementObservationSet::new(
         action,
         preserved.evidence.identity().clone(),

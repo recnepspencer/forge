@@ -117,6 +117,37 @@ impl PlatformPulseLifecycleObservationStream {
         Ok(envelope)
     }
 
+    pub fn project_refreshed_visual_snapshot(
+        &mut self,
+        receipt: &UiVisualSnapshotReceipt<UiPixelsRequired>,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        let PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame } =
+            self.visual_state
+        else {
+            return Err(
+                PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
+            );
+        };
+        let captured = project_snapshot(receipt)?;
+        if captured.affinity.frame != refresh_frame
+            || captured.affinity.relation != PlatformPulseVisualSnapshotRelationObservation::Current
+        {
+            return Err(PlatformPulseLifecycleObservationProjectionDenial::VisualAffinityMismatch);
+        }
+        let snapshot = captured.affinity.snapshot;
+        let envelope = self.next_envelope(
+            PlatformPulseLifecycleObservation::VisualSnapshotCaptured(captured),
+        )?;
+        self.visual_state = PlatformPulseVisualObservationState::Refreshed {
+            snapshot,
+            frame: refresh_frame,
+        };
+        Ok(envelope)
+    }
+
     pub fn project_visual_point_trace(
         &mut self,
         input: PlatformPulseVisualPointTraceInput<'_>,
@@ -261,16 +292,22 @@ impl PlatformPulseLifecycleObservationStream {
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
-        let PlatformPulseVisualObservationState::AwaitingRetirement {
-            snapshot: expected,
-            snapshot_frame,
-            successor_frame,
-        } = self.visual_state
-        else {
-            return Err(
-                PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
-            );
-        };
+        let (expected, snapshot_frame, successor_frame, refresh) =
+            match self.visual_state {
+                PlatformPulseVisualObservationState::AwaitingRetirement {
+                    snapshot,
+                    snapshot_frame,
+                    successor_frame,
+                } => (snapshot, snapshot_frame, successor_frame, false),
+                PlatformPulseVisualObservationState::AwaitingRefreshRetirement {
+                    snapshot,
+                    snapshot_frame,
+                    refresh_frame,
+                } => (snapshot, snapshot_frame, refresh_frame, true),
+                _ => return Err(
+                    PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
+                ),
+            };
         if snapshot.diagnostic_value() != expected
             || disposal.identity() != snapshot
             || denial != UiVisualOverlayDenial::Superseded
@@ -294,7 +331,13 @@ impl PlatformPulseLifecycleObservationStream {
         let envelope = self.next_envelope(
             PlatformPulseLifecycleObservation::VisualSnapshotRetired(observation),
         )?;
-        self.visual_state = PlatformPulseVisualObservationState::Retired;
+        self.visual_state = if refresh {
+            PlatformPulseVisualObservationState::AwaitingRefreshSnapshot {
+                refresh_frame: successor_frame,
+            }
+        } else {
+            PlatformPulseVisualObservationState::Retired
+        };
         Ok(envelope)
     }
 }

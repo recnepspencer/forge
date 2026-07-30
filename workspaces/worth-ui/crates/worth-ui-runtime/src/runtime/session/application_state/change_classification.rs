@@ -149,21 +149,20 @@ fn finish_authored_classification(
         comparison,
         evidence_changed,
     } = compared;
-    match comparison.outcome() {
-        WorthUiRuntimeArtifactComparisonOutcome::EquivalentNoOp if !evidence_changed => {
-            Ok(UiAuthoredSourceClassification::ObservedNoChange)
-        }
-        WorthUiRuntimeArtifactComparisonOutcome::EquivalentNoOp => {
-            Ok(UiAuthoredSourceClassification::EvidenceOnly(
-                UiAuthoredSourceSuccession::EvidenceOnly {
-                    successor_authority: successor,
-                    admitted_candidate: admitted,
-                    comparison,
-                },
-            ))
-        }
-        WorthUiRuntimeArtifactComparisonOutcome::MeaningfullyDifferent => {
-            let facts = lower_authored_differences(&comparison, current, &successor, fact_limit)?;
+    let facts = lower_authored_differences(&comparison, current, &successor, fact_limit)?;
+    let meaning_changed = comparison.outcome()
+        == WorthUiRuntimeArtifactComparisonOutcome::MeaningfullyDifferent
+        || !facts.is_empty();
+    match (meaning_changed, evidence_changed) {
+        (false, false) => Ok(UiAuthoredSourceClassification::ObservedNoChange),
+        (false, true) => Ok(UiAuthoredSourceClassification::EvidenceOnly(
+            UiAuthoredSourceSuccession::EvidenceOnly {
+                successor_authority: successor,
+                admitted_candidate: admitted,
+                comparison,
+            },
+        )),
+        (true, _) => {
             let replacement =
                 plan_changed_source_replacement(runtime, admitted, &comparison, &successor)?;
             let identity_lifecycle_index =

@@ -39,7 +39,48 @@ pub(crate) fn lower_differences(
             );
         }
     }
+    lower_projection_requirement_differences(worlds, &mut facts);
+    if facts.len() > fact_limit {
+        return Err(
+            super::super::UiChangeClassificationDenial::ChangedFactCapacityExceeded {
+                limit: fact_limit,
+                observed: facts.len(),
+            },
+        );
+    }
     Ok(facts.into_boxed_slice())
+}
+
+fn lower_projection_requirement_differences(
+    worlds: UiAuthoredFactWorlds<'_>,
+    facts: &mut Vec<UiProducedFact>,
+) {
+    let predecessor = worlds.predecessor.semantic_handoff();
+    let candidate = worlds.candidate.semantic_handoff();
+    let mut changed_views = std::collections::BTreeSet::new();
+    for requirement in predecessor.projection_requirements() {
+        if candidate.projection_requirement(requirement.view_identity()) != Some(requirement) {
+            changed_views.insert(requirement.view_identity().as_str());
+        }
+    }
+    for requirement in candidate.projection_requirements() {
+        if predecessor.projection_requirement(requirement.view_identity()) != Some(requirement) {
+            changed_views.insert(requirement.view_identity().as_str());
+        }
+    }
+    let mut changed_components = std::collections::BTreeSet::new();
+    for edge in predecessor
+        .projection_contents()
+        .iter()
+        .chain(candidate.projection_contents())
+    {
+        if changed_views.contains(edge.projection_identity().as_str()) {
+            changed_components.insert(edge.component_identity());
+        }
+    }
+    for component in changed_components {
+        push_node(facts, component, UiAuthoredFactKind::SemanticsChanged);
+    }
 }
 
 fn lower_difference(

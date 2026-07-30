@@ -23,6 +23,13 @@ impl<'runtime> UiRebindPlanningContext<'runtime> {
         self.runtime
     }
 
+    pub(super) const fn predecessor(
+        &self,
+    ) -> &'runtime crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority
+    {
+        self.predecessor
+    }
+
     pub(super) const fn session(&self) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
         self.session
     }

@@ -108,6 +108,7 @@ impl CargoBuiltPlatformPulse {
     pub(crate) fn launch(
         self,
         source_root: &Path,
+        query_source_root: &Path,
     ) -> Result<PlatformPulseProcessLaunch, PlatformPulseProcessLaunchFailure> {
         let desktop_wait_started = Instant::now();
         let desktop_deadline = desktop_wait_started
@@ -119,6 +120,8 @@ impl CargoBuiltPlatformPulse {
         let child = Command::new(&self.executable)
             .arg("--source-root")
             .arg(source_root)
+            .arg("--query-source-root")
+            .arg(query_source_root)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())

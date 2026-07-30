@@ -3,20 +3,20 @@ use std::io::{self, Write};
 use std::rc::Rc;
 
 use worth_ui::facade::app::{
-    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationCutoverReceipt,
-    WorthUiApplicationPreparationDenial, WorthUiMountedFrameExecutionStop,
-    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationPreparationDenial,
+    WorthUiMountedFrameExecutionStop, WorthUiNativeApplicationShellLaunchDenial,
     WorthUiNativeSourceRebindDenial,
 };
 use worth_ui::facade::source::{
-    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherDenial,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiSourcePackageRevision,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision,
 };
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLifecycleObservationCodecDenial,
     PlatformPulseLifecycleObservationEnvelope, PlatformPulseLifecycleObservationProjectionDenial,
     PlatformPulseLifecycleObservationStream,
 };
+
+mod query;
 
 const MAXIMUM_EVENTS: usize = 256;
 const MAXIMUM_ENCODED_BYTES: usize = 1_048_576;
@@ -155,11 +155,10 @@ impl PlatformPulseObservationPublisher {
     pub(crate) fn replacement(
         &self,
         source: &WorthUiSourcePackageRevision,
-        application: &WorthUiApplicationCutoverReceipt,
-        mounted: &UiMountedFramePublicationReceipt,
+        receipt: &worth_ui::facade::rebind::UiRebindReceipt,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_replacement(source, application, mounted))
+            publisher.project(|stream| stream.project_replacement(source, receipt))
         })
     }
 
@@ -179,16 +178,6 @@ impl PlatformPulseObservationPublisher {
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
             publisher.project(|stream| stream.project_visual_comparison(comparison))
-        })
-    }
-
-    pub(crate) fn shutdown(
-        &self,
-        watcher: &WorthUiFilesystemWatcherShutdownReceipt,
-        application: WorthUiNativeApplicationShutdownReceipt,
-    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
-        self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_shutdown(watcher, application))
         })
     }
 

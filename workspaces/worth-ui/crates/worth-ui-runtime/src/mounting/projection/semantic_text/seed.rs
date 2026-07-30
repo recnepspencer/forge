@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use super::super::static_paint::UiMountedStaticPaintSeed;
 use super::super::UiMountedProjectionDenial;
+use super::UiMountedSemanticTextStyleSeed;
 
 mod collection_patch;
 
@@ -22,20 +22,20 @@ pub(in crate::mounting::projection) enum UiMountedSemanticTextSeedContent {
 pub(in crate::mounting::projection) fn lower_semantic_text_seed(
     input: Option<&crate::mounting::UiMountedSemanticTextContent>,
     predecessor: Option<&UiMountedSemanticTextSeed>,
-    paint: Option<UiMountedStaticPaintSeed>,
+    style: Option<UiMountedSemanticTextStyleSeed>,
 ) -> Result<Option<UiMountedSemanticTextSeed>, UiMountedProjectionDenial> {
     let Some((content, posture)) = resolved_content(input, predecessor)? else {
         return Ok(None);
     };
-    let paint = paint.ok_or(UiMountedProjectionDenial::MissingSemanticTextColor)?;
-    let layer_semantic_order = paint
+    let style = style.ok_or(UiMountedProjectionDenial::MissingSemanticTextColor)?;
+    let layer_semantic_order = style
         .layer_semantic_order()
         .checked_add(1)
         .ok_or(UiMountedProjectionDenial::SemanticTextLayerOrderExceeded)?;
     Ok(Some(UiMountedSemanticTextSeed {
         content,
         posture,
-        color: paint.color(),
+        color: style.color(),
         layer_semantic_order,
     }))
 }

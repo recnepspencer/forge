@@ -148,6 +148,10 @@ impl UiScalarProjectionBinding {
         self.prepared.take()
     }
 
+    pub(crate) fn discard_prepared_after_pending(&mut self) {
+        self.prepared = None;
+    }
+
     pub(crate) fn reference(
         &self,
     ) -> &crate::application_binding::WorthUiInstalledScalarTextOperationReference {

@@ -21,7 +21,9 @@ use super::{
 
 struct BoundFirstFrameWorld {
     process_started: PlatformPulseLifecycleObservationEnvelope,
+    pending_issued: PlatformPulseLifecycleObservationEnvelope,
     first_frame: PlatformPulseLifecycleObservationEnvelope,
+    pending_published: PlatformPulseLifecycleObservationEnvelope,
     platform: WindowsNativePlatform,
     native_client: WindowsProcessBoundNativeClientArea,
     launch_to_first_publication: Duration,
@@ -86,7 +88,13 @@ fn bind_first_frame_world(
     let process_started = lifecycle
         .next(deadline)
         .map_err(PulseExecutableWorldFailure::Lifecycle)?;
+    let pending_issued = lifecycle
+        .next(deadline)
+        .map_err(PulseExecutableWorldFailure::Lifecycle)?;
     let first_frame = lifecycle
+        .next(deadline)
+        .map_err(PulseExecutableWorldFailure::Lifecycle)?;
+    let pending_published = lifecycle
         .next(deadline)
         .map_err(PulseExecutableWorldFailure::Lifecycle)?;
     let launch_to_first_publication = launch_started.elapsed();
@@ -97,7 +105,9 @@ fn bind_first_frame_world(
         .map_err(PulseExecutableWorldFailure::Native)?;
     Ok(BoundFirstFrameWorld {
         process_started,
+        pending_issued,
         first_frame,
+        pending_published,
         platform,
         native_client,
         launch_to_first_publication,
@@ -121,7 +131,9 @@ fn adjudicate_bound_first_frame(
     let causal = CausalFirstFrameObservationSet::new(
         process.id(),
         bound.process_started.clone(),
+        bound.pending_issued.clone(),
         bound.first_frame.clone(),
+        bound.pending_published.clone(),
     );
     adjudicate_first_frame(causal.join_native(client_area, liveness, pixels))
         .map_err(PulseExecutableWorldFailure::FirstFrame)

@@ -12,25 +12,31 @@ use worth_ui_platform_pulse::visual_identity_pulse::{
     PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES, PLATFORM_PULSE_TARGET_LOGICAL_POINT,
 };
 
+mod evidence;
+
 const TARGET_LOGICAL_INSET: [u32; 2] = [48, 24];
 
 #[derive(Clone, Debug)]
 pub(crate) struct ExecutableVisualSnapshotEvidence {
+    sequence: u64,
     snapshot: PlatformPulseVisualSnapshotCaptured,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct ExecutableVisualTraceEvidence {
+    sequence: u64,
     trace: PlatformPulseVisualPointTrace,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ExecutableVisualRetirementEvidence {
+    sequence: u64,
     retirement: PlatformPulseVisualSnapshotRetired,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct ExecutableVisualComparisonEvidence {
+    sequence: u64,
     comparison: PlatformPulseVisualComparison,
 }
 
@@ -83,15 +89,17 @@ pub(crate) enum ExecutableVisualIdentityFailure {
 pub(crate) fn adjudicate_visual_snapshot(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     expected_frame: u64,
+    expected_sequence: u64,
 ) -> Result<ExecutableVisualSnapshotEvidence, ExecutableVisualIdentityFailure> {
-    adjudicate_snapshot_at_sequence(envelope, expected_frame, 3)
+    adjudicate_snapshot_at_sequence(envelope, expected_frame, expected_sequence)
 }
 
 pub(crate) fn adjudicate_successor_visual_snapshot(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     expected_frame: u64,
+    expected_sequence: u64,
 ) -> Result<ExecutableVisualSnapshotEvidence, ExecutableVisualIdentityFailure> {
-    adjudicate_snapshot_at_sequence(envelope, expected_frame, 8)
+    adjudicate_snapshot_at_sequence(envelope, expected_frame, expected_sequence)
 }
 
 fn adjudicate_snapshot_at_sequence(
@@ -144,6 +152,7 @@ fn adjudicate_snapshot_at_sequence(
         return Err(ExecutableVisualIdentityFailure::SnapshotCost);
     }
     Ok(ExecutableVisualSnapshotEvidence {
+        sequence: expected_sequence,
         snapshot: snapshot.clone(),
     })
 }
@@ -152,7 +161,8 @@ pub(crate) fn adjudicate_visual_trace(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     snapshot: &ExecutableVisualSnapshotEvidence,
 ) -> Result<ExecutableVisualTraceEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 4)?;
+    let sequence = snapshot.sequence.saturating_add(1);
+    require_sequence(&envelope, sequence)?;
     let PlatformPulseLifecycleObservation::VisualPointTrace(trace) = envelope.outcome() else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
             "visual point trace",
@@ -185,6 +195,7 @@ pub(crate) fn adjudicate_visual_trace(
     require_complete_trace(trace.background().visible())?;
     require_complete_trace(trace.background().hit())?;
     Ok(ExecutableVisualTraceEvidence {
+        sequence,
         trace: trace.clone(),
     })
 }
@@ -228,8 +239,9 @@ pub(crate) fn adjudicate_visual_retirement(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     snapshot: &ExecutableVisualSnapshotEvidence,
     successor_frame: u64,
+    expected_sequence: u64,
 ) -> Result<ExecutableVisualRetirementEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 10)?;
+    require_sequence(&envelope, expected_sequence)?;
     let PlatformPulseLifecycleObservation::VisualSnapshotRetired(retirement) = envelope.outcome()
     else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
@@ -245,6 +257,7 @@ pub(crate) fn adjudicate_visual_retirement(
         return Err(ExecutableVisualIdentityFailure::RetirementAffinity);
     }
     Ok(ExecutableVisualRetirementEvidence {
+        sequence: expected_sequence,
         retirement: *retirement,
     })
 }
@@ -253,8 +266,9 @@ pub(crate) fn adjudicate_visual_comparison(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     predecessor: &ExecutableVisualSnapshotEvidence,
     successor: &ExecutableVisualSnapshotEvidence,
+    expected_sequence: u64,
 ) -> Result<ExecutableVisualComparisonEvidence, ExecutableVisualIdentityFailure> {
-    require_sequence(&envelope, 9)?;
+    require_sequence(&envelope, expected_sequence)?;
     let PlatformPulseLifecycleObservation::VisualComparison(comparison) = envelope.outcome() else {
         return Err(ExecutableVisualIdentityFailure::WrongEvent(
             "visual comparison",
@@ -289,6 +303,7 @@ pub(crate) fn adjudicate_visual_comparison(
         });
     }
     Ok(ExecutableVisualComparisonEvidence {
+        sequence: expected_sequence,
         comparison: *comparison,
     })
 }
@@ -330,56 +345,6 @@ fn require_complete_trace(
         Err(ExecutableVisualIdentityFailure::IncompleteTrace)
     } else {
         Ok(())
-    }
-}
-
-impl ExecutableVisualSnapshotEvidence {
-    pub(crate) fn snapshot(&self) -> &PlatformPulseVisualSnapshotCaptured {
-        &self.snapshot
-    }
-
-    pub(crate) fn physical_extent(&self) -> [u32; 2] {
-        self.snapshot.coordinates().client_physical_dimensions()
-    }
-
-    pub(crate) fn project_logical_point(
-        &self,
-        logical: [u32; 2],
-    ) -> Result<[u32; 2], ExecutableVisualIdentityFailure> {
-        let scale = float_pair(self.snapshot.coordinates().scale_bits());
-        let translation = float_pair(self.snapshot.coordinates().translation_bits());
-        Ok([
-            project_axis(logical[0], scale[0], translation[0])?,
-            project_axis(logical[1], scale[1], translation[1])?,
-        ])
-    }
-
-    pub(crate) fn expected_target_region(
-        &self,
-    ) -> Result<[u32; 4], ExecutableVisualIdentityFailure> {
-        let logical_right = PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[0] - TARGET_LOGICAL_INSET[0];
-        let logical_bottom = PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[1] - TARGET_LOGICAL_INSET[1];
-        let [left, top] = self.project_logical_point(TARGET_LOGICAL_INSET)?;
-        let [right, bottom] = self.project_logical_point([logical_right, logical_bottom])?;
-        Ok([left, top, right, bottom])
-    }
-}
-
-impl ExecutableVisualTraceEvidence {
-    pub(crate) fn trace(&self) -> &PlatformPulseVisualPointTrace {
-        &self.trace
-    }
-}
-
-impl ExecutableVisualRetirementEvidence {
-    pub(crate) fn retirement(self) -> PlatformPulseVisualSnapshotRetired {
-        self.retirement
-    }
-}
-
-impl ExecutableVisualComparisonEvidence {
-    pub(crate) fn comparison(self) -> PlatformPulseVisualComparison {
-        self.comparison
     }
 }
 

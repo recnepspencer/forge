@@ -333,6 +333,7 @@ mod workspace_domain_installation;
 mod workspace_graph;
 mod workspace_inspection;
 mod workspace_live_queries;
+mod workspace_live_view_close;
 mod workspace_mutations;
 mod workspace_queries;
 mod workspace_read_composition_support;
@@ -390,7 +391,12 @@ pub use backend::{
 pub use branch::WorthQueryBranchSession;
 pub(crate) use branch::WorthQueryRuntimeBranchComparisonBasis;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
-pub use builder::WorthQueryRuntimeBuilder;
+pub use builder::{
+    WorthQueryHostRuntimeCompletionError, WorthQueryHostRuntimeInstallationCompletion,
+    WorthQueryHostRuntimeInstallationDenial, WorthQueryHostRuntimeInstallationDenialKind,
+    WorthQueryHostRuntimeInstallationPlan, WorthQueryHostRuntimeInstallationRequest,
+    WorthQueryRuntimeBuilder,
+};
 use computed::{
     admit_derived_view_declaration, insert_derived_runtime,
     retained_live_view_names_for_candidates, route_derived_view_patches,
@@ -915,8 +921,13 @@ pub use workspace_declaration::{
     WorthQueryWorkspaceLiveViewDeclaration,
 };
 pub use workspace_inspection::WorthQueryWorkspaceInspectionLane;
+pub use workspace_live_view_close::WorthQueryLiveViewCloseReceipt;
 pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
+pub use worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation;
 pub(crate) use worth_query_execution::facade::runtime::WorthQueryRuntimeAuthorityIdentity;
+pub use worth_query_installation::facade::{
+    WorthQueryAdmittedPortableDomainPackage, WorthQueryInstallationGeneration,
+};
 
 pub struct WorthQueryRuntime {
     backend: Box<dyn WorthQueryRuntimeBackend>,

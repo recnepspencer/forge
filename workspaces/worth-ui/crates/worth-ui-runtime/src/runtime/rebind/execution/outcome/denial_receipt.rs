@@ -13,6 +13,7 @@ impl<'session> UiRebindDenialReceipt<'session> {
             predecessor_remains_current: true,
             stopped_phase: UiRebindStoppedPhase::EffectAdmission,
             cause: UiRebindDenialCause::RuntimeCapacity(denial),
+            host_rejections: Box::new([]),
             valid_next_action: UiRebindValidNextAction::RetryPrepared,
             retry: Some(Box::new(retry)),
         }
@@ -29,6 +30,27 @@ impl<'session> UiRebindDenialReceipt<'session> {
             predecessor_remains_current: true,
             stopped_phase,
             cause,
+            host_rejections: Box::new([]),
+            valid_next_action: UiRebindValidNextAction::RetryPrepared,
+            retry: Some(Box::new(super::super::UiPreparedRebind {
+                plan,
+                reservation: registration,
+                kind,
+            })),
+        }
+    }
+
+    pub(super) fn retry_host(
+        plan: crate::runtime::rebind::UiRebindPlan,
+        registration: UiRebindReservation,
+        kind: super::super::preparation::UiPreparedRebindKind<'session>,
+        rejections: Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
+    ) -> Self {
+        Self {
+            predecessor_remains_current: true,
+            stopped_phase: UiRebindStoppedPhase::HostPresentation,
+            cause: super::UiRebindDenialCause::HostRejectedBeforeEffects,
+            host_rejections: rejections,
             valid_next_action: UiRebindValidNextAction::RetryPrepared,
             retry: Some(Box::new(super::super::UiPreparedRebind {
                 plan,
@@ -48,6 +70,10 @@ impl<'session> UiRebindDenialReceipt<'session> {
 
     pub const fn cause(&self) -> UiRebindDenialCause {
         self.cause
+    }
+
+    pub fn host_rejections(&self) -> &[crate::mounting::UiMountedSurfacePresentationRejection] {
+        &self.host_rejections
     }
 
     pub const fn valid_next_action(&self) -> UiRebindValidNextAction {

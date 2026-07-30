@@ -55,6 +55,10 @@ impl ActiveSubscriptionRuntime {
         self.registry.lane_count()
     }
 
+    pub(crate) fn attachment_count(&self) -> usize {
+        self.registry.attachment_count()
+    }
+
     pub fn counters(&self) -> &ActiveSubscriptionCounters {
         &self.counters
     }

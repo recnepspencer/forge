@@ -3,7 +3,8 @@ use std::time::Duration;
 
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseFirstFramePublished, PlatformPulseLifecycleObservation,
-    PlatformPulseLifecycleObservationEnvelope,
+    PlatformPulseLifecycleObservationEnvelope, PlatformPulseQueryProjectionEvidence,
+    PlatformPulseQueryProjectionPosture, PlatformPulseQueryProjectionPublished,
 };
 
 use crate::external_observation::{
@@ -19,7 +20,9 @@ use super::{
 #[derive(Debug)]
 pub(crate) struct ExecutableFirstFrameEvidence {
     process_started: PlatformPulseLifecycleObservationEnvelope,
+    pending_issued: PlatformPulseQueryProjectionEvidence,
     first_frame_envelope: PlatformPulseLifecycleObservationEnvelope,
+    pending_published: PlatformPulseQueryProjectionPublished,
     first_frame: PlatformPulseFirstFramePublished,
     client_area: ProcessBoundNativeClientAreaObservation,
     liveness: StableProcessLivenessObservation,
@@ -30,7 +33,9 @@ pub(crate) struct ExecutableFirstFrameEvidence {
 pub(crate) struct CausalFirstFrameObservationSet {
     process_id: u32,
     process_started: PlatformPulseLifecycleObservationEnvelope,
+    pending_issued: PlatformPulseLifecycleObservationEnvelope,
     first_frame_envelope: PlatformPulseLifecycleObservationEnvelope,
+    pending_published: PlatformPulseLifecycleObservationEnvelope,
 }
 
 pub(crate) struct ExecutableFirstFrameObservationSet {
@@ -43,7 +48,10 @@ pub(crate) struct ExecutableFirstFrameObservationSet {
 #[derive(Debug)]
 pub(crate) enum ExecutableFirstFrameFailure {
     MissingProcessStart,
+    MissingPendingIssue,
     MissingFirstFrame,
+    MissingPendingPublication,
+    PendingCorrelation,
     RunDoesNotIdentifyChild,
     MissingNativeEffect,
     ProcessIdentityMismatch,
@@ -59,7 +67,16 @@ impl fmt::Display for ExecutableFirstFrameFailure {
                 formatter.write_str("first lifecycle event was not process start")
             }
             Self::MissingFirstFrame => {
-                formatter.write_str("second lifecycle event was not first-frame publication")
+                formatter.write_str("third lifecycle event was not first-frame publication")
+            }
+            Self::MissingPendingIssue => {
+                formatter.write_str("second lifecycle event was not pending Query issue")
+            }
+            Self::MissingPendingPublication => {
+                formatter.write_str("fourth lifecycle event was not pending Query publication")
+            }
+            Self::PendingCorrelation => {
+                formatter.write_str("pending Query issue, mounted publication, and frame diverged")
             }
             Self::RunDoesNotIdentifyChild => {
                 formatter.write_str("lifecycle run does not identify the launched child")
@@ -92,7 +109,7 @@ pub(crate) fn adjudicate_first_frame(
         liveness,
         pixels,
     } = observations;
-    let first_frame = require_causal_publication(&causal)?;
+    let (pending_issued, first_frame, pending_published) = require_causal_publication(&causal)?;
     require_native_effect(first_frame)?;
     require_one_process_identity(&causal, client_area, liveness, &pixels)?;
     require_client_capture_size(client_area, &pixels)?;
@@ -101,7 +118,9 @@ pub(crate) fn adjudicate_first_frame(
         .map_err(ExecutableFirstFrameFailure::NativeColor)?;
     Ok(ExecutableFirstFrameEvidence {
         process_started: causal.process_started,
+        pending_issued,
         first_frame_envelope: causal.first_frame_envelope,
+        pending_published,
         first_frame,
         client_area,
         liveness,
@@ -114,12 +133,16 @@ impl CausalFirstFrameObservationSet {
     pub(crate) fn new(
         process_id: u32,
         process_started: PlatformPulseLifecycleObservationEnvelope,
+        pending_issued: PlatformPulseLifecycleObservationEnvelope,
         first_frame_envelope: PlatformPulseLifecycleObservationEnvelope,
+        pending_published: PlatformPulseLifecycleObservationEnvelope,
     ) -> Self {
         Self {
             process_id,
             process_started,
+            pending_issued,
             first_frame_envelope,
+            pending_published,
         }
     }
 
@@ -159,19 +182,25 @@ impl ExecutableFirstFrameEvidence {
         self.color.sampled_pixels()
     }
 
-    pub(crate) fn sequence_pair(&self) -> (u64, u64) {
+    pub(crate) fn sequence_quad(&self) -> (u64, u64, u64, u64) {
         (
             self.process_started.sequence().value(),
+            self.pending_issued.owner_order(),
             self.first_frame_envelope.sequence().value(),
+            self.pending_published.projection().owner_order(),
         )
+    }
+
+    pub(crate) fn pending_projection(&self) -> &PlatformPulseQueryProjectionEvidence {
+        &self.pending_issued
     }
 
     pub(crate) fn capture_count(&self) -> u32 {
         self.pixels.capture_count()
     }
 
-    pub(crate) fn process_id(&self) -> u32 {
-        self.client_area.process_id()
+    pub(crate) fn pixels(&self) -> &NativeClientPixelCapture {
+        &self.pixels
     }
 
     pub(crate) fn run_identity(&self) -> &str {
@@ -189,16 +218,33 @@ impl ExecutableFirstFrameEvidence {
 
 fn require_causal_publication(
     causal: &CausalFirstFrameObservationSet,
-) -> Result<PlatformPulseFirstFramePublished, ExecutableFirstFrameFailure> {
+) -> Result<
+    (
+        PlatformPulseQueryProjectionEvidence,
+        PlatformPulseFirstFramePublished,
+        PlatformPulseQueryProjectionPublished,
+    ),
+    ExecutableFirstFrameFailure,
+> {
     if !matches!(
         causal.process_started.outcome(),
         PlatformPulseLifecycleObservation::ProcessStarted(_)
     ) {
         return Err(ExecutableFirstFrameFailure::MissingProcessStart);
     }
+    let pending_issued = match causal.pending_issued.outcome() {
+        PlatformPulseLifecycleObservation::QueryProjectionIssued(projection) => projection.clone(),
+        _ => return Err(ExecutableFirstFrameFailure::MissingPendingIssue),
+    };
     let first_frame = match causal.first_frame_envelope.outcome() {
         PlatformPulseLifecycleObservation::FirstFramePublished(first_frame) => *first_frame,
         _ => return Err(ExecutableFirstFrameFailure::MissingFirstFrame),
+    };
+    let pending_published = match causal.pending_published.outcome() {
+        PlatformPulseLifecycleObservation::QueryProjectionPublished(projection) => {
+            projection.clone()
+        }
+        _ => return Err(ExecutableFirstFrameFailure::MissingPendingPublication),
     };
     let expected_run_prefix = format!("{:08x}-", causal.process_id);
     if !causal
@@ -206,11 +252,24 @@ fn require_causal_publication(
         .run()
         .value()
         .starts_with(&expected_run_prefix)
-        || causal.first_frame_envelope.run().value() != causal.process_started.run().value()
+        || [
+            &causal.pending_issued,
+            &causal.first_frame_envelope,
+            &causal.pending_published,
+        ]
+        .iter()
+        .any(|envelope| envelope.run().value() != causal.process_started.run().value())
     {
         return Err(ExecutableFirstFrameFailure::RunDoesNotIdentifyChild);
     }
-    Ok(first_frame)
+    if pending_issued.posture() != PlatformPulseQueryProjectionPosture::Pending
+        || pending_issued.native_value().is_some()
+        || pending_published.projection() != &pending_issued
+        || pending_published.frame() != first_frame.frame()
+    {
+        return Err(ExecutableFirstFrameFailure::PendingCorrelation);
+    }
+    Ok((pending_issued, first_frame, pending_published))
 }
 
 fn require_native_effect(

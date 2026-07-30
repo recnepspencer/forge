@@ -3,7 +3,10 @@ mod effecting;
 mod inspection_projection;
 mod outcome;
 mod preparation;
+mod projection_request;
 mod receipt;
+#[cfg(test)]
+mod receipt_tests;
 mod recovery;
 mod source_request;
 mod state;
@@ -19,6 +22,7 @@ pub use outcome::{
     UiRebindSupersededReceipt, UiRebindTimeoutReceipt, UiRebindValidNextAction,
 };
 pub use preparation::{UiPreparedRebind, UiPreparedRebindPosture};
+pub use projection_request::UiProjectionRebindRequest;
 pub use receipt::{UiRebindDisposition, UiRebindReceipt};
 pub use recovery::{
     UiRebindReconciliation, UiRebindReconciliationRequest, UiRebindRecoveryCompletionHandle,

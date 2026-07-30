@@ -9,7 +9,11 @@ mod preservation_progression;
 #[cfg(target_os = "windows")]
 mod progression;
 #[cfg(target_os = "windows")]
+mod query_progression;
+#[cfg(target_os = "windows")]
 mod replacement_progression;
+#[cfg(target_os = "windows")]
+mod schema_transition_progression;
 mod shutdown;
 #[cfg(target_os = "windows")]
 mod source_action_progression;
@@ -27,10 +31,13 @@ pub(crate) use launch::{
 };
 #[cfg(target_os = "windows")]
 pub(crate) use progression::{
-    AwaitingFirstFrame, AwaitingPreservation, AwaitingRecovery, AwaitingReplacement, Closed,
-    GreenSuccessor, IdentityTraced, InitialBlue, Installed, NativeBoundExecutableWorld,
-    OverlayCleared, OverlayPublished, PreservedPredecessor, PreservedPredecessorEvidence,
-    Published, PulseExecutableWorld, RecoveredBlue, SnapshotCaptured,
+    AwaitingFirstFrame, AwaitingPreservation, AwaitingQueryCurrent, AwaitingRecovery,
+    AwaitingReplacement, AwaitingSchemaStop, AwaitingStatusRecovery, Closed,
+    ComparisonBasisRefreshed, FinalRecovered, FirstCurrent, GreenSuccessor, IdentityTraced,
+    InitialBlue, Installed, NativeBoundExecutableWorld, OverlayCleared, OverlayPublished,
+    PreservedPredecessor, PreservedPredecessorEvidence, Published, PulseExecutableWorld,
+    QueryCurrent, RecoveredBlue, SchemaStopped, SecondCurrent, SecondQueryCurrent,
+    SnapshotCaptured,
 };
 pub(crate) use shutdown::{PlatformPulseProcessExitFailure, SuccessfulPlatformPulseExit};
 pub(crate) use watched_observation::{
