@@ -1,4 +1,8 @@
 use super::*;
+use worth_foundational::facade::{
+    compare_canonical_basis, prepare_canonical_comparison, CanonicalComparisonOutcome,
+    CanonicalEquivalenceBasis,
+};
 
 pub(super) fn grouped_graph_rule(conjunctive: bool) -> ApplicationCapabilityGraphRule {
     let first = ApplicationCapabilityGraphClause::new(graph_path(true, "PrincipalResource"));
@@ -52,6 +56,8 @@ fn every_scope_and_composition_axis_changes_structured_and_digest_identity() {
         Axis::Amount,
         Axis::Cardinality,
         Axis::Workflow,
+        Axis::ResourceWorkflow,
+        Axis::Status,
         Axis::Validity,
         Axis::Delegation,
         Axis::Provenance,
@@ -128,4 +134,18 @@ fn assert_distinct(
         compare(baseline.basis(), changed.basis()),
         CanonicalComparisonOutcome::Mismatched(_)
     ));
+}
+
+fn compare(
+    left: &worth_foundational::facade::CanonicalBasisReadyArtifact,
+    right: &worth_foundational::facade::CanonicalBasisReadyArtifact,
+) -> CanonicalComparisonOutcome {
+    let ready = prepare_canonical_comparison(
+        CanonicalEquivalenceBasis::ExactCanonicalBasis,
+        left.clone(),
+        right.clone(),
+    )
+    .into_result()
+    .expect("capability basis comparison is supported");
+    compare_canonical_basis(&ready)
 }

@@ -36,6 +36,28 @@ pub enum RelationalAuthorizationPlanDenial {
         ordinal: usize,
         fields: usize,
     },
+    EntityAnchorOutsidePath {
+        path: usize,
+        ordinal: usize,
+        traversals: usize,
+    },
+    EntityAnchorTargetsWrongKind {
+        path: usize,
+        ordinal: usize,
+        expected: KindId,
+        actual: KindId,
+    },
+    RelatedEntityOutsidePath {
+        path: usize,
+        ordinal: usize,
+        traversals: usize,
+    },
+    RelatedEntityStartsAtWrongKind {
+        path: usize,
+        ordinal: usize,
+        expected: KindId,
+        actual: KindId,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

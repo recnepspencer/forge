@@ -1,3 +1,4 @@
+mod constraint;
 mod denial;
 mod evaluation;
 mod evidence;
@@ -15,9 +16,12 @@ pub use evidence::{
 pub use plan::{
     RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationPlan,
     RelationalAuthorizationPathEffect, RelationalAuthorizationPathPlan,
-    RelationalAuthorizationPredicate, RelationalAuthorizationTraversal,
-    RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 
 #[cfg(test)]
 mod tests;
+pub use constraint::{
+    RelationalAuthorizationEntityAnchor, RelationalAuthorizationFieldComparison,
+    RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
+};

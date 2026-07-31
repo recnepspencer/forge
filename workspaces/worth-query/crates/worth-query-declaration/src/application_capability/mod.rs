@@ -3,6 +3,7 @@ mod canonical_composition_components;
 mod composition;
 mod context;
 mod contract;
+mod currentness;
 mod delegation;
 mod disclosure;
 mod reference;
@@ -31,6 +32,10 @@ pub use contract::{
     ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
     ErasedApplicationCapabilityContract,
 };
+pub use currentness::{
+    ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityValidityDefinition,
+    ApplicationCapabilityWorkflowDefinition,
+};
 pub use delegation::ApplicationCapabilityDelegationRule;
 pub use disclosure::ApplicationCapabilityDisclosureRule;
 pub use reference::{
@@ -46,8 +51,7 @@ pub use scope::{
     ApplicationCapabilityConstraintDefinition, ApplicationCapabilityDelegationDefinition,
     ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-    ApplicationCapabilityValueBinding,
+    ApplicationCapabilityTargetDefinition, ApplicationCapabilityValueBinding,
 };
 pub use scope_narrowing::{
     ApplicationCapabilityAmountScope, ApplicationCapabilityAmountValue,

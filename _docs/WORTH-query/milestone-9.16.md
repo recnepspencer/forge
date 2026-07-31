@@ -2183,6 +2183,10 @@ It must:
   cardinality, workflow-stage, validity, delegation, provenance, and
   application-defined constrained-context dimensions without omitted
   dimensions silently becoming global;
+- identify the exact active grant-status predicate and bind grant workflow
+  scope to the resource-side workflow field whose current value it constrains;
+  current admission may not infer either binding from names, application
+  convention, or adapter policy;
 - install explicit allow, deny, conflict, separation-of-duty, distinct-actor,
   delegation, and disclosure composition contracts as canonical application
   meaning;

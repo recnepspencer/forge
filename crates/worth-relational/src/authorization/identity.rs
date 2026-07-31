@@ -9,9 +9,10 @@ use crate::transactions::data::RecordRef;
 
 use super::{
     RelationalAuthorizationDecision, RelationalAuthorizationEffectTarget,
-    RelationalAuthorizationObservationIdentity, RelationalAuthorizationObservationPlan,
-    RelationalAuthorizationPathEffect, RelationalAuthorizationPathObservation,
-    RelationalAuthorizationPlanIdentity, RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationFieldComparison, RelationalAuthorizationObservationIdentity,
+    RelationalAuthorizationObservationPlan, RelationalAuthorizationPathEffect,
+    RelationalAuthorizationPathObservation, RelationalAuthorizationPlanIdentity,
+    RelationalAuthorizationTraversalDirection,
 };
 
 pub(super) fn observation_plan_identity(
@@ -20,7 +21,7 @@ pub(super) fn observation_plan_identity(
     let mut hash = Sha256::new();
     hash_text(
         &mut hash,
-        "worth-relational.authorization-observation-plan.v1",
+        "worth-relational.authorization-observation-plan.v2",
     );
     hash_snapshot(&mut hash, plan.snapshot());
     hash_entity(&mut hash, plan.principal());
@@ -54,10 +55,40 @@ pub(super) fn observation_plan_identity(
             hash_u64(&mut hash, predicate.traversal_ordinal() as u64);
             hash_u64(&mut hash, u64::from(predicate.entity_kind().as_u32()));
             hash_locator(&mut hash, predicate.field());
+            hash_u8(
+                &mut hash,
+                match predicate.comparison() {
+                    RelationalAuthorizationFieldComparison::Equal => 1,
+                    RelationalAuthorizationFieldComparison::AtMost => 2,
+                    RelationalAuthorizationFieldComparison::AtLeast => 3,
+                },
+            );
             hash_text(
                 &mut hash,
                 prepare_aspect_value_identity_basis(predicate.expected()).as_str(),
             );
+        }
+        hash_u64(&mut hash, path.entity_anchors().len() as u64);
+        for anchor in path.entity_anchors() {
+            hash_u64(&mut hash, anchor.traversal_ordinal() as u64);
+            hash_u64(&mut hash, u64::from(anchor.entity_kind().as_u32()));
+            hash_entity(&mut hash, anchor.entity());
+        }
+        hash_u64(&mut hash, path.related_entities().len() as u64);
+        for related in path.related_entities() {
+            hash_u64(&mut hash, related.traversal_ordinal() as u64);
+            let traversal = related.traversal();
+            hash_u64(&mut hash, u64::from(traversal.relation_kind().as_u32()));
+            hash_u64(&mut hash, u64::from(traversal.from_kind().as_u32()));
+            hash_u64(&mut hash, u64::from(traversal.to_kind().as_u32()));
+            hash_u8(
+                &mut hash,
+                match traversal.direction() {
+                    RelationalAuthorizationTraversalDirection::Forward => 1,
+                    RelationalAuthorizationTraversalDirection::Reverse => 2,
+                },
+            );
+            hash_entity(&mut hash, related.entity());
         }
     }
     hash_u64(&mut hash, plan.proposed_effects().len() as u64);

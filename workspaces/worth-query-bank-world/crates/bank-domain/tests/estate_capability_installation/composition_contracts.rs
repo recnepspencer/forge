@@ -1,5 +1,5 @@
 use bank_domain::{
-    estate::RestrictedBankField,
+    estate::{CapabilityGrantStatus, RestrictedBankField},
     schema::{
         ApproveEstateEmergencyAccessCapability, ApproveEstateEmergencyAccessOperation,
         CompleteEstateMandatoryReviewCapability, CompleteEstateMandatoryReviewOperation,
@@ -227,6 +227,43 @@ fn action_actor_rules_are_anchored_to_the_exact_request_entity() {
     assert!(all_clauses(allow)
         .iter()
         .any(|clause| anchor_relations(clause) == vec!["EmergencyRequester"]));
+}
+
+#[test]
+fn estate_contract_installs_exact_grant_currentness_meaning() {
+    let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
+    let capability = bank
+        .capability(
+            RecognizeEstateExecutorCapability::reference(),
+            RecognizeEstateExecutorOperation::reference(),
+        )
+        .unwrap();
+    let currentness = capability.contract().constraints().currentness();
+
+    assert_eq!(
+        currentness.active_status().field().field(),
+        "CapabilityGrantStatusField"
+    );
+    assert_eq!(
+        currentness.active_status().value(),
+        &CapabilityGrantStatus::Active.into_foundational_value()
+    );
+    assert_eq!(
+        currentness.workflow().grant().field(),
+        "CapabilityWorkflowStageField"
+    );
+    assert_eq!(
+        currentness.workflow().resource().field(),
+        "EstateWorkflowStageField"
+    );
+    assert_eq!(
+        currentness.validity().not_before().field(),
+        "CapabilityValidFromField"
+    );
+    assert_eq!(
+        currentness.validity().not_after().field(),
+        "CapabilityValidThroughField"
+    );
 }
 
 fn path_relations(rule: &ApplicationCapabilityGraphRule) -> Vec<&str> {

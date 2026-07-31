@@ -1,12 +1,13 @@
-use worth_foundational::facade::{AspectFieldLocator, AspectValue};
+use worth_foundational::facade::AspectFieldLocator;
 
 use crate::identity::data::{EntityId, KindId};
 use crate::snapshots::data::SnapshotHandle;
 use crate::transactions::data::RecordRef;
 
 use super::{
-    identity::observation_plan_identity, RelationalAuthorizationPlanDenial,
-    RelationalAuthorizationPlanIdentity,
+    identity::observation_plan_identity, RelationalAuthorizationEntityAnchor,
+    RelationalAuthorizationPlanDenial, RelationalAuthorizationPlanIdentity,
+    RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -62,50 +63,12 @@ impl RelationalAuthorizationTraversal {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RelationalAuthorizationPredicate {
-    traversal_ordinal: usize,
-    entity_kind: KindId,
-    field: AspectFieldLocator,
-    expected: AspectValue,
-}
-
-impl RelationalAuthorizationPredicate {
-    pub fn new(
-        traversal_ordinal: usize,
-        entity_kind: KindId,
-        field: AspectFieldLocator,
-        expected: AspectValue,
-    ) -> Self {
-        Self {
-            traversal_ordinal,
-            entity_kind,
-            field,
-            expected,
-        }
-    }
-
-    pub const fn traversal_ordinal(&self) -> usize {
-        self.traversal_ordinal
-    }
-
-    pub const fn entity_kind(&self) -> KindId {
-        self.entity_kind
-    }
-
-    pub fn field(&self) -> &AspectFieldLocator {
-        &self.field
-    }
-
-    pub fn expected(&self) -> &AspectValue {
-        &self.expected
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationalAuthorizationPathPlan {
     effect: RelationalAuthorizationPathEffect,
     traversals: Vec<RelationalAuthorizationTraversal>,
     predicates: Vec<RelationalAuthorizationPredicate>,
+    entity_anchors: Vec<RelationalAuthorizationEntityAnchor>,
+    related_entities: Vec<RelationalAuthorizationRelatedEntityConstraint>,
 }
 
 impl RelationalAuthorizationPathPlan {
@@ -118,7 +81,25 @@ impl RelationalAuthorizationPathPlan {
             effect,
             traversals: traversals.into_iter().collect(),
             predicates: predicates.into_iter().collect(),
+            entity_anchors: Vec::new(),
+            related_entities: Vec::new(),
         }
+    }
+
+    pub fn with_entity_anchors(
+        mut self,
+        anchors: impl IntoIterator<Item = RelationalAuthorizationEntityAnchor>,
+    ) -> Self {
+        self.entity_anchors = anchors.into_iter().collect();
+        self
+    }
+
+    pub fn with_related_entities(
+        mut self,
+        constraints: impl IntoIterator<Item = RelationalAuthorizationRelatedEntityConstraint>,
+    ) -> Self {
+        self.related_entities = constraints.into_iter().collect();
+        self
     }
 
     pub const fn effect(&self) -> RelationalAuthorizationPathEffect {
@@ -131,6 +112,14 @@ impl RelationalAuthorizationPathPlan {
 
     pub fn predicates(&self) -> &[RelationalAuthorizationPredicate] {
         &self.predicates
+    }
+
+    pub fn entity_anchors(&self) -> &[RelationalAuthorizationEntityAnchor] {
+        &self.entity_anchors
+    }
+
+    pub fn related_entities(&self) -> &[RelationalAuthorizationRelatedEntityConstraint] {
+        &self.related_entities
     }
 }
 
@@ -232,6 +221,24 @@ impl RelationalAuthorizationObservationPlan {
     pub const fn identity(&self) -> RelationalAuthorizationPlanIdentity {
         self.identity
     }
+
+    pub(crate) fn comparison_at(
+        &self,
+        snapshot: SnapshotHandle,
+    ) -> Result<Self, RelationalAuthorizationPlanDenial> {
+        let plan = Self {
+            snapshot,
+            principal: self.principal,
+            scope: self.scope,
+            principal_kind: self.principal_kind,
+            scope_kind: self.scope_kind,
+            paths: self.paths.clone(),
+            proposed_effects: self.proposed_effects.clone(),
+            identity: RelationalAuthorizationPlanIdentity::uninitialized(),
+        };
+        validate_plan(&plan)?;
+        Ok(plan)
+    }
 }
 
 fn validate_plan(
@@ -296,32 +303,80 @@ fn validate_path(
         });
     }
     for predicate in &path.predicates {
-        if predicate.field.field_path().fields().len() != 1 {
+        if predicate.field().field_path().fields().len() != 1 {
             return Err(
                 RelationalAuthorizationPlanDenial::PredicateFieldPathNotSingle {
                     path: path_index,
-                    ordinal: predicate.traversal_ordinal,
-                    fields: predicate.field.field_path().fields().len(),
+                    ordinal: predicate.traversal_ordinal(),
+                    fields: predicate.field().field_path().fields().len(),
                 },
             );
         }
-        let Some(expected) = kinds.get(predicate.traversal_ordinal).copied() else {
+        let Some(expected) = kinds.get(predicate.traversal_ordinal()).copied() else {
             return Err(RelationalAuthorizationPlanDenial::PredicateOutsidePath {
                 path: path_index,
-                ordinal: predicate.traversal_ordinal,
+                ordinal: predicate.traversal_ordinal(),
                 traversals: path.traversals.len(),
             });
         };
-        if predicate.entity_kind != expected {
+        if predicate.entity_kind() != expected {
             return Err(
                 RelationalAuthorizationPlanDenial::PredicateTargetsWrongKind {
                     path: path_index,
-                    ordinal: predicate.traversal_ordinal,
+                    ordinal: predicate.traversal_ordinal(),
                     expected,
-                    actual: predicate.entity_kind,
+                    actual: predicate.entity_kind(),
+                },
+            );
+        }
+    }
+    for anchor in &path.entity_anchors {
+        let Some(expected) = kinds.get(anchor.traversal_ordinal()).copied() else {
+            return Err(RelationalAuthorizationPlanDenial::EntityAnchorOutsidePath {
+                path: path_index,
+                ordinal: anchor.traversal_ordinal(),
+                traversals: path.traversals.len(),
+            });
+        };
+        if anchor.entity_kind() != expected {
+            return Err(
+                RelationalAuthorizationPlanDenial::EntityAnchorTargetsWrongKind {
+                    path: path_index,
+                    ordinal: anchor.traversal_ordinal(),
+                    expected,
+                    actual: anchor.entity_kind(),
+                },
+            );
+        }
+    }
+    for related in &path.related_entities {
+        let Some(expected) = kinds.get(related.traversal_ordinal()).copied() else {
+            return Err(
+                RelationalAuthorizationPlanDenial::RelatedEntityOutsidePath {
+                    path: path_index,
+                    ordinal: related.traversal_ordinal(),
+                    traversals: path.traversals.len(),
+                },
+            );
+        };
+        let actual = traversal_start_kind(related.traversal());
+        if actual != expected {
+            return Err(
+                RelationalAuthorizationPlanDenial::RelatedEntityStartsAtWrongKind {
+                    path: path_index,
+                    ordinal: related.traversal_ordinal(),
+                    expected,
+                    actual,
                 },
             );
         }
     }
     Ok(())
+}
+
+const fn traversal_start_kind(traversal: &RelationalAuthorizationTraversal) -> KindId {
+    match traversal.direction {
+        RelationalAuthorizationTraversalDirection::Forward => traversal.from_kind,
+        RelationalAuthorizationTraversalDirection::Reverse => traversal.to_kind,
+    }
 }

@@ -171,14 +171,16 @@ fn requirement_is_owned(
     }
     let target = contract.target();
     let constraints = contract.constraints();
+    let currentness = constraints.currentness();
     let delegation = contract.delegation();
     requirement_matches_fixed(requirement, target.action())
         || requirement_matches_fixed(requirement, target.purpose())
         || field_dimension_owns(target.field(), requirement.field())
         || field_dimension_owns(constraints.amount(), requirement.field())
-        || requirement.field() == constraints.workflow_stage()
-        || requirement.field() == constraints.validity().not_before()
-        || requirement.field() == constraints.validity().not_after()
+        || requirement_matches_fixed(requirement, currentness.active_status())
+        || requirement.field() == currentness.workflow().grant()
+        || requirement.field() == currentness.validity().not_before()
+        || requirement.field() == currentness.validity().not_after()
         || requirement.field() == delegation.limit()
 }
 

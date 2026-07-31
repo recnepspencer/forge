@@ -4,7 +4,10 @@ use crate::application_schema::{
 };
 use worth_foundational::facade::AspectValue;
 
-use super::{ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef};
+use super::{
+    ApplicationCapabilityContextRef, ApplicationCapabilityCurrentnessDefinition,
+    ApplicationCapabilityProvenanceRef,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityFieldBinding {
@@ -163,32 +166,6 @@ pub enum ApplicationCapabilityCardinalityDimension {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ApplicationCapabilityValidityDefinition {
-    not_before: ApplicationCapabilityFieldBinding,
-    not_after: ApplicationCapabilityFieldBinding,
-}
-
-impl ApplicationCapabilityValidityDefinition {
-    pub fn new(
-        not_before: ApplicationCapabilityFieldBinding,
-        not_after: ApplicationCapabilityFieldBinding,
-    ) -> Self {
-        Self {
-            not_before,
-            not_after,
-        }
-    }
-
-    pub fn not_before(&self) -> &ApplicationCapabilityFieldBinding {
-        &self.not_before
-    }
-
-    pub fn not_after(&self) -> &ApplicationCapabilityFieldBinding {
-        &self.not_after
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityTargetDefinition {
     action: ApplicationCapabilityValueBinding,
     resource: ApplicationCapabilityRelationBinding,
@@ -239,8 +216,7 @@ impl ApplicationCapabilityTargetDefinition {
 pub struct ApplicationCapabilityConstraintDefinition {
     amount: ApplicationCapabilityAmountDimension,
     cardinality: ApplicationCapabilityCardinalityDimension,
-    workflow_stage: ApplicationCapabilityFieldBinding,
-    validity: ApplicationCapabilityValidityDefinition,
+    currentness: ApplicationCapabilityCurrentnessDefinition,
     context: String,
     context_type: String,
 }
@@ -249,15 +225,13 @@ impl ApplicationCapabilityConstraintDefinition {
     pub fn new<Schema, Context>(
         amount: ApplicationCapabilityAmountDimension,
         cardinality: ApplicationCapabilityCardinalityDimension,
-        workflow_stage: ApplicationCapabilityFieldBinding,
-        validity: ApplicationCapabilityValidityDefinition,
+        currentness: ApplicationCapabilityCurrentnessDefinition,
         context: ApplicationCapabilityContextRef<Schema, Context>,
     ) -> Self {
         Self {
             amount,
             cardinality,
-            workflow_stage,
-            validity,
+            currentness,
             context: context.name().to_string(),
             context_type: context.marker_type().to_string(),
         }
@@ -271,12 +245,8 @@ impl ApplicationCapabilityConstraintDefinition {
         self.cardinality
     }
 
-    pub fn workflow_stage(&self) -> &ApplicationCapabilityFieldBinding {
-        &self.workflow_stage
-    }
-
-    pub const fn validity(&self) -> &ApplicationCapabilityValidityDefinition {
-        &self.validity
+    pub const fn currentness(&self) -> &ApplicationCapabilityCurrentnessDefinition {
+        &self.currentness
     }
 
     pub fn context(&self) -> &str {

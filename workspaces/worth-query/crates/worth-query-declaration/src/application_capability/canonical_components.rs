@@ -83,20 +83,31 @@ fn append_constraints(
             unsigned(components, "constraints.cardinality-limit", limit);
         }
     }
-    append_field(
+    let currentness = constraints.currentness();
+    append_value_binding(
         components,
-        "constraints.workflow-stage",
-        constraints.workflow_stage(),
+        "constraints.currentness.active-status",
+        currentness.active_status(),
     );
     append_field(
         components,
-        "constraints.validity.not-before",
-        constraints.validity().not_before(),
+        "constraints.currentness.workflow.grant",
+        currentness.workflow().grant(),
     );
     append_field(
         components,
-        "constraints.validity.not-after",
-        constraints.validity().not_after(),
+        "constraints.currentness.workflow.resource",
+        currentness.workflow().resource(),
+    );
+    append_field(
+        components,
+        "constraints.currentness.validity.not-before",
+        currentness.validity().not_before(),
+    );
+    append_field(
+        components,
+        "constraints.currentness.validity.not-after",
+        currentness.validity().not_after(),
     );
     text(components, "constraints.context", constraints.context());
     text(

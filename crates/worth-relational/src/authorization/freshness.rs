@@ -14,11 +14,11 @@ impl RelationalRuntime {
         let Some(current) = expected
             .comparison_plan(snapshot)
             .ok()
-            .and_then(|plan| self.observe_authorization(plan).ok())
+            .and_then(|plan| self.evaluate_authorization_plan(&plan).ok())
         else {
             return RelationalAuthorizationObservationFreshness::Stale;
         };
-        if current.decision() == expected.decision() && current.paths() == expected.paths() {
+        if current.decision == expected.decision() && current.paths == expected.paths() {
             RelationalAuthorizationObservationFreshness::Fresh
         } else {
             RelationalAuthorizationObservationFreshness::Stale

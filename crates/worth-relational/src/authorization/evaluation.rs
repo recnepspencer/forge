@@ -26,6 +26,22 @@ impl RelationalRuntime {
         plan: RelationalAuthorizationObservationPlan,
     ) -> Result<RelationalAuthorizationObservationEvidence, RelationalAuthorizationObservationDenial>
     {
+        let evaluation = self.evaluate_authorization_plan(&plan)?;
+        let observation_identity =
+            observation_evidence_identity(plan.identity(), evaluation.decision, &evaluation.paths);
+        Ok(RelationalAuthorizationObservationEvidence::mint(
+            plan,
+            observation_identity,
+            evaluation.decision,
+            evaluation.paths,
+            evaluation.counters,
+        ))
+    }
+
+    pub(super) fn evaluate_authorization_plan(
+        &self,
+        plan: &RelationalAuthorizationObservationPlan,
+    ) -> Result<RelationalAuthorizationEvaluation, RelationalAuthorizationObservationDenial> {
         if plan.snapshot().runtime_instance_id != self.runtime_instance_id() {
             return Err(RelationalAuthorizationObservationDenial::ForeignRuntime {
                 expected_runtime_instance_id: self.runtime_instance_id(),
@@ -65,16 +81,18 @@ impl RelationalRuntime {
         } else {
             RelationalAuthorizationDecision::Denied
         };
-        let observation_identity =
-            observation_evidence_identity(plan.identity(), decision, &observations);
-        Ok(RelationalAuthorizationObservationEvidence::mint(
-            plan,
-            observation_identity,
+        Ok(RelationalAuthorizationEvaluation {
             decision,
-            observations,
+            paths: observations,
             counters,
-        ))
+        })
     }
+}
+
+pub(super) struct RelationalAuthorizationEvaluation {
+    pub(super) decision: RelationalAuthorizationDecision,
+    pub(super) paths: Vec<RelationalAuthorizationPathObservation>,
+    pub(super) counters: RelationalAuthorizationObservationCounters,
 }
 
 fn evaluate_path(
@@ -98,6 +116,19 @@ fn evaluate_path(
         0,
         &mut frontier,
         &mut touched_fields,
+        counters,
+    );
+    apply_entity_anchors(path, 0, &mut frontier);
+    apply_related_entities(
+        runtime,
+        view,
+        plan,
+        path,
+        0,
+        &mut frontier,
+        &mut touched_entities,
+        &mut touched_relations,
+        &mut touched_adjacencies,
         counters,
     );
     for (index, traversal) in path.traversals().iter().enumerate() {
@@ -134,6 +165,19 @@ fn evaluate_path(
             index + 1,
             &mut frontier,
             &mut touched_fields,
+            counters,
+        );
+        apply_entity_anchors(path, index + 1, &mut frontier);
+        apply_related_entities(
+            runtime,
+            view,
+            plan,
+            path,
+            index + 1,
+            &mut frontier,
+            &mut touched_entities,
+            &mut touched_relations,
+            &mut touched_adjacencies,
             counters,
         );
         counters.maximum_frontier_width = counters.maximum_frontier_width.max(frontier.len());
@@ -268,7 +312,73 @@ fn apply_predicates(
                 predicate.entity_kind(),
                 predicate.field(),
             )
-            .is_some_and(|value| &value == predicate.expected())
+            .is_some_and(|value| predicate.matches(&value))
+        });
+    }
+}
+
+fn apply_entity_anchors(
+    path: &RelationalAuthorizationPathPlan,
+    ordinal: usize,
+    frontier: &mut BTreeSet<EntityId>,
+) {
+    for anchor in path
+        .entity_anchors()
+        .iter()
+        .filter(|anchor| anchor.traversal_ordinal() == ordinal)
+    {
+        frontier.retain(|entity| *entity == anchor.entity());
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_related_entities(
+    runtime: &RelationalRuntime,
+    view: &VisibilityProjectionView<'_>,
+    plan: &RelationalAuthorizationObservationPlan,
+    path: &RelationalAuthorizationPathPlan,
+    ordinal: usize,
+    frontier: &mut BTreeSet<EntityId>,
+    touched_entities: &mut BTreeSet<EntityId>,
+    touched_relations: &mut BTreeSet<RelationId>,
+    touched_adjacencies: &mut BTreeSet<RelationalAuthorizationAdjacencyDependency>,
+    counters: &mut RelationalAuthorizationObservationCounters,
+) {
+    for constraint in path
+        .related_entities()
+        .iter()
+        .filter(|constraint| constraint.traversal_ordinal() == ordinal)
+    {
+        frontier.retain(|source| {
+            let relation_ids = relation_ids_for_step(
+                runtime,
+                view,
+                plan,
+                *source,
+                constraint.traversal(),
+                touched_relations,
+                touched_adjacencies,
+                counters,
+            );
+            relation_ids.into_iter().any(|relation_id| {
+                counters.relation_records_inspected += 1;
+                let Some((candidate, kind)) = traverse_relation(
+                    view,
+                    relation_id,
+                    *source,
+                    constraint.traversal(),
+                    touched_relations,
+                ) else {
+                    return false;
+                };
+                if candidate != constraint.entity()
+                    || !entity_is_live_kind(view, candidate, kind, counters)
+                {
+                    return false;
+                }
+                touched_entities.insert(candidate);
+                true
+            })
         });
     }
 }

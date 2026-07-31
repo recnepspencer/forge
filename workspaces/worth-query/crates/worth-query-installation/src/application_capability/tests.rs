@@ -1,7 +1,3 @@
-use worth_foundational::facade::{
-    compare_canonical_basis, prepare_canonical_comparison, CanonicalComparisonOutcome,
-    CanonicalEquivalenceBasis,
-};
 use worth_query_declaration::facade::{
     application_capability::{
         ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
@@ -9,17 +5,18 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
         ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextEntitySlotRef,
         ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
-        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRequirement,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
-        ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
-        ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
-        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
-        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
+        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
+        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+        ApplicationCapabilityGraphRequirement, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
+        ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
         ErasedApplicationCapabilityContract,
     },
     application_schema::{
@@ -41,11 +38,14 @@ struct Grant;
 struct Resource;
 struct Principal;
 struct Facts;
+struct ResourceFacts;
 struct Action;
 struct Purpose;
 struct Field;
 struct Amount;
 struct Workflow;
+struct ResourceWorkflow;
+struct Status;
 struct ValidFrom;
 struct ValidThrough;
 struct DelegationLimit;
@@ -61,7 +61,7 @@ struct Provenance;
 struct OtherProvenance;
 struct ResourceSlot;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub(super) enum Axis {
     Action,
     Resource,
@@ -71,6 +71,8 @@ pub(super) enum Axis {
     Amount,
     Cardinality,
     Workflow,
+    ResourceWorkflow,
+    Status,
     Validity,
     Delegation,
     Provenance,
@@ -128,6 +130,20 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
     context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
     provenance: ApplicationCapabilityProvenanceRef<Schema, ProvenanceMarker>,
 ) -> ErasedApplicationCapabilityContract {
+    let contract = ApplicationCapabilityContractBuilder::new(
+        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
+    )
+    .target(target(axis))
+    .constraints(constraints(axis, context))
+    .delegation(delegation(axis, provenance))
+    .composition(composition(axis))
+    .build();
+    contract.erased().clone()
+}
+
+fn target(axis: Option<Axis>) -> ApplicationCapabilityTargetDefinition {
     let action_value = if matches!(axis, Some(Axis::Action)) {
         2
     } else {
@@ -143,22 +159,7 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
     } else {
         "ResourceRelation"
     };
-    let workflow_name = if matches!(axis, Some(Axis::Workflow)) {
-        "ChangedWorkflow"
-    } else {
-        "Workflow"
-    };
-    let validity_name = if matches!(axis, Some(Axis::Validity)) {
-        "ChangedValidFrom"
-    } else {
-        "ValidFrom"
-    };
-    let delegation_name = if matches!(axis, Some(Axis::Delegation)) {
-        "ChangedParent"
-    } else {
-        "Parent"
-    };
-    let target = ApplicationCapabilityTargetDefinition::new(
+    ApplicationCapabilityTargetDefinition::new(
         ApplicationCapabilityValueBinding::new(field::<Action>("Action"), action_value),
         relation::<ResourceRelation, Grant, Resource>(resource_name, "Grant", "Resource"),
         if matches!(axis, Some(Axis::Relation)) {
@@ -174,8 +175,27 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
             ApplicationCapabilityFieldDimension::bound(field::<Field>("Field"))
         },
         ApplicationCapabilityValueBinding::new(field::<Purpose>("Purpose"), purpose_value),
+    )
+}
+
+fn constraints<ContextMarker>(
+    axis: Option<Axis>,
+    context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
+) -> ApplicationCapabilityConstraintDefinition {
+    let workflow_name = changed_name(axis, Axis::Workflow, "ChangedWorkflow", "Workflow");
+    let resource_workflow_name = changed_name(
+        axis,
+        Axis::ResourceWorkflow,
+        "ChangedResourceWorkflow",
+        "ResourceWorkflow",
     );
-    let constraints = ApplicationCapabilityConstraintDefinition::new(
+    let validity_name = changed_name(axis, Axis::Validity, "ChangedValidFrom", "ValidFrom");
+    let status_value = if matches!(axis, Some(Axis::Status)) {
+        2
+    } else {
+        1
+    };
+    ApplicationCapabilityConstraintDefinition::new(
         if matches!(axis, Some(Axis::Amount)) {
             ApplicationCapabilityFieldDimension::not_applicable()
         } else {
@@ -186,31 +206,44 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
         } else {
             ApplicationCapabilityCardinalityDimension::One
         },
-        field_binding::<Workflow>(workflow_name),
-        ApplicationCapabilityValidityDefinition::new(
-            field_binding::<ValidFrom>(validity_name),
-            field_binding::<ValidThrough>("ValidThrough"),
+        ApplicationCapabilityCurrentnessDefinition::new(
+            ApplicationCapabilityValueBinding::new(field::<Status>("Status"), status_value),
+            ApplicationCapabilityWorkflowDefinition::new(
+                field_binding::<Workflow>(workflow_name),
+                resource_field_binding::<ResourceWorkflow>(resource_workflow_name),
+            ),
+            ApplicationCapabilityValidityDefinition::new(
+                field_binding::<ValidFrom>(validity_name),
+                field_binding::<ValidThrough>("ValidThrough"),
+            ),
         ),
         context,
-    );
-    let delegation = ApplicationCapabilityDelegationDefinition::new(
-        relation::<Parent, Grant, Grant>(delegation_name, "Grant", "Grant"),
+    )
+}
+
+fn delegation<ProvenanceMarker>(
+    axis: Option<Axis>,
+    provenance: ApplicationCapabilityProvenanceRef<Schema, ProvenanceMarker>,
+) -> ApplicationCapabilityDelegationDefinition {
+    let parent = changed_name(axis, Axis::Delegation, "ChangedParent", "Parent");
+    ApplicationCapabilityDelegationDefinition::new(
+        relation::<Parent, Grant, Grant>(parent, "Grant", "Grant"),
         relation::<Grantor, Principal, Grant>("Grantor", "Principal", "Grant"),
         relation::<Grantee, Principal, Grant>("Grantee", "Principal", "Grant"),
         field_binding::<DelegationLimit>("DelegationLimit"),
         provenance,
-    );
-    let contract = ApplicationCapabilityContractBuilder::new(
-        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
-        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
-    .target(target)
-    .constraints(constraints)
-    .delegation(delegation)
-    .composition(composition(axis))
-    .build();
-    contract.erased().clone()
+}
+
+fn changed_name(
+    axis: Option<Axis>,
+    changed_axis: Axis,
+    changed: &'static str,
+    baseline: &'static str,
+) -> &'static str {
+    (axis == Some(changed_axis))
+        .then_some(changed)
+        .unwrap_or(baseline)
 }
 
 fn composition(axis: Option<Axis>) -> ApplicationCapabilityComposition {
@@ -336,6 +369,21 @@ fn field_binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFieldB
     ApplicationCapabilityFieldBinding::from_reference(field::<FieldMarker>(name))
 }
 
+fn resource_field_binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFieldBinding {
+    ApplicationCapabilityFieldBinding::from_reference(ApplicationFieldRef::<
+        Schema,
+        Resource,
+        ResourceFacts,
+        FieldMarker,
+        u64,
+        ReadOnly,
+        EqualityPredicate,
+        NoApplicationCurrency,
+    >::from_schema_identifiers(
+        "Resource", "ResourceFacts", name
+    ))
+}
+
 fn relation<RelationMarker, From, To>(
     name: &'static str,
     from: &'static str,
@@ -349,18 +397,4 @@ fn relation<RelationMarker, From, To>(
     >::from_schema_identifiers(
         name, from, to
     ))
-}
-
-fn compare(
-    left: &worth_foundational::facade::CanonicalBasisReadyArtifact,
-    right: &worth_foundational::facade::CanonicalBasisReadyArtifact,
-) -> CanonicalComparisonOutcome {
-    let ready = prepare_canonical_comparison(
-        CanonicalEquivalenceBasis::ExactCanonicalBasis,
-        left.clone(),
-        right.clone(),
-    )
-    .into_result()
-    .expect("capability basis comparison is supported");
-    compare_canonical_basis(&ready)
 }

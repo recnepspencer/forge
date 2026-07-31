@@ -2,17 +2,18 @@ use worth_query_decl::facade::{
     application_capability::{
         ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
         ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityTargetDefinition,
-        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDelegationDefinition,
+        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::ApplicationSchemaDeclarationBuilder,
 };
 
 use super::*;
 use crate::{
-    estate::{EstateCapabilityOperation, EstateCapabilityPurpose},
+    estate::{CapabilityGrantStatus, EstateCapabilityOperation, EstateCapabilityPurpose},
     schema::BankSchema,
 };
 
@@ -298,11 +299,26 @@ fn constraints(
     ApplicationCapabilityConstraintDefinition::new(
         amount,
         ApplicationCapabilityCardinalityDimension::One,
-        ApplicationCapabilityFieldBinding::from_reference(CapabilityWorkflowStageField::reference()),
-        ApplicationCapabilityValidityDefinition::new(
-            ApplicationCapabilityFieldBinding::from_reference(CapabilityValidFromField::reference()),
-            ApplicationCapabilityFieldBinding::from_reference(
-                CapabilityValidThroughField::reference(),
+        ApplicationCapabilityCurrentnessDefinition::new(
+            ApplicationCapabilityValueBinding::new(
+                CapabilityGrantStatusField::reference(),
+                CapabilityGrantStatus::Active,
+            ),
+            ApplicationCapabilityWorkflowDefinition::new(
+                ApplicationCapabilityFieldBinding::from_reference(
+                    CapabilityWorkflowStageField::reference(),
+                ),
+                ApplicationCapabilityFieldBinding::from_reference(
+                    EstateWorkflowStageField::reference(),
+                ),
+            ),
+            ApplicationCapabilityValidityDefinition::new(
+                ApplicationCapabilityFieldBinding::from_reference(
+                    CapabilityValidFromField::reference(),
+                ),
+                ApplicationCapabilityFieldBinding::from_reference(
+                    CapabilityValidThroughField::reference(),
+                ),
             ),
         ),
         EstateActionContext::reference(),

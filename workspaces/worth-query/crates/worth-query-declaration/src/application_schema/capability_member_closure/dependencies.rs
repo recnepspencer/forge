@@ -36,9 +36,26 @@ pub(super) fn dependencies_are_closed(
         && field_dimension_exists(members, contract.target().field())
         && relation_dimension_exists(members, contract.target().relation())
         && field_dimension_exists(members, contract.constraints().amount())
-        && field_exists(members, contract.constraints().workflow_stage())
-        && field_exists(members, contract.constraints().validity().not_before())
-        && field_exists(members, contract.constraints().validity().not_after())
+        && field_exists(
+            members,
+            contract.constraints().currentness().active_status().field(),
+        )
+        && field_exists(
+            members,
+            contract.constraints().currentness().workflow().grant(),
+        )
+        && field_exists(
+            members,
+            contract.constraints().currentness().workflow().resource(),
+        )
+        && field_exists(
+            members,
+            contract.constraints().currentness().validity().not_before(),
+        )
+        && field_exists(
+            members,
+            contract.constraints().currentness().validity().not_after(),
+        )
         && relation_exists(members, contract.delegation().parent())
         && relation_exists(members, contract.delegation().grantor())
         && relation_exists(members, contract.delegation().grantee())
@@ -54,13 +71,20 @@ pub(super) fn topology_is_valid(contract: &ErasedApplicationCapabilityContract) 
     let grant = contract.grant_entity();
     let target = contract.target();
     let constraints = contract.constraints();
+    let currentness = constraints.currentness();
     let delegation = contract.delegation();
     target.action().field().entity() == grant
         && target.purpose().field().entity() == grant
         && target.resource().from() == grant
-        && constraints.workflow_stage().entity() == grant
-        && constraints.validity().not_before().entity() == grant
-        && constraints.validity().not_after().entity() == grant
+        && currentness.active_status().field().entity() == grant
+        && currentness.workflow().grant().entity() == grant
+        && currentness.workflow().resource().entity() == target.resource().to()
+        && currentness.workflow().grant().value_type()
+            == currentness.workflow().resource().value_type()
+        && currentness.validity().not_before().entity() == grant
+        && currentness.validity().not_after().entity() == grant
+        && currentness.validity().not_before().value_type()
+            == currentness.validity().not_after().value_type()
         && delegation.limit().entity() == grant
         && delegation.parent().from() == grant
         && delegation.parent().to() == grant

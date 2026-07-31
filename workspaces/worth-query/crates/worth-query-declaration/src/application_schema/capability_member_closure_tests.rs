@@ -6,17 +6,18 @@ use crate::application_capability::{
     ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
     ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextEntitySlotRef,
     ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
-    ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-    ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
-    ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-    ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
-    ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
-    ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
-    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
-    ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-    ApplicationCapabilityValueBinding,
+    ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
+    ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
+    ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+    ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+    ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+    ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
+    ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
+    ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
+    ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
+    ApplicationCapabilityWorkflowDefinition,
 };
 
 use super::{
@@ -33,11 +34,14 @@ struct Grant;
 struct Resource;
 struct Principal;
 struct Facts;
+struct ResourceFacts;
 struct Action;
 struct Purpose;
 struct Field;
 struct Amount;
 struct Workflow;
+struct ResourceWorkflow;
+struct Status;
 struct ValidFrom;
 struct ValidThrough;
 struct DelegationLimit;
@@ -61,8 +65,12 @@ mod context_anchors;
 mod contract_validation;
 #[path = "capability_member_closure_tests/declared_dimensions.rs"]
 mod declared_dimensions;
+#[path = "capability_member_closure_tests/fixture_members.rs"]
+mod fixture_members;
 #[path = "capability_member_closure_tests/population_budget.rs"]
 mod population_budget;
+
+use fixture_members::{field_member, relation_member, resource_field_member};
 
 fn build_from_members(
     members: Vec<ApplicationSchemaMember>,
@@ -86,6 +94,10 @@ fn members(
         ApplicationSchemaMember::Aspect {
             entity: "Grant".to_string(),
             aspect: "Facts".to_string(),
+        },
+        ApplicationSchemaMember::Aspect {
+            entity: "Resource".to_string(),
+            aspect: "ResourceFacts".to_string(),
         },
         ApplicationSchemaMember::PrincipalBinding {
             binding: "PrincipalBinding".to_string(),
@@ -134,12 +146,14 @@ fn members(
         "Field",
         "Amount",
         "Workflow",
+        "Status",
         "ValidFrom",
         "ValidThrough",
         "DelegationLimit",
     ] {
         members.push(field_member(field));
     }
+    members.push(resource_field_member("ResourceWorkflow"));
     members.push(ApplicationSchemaMember::ApplicationCapability { contract });
     members
 }
@@ -176,6 +190,24 @@ fn contract_with_name_and_composition(
     changed_purpose: bool,
     composition: ApplicationCapabilityComposition,
 ) -> crate::application_capability::ErasedApplicationCapabilityContract {
+    ApplicationCapabilityContractBuilder::new(
+        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(capability_name),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
+    )
+    .target(target_definition(wrong_resource_topology, changed_purpose))
+    .constraints(constraint_definition())
+    .delegation(delegation_definition())
+    .composition(composition)
+    .build()
+    .erased()
+    .clone()
+}
+
+fn target_definition(
+    wrong_resource_topology: bool,
+    changed_purpose: bool,
+) -> ApplicationCapabilityTargetDefinition {
     let resource = if wrong_resource_topology {
         relation::<WrongResourceRelation, Principal, Resource>(
             "WrongResourceRelation",
@@ -185,7 +217,7 @@ fn contract_with_name_and_composition(
     } else {
         relation::<ResourceRelation, Grant, Resource>("ResourceRelation", "Grant", "Resource")
     };
-    let target = ApplicationCapabilityTargetDefinition::new(
+    ApplicationCapabilityTargetDefinition::new(
         ApplicationCapabilityValueBinding::new(field::<Action>("Action"), 1_u64),
         resource,
         ApplicationCapabilityRelationDimension::Bound(relation::<ScopedRelation, Grant, Resource>(
@@ -198,18 +230,30 @@ fn contract_with_name_and_composition(
             field::<Purpose>("Purpose"),
             if changed_purpose { 2_u64 } else { 1_u64 },
         ),
-    );
-    let constraints = ApplicationCapabilityConstraintDefinition::new(
+    )
+}
+
+fn constraint_definition() -> ApplicationCapabilityConstraintDefinition {
+    ApplicationCapabilityConstraintDefinition::new(
         ApplicationCapabilityFieldDimension::bound(field::<Amount>("Amount")),
         ApplicationCapabilityCardinalityDimension::One,
-        binding::<Workflow>("Workflow"),
-        ApplicationCapabilityValidityDefinition::new(
-            binding::<ValidFrom>("ValidFrom"),
-            binding::<ValidThrough>("ValidThrough"),
+        ApplicationCapabilityCurrentnessDefinition::new(
+            ApplicationCapabilityValueBinding::new(field::<Status>("Status"), 1_u64),
+            ApplicationCapabilityWorkflowDefinition::new(
+                binding::<Workflow>("Workflow"),
+                resource_binding::<ResourceWorkflow>("ResourceWorkflow"),
+            ),
+            ApplicationCapabilityValidityDefinition::new(
+                binding::<ValidFrom>("ValidFrom"),
+                binding::<ValidThrough>("ValidThrough"),
+            ),
         ),
         ApplicationCapabilityContextRef::<Schema, Context>::from_schema_identifier("Context"),
-    );
-    let delegation = ApplicationCapabilityDelegationDefinition::new(
+    )
+}
+
+fn delegation_definition() -> ApplicationCapabilityDelegationDefinition {
+    ApplicationCapabilityDelegationDefinition::new(
         relation::<Parent, Grant, Grant>("Parent", "Grant", "Grant"),
         relation::<Grantor, Principal, Grant>("Grantor", "Principal", "Grant"),
         relation::<Grantee, Principal, Grant>("Grantee", "Principal", "Grant"),
@@ -217,19 +261,7 @@ fn contract_with_name_and_composition(
         ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
             "Provenance",
         ),
-    );
-    ApplicationCapabilityContractBuilder::new(
-        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(capability_name),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
-        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
-    .target(target)
-    .constraints(constraints)
-    .delegation(delegation)
-    .composition(composition)
-    .build()
-    .erased()
-    .clone()
 }
 
 fn resource_slot<ContextMarker, SlotMarker>(
@@ -335,6 +367,21 @@ fn binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFieldBinding
     ApplicationCapabilityFieldBinding::from_reference(field::<FieldMarker>(name))
 }
 
+fn resource_binding<FieldMarker>(name: &'static str) -> ApplicationCapabilityFieldBinding {
+    ApplicationCapabilityFieldBinding::from_reference(ApplicationFieldRef::<
+        Schema,
+        Resource,
+        ResourceFacts,
+        FieldMarker,
+        u64,
+        ReadOnly,
+        EqualityPredicate,
+        NoApplicationCurrency,
+    >::from_schema_identifiers(
+        "Resource", "ResourceFacts", name
+    ))
+}
+
 fn relation<RelationMarker, From, To>(
     name: &'static str,
     from: &'static str,
@@ -348,25 +395,4 @@ fn relation<RelationMarker, From, To>(
     >::from_schema_identifiers(
         name, from, to
     ))
-}
-
-fn field_member(field: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::Field {
-        entity: "Grant".to_string(),
-        aspect: "Facts".to_string(),
-        field: field.to_string(),
-        scalar_family: ScalarAspectType::UInt64,
-        value_type: std::any::type_name::<u64>().to_string(),
-        currency: None,
-        writable: false,
-        equality_queryable: true,
-    }
-}
-
-fn relation_member(relation: &str, from: &str, to: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::Relation {
-        relation: relation.to_string(),
-        from: from.to_string(),
-        to: to.to_string(),
-    }
 }

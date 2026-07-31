@@ -219,14 +219,6 @@ impl RelationalAuthorizationObservationEvidence {
         &self,
         snapshot: SnapshotHandle,
     ) -> Result<RelationalAuthorizationObservationPlan, RelationalAuthorizationPlanDenial> {
-        RelationalAuthorizationObservationPlan::try_new(
-            snapshot,
-            self.plan.principal(),
-            self.plan.scope(),
-            self.plan.principal_kind(),
-            self.plan.scope_kind(),
-            self.plan.paths().iter().cloned(),
-            self.plan.proposed_effects().iter().cloned(),
-        )
+        self.plan.comparison_at(snapshot)
     }
 }

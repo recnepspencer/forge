@@ -43,3 +43,21 @@ fn field_bound_capability_requires_an_explicit_disclosure_contract() {
         Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
     );
 }
+
+#[test]
+fn capability_currentness_requires_status_and_resource_workflow_fields() {
+    for missing in ["Status", "ResourceWorkflow"] {
+        let mut members = members(contract(false, false, true));
+        members.retain(|member| {
+            !matches!(
+                member,
+                ApplicationSchemaMember::Field { field, .. } if field == missing
+            )
+        });
+        assert_eq!(
+            build_from_members(members),
+            Err(ApplicationSchemaDeclarationDenial::MissingApplicationCapabilityDependency),
+            "{missing} must remain an installed currentness dependency"
+        );
+    }
+}
