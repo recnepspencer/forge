@@ -4,9 +4,9 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedSemanticContentInput {
     by_graph_node: BTreeMap<crate::graph::UiGraphNodeIdentity, UiMountedSemanticTextContent>,
-    projection_scope: Option<Box<[worth_ui_query_binding::WorthUiQueryViewIdentity]>>,
+    projection_input_capacity: usize,
     projection_inputs: BTreeMap<
-        worth_ui_query_binding::WorthUiQueryViewIdentity,
+        worth_ui_query_binding::UiProjectionInputSlot,
         worth_ui_query_binding::UiProjectionInputFactReference,
     >,
     schema_transitions: Vec<crate::runtime::rebind::UiProjectionSchemaTransition>,
@@ -74,7 +74,7 @@ impl UiMountedSemanticContentInput {
     pub(crate) fn empty() -> Self {
         Self {
             by_graph_node: BTreeMap::new(),
-            projection_scope: None,
+            projection_input_capacity: 0,
             projection_inputs: BTreeMap::new(),
             schema_transitions: Vec::new(),
         }
@@ -137,48 +137,46 @@ impl UiMountedSemanticContentInput {
     pub(crate) fn is_empty(&self) -> bool {
         self.by_graph_node.is_empty()
             && self.projection_inputs.is_empty()
-            && self.projection_scope.is_none()
+            && self.projection_input_capacity == 0
     }
 
-    pub(crate) fn set_projection_scope(
-        &mut self,
-        mut scope: Vec<worth_ui_query_binding::WorthUiQueryViewIdentity>,
-    ) {
-        scope.sort();
-        scope.dedup();
-        self.projection_scope = Some(scope.into_boxed_slice());
+    pub(crate) fn set_projection_input_capacity(&mut self, capacity: usize) {
+        self.projection_input_capacity = capacity;
     }
 
     pub(crate) fn insert_projection_input(
         &mut self,
         input: worth_ui_query_binding::UiProjectionInputFactReference,
     ) -> Result<(), ()> {
-        let identity = input.revision().projection_identity().clone();
-        match self.projection_inputs.get(&identity) {
+        let slot = input.revision().slot();
+        if slot.index() >= self.projection_input_capacity {
+            return Err(());
+        }
+        match self.projection_inputs.get(&slot) {
             Some(existing) if existing != &input => Err(()),
             Some(_) => Ok(()),
             None => {
-                self.projection_inputs.insert(identity, input);
+                self.projection_inputs.insert(slot, input);
                 Ok(())
             }
         }
     }
 
-    pub(crate) fn projection_scope(
-        &self,
-    ) -> Option<&[worth_ui_query_binding::WorthUiQueryViewIdentity]> {
-        self.projection_scope.as_deref()
+    pub(crate) const fn projection_input_capacity(&self) -> usize {
+        self.projection_input_capacity
     }
 
     pub(crate) fn projection_inputs(
         &self,
     ) -> impl ExactSizeIterator<
         Item = (
-            &worth_ui_query_binding::WorthUiQueryViewIdentity,
+            worth_ui_query_binding::UiProjectionInputSlot,
             &worth_ui_query_binding::UiProjectionInputFactReference,
         ),
     > {
-        self.projection_inputs.iter()
+        self.projection_inputs
+            .iter()
+            .map(|(slot, input)| (*slot, input))
     }
 
     pub(crate) fn record_schema_transition(

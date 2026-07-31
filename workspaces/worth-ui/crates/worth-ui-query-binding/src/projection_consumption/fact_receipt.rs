@@ -31,7 +31,7 @@ impl UiProjectionFactReceipt {
         }
     }
 
-    pub(crate) fn projection_identity(&self) -> &crate::WorthUiQueryViewIdentity {
+    pub fn projection_identity(&self) -> &crate::WorthUiQueryViewIdentity {
         &self.projection_identity
     }
 

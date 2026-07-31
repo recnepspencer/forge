@@ -26,6 +26,7 @@ pub struct WorthUiInstalledQueryBindingPlan {
     references: BTreeMap<WorthUiQueryViewIdentity, WorthUiInstalledQueryBindingReference>,
     scalar_projections: BTreeMap<WorthUiQueryViewIdentity, UiScalarProjectionRegistration>,
     collection_projections: BTreeMap<WorthUiQueryViewIdentity, UiCollectionProjectionRegistration>,
+    projection_slots: BTreeMap<WorthUiQueryViewIdentity, crate::UiProjectionInputSlot>,
 }
 
 impl WorthUiQueryBindingPlan {
@@ -47,6 +48,7 @@ impl WorthUiQueryBindingPlan {
                     references,
                     scalar_projections: BTreeMap::new(),
                     collection_projections: BTreeMap::new(),
+                    projection_slots: BTreeMap::new(),
                 }))
             }
             Self::Installed(mut plan) => {
@@ -142,6 +144,23 @@ impl WorthUiQueryBindingPlan {
         }
     }
 
+    pub fn projection_input_slot(
+        &self,
+        identity: &WorthUiQueryViewIdentity,
+    ) -> Option<crate::UiProjectionInputSlot> {
+        match self {
+            Self::QueryFree => None,
+            Self::Installed(plan) => plan.projection_slots.get(identity).copied(),
+        }
+    }
+
+    pub fn projection_input_count(&self) -> usize {
+        match self {
+            Self::QueryFree => 0,
+            Self::Installed(plan) => plan.projection_slots.len(),
+        }
+    }
+
     /// Resolve one compact lowering reference from this exact installed plan.
     pub fn resolve_definition(
         &self,
@@ -198,6 +217,7 @@ impl WorthUiQueryBindingPlan {
                 references: BTreeMap::new(),
                 scalar_projections: BTreeMap::new(),
                 collection_projections: BTreeMap::new(),
+                projection_slots: BTreeMap::new(),
             },
             Self::Installed(plan) => {
                 if !plan
@@ -220,6 +240,12 @@ impl WorthUiQueryBindingPlan {
                 identity,
             });
         }
+        let slot = crate::UiProjectionInputSlot::from_index(plan.projection_slots.len())
+            .ok_or_else(|| WorthUiQueryBindingRegistrationDenial {
+                kind: WorthUiQueryBindingRegistrationDenialKind::ProjectionCapacityExceeded,
+                identity: identity.clone(),
+            })?;
+        plan.projection_slots.insert(identity.clone(), slot);
         match registration {
             ProjectionRegistration::Scalar(registration) => {
                 plan.scalar_projections.insert(identity, registration);

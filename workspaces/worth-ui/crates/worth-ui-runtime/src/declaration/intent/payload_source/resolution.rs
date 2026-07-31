@@ -1,28 +1,12 @@
-use std::collections::BTreeMap;
-use std::sync::Arc;
-
+use super::{
+    UiResolvedIntentApplicationSource, UiResolvedIntentPayloadBinding,
+    UiResolvedIntentPayloadSource, UiResolvedIntentProjectionSource,
+};
 use crate::capability::{
     UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind, UiIntentPayloadFieldSet,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct UiResolvedIntentPayloadBinding {
-    field: UiIntentPayloadFieldDescriptor,
-    source: UiResolvedIntentPayloadSource,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum UiResolvedIntentPayloadSource {
-    ProjectionText(worth_ui_query_binding::WorthUiQueryViewIdentity),
-    ProjectionSelection(worth_ui_query_binding::WorthUiQueryViewIdentity),
-    CommittedDraft,
-    ConstantText(Arc<str>),
-    ConstantBoolean(bool),
-    ConstantUnsigned64(u64),
-    ApplicationText(Box<str>),
-    ApplicationBoolean(Box<str>),
-    ApplicationUnsigned64(Box<str>),
-}
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 pub(crate) fn resolve_payload_sources(
     declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
@@ -192,7 +176,12 @@ fn resolve_source(
             {
                 return Err(source_mismatch(declaration, field, "scalar-text"));
             }
-            UiResolvedIntentPayloadSource::ProjectionText(identity)
+            UiResolvedIntentPayloadSource::ProjectionText(resolve_projection_slot(
+                declaration,
+                field,
+                query,
+                identity,
+            )?)
         }
         Source::ProjectionSelection { projection } => {
             require_kind(declaration, field, UiIntentPayloadFieldKind::Selection)?;
@@ -205,7 +194,12 @@ fn resolve_source(
             {
                 return Err(source_mismatch(declaration, field, "collection-text"));
             }
-            UiResolvedIntentPayloadSource::ProjectionSelection(identity)
+            UiResolvedIntentPayloadSource::ProjectionSelection(resolve_projection_slot(
+                declaration,
+                field,
+                query,
+                identity,
+            )?)
         }
         Source::CommittedDraft => {
             require_kind(declaration, field, UiIntentPayloadFieldKind::Text)?;
@@ -235,29 +229,41 @@ fn resolve_source(
         }
         Source::ApplicationText { fact } => {
             require_kind(declaration, field, UiIntentPayloadFieldKind::Text)?;
-            require_application_fact(declaration, field, fact, application_facts)?;
-            UiResolvedIntentPayloadSource::ApplicationText(fact.clone())
+            UiResolvedIntentPayloadSource::ApplicationText(resolve_application_fact(
+                declaration,
+                field,
+                fact,
+                application_facts,
+            )?)
         }
         Source::ApplicationBoolean { fact } => {
             require_kind(declaration, field, UiIntentPayloadFieldKind::Boolean)?;
-            require_application_fact(declaration, field, fact, application_facts)?;
-            UiResolvedIntentPayloadSource::ApplicationBoolean(fact.clone())
+            UiResolvedIntentPayloadSource::ApplicationBoolean(resolve_application_fact(
+                declaration,
+                field,
+                fact,
+                application_facts,
+            )?)
         }
         Source::ApplicationUnsigned64 { fact } => {
             require_kind(declaration, field, UiIntentPayloadFieldKind::Unsigned64)?;
-            require_application_fact(declaration, field, fact, application_facts)?;
-            UiResolvedIntentPayloadSource::ApplicationUnsigned64(fact.clone())
+            UiResolvedIntentPayloadSource::ApplicationUnsigned64(resolve_application_fact(
+                declaration,
+                field,
+                fact,
+                application_facts,
+            )?)
         }
     };
     Ok(UiResolvedIntentPayloadBinding { field, source })
 }
 
-fn require_application_fact(
+fn resolve_application_fact(
     declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     identity: &str,
     facts: &super::UiIntentApplicationFactPlan,
-) -> Result<(), super::UiIntentCatalogPreparationDenial> {
+) -> Result<UiResolvedIntentApplicationSource, super::UiIntentCatalogPreparationDenial> {
     let definition = facts.get(identity).ok_or_else(|| {
         super::UiIntentCatalogPreparationDenial::UnknownApplicationPayloadFact {
             declaration: declaration.identity().into(),
@@ -276,7 +282,10 @@ fn require_application_fact(
             },
         );
     }
-    Ok(())
+    Ok(UiResolvedIntentApplicationSource {
+        identity: identity.into(),
+        slot: definition.slot(),
+    })
 }
 
 fn require_kind(
@@ -312,6 +321,23 @@ fn projection_identity(
     })
 }
 
+fn resolve_projection_slot(
+    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    field: UiIntentPayloadFieldDescriptor,
+    query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+    identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
+) -> Result<UiResolvedIntentProjectionSource, super::UiIntentCatalogPreparationDenial> {
+    let slot = query.projection_input_slot(&identity).ok_or_else(|| {
+        unknown_projection(
+            declaration,
+            field,
+            identity.as_str(),
+            "registered-input-slot",
+        )
+    })?;
+    Ok(UiResolvedIntentProjectionSource { identity, slot })
+}
+
 fn unknown_projection(
     declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
@@ -335,15 +361,5 @@ fn source_mismatch(
         declaration: declaration.identity().into(),
         field: field.stable_name().into(),
         required_source,
-    }
-}
-
-impl UiResolvedIntentPayloadBinding {
-    pub(crate) const fn field(&self) -> UiIntentPayloadFieldDescriptor {
-        self.field
-    }
-
-    pub(crate) const fn source(&self) -> &UiResolvedIntentPayloadSource {
-        &self.source
     }
 }

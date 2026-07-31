@@ -29,6 +29,9 @@ pub enum UiRebindPlanningDenial {
     AmbiguousProjectionInput {
         projection: worth_ui_query_binding::WorthUiQueryViewIdentity,
     },
+    ProjectionInputSlotUnavailable {
+        projection: worth_ui_query_binding::WorthUiQueryViewIdentity,
+    },
     ProjectionSchemaTransitionUncorrelated {
         component_identity: Box<str>,
     },

@@ -4,11 +4,12 @@ use crate::capability::{
     UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind, UiIntentProjectedValue,
     UiIntentSelectionValue,
 };
+use crate::declaration::{UiResolvedIntentApplicationSource, UiResolvedIntentProjectionSource};
 use crate::declaration::{UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource};
 
 use super::{
-    UiIntentApplicationFactState, UiIntentApplicationInputReference, UiIntentInputBasis,
-    UiIntentInputBasisInput, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
+    UiIntentApplicationFactState, UiIntentApplicationInputReference, UiIntentInputBasisView,
+    UiIntentInputOwnerRevision, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
     UiPreparedIntentPayload,
 };
 
@@ -21,36 +22,26 @@ pub(crate) fn prepare_intent_payload(
     application_facts: &UiIntentApplicationFactState,
 ) -> Result<UiPreparedIntentPayload, UiIntentPayloadStop> {
     let (declaration, interaction) = route.into_parts();
-    validate_basis_entry(&interaction, generation, mounted)?;
-    let publication_frame = mounted
-        .view()
-        .current_frame()
-        .ok_or(UiIntentPayloadStop::NoCurrentPublication)?;
+    let basis_view =
+        UiIntentInputBasisView::observe(&interaction, generation, mounted, application_facts)?;
     let definition = definitions.definition_at(declaration.definition());
-    let mut projection = PayloadProjection::new(
-        &interaction,
-        definition.payload_schema(),
-        generation,
-        mounted,
-        application_facts,
-    );
+    let mut projection =
+        PayloadProjection::new(&interaction, definition.payload_schema(), &basis_view);
     for binding in declaration.payload() {
         projection.project(binding)?;
     }
-    let (values, query_inputs, application_inputs, cost) = projection.finish();
+    let (values, query_inputs, application_inputs, owner_revisions, cost) = projection.finish();
     let payload = definitions
         .projector_at(declaration.definition())
         .project(values)
         .map_err(UiIntentPayloadStop::PayloadProjection)?;
-    let basis = UiIntentInputBasis::seal(UiIntentInputBasisInput {
-        generation: generation.clone(),
-        publication_frame,
-        target: interaction.target(),
+    let basis = basis_view.seal(
         interaction,
         query_inputs,
         application_inputs,
+        owner_revisions,
         cost,
-    });
+    );
     Ok(UiPreparedIntentPayload::new(
         definition.id(),
         declaration,
@@ -59,32 +50,14 @@ pub(crate) fn prepare_intent_payload(
     ))
 }
 
-fn validate_basis_entry(
-    interaction: &crate::runtime::interaction::UiSemanticInteraction,
-    generation: &crate::facade::prepared_application_authority::
-        WorthUiPreparedApplicationGenerationIdentity,
-    mounted: &crate::mounting::WorthUiMountedSessionState,
-) -> Result<(), UiIntentPayloadStop> {
-    if interaction.generation() != generation {
-        return Err(UiIntentPayloadStop::ApplicationGenerationChanged);
-    }
-    if mounted.has_active_presentation_attempt() {
-        return Err(UiIntentPayloadStop::PublicationTransitionInFlight);
-    }
-    crate::runtime::interaction::targeting::require_current_target(mounted, interaction.target())
-        .map_err(UiIntentPayloadStop::Targeting)
-}
-
 struct PayloadProjection<'basis> {
     interaction: &'basis crate::runtime::interaction::UiSemanticInteraction,
     payload_schema: crate::capability::UiIntentSchema,
-    generation: &'basis crate::facade::prepared_application_authority::
-        WorthUiPreparedApplicationGenerationIdentity,
-    mounted: &'basis crate::mounting::WorthUiMountedSessionState,
-    application_facts: &'basis UiIntentApplicationFactState,
+    basis: &'basis UiIntentInputBasisView<'basis>,
     values: Vec<UiIntentProjectedValue>,
     query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
     application_inputs: Vec<UiIntentApplicationInputReference>,
+    owner_revisions: Vec<UiIntentInputOwnerRevision>,
     cost: UiIntentPayloadProjectionCost,
 }
 
@@ -92,20 +65,16 @@ impl<'basis> PayloadProjection<'basis> {
     fn new(
         interaction: &'basis crate::runtime::interaction::UiSemanticInteraction,
         payload_schema: crate::capability::UiIntentSchema,
-        generation: &'basis crate::facade::prepared_application_authority::
-            WorthUiPreparedApplicationGenerationIdentity,
-        mounted: &'basis crate::mounting::WorthUiMountedSessionState,
-        application_facts: &'basis UiIntentApplicationFactState,
+        basis: &'basis UiIntentInputBasisView<'basis>,
     ) -> Self {
         Self {
             interaction,
             payload_schema,
-            generation,
-            mounted,
-            application_facts,
+            basis,
             values: Vec::new(),
             query_inputs: Vec::new(),
             application_inputs: Vec::new(),
+            owner_revisions: Vec::new(),
             cost: Default::default(),
         }
     }
@@ -150,7 +119,7 @@ impl<'basis> PayloadProjection<'basis> {
     fn projection_text(
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
-        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        projection: &UiResolvedIntentProjectionSource,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
         let input = self.current_projection(field, projection)?;
         let value = match &input {
@@ -166,6 +135,10 @@ impl<'basis> PayloadProjection<'basis> {
             }
         };
         self.cost.record_query_input();
+        self.owner_revisions.push(UiIntentInputOwnerRevision::query(
+            field,
+            input.revision().clone(),
+        ));
         self.query_inputs.push(input);
         self.text(field, value)
     }
@@ -173,7 +146,7 @@ impl<'basis> PayloadProjection<'basis> {
     fn projection_selection(
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
-        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        projection: &UiResolvedIntentProjectionSource,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
         let crate::runtime::interaction::UiSemanticInteraction::SelectionCommit(selection) =
             self.interaction
@@ -183,7 +156,9 @@ impl<'basis> PayloadProjection<'basis> {
             });
         };
         let option = selection.option();
-        if option.owner_revision().projection_identity() != projection {
+        if option.owner_revision().projection_identity() != projection.identity()
+            || option.owner_revision().slot() != projection.slot()
+        {
             return Err(UiIntentPayloadStop::SelectionProjectionMismatch {
                 field: field.stable_name(),
             });
@@ -201,6 +176,10 @@ impl<'basis> PayloadProjection<'basis> {
             });
         }
         self.cost.record_query_input();
+        self.owner_revisions.push(UiIntentInputOwnerRevision::query(
+            field,
+            input.revision().clone(),
+        ));
         self.query_inputs.push(input);
         Ok(UiIntentProjectedValue::selection(
             UiIntentSelectionValue::admitted(option.clone()),
@@ -210,15 +189,23 @@ impl<'basis> PayloadProjection<'basis> {
     fn current_projection(
         &self,
         field: UiIntentPayloadFieldDescriptor,
-        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        projection: &UiResolvedIntentProjectionSource,
     ) -> Result<worth_ui_query_binding::UiProjectionInputFactReference, UiIntentPayloadStop> {
-        let input = self
-            .mounted
-            .current_projection_input(projection)
-            .ok_or_else(|| UiIntentPayloadStop::ProjectionUnavailable {
+        let input = self.basis.projection(projection.slot()).ok_or_else(|| {
+            UiIntentPayloadStop::ProjectionUnavailable {
                 field: field.stable_name(),
-                projection: projection.clone(),
-            })?;
+                projection: projection.identity().clone(),
+            }
+        })?;
+        if input.revision().projection_identity() != projection.identity()
+            || input.revision().slot() != projection.slot()
+        {
+            return Err(UiIntentPayloadStop::ProjectionIdentityMismatch {
+                field: field.stable_name(),
+                expected: projection.identity().clone(),
+                observed: input.revision().projection_identity().clone(),
+            });
+        }
         if input.posture() != worth_ui_query_binding::UiProjectionInputPosture::Current {
             return Err(UiIntentPayloadStop::ProjectionNotCurrent {
                 field: field.stable_name(),
@@ -244,13 +231,19 @@ impl<'basis> PayloadProjection<'basis> {
                 field: field.stable_name(),
             });
         }
+        self.owner_revisions.push(UiIntentInputOwnerRevision::draft(
+            field,
+            draft.session(),
+            draft.input_revision(),
+            draft.draft_revision(),
+        ));
         self.text(field, draft.committed_text_reference())
     }
 
     fn application_text(
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
-        fact: &str,
+        fact: &UiResolvedIntentApplicationSource,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
         let input = self.application_input(field, fact, UiIntentPayloadFieldKind::Text)?;
         let value = input
@@ -263,7 +256,7 @@ impl<'basis> PayloadProjection<'basis> {
     fn application_boolean(
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
-        fact: &str,
+        fact: &UiResolvedIntentApplicationSource,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
         let input = self.application_input(field, fact, UiIntentPayloadFieldKind::Boolean)?;
         let value = input
@@ -276,7 +269,7 @@ impl<'basis> PayloadProjection<'basis> {
     fn application_unsigned64(
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
-        fact: &str,
+        fact: &UiResolvedIntentApplicationSource,
     ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
         let input = self.application_input(field, fact, UiIntentPayloadFieldKind::Unsigned64)?;
         let value = input
@@ -289,30 +282,42 @@ impl<'basis> PayloadProjection<'basis> {
     fn application_input(
         &mut self,
         field: UiIntentPayloadFieldDescriptor,
-        fact: &str,
+        fact: &UiResolvedIntentApplicationSource,
         expected: UiIntentPayloadFieldKind,
     ) -> Result<UiIntentApplicationInputReference, UiIntentPayloadStop> {
-        let input = self
-            .application_facts
-            .input_reference(fact)
-            .ok_or_else(|| UiIntentPayloadStop::ApplicationFactUnavailable {
+        let input = self.basis.application(fact.slot()).ok_or_else(|| {
+            UiIntentPayloadStop::ApplicationFactUnavailable {
                 field: field.stable_name(),
-                fact: fact.into(),
-            })?;
-        if input.revision().generation() != self.generation {
+                fact: fact.identity().into(),
+            }
+        })?;
+        if input.revision().identity() != fact.identity() {
+            return Err(UiIntentPayloadStop::ApplicationFactIdentityChanged {
+                field: field.stable_name(),
+                expected: fact.identity().into(),
+                observed: input.revision().identity().into(),
+            });
+        }
+        if input.revision().generation() != self.basis.generation() {
             return Err(UiIntentPayloadStop::ApplicationFactGenerationChanged {
                 field: field.stable_name(),
-                fact: fact.into(),
+                fact: fact.identity().into(),
             });
         }
         if input.kind() != expected {
             return Err(UiIntentPayloadStop::ApplicationFactKindMismatch {
                 field: field.stable_name(),
-                fact: fact.into(),
+                fact: fact.identity().into(),
                 observed: input.kind(),
             });
         }
         self.cost.record_application_input();
+        self.owner_revisions
+            .push(UiIntentInputOwnerRevision::application(
+                field,
+                input.revision().identity(),
+                input.revision().revision(),
+            ));
         Ok(input)
     }
 
@@ -338,12 +343,14 @@ impl<'basis> PayloadProjection<'basis> {
         Vec<UiIntentProjectedValue>,
         Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
         Vec<UiIntentApplicationInputReference>,
+        Vec<UiIntentInputOwnerRevision>,
         UiIntentPayloadProjectionCost,
     ) {
         (
             self.values,
             self.query_inputs,
             self.application_inputs,
+            self.owner_revisions,
             self.cost,
         )
     }

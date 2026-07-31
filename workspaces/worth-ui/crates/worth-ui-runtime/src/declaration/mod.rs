@@ -54,7 +54,8 @@ pub use family::{
 pub(crate) use inspection::{UiDeclarationAuthoredEvidenceIndex, UiDeclarationEvidenceRecord};
 pub(crate) use intent::{
     UiCanonicalIntentDeclaration, UiIntentCatalog, UiIntentCatalogResolvedRoute,
-    UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource,
+    UiResolvedIntentApplicationSource, UiResolvedIntentPayloadBinding,
+    UiResolvedIntentPayloadSource, UiResolvedIntentProjectionSource,
 };
 pub use intent::{
     UiIntentApplicationFact, UiIntentApplicationFactIdentityError,
@@ -64,7 +65,7 @@ pub use intent::{
     UiIntentInteractionPayloadSourceKind, UiIntentPayloadSource, UiIntentRouteBinding,
 };
 pub(crate) use intent::{
-    UiIntentApplicationFactDefinition, UiIntentApplicationFactPlan, UiIntentApplicationFactValue,
+    UiIntentApplicationFactPlan, UiIntentApplicationFactSlot, UiIntentApplicationFactValue,
 };
 pub(crate) use measurement_dependency::declared_measurement_basis_requirements;
 pub(crate) use measurement_dependency::declared_query_measurement_dependencies;

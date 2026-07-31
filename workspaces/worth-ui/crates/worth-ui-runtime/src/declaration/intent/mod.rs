@@ -14,7 +14,7 @@ pub use application_fact::{
     UiIntentApplicationFactRegistrationError,
 };
 pub(crate) use application_fact::{
-    UiIntentApplicationFactDefinition, UiIntentApplicationFactPlan, UiIntentApplicationFactValue,
+    UiIntentApplicationFactPlan, UiIntentApplicationFactSlot, UiIntentApplicationFactValue,
 };
 pub use authored_declaration::{UiIntentDeclaration, UiIntentDeclarationConstructionError};
 pub use authored_payload_source::UiIntentPayloadSource;
@@ -25,6 +25,7 @@ pub(crate) use declaration::UiCanonicalIntentDeclaration;
 pub use denial::{UiIntentCatalogPreparationDenial, UiIntentInteractionPayloadSourceKind};
 pub use identity::UiIntentDeclarationIdentity;
 pub(crate) use payload_source::{
-    resolve_payload_sources, UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource,
+    resolve_payload_sources, UiResolvedIntentApplicationSource, UiResolvedIntentPayloadBinding,
+    UiResolvedIntentPayloadSource, UiResolvedIntentProjectionSource,
 };
 pub use route_binding::UiIntentRouteBinding;
