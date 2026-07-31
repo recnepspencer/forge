@@ -11,7 +11,9 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ErasedApplicationCapabilityContract {
     name: String,
+    capability_type: String,
     operation: String,
+    operation_type: String,
     input_type: String,
     grant_entity: String,
     target: ApplicationCapabilityTargetDefinition,
@@ -25,8 +27,16 @@ impl ErasedApplicationCapabilityContract {
         &self.name
     }
 
+    pub fn capability_type(&self) -> &str {
+        &self.capability_type
+    }
+
     pub fn operation(&self) -> &str {
         &self.operation
+    }
+
+    pub fn operation_type(&self) -> &str {
+        &self.operation_type
     }
 
     pub fn input_type(&self) -> &str {
@@ -113,7 +123,9 @@ pub struct ApplicationCapabilityContractBuilder<
     Composition = Missing,
 > {
     name: &'static str,
+    capability_type: &'static str,
     operation: &'static str,
+    operation_type: &'static str,
     grant_entity: &'static str,
     target: Target,
     constraints: Constraints,
@@ -132,7 +144,9 @@ impl<Schema, Capability, Operation, Input>
     ) -> Self {
         Self {
             name: capability.name(),
+            capability_type: std::any::type_name::<Capability>(),
             operation: operation.name(),
+            operation_type: std::any::type_name::<Operation>(),
             grant_entity: grant.name(),
             target: Missing,
             constraints: Missing,
@@ -170,7 +184,9 @@ impl<Schema, Capability, Operation, Input, Constraints, Delegation, Composition>
     > {
         ApplicationCapabilityContractBuilder {
             name: self.name,
+            capability_type: self.capability_type,
             operation: self.operation,
+            operation_type: self.operation_type,
             grant_entity: self.grant_entity,
             target: Present(target),
             constraints: self.constraints,
@@ -208,7 +224,9 @@ impl<Schema, Capability, Operation, Input, Target, Delegation, Composition>
     > {
         ApplicationCapabilityContractBuilder {
             name: self.name,
+            capability_type: self.capability_type,
             operation: self.operation,
+            operation_type: self.operation_type,
             grant_entity: self.grant_entity,
             target: self.target,
             constraints: Present(constraints),
@@ -246,7 +264,9 @@ impl<Schema, Capability, Operation, Input, Target, Constraints, Composition>
     > {
         ApplicationCapabilityContractBuilder {
             name: self.name,
+            capability_type: self.capability_type,
             operation: self.operation,
+            operation_type: self.operation_type,
             grant_entity: self.grant_entity,
             target: self.target,
             constraints: self.constraints,
@@ -284,7 +304,9 @@ impl<Schema, Capability, Operation, Input, Target, Constraints, Delegation>
     > {
         ApplicationCapabilityContractBuilder {
             name: self.name,
+            capability_type: self.capability_type,
             operation: self.operation,
+            operation_type: self.operation_type,
             grant_entity: self.grant_entity,
             target: self.target,
             constraints: self.constraints,
@@ -311,7 +333,9 @@ impl<Schema, Capability, Operation, Input>
         ApplicationCapabilityContract {
             erased: ErasedApplicationCapabilityContract {
                 name: self.name.to_string(),
+                capability_type: self.capability_type.to_string(),
                 operation: self.operation.to_string(),
+                operation_type: self.operation_type.to_string(),
                 input_type: std::any::type_name::<Input>().to_string(),
                 grant_entity: self.grant_entity.to_string(),
                 target: self.target.0,

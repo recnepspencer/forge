@@ -2,13 +2,10 @@ use worth_foundational::facade::{
     canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
     CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisReadyArtifact, CanonicalBasisValue,
     CanonicalDigestAlgorithmId, CanonicalDigestDerivationDenial, CanonicalDigestId,
-    CanonicalDigestWorkBudget, CanonicalIntegerWidth, CanonicalizationRuleVersion,
+    CanonicalDigestWorkBudget, CanonicalizationRuleVersion,
 };
 use worth_query_declaration::facade::application_capability::{
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ApplicationCapabilityRule, ApplicationCapabilityValueBinding,
-    ErasedApplicationCapabilityContract,
+    application_capability_canonical_components, ErasedApplicationCapabilityContract,
 };
 
 use super::{
@@ -21,7 +18,7 @@ const DOMAIN: CanonicalBasisDomain =
     CanonicalBasisDomain::Future("worth-query.application-capability-installation");
 const RULE_VERSION: &str = "worth-query-application-capability-installation-v1";
 const MAXIMUM_ENTRY_COUNT: u32 = 128;
-const MAXIMUM_CANONICAL_BYTES: usize = 16 * 1_024;
+const MAXIMUM_CANONICAL_BYTES: usize = 24 * 1_024;
 const CAPABILITY_BUDGET: CanonicalDigestWorkBudget =
     match CanonicalDigestWorkBudget::new(MAXIMUM_ENTRY_COUNT, MAXIMUM_CANONICAL_BYTES) {
         Some(budget) => budget,
@@ -48,6 +45,14 @@ impl WorthQueryCapabilityCanonicalArtifact {
         self.work.canonical_encoded_bytes()
     }
 
+    pub const fn maximum_canonical_encoded_bytes(&self) -> usize {
+        MAXIMUM_CANONICAL_BYTES
+    }
+
+    pub const fn maximum_canonical_entry_count(&self) -> u32 {
+        MAXIMUM_ENTRY_COUNT
+    }
+
     pub const fn basis_preparation_count(&self) -> usize {
         self.work.basis_preparations() as usize
     }
@@ -71,171 +76,10 @@ pub(super) fn prepare_capability_basis(
     builder.text("family", "installed-capability");
     builder.digest("package", package_identity);
     builder.digest("schema", schema_identity);
-    builder.text("name", contract.name());
-    builder.text("operation", contract.operation());
-    builder.text("input-type", contract.input_type());
-    builder.text("grant-entity", contract.grant_entity());
-    append_contract(&mut builder, contract);
+    for component in application_capability_canonical_components(contract) {
+        builder.value(component.locus(), component.value().clone());
+    }
     builder.finish()
-}
-
-fn append_contract(
-    builder: &mut CapabilityBasisBuilder,
-    contract: &ErasedApplicationCapabilityContract,
-) {
-    let target = contract.target();
-    append_value_binding(builder, "target.action", target.action());
-    append_relation(builder, "target.resource", target.resource());
-    append_relation_dimension(builder, "target.relation", target.relation());
-    append_field_dimension(builder, "target.field", target.field());
-    append_value_binding(builder, "target.purpose", target.purpose());
-
-    let constraints = contract.constraints();
-    append_field_dimension(builder, "constraints.amount", constraints.amount());
-    match constraints.cardinality() {
-        worth_query_declaration::facade::application_capability::ApplicationCapabilityCardinalityDimension::One => {
-            builder.text("constraints.cardinality", "one");
-        }
-        worth_query_declaration::facade::application_capability::ApplicationCapabilityCardinalityDimension::Many => {
-            builder.text("constraints.cardinality", "many");
-        }
-        worth_query_declaration::facade::application_capability::ApplicationCapabilityCardinalityDimension::Bounded(limit) => {
-            builder.text("constraints.cardinality", "bounded");
-            builder.u32("constraints.cardinality-limit", limit);
-        }
-    }
-    append_field(
-        builder,
-        "constraints.workflow-stage",
-        constraints.workflow_stage(),
-    );
-    append_field(
-        builder,
-        "constraints.validity.not-before",
-        constraints.validity().not_before(),
-    );
-    append_field(
-        builder,
-        "constraints.validity.not-after",
-        constraints.validity().not_after(),
-    );
-    builder.text("constraints.context", constraints.context());
-
-    let delegation = contract.delegation();
-    append_relation(builder, "delegation.parent", delegation.parent());
-    append_relation(builder, "delegation.grantor", delegation.grantor());
-    append_relation(builder, "delegation.grantee", delegation.grantee());
-    append_field(builder, "delegation.limit", delegation.limit());
-    builder.text("delegation.provenance", delegation.provenance());
-    append_composition(builder, contract);
-}
-
-fn append_composition(
-    builder: &mut CapabilityBasisBuilder,
-    contract: &ErasedApplicationCapabilityContract,
-) {
-    let composition = contract.composition();
-    for (locus, rule) in [
-        ("composition.allow", composition.decision().allow()),
-        ("composition.deny", composition.decision().deny()),
-        ("composition.conflict", composition.decision().conflict()),
-        (
-            "composition.separation-of-duty",
-            composition.actors().separation_of_duty(),
-        ),
-        (
-            "composition.distinct-actor",
-            composition.actors().distinct_actor(),
-        ),
-        (
-            "composition.delegation",
-            composition.propagation().delegation(),
-        ),
-        (
-            "composition.disclosure",
-            composition.propagation().disclosure(),
-        ),
-    ] {
-        append_rule(builder, locus, rule);
-    }
-}
-
-fn append_field(
-    builder: &mut CapabilityBasisBuilder,
-    prefix: &str,
-    field: &ApplicationCapabilityFieldBinding,
-) {
-    builder.text(format!("{prefix}.entity"), field.entity());
-    builder.text(format!("{prefix}.aspect"), field.aspect());
-    builder.text(format!("{prefix}.field"), field.field());
-    builder.text(format!("{prefix}.value-type"), field.value_type());
-}
-
-fn append_value_binding(
-    builder: &mut CapabilityBasisBuilder,
-    prefix: &str,
-    binding: &ApplicationCapabilityValueBinding,
-) {
-    append_field(builder, &format!("{prefix}.field-binding"), binding.field());
-    builder.aspect_value(format!("{prefix}.value"), binding.value());
-}
-
-fn append_relation(
-    builder: &mut CapabilityBasisBuilder,
-    prefix: &str,
-    relation: &ApplicationCapabilityRelationBinding,
-) {
-    builder.text(format!("{prefix}.relation"), relation.relation());
-    builder.text(format!("{prefix}.from"), relation.from());
-    builder.text(format!("{prefix}.to"), relation.to());
-}
-
-fn append_field_dimension(
-    builder: &mut CapabilityBasisBuilder,
-    prefix: &str,
-    dimension: &ApplicationCapabilityFieldDimension,
-) {
-    match dimension {
-        ApplicationCapabilityFieldDimension::NotApplicable => {
-            builder.text(format!("{prefix}.posture"), "not-applicable");
-        }
-        ApplicationCapabilityFieldDimension::Bound(field) => {
-            builder.text(format!("{prefix}.posture"), "bound");
-            append_field(builder, prefix, field);
-        }
-    }
-}
-
-fn append_relation_dimension(
-    builder: &mut CapabilityBasisBuilder,
-    prefix: &str,
-    dimension: &ApplicationCapabilityRelationDimension,
-) {
-    match dimension {
-        ApplicationCapabilityRelationDimension::NotApplicable => {
-            builder.text(format!("{prefix}.posture"), "not-applicable");
-        }
-        ApplicationCapabilityRelationDimension::Bound(relation) => {
-            builder.text(format!("{prefix}.posture"), "bound");
-            append_relation(builder, prefix, relation);
-        }
-    }
-}
-
-fn append_rule(
-    builder: &mut CapabilityBasisBuilder,
-    prefix: &str,
-    rule: &ApplicationCapabilityRule,
-) {
-    match rule {
-        ApplicationCapabilityRule::NotApplicable => {
-            builder.text(format!("{prefix}.posture"), "not-applicable");
-        }
-        ApplicationCapabilityRule::Policy(policy) => {
-            builder.text(format!("{prefix}.posture"), "policy");
-            builder.text(format!("{prefix}.policy"), policy);
-        }
-    }
 }
 
 struct CapabilityBasisBuilder {
@@ -252,38 +96,18 @@ impl CapabilityBasisBuilder {
     }
 
     fn text(&mut self, locus: impl Into<String>, value: impl AsRef<str>) {
-        let locus = locus.into();
-        let value = value.as_ref();
-        self.entries.push(entry(
+        self.value(
             locus,
-            CanonicalBasisValue::ExactText(value.to_owned().into()),
-        ));
+            CanonicalBasisValue::ExactText(value.as_ref().to_owned().into()),
+        );
     }
 
     fn digest(&mut self, locus: impl Into<String>, value: &CanonicalDigestId) {
-        self.entries
-            .push(entry(locus, CanonicalBasisValue::BytesDigest(*value)));
+        self.value(locus, CanonicalBasisValue::BytesDigest(*value));
     }
 
-    fn u32(&mut self, locus: impl Into<String>, value: u32) {
-        let locus = locus.into();
-        self.entries.push(entry(
-            locus,
-            CanonicalBasisValue::UnsignedInteger {
-                width: CanonicalIntegerWidth::Bits32,
-                value: value.into(),
-            },
-        ));
-    }
-
-    fn aspect_value(
-        &mut self,
-        locus: impl Into<String>,
-        value: &worth_foundational::facade::AspectValue,
-    ) {
-        let locus = locus.into();
-        let canonical = worth_foundational::facade::canonical_basis_value_for_aspect_value(value);
-        self.entries.push(entry(locus, canonical));
+    fn value(&mut self, locus: impl Into<String>, value: CanonicalBasisValue) {
+        self.entries.push(entry(locus, value));
     }
 
     fn finish(
@@ -337,5 +161,5 @@ fn canonical_denial(
         }
         _ => WorthQueryApplicationCapabilityInstallationDenialKind::CanonicalDigestSlotRejected,
     };
-    super::denial::WorthQueryApplicationCapabilityInstallationDenial::new(kind, subject)
+    WorthQueryApplicationCapabilityInstallationDenial::new(kind, subject)
 }

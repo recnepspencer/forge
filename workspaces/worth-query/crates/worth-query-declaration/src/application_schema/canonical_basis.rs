@@ -61,6 +61,10 @@ impl ApplicationSchemaCanonicalBasis {
         self.push(locus, canonical_basis_value_for_aspect_value(value));
     }
 
+    pub(super) fn value(&mut self, locus: impl Into<String>, value: CanonicalBasisValue) {
+        self.push(locus, value);
+    }
+
     pub(super) fn into_entries(self) -> Vec<CanonicalBasisEntry> {
         self.entries
     }

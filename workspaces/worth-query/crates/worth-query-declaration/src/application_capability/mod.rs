@@ -1,3 +1,4 @@
+mod canonical_components;
 mod composition;
 mod contract;
 mod reference;
@@ -7,6 +8,9 @@ mod scope_narrowing;
 #[cfg(test)]
 mod scope_narrowing_tests;
 
+pub use canonical_components::{
+    application_capability_canonical_components, ApplicationCapabilityCanonicalComponent,
+};
 pub use composition::{
     ApplicationCapabilityActorComposition, ApplicationCapabilityComposition,
     ApplicationCapabilityDecisionComposition, ApplicationCapabilityPropagationComposition,

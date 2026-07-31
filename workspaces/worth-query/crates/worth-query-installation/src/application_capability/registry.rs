@@ -19,15 +19,25 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct ApplicationCapabilityRegistryKey {
     name: String,
+    capability_type: String,
     operation: String,
+    operation_type: String,
     input_type: String,
 }
 
 impl ApplicationCapabilityRegistryKey {
-    pub(crate) fn new(name: &str, operation: &str, input_type: &str) -> Self {
+    pub(crate) fn new(
+        name: &str,
+        capability_type: &str,
+        operation: &str,
+        operation_type: &str,
+        input_type: &str,
+    ) -> Self {
         Self {
             name: name.to_string(),
+            capability_type: capability_type.to_string(),
             operation: operation.to_string(),
+            operation_type: operation_type.to_string(),
             input_type: input_type.to_string(),
         }
     }
@@ -86,12 +96,16 @@ pub(crate) fn compile_capability_registry(
             &package.authority_key,
             binding,
             identity.bytes(),
+            contract.capability_type(),
             contract.operation(),
+            contract.operation_type(),
             contract.input_type(),
         );
         let key = ApplicationCapabilityRegistryKey::new(
             contract.name(),
+            contract.capability_type(),
             contract.operation(),
+            contract.operation_type(),
             contract.input_type(),
         );
         let compiled = Arc::new(CompiledApplicationCapability {

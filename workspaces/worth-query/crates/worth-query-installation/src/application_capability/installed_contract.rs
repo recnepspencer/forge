@@ -113,7 +113,9 @@ impl<Schema, Capability, Operation, Input>
     {
         let key = ApplicationCapabilityRegistryKey::new(
             capability.name(),
+            std::any::type_name::<Capability>(),
             operation.name(),
+            std::any::type_name::<Operation>(),
             std::any::type_name::<Input>(),
         );
         let compiled = schema
@@ -132,7 +134,9 @@ impl<Schema, Capability, Operation, Input>
                 };
                 denial(kind, capability.name())
             })?;
-        if compiled.contract().operation() != operation.name()
+        if compiled.contract().capability_type() != std::any::type_name::<Capability>()
+            || compiled.contract().operation() != operation.name()
+            || compiled.contract().operation_type() != std::any::type_name::<Operation>()
             || compiled.contract().input_type() != std::any::type_name::<Input>()
         {
             return Err(denial(
@@ -183,7 +187,9 @@ impl<Schema, Capability, Operation, Input>
             &package.authority_key,
             &self.binding_identity,
             self.compiled.identity().bytes(),
+            self.compiled.contract().capability_type(),
             self.compiled.contract().operation(),
+            self.compiled.contract().operation_type(),
             self.compiled.contract().input_type(),
         )
     }

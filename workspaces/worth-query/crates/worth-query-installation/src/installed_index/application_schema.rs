@@ -276,10 +276,18 @@ fn map_compilation_denial(
     denial: ApplicationSchemaCompilationDenial,
 ) -> WorthQueryInstalledApplicationSchemaDenial {
     let (kind, subject) = match denial {
-        ApplicationSchemaCompilationDenial::Capability(denial) => (
-            WorthQueryInstalledApplicationSchemaDenialKind::CapabilityInstallationDenied,
-            denial.subject().to_string(),
-        ),
+        ApplicationSchemaCompilationDenial::Capability(denial) => {
+            let kind = match denial.kind() {
+                crate::application_capability::WorthQueryApplicationCapabilityInstallationDenialKind::CanonicalEntryLimitExceeded => {
+                    WorthQueryInstalledApplicationSchemaDenialKind::CanonicalEntryBudgetExceeded
+                }
+                crate::application_capability::WorthQueryApplicationCapabilityInstallationDenialKind::CanonicalByteLimitExceeded => {
+                    WorthQueryInstalledApplicationSchemaDenialKind::CanonicalEncodedByteBudgetExceeded
+                }
+                _ => WorthQueryInstalledApplicationSchemaDenialKind::CapabilityInstallationDenied,
+            };
+            (kind, denial.subject().to_string())
+        }
         ApplicationSchemaCompilationDenial::Canonical(
             worth_foundational::facade::CanonicalDigestDerivationDenial::EntryLimitExceeded {
                 ..
