@@ -4,6 +4,7 @@ use super::super::{
     WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
+use super::admitted_operation::WorthQueryOperationAuthorizationBasis;
 use super::bridge_observation::lower_bridge_observation;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryAuthorizationDecisionFact,
@@ -137,6 +138,7 @@ where
             operation.contracts().clone(),
             preconditions,
             WorthQueryRetainedAuthorizationDecisionFacts::new(principal_currentness, result),
+            WorthQueryOperationAuthorizationBasis::Conventional,
         )
         .map_err(|_| {
             denial(
@@ -242,7 +244,14 @@ where
     }
 }
 
-pub(super) fn operation_scope_binding<Schema, Principal, PrincipalIdentity, Operation, Input, Scope>(
+pub(super) fn operation_scope_binding<
+    Schema,
+    Principal,
+    PrincipalIdentity,
+    Operation,
+    Input,
+    Scope,
+>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     scope: &WorthQueryApplicationEntityIdentity<Schema, Scope>,

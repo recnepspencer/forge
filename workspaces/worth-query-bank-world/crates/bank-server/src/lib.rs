@@ -10,6 +10,8 @@ mod authentication_boundary;
 mod bank_projection;
 mod domain_package;
 mod error;
+#[cfg(test)]
+mod estate_capability_admission;
 mod graph_bootstrap;
 mod identity_runtime;
 mod operation_admission;

@@ -70,6 +70,16 @@ where
                 Err(_) => return denied(DenialStage::Idempotency),
             }
         }
+        if let Some((request, currentness, authorization)) =
+            admission.capability_authorization_parts_mut()
+        {
+            if self
+                .refresh_capability_authorization(request, currentness, authorization)
+                .is_err()
+            {
+                return denied(DenialStage::DecisionReadSet);
+            }
+        }
         let authorization =
             match admission.take_authorization_dependencies(self.authorization.bridge()) {
                 Ok(authorization) => authorization,
@@ -167,6 +177,7 @@ where
             Err(_) => return denied(DenialStage::ManagedRunAdmission),
         };
         let outcome = execute_provider_progression(
+            self,
             &mut running,
             &self.primary_graph_authority,
             &self.primary_provider,

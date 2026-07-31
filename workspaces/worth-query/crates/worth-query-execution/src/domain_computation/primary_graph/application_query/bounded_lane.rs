@@ -299,9 +299,6 @@ fn map_authorized_read_denial(
     subject: &str,
 ) -> WorthQueryBoundedLaneDenial {
     match value {
-        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => {
-            denial(WorthQueryBoundedLaneDenialKind::StalePrincipal, subject)
-        }
         WorthQueryAuthorizedApplicationReadDenial::StaleScope => {
             denial(WorthQueryBoundedLaneDenialKind::StaleScope, subject)
         }

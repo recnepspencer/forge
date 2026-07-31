@@ -276,9 +276,6 @@ where
         denial: WorthQueryAuthorizedApplicationReadDenial,
     ) -> WorthQueryApplicationLiveOutcome<Query, QueryResult> {
         match denial {
-            WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => {
-                self.acknowledge_and_terminate(WorthQueryApplicationLiveOutcome::StalePrincipal)
-            }
             WorthQueryAuthorizedApplicationReadDenial::StaleScope
             | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => {
                 self.acknowledge_and_terminate(WorthQueryApplicationLiveOutcome::StaleScope)

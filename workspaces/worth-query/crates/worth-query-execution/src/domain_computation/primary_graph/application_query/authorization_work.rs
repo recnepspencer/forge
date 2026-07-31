@@ -16,9 +16,7 @@ pub struct WorthQueryApplicationAuthorizationWorkEvidence {
 }
 
 impl WorthQueryApplicationAuthorizationWorkEvidence {
-    pub(super) fn from_dependencies(
-        dependencies: &[WorthQueryAuthorizationDecisionFact],
-    ) -> Self {
+    pub(super) fn from_dependencies(dependencies: &[WorthQueryAuthorizationDecisionFact]) -> Self {
         dependencies.iter().fold(
             Self {
                 requirement_count: dependencies.len(),

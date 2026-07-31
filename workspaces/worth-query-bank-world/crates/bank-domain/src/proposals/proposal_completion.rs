@@ -159,9 +159,7 @@ mod tests {
                 BankIdempotencyClaim::derive(
                     super::super::BankOperationScopeBinding::new(
                         1,
-                        super::super::BankOperationScopeSchemaBinding::new(
-                            1, 1, [1; 32], [2; 32],
-                        ),
+                        super::super::BankOperationScopeSchemaBinding::new(1, 1, [1; 32], [2; 32],),
                         "operation-authority",
                         super::super::BankOperationScopeEntityBinding::new(0, 1, 1),
                         super::super::BankOperationScopeEntityBinding::new(0, 2, 1),

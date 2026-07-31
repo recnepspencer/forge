@@ -65,9 +65,16 @@ where
         >,
         WorthQueryApplicationQueryAdmissionDenial,
     > {
-        let (parameters, controls) =
+        let (parameters, controls, authorization, authorization_work) =
             self.prepare_application_query_admission(query, access, parameters, controls)?;
-        self.finish_application_query_admission(query, access, parameters, controls)
+        self.finish_application_query_admission(
+            query,
+            access,
+            parameters,
+            controls,
+            authorization,
+            authorization_work,
+        )
     }
 
     pub(super) fn finish_application_query_admission<
@@ -96,6 +103,8 @@ where
         >,
         parameters: WorthQueryAdmittedApplicationQueryParameters,
         controls: WorthQueryApplicationQueryControls<'a, Schema>,
+        authorization: crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
+        authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
     ) -> Result<
         WorthQueryAdmittedApplicationQueryPlan<
             'a,
@@ -194,6 +203,8 @@ where
             continuation_index_id,
             continuation_state: None,
             basis,
+            authorization,
+            authorization_work,
         })
     }
 }

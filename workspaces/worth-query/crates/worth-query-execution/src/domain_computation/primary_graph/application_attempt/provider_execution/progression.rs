@@ -16,6 +16,9 @@ use crate::domain_computation::{
 };
 
 pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
+    application: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
+        Schema,
+    >,
     running: &mut crate::domain_computation::WorthQueryRunningDirectRun,
     graph: &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
     provider: &std::sync::Arc<super::super::super::provider::WorthQueryPrimaryGraphProvider>,
@@ -26,11 +29,12 @@ pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
         Scope,
     >,
     prepared: WorthQueryPreparedApplicationProviderAttempt,
-    authorization: Vec<
-        crate::domain_computation::primary_graph::authorization::WorthQueryAuthorizationCommitDependency,
-    >,
+    authorization: crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
     idempotency: WorthQueryApplicationIdempotencyBinding,
-) -> WorthQueryApplicationCommitOutcome {
+) -> WorthQueryApplicationCommitOutcome
+where
+    Schema: worth_query_installation::facade::ApplicationSchema,
+{
     let staged = match running
         .admit_provider_execution_plan(graph)
         .and_then(|plan| plan.readmit())
@@ -160,6 +164,17 @@ pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
         }
     };
     let _serialization = provider.serialize_application_commit();
+    if admission
+        .capability_revalidation_request()
+        .is_some_and(|request| {
+            application
+                .validate_capability_at_current_time(request)
+                .is_err()
+        })
+    {
+        candidate.discard();
+        return denied(DenialStage::DecisionReadSet);
+    }
     if admission.validate_current_authority().is_err() {
         candidate.discard();
         return WorthQueryApplicationCommitOutcome::Cancelled;

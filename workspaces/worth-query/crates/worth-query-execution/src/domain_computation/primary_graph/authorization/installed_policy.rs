@@ -141,6 +141,13 @@ impl WorthQueryInstalledAuthorizationRegistry {
         self.capabilities.plan(capability)
     }
 
+    pub(super) fn capability_plan_by_identity(
+        &self,
+        capability_identity: &[u8; 32],
+    ) -> Option<&WorthQueryInstalledCapabilityPlan> {
+        self.capabilities.plan_by_identity(capability_identity)
+    }
+
     pub(in crate::domain_computation::primary_graph) const fn capability_compilation(
         &self,
     ) -> WorthQueryCapabilityPlanCompilationEvidence {

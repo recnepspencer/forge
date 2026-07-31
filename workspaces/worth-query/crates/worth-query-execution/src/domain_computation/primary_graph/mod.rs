@@ -80,9 +80,9 @@ pub use authenticated_principal::{
     WorthQueryApplicationPrincipalIdentity, WorthQueryAuthenticatedPrincipal,
 };
 pub use authorization::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
-    WorthQueryOperationScopeEntityBinding,
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
 };
 pub use bootstrap::{WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphPublication};
 pub use denial::{

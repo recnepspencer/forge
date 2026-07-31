@@ -158,10 +158,6 @@ fn map_authorized_read_denial(
     subject: &str,
 ) -> WorthQueryApplicationContinuationDenial {
     let (kind, subject) = match denial_value {
-        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => (
-            WorthQueryApplicationContinuationDenialKind::StalePrincipal,
-            subject.to_string(),
-        ),
         WorthQueryAuthorizedApplicationReadDenial::StaleScope
         | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => (
             WorthQueryApplicationContinuationDenialKind::StaleScope,

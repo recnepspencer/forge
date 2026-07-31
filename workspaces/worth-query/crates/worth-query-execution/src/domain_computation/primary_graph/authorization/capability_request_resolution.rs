@@ -38,7 +38,10 @@ pub(super) fn resolve_capability_request<Schema, Scope, Context>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     projection: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
     runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-) -> Result<WorthQueryResolvedCapabilityRequest<Schema, Scope>, WorthQueryOperationAuthorizationDenial>
+) -> Result<
+    WorthQueryResolvedCapabilityRequest<Schema, Scope>,
+    WorthQueryOperationAuthorizationDenial,
+>
 where
     Schema: ApplicationSchema,
 {

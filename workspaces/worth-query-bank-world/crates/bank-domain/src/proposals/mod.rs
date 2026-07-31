@@ -20,8 +20,7 @@ pub use effects::BankProposedEffect;
 pub use engine::BankProposalEngine;
 pub use idempotency::{
     BankIdempotencyClaim, BankIdempotencyIntent, BankIdempotencyKey, BankIdempotencyKeyIdentity,
-    BankOperationScopeBinding, BankOperationScopeEntityBinding,
-    BankOperationScopeSchemaBinding,
+    BankOperationScopeBinding, BankOperationScopeEntityBinding, BankOperationScopeSchemaBinding,
 };
 pub use snapshot::{BankSnapshot, BankSnapshotBuilder};
 

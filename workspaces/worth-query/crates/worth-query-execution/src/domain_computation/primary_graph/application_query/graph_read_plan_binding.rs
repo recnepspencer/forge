@@ -47,6 +47,9 @@ pub struct WorthQueryAdmittedApplicationQueryPlan<
     pub(super) continuation_index_id: Option<DerivedIndexId>,
     pub(super) continuation_state: Option<WorthQueryAdmittedContinuationState>,
     pub(super) basis: WorthQueryApplicationBasisLease,
+    pub(super) authorization:
+        crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
+    pub(super) authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
 }
 
 pub(super) struct WorthQueryAdmittedContinuationState {
@@ -107,5 +110,15 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
 
     pub fn runtime_authority_identity(&self) -> u64 {
         self.runtime_authority.as_u64()
+    }
+
+    pub fn authorization_decision_fact_count(&self) -> usize {
+        self.authorization.exact_fact_count()
+    }
+
+    pub const fn authorization_work(
+        &self,
+    ) -> super::WorthQueryApplicationAuthorizationWorkEvidence {
+        self.authorization_work
     }
 }

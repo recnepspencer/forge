@@ -131,10 +131,6 @@ fn map_authorized_read_denial(
     subject: &str,
 ) -> WorthQueryApplicationOneShotDenial {
     let (kind, subject) = match denial_value {
-        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => (
-            WorthQueryApplicationOneShotDenialKind::StalePrincipal,
-            subject.to_string(),
-        ),
         WorthQueryAuthorizedApplicationReadDenial::StaleScope
         | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => (
             WorthQueryApplicationOneShotDenialKind::StaleScope,

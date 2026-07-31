@@ -3,7 +3,7 @@ use std::sync::Arc;
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 
-pub(super) struct WorthQueryCapabilityCurrentnessAuthority {
+pub(in crate::domain_computation::primary_graph) struct WorthQueryCapabilityCurrentnessAuthority {
     capability_authority_identity: Arc<str>,
     timeline: ApplicationCapabilityValidityTimeline,
     sampled_value: AspectValue,
@@ -32,5 +32,17 @@ impl WorthQueryCapabilityCurrentnessAuthority {
 
     pub(super) const fn sampled_value(&self) -> &AspectValue {
         &self.sampled_value
+    }
+
+    pub(super) fn replace_sample(
+        &mut self,
+        timeline: ApplicationCapabilityValidityTimeline,
+        sampled_value: AspectValue,
+    ) -> bool {
+        if self.timeline != timeline {
+            return false;
+        }
+        self.sampled_value = sampled_value;
+        true
     }
 }

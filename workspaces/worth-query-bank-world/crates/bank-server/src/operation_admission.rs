@@ -48,9 +48,7 @@ impl<Operation, Input, Scope, ScopeIdentity: Copy>
     /// Descriptive components retained from Query's authenticated operation,
     /// principal, and typed scope binding. They grant no authority and cannot
     /// reconstruct this admission.
-    pub fn operation_scope_binding(
-        &self,
-    ) -> bank_domain::proposals::BankOperationScopeBinding {
+    pub fn operation_scope_binding(&self) -> bank_domain::proposals::BankOperationScopeBinding {
         let binding = self.query.operation_scope_binding();
         let schema = binding.binding_identity();
         let principal = binding.principal();

@@ -13,14 +13,17 @@ use worth_query_installation::facade::{
 };
 
 use super::{
-    control_validation::validate_controls, WorthQueryApplicationQueryAccessContext,
-    WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
-    WorthQueryApplicationQueryControls,
+    control_validation::validate_controls, WorthQueryApplicationAuthorizationWorkEvidence,
+    WorthQueryApplicationQueryAccessContext, WorthQueryApplicationQueryAdmissionDenial,
+    WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryApplicationQueryControls,
 };
 use crate::domain_computation::primary_graph::{
+    authorization::{
+        WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedAuthorizationDecisionFacts,
+    },
     entity_resolution::validate_entity_freshness_at_snapshot,
-    resolution::validate_freshness_at_snapshot, WorthQueryPrimaryGraphApplicationRuntime,
-    WorthQueryPrincipalResolutionDenialKind,
+    resolution::validate_freshness_at_snapshot,
+    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionDenialKind,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -57,12 +60,15 @@ where
         (
             WorthQueryAdmittedApplicationQueryParameters,
             WorthQueryApplicationQueryControls<'a, Schema>,
+            WorthQueryRetainedAuthorizationDecisionFacts,
+            WorthQueryApplicationAuthorizationWorkEvidence,
         ),
         WorthQueryApplicationQueryAdmissionDenial,
     > {
         validate_admission_request(controls.request_scope(), query.name())?;
         self.validate_installed_query(query)?;
-        self.validate_access(query, access, controls.request_scope())?;
+        let (authorization, authorization_work) =
+            self.validate_access(query, access, controls.request_scope())?;
         validate_controls(query, &controls)?;
         validate_disclosure(query)?;
         let parameters =
@@ -72,7 +78,7 @@ where
                     denial.parameter(),
                 )
             })?;
-        Ok((parameters, controls))
+        Ok((parameters, controls, authorization, authorization_work))
     }
 
     fn validate_installed_query<Query, Parameters, QueryResult, Scope>(
@@ -111,7 +117,13 @@ where
             Scope,
         >,
         request: &WorthQueryRequestScope,
-    ) -> Result<(), WorthQueryApplicationQueryAdmissionDenial> {
+    ) -> Result<
+        (
+            WorthQueryRetainedAuthorizationDecisionFacts,
+            WorthQueryApplicationAuthorizationWorkEvidence,
+        ),
+        WorthQueryApplicationQueryAdmissionDenial,
+    > {
         self.validate_authenticated_principal(access.principal(), request)
             .map_err(|denial| {
                 WorthQueryApplicationQueryAdmissionDenial::new(
@@ -162,7 +174,9 @@ where
             .external_identity()
             .clone()
             .into_foundational_value();
-        graph.integration_handle().with_runtime_mut(|runtime| {
+        let principal_currentness =
+            WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
+        let policy = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
             let result = validate_freshness_at_snapshot(
                 runtime,
@@ -187,12 +201,16 @@ where
             })
             .and_then(|()| {
                 self.observe_query_authorization(runtime, snapshot.clone(), query, access)
-                    .map(drop)
                     .map_err(map_authorization_denial)
             });
             runtime.snapshots().release_snapshot(&snapshot);
             result
-        })
+        })?;
+        let work = WorthQueryApplicationAuthorizationWorkEvidence::from_dependencies(&policy);
+        Ok((
+            WorthQueryRetainedAuthorizationDecisionFacts::new(principal_currentness, policy),
+            work,
+        ))
     }
 }
 

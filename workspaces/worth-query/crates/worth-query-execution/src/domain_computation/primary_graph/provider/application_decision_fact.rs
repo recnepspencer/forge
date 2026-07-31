@@ -34,9 +34,9 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
 
     pub(in crate::domain_computation::primary_graph) fn authorization(
         requirement_ordinal: usize,
-        dependency: super::super::authorization::WorthQueryAuthorizationCommitDependency,
+        dependency: super::super::authorization::WorthQueryAuthorizationDecisionFact,
     ) -> Self {
-        let super::super::authorization::WorthQueryAuthorizationCommitDependency {
+        let super::super::authorization::WorthQueryAuthorizationDecisionFact {
             relational: observation,
             bridge,
         } = dependency;

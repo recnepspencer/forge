@@ -13,6 +13,7 @@ use worth_query_installation::facade::{
 use worth_relational::facade::authorization::RelationalAuthorizationObservationCounters;
 
 use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
+use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryRetainedAuthorizationDecisionFacts,
@@ -39,6 +40,15 @@ impl WorthQueryOperationAdmissionIdentity {
 }
 
 use super::WorthQueryOperationScopeBinding;
+
+pub(super) enum WorthQueryOperationAuthorizationBasis<Input> {
+    Conventional,
+    Capability {
+        input: Input,
+        currentness: WorthQueryCapabilityCurrentnessAuthority,
+        revalidation: WorthQueryRetainedCapabilityRequest,
+    },
+}
 
 /// Query-owned proof that one installed operation was authorized for one exact
 /// current principal and typed scope.
@@ -71,8 +81,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     mutation_preconditions:
         super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
     authorization: Option<WorthQueryRetainedAuthorizationDecisionFacts>,
-    capability_input: Option<Input>,
-    capability_currentness: Option<WorthQueryCapabilityCurrentnessAuthority>,
+    authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
 }
 
@@ -94,6 +103,7 @@ impl<Schema, Operation, Input, Scope>
         mutation_preconditions:
             super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
         authorization: WorthQueryRetainedAuthorizationDecisionFacts,
+        authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
     ) -> Result<Self, ()> {
         let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or(())?;
         let resource_binding_identity = Arc::<str>::from(format!(
@@ -121,20 +131,9 @@ impl<Schema, Operation, Input, Scope>
             contracts,
             mutation_preconditions,
             authorization: Some(authorization),
-            capability_input: None,
-            capability_currentness: None,
+            authorization_basis,
             _marker: PhantomData,
         })
-    }
-
-    pub(super) fn bind_capability_authority(
-        mut self,
-        input: Input,
-        currentness: WorthQueryCapabilityCurrentnessAuthority,
-    ) -> Self {
-        self.capability_input = Some(input);
-        self.capability_currentness = Some(currentness);
-        self
     }
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
@@ -217,93 +216,104 @@ impl<Schema, Operation, Input, Scope>
     }
 
     pub fn authorization_requirement_count(&self) -> usize {
-        self.authorization
-            .as_ref()
-            .map_or(0, WorthQueryRetainedAuthorizationDecisionFacts::policy_count)
+        self.authorization.as_ref().map_or(
+            0,
+            WorthQueryRetainedAuthorizationDecisionFacts::policy_count,
+        )
     }
 
     pub fn authorization_decision_fact_count(&self) -> usize {
-        self.authorization
-            .as_ref()
-            .map_or(0, WorthQueryRetainedAuthorizationDecisionFacts::exact_fact_count)
+        self.authorization.as_ref().map_or(
+            0,
+            WorthQueryRetainedAuthorizationDecisionFacts::exact_fact_count,
+        )
     }
 
     pub const fn capability_input(&self) -> Option<&Input> {
-        self.capability_input.as_ref()
+        match &self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::Conventional => None,
+            WorthQueryOperationAuthorizationBasis::Capability { input, .. } => Some(input),
+        }
     }
 
     pub fn installed_capability_authority_identity(&self) -> Option<&str> {
-        self.capability_currentness
-            .as_ref()
-            .map(WorthQueryCapabilityCurrentnessAuthority::capability_authority_identity)
+        match &self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::Conventional => None,
+            WorthQueryOperationAuthorizationBasis::Capability { currentness, .. } => {
+                Some(currentness.capability_authority_identity())
+            }
+        }
     }
 
     pub fn capability_time_timeline(
         &self,
     ) -> Option<
         worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline,
-    > {
-        self.capability_currentness
-            .as_ref()
-            .map(WorthQueryCapabilityCurrentnessAuthority::timeline)
+    >{
+        match &self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::Conventional => None,
+            WorthQueryOperationAuthorizationBasis::Capability { currentness, .. } => {
+                Some(currentness.timeline())
+            }
+        }
     }
 
     pub fn capability_time_sample(&self) -> Option<&worth_foundational::facade::AspectValue> {
-        self.capability_currentness
-            .as_ref()
-            .map(WorthQueryCapabilityCurrentnessAuthority::sampled_value)
+        match &self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::Conventional => None,
+            WorthQueryOperationAuthorizationBasis::Capability { currentness, .. } => {
+                Some(currentness.sampled_value())
+            }
+        }
     }
 
     pub fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
         self.authorization
             .as_ref()
-            .map(WorthQueryRetainedAuthorizationDecisionFacts::policy)
+            .map(WorthQueryRetainedAuthorizationDecisionFacts::relational_counters)
             .unwrap_or_default()
-            .iter()
-            .fold(
-            RelationalAuthorizationObservationCounters::default(),
-            |mut total, requirement| {
-                let counters = requirement.relational.counters();
-                total.paths_evaluated += counters.paths_evaluated;
-                total.adjacency_lists_read += counters.adjacency_lists_read;
-                total.adjacency_edges_inspected += counters.adjacency_edges_inspected;
-                total.relation_records_inspected += counters.relation_records_inspected;
-                total.entity_records_inspected += counters.entity_records_inspected;
-                total.predicate_fields_inspected += counters.predicate_fields_inspected;
-                total.maximum_frontier_width = total
-                    .maximum_frontier_width
-                    .max(counters.maximum_frontier_width);
-                total.reconstructive_graph_scans += counters.reconstructive_graph_scans;
-                total.reconstructive_relation_records_scanned +=
-                    counters.reconstructive_relation_records_scanned;
-                total
-            },
-        )
     }
 
     pub fn signal_dependency_count(&self) -> usize {
         self.authorization
             .as_ref()
-            .map(WorthQueryRetainedAuthorizationDecisionFacts::policy)
-            .unwrap_or_default()
-            .iter()
-            .map(|requirement| {
-                let counters = requirement.bridge.counters();
-                counters.entities_depended_on
-                    + counters.relations_depended_on
-                    + counters.adjacency_lists_depended_on
-                    + counters.fields_depended_on
-            })
-            .sum()
+            .map(WorthQueryRetainedAuthorizationDecisionFacts::signal_dependency_count)
+            .unwrap_or(0)
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn capability_authorization_parts_mut(
+        &mut self,
+    ) -> Option<(
+        &WorthQueryRetainedCapabilityRequest,
+        &mut WorthQueryCapabilityCurrentnessAuthority,
+        &mut WorthQueryRetainedAuthorizationDecisionFacts,
+    )> {
+        let authorization = self.authorization.as_mut()?;
+        match &mut self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::Conventional => None,
+            WorthQueryOperationAuthorizationBasis::Capability {
+                currentness,
+                revalidation,
+                ..
+            } => Some((revalidation, currentness, authorization)),
+        }
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn capability_revalidation_request(
+        &self,
+    ) -> Option<&WorthQueryRetainedCapabilityRequest> {
+        match &self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::Conventional => None,
+            WorthQueryOperationAuthorizationBasis::Capability { revalidation, .. } => {
+                Some(revalidation)
+            }
+        }
     }
 
     pub(in crate::domain_computation::primary_graph) fn take_authorization_dependencies(
         &mut self,
         bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
-    ) -> Result<
-        WorthQueryRetainedAuthorizationDecisionFacts,
-        WorthQueryOperationAuthorizationDenial,
-    >
+    ) -> Result<WorthQueryRetainedAuthorizationDecisionFacts, WorthQueryOperationAuthorizationDenial>
     {
         let authorization = self.authorization.take().ok_or_else(|| {
             WorthQueryOperationAuthorizationDenial::new(

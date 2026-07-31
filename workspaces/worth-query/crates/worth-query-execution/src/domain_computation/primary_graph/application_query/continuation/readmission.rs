@@ -72,7 +72,7 @@ where
             affinity.basis_version,
             controls,
         );
-        let (parameters, query_controls) =
+        let (parameters, query_controls, authorization, authorization_work) =
             self.prepare_application_query_admission(query, access, parameters, query_controls)?;
         if !parameters
             .canonical_basis()
@@ -83,8 +83,14 @@ where
                 query.name(),
             ));
         }
-        let mut plan =
-            self.finish_application_query_admission(query, access, parameters, query_controls)?;
+        let mut plan = self.finish_application_query_admission(
+            query,
+            access,
+            parameters,
+            query_controls,
+            authorization,
+            authorization_work,
+        )?;
         plan.continuation_state = Some(WorthQueryAdmittedContinuationState {
             expected_generation: affinity.index_generation,
             boundary: affinity.boundary,

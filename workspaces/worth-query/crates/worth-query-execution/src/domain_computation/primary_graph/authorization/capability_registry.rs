@@ -127,6 +127,13 @@ impl WorthQueryInstalledCapabilityRegistry {
         self.plans.get(capability.identity().bytes())
     }
 
+    pub(super) fn plan_by_identity(
+        &self,
+        capability_identity: &[u8; 32],
+    ) -> Option<&WorthQueryInstalledCapabilityPlan> {
+        self.plans.get(capability_identity)
+    }
+
     pub(super) const fn compilation(&self) -> WorthQueryCapabilityPlanCompilationEvidence {
         self.compilation
     }

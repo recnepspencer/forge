@@ -3,11 +3,10 @@ use worth_query_installation::facade::{
     WorthQueryInstalledApplicationQuery, WorthQueryInstalledApplicationQueryAuthorization,
 };
 
-use super::{
-    WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationQueryAccessContext,
-};
+use super::WorthQueryApplicationQueryAccessContext;
 use crate::domain_computation::primary_graph::{
-    WorthQueryOperationAuthorizationDenial, WorthQueryPrimaryGraphApplicationRuntime,
+    authorization::WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
+    WorthQueryPrimaryGraphApplicationRuntime,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -33,14 +32,12 @@ where
             PrincipalIdentity,
             Scope,
         >,
-    ) -> Result<
-        WorthQueryApplicationAuthorizationWorkEvidence,
-        WorthQueryOperationAuthorizationDenial,
-    > {
+    ) -> Result<Vec<WorthQueryAuthorizationDecisionFact>, WorthQueryOperationAuthorizationDenial>
+    {
         let WorthQueryInstalledApplicationQueryAuthorization::Ability(requirement) =
             query.authorization()
         else {
-            return Ok(WorthQueryApplicationAuthorizationWorkEvidence::default());
+            return Ok(Vec::new());
         };
         self.observe_authorization_requirements(
             runtime,
@@ -50,8 +47,5 @@ where
             query.binding_identity(),
             std::slice::from_ref(requirement),
         )
-        .map(|dependencies| {
-            WorthQueryApplicationAuthorizationWorkEvidence::from_dependencies(&dependencies)
-        })
     }
 }

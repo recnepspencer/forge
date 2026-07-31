@@ -1,19 +1,16 @@
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
-use worth_query_declaration::facade::{
-    application_capability::ApplicationCapabilityRequest,
-    application_schema::TypedMutationPreconditions,
-};
+use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
 use worth_query_installation::facade::{
     ApplicationSchema, TypedApplicationValue, WorthQueryInstalledApplicationCapability,
-    WorthQueryInstalledApplicationOperation,
 };
 
-use super::admission::{admit_request, operation_scope_binding, validate_static_authority};
+use super::admission::admit_request;
 use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
 use super::capability_observation::observe_capability;
 use super::capability_request_resolution::resolve_capability_request;
+use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalCurrentnessDependency,
     WorthQueryRetainedAuthorizationDecisionFacts,
 };
@@ -26,102 +23,62 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
-    pub fn authorize_capability_operation<
-        Principal,
-        PrincipalIdentity,
-        Capability,
-        Operation,
-        Input,
-    >(
+    pub fn admit_capability_access<Principal, PrincipalIdentity, Capability, Operation, Input>(
         &self,
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
-        capability: &WorthQueryInstalledApplicationCapability<
-            Schema,
-            Capability,
-            Operation,
-            Input,
-        >,
-        operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+        capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
         input: Input,
-        preconditions: TypedMutationPreconditions<
-            Schema,
-            Operation,
-            <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
-        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
-        WorthQueryAdmittedApplicationOperation<
-            Schema,
-            Operation,
-            Input,
-            <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
-        >,
+        WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
         WorthQueryOperationAuthorizationDenial,
     >
     where
         Input: ApplicationCapabilityRequest<Schema, Capability>,
     {
-        admit_request(request, operation.operation())?;
-        self.installed_schema
-            .validate_installed_capability(capability)
-            .map_err(|denial| {
-                WorthQueryOperationAuthorizationDenial::new(
-                    WorthQueryOperationAuthorizationDenialKind::StaleInstalledOperation,
-                    denial.subject(),
-                )
-            })?;
-        self.runtime
-            .installed_packages()
-            .validate_application_operation(operation)
-            .map_err(|_| {
-                WorthQueryOperationAuthorizationDenial::new(
-                    WorthQueryOperationAuthorizationDenialKind::StaleInstalledOperation,
-                    operation.operation(),
-                )
-            })?;
+        admit_request(request, capability.contract().operation())?;
+        validate_capability_static_authority(self, principal, capability)?;
         let installed = self
             .authorization
             .capability_plan(capability)
             .ok_or_else(|| {
-                WorthQueryOperationAuthorizationDenial::new(
+                denial(
                     WorthQueryOperationAuthorizationDenialKind::PolicyNotInstalled,
                     capability.contract().name(),
                 )
             })?;
-        if operation.operation() != installed.contract.operation()
-            || !self.authorization.bridge().matches_installed_policy(
-                installed.correspondence,
-                operation.binding_identity(),
-                installed.contract.name(),
-                &installed.request.resource_entity,
-                installed.contract.operation(),
-                &installed.bridge_rules,
-            )
-        {
-            return Err(WorthQueryOperationAuthorizationDenial::new(
+        if !self.authorization.bridge().matches_installed_policy(
+            installed.correspondence,
+            capability.binding_identity(),
+            installed.contract.name(),
+            &installed.request.resource_entity,
+            installed.contract.operation(),
+            &installed.bridge_rules,
+        ) {
+            return Err(denial(
                 WorthQueryOperationAuthorizationDenialKind::PolicyNotInstalled,
                 capability.contract().name(),
             ));
         }
-        let projection = input.capability_request().map_err(|denial| {
-            WorthQueryOperationAuthorizationDenial::new(
+        let projection = input.capability_request().map_err(|projection_denial| {
+            denial(
                 WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
-                denial.subject(),
+                projection_denial.subject(),
             )
         })?;
         let sample = self
             .authorization_clock
             .sample(installed.request.timeline)
             .map_err(|_| {
-                WorthQueryOperationAuthorizationDenial::new(
+                denial(
                     WorthQueryOperationAuthorizationDenialKind::TrustedTimeUnavailable,
                     capability.contract().name(),
                 )
             })?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
-            WorthQueryOperationAuthorizationDenial::new(
+            denial(
                 WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
-                operation.operation(),
+                capability.contract().operation(),
             )
         })?;
         let principal_layout = graph
@@ -129,7 +86,7 @@ where
             .principal_binding(principal.binding())
             .cloned()
             .ok_or_else(|| {
-                WorthQueryOperationAuthorizationDenial::new(
+                denial(
                     WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
                     principal.binding(),
                 )
@@ -140,98 +97,130 @@ where
             .into_foundational_value();
         let principal_currentness =
             WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
-        let (resolved, authorization) = graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
-            let result = (|| {
-                validate_freshness_at_snapshot(
-                    runtime,
-                    &snapshot,
-                    principal,
-                    &principal_layout,
-                    &expected_external_identity,
-                )
-                .map_err(|_| {
-                    WorthQueryOperationAuthorizationDenial::new(
-                        WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                        principal.binding(),
+        let (resolved, revalidation, authorization) =
+            graph.integration_handle().with_runtime_mut(|runtime| {
+                let snapshot = runtime.snapshots().snapshot();
+                let result = (|| {
+                    validate_freshness_at_snapshot(
+                        runtime,
+                        &snapshot,
+                        principal,
+                        &principal_layout,
+                        &expected_external_identity,
                     )
-                })?;
-                let resolved = resolve_capability_request(
-                    runtime,
-                    &snapshot,
-                    &graph.layout,
-                    &self.installed_schema,
-                    &projection,
-                    self.runtime.authority_identity(),
-                )?;
-                let authorization = observe_capability(
-                    runtime,
-                    snapshot.clone(),
-                    self.authorization.bridge(),
-                    installed,
-                    principal.principal_entity_id(),
-                    &projection,
-                    &resolved,
-                    &sample,
-                )?;
-                Ok((resolved, authorization))
-            })();
-            runtime.snapshots().release_snapshot(&snapshot);
-            result
-        })?;
-        validate_static_authority(self, principal, &resolved.resource, operation)?;
-        let preconditions =
-            super::super::application_attempt::precondition_binding::bind_mutation_preconditions(
-                preconditions,
-                operation.contracts(),
-                resolved.resource.entity_name(),
-                resolved.resource.entity_id(),
-                &graph.layout,
-            )
-            .map_err(|()| {
-                WorthQueryOperationAuthorizationDenial::new(
-                    WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
-                    operation.operation(),
-                )
+                    .map_err(|_| {
+                        denial(
+                            WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
+                            principal.binding(),
+                        )
+                    })?;
+                    let resolved = resolve_capability_request(
+                        runtime,
+                        &snapshot,
+                        &graph.layout,
+                        &self.installed_schema,
+                        &projection,
+                        self.runtime.authority_identity(),
+                    )?;
+                    let revalidation = WorthQueryRetainedCapabilityRequest::capture(
+                        *capability.identity().bytes(),
+                        principal.principal_entity_id(),
+                        &projection,
+                        &resolved,
+                    );
+                    let authorization = observe_capability(
+                        runtime,
+                        snapshot.clone(),
+                        self.authorization.bridge(),
+                        installed,
+                        &revalidation,
+                        &sample,
+                    )?;
+                    Ok((resolved, revalidation, authorization))
+                })();
+                runtime.snapshots().release_snapshot(&snapshot);
+                result
             })?;
-        admit_request(request, operation.operation())?;
+        admit_request(request, capability.contract().operation())?;
         if principal.is_expired() {
-            return Err(WorthQueryOperationAuthorizationDenial::new(
+            return Err(denial(
                 WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication,
                 principal.binding(),
             ));
         }
-        let admission = WorthQueryAdmittedApplicationOperation::mint(
+        Ok(WorthQueryAdmittedApplicationCapabilityAccess::mint(
             self.runtime.authority_identity(),
-            operation.binding_identity().clone(),
-            operation.operation().to_string(),
-            operation.authority_identity().to_string(),
-            operation_scope_binding(self, principal, &resolved.resource, operation),
-            resolved.resource.entity_id(),
-            resolved.resource.entity_kind(),
-            resolved.resource.entity_name().to_string(),
+            capability.binding_identity().clone(),
+            capability.contract().operation(),
+            principal.principal_entity_id(),
+            input,
+            projection,
+            resolved,
             principal.valid_until(),
             request.clone(),
-            operation.contracts().clone(),
-            preconditions,
-            WorthQueryRetainedAuthorizationDecisionFacts::new(
-                principal_currentness,
-                vec![authorization],
-            ),
-        )
-        .map_err(|_| {
-            WorthQueryOperationAuthorizationDenial::new(
-                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
-                operation.operation(),
-            )
-        })?;
-        Ok(admission.bind_capability_authority(
-            input,
             WorthQueryCapabilityCurrentnessAuthority::new(
                 installed.capability_authority_identity.clone(),
                 sample.timeline(),
                 sample.value().clone(),
             ),
+            revalidation,
+            WorthQueryRetainedAuthorizationDecisionFacts::new(
+                principal_currentness,
+                vec![authorization],
+            ),
         ))
     }
+}
+
+fn validate_capability_static_authority<
+    Schema,
+    Principal,
+    PrincipalIdentity,
+    Capability,
+    Operation,
+    Input,
+>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+    capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
+) -> Result<(), WorthQueryOperationAuthorizationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    if principal.is_expired() {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication,
+            principal.binding(),
+        ));
+    }
+    if principal.runtime_authority() != runtime.runtime.authority_identity() {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
+            capability.contract().name(),
+        ));
+    }
+    if principal.binding_identity() != capability.binding_identity()
+        || runtime.installed_schema.binding_identity() != *capability.binding_identity()
+    {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::StaleInstalledSchema,
+            capability.contract().name(),
+        ));
+    }
+    runtime
+        .installed_schema
+        .validate_installed_capability(capability)
+        .map_err(|installation_denial| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::StaleInstalledOperation,
+                installation_denial.subject(),
+            )
+        })
+}
+
+fn denial(
+    kind: WorthQueryOperationAuthorizationDenialKind,
+    subject: impl Into<String>,
+) -> WorthQueryOperationAuthorizationDenial {
+    WorthQueryOperationAuthorizationDenial::new(kind, subject)
 }

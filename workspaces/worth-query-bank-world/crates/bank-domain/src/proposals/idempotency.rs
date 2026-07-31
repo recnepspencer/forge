@@ -127,21 +127,9 @@ impl BankIdempotencyClaim {
             KEY_DOMAIN,
             KEY_RULE_VERSION,
             [
-                unsigned_entry(
-                    KEY_DOMAIN,
-                    "runtime-authority",
-                    binding.runtime_authority,
-                ),
-                unsigned_entry(
-                    KEY_DOMAIN,
-                    "schema-runtime",
-                    binding.schema.runtime_ordinal,
-                ),
-                unsigned_entry(
-                    KEY_DOMAIN,
-                    "schema-generation",
-                    binding.schema.generation,
-                ),
+                unsigned_entry(KEY_DOMAIN, "runtime-authority", binding.runtime_authority),
+                unsigned_entry(KEY_DOMAIN, "schema-runtime", binding.schema.runtime_ordinal),
+                unsigned_entry(KEY_DOMAIN, "schema-generation", binding.schema.generation),
                 digest_entry(
                     KEY_DOMAIN,
                     "schema-package",
