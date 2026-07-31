@@ -95,6 +95,20 @@ impl UiMountedFrameRetentionCoordinator {
         Ok(UiPresentedHitTestBasis::new(presentation, relation, rows))
     }
 
+    pub(crate) fn current_projection_input(
+        &self,
+        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Option<worth_ui_query_binding::UiProjectionInputFactReference> {
+        let authority = self.authority.borrow();
+        match authority.current_frame() {
+            UiMountedRetainedFrameLookup::Found { evidence, .. } => {
+                evidence.projection_input(identity).cloned()
+            }
+            UiMountedRetainedFrameLookup::Expired { .. }
+            | UiMountedRetainedFrameLookup::Unknown { .. } => None,
+        }
+    }
+
     pub(crate) fn inspect(
         &self,
         selection: UiMountedFrameInspectionSelection,

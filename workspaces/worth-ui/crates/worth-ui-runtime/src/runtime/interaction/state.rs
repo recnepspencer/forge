@@ -65,7 +65,7 @@ impl UiInteractionRuntimeState {
                 UiPointerGestureOutcome::Completed(gesture) => {
                     self.record_semantic();
                     UiInteractionTransition::Semantic(UiSemanticInteraction::Activate(
-                        UiActivateInteraction::from_pointer(gesture),
+                        UiActivateInteraction::from_pointer(gesture, generation.clone()),
                     ))
                 }
                 UiPointerGestureOutcome::Stopped(stop) => {
@@ -103,6 +103,17 @@ impl UiInteractionRuntimeState {
         mounted: &crate::mounting::WorthUiMountedSessionState,
     ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
         self.draft.bind(activation, generation, contract, mounted)
+    }
+
+    pub(crate) fn commit_selection(
+        &mut self,
+        activation: UiActivateInteraction,
+        option: worth_ui_query_binding::UiProjectionOptionReference,
+        mounted: &crate::mounting::WorthUiMountedSessionState,
+    ) -> Result<super::UiSelectionCommitInteraction, super::UiSelectionCommitStop> {
+        let interaction = super::semantic::commit_selection(activation, option, mounted)?;
+        self.record_semantic();
+        Ok(interaction)
     }
 
     pub(crate) fn snapshot(&self) -> UiInteractionStateSnapshot {

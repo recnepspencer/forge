@@ -106,6 +106,13 @@ impl UiRetainedPresentedFrame {
         self.identity_trace_basis.clone()
     }
 
+    pub(crate) fn projection_input(
+        &self,
+        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Option<&worth_ui_query_binding::UiProjectionInputFactReference> {
+        self.identity_trace_basis.projection_input(identity)
+    }
+
     pub(crate) fn set_mount_cost(&mut self, mount_cost: super::super::UiMountCostReport) {
         self.mount_cost = mount_cost;
     }

@@ -32,6 +32,7 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) intent_catalog: crate::declaration::UiIntentCatalog,
     pub(crate) lifecycle: WorthUiFacadeLifecycleBootstrap,
     pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     pub(crate) host_session_plan: WorthUiHostSessionPlan,
     pub(crate) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(crate) runtime_instance_basis_admissions:
@@ -68,6 +69,7 @@ pub struct WorthUiPreparedApplicationAuthority {
     graph_aspect_evidence_indexes: UiGraphAspectEvidenceIndexes,
     consumed_fact_index: UiGraphConsumedFactIndex,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     host_session_plan: WorthUiHostSessionPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     runtime_instance_basis_admissions: Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
@@ -91,6 +93,7 @@ impl WorthUiPreparedApplicationAuthority {
             intent_catalog,
             lifecycle,
             query_binding_plan,
+            intent_application_facts,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
@@ -142,6 +145,7 @@ impl WorthUiPreparedApplicationAuthority {
             graph_aspect_evidence_indexes: graph_evidence.aspect,
             consumed_fact_index,
             query_binding_plan,
+            intent_application_facts,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
@@ -224,6 +228,12 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub(crate) fn query_binding_plan(&self) -> &worth_ui_query_binding::WorthUiQueryBindingPlan {
         &self.query_binding_plan
+    }
+
+    pub(crate) fn intent_application_fact_plan(
+        &self,
+    ) -> &crate::declaration::UiIntentApplicationFactPlan {
+        &self.intent_application_facts
     }
 
     pub(crate) fn lowering_authority(&self) -> WorthUiPreparedApplicationLoweringAuthority {
@@ -358,6 +368,7 @@ fn derive_prepared_application_authorities(
             semantic_package: input.semantic_handoff.identity().clone(),
             graph_authority_digest: input.graph_snapshot.authority_digest(),
             query_binding_plan: &input.query_binding_plan,
+            intent_application_fact_digest: input.intent_application_facts.digest_basis(),
             host_session_plan: &input.host_session_plan,
             visual_inspection_policy: input.visual_inspection_policy,
             change_profile: input.change_profile,

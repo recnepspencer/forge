@@ -2,18 +2,26 @@
 
 pub use crate::capability::{
     FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent,
-    UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentDefinitionRegistrationError,
-    UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
-    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
-    UiSemanticInteractionFamily,
+    UiIntentAcceptedInteractions, UiIntentBoolean, UiIntentDefinition,
+    UiIntentDefinitionRegistrationError, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
+    UiIntentPayloadField, UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind,
+    UiIntentPayloadFieldSet, UiIntentPayloadProjection, UiIntentPayloadProjectionViolation,
+    UiIntentPayloadSchemaViolation, UiIntentPayloadValueKind, UiIntentProductOutcome,
+    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentSelection, UiIntentSelectionValue,
+    UiIntentText, UiIntentTransitionDestination, UiIntentUnsigned64, UiSemanticInteractionFamily,
+    UI_INTENT_PAYLOAD_FIELD_LIMIT, UI_INTENT_PAYLOAD_TEXT_BYTE_LIMIT,
 };
 pub use crate::declaration::{
-    UiIntentCatalogMetrics, UiIntentCatalogPreparationDenial, UiIntentConfirmationRouteBinding,
-    UiIntentDeclaration, UiIntentDeclarationConstructionError, UiIntentDeclarationIdentity,
-    UiIntentRouteBinding,
+    UiIntentApplicationFact, UiIntentApplicationFactIdentityError,
+    UiIntentApplicationFactRegistrationError, UiIntentCatalogMetrics,
+    UiIntentCatalogPreparationDenial, UiIntentConfirmationRouteBinding, UiIntentDeclaration,
+    UiIntentDeclarationConstructionError, UiIntentDeclarationIdentity,
+    UiIntentInteractionPayloadSourceKind, UiIntentPayloadSource, UiIntentRouteBinding,
 };
 pub use crate::runtime::intent::{
-    UiIntentRouteResolution, UiIntentRouteResolutionStop, UiResolvedConfirmationIntentRoute,
-    UiResolvedProductIntentRoute,
+    UiIntentApplicationFactUpdateDenial, UiIntentApplicationFactUpdateReceipt,
+    UiIntentInputBasisReceipt, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
+    UiIntentRouteResolution, UiIntentRouteResolutionStop, UiPreparedIntentPayload,
+    UiResolvedConfirmationIntentRoute, UiResolvedProductIntentRoute,
 };
 pub use crate::runtime::interaction::UiIntentRouteSource;

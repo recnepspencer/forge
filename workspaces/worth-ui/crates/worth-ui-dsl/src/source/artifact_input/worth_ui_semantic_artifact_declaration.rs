@@ -16,6 +16,7 @@ pub struct WorthUiSemanticArtifactDeclaration {
     structural_tokens: Vec<UiDslStructuralToken>,
     posture_tokens: Vec<UiDslPostureToken>,
     support_tokens: Vec<UiDslSupportToken>,
+    intent: Option<crate::WorthUiIntentDeclarationMeaning>,
 }
 
 impl WorthUiSemanticArtifactDeclaration {
@@ -28,6 +29,7 @@ impl WorthUiSemanticArtifactDeclaration {
             structural_tokens: Vec::new(),
             posture_tokens: Vec::new(),
             support_tokens: Vec::new(),
+            intent: None,
         }
     }
 
@@ -84,12 +86,27 @@ impl WorthUiSemanticArtifactDeclaration {
         &self.support_tokens
     }
 
+    pub fn intent_declaration(&self) -> Option<&crate::WorthUiIntentDeclarationMeaning> {
+        self.intent.as_ref()
+    }
+
+    pub(crate) fn with_intent_declaration(
+        mut self,
+        intent: crate::WorthUiIntentDeclarationMeaning,
+    ) -> Self {
+        self.intent = Some(intent);
+        self
+    }
+
     pub(crate) fn canonicalize(mut self) -> Self {
         canonicalize_set(&mut self.published_aspects);
         canonicalize_set(&mut self.consumed_aspects);
         canonicalize_set(&mut self.structural_tokens);
         canonicalize_set(&mut self.posture_tokens);
         canonicalize_set(&mut self.support_tokens);
+        if let Some(intent) = &mut self.intent {
+            intent.canonicalize();
+        }
         self
     }
 
@@ -101,6 +118,9 @@ impl WorthUiSemanticArtifactDeclaration {
         fold_values(digest, &self.structural_tokens);
         fold_values(digest, &self.posture_tokens);
         fold_values(digest, &self.support_tokens);
+        if let Some(intent) = &self.intent {
+            intent.fold_source_revision(digest);
+        }
     }
 }
 

@@ -64,6 +64,13 @@ impl UiMountedIdentityTraceBasis {
         &self.authored_source
     }
 
+    pub(crate) fn projection_input(
+        &self,
+        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Option<&worth_ui_query_binding::UiProjectionInputFactReference> {
+        self.semantic.projection_input(identity)
+    }
+
     pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {
         std::mem::size_of::<Self>()
             .checked_add(self.receipts.retained_structural_bytes()?)?

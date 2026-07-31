@@ -1,0 +1,283 @@
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use crate::capability::{
+    UiIntentBoolean, UiIntentPayloadFieldKind, UiIntentText, UiIntentUnsigned64,
+};
+use crate::declaration::{
+    UiIntentApplicationFact, UiIntentApplicationFactPlan, UiIntentApplicationFactValue,
+};
+
+pub(crate) struct UiIntentApplicationFactState {
+    generation:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    facts: BTreeMap<Arc<str>, UiIntentApplicationFactRecord>,
+}
+
+struct UiIntentApplicationFactRecord {
+    revision: u64,
+    text_byte_budget: usize,
+    value: UiIntentApplicationFactValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiIntentApplicationFactUpdateReceipt {
+    identity: Arc<str>,
+    revision: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum UiIntentApplicationFactUpdateDenial {
+    UnknownFact {
+        identity: Box<str>,
+    },
+    FactKindMismatch {
+        identity: Box<str>,
+        registered: UiIntentPayloadFieldKind,
+        submitted: UiIntentPayloadFieldKind,
+    },
+    TextBudgetExceeded {
+        identity: Box<str>,
+        observed: usize,
+        maximum: usize,
+    },
+    RevisionExhausted {
+        identity: Box<str>,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct UiIntentApplicationInputRevision {
+    generation:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    identity: Arc<str>,
+    revision: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum UiIntentApplicationInputReference {
+    Text {
+        revision: UiIntentApplicationInputRevision,
+        value: Arc<str>,
+    },
+    Boolean {
+        revision: UiIntentApplicationInputRevision,
+        value: bool,
+    },
+    Unsigned64 {
+        revision: UiIntentApplicationInputRevision,
+        value: u64,
+    },
+}
+
+impl UiIntentApplicationFactState {
+    pub(crate) fn activate(
+        plan: &UiIntentApplicationFactPlan,
+        generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+    ) -> Self {
+        let facts = plan
+            .entries()
+            .map(|(identity, definition)| {
+                (
+                    Arc::clone(identity),
+                    UiIntentApplicationFactRecord {
+                        revision: 1,
+                        text_byte_budget: definition.text_byte_budget(),
+                        value: definition.initial().clone(),
+                    },
+                )
+            })
+            .collect();
+        Self { generation, facts }
+    }
+
+    pub(crate) fn update_text(
+        &mut self,
+        fact: &UiIntentApplicationFact<UiIntentText>,
+        value: impl Into<Arc<str>>,
+    ) -> Result<UiIntentApplicationFactUpdateReceipt, UiIntentApplicationFactUpdateDenial> {
+        let value = value.into();
+        let record = self.require(fact.identity(), UiIntentPayloadFieldKind::Text)?;
+        if value.len() > record.text_byte_budget {
+            return Err(UiIntentApplicationFactUpdateDenial::TextBudgetExceeded {
+                identity: fact.identity().into(),
+                observed: value.len(),
+                maximum: record.text_byte_budget,
+            });
+        }
+        update_record(
+            fact.identity(),
+            record,
+            UiIntentApplicationFactValue::Text(value),
+        )
+    }
+
+    pub(crate) fn update_boolean(
+        &mut self,
+        fact: &UiIntentApplicationFact<UiIntentBoolean>,
+        value: bool,
+    ) -> Result<UiIntentApplicationFactUpdateReceipt, UiIntentApplicationFactUpdateDenial> {
+        let record = self.require(fact.identity(), UiIntentPayloadFieldKind::Boolean)?;
+        update_record(
+            fact.identity(),
+            record,
+            UiIntentApplicationFactValue::Boolean(value),
+        )
+    }
+
+    pub(crate) fn update_unsigned64(
+        &mut self,
+        fact: &UiIntentApplicationFact<UiIntentUnsigned64>,
+        value: u64,
+    ) -> Result<UiIntentApplicationFactUpdateReceipt, UiIntentApplicationFactUpdateDenial> {
+        let record = self.require(fact.identity(), UiIntentPayloadFieldKind::Unsigned64)?;
+        update_record(
+            fact.identity(),
+            record,
+            UiIntentApplicationFactValue::Unsigned64(value),
+        )
+    }
+
+    pub(crate) fn input_reference(
+        &self,
+        identity: &str,
+    ) -> Option<UiIntentApplicationInputReference> {
+        let record = self.facts.get(identity)?;
+        let revision = UiIntentApplicationInputRevision {
+            generation: self.generation.clone(),
+            identity: identity.into(),
+            revision: record.revision,
+        };
+        Some(match &record.value {
+            UiIntentApplicationFactValue::Text(value) => UiIntentApplicationInputReference::Text {
+                revision,
+                value: Arc::clone(value),
+            },
+            UiIntentApplicationFactValue::Boolean(value) => {
+                UiIntentApplicationInputReference::Boolean {
+                    revision,
+                    value: *value,
+                }
+            }
+            UiIntentApplicationFactValue::Unsigned64(value) => {
+                UiIntentApplicationInputReference::Unsigned64 {
+                    revision,
+                    value: *value,
+                }
+            }
+        })
+    }
+
+    fn require(
+        &mut self,
+        identity: &str,
+        submitted: UiIntentPayloadFieldKind,
+    ) -> Result<&mut UiIntentApplicationFactRecord, UiIntentApplicationFactUpdateDenial> {
+        let record = self.facts.get_mut(identity).ok_or_else(|| {
+            UiIntentApplicationFactUpdateDenial::UnknownFact {
+                identity: identity.into(),
+            }
+        })?;
+        let registered = value_kind(&record.value);
+        if registered != submitted {
+            return Err(UiIntentApplicationFactUpdateDenial::FactKindMismatch {
+                identity: identity.into(),
+                registered,
+                submitted,
+            });
+        }
+        Ok(record)
+    }
+}
+
+fn update_record(
+    identity: &str,
+    record: &mut UiIntentApplicationFactRecord,
+    value: UiIntentApplicationFactValue,
+) -> Result<UiIntentApplicationFactUpdateReceipt, UiIntentApplicationFactUpdateDenial> {
+    record.revision = record.revision.checked_add(1).ok_or_else(|| {
+        UiIntentApplicationFactUpdateDenial::RevisionExhausted {
+            identity: identity.into(),
+        }
+    })?;
+    record.value = value;
+    Ok(UiIntentApplicationFactUpdateReceipt {
+        identity: identity.into(),
+        revision: record.revision,
+    })
+}
+
+fn value_kind(value: &UiIntentApplicationFactValue) -> UiIntentPayloadFieldKind {
+    match value {
+        UiIntentApplicationFactValue::Text(_) => UiIntentPayloadFieldKind::Text,
+        UiIntentApplicationFactValue::Boolean(_) => UiIntentPayloadFieldKind::Boolean,
+        UiIntentApplicationFactValue::Unsigned64(_) => UiIntentPayloadFieldKind::Unsigned64,
+    }
+}
+
+impl UiIntentApplicationFactUpdateReceipt {
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub const fn revision(&self) -> u64 {
+        self.revision
+    }
+}
+
+impl UiIntentApplicationInputReference {
+    pub(crate) const fn revision(&self) -> &UiIntentApplicationInputRevision {
+        match self {
+            Self::Text { revision, .. }
+            | Self::Boolean { revision, .. }
+            | Self::Unsigned64 { revision, .. } => revision,
+        }
+    }
+
+    pub(crate) const fn kind(&self) -> UiIntentPayloadFieldKind {
+        match self {
+            Self::Text { .. } => UiIntentPayloadFieldKind::Text,
+            Self::Boolean { .. } => UiIntentPayloadFieldKind::Boolean,
+            Self::Unsigned64 { .. } => UiIntentPayloadFieldKind::Unsigned64,
+        }
+    }
+
+    pub(crate) fn text_value(&self) -> Option<Arc<str>> {
+        match self {
+            Self::Text { value, .. } => Some(Arc::clone(value)),
+            Self::Boolean { .. } | Self::Unsigned64 { .. } => None,
+        }
+    }
+
+    pub(crate) const fn boolean_value(&self) -> Option<bool> {
+        match self {
+            Self::Boolean { value, .. } => Some(*value),
+            Self::Text { .. } | Self::Unsigned64 { .. } => None,
+        }
+    }
+
+    pub(crate) const fn unsigned64_value(&self) -> Option<u64> {
+        match self {
+            Self::Unsigned64 { value, .. } => Some(*value),
+            Self::Text { .. } | Self::Boolean { .. } => None,
+        }
+    }
+}
+
+impl UiIntentApplicationInputRevision {
+    pub(crate) fn generation(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        &self.generation
+    }
+
+    pub(crate) fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub(crate) const fn revision(&self) -> u64 {
+        self.revision
+    }
+}

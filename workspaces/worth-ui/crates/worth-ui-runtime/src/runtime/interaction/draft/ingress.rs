@@ -83,6 +83,7 @@ impl UiDraftRuntimeState {
                         UiKeyboardActivationEvidence::new(UiKeyboardSemanticInput {
                             target,
                             presentation: context.core.presentation(),
+                            generation: context.generation.clone(),
                             sequence: context.sequence,
                             key,
                             modifiers,
@@ -96,6 +97,7 @@ impl UiDraftRuntimeState {
                         UiKeyboardSemanticInput {
                             target,
                             presentation: context.core.presentation(),
+                            generation: context.generation.clone(),
                             sequence: context.sequence,
                             key,
                             modifiers,

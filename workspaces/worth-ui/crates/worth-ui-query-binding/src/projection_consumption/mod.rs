@@ -4,6 +4,7 @@ mod collection_change_derivation;
 mod collection_derivation;
 mod collection_work_counters;
 mod fact_receipt;
+mod intent_input;
 mod native_value;
 mod posture;
 mod scalar;
@@ -27,6 +28,11 @@ pub(crate) use collection_derivation::{
 pub use collection_work_counters::UiCollectionProjectionWorkCounters;
 pub use fact_receipt::UiProjectionFactReceipt;
 pub(crate) use fact_receipt::UiProjectionFactReceiptInput;
+pub use intent_input::{
+    UiCollectionProjectionInputFact, UiProjectionInputCollectionRow,
+    UiProjectionInputFactReference, UiProjectionInputPosture, UiProjectionInputRevision,
+    UiProjectionOptionReference, UiScalarProjectionInputFact,
+};
 pub use native_value::UiNativeTextValue;
 pub use posture::{
     UiPresentProjection, UiProjectionAvailability, UiProjectionFactStopKind,

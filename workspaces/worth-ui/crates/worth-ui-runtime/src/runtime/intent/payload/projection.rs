@@ -1,0 +1,350 @@
+use std::sync::Arc;
+
+use crate::capability::{
+    UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind, UiIntentProjectedValue,
+    UiIntentSelectionValue,
+};
+use crate::declaration::{UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource};
+
+use super::{
+    UiIntentApplicationFactState, UiIntentApplicationInputReference, UiIntentInputBasis,
+    UiIntentInputBasisInput, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
+    UiPreparedIntentPayload,
+};
+
+pub(crate) fn prepare_intent_payload(
+    route: super::super::UiResolvedProductIntentRoute,
+    definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
+    generation: &crate::facade::prepared_application_authority::
+        WorthUiPreparedApplicationGenerationIdentity,
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    application_facts: &UiIntentApplicationFactState,
+) -> Result<UiPreparedIntentPayload, UiIntentPayloadStop> {
+    let (declaration, interaction) = route.into_parts();
+    validate_basis_entry(&interaction, generation, mounted)?;
+    let publication_frame = mounted
+        .view()
+        .current_frame()
+        .ok_or(UiIntentPayloadStop::NoCurrentPublication)?;
+    let definition = definitions.definition_at(declaration.definition());
+    let mut projection = PayloadProjection::new(
+        &interaction,
+        definition.payload_schema(),
+        generation,
+        mounted,
+        application_facts,
+    );
+    for binding in declaration.payload() {
+        projection.project(binding)?;
+    }
+    let (values, query_inputs, application_inputs, cost) = projection.finish();
+    let payload = definitions
+        .projector_at(declaration.definition())
+        .project(values)
+        .map_err(UiIntentPayloadStop::PayloadProjection)?;
+    let basis = UiIntentInputBasis::seal(UiIntentInputBasisInput {
+        generation: generation.clone(),
+        publication_frame,
+        target: interaction.target(),
+        interaction,
+        query_inputs,
+        application_inputs,
+        cost,
+    });
+    Ok(UiPreparedIntentPayload::new(
+        definition.id(),
+        declaration,
+        basis,
+        payload,
+    ))
+}
+
+fn validate_basis_entry(
+    interaction: &crate::runtime::interaction::UiSemanticInteraction,
+    generation: &crate::facade::prepared_application_authority::
+        WorthUiPreparedApplicationGenerationIdentity,
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+) -> Result<(), UiIntentPayloadStop> {
+    if interaction.generation() != generation {
+        return Err(UiIntentPayloadStop::ApplicationGenerationChanged);
+    }
+    if mounted.has_active_presentation_attempt() {
+        return Err(UiIntentPayloadStop::PublicationTransitionInFlight);
+    }
+    crate::runtime::interaction::targeting::require_current_target(mounted, interaction.target())
+        .map_err(UiIntentPayloadStop::Targeting)
+}
+
+struct PayloadProjection<'basis> {
+    interaction: &'basis crate::runtime::interaction::UiSemanticInteraction,
+    payload_schema: crate::capability::UiIntentSchema,
+    generation: &'basis crate::facade::prepared_application_authority::
+        WorthUiPreparedApplicationGenerationIdentity,
+    mounted: &'basis crate::mounting::WorthUiMountedSessionState,
+    application_facts: &'basis UiIntentApplicationFactState,
+    values: Vec<UiIntentProjectedValue>,
+    query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
+    application_inputs: Vec<UiIntentApplicationInputReference>,
+    cost: UiIntentPayloadProjectionCost,
+}
+
+impl<'basis> PayloadProjection<'basis> {
+    fn new(
+        interaction: &'basis crate::runtime::interaction::UiSemanticInteraction,
+        payload_schema: crate::capability::UiIntentSchema,
+        generation: &'basis crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        mounted: &'basis crate::mounting::WorthUiMountedSessionState,
+        application_facts: &'basis UiIntentApplicationFactState,
+    ) -> Self {
+        Self {
+            interaction,
+            payload_schema,
+            generation,
+            mounted,
+            application_facts,
+            values: Vec::new(),
+            query_inputs: Vec::new(),
+            application_inputs: Vec::new(),
+            cost: Default::default(),
+        }
+    }
+
+    fn project(
+        &mut self,
+        binding: &UiResolvedIntentPayloadBinding,
+    ) -> Result<(), UiIntentPayloadStop> {
+        let field = binding.field();
+        let value = match binding.source() {
+            UiResolvedIntentPayloadSource::ProjectionText(projection) => {
+                self.projection_text(field, projection)?
+            }
+            UiResolvedIntentPayloadSource::ProjectionSelection(projection) => {
+                self.projection_selection(field, projection)?
+            }
+            UiResolvedIntentPayloadSource::CommittedDraft => self.committed_draft(field)?,
+            UiResolvedIntentPayloadSource::ConstantText(value) => {
+                self.text(field, Arc::clone(value))?
+            }
+            UiResolvedIntentPayloadSource::ConstantBoolean(value) => {
+                UiIntentProjectedValue::boolean(*value)
+            }
+            UiResolvedIntentPayloadSource::ConstantUnsigned64(value) => {
+                UiIntentProjectedValue::unsigned64(*value)
+            }
+            UiResolvedIntentPayloadSource::ApplicationText(fact) => {
+                self.application_text(field, fact)?
+            }
+            UiResolvedIntentPayloadSource::ApplicationBoolean(fact) => {
+                self.application_boolean(field, fact)?
+            }
+            UiResolvedIntentPayloadSource::ApplicationUnsigned64(fact) => {
+                self.application_unsigned64(field, fact)?
+            }
+        };
+        self.cost.record_field();
+        self.values.push(value);
+        Ok(())
+    }
+
+    fn projection_text(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        let input = self.current_projection(field, projection)?;
+        let value = match &input {
+            worth_ui_query_binding::UiProjectionInputFactReference::Scalar(fact) => fact
+                .value_reference()
+                .ok_or(UiIntentPayloadStop::ProjectionValueMissing {
+                    field: field.stable_name(),
+                })?,
+            worth_ui_query_binding::UiProjectionInputFactReference::Collection(_) => {
+                return Err(UiIntentPayloadStop::ProjectionShapeMismatch {
+                    field: field.stable_name(),
+                })
+            }
+        };
+        self.cost.record_query_input();
+        self.query_inputs.push(input);
+        self.text(field, value)
+    }
+
+    fn projection_selection(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        let crate::runtime::interaction::UiSemanticInteraction::SelectionCommit(selection) =
+            self.interaction
+        else {
+            return Err(UiIntentPayloadStop::SelectionInteractionRequired {
+                field: field.stable_name(),
+            });
+        };
+        let option = selection.option();
+        if option.owner_revision().projection_identity() != projection {
+            return Err(UiIntentPayloadStop::SelectionProjectionMismatch {
+                field: field.stable_name(),
+            });
+        }
+        let input = self.current_projection(field, projection)?;
+        let worth_ui_query_binding::UiProjectionInputFactReference::Collection(collection) = &input
+        else {
+            return Err(UiIntentPayloadStop::ProjectionShapeMismatch {
+                field: field.stable_name(),
+            });
+        };
+        if collection.revision() != option.owner_revision() {
+            return Err(UiIntentPayloadStop::SelectionRevisionChanged {
+                field: field.stable_name(),
+            });
+        }
+        self.cost.record_query_input();
+        self.query_inputs.push(input);
+        Ok(UiIntentProjectedValue::selection(
+            UiIntentSelectionValue::admitted(option.clone()),
+        ))
+    }
+
+    fn current_projection(
+        &self,
+        field: UiIntentPayloadFieldDescriptor,
+        projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    ) -> Result<worth_ui_query_binding::UiProjectionInputFactReference, UiIntentPayloadStop> {
+        let input = self
+            .mounted
+            .current_projection_input(projection)
+            .ok_or_else(|| UiIntentPayloadStop::ProjectionUnavailable {
+                field: field.stable_name(),
+                projection: projection.clone(),
+            })?;
+        if input.posture() != worth_ui_query_binding::UiProjectionInputPosture::Current {
+            return Err(UiIntentPayloadStop::ProjectionNotCurrent {
+                field: field.stable_name(),
+                posture: input.posture(),
+            });
+        }
+        Ok(input)
+    }
+
+    fn committed_draft(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        let crate::runtime::interaction::UiSemanticInteraction::EditCommit(draft) =
+            self.interaction
+        else {
+            return Err(UiIntentPayloadStop::DraftInteractionRequired {
+                field: field.stable_name(),
+            });
+        };
+        if draft.field().schema() != self.payload_schema || draft.field().field() != field {
+            return Err(UiIntentPayloadStop::DraftFieldMismatch {
+                field: field.stable_name(),
+            });
+        }
+        self.text(field, draft.committed_text_reference())
+    }
+
+    fn application_text(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        fact: &str,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        let input = self.application_input(field, fact, UiIntentPayloadFieldKind::Text)?;
+        let value = input
+            .text_value()
+            .expect("validated application text fact has text shape");
+        self.application_inputs.push(input);
+        self.text(field, value)
+    }
+
+    fn application_boolean(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        fact: &str,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        let input = self.application_input(field, fact, UiIntentPayloadFieldKind::Boolean)?;
+        let value = input
+            .boolean_value()
+            .expect("validated application boolean fact has boolean shape");
+        self.application_inputs.push(input);
+        Ok(UiIntentProjectedValue::boolean(value))
+    }
+
+    fn application_unsigned64(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        fact: &str,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        let input = self.application_input(field, fact, UiIntentPayloadFieldKind::Unsigned64)?;
+        let value = input
+            .unsigned64_value()
+            .expect("validated application unsigned fact has unsigned shape");
+        self.application_inputs.push(input);
+        Ok(UiIntentProjectedValue::unsigned64(value))
+    }
+
+    fn application_input(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        fact: &str,
+        expected: UiIntentPayloadFieldKind,
+    ) -> Result<UiIntentApplicationInputReference, UiIntentPayloadStop> {
+        let input = self
+            .application_facts
+            .input_reference(fact)
+            .ok_or_else(|| UiIntentPayloadStop::ApplicationFactUnavailable {
+                field: field.stable_name(),
+                fact: fact.into(),
+            })?;
+        if input.revision().generation() != self.generation {
+            return Err(UiIntentPayloadStop::ApplicationFactGenerationChanged {
+                field: field.stable_name(),
+                fact: fact.into(),
+            });
+        }
+        if input.kind() != expected {
+            return Err(UiIntentPayloadStop::ApplicationFactKindMismatch {
+                field: field.stable_name(),
+                fact: fact.into(),
+                observed: input.kind(),
+            });
+        }
+        self.cost.record_application_input();
+        Ok(input)
+    }
+
+    fn text(
+        &mut self,
+        field: UiIntentPayloadFieldDescriptor,
+        value: Arc<str>,
+    ) -> Result<UiIntentProjectedValue, UiIntentPayloadStop> {
+        if value.len() > field.byte_budget() {
+            return Err(UiIntentPayloadStop::TextByteBudgetExceeded {
+                field: field.stable_name(),
+                observed: value.len(),
+                maximum: field.byte_budget(),
+            });
+        }
+        self.cost.record_utf8_bytes(value.len());
+        Ok(UiIntentProjectedValue::text(value))
+    }
+
+    fn finish(
+        self,
+    ) -> (
+        Vec<UiIntentProjectedValue>,
+        Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
+        Vec<UiIntentApplicationInputReference>,
+        UiIntentPayloadProjectionCost,
+    ) {
+        (
+            self.values,
+            self.query_inputs,
+            self.application_inputs,
+            self.cost,
+        )
+    }
+}

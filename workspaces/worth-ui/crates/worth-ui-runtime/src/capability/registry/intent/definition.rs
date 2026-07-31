@@ -1,9 +1,10 @@
 use core::marker::PhantomData;
+use std::sync::Arc;
 
 use super::{
     UiIntentAcceptedInteractions, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
-    UiIntentProductOutcome, UiIntentRuntimeServiceDestination, UiIntentSchema,
-    UiIntentTransitionDestination,
+    UiIntentPayloadFieldSet, UiIntentProductOutcome, UiIntentRuntimeServiceDestination,
+    UiIntentSchema, UiIntentTransitionDestination,
 };
 
 /// Product-defined typed intent meaning.
@@ -63,13 +64,17 @@ impl<I: UiIntent> UiIntentDefinition<I> {
         self.destination
     }
 
-    pub(crate) fn erase(self) -> IntentDefinitionDescriptor {
-        IntentDefinitionDescriptor {
-            id: self.id(),
-            payload_schema: self.payload_schema(),
-            product_outcome_schema: self.product_outcome_schema(),
-            accepted_interactions: self.accepted_interactions(),
-            destination: self.destination,
+    pub(crate) fn erase(self) -> UiRegisteredIntentDefinition {
+        UiRegisteredIntentDefinition {
+            descriptor: IntentDefinitionDescriptor {
+                id: self.id(),
+                payload_schema: self.payload_schema(),
+                payload_fields: I::Payload::FIELDS,
+                product_outcome_schema: self.product_outcome_schema(),
+                accepted_interactions: self.accepted_interactions(),
+                destination: self.destination,
+            },
+            projector: Arc::new(super::UiTypedIntentPayloadProjector::<I>::new()),
         }
     }
 
@@ -85,6 +90,7 @@ impl<I: UiIntent> UiIntentDefinition<I> {
 pub struct IntentDefinitionDescriptor {
     id: UiIntentId,
     payload_schema: UiIntentSchema,
+    payload_fields: UiIntentPayloadFieldSet,
     product_outcome_schema: UiIntentSchema,
     accepted_interactions: UiIntentAcceptedInteractions,
     destination: UiIntentExecutionDestination,
@@ -99,6 +105,10 @@ impl IntentDefinitionDescriptor {
         self.payload_schema
     }
 
+    pub fn payload_fields(&self) -> UiIntentPayloadFieldSet {
+        self.payload_fields
+    }
+
     pub fn product_outcome_schema(&self) -> UiIntentSchema {
         self.product_outcome_schema
     }
@@ -109,5 +119,51 @@ impl IntentDefinitionDescriptor {
 
     pub fn execution_destination(&self) -> UiIntentExecutionDestination {
         self.destination
+    }
+}
+
+pub(crate) struct UiRegisteredIntentDefinition {
+    descriptor: IntentDefinitionDescriptor,
+    projector: Arc<dyn super::UiRegisteredIntentPayloadProjector>,
+}
+
+impl Clone for UiRegisteredIntentDefinition {
+    fn clone(&self) -> Self {
+        Self {
+            descriptor: self.descriptor.clone(),
+            projector: Arc::clone(&self.projector),
+        }
+    }
+}
+
+impl core::fmt::Debug for UiRegisteredIntentDefinition {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("UiRegisteredIntentDefinition")
+            .field("descriptor", &self.descriptor)
+            .finish()
+    }
+}
+
+impl PartialEq for UiRegisteredIntentDefinition {
+    fn eq(&self, other: &Self) -> bool {
+        self.descriptor == other.descriptor
+    }
+}
+
+impl Eq for UiRegisteredIntentDefinition {}
+
+impl UiRegisteredIntentDefinition {
+    pub(crate) fn descriptor(&self) -> &IntentDefinitionDescriptor {
+        &self.descriptor
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        IntentDefinitionDescriptor,
+        Arc<dyn super::UiRegisteredIntentPayloadProjector>,
+    ) {
+        (self.descriptor, self.projector)
     }
 }

@@ -18,8 +18,9 @@ pub use binding::{
 };
 pub(crate) use contract::UiLocalInputRecipientContractKind;
 pub use contract::{
-    UiDraftByteBudget, UiDraftByteBudgetDenial, UiLocalInputRecipientContract,
-    UiLocalInputRecipientFamily, UI_DRAFT_SESSION_LIMIT, UI_DRAFT_UTF8_BYTE_LIMIT,
+    UiDraftByteBudget, UiDraftByteBudgetDenial, UiDraftRecipientContractDenial,
+    UiLocalInputRecipientContract, UiLocalInputRecipientFamily, UI_DRAFT_SESSION_LIMIT,
+    UI_DRAFT_UTF8_BYTE_LIMIT,
 };
 pub use identity::{UiDraftFieldIdentity, UiDraftSessionIdentity};
 pub use stop::{UiLocalInputStop, UiLocalInputStopReason};

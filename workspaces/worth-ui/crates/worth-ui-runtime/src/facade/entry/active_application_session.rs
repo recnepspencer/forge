@@ -17,6 +17,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) mounted: crate::mounting::WorthUiMountedSessionState,
     pub(super) host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState,
     pub(super) interaction: crate::runtime::interaction::UiInteractionRuntimeState,
+    pub(super) intent_application_facts: crate::runtime::intent::UiIntentApplicationFactState,
     pub(super) visual_inspection:
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
@@ -45,6 +46,11 @@ impl WorthUiActiveApplicationSession {
         let host_observation_capacity = app.host_observation_capacity();
         let visual_policy = app.visual_inspection_policy();
         let rebind_profile = app.prepared_authority().change_profile().rebind();
+        let intent_application_facts =
+            crate::runtime::intent::UiIntentApplicationFactState::activate(
+                app.prepared_authority().intent_application_fact_plan(),
+                app.generation_identity().clone(),
+            );
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
@@ -66,6 +72,7 @@ impl WorthUiActiveApplicationSession {
                 host_observation_capacity,
             ),
             interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(),
+            intent_application_facts,
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,

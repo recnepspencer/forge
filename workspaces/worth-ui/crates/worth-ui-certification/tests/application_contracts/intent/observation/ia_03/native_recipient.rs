@@ -1,5 +1,5 @@
 use worth_ui::facade::interaction::{
-    UiDraftByteBudget, UiInteractionBatchReceipt, UiInteractionStop, UiInteractionTransition,
+    UiInteractionBatchReceipt, UiInteractionStop, UiInteractionTransition,
     UiLocalInputRecipientContract, UiLocalInputRecipientFamily, UiLocalInputStopReason,
     UiSemanticInteraction,
 };
@@ -32,10 +32,7 @@ fn bind_native_draft(world: &mut InteractionWorld) {
     let mut activation_outcomes = activation_ingress.into_runtime().into_vec();
     assert_eq!(activation_outcomes.len(), 1);
     let activation = take_pointer_activation(activation_outcomes.remove(0));
-    let contract = draft_recipient_contract_for_certification(
-        7,
-        UiDraftByteBudget::new(32).expect("fixture budget is bounded"),
-    );
+    let contract = draft_recipient_contract_for_certification();
     let admission = world
         .session
         .bind_local_input_recipient(activation, contract)
@@ -110,10 +107,7 @@ fn assert_native_teardown(world: InteractionWorld) {
 fn mounted_recipient_replacement_and_shutdown_settle_every_owner_once() {
     let mut world = InteractionWorld::canonical();
     let first = completed_activation(&mut world, 1);
-    let draft = draft_recipient_contract_for_certification(
-        1,
-        UiDraftByteBudget::new(8).expect("fixture budget is bounded"),
-    );
+    let draft = draft_recipient_contract_for_certification();
     world
         .session
         .bind_local_input_recipient(first, draft)

@@ -90,7 +90,8 @@ impl UiMountedDeltaScope {
     }
 
     fn has_work(&self) -> bool {
-        !self.changed.is_empty()
+        self.declared_semantic_changed
+            || !self.changed.is_empty()
             || !self.retired.is_empty()
             || !self.changed_surfaces.is_empty()
             || !self.removed_surfaces.is_empty()

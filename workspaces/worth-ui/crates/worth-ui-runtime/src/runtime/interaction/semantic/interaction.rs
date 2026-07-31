@@ -2,6 +2,7 @@
 pub enum UiSemanticInteraction {
     Activate(super::UiActivateInteraction),
     EditCommit(super::UiEditCommitInteraction),
+    SelectionCommit(super::UiSelectionCommitInteraction),
     Submit(super::UiSubmitInteraction),
 }
 
@@ -10,6 +11,9 @@ impl UiSemanticInteraction {
         match self {
             Self::Activate(_) => crate::capability::UiSemanticInteractionFamily::Activate,
             Self::EditCommit(_) => crate::capability::UiSemanticInteractionFamily::EditCommit,
+            Self::SelectionCommit(_) => {
+                crate::capability::UiSemanticInteractionFamily::SelectionCommit
+            }
             Self::Submit(_) => crate::capability::UiSemanticInteractionFamily::Submit,
         }
     }
@@ -18,7 +22,20 @@ impl UiSemanticInteraction {
         match self {
             Self::Activate(interaction) => interaction.target(),
             Self::EditCommit(interaction) => interaction.target(),
+            Self::SelectionCommit(interaction) => interaction.target(),
             Self::Submit(interaction) => interaction.target(),
+        }
+    }
+
+    pub const fn generation(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        match self {
+            Self::Activate(interaction) => interaction.generation(),
+            Self::EditCommit(interaction) => interaction.generation(),
+            Self::SelectionCommit(interaction) => interaction.generation(),
+            Self::Submit(interaction) => interaction.generation(),
         }
     }
 }

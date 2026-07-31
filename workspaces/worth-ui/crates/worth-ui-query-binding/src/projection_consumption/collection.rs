@@ -48,6 +48,10 @@ impl UiCollectionProjectionRowReference {
     pub fn identity_for_reporting(&self) -> &str {
         self.query_row_identity.terminal_projection_for_reporting()
     }
+
+    pub(crate) fn query_row_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.query_row_identity
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]

@@ -108,7 +108,7 @@ pub(crate) fn prepare_projection(
         })?,
         _ => None,
     };
-    let build = match delta {
+    let mut build = match delta {
         Some(build) => build,
         None => build_full_projection(UiMountedFullProjectionInput {
             state,
@@ -118,6 +118,9 @@ pub(crate) fn prepare_projection(
             changes: &projection_changes,
         })?,
     };
+    build
+        .semantic
+        .apply_projection_inputs(input.semantic_content);
     let counters = begin_build_counters(build.cost, build.replaced_order_rows)?;
     Ok(UiPreparedMountedProjection::new(
         UiPreparedMountedProjectionInput {

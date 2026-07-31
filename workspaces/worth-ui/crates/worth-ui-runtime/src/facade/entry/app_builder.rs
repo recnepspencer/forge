@@ -11,6 +11,7 @@ use crate::facade::WorthUiApp;
 use crate::graph::UiGraphWorldProfile;
 use crate::runtime::WorthUiWatchedCandidateSubmission;
 
+mod application_fact_registration;
 mod capability_registration;
 mod intent_registration;
 mod query_registration;
@@ -30,6 +31,7 @@ pub struct WorthUiApplicationBuilder<ChangeProfileState = UiChangeProfileInstall
     runtime_instance_basis_admissions: Vec<crate::graph::UiRuntimeInstanceBasisAdmission>,
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     change_profile: ChangeProfileState,
 }
 
@@ -61,6 +63,7 @@ impl WorthUiApplicationBuilder<UiChangeProfileMissing> {
             runtime_instance_basis_admissions: Vec::new(),
             measurement_inspection_evidence: Vec::new(),
             query_binding_plan: Default::default(),
+            intent_application_facts: Default::default(),
             change_profile: UiChangeProfileMissing { _sealed: () },
         }
     }
@@ -183,6 +186,7 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
             runtime_instance_basis_admissions: self.runtime_instance_basis_admissions,
             measurement_inspection_evidence: self.measurement_inspection_evidence,
             query_binding_plan: self.query_binding_plan,
+            intent_application_facts: self.intent_application_facts,
             change_profile,
         }
     }
@@ -233,6 +237,7 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled> {
                     .measurement_inspection_evidence
                     .into_boxed_slice(),
                 query_binding_plan: self.query_binding_plan,
+                intent_application_facts: self.intent_application_facts,
                 change_profile: self.change_profile.profile,
             })?,
         ))

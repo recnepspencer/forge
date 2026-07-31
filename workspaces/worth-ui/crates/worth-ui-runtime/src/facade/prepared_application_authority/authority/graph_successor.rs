@@ -150,6 +150,7 @@ impl WorthUiPreparedApplicationAuthority {
                 semantic_package: self.semantic_handoff.identity().clone(),
                 graph_authority_digest: graph_snapshot.authority_digest(),
                 query_binding_plan: &self.query_binding_plan,
+                intent_application_fact_digest: self.intent_application_facts.digest_basis(),
                 host_session_plan: &self.host_session_plan,
                 visual_inspection_policy: self.visual_inspection_policy,
                 change_profile: self.change_profile,

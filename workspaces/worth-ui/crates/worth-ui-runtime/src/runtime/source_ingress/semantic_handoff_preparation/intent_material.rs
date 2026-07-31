@@ -1,6 +1,7 @@
 use worth_ui_dsl::{
-    UiDslSemanticFamily, WorthUiArtifactInputProvenance, WorthUiIntentInteractionFamily,
-    WorthUiIntentInteractionRoute, WorthUiSealedSemanticPackage, WorthUiSemanticDeclaration,
+    UiDslSemanticFamily, WorthUiArtifactInputProvenance, WorthUiIntentDeclarationMeaning,
+    WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute, WorthUiIntentPayloadSourceSpec,
+    WorthUiSealedSemanticPackage, WorthUiSemanticDeclaration,
 };
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -12,16 +13,7 @@ pub(crate) struct WorthUiAuthoredIntentMaterial {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthUiAuthoredIntentDeclaration {
     identity: Box<str>,
-    definition_reference: Box<str>,
-    interaction: WorthUiIntentInteractionFamily,
-    expected_payload_schema: Option<WorthUiAuthoredIntentSchemaExpectation>,
-    expected_outcome_schema: Option<WorthUiAuthoredIntentSchemaExpectation>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct WorthUiAuthoredIntentSchemaExpectation {
-    identity: Box<str>,
-    version: u16,
+    meaning: WorthUiIntentDeclarationMeaning,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -38,27 +30,10 @@ pub(crate) enum WorthUiAuthoredIntentMaterialDenial {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum WorthUiAuthoredIntentDeclarationDenial {
+    MissingStructuredMeaning,
     UnexpectedSemanticSurface,
-    MissingDefinition,
-    DuplicateDefinition,
-    MissingInteraction,
-    DuplicateInteraction,
-    InvalidInteraction,
-    DuplicatePayloadSchema,
-    InvalidPayloadSchema,
-    DuplicateOutcomeSchema,
-    InvalidOutcomeSchema,
-    UnsupportedPostureToken(Box<str>),
-}
-
-struct WorthUiAuthoredIntentDeclarationDraft {
-    identity: Box<str>,
-    definition: Option<Box<str>>,
-    interaction: Option<WorthUiIntentInteractionFamily>,
-    payload_schema: Option<WorthUiAuthoredIntentSchemaExpectation>,
-    outcome_schema: Option<WorthUiAuthoredIntentSchemaExpectation>,
 }
 
 pub(crate) fn prepare_authored_intent_material(
@@ -75,7 +50,7 @@ pub(crate) fn prepare_authored_intent_material(
                 WorthUiSemanticDeclaration::SemanticArtifact(artifact)
                     if artifact.declaration().family() == UiDslSemanticFamily::Intent =>
                 {
-                    declarations.push(parse_declaration(artifact.declaration())?);
+                    declarations.push(admit_declaration(artifact.declaration())?);
                 }
                 WorthUiSemanticDeclaration::Component(component) => {
                     let target_provenance_digest = provenance_digest(view.provenance());
@@ -101,178 +76,27 @@ pub(crate) fn prepare_authored_intent_material(
     })
 }
 
-fn parse_declaration(
+fn admit_declaration(
     declaration: &worth_ui_dsl::WorthUiSemanticArtifactDeclaration,
 ) -> Result<WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterialDenial> {
     let identity: Box<str> = declaration.key().as_str().into();
-    validate_declaration_surface(declaration, &identity)?;
-    let mut draft = WorthUiAuthoredIntentDeclarationDraft::new(identity);
-    for token in declaration.posture_tokens() {
-        draft.admit_posture_token(token.as_str())?;
-    }
-    draft.finish()
-}
-
-fn validate_declaration_surface(
-    declaration: &worth_ui_dsl::WorthUiSemanticArtifactDeclaration,
-    identity: &Box<str>,
-) -> Result<(), WorthUiAuthoredIntentMaterialDenial> {
     if !declaration.published_aspects().is_empty()
         || !declaration.consumed_aspects().is_empty()
         || !declaration.structural_tokens().is_empty()
         || !declaration.support_tokens().is_empty()
     {
         return Err(invalid(
-            identity.clone(),
+            identity,
             WorthUiAuthoredIntentDeclarationDenial::UnexpectedSemanticSurface,
         ));
     }
-    Ok(())
-}
-
-impl WorthUiAuthoredIntentDeclarationDraft {
-    fn new(identity: Box<str>) -> Self {
-        Self {
-            identity,
-            definition: None,
-            interaction: None,
-            payload_schema: None,
-            outcome_schema: None,
-        }
-    }
-
-    fn admit_posture_token(
-        &mut self,
-        token: &str,
-    ) -> Result<(), WorthUiAuthoredIntentMaterialDenial> {
-        if token == "intent:standalone" {
-            return Ok(());
-        }
-        if let Some(value) = token.strip_prefix("definition:") {
-            return set_once(
-                &self.identity,
-                &mut self.definition,
-                value.into(),
-                WorthUiAuthoredIntentDeclarationDenial::DuplicateDefinition,
-            );
-        }
-        if let Some(value) = token.strip_prefix("interaction:") {
-            return self.admit_interaction(value);
-        }
-        if let Some(value) = token.strip_prefix("payload-schema:") {
-            return self.admit_payload_schema(value);
-        }
-        if let Some(value) = token.strip_prefix("outcome-schema:") {
-            return self.admit_outcome_schema(value);
-        }
-        Err(invalid(
-            self.identity.clone(),
-            WorthUiAuthoredIntentDeclarationDenial::UnsupportedPostureToken(token.into()),
-        ))
-    }
-
-    fn admit_interaction(
-        &mut self,
-        authored: &str,
-    ) -> Result<(), WorthUiAuthoredIntentMaterialDenial> {
-        let family = WorthUiIntentInteractionFamily::parse(authored).ok_or_else(|| {
-            invalid(
-                self.identity.clone(),
-                WorthUiAuthoredIntentDeclarationDenial::InvalidInteraction,
-            )
-        })?;
-        set_once(
-            &self.identity,
-            &mut self.interaction,
-            family,
-            WorthUiAuthoredIntentDeclarationDenial::DuplicateInteraction,
+    let meaning = declaration.intent_declaration().cloned().ok_or_else(|| {
+        invalid(
+            identity.clone(),
+            WorthUiAuthoredIntentDeclarationDenial::MissingStructuredMeaning,
         )
-    }
-
-    fn admit_payload_schema(
-        &mut self,
-        authored: &str,
-    ) -> Result<(), WorthUiAuthoredIntentMaterialDenial> {
-        let schema = self.parse_schema(
-            authored,
-            WorthUiAuthoredIntentDeclarationDenial::InvalidPayloadSchema,
-        )?;
-        set_once(
-            &self.identity,
-            &mut self.payload_schema,
-            schema,
-            WorthUiAuthoredIntentDeclarationDenial::DuplicatePayloadSchema,
-        )
-    }
-
-    fn admit_outcome_schema(
-        &mut self,
-        authored: &str,
-    ) -> Result<(), WorthUiAuthoredIntentMaterialDenial> {
-        let schema = self.parse_schema(
-            authored,
-            WorthUiAuthoredIntentDeclarationDenial::InvalidOutcomeSchema,
-        )?;
-        set_once(
-            &self.identity,
-            &mut self.outcome_schema,
-            schema,
-            WorthUiAuthoredIntentDeclarationDenial::DuplicateOutcomeSchema,
-        )
-    }
-
-    fn parse_schema(
-        &self,
-        authored: &str,
-        denial: WorthUiAuthoredIntentDeclarationDenial,
-    ) -> Result<WorthUiAuthoredIntentSchemaExpectation, WorthUiAuthoredIntentMaterialDenial> {
-        parse_schema(authored).ok_or_else(|| invalid(self.identity.clone(), denial))
-    }
-
-    fn finish(
-        self,
-    ) -> Result<WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterialDenial> {
-        let definition_reference = self.definition.ok_or_else(|| {
-            invalid(
-                self.identity.clone(),
-                WorthUiAuthoredIntentDeclarationDenial::MissingDefinition,
-            )
-        })?;
-        let interaction = self.interaction.ok_or_else(|| {
-            invalid(
-                self.identity.clone(),
-                WorthUiAuthoredIntentDeclarationDenial::MissingInteraction,
-            )
-        })?;
-        Ok(WorthUiAuthoredIntentDeclaration {
-            identity: self.identity,
-            definition_reference,
-            interaction,
-            expected_payload_schema: self.payload_schema,
-            expected_outcome_schema: self.outcome_schema,
-        })
-    }
-}
-
-fn set_once<T>(
-    identity: &Box<str>,
-    slot: &mut Option<T>,
-    value: T,
-    denial: WorthUiAuthoredIntentDeclarationDenial,
-) -> Result<(), WorthUiAuthoredIntentMaterialDenial> {
-    if slot.replace(value).is_some() {
-        return Err(invalid(identity.clone(), denial));
-    }
-    Ok(())
-}
-
-fn parse_schema(value: &str) -> Option<WorthUiAuthoredIntentSchemaExpectation> {
-    let (identity, version) = value.rsplit_once('@')?;
-    let version = version.parse::<u16>().ok()?;
-    (!identity.is_empty() && version > 0).then(|| WorthUiAuthoredIntentSchemaExpectation {
-        identity: identity.into(),
-        version,
-    })
+    })?;
+    Ok(WorthUiAuthoredIntentDeclaration { identity, meaning })
 }
 
 fn invalid(
@@ -318,33 +142,27 @@ impl WorthUiAuthoredIntentDeclaration {
     }
 
     pub(crate) fn definition_reference(&self) -> &str {
-        &self.definition_reference
+        self.meaning.definition_reference()
     }
 
     pub(crate) const fn interaction(&self) -> WorthUiIntentInteractionFamily {
-        self.interaction
+        self.meaning.interaction()
     }
 
     pub(crate) fn expected_payload_schema(
         &self,
-    ) -> Option<&WorthUiAuthoredIntentSchemaExpectation> {
-        self.expected_payload_schema.as_ref()
+    ) -> Option<&worth_ui_dsl::WorthUiIntentSchemaExpectation> {
+        self.meaning.expected_payload_schema()
     }
 
     pub(crate) fn expected_outcome_schema(
         &self,
-    ) -> Option<&WorthUiAuthoredIntentSchemaExpectation> {
-        self.expected_outcome_schema.as_ref()
-    }
-}
-
-impl WorthUiAuthoredIntentSchemaExpectation {
-    pub(crate) fn identity(&self) -> &str {
-        &self.identity
+    ) -> Option<&worth_ui_dsl::WorthUiIntentSchemaExpectation> {
+        self.meaning.expected_outcome_schema()
     }
 
-    pub(crate) const fn version(&self) -> u16 {
-        self.version
+    pub(crate) fn payload_sources(&self) -> &[WorthUiIntentPayloadSourceSpec] {
+        self.meaning.payload_sources()
     }
 }
 
