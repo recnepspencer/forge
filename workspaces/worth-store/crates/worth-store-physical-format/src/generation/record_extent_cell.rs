@@ -5,7 +5,7 @@ use crate::{PhysicalExtentId, PhysicalGeneration, PhysicalGenerationOwner};
 /// Older physical extents may be segment-owned. C.5 record extents are not, so
 /// their generation cell must not invent a segment coordinate merely to reuse
 /// the older cell shape.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RecordExtentGenerationCell {
     extent_id: PhysicalExtentId,
     generation: PhysicalGeneration,

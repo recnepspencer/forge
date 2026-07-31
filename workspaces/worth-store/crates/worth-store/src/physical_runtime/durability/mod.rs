@@ -33,8 +33,8 @@ pub use data::{
     CertifiedPriorPageBasis, CertifiedPriorPageImage, IndeterminatePhysicalDataDispatch,
     PageWalBasis, PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome,
     PhysicalDataEffectSettlement, PhysicalDataEffectSource, PhysicalDataFrameIdentity,
-    PhysicalDataFrameKind, PhysicalDataSettlementFailureCause, PhysicalDataSettlementOutcome,
-    PhysicalRedoLsn, PhysicalRedoTargetClaim,
+    PhysicalDataFrameKind, PhysicalDataFrameSubject, PhysicalDataSettlementFailureCause,
+    PhysicalDataSettlementOutcome, PhysicalRedoLsn, PhysicalRedoTargetClaim,
 };
 pub(in crate::physical_runtime) use mutation::{
     AdmittedPhysicalMutation, AllocatedPhysicalMutationAttemptBinding,

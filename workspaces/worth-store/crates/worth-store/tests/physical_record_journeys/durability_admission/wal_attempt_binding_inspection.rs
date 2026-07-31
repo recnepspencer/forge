@@ -11,15 +11,12 @@ use worth_store_wal::artifact_store::{
     verify_bounded_wal_segment, BoundedWalSegmentVerificationRequest,
 };
 
-use self::decoder::{
+use super::super::{configuration, durability_with_group_limit, media, success};
+use super::independent_wal_oracle::{
     independent_canonical_redo, independent_frame_payload, independent_target_claim,
     inspect_attempt_binding, inspect_member_payload, split_member_payload, BindingField,
     BindingInspectionDenial, ExpectedAttemptBinding,
 };
-use super::super::{configuration, durability_with_group_limit, media, success};
-
-#[path = "wal_attempt_binding_inspection/decoder.rs"]
-mod decoder;
 
 #[test]
 fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() {

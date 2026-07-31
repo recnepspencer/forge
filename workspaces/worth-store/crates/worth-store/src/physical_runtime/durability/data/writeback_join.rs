@@ -149,7 +149,7 @@ fn validate(
         if effect.payload_digest() != frame.basis().resulting_payload_digest() {
             return Err(PhysicalDataSettlementFailureCause::PayloadSubstitution);
         }
-        if effect.effect_fate() != PhysicalWorkEffectFate::WriteCompleted
+        if !effect_has_completed_fate(effect)
             || effect.recovery() == PhysicalWorkRecoveryDisposition::InspectionRequired
         {
             return Err(PhysicalDataSettlementFailureCause::EffectNotCompleted);
@@ -172,4 +172,17 @@ fn validate(
         *count += 1;
     }
     Ok(())
+}
+
+fn effect_has_completed_fate(effect: &PhysicalDataEffectSettlement) -> bool {
+    matches!(
+        (effect.source(), effect.effect_fate()),
+        (
+            PhysicalDataEffectSource::NewArtifact,
+            PhysicalWorkEffectFate::PublicationCompleted
+        ) | (
+            PhysicalDataEffectSource::C6Writeback,
+            PhysicalWorkEffectFate::WriteCompleted
+        )
+    )
 }

@@ -1,6 +1,8 @@
 use sha2::{Digest, Sha256};
 use worth_proof::CanonicalVec;
-use worth_store_physical_format::{encode_data_frame_page_lsn, DurableFrameKind, PhysicalPageLsn};
+use worth_store_physical_format::{
+    encode_data_frame_page_lsn, DurableFrameKind, PhysicalPageLsn, PhysicalRecordFormatDeclaration,
+};
 use worth_store_wal::{LogSequenceNumber, WalLsnRange};
 
 use super::{
@@ -47,10 +49,11 @@ impl PreparedPhysicalDataFrame {
         prior: CertifiedPriorPageBasis,
         redo_ordinals: Vec<u32>,
         bytes: Vec<u8>,
+        format: PhysicalRecordFormatDeclaration,
     ) -> Result<Self, PhysicalDataPlanBindingDenial> {
         let kind = durable_kind(target.kind());
         if !prior.admits_target(target)
-            || bytes.len() != target.coordinate().length() as usize
+            || !target.admits_bytes(format, &bytes)
             || worth_store_physical_format::decode_data_frame_page_lsn(&bytes, kind)
                 != Ok(prior.page_lsn())
         {

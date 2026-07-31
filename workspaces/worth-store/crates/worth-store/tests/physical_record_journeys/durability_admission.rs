@@ -6,6 +6,10 @@ use worth_store::physical_runtime::{
     PhysicalRecordInitialization,
 };
 
+#[path = "durability_admission/data_durability.rs"]
+mod data_durability;
+#[path = "durability_admission/independent_wal_oracle.rs"]
+mod independent_wal_oracle;
 #[path = "durability_admission/mutation_preparation.rs"]
 mod mutation_preparation;
 #[path = "durability_admission/source_shape.rs"]

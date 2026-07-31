@@ -1,6 +1,8 @@
 use std::ops::Range;
 
-use worth_store::physical_runtime::{PhysicalDataFrameIdentity, PhysicalRedoTargetClaim};
+use worth_store::physical_runtime::{
+    PhysicalDataFrameIdentity, PhysicalDataFrameSubject, PhysicalRedoTargetClaim,
+};
 use worth_store_physical_format::RecordArtifactFile;
 
 const FRAME_HEADER_BYTES: usize = 116;
@@ -136,8 +138,26 @@ pub(super) fn independent_canonical_redo(
 
 fn independent_target_identity(target: PhysicalDataFrameIdentity) -> Vec<u8> {
     let coordinate = target.coordinate();
-    let mut bytes = Vec::with_capacity(32);
-    bytes.push(target.kind() as u8);
+    let mut bytes = Vec::with_capacity(96);
+    match target.subject() {
+        PhysicalDataFrameSubject::InlinePage(page) => {
+            bytes.push(target.kind() as u8);
+            bytes.extend_from_slice(&page.segment_id().get().to_le_bytes());
+            bytes.extend_from_slice(&page.page_id().get().to_le_bytes());
+            bytes.extend_from_slice(&page.generation().get().to_le_bytes());
+        }
+        PhysicalDataFrameSubject::ExtentChunk(chunk) => {
+            bytes.push(target.kind() as u8);
+            let record = chunk.record();
+            bytes.extend_from_slice(&record.allocation_epoch());
+            bytes.extend_from_slice(&record.ordinal().to_le_bytes());
+            bytes.extend_from_slice(&chunk.extent_cell().extent_id().get().to_le_bytes());
+            bytes.extend_from_slice(&chunk.extent_cell().generation().get().to_le_bytes());
+            bytes.extend_from_slice(&chunk.logical_bytes().to_le_bytes());
+            bytes.extend_from_slice(&chunk.logical_offset().to_le_bytes());
+            bytes.extend_from_slice(&chunk.ordinal().to_le_bytes());
+        }
+    }
     match coordinate.artifact() {
         RecordArtifactFile::Segment {
             segment,

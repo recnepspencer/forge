@@ -81,8 +81,13 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
     .ok_or(RecordAppendError::Denied(
         RecordAppendDenial::PublishedLayoutDamaged,
     ))?;
-    let image = super::super::publication::ExistingDataFrameImage::new(coordinate, page).ok_or(
-        RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged),
-    )?;
+    let image = super::super::publication::ExistingDataFrameImage::new(
+        geometry.page_cell(),
+        coordinate,
+        page,
+    )
+    .ok_or(RecordAppendError::Denied(
+        RecordAppendDenial::PublishedLayoutDamaged,
+    ))?;
     Ok(LoadedPublishedTailPage { image, geometry })
 }
