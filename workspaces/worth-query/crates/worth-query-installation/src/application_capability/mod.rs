@@ -2,6 +2,7 @@ mod authority_seal;
 mod canonical_basis;
 mod denial;
 mod installed_contract;
+mod plan_source;
 mod registry;
 
 #[cfg(test)]
@@ -17,4 +18,5 @@ pub use installed_contract::{
     WorthQueryCapabilityLookupEvidence, WorthQueryInstalledApplicationCapability,
     WorthQueryInstalledApplicationCapabilityIdentity,
 };
+pub use plan_source::WorthQueryInstalledApplicationCapabilityPlanSource;
 pub(crate) use registry::compile_capability_registry;

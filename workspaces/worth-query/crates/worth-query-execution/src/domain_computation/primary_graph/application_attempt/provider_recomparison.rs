@@ -39,9 +39,6 @@ fn evidence(
     WorthQueryMutationPreconditionComparisonEvidence {
         expected_version_count: preconditions.expected_version_count(),
         expected_fact_count: preconditions.expected_fact_count(),
-        identity: match preconditions.identity() {
-            Some(identity) => Some(*identity),
-            None => None,
-        },
+        identity: preconditions.identity().copied(),
     }
 }

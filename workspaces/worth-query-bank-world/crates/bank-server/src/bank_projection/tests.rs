@@ -327,7 +327,13 @@ fn source_account(snapshot: &BankSnapshot) -> AccountId {
 }
 
 pub(super) fn binding() -> BankOperationScopeBinding {
-    BankOperationScopeBinding::from_fingerprint_bytes([7; 32])
+    BankOperationScopeBinding::new(
+        1,
+        bank_domain::proposals::BankOperationScopeSchemaBinding::new(1, 1, [2; 32], [3; 32]),
+        "test-operation-authority",
+        bank_domain::proposals::BankOperationScopeEntityBinding::new(0, 1, 1),
+        bank_domain::proposals::BankOperationScopeEntityBinding::new(0, 7, 1),
+    )
 }
 
 pub(super) fn key(value: &str) -> BankIdempotencyKey {

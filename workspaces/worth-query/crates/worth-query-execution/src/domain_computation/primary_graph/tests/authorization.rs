@@ -76,8 +76,8 @@ fn current_installed_membership_mints_exact_operation_admission() {
     assert_eq!(admitted.relational_counters().reconstructive_graph_scans, 0);
     assert!(admitted.signal_dependency_count() >= 2);
     assert_eq!(
-        admitted.operation_scope_fingerprint(),
-        retried.operation_scope_fingerprint()
+        admitted.operation_scope_binding(),
+        retried.operation_scope_binding()
     );
     let warm_work = admitted.canonical_work().admission();
     assert_eq!(warm_work.basis_preparations(), 0);

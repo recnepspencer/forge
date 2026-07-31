@@ -87,6 +87,14 @@ impl RelationalAuthorizationPathPlan {
         self
     }
 
+    pub fn with_predicates(
+        mut self,
+        predicates: impl IntoIterator<Item = RelationalAuthorizationPredicate>,
+    ) -> Self {
+        self.predicates = predicates.into_iter().collect();
+        self
+    }
+
     pub fn with_entity_anchors(
         mut self,
         anchors: impl IntoIterator<Item = RelationalAuthorizationEntityAnchor>,

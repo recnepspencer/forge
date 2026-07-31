@@ -8,7 +8,7 @@ use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
 use super::bridge_observation::lower_bridge_observation;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeFingerprint,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
 };
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
@@ -36,6 +36,15 @@ where
         WorthQueryOperationAuthorizationDenial,
     > {
         admit_request(request, operation.operation())?;
+        if self
+            .authorization
+            .operation_requires_capability::<Input>(operation.operation())
+        {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::CapabilityRequired,
+                operation.operation(),
+            ));
+        }
         validate_static_authority(self, principal, scope_identity, operation)?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
@@ -119,7 +128,7 @@ where
             operation.binding_identity().clone(),
             operation.operation().to_string(),
             operation.authority_identity().to_string(),
-            operation_scope_fingerprint(self, principal, scope_identity, operation),
+            operation_scope_binding(self, principal, scope_identity, operation),
             scope_identity.entity_id(),
             scope_identity.entity_kind(),
             scope_identity.entity_name().to_string(),
@@ -233,13 +242,13 @@ where
     }
 }
 
-fn operation_scope_fingerprint<Schema, Principal, PrincipalIdentity, Operation, Input, Scope>(
+pub(super) fn operation_scope_binding<Schema, Principal, PrincipalIdentity, Operation, Input, Scope>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     scope: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-) -> WorthQueryOperationScopeFingerprint {
-    WorthQueryOperationScopeFingerprint::mint(
+) -> WorthQueryOperationScopeBinding {
+    WorthQueryOperationScopeBinding::mint(
         runtime.runtime.authority_identity(),
         operation.binding_identity(),
         operation.authority_identity(),
@@ -248,7 +257,14 @@ fn operation_scope_fingerprint<Schema, Principal, PrincipalIdentity, Operation, 
     )
 }
 
-fn validate_static_authority<Schema, Principal, PrincipalIdentity, Operation, Input, Scope>(
+pub(super) fn validate_static_authority<
+    Schema,
+    Principal,
+    PrincipalIdentity,
+    Operation,
+    Input,
+    Scope,
+>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     scope: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
@@ -317,7 +333,7 @@ fn validate_decision(
     }
 }
 
-fn admit_request(
+pub(super) fn admit_request(
     scope: &WorthQueryRequestScope,
     subject: &str,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {

@@ -15,6 +15,7 @@ use worth_relational::facade::authorization::{
 };
 use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
 
+use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
 use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
 
 static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
@@ -43,32 +44,7 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryAuthorizationC
     pub(in crate::domain_computation::primary_graph) bridge: BridgeAuthorizationDecisionEvidence,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryOperationScopeFingerprint {
-    runtime_authority: u64,
-    binding_identity: ApplicationSchemaBindingIdentity,
-    operation_authority_identity: Arc<str>,
-    principal: worth_relational::facade::identity::EntityId,
-    scope: worth_relational::facade::identity::EntityId,
-}
-
-impl WorthQueryOperationScopeFingerprint {
-    pub(super) fn mint(
-        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-        binding_identity: &ApplicationSchemaBindingIdentity,
-        operation_authority_identity: &str,
-        principal: worth_relational::facade::identity::EntityId,
-        scope: worth_relational::facade::identity::EntityId,
-    ) -> Self {
-        Self {
-            runtime_authority: runtime_authority.as_u64(),
-            binding_identity: binding_identity.clone(),
-            operation_authority_identity: Arc::from(operation_authority_identity),
-            principal,
-            scope,
-        }
-    }
-}
+use super::WorthQueryOperationScopeBinding;
 
 /// Query-owned proof that one installed operation was authorized for one exact
 /// current principal and typed scope.
@@ -90,7 +66,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     operation_authority_identity: Arc<str>,
     admission_identity: WorthQueryOperationAdmissionIdentity,
     resource_binding_identity: Arc<str>,
-    operation_scope_fingerprint: WorthQueryOperationScopeFingerprint,
+    operation_scope_binding: WorthQueryOperationScopeBinding,
     canonical_work: WorthQueryCanonicalWorkPhases,
     scope_entity_id: worth_relational::facade::identity::EntityId,
     scope_entity_kind: worth_relational::facade::identity::KindId,
@@ -101,6 +77,8 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     mutation_preconditions:
         super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
     requirements: Vec<WorthQueryAuthorizationCommitDependency>,
+    capability_input: Option<Input>,
+    capability_currentness: Option<WorthQueryCapabilityCurrentnessAuthority>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
 }
 
@@ -112,7 +90,7 @@ impl<Schema, Operation, Input, Scope>
         binding_identity: ApplicationSchemaBindingIdentity,
         operation: String,
         operation_authority_identity: String,
-        operation_scope_fingerprint: WorthQueryOperationScopeFingerprint,
+        operation_scope_binding: WorthQueryOperationScopeBinding,
         scope_entity_id: worth_relational::facade::identity::EntityId,
         scope_entity_kind: worth_relational::facade::identity::KindId,
         scope_entity_name: String,
@@ -139,7 +117,7 @@ impl<Schema, Operation, Input, Scope>
             operation_authority_identity: operation_authority_identity.into(),
             admission_identity,
             resource_binding_identity,
-            operation_scope_fingerprint,
+            operation_scope_binding,
             canonical_work,
             scope_entity_id,
             scope_entity_kind,
@@ -149,8 +127,20 @@ impl<Schema, Operation, Input, Scope>
             contracts,
             mutation_preconditions,
             requirements,
+            capability_input: None,
+            capability_currentness: None,
             _marker: PhantomData,
         })
+    }
+
+    pub(super) fn bind_capability_authority(
+        mut self,
+        input: Input,
+        currentness: WorthQueryCapabilityCurrentnessAuthority,
+    ) -> Self {
+        self.capability_input = Some(input);
+        self.capability_currentness = Some(currentness);
+        self
     }
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
@@ -234,6 +224,32 @@ impl<Schema, Operation, Input, Scope>
 
     pub fn authorization_requirement_count(&self) -> usize {
         self.requirements.len()
+    }
+
+    pub const fn capability_input(&self) -> Option<&Input> {
+        self.capability_input.as_ref()
+    }
+
+    pub fn installed_capability_authority_identity(&self) -> Option<&str> {
+        self.capability_currentness
+            .as_ref()
+            .map(WorthQueryCapabilityCurrentnessAuthority::capability_authority_identity)
+    }
+
+    pub fn capability_time_timeline(
+        &self,
+    ) -> Option<
+        worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline,
+    > {
+        self.capability_currentness
+            .as_ref()
+            .map(WorthQueryCapabilityCurrentnessAuthority::timeline)
+    }
+
+    pub fn capability_time_sample(&self) -> Option<&worth_foundational::facade::AspectValue> {
+        self.capability_currentness
+            .as_ref()
+            .map(WorthQueryCapabilityCurrentnessAuthority::sampled_value)
     }
 
     pub fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
@@ -340,8 +356,8 @@ impl<Schema, Operation, Input, Scope>
     /// Stable identity of the authenticated runtime, installed operation,
     /// principal, and typed scope. It intentionally excludes snapshot identity
     /// so an equivalent authorized retry can retain one idempotency intent.
-    pub const fn operation_scope_fingerprint(&self) -> &WorthQueryOperationScopeFingerprint {
-        &self.operation_scope_fingerprint
+    pub const fn operation_scope_binding(&self) -> &WorthQueryOperationScopeBinding {
+        &self.operation_scope_binding
     }
 }
 

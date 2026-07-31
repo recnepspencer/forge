@@ -42,7 +42,7 @@ impl BankCommitReceipt {
             .expected_fact_count()
     }
 
-    pub const fn precondition_comparison_identity(&self) -> &[u8; 32] {
+    pub const fn precondition_comparison_identity(&self) -> Option<&[u8; 32]> {
         self.application.precondition_comparison().identity()
     }
 

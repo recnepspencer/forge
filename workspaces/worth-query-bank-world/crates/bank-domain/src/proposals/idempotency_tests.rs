@@ -1,5 +1,6 @@
 use super::{
-    BankIdempotencyClaim, BankIdempotencyKey, BankOperationScopeBinding, CanonicalProposalPayload,
+    BankIdempotencyClaim, BankIdempotencyKey, BankOperationScopeBinding,
+    BankOperationScopeEntityBinding, BankOperationScopeSchemaBinding, CanonicalProposalPayload,
 };
 
 #[test]
@@ -93,7 +94,13 @@ fn field_locus_and_scalar_type_are_part_of_payload_identity() {
 
 fn claim(scope_byte: u8, key: &str, payload: CanonicalProposalPayload) -> BankIdempotencyClaim {
     BankIdempotencyClaim::derive(
-        BankOperationScopeBinding::from_fingerprint_bytes([scope_byte; 32]),
+        BankOperationScopeBinding::new(
+            1,
+            BankOperationScopeSchemaBinding::new(2, 3, [4; 32], [5; 32]),
+            "operation-authority",
+            BankOperationScopeEntityBinding::new(0, 6, 1),
+            BankOperationScopeEntityBinding::new(0, u64::from(scope_byte), 1),
+        ),
         &BankIdempotencyKey::new(key).expect("test idempotency key is valid"),
         payload,
     )

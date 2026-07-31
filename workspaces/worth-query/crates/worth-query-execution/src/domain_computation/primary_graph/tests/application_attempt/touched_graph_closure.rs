@@ -179,8 +179,8 @@ fn only_the_exact_projection_occurrence_can_enter_its_read_set() {
         )
         .unwrap();
     assert_eq!(
-        first_equivalent.operation_scope_fingerprint(),
-        second_equivalent.operation_scope_fingerprint(),
+        first_equivalent.operation_scope_binding(),
+        second_equivalent.operation_scope_binding(),
         "equivalent retries intentionally retain one descriptive scope identity"
     );
     let (_, first_projection, _) = world

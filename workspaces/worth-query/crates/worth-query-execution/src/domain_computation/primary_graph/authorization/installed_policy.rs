@@ -13,6 +13,10 @@ use worth_runtime_bridge::facade::{
 };
 
 use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
+use super::capability_registry::{
+    WorthQueryCapabilityPlanCompilationEvidence, WorthQueryInstalledCapabilityPlan,
+    WorthQueryInstalledCapabilityRegistry,
+};
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
 
@@ -42,6 +46,7 @@ pub(super) struct BridgePathBinding {
 pub(in crate::domain_computation::primary_graph) struct WorthQueryInstalledAuthorizationRegistry {
     bridge: BridgeAuthorizationRuntime,
     policies: BTreeMap<PolicyKey, WorthQueryInstalledAuthorizationPolicy>,
+    capabilities: WorthQueryInstalledCapabilityRegistry,
 }
 
 impl WorthQueryInstalledAuthorizationRegistry {
@@ -77,7 +82,13 @@ impl WorthQueryInstalledAuthorizationRegistry {
                 ));
             }
         }
-        Ok(Self { bridge, policies })
+        let capabilities =
+            WorthQueryInstalledCapabilityRegistry::compile(schema, layout, &mut bridge)?;
+        Ok(Self {
+            bridge,
+            policies,
+            capabilities,
+        })
     }
 
     pub(super) fn policy(
@@ -116,6 +127,28 @@ impl WorthQueryInstalledAuthorizationRegistry {
         &self,
     ) -> &BridgeAuthorizationRuntime {
         &self.bridge
+    }
+
+    pub(super) fn capability_plan<Schema, Capability, Operation, Input>(
+        &self,
+        capability: &worth_query_installation::facade::WorthQueryInstalledApplicationCapability<
+            Schema,
+            Capability,
+            Operation,
+            Input,
+        >,
+    ) -> Option<&WorthQueryInstalledCapabilityPlan> {
+        self.capabilities.plan(capability)
+    }
+
+    pub(super) fn operation_requires_capability<Input>(&self, operation: &str) -> bool {
+        self.capabilities.governs_operation::<Input>(operation)
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn capability_compilation(
+        &self,
+    ) -> WorthQueryCapabilityPlanCompilationEvidence {
+        self.capabilities.compilation()
     }
 }
 

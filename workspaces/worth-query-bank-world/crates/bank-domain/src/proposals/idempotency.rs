@@ -1,7 +1,7 @@
 use worth_foundational::facade::{
     canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
     CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalDigestAlgorithmId,
-    CanonicalDigestId, CanonicalizationRuleVersion,
+    CanonicalDigestId, CanonicalIntegerWidth, CanonicalizationRuleVersion,
 };
 
 use super::{BankProposalDenial, CanonicalProposalPayload};
@@ -34,17 +34,72 @@ impl BankIdempotencyKey {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct BankOperationScopeBinding(CanonicalDigestId);
+pub struct BankOperationScopeSchemaBinding {
+    runtime_ordinal: u64,
+    generation: u64,
+    package_identity: CanonicalDigestId,
+    schema_identity: CanonicalDigestId,
+}
+
+impl BankOperationScopeSchemaBinding {
+    pub const fn new(
+        runtime_ordinal: u64,
+        generation: u64,
+        package_identity: [u8; 32],
+        schema_identity: [u8; 32],
+    ) -> Self {
+        Self {
+            runtime_ordinal,
+            generation,
+            package_identity: CanonicalDigestId::new(package_identity),
+            schema_identity: CanonicalDigestId::new(schema_identity),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct BankOperationScopeEntityBinding {
+    partition_id: u32,
+    local_slot: u64,
+    generation: u32,
+}
+
+impl BankOperationScopeEntityBinding {
+    pub const fn new(partition_id: u32, local_slot: u64, generation: u32) -> Self {
+        Self {
+            partition_id,
+            local_slot,
+            generation,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct BankOperationScopeBinding {
+    runtime_authority: u64,
+    schema: BankOperationScopeSchemaBinding,
+    operation_authority_identity: String,
+    principal: BankOperationScopeEntityBinding,
+    scope: BankOperationScopeEntityBinding,
+}
 
 impl BankOperationScopeBinding {
-    /// Carries a descriptive Query operation-scope fingerprint into pure bank
-    /// proposal semantics. It is not itself an authorization proof.
-    pub const fn from_fingerprint_bytes(bytes: [u8; 32]) -> Self {
-        Self(CanonicalDigestId::new(bytes))
-    }
-
-    pub const fn bytes(self) -> [u8; 32] {
-        *self.0.bytes()
+    /// Retains Query's descriptive operation-scope components for the Bank
+    /// idempotency seam. This value carries no Query execution authority.
+    pub fn new(
+        runtime_authority: u64,
+        schema: BankOperationScopeSchemaBinding,
+        operation_authority_identity: impl Into<String>,
+        principal: BankOperationScopeEntityBinding,
+        scope: BankOperationScopeEntityBinding,
+    ) -> Self {
+        Self {
+            runtime_authority,
+            schema,
+            operation_authority_identity: operation_authority_identity.into(),
+            principal,
+            scope,
+        }
     }
 }
 
@@ -72,7 +127,38 @@ impl BankIdempotencyClaim {
             KEY_DOMAIN,
             KEY_RULE_VERSION,
             [
-                digest_entry(KEY_DOMAIN, "operation-scope", binding.0),
+                unsigned_entry(
+                    KEY_DOMAIN,
+                    "runtime-authority",
+                    binding.runtime_authority,
+                ),
+                unsigned_entry(
+                    KEY_DOMAIN,
+                    "schema-runtime",
+                    binding.schema.runtime_ordinal,
+                ),
+                unsigned_entry(
+                    KEY_DOMAIN,
+                    "schema-generation",
+                    binding.schema.generation,
+                ),
+                digest_entry(
+                    KEY_DOMAIN,
+                    "schema-package",
+                    binding.schema.package_identity,
+                ),
+                digest_entry(
+                    KEY_DOMAIN,
+                    "schema-identity",
+                    binding.schema.schema_identity,
+                ),
+                text_entry(
+                    KEY_DOMAIN,
+                    "operation-authority",
+                    &binding.operation_authority_identity,
+                ),
+                entity_entry(KEY_DOMAIN, "principal", binding.principal),
+                entity_entry(KEY_DOMAIN, "scope", binding.scope),
                 text_entry(KEY_DOMAIN, "operation", operation),
                 text_entry(KEY_DOMAIN, "client-key", key.as_str()),
             ],
@@ -163,6 +249,37 @@ fn digest_entry(
     value: CanonicalDigestId,
 ) -> CanonicalBasisEntry {
     entry(domain, locus, CanonicalBasisValue::BytesDigest(value))
+}
+
+fn unsigned_entry(
+    domain: CanonicalBasisDomain,
+    locus: &'static str,
+    value: u64,
+) -> CanonicalBasisEntry {
+    entry(
+        domain,
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: u128::from(value),
+        },
+    )
+}
+
+fn entity_entry(
+    domain: CanonicalBasisDomain,
+    locus: &'static str,
+    value: BankOperationScopeEntityBinding,
+) -> CanonicalBasisEntry {
+    entry(
+        domain,
+        locus,
+        CanonicalBasisValue::EntityRef {
+            partition_id: value.partition_id,
+            local_slot: value.local_slot,
+            generation: value.generation,
+        },
+    )
 }
 
 fn entry(

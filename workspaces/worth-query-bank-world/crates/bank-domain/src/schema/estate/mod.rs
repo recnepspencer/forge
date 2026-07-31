@@ -10,6 +10,7 @@ mod member_installation;
 mod policies;
 mod policy_installation;
 mod relations;
+mod request_projection;
 mod values;
 
 pub use capability_contracts::*;

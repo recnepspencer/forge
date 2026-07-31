@@ -78,7 +78,7 @@ fn real_query_binding_separates_principal_operation_and_scope_but_not_retry() {
             &request,
         )
         .unwrap()
-        .operation_scope_fingerprint();
+        .operation_scope_binding();
     let retry = world
         .runtime
         .authorize_deposit(
@@ -88,7 +88,7 @@ fn real_query_binding_separates_principal_operation_and_scope_but_not_retry() {
             &request_scope(),
         )
         .unwrap()
-        .operation_scope_fingerprint();
+        .operation_scope_binding();
     let principal_drift = world
         .runtime
         .authorize_deposit(
@@ -98,7 +98,7 @@ fn real_query_binding_separates_principal_operation_and_scope_but_not_retry() {
             &request,
         )
         .unwrap()
-        .operation_scope_fingerprint();
+        .operation_scope_binding();
     let operation_drift = world
         .runtime
         .authorize_withdrawal(
@@ -108,7 +108,7 @@ fn real_query_binding_separates_principal_operation_and_scope_but_not_retry() {
             &request,
         )
         .unwrap()
-        .operation_scope_fingerprint();
+        .operation_scope_binding();
     let scope_drift = world
         .runtime
         .authorize_deposit(
@@ -118,7 +118,7 @@ fn real_query_binding_separates_principal_operation_and_scope_but_not_retry() {
             &request,
         )
         .unwrap()
-        .operation_scope_fingerprint();
+        .operation_scope_binding();
 
     assert_eq!(baseline, retry);
     assert_ne!(baseline, principal_drift);

@@ -65,7 +65,9 @@ fn ordinary_send_money_carries_typed_preconditions_through_retry_receipts() {
     };
     assert_eq!(receipt.expected_version_count(), 1);
     assert_eq!(receipt.expected_fact_count(), 1);
-    let comparison_identity = *receipt.precondition_comparison_identity();
+    let comparison_identity = *receipt
+        .precondition_comparison_identity()
+        .expect("non-empty preconditions retain their comparison identity");
     assert_ne!(comparison_identity, [0; 32]);
     assert_warm_canonical_work_is_zero(receipt.canonical_work());
 
@@ -90,7 +92,7 @@ fn ordinary_send_money_carries_typed_preconditions_through_retry_receipts() {
     assert_eq!(recovered.commit_id(), receipt.commit_id());
     assert_eq!(
         recovered.precondition_comparison_identity(),
-        &comparison_identity
+        Some(&comparison_identity)
     );
     assert_eq!(recovered.canonical_work(), receipt.canonical_work());
     assert_warm_canonical_work_is_zero(recovered.canonical_work());

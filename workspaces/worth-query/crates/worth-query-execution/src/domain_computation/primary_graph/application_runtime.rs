@@ -153,6 +153,12 @@ where
         self.basis_leases.observer()
     }
 
+    pub fn capability_plan_compilation_evidence(
+        &self,
+    ) -> super::authorization::WorthQueryCapabilityPlanCompilationEvidence {
+        self.authorization.capability_compilation()
+    }
+
     #[cfg(test)]
     pub(crate) fn lose_next_commit_response(&self) {
         self.primary_provider.lose_next_commit_response();

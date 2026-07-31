@@ -103,6 +103,7 @@ pub mod facade {
         WorthQueryApplicationCapabilityInstallationDenialKind,
         WorthQueryCapabilityCanonicalArtifact, WorthQueryCapabilityLookupEvidence,
         WorthQueryInstalledApplicationCapability, WorthQueryInstalledApplicationCapabilityIdentity,
+        WorthQueryInstalledApplicationCapabilityPlanSource,
     };
     pub use crate::application_operation::{
         WorthQueryApplicationOperationInstallationDenial,

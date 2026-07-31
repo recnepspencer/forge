@@ -7,10 +7,13 @@ mod currentness;
 mod delegation;
 mod disclosure;
 mod reference;
+mod request_projection;
 mod rule_clause;
 mod scope;
 mod scope_narrowing;
 
+#[cfg(test)]
+mod request_projection_tests;
 #[cfg(test)]
 mod scope_narrowing_tests;
 
@@ -40,6 +43,12 @@ pub use delegation::ApplicationCapabilityDelegationRule;
 pub use disclosure::ApplicationCapabilityDisclosureRule;
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
+};
+pub use request_projection::{
+    ApplicationCapabilityContextEntitySelector, ApplicationCapabilityEntitySelector,
+    ApplicationCapabilityRelatedEntitySelector, ApplicationCapabilityRequest,
+    ApplicationCapabilityRequestContext, ApplicationCapabilityRequestProjection,
+    ApplicationCapabilityRequestProjectionDenial, ErasedApplicationCapabilityEntitySelector,
 };
 pub use rule_clause::{
     ApplicationCapabilityAcceptedValues, ApplicationCapabilityGraphClause,

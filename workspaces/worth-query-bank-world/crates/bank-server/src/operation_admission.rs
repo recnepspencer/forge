@@ -45,17 +45,40 @@ impl<Operation, Input, Scope, ScopeIdentity: Copy>
         self.query.operation()
     }
 
-    /// Descriptive canonical bytes retained from Query's authenticated
-    /// operation, principal, and typed scope binding. The bytes grant no
-    /// authority and cannot reconstruct this admission.
-    pub fn operation_scope_fingerprint(&self) -> [u8; 32] {
-        *self.query.operation_scope_fingerprint().bytes()
+    /// Descriptive components retained from Query's authenticated operation,
+    /// principal, and typed scope binding. They grant no authority and cannot
+    /// reconstruct this admission.
+    pub fn operation_scope_binding(
+        &self,
+    ) -> bank_domain::proposals::BankOperationScopeBinding {
+        let binding = self.query.operation_scope_binding();
+        let schema = binding.binding_identity();
+        let principal = binding.principal();
+        let scope = binding.scope();
+        bank_domain::proposals::BankOperationScopeBinding::new(
+            binding.runtime_authority(),
+            bank_domain::proposals::BankOperationScopeSchemaBinding::new(
+                schema.runtime_ordinal(),
+                schema.generation(),
+                *schema.package_identity().bytes(),
+                *schema.schema_identity().bytes(),
+            ),
+            binding.operation_authority_identity(),
+            bank_domain::proposals::BankOperationScopeEntityBinding::new(
+                principal.partition_id(),
+                principal.local_slot(),
+                principal.generation(),
+            ),
+            bank_domain::proposals::BankOperationScopeEntityBinding::new(
+                scope.partition_id(),
+                scope.local_slot(),
+                scope.generation(),
+            ),
+        )
     }
 
     pub(crate) fn idempotency_binding(&self) -> bank_domain::proposals::BankOperationScopeBinding {
-        bank_domain::proposals::BankOperationScopeBinding::from_fingerprint_bytes(
-            self.operation_scope_fingerprint(),
-        )
+        self.operation_scope_binding()
     }
 
     pub(crate) const fn query(
